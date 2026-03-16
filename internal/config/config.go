@@ -1,0 +1,80 @@
+package config
+
+import (
+	"time"
+
+	"github.com/spf13/viper"
+)
+
+type Config struct {
+	Server   ServerConfig   `mapstructure:"server"`
+	Database DatabaseConfig `mapstructure:"database"`
+	Auth     AuthConfig     `mapstructure:"auth"`
+	Git      GitConfig      `mapstructure:"git"`
+}
+
+type ServerConfig struct {
+	Port         int           `mapstructure:"port"`
+	Host         string        `mapstructure:"host"`
+	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
+	WriteTimeout time.Duration `mapstructure:"write_timeout"`
+}
+
+type DatabaseConfig struct {
+	Driver       string `mapstructure:"driver"`
+	DSN          string `mapstructure:"dsn"`
+	MaxOpenConns int    `mapstructure:"max_open_conns"`
+	MaxIdleConns int    `mapstructure:"max_idle_conns"`
+}
+
+type AuthConfig struct {
+	JWTSecret  string        `mapstructure:"jwt_secret"`
+	JWTExpiry  time.Duration `mapstructure:"jwt_expiry"`
+	CookieName string        `mapstructure:"cookie_name"`
+}
+
+type GitConfig struct {
+	ReposRoot string `mapstructure:"repos_root"`
+}
+
+func Load(cfgFile string) (*Config, error) {
+	v := viper.New()
+
+	// Defaults
+	v.SetDefault("server.port", 8080)
+	v.SetDefault("server.host", "0.0.0.0")
+	v.SetDefault("server.read_timeout", "15s")
+	v.SetDefault("server.write_timeout", "15s")
+	v.SetDefault("database.driver", "sqlite3")
+	v.SetDefault("database.dsn", "./cloudzilla.db")
+	v.SetDefault("database.max_open_conns", 10)
+	v.SetDefault("database.max_idle_conns", 5)
+	v.SetDefault("auth.jwt_secret", "change-me")
+	v.SetDefault("auth.jwt_expiry", "24h")
+	v.SetDefault("auth.cookie_name", "cz_token")
+	v.SetDefault("git.repos_root", "./git-repos")
+
+	// Env overrides
+	v.SetEnvPrefix("CZ")
+	v.AutomaticEnv()
+
+	if cfgFile != "" {
+		v.SetConfigFile(cfgFile)
+	} else {
+		v.SetConfigName("config")
+		v.SetConfigType("yaml")
+		v.AddConfigPath(".")
+	}
+
+	if err := v.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			return nil, err
+		}
+	}
+
+	var cfg Config
+	if err := v.Unmarshal(&cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}

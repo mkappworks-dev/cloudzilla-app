@@ -1,0 +1,19 @@
+server:
+  port: 8080
+  host: "0.0.0.0"
+  read_timeout: 15s
+  write_timeout: 15s
+
+database:
+  driver: sqlite3
+  dsn: ./cloudzilla.db
+  max_open_conns: 10
+  max_idle_conns: 5
+
+auth:
+  jwt_secret: change-me
+  jwt_expiry: 24h
+  cookie_name: cz_token
+
+git:
+  repos_root: ./git-repos
