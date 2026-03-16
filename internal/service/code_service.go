@@ -20,6 +20,22 @@ import (
 // ErrEmptyRepo is returned when a repository has no commits.
 var ErrEmptyRepo = errors.New("repository is empty")
 
+type BranchInfo struct {
+	Name      string
+	Hash      string
+	IsDefault bool
+}
+
+type TagInfo struct {
+	Name string
+	Hash string
+}
+
+type RefsResult struct {
+	Branches []BranchInfo
+	Tags     []TagInfo
+}
+
 type BreadcrumbPart struct {
 	Name string
 	URL  string
@@ -591,6 +607,105 @@ func buildHunks(chunks []gogitdiff.Chunk) []DiffHunk {
 		hunks = append(hunks, DiffHunk{Header: header, Lines: hunkLines})
 	}
 	return hunks
+}
+
+// ListRefs returns all branches and tags for a repository.
+func (s *CodeService) ListRefs(owner, repoName, defaultBranch string) (*RefsResult, error) {
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return nil, err
+	}
+
+	var branches []BranchInfo
+	branchIter, err := repo.Branches()
+	if err != nil {
+		return nil, err
+	}
+	_ = branchIter.ForEach(func(ref *plumbing.Reference) error {
+		hash := ref.Hash().String()
+		if len(hash) > 7 {
+			hash = hash[:7]
+		}
+		branches = append(branches, BranchInfo{
+			Name:      ref.Name().Short(),
+			Hash:      hash,
+			IsDefault: ref.Name().Short() == defaultBranch,
+		})
+		return nil
+	})
+	sort.Slice(branches, func(i, j int) bool { return branches[i].Name < branches[j].Name })
+
+	var tags []TagInfo
+	tagIter, err := repo.Tags()
+	if err != nil {
+		return nil, err
+	}
+	_ = tagIter.ForEach(func(ref *plumbing.Reference) error {
+		hash := ref.Hash().String()
+		if len(hash) > 7 {
+			hash = hash[:7]
+		}
+		tags = append(tags, TagInfo{
+			Name: ref.Name().Short(),
+			Hash: hash,
+		})
+		return nil
+	})
+	sort.Slice(tags, func(i, j int) bool { return tags[i].Name < tags[j].Name })
+
+	return &RefsResult{Branches: branches, Tags: tags}, nil
+}
+
+// CreateBranch creates a new branch pointing to the resolved fromRef commit.
+func (s *CodeService) CreateBranch(owner, repoName, name, fromRef string) error {
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return err
+	}
+	if _, err := repo.Reference(plumbing.NewBranchReferenceName(name), true); err == nil {
+		return errors.New("branch already exists: " + name)
+	}
+	commit, _, err := resolveRef(repo, fromRef)
+	if err != nil {
+		return fmt.Errorf("from ref not found: %w", err)
+	}
+	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(name), commit.Hash)
+	return repo.Storer.SetReference(ref)
+}
+
+// DeleteBranch removes the named branch reference.
+func (s *CodeService) DeleteBranch(owner, repoName, name string) error {
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return err
+	}
+	return repo.Storer.RemoveReference(plumbing.NewBranchReferenceName(name))
+}
+
+// CreateTag creates a new lightweight tag pointing to the resolved fromRef commit.
+func (s *CodeService) CreateTag(owner, repoName, name, fromRef string) error {
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return err
+	}
+	if _, err := repo.Reference(plumbing.NewTagReferenceName(name), true); err == nil {
+		return errors.New("tag already exists: " + name)
+	}
+	commit, _, err := resolveRef(repo, fromRef)
+	if err != nil {
+		return fmt.Errorf("from ref not found: %w", err)
+	}
+	ref := plumbing.NewHashReference(plumbing.NewTagReferenceName(name), commit.Hash)
+	return repo.Storer.SetReference(ref)
+}
+
+// DeleteTag removes the named tag reference.
+func (s *CodeService) DeleteTag(owner, repoName, name string) error {
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return err
+	}
+	return repo.Storer.RemoveReference(plumbing.NewTagReferenceName(name))
 }
 
 // GetBlame returns per-line blame information.
