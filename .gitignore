@@ -1,7 +1,6 @@
 # Go
 /dist/
-cmd/server/frontend/*
-!cmd/server/frontend/.gitkeep
+cmd/server/frontend/static/main.css
 *.exe
 *.test
 *.out
@@ -11,11 +10,8 @@ cloudzilla.db-shm
 cloudzilla.db-wal
 git-repos/
 
-# Node
-web/node_modules/
-web/.vinxi/
-web/.output/
-web/dist/
+# Tailwind
+bin/tailwindcss*
 
 # Config
 .env
