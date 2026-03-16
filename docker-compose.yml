@@ -1,0 +1,21 @@
+services:
+  cloudzilla:
+    build: .
+    image: cloudzilla:latest
+    ports:
+      - "8080:8080"
+      - "2222:2222"
+    volumes:
+      - cloudzilla_data:/data
+    environment:
+      CZ_DATABASE_DSN: /data/cloudzilla.db
+      CZ_GIT_REPOS_ROOT: /data/git-repos
+      CZ_GIT_SSH_HOST_KEY: /data/cloudzilla_host_key
+      CZ_AUTH_JWT_SECRET: change-me-in-production
+      CZ_AUTH_JWT_EXPIRY: 24h
+      CZ_SERVER_PORT: 8080
+      CZ_GIT_SSH_PORT: 2222
+    restart: unless-stopped
+
+volumes:
+  cloudzilla_data:

@@ -1,0 +1,36 @@
+# Build artifacts
+dist/
+bin/
+vendor/
+*.exe
+*.test
+*.out
+server
+cloudzilla
+
+# Runtime data (never bake into image)
+git-repos/
+cloudzilla.db
+cloudzilla.db-shm
+cloudzilla.db-wal
+cloudzilla_host_key
+
+# Compiled CSS (rebuilt in Docker)
+cmd/server/frontend/static/main.css
+
+# Dev and config files
+*.env
+*.local.yaml
+config.yaml
+
+# Git
+.git/
+.gitignore
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Docs / meta
+*.md
+LICENSE

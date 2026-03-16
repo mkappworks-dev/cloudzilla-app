@@ -1,4 +1,4 @@
-.PHONY: dev build migrate lint test clean setup-tailwind build-css
+.PHONY: dev build migrate lint test clean setup-tailwind build-css docker-build docker-run docker-down
 
 BINARY := dist/cloudzilla
 GO := /usr/local/go/bin/go
@@ -60,3 +60,12 @@ test:
 clean:
 	rm -rf dist/
 	rm -f $(TAILWIND_OUT) cloudzilla.db cloudzilla.db-shm cloudzilla.db-wal
+
+docker-build:              ## Build Docker image
+	docker build -t cloudzilla:latest .
+
+docker-run:                ## Start with docker compose (detached)
+	docker compose up -d
+
+docker-down:               ## Stop and remove containers
+	docker compose down
