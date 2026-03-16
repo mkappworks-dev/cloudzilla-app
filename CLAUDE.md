@@ -378,9 +378,40 @@ The ref badge on tree and commits pages links to `/{owner}/{repo}/refs` (via `Re
 
 ---
 
+## Pull Request Merge (Fast-Forward Only)
+
+When a PR is merged via the web UI, Cloudzilla performs a real **fast-forward git merge** — it advances the base branch ref to the head tip using go-git. No merge commit is created.
+
+**Merge strategy:** fast-forward only. go-git has no native three-way merge. Non-FF PRs (diverged branches) show a "cannot merge automatically" warning directing the developer to rebase locally and push.
+
+**Diff view:** The PR detail page shows a full file diff between base and head tips for open PRs. Diff is omitted for closed/merged PRs.
+
+**Merge flow:**
+1. `PagePullDetail` calls `CodeService.GetPullDiff(base, head)` → `PRDiffResult{Files, CanMerge}`
+2. Template renders diff + shows merge button only when `CanMerge == true`
+3. On "Merge Pull Request" click → HTMX `PATCH /api/repos/{owner}/{repo}/pulls/{number}` with `state=merged`
+4. `UpdatePull` calls `CodeService.MergePullRequest(base, head)` → verifies FF, advances base branch ref
+5. On success → `PullService.SetState(merged)` → fragment returned
+6. On failure (diverged or missing branch) → 422 → `hx-on::response-error` fires alert
+
+**`CodeService` methods:**
+- `GetPullDiff(owner, repo, base, head)` → `*PRDiffResult`
+- `MergePullRequest(owner, repo, base, head)` → `error`
+- `checkFastForward(repo, baseCommit, headCommit)` → `bool` (private; walks head ancestry for base hash)
+
+**`PRDiffResult` type:**
+```go
+type PRDiffResult struct {
+    Files        []FileDiff
+    TotalAdded   int
+    TotalDeleted int
+    CanMerge     bool
+}
+```
+
+---
+
 ## Out of Scope (v1)
 
 - Webhooks / notifications
-- OAuth providers other than Google (GitHub, GitLab, etc.)
 - Organization accounts
-- Pull request merging via git commands (web UI only)

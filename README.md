@@ -14,7 +14,7 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 - Google OAuth sign-in (links to existing accounts by email)
 - Repository management (public/private)
 - Issues with open/close state
-- Pull requests with merge/close workflow
+- Pull requests with fast-forward merge, diff view, and close workflow
 - Inline comments with HTMX live updates (no page reload)
 - SSH keys for git operations (ED25519, RSA)
 - Git over HTTP (smart protocol) — `git clone/push/pull` with HTTP Basic Auth or JWT cookie
@@ -421,6 +421,16 @@ http://localhost:8080/admin/my-project/tree/abc1234
 - **Empty repos**: returns a clear error rather than crashing
 - **Ref badge**: clickable badge on tree/commits pages links to the Branches & Tags page
 
+### Pull Request Diff & Merge
+
+The PR detail page (`/{owner}/{repo}/pulls/{number}`) shows:
+
+- **Diff view**: all files changed between base and head branch tips — added/deleted lines highlighted, hunk headers, binary detection. Only shown for open PRs.
+- **Merge button**: visible only when a fast-forward merge is possible (head is a direct descendant of base). Clicking it advances the base branch ref to the head tip — no merge commit.
+- **Cannot merge warning**: shown when branches have diverged. The developer must rebase the head branch onto the base branch and push before the merge button appears.
+
+Merge strategy is **fast-forward only**. go-git v5 has no native three-way merge; diverged PRs must be rebased locally.
+
 ---
 
 ## API Reference
@@ -478,7 +488,7 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | GET    | `/api/repos/:owner/:repo/pulls/`        | —        | List pull requests      |
 | POST   | `/api/repos/:owner/:repo/pulls/`        | Required | Create a pull request   |
 | GET    | `/api/repos/:owner/:repo/pulls/:number` | —        | Get PR details          |
-| PATCH  | `/api/repos/:owner/:repo/pulls/:number` | Required | Update PR (merge/close) |
+| PATCH  | `/api/repos/:owner/:repo/pulls/:number` | Required | Update PR state (`merged` performs fast-forward git merge; `closed` closes without merging) |
 
 ### Branches & Tags
 
@@ -603,7 +613,7 @@ The following are intentionally out of scope for the initial release:
 
 - Webhooks and notifications
 - Organization accounts
-- Pull request merging via git commands (web UI only)
+- Three-way / squash merge strategies (fast-forward only; diverged branches must be rebased locally)
 
 ---
 
@@ -622,7 +632,7 @@ The following are intentionally out of scope for the initial release:
 | `spf13/viper` | Config file + environment variable loading | v1.21.0 |
 | `golang.org/x/crypto` | Secure password hashing (bcrypt, argon2) | v0.49.0 |
 | `golang.org/x/oauth2` | OAuth 2.0 client (Google sign-in) | v0.36.0 |
-| `go-git/go-git/v5` | Pure-Go git implementation for clone, fetch, push | v5.10.0+ |
+| `go-git/go-git/v5` | Pure-Go git implementation for clone, fetch, push, FF merge | v5.17.0 |
 | `gliderlabs/ssh` | SSH server library | v0.3.5+ |
 
 ### Notable Indirect Dependencies
