@@ -18,6 +18,10 @@ bin/tailwindcss*
 # Config
 .env
 *.local.yaml
+config.yaml
+
+# SSH host key (private key — never commit)
+cloudzilla_host_key
 
 # OS
 .DS_Store
