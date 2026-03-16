@@ -1,28 +1,43 @@
 package handler
 
-import "github.com/mkappworks/cloudzilla/internal/model"
+import (
+	"github.com/mkappworks/cloudzilla/internal/middleware"
+	"github.com/mkappworks/cloudzilla/internal/model"
+)
+
+// BasePage contains common data for all pages
+type BasePage struct {
+	CurrentUser *middleware.Claims
+}
 
 // Page data structs
 type HomeData struct {
+	BasePage
 	Repos []model.Repository
 }
 
 type LoginData struct {
+	BasePage
 	Error string
 }
 
 type UserData struct {
+	BasePage
 	User  model.User
 	Repos []model.Repository
 }
 
 type RepoData struct {
-	Repo     model.Repository
-	Owner    string
-	RepoName string
+	BasePage
+	Repo      model.Repository
+	Owner     string
+	RepoName  string
+	CloneHTTP string
+	CloneSSH  string
 }
 
 type IssuesData struct {
+	BasePage
 	Repo     model.Repository
 	Issues   []model.Issue
 	Owner    string
@@ -30,6 +45,7 @@ type IssuesData struct {
 }
 
 type IssueDetailData struct {
+	BasePage
 	Repo     model.Repository
 	Issue    model.Issue
 	Comments []model.Comment
@@ -38,6 +54,7 @@ type IssueDetailData struct {
 }
 
 type PullsData struct {
+	BasePage
 	Repo     model.Repository
 	Pulls    []model.PullRequest
 	Owner    string
@@ -45,10 +62,16 @@ type PullsData struct {
 }
 
 type PullDetailData struct {
+	BasePage
 	Repo     model.Repository
 	Pull     model.PullRequest
 	Owner    string
 	RepoName string
+}
+
+type SettingsData struct {
+	BasePage
+	SSHKeys []model.SSHKey
 }
 
 // Fragment data structs

@@ -1,13 +1,24 @@
 package handler
 
 import (
+	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
+
+func basePage(r *http.Request) BasePage {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		return BasePage{}
+	}
+	return BasePage{CurrentUser: &claims}
+}
 
 func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 	repos, err := h.Services.Repo.List(r.Context())
@@ -18,11 +29,11 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 	if repos == nil {
 		repos = []model.Repository{}
 	}
-	h.render(w, "home", HomeData{Repos: repos})
+	h.render(w, "home", HomeData{BasePage: basePage(r), Repos: repos})
 }
 
 func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
-	h.render(w, "login", LoginData{})
+	h.render(w, "login", LoginData{BasePage: basePage(r)})
 }
 
 func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +42,7 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	_, token, err := h.Services.User.Authenticate(r.Context(), email, password)
 	if err != nil {
-		h.render(w, "login", LoginData{Error: "Invalid credentials"})
+		h.render(w, "login", LoginData{BasePage: basePage(r), Error: "Invalid credentials"})
 		return
 	}
 
@@ -65,8 +76,9 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "user", UserData{
-		User:  *user,
-		Repos: repos,
+		BasePage: basePage(r),
+		User:     *user,
+		Repos:    repos,
 	})
 }
 
@@ -80,10 +92,27 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Compute clone URLs
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	host := r.Host
+	// Strip port from host for SSH URL
+	if hostWithoutPort, _, err := net.SplitHostPort(host); err == nil {
+		host = hostWithoutPort
+	}
+
+	cloneHTTP := fmt.Sprintf("%s://%s/%s/%s.git", scheme, r.Host, owner, repoName)
+	cloneSSH := fmt.Sprintf("ssh://git@%s:%d/%s/%s.git", host, h.Cfg.Git.SSHPort, owner, repoName)
+
 	h.render(w, "repo", RepoData{
-		Repo:     *repo,
-		Owner:    owner,
-		RepoName: repoName,
+		BasePage:  basePage(r),
+		Repo:      *repo,
+		Owner:     owner,
+		RepoName:  repoName,
+		CloneHTTP: cloneHTTP,
+		CloneSSH:  cloneSSH,
 	})
 }
 
@@ -106,6 +135,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "issues", IssuesData{
+		BasePage: basePage(r),
 		Repo:     *repo,
 		Issues:   issues,
 		Owner:    owner,
@@ -136,6 +166,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "issue_detail", IssueDetailData{
+		BasePage: basePage(r),
 		Repo:     *repo,
 		Issue:    *issue,
 		Comments: comments,
@@ -163,6 +194,7 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "pulls", PullsData{
+		BasePage: basePage(r),
 		Repo:     *repo,
 		Pulls:    pulls,
 		Owner:    owner,
@@ -188,9 +220,31 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "pull_detail", PullDetailData{
+		BasePage: basePage(r),
 		Repo:     *repo,
 		Pull:     *pull,
 		Owner:    owner,
 		RepoName: repoName,
+	})
+}
+
+func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	keys, err := h.Services.SSHKey.ListByUser(r.Context(), claims.UserID)
+	if err != nil {
+		keys = []model.SSHKey{}
+	}
+	if keys == nil {
+		keys = []model.SSHKey{}
+	}
+
+	h.render(w, "settings", SettingsData{
+		BasePage: basePage(r),
+		SSHKeys:  keys,
 	})
 }
