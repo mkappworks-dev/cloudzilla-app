@@ -11,10 +11,15 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 ## Features
 
 - User accounts with JWT authentication (httpOnly cookie)
-- Repository management
+- Repository management (public/private)
 - Issues with open/close state
 - Pull requests with merge/close workflow
 - Inline comments with HTMX live updates (no page reload)
+- SSH keys for git operations (ED25519, RSA)
+- Git over HTTP (smart protocol) — `git clone/push/pull` with HTTP Basic Auth or JWT cookie
+- Git over SSH (port 2222 by default) — public key authentication
+- Clone URLs on repo pages (HTTP & SSH)
+- Auth-aware navigation (Sign in/Settings/Sign out)
 - Admin CLI for bootstrapping
 - Single binary ships API + embedded frontend + CSS
 - No Node.js/npm required (Tailwind CLI for dev only)
@@ -113,6 +118,8 @@ The server binary embeds all frontend templates and compiled CSS. No Node.js req
 | `auth.jwt_expiry`         | `24h`             | JWT token lifetime                            |
 | `auth.cookie_name`        | `cz_token`        | httpOnly cookie name                          |
 | `git.repos_root`          | `./git-repos`     | Bare git repo storage path                    |
+| `git.ssh_port`            | `2222`            | SSH server port for git operations            |
+| `git.ssh_host_key`        | `./cloudzilla_host_key` | SSH host key file (auto-generated if missing) |
 
 ### Switching to PostgreSQL
 
@@ -165,6 +172,92 @@ cloudzilla create-repo \
 
 ---
 
+## SSH Keys & Git Operations
+
+### Managing SSH Keys
+
+Users can add SSH public keys (ED25519, RSA) via the Settings page or API. Keys are stored with MD5 fingerprints for fast lookups during SSH handshakes.
+
+#### Web UI
+1. Log in to Cloudzilla
+2. Go to `/settings`
+3. Add SSH Key section: paste your public key and give it a name
+4. Use the generated clone URL (`ssh://git@host:port/owner/repo.git`) with `git clone`
+
+#### CLI / API
+```bash
+# Add SSH key
+curl -X POST http://localhost:8080/api/user/keys \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "laptop",
+    "public_key": "ssh-ed25519 AAAA..."
+  }'
+
+# List keys
+curl http://localhost:8080/api/user/keys \
+  -H "Authorization: Bearer $TOKEN"
+
+# Delete key
+curl -X DELETE http://localhost:8080/api/user/keys/{id} \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Git over HTTP (Smart Protocol)
+
+Clone, fetch, and push using HTTP with standard `git` commands.
+
+```bash
+# Clone public repo (no auth required)
+git clone http://localhost:8080/owner/repo.git
+
+# Clone private repo (with HTTP Basic Auth)
+git clone http://user:password@localhost:8080/owner/private-repo.git
+
+# Clone with JWT cookie (set via login)
+git clone http://localhost:8080/owner/repo.git
+
+# Push requires write access
+git push origin main
+```
+
+**Permissions:**
+- Public repos: anyone can clone/fetch
+- Private repos: requires authentication (HTTP Basic Auth or JWT cookie)
+- Push: requires write access (owner or `writer`/`admin` permission role)
+
+### Git over SSH
+
+Use SSH (port 2222 by default) for cloning, fetching, and pushing with public key authentication.
+
+```bash
+# Generate SSH key (if you don't have one)
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
+
+# Add your key via web UI (/settings) or API
+cat ~/.ssh/id_ed25519.pub | xclip -i  # Copy to clipboard
+
+# Clone via SSH
+git clone ssh://git@localhost:2222/owner/repo.git
+
+# Standard git operations work
+git pull
+git push origin main
+git fetch
+```
+
+**Configuration** — edit `config.yaml`:
+```yaml
+git:
+  ssh_port: 2222                          # SSH server port
+  ssh_host_key: ./cloudzilla_host_key     # Host key file
+```
+
+The SSH host key is auto-generated on first startup if missing.
+
+---
+
 ## API Reference
 
 All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly cookie (`cz_token`) or an `Authorization: Bearer <token>` header.
@@ -175,6 +268,14 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | ------ | ------------------ | ---- | ------------------------------------------------------- |
 | POST   | `/api/auth/login`  | —    | Login; sets `cz_token` cookie and returns token in body |
 | POST   | `/api/auth/logout` | —    | Clears the auth cookie                                  |
+
+### SSH Keys
+
+| Method | Path                 | Auth     | Description                           |
+| ------ | -------------------- | -------- | ------------------------------------- |
+| GET    | `/api/user/keys`     | Required | List SSH keys for authenticated user  |
+| POST   | `/api/user/keys`     | Required | Add a new SSH public key              |
+| DELETE | `/api/user/keys/:id` | Required | Delete an SSH key by ID               |
 
 ### Users
 
@@ -211,6 +312,19 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | POST   | `/api/repos/:owner/:repo/pulls/`        | Required | Create a pull request   |
 | GET    | `/api/repos/:owner/:repo/pulls/:number` | —        | Get PR details          |
 | PATCH  | `/api/repos/:owner/:repo/pulls/:number` | Required | Update PR (merge/close) |
+
+### Git Operations (HTTP Smart Protocol)
+
+| Method | Path                                            | Auth     | Description              |
+| ------ | ----------------------------------------------- | -------- | ------------------------ |
+| GET    | `/:owner/:repo/info/refs?service=git-upload-pack` | Depends* | List refs (clone/fetch)  |
+| POST   | `/:owner/:repo/git-upload-pack`                 | Depends* | Upload pack (clone/fetch) |
+| POST   | `/:owner/:repo/git-receive-pack`                | Depends* | Receive pack (push)      |
+
+*Depends on repo privacy and user permissions:
+- Public repos: no auth required for read
+- Private repos: requires HTTP Basic Auth or JWT cookie for read
+- Push: requires write permission (owner or `writer`/`admin` role)
 
 ### HTMX Fragments
 
@@ -258,12 +372,16 @@ internal/
   store/           # Store layer (uses sqlc-generated db queries)
     query/         # SQL query files for sqlc code generation
     db/            # Generated sqlc code (models + query methods)
-  service/         # Business logic
-  handler/         # HTTP handlers (page + API)
+  service/         # Business logic (including ssh_key_service)
+  handler/         # HTTP handlers (page + API + git HTTP)
     page_handler.go          # Page rendering handlers
-    viewmodels.go            # Data structs for templates
+    viewmodels.go            # Data structs for templates (with BasePage for auth)
+    git_http.go              # Git HTTP smart protocol handler
+    ssh_key_handler.go       # SSH key management endpoints
   middleware/      # Auth, logger, CORS
   router/          # chi route registration + template parsing
+  ssh/             # SSH server for git operations (gliderlabs/ssh)
+    server.go      # SSH server implementation
 migrations/        # SQL migration files (embedded via embed.FS)
 tailwind/          # Tailwind CSS configuration
   input.css        # Tailwind directives
@@ -295,6 +413,7 @@ Migrations live in `migrations/` and are embedded into the binary at build time.
 | `004_create_pull_requests.sql` | `pull_requests` table |
 | `005_create_comments.sql`      | `comments` table      |
 | `006_create_permissions.sql`   | `permissions` table   |
+| `007_create_ssh_keys.sql`      | `ssh_keys` table      |
 
 ---
 
@@ -302,13 +421,13 @@ Migrations live in `migrations/` and are embedded into the binary at build time.
 
 The following are intentionally out of scope for the initial release:
 
-- Git HTTP smart protocol (`git clone/push/pull`)
-- SSH server
 - Code browser (file tree, blob, blame)
 - Commit history and diff rendering
 - Webhooks and notifications
 - OAuth / SSO
 - Organization accounts
+- Git branch/tag management via web UI (CLI-only for now)
+- Pull request merging via git commands (web UI only)
 
 ---
 
@@ -326,6 +445,8 @@ The following are intentionally out of scope for the initial release:
 | `spf13/cobra` | CLI command framework with subcommand trees | v1.10.2 |
 | `spf13/viper` | Config file + environment variable loading | v1.21.0 |
 | `golang.org/x/crypto` | Secure password hashing (bcrypt, argon2) | v0.49.0 |
+| `go-git/go-git/v5` | Pure-Go git implementation for clone, fetch, push | v5.10.0+ |
+| `gliderlabs/ssh` | SSH server library | v0.3.5+ |
 
 ### Notable Indirect Dependencies
 
