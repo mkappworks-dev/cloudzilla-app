@@ -4,6 +4,8 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 
 **Stack:** Go · Go Templates · HTMX · Tailwind CSS · SQLite (PostgreSQL-ready)
 
+> ⚠️ **Alpha**: Cloudzilla is under active development. APIs and features may change. Not recommended for production use yet.
+
 ---
 
 ## Features

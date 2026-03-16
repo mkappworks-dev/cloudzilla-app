@@ -1,5 +1,7 @@
 # CLAUDE.md — Cloudzilla Developer Guide
 
+> ⚠️ **Alpha**: Cloudzilla is under active development. APIs, project structure, and conventions may change as the project matures.
+
 ## Architecture
 
 - **Backend**: Go 1.23+, chi router, sqlx, go-git, cobra CLI
