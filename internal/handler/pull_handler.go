@@ -87,6 +87,18 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		state = req.State
 	}
 
+	if state == "merged" {
+		existingPR, err := h.Services.Pull.Get(r.Context(), owner, repo, number)
+		if err != nil {
+			writeError(w, http.StatusNotFound, "pull request not found")
+			return
+		}
+		if err := h.Services.Code.MergePullRequest(owner, repo, existingPR.BaseBranch, existingPR.HeadBranch); err != nil {
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			return
+		}
+	}
+
 	pr, err := h.Services.Pull.SetState(r.Context(), owner, repo, number, model.PRState(state))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())

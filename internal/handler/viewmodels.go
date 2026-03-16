@@ -68,6 +68,7 @@ type PullDetailData struct {
 	Pull     model.PullRequest
 	Owner    string
 	RepoName string
+	Diff     *service.PRDiffResult
 }
 
 type SettingsData struct {

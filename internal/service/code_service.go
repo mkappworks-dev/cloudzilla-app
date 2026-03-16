@@ -699,6 +699,131 @@ func (s *CodeService) CreateTag(owner, repoName, name, fromRef string) error {
 	return repo.Storer.SetReference(ref)
 }
 
+// PRDiffResult holds the diff between two branches and whether FF merge is possible.
+type PRDiffResult struct {
+	Files        []FileDiff
+	TotalAdded   int
+	TotalDeleted int
+	CanMerge     bool
+}
+
+// checkFastForward returns true if headCommit is a descendant of baseCommit.
+func checkFastForward(repo *gogit.Repository, baseCommit, headCommit *object.Commit) bool {
+	iter, err := repo.Log(&gogit.LogOptions{From: headCommit.Hash})
+	if err != nil {
+		return false
+	}
+	defer iter.Close()
+	found := false
+	_ = iter.ForEach(func(c *object.Commit) error {
+		if c.Hash == baseCommit.Hash {
+			found = true
+			return storer.ErrStop
+		}
+		return nil
+	})
+	return found
+}
+
+// GetPullDiff returns the diff between base and head branches, plus whether FF merge is possible.
+func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffResult, error) {
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return nil, err
+	}
+	baseCommit, _, err := resolveRef(repo, base)
+	if err != nil {
+		return nil, err
+	}
+	headCommit, _, err := resolveRef(repo, head)
+	if err != nil {
+		return nil, err
+	}
+
+	canMerge := checkFastForward(repo, baseCommit, headCommit)
+
+	patch, err := baseCommit.Patch(headCommit)
+	if err != nil {
+		return nil, err
+	}
+
+	var files []FileDiff
+	totalAdded, totalDeleted := 0, 0
+
+	for _, fp := range patch.FilePatches() {
+		from, to := fp.Files()
+		var oldPath, newPath string
+		if from != nil {
+			oldPath = from.Path()
+		}
+		if to != nil {
+			newPath = to.Path()
+		}
+		isNew := from == nil
+		isDelete := to == nil
+		if isDelete && newPath == "" {
+			newPath = oldPath
+		}
+		if isNew && oldPath == "" {
+			oldPath = newPath
+		}
+
+		fd := FileDiff{
+			OldPath:  oldPath,
+			NewPath:  newPath,
+			IsBinary: fp.IsBinary(),
+			IsNew:    isNew,
+			IsDelete: isDelete,
+		}
+		if !fp.IsBinary() {
+			fd.Hunks = buildHunks(fp.Chunks())
+			for _, h := range fd.Hunks {
+				for _, l := range h.Lines {
+					switch l.Type {
+					case "add":
+						fd.Added++
+					case "del":
+						fd.Deleted++
+					}
+				}
+			}
+		}
+		totalAdded += fd.Added
+		totalDeleted += fd.Deleted
+		files = append(files, fd)
+	}
+
+	return &PRDiffResult{
+		Files:        files,
+		TotalAdded:   totalAdded,
+		TotalDeleted: totalDeleted,
+		CanMerge:     canMerge,
+	}, nil
+}
+
+// MergePullRequest performs a fast-forward merge of head into base.
+func (s *CodeService) MergePullRequest(owner, repoName, base, head string) error {
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return err
+	}
+	baseCommit, _, err := resolveRef(repo, base)
+	if err != nil {
+		return err
+	}
+	headCommit, _, err := resolveRef(repo, head)
+	if err != nil {
+		return err
+	}
+
+	if !checkFastForward(repo, baseCommit, headCommit) {
+		return errors.New("cannot merge: branches have diverged (fast-forward not possible)")
+	}
+
+	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(base), headCommit.Hash)
+	return repo.Storer.SetReference(ref)
+}
+
 // DeleteTag removes the named tag reference.
 func (s *CodeService) DeleteTag(owner, repoName, name string) error {
 	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))

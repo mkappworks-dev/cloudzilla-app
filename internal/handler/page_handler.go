@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/service"
 )
 
 func basePage(r *http.Request) BasePage {
@@ -219,12 +220,20 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var diff *service.PRDiffResult
+	if pull.State == model.PRStateOpen {
+		if d, err := h.Services.Code.GetPullDiff(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
+			diff = d
+		}
+	}
+
 	h.render(w, "pull_detail", PullDetailData{
 		BasePage: basePage(r),
 		Repo:     *repo,
 		Pull:     *pull,
 		Owner:    owner,
 		RepoName: repoName,
+		Diff:     diff,
 	})
 }
 

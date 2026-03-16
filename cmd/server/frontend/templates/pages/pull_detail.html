@@ -28,14 +28,22 @@
     </div>
 
     {{if eq .Pull.State "open"}}
-    <div class="flex gap-2">
+    <div class="flex flex-wrap gap-2 items-center mt-4">
+      {{if and .Diff .Diff.CanMerge}}
       <button
         hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}"
         hx-vals='{"state":"merged"}'
         hx-target="#pull-detail" hx-swap="outerHTML"
+        hx-on::response-error="alert('Merge failed. Please refresh and try again.')"
         class="px-4 py-2 bg-purple-600 text-white rounded font-medium hover:bg-purple-700 transition-colors">
         Merge Pull Request
       </button>
+      {{else if .Diff}}
+      <div class="px-4 py-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+        Cannot merge automatically — branches have diverged. Rebase the head branch onto
+        <code class="font-mono">{{.Pull.BaseBranch}}</code> and push to enable merge.
+      </div>
+      {{end}}
       <button
         hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}"
         hx-vals='{"state":"closed"}'
@@ -43,6 +51,46 @@
         class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors">
         Close PR
       </button>
+    </div>
+    {{end}}
+
+    {{if .Diff}}
+    <div class="mt-6 border-t border-gray-200 pt-4 space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold text-gray-900">Changed files ({{len .Diff.Files}})</h2>
+        <span class="text-sm">
+          <span class="text-green-600">+{{.Diff.TotalAdded}}</span>
+          <span class="text-red-500 ml-2">-{{.Diff.TotalDeleted}}</span>
+        </span>
+      </div>
+      {{range .Diff.Files}}
+      <div class="border border-gray-200 rounded-lg overflow-hidden">
+        <div class="bg-gray-50 px-4 py-2 text-sm font-mono border-b border-gray-200 flex items-center gap-2">
+          {{if .IsNew}}<span class="text-green-600 text-xs">added</span>
+          {{else if .IsDelete}}<span class="text-red-600 text-xs">deleted</span>{{end}}
+          <span>{{if .NewPath}}{{.NewPath}}{{else}}{{.OldPath}}{{end}}</span>
+          <span class="ml-auto text-xs text-green-600">+{{.Added}}</span>
+          <span class="text-xs text-red-500 ml-1">-{{.Deleted}}</span>
+        </div>
+        {{if .IsBinary}}
+        <div class="px-4 py-3 text-sm text-gray-500">Binary file</div>
+        {{else}}
+          {{range .Hunks}}
+          <div class="text-xs font-mono bg-gray-100 px-4 py-1 text-gray-500 border-b border-gray-200">{{.Header}}</div>
+          {{range .Lines}}
+          <div class="flex font-mono text-xs {{if eq .Type "add"}}bg-green-50{{else if eq .Type "del"}}bg-red-50{{end}}">
+            <span class="w-12 text-right pr-3 text-gray-400 select-none border-r border-gray-200 shrink-0 py-0.5">
+              {{if eq .Type "add"}}{{.NewNum}}{{else if eq .Type "del"}}{{.OldNum}}{{else}}{{.OldNum}}{{end}}
+            </span>
+            <span class="pl-3 py-0.5 whitespace-pre
+              {{if eq .Type "add"}}text-green-800{{else if eq .Type "del"}}text-red-800{{else}}text-gray-700{{end}}">
+              {{if eq .Type "add"}}+{{else if eq .Type "del"}}-{{else}} {{end}}{{.Content}}</span>
+          </div>
+          {{end}}
+          {{end}}
+        {{end}}
+      </div>
+      {{end}}
     </div>
     {{end}}
   </div>
