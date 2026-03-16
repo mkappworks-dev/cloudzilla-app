@@ -1,0 +1,7 @@
+{{define "fragment-comment"}}
+<div class="bg-white border border-gray-200 rounded-lg p-4">
+  <div class="font-semibold text-sm text-gray-700">{{.Comment.AuthorName}}</div>
+  <div class="text-xs text-gray-500 mb-2">{{.Comment.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}</div>
+  <div class="text-gray-800">{{.Comment.Body}}</div>
+</div>
+{{end}}

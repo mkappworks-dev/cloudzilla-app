@@ -1,0 +1,28 @@
+{{define "title"}}Explore Repositories{{end}}
+
+{{define "content"}}
+<div class="space-y-6">
+  <div class="flex justify-between items-center">
+    <h1 class="text-3xl font-bold">Repositories</h1>
+  </div>
+
+  {{if .Repos}}
+  <div class="grid gap-4">
+    {{range .Repos}}
+    <a href="/{{.OwnerName}}/{{.Name}}" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+      <h2 class="text-xl font-semibold text-blue-600">{{.OwnerName}}/{{.Name}}</h2>
+      {{if .Description}}<p class="text-gray-600 mt-1">{{.Description}}</p>{{end}}
+      <div class="mt-2 text-xs text-gray-500 flex gap-3">
+        <span>{{if .Private}}Private{{else}}Public{{end}}</span>
+        <span>Updated {{.UpdatedAt.Format "Jan 2, 2006"}}</span>
+      </div>
+    </a>
+    {{end}}
+  </div>
+  {{else}}
+  <div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
+    <p class="text-gray-500">No repositories yet.</p>
+  </div>
+  {{end}}
+</div>
+{{end}}

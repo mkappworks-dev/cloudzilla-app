@@ -1,0 +1,42 @@
+{{define "fragment-pull-detail"}}
+<div id="pull-detail" class="bg-white border border-gray-200 rounded-lg p-6">
+  <div class="flex justify-between items-start mb-4">
+    <div>
+      <h1 class="text-3xl font-bold">{{.Pull.Title}}</h1>
+      <p class="text-gray-600 text-sm mt-2">
+        #{{.Pull.Number}} by {{.Pull.AuthorName}} on {{.Pull.CreatedAt.Format "Jan 2, 2006"}}
+        · {{.Pull.HeadBranch}} &rarr; {{.Pull.BaseBranch}}
+      </p>
+    </div>
+    <span class="px-3 py-1 rounded-full text-sm font-medium
+      {{if eq .Pull.State "open"}}bg-green-100 text-green-700
+      {{else if eq .Pull.State "merged"}}bg-purple-100 text-purple-700
+      {{else}}bg-red-100 text-red-700{{end}}">
+      {{.Pull.State}}
+    </span>
+  </div>
+
+  <div class="prose prose-sm max-w-none bg-gray-50 p-4 rounded border border-gray-200 my-4">
+    {{.Pull.Body}}
+  </div>
+
+  {{if eq .Pull.State "open"}}
+  <div class="flex gap-2">
+    <button
+      hx-patch="/api/repos/{{.Owner}}/{{.Repo}}/pulls/{{.Pull.Number}}"
+      hx-vals='{"state":"merged"}'
+      hx-target="#pull-detail" hx-swap="outerHTML"
+      class="px-4 py-2 bg-purple-600 text-white rounded font-medium hover:bg-purple-700 transition-colors">
+      Merge Pull Request
+    </button>
+    <button
+      hx-patch="/api/repos/{{.Owner}}/{{.Repo}}/pulls/{{.Pull.Number}}"
+      hx-vals='{"state":"closed"}'
+      hx-target="#pull-detail" hx-swap="outerHTML"
+      class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors">
+      Close PR
+    </button>
+  </div>
+  {{end}}
+</div>
+{{end}}
