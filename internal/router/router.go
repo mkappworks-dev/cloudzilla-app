@@ -19,7 +19,7 @@ func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *templat
 
 	pageNames := []string{"home", "login", "user", "repo", "issues",
 		"issue_detail", "pulls", "pull_detail", "settings",
-		"tree", "blob", "blame", "commits", "commit"}
+		"tree", "blob", "blame", "commits", "commit", "refs"}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
 		clone := template.Must(base.Clone())
@@ -55,6 +55,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues/{number}", h.PageIssueDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls", h.PagePulls)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls/{number}", h.PagePullDetail)
+	r.With(optAuthMW).Get("/{owner}/{repo}/refs", h.PageRefs)
 	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}", h.PageTree)
 	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}/{path...}", h.PageTree)
 	r.With(optAuthMW).Get("/{owner}/{repo}/blob/{ref}/{path...}", h.PageBlob)
@@ -97,6 +98,12 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Post("/{number}/comments", h.CreateIssueComment)
 			r.With(authMW).Delete("/{number}/comments/{commentID}", h.DeleteComment)
 		})
+
+		// Branches and tags
+		r.With(authMW).Post("/{owner}/{repo}/branches", h.CreateBranch)
+		r.With(authMW).Delete("/{owner}/{repo}/branches", h.DeleteBranch)
+		r.With(authMW).Post("/{owner}/{repo}/tags", h.CreateTag)
+		r.With(authMW).Delete("/{owner}/{repo}/tags", h.DeleteTag)
 
 		// Pull requests
 		r.Route("/{owner}/{repo}/pulls", func(r chi.Router) {
