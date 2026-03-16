@@ -34,6 +34,32 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 
 ## Quick Start
 
+### Option A — Docker (recommended, no local toolchain required)
+
+```bash
+# Build image and start
+make docker-build
+make docker-run
+
+# First-time setup
+docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli migrate
+docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli create-user \
+  --username admin --email admin@localhost --password changeme
+
+open http://localhost:8080
+```
+
+All data (SQLite DB, git repos, SSH host key) persists in the `cloudzilla_data` named volume at `/data`.
+Set `CZ_AUTH_JWT_SECRET` in `docker-compose.yml` to a strong secret before exposing publicly.
+
+```bash
+make docker-down        # Stop and remove containers
+```
+
+---
+
+### Option B — Local (Go + Tailwind)
+
 ### Prerequisites
 
 - Go 1.23+
@@ -97,7 +123,70 @@ make dev
 
 ---
 
-## Production Deployment
+## Docker Deployment
+
+The fastest path to a self-hosted Cloudzilla instance — no Go or Tailwind required on the host.
+
+### Prerequisites
+
+- Docker 24+ with the Compose plugin (`docker compose`)
+
+### 1. Build and start
+
+```bash
+make docker-build   # Builds cloudzilla:latest
+make docker-run     # docker compose up -d
+```
+
+### 2. First-time bootstrap
+
+```bash
+docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli migrate
+docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli create-user \
+  --username admin \
+  --email admin@localhost \
+  --password changeme
+```
+
+### 3. Access
+
+```
+http://localhost:8080       # Web UI
+ssh://git@localhost:2222    # SSH git transport
+```
+
+### Persistent data
+
+All state lives in a named Docker volume (`cloudzilla_data`) mounted at `/data`:
+
+| What | Container path |
+|------|---------------|
+| SQLite database | `/data/cloudzilla.db` |
+| Git repositories | `/data/git-repos/` |
+| SSH host key | `/data/cloudzilla_host_key` (auto-generated on first boot) |
+
+### Configuration
+
+Override any setting via environment variables in `docker-compose.yml` using the `CZ_` prefix (Viper auto-maps `CZ_AUTH_JWT_SECRET` → `auth.jwt_secret`, etc.).
+
+**Before exposing publicly**, update `CZ_AUTH_JWT_SECRET` to a long random string:
+
+```yaml
+environment:
+  CZ_AUTH_JWT_SECRET: "replace-with-a-long-random-string"
+```
+
+### Logs and teardown
+
+```bash
+docker compose logs -f      # Follow logs
+make docker-down            # Stop and remove containers (volume is preserved)
+docker compose down -v      # Also remove the data volume (destructive)
+```
+
+---
+
+## Production Deployment (Binary / systemd)
 
 ### 1. Build the binary
 
@@ -536,6 +625,9 @@ All four endpoints require write access. For HTMX requests they return an HTML f
 | `make lint`           | Run golangci-lint                                             |
 | `make test`           | Run Go tests                                                  |
 | `make clean`          | Remove build artifacts and database files                     |
+| `make docker-build`   | Build Docker image (`cloudzilla:latest`)                      |
+| `make docker-run`     | Start with docker compose (detached)                          |
+| `make docker-down`    | Stop and remove containers                                    |
 
 ---
 
