@@ -309,6 +309,7 @@ All git operations (HTTP and SSH) respect the same permission rules:
 | Commit log | `/{owner}/{repo}/commits/{ref}` |
 | Commit log (file scope) | `/{owner}/{repo}/commits/{ref}/{path...}` |
 | Single commit diff | `/{owner}/{repo}/commit/{sha}` |
+| Branches & Tags | `/{owner}/{repo}/refs` |
 
 `{ref}` = branch name, tag name, or commit SHA. Pagination via `?page=N` (1-indexed, 30 per page).
 
@@ -323,6 +324,11 @@ Key methods:
 - `GetBlame(owner, repoName, ref, path)` → `*BlameResult`
 - `GetCommits(owner, repoName, ref, page, pageSize)` → `*CommitLog`
 - `GetCommit(owner, repoName, sha)` → `*CommitDetail`
+- `ListRefs(owner, repoName, defaultBranch)` → `*RefsResult`
+- `CreateBranch(owner, repoName, name, fromRef)` → `error`
+- `DeleteBranch(owner, repoName, name)` → `error`
+- `CreateTag(owner, repoName, name, fromRef)` → `error`
+- `DeleteTag(owner, repoName, name)` → `error`
 
 ### ResolveRef Priority
 
@@ -340,6 +346,7 @@ Returns `ErrEmptyRepo` sentinel when HEAD resolution fails (repo has no commits)
 - `BlameResult` — `Lines []BlameLine` with `ShowMeta bool` (true when commit run changes), `BlobURL`, breadcrumbs
 - `CommitLog` — `Commits []CommitSummary`, `Ref`, `Page`, `PrevPage`, `NextPage`, `HasMore`
 - `CommitDetail` — full commit with `Files []FileDiff` (hunks with add/del/ctx lines), `TotalAdded`, `TotalDeleted`
+- `RefsResult` — `Branches []BranchInfo` (`Name`, `Hash`, `IsDefault`), `Tags []TagInfo` (`Name`, `Hash`)
 
 ## Deployment
 
@@ -348,10 +355,32 @@ Returns `ErrEmptyRepo` sentinel when HEAD resolution fails (repo has no commits)
 3. `./dist/cloudzilla` runs the server on the configured port
 4. Set config via `config.yaml` or environment variables (see `internal/config/`)
 
+## Branch & Tag Management
+
+The Refs page (`/{owner}/{repo}/refs`) lists all branches and tags. Authenticated users with write access can create and delete branches/tags via HTMX forms.
+
+**Permission rules:**
+- Public repos: refs page always visible (read-only for unauthenticated)
+- Write access required for create/delete; default branch delete is blocked (button hidden)
+
+**API endpoints** (all require `authMW`):
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/repos/{owner}/{repo}/branches` | Create branch (`name`, `from` form fields) |
+| DELETE | `/api/repos/{owner}/{repo}/branches?name=…` | Delete branch |
+| POST | `/api/repos/{owner}/{repo}/tags` | Create tag (`name`, `from` form fields) |
+| DELETE | `/api/repos/{owner}/{repo}/tags?name=…` | Delete tag |
+
+HTMX responses swap `fragment-branches-list` into `#branches-list` and `fragment-tags-list` into `#tags-list`.
+
+The ref badge on tree and commits pages links to `/{owner}/{repo}/refs` (via `RefsURL` field on `TreeData` / `CommitsData`).
+
+---
+
 ## Out of Scope (v1)
 
 - Webhooks / notifications
 - OAuth providers other than Google (GitHub, GitLab, etc.)
 - Organization accounts
-- Git branches UI (clone works, but branch/tag management is CLI-only)
 - Pull request merging via git commands (web UI only)

@@ -22,6 +22,7 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 - Code browser — file tree, blob viewer with line numbers, per-line blame
 - Commit history — paginated commit log per branch/ref
 - Commit diff view — unified diff with added/deleted line highlighting
+- Branch & tag management — list, create, and delete branches/tags via web UI (HTMX, no reload)
 - Clone URLs on repo pages (HTTP & SSH)
 - Auth-aware navigation (Sign in/Settings/Sign out)
 - Admin CLI for bootstrapping
@@ -384,6 +385,9 @@ Browse repository contents directly from the web UI. All views respect repo visi
 | Subdirectory tree | `/{owner}/{repo}/tree/{ref}/{path...}` |
 | File content (blob) | `/{owner}/{repo}/blob/{ref}/{path...}` |
 | Per-line blame | `/{owner}/{repo}/blame/{ref}/{path...}` |
+| Commit log | `/{owner}/{repo}/commits/{ref}` |
+| Single commit diff | `/{owner}/{repo}/commit/{sha}` |
+| Branches & Tags | `/{owner}/{repo}/refs` |
 
 `{ref}` can be a branch name, tag name, or commit SHA. If the ref is not found, the server returns 404.
 
@@ -415,6 +419,7 @@ http://localhost:8080/admin/my-project/tree/abc1234
 - **Commit diff**: unified diff per file with green/red line highlighting, hunk headers, and binary detection
 - **Binary files**: blob page shows "Binary file not shown" instead of raw bytes
 - **Empty repos**: returns a clear error rather than crashing
+- **Ref badge**: clickable badge on tree/commits pages links to the Branches & Tags page
 
 ---
 
@@ -475,6 +480,17 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | GET    | `/api/repos/:owner/:repo/pulls/:number` | —        | Get PR details          |
 | PATCH  | `/api/repos/:owner/:repo/pulls/:number` | Required | Update PR (merge/close) |
 
+### Branches & Tags
+
+| Method | Path | Auth | Description |
+| ------ | ---- | ---- | ----------- |
+| POST | `/api/repos/:owner/:repo/branches` | Required | Create branch (`name`, `from` form fields; `from` defaults to default branch) |
+| DELETE | `/api/repos/:owner/:repo/branches?name=…` | Required | Delete branch (default branch rejected with 400) |
+| POST | `/api/repos/:owner/:repo/tags` | Required | Create tag (`name`, `from` form fields) |
+| DELETE | `/api/repos/:owner/:repo/tags?name=…` | Required | Delete tag |
+
+All four endpoints require write access. For HTMX requests they return an HTML fragment; otherwise JSON.
+
 ### Git Operations (HTTP Smart Protocol)
 
 | Method | Path                                            | Auth     | Description              |
@@ -521,8 +537,8 @@ cmd/
     frontend/      # Templates + static files (embedded in binary)
       templates/
         layout.html          # Base HTML shell
-        pages/               # Page templates (home, login, user, repo, issues, pulls, tree, blob, blame, etc.)
-        fragments/           # HTMX swap fragments
+        pages/               # Page templates (home, login, user, repo, issues, pulls, tree, blob, blame, refs, etc.)
+        fragments/           # HTMX swap fragments (issues, pull requests, SSH keys, branches/tags)
       static/
         main.css             # Compiled Tailwind output
       htmx.min.js            # HTMX library
@@ -537,6 +553,7 @@ internal/
   service/         # Business logic (including ssh_key_service)
   handler/         # HTTP handlers (page + API + git HTTP)
     page_handler.go          # Page rendering handlers
+    ref_handler.go           # Branch & tag create/delete handlers
     viewmodels.go            # Data structs for templates (with BasePage for auth)
     git_http.go              # Git HTTP smart protocol handler
     ssh_key_handler.go       # SSH key management endpoints
@@ -586,7 +603,6 @@ The following are intentionally out of scope for the initial release:
 
 - Webhooks and notifications
 - Organization accounts
-- Git branch/tag management via web UI (CLI-only for now)
 - Pull request merging via git commands (web UI only)
 
 ---
