@@ -53,15 +53,46 @@ func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, 
 	return mapDBUserToModel(&result), nil
 }
 
+func (s *UserStore) GetByOAuthID(ctx context.Context, provider, oauthID string) (*model.User, error) {
+	result, err := s.q.GetUserByOAuthID(ctx, provider, oauthID)
+	if err != nil {
+		return nil, fmt.Errorf("user get by oauth id: %w", err)
+	}
+	return mapDBUserToModel(&result), nil
+}
+
+func (s *UserStore) LinkOAuth(ctx context.Context, userID int64, provider, oauthID string) error {
+	if err := s.q.LinkOAuth(ctx, userID, provider, oauthID); err != nil {
+		return fmt.Errorf("user link oauth: %w", err)
+	}
+	return nil
+}
+
+func (s *UserStore) CreateOAuthUser(ctx context.Context, username, email, provider, oauthID, avatarURL string) (*model.User, error) {
+	result, err := s.q.CreateOAuthUser(ctx, db.CreateOAuthUserParams{
+		Username:      username,
+		Email:         email,
+		OAuthProvider: provider,
+		OAuthID:       oauthID,
+		AvatarURL:     avatarURL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("user create oauth: %w", err)
+	}
+	return mapDBUserToModel(&result), nil
+}
+
 func mapDBUserToModel(dbUser *db.User) *model.User {
 	return &model.User{
-		ID:           dbUser.ID,
-		Username:     dbUser.Username,
-		Email:        dbUser.Email,
-		PasswordHash: dbUser.PasswordHash,
-		Bio:          dbUser.Bio,
-		AvatarURL:    dbUser.AvatarUrl,
-		CreatedAt:    dbUser.CreatedAt,
-		UpdatedAt:    dbUser.UpdatedAt,
+		ID:            dbUser.ID,
+		Username:      dbUser.Username,
+		Email:         dbUser.Email,
+		PasswordHash:  dbUser.PasswordHash,
+		Bio:           dbUser.Bio,
+		AvatarURL:     dbUser.AvatarUrl,
+		OAuthProvider: dbUser.OAuthProvider,
+		OAuthID:       dbUser.OAuthID,
+		CreatedAt:     dbUser.CreatedAt,
+		UpdatedAt:     dbUser.UpdatedAt,
 	}
 }

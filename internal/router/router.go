@@ -63,6 +63,10 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/commits/{ref}/{path...}", h.PageCommits)
 	r.With(optAuthMW).Get("/{owner}/{repo}/commit/{sha}", h.PageCommit)
 
+	// OAuth routes
+	r.Get("/auth/google", h.GoogleOAuthBegin)
+	r.Get("/auth/google/callback", h.GoogleOAuthCallback)
+
 	// Auth routes
 	r.Route("/api/auth", func(r chi.Router) {
 		r.Post("/login", h.Login)

@@ -11,6 +11,7 @@ type Config struct {
 	Database DatabaseConfig `mapstructure:"database"`
 	Auth     AuthConfig     `mapstructure:"auth"`
 	Git      GitConfig      `mapstructure:"git"`
+	OAuth    OAuthConfig    `mapstructure:"oauth"`
 }
 
 type ServerConfig struct {
@@ -39,6 +40,12 @@ type GitConfig struct {
 	SSHHostKey string `mapstructure:"ssh_host_key"`
 }
 
+type OAuthConfig struct {
+	GoogleClientID     string `mapstructure:"google_client_id"`
+	GoogleClientSecret string `mapstructure:"google_client_secret"`
+	GoogleRedirectURL  string `mapstructure:"google_redirect_url"`
+}
+
 func Load(cfgFile string) (*Config, error) {
 	v := viper.New()
 
@@ -57,6 +64,9 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("git.repos_root", "./git-repos")
 	v.SetDefault("git.ssh_port", 2222)
 	v.SetDefault("git.ssh_host_key", "./cloudzilla_host_key")
+	v.SetDefault("oauth.google_client_id", "")
+	v.SetDefault("oauth.google_client_secret", "")
+	v.SetDefault("oauth.google_redirect_url", "http://localhost:8080/auth/google/callback")
 
 	// Env overrides
 	v.SetEnvPrefix("CZ")
