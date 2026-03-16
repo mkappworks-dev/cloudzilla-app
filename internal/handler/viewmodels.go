@@ -96,6 +96,31 @@ type CommentsFragData struct {
 	Comments []model.Comment
 }
 
+type RefsData struct {
+	BasePage
+	Repo     model.Repository
+	Owner    string
+	RepoName string
+	Branches []service.BranchInfo
+	Tags     []service.TagInfo
+	CanWrite bool
+}
+
+type BranchesFragData struct {
+	Owner         string
+	RepoName      string
+	Branches      []service.BranchInfo
+	CanWrite      bool
+	DefaultBranch string
+}
+
+type TagsFragData struct {
+	Owner    string
+	RepoName string
+	Tags     []service.TagInfo
+	CanWrite bool
+}
+
 type TreeData struct {
 	BasePage
 	Repo        model.Repository
@@ -105,6 +130,7 @@ type TreeData struct {
 	Path        string
 	Breadcrumbs []service.BreadcrumbPart
 	Entries     []service.TreeEntry
+	RefsURL     string
 }
 
 type BlobData struct {
@@ -138,6 +164,7 @@ type CommitsData struct {
 	Owner    string
 	RepoName string
 	Log      *service.CommitLog
+	RefsURL  string
 }
 
 type CommitData struct {

@@ -249,6 +249,44 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+
+	var userID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		userID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	result, err := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
+
+	h.render(w, "refs", RefsData{
+		BasePage: basePage(r),
+		Repo:     *repo,
+		Owner:    owner,
+		RepoName: repoName,
+		Branches: result.Branches,
+		Tags:     result.Tags,
+		CanWrite: canWrite,
+	})
+}
+
 func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -285,6 +323,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		Path:        result.Path,
 		Breadcrumbs: result.Breadcrumbs,
 		Entries:     result.Entries,
+		RefsURL:     "/" + owner + "/" + repoName + "/refs",
 	})
 }
 
@@ -366,6 +405,7 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 		Owner:    owner,
 		RepoName: repoName,
 		Log:      log,
+		RefsURL:  "/" + owner + "/" + repoName + "/refs",
 	})
 }
 
