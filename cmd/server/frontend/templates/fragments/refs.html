@@ -1,0 +1,54 @@
+{{define "fragment-branches-list"}}
+<div id="branches-list">
+  {{if .Branches}}
+    {{range .Branches}}
+    <div class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <a href="/{{$.Owner}}/{{$.RepoName}}/tree/{{.Name}}" class="font-mono text-sm text-blue-600 hover:underline truncate">{{.Name}}</a>
+        {{if .IsDefault}}<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded shrink-0">default</span>{{end}}
+        <span class="text-xs text-gray-400 font-mono shrink-0">{{.Hash}}</span>
+      </div>
+      <div class="flex items-center gap-3 ml-4 shrink-0">
+        <a href="/{{$.Owner}}/{{$.RepoName}}/commits/{{.Name}}" class="text-xs text-gray-500 hover:text-blue-600">commits</a>
+        {{if $.CanWrite}}{{if eq .IsDefault false}}
+        <button hx-delete="/api/repos/{{$.Owner}}/{{$.RepoName}}/branches?name={{.Name}}"
+                hx-target="#branches-list"
+                hx-swap="outerHTML"
+                hx-confirm="Delete branch '{{.Name}}'?"
+                class="text-xs text-red-600 hover:text-red-800 border border-red-200 px-2 py-1 rounded hover:bg-red-50">Delete</button>
+        {{end}}{{end}}
+      </div>
+    </div>
+    {{end}}
+  {{else}}
+    <div class="px-4 py-8 text-center text-gray-500 text-sm">No branches yet.</div>
+  {{end}}
+</div>
+{{end}}
+
+{{define "fragment-tags-list"}}
+<div id="tags-list">
+  {{if .Tags}}
+    {{range .Tags}}
+    <div class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <a href="/{{$.Owner}}/{{$.RepoName}}/tree/{{.Name}}" class="font-mono text-sm text-blue-600 hover:underline truncate">{{.Name}}</a>
+        <span class="text-xs text-gray-400 font-mono shrink-0">{{.Hash}}</span>
+      </div>
+      <div class="flex items-center gap-3 ml-4 shrink-0">
+        <a href="/{{$.Owner}}/{{$.RepoName}}/commits/{{.Name}}" class="text-xs text-gray-500 hover:text-blue-600">commits</a>
+        {{if $.CanWrite}}
+        <button hx-delete="/api/repos/{{$.Owner}}/{{$.RepoName}}/tags?name={{.Name}}"
+                hx-target="#tags-list"
+                hx-swap="outerHTML"
+                hx-confirm="Delete tag '{{.Name}}'?"
+                class="text-xs text-red-600 hover:text-red-800 border border-red-200 px-2 py-1 rounded hover:bg-red-50">Delete</button>
+        {{end}}
+      </div>
+    </div>
+    {{end}}
+  {{else}}
+    <div class="px-4 py-8 text-center text-gray-500 text-sm">No tags yet.</div>
+  {{end}}
+</div>
+{{end}}
