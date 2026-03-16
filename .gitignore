@@ -1,0 +1,26 @@
+# Go
+/dist/
+cmd/server/frontend/*
+!cmd/server/frontend/.gitkeep
+*.exe
+*.test
+*.out
+vendor/
+cloudzilla.db
+cloudzilla.db-shm
+cloudzilla.db-wal
+git-repos/
+
+# Node
+web/node_modules/
+web/.vinxi/
+web/.output/
+web/dist/
+
+# Config
+.env
+*.local.yaml
+
+# OS
+.DS_Store
+Thumbs.db
