@@ -34,7 +34,9 @@ type AuthConfig struct {
 }
 
 type GitConfig struct {
-	ReposRoot string `mapstructure:"repos_root"`
+	ReposRoot  string `mapstructure:"repos_root"`
+	SSHPort    int    `mapstructure:"ssh_port"`
+	SSHHostKey string `mapstructure:"ssh_host_key"`
 }
 
 func Load(cfgFile string) (*Config, error) {
@@ -53,6 +55,8 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("auth.jwt_expiry", "24h")
 	v.SetDefault("auth.cookie_name", "cz_token")
 	v.SetDefault("git.repos_root", "./git-repos")
+	v.SetDefault("git.ssh_port", 2222)
+	v.SetDefault("git.ssh_host_key", "./cloudzilla_host_key")
 
 	// Env overrides
 	v.SetEnvPrefix("CZ")

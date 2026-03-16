@@ -18,7 +18,7 @@ func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *templat
 	base := template.Must(template.ParseFS(sub, "layout.html"))
 
 	pageNames := []string{"home", "login", "user", "repo", "issues",
-		"issue_detail", "pulls", "pull_detail"}
+		"issue_detail", "pulls", "pull_detail", "settings"}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
 		clone := template.Must(base.Clone())
@@ -47,6 +47,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.Get("/", h.PageHome)
 	r.Get("/login", h.PageLogin)
 	r.Post("/login", h.PageLoginSubmit)
+	r.With(authMW).Get("/settings", h.PageSettings)
 	r.With(optAuthMW).Get("/{owner}", h.PageUser)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues", h.PageIssues)
@@ -99,6 +100,19 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Use(optAuthMW)
 		r.Get("/{owner}/{repo}/issues/{number}/comments", h.IssueCommentsFragment)
 	})
+
+	// SSH Key routes
+	r.Route("/api/user/keys", func(r chi.Router) {
+		r.Use(authMW)
+		r.Get("/", h.ListSSHKeys)
+		r.Post("/", h.AddSSHKey)
+		r.Delete("/{id}", h.DeleteSSHKey)
+	})
+
+	// Git HTTP Smart Protocol routes
+	r.With(optAuthMW).Get("/{owner}/{repo}/info/refs", h.GitInfoRefs)
+	r.With(optAuthMW).Post("/{owner}/{repo}/git-upload-pack", h.GitUploadPack)
+	r.With(optAuthMW).Post("/{owner}/{repo}/git-receive-pack", h.GitReceivePack)
 
 	// Static file serving
 	staticFS, _ := fs.Sub(frontend, "frontend")

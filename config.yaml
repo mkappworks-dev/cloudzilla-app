@@ -17,3 +17,5 @@ auth:
 
 git:
   repos_root: ./git-repos
+  ssh_port: 2222
+  ssh_host_key: ./cloudzilla_host_key

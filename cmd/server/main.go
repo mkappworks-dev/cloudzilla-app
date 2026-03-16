@@ -14,6 +14,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/db"
 	"github.com/mkappworks/cloudzilla/internal/router"
 	"github.com/mkappworks/cloudzilla/internal/service"
+	"github.com/mkappworks/cloudzilla/internal/ssh"
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
@@ -35,6 +36,16 @@ func main() {
 	services := service.New(stores, cfg)
 
 	r := router.New(services, cfg, frontendFS)
+
+	// Start SSH server
+	sshSrv := ssh.New(cfg.Git, services)
+	go func() {
+		sshAddr := fmt.Sprintf(":%d", cfg.Git.SSHPort)
+		slog.Info("ssh server starting", "addr", sshAddr)
+		if err := sshSrv.ListenAndServe(); err != nil {
+			slog.Error("ssh server error", "error", err)
+		}
+	}()
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	srv := &http.Server{
@@ -58,8 +69,18 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// Shutdown HTTP server
 	if err := srv.Shutdown(ctx); err != nil {
-		slog.Error("graceful shutdown failed", "error", err)
+		slog.Error("http graceful shutdown failed", "error", err)
 	}
+
+	// Shutdown SSH server
+	sshCtx, sshCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer sshCancel()
+	if err := sshSrv.Shutdown(sshCtx); err != nil {
+		slog.Error("ssh graceful shutdown failed", "error", err)
+	}
+
 	slog.Info("server stopped")
 }
