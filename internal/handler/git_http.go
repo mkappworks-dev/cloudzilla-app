@@ -17,12 +17,7 @@ import (
 
 func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
-	repoName := chi.URLParam(r, "repo")
-
-	// Strip .git suffix if present
-	if strings.HasSuffix(repoName, ".git") {
-		repoName = strings.TrimSuffix(repoName, ".git")
-	}
+	repoName := strings.TrimSuffix(chi.URLParam(r, "repo"), ".git")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -103,12 +98,7 @@ func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
-	repoName := chi.URLParam(r, "repo")
-
-	// Strip .git suffix if present
-	if strings.HasSuffix(repoName, ".git") {
-		repoName = strings.TrimSuffix(repoName, ".git")
-	}
+	repoName := strings.TrimSuffix(chi.URLParam(r, "repo"), ".git")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -161,12 +151,7 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
-	repoName := chi.URLParam(r, "repo")
-
-	// Strip .git suffix if present
-	if strings.HasSuffix(repoName, ".git") {
-		repoName = strings.TrimSuffix(repoName, ".git")
-	}
+	repoName := strings.TrimSuffix(chi.URLParam(r, "repo"), ".git")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
