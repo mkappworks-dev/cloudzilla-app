@@ -44,11 +44,11 @@ server:
   host: "0.0.0.0"
 
 database:
-  driver: sqlite3          # or "postgres"
-  dsn: ./cloudzilla.db     # or postgres DSN
+  driver: sqlite3 # or "postgres"
+  dsn: ./cloudzilla.db # or postgres DSN
 
 auth:
-  jwt_secret: change-me    # change this in production
+  jwt_secret: change-me # change this in production
   jwt_expiry: 24h
 
 git:
@@ -87,6 +87,7 @@ make build
 ```
 
 `make build` produces:
+
 - `dist/cloudzilla` — HTTP server binary (API + embedded frontend + CSS)
 - `dist/cloudzilla-cli` — Admin CLI binary
 
@@ -96,20 +97,20 @@ The server binary embeds all frontend templates and compiled CSS. No Node.js req
 
 ## Configuration Reference
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `server.port` | `8080` | HTTP listen port |
-| `server.host` | `0.0.0.0` | HTTP listen address |
-| `server.read_timeout` | `15s` | HTTP read timeout |
-| `server.write_timeout` | `15s` | HTTP write timeout |
-| `database.driver` | `sqlite3` | `sqlite3` or `postgres` |
-| `database.dsn` | `./cloudzilla.db` | DB connection string |
-| `database.max_open_conns` | `10` | Max open DB connections |
-| `database.max_idle_conns` | `5` | Max idle DB connections |
-| `auth.jwt_secret` | `change-me` | JWT signing secret — **change in production** |
-| `auth.jwt_expiry` | `24h` | JWT token lifetime |
-| `auth.cookie_name` | `cz_token` | httpOnly cookie name |
-| `git.repos_root` | `./git-repos` | Bare git repo storage path |
+| Key                       | Default           | Description                                   |
+| ------------------------- | ----------------- | --------------------------------------------- |
+| `server.port`             | `8080`            | HTTP listen port                              |
+| `server.host`             | `0.0.0.0`         | HTTP listen address                           |
+| `server.read_timeout`     | `15s`             | HTTP read timeout                             |
+| `server.write_timeout`    | `15s`             | HTTP write timeout                            |
+| `database.driver`         | `sqlite3`         | `sqlite3` or `postgres`                       |
+| `database.dsn`            | `./cloudzilla.db` | DB connection string                          |
+| `database.max_open_conns` | `10`              | Max open DB connections                       |
+| `database.max_idle_conns` | `5`               | Max idle DB connections                       |
+| `auth.jwt_secret`         | `change-me`       | JWT signing secret — **change in production** |
+| `auth.jwt_expiry`         | `24h`             | JWT token lifetime                            |
+| `auth.cookie_name`        | `cz_token`        | httpOnly cookie name                          |
+| `git.repos_root`          | `./git-repos`     | Bare git repo storage path                    |
 
 ### Switching to PostgreSQL
 
@@ -168,69 +169,69 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 ### Auth
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/api/auth/login` | — | Login; sets `cz_token` cookie and returns token in body |
-| POST | `/api/auth/logout` | — | Clears the auth cookie |
+| Method | Path               | Auth | Description                                             |
+| ------ | ------------------ | ---- | ------------------------------------------------------- |
+| POST   | `/api/auth/login`  | —    | Login; sets `cz_token` cookie and returns token in body |
+| POST   | `/api/auth/logout` | —    | Clears the auth cookie                                  |
 
 ### Users
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/api/users/:username` | — | Get user profile |
-| GET | `/api/users/:username/repos` | — | List user's repositories |
+| Method | Path                         | Auth | Description              |
+| ------ | ---------------------------- | ---- | ------------------------ |
+| GET    | `/api/users/:username`       | —    | Get user profile         |
+| GET    | `/api/users/:username/repos` | —    | List user's repositories |
 
 ### Repositories
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/api/repos/` | — | List all repositories |
-| POST | `/api/repos/` | Required | Create a repository |
-| GET | `/api/repos/:owner/:repo` | — | Get repository details |
+| Method | Path                      | Auth     | Description            |
+| ------ | ------------------------- | -------- | ---------------------- |
+| GET    | `/api/repos/`             | —        | List all repositories  |
+| POST   | `/api/repos/`             | Required | Create a repository    |
+| GET    | `/api/repos/:owner/:repo` | —        | Get repository details |
 
 ### Issues
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/api/repos/:owner/:repo/issues/` | — | List issues |
-| POST | `/api/repos/:owner/:repo/issues/` | Required | Create an issue |
-| GET | `/api/repos/:owner/:repo/issues/:number` | — | Get issue details |
-| PATCH | `/api/repos/:owner/:repo/issues/:number` | Required | Update issue (open/close) |
-| GET | `/api/repos/:owner/:repo/issues/:number/comments` | — | List comments |
-| POST | `/api/repos/:owner/:repo/issues/:number/comments` | Required | Add a comment |
-| DELETE | `/api/repos/:owner/:repo/issues/:number/comments/:id` | Required | Delete a comment |
+| Method | Path                                                  | Auth     | Description               |
+| ------ | ----------------------------------------------------- | -------- | ------------------------- |
+| GET    | `/api/repos/:owner/:repo/issues/`                     | —        | List issues               |
+| POST   | `/api/repos/:owner/:repo/issues/`                     | Required | Create an issue           |
+| GET    | `/api/repos/:owner/:repo/issues/:number`              | —        | Get issue details         |
+| PATCH  | `/api/repos/:owner/:repo/issues/:number`              | Required | Update issue (open/close) |
+| GET    | `/api/repos/:owner/:repo/issues/:number/comments`     | —        | List comments             |
+| POST   | `/api/repos/:owner/:repo/issues/:number/comments`     | Required | Add a comment             |
+| DELETE | `/api/repos/:owner/:repo/issues/:number/comments/:id` | Required | Delete a comment          |
 
 ### Pull Requests
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/api/repos/:owner/:repo/pulls/` | — | List pull requests |
-| POST | `/api/repos/:owner/:repo/pulls/` | Required | Create a pull request |
-| GET | `/api/repos/:owner/:repo/pulls/:number` | — | Get PR details |
-| PATCH | `/api/repos/:owner/:repo/pulls/:number` | Required | Update PR (merge/close) |
+| Method | Path                                    | Auth     | Description             |
+| ------ | --------------------------------------- | -------- | ----------------------- |
+| GET    | `/api/repos/:owner/:repo/pulls/`        | —        | List pull requests      |
+| POST   | `/api/repos/:owner/:repo/pulls/`        | Required | Create a pull request   |
+| GET    | `/api/repos/:owner/:repo/pulls/:number` | —        | Get PR details          |
+| PATCH  | `/api/repos/:owner/:repo/pulls/:number` | Required | Update PR (merge/close) |
 
 ### HTMX Fragments
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/fragments/:owner/:repo/issues/:number/comments` | Returns rendered HTML fragment for HTMX swap |
+| Method | Path                                              | Description                                  |
+| ------ | ------------------------------------------------- | -------------------------------------------- |
+| GET    | `/fragments/:owner/:repo/issues/:number/comments` | Returns rendered HTML fragment for HTMX swap |
 
 ---
 
 ## Make Targets
 
-| Target | Description |
-|--------|-------------|
-| `make setup-tailwind` | Download Tailwind CLI (one-time) |
-| `make build-css` | Compile Tailwind CSS to `cmd/server/frontend/static/main.css` |
-| `make dev` | Run backend + Tailwind watch concurrently |
-| `make build` | Build Go binaries (with embedded CSS) |
-| `make build-backend` | Compile server binary to `dist/cloudzilla` |
-| `make build-cli` | Compile CLI binary to `dist/cloudzilla-cli` |
-| `make migrate` | Run DB migrations |
-| `make lint` | Run golangci-lint |
-| `make test` | Run Go tests |
-| `make clean` | Remove build artifacts and database files |
+| Target                | Description                                                   |
+| --------------------- | ------------------------------------------------------------- |
+| `make setup-tailwind` | Download Tailwind CLI (one-time)                              |
+| `make build-css`      | Compile Tailwind CSS to `cmd/server/frontend/static/main.css` |
+| `make dev`            | Run backend + Tailwind watch concurrently                     |
+| `make build`          | Build Go binaries (with embedded CSS)                         |
+| `make build-backend`  | Compile server binary to `dist/cloudzilla`                    |
+| `make build-cli`      | Compile CLI binary to `dist/cloudzilla-cli`                   |
+| `make migrate`        | Run DB migrations                                             |
+| `make lint`           | Run golangci-lint                                             |
+| `make test`           | Run Go tests                                                  |
+| `make clean`          | Remove build artifacts and database files                     |
 
 ---
 
@@ -284,14 +285,14 @@ Handlers call services only. Services call stores only. Stores own all SQL.
 
 Migrations live in `migrations/` and are embedded into the binary at build time. They run in order on `cloudzilla migrate`.
 
-| File | Creates |
-|------|---------|
-| `001_create_users.sql` | `users` table |
-| `002_create_repositories.sql` | `repositories` table |
-| `003_create_issues.sql` | `issues` table |
+| File                           | Creates               |
+| ------------------------------ | --------------------- |
+| `001_create_users.sql`         | `users` table         |
+| `002_create_repositories.sql`  | `repositories` table  |
+| `003_create_issues.sql`        | `issues` table        |
 | `004_create_pull_requests.sql` | `pull_requests` table |
-| `005_create_comments.sql` | `comments` table |
-| `006_create_permissions.sql` | `permissions` table |
+| `005_create_comments.sql`      | `comments` table      |
+| `006_create_permissions.sql`   | `permissions` table   |
 
 ---
 
@@ -307,37 +308,26 @@ The following are intentionally out of scope for the initial release:
 - OAuth / SSO
 - Organization accounts
 
-# Dependency Health — Cloudzilla Go
+---
 
-  Direct Dependencies
+## Dependencies
 
-  ┌─────────────────────┬──────────┬──────────┬───────┬──────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────┐
-  │       Package       │ Current  │  Latest  │ Stars │      Status      │                                      stdlib Alternative                                      │
-  ├─────────────────────┼──────────┼──────────┼───────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
-  │ go-chi/chi/v5       │ v5.2.5   │ v5.2.5   │ ~22k  │ Active           │ net/http ServeMux (Go 1.22+ has pattern routing, but no named params or middleware chaining) │
-  ├─────────────────────┼──────────┼──────────┼───────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
-  │ go-chi/cors         │ v1.2.2   │ v1.2.2   │ ~410  │ Stable           │ Set headers manually — tedious but doable                                                    │
-  ├─────────────────────┼──────────┼──────────┼───────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
-  │ golang-jwt/jwt/v5   │ v5.3.1   │ v5.3.1   │ ~9k   │ Active           │ None — stdlib has no JWT                                                                     │
-  ├─────────────────────┼──────────┼──────────┼───────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
-  │ jackc/pgx/v5        │ v5.8.0   │ v5.8.0   │ ~10k  │ Active           │ None in stdlib; lib/pq is in maintenance mode (replaces it)                                  │
-  ├─────────────────────┼──────────┼──────────┼───────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
-  │ modernc.org/sqlite  │ v1.46.1  │ v1.46.1  │ ~3.8k │ Active           │ Pure-Go SQLite, no CGo required (replaces mattn/go-sqlite3)                                  │
-  ├─────────────────────┼──────────┼──────────┼───────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
-  │ spf13/cobra         │ v1.10.2  │ v1.10.2  │ ~42k  │ Active           │ flag — only for flat, simple CLIs; no subcommand tree                                        │
-  ├─────────────────────┼──────────┼──────────┼───────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
-  │ spf13/viper         │ v1.21.0  │ v1.21.0  │ ~30k  │ Active           │ None for multi-source config; os.Getenv + manual YAML parsing covers basics                  │
-  ├─────────────────────┼──────────┼──────────┼───────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────┤
-  │ golang.org/x/crypto │ v0.49.0  │ v0.49.0  │ —     │ Active (Go team) │ Partial — stdlib crypto/ covers basics, but bcrypt/argon2 need x/crypto                      │
-  └─────────────────────┴──────────┴──────────┴───────┴──────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────┘
+### Direct Dependencies
 
-  Notable Indirect Dependencies
+| Package | Purpose | Version |
+|---------|---------|---------|
+| `go-chi/chi/v5` | HTTP router with named params and middleware chaining | v5.2.5 |
+| `go-chi/cors` | CORS middleware for chi | v1.2.2 |
+| `golang-jwt/jwt/v5` | JWT token signing and verification | v5.3.1 |
+| `jackc/pgx/v5` | PostgreSQL driver (stdlib-compatible via pgx/v5/stdlib) | v5.8.0 |
+| `modernc.org/sqlite` | Pure-Go SQLite driver (no CGo) | v1.46.1 |
+| `spf13/cobra` | CLI command framework with subcommand trees | v1.10.2 |
+| `spf13/viper` | Config file + environment variable loading | v1.21.0 |
+| `golang.org/x/crypto` | Secure password hashing (bcrypt, argon2) | v0.49.0 |
 
-  ┌────────────────────────┬──────────────────────┬────────────────────────────────────────────────────────────┐
-  │        Package         │        Status        │                            Note                            │
-  ├────────────────────────┼──────────────────────┼────────────────────────────────────────────────────────────┤
-  │ go-viper/mapstructure  │ Active               │ viper v1.21.0 now uses this actively-maintained fork       │
-  ├────────────────────────┼──────────────────────┼────────────────────────────────────────────────────────────┤
-  │ spf13/afero            │ Active               │ Used by viper                                              │
-  └────────────────────────┴──────────────────────┴────────────────────────────────────────────────────────────┘
+### Notable Indirect Dependencies
 
+| Package | Purpose |
+|---------|---------|
+| `go-viper/mapstructure` | Struct mapping used by viper |
+| `spf13/afero` | Virtual filesystem abstraction used by viper |
