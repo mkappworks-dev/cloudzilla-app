@@ -8,7 +8,7 @@
         <a href="/{{.Owner}}" class="hover:text-blue-600 hover:underline font-medium">{{.Owner}}</a>
         <span class="text-gray-400">/</span>
         <a href="/{{.Owner}}/{{.RepoName}}" class="hover:text-blue-600 hover:underline font-medium">{{.RepoName}}</a>
-        <span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-mono">{{.Log.Ref}}</span>
+        <a href="{{.RefsURL}}" class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-mono hover:bg-blue-200">{{.Log.Ref}}</a>
       </div>
       <a href="/{{.Owner}}/{{.RepoName}}/tree/{{.Log.Ref}}" class="text-sm text-blue-600 hover:underline">Browse Code</a>
     </div>
