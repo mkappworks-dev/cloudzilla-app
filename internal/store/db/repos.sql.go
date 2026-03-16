@@ -45,6 +45,22 @@ func (q *Queries) CreateRepo(ctx context.Context, arg CreateRepoParams) (Reposit
 	return i, err
 }
 
+const getPermission = `-- name: GetPermission :one
+SELECT role FROM permissions WHERE repo_id = ? AND user_id = ?
+`
+
+type GetPermissionParams struct {
+	RepoID int64 `json:"repo_id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) GetPermission(ctx context.Context, arg GetPermissionParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, getPermission, arg.RepoID, arg.UserID)
+	var role string
+	err := row.Scan(&role)
+	return role, err
+}
+
 const getRepoByOwnerAndName = `-- name: GetRepoByOwnerAndName :one
 SELECT r.id, r.owner_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at FROM repositories r
 JOIN users u ON u.id = r.owner_id

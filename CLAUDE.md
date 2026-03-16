@@ -9,6 +9,8 @@
 - **DB**: SQLite (default), PostgreSQL (production)
 - **Pattern**: Stores → Services → Handlers (strict layer separation)
 - **Rendering**: Server-driven; no JavaScript framework, no build tooling needed
+- **Git Transport**: HTTP smart protocol + SSH server (both via pure Go, no git binary required)
+- **SSH Auth**: Public key authentication via stored SSH keys
 
 ## Project Layout
 
@@ -22,6 +24,7 @@
 - `internal/handler/` — HTTP handlers (calls services + renders templates)
 - `internal/middleware/` — Auth, logger, CORS
 - `internal/router/` — chi route registration + template parsing
+- `internal/ssh/` — SSH server for git operations (gliderlabs/ssh)
 - `migrations/` — SQL files, embedded via embed.FS
 - `cmd/server/frontend/` — Static files + templates
   - `templates/layout.html` — Base HTML shell
@@ -88,6 +91,101 @@ go test ./...           # Run Go tests
 3. **Protected pages**: `optAuthMW` middleware reads cookie, injects claims into context (optional)
 4. **HTMX requests**: Browser automatically includes cookie (same-origin); handler checks claims if needed
 
+## SSH Key Management
+
+### Adding SSH Keys
+Users can add SSH public keys for git operations:
+
+```bash
+curl -X POST http://localhost:8080/api/user/keys \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "laptop", "public_key": "ssh-ed25519 AAAA..."}'
+```
+
+### SSH Key Storage
+- Public keys stored in `ssh_keys` table with MD5 fingerprints
+- Fingerprints used for fast public key lookups during SSH handshakes
+- One key per user; users can have multiple keys with different titles
+
+### Listing and Deleting Keys
+```bash
+# List all keys for authenticated user
+GET /api/user/keys
+
+# Delete a key by ID
+DELETE /api/user/keys/{id}
+```
+
+## Git HTTP Smart Protocol
+
+### Overview
+Cloudzilla exposes repositories via the Git HTTP smart protocol, allowing standard `git clone/push/pull` operations.
+
+### Endpoints
+- `GET /{owner}/{repo}/info/refs?service=git-upload-pack` — List refs (clone/fetch)
+- `POST /{owner}/{repo}/git-upload-pack` — Upload pack (clone/fetch data)
+- `POST /{owner}/{repo}/git-receive-pack` — Receive pack (push data)
+
+### Authentication
+- **Public repos**: No authentication required
+- **Private repos**: Requires HTTP Basic Auth or JWT cookie
+- Permissions enforced: read access for clone/fetch, write access for push
+
+### Example
+```bash
+# Clone a public repo
+git clone http://localhost:8080/admin/my-project.git
+
+# Clone a private repo (with basic auth)
+git clone http://user:password@localhost:8080/admin/private-repo.git
+
+# Push requires write access
+git push origin main
+```
+
+## SSH Server
+
+### Overview
+Cloudzilla runs an SSH server (port 2222 by default) for git operations using public key authentication.
+
+### Configuration
+In `config.yaml`:
+```yaml
+git:
+  repos_root: ./git-repos
+  ssh_port: 2222                    # SSH server port
+  ssh_host_key: ./cloudzilla_host_key  # Host key file (auto-generated if missing)
+```
+
+### SSH Git Operations
+Users with SSH keys can clone, fetch, and push via SSH:
+
+```bash
+# Add an SSH key first
+curl -X POST http://localhost:8080/api/user/keys \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"title": "mykey", "public_key": "'$(cat ~/.ssh/id_ed25519.pub)'"}'
+
+# Clone via SSH
+git clone ssh://git@localhost:2222/owner/repo.git
+
+# Standard git operations work
+git push origin main
+git fetch
+git pull
+```
+
+### How SSH Auth Works
+1. Client initiates SSH connection to port 2222
+2. Server presents host public key
+3. Client sends user's SSH public key
+4. Server computes MD5 fingerprint and looks up matching SSH key in database
+5. If found, extracts user ID from key owner
+6. User is authenticated and context is populated
+7. `git-upload-pack` or `git-receive-pack` command is dispatched with user context
+8. Repository permissions are checked (read for upload-pack, write for receive-pack)
+
 ## HTMX Pattern (Example: Close Issue)
 
 Template:
@@ -144,6 +242,28 @@ This pattern avoids Go template's global `define` namespace issue.
 - Use `?` placeholders (not `$1`)
 - For PostgreSQL migration: change driver in config.yaml, use `$N` placeholders
 
+## Git Repository Permissions
+
+### Permission Model
+All git operations (HTTP and SSH) respect the same permission rules:
+
+**Read Access** (`git clone`, `git fetch`, `git pull`):
+- Public repositories: Always allowed
+- Private repositories: Requires authentication + one of:
+  - User is the repository owner
+  - User has a permission record with role `reader`, `writer`, or `admin`
+
+**Write Access** (`git push`):
+- Requires authentication + one of:
+  - User is the repository owner
+  - User has a permission record with role `writer` or `admin`
+
+### Implementation
+- `RepoService.CanRead(ctx, repo, userID)` — checks public/private + permissions
+- `RepoService.CanWrite(ctx, repo, userID)` — checks write permissions
+- Both HTTP handlers and SSH handlers call these methods before processing git commands
+- Bare repository created with `go-git.PlainInit()`, fully compatible with git CLI
+
 ## Deployment
 
 1. Run `make build` — produces single `dist/cloudzilla` binary with embedded templates + CSS
@@ -153,9 +273,9 @@ This pattern avoids Go template's global `define` namespace issue.
 
 ## Out of Scope (v1)
 
-- Git HTTP smart protocol (push/pull)
-- SSH server
 - Code diff rendering
 - Webhooks / notifications
 - OAuth / SSO
 - Organization accounts
+- Git branches UI (clone works, but branch/tag management is CLI-only)
+- Pull request merging via git commands (web UI only)

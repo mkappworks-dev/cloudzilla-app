@@ -7,11 +7,12 @@ import (
 )
 
 type Stores struct {
-	User    *UserStore
-	Repo    *RepoStore
-	Issue   *IssueStore
-	Pull    *PullStore
+	User   *UserStore
+	Repo   *RepoStore
+	Issue  *IssueStore
+	Pull   *PullStore
 	Comment *CommentStore
+	SSHKey *SSHKeyStore
 }
 
 func New(database *sql.DB) *Stores {
@@ -22,5 +23,6 @@ func New(database *sql.DB) *Stores {
 		Issue:   NewIssueStore(q),
 		Pull:    NewPullStore(q),
 		Comment: NewCommentStore(q),
+		SSHKey:  NewSSHKeyStore(q),
 	}
 }

@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 
+	gogit "github.com/go-git/go-git/v5"
 	"github.com/mkappworks/cloudzilla/internal/config"
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/store"
@@ -38,10 +38,10 @@ func (s *RepoService) Create(ctx context.Context, ownerUsername, name, descripti
 		return nil, err
 	}
 
-	// Create bare git repo directory
+	// Create bare git repo
 	repoPath := filepath.Join(s.cfg.ReposRoot, ownerUsername, name+".git")
-	if err := os.MkdirAll(repoPath, 0755); err != nil {
-		return nil, fmt.Errorf("create repo dir: %w", err)
+	if _, err := gogit.PlainInit(repoPath, true); err != nil {
+		return nil, fmt.Errorf("git init bare: %w", err)
 	}
 
 	r.OwnerName = ownerUsername
@@ -62,4 +62,45 @@ func (s *RepoService) ListByOwner(ctx context.Context, ownerUsername string) ([]
 		return nil, fmt.Errorf("owner not found: %w", err)
 	}
 	return s.repos.GetByOwnerID(ctx, owner.ID)
+}
+
+func (s *RepoService) CanRead(ctx context.Context, repo *model.Repository, userID *int64) bool {
+	// Public repos are always readable
+	if !repo.Private {
+		return true
+	}
+
+	// Private repos require auth + ownership or permission
+	if userID == nil {
+		return false
+	}
+
+	// Owner can read
+	if repo.OwnerID == *userID {
+		return true
+	}
+
+	// Check permission
+	role, err := s.repos.GetPermission(ctx, repo.ID, *userID)
+	if err != nil || role == "" {
+		return false
+	}
+
+	return true
+}
+
+func (s *RepoService) CanWrite(ctx context.Context, repo *model.Repository, userID int64) bool {
+	// Owner can write
+	if repo.OwnerID == userID {
+		return true
+	}
+
+	// Check permission
+	role, err := s.repos.GetPermission(ctx, repo.ID, userID)
+	if err != nil || role == "" {
+		return false
+	}
+
+	// writer and admin can write
+	return role == string(model.RoleWriter) || role == string(model.RoleAdmin)
 }

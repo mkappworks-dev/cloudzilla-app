@@ -16,3 +16,6 @@ WHERE u.username = ? AND r.name = ?;
 SELECT r.* FROM repositories r
 WHERE r.owner_id = ?
 ORDER BY r.created_at DESC;
+
+-- name: GetPermission :one
+SELECT role FROM permissions WHERE repo_id = ? AND user_id = ?;

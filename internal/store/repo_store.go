@@ -56,6 +56,17 @@ func (s *RepoStore) GetByOwnerID(ctx context.Context, ownerID int64) ([]model.Re
 	return mapDBReposToModel(repos), nil
 }
 
+func (s *RepoStore) GetPermission(ctx context.Context, repoID, userID int64) (string, error) {
+	role, err := s.q.GetPermission(ctx, db.GetPermissionParams{
+		RepoID: repoID,
+		UserID: userID,
+	})
+	if err != nil {
+		return "", fmt.Errorf("get permission: %w", err)
+	}
+	return role, nil
+}
+
 func mapDBRepoToModel(dbRepo *db.Repository) *model.Repository {
 	return &model.Repository{
 		ID:            dbRepo.ID,
