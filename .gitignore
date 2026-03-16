@@ -9,6 +9,8 @@ cloudzilla.db
 cloudzilla.db-shm
 cloudzilla.db-wal
 git-repos/
+/server
+/cloudzilla
 
 # Tailwind
 bin/tailwindcss*
