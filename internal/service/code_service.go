@@ -486,9 +486,10 @@ func (s *CodeService) GetCommit(owner, repoName, sha string) (*CommitDetail, err
 			fd.Hunks = buildHunks(fp.Chunks())
 			for _, h := range fd.Hunks {
 				for _, l := range h.Lines {
-					if l.Type == "add" {
+					switch l.Type {
+					case "add":
 						fd.Added++
-					} else if l.Type == "del" {
+					case "del":
 						fd.Deleted++
 					}
 				}
