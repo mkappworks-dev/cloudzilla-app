@@ -18,6 +18,9 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 - SSH keys for git operations (ED25519, RSA)
 - Git over HTTP (smart protocol) — `git clone/push/pull` with HTTP Basic Auth or JWT cookie
 - Git over SSH (port 2222 by default) — public key authentication
+- Code browser — file tree, blob viewer with line numbers, per-line blame
+- Commit history — paginated commit log per branch/ref
+- Commit diff view — unified diff with added/deleted line highlighting
 - Clone URLs on repo pages (HTTP & SSH)
 - Auth-aware navigation (Sign in/Settings/Sign out)
 - Admin CLI for bootstrapping
@@ -258,6 +261,52 @@ The SSH host key is auto-generated on first startup if missing.
 
 ---
 
+## Code Browser
+
+Browse repository contents directly from the web UI. All views respect repo visibility — private repos require authentication.
+
+### URL Patterns
+
+| View | URL |
+|---|---|
+| Root file tree | `/{owner}/{repo}/tree/{ref}` |
+| Subdirectory tree | `/{owner}/{repo}/tree/{ref}/{path...}` |
+| File content (blob) | `/{owner}/{repo}/blob/{ref}/{path...}` |
+| Per-line blame | `/{owner}/{repo}/blame/{ref}/{path...}` |
+
+`{ref}` can be a branch name, tag name, or commit SHA. If the ref is not found, the server returns 404.
+
+### Examples
+
+```bash
+# Browse root of main branch
+http://localhost:8080/admin/my-project/tree/main
+
+# Browse a subdirectory
+http://localhost:8080/admin/my-project/tree/main/src/handler
+
+# View a file with line numbers
+http://localhost:8080/admin/my-project/blob/main/README.md
+
+# View per-line blame for a file
+http://localhost:8080/admin/my-project/blame/main/internal/service/repo_service.go
+
+# Use a commit SHA as the ref
+http://localhost:8080/admin/my-project/tree/abc1234
+```
+
+### Features
+
+- **File tree**: directories listed before files, each entry links to subtree or blob
+- **Blob viewer**: syntax-highlighted line numbers, anchor links per line (`#L42`), "View Blame" link
+- **Blame view**: groups consecutive lines by commit — shows hash, author, and date once per run; "View File" returns to blob
+- **Commit log**: paginated list of commits for a branch or ref (`?page=N`), each links to the diff view
+- **Commit diff**: unified diff per file with green/red line highlighting, hunk headers, and binary detection
+- **Binary files**: blob page shows "Binary file not shown" instead of raw bytes
+- **Empty repos**: returns a clear error rather than crashing
+
+---
+
 ## API Reference
 
 All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly cookie (`cz_token`) or an `Authorization: Bearer <token>` header.
@@ -359,7 +408,7 @@ cmd/
     frontend/      # Templates + static files (embedded in binary)
       templates/
         layout.html          # Base HTML shell
-        pages/               # Page templates (home, login, user, repo, issues, pulls, etc.)
+        pages/               # Page templates (home, login, user, repo, issues, pulls, tree, blob, blame, etc.)
         fragments/           # HTMX swap fragments
       static/
         main.css             # Compiled Tailwind output
@@ -421,8 +470,6 @@ Migrations live in `migrations/` and are embedded into the binary at build time.
 
 The following are intentionally out of scope for the initial release:
 
-- Code browser (file tree, blob, blame)
-- Commit history and diff rendering
 - Webhooks and notifications
 - OAuth / SSO
 - Organization accounts

@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/service"
 )
 
 // BasePage contains common data for all pages
@@ -93,4 +94,56 @@ type CommentFragData struct {
 
 type CommentsFragData struct {
 	Comments []model.Comment
+}
+
+type TreeData struct {
+	BasePage
+	Repo        model.Repository
+	Owner       string
+	RepoName    string
+	Ref         string
+	Path        string
+	Breadcrumbs []service.BreadcrumbPart
+	Entries     []service.TreeEntry
+}
+
+type BlobData struct {
+	BasePage
+	Repo        model.Repository
+	Owner       string
+	RepoName    string
+	Ref         string
+	Path        string
+	Breadcrumbs []service.BreadcrumbPart
+	Lines       []service.CodeLine
+	IsBinary    bool
+	BlameURL    string
+}
+
+type BlameData struct {
+	BasePage
+	Repo        model.Repository
+	Owner       string
+	RepoName    string
+	Ref         string
+	Path        string
+	Breadcrumbs []service.BreadcrumbPart
+	Lines       []service.BlameLine
+	BlobURL     string
+}
+
+type CommitsData struct {
+	BasePage
+	Repo     model.Repository
+	Owner    string
+	RepoName string
+	Log      *service.CommitLog
+}
+
+type CommitData struct {
+	BasePage
+	Repo     model.Repository
+	Owner    string
+	RepoName string
+	Commit   *service.CommitDetail
 }

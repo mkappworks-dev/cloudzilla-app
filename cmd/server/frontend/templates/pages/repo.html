@@ -33,7 +33,7 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-3 gap-4">
+  <div class="grid grid-cols-2 gap-4">
     <a href="/{{.Owner}}/{{.RepoName}}/issues" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
       <h3 class="text-lg font-semibold">Issues</h3>
       <p class="text-gray-500 text-sm mt-1">Track and discuss problems</p>
@@ -42,10 +42,14 @@
       <h3 class="text-lg font-semibold">Pull Requests</h3>
       <p class="text-gray-500 text-sm mt-1">Review and merge changes</p>
     </a>
-    <div class="bg-white border border-gray-200 rounded-lg p-4">
+    <a href="/{{.Owner}}/{{.RepoName}}/tree/{{.Repo.DefaultBranch}}" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+      <h3 class="text-lg font-semibold">Browse Code</h3>
+      <p class="text-gray-500 text-sm mt-1">Explore files and history</p>
+    </a>
+    <a href="/{{.Owner}}/{{.RepoName}}/commits/{{.Repo.DefaultBranch}}" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
       <h3 class="text-lg font-semibold">Commits</h3>
-      <p class="text-gray-500 text-sm mt-1">Coming soon</p>
-    </div>
+      <p class="text-gray-500 text-sm mt-1">Browse commit history</p>
+    </a>
   </div>
 </div>
 {{end}}

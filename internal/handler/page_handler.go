@@ -248,3 +248,198 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		SSHKeys:  keys,
 	})
 }
+
+func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	ref := chi.URLParam(r, "ref")
+	path := chi.URLParam(r, "path")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+
+	var userID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		userID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	result, err := h.Services.Code.GetTree(owner, repoName, ref, path)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	h.render(w, "tree", TreeData{
+		BasePage:    basePage(r),
+		Repo:        *repo,
+		Owner:       owner,
+		RepoName:    repoName,
+		Ref:         result.Ref,
+		Path:        result.Path,
+		Breadcrumbs: result.Breadcrumbs,
+		Entries:     result.Entries,
+	})
+}
+
+func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	ref := chi.URLParam(r, "ref")
+	path := chi.URLParam(r, "path")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+
+	var userID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		userID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	result, err := h.Services.Code.GetBlob(owner, repoName, ref, path)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	h.render(w, "blob", BlobData{
+		BasePage:    basePage(r),
+		Repo:        *repo,
+		Owner:       owner,
+		RepoName:    repoName,
+		Ref:         result.Ref,
+		Path:        result.Path,
+		Breadcrumbs: result.Breadcrumbs,
+		Lines:       result.Lines,
+		IsBinary:    result.IsBinary,
+		BlameURL:    result.BlameURL,
+	})
+}
+
+func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	ref := chi.URLParam(r, "ref")
+
+	page := 1
+	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
+		page = p
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+
+	var userID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		userID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	log, err := h.Services.Code.GetCommits(owner, repoName, ref, page, 30)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	h.render(w, "commits", CommitsData{
+		BasePage: basePage(r),
+		Repo:     *repo,
+		Owner:    owner,
+		RepoName: repoName,
+		Log:      log,
+	})
+}
+
+func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	sha := chi.URLParam(r, "sha")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+
+	var userID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		userID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	commit, err := h.Services.Code.GetCommit(owner, repoName, sha)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	h.render(w, "commit", CommitData{
+		BasePage: basePage(r),
+		Repo:     *repo,
+		Owner:    owner,
+		RepoName: repoName,
+		Commit:   commit,
+	})
+}
+
+func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	ref := chi.URLParam(r, "ref")
+	path := chi.URLParam(r, "path")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+
+	var userID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		userID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	result, err := h.Services.Code.GetBlame(owner, repoName, ref, path)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	h.render(w, "blame", BlameData{
+		BasePage:    basePage(r),
+		Repo:        *repo,
+		Owner:       owner,
+		RepoName:    repoName,
+		Ref:         result.Ref,
+		Path:        result.Path,
+		Breadcrumbs: result.Breadcrumbs,
+		Lines:       result.Lines,
+		BlobURL:     result.BlobURL,
+	})
+}

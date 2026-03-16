@@ -18,7 +18,8 @@ func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *templat
 	base := template.Must(template.ParseFS(sub, "layout.html"))
 
 	pageNames := []string{"home", "login", "user", "repo", "issues",
-		"issue_detail", "pulls", "pull_detail", "settings"}
+		"issue_detail", "pulls", "pull_detail", "settings",
+		"tree", "blob", "blame", "commits", "commit"}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
 		clone := template.Must(base.Clone())
@@ -54,6 +55,13 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues/{number}", h.PageIssueDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls", h.PagePulls)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls/{number}", h.PagePullDetail)
+	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}", h.PageTree)
+	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}/{path...}", h.PageTree)
+	r.With(optAuthMW).Get("/{owner}/{repo}/blob/{ref}/{path...}", h.PageBlob)
+	r.With(optAuthMW).Get("/{owner}/{repo}/blame/{ref}/{path...}", h.PageBlame)
+	r.With(optAuthMW).Get("/{owner}/{repo}/commits/{ref}", h.PageCommits)
+	r.With(optAuthMW).Get("/{owner}/{repo}/commits/{ref}/{path...}", h.PageCommits)
+	r.With(optAuthMW).Get("/{owner}/{repo}/commit/{sha}", h.PageCommit)
 
 	// Auth routes
 	r.Route("/api/auth", func(r chi.Router) {

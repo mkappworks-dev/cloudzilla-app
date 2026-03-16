@@ -12,6 +12,7 @@ type Services struct {
 	Pull    *PullService
 	Comment *CommentService
 	SSHKey  *SSHKeyService
+	Code    *CodeService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -22,5 +23,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Pull:    NewPullService(stores.Pull, stores.Repo),
 		Comment: NewCommentService(stores.Comment),
 		SSHKey:  NewSSHKeyService(stores.SSHKey, stores.User),
+		Code:    NewCodeService(cfg.Git),
 	}
 }

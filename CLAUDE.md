@@ -264,6 +264,51 @@ All git operations (HTTP and SSH) respect the same permission rules:
 - Both HTTP handlers and SSH handlers call these methods before processing git commands
 - Bare repository created with `go-git.PlainInit()`, fully compatible with git CLI
 
+## Code Browser
+
+### URL Patterns
+
+| View | Route |
+|---|---|
+| Root tree | `/{owner}/{repo}/tree/{ref}` |
+| Subtree | `/{owner}/{repo}/tree/{ref}/{path...}` |
+| Blob | `/{owner}/{repo}/blob/{ref}/{path...}` |
+| Blame | `/{owner}/{repo}/blame/{ref}/{path...}` |
+| Commit log | `/{owner}/{repo}/commits/{ref}` |
+| Commit log (file scope) | `/{owner}/{repo}/commits/{ref}/{path...}` |
+| Single commit diff | `/{owner}/{repo}/commit/{sha}` |
+
+`{ref}` = branch name, tag name, or commit SHA. Pagination via `?page=N` (1-indexed, 30 per page).
+
+### CodeService (`internal/service/code_service.go`)
+
+`CodeService` has **no store dependency** — it reads git data directly from bare repos on disk via go-git. It is wired in `services.New()` and receives `config.GitConfig` (for `ReposRoot`).
+
+Key methods:
+- `ResolveRef(owner, repoName, ref)` → `(*object.Commit, displayRef, error)`
+- `GetTree(owner, repoName, ref, path)` → `*TreeResult`
+- `GetBlob(owner, repoName, ref, path)` → `*BlobResult`
+- `GetBlame(owner, repoName, ref, path)` → `*BlameResult`
+- `GetCommits(owner, repoName, ref, page, pageSize)` → `*CommitLog`
+- `GetCommit(owner, repoName, sha)` → `*CommitDetail`
+
+### ResolveRef Priority
+
+1. Branch: `repo.Reference(plumbing.NewBranchReferenceName(ref), true)`
+2. Tag: `repo.Reference(plumbing.NewTagReferenceName(ref), true)`
+3. Raw SHA: `repo.CommitObject(plumbing.NewHash(ref))`
+4. HEAD fallback (when `ref == ""`): `repo.Head()`
+
+Returns `ErrEmptyRepo` sentinel when HEAD resolution fails (repo has no commits). Handlers return 404 on this error.
+
+### Result Types
+
+- `TreeResult` — `Entries []TreeEntry` (dirs first, then files, both sorted), `Ref`, `Path`, `Breadcrumbs`
+- `BlobResult` — `Lines []CodeLine`, `IsBinary bool`, `BlameURL`, breadcrumbs
+- `BlameResult` — `Lines []BlameLine` with `ShowMeta bool` (true when commit run changes), `BlobURL`, breadcrumbs
+- `CommitLog` — `Commits []CommitSummary`, `Ref`, `Page`, `PrevPage`, `NextPage`, `HasMore`
+- `CommitDetail` — full commit with `Files []FileDiff` (hunks with add/del/ctx lines), `TotalAdded`, `TotalDeleted`
+
 ## Deployment
 
 1. Run `make build` — produces single `dist/cloudzilla` binary with embedded templates + CSS
@@ -273,7 +318,6 @@ All git operations (HTTP and SSH) respect the same permission rules:
 
 ## Out of Scope (v1)
 
-- Code diff rendering
 - Webhooks / notifications
 - OAuth / SSO
 - Organization accounts
