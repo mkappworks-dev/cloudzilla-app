@@ -91,6 +91,38 @@ go test ./...           # Run Go tests
 3. **Protected pages**: `optAuthMW` middleware reads cookie, injects claims into context (optional)
 4. **HTMX requests**: Browser automatically includes cookie (same-origin); handler checks claims if needed
 
+### Google OAuth Flow
+
+```
+User clicks "Sign in with Google"
+  → GET /auth/google
+      → generate random state, set oauth_state cookie (5 min, httpOnly)
+      → redirect to Google auth URL
+  → User approves on Google
+  → GET /auth/google/callback?code=...&state=...
+      → validate state cookie
+      → exchange code → access token
+      → fetch https://www.googleapis.com/oauth2/v2/userinfo
+      → upsert user (see account linking below)
+      → generate JWT, set cz_token cookie
+      → redirect to /
+```
+
+**Account linking priority:**
+1. `oauth_provider=google` + `oauth_id` found → log in directly
+2. Email already exists (password user) → link OAuth to existing account → log in
+3. Neither → create new user (username derived from name/email prefix, deduplicated)
+
+**Configuration** (`config.yaml`):
+```yaml
+oauth:
+  google_client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com"
+  google_client_secret: "YOUR_SECRET"
+  google_redirect_url: "http://localhost:8080/auth/google/callback"
+```
+
+If `google_client_id` is empty, `GET /auth/google` returns 501 Not Implemented. The button still renders on the login page but fails gracefully.
+
 ## SSH Key Management
 
 ### Adding SSH Keys
@@ -319,7 +351,7 @@ Returns `ErrEmptyRepo` sentinel when HEAD resolution fails (repo has no commits)
 ## Out of Scope (v1)
 
 - Webhooks / notifications
-- OAuth / SSO
+- OAuth providers other than Google (GitHub, GitLab, etc.)
 - Organization accounts
 - Git branches UI (clone works, but branch/tag management is CLI-only)
 - Pull request merging via git commands (web UI only)

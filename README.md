@@ -11,6 +11,7 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 ## Features
 
 - User accounts with JWT authentication (httpOnly cookie)
+- Google OAuth sign-in (links to existing accounts by email)
 - Repository management (public/private)
 - Issues with open/close state
 - Pull requests with merge/close workflow
@@ -63,6 +64,12 @@ auth:
 
 git:
   repos_root: ./git-repos
+
+# Optional: Google OAuth (leave empty to disable)
+oauth:
+  google_client_id: ""
+  google_client_secret: ""
+  google_redirect_url: "http://localhost:8080/auth/google/callback"
 ```
 
 ### 3. Run migrations
@@ -89,19 +96,118 @@ make dev
 
 ---
 
-## Production Build
+## Production Deployment
+
+### 1. Build the binary
+
+On your dev machine (requires Go 1.23+):
 
 ```bash
 make build
-./dist/cloudzilla --config /etc/cloudzilla/config.yaml
 ```
 
-`make build` produces:
-
+Produces:
 - `dist/cloudzilla` — HTTP server binary (API + embedded frontend + CSS)
 - `dist/cloudzilla-cli` — Admin CLI binary
 
-The server binary embeds all frontend templates and compiled CSS. No Node.js required at runtime or build time.
+No Node.js required at runtime or build time. The binary embeds all templates and compiled CSS.
+
+### 2. Copy files to the server
+
+```bash
+scp dist/cloudzilla dist/cloudzilla-cli user@yourserver:/usr/local/bin/
+```
+
+### 3. Create a config directory and write `config.yaml`
+
+```bash
+sudo mkdir -p /etc/cloudzilla
+sudo mkdir -p /var/lib/cloudzilla/git-repos
+```
+
+`/etc/cloudzilla/config.yaml`:
+```yaml
+server:
+  port: 8080
+  host: "0.0.0.0"
+
+database:
+  driver: sqlite3
+  dsn: /var/lib/cloudzilla/cloudzilla.db
+
+auth:
+  jwt_secret: "replace-with-a-long-random-string"
+  jwt_expiry: 24h
+  cookie_name: cz_token
+
+git:
+  repos_root: /var/lib/cloudzilla/git-repos
+  ssh_port: 2222
+  ssh_host_key: /etc/cloudzilla/ssh_host_key
+```
+
+### 4. Generate the SSH host key
+
+Generate a dedicated host key on the server — do **not** copy the one from your dev machine:
+
+```bash
+ssh-keygen -t ed25519 -f /etc/cloudzilla/ssh_host_key -N ""
+```
+
+This key is stable — clients store its fingerprint in `~/.ssh/known_hosts`. Replacing it later will cause `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED` errors for existing users.
+
+### 5. Run migrations
+
+```bash
+cloudzilla-cli migrate --config /etc/cloudzilla/config.yaml
+```
+
+### 6. Create an admin user
+
+```bash
+cloudzilla-cli create-user \
+  --username admin \
+  --email admin@example.com \
+  --password changeme \
+  --config /etc/cloudzilla/config.yaml
+```
+
+### 7. Run as a systemd service
+
+`/etc/systemd/system/cloudzilla.service`:
+```ini
+[Unit]
+Description=Cloudzilla Git Forge
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/cloudzilla --config /etc/cloudzilla/config.yaml
+Restart=on-failure
+User=cloudzilla
+WorkingDirectory=/var/lib/cloudzilla
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo useradd --system --no-create-home cloudzilla
+sudo chown -R cloudzilla:cloudzilla /var/lib/cloudzilla /etc/cloudzilla
+sudo systemctl daemon-reload
+sudo systemctl enable --now cloudzilla
+```
+
+### 8. Expose via reverse proxy (recommended)
+
+Run Nginx or Caddy in front of Cloudzilla on port 443. Example Caddy config:
+
+```
+yourdomain.com {
+    reverse_proxy localhost:8080
+}
+```
+
+> **Note:** SSH git traffic (port 2222) bypasses the reverse proxy — open that port directly in your firewall if needed.
 
 ---
 
@@ -123,6 +229,9 @@ The server binary embeds all frontend templates and compiled CSS. No Node.js req
 | `git.repos_root`          | `./git-repos`     | Bare git repo storage path                    |
 | `git.ssh_port`            | `2222`            | SSH server port for git operations            |
 | `git.ssh_host_key`        | `./cloudzilla_host_key` | SSH host key file (auto-generated if missing) |
+| `oauth.google_client_id`     | `""`              | Google OAuth client ID (empty = disabled)     |
+| `oauth.google_client_secret` | `""`              | Google OAuth client secret                    |
+| `oauth.google_redirect_url`  | `http://localhost:8080/auth/google/callback` | OAuth redirect URI (must match Google Console) |
 
 ### Switching to PostgreSQL
 
@@ -257,7 +366,9 @@ git:
   ssh_host_key: ./cloudzilla_host_key     # Host key file
 ```
 
-The SSH host key is auto-generated on first startup if missing.
+**Dev**: the host key is auto-generated on first startup if the file is missing. `cloudzilla_host_key` is gitignored — do not commit it.
+
+**Production**: generate the host key explicitly on the server (see [Production Deployment](#production-deployment)). Never copy the dev machine's key to production.
 
 ---
 
@@ -317,6 +428,8 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | ------ | ------------------ | ---- | ------------------------------------------------------- |
 | POST   | `/api/auth/login`  | —    | Login; sets `cz_token` cookie and returns token in body |
 | POST   | `/api/auth/logout` | —    | Clears the auth cookie                                  |
+| GET    | `/auth/google`     | —    | Begin Google OAuth flow (redirects to Google)           |
+| GET    | `/auth/google/callback` | — | Google OAuth callback; sets `cz_token` cookie, redirects to `/` |
 
 ### SSH Keys
 
@@ -463,6 +576,7 @@ Migrations live in `migrations/` and are embedded into the binary at build time.
 | `005_create_comments.sql`      | `comments` table      |
 | `006_create_permissions.sql`   | `permissions` table   |
 | `007_create_ssh_keys.sql`      | `ssh_keys` table      |
+| `008_oauth_users.sql`          | Adds `oauth_provider`, `oauth_id` columns to `users` |
 
 ---
 
@@ -471,7 +585,6 @@ Migrations live in `migrations/` and are embedded into the binary at build time.
 The following are intentionally out of scope for the initial release:
 
 - Webhooks and notifications
-- OAuth / SSO
 - Organization accounts
 - Git branch/tag management via web UI (CLI-only for now)
 - Pull request merging via git commands (web UI only)
@@ -492,6 +605,7 @@ The following are intentionally out of scope for the initial release:
 | `spf13/cobra` | CLI command framework with subcommand trees | v1.10.2 |
 | `spf13/viper` | Config file + environment variable loading | v1.21.0 |
 | `golang.org/x/crypto` | Secure password hashing (bcrypt, argon2) | v0.49.0 |
+| `golang.org/x/oauth2` | OAuth 2.0 client (Google sign-in) | v0.36.0 |
 | `go-git/go-git/v5` | Pure-Go git implementation for clone, fetch, push | v5.10.0+ |
 | `gliderlabs/ssh` | SSH server library | v0.3.5+ |
 
