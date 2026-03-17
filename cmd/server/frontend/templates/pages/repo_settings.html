@@ -1,0 +1,58 @@
+{{define "title"}}{{.Owner}}/{{.RepoName}} — Settings{{end}}
+
+{{define "content"}}
+<div class="space-y-6">
+  <div class="flex justify-between items-center">
+    <h1 class="text-2xl font-bold">
+      <a href="/{{.Owner}}/{{.RepoName}}" class="text-blue-600 hover:underline">{{.Owner}}/{{.RepoName}}</a> / Settings
+    </h1>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-lg p-6">
+    <h2 class="text-lg font-semibold mb-4">Webhooks</h2>
+
+    <form hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/hooks" hx-target="#webhooks-list" hx-swap="outerHTML" class="space-y-3 mb-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
+      <h3 class="font-medium text-sm">Add Webhook</h3>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Payload URL</label>
+        <input type="url" name="url" placeholder="https://example.com/webhook" required class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Secret</label>
+        <input type="text" name="secret" placeholder="Optional HMAC secret" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Events (comma-separated)</label>
+        <input type="text" name="events" value="push,issues,pull_request" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Add Webhook</button>
+    </form>
+
+    <div id="webhooks-list" class="space-y-2">
+      {{if .Webhooks}}
+      {{range .Webhooks}}
+      <div class="border border-gray-200 rounded-lg p-4 flex justify-between items-start">
+        <div>
+          <p class="font-medium text-sm font-mono break-all">{{.URL}}</p>
+          <p class="text-xs text-gray-500 mt-1">Events: {{.Events}}</p>
+          <p class="text-xs mt-1 {{if .Active}}text-green-600{{else}}text-gray-400{{end}}">
+            {{if .Active}}Active{{else}}Inactive{{end}}
+          </p>
+        </div>
+        <button
+          hx-delete="/api/repos/{{$.Owner}}/{{$.RepoName}}/hooks/{{.ID}}"
+          hx-target="#webhooks-list"
+          hx-swap="outerHTML"
+          hx-confirm="Delete this webhook?"
+          class="text-xs text-red-600 hover:underline ml-4 shrink-0">
+          Delete
+        </button>
+      </div>
+      {{end}}
+      {{else}}
+      <p class="text-gray-500 text-sm">No webhooks configured.</p>
+      {{end}}
+    </div>
+  </div>
+</div>
+{{end}}

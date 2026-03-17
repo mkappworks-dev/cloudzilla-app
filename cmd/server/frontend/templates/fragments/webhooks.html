@@ -1,0 +1,29 @@
+{{define "fragment-webhooks-list"}}
+<div id="webhooks-list" class="space-y-2">
+  {{if .Webhooks}}
+  {{range .Webhooks}}
+  <div class="border border-gray-200 rounded-lg p-4 flex justify-between items-start">
+    <div>
+      <p class="font-medium text-sm font-mono break-all">{{.URL}}</p>
+      <p class="text-xs text-gray-500 mt-1">Events: {{.Events}}</p>
+      <p class="text-xs mt-1 {{if .Active}}text-green-600{{else}}text-gray-400{{end}}">
+        {{if .Active}}Active{{else}}Inactive{{end}}
+      </p>
+    </div>
+    {{if $.CanWrite}}
+    <button
+      hx-delete="/api/repos/{{$.Owner}}/{{$.RepoName}}/hooks/{{.ID}}"
+      hx-target="#webhooks-list"
+      hx-swap="outerHTML"
+      hx-confirm="Delete this webhook?"
+      class="text-xs text-red-600 hover:underline ml-4 shrink-0">
+      Delete
+    </button>
+    {{end}}
+  </div>
+  {{end}}
+  {{else}}
+  <p class="text-gray-500 text-sm">No webhooks configured.</p>
+  {{end}}
+</div>
+{{end}}
