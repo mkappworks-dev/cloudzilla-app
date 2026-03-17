@@ -161,6 +161,76 @@ func (s *RepoStore) GetPermission(ctx context.Context, repoID, userID int64) (st
 	return role, nil
 }
 
+func (s *RepoStore) UpdateOwner(ctx context.Context, repoID, newOwnerID int64, newOwnerName string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET owner_id = ?, owner_name = ?, updated_at = ? WHERE id = ?`,
+		newOwnerID, newOwnerName, time.Now().UTC(), repoID,
+	)
+	if err != nil {
+		return fmt.Errorf("update repo owner: %w", err)
+	}
+	return nil
+}
+
+func (s *RepoStore) AddPermission(ctx context.Context, repoID, userID int64, role string) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO permissions (repo_id, user_id, role, created_at)
+		 VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+		 ON CONFLICT(repo_id, user_id) DO UPDATE SET role = excluded.role`,
+		repoID, userID, role,
+	)
+	if err != nil {
+		return fmt.Errorf("add permission: %w", err)
+	}
+	return nil
+}
+
+func (s *RepoStore) UpdatePermission(ctx context.Context, repoID, userID int64, role string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE permissions SET role = ? WHERE repo_id = ? AND user_id = ?`,
+		role, repoID, userID,
+	)
+	if err != nil {
+		return fmt.Errorf("update permission: %w", err)
+	}
+	return nil
+}
+
+func (s *RepoStore) RemovePermission(ctx context.Context, repoID, userID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`DELETE FROM permissions WHERE repo_id = ? AND user_id = ?`,
+		repoID, userID,
+	)
+	if err != nil {
+		return fmt.Errorf("remove permission: %w", err)
+	}
+	return nil
+}
+
+func (s *RepoStore) ListPermissionsWithUsername(ctx context.Context, repoID int64) ([]model.Permission, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT p.id, p.repo_id, p.user_id, p.role, u.username, p.created_at
+		 FROM permissions p
+		 JOIN users u ON p.user_id = u.id
+		 WHERE p.repo_id = ?
+		 ORDER BY p.created_at ASC`,
+		repoID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list permissions: %w", err)
+	}
+	defer rows.Close()
+	var perms []model.Permission
+	for rows.Next() {
+		var p model.Permission
+		if err := rows.Scan(&p.ID, &p.RepoID, &p.UserID, &p.Role, &p.Username, &p.CreatedAt); err != nil {
+			return nil, err
+		}
+		perms = append(perms, p)
+	}
+	return perms, rows.Err()
+}
+
 func mapDBRepoToModel(dbRepo *storedb.Repository) *model.Repository {
 	return &model.Repository{
 		ID:            dbRepo.ID,

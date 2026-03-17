@@ -16,5 +16,6 @@ type Permission struct {
 	UserID    int64     `db:"user_id"    json:"user_id"`
 	RepoID    int64     `db:"repo_id"    json:"repo_id"`
 	Role      Role      `db:"role"       json:"role"`
+	Username  string    `db:"username"   json:"username"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 }
