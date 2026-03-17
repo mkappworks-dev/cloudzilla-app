@@ -1,0 +1,55 @@
+{{define "title"}}{{.Org.Name}}{{end}}
+
+{{define "content"}}
+<div class="space-y-6">
+  <div class="bg-white border border-gray-200 rounded-lg p-6">
+    <div class="flex justify-between items-start">
+      <div>
+        <h1 class="text-3xl font-bold">{{.Org.Name}}</h1>
+        {{if .Org.DisplayName}}<p class="text-gray-600 text-lg mt-1">{{.Org.DisplayName}}</p>{{end}}
+        {{if .Org.Description}}<p class="text-gray-500 mt-2">{{.Org.Description}}</p>{{end}}
+      </div>
+      {{if .CanManage}}
+      <a href="/orgs/{{.Org.Name}}/settings" class="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm">Settings</a>
+      {{end}}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-3 gap-6">
+    <div class="col-span-2 space-y-4">
+      <h2 class="text-xl font-semibold">Repositories</h2>
+      {{if .Repos}}
+      <div class="space-y-2">
+        {{range .Repos}}
+        <a href="/{{$.Org.Name}}/{{.Name}}" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all">
+          <div class="flex justify-between items-center">
+            <span class="font-medium text-blue-600">{{.Name}}</span>
+            <span class="text-xs px-2 py-1 rounded-full {{if .Private}}bg-yellow-100 text-yellow-700{{else}}bg-green-100 text-green-700{{end}}">
+              {{if .Private}}Private{{else}}Public{{end}}
+            </span>
+          </div>
+          {{if .Description}}<p class="text-gray-500 text-sm mt-1">{{.Description}}</p>{{end}}
+        </a>
+        {{end}}
+      </div>
+      {{else}}
+      <p class="text-gray-500">No repositories yet.</p>
+      {{end}}
+    </div>
+
+    <div class="space-y-4">
+      <h2 class="text-xl font-semibold">Members</h2>
+      <div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+        {{range .Members}}
+        <div class="px-4 py-3 flex justify-between items-center">
+          <a href="/{{.Username}}" class="text-blue-600 hover:underline">{{.Username}}</a>
+          <span class="text-xs text-gray-500 capitalize">{{.Role}}</span>
+        </div>
+        {{else}}
+        <div class="px-4 py-3 text-gray-500 text-sm">No members.</div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}
