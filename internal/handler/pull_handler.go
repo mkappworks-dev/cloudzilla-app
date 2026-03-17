@@ -52,24 +52,30 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	owner := chi.URLParam(r, "owner")
-	repo := chi.URLParam(r, "repo")
+	repoName := chi.URLParam(r, "repo")
 
 	var req createPRRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	pr, err := h.Services.Pull.Create(r.Context(), owner, repo, claims.UserID, req.Title, req.Body, req.HeadBranch, req.BaseBranch)
+	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, req.Title, req.Body, req.HeadBranch, req.BaseBranch)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if repo != nil {
+		go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload("opened", *repo, *pr))
+	}
+
 	writeJSON(w, http.StatusCreated, pr)
 }
 
 func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
-	repo := chi.URLParam(r, "repo")
+	repoName := chi.URLParam(r, "repo")
 	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
 
 	var state, mergeStrategy string
@@ -94,7 +100,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if state == "merged" {
-		existingPR, err := h.Services.Pull.Get(r.Context(), owner, repo, number)
+		existingPR, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 		if err != nil {
 			writeError(w, http.StatusNotFound, "pull request not found")
 			return
@@ -106,11 +112,11 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		head := existingPR.HeadBranch
 		switch mergeStrategy {
 		case "merge":
-			err = h.Services.Code.ThreeWayMergePullRequest(owner, repo, base, head, authorName, authorEmail)
+			err = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, base, head, authorName, authorEmail)
 		case "squash":
-			err = h.Services.Code.SquashMergePullRequest(owner, repo, base, head, authorName, authorEmail)
+			err = h.Services.Code.SquashMergePullRequest(owner, repoName, base, head, authorName, authorEmail)
 		default:
-			err = h.Services.Code.MergePullRequest(owner, repo, base, head)
+			err = h.Services.Code.MergePullRequest(owner, repoName, base, head)
 		}
 		if err != nil {
 			writeError(w, http.StatusUnprocessableEntity, err.Error())
@@ -118,15 +124,25 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	pr, err := h.Services.Pull.SetState(r.Context(), owner, repo, number, model.PRState(state))
+	pr, err := h.Services.Pull.SetState(r.Context(), owner, repoName, number, model.PRState(state))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if repo != nil {
+		go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload(state, *repo, *pr))
+		if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+			go func() {
+				h.Services.Notification.NotifyPRStateChange(r.Context(), *repo, *pr, claims.UserID, claims.Username)
+			}()
+		}
+	}
+
 	if r.Header.Get("HX-Request") == "true" {
 		h.renderFragment(w, "fragment-pull-detail", PullDetailFragData{
-			Pull: *pr, Owner: owner, Repo: repo,
+			Pull: *pr, Owner: owner, Repo: repoName,
 		})
 		return
 	}

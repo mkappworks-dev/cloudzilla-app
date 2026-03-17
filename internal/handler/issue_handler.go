@@ -49,24 +49,30 @@ func (h *Handler) CreateIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	owner := chi.URLParam(r, "owner")
-	repo := chi.URLParam(r, "repo")
+	repoName := chi.URLParam(r, "repo")
 
 	var req createIssueRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	issue, err := h.Services.Issue.Create(r.Context(), owner, repo, claims.UserID, req.Title, req.Body)
+	issue, err := h.Services.Issue.Create(r.Context(), owner, repoName, claims.UserID, req.Title, req.Body)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if repo != nil {
+		go h.Services.Webhook.Dispatch(repo.ID, "issues", h.Services.Webhook.IssuePayload("opened", *repo, *issue))
+	}
+
 	writeJSON(w, http.StatusCreated, issue)
 }
 
 func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
-	repo := chi.URLParam(r, "repo")
+	repoName := chi.URLParam(r, "repo")
 	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
 
 	var state string
@@ -85,15 +91,25 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 		state = req.State
 	}
 
-	issue, err := h.Services.Issue.SetState(r.Context(), owner, repo, number, model.IssueState(state))
+	issue, err := h.Services.Issue.SetState(r.Context(), owner, repoName, number, model.IssueState(state))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if repo != nil {
+		go h.Services.Webhook.Dispatch(repo.ID, "issues", h.Services.Webhook.IssuePayload(state, *repo, *issue))
+		if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+			go func() {
+				h.Services.Notification.NotifyIssueStateChange(r.Context(), *repo, *issue, claims.UserID, claims.Username)
+			}()
+		}
+	}
+
 	if r.Header.Get("HX-Request") == "true" {
 		h.renderFragment(w, "fragment-issue-detail", IssueDetailFragData{
-			Issue: *issue, Owner: owner, Repo: repo,
+			Issue: *issue, Owner: owner, Repo: repoName,
 		})
 		return
 	}

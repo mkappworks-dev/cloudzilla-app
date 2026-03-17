@@ -17,9 +17,12 @@ func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *templat
 	sub, _ := fs.Sub(frontend, "frontend/templates")
 	base := template.Must(template.ParseFS(sub, "layout.html"))
 
-	pageNames := []string{"home", "login", "user", "repo", "issues",
+	pageNames := []string{
+		"home", "login", "user", "repo", "issues",
 		"issue_detail", "pulls", "pull_detail", "settings",
-		"tree", "blob", "blame", "commits", "commit", "refs"}
+		"tree", "blob", "blame", "commits", "commit", "refs",
+		"org", "org_settings", "repo_settings", "notifications",
+	}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
 		clone := template.Must(base.Clone())
@@ -49,8 +52,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.Get("/login", h.PageLogin)
 	r.Post("/login", h.PageLoginSubmit)
 	r.With(authMW).Get("/settings", h.PageSettings)
+	r.With(authMW).Get("/notifications", h.PageNotifications)
 	r.With(optAuthMW).Get("/{owner}", h.PageUser)
+	r.With(authMW).Get("/orgs/{org}/settings", h.PageOrgSettings)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
+	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues", h.PageIssues)
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues/{number}", h.PageIssueDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls", h.PagePulls)
@@ -79,6 +85,17 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Use(optAuthMW)
 		r.Get("/{username}", h.GetUser)
 		r.Get("/{username}/repos", h.ListUserRepos)
+	})
+
+	// Org routes
+	r.Route("/api/orgs", func(r chi.Router) {
+		r.Use(optAuthMW)
+		r.With(authMW).Post("/", h.CreateOrg)
+		r.Get("/{org}", h.GetOrg)
+		r.Get("/{org}/members", h.ListOrgMembers)
+		r.With(authMW).Post("/{org}/members", h.AddOrgMember)
+		r.With(authMW).Delete("/{org}/members/{username}", h.RemoveOrgMember)
+		r.With(authMW).Post("/{org}/repos", h.CreateOrgRepo)
 	})
 
 	// Repo routes
@@ -112,6 +129,23 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.Get("/{number}", h.GetPull)
 			r.With(authMW).Patch("/{number}", h.UpdatePull)
 		})
+
+		// Webhooks
+		r.Route("/{owner}/{repo}/hooks", func(r chi.Router) {
+			r.Use(optAuthMW)
+			r.Get("/", h.ListWebhooks)
+			r.With(authMW).Post("/", h.CreateWebhook)
+			r.With(authMW).Delete("/{id}", h.DeleteWebhook)
+			r.With(authMW).Get("/{id}/deliveries", h.ListWebhookDeliveries)
+		})
+	})
+
+	// Notification routes
+	r.Route("/api/notifications", func(r chi.Router) {
+		r.Use(authMW)
+		r.Post("/read-all", h.MarkAllNotificationsRead)
+		r.Patch("/{id}", h.MarkNotificationRead)
+		r.Get("/unread-count", h.GetUnreadCount)
 	})
 
 	// HTMX fragment endpoints

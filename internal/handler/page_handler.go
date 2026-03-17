@@ -13,12 +13,13 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/service"
 )
 
-func basePage(r *http.Request) BasePage {
+func basePage(r *http.Request, services *service.Services) BasePage {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		return BasePage{}
 	}
-	return BasePage{CurrentUser: &claims}
+	count, _ := services.Notification.CountUnread(r.Context(), claims.UserID)
+	return BasePage{CurrentUser: &claims, UnreadNotifCount: count}
 }
 
 func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
@@ -30,11 +31,11 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 	if repos == nil {
 		repos = []model.Repository{}
 	}
-	h.render(w, "home", HomeData{BasePage: basePage(r), Repos: repos})
+	h.render(w, "home", HomeData{BasePage: basePage(r, h.Services), Repos: repos})
 }
 
 func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
-	h.render(w, "login", LoginData{BasePage: basePage(r)})
+	h.render(w, "login", LoginData{BasePage: basePage(r, h.Services)})
 }
 
 func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +44,7 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	_, token, err := h.Services.User.Authenticate(r.Context(), email, password)
 	if err != nil {
-		h.render(w, "login", LoginData{BasePage: basePage(r), Error: "Invalid credentials"})
+		h.render(w, "login", LoginData{BasePage: basePage(r, h.Services), Error: "Invalid credentials"})
 		return
 	}
 
@@ -56,15 +57,21 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	// Redirect to home after successful login
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "owner")
+
 	user, err := h.Services.User.GetByUsername(r.Context(), username)
 	if err != nil {
-		http.Error(w, "user not found", http.StatusNotFound)
+		// Not a user — try org
+		org, orgErr := h.Services.Org.Get(r.Context(), username)
+		if orgErr != nil {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		h.pageOrgProfile(w, r, org)
 		return
 	}
 
@@ -77,9 +84,64 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "user", UserData{
-		BasePage: basePage(r),
+		BasePage: basePage(r, h.Services),
 		User:     *user,
 		Repos:    repos,
+	})
+}
+
+func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *model.Organization) {
+	repos, _ := h.Services.Org.ListRepos(r.Context(), org.ID)
+	members, _ := h.Services.Org.ListMembers(r.Context(), org.ID)
+	if repos == nil {
+		repos = []model.Repository{}
+	}
+	if members == nil {
+		members = []model.OrgMember{}
+	}
+
+	canManage := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		canManage = h.Services.Org.IsOwner(r.Context(), org.ID, claims.UserID)
+	}
+
+	h.render(w, "org", OrgData{
+		BasePage:  basePage(r, h.Services),
+		Org:       *org,
+		Repos:     repos,
+		Members:   members,
+		CanManage: canManage,
+	})
+}
+
+func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
+	orgName := chi.URLParam(r, "org")
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	org, err := h.Services.Org.Get(r.Context(), orgName)
+	if err != nil {
+		http.Error(w, "org not found", http.StatusNotFound)
+		return
+	}
+
+	if !h.Services.Org.IsOwner(r.Context(), org.ID, claims.UserID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	members, _ := h.Services.Org.ListMembers(r.Context(), org.ID)
+	if members == nil {
+		members = []model.OrgMember{}
+	}
+
+	h.render(w, "org_settings", OrgSettingsData{
+		BasePage: basePage(r, h.Services),
+		Org:      *org,
+		Members:  members,
 	})
 }
 
@@ -93,13 +155,11 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Compute clone URLs
 	scheme := "http"
 	if r.TLS != nil {
 		scheme = "https"
 	}
 	host := r.Host
-	// Strip port from host for SSH URL
 	if hostWithoutPort, _, err := net.SplitHostPort(host); err == nil {
 		host = hostWithoutPort
 	}
@@ -107,13 +167,53 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 	cloneHTTP := fmt.Sprintf("%s://%s/%s/%s.git", scheme, r.Host, owner, repoName)
 	cloneSSH := fmt.Sprintf("ssh://git@%s:%d/%s/%s.git", host, h.Cfg.Git.SSHPort, owner, repoName)
 
+	canWrite := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	}
+
 	h.render(w, "repo", RepoData{
-		BasePage:  basePage(r),
+		BasePage:  basePage(r, h.Services),
 		Repo:      *repo,
 		Owner:     owner,
 		RepoName:  repoName,
 		CloneHTTP: cloneHTTP,
 		CloneSSH:  cloneSSH,
+		CanWrite:  canWrite,
+	})
+}
+
+func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	webhooks, _ := h.Services.Webhook.ListByRepo(r.Context(), repo.ID)
+	if webhooks == nil {
+		webhooks = []model.Webhook{}
+	}
+
+	h.render(w, "repo_settings", RepoSettingsData{
+		BasePage: basePage(r, h.Services),
+		Repo:     *repo,
+		Owner:    owner,
+		RepoName: repoName,
+		Webhooks: webhooks,
 	})
 }
 
@@ -136,7 +236,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "issues", IssuesData{
-		BasePage: basePage(r),
+		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Issues:   issues,
 		Owner:    owner,
@@ -167,7 +267,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "issue_detail", IssueDetailData{
-		BasePage: basePage(r),
+		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Issue:    *issue,
 		Comments: comments,
@@ -195,7 +295,7 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "pulls", PullsData{
-		BasePage: basePage(r),
+		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Pulls:    pulls,
 		Owner:    owner,
@@ -228,7 +328,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "pull_detail", PullDetailData{
-		BasePage: basePage(r),
+		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Pull:     *pull,
 		Owner:    owner,
@@ -253,7 +353,7 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "settings", SettingsData{
-		BasePage: basePage(r),
+		BasePage: basePage(r, h.Services),
 		SSHKeys:  keys,
 	})
 }
@@ -286,7 +386,7 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
 
 	h.render(w, "refs", RefsData{
-		BasePage: basePage(r),
+		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
@@ -324,7 +424,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "tree", TreeData{
-		BasePage:    basePage(r),
+		BasePage:    basePage(r, h.Services),
 		Repo:        *repo,
 		Owner:       owner,
 		RepoName:    repoName,
@@ -364,7 +464,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "blob", BlobData{
-		BasePage:    basePage(r),
+		BasePage:    basePage(r, h.Services),
 		Repo:        *repo,
 		Owner:       owner,
 		RepoName:    repoName,
@@ -409,7 +509,7 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "commits", CommitsData{
-		BasePage: basePage(r),
+		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
@@ -445,7 +545,7 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "commit", CommitData{
-		BasePage: basePage(r),
+		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
@@ -481,7 +581,7 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, "blame", BlameData{
-		BasePage:    basePage(r),
+		BasePage:    basePage(r, h.Services),
 		Repo:        *repo,
 		Owner:       owner,
 		RepoName:    repoName,
@@ -490,5 +590,25 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 		Breadcrumbs: result.Breadcrumbs,
 		Lines:       result.Lines,
 		BlobURL:     result.BlobURL,
+	})
+}
+
+func (h *Handler) PageNotifications(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	notifs, _ := h.Services.Notification.List(r.Context(), claims.UserID)
+	if notifs == nil {
+		notifs = []model.Notification{}
+	}
+	unread, _ := h.Services.Notification.CountUnread(r.Context(), claims.UserID)
+
+	h.render(w, "notifications", NotificationsData{
+		BasePage:      basePage(r, h.Services),
+		Notifications: notifs,
+		UnreadCount:   unread,
 	})
 }

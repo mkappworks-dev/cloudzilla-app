@@ -8,7 +8,8 @@ import (
 
 // BasePage contains common data for all pages
 type BasePage struct {
-	CurrentUser *middleware.Claims
+	CurrentUser      *middleware.Claims
+	UnreadNotifCount int
 }
 
 // Page data structs
@@ -28,6 +29,26 @@ type UserData struct {
 	Repos []model.Repository
 }
 
+type OrgData struct {
+	BasePage
+	Org       model.Organization
+	Repos     []model.Repository
+	Members   []model.OrgMember
+	CanManage bool
+}
+
+type OrgSettingsData struct {
+	BasePage
+	Org     model.Organization
+	Members []model.OrgMember
+}
+
+type OrgMembersFragData struct {
+	OrgName   string
+	Members   []model.OrgMember
+	CanManage bool
+}
+
 type RepoData struct {
 	BasePage
 	Repo      model.Repository
@@ -35,6 +56,23 @@ type RepoData struct {
 	RepoName  string
 	CloneHTTP string
 	CloneSSH  string
+	CanWrite  bool
+}
+
+type RepoSettingsData struct {
+	BasePage
+	Repo     model.Repository
+	Owner    string
+	RepoName string
+	Webhooks []model.Webhook
+}
+
+type WebhooksFragData struct {
+	Owner    string
+	RepoName string
+	RepoID   int64
+	Webhooks []model.Webhook
+	CanWrite bool
 }
 
 type IssuesData struct {
@@ -74,6 +112,20 @@ type PullDetailData struct {
 type SettingsData struct {
 	BasePage
 	SSHKeys []model.SSHKey
+}
+
+type NotificationsData struct {
+	BasePage
+	Notifications []model.Notification
+	UnreadCount   int
+}
+
+type NotificationsFragData struct {
+	Notifications []model.Notification
+}
+
+type NotificationItemFragData struct {
+	Notification model.Notification
 }
 
 // Fragment data structs

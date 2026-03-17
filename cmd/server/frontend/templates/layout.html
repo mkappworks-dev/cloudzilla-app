@@ -10,12 +10,18 @@
 <body class="bg-gray-50 text-gray-900 text-sm font-sans min-h-screen flex flex-col">
   <header class="bg-gray-900 text-white h-12 flex items-center px-4 gap-6 shadow-md">
     <a href="/" class="text-lg font-bold">☁ Cloudzilla</a>
-    <nav class="flex gap-4 text-sm text-gray-300 flex-1">
+    <nav class="flex gap-4 text-sm text-gray-300 flex-1 items-center">
       <a href="/" class="hover:text-white">Explore</a>
       {{if .CurrentUser}}
         <a href="/settings" class="hover:text-white">Settings</a>
         <span class="text-gray-500">|</span>
         <span class="text-gray-400">{{.CurrentUser.Username}}</span>
+        <a href="/notifications" class="relative text-gray-300 hover:text-white">
+          🔔
+          {{if gt .UnreadNotifCount 0}}
+          <span class="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full px-1 leading-4">{{.UnreadNotifCount}}</span>
+          {{end}}
+        </a>
         <form method="POST" action="/api/auth/logout" class="inline">
           <button type="submit" class="hover:text-white">Sign out</button>
         </form>

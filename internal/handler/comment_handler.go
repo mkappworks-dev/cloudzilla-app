@@ -69,7 +69,13 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If HTMX request, return HTML fragment
+	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if repo != nil {
+		go func() {
+			h.Services.Notification.NotifyIssueComment(r.Context(), *repo, *issue, claims.UserID, claims.Username)
+		}()
+	}
+
 	if r.Header.Get("HX-Request") == "true" {
 		h.renderFragment(w, "fragment-comment", CommentFragData{Comment: *comment})
 		return
