@@ -22,6 +22,7 @@ func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *templat
 		"issue_detail", "pulls", "pull_detail", "settings",
 		"tree", "blob", "blame", "commits", "commit", "refs",
 		"org", "org_settings", "repo_settings", "notifications",
+		"setup", "admin_settings", "invite",
 	}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
@@ -43,9 +44,23 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(middleware.Logger)
 	r.Use(middleware.CORS(true))
+	r.Use(middleware.RequireSetup(services.SiteSetting))
 
 	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName)
 	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName)
+
+	superadminMW := middleware.RequireSuperadmin
+
+	// Setup route (first-run wizard)
+	r.Get("/setup", h.PageSetup)
+	r.Post("/setup", h.PageSetupSubmit)
+
+	// Invite routes
+	r.Get("/invite/{token}", h.PageInvite)
+	r.Post("/invite/{token}", h.PageInviteSubmit)
+
+	// Admin routes
+	r.With(authMW, superadminMW).Get("/admin/settings", h.PageAdminSettings)
 
 	// Page routes
 	r.Get("/", h.PageHome)
@@ -96,6 +111,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.With(authMW).Post("/{org}/members", h.AddOrgMember)
 		r.With(authMW).Delete("/{org}/members/{username}", h.RemoveOrgMember)
 		r.With(authMW).Post("/{org}/repos", h.CreateOrgRepo)
+		r.With(authMW).Post("/{org}/transfer", h.TransferOrg)
 	})
 
 	// Repo routes
@@ -138,6 +154,25 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Delete("/{id}", h.DeleteWebhook)
 			r.With(authMW).Get("/{id}/deliveries", h.ListWebhookDeliveries)
 		})
+
+		// Collaborators
+		r.Route("/{owner}/{repo}/collaborators", func(r chi.Router) {
+			r.Use(optAuthMW)
+			r.Get("/", h.ListCollaborators)
+			r.With(authMW).Post("/", h.AddCollaborator)
+			r.With(authMW).Delete("/", h.RemoveCollaborator)
+		})
+
+		// Ownership transfer
+		r.With(authMW).Post("/{owner}/{repo}/transfer", h.TransferRepo)
+	})
+
+	// Admin API routes
+	r.Route("/api/admin", func(r chi.Router) {
+		r.Use(authMW, superadminMW)
+		r.Post("/settings", h.UpdateSiteSetting)
+		r.Post("/invitations", h.CreateInvitation)
+		r.Delete("/invitations/{id}", h.DeleteInvitation)
 	})
 
 	// Notification routes

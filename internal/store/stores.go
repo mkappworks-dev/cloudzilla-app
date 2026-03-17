@@ -16,12 +16,14 @@ type Stores struct {
 	Org          *OrgStore
 	Webhook      *WebhookStore
 	Notification *NotificationStore
+	SiteSetting  *SiteSettingStore
+	Invitation   *InvitationStore
 }
 
 func New(database *sql.DB) *Stores {
 	q := storedb.New(database)
 	return &Stores{
-		User:         NewUserStore(q),
+		User:         NewUserStore(q, database),
 		Repo:         NewRepoStore(q, database),
 		Issue:        NewIssueStore(q),
 		Pull:         NewPullStore(q),
@@ -30,5 +32,7 @@ func New(database *sql.DB) *Stores {
 		Org:          NewOrgStore(database),
 		Webhook:      NewWebhookStore(database),
 		Notification: NewNotificationStore(database),
+		SiteSetting:  NewSiteSettingStore(database),
+		Invitation:   NewInvitationStore(database),
 	}
 }

@@ -14,12 +14,13 @@ import (
 )
 
 func basePage(r *http.Request, services *service.Services) BasePage {
+	allowLogin := services.SiteSetting.AllowLogin(r.Context())
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
-		return BasePage{}
+		return BasePage{AllowLogin: allowLogin}
 	}
 	count, _ := services.Notification.CountUnread(r.Context(), claims.UserID)
-	return BasePage{CurrentUser: &claims, UnreadNotifCount: count}
+	return BasePage{CurrentUser: &claims, UnreadNotifCount: count, AllowLogin: allowLogin}
 }
 
 func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
@@ -42,9 +43,14 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 
-	_, token, err := h.Services.User.Authenticate(r.Context(), email, password)
+	user, token, err := h.Services.User.Authenticate(r.Context(), email, password)
 	if err != nil {
 		h.render(w, "login", LoginData{BasePage: basePage(r, h.Services), Error: "Invalid credentials"})
+		return
+	}
+
+	if !user.IsSuperadmin && !user.IsInvited && !h.Services.SiteSetting.AllowLogin(r.Context()) {
+		h.render(w, "login", LoginData{BasePage: basePage(r, h.Services), Error: "Login is currently disabled"})
 		return
 	}
 
@@ -208,12 +214,24 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		webhooks = []model.Webhook{}
 	}
 
+	collabs, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
+	if collabs == nil {
+		collabs = []model.Permission{}
+	}
+
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	// Transfer is only for personal repo owners (not org repos)
+	canTransfer := repo.OwnerID == claims.UserID && repo.OrgID == 0
+
 	h.render(w, "repo_settings", RepoSettingsData{
-		BasePage: basePage(r, h.Services),
-		Repo:     *repo,
-		Owner:    owner,
-		RepoName: repoName,
-		Webhooks: webhooks,
+		BasePage:    basePage(r, h.Services),
+		Repo:        *repo,
+		Owner:       owner,
+		RepoName:    repoName,
+		Webhooks:    webhooks,
+		Collabs:     collabs,
+		CanManage:   canManage,
+		CanTransfer: canTransfer,
 	})
 }
 

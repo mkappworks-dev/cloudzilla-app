@@ -14,6 +14,9 @@
       <a href="/" class="hover:text-white">Explore</a>
       {{if .CurrentUser}}
         <a href="/settings" class="hover:text-white">Settings</a>
+        {{if .CurrentUser.IsSuperadmin}}
+        <a href="/admin/settings" class="hover:text-white text-yellow-400">Admin</a>
+        {{end}}
         <span class="text-gray-500">|</span>
         <span class="text-gray-400">{{.CurrentUser.Username}}</span>
         <a href="/notifications" class="relative text-gray-300 hover:text-white">
@@ -26,7 +29,9 @@
           <button type="submit" class="hover:text-white">Sign out</button>
         </form>
       {{else}}
+        {{if .AllowLogin}}
         <a href="/login" class="hover:text-white">Sign in</a>
+        {{end}}
       {{end}}
     </nav>
   </header>

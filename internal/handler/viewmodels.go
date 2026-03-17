@@ -10,6 +10,7 @@ import (
 type BasePage struct {
 	CurrentUser      *middleware.Claims
 	UnreadNotifCount int
+	AllowLogin       bool
 }
 
 // Page data structs
@@ -61,10 +62,13 @@ type RepoData struct {
 
 type RepoSettingsData struct {
 	BasePage
-	Repo     model.Repository
-	Owner    string
-	RepoName string
-	Webhooks []model.Webhook
+	Repo        model.Repository
+	Owner       string
+	RepoName    string
+	Webhooks    []model.Webhook
+	Collabs     []model.Permission
+	CanManage   bool
+	CanTransfer bool
 }
 
 type WebhooksFragData struct {
@@ -226,4 +230,37 @@ type CommitData struct {
 	Owner    string
 	RepoName string
 	Commit   *service.CommitDetail
+}
+
+type SetupData struct {
+	BasePage
+	Error string
+}
+
+type AdminSettingsData struct {
+	BasePage
+	Settings    []model.SiteSetting
+	Invitations []model.Invitation
+}
+
+type AdminSettingsFragData struct {
+	Settings []model.SiteSetting
+}
+
+type AdminInvitationsFragData struct {
+	Invitations []model.Invitation
+}
+
+type InviteData struct {
+	BasePage
+	Invitation *model.Invitation
+	Error      string
+}
+
+type RepoCollaboratorsFragData struct {
+	Owner    string
+	RepoName string
+	RepoID   int64
+	Collabs  []model.Permission
+	CanWrite bool
 }
