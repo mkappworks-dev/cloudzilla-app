@@ -18,7 +18,8 @@ type createPRRequest struct {
 }
 
 type updatePRRequest struct {
-	State string `json:"state"`
+	State         string `json:"state"`
+	MergeStrategy string `json:"merge_strategy"` // "ff" | "merge" | "squash"
 }
 
 func (h *Handler) ListPulls(w http.ResponseWriter, r *http.Request) {
@@ -71,13 +72,14 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 	repo := chi.URLParam(r, "repo")
 	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
 
-	var state string
+	var state, mergeStrategy string
 	if r.Header.Get("HX-Request") == "true" {
 		if err := r.ParseForm(); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
 		state = r.FormValue("state")
+		mergeStrategy = r.FormValue("merge_strategy")
 	} else {
 		var req updatePRRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -85,6 +87,10 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		state = req.State
+		mergeStrategy = req.MergeStrategy
+	}
+	if mergeStrategy == "" {
+		mergeStrategy = "ff"
 	}
 
 	if state == "merged" {
@@ -93,7 +99,20 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "pull request not found")
 			return
 		}
-		if err := h.Services.Code.MergePullRequest(owner, repo, existingPR.BaseBranch, existingPR.HeadBranch); err != nil {
+		claims, _ := middleware.ClaimsFromContext(r.Context())
+		authorName := claims.Username
+		authorEmail := claims.Username + "@localhost"
+		base := existingPR.BaseBranch
+		head := existingPR.HeadBranch
+		switch mergeStrategy {
+		case "merge":
+			err = h.Services.Code.ThreeWayMergePullRequest(owner, repo, base, head, authorName, authorEmail)
+		case "squash":
+			err = h.Services.Code.SquashMergePullRequest(owner, repo, base, head, authorName, authorEmail)
+		default:
+			err = h.Services.Code.MergePullRequest(owner, repo, base, head)
+		}
+		if err != nil {
 			writeError(w, http.StatusUnprocessableEntity, err.Error())
 			return
 		}

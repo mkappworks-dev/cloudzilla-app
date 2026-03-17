@@ -29,20 +29,40 @@
 
     {{if eq .Pull.State "open"}}
     <div class="flex flex-wrap gap-2 items-center mt-4">
-      {{if and .Diff .Diff.CanMerge}}
-      <button
-        hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}"
-        hx-vals='{"state":"merged"}'
-        hx-target="#pull-detail" hx-swap="outerHTML"
-        hx-on::response-error="alert('Merge failed. Please refresh and try again.')"
-        class="px-4 py-2 bg-purple-600 text-white rounded font-medium hover:bg-purple-700 transition-colors">
-        Merge Pull Request
-      </button>
-      {{else if .Diff}}
-      <div class="px-4 py-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-        Cannot merge automatically — branches have diverged. Rebase the head branch onto
-        <code class="font-mono">{{.Pull.BaseBranch}}</code> and push to enable merge.
-      </div>
+      {{if .Diff}}
+        {{if .Diff.CanFastForward}}
+        <button
+          hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}"
+          hx-vals='{"state":"merged","merge_strategy":"ff"}'
+          hx-target="#pull-detail" hx-swap="outerHTML"
+          hx-on::response-error="alert('Merge failed. Please refresh and try again.')"
+          class="px-4 py-2 bg-purple-600 text-white rounded font-medium hover:bg-purple-700 transition-colors">
+          Merge (fast-forward)
+        </button>
+        {{end}}
+        {{if or .Diff.CanFastForward .Diff.CanThreeWayMerge}}
+        <button
+          hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}"
+          hx-vals='{"state":"merged","merge_strategy":"merge"}'
+          hx-target="#pull-detail" hx-swap="outerHTML"
+          hx-on::response-error="alert('Merge failed. Please refresh and try again.')"
+          class="px-4 py-2 bg-indigo-600 text-white rounded font-medium hover:bg-indigo-700 transition-colors">
+          Create merge commit
+        </button>
+        <button
+          hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}"
+          hx-vals='{"state":"merged","merge_strategy":"squash"}'
+          hx-target="#pull-detail" hx-swap="outerHTML"
+          hx-on::response-error="alert('Merge failed. Please refresh and try again.')"
+          class="px-4 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition-colors">
+          Squash and merge
+        </button>
+        {{else}}
+        <div class="px-4 py-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+          Cannot merge automatically — conflicting changes in both branches. Rebase the head branch onto
+          <code class="font-mono">{{.Pull.BaseBranch}}</code> and push to enable merge.
+        </div>
+        {{end}}
       {{end}}
       <button
         hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}"

@@ -24,13 +24,6 @@
   <div class="flex gap-2">
     <button
       hx-patch="/api/repos/{{.Owner}}/{{.Repo}}/pulls/{{.Pull.Number}}"
-      hx-vals='{"state":"merged"}'
-      hx-target="#pull-detail" hx-swap="outerHTML"
-      class="px-4 py-2 bg-purple-600 text-white rounded font-medium hover:bg-purple-700 transition-colors">
-      Merge Pull Request
-    </button>
-    <button
-      hx-patch="/api/repos/{{.Owner}}/{{.Repo}}/pulls/{{.Pull.Number}}"
       hx-vals='{"state":"closed"}'
       hx-target="#pull-detail" hx-swap="outerHTML"
       class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors">

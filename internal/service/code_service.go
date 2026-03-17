@@ -699,12 +699,19 @@ func (s *CodeService) CreateTag(owner, repoName, name, fromRef string) error {
 	return repo.Storer.SetReference(ref)
 }
 
-// PRDiffResult holds the diff between two branches and whether FF merge is possible.
+// PRDiffResult holds the diff between two branches and merge capability flags.
 type PRDiffResult struct {
-	Files        []FileDiff
-	TotalAdded   int
-	TotalDeleted int
-	CanMerge     bool
+	Files            []FileDiff
+	TotalAdded       int
+	TotalDeleted     int
+	CanFastForward   bool // head is a descendant of base
+	CanThreeWayMerge bool // branches diverged but no conflicting file edits
+}
+
+// mergeFile holds the blob hash and file mode for a single file in a tree.
+type mergeFile struct {
+	hash plumbing.Hash
+	mode filemode.FileMode
 }
 
 // checkFastForward returns true if headCommit is a descendant of baseCommit.
@@ -740,7 +747,14 @@ func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffRe
 		return nil, err
 	}
 
-	canMerge := checkFastForward(repo, baseCommit, headCommit)
+	canFF := checkFastForward(repo, baseCommit, headCommit)
+	var canMerge3 bool
+	if !canFF {
+		mb, mbErr := findMergeBase(repo, baseCommit, headCommit)
+		if mbErr == nil {
+			_, canMerge3, _ = mergeTreesNoConflict(repo, mb, baseCommit, headCommit)
+		}
+	}
 
 	patch, err := baseCommit.Patch(headCommit)
 	if err != nil {
@@ -794,10 +808,11 @@ func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffRe
 	}
 
 	return &PRDiffResult{
-		Files:        files,
-		TotalAdded:   totalAdded,
-		TotalDeleted: totalDeleted,
-		CanMerge:     canMerge,
+		Files:            files,
+		TotalAdded:       totalAdded,
+		TotalDeleted:     totalDeleted,
+		CanFastForward:   canFF,
+		CanThreeWayMerge: canMerge3,
 	}, nil
 }
 
@@ -821,6 +836,311 @@ func (s *CodeService) MergePullRequest(owner, repoName, base, head string) error
 	}
 
 	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(base), headCommit.Hash)
+	return repo.Storer.SetReference(ref)
+}
+
+// flattenTree walks a git tree and returns a flat map of full path → mergeFile.
+func flattenTree(tree *object.Tree) (map[string]mergeFile, error) {
+	result := make(map[string]mergeFile)
+	iter := tree.Files()
+	err := iter.ForEach(func(f *object.File) error {
+		result[f.Name] = mergeFile{hash: f.Blob.Hash, mode: f.Mode}
+		return nil
+	})
+	return result, err
+}
+
+// findMergeBase returns the most recent common ancestor of commits a and b.
+func findMergeBase(repo *gogit.Repository, a, b *object.Commit) (*object.Commit, error) {
+	aAncestors := make(map[plumbing.Hash]bool)
+	iterA, err := repo.Log(&gogit.LogOptions{From: a.Hash})
+	if err != nil {
+		return nil, err
+	}
+	defer iterA.Close()
+	_ = iterA.ForEach(func(c *object.Commit) error {
+		aAncestors[c.Hash] = true
+		return nil
+	})
+
+	iterB, err := repo.Log(&gogit.LogOptions{From: b.Hash})
+	if err != nil {
+		return nil, err
+	}
+	defer iterB.Close()
+	var base *object.Commit
+	_ = iterB.ForEach(func(c *object.Commit) error {
+		if aAncestors[c.Hash] {
+			base = c
+			return storer.ErrStop
+		}
+		return nil
+	})
+	if base == nil {
+		return nil, errors.New("no common ancestor")
+	}
+	return base, nil
+}
+
+// buildTree recursively encodes a flat file map into git tree objects and returns the root tree hash.
+func buildTree(repo *gogit.Repository, files map[string]mergeFile) (plumbing.Hash, error) {
+	// Group entries by top-level directory segment.
+	type dirEntry struct {
+		name    string
+		subpath string // remaining path after the top-level segment
+		mf      mergeFile
+		isBlob  bool
+	}
+	// Sort paths for deterministic tree encoding.
+	paths := make([]string, 0, len(files))
+	for p := range files {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+
+	// Collect direct children and subdirectory groups.
+	subdirs := make(map[string]map[string]mergeFile) // dir name → sub-map
+	var entries []object.TreeEntry
+
+	for _, p := range paths {
+		mf := files[p]
+		slash := strings.Index(p, "/")
+		if slash == -1 {
+			// Blob entry.
+			entries = append(entries, object.TreeEntry{
+				Name: p,
+				Mode: mf.mode,
+				Hash: mf.hash,
+			})
+		} else {
+			dir := p[:slash]
+			rest := p[slash+1:]
+			if subdirs[dir] == nil {
+				subdirs[dir] = make(map[string]mergeFile)
+			}
+			subdirs[dir][rest] = mf
+		}
+	}
+
+	// Gather subdir names sorted.
+	subdirNames := make([]string, 0, len(subdirs))
+	for d := range subdirs {
+		subdirNames = append(subdirNames, d)
+	}
+	sort.Strings(subdirNames)
+
+	// Build subtree entries first so the final list can be sorted blobs + subtrees.
+	var subtreeEntries []object.TreeEntry
+	for _, dir := range subdirNames {
+		subHash, err := buildTree(repo, subdirs[dir])
+		if err != nil {
+			return plumbing.ZeroHash, err
+		}
+		subtreeEntries = append(subtreeEntries, object.TreeEntry{
+			Name: dir,
+			Mode: filemode.Dir,
+			Hash: subHash,
+		})
+	}
+
+	// Merge and sort all entries lexicographically (git requirement).
+	all := append(subtreeEntries, entries...)
+	sort.Slice(all, func(i, j int) bool { return all[i].Name < all[j].Name })
+
+	tree := &object.Tree{Entries: all}
+	obj := repo.Storer.NewEncodedObject()
+	if err := tree.Encode(obj); err != nil {
+		return plumbing.ZeroHash, err
+	}
+	h, err := repo.Storer.SetEncodedObject(obj)
+	return h, err
+}
+
+// mergeTreesNoConflict performs a three-way merge of the file trees.
+// Returns the merged tree hash, true if no conflicts, and any error.
+func mergeTreesNoConflict(repo *gogit.Repository, mergeBase, base, head *object.Commit) (plumbing.Hash, bool, error) {
+	mbTree, err := mergeBase.Tree()
+	if err != nil {
+		return plumbing.ZeroHash, false, err
+	}
+	baseTree, err := base.Tree()
+	if err != nil {
+		return plumbing.ZeroHash, false, err
+	}
+	headTree, err := head.Tree()
+	if err != nil {
+		return plumbing.ZeroHash, false, err
+	}
+
+	mbFiles, err := flattenTree(mbTree)
+	if err != nil {
+		return plumbing.ZeroHash, false, err
+	}
+	baseFiles, err := flattenTree(baseTree)
+	if err != nil {
+		return plumbing.ZeroHash, false, err
+	}
+	headFiles, err := flattenTree(headTree)
+	if err != nil {
+		return plumbing.ZeroHash, false, err
+	}
+
+	// Compute which paths changed in head relative to merge base.
+	headChanges := make(map[string]bool)
+	for p, mf := range headFiles {
+		if mbMF, ok := mbFiles[p]; !ok || mbMF.hash != mf.hash {
+			headChanges[p] = true
+		}
+	}
+	for p := range mbFiles {
+		if _, ok := headFiles[p]; !ok {
+			headChanges[p] = true // deleted in head
+		}
+	}
+
+	// Compute which paths changed in base relative to merge base.
+	baseChanges := make(map[string]bool)
+	for p, mf := range baseFiles {
+		if mbMF, ok := mbFiles[p]; !ok || mbMF.hash != mf.hash {
+			baseChanges[p] = true
+		}
+	}
+	for p := range mbFiles {
+		if _, ok := baseFiles[p]; !ok {
+			baseChanges[p] = true // deleted in base
+		}
+	}
+
+	// Conflict: same path modified in both sides.
+	for p := range headChanges {
+		if baseChanges[p] {
+			return plumbing.ZeroHash, false, nil
+		}
+	}
+
+	// Apply head changes onto base file set.
+	merged := make(map[string]mergeFile, len(baseFiles))
+	for p, mf := range baseFiles {
+		merged[p] = mf
+	}
+	for p := range headChanges {
+		if mf, ok := headFiles[p]; ok {
+			merged[p] = mf
+		} else {
+			delete(merged, p) // deleted in head
+		}
+	}
+
+	hash, err := buildTree(repo, merged)
+	return hash, err == nil, err
+}
+
+// ThreeWayMergePullRequest creates a merge commit combining head into base.
+func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head, authorName, authorEmail string) error {
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return err
+	}
+	baseCommit, _, err := resolveRef(repo, base)
+	if err != nil {
+		return err
+	}
+	headCommit, _, err := resolveRef(repo, head)
+	if err != nil {
+		return err
+	}
+
+	// If FF is possible, just advance the ref.
+	if checkFastForward(repo, baseCommit, headCommit) {
+		ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(base), headCommit.Hash)
+		return repo.Storer.SetReference(ref)
+	}
+
+	mb, err := findMergeBase(repo, baseCommit, headCommit)
+	if err != nil {
+		return fmt.Errorf("cannot find merge base: %w", err)
+	}
+	mergedTreeHash, ok, err := mergeTreesNoConflict(repo, mb, baseCommit, headCommit)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return errors.New("cannot merge: conflicting changes in both branches")
+	}
+
+	now := time.Now()
+	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
+	commit := &object.Commit{
+		Author:       sig,
+		Committer:    sig,
+		Message:      "Merge branch '" + head + "' into '" + base + "'",
+		TreeHash:     mergedTreeHash,
+		ParentHashes: []plumbing.Hash{baseCommit.Hash, headCommit.Hash},
+	}
+	obj := repo.Storer.NewEncodedObject()
+	if err := commit.Encode(obj); err != nil {
+		return err
+	}
+	h, err := repo.Storer.SetEncodedObject(obj)
+	if err != nil {
+		return err
+	}
+	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(base), h)
+	return repo.Storer.SetReference(ref)
+}
+
+// SquashMergePullRequest creates a single squash commit on base incorporating all head changes.
+func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head, authorName, authorEmail string) error {
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return err
+	}
+	baseCommit, _, err := resolveRef(repo, base)
+	if err != nil {
+		return err
+	}
+	headCommit, _, err := resolveRef(repo, head)
+	if err != nil {
+		return err
+	}
+
+	var treeHash plumbing.Hash
+	if checkFastForward(repo, baseCommit, headCommit) {
+		// FF case: squash commit uses head's tree directly.
+		treeHash = headCommit.TreeHash
+	} else {
+		mb, err := findMergeBase(repo, baseCommit, headCommit)
+		if err != nil {
+			return fmt.Errorf("cannot find merge base: %w", err)
+		}
+		mergedTreeHash, ok, err := mergeTreesNoConflict(repo, mb, baseCommit, headCommit)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return errors.New("cannot merge: conflicting changes in both branches")
+		}
+		treeHash = mergedTreeHash
+	}
+
+	now := time.Now()
+	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
+	commit := &object.Commit{
+		Author:       sig,
+		Committer:    sig,
+		Message:      "Squash merge branch '" + head + "' into '" + base + "'",
+		TreeHash:     treeHash,
+		ParentHashes: []plumbing.Hash{baseCommit.Hash},
+	}
+	obj := repo.Storer.NewEncodedObject()
+	if err := commit.Encode(obj); err != nil {
+		return err
+	}
+	h, err := repo.Storer.SetEncodedObject(obj)
+	if err != nil {
+		return err
+	}
+	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(base), h)
 	return repo.Storer.SetReference(ref)
 }
 
