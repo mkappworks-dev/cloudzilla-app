@@ -13,8 +13,9 @@ type contextKey string
 const claimsKey contextKey = "claims"
 
 type Claims struct {
-	UserID   int64
-	Username string
+	UserID       int64
+	Username     string
+	IsSuperadmin bool
 }
 
 func ClaimsFromContext(ctx context.Context) (Claims, bool) {
@@ -48,10 +49,7 @@ func Auth(secret, cookieName string) func(http.Handler) http.Handler {
 				return
 			}
 
-			claims := Claims{
-				UserID:   int64(mapClaims["sub"].(float64)),
-				Username: mapClaims["username"].(string),
-			}
+			claims := claimsFromMap(mapClaims)
 			ctx := context.WithValue(r.Context(), claimsKey, claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -71,10 +69,7 @@ func OptionalAuth(secret, cookieName string) func(http.Handler) http.Handler {
 				})
 				if err == nil && token.Valid {
 					if mapClaims, ok := token.Claims.(jwt.MapClaims); ok {
-						claims := Claims{
-							UserID:   int64(mapClaims["sub"].(float64)),
-							Username: mapClaims["username"].(string),
-						}
+						claims := claimsFromMap(mapClaims)
 						ctx := context.WithValue(r.Context(), claimsKey, claims)
 						r = r.WithContext(ctx)
 					}
@@ -83,6 +78,28 @@ func OptionalAuth(secret, cookieName string) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func RequireSuperadmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := ClaimsFromContext(r.Context())
+		if !ok || !claims.IsSuperadmin {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func claimsFromMap(m jwt.MapClaims) Claims {
+	c := Claims{
+		UserID:   int64(m["sub"].(float64)),
+		Username: m["username"].(string),
+	}
+	if v, ok := m["is_superadmin"]; ok {
+		c.IsSuperadmin, _ = v.(bool)
+	}
+	return c
 }
 
 func extractToken(r *http.Request, cookieName string) string {

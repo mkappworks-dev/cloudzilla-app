@@ -11,6 +11,8 @@ type User struct {
 	AvatarURL     string    `db:"avatar_url"     json:"avatar_url"`
 	OAuthProvider string    `db:"oauth_provider" json:"-"`
 	OAuthID       string    `db:"oauth_id"       json:"-"`
+	IsSuperadmin  bool      `db:"is_superadmin"  json:"-"`
+	IsInvited     bool      `db:"is_invited"     json:"-"`
 	CreatedAt     time.Time `db:"created_at"     json:"created_at"`
 	UpdatedAt     time.Time `db:"updated_at"     json:"updated_at"`
 }
