@@ -51,6 +51,7 @@ go test ./...           # Run Go tests
 ## Code Conventions
 
 ### Go Handlers
+
 - **Page handlers** (`PageHome`, `PageIssues`, etc.) fetch data and call `h.render(page, data)` to render full pages
 - **HTMX handlers** check `r.Header.Get("HX-Request") == "true"` and call `h.renderFragment(name, data)` to return HTML snippets
 - **API handlers** return JSON via `writeJSON(w, status, v)`
@@ -59,6 +60,7 @@ go test ./...           # Run Go tests
 - JWT is read from `Authorization: Bearer` header OR `cz_token` httpOnly cookie
 
 ### Templates (Go html/template)
+
 - **Layout**: `{{define "layout"}}...{{template "content" .}}...{{end}}`
 - **Pages**: Each page file defines `{{define "title"}}...{{end}}` and `{{define "content"}}...{{end}}`
 - **Fragments**: Fragments define `{{define "fragment-NAME"}}...{{end}}`
@@ -67,6 +69,7 @@ go test ./...           # Run Go tests
 - Template auto-escaping prevents XSS (no `html.HTML` needed for user content)
 
 ### CSS (Tailwind)
+
 - Use Tailwind utility classes in templates; no custom CSS
 - Build with `make build-css` (runs before `make dev` and `make build`)
 - Config in `tailwind/tailwind.config.js` — update `content` glob if adding new template dirs
@@ -109,11 +112,13 @@ User clicks "Sign in with Google"
 ```
 
 **Account linking priority:**
+
 1. `oauth_provider=google` + `oauth_id` found → log in directly
 2. Email already exists (password user) → link OAuth to existing account → log in
 3. Neither → create new user (username derived from name/email prefix, deduplicated)
 
 **Configuration** (`config.yaml`):
+
 ```yaml
 oauth:
   google_client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com"
@@ -126,6 +131,7 @@ If `google_client_id` is empty, `GET /auth/google` returns 501 Not Implemented. 
 ## SSH Key Management
 
 ### Adding SSH Keys
+
 Users can add SSH public keys for git operations:
 
 ```bash
@@ -136,11 +142,13 @@ curl -X POST http://localhost:8080/api/user/keys \
 ```
 
 ### SSH Key Storage
+
 - Public keys stored in `ssh_keys` table with MD5 fingerprints
 - Fingerprints used for fast public key lookups during SSH handshakes
 - One key per user; users can have multiple keys with different titles
 
 ### Listing and Deleting Keys
+
 ```bash
 # List all keys for authenticated user
 GET /api/user/keys
@@ -152,19 +160,23 @@ DELETE /api/user/keys/{id}
 ## Git HTTP Smart Protocol
 
 ### Overview
+
 Cloudzilla exposes repositories via the Git HTTP smart protocol, allowing standard `git clone/push/pull` operations.
 
 ### Endpoints
+
 - `GET /{owner}/{repo}/info/refs?service=git-upload-pack` — List refs (clone/fetch)
 - `POST /{owner}/{repo}/git-upload-pack` — Upload pack (clone/fetch data)
 - `POST /{owner}/{repo}/git-receive-pack` — Receive pack (push data)
 
 ### Authentication
+
 - **Public repos**: No authentication required
 - **Private repos**: Requires HTTP Basic Auth or JWT cookie
 - Permissions enforced: read access for clone/fetch, write access for push
 
 ### Example
+
 ```bash
 # Clone a public repo
 git clone http://localhost:8080/admin/my-project.git
@@ -179,18 +191,22 @@ git push origin main
 ## SSH Server
 
 ### Overview
+
 Cloudzilla runs an SSH server (port 2222 by default) for git operations using public key authentication.
 
 ### Configuration
+
 In `config.yaml`:
+
 ```yaml
 git:
   repos_root: ./git-repos
-  ssh_port: 2222                    # SSH server port
-  ssh_host_key: ./cloudzilla_host_key  # Host key file (auto-generated if missing)
+  ssh_port: 2222 # SSH server port
+  ssh_host_key: ./cloudzilla_host_key # Host key file (auto-generated if missing)
 ```
 
 ### SSH Git Operations
+
 Users with SSH keys can clone, fetch, and push via SSH:
 
 ```bash
@@ -209,6 +225,7 @@ git pull
 ```
 
 ### How SSH Auth Works
+
 1. Client initiates SSH connection to port 2222
 2. Server presents host public key
 3. Client sends user's SSH public key
@@ -221,11 +238,16 @@ git pull
 ## HTMX Pattern (Example: Close Issue)
 
 Template:
+
 ```html
 <div id="issue-detail" ...>
   {{if eq .Issue.State "open"}}
-  <button hx-patch="/api/repos/{{.Owner}}/{{.Repo}}/issues/{{.Issue.Number}}"
-          hx-vals='{"state":"closed"}' hx-target="#issue-detail" hx-swap="outerHTML">
+  <button
+    hx-patch="/api/repos/{{.Owner}}/{{.Repo}}/issues/{{.Issue.Number}}"
+    hx-vals='{"state":"closed"}'
+    hx-target="#issue-detail"
+    hx-swap="outerHTML"
+  >
     Close Issue
   </button>
   {{end}}
@@ -233,6 +255,7 @@ Template:
 ```
 
 Handler:
+
 ```go
 func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
     // ... fetch and update issue ...
@@ -245,6 +268,7 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 ```
 
 Fragment:
+
 ```html
 {{define "fragment-issue-detail"}}
 <div id="issue-detail" ...>
@@ -259,6 +283,7 @@ HTMX flow: button click → PATCH → handler returns fragment → HTMX replaces
 ## Template Parsing
 
 Templates are parsed at startup in `router.mustParseTemplates()`:
+
 1. Parse `layout.html` into a base template
 2. Clone base template for each page, parse page file into clone
 3. Parse all fragments into a shared template set
@@ -277,20 +302,24 @@ This pattern avoids Go template's global `define` namespace issue.
 ## Git Repository Permissions
 
 ### Permission Model
+
 All git operations (HTTP and SSH) respect the same permission rules:
 
 **Read Access** (`git clone`, `git fetch`, `git pull`):
+
 - Public repositories: Always allowed
 - Private repositories: Requires authentication + one of:
   - User is the repository owner
   - User has a permission record with role `reader`, `writer`, or `admin`
 
 **Write Access** (`git push`):
+
 - Requires authentication + one of:
   - User is the repository owner
   - User has a permission record with role `writer` or `admin`
 
 ### Implementation
+
 - `RepoService.CanRead(ctx, repo, userID)` — checks public/private + permissions
 - `RepoService.CanWrite(ctx, repo, userID)` — checks write permissions
 - Both HTTP handlers and SSH handlers call these methods before processing git commands
@@ -300,16 +329,16 @@ All git operations (HTTP and SSH) respect the same permission rules:
 
 ### URL Patterns
 
-| View | Route |
-|---|---|
-| Root tree | `/{owner}/{repo}/tree/{ref}` |
-| Subtree | `/{owner}/{repo}/tree/{ref}/{path...}` |
-| Blob | `/{owner}/{repo}/blob/{ref}/{path...}` |
-| Blame | `/{owner}/{repo}/blame/{ref}/{path...}` |
-| Commit log | `/{owner}/{repo}/commits/{ref}` |
+| View                    | Route                                     |
+| ----------------------- | ----------------------------------------- |
+| Root tree               | `/{owner}/{repo}/tree/{ref}`              |
+| Subtree                 | `/{owner}/{repo}/tree/{ref}/{path...}`    |
+| Blob                    | `/{owner}/{repo}/blob/{ref}/{path...}`    |
+| Blame                   | `/{owner}/{repo}/blame/{ref}/{path...}`   |
+| Commit log              | `/{owner}/{repo}/commits/{ref}`           |
 | Commit log (file scope) | `/{owner}/{repo}/commits/{ref}/{path...}` |
-| Single commit diff | `/{owner}/{repo}/commit/{sha}` |
-| Branches & Tags | `/{owner}/{repo}/refs` |
+| Single commit diff      | `/{owner}/{repo}/commit/{sha}`            |
+| Branches & Tags         | `/{owner}/{repo}/refs`                    |
 
 `{ref}` = branch name, tag name, or commit SHA. Pagination via `?page=N` (1-indexed, 30 per page).
 
@@ -318,6 +347,7 @@ All git operations (HTTP and SSH) respect the same permission rules:
 `CodeService` has **no store dependency** — it reads git data directly from bare repos on disk via go-git. It is wired in `services.New()` and receives `config.GitConfig` (for `ReposRoot`).
 
 Key methods:
+
 - `ResolveRef(owner, repoName, ref)` → `(*object.Commit, displayRef, error)`
 - `GetTree(owner, repoName, ref, path)` → `*TreeResult`
 - `GetBlob(owner, repoName, ref, path)` → `*BlobResult`
@@ -361,20 +391,20 @@ Cloudzilla ships a multi-stage `Dockerfile` and `docker-compose.yml`.
 
 ### Image build stages
 
-| Stage | Base | Purpose |
-|-------|------|---------|
+| Stage     | Base                 | Purpose                                                                                                          |
+| --------- | -------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `builder` | `golang:1.23-alpine` | Downloads Tailwind CLI (arch-aware), compiles CSS, builds both Go binaries with `CGO_ENABLED=0 -ldflags="-s -w"` |
-| runtime | `alpine:3.21` | Copies binaries; installs `ca-certificates tzdata`; exposes 8080/2222 |
+| runtime   | `alpine:3.21`        | Copies binaries; installs `ca-certificates tzdata`; exposes 8080/2222                                            |
 
 ### Persistent volume (`/data`)
 
 All mutable state lives under `/data` inside the container, mounted as a named Docker volume:
 
-| What | Path |
-|------|------|
-| SQLite database | `/data/cloudzilla.db` |
-| Git repositories | `/data/git-repos/` |
-| SSH host key | `/data/cloudzilla_host_key` |
+| What             | Path                        |
+| ---------------- | --------------------------- |
+| SQLite database  | `/data/cloudzilla.db`       |
+| Git repositories | `/data/git-repos/`          |
+| SSH host key     | `/data/cloudzilla_host_key` |
 
 ### Key environment variables (Viper `CZ_` prefix)
 
@@ -413,17 +443,18 @@ The SSH host key is auto-generated into the named volume on first boot — no ma
 The Refs page (`/{owner}/{repo}/refs`) lists all branches and tags. Authenticated users with write access can create and delete branches/tags via HTMX forms.
 
 **Permission rules:**
+
 - Public repos: refs page always visible (read-only for unauthenticated)
 - Write access required for create/delete; default branch delete is blocked (button hidden)
 
 **API endpoints** (all require `authMW`):
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/repos/{owner}/{repo}/branches` | Create branch (`name`, `from` form fields) |
-| DELETE | `/api/repos/{owner}/{repo}/branches?name=…` | Delete branch |
-| POST | `/api/repos/{owner}/{repo}/tags` | Create tag (`name`, `from` form fields) |
-| DELETE | `/api/repos/{owner}/{repo}/tags?name=…` | Delete tag |
+| Method | Path                                        | Description                                |
+| ------ | ------------------------------------------- | ------------------------------------------ |
+| POST   | `/api/repos/{owner}/{repo}/branches`        | Create branch (`name`, `from` form fields) |
+| DELETE | `/api/repos/{owner}/{repo}/branches?name=…` | Delete branch                              |
+| POST   | `/api/repos/{owner}/{repo}/tags`            | Create tag (`name`, `from` form fields)    |
+| DELETE | `/api/repos/{owner}/{repo}/tags?name=…`     | Delete tag                                 |
 
 HTMX responses swap `fragment-branches-list` into `#branches-list` and `fragment-tags-list` into `#tags-list`.
 
@@ -431,34 +462,52 @@ The ref badge on tree and commits pages links to `/{owner}/{repo}/refs` (via `Re
 
 ---
 
-## Pull Request Merge (Fast-Forward Only)
+## Pull Request Merge Strategies
 
-When a PR is merged via the web UI, Cloudzilla performs a real **fast-forward git merge** — it advances the base branch ref to the head tip using go-git. No merge commit is created.
-
-**Merge strategy:** fast-forward only. go-git has no native three-way merge. Non-FF PRs (diverged branches) show a "cannot merge automatically" warning directing the developer to rebase locally and push.
+Cloudzilla supports three merge strategies selectable from the PR detail page.
 
 **Diff view:** The PR detail page shows a full file diff between base and head tips for open PRs. Diff is omitted for closed/merged PRs.
 
+**Available strategies:**
+
+| Strategy        | Button                 | When shown                           | What it does                                            |
+| --------------- | ---------------------- | ------------------------------------ | ------------------------------------------------------- |
+| Fast-forward    | "Merge (fast-forward)" | Head is a direct descendant of base  | Advances base branch ref — no new commit                |
+| Three-way merge | "Create merge commit"  | FF or clean three-way merge possible | Creates a commit with two parents (base + head)         |
+| Squash merge    | "Squash and merge"     | FF or clean three-way merge possible | Collapses head commits into a single new commit on base |
+
+**Conflict detection:** `mergeTreesNoConflict` performs a pure tree-level three-way merge — if the same file path was modified on both sides relative to the merge base, all merge buttons are hidden and a conflict warning is shown. The developer must rebase locally and push.
+
 **Merge flow:**
-1. `PagePullDetail` calls `CodeService.GetPullDiff(base, head)` → `PRDiffResult{Files, CanMerge}`
-2. Template renders diff + shows merge button only when `CanMerge == true`
-3. On "Merge Pull Request" click → HTMX `PATCH /api/repos/{owner}/{repo}/pulls/{number}` with `state=merged`
-4. `UpdatePull` calls `CodeService.MergePullRequest(base, head)` → verifies FF, advances base branch ref
+
+1. `PagePullDetail` calls `CodeService.GetPullDiff(base, head)` → `PRDiffResult{Files, CanFastForward, CanThreeWayMerge}`
+2. Template renders diff + conditionally shows strategy buttons based on capability flags
+3. On button click → HTMX `PATCH /api/repos/{owner}/{repo}/pulls/{number}` with `state=merged` and `merge_strategy=ff|merge|squash`
+4. `UpdatePull` dispatches to `MergePullRequest`, `ThreeWayMergePullRequest`, or `SquashMergePullRequest`
 5. On success → `PullService.SetState(merged)` → fragment returned
-6. On failure (diverged or missing branch) → 422 → `hx-on::response-error` fires alert
+6. On failure (conflict, missing branch, etc.) → 422 → `hx-on::response-error` fires alert
 
 **`CodeService` methods:**
+
 - `GetPullDiff(owner, repo, base, head)` → `*PRDiffResult`
-- `MergePullRequest(owner, repo, base, head)` → `error`
-- `checkFastForward(repo, baseCommit, headCommit)` → `bool` (private; walks head ancestry for base hash)
+- `MergePullRequest(owner, repo, base, head)` → `error` (fast-forward only)
+- `ThreeWayMergePullRequest(owner, repo, base, head, authorName, authorEmail)` → `error`
+- `SquashMergePullRequest(owner, repo, base, head, authorName, authorEmail)` → `error`
+- `checkFastForward(repo, baseCommit, headCommit)` → `bool` (private)
+- `findMergeBase(repo, a, b)` → `(*object.Commit, error)` (private; LCA via ancestor walk)
+- `mergeTreesNoConflict(repo, mergeBase, base, head)` → `(plumbing.Hash, bool, error)` (private)
+- `flattenTree(tree)` → `(map[string]mergeFile, error)` (private)
+- `buildTree(repo, files)` → `(plumbing.Hash, error)` (private; recursively encodes tree objects)
 
 **`PRDiffResult` type:**
+
 ```go
 type PRDiffResult struct {
-    Files        []FileDiff
-    TotalAdded   int
-    TotalDeleted int
-    CanMerge     bool
+    Files            []FileDiff
+    TotalAdded       int
+    TotalDeleted     int
+    CanFastForward   bool  // head is a descendant of base
+    CanThreeWayMerge bool  // branches diverged but no conflicting file edits
 }
 ```
 

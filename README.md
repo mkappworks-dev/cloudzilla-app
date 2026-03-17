@@ -14,7 +14,7 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 - Google OAuth sign-in (links to existing accounts by email)
 - Repository management (public/private)
 - Issues with open/close state
-- Pull requests with fast-forward merge, diff view, and close workflow
+- Pull requests with fast-forward, three-way, and squash merge strategies, diff view, and close workflow
 - Inline comments with HTMX live updates (no page reload)
 - SSH keys for git operations (ED25519, RSA)
 - Git over HTTP (smart protocol) — `git clone/push/pull` with HTTP Basic Auth or JWT cookie
@@ -159,11 +159,11 @@ ssh://git@localhost:2222    # SSH git transport
 
 All state lives in a named Docker volume (`cloudzilla_data`) mounted at `/data`:
 
-| What | Container path |
-|------|---------------|
-| SQLite database | `/data/cloudzilla.db` |
-| Git repositories | `/data/git-repos/` |
-| SSH host key | `/data/cloudzilla_host_key` (auto-generated on first boot) |
+| What             | Container path                                             |
+| ---------------- | ---------------------------------------------------------- |
+| SQLite database  | `/data/cloudzilla.db`                                      |
+| Git repositories | `/data/git-repos/`                                         |
+| SSH host key     | `/data/cloudzilla_host_key` (auto-generated on first boot) |
 
 ### Configuration
 
@@ -197,6 +197,7 @@ make build
 ```
 
 Produces:
+
 - `dist/cloudzilla` — HTTP server binary (API + embedded frontend + CSS)
 - `dist/cloudzilla-cli` — Admin CLI binary
 
@@ -216,6 +217,7 @@ sudo mkdir -p /var/lib/cloudzilla/git-repos
 ```
 
 `/etc/cloudzilla/config.yaml`:
+
 ```yaml
 server:
   port: 8080
@@ -265,6 +267,7 @@ cloudzilla-cli create-user \
 ### 7. Run as a systemd service
 
 `/etc/systemd/system/cloudzilla.service`:
+
 ```ini
 [Unit]
 Description=Cloudzilla Git Forge
@@ -303,24 +306,24 @@ yourdomain.com {
 
 ## Configuration Reference
 
-| Key                       | Default           | Description                                   |
-| ------------------------- | ----------------- | --------------------------------------------- |
-| `server.port`             | `8080`            | HTTP listen port                              |
-| `server.host`             | `0.0.0.0`         | HTTP listen address                           |
-| `server.read_timeout`     | `15s`             | HTTP read timeout                             |
-| `server.write_timeout`    | `15s`             | HTTP write timeout                            |
-| `database.driver`         | `sqlite3`         | `sqlite3` or `postgres`                       |
-| `database.dsn`            | `./cloudzilla.db` | DB connection string                          |
-| `database.max_open_conns` | `10`              | Max open DB connections                       |
-| `database.max_idle_conns` | `5`               | Max idle DB connections                       |
-| `auth.jwt_secret`         | `change-me`       | JWT signing secret — **change in production** |
-| `auth.jwt_expiry`         | `24h`             | JWT token lifetime                            |
-| `auth.cookie_name`        | `cz_token`        | httpOnly cookie name                          |
-| `git.repos_root`          | `./git-repos`     | Bare git repo storage path                    |
-| `git.ssh_port`            | `2222`            | SSH server port for git operations            |
-| `git.ssh_host_key`        | `./cloudzilla_host_key` | SSH host key file (auto-generated if missing) |
-| `oauth.google_client_id`     | `""`              | Google OAuth client ID (empty = disabled)     |
-| `oauth.google_client_secret` | `""`              | Google OAuth client secret                    |
+| Key                          | Default                                      | Description                                    |
+| ---------------------------- | -------------------------------------------- | ---------------------------------------------- |
+| `server.port`                | `8080`                                       | HTTP listen port                               |
+| `server.host`                | `0.0.0.0`                                    | HTTP listen address                            |
+| `server.read_timeout`        | `15s`                                        | HTTP read timeout                              |
+| `server.write_timeout`       | `15s`                                        | HTTP write timeout                             |
+| `database.driver`            | `sqlite3`                                    | `sqlite3` or `postgres`                        |
+| `database.dsn`               | `./cloudzilla.db`                            | DB connection string                           |
+| `database.max_open_conns`    | `10`                                         | Max open DB connections                        |
+| `database.max_idle_conns`    | `5`                                          | Max idle DB connections                        |
+| `auth.jwt_secret`            | `change-me`                                  | JWT signing secret — **change in production**  |
+| `auth.jwt_expiry`            | `24h`                                        | JWT token lifetime                             |
+| `auth.cookie_name`           | `cz_token`                                   | httpOnly cookie name                           |
+| `git.repos_root`             | `./git-repos`                                | Bare git repo storage path                     |
+| `git.ssh_port`               | `2222`                                       | SSH server port for git operations             |
+| `git.ssh_host_key`           | `./cloudzilla_host_key`                      | SSH host key file (auto-generated if missing)  |
+| `oauth.google_client_id`     | `""`                                         | Google OAuth client ID (empty = disabled)      |
+| `oauth.google_client_secret` | `""`                                         | Google OAuth client secret                     |
 | `oauth.google_redirect_url`  | `http://localhost:8080/auth/google/callback` | OAuth redirect URI (must match Google Console) |
 
 ### Switching to PostgreSQL
@@ -381,12 +384,14 @@ cloudzilla create-repo \
 Users can add SSH public keys (ED25519, RSA) via the Settings page or API. Keys are stored with MD5 fingerprints for fast lookups during SSH handshakes.
 
 #### Web UI
+
 1. Log in to Cloudzilla
 2. Go to `/settings`
 3. Add SSH Key section: paste your public key and give it a name
 4. Use the generated clone URL (`ssh://git@host:port/owner/repo.git`) with `git clone`
 
 #### CLI / API
+
 ```bash
 # Add SSH key
 curl -X POST http://localhost:8080/api/user/keys \
@@ -425,6 +430,7 @@ git push origin main
 ```
 
 **Permissions:**
+
 - Public repos: anyone can clone/fetch
 - Private repos: requires authentication (HTTP Basic Auth or JWT cookie)
 - Push: requires write access (owner or `writer`/`admin` permission role)
@@ -450,10 +456,11 @@ git fetch
 ```
 
 **Configuration** — edit `config.yaml`:
+
 ```yaml
 git:
-  ssh_port: 2222                          # SSH server port
-  ssh_host_key: ./cloudzilla_host_key     # Host key file
+  ssh_port: 2222 # SSH server port
+  ssh_host_key: ./cloudzilla_host_key # Host key file
 ```
 
 **Dev**: the host key is auto-generated on first startup if the file is missing. `cloudzilla_host_key` is gitignored — do not commit it.
@@ -468,15 +475,15 @@ Browse repository contents directly from the web UI. All views respect repo visi
 
 ### URL Patterns
 
-| View | URL |
-|---|---|
-| Root file tree | `/{owner}/{repo}/tree/{ref}` |
-| Subdirectory tree | `/{owner}/{repo}/tree/{ref}/{path...}` |
-| File content (blob) | `/{owner}/{repo}/blob/{ref}/{path...}` |
-| Per-line blame | `/{owner}/{repo}/blame/{ref}/{path...}` |
-| Commit log | `/{owner}/{repo}/commits/{ref}` |
-| Single commit diff | `/{owner}/{repo}/commit/{sha}` |
-| Branches & Tags | `/{owner}/{repo}/refs` |
+| View                | URL                                     |
+| ------------------- | --------------------------------------- |
+| Root file tree      | `/{owner}/{repo}/tree/{ref}`            |
+| Subdirectory tree   | `/{owner}/{repo}/tree/{ref}/{path...}`  |
+| File content (blob) | `/{owner}/{repo}/blob/{ref}/{path...}`  |
+| Per-line blame      | `/{owner}/{repo}/blame/{ref}/{path...}` |
+| Commit log          | `/{owner}/{repo}/commits/{ref}`         |
+| Single commit diff  | `/{owner}/{repo}/commit/{sha}`          |
+| Branches & Tags     | `/{owner}/{repo}/refs`                  |
 
 `{ref}` can be a branch name, tag name, or commit SHA. If the ref is not found, the server returns 404.
 
@@ -515,10 +522,11 @@ http://localhost:8080/admin/my-project/tree/abc1234
 The PR detail page (`/{owner}/{repo}/pulls/{number}`) shows:
 
 - **Diff view**: all files changed between base and head branch tips — added/deleted lines highlighted, hunk headers, binary detection. Only shown for open PRs.
-- **Merge button**: visible only when a fast-forward merge is possible (head is a direct descendant of base). Clicking it advances the base branch ref to the head tip — no merge commit.
-- **Cannot merge warning**: shown when branches have diverged. The developer must rebase the head branch onto the base branch and push before the merge button appears.
-
-Merge strategy is **fast-forward only**. go-git v5 has no native three-way merge; diverged PRs must be rebased locally.
+- **Merge strategies**: up to three buttons appear depending on branch state:
+  - **Merge (fast-forward)** — visible only when head is a direct descendant of base. Advances the base branch ref with no new commit.
+  - **Create merge commit** — visible when either FF or clean three-way merge is possible. Creates a new commit with two parents (base and head).
+  - **Squash and merge** — visible under the same conditions. Collapses all head commits into a single new commit on top of base.
+- **Conflict warning**: shown when both branches have edited the same file(s). All merge buttons are hidden; the developer must rebase locally and push.
 
 ---
 
@@ -528,20 +536,20 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 ### Auth
 
-| Method | Path               | Auth | Description                                             |
-| ------ | ------------------ | ---- | ------------------------------------------------------- |
-| POST   | `/api/auth/login`  | —    | Login; sets `cz_token` cookie and returns token in body |
-| POST   | `/api/auth/logout` | —    | Clears the auth cookie                                  |
-| GET    | `/auth/google`     | —    | Begin Google OAuth flow (redirects to Google)           |
-| GET    | `/auth/google/callback` | — | Google OAuth callback; sets `cz_token` cookie, redirects to `/` |
+| Method | Path                    | Auth | Description                                                     |
+| ------ | ----------------------- | ---- | --------------------------------------------------------------- |
+| POST   | `/api/auth/login`       | —    | Login; sets `cz_token` cookie and returns token in body         |
+| POST   | `/api/auth/logout`      | —    | Clears the auth cookie                                          |
+| GET    | `/auth/google`          | —    | Begin Google OAuth flow (redirects to Google)                   |
+| GET    | `/auth/google/callback` | —    | Google OAuth callback; sets `cz_token` cookie, redirects to `/` |
 
 ### SSH Keys
 
-| Method | Path                 | Auth     | Description                           |
-| ------ | -------------------- | -------- | ------------------------------------- |
-| GET    | `/api/user/keys`     | Required | List SSH keys for authenticated user  |
-| POST   | `/api/user/keys`     | Required | Add a new SSH public key              |
-| DELETE | `/api/user/keys/:id` | Required | Delete an SSH key by ID               |
+| Method | Path                 | Auth     | Description                          |
+| ------ | -------------------- | -------- | ------------------------------------ |
+| GET    | `/api/user/keys`     | Required | List SSH keys for authenticated user |
+| POST   | `/api/user/keys`     | Required | Add a new SSH public key             |
+| DELETE | `/api/user/keys/:id` | Required | Delete an SSH key by ID              |
 
 ### Users
 
@@ -572,33 +580,34 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 ### Pull Requests
 
-| Method | Path                                    | Auth     | Description             |
-| ------ | --------------------------------------- | -------- | ----------------------- |
-| GET    | `/api/repos/:owner/:repo/pulls/`        | —        | List pull requests      |
-| POST   | `/api/repos/:owner/:repo/pulls/`        | Required | Create a pull request   |
-| GET    | `/api/repos/:owner/:repo/pulls/:number` | —        | Get PR details          |
-| PATCH  | `/api/repos/:owner/:repo/pulls/:number` | Required | Update PR state (`merged` performs fast-forward git merge; `closed` closes without merging) |
+| Method | Path                                    | Auth     | Description                                                                                                                                                       |
+| ------ | --------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/pulls/`        | —        | List pull requests                                                                                                                                                |
+| POST   | `/api/repos/:owner/:repo/pulls/`        | Required | Create a pull request                                                                                                                                             |
+| GET    | `/api/repos/:owner/:repo/pulls/:number` | —        | Get PR details                                                                                                                                                    |
+| PATCH  | `/api/repos/:owner/:repo/pulls/:number` | Required | Update PR state. `state=merged` merges the PR using the strategy in `merge_strategy` (`ff` default, `merge`, or `squash`); `state=closed` closes without merging. |
 
 ### Branches & Tags
 
-| Method | Path | Auth | Description |
-| ------ | ---- | ---- | ----------- |
-| POST | `/api/repos/:owner/:repo/branches` | Required | Create branch (`name`, `from` form fields; `from` defaults to default branch) |
-| DELETE | `/api/repos/:owner/:repo/branches?name=…` | Required | Delete branch (default branch rejected with 400) |
-| POST | `/api/repos/:owner/:repo/tags` | Required | Create tag (`name`, `from` form fields) |
-| DELETE | `/api/repos/:owner/:repo/tags?name=…` | Required | Delete tag |
+| Method | Path                                      | Auth     | Description                                                                   |
+| ------ | ----------------------------------------- | -------- | ----------------------------------------------------------------------------- |
+| POST   | `/api/repos/:owner/:repo/branches`        | Required | Create branch (`name`, `from` form fields; `from` defaults to default branch) |
+| DELETE | `/api/repos/:owner/:repo/branches?name=…` | Required | Delete branch (default branch rejected with 400)                              |
+| POST   | `/api/repos/:owner/:repo/tags`            | Required | Create tag (`name`, `from` form fields)                                       |
+| DELETE | `/api/repos/:owner/:repo/tags?name=…`     | Required | Delete tag                                                                    |
 
 All four endpoints require write access. For HTMX requests they return an HTML fragment; otherwise JSON.
 
 ### Git Operations (HTTP Smart Protocol)
 
-| Method | Path                                            | Auth     | Description              |
-| ------ | ----------------------------------------------- | -------- | ------------------------ |
-| GET    | `/:owner/:repo/info/refs?service=git-upload-pack` | Depends* | List refs (clone/fetch)  |
-| POST   | `/:owner/:repo/git-upload-pack`                 | Depends* | Upload pack (clone/fetch) |
-| POST   | `/:owner/:repo/git-receive-pack`                | Depends* | Receive pack (push)      |
+| Method | Path                                              | Auth      | Description               |
+| ------ | ------------------------------------------------- | --------- | ------------------------- |
+| GET    | `/:owner/:repo/info/refs?service=git-upload-pack` | Depends\* | List refs (clone/fetch)   |
+| POST   | `/:owner/:repo/git-upload-pack`                   | Depends\* | Upload pack (clone/fetch) |
+| POST   | `/:owner/:repo/git-receive-pack`                  | Depends\* | Receive pack (push)       |
 
-*Depends on repo privacy and user permissions:
+\*Depends on repo privacy and user permissions:
+
 - Public repos: no auth required for read
 - Private repos: requires HTTP Basic Auth or JWT cookie for read
 - Push: requires write permission (owner or `writer`/`admin` role)
@@ -686,15 +695,15 @@ Handlers call services only. Services call stores only. Stores own all SQL.
 
 Migrations live in `migrations/` and are embedded into the binary at build time. They run in order on `cloudzilla migrate`.
 
-| File                           | Creates               |
-| ------------------------------ | --------------------- |
-| `001_create_users.sql`         | `users` table         |
-| `002_create_repositories.sql`  | `repositories` table  |
-| `003_create_issues.sql`        | `issues` table        |
-| `004_create_pull_requests.sql` | `pull_requests` table |
-| `005_create_comments.sql`      | `comments` table      |
-| `006_create_permissions.sql`   | `permissions` table   |
-| `007_create_ssh_keys.sql`      | `ssh_keys` table      |
+| File                           | Creates                                              |
+| ------------------------------ | ---------------------------------------------------- |
+| `001_create_users.sql`         | `users` table                                        |
+| `002_create_repositories.sql`  | `repositories` table                                 |
+| `003_create_issues.sql`        | `issues` table                                       |
+| `004_create_pull_requests.sql` | `pull_requests` table                                |
+| `005_create_comments.sql`      | `comments` table                                     |
+| `006_create_permissions.sql`   | `permissions` table                                  |
+| `007_create_ssh_keys.sql`      | `ssh_keys` table                                     |
 | `008_oauth_users.sql`          | Adds `oauth_provider`, `oauth_id` columns to `users` |
 
 ---
@@ -705,7 +714,6 @@ The following are intentionally out of scope for the initial release:
 
 - Webhooks and notifications
 - Organization accounts
-- Three-way / squash merge strategies (fast-forward only; diverged branches must be rebased locally)
 
 ---
 
@@ -713,23 +721,23 @@ The following are intentionally out of scope for the initial release:
 
 ### Direct Dependencies
 
-| Package | Purpose | Version |
-|---------|---------|---------|
-| `go-chi/chi/v5` | HTTP router with named params and middleware chaining | v5.2.5 |
-| `go-chi/cors` | CORS middleware for chi | v1.2.2 |
-| `golang-jwt/jwt/v5` | JWT token signing and verification | v5.3.1 |
-| `jackc/pgx/v5` | PostgreSQL driver (stdlib-compatible via pgx/v5/stdlib) | v5.8.0 |
-| `modernc.org/sqlite` | Pure-Go SQLite driver (no CGo) | v1.46.1 |
-| `spf13/cobra` | CLI command framework with subcommand trees | v1.10.2 |
-| `spf13/viper` | Config file + environment variable loading | v1.21.0 |
-| `golang.org/x/crypto` | Secure password hashing (bcrypt, argon2) | v0.49.0 |
-| `golang.org/x/oauth2` | OAuth 2.0 client (Google sign-in) | v0.36.0 |
-| `go-git/go-git/v5` | Pure-Go git implementation for clone, fetch, push, FF merge | v5.17.0 |
-| `gliderlabs/ssh` | SSH server library | v0.3.5+ |
+| Package               | Purpose                                                                     | Version |
+| --------------------- | --------------------------------------------------------------------------- | ------- |
+| `go-chi/chi/v5`       | HTTP router with named params and middleware chaining                       | v5.2.5  |
+| `go-chi/cors`         | CORS middleware for chi                                                     | v1.2.2  |
+| `golang-jwt/jwt/v5`   | JWT token signing and verification                                          | v5.3.1  |
+| `jackc/pgx/v5`        | PostgreSQL driver (stdlib-compatible via pgx/v5/stdlib)                     | v5.8.0  |
+| `modernc.org/sqlite`  | Pure-Go SQLite driver (no CGo)                                              | v1.46.1 |
+| `spf13/cobra`         | CLI command framework with subcommand trees                                 | v1.10.2 |
+| `spf13/viper`         | Config file + environment variable loading                                  | v1.21.0 |
+| `golang.org/x/crypto` | Secure password hashing (bcrypt, argon2)                                    | v0.49.0 |
+| `golang.org/x/oauth2` | OAuth 2.0 client (Google sign-in)                                           | v0.36.0 |
+| `go-git/go-git/v5`    | Pure-Go git implementation for clone, fetch, push, and all merge strategies | v5.17.0 |
+| `gliderlabs/ssh`      | SSH server library                                                          | v0.3.5+ |
 
 ### Notable Indirect Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| `go-viper/mapstructure` | Struct mapping used by viper |
-| `spf13/afero` | Virtual filesystem abstraction used by viper |
+| Package                 | Purpose                                      |
+| ----------------------- | -------------------------------------------- |
+| `go-viper/mapstructure` | Struct mapping used by viper                 |
+| `spf13/afero`           | Virtual filesystem abstraction used by viper |
