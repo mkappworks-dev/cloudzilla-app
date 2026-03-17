@@ -101,8 +101,8 @@ func (s *OrgService) RemoveMember(ctx context.Context, orgID, requestingUserID, 
 }
 
 func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int64, name, description string, private bool) (*model.Repository, error) {
-	if !s.IsMember(ctx, orgID, requestingUserID) {
-		return nil, fmt.Errorf("only org members can create repos")
+	if !s.IsOwner(ctx, orgID, requestingUserID) {
+		return nil, fmt.Errorf("only org owners can create repos")
 	}
 
 	org, err := s.orgs.GetByID(ctx, orgID)
@@ -133,4 +133,37 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 
 func (s *OrgService) ListRepos(ctx context.Context, orgID int64) ([]model.Repository, error) {
 	return s.repos.GetByOrgID(ctx, orgID)
+}
+
+// TransferOrg transfers ownership of an org from the requesting user to another user.
+// The requesting user must be an owner. They are demoted to member; the new user becomes owner.
+func (s *OrgService) TransferOrg(ctx context.Context, orgID, requestingUserID int64, newOwnerUsername string) error {
+	if !s.IsOwner(ctx, orgID, requestingUserID) {
+		return fmt.Errorf("only org owners can transfer ownership")
+	}
+
+	newOwner, err := s.users.GetByUsername(ctx, newOwnerUsername)
+	if err != nil {
+		return fmt.Errorf("user not found: %w", err)
+	}
+	if newOwner.ID == requestingUserID {
+		return fmt.Errorf("new owner must be a different user")
+	}
+
+	// Promote new owner (add or update role)
+	if _, err := s.orgs.GetMember(ctx, orgID, newOwner.ID); err == nil {
+		if err := s.orgs.UpdateMemberRole(ctx, orgID, newOwner.ID, model.OrgRoleOwner); err != nil {
+			return fmt.Errorf("promote new owner: %w", err)
+		}
+	} else {
+		if err := s.orgs.AddMember(ctx, orgID, newOwner.ID, model.OrgRoleOwner); err != nil {
+			return fmt.Errorf("add new owner: %w", err)
+		}
+	}
+
+	// Demote requesting user to member
+	if err := s.orgs.UpdateMemberRole(ctx, orgID, requestingUserID, model.OrgRoleMember); err != nil {
+		return fmt.Errorf("demote old owner: %w", err)
+	}
+	return nil
 }

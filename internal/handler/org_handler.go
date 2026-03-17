@@ -174,6 +174,35 @@ func (h *Handler) RemoveOrgMember(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handler) TransferOrg(w http.ResponseWriter, r *http.Request) {
+	orgName := chi.URLParam(r, "org")
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	org, err := h.Services.Org.Get(r.Context(), orgName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "org not found")
+		return
+	}
+
+	newOwner := r.FormValue("new_owner")
+	if newOwner == "" {
+		writeError(w, http.StatusBadRequest, "new_owner is required")
+		return
+	}
+
+	if err := h.Services.Org.TransferOrg(r.Context(), org.ID, claims.UserID, newOwner); err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+
+	http.Redirect(w, r, "/orgs/"+orgName+"/settings", http.StatusSeeOther)
+}
+
 func (h *Handler) CreateOrgRepo(w http.ResponseWriter, r *http.Request) {
 	orgName := chi.URLParam(r, "org")
 	claims, ok := middleware.ClaimsFromContext(r.Context())
