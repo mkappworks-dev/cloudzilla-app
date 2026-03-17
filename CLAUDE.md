@@ -513,7 +513,141 @@ type PRDiffResult struct {
 
 ---
 
-## Out of Scope (v1)
+## Organizations
 
-- Webhooks / notifications
-- Organization accounts
+Cloudzilla supports organization accounts. An org is a shared namespace that can own repositories and have multiple members with roles.
+
+### Roles
+
+| Role     | Description                                  |
+| -------- | -------------------------------------------- |
+| `owner`  | Full admin: add/remove members, create repos |
+| `member` | Can create repos under the org               |
+
+### Pages
+
+| Route                  | Auth       | Description                      |
+| ---------------------- | ---------- | -------------------------------- |
+| `/{org}`               | Optional   | Org profile: repos + member list |
+| `/orgs/{org}/settings` | Owner only | Manage members (add/remove)      |
+
+The `/{owner}` route first checks if `owner` is a user; if not, falls back to org lookup. Org profile and user profile share the same URL pattern.
+
+### API Endpoints
+
+| Method | Path                                 | Auth     | Description                                        |
+| ------ | ------------------------------------ | -------- | -------------------------------------------------- |
+| POST   | `/api/orgs/`                         | Required | Create org (`name`, `display_name`, `description`) |
+| GET    | `/api/orgs/{org}`                    | —        | Get org by name                                    |
+| GET    | `/api/orgs/{org}/members`            | —        | List org members                                   |
+| POST   | `/api/orgs/{org}/members`            | Required | Add member (`username`, `role`); owner only        |
+| DELETE | `/api/orgs/{org}/members/{username}` | Required | Remove member; owner only; last owner blocked      |
+| POST   | `/api/orgs/{org}/repos`              | Required | Create a repo under the org; members only          |
+
+HTMX responses from add/remove member swap `fragment-org-members` into `#org-members`.
+
+### OrgService
+
+- `Create(ctx, creatorUserID, name, displayName, description)` → `(*Organization, error)` — validates name uniqueness against users table; auto-adds creator as owner
+- `Get(ctx, name)` → `(*Organization, error)`
+- `ListMembers(ctx, orgID)` → `([]OrgMember, error)`
+- `IsOwner(ctx, orgID, userID)` → `bool`
+- `IsMember(ctx, orgID, userID)` → `bool`
+- `AddMember(ctx, orgID, requestingUserID, targetUserID, role)` → `error` — owner-only
+- `RemoveMember(ctx, orgID, requestingUserID, targetUserID)` → `error` — owner-only; blocks removing last owner
+- `CreateRepo(ctx, orgID, requestingUserID, name, description, private)` → `(*Repository, error)` — sets `owner_name` to org name, `org_id` to org ID
+- `ListRepos(ctx, orgID)` → `([]Repository, error)`
+
+---
+
+## Webhooks
+
+Webhooks let repo owners receive HTTP POST callbacks when events occur in a repository.
+
+### Supported Events
+
+- `push` — fired when commits are pushed (HTTP or SSH receive-pack)
+- `issues` — fired on issue create, close, reopen
+- `pull_request` — fired on PR create, close, merge
+
+### Delivery
+
+Webhooks are dispatched fire-and-forget (`go s.Dispatch(...)`). Each delivery is recorded in `webhook_deliveries` with the event name, payload, response code, and any error.
+
+**HMAC signing:** if a secret is configured, requests include `X-Hub-Signature-256: sha256=<HMAC-SHA256>` (GitHub-compatible).
+
+### API Endpoints
+
+All webhook endpoints are under `/api/repos/{owner}/{repo}/hooks`:
+
+| Method | Path                                              | Auth         | Description                                |
+| ------ | ------------------------------------------------- | ------------ | ------------------------------------------ |
+| GET    | `/api/repos/{owner}/{repo}/hooks/`                | —            | List webhooks for repo                     |
+| POST   | `/api/repos/{owner}/{repo}/hooks/`                | Write access | Create webhook (`url`, `secret`, `events`) |
+| DELETE | `/api/repos/{owner}/{repo}/hooks/{id}`            | Write access | Delete webhook                             |
+| GET    | `/api/repos/{owner}/{repo}/hooks/{id}/deliveries` | Write access | List delivery history                      |
+
+HTMX requests for create/delete swap `fragment-webhooks-list` into `#webhooks-list`.
+
+Default events when `events` is omitted: `push,issues,pull_request`.
+
+### WebhookService
+
+- `Create(ctx, repoID, url, secret, events)` → `(*Webhook, error)`
+- `ListByRepo(ctx, repoID)` → `([]Webhook, error)`
+- `Delete(ctx, id, repoID)` → `error`
+- `ListDeliveries(ctx, webhookID)` → `([]WebhookDelivery, error)`
+- `Dispatch(repoID, event, payload)` — fire-and-forget; call as `go s.Webhook.Dispatch(...)`
+- `PushPayload(repo, pusher, branch, headSHA)` → `map[string]any`
+- `IssuePayload(action, repo, issue)` → `map[string]any`
+- `PullPayload(action, repo, pr)` → `map[string]any`
+
+### Repo Settings Page
+
+`/{owner}/{repo}/settings` (write access required) — shows repo metadata and a webhook management UI (HTMX-powered create/delete).
+
+---
+
+## Notifications
+
+In-app notification system that creates notifications for issue/PR activity involving the author.
+
+### Notification Types
+
+| Type             | Triggered when                            |
+| ---------------- | ----------------------------------------- |
+| `issue_comment`  | Someone comments on an issue you opened   |
+| `pr_comment`     | Someone comments on a PR you opened       |
+| `issue_closed`   | Someone closes an issue you opened        |
+| `issue_reopened` | Someone reopens an issue you opened       |
+| `pr_merged`      | Someone merges a PR you opened            |
+| `pr_closed`      | Someone closes a PR you opened            |
+| `pr_opened`      | (type reserved; not currently auto-fired) |
+
+Notifications are never created when `actorID == authorID` (self-actions are silent).
+
+### Unread Count in Navbar
+
+`basePage()` calls `NotificationService.CountUnread` on every page render and passes the count as `BasePage.UnreadNotifCount`. Templates show a badge next to the Notifications link.
+
+### Pages & API
+
+| Route / Endpoint                      | Auth     | Description                                   |
+| ------------------------------------- | -------- | --------------------------------------------- |
+| GET `/notifications`                  | Required | Notifications page (list all)                 |
+| PATCH `/api/notifications/{id}`       | Required | Mark single notification as read (HTMX-aware) |
+| POST `/api/notifications/read-all`    | Required | Mark all notifications as read (HTMX-aware)   |
+| GET `/api/notifications/unread-count` | Required | Returns `{"count": N}` JSON                   |
+
+HTMX responses swap `fragment-notifications-list` into `#notifications-list`.
+
+### NotificationService
+
+- `List(ctx, userID)` → `([]Notification, error)`
+- `CountUnread(ctx, userID)` → `(int, error)`
+- `MarkRead(ctx, id, userID)` → `error`
+- `MarkAllRead(ctx, userID)` → `error`
+- `NotifyIssueComment(ctx, repo, issue, actorID, actorName)` — call from `CreateIssueComment` handler
+- `NotifyPRComment(ctx, repo, pr, actorID, actorName)` — call from `CreatePRComment` handler
+- `NotifyIssueStateChange(ctx, repo, issue, actorID, actorName)` — call from `UpdateIssue` handler
+- `NotifyPRStateChange(ctx, repo, pr, actorID, actorName)` — call from `UpdatePull` handler

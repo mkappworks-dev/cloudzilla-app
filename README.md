@@ -12,10 +12,13 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 
 - User accounts with JWT authentication (httpOnly cookie)
 - Google OAuth sign-in (links to existing accounts by email)
-- Repository management (public/private)
+- Organization accounts — shared namespaces with member roles (owner/member), org profile page, member management
+- Repository management (public/private), repo settings page
 - Issues with open/close state
 - Pull requests with fast-forward, three-way, and squash merge strategies, diff view, and close workflow
 - Inline comments with HTMX live updates (no page reload)
+- Webhooks — per-repo HTTP callbacks for push, issues, and pull_request events with HMAC signing and delivery log
+- In-app notifications — notified on comments, state changes, and merges; unread badge in navbar
 - SSH keys for git operations (ED25519, RSA)
 - Git over HTTP (smart protocol) — `git clone/push/pull` with HTTP Basic Auth or JWT cookie
 - Git over SSH (port 2222 by default) — public key authentication
@@ -612,6 +615,36 @@ All four endpoints require write access. For HTMX requests they return an HTML f
 - Private repos: requires HTTP Basic Auth or JWT cookie for read
 - Push: requires write permission (owner or `writer`/`admin` role)
 
+### Organizations
+
+| Method | Path                               | Auth     | Description                                   |
+| ------ | ---------------------------------- | -------- | --------------------------------------------- |
+| POST   | `/api/orgs/`                       | Required | Create organization                           |
+| GET    | `/api/orgs/:org`                   | —        | Get organization by name                      |
+| GET    | `/api/orgs/:org/members`           | —        | List organization members                     |
+| POST   | `/api/orgs/:org/members`           | Required | Add member (`username`, `role`); owner only   |
+| DELETE | `/api/orgs/:org/members/:username` | Required | Remove member; owner only; last owner blocked |
+| POST   | `/api/orgs/:org/repos`             | Required | Create a repository under the organization    |
+
+### Webhooks
+
+| Method | Path                                           | Auth         | Description                                |
+| ------ | ---------------------------------------------- | ------------ | ------------------------------------------ |
+| GET    | `/api/repos/:owner/:repo/hooks/`               | —            | List webhooks for repository               |
+| POST   | `/api/repos/:owner/:repo/hooks/`               | Write access | Create webhook (`url`, `secret`, `events`) |
+| DELETE | `/api/repos/:owner/:repo/hooks/:id`            | Write access | Delete webhook                             |
+| GET    | `/api/repos/:owner/:repo/hooks/:id/deliveries` | Write access | List delivery history                      |
+
+Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signed with `X-Hub-Signature-256` when a secret is configured (GitHub-compatible HMAC-SHA256).
+
+### Notifications
+
+| Method | Path                              | Auth     | Description                        |
+| ------ | --------------------------------- | -------- | ---------------------------------- |
+| GET    | `/api/notifications/unread-count` | Required | Returns `{"count": N}`             |
+| PATCH  | `/api/notifications/:id`          | Required | Mark a single notification as read |
+| POST   | `/api/notifications/read-all`     | Required | Mark all notifications as read     |
+
 ### HTMX Fragments
 
 | Method | Path                                              | Description                                  |
@@ -648,8 +681,8 @@ cmd/
     frontend/      # Templates + static files (embedded in binary)
       templates/
         layout.html          # Base HTML shell
-        pages/               # Page templates (home, login, user, repo, issues, pulls, tree, blob, blame, refs, etc.)
-        fragments/           # HTMX swap fragments (issues, pull requests, SSH keys, branches/tags)
+        pages/               # Page templates (home, login, user, repo, org, org_settings, repo_settings, issues, pulls, tree, blob, blame, refs, notifications, etc.)
+        fragments/           # HTMX swap fragments (issues, pull requests, SSH keys, branches/tags, org members, webhooks, notifications)
       static/
         main.css             # Compiled Tailwind output
       htmx.min.js            # HTMX library
@@ -665,6 +698,9 @@ internal/
   handler/         # HTTP handlers (page + API + git HTTP)
     page_handler.go          # Page rendering handlers
     ref_handler.go           # Branch & tag create/delete handlers
+    org_handler.go           # Organization API handlers
+    webhook_handler.go       # Webhook API handlers
+    notification_handler.go  # Notification API handlers
     viewmodels.go            # Data structs for templates (with BasePage for auth)
     git_http.go              # Git HTTP smart protocol handler
     ssh_key_handler.go       # SSH key management endpoints
@@ -695,25 +731,22 @@ Handlers call services only. Services call stores only. Stores own all SQL.
 
 Migrations live in `migrations/` and are embedded into the binary at build time. They run in order on `cloudzilla migrate`.
 
-| File                           | Creates                                              |
-| ------------------------------ | ---------------------------------------------------- |
-| `001_create_users.sql`         | `users` table                                        |
-| `002_create_repositories.sql`  | `repositories` table                                 |
-| `003_create_issues.sql`        | `issues` table                                       |
-| `004_create_pull_requests.sql` | `pull_requests` table                                |
-| `005_create_comments.sql`      | `comments` table                                     |
-| `006_create_permissions.sql`   | `permissions` table                                  |
-| `007_create_ssh_keys.sql`      | `ssh_keys` table                                     |
-| `008_oauth_users.sql`          | Adds `oauth_provider`, `oauth_id` columns to `users` |
+| File                           | Creates                                                |
+| ------------------------------ | ------------------------------------------------------ |
+| `001_create_users.sql`         | `users` table                                          |
+| `002_create_repositories.sql`  | `repositories` table                                   |
+| `003_create_issues.sql`        | `issues` table                                         |
+| `004_create_pull_requests.sql` | `pull_requests` table                                  |
+| `005_create_comments.sql`      | `comments` table                                       |
+| `006_create_permissions.sql`   | `permissions` table                                    |
+| `007_create_ssh_keys.sql`      | `ssh_keys` table                                       |
+| `008_oauth_users.sql`          | Adds `oauth_provider`, `oauth_id` columns to `users`   |
+| `009_create_organizations.sql` | `organizations` + `org_members` tables                 |
+| `010_repo_owner_name.sql`      | Adds `owner_name` + `org_id` columns to `repositories` |
+| `011_create_webhooks.sql`      | `webhooks` + `webhook_deliveries` tables               |
+| `012_create_notifications.sql` | `notifications` table                                  |
 
 ---
-
-## What's Not in v1
-
-The following are intentionally out of scope for the initial release:
-
-- Webhooks and notifications
-- Organization accounts
 
 ---
 
