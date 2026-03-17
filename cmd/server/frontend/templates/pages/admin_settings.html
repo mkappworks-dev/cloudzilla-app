@@ -1,0 +1,86 @@
+{{define "title"}}Admin Settings — Cloudzilla{{end}}
+
+{{define "content"}}
+<div class="space-y-6">
+  <div class="flex justify-between items-center">
+    <h1 class="text-2xl font-bold">Admin Settings</h1>
+  </div>
+
+  <!-- Instance Settings -->
+  <div class="bg-white border border-gray-200 rounded-lg p-6">
+    <h2 class="text-lg font-semibold mb-4">Instance Settings</h2>
+    <div id="admin-settings-list" class="space-y-3">
+      {{range .Settings}}
+      <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+        <div>
+          <p class="text-sm font-medium">{{.Key}}</p>
+        </div>
+        <form hx-post="/api/admin/settings"
+              hx-target="#admin-settings-list"
+              hx-swap="outerHTML"
+              class="flex items-center gap-3">
+          <input type="hidden" name="key" value="{{.Key}}">
+          {{if eq .Value "true"}}
+          <span class="text-xs text-green-600 font-medium">Enabled</span>
+          <input type="hidden" name="value" value="false">
+          <button type="submit" class="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Disable</button>
+          {{else}}
+          <span class="text-xs text-gray-400 font-medium">Disabled</span>
+          <input type="hidden" name="value" value="true">
+          <button type="submit" class="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Enable</button>
+          {{end}}
+        </form>
+      </div>
+      {{else}}
+      <p class="text-gray-500 text-sm">No settings found.</p>
+      {{end}}
+    </div>
+  </div>
+
+  <!-- Invitations -->
+  <div class="bg-white border border-gray-200 rounded-lg p-6">
+    <h2 class="text-lg font-semibold mb-4">Invitations</h2>
+    <form hx-post="/api/admin/invitations"
+          hx-target="#admin-invitations-list"
+          hx-swap="outerHTML"
+          class="flex gap-3 mb-6">
+      <input type="email" name="email" placeholder="user@example.com" required
+        class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <button type="submit"
+        class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+        Send Invite
+      </button>
+    </form>
+    <div id="admin-invitations-list" class="space-y-2">
+      {{range .Invitations}}
+      <div class="border border-gray-200 rounded-lg p-4 flex justify-between items-start">
+        <div class="space-y-1">
+          <p class="text-sm font-medium">{{.Email}}</p>
+          <p class="text-xs text-gray-500 font-mono break-all">/invite/{{.Token}}</p>
+          <div class="flex gap-3 text-xs text-gray-400">
+            <span>Expires: {{.ExpiresAt.Format "2006-01-02"}}</span>
+            {{if .AcceptedAt}}
+            <span class="text-green-600">Accepted</span>
+            {{else}}
+            <span class="text-yellow-600">Pending</span>
+            {{end}}
+          </div>
+        </div>
+        {{if not .AcceptedAt}}
+        <button
+          hx-delete="/api/admin/invitations/{{.ID}}"
+          hx-target="#admin-invitations-list"
+          hx-swap="outerHTML"
+          hx-confirm="Delete this invitation?"
+          class="text-xs text-red-600 hover:underline ml-4 shrink-0">
+          Delete
+        </button>
+        {{end}}
+      </div>
+      {{else}}
+      <p class="text-gray-500 text-sm">No invitations yet.</p>
+      {{end}}
+    </div>
+  </div>
+</div>
+{{end}}

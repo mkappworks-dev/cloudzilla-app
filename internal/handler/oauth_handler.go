@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/mkappworks/cloudzilla/internal/service"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -78,9 +79,19 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, jwtToken, err := h.Services.User.AuthenticateOAuth(r.Context(), "google", info.ID, info.Email, info.Name, info.Picture)
+	allowReg := h.Services.SiteSetting.AllowRegistration(r.Context())
+	allowLogin := h.Services.SiteSetting.AllowLogin(r.Context())
+
+	_, jwtToken, err := h.Services.User.AuthenticateOAuth(r.Context(), "google", info.ID, info.Email, info.Name, info.Picture, allowReg, allowLogin)
 	if err != nil {
-		http.Error(w, "authentication failed", http.StatusInternalServerError)
+		switch err {
+		case service.ErrRegistrationDisabled:
+			http.Error(w, "Registration is currently disabled", http.StatusForbidden)
+		case service.ErrLoginDisabled:
+			http.Error(w, "Login is currently disabled", http.StatusForbidden)
+		default:
+			http.Error(w, "authentication failed", http.StatusInternalServerError)
+		}
 		return
 	}
 
