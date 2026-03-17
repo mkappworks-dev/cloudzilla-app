@@ -83,9 +83,11 @@ go test ./...           # Run Go tests
 4. Add service method in `internal/service/`
 5. Add handler in `internal/handler/` (or update existing)
 6. Register route in `internal/router/router.go`
-7. Add/update HTML template in `cmd/server/frontend/templates/`
-8. Add Tailwind CSS classes to template
-9. Add fragment templates if using HTMX swaps
+7. If the route must be accessible before setup is complete (e.g. public assets), add it to the allowlist in `middleware/setup.go`
+8. Add/update HTML template in `cmd/server/frontend/templates/`
+9. Add Tailwind CSS classes to template
+10. Add fragment templates if using HTMX swaps
+11. Add new page name to `pageNames` slice in `router/router.go` if adding a new page template
 
 ## Authentication Flow
 
@@ -320,9 +322,11 @@ All git operations (HTTP and SSH) respect the same permission rules:
 
 ### Implementation
 
-- `RepoService.CanRead(ctx, repo, userID)` — checks public/private + permissions
-- `RepoService.CanWrite(ctx, repo, userID)` — checks write permissions
-- Both HTTP handlers and SSH handlers call these methods before processing git commands
+- `RepoService.CanRead(ctx, repo, userID)` — checks public/private + permissions (any role grants read)
+- `RepoService.CanWrite(ctx, repo, userID)` — owner, org owner, or `writer`/`admin` permission role
+- `RepoService.CanManage(ctx, repo, userID)` — owner or org owner **only** (not `admin` collaborator)
+- `RepoService.TransferRepo(ctx, repo, requestingUserID, newOwnerUsername)` — moves git dir on disk, updates `owner_id`/`owner_name`; personal repos only
+- Both HTTP handlers and SSH handlers call `CanRead`/`CanWrite` before processing git commands
 - Bare repository created with `go-git.PlainInit()`, fully compatible with git CLI
 
 ## Code Browser
@@ -432,9 +436,9 @@ make docker-down    # docker compose down
 ```bash
 make docker-run
 docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli migrate
-docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli create-user \
-  --username admin --email admin@localhost --password changeme
 ```
+
+Then open `http://localhost:8080` in a browser — the first request redirects to `/setup` where you create the superadmin account via the web wizard.
 
 The SSH host key is auto-generated into the named volume on first boot — no manual `ssh-keygen` step needed.
 
@@ -513,16 +517,120 @@ type PRDiffResult struct {
 
 ---
 
+## Instance Permissions & Access Control
+
+### Permission levels
+
+| Level        | Roles                       | Description                               |
+| ------------ | --------------------------- | ----------------------------------------- |
+| Instance     | `superadmin`, `user`        | Controls instance-wide access             |
+| Organization | `owner`, `member`           | Controls org membership and repo creation |
+| Repository   | `reader`, `writer`, `admin` | Controls per-repo access                  |
+
+### Instance roles
+
+| Role         | Permissions                                                                        |
+| ------------ | ---------------------------------------------------------------------------------- |
+| `superadmin` | Everything. Manages instance settings, cannot be locked out. Assigned at `/setup`. |
+| `user`       | Normal account. Access governed by org/repo permissions and instance settings.     |
+
+### First-run wizard (`/setup`)
+
+When no users exist, **all routes redirect to `/setup`**. The first person to submit the form becomes superadmin. After any user exists, `/setup` permanently redirects to `/`.
+
+`RequireSetup` middleware runs globally (after Recoverer, before routes). Always passes `/setup`, `/static/`, `/invite/`, and `/htmx.min.js` through unconditionally.
+
+`SiteSettingService.IsSetupComplete()` caches the result atomically via `sync/atomic.Bool` — once true it never re-queries the DB.
+
+### Instance settings (`site_settings` table)
+
+Seeded by migration 014. Two boolean keys:
+
+| Key                  | Default | Behaviour when `false`                                                        |
+| -------------------- | ------- | ----------------------------------------------------------------------------- |
+| `allow_registration` | `true`  | Blocks new account creation (form & OAuth). Invite tokens bypass this.        |
+| `allow_login`        | `true`  | Blocks non-superadmin, non-invited logins. "Sign in" link hidden from navbar. |
+
+`SiteSettingService` holds a `sync.RWMutex`-protected `map[string]string` cache. `AllowLogin` / `AllowRegistration` call `loadCache` once on first access and read from the map thereafter. Every `Set` refreshes the cache.
+
+`basePage()` reads `AllowLogin` and sets `BasePage.AllowLogin`; the layout template conditionally renders the "Sign in" link.
+
+### Invitation system
+
+No SMTP required. Superadmin generates a token link → shares it manually.
+
+Flow:
+
+1. Superadmin POSTs `email` to `/api/admin/invitations` → 32-byte hex token, 7-day expiry
+2. Admin panel displays `/invite/{token}` link for copying
+3. Recipient visits link → form with `email` pre-filled (read-only)
+4. On submit: user created via `UserService.Create`, `is_invited = TRUE` set, invitation marked accepted, JWT cookie set → redirect `/`
+
+`is_invited` users always bypass `allow_registration` and `allow_login` checks.
+
+### Admin panel (`/admin/settings`)
+
+Superadmin-only. Accessible via the "Admin" link (yellow) in the navbar.
+
+- **Settings section**: HTMX toggle buttons; POST to `/api/admin/settings`; swaps `fragment-admin-settings` into `#admin-settings-list`
+- **Invitations section**: create by email; displays invite URL for copying; delete pending invites; swaps `fragment-admin-invitations` into `#admin-invitations-list`
+
+### Repository collaborators
+
+The `permissions` table has always existed; it now has full CRUD via the repo settings page.
+
+`CanManage(ctx, repo, userID)` — gates collaborator management: **only** `repo.OwnerID == userID` or an org owner (`isOrgOwner`). Collaborators with the `admin` role have write access but cannot manage collaborators.
+
+`ListPermissionsWithUsername` — uses `JOIN users ON p.user_id = u.id`; populates `Permission.Username` (not a DB column, populated via JOIN).
+
+**Permission matrix for personal repos:**
+
+| Who                          | Read private | Push | Manage collaborators | Transfer ownership |
+| ---------------------------- | :----------: | :--: | :------------------: | :----------------: |
+| Repo owner (`repo.owner_id`) |      ✓       |  ✓   |          ✓           |         ✓          |
+| Collaborator: `admin`        |      ✓       |  ✓   |          ✗           |         ✗          |
+| Collaborator: `writer`       |      ✓       |  ✓   |          ✗           |         ✗          |
+| Collaborator: `reader`       |      ✓       |  ✗   |          ✗           |         ✗          |
+
+For org repos, any org `owner` additionally gets read/write/manage on all repos in that org (via `isOrgOwner`). Transfer is not supported on org repos.
+
+**API endpoints** (all under `/api/repos/{owner}/{repo}/collaborators`):
+
+| Method                            | Auth                       | Description                           |
+| --------------------------------- | -------------------------- | ------------------------------------- |
+| GET `/collaborators`              | Optional                   | List collaborators with username      |
+| POST `/collaborators`             | Required + owner/org-owner | Add collaborator (`username`, `role`) |
+| DELETE `/collaborators?user_id=N` | Required + owner/org-owner | Remove collaborator                   |
+
+**Ownership transfer** (personal repos only):
+
+| Method | Path                                 | Auth             | Description                                                              |
+| ------ | ------------------------------------ | ---------------- | ------------------------------------------------------------------------ |
+| POST   | `/api/repos/{owner}/{repo}/transfer` | Required + owner | Transfer to another user (`new_owner` form field); moves git dir on disk |
+
+HTMX responses swap `fragment-repo-collaborators` into `#repo-collaborators`.
+
+### Error sentinels
+
+`service/user_service.go` exports two errors for OAuth policy enforcement:
+
+- `ErrRegistrationDisabled` — returned when `allow_registration=false` and the user does not exist
+- `ErrLoginDisabled` — returned when `allow_login=false` and the user is neither superadmin nor invited
+
+`GoogleOAuthCallback` matches against these and returns 403 with a plain-text message.
+
+---
+
 ## Organizations
 
 Cloudzilla supports organization accounts. An org is a shared namespace that can own repositories and have multiple members with roles.
 
 ### Roles
 
-| Role     | Description                                  |
-| -------- | -------------------------------------------- |
-| `owner`  | Full admin: add/remove members, create repos |
-| `member` | Can create repos under the org               |
+| Role     | Description                                                               |
+| -------- | ------------------------------------------------------------------------- |
+| `owner`  | Full admin: add/remove members, create/manage all repos in the org        |
+| `member` | Can view org profile and be listed as a member; no repo management rights |
 
 ### Pages
 
@@ -535,14 +643,15 @@ The `/{owner}` route first checks if `owner` is a user; if not, falls back to or
 
 ### API Endpoints
 
-| Method | Path                                 | Auth     | Description                                        |
-| ------ | ------------------------------------ | -------- | -------------------------------------------------- |
-| POST   | `/api/orgs/`                         | Required | Create org (`name`, `display_name`, `description`) |
-| GET    | `/api/orgs/{org}`                    | —        | Get org by name                                    |
-| GET    | `/api/orgs/{org}/members`            | —        | List org members                                   |
-| POST   | `/api/orgs/{org}/members`            | Required | Add member (`username`, `role`); owner only        |
-| DELETE | `/api/orgs/{org}/members/{username}` | Required | Remove member; owner only; last owner blocked      |
-| POST   | `/api/orgs/{org}/repos`              | Required | Create a repo under the org; members only          |
+| Method | Path                                 | Auth     | Description                                                                         |
+| ------ | ------------------------------------ | -------- | ----------------------------------------------------------------------------------- |
+| POST   | `/api/orgs/`                         | Required | Create org (`name`, `display_name`, `description`)                                  |
+| GET    | `/api/orgs/{org}`                    | —        | Get org by name                                                                     |
+| GET    | `/api/orgs/{org}/members`            | —        | List org members                                                                    |
+| POST   | `/api/orgs/{org}/members`            | Required | Add member (`username`, `role`); owner only                                         |
+| DELETE | `/api/orgs/{org}/members/{username}` | Required | Remove member; owner only; last owner blocked                                       |
+| POST   | `/api/orgs/{org}/repos`              | Required | Create a repo under the org; owner only                                             |
+| POST   | `/api/orgs/{org}/transfer`           | Required | Transfer org ownership (`new_owner` form field); owner only; demotes self to member |
 
 HTMX responses from add/remove member swap `fragment-org-members` into `#org-members`.
 
@@ -555,8 +664,9 @@ HTMX responses from add/remove member swap `fragment-org-members` into `#org-mem
 - `IsMember(ctx, orgID, userID)` → `bool`
 - `AddMember(ctx, orgID, requestingUserID, targetUserID, role)` → `error` — owner-only
 - `RemoveMember(ctx, orgID, requestingUserID, targetUserID)` → `error` — owner-only; blocks removing last owner
-- `CreateRepo(ctx, orgID, requestingUserID, name, description, private)` → `(*Repository, error)` — sets `owner_name` to org name, `org_id` to org ID
+- `CreateRepo(ctx, orgID, requestingUserID, name, description, private)` → `(*Repository, error)` — owner-only; sets `owner_name` to org name, `org_id` to org ID
 - `ListRepos(ctx, orgID)` → `([]Repository, error)`
+- `TransferOrg(ctx, orgID, requestingUserID, newOwnerUsername)` → `error` — owner-only; promotes new user to `owner`, demotes requesting user to `member`; adds new user as member if not already one
 
 ---
 
@@ -604,7 +714,7 @@ Default events when `events` is omitted: `push,issues,pull_request`.
 
 ### Repo Settings Page
 
-`/{owner}/{repo}/settings` (write access required) — shows repo metadata and a webhook management UI (HTMX-powered create/delete).
+`/{owner}/{repo}/settings` (write access required) — shows a **Collaborators** section, a **Webhooks** section, and (for personal repo owners) a **Transfer Ownership** danger zone. The collaborators section is only editable by the repo owner or an org owner (`CanManage`). Collaborators with `admin` role can see the settings page (write access) but cannot modify collaborators or transfer.
 
 ---
 

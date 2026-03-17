@@ -10,6 +10,11 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 
 ## Features
 
+- **First-run setup wizard** — visit the server after migrations; first user becomes superadmin automatically
+- **Instance access control** — superadmin can toggle `allow_registration` and `allow_login` at runtime; "Sign in" link auto-hides when login is disabled
+- **Invitation system** — superadmin generates shareable invite links (no SMTP required); invited users bypass registration and login restrictions permanently
+- **Repository collaborators** — owner adds/removes users per-repo via settings page; roles: `reader` (read-only), `writer` (push), `admin` (push, no manage); managed with HTMX, no reload
+- **Ownership transfer** — repo owner can transfer a personal repo to another user; org owner can transfer org ownership to another member; both via settings pages
 - User accounts with JWT authentication (httpOnly cookie)
 - Google OAuth sign-in (links to existing accounts by email)
 - Organization accounts — shared namespaces with member roles (owner/member), org profile page, member management
@@ -27,7 +32,7 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 - Commit diff view — unified diff with added/deleted line highlighting
 - Branch & tag management — list, create, and delete branches/tags via web UI (HTMX, no reload)
 - Clone URLs on repo pages (HTTP & SSH)
-- Auth-aware navigation (Sign in/Settings/Sign out)
+- Auth-aware navigation (Sign in/Settings/Notifications/Admin/Sign out)
 - Admin CLI for bootstrapping
 - Single binary ships API + embedded frontend + CSS
 - No Node.js/npm required (Tailwind CLI for dev only)
@@ -44,11 +49,10 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 make docker-build
 make docker-run
 
-# First-time setup
+# Run migrations
 docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli migrate
-docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli create-user \
-  --username admin --email admin@localhost --password changeme
 
+# Open the app — you'll be redirected to /setup to create your superadmin account
 open http://localhost:8080
 ```
 
@@ -108,20 +112,12 @@ oauth:
 make migrate
 ```
 
-### 4. Create an admin user
-
-```bash
-go run ./cmd/cloudzilla/. create-user \
-  --username admin \
-  --email admin@localhost \
-  --password changeme
-```
-
-### 5. Start the dev server
+### 4. Start the dev server
 
 ```bash
 make dev
 # Backend + Tailwind watch: http://localhost:8080
+# First visit redirects to /setup — create your superadmin account there
 ```
 
 ---
@@ -145,11 +141,9 @@ make docker-run     # docker compose up -d
 
 ```bash
 docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli migrate
-docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli create-user \
-  --username admin \
-  --email admin@localhost \
-  --password changeme
 ```
+
+Then open `http://localhost:8080` — you will be redirected to `/setup` to create the superadmin account via the web wizard.
 
 ### 3. Access
 
@@ -257,15 +251,9 @@ This key is stable — clients store its fingerprint in `~/.ssh/known_hosts`. Re
 cloudzilla-cli migrate --config /etc/cloudzilla/config.yaml
 ```
 
-### 6. Create an admin user
+### 6. Create the superadmin account
 
-```bash
-cloudzilla-cli create-user \
-  --username admin \
-  --email admin@example.com \
-  --password changeme \
-  --config /etc/cloudzilla/config.yaml
-```
+Open `http://yourdomain.com` in a browser — you will be redirected to `/setup` to create the superadmin account. No CLI step required.
 
 ### 7. Run as a systemd service
 
@@ -356,27 +344,7 @@ cloudzilla migrate
 cloudzilla migrate --config /etc/cloudzilla/config.yaml
 ```
 
-### `cloudzilla create-user`
-
-Create a new user account.
-
-```bash
-cloudzilla create-user \
-  --username <name> \
-  --email <email> \
-  --password <password>
-```
-
-### `cloudzilla create-repo`
-
-Create a new repository.
-
-```bash
-cloudzilla create-repo \
-  --owner <username> \
-  --name <repo-name> \
-  --description "Optional description"
-```
+User and repository management is handled through the web UI — use `/setup` for the superadmin account and the invite system for subsequent users.
 
 ---
 
@@ -436,7 +404,7 @@ git push origin main
 
 - Public repos: anyone can clone/fetch
 - Private repos: requires authentication (HTTP Basic Auth or JWT cookie)
-- Push: requires write access (owner or `writer`/`admin` permission role)
+- Push: requires write access (owner, org owner, or `writer`/`admin` permission role)
 
 ### Git over SSH
 
@@ -469,6 +437,35 @@ git:
 **Dev**: the host key is auto-generated on first startup if the file is missing. `cloudzilla_host_key` is gitignored — do not commit it.
 
 **Production**: generate the host key explicitly on the server (see [Production Deployment](#production-deployment)). Never copy the dev machine's key to production.
+
+---
+
+## Permission Model
+
+### Repository permissions
+
+The repo **owner** is stored as `owner_id` on the repository row — not in the permissions table. Collaborator roles (`reader`, `writer`, `admin`) are rows in the `permissions` table and only grant the access shown below.
+
+| Who                          | Read private | Push (write) | Manage collaborators | Transfer ownership |
+| ---------------------------- | :----------: | :----------: | :------------------: | :----------------: |
+| Repo owner (`owner_id`)      |      ✓       |      ✓       |          ✓           |         ✓          |
+| Org `owner` (org repos)      |      ✓       |      ✓       |          ✓           |         ✗          |
+| Collaborator: `admin`        |      ✓       |      ✓       |          ✗           |         ✗          |
+| Collaborator: `writer`       |      ✓       |      ✓       |          ✗           |         ✗          |
+| Collaborator: `reader`       |      ✓       |      ✗       |          ✗           |         ✗          |
+| Org `member` (no collab row) |      ✗       |      ✗       |          ✗           |         ✗          |
+| Unauthenticated              | Public only  |      ✗       |          ✗           |         ✗          |
+
+> `admin` and `writer` currently have identical effective access. The `admin` role is reserved for future capabilities (e.g. managing issues/PR settings) that don't extend to collaborator management.
+
+### Organization permissions
+
+| Who          | Create repo | Add/remove members |   Transfer org ownership   |
+| ------------ | :---------: | :----------------: | :------------------------: |
+| Org `owner`  |      ✓      |         ✓          | ✓ (demotes self to member) |
+| Org `member` |      ✗      |         ✗          |             ✗              |
+
+Org `member` role exists for membership visibility only. All management requires `owner` role.
 
 ---
 
@@ -615,16 +612,46 @@ All four endpoints require write access. For HTMX requests they return an HTML f
 - Private repos: requires HTTP Basic Auth or JWT cookie for read
 - Push: requires write permission (owner or `writer`/`admin` role)
 
+### Instance Admin (superadmin only)
+
+| Method | Path                         | Auth       | Description                                               |
+| ------ | ---------------------------- | ---------- | --------------------------------------------------------- |
+| GET    | `/admin/settings`            | Superadmin | Admin panel: instance settings + invitation management    |
+| POST   | `/api/admin/settings`        | Superadmin | Toggle a setting (`key`, `value` form fields; HTMX-aware) |
+| POST   | `/api/admin/invitations`     | Superadmin | Create invitation (`email` form field; HTMX-aware)        |
+| DELETE | `/api/admin/invitations/:id` | Superadmin | Delete an invitation (HTMX-aware)                         |
+
+### Setup & Invitations
+
+| Method | Path             | Auth | Description                                         |
+| ------ | ---------------- | ---- | --------------------------------------------------- |
+| GET    | `/setup`         | —    | First-run wizard (redirects to `/` when setup done) |
+| POST   | `/setup`         | —    | Submit setup form (creates superadmin, sets cookie) |
+| GET    | `/invite/:token` | —    | Invitation acceptance form                          |
+| POST   | `/invite/:token` | —    | Accept invitation (creates user, sets auth cookie)  |
+
+### Repository Collaborators
+
+| Method | Path                                              | Auth                       | Description                                            |
+| ------ | ------------------------------------------------- | -------------------------- | ------------------------------------------------------ |
+| GET    | `/api/repos/:owner/:repo/collaborators`           | Optional                   | List collaborators with usernames                      |
+| POST   | `/api/repos/:owner/:repo/collaborators`           | Required + owner/org-owner | Add collaborator (`username`, `role`)                  |
+| DELETE | `/api/repos/:owner/:repo/collaborators?user_id=N` | Required + owner/org-owner | Remove collaborator by user ID                         |
+| POST   | `/api/repos/:owner/:repo/transfer`                | Required + repo owner      | Transfer repo to another user (`new_owner` form field) |
+
+Only the repo owner (or an org owner for org repos) can add/remove collaborators. Collaborators with the `admin` role cannot manage other collaborators.
+
 ### Organizations
 
-| Method | Path                               | Auth     | Description                                   |
-| ------ | ---------------------------------- | -------- | --------------------------------------------- |
-| POST   | `/api/orgs/`                       | Required | Create organization                           |
-| GET    | `/api/orgs/:org`                   | —        | Get organization by name                      |
-| GET    | `/api/orgs/:org/members`           | —        | List organization members                     |
-| POST   | `/api/orgs/:org/members`           | Required | Add member (`username`, `role`); owner only   |
-| DELETE | `/api/orgs/:org/members/:username` | Required | Remove member; owner only; last owner blocked |
-| POST   | `/api/orgs/:org/repos`             | Required | Create a repository under the organization    |
+| Method | Path                               | Auth     | Description                                                                         |
+| ------ | ---------------------------------- | -------- | ----------------------------------------------------------------------------------- |
+| POST   | `/api/orgs/`                       | Required | Create organization                                                                 |
+| GET    | `/api/orgs/:org`                   | —        | Get organization by name                                                            |
+| GET    | `/api/orgs/:org/members`           | —        | List organization members                                                           |
+| POST   | `/api/orgs/:org/members`           | Required | Add member (`username`, `role`); owner only                                         |
+| DELETE | `/api/orgs/:org/members/:username` | Required | Remove member; owner only; last owner blocked                                       |
+| POST   | `/api/orgs/:org/repos`             | Required | Create a repository under the organization; owner only                              |
+| POST   | `/api/orgs/:org/transfer`          | Required | Transfer org ownership (`new_owner` form field); owner only; demotes self to member |
 
 ### Webhooks
 
@@ -681,8 +708,8 @@ cmd/
     frontend/      # Templates + static files (embedded in binary)
       templates/
         layout.html          # Base HTML shell
-        pages/               # Page templates (home, login, user, repo, org, org_settings, repo_settings, issues, pulls, tree, blob, blame, refs, notifications, etc.)
-        fragments/           # HTMX swap fragments (issues, pull requests, SSH keys, branches/tags, org members, webhooks, notifications)
+        pages/               # Page templates (home, login, user, repo, org, org_settings, repo_settings, issues, pulls, tree, blob, blame, refs, notifications, setup, invite, admin_settings)
+        fragments/           # HTMX swap fragments (issues, pull requests, SSH keys, branches/tags, org members, webhooks, notifications, admin settings, admin invitations, repo collaborators)
       static/
         main.css             # Compiled Tailwind output
       htmx.min.js            # HTMX library
@@ -701,10 +728,13 @@ internal/
     org_handler.go           # Organization API handlers
     webhook_handler.go       # Webhook API handlers
     notification_handler.go  # Notification API handlers
+    setup_handler.go         # First-run wizard handlers
+    admin_handler.go         # Superadmin panel: instance settings + invitations
+    invite_handler.go        # Invitation acceptance flow
     viewmodels.go            # Data structs for templates (with BasePage for auth)
     git_http.go              # Git HTTP smart protocol handler
     ssh_key_handler.go       # SSH key management endpoints
-  middleware/      # Auth, logger, CORS
+  middleware/      # Auth, logger, CORS, RequireSetup (first-run redirect)
   router/          # chi route registration + template parsing
   ssh/             # SSH server for git operations (gliderlabs/ssh)
     server.go      # SSH server implementation
@@ -731,20 +761,23 @@ Handlers call services only. Services call stores only. Stores own all SQL.
 
 Migrations live in `migrations/` and are embedded into the binary at build time. They run in order on `cloudzilla migrate`.
 
-| File                           | Creates                                                |
-| ------------------------------ | ------------------------------------------------------ |
-| `001_create_users.sql`         | `users` table                                          |
-| `002_create_repositories.sql`  | `repositories` table                                   |
-| `003_create_issues.sql`        | `issues` table                                         |
-| `004_create_pull_requests.sql` | `pull_requests` table                                  |
-| `005_create_comments.sql`      | `comments` table                                       |
-| `006_create_permissions.sql`   | `permissions` table                                    |
-| `007_create_ssh_keys.sql`      | `ssh_keys` table                                       |
-| `008_oauth_users.sql`          | Adds `oauth_provider`, `oauth_id` columns to `users`   |
-| `009_create_organizations.sql` | `organizations` + `org_members` tables                 |
-| `010_repo_owner_name.sql`      | Adds `owner_name` + `org_id` columns to `repositories` |
-| `011_create_webhooks.sql`      | `webhooks` + `webhook_deliveries` tables               |
-| `012_create_notifications.sql` | `notifications` table                                  |
+| File                           | Creates                                                                           |
+| ------------------------------ | --------------------------------------------------------------------------------- |
+| `001_create_users.sql`         | `users` table                                                                     |
+| `002_create_repositories.sql`  | `repositories` table                                                              |
+| `003_create_issues.sql`        | `issues` table                                                                    |
+| `004_create_pull_requests.sql` | `pull_requests` table                                                             |
+| `005_create_comments.sql`      | `comments` table                                                                  |
+| `006_create_permissions.sql`   | `permissions` table                                                               |
+| `007_create_ssh_keys.sql`      | `ssh_keys` table                                                                  |
+| `008_oauth_users.sql`          | Adds `oauth_provider`, `oauth_id` columns to `users`                              |
+| `009_create_organizations.sql` | `organizations` + `org_members` tables                                            |
+| `010_repo_owner_name.sql`      | Adds `owner_name` + `org_id` columns to `repositories`                            |
+| `011_create_webhooks.sql`      | `webhooks` + `webhook_deliveries` tables                                          |
+| `012_create_notifications.sql` | `notifications` table                                                             |
+| `013_superadmin.sql`           | Adds `is_superadmin` column to `users`                                            |
+| `014_site_settings.sql`        | `site_settings` table (seeded with `allow_registration=true`, `allow_login=true`) |
+| `015_invitations.sql`          | `invitations` table; adds `is_invited` column to `users`                          |
 
 ---
 
