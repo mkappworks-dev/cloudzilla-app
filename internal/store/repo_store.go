@@ -57,24 +57,30 @@ func (s *RepoStore) CreateWithOwnerName(ctx context.Context, r *model.Repository
 
 func (s *RepoStore) GetByOwnerName(ctx context.Context, ownerName, name string) (*model.Repository, error) {
 	r := &model.Repository{}
-	var orgID sql.NullInt64
+	var orgID, forkOfID sql.NullInt64
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at
+		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
+		        is_fork, fork_of_id, fork_count
 		 FROM repositories WHERE owner_name = $1 AND name = $2`,
 		ownerName, name,
-	).Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt)
+	).Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
+		&r.IsFork, &forkOfID, &r.ForkCount)
 	if err != nil {
 		return nil, fmt.Errorf("repo get by owner name: %w", err)
 	}
 	if orgID.Valid {
 		r.OrgID = orgID.Int64
 	}
+	if forkOfID.Valid {
+		r.ForkOfID = &forkOfID.Int64
+	}
 	return r, nil
 }
 
 func (s *RepoStore) GetByOwnerNameList(ctx context.Context, ownerName string) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at
+		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
+		        is_fork, fork_of_id, fork_count
 		 FROM repositories WHERE owner_name = $1 ORDER BY created_at DESC`,
 		ownerName,
 	)
@@ -85,12 +91,16 @@ func (s *RepoStore) GetByOwnerNameList(ctx context.Context, ownerName string) ([
 	var repos []model.Repository
 	for rows.Next() {
 		var r model.Repository
-		var orgID sql.NullInt64
-		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt); err != nil {
+		var orgID, forkOfID sql.NullInt64
+		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
+			&r.IsFork, &forkOfID, &r.ForkCount); err != nil {
 			return nil, err
 		}
 		if orgID.Valid {
 			r.OrgID = orgID.Int64
+		}
+		if forkOfID.Valid {
+			r.ForkOfID = &forkOfID.Int64
 		}
 		repos = append(repos, r)
 	}
@@ -126,7 +136,8 @@ func (s *RepoStore) GetByOwnerID(ctx context.Context, ownerID int64) ([]model.Re
 
 func (s *RepoStore) GetByOrgID(ctx context.Context, orgID int64) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at
+		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
+		        is_fork, fork_of_id, fork_count
 		 FROM repositories WHERE org_id = $1 ORDER BY created_at DESC`,
 		orgID,
 	)
@@ -137,12 +148,16 @@ func (s *RepoStore) GetByOrgID(ctx context.Context, orgID int64) ([]model.Reposi
 	var repos []model.Repository
 	for rows.Next() {
 		var r model.Repository
-		var oid sql.NullInt64
-		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &oid, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt); err != nil {
+		var oid, forkOfID sql.NullInt64
+		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &oid, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
+			&r.IsFork, &forkOfID, &r.ForkCount); err != nil {
 			return nil, err
 		}
 		if oid.Valid {
 			r.OrgID = oid.Int64
+		}
+		if forkOfID.Valid {
+			r.ForkOfID = &forkOfID.Int64
 		}
 		repos = append(repos, r)
 	}
@@ -228,6 +243,105 @@ func (s *RepoStore) ListPermissionsWithUsername(ctx context.Context, repoID int6
 		perms = append(perms, p)
 	}
 	return perms, rows.Err()
+}
+
+func (s *RepoStore) Fork(ctx context.Context, orig *model.Repository, newOwnerID int64, newOwnerName, newName string) (*model.Repository, error) {
+	now := time.Now().UTC()
+	r := &model.Repository{
+		OwnerID:       newOwnerID,
+		OwnerName:     newOwnerName,
+		Name:          newName,
+		Description:   orig.Description,
+		Private:       orig.Private,
+		DefaultBranch: orig.DefaultBranch,
+		IsFork:        true,
+		ForkOfID:      &orig.ID,
+	}
+	err := s.db.QueryRowContext(ctx,
+		`INSERT INTO repositories (owner_id, owner_name, name, description, private, default_branch, is_fork, fork_of_id, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7, $8, $9) RETURNING id`,
+		r.OwnerID, r.OwnerName, r.Name, r.Description, r.Private, r.DefaultBranch, orig.ID, now, now,
+	).Scan(&r.ID)
+	if err != nil {
+		return nil, fmt.Errorf("repo fork: %w", err)
+	}
+	r.CreatedAt = now
+	r.UpdatedAt = now
+	return r, nil
+}
+
+func (s *RepoStore) IncrementForkCount(ctx context.Context, repoID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET fork_count = fork_count + 1 WHERE id = $1`,
+		repoID,
+	)
+	if err != nil {
+		return fmt.Errorf("increment fork count: %w", err)
+	}
+	return nil
+}
+
+func (s *RepoStore) DecrementForkCount(ctx context.Context, repoID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET fork_count = GREATEST(fork_count - 1, 0) WHERE id = $1`,
+		repoID,
+	)
+	if err != nil {
+		return fmt.Errorf("decrement fork count: %w", err)
+	}
+	return nil
+}
+
+func (s *RepoStore) ListForks(ctx context.Context, repoID int64) ([]model.Repository, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
+		        is_fork, fork_of_id, fork_count
+		 FROM repositories WHERE fork_of_id = $1 ORDER BY created_at DESC`,
+		repoID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list forks: %w", err)
+	}
+	defer rows.Close()
+	var repos []model.Repository
+	for rows.Next() {
+		var r model.Repository
+		var orgID, forkOfID sql.NullInt64
+		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
+			&r.IsFork, &forkOfID, &r.ForkCount); err != nil {
+			return nil, err
+		}
+		if orgID.Valid {
+			r.OrgID = orgID.Int64
+		}
+		if forkOfID.Valid {
+			r.ForkOfID = &forkOfID.Int64
+		}
+		repos = append(repos, r)
+	}
+	return repos, rows.Err()
+}
+
+func (s *RepoStore) GetByID(ctx context.Context, id int64) (*model.Repository, error) {
+	r := &model.Repository{}
+	var orgID, forkOfID sql.NullInt64
+	err := s.db.QueryRowContext(ctx,
+		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
+		        is_fork, fork_of_id, fork_count
+		 FROM repositories WHERE id = $1`,
+		id,
+	).Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
+		&r.IsFork, &forkOfID, &r.ForkCount)
+	if err != nil {
+		return nil, fmt.Errorf("repo get by id: %w", err)
+	}
+	if orgID.Valid {
+		r.OrgID = orgID.Int64
+	}
+	if forkOfID.Valid {
+		r.ForkOfID = &forkOfID.Int64
+	}
+	return r, nil
 }
 
 func mapDBRepoToModel(dbRepo *storedb.Repository) *model.Repository {
