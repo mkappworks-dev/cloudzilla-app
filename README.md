@@ -2,9 +2,351 @@
 
 A minimal, self-hosted Git forge — single binary, no external runtime dependencies.
 
-**Stack:** Go · Go Templates · HTMX · Tailwind CSS · SQLite (PostgreSQL-ready)
+**Stack:** Go · Go Templates · HTMX · Tailwind CSS · PostgreSQL
 
 > ⚠️ **Alpha**: Cloudzilla is under active development. APIs and features may change. Not recommended for production use yet.
+
+---
+
+## Architecture Overview
+
+```mermaid
+graph TB
+    subgraph Client["Client"]
+        Browser["Browser (HTMX)"]
+        GitCLI["git CLI"]
+        SSHCLI["SSH Client"]
+    end
+
+    subgraph Cloudzilla["Cloudzilla (Single Binary)"]
+        HTTP["HTTP Server :8080\n(chi router)"]
+        SSH["SSH Server :2222\n(gliderlabs/ssh)"]
+
+        subgraph Layers["Application Layers"]
+            Handler["Handlers\n(page + API + git HTTP)"]
+            Service["Services\n(business logic)"]
+            Store["Stores\n(SQL queries / sqlc)"]
+        end
+
+        subgraph Frontend["Embedded Frontend"]
+            Templates["Go html/template"]
+            Static["Tailwind CSS + HTMX"]
+        end
+    end
+
+    subgraph Data["Persistence"]
+        PG[("PostgreSQL")]
+        Repos["Bare Git Repos\n(on disk)"]
+    end
+
+    Browser -->|"HTTP/HTTPS"| HTTP
+    GitCLI -->|"HTTP Smart Protocol"| HTTP
+    SSHCLI -->|"SSH git transport"| SSH
+
+    HTTP --> Handler
+    SSH --> Handler
+    Handler --> Service
+    Service --> Store
+    Store --> PG
+    Service --> Repos
+    Handler --> Templates
+    Templates --> Static
+
+    classDef client fill:#4A90D9,stroke:#2C5F8A,color:#fff
+    classDef server fill:#27AE60,stroke:#1A7A40,color:#fff
+    classDef data fill:#8E44AD,stroke:#6C3483,color:#fff
+    classDef frontend fill:#7F8C8D,stroke:#566573,color:#fff
+
+    class Browser,GitCLI,SSHCLI client
+    class HTTP,SSH,Handler,Service,Store server
+    class PG,Repos data
+    class Templates,Static frontend
+```
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                              CLIENT                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │
+│  │   Browser    │  │   git CLI    │  │  SSH Client  │             │
+│  │   (HTMX)     │  │              │  │              │             │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘             │
+└─────────┼─────────────────┼─────────────────┼─────────────────────┘
+          │ HTTP/HTTPS       │ HTTP Smart       │ SSH git transport
+          │                  │ Protocol         │
+          ▼                  ▼                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    CLOUDZILLA  (Single Binary)                      │
+│                                                                     │
+│  ┌──────────────────────────┐  ┌──────────────────────────┐        │
+│  │  HTTP Server :8080       │  │  SSH Server :2222         │       │
+│  │  (chi router)            │  │  (gliderlabs/ssh)         │       │
+│  └────────────┬─────────────┘  └──────────────┬────────────┘       │
+│               │                               │                    │
+│               └──────────────┬────────────────┘                    │
+│                              ▼                                      │
+│              ┌───────────────────────────────┐                     │
+│              │  Handlers (page + API + HTTP) │                     │
+│              └───────────────┬───────────────┘                     │
+│                              ▼                                      │
+│              ┌───────────────────────────────┐                     │
+│              │  Services  (business logic)   │                     │
+│              └──────┬──────────────┬─────────┘                     │
+│                     ▼              ▼                                │
+│           ┌──────────────┐  ┌──────────────┐                       │
+│           │    Stores    │  │  Bare Repos  │                       │
+│           │ (SQL/sqlc)   │  │  (on disk)   │                       │
+│           └──────┬───────┘  └──────────────┘                       │
+│                  │                                                  │
+│  ┌───────────────────────────────┐                                 │
+│  │  Embedded Frontend            │                                 │
+│  │  Go html/template + HTMX + CSS│                                 │
+│  └───────────────────────────────┘                                 │
+└─────────────────────────┬───────────────────────────────────────────┘
+                          ▼
+               ┌─────────────────┐
+               │   PostgreSQL    │
+               └─────────────────┘
+```
+
+### Request Flow
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant MW as Middleware
+    participant H as Handler
+    participant S as Service
+    participant ST as Store
+    participant DB as PostgreSQL
+
+    rect rgb(74, 144, 217)
+        B->>MW: HTTP Request
+    end
+    rect rgb(230, 126, 34)
+        MW->>MW: JWT auth (cookie/header)
+        MW->>MW: RequireSetup check
+        MW->>H: request + claims in context
+    end
+    rect rgb(39, 174, 96)
+        H->>S: business logic call
+        S->>ST: query
+    end
+    rect rgb(142, 68, 173)
+        ST->>DB: SQL
+        DB-->>ST: rows
+    end
+    rect rgb(39, 174, 96)
+        ST-->>S: models
+        S-->>H: result
+    end
+    rect rgb(74, 144, 217)
+        H-->>B: HTML page / HTMX fragment / JSON
+    end
+```
+
+```
+Browser       Middleware        Handler        Service         Store        PostgreSQL
+   │               │               │               │              │               │
+   │──HTTP Req────►│               │               │              │               │
+   │               │─JWT auth──────│               │              │               │
+   │               │─Setup check───│               │              │               │
+   │               │──req+claims──►│               │              │               │
+   │               │               │──biz logic───►│              │               │
+   │               │               │               │──query──────►│               │
+   │               │               │               │              │──── SQL ─────►│
+   │               │               │               │              │◄─── rows ─────│
+   │               │               │               │◄──models─────│               │
+   │               │               │◄──result──────│              │               │
+   │◄──HTML/JSON───│               │               │              │               │
+```
+
+### Authentication Flow
+
+```mermaid
+flowchart LR
+    subgraph Login["Login Methods"]
+        Form["Form POST /login"]
+        API["API POST /api/auth/login"]
+        Google["GET /auth/google\n(OAuth)"]
+        Invite["GET /invite/:token\n(Invitation)"]
+    end
+
+    subgraph Processing["Auth Processing"]
+        Verify["Verify credentials\nor OAuth token"]
+        JWT["Generate JWT"]
+        Cookie["Set httpOnly\ncz_token cookie"]
+    end
+
+    subgraph Access["Protected Access"]
+        OptMW["optAuthMW\n(optional auth)"]
+        AuthMW["authMW\n(required auth)"]
+        SuperMW["requireSuperadmin\n(superadmin only)"]
+    end
+
+    Form --> Verify
+    API --> Verify
+    Google --> Verify
+    Invite --> Verify
+    Verify --> JWT --> Cookie
+
+    Cookie --> OptMW
+    Cookie --> AuthMW
+    Cookie --> SuperMW
+
+    classDef loginMethod fill:#4A90D9,stroke:#2C5F8A,color:#fff
+    classDef processing fill:#E67E22,stroke:#CA6F1E,color:#fff
+    classDef access fill:#27AE60,stroke:#1A7A40,color:#fff
+
+    class Form,API,Google,Invite loginMethod
+    class Verify,JWT,Cookie processing
+    class OptMW,AuthMW,SuperMW access
+```
+
+```
+┌──────────────────────────┐    ┌───────────────────────────┐    ┌───────────────────────────┐
+│      LOGIN METHODS       │    │     AUTH PROCESSING       │    │     PROTECTED ACCESS      │
+│                          │    │                           │    │                           │
+│  Form POST /login        │───►│                           │    │  optAuthMW                │
+│  API POST /api/auth/login│───►│  Verify credentials /     │───►│  (optional auth)          │
+│  GET /auth/google        │───►│  OAuth token              │    │                           │
+│  (OAuth)                 │    │         │                 │    │  authMW                   │
+│                          │    │         ▼                 │───►│  (required auth)          │
+│  GET /invite/:token      │───►│  Generate JWT             │    │                           │
+│  (Invitation)            │    │         │                 │    │  requireSuperadmin        │
+│                          │    │         ▼                 │───►│  (superadmin only)        │
+└──────────────────────────┘    │  Set httpOnly             │    │                           │
+                                │  cz_token cookie          │    └───────────────────────────┘
+                                └───────────────────────────┘
+```
+
+### Git Transport Flow
+
+```mermaid
+flowchart TB
+    subgraph HTTP["Git over HTTP (Smart Protocol)"]
+        InfoRefs["GET /info/refs\n?service=git-upload-pack"]
+        UploadPack["POST /git-upload-pack\n(clone/fetch)"]
+        ReceivePack["POST /git-receive-pack\n(push)"]
+    end
+
+    subgraph SSH["Git over SSH (:2222)"]
+        SSHConn["SSH connection"]
+        KeyLookup["MD5 fingerprint\nlookup in DB"]
+        SSHDispatch["git-upload-pack\nor git-receive-pack"]
+    end
+
+    subgraph Permissions["Permission Check"]
+        CanRead["CanRead()\npublic or reader/writer/admin/owner"]
+        CanWrite["CanWrite()\nowner or writer/admin"]
+    end
+
+    subgraph GitOps["go-git operations"]
+        BareRepo["Bare Repo on disk\n(ReposRoot)"]
+    end
+
+    InfoRefs --> CanRead --> BareRepo
+    UploadPack --> CanRead --> BareRepo
+    ReceivePack --> CanWrite --> BareRepo
+
+    SSHConn --> KeyLookup --> SSHDispatch --> CanRead
+    SSHDispatch --> CanWrite
+
+    classDef httpNode fill:#4A90D9,stroke:#2C5F8A,color:#fff
+    classDef sshNode fill:#4A90D9,stroke:#2C5F8A,color:#fff
+    classDef permNode fill:#E67E22,stroke:#CA6F1E,color:#fff
+    classDef gitNode fill:#8E44AD,stroke:#6C3483,color:#fff
+
+    class InfoRefs,UploadPack,ReceivePack httpNode
+    class SSHConn,KeyLookup,SSHDispatch sshNode
+    class CanRead,CanWrite permNode
+    class BareRepo gitNode
+```
+
+```
+┌──────────────────────────────┐    ┌──────────────────────────────┐
+│   Git over HTTP (Smart)      │    │    Git over SSH (:2222)      │
+│                              │    │                              │
+│  GET /info/refs ─────────────┼──► │  SSH connection              │
+│  POST /git-upload-pack ──────┼──► │       │                      │
+│  (clone/fetch)               │    │       ▼                      │
+│                              │    │  MD5 fingerprint lookup      │
+│  POST /git-receive-pack ─────┼──► │       │                      │
+│  (push)                      │    │       ▼                      │
+└──────────────────────────────┘    │  git-upload-pack /           │
+                                    │  git-receive-pack dispatch   │
+                                    └──────────────────────────────┘
+                                                  │
+                          ┌───────────────────────┴──────────────────┐
+                          │                                          │
+                          ▼                                          ▼
+             ┌────────────────────────┐             ┌────────────────────────┐
+             │  CanRead()             │             │  CanWrite()            │
+             │  public / reader /     │             │  owner / writer /      │
+             │  writer / admin / owner│             │  admin                 │
+             └────────────┬───────────┘             └────────────┬───────────┘
+                          │                                      │
+                          └──────────────┬───────────────────────┘
+                                         ▼
+                              ┌─────────────────────┐
+                              │  Bare Repo on disk  │
+                              │    (ReposRoot)      │
+                              └─────────────────────┘
+```
+
+### Permission Model
+
+```mermaid
+graph LR
+    subgraph Instance["Instance Level"]
+        SA["superadmin"]
+        U["user"]
+    end
+
+    subgraph Org["Organization Level"]
+        OO["org owner"]
+        OM["org member"]
+    end
+
+    subgraph Repo["Repository Level"]
+        RO["repo owner"]
+        Admin["collaborator: admin"]
+        Writer["collaborator: writer"]
+        Reader["collaborator: reader"]
+    end
+
+    SA -->|"manages"| Instance
+    SA -->|"creates"| OO
+    OO -->|"manages members,\ncreates repos"| Org
+    RO -->|"full control"| Repo
+    Admin -->|"read + push"| Repo
+    Writer -->|"read + push"| Repo
+    Reader -->|"read only"| Repo
+    OO -->|"read + push +\nmanage (org repos)"| Repo
+
+    classDef instanceLevel fill:#E67E22,stroke:#CA6F1E,color:#fff
+    classDef orgLevel fill:#4A90D9,stroke:#2C5F8A,color:#fff
+    classDef repoLevel fill:#27AE60,stroke:#1A7A40,color:#fff
+
+    class SA,U instanceLevel
+    class OO,OM orgLevel
+    class RO,Admin,Writer,Reader repoLevel
+```
+
+```
+INSTANCE LEVEL          ORG LEVEL              REPOSITORY LEVEL
+──────────────          ─────────              ────────────────
+┌────────────┐          ┌──────────┐           ┌──────────────────┐
+│ superadmin │─creates─►│org owner │─manages──►│   repo owner     │ full control
+└─────┬──────┘          │          │           │                  │
+      │manages          └──────────┘           │ collab: admin    │ read + push
+      │                 ┌──────────┐           │                  │
+      ▼                 │org member│           │ collab: writer   │ read + push
+┌────────────┐          └──────────┘           │                  │
+│    user    │                                 │ collab: reader   │ read only
+└────────────┘                                 └──────────────────┘
+                             │ org owner also has read + push + manage on org repos
+                             └─────────────────────────────────────────────────────►
+```
 
 ---
 
@@ -36,7 +378,7 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 - Admin CLI for bootstrapping
 - Single binary ships API + embedded frontend + CSS
 - No Node.js/npm required (Tailwind CLI for dev only)
-- SQLite by default; swap to PostgreSQL via two config lines
+- PostgreSQL (default); see [Configuration Reference](#configuration-reference)
 
 ---
 
@@ -56,7 +398,7 @@ docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli migrate
 open http://localhost:8080
 ```
 
-All data (SQLite DB, git repos, SSH host key) persists in the `cloudzilla_data` named volume at `/data`.
+All data (git repos, SSH host key) persists in the `cloudzilla_data` named volume at `/data`. PostgreSQL data persists in the `cloudzilla_pg_data` named volume.
 Set `CZ_AUTH_JWT_SECRET` in `docker-compose.yml` to a strong secret before exposing publicly.
 
 ```bash
@@ -70,6 +412,7 @@ make docker-down        # Stop and remove containers
 ### Prerequisites
 
 - Go 1.23+
+- PostgreSQL 14+
 - (Optional) Tailwind CLI for local CSS development
 
 ### 1. Install dependencies
@@ -89,8 +432,8 @@ server:
   host: "0.0.0.0"
 
 database:
-  driver: sqlite3 # or "postgres"
-  dsn: ./cloudzilla.db # or postgres DSN
+  driver: postgres
+  dsn: postgres://cloudzilla:cloudzilla@localhost/cloudzilla?sslmode=disable
 
 auth:
   jwt_secret: change-me # change this in production
@@ -154,13 +497,13 @@ ssh://git@localhost:2222    # SSH git transport
 
 ### Persistent data
 
-All state lives in a named Docker volume (`cloudzilla_data`) mounted at `/data`:
+All state lives in named Docker volumes:
 
-| What             | Container path                                             |
-| ---------------- | ---------------------------------------------------------- |
-| SQLite database  | `/data/cloudzilla.db`                                      |
-| Git repositories | `/data/git-repos/`                                         |
-| SSH host key     | `/data/cloudzilla_host_key` (auto-generated on first boot) |
+| What             | Volume               | Container path                                             |
+| ---------------- | -------------------- | ---------------------------------------------------------- |
+| PostgreSQL data  | `cloudzilla_pg_data` | (managed by PostgreSQL container)                          |
+| Git repositories | `cloudzilla_data`    | `/data/git-repos/`                                         |
+| SSH host key     | `cloudzilla_data`    | `/data/cloudzilla_host_key` (auto-generated on first boot) |
 
 ### Configuration
 
@@ -177,8 +520,8 @@ environment:
 
 ```bash
 docker compose logs -f      # Follow logs
-make docker-down            # Stop and remove containers (volume is preserved)
-docker compose down -v      # Also remove the data volume (destructive)
+make docker-down            # Stop and remove containers (volumes are preserved)
+docker compose down -v      # Also remove the data volumes (destructive)
 ```
 
 ---
@@ -221,8 +564,8 @@ server:
   host: "0.0.0.0"
 
 database:
-  driver: sqlite3
-  dsn: /var/lib/cloudzilla/cloudzilla.db
+  driver: postgres
+  dsn: postgres://cloudzilla:strongpassword@localhost/cloudzilla?sslmode=disable
 
 auth:
   jwt_secret: "replace-with-a-long-random-string"
@@ -303,8 +646,8 @@ yourdomain.com {
 | `server.host`                | `0.0.0.0`                                    | HTTP listen address                            |
 | `server.read_timeout`        | `15s`                                        | HTTP read timeout                              |
 | `server.write_timeout`       | `15s`                                        | HTTP write timeout                             |
-| `database.driver`            | `sqlite3`                                    | `sqlite3` or `postgres`                        |
-| `database.dsn`               | `./cloudzilla.db`                            | DB connection string                           |
+| `database.driver`            | `postgres`                                   | `postgres` (default)                           |
+| `database.dsn`               | —                                            | PostgreSQL connection string                   |
 | `database.max_open_conns`    | `10`                                         | Max open DB connections                        |
 | `database.max_idle_conns`    | `5`                                          | Max idle DB connections                        |
 | `auth.jwt_secret`            | `change-me`                                  | JWT signing secret — **change in production**  |
@@ -316,18 +659,6 @@ yourdomain.com {
 | `oauth.google_client_id`     | `""`                                         | Google OAuth client ID (empty = disabled)      |
 | `oauth.google_client_secret` | `""`                                         | Google OAuth client secret                     |
 | `oauth.google_redirect_url`  | `http://localhost:8080/auth/google/callback` | OAuth redirect URI (must match Google Console) |
-
-### Switching to PostgreSQL
-
-Change two lines in `config.yaml`:
-
-```yaml
-database:
-  driver: postgres
-  dsn: postgres://user:pass@localhost/cloudzilla?sslmode=disable
-```
-
-> **Note:** SQL queries use `?` placeholders (SQLite syntax). Full PostgreSQL placeholder compatibility (`$1`, `$2`, ...) is a future migration task. The driver connection itself works.
 
 ---
 
@@ -392,9 +723,6 @@ git clone http://localhost:8080/owner/repo.git
 
 # Clone private repo (with HTTP Basic Auth)
 git clone http://user:password@localhost:8080/owner/private-repo.git
-
-# Clone with JWT cookie (set via login)
-git clone http://localhost:8080/owner/repo.git
 
 # Push requires write access
 git push origin main
@@ -708,8 +1036,12 @@ cmd/
     frontend/      # Templates + static files (embedded in binary)
       templates/
         layout.html          # Base HTML shell
-        pages/               # Page templates (home, login, user, repo, org, org_settings, repo_settings, issues, pulls, tree, blob, blame, refs, notifications, setup, invite, admin_settings)
-        fragments/           # HTMX swap fragments (issues, pull requests, SSH keys, branches/tags, org members, webhooks, notifications, admin settings, admin invitations, repo collaborators)
+        pages/               # Page templates (home, login, user, repo, org, org_settings,
+        |                    #   repo_settings, issues, pulls, tree, blob, blame, refs,
+        |                    #   notifications, setup, invite, admin_settings)
+        fragments/           # HTMX swap fragments (issues, pull requests, SSH keys,
+                             #   branches/tags, org members, webhooks, notifications,
+                             #   admin settings, admin invitations, repo collaborators)
       static/
         main.css             # Compiled Tailwind output
       htmx.min.js            # HTMX library
@@ -721,7 +1053,7 @@ internal/
   store/           # Store layer (uses sqlc-generated db queries)
     query/         # SQL query files for sqlc code generation
     db/            # Generated sqlc code (models + query methods)
-  service/         # Business logic (including ssh_key_service)
+  service/         # Business logic (calls stores)
   handler/         # HTTP handlers (page + API + git HTTP)
     page_handler.go          # Page rendering handlers
     ref_handler.go           # Branch & tag create/delete handlers
@@ -781,8 +1113,6 @@ Migrations live in `migrations/` and are embedded into the binary at build time.
 
 ---
 
----
-
 ## Dependencies
 
 ### Direct Dependencies
@@ -793,7 +1123,6 @@ Migrations live in `migrations/` and are embedded into the binary at build time.
 | `go-chi/cors`         | CORS middleware for chi                                                     | v1.2.2  |
 | `golang-jwt/jwt/v5`   | JWT token signing and verification                                          | v5.3.1  |
 | `jackc/pgx/v5`        | PostgreSQL driver (stdlib-compatible via pgx/v5/stdlib)                     | v5.8.0  |
-| `modernc.org/sqlite`  | Pure-Go SQLite driver (no CGo)                                              | v1.46.1 |
 | `spf13/cobra`         | CLI command framework with subcommand trees                                 | v1.10.2 |
 | `spf13/viper`         | Config file + environment variable loading                                  | v1.21.0 |
 | `golang.org/x/crypto` | Secure password hashing (bcrypt, argon2)                                    | v0.49.0 |
