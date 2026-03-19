@@ -227,6 +227,9 @@ graph TD
 - **Invitation system** — superadmin generates shareable invite links (no SMTP required); invited users bypass registration and login restrictions permanently
 - **Repository collaborators** — owner adds/removes users per-repo via settings page; roles: `reader` (read-only), `writer` (push), `admin` (push, no manage); managed with HTMX, no reload
 - **Ownership transfer** — repo owner can transfer a personal repo to another user; org owner can transfer org ownership to another member; both via settings pages
+- **Labels** — color-coded tags created per-repo; apply to issues and PRs; displayed as pills on list pages and in detail sidebars; fully managed via HTMX with no page reload
+- **Assignees** — assign any user to an issue or PR; sidebar on detail pages with inline add/remove via HTMX
+- **Stars** — star/unstar any repo; star count shown on the repo header; stargazers list page (`/{owner}/{repo}/stargazers`); user starred repos page (`/{owner}/stars`)
 - User accounts with JWT authentication (httpOnly cookie)
 - Google OAuth sign-in (links to existing accounts by email)
 - Organization accounts — shared namespaces with member roles (owner/member), org profile page, member management
@@ -683,6 +686,8 @@ Browse repository contents directly from the web UI. All views respect repo visi
 | Commit log          | `/{owner}/{repo}/commits/{ref}`         |
 | Single commit diff  | `/{owner}/{repo}/commit/{sha}`          |
 | Branches & Tags     | `/{owner}/{repo}/refs`                  |
+| Stargazers          | `/{owner}/{repo}/stargazers`            |
+| User starred repos  | `/{owner}/stars`                        |
 
 `{ref}` can be a branch name, tag name, or commit SHA. If the ref is not found, the server returns 404.
 
@@ -776,6 +781,35 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | GET    | `/api/repos/:owner/:repo/issues/:number/comments`     | —        | List comments             |
 | POST   | `/api/repos/:owner/:repo/issues/:number/comments`     | Required | Add a comment             |
 | DELETE | `/api/repos/:owner/:repo/issues/:number/comments/:id` | Required | Delete a comment          |
+
+### Labels
+
+| Method | Path                                                     | Auth         | Description                                   |
+| ------ | -------------------------------------------------------- | ------------ | --------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/labels/`                        | —            | List all labels for a repository              |
+| POST   | `/api/repos/:owner/:repo/labels/`                        | Write access | Create label (`name`, `color`, `description`) |
+| DELETE | `/api/repos/:owner/:repo/labels/:id`                     | Write access | Delete label by ID                            |
+| POST   | `/api/repos/:owner/:repo/issues/:number/labels/:labelID` | Write access | Add label to issue (HTMX-aware)               |
+| DELETE | `/api/repos/:owner/:repo/issues/:number/labels/:labelID` | Write access | Remove label from issue (HTMX-aware)          |
+| POST   | `/api/repos/:owner/:repo/pulls/:number/labels/:labelID`  | Write access | Add label to pull request (HTMX-aware)        |
+| DELETE | `/api/repos/:owner/:repo/pulls/:number/labels/:labelID`  | Write access | Remove label from pull request (HTMX-aware)   |
+
+### Assignees
+
+| Method | Path                                                          | Auth         | Description                                                   |
+| ------ | ------------------------------------------------------------- | ------------ | ------------------------------------------------------------- |
+| POST   | `/api/repos/:owner/:repo/issues/:number/assignees`            | Write access | Add assignee to issue (`username` in body; HTMX-aware)        |
+| DELETE | `/api/repos/:owner/:repo/issues/:number/assignees?username=X` | Write access | Remove assignee from issue (HTMX-aware)                       |
+| POST   | `/api/repos/:owner/:repo/pulls/:number/assignees`             | Write access | Add assignee to pull request (`username` in body; HTMX-aware) |
+| DELETE | `/api/repos/:owner/:repo/pulls/:number/assignees?username=X`  | Write access | Remove assignee from pull request (HTMX-aware)                |
+
+### Stars
+
+| Method | Path                                 | Auth     | Description                           |
+| ------ | ------------------------------------ | -------- | ------------------------------------- |
+| POST   | `/api/repos/:owner/:repo/star`       | Required | Star a repository (HTMX-aware)        |
+| DELETE | `/api/repos/:owner/:repo/star`       | Required | Unstar a repository (HTMX-aware)      |
+| GET    | `/api/repos/:owner/:repo/stargazers` | —        | List users who starred the repository |
 
 ### Pull Requests
 
