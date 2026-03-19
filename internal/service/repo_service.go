@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -54,7 +55,24 @@ func (s *RepoService) List(ctx context.Context) ([]model.Repository, error) {
 }
 
 func (s *RepoService) Get(ctx context.Context, owner, name string) (*model.Repository, error) {
-	return s.repos.GetByOwnerName(ctx, owner, name)
+	repo, err := s.repos.GetByOwnerName(ctx, owner, name)
+	if err != nil {
+		return nil, err
+	}
+	s.enrichForkInfo(ctx, repo)
+	return repo, nil
+}
+
+func (s *RepoService) enrichForkInfo(ctx context.Context, repo *model.Repository) {
+	if repo.ForkOfID == nil {
+		return
+	}
+	orig, err := s.repos.GetByID(ctx, *repo.ForkOfID)
+	if err != nil {
+		return
+	}
+	repo.ForkOfOwner = orig.OwnerName
+	repo.ForkOfName = orig.Name
 }
 
 func (s *RepoService) ListByOwner(ctx context.Context, ownerUsername string) ([]model.Repository, error) {
@@ -144,6 +162,88 @@ func (s *RepoService) AddCollaborator(ctx context.Context, repoID int64, usernam
 
 func (s *RepoService) RemoveCollaborator(ctx context.Context, repoID, userID int64) error {
 	return s.repos.RemovePermission(ctx, repoID, userID)
+}
+
+// Fork creates a copy of originalOwner/originalName under the actor's namespace.
+func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName string, actorID int64, actorUsername string) (*model.Repository, error) {
+	orig, err := s.repos.GetByOwnerName(ctx, originalOwner, originalName)
+	if err != nil {
+		return nil, fmt.Errorf("original repo not found: %w", err)
+	}
+
+	if !s.CanRead(ctx, orig, &actorID) {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	// Determine fork name (avoid collision)
+	forkName := originalName
+	for i := 1; ; i++ {
+		_, err := s.repos.GetByOwnerName(ctx, actorUsername, forkName)
+		if err != nil {
+			break // name is available
+		}
+		forkName = fmt.Sprintf("%s-%d", originalName, i)
+	}
+
+	forked, err := s.repos.Fork(ctx, orig, actorID, actorUsername, forkName)
+	if err != nil {
+		return nil, fmt.Errorf("fork db record: %w", err)
+	}
+
+	// Copy the bare git repo directory
+	srcPath := filepath.Join(s.cfg.ReposRoot, originalOwner, originalName+".git")
+	dstDir := filepath.Join(s.cfg.ReposRoot, actorUsername)
+	dstPath := filepath.Join(dstDir, forkName+".git")
+
+	if err := os.MkdirAll(dstDir, 0755); err != nil {
+		_ = s.repos.DecrementForkCount(ctx, orig.ID)
+		return nil, fmt.Errorf("create owner dir: %w", err)
+	}
+
+	if err := copyDir(srcPath, dstPath); err != nil {
+		// Rollback DB record
+		_, _ = ctx, forked // best effort
+		return nil, fmt.Errorf("copy git dir: %w", err)
+	}
+
+	_ = s.repos.IncrementForkCount(ctx, orig.ID)
+
+	forked.ForkOfOwner = originalOwner
+	forked.ForkOfName = originalName
+	return forked, nil
+}
+
+// copyDir recursively copies src directory to dst.
+func copyDir(src, dst string) error {
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, rel)
+		if info.IsDir() {
+			return os.MkdirAll(target, info.Mode())
+		}
+		return copyFile(path, target, info.Mode())
+	})
+}
+
+func copyFile(src, dst string, mode os.FileMode) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	return err
 }
 
 // TransferRepo transfers ownership of a personal repo to another user.
