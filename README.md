@@ -230,6 +230,7 @@ graph TD
 - **Labels** — color-coded tags created per-repo; apply to issues and PRs; displayed as pills on list pages and in detail sidebars; fully managed via HTMX with no page reload
 - **Assignees** — assign any user to an issue or PR; sidebar on detail pages with inline add/remove via HTMX
 - **Stars** — star/unstar any repo; star count shown on the repo header; stargazers list page (`/{owner}/{repo}/stargazers`); user starred repos page (`/{owner}/stars`)
+- **Repository forks** — fork any readable repo into your own namespace with one click; forked repo shows "Forked from owner/name" badge; original repo's fork count increments; forked repo is a fully functional bare git repo (clone, push, pull all work)
 - User accounts with JWT authentication (httpOnly cookie)
 - Google OAuth sign-in (links to existing accounts by email)
 - Organization accounts — shared namespaces with member roles (owner/member), org profile page, member management
@@ -677,17 +678,18 @@ Browse repository contents directly from the web UI. All views respect repo visi
 
 ### URL Patterns
 
-| View                | URL                                     |
-| ------------------- | --------------------------------------- |
-| Root file tree      | `/{owner}/{repo}/tree/{ref}`            |
-| Subdirectory tree   | `/{owner}/{repo}/tree/{ref}/{path...}`  |
-| File content (blob) | `/{owner}/{repo}/blob/{ref}/{path...}`  |
-| Per-line blame      | `/{owner}/{repo}/blame/{ref}/{path...}` |
-| Commit log          | `/{owner}/{repo}/commits/{ref}`         |
-| Single commit diff  | `/{owner}/{repo}/commit/{sha}`          |
-| Branches & Tags     | `/{owner}/{repo}/refs`                  |
-| Stargazers          | `/{owner}/{repo}/stargazers`            |
-| User starred repos  | `/{owner}/stars`                        |
+| View                | URL                                                   |
+| ------------------- | ----------------------------------------------------- |
+| Root file tree      | `/{owner}/{repo}/tree/{ref}`                          |
+| Subdirectory tree   | `/{owner}/{repo}/tree/{ref}/{path...}`                |
+| File content (blob) | `/{owner}/{repo}/blob/{ref}/{path...}`                |
+| Per-line blame      | `/{owner}/{repo}/blame/{ref}/{path...}`               |
+| Commit log          | `/{owner}/{repo}/commits/{ref}`                       |
+| Single commit diff  | `/{owner}/{repo}/commit/{sha}`                        |
+| Branches & Tags     | `/{owner}/{repo}/refs`                                |
+| Stargazers          | `/{owner}/{repo}/stargazers`                          |
+| User starred repos  | `/{owner}/stars`                                      |
+| Forked repo         | `/{forkOwner}/{forkName}` (shows "Forked from" badge) |
 
 `{ref}` can be a branch name, tag name, or commit SHA. If the ref is not found, the server returns 404.
 
@@ -810,6 +812,12 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | POST   | `/api/repos/:owner/:repo/star`       | Required | Star a repository (HTMX-aware)        |
 | DELETE | `/api/repos/:owner/:repo/star`       | Required | Unstar a repository (HTMX-aware)      |
 | GET    | `/api/repos/:owner/:repo/stargazers` | —        | List users who starred the repository |
+
+### Forks
+
+| Method | Path                           | Auth     | Description                                                                        |
+| ------ | ------------------------------ | -------- | ---------------------------------------------------------------------------------- |
+| POST   | `/api/repos/:owner/:repo/fork` | Required | Fork the repository into the authenticated user's namespace; redirects to fork URL |
 
 ### Pull Requests
 
@@ -969,6 +977,7 @@ internal/
     setup_handler.go         # First-run wizard handlers
     admin_handler.go         # Superadmin panel: instance settings + invitations
     invite_handler.go        # Invitation acceptance flow
+    fork_handler.go          # Repository fork handler
     viewmodels.go            # Data structs for templates (with BasePage for auth)
     git_http.go              # Git HTTP smart protocol handler
     ssh_key_handler.go       # SSH key management endpoints
@@ -1016,6 +1025,10 @@ Migrations live in `migrations/` and are embedded into the binary at build time.
 | `013_superadmin.sql`           | Adds `is_superadmin` column to `users`                                            |
 | `014_site_settings.sql`        | `site_settings` table (seeded with `allow_registration=true`, `allow_login=true`) |
 | `015_invitations.sql`          | `invitations` table; adds `is_invited` column to `users`                          |
+| `016_create_labels.sql`        | `labels`, `issue_labels`, `pull_labels` tables                                    |
+| `017_create_assignees.sql`     | `issue_assignees`, `pull_assignees` tables                                        |
+| `018_create_stars.sql`         | `stars` table + `idx_stars_repo`, `idx_stars_user` indexes                        |
+| `019_add_fork_columns.sql`     | Adds `is_fork`, `fork_of_id`, `fork_count` columns to `repositories` + index      |
 
 ---
 

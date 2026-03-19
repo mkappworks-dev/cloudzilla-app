@@ -884,9 +884,9 @@ Note: `/{owner}/stars` is registered **before** `/{owner}/{repo}` in `router.go`
 
 ---
 
-## Phase 2 — Repository Fork
+## Phase 2 — Repository Fork ✅ IMPLEMENTED
 
-_Cornerstone of the open-source contribution workflow. NOT YET IMPLEMENTED._
+_Cornerstone of the open-source contribution workflow._
 
 **Migration** (`019_add_fork_columns.sql`):
 
@@ -1243,7 +1243,7 @@ GET /search?q=...&type=repos|issues|pulls|users  (optAuthMW)
 | 1.1   | Labels            | ✅ Done | 016          |
 | 1.2   | Assignees         | ✅ Done | 017          |
 | 1.3   | Stars             | ✅ Done | 018          |
-| 2     | Repository Fork   | ⬜ TODO | 019          |
+| 2     | Repository Fork   | ✅ Done | 019          |
 | 3.1   | Releases          | ⬜ TODO | 020          |
 | 3.2   | Commit Status API | ⬜ TODO | 021          |
 | 3.3   | Milestones        | ⬜ TODO | 022          |
