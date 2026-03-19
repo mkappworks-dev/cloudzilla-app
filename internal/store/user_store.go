@@ -66,7 +66,7 @@ func (s *UserStore) GetByEmailWithRole(ctx context.Context, email string) (*mode
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
 		        is_superadmin, is_invited, created_at, updated_at
-		 FROM users WHERE email = ?`,
+		 FROM users WHERE email = $1`,
 		email,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
@@ -118,7 +118,7 @@ func (s *UserStore) CountAll(ctx context.Context) (int, error) {
 func (s *UserStore) CreateSuperadmin(ctx context.Context, username, email, passwordHash string) (*model.User, error) {
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO users (username, email, password_hash, bio, avatar_url, is_superadmin, created_at, updated_at)
-		 VALUES (?, ?, ?, '', '', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+		 VALUES ($1, $2, $3, '', '', TRUE, NOW(), NOW())`,
 		username, email, passwordHash,
 	)
 	if err != nil {
@@ -128,7 +128,7 @@ func (s *UserStore) CreateSuperadmin(ctx context.Context, username, email, passw
 }
 
 func (s *UserStore) MarkInvited(ctx context.Context, userID int64) error {
-	_, err := s.db.ExecContext(ctx, `UPDATE users SET is_invited = TRUE WHERE id = ?`, userID)
+	_, err := s.db.ExecContext(ctx, `UPDATE users SET is_invited = TRUE WHERE id = $1`, userID)
 	if err != nil {
 		return fmt.Errorf("user mark invited: %w", err)
 	}
@@ -143,8 +143,8 @@ func mapDBUserToModel(dbUser *storedb.User) *model.User {
 		PasswordHash:  dbUser.PasswordHash,
 		Bio:           dbUser.Bio,
 		AvatarURL:     dbUser.AvatarUrl,
-		OAuthProvider: dbUser.OAuthProvider,
-		OAuthID:       dbUser.OAuthID,
+		OAuthProvider: dbUser.OauthProvider,
+		OAuthID:       dbUser.OauthID,
 		CreatedAt:     dbUser.CreatedAt,
 		UpdatedAt:     dbUser.UpdatedAt,
 	}

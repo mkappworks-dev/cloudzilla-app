@@ -20,10 +20,20 @@ type Comment struct {
 	UpdatedAt time.Time     `json:"updated_at"`
 }
 
+type Invitation struct {
+	ID          int64        `json:"id"`
+	Token       string       `json:"token"`
+	Email       string       `json:"email"`
+	InvitedByID int64        `json:"invited_by_id"`
+	ExpiresAt   time.Time    `json:"expires_at"`
+	AcceptedAt  sql.NullTime `json:"accepted_at"`
+	CreatedAt   time.Time    `json:"created_at"`
+}
+
 type Issue struct {
 	ID        int64        `json:"id"`
 	RepoID    int64        `json:"repo_id"`
-	Number    int64        `json:"number"`
+	Number    int32        `json:"number"`
 	AuthorID  int64        `json:"author_id"`
 	Title     string       `json:"title"`
 	Body      string       `json:"body"`
@@ -31,6 +41,39 @@ type Issue struct {
 	CreatedAt time.Time    `json:"created_at"`
 	UpdatedAt time.Time    `json:"updated_at"`
 	ClosedAt  sql.NullTime `json:"closed_at"`
+}
+
+type Notification struct {
+	ID         int64     `json:"id"`
+	UserID     int64     `json:"user_id"`
+	ActorID    int64     `json:"actor_id"`
+	ActorName  string    `json:"actor_name"`
+	Type       string    `json:"type"`
+	RepoID     int64     `json:"repo_id"`
+	RepoName   string    `json:"repo_name"`
+	OwnerName  string    `json:"owner_name"`
+	SubjectID  int64     `json:"subject_id"`
+	SubjectUrl string    `json:"subject_url"`
+	Read       bool      `json:"read"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type OrgMember struct {
+	ID        int64     `json:"id"`
+	OrgID     int64     `json:"org_id"`
+	UserID    int64     `json:"user_id"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type Organization struct {
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	DisplayName string    `json:"display_name"`
+	Description string    `json:"description"`
+	AvatarUrl   string    `json:"avatar_url"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type Permission struct {
@@ -44,7 +87,7 @@ type Permission struct {
 type PullRequest struct {
 	ID         int64        `json:"id"`
 	RepoID     int64        `json:"repo_id"`
-	Number     int64        `json:"number"`
+	Number     int32        `json:"number"`
 	AuthorID   int64        `json:"author_id"`
 	Title      string       `json:"title"`
 	Body       string       `json:"body"`
@@ -58,14 +101,21 @@ type PullRequest struct {
 }
 
 type Repository struct {
-	ID            int64     `json:"id"`
-	OwnerID       int64     `json:"owner_id"`
-	Name          string    `json:"name"`
-	Description   string    `json:"description"`
-	Private       bool      `json:"private"`
-	DefaultBranch string    `json:"default_branch"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID            int64         `json:"id"`
+	OwnerID       int64         `json:"owner_id"`
+	Name          string        `json:"name"`
+	Description   string        `json:"description"`
+	Private       bool          `json:"private"`
+	DefaultBranch string        `json:"default_branch"`
+	CreatedAt     time.Time     `json:"created_at"`
+	UpdatedAt     time.Time     `json:"updated_at"`
+	OwnerName     string        `json:"owner_name"`
+	OrgID         sql.NullInt32 `json:"org_id"`
+}
+
+type SiteSetting struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 type SshKey struct {
@@ -84,8 +134,32 @@ type User struct {
 	PasswordHash  string    `json:"password_hash"`
 	Bio           string    `json:"bio"`
 	AvatarUrl     string    `json:"avatar_url"`
-	OAuthProvider string    `json:"oauth_provider"`
-	OAuthID       string    `json:"oauth_id"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
+	OauthProvider string    `json:"oauth_provider"`
+	OauthID       string    `json:"oauth_id"`
+	IsSuperadmin  bool      `json:"is_superadmin"`
+	IsInvited     bool      `json:"is_invited"`
+}
+
+type Webhook struct {
+	ID        int64     `json:"id"`
+	RepoID    int64     `json:"repo_id"`
+	Url       string    `json:"url"`
+	Secret    string    `json:"secret"`
+	Events    string    `json:"events"`
+	Active    bool      `json:"active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type WebhookDelivery struct {
+	ID           int64         `json:"id"`
+	WebhookID    int64         `json:"webhook_id"`
+	Event        string        `json:"event"`
+	Payload      string        `json:"payload"`
+	ResponseCode sql.NullInt32 `json:"response_code"`
+	ResponseBody string        `json:"response_body"`
+	Error        string        `json:"error"`
+	DeliveredAt  time.Time     `json:"delivered_at"`
 }

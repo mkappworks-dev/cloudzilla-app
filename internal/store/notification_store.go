@@ -13,22 +13,21 @@ type NotificationStore struct{ db *sql.DB }
 func NewNotificationStore(db *sql.DB) *NotificationStore { return &NotificationStore{db: db} }
 
 func (s *NotificationStore) Create(ctx context.Context, n *model.Notification) error {
-	res, err := s.db.ExecContext(ctx,
+	err := s.db.QueryRowContext(ctx,
 		`INSERT INTO notifications (user_id, actor_id, actor_name, type, repo_id, repo_name, owner_name, subject_id, subject_url)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
 		n.UserID, n.ActorID, n.ActorName, string(n.Type), n.RepoID, n.RepoName, n.OwnerName, n.SubjectID, n.SubjectURL,
-	)
+	).Scan(&n.ID)
 	if err != nil {
 		return fmt.Errorf("notification create: %w", err)
 	}
-	n.ID, _ = res.LastInsertId()
 	return nil
 }
 
 func (s *NotificationStore) ListByUser(ctx context.Context, userID int64) ([]model.Notification, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, user_id, actor_id, actor_name, type, repo_id, repo_name, owner_name, subject_id, subject_url, read, created_at
-		 FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`,
+		 FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50`,
 		userID,
 	)
 	if err != nil {
@@ -49,7 +48,7 @@ func (s *NotificationStore) ListByUser(ctx context.Context, userID int64) ([]mod
 func (s *NotificationStore) CountUnread(ctx context.Context, userID int64) (int, error) {
 	var count int
 	err := s.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM notifications WHERE user_id = ? AND read = 0`,
+		`SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND read = FALSE`,
 		userID,
 	).Scan(&count)
 	if err != nil {
@@ -60,7 +59,7 @@ func (s *NotificationStore) CountUnread(ctx context.Context, userID int64) (int,
 
 func (s *NotificationStore) MarkRead(ctx context.Context, id, userID int64) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?`,
+		`UPDATE notifications SET read = TRUE WHERE id = $1 AND user_id = $2`,
 		id, userID,
 	)
 	return err
@@ -68,7 +67,7 @@ func (s *NotificationStore) MarkRead(ctx context.Context, id, userID int64) erro
 
 func (s *NotificationStore) MarkAllRead(ctx context.Context, userID int64) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0`,
+		`UPDATE notifications SET read = TRUE WHERE user_id = $1 AND read = FALSE`,
 		userID,
 	)
 	return err

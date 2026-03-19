@@ -23,7 +23,7 @@ func (s *PullStore) Create(ctx context.Context, pr *model.PullRequest) error {
 
 	result, err := s.q.CreatePull(ctx, db.CreatePullParams{
 		RepoID:     pr.RepoID,
-		Number:     int64(pr.Number),
+		Number:     int32(pr.Number),
 		AuthorID:   pr.AuthorID,
 		Title:      pr.Title,
 		Body:       pr.Body,
@@ -51,7 +51,7 @@ func (s *PullStore) List(ctx context.Context, repoID int64) ([]model.PullRequest
 func (s *PullStore) GetByNumber(ctx context.Context, repoID int64, number int) (*model.PullRequest, error) {
 	result, err := s.q.GetPull(ctx, db.GetPullParams{
 		RepoID: repoID,
-		Number: int64(number),
+		Number: int32(number),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("pr get: %w", err)

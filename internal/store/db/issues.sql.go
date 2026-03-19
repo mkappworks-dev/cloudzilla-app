@@ -13,13 +13,13 @@ import (
 
 const createIssue = `-- name: CreateIssue :one
 INSERT INTO issues (repo_id, number, author_id, title, body, state)
-VALUES (?, ?, ?, ?, ?, ?)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING id, repo_id, number, author_id, title, body, state, created_at, updated_at, closed_at
 `
 
 type CreateIssueParams struct {
 	RepoID   int64  `json:"repo_id"`
-	Number   int64  `json:"number"`
+	Number   int32  `json:"number"`
 	AuthorID int64  `json:"author_id"`
 	Title    string `json:"title"`
 	Body     string `json:"body"`
@@ -53,12 +53,12 @@ func (q *Queries) CreateIssue(ctx context.Context, arg CreateIssueParams) (Issue
 
 const getIssue = `-- name: GetIssue :one
 SELECT i.id, i.repo_id, i.number, i.author_id, i.title, i.body, i.state, i.created_at, i.updated_at, i.closed_at FROM issues i
-WHERE i.repo_id = ? AND i.number = ?
+WHERE i.repo_id = $1 AND i.number = $2
 `
 
 type GetIssueParams struct {
 	RepoID int64 `json:"repo_id"`
-	Number int64 `json:"number"`
+	Number int32 `json:"number"`
 }
 
 func (q *Queries) GetIssue(ctx context.Context, arg GetIssueParams) (Issue, error) {
@@ -80,19 +80,19 @@ func (q *Queries) GetIssue(ctx context.Context, arg GetIssueParams) (Issue, erro
 }
 
 const getNextIssueNumber = `-- name: GetNextIssueNumber :one
-SELECT COALESCE(MAX(number), 0) + 1 FROM issues WHERE repo_id = ?
+SELECT COALESCE(MAX(number), 0) + 1 FROM issues WHERE repo_id = $1
 `
 
-func (q *Queries) GetNextIssueNumber(ctx context.Context, repoID int64) (int64, error) {
+func (q *Queries) GetNextIssueNumber(ctx context.Context, repoID int64) (int32, error) {
 	row := q.db.QueryRowContext(ctx, getNextIssueNumber, repoID)
-	var column_1 int64
+	var column_1 int32
 	err := row.Scan(&column_1)
 	return column_1, err
 }
 
 const listIssues = `-- name: ListIssues :many
 SELECT i.id, i.repo_id, i.number, i.author_id, i.title, i.body, i.state, i.created_at, i.updated_at, i.closed_at FROM issues i
-WHERE i.repo_id = ?
+WHERE i.repo_id = $1
 ORDER BY i.number DESC
 `
 
@@ -131,7 +131,7 @@ func (q *Queries) ListIssues(ctx context.Context, repoID int64) ([]Issue, error)
 }
 
 const updateIssueStateClosed = `-- name: UpdateIssueStateClosed :exec
-UPDATE issues SET state = ?, closed_at = ?, updated_at = ? WHERE id = ?
+UPDATE issues SET state = $1, closed_at = $2, updated_at = $3 WHERE id = $4
 `
 
 type UpdateIssueStateClosedParams struct {
@@ -152,7 +152,7 @@ func (q *Queries) UpdateIssueStateClosed(ctx context.Context, arg UpdateIssueSta
 }
 
 const updateIssueStateOpen = `-- name: UpdateIssueStateOpen :exec
-UPDATE issues SET state = ?, closed_at = NULL, updated_at = ? WHERE id = ?
+UPDATE issues SET state = $1, closed_at = NULL, updated_at = $2 WHERE id = $3
 `
 
 type UpdateIssueStateOpenParams struct {

@@ -11,7 +11,7 @@ import (
 
 const createSSHKey = `-- name: CreateSSHKey :one
 INSERT INTO ssh_keys (user_id, title, public_key, fingerprint)
-VALUES (?, ?, ?, ?)
+VALUES ($1, $2, $3, $4)
 RETURNING id, user_id, title, public_key, fingerprint, created_at
 `
 
@@ -42,7 +42,7 @@ func (q *Queries) CreateSSHKey(ctx context.Context, arg CreateSSHKeyParams) (Ssh
 }
 
 const deleteSSHKey = `-- name: DeleteSSHKey :exec
-DELETE FROM ssh_keys WHERE id = ? AND user_id = ?
+DELETE FROM ssh_keys WHERE id = $1 AND user_id = $2
 `
 
 type DeleteSSHKeyParams struct {
@@ -56,7 +56,7 @@ func (q *Queries) DeleteSSHKey(ctx context.Context, arg DeleteSSHKeyParams) erro
 }
 
 const getSSHKeyByFingerprint = `-- name: GetSSHKeyByFingerprint :one
-SELECT id, user_id, title, public_key, fingerprint, created_at FROM ssh_keys WHERE fingerprint = ?
+SELECT id, user_id, title, public_key, fingerprint, created_at FROM ssh_keys WHERE fingerprint = $1
 `
 
 func (q *Queries) GetSSHKeyByFingerprint(ctx context.Context, fingerprint string) (SshKey, error) {
@@ -74,7 +74,7 @@ func (q *Queries) GetSSHKeyByFingerprint(ctx context.Context, fingerprint string
 }
 
 const listSSHKeysByUser = `-- name: ListSSHKeysByUser :many
-SELECT id, user_id, title, public_key, fingerprint, created_at FROM ssh_keys WHERE user_id = ? ORDER BY created_at DESC
+SELECT id, user_id, title, public_key, fingerprint, created_at FROM ssh_keys WHERE user_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) ListSSHKeysByUser(ctx context.Context, userID int64) ([]SshKey, error) {

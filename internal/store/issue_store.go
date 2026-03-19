@@ -24,7 +24,7 @@ func (s *IssueStore) Create(ctx context.Context, issue *model.Issue) error {
 
 	result, err := s.q.CreateIssue(ctx, db.CreateIssueParams{
 		RepoID:   issue.RepoID,
-		Number:   int64(issue.Number),
+		Number:   int32(issue.Number),
 		AuthorID: issue.AuthorID,
 		Title:    issue.Title,
 		Body:     issue.Body,
@@ -50,7 +50,7 @@ func (s *IssueStore) List(ctx context.Context, repoID int64) ([]model.Issue, err
 func (s *IssueStore) GetByNumber(ctx context.Context, repoID int64, number int) (*model.Issue, error) {
 	result, err := s.q.GetIssue(ctx, db.GetIssueParams{
 		RepoID: repoID,
-		Number: int64(number),
+		Number: int32(number),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("issue get: %w", err)

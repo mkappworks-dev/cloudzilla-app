@@ -18,7 +18,7 @@ func NewSiteSettingStore(db *sql.DB) *SiteSettingStore {
 
 func (s *SiteSettingStore) Get(ctx context.Context, key string) (string, error) {
 	var value string
-	err := s.db.QueryRowContext(ctx, `SELECT value FROM site_settings WHERE key = ?`, key).Scan(&value)
+	err := s.db.QueryRowContext(ctx, `SELECT value FROM site_settings WHERE key = $1`, key).Scan(&value)
 	if err != nil {
 		return "", fmt.Errorf("site_setting get %q: %w", key, err)
 	}
@@ -44,7 +44,7 @@ func (s *SiteSettingStore) GetAll(ctx context.Context) ([]model.SiteSetting, err
 
 func (s *SiteSettingStore) Set(ctx context.Context, key, value string) error {
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO site_settings (key, value) VALUES (?, ?)
+		`INSERT INTO site_settings (key, value) VALUES ($1, $2)
 		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
 		key, value,
 	)

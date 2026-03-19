@@ -11,8 +11,8 @@ import (
 
 const createRepo = `-- name: CreateRepo :one
 INSERT INTO repositories (owner_id, name, description, private, default_branch)
-VALUES (?, ?, ?, ?, ?)
-RETURNING id, owner_id, name, description, private, default_branch, created_at, updated_at
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, owner_id, name, description, private, default_branch, created_at, updated_at, owner_name, org_id
 `
 
 type CreateRepoParams struct {
@@ -41,12 +41,14 @@ func (q *Queries) CreateRepo(ctx context.Context, arg CreateRepoParams) (Reposit
 		&i.DefaultBranch,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OwnerName,
+		&i.OrgID,
 	)
 	return i, err
 }
 
 const getPermission = `-- name: GetPermission :one
-SELECT role FROM permissions WHERE repo_id = ? AND user_id = ?
+SELECT role FROM permissions WHERE repo_id = $1 AND user_id = $2
 `
 
 type GetPermissionParams struct {
@@ -62,9 +64,9 @@ func (q *Queries) GetPermission(ctx context.Context, arg GetPermissionParams) (s
 }
 
 const getRepoByOwnerAndName = `-- name: GetRepoByOwnerAndName :one
-SELECT r.id, r.owner_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at FROM repositories r
+SELECT r.id, r.owner_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at, r.owner_name, r.org_id FROM repositories r
 JOIN users u ON u.id = r.owner_id
-WHERE u.username = ? AND r.name = ?
+WHERE u.username = $1 AND r.name = $2
 `
 
 type GetRepoByOwnerAndNameParams struct {
@@ -84,13 +86,15 @@ func (q *Queries) GetRepoByOwnerAndName(ctx context.Context, arg GetRepoByOwnerA
 		&i.DefaultBranch,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OwnerName,
+		&i.OrgID,
 	)
 	return i, err
 }
 
 const getReposByOwnerID = `-- name: GetReposByOwnerID :many
-SELECT r.id, r.owner_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at FROM repositories r
-WHERE r.owner_id = ?
+SELECT r.id, r.owner_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at, r.owner_name, r.org_id FROM repositories r
+WHERE r.owner_id = $1
 ORDER BY r.created_at DESC
 `
 
@@ -112,6 +116,8 @@ func (q *Queries) GetReposByOwnerID(ctx context.Context, ownerID int64) ([]Repos
 			&i.DefaultBranch,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.OwnerName,
+			&i.OrgID,
 		); err != nil {
 			return nil, err
 		}
@@ -127,7 +133,7 @@ func (q *Queries) GetReposByOwnerID(ctx context.Context, ownerID int64) ([]Repos
 }
 
 const listRepos = `-- name: ListRepos :many
-SELECT r.id, r.owner_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at FROM repositories r
+SELECT r.id, r.owner_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at, r.owner_name, r.org_id FROM repositories r
 ORDER BY r.created_at DESC
 `
 
@@ -149,6 +155,8 @@ func (q *Queries) ListRepos(ctx context.Context) ([]Repository, error) {
 			&i.DefaultBranch,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.OwnerName,
+			&i.OrgID,
 		); err != nil {
 			return nil, err
 		}

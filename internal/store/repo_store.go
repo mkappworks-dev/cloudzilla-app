@@ -42,15 +42,14 @@ func (s *RepoStore) CreateWithOwnerName(ctx context.Context, r *model.Repository
 	if r.OrgID != 0 {
 		orgID = r.OrgID
 	}
-	res, err := s.db.ExecContext(ctx,
+	err := s.db.QueryRowContext(ctx,
 		`INSERT INTO repositories (owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
 		r.OwnerID, r.OwnerName, orgID, r.Name, r.Description, r.Private, r.DefaultBranch, now, now,
-	)
+	).Scan(&r.ID)
 	if err != nil {
 		return fmt.Errorf("repo create with owner name: %w", err)
 	}
-	r.ID, _ = res.LastInsertId()
 	r.CreatedAt = now
 	r.UpdatedAt = now
 	return nil
@@ -61,7 +60,7 @@ func (s *RepoStore) GetByOwnerName(ctx context.Context, ownerName, name string) 
 	var orgID sql.NullInt64
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at
-		 FROM repositories WHERE owner_name = ? AND name = ?`,
+		 FROM repositories WHERE owner_name = $1 AND name = $2`,
 		ownerName, name,
 	).Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt)
 	if err != nil {
@@ -76,7 +75,7 @@ func (s *RepoStore) GetByOwnerName(ctx context.Context, ownerName, name string) 
 func (s *RepoStore) GetByOwnerNameList(ctx context.Context, ownerName string) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at
-		 FROM repositories WHERE owner_name = ? ORDER BY created_at DESC`,
+		 FROM repositories WHERE owner_name = $1 ORDER BY created_at DESC`,
 		ownerName,
 	)
 	if err != nil {
@@ -128,7 +127,7 @@ func (s *RepoStore) GetByOwnerID(ctx context.Context, ownerID int64) ([]model.Re
 func (s *RepoStore) GetByOrgID(ctx context.Context, orgID int64) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at
-		 FROM repositories WHERE org_id = ? ORDER BY created_at DESC`,
+		 FROM repositories WHERE org_id = $1 ORDER BY created_at DESC`,
 		orgID,
 	)
 	if err != nil {
@@ -163,7 +162,7 @@ func (s *RepoStore) GetPermission(ctx context.Context, repoID, userID int64) (st
 
 func (s *RepoStore) UpdateOwner(ctx context.Context, repoID, newOwnerID int64, newOwnerName string) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE repositories SET owner_id = ?, owner_name = ?, updated_at = ? WHERE id = ?`,
+		`UPDATE repositories SET owner_id = $1, owner_name = $2, updated_at = $3 WHERE id = $4`,
 		newOwnerID, newOwnerName, time.Now().UTC(), repoID,
 	)
 	if err != nil {
@@ -175,7 +174,7 @@ func (s *RepoStore) UpdateOwner(ctx context.Context, repoID, newOwnerID int64, n
 func (s *RepoStore) AddPermission(ctx context.Context, repoID, userID int64, role string) error {
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO permissions (repo_id, user_id, role, created_at)
-		 VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+		 VALUES ($1, $2, $3, NOW())
 		 ON CONFLICT(repo_id, user_id) DO UPDATE SET role = excluded.role`,
 		repoID, userID, role,
 	)
@@ -187,7 +186,7 @@ func (s *RepoStore) AddPermission(ctx context.Context, repoID, userID int64, rol
 
 func (s *RepoStore) UpdatePermission(ctx context.Context, repoID, userID int64, role string) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE permissions SET role = ? WHERE repo_id = ? AND user_id = ?`,
+		`UPDATE permissions SET role = $1 WHERE repo_id = $2 AND user_id = $3`,
 		role, repoID, userID,
 	)
 	if err != nil {
@@ -198,7 +197,7 @@ func (s *RepoStore) UpdatePermission(ctx context.Context, repoID, userID int64, 
 
 func (s *RepoStore) RemovePermission(ctx context.Context, repoID, userID int64) error {
 	_, err := s.db.ExecContext(ctx,
-		`DELETE FROM permissions WHERE repo_id = ? AND user_id = ?`,
+		`DELETE FROM permissions WHERE repo_id = $1 AND user_id = $2`,
 		repoID, userID,
 	)
 	if err != nil {
@@ -212,7 +211,7 @@ func (s *RepoStore) ListPermissionsWithUsername(ctx context.Context, repoID int6
 		`SELECT p.id, p.repo_id, p.user_id, p.role, u.username, p.created_at
 		 FROM permissions p
 		 JOIN users u ON p.user_id = u.id
-		 WHERE p.repo_id = ?
+		 WHERE p.repo_id = $1
 		 ORDER BY p.created_at ASC`,
 		repoID,
 	)

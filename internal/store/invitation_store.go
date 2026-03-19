@@ -18,15 +18,14 @@ func NewInvitationStore(db *sql.DB) *InvitationStore {
 }
 
 func (s *InvitationStore) Create(ctx context.Context, inv *model.Invitation) error {
-	res, err := s.db.ExecContext(ctx,
+	err := s.db.QueryRowContext(ctx,
 		`INSERT INTO invitations (token, email, invited_by_id, expires_at, created_at)
-		 VALUES (?, ?, ?, ?, ?)`,
+		 VALUES ($1, $2, $3, $4, $5) RETURNING id`,
 		inv.Token, inv.Email, inv.InvitedByID, inv.ExpiresAt, inv.CreatedAt,
-	)
+	).Scan(&inv.ID)
 	if err != nil {
 		return fmt.Errorf("invitation create: %w", err)
 	}
-	inv.ID, _ = res.LastInsertId()
 	return nil
 }
 
@@ -35,7 +34,7 @@ func (s *InvitationStore) GetByToken(ctx context.Context, token string) (*model.
 	var acceptedAt sql.NullTime
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, token, email, invited_by_id, expires_at, accepted_at, created_at
-		 FROM invitations WHERE token = ?`,
+		 FROM invitations WHERE token = $1`,
 		token,
 	).Scan(&inv.ID, &inv.Token, &inv.Email, &inv.InvitedByID, &inv.ExpiresAt, &acceptedAt, &inv.CreatedAt)
 	if err != nil {
@@ -76,7 +75,7 @@ func (s *InvitationStore) ListAll(ctx context.Context) ([]model.Invitation, erro
 func (s *InvitationStore) MarkAccepted(ctx context.Context, id int64) error {
 	now := time.Now().UTC()
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE invitations SET accepted_at = ? WHERE id = ?`,
+		`UPDATE invitations SET accepted_at = $1 WHERE id = $2`,
 		now, id,
 	)
 	if err != nil {
@@ -86,7 +85,7 @@ func (s *InvitationStore) MarkAccepted(ctx context.Context, id int64) error {
 }
 
 func (s *InvitationStore) Delete(ctx context.Context, id int64) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM invitations WHERE id = ?`, id)
+	_, err := s.db.ExecContext(ctx, `DELETE FROM invitations WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("invitation delete: %w", err)
 	}

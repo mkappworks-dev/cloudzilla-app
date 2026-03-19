@@ -11,8 +11,8 @@ import (
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, email, password_hash, bio, avatar_url)
-VALUES (?, ?, ?, ?, ?)
-RETURNING id, username, email, password_hash, bio, avatar_url, created_at, updated_at
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, username, email, password_hash, bio, avatar_url, created_at, updated_at, oauth_provider, oauth_id, is_superadmin, is_invited
 `
 
 type CreateUserParams struct {
@@ -41,12 +41,16 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OauthProvider,
+		&i.OauthID,
+		&i.IsSuperadmin,
+		&i.IsInvited,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, password_hash, bio, avatar_url, created_at, updated_at FROM users WHERE email = ?
+SELECT id, username, email, password_hash, bio, avatar_url, created_at, updated_at, oauth_provider, oauth_id, is_superadmin, is_invited FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -61,12 +65,16 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OauthProvider,
+		&i.OauthID,
+		&i.IsSuperadmin,
+		&i.IsInvited,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, email, password_hash, bio, avatar_url, created_at, updated_at FROM users WHERE id = ?
+SELECT id, username, email, password_hash, bio, avatar_url, created_at, updated_at, oauth_provider, oauth_id, is_superadmin, is_invited FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
@@ -81,12 +89,16 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OauthProvider,
+		&i.OauthID,
+		&i.IsSuperadmin,
+		&i.IsInvited,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, email, password_hash, bio, avatar_url, created_at, updated_at FROM users WHERE username = ?
+SELECT id, username, email, password_hash, bio, avatar_url, created_at, updated_at, oauth_provider, oauth_id, is_superadmin, is_invited FROM users WHERE username = $1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
@@ -101,6 +113,10 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OauthProvider,
+		&i.OauthID,
+		&i.IsSuperadmin,
+		&i.IsInvited,
 	)
 	return i, err
 }

@@ -13,13 +13,13 @@ import (
 
 const createPull = `-- name: CreatePull :one
 INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING id, repo_id, number, author_id, title, body, state, head_branch, base_branch, created_at, updated_at, merged_at, closed_at
 `
 
 type CreatePullParams struct {
 	RepoID     int64  `json:"repo_id"`
-	Number     int64  `json:"number"`
+	Number     int32  `json:"number"`
 	AuthorID   int64  `json:"author_id"`
 	Title      string `json:"title"`
 	Body       string `json:"body"`
@@ -59,24 +59,24 @@ func (q *Queries) CreatePull(ctx context.Context, arg CreatePullParams) (PullReq
 }
 
 const getNextPullNumber = `-- name: GetNextPullNumber :one
-SELECT COALESCE(MAX(number), 0) + 1 FROM pull_requests WHERE repo_id = ?
+SELECT COALESCE(MAX(number), 0) + 1 FROM pull_requests WHERE repo_id = $1
 `
 
-func (q *Queries) GetNextPullNumber(ctx context.Context, repoID int64) (int64, error) {
+func (q *Queries) GetNextPullNumber(ctx context.Context, repoID int64) (int32, error) {
 	row := q.db.QueryRowContext(ctx, getNextPullNumber, repoID)
-	var column_1 int64
+	var column_1 int32
 	err := row.Scan(&column_1)
 	return column_1, err
 }
 
 const getPull = `-- name: GetPull :one
 SELECT p.id, p.repo_id, p.number, p.author_id, p.title, p.body, p.state, p.head_branch, p.base_branch, p.created_at, p.updated_at, p.merged_at, p.closed_at FROM pull_requests p
-WHERE p.repo_id = ? AND p.number = ?
+WHERE p.repo_id = $1 AND p.number = $2
 `
 
 type GetPullParams struct {
 	RepoID int64 `json:"repo_id"`
-	Number int64 `json:"number"`
+	Number int32 `json:"number"`
 }
 
 func (q *Queries) GetPull(ctx context.Context, arg GetPullParams) (PullRequest, error) {
@@ -102,7 +102,7 @@ func (q *Queries) GetPull(ctx context.Context, arg GetPullParams) (PullRequest, 
 
 const listPulls = `-- name: ListPulls :many
 SELECT p.id, p.repo_id, p.number, p.author_id, p.title, p.body, p.state, p.head_branch, p.base_branch, p.created_at, p.updated_at, p.merged_at, p.closed_at FROM pull_requests p
-WHERE p.repo_id = ?
+WHERE p.repo_id = $1
 ORDER BY p.number DESC
 `
 
@@ -144,7 +144,7 @@ func (q *Queries) ListPulls(ctx context.Context, repoID int64) ([]PullRequest, e
 }
 
 const updatePullStateClosed = `-- name: UpdatePullStateClosed :exec
-UPDATE pull_requests SET state = ?, closed_at = ?, updated_at = ? WHERE id = ?
+UPDATE pull_requests SET state = $1, closed_at = $2, updated_at = $3 WHERE id = $4
 `
 
 type UpdatePullStateClosedParams struct {
@@ -165,7 +165,7 @@ func (q *Queries) UpdatePullStateClosed(ctx context.Context, arg UpdatePullState
 }
 
 const updatePullStateMerged = `-- name: UpdatePullStateMerged :exec
-UPDATE pull_requests SET state = ?, merged_at = ?, updated_at = ? WHERE id = ?
+UPDATE pull_requests SET state = $1, merged_at = $2, updated_at = $3 WHERE id = $4
 `
 
 type UpdatePullStateMergedParams struct {
@@ -186,7 +186,7 @@ func (q *Queries) UpdatePullStateMerged(ctx context.Context, arg UpdatePullState
 }
 
 const updatePullStateOpen = `-- name: UpdatePullStateOpen :exec
-UPDATE pull_requests SET state = ?, updated_at = ? WHERE id = ?
+UPDATE pull_requests SET state = $1, updated_at = $2 WHERE id = $3
 `
 
 type UpdatePullStateOpenParams struct {

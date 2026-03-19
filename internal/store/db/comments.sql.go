@@ -12,7 +12,7 @@ import (
 
 const createComment = `-- name: CreateComment :one
 INSERT INTO comments (repo_id, issue_id, pull_id, author_id, body)
-VALUES (?, ?, ?, ?, ?)
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id, repo_id, issue_id, pull_id, author_id, body, created_at, updated_at
 `
 
@@ -47,7 +47,7 @@ func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) (C
 }
 
 const deleteComment = `-- name: DeleteComment :exec
-DELETE FROM comments WHERE id = ?
+DELETE FROM comments WHERE id = $1
 `
 
 func (q *Queries) DeleteComment(ctx context.Context, id int64) error {
@@ -57,7 +57,7 @@ func (q *Queries) DeleteComment(ctx context.Context, id int64) error {
 
 const listCommentsByIssue = `-- name: ListCommentsByIssue :many
 SELECT c.id, c.repo_id, c.issue_id, c.pull_id, c.author_id, c.body, c.created_at, c.updated_at FROM comments c
-WHERE c.issue_id = ?
+WHERE c.issue_id = $1
 ORDER BY c.created_at ASC
 `
 
@@ -95,7 +95,7 @@ func (q *Queries) ListCommentsByIssue(ctx context.Context, issueID sql.NullInt64
 
 const listCommentsByPull = `-- name: ListCommentsByPull :many
 SELECT c.id, c.repo_id, c.issue_id, c.pull_id, c.author_id, c.body, c.created_at, c.updated_at FROM comments c
-WHERE c.pull_id = ?
+WHERE c.pull_id = $1
 ORDER BY c.created_at ASC
 `
 

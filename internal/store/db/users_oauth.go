@@ -6,7 +6,7 @@ import (
 
 const getUserByOAuthID = `
 SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id, created_at, updated_at
-FROM users WHERE oauth_provider = ? AND oauth_id = ? LIMIT 1
+FROM users WHERE oauth_provider = $1 AND oauth_id = $2 LIMIT 1
 `
 
 func (q *Queries) GetUserByOAuthID(ctx context.Context, provider, oauthID string) (User, error) {
@@ -19,8 +19,8 @@ func (q *Queries) GetUserByOAuthID(ctx context.Context, provider, oauthID string
 		&i.PasswordHash,
 		&i.Bio,
 		&i.AvatarUrl,
-		&i.OAuthProvider,
-		&i.OAuthID,
+		&i.OauthProvider,
+		&i.OauthID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -28,8 +28,8 @@ func (q *Queries) GetUserByOAuthID(ctx context.Context, provider, oauthID string
 }
 
 const linkOAuth = `
-UPDATE users SET oauth_provider = ?, oauth_id = ?, updated_at = CURRENT_TIMESTAMP
-WHERE id = ?
+UPDATE users SET oauth_provider = $1, oauth_id = $2, updated_at = NOW()
+WHERE id = $3
 `
 
 func (q *Queries) LinkOAuth(ctx context.Context, userID int64, provider, oauthID string) error {
@@ -39,7 +39,7 @@ func (q *Queries) LinkOAuth(ctx context.Context, userID int64, provider, oauthID
 
 const createOAuthUser = `
 INSERT INTO users (username, email, password_hash, oauth_provider, oauth_id, avatar_url)
-VALUES (?, ?, '', ?, ?, ?)
+VALUES ($1, $2, '', $3, $4, $5)
 RETURNING id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id, created_at, updated_at
 `
 
@@ -67,8 +67,8 @@ func (q *Queries) CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams
 		&i.PasswordHash,
 		&i.Bio,
 		&i.AvatarUrl,
-		&i.OAuthProvider,
-		&i.OAuthID,
+		&i.OauthProvider,
+		&i.OauthID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
