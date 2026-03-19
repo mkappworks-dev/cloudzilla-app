@@ -14,6 +14,10 @@ RUN ARCH=$(uname -m) && \
     chmod +x bin/tailwindcss && \
     make build-css
 
+# Download mermaid.min.js for embedding
+RUN curl -sL https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js \
+      -o cmd/server/frontend/static/mermaid.min.js
+
 # Build Go binaries — fully static, stripped
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/cloudzilla ./cmd/server/. && \
     CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/cloudzilla-cli ./cmd/cloudzilla/.

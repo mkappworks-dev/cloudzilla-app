@@ -1,6 +1,7 @@
 # Go
 /dist/
 cmd/server/frontend/static/main.css
+cmd/server/frontend/static/mermaid.min.js
 *.exe
 *.test
 *.out

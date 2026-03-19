@@ -42,6 +42,12 @@
     <p>&copy; 2026 Cloudzilla. Built with Go, HTMX, and Tailwind.</p>
   </footer>
   <script src="/htmx.min.js" defer></script>
+  <script src="/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: false, theme: 'default' });
+    document.addEventListener('DOMContentLoaded', function () { mermaid.run(); });
+    document.addEventListener('htmx:afterSwap', function () { mermaid.run(); });
+  </script>
 </body>
 </html>
 {{end}}

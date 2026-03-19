@@ -40,8 +40,9 @@
 
 ```bash
 make setup-tailwind     # Download Tailwind CLI (one-time)
+make download-mermaid   # Download mermaid.min.js (one-time; auto-runs in build/dev)
 make build-css          # Compile Tailwind → static/main.css
-make dev                # Run server + Tailwind watch
+make dev                # Run server + Tailwind watch (auto-downloads mermaid if missing)
 make migrate            # Run DB migrations
 make build              # Build Go binary (embedded templates + CSS)
 make lint               # Lint Go code
