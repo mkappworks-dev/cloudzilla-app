@@ -1,10 +1,18 @@
 package handler
 
 import (
+	"html/template"
+
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/service"
 )
+
+// RenderedComment wraps a model.Comment with its body pre-rendered as HTML.
+type RenderedComment struct {
+	model.Comment
+	BodyHTML template.HTML
+}
 
 // BasePage contains common data for all pages
 type BasePage struct {
@@ -52,12 +60,13 @@ type OrgMembersFragData struct {
 
 type RepoData struct {
 	BasePage
-	Repo      model.Repository
-	Owner     string
-	RepoName  string
-	CloneHTTP string
-	CloneSSH  string
-	CanWrite  bool
+	Repo       model.Repository
+	Owner      string
+	RepoName   string
+	CloneHTTP  string
+	CloneSSH   string
+	CanWrite   bool
+	ReadmeHTML template.HTML
 }
 
 type RepoSettingsData struct {
@@ -91,9 +100,10 @@ type IssueDetailData struct {
 	BasePage
 	Repo     model.Repository
 	Issue    model.Issue
-	Comments []model.Comment
+	Comments []RenderedComment
 	Owner    string
 	RepoName string
+	BodyHTML template.HTML
 }
 
 type PullsData struct {
@@ -111,6 +121,7 @@ type PullDetailData struct {
 	Owner    string
 	RepoName string
 	Diff     *service.PRDiffResult
+	BodyHTML template.HTML
 }
 
 type SettingsData struct {
@@ -134,23 +145,25 @@ type NotificationItemFragData struct {
 
 // Fragment data structs
 type IssueDetailFragData struct {
-	Issue model.Issue
-	Owner string
-	Repo  string
+	Issue    model.Issue
+	Owner    string
+	Repo     string
+	BodyHTML template.HTML
 }
 
 type PullDetailFragData struct {
-	Pull  model.PullRequest
-	Owner string
-	Repo  string
+	Pull     model.PullRequest
+	Owner    string
+	Repo     string
+	BodyHTML template.HTML
 }
 
 type CommentFragData struct {
-	Comment model.Comment
+	Comment RenderedComment
 }
 
 type CommentsFragData struct {
-	Comments []model.Comment
+	Comments []RenderedComment
 }
 
 type RefsData struct {

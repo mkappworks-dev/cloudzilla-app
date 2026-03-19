@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks/cloudzilla/internal/markdown"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
@@ -77,7 +78,9 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderFragment(w, "fragment-comment", CommentFragData{Comment: *comment})
+		h.renderFragment(w, "fragment-comment", CommentFragData{
+			Comment: RenderedComment{Comment: *comment, BodyHTML: markdown.Render(comment.Body)},
+		})
 		return
 	}
 	writeJSON(w, http.StatusCreated, comment)
@@ -112,5 +115,9 @@ func (h *Handler) IssueCommentsFragment(w http.ResponseWriter, r *http.Request) 
 	if comments == nil {
 		comments = []model.Comment{}
 	}
-	h.renderFragment(w, "fragment-comments", CommentsFragData{Comments: comments})
+	renderedComments := make([]RenderedComment, len(comments))
+	for i, c := range comments {
+		renderedComments[i] = RenderedComment{Comment: c, BodyHTML: markdown.Render(c.Body)}
+	}
+	h.renderFragment(w, "fragment-comments", CommentsFragData{Comments: renderedComments})
 }

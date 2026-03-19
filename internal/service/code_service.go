@@ -279,6 +279,31 @@ func (s *CodeService) GetBlob(owner, repoName, ref, path string) (*BlobResult, e
 	return result, nil
 }
 
+// GetRawBlob returns the raw byte content of a non-binary file.
+func (s *CodeService) GetRawBlob(owner, repoName, ref, path string) ([]byte, error) {
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return nil, err
+	}
+	commit, _, err := resolveRef(repo, ref)
+	if err != nil {
+		return nil, err
+	}
+	f, err := commit.File(path)
+	if err != nil {
+		return nil, err
+	}
+	isBinary, _ := f.IsBinary()
+	if isBinary {
+		return nil, errors.New("binary file")
+	}
+	contents, err := f.Contents()
+	if err != nil {
+		return nil, err
+	}
+	return []byte(contents), nil
+}
+
 type CommitSummary struct {
 	Hash       string
 	FullHash   string

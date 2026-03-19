@@ -3,7 +3,7 @@
 <div class="bg-white border border-gray-200 rounded-lg p-4">
   <div class="font-semibold text-sm text-gray-700">{{.AuthorName}}</div>
   <div class="text-xs text-gray-500 mb-2">{{.CreatedAt.Format "Jan 2, 2006 at 3:04 PM"}}</div>
-  <div class="text-gray-800">{{.Body}}</div>
+  <div class="prose prose-sm max-w-none text-gray-800">{{.BodyHTML}}</div>
 </div>
 {{end}}
 {{end}}

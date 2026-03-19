@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks/cloudzilla/internal/markdown"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
@@ -143,6 +144,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" {
 		h.renderFragment(w, "fragment-pull-detail", PullDetailFragData{
 			Pull: *pr, Owner: owner, Repo: repoName,
+			BodyHTML: markdown.Render(pr.Body),
 		})
 		return
 	}

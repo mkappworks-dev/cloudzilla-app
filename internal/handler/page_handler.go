@@ -2,12 +2,14 @@ package handler
 
 import (
 	"fmt"
+	"html/template"
 	"net"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks/cloudzilla/internal/markdown"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/service"
@@ -178,14 +180,24 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
+	var readmeHTML template.HTML
+	for _, name := range []string{"README.md", "readme.md", "Readme.md"} {
+		raw, err := h.Services.Code.GetRawBlob(owner, repoName, repo.DefaultBranch, name)
+		if err == nil {
+			readmeHTML = markdown.Render(string(raw))
+			break
+		}
+	}
+
 	h.render(w, "repo", RepoData{
-		BasePage:  basePage(r, h.Services),
-		Repo:      *repo,
-		Owner:     owner,
-		RepoName:  repoName,
-		CloneHTTP: cloneHTTP,
-		CloneSSH:  cloneSSH,
-		CanWrite:  canWrite,
+		BasePage:   basePage(r, h.Services),
+		Repo:       *repo,
+		Owner:      owner,
+		RepoName:   repoName,
+		CloneHTTP:  cloneHTTP,
+		CloneSSH:   cloneSSH,
+		CanWrite:   canWrite,
+		ReadmeHTML: readmeHTML,
 	})
 }
 
@@ -279,18 +291,23 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comments, _ := h.Services.Comment.ListByIssue(r.Context(), issue.ID)
-	if comments == nil {
-		comments = []model.Comment{}
+	rawComments, _ := h.Services.Comment.ListByIssue(r.Context(), issue.ID)
+	if rawComments == nil {
+		rawComments = []model.Comment{}
+	}
+	rendered := make([]RenderedComment, len(rawComments))
+	for i, c := range rawComments {
+		rendered[i] = RenderedComment{Comment: c, BodyHTML: markdown.Render(c.Body)}
 	}
 
 	h.render(w, "issue_detail", IssueDetailData{
 		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Issue:    *issue,
-		Comments: comments,
+		Comments: rendered,
 		Owner:    owner,
 		RepoName: repoName,
+		BodyHTML: markdown.Render(issue.Body),
 	})
 }
 
@@ -352,6 +369,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		Owner:    owner,
 		RepoName: repoName,
 		Diff:     diff,
+		BodyHTML: markdown.Render(pull.Body),
 	})
 }
 
