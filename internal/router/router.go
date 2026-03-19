@@ -192,6 +192,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Delete("/", h.RemoveCollaborator)
 		})
 
+		// Fork
+		r.With(authMW).Post("/{owner}/{repo}/fork", h.ForkRepo)
+
 		// Ownership transfer
 		r.With(authMW).Post("/{owner}/{repo}/transfer", h.TransferRepo)
 	})

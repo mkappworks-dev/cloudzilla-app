@@ -69,6 +69,9 @@ type RepoData struct {
 	ReadmeHTML template.HTML
 	StarCount  int
 	IsStarred  bool
+	ForkCount  int
+	IsFork     bool
+	ForkOfPath string
 }
 
 type RepoSettingsData struct {
@@ -334,6 +337,14 @@ type RepoLabelsFragData struct {
 	RepoID   int64
 	Labels   []model.Label
 	CanWrite bool
+}
+
+// Fork button fragment
+type ForkButtonData struct {
+	BasePage
+	Owner     string
+	RepoName  string
+	ForkCount int
 }
 
 // Star button fragment

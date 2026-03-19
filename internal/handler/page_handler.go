@@ -197,6 +197,11 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		isStarred, _ = h.Services.Star.IsStarred(r.Context(), repo.ID, currentUserID)
 	}
 
+	forkOfPath := ""
+	if repo.IsFork && repo.ForkOfOwner != "" {
+		forkOfPath = repo.ForkOfOwner + "/" + repo.ForkOfName
+	}
+
 	h.render(w, "repo", RepoData{
 		BasePage:   basePage(r, h.Services),
 		Repo:       *repo,
@@ -208,6 +213,9 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		ReadmeHTML: readmeHTML,
 		StarCount:  starCount,
 		IsStarred:  isStarred,
+		ForkCount:  repo.ForkCount,
+		IsFork:     repo.IsFork,
+		ForkOfPath: forkOfPath,
 	})
 }
 
