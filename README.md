@@ -63,51 +63,6 @@ graph TB
     class Templates,Static frontend
 ```
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                              CLIENT                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │
-│  │   Browser    │  │   git CLI    │  │  SSH Client  │             │
-│  │   (HTMX)     │  │              │  │              │             │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘             │
-└─────────┼─────────────────┼─────────────────┼─────────────────────┘
-          │ HTTP/HTTPS       │ HTTP Smart       │ SSH git transport
-          │                  │ Protocol         │
-          ▼                  ▼                  ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    CLOUDZILLA  (Single Binary)                      │
-│                                                                     │
-│  ┌──────────────────────────┐  ┌──────────────────────────┐        │
-│  │  HTTP Server :8080       │  │  SSH Server :2222         │       │
-│  │  (chi router)            │  │  (gliderlabs/ssh)         │       │
-│  └────────────┬─────────────┘  └──────────────┬────────────┘       │
-│               │                               │                    │
-│               └──────────────┬────────────────┘                    │
-│                              ▼                                      │
-│              ┌───────────────────────────────┐                     │
-│              │  Handlers (page + API + HTTP) │                     │
-│              └───────────────┬───────────────┘                     │
-│                              ▼                                      │
-│              ┌───────────────────────────────┐                     │
-│              │  Services  (business logic)   │                     │
-│              └──────┬──────────────┬─────────┘                     │
-│                     ▼              ▼                                │
-│           ┌──────────────┐  ┌──────────────┐                       │
-│           │    Stores    │  │  Bare Repos  │                       │
-│           │ (SQL/sqlc)   │  │  (on disk)   │                       │
-│           └──────┬───────┘  └──────────────┘                       │
-│                  │                                                  │
-│  ┌───────────────────────────────┐                                 │
-│  │  Embedded Frontend            │                                 │
-│  │  Go html/template + HTMX + CSS│                                 │
-│  └───────────────────────────────┘                                 │
-└─────────────────────────┬───────────────────────────────────────────┘
-                          ▼
-               ┌─────────────────┐
-               │   PostgreSQL    │
-               └─────────────────┘
-```
-
 ### Request Flow
 
 ```mermaid
@@ -142,22 +97,6 @@ sequenceDiagram
     rect rgb(74, 144, 217)
         H-->>B: HTML page / HTMX fragment / JSON
     end
-```
-
-```
-Browser       Middleware        Handler        Service         Store        PostgreSQL
-   │               │               │               │              │               │
-   │──HTTP Req────►│               │               │              │               │
-   │               │─JWT auth──────│               │              │               │
-   │               │─Setup check───│               │              │               │
-   │               │──req+claims──►│               │              │               │
-   │               │               │──biz logic───►│              │               │
-   │               │               │               │──query──────►│               │
-   │               │               │               │              │──── SQL ─────►│
-   │               │               │               │              │◄─── rows ─────│
-   │               │               │               │◄──models─────│               │
-   │               │               │◄──result──────│              │               │
-   │◄──HTML/JSON───│               │               │              │               │
 ```
 
 ### Authentication Flow
@@ -200,23 +139,6 @@ flowchart LR
     class Form,API,Google,Invite loginMethod
     class Verify,JWT,Cookie processing
     class OptMW,AuthMW,SuperMW access
-```
-
-```
-┌──────────────────────────┐    ┌───────────────────────────┐    ┌───────────────────────────┐
-│      LOGIN METHODS       │    │     AUTH PROCESSING       │    │     PROTECTED ACCESS      │
-│                          │    │                           │    │                           │
-│  Form POST /login        │───►│                           │    │  optAuthMW                │
-│  API POST /api/auth/login│───►│  Verify credentials /     │───►│  (optional auth)          │
-│  GET /auth/google        │───►│  OAuth token              │    │                           │
-│  (OAuth)                 │    │         │                 │    │  authMW                   │
-│                          │    │         ▼                 │───►│  (required auth)          │
-│  GET /invite/:token      │───►│  Generate JWT             │    │                           │
-│  (Invitation)            │    │         │                 │    │  requireSuperadmin        │
-│                          │    │         ▼                 │───►│  (superadmin only)        │
-└──────────────────────────┘    │  Set httpOnly             │    │                           │
-                                │  cz_token cookie          │    └───────────────────────────┘
-                                └───────────────────────────┘
 ```
 
 ### Git Transport Flow
@@ -262,41 +184,10 @@ flowchart TB
     class BareRepo gitNode
 ```
 
-```
-┌──────────────────────────────┐    ┌──────────────────────────────┐
-│   Git over HTTP (Smart)      │    │    Git over SSH (:2222)      │
-│                              │    │                              │
-│  GET /info/refs ─────────────┼──► │  SSH connection              │
-│  POST /git-upload-pack ──────┼──► │       │                      │
-│  (clone/fetch)               │    │       ▼                      │
-│                              │    │  MD5 fingerprint lookup      │
-│  POST /git-receive-pack ─────┼──► │       │                      │
-│  (push)                      │    │       ▼                      │
-└──────────────────────────────┘    │  git-upload-pack /           │
-                                    │  git-receive-pack dispatch   │
-                                    └──────────────────────────────┘
-                                                  │
-                          ┌───────────────────────┴──────────────────┐
-                          │                                          │
-                          ▼                                          ▼
-             ┌────────────────────────┐             ┌────────────────────────┐
-             │  CanRead()             │             │  CanWrite()            │
-             │  public / reader /     │             │  owner / writer /      │
-             │  writer / admin / owner│             │  admin                 │
-             └────────────┬───────────┘             └────────────┬───────────┘
-                          │                                      │
-                          └──────────────┬───────────────────────┘
-                                         ▼
-                              ┌─────────────────────┐
-                              │  Bare Repo on disk  │
-                              │    (ReposRoot)      │
-                              └─────────────────────┘
-```
-
 ### Permission Model
 
 ```mermaid
-graph LR
+graph TD
     subgraph Instance["Instance Level"]
         SA["superadmin"]
         U["user"]
@@ -308,20 +199,15 @@ graph LR
     end
 
     subgraph Repo["Repository Level"]
-        RO["repo owner"]
-        Admin["collaborator: admin"]
-        Writer["collaborator: writer"]
-        Reader["collaborator: reader"]
+        RO["repo owner\n● full control"]
+        Admin["collab: admin\n● read + push"]
+        Writer["collab: writer\n● read + push"]
+        Reader["collab: reader\n● read only"]
     end
 
-    SA -->|"manages"| Instance
     SA -->|"creates"| OO
-    OO -->|"manages members,\ncreates repos"| Org
-    RO -->|"full control"| Repo
-    Admin -->|"read + push"| Repo
-    Writer -->|"read + push"| Repo
-    Reader -->|"read only"| Repo
-    OO -->|"read + push +\nmanage (org repos)"| Repo
+    OO -->|"adds"| OM
+    OO -.->|"read + push + manage\non org repos"| RO
 
     classDef instanceLevel fill:#E67E22,stroke:#CA6F1E,color:#fff
     classDef orgLevel fill:#4A90D9,stroke:#2C5F8A,color:#fff
@@ -330,22 +216,6 @@ graph LR
     class SA,U instanceLevel
     class OO,OM orgLevel
     class RO,Admin,Writer,Reader repoLevel
-```
-
-```
-INSTANCE LEVEL          ORG LEVEL              REPOSITORY LEVEL
-──────────────          ─────────              ────────────────
-┌────────────┐          ┌──────────┐           ┌──────────────────┐
-│ superadmin │─creates─►│org owner │─manages──►│   repo owner     │ full control
-└─────┬──────┘          │          │           │                  │
-      │manages          └──────────┘           │ collab: admin    │ read + push
-      │                 ┌──────────┐           │                  │
-      ▼                 │org member│           │ collab: writer   │ read + push
-┌────────────┐          └──────────┘           │                  │
-│    user    │                                 │ collab: reader   │ read only
-└────────────┘                                 └──────────────────┘
-                             │ org owner also has read + push + manage on org repos
-                             └─────────────────────────────────────────────────────►
 ```
 
 ---
@@ -420,6 +290,7 @@ make docker-down        # Stop and remove containers
 ```bash
 go mod tidy
 make setup-tailwind     # One-time: download Tailwind CLI
+make download-mermaid   # One-time: download mermaid.min.js (auto-runs in make dev/build)
 ```
 
 ### 2. Configure
@@ -1010,21 +881,22 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 
 ## Make Targets
 
-| Target                | Description                                                   |
-| --------------------- | ------------------------------------------------------------- |
-| `make setup-tailwind` | Download Tailwind CLI (one-time)                              |
-| `make build-css`      | Compile Tailwind CSS to `cmd/server/frontend/static/main.css` |
-| `make dev`            | Run backend + Tailwind watch concurrently                     |
-| `make build`          | Build Go binaries (with embedded CSS)                         |
-| `make build-backend`  | Compile server binary to `dist/cloudzilla`                    |
-| `make build-cli`      | Compile CLI binary to `dist/cloudzilla-cli`                   |
-| `make migrate`        | Run DB migrations                                             |
-| `make lint`           | Run golangci-lint                                             |
-| `make test`           | Run Go tests                                                  |
-| `make clean`          | Remove build artifacts and database files                     |
-| `make docker-build`   | Build Docker image (`cloudzilla:latest`)                      |
-| `make docker-run`     | Start with docker compose (detached)                          |
-| `make docker-down`    | Stop and remove containers                                    |
+| Target                  | Description                                                   |
+| ----------------------- | ------------------------------------------------------------- |
+| `make setup-tailwind`   | Download Tailwind CLI (one-time)                              |
+| `make download-mermaid` | Download mermaid.min.js (one-time; auto-runs in build/dev)    |
+| `make build-css`        | Compile Tailwind CSS to `cmd/server/frontend/static/main.css` |
+| `make dev`              | Run backend + Tailwind watch concurrently                     |
+| `make build`            | Build Go binaries (with embedded CSS)                         |
+| `make build-backend`    | Compile server binary to `dist/cloudzilla`                    |
+| `make build-cli`        | Compile CLI binary to `dist/cloudzilla-cli`                   |
+| `make migrate`          | Run DB migrations                                             |
+| `make lint`             | Run golangci-lint                                             |
+| `make test`             | Run Go tests                                                  |
+| `make clean`            | Remove build artifacts and database files                     |
+| `make docker-build`     | Build Docker image (`cloudzilla:latest`)                      |
+| `make docker-run`       | Start with docker compose (detached)                          |
+| `make docker-down`      | Stop and remove containers                                    |
 
 ---
 
