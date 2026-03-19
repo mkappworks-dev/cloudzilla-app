@@ -1,0 +1,32 @@
+{{define "fragment-star-button"}}
+<div id="star-button" class="flex items-center gap-1">
+  {{if .LoggedIn}}
+    {{if .IsStarred}}
+    <button
+      hx-delete="/api/repos/{{.Owner}}/{{.RepoName}}/star"
+      hx-target="#star-button"
+      hx-swap="outerHTML"
+      class="inline-flex items-center gap-1 px-3 py-1.5 border border-yellow-400 bg-yellow-50 text-yellow-700 rounded text-sm font-medium hover:bg-yellow-100 transition-colors">
+      &#9733; Starred
+    </button>
+    {{else}}
+    <button
+      hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/star"
+      hx-target="#star-button"
+      hx-swap="outerHTML"
+      class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
+      &#9734; Star
+    </button>
+    {{end}}
+  {{else}}
+  <a href="/login"
+     class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
+    &#9734; Star
+  </a>
+  {{end}}
+  <a href="/{{.Owner}}/{{.RepoName}}/stargazers"
+     class="px-2 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm hover:bg-gray-50 transition-colors">
+    {{.Count}}
+  </a>
+</div>
+{{end}}
