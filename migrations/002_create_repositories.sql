@@ -1,12 +1,12 @@
 CREATE TABLE IF NOT EXISTS repositories (
-    id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    owner_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    owner_id       BIGINT  NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name           TEXT    NOT NULL,
     description    TEXT    NOT NULL DEFAULT '',
-    private        BOOLEAN NOT NULL DEFAULT 0,
+    private        BOOLEAN NOT NULL DEFAULT FALSE,
     default_branch TEXT    NOT NULL DEFAULT 'main',
-    created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(owner_id, name)
 );
 

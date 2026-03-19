@@ -3,5 +3,5 @@ CREATE TABLE IF NOT EXISTS site_settings (
     value TEXT NOT NULL
 );
 
-INSERT OR IGNORE INTO site_settings (key, value) VALUES ('allow_registration', 'true');
-INSERT OR IGNORE INTO site_settings (key, value) VALUES ('allow_login', 'true');
+INSERT INTO site_settings (key, value) VALUES ('allow_registration', 'true') ON CONFLICT DO NOTHING;
+INSERT INTO site_settings (key, value) VALUES ('allow_login', 'true') ON CONFLICT DO NOTHING;

@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS invitations (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     token         TEXT    NOT NULL UNIQUE,
     email         TEXT    NOT NULL,
-    invited_by_id INTEGER NOT NULL REFERENCES users(id),
-    expires_at    DATETIME NOT NULL,
-    accepted_at   DATETIME,
-    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    invited_by_id BIGINT  NOT NULL REFERENCES users(id),
+    expires_at    TIMESTAMPTZ NOT NULL,
+    accepted_at   TIMESTAMPTZ,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE users ADD COLUMN is_invited BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_invited BOOLEAN NOT NULL DEFAULT FALSE;
