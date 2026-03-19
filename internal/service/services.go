@@ -18,6 +18,9 @@ type Services struct {
 	Notification *NotificationService
 	SiteSetting  *SiteSettingService
 	Invitation   *InvitationService
+	Label        *LabelService
+	Assignee     *AssigneeService
+	Star         *StarService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -34,5 +37,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Notification: NewNotificationService(stores.Notification),
 		SiteSetting:  NewSiteSettingService(stores.SiteSetting, stores.User),
 		Invitation:   NewInvitationService(stores.Invitation),
+		Label:        NewLabelService(stores.Label, stores.Repo, stores.Issue, stores.Pull),
+		Assignee:     NewAssigneeService(stores.Assignee, stores.Repo, stores.Issue, stores.Pull, stores.User),
+		Star:         NewStarService(stores.Star, stores.Repo, stores.User),
 	}
 }
