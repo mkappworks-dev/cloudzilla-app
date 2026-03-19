@@ -1,0 +1,31 @@
+{{define "title"}}Stargazers · {{.Owner}}/{{.RepoName}}{{end}}
+
+{{define "content"}}
+<div class="space-y-6">
+  <div class="mb-2">
+    <a href="/{{.Owner}}/{{.RepoName}}" class="text-blue-600 hover:underline text-sm">&larr; Back to {{.Owner}}/{{.RepoName}}</a>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <h1 class="text-2xl font-bold">
+      <a href="/{{.Owner}}/{{.RepoName}}" class="text-blue-600 hover:underline">{{.Owner}}/{{.RepoName}}</a>
+    </h1>
+    <span class="text-gray-500">&#9733; {{.StarCount}} {{if eq .StarCount 1}}star{{else}}stars{{end}}</span>
+  </div>
+
+  {{if .Stargazers}}
+  <div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+    {{range .Stargazers}}
+    <div class="px-4 py-3 flex items-center gap-3">
+      <a href="/{{.Username}}" class="font-medium text-blue-600 hover:underline">{{.Username}}</a>
+      {{if .Bio}}<span class="text-sm text-gray-500">{{.Bio}}</span>{{end}}
+    </div>
+    {{end}}
+  </div>
+  {{else}}
+  <div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
+    <p class="text-gray-500">No stargazers yet. Be the first to star this repository!</p>
+  </div>
+  {{end}}
+</div>
+{{end}}
