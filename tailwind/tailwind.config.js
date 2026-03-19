@@ -10,7 +10,18 @@ module.exports = {
         "forge-dark":   "#24292f",
         "forge-border": "#d0d7de",
         "forge-bg":     "#f6f8fa",
-      }
+      },
+      typography: {
+        DEFAULT: {
+          css: {
+            'code::before': { content: '""' },
+            'code::after':  { content: '""' },
+          },
+        },
+      },
     }
-  }
+  },
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
 }
