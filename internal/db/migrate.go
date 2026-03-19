@@ -21,7 +21,7 @@ func runMigrations(db *sql.DB, migFS embed.FS) error {
 	// Create migrations table
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
 		version TEXT PRIMARY KEY,
-		applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		applied_at TIMESTAMPTZ DEFAULT NOW()
 	)`)
 	if err != nil {
 		return fmt.Errorf("create migrations table: %w", err)
@@ -79,7 +79,7 @@ func runMigrations(db *sql.DB, migFS embed.FS) error {
 			return fmt.Errorf("apply migration %s: %w", f, err)
 		}
 
-		if _, err := db.Exec("INSERT INTO schema_migrations (version) VALUES (?)", version); err != nil {
+		if _, err := db.Exec("INSERT INTO schema_migrations (version) VALUES ($1)", version); err != nil {
 			return fmt.Errorf("record migration %s: %w", f, err)
 		}
 
