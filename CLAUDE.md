@@ -6,7 +6,7 @@
 
 - **Backend**: Go 1.23+, chi router, sqlx, go-git, cobra CLI
 - **Frontend**: Go `html/template`, HTMX for partial updates, Tailwind CSS
-- **DB**: SQLite (default), PostgreSQL (production)
+- **DB**: PostgreSQL (default and production)
 - **Pattern**: Stores → Services → Handlers (strict layer separation)
 - **Rendering**: Server-driven; no JavaScript framework, no build tooling needed
 - **Git Transport**: HTTP smart protocol + SSH server (both via pure Go, no git binary required)
@@ -294,12 +294,13 @@ Templates are parsed at startup in `router.mustParseTemplates()`:
 
 This pattern avoids Go template's global `define` namespace issue.
 
-## SQLite Notes
+## PostgreSQL Notes
 
-- WAL mode enabled at startup
-- Foreign keys enforced (`PRAGMA foreign_keys=ON`)
-- Use `?` placeholders (not `$1`)
-- For PostgreSQL migration: change driver in config.yaml, use `$N` placeholders
+- Use `$N` numbered placeholders (not `?`)
+- Use `BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY` (not `INTEGER PRIMARY KEY AUTOINCREMENT`)
+- Use `TIMESTAMPTZ NOT NULL DEFAULT NOW()` (not `DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`)
+- Use `INSERT INTO ... ON CONFLICT DO NOTHING` (not `INSERT OR IGNORE INTO`)
+- `LastInsertId()` is not supported — use `RETURNING id` with `QueryRowContext().Scan()`
 
 ## Git Repository Permissions
 
@@ -406,14 +407,14 @@ All mutable state lives under `/data` inside the container, mounted as a named D
 
 | What             | Path                        |
 | ---------------- | --------------------------- |
-| SQLite database  | `/data/cloudzilla.db`       |
 | Git repositories | `/data/git-repos/`          |
 | SSH host key     | `/data/cloudzilla_host_key` |
 
 ### Key environment variables (Viper `CZ_` prefix)
 
 ```
-CZ_DATABASE_DSN=/data/cloudzilla.db
+CZ_DATABASE_DRIVER=postgres
+CZ_DATABASE_DSN=postgres://cloudzilla:cloudzilla@postgres:5432/cloudzilla?sslmode=disable
 CZ_GIT_REPOS_ROOT=/data/git-repos
 CZ_GIT_SSH_HOST_KEY=/data/cloudzilla_host_key
 CZ_AUTH_JWT_SECRET=<strong secret>
