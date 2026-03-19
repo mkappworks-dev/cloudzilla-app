@@ -176,8 +176,10 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 	cloneSSH := fmt.Sprintf("ssh://git@%s:%d/%s/%s.git", host, h.Cfg.Git.SSHPort, owner, repoName)
 
 	canWrite := false
+	var currentUserID int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		currentUserID = claims.UserID
 	}
 
 	var readmeHTML template.HTML
@@ -189,6 +191,12 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	starCount, _ := h.Services.Star.GetStarCount(r.Context(), repo.ID)
+	isStarred := false
+	if currentUserID != 0 {
+		isStarred, _ = h.Services.Star.IsStarred(r.Context(), repo.ID, currentUserID)
+	}
+
 	h.render(w, "repo", RepoData{
 		BasePage:   basePage(r, h.Services),
 		Repo:       *repo,
@@ -198,6 +206,8 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		CloneSSH:   cloneSSH,
 		CanWrite:   canWrite,
 		ReadmeHTML: readmeHTML,
+		StarCount:  starCount,
+		IsStarred:  isStarred,
 	})
 }
 
@@ -231,6 +241,11 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		collabs = []model.Permission{}
 	}
 
+	labels, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if labels == nil {
+		labels = []model.Label{}
+	}
+
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	// Transfer is only for personal repo owners (not org repos)
 	canTransfer := repo.OwnerID == claims.UserID && repo.OrgID == 0
@@ -242,6 +257,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		RepoName:    repoName,
 		Webhooks:    webhooks,
 		Collabs:     collabs,
+		Labels:      labels,
 		CanManage:   canManage,
 		CanTransfer: canTransfer,
 	})
@@ -265,12 +281,18 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		issues = []model.Issue{}
 	}
 
+	issueLabels, _ := h.Services.Label.BatchForIssues(r.Context(), issues)
+	if issueLabels == nil {
+		issueLabels = map[int64][]model.Label{}
+	}
+
 	h.render(w, "issues", IssuesData{
-		BasePage: basePage(r, h.Services),
-		Repo:     *repo,
-		Issues:   issues,
-		Owner:    owner,
-		RepoName: repoName,
+		BasePage:    basePage(r, h.Services),
+		Repo:        *repo,
+		Issues:      issues,
+		Owner:       owner,
+		RepoName:    repoName,
+		IssueLabels: issueLabels,
 	})
 }
 
@@ -300,14 +322,36 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		rendered[i] = RenderedComment{Comment: c, BodyHTML: markdown.Render(c.Body)}
 	}
 
+	issueLabels, _ := h.Services.Label.GetForIssue(r.Context(), issue.ID)
+	if issueLabels == nil {
+		issueLabels = []model.Label{}
+	}
+	allLabels, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if allLabels == nil {
+		allLabels = []model.Label{}
+	}
+	issueAssignees, _ := h.Services.Assignee.GetForIssue(r.Context(), issue.ID)
+	if issueAssignees == nil {
+		issueAssignees = []model.User{}
+	}
+
+	canWrite := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	}
+
 	h.render(w, "issue_detail", IssueDetailData{
-		BasePage: basePage(r, h.Services),
-		Repo:     *repo,
-		Issue:    *issue,
-		Comments: rendered,
-		Owner:    owner,
-		RepoName: repoName,
-		BodyHTML: markdown.Render(issue.Body),
+		BasePage:  basePage(r, h.Services),
+		Repo:      *repo,
+		Issue:     *issue,
+		Comments:  rendered,
+		Owner:     owner,
+		RepoName:  repoName,
+		BodyHTML:  markdown.Render(issue.Body),
+		Labels:    issueLabels,
+		Assignees: issueAssignees,
+		AllLabels: allLabels,
+		CanWrite:  canWrite,
 	})
 }
 
@@ -329,12 +373,18 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		pulls = []model.PullRequest{}
 	}
 
+	pullLabels, _ := h.Services.Label.BatchForPulls(r.Context(), pulls)
+	if pullLabels == nil {
+		pullLabels = map[int64][]model.Label{}
+	}
+
 	h.render(w, "pulls", PullsData{
-		BasePage: basePage(r, h.Services),
-		Repo:     *repo,
-		Pulls:    pulls,
-		Owner:    owner,
-		RepoName: repoName,
+		BasePage:   basePage(r, h.Services),
+		Repo:       *repo,
+		Pulls:      pulls,
+		Owner:      owner,
+		RepoName:   repoName,
+		PullLabels: pullLabels,
 	})
 }
 
@@ -362,14 +412,36 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	pullLabels2, _ := h.Services.Label.GetForPull(r.Context(), pull.ID)
+	if pullLabels2 == nil {
+		pullLabels2 = []model.Label{}
+	}
+	allLabels2, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if allLabels2 == nil {
+		allLabels2 = []model.Label{}
+	}
+	pullAssignees, _ := h.Services.Assignee.GetForPull(r.Context(), pull.ID)
+	if pullAssignees == nil {
+		pullAssignees = []model.User{}
+	}
+
+	canWrite2 := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		canWrite2 = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	}
+
 	h.render(w, "pull_detail", PullDetailData{
-		BasePage: basePage(r, h.Services),
-		Repo:     *repo,
-		Pull:     *pull,
-		Owner:    owner,
-		RepoName: repoName,
-		Diff:     diff,
-		BodyHTML: markdown.Render(pull.Body),
+		BasePage:  basePage(r, h.Services),
+		Repo:      *repo,
+		Pull:      *pull,
+		Owner:     owner,
+		RepoName:  repoName,
+		Diff:      diff,
+		BodyHTML:  markdown.Render(pull.Body),
+		Labels:    pullLabels2,
+		Assignees: pullAssignees,
+		AllLabels: allLabels2,
+		CanWrite:  canWrite2,
 	})
 }
 

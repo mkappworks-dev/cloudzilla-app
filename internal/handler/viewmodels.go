@@ -67,6 +67,8 @@ type RepoData struct {
 	CloneSSH   string
 	CanWrite   bool
 	ReadmeHTML template.HTML
+	StarCount  int
+	IsStarred  bool
 }
 
 type RepoSettingsData struct {
@@ -76,6 +78,7 @@ type RepoSettingsData struct {
 	RepoName    string
 	Webhooks    []model.Webhook
 	Collabs     []model.Permission
+	Labels      []model.Label
 	CanManage   bool
 	CanTransfer bool
 }
@@ -90,38 +93,48 @@ type WebhooksFragData struct {
 
 type IssuesData struct {
 	BasePage
-	Repo     model.Repository
-	Issues   []model.Issue
-	Owner    string
-	RepoName string
+	Repo        model.Repository
+	Issues      []model.Issue
+	Owner       string
+	RepoName    string
+	IssueLabels map[int64][]model.Label
 }
 
 type IssueDetailData struct {
 	BasePage
-	Repo     model.Repository
-	Issue    model.Issue
-	Comments []RenderedComment
-	Owner    string
-	RepoName string
-	BodyHTML template.HTML
+	Repo      model.Repository
+	Issue     model.Issue
+	Comments  []RenderedComment
+	Owner     string
+	RepoName  string
+	BodyHTML  template.HTML
+	Labels    []model.Label
+	Assignees []model.User
+	AllLabels []model.Label
+	CanWrite  bool
 }
 
 type PullsData struct {
 	BasePage
-	Repo     model.Repository
-	Pulls    []model.PullRequest
-	Owner    string
-	RepoName string
+	Repo       model.Repository
+	Pulls      []model.PullRequest
+	Owner      string
+	RepoName   string
+	PullLabels map[int64][]model.Label
 }
 
 type PullDetailData struct {
 	BasePage
-	Repo     model.Repository
-	Pull     model.PullRequest
-	Owner    string
-	RepoName string
-	Diff     *service.PRDiffResult
-	BodyHTML template.HTML
+	Repo      model.Repository
+	Pull      model.PullRequest
+	Owner     string
+	RepoName  string
+	Diff      *service.PRDiffResult
+	BodyHTML  template.HTML
+	Labels    []model.Label
+	Assignees []model.User
+	AllLabels []model.Label
+	CanWrite  bool
 }
 
 type SettingsData struct {
@@ -276,4 +289,76 @@ type RepoCollaboratorsFragData struct {
 	RepoID   int64
 	Collabs  []model.Permission
 	CanWrite bool
+}
+
+// Label sidebar fragments
+type IssueLabelSidebarData struct {
+	Owner       string
+	RepoName    string
+	IssueNumber int
+	Labels      []model.Label
+	AllLabels   []model.Label
+	CanWrite    bool
+}
+
+type PullLabelSidebarData struct {
+	Owner      string
+	RepoName   string
+	PullNumber int
+	Labels     []model.Label
+	AllLabels  []model.Label
+	CanWrite   bool
+}
+
+// Assignee sidebar fragments
+type IssueAssigneeSidebarData struct {
+	Owner       string
+	RepoName    string
+	IssueNumber int
+	Assignees   []model.User
+	CanWrite    bool
+}
+
+type PullAssigneeSidebarData struct {
+	Owner      string
+	RepoName   string
+	PullNumber int
+	Assignees  []model.User
+	CanWrite   bool
+}
+
+// Repo labels management (settings page)
+type RepoLabelsFragData struct {
+	Owner    string
+	RepoName string
+	RepoID   int64
+	Labels   []model.Label
+	CanWrite bool
+}
+
+// Star button fragment
+type StarButtonData struct {
+	Owner     string
+	RepoName  string
+	RepoID    int64
+	Count     int
+	IsStarred bool
+	LoggedIn  bool
+}
+
+// Stargazers page
+type StargazersData struct {
+	BasePage
+	Repo       model.Repository
+	Owner      string
+	RepoName   string
+	Stargazers []model.User
+	StarCount  int
+}
+
+// User starred repos page
+type UserStarsData struct {
+	BasePage
+	ProfileUser model.User
+	Repos       []model.Repository
 }

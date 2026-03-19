@@ -11,13 +11,22 @@
   {{if .Pulls}}
   <div class="space-y-3">
     {{range .Pulls}}
-    <a href="/{{.Owner}}/{{.RepoName}}/pulls/{{.Number}}" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+    <a href="/{{$.Owner}}/{{$.RepoName}}/pulls/{{.Number}}" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
       <div class="flex justify-between items-start">
-        <div>
+        <div class="min-w-0 flex-1">
           <h3 class="text-lg font-semibold">{{.Title}}</h3>
           <p class="text-gray-600 text-sm mt-1">#{{.Number}} by {{.AuthorName}} · {{.HeadBranch}} &rarr; {{.BaseBranch}}</p>
+          {{$labels := index $.PullLabels .ID}}
+          {{if $labels}}
+          <div class="flex flex-wrap gap-1 mt-2">
+            {{range $labels}}
+            <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                  style="background-color: {{.Color}}">{{.Name}}</span>
+            {{end}}
+          </div>
+          {{end}}
         </div>
-        <span class="px-2 py-1 rounded-full text-xs font-medium
+        <span class="px-2 py-1 rounded-full text-xs font-medium ml-3 shrink-0
           {{if eq .State "open"}}bg-green-100 text-green-700
           {{else if eq .State "merged"}}bg-purple-100 text-purple-700
           {{else}}bg-red-100 text-red-700{{end}}">

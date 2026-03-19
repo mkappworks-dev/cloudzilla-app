@@ -23,6 +23,7 @@ func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *templat
 		"tree", "blob", "blame", "commits", "commit", "refs",
 		"org", "org_settings", "repo_settings", "notifications",
 		"setup", "admin_settings", "invite",
+		"stargazers", "user_stars",
 	}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
@@ -72,6 +73,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Get("/orgs/{org}/settings", h.PageOrgSettings)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
+	r.With(optAuthMW).Get("/{owner}/{repo}/stargazers", h.PageStargazers)
+	r.With(optAuthMW).Get("/{owner}/stars", h.PageUserStars)
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues", h.PageIssues)
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues/{number}", h.PageIssueDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls", h.PagePulls)
@@ -131,6 +134,32 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Post("/{number}/comments", h.CreateIssueComment)
 			r.With(authMW).Delete("/{number}/comments/{commentID}", h.DeleteComment)
 		})
+
+		// Labels
+		r.Route("/{owner}/{repo}/labels", func(r chi.Router) {
+			r.Get("/", h.ListLabels)
+			r.With(authMW).Post("/", h.CreateLabel)
+			r.With(authMW).Delete("/{id}", h.DeleteLabel)
+		})
+
+		// Issue labels
+		r.With(authMW).Post("/{owner}/{repo}/issues/{number}/labels/{labelID}", h.AddIssueLabel)
+		r.With(authMW).Delete("/{owner}/{repo}/issues/{number}/labels/{labelID}", h.RemoveIssueLabel)
+
+		// Pull request labels
+		r.With(authMW).Post("/{owner}/{repo}/pulls/{number}/labels/{labelID}", h.AddPullLabel)
+		r.With(authMW).Delete("/{owner}/{repo}/pulls/{number}/labels/{labelID}", h.RemovePullLabel)
+
+		// Assignees
+		r.With(authMW).Post("/{owner}/{repo}/issues/{number}/assignees", h.AddIssueAssignee)
+		r.With(authMW).Delete("/{owner}/{repo}/issues/{number}/assignees", h.RemoveIssueAssignee)
+		r.With(authMW).Post("/{owner}/{repo}/pulls/{number}/assignees", h.AddPullAssignee)
+		r.With(authMW).Delete("/{owner}/{repo}/pulls/{number}/assignees", h.RemovePullAssignee)
+
+		// Stars
+		r.With(authMW).Post("/{owner}/{repo}/star", h.StarRepo)
+		r.With(authMW).Delete("/{owner}/{repo}/star", h.UnstarRepo)
+		r.With(optAuthMW).Get("/{owner}/{repo}/stargazers", h.ListStargazers)
 
 		// Branches and tags
 		r.With(authMW).Post("/{owner}/{repo}/branches", h.CreateBranch)

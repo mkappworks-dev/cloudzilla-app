@@ -10,9 +10,41 @@
         </h1>
         {{if .Repo.Description}}<p class="text-gray-600 mt-2">{{.Repo.Description}}</p>{{end}}
       </div>
-      <span class="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-        {{if .Repo.Private}}Private{{else}}Public{{end}}
-      </span>
+      <div class="flex items-center gap-3">
+        <span class="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+          {{if .Repo.Private}}Private{{else}}Public{{end}}
+        </span>
+        <div id="star-button" class="flex items-center gap-1">
+          {{if .BasePage.CurrentUser}}
+            {{if .IsStarred}}
+            <button
+              hx-delete="/api/repos/{{.Owner}}/{{.RepoName}}/star"
+              hx-target="#star-button"
+              hx-swap="outerHTML"
+              class="inline-flex items-center gap-1 px-3 py-1.5 border border-yellow-400 bg-yellow-50 text-yellow-700 rounded text-sm font-medium hover:bg-yellow-100 transition-colors">
+              &#9733; Starred
+            </button>
+            {{else}}
+            <button
+              hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/star"
+              hx-target="#star-button"
+              hx-swap="outerHTML"
+              class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
+              &#9734; Star
+            </button>
+            {{end}}
+          {{else}}
+          <a href="/login"
+             class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
+            &#9734; Star
+          </a>
+          {{end}}
+          <a href="/{{.Owner}}/{{.RepoName}}/stargazers"
+             class="px-2 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm hover:bg-gray-50 transition-colors">
+            {{.StarCount}}
+          </a>
+        </div>
+      </div>
     </div>
     <div class="text-sm text-gray-500">
       <p>Default branch: <code class="bg-gray-100 px-2 py-1 rounded">{{.Repo.DefaultBranch}}</code></p>
