@@ -112,7 +112,19 @@
       <h3 class="text-lg font-semibold">Commits</h3>
       <p class="text-gray-500 text-sm mt-1">Browse commit history</p>
     </a>
-    <a href="/{{.Owner}}/{{.RepoName}}/refs" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all {{if .CanWrite}}col-span-1{{else}}col-span-2{{end}}">
+    <a href="/{{.Owner}}/{{.RepoName}}/milestones" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+      <h3 class="text-lg font-semibold">Milestones</h3>
+      <p class="text-gray-500 text-sm mt-1">Track progress with sprints</p>
+    </a>
+    <a href="/{{.Owner}}/{{.RepoName}}/releases" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+      <h3 class="text-lg font-semibold">Releases</h3>
+      {{if .LatestRelease}}
+      <p class="text-gray-500 text-sm mt-1">Latest: <span class="font-mono text-blue-600">{{.LatestRelease.TagName}}</span></p>
+      {{else}}
+      <p class="text-gray-500 text-sm mt-1">No releases yet</p>
+      {{end}}
+    </a>
+    <a href="/{{.Owner}}/{{.RepoName}}/refs" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
       <h3 class="text-lg font-semibold">Branches &amp; Tags</h3>
       <p class="text-gray-500 text-sm mt-1">Manage refs and create branches</p>
     </a>

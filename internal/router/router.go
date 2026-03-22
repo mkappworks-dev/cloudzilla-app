@@ -15,7 +15,16 @@ import (
 
 func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *template.Template) {
 	sub, _ := fs.Sub(frontend, "frontend/templates")
-	base := template.Must(template.ParseFS(sub, "layout.html"))
+	funcMap := template.FuncMap{
+		"add": func(a, b int) int { return a + b },
+		"percent": func(part, total int) int {
+			if total == 0 {
+				return 0
+			}
+			return part * 100 / total
+		},
+	}
+	base := template.Must(template.New("layout.html").Funcs(funcMap).ParseFS(sub, "layout.html"))
 
 	pageNames := []string{
 		"home", "login", "user", "repo", "issues",
@@ -24,6 +33,8 @@ func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *templat
 		"org", "org_settings", "repo_settings", "notifications",
 		"setup", "admin_settings", "invite",
 		"stargazers", "user_stars",
+		"releases", "release_detail",
+		"milestones",
 	}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
@@ -31,7 +42,7 @@ func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *templat
 		template.Must(clone.ParseFS(sub, "pages/"+name+".html"))
 		pages[name] = clone
 	}
-	frags := template.Must(template.New("frags").ParseFS(sub, "fragments/*.html"))
+	frags := template.Must(template.New("frags").Funcs(funcMap).ParseFS(sub, "fragments/*.html"))
 	return pages, frags
 }
 
@@ -73,8 +84,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Get("/orgs/{org}/settings", h.PageOrgSettings)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
+	r.With(optAuthMW).Get("/{owner}/{repo}/releases", h.PageReleases)
+	r.With(optAuthMW).Get("/{owner}/{repo}/releases/tag/{tagName}", h.PageReleaseDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/stargazers", h.PageStargazers)
 	r.With(optAuthMW).Get("/{owner}/stars", h.PageUserStars)
+	r.With(optAuthMW).Get("/{owner}/{repo}/milestones", h.PageMilestones)
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues", h.PageIssues)
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues/{number}", h.PageIssueDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls", h.PagePulls)
@@ -191,6 +205,34 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Post("/", h.AddCollaborator)
 			r.With(authMW).Delete("/", h.RemoveCollaborator)
 		})
+
+		// Releases — /releases/latest must be before /releases/{id}
+		r.Route("/{owner}/{repo}/releases", func(r chi.Router) {
+			r.Get("/", h.ListReleases)
+			r.With(authMW).Post("/", h.CreateRelease)
+			r.Get("/latest", h.GetLatestRelease)
+			r.Get("/{id}", h.GetRelease)
+			r.With(authMW).Patch("/{id}", h.UpdateRelease)
+			r.With(authMW).Delete("/{id}", h.DeleteRelease)
+		})
+
+		// Commit statuses
+		r.With(authMW).Post("/{owner}/{repo}/statuses/{sha}", h.CreateStatus)
+		r.Get("/{owner}/{repo}/statuses/{sha}", h.ListStatuses)
+		r.Get("/{owner}/{repo}/commits/{sha}/status", h.GetCombinedStatus)
+
+		// Milestones
+		r.Route("/{owner}/{repo}/milestones", func(r chi.Router) {
+			r.Get("/", h.ListMilestones)
+			r.With(authMW).Post("/", h.CreateMilestone)
+			r.Get("/{number}", h.GetMilestone)
+			r.With(authMW).Patch("/{number}", h.UpdateMilestone)
+			r.With(authMW).Delete("/{number}", h.DeleteMilestone)
+		})
+
+		// Milestone sidebar for issues and PRs
+		r.With(authMW).Post("/{owner}/{repo}/issues/{number}/milestone", h.SetIssueMilestone)
+		r.With(authMW).Post("/{owner}/{repo}/pulls/{number}/milestone", h.SetPullMilestone)
 
 		// Fork
 		r.With(authMW).Post("/{owner}/{repo}/fork", h.ForkRepo)

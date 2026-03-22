@@ -60,18 +60,40 @@ type OrgMembersFragData struct {
 
 type RepoData struct {
 	BasePage
-	Repo       model.Repository
-	Owner      string
-	RepoName   string
-	CloneHTTP  string
-	CloneSSH   string
-	CanWrite   bool
-	ReadmeHTML template.HTML
-	StarCount  int
-	IsStarred  bool
-	ForkCount  int
-	IsFork     bool
-	ForkOfPath string
+	Repo          model.Repository
+	Owner         string
+	RepoName      string
+	CloneHTTP     string
+	CloneSSH      string
+	CanWrite      bool
+	ReadmeHTML    template.HTML
+	StarCount     int
+	IsStarred     bool
+	ForkCount     int
+	IsFork        bool
+	ForkOfPath    string
+	LatestRelease *model.Release
+}
+
+// Releases page
+type ReleasesData struct {
+	BasePage
+	Repo     model.Repository
+	Owner    string
+	RepoName string
+	Releases []model.Release
+	CanWrite bool
+}
+
+// Release detail page
+type ReleaseDetailData struct {
+	BasePage
+	Repo     model.Repository
+	Owner    string
+	RepoName string
+	Release  model.Release
+	BodyHTML template.HTML
+	CanWrite bool
 }
 
 type RepoSettingsData struct {
@@ -96,48 +118,57 @@ type WebhooksFragData struct {
 
 type IssuesData struct {
 	BasePage
-	Repo        model.Repository
-	Issues      []model.Issue
-	Owner       string
-	RepoName    string
-	IssueLabels map[int64][]model.Label
+	Repo             model.Repository
+	Issues           []model.Issue
+	Owner            string
+	RepoName         string
+	IssueLabels      map[int64][]model.Label
+	AllMilestones    []model.Milestone
+	ActiveMilestone  *model.Milestone
 }
 
 type IssueDetailData struct {
 	BasePage
-	Repo      model.Repository
-	Issue     model.Issue
-	Comments  []RenderedComment
-	Owner     string
-	RepoName  string
-	BodyHTML  template.HTML
-	Labels    []model.Label
-	Assignees []model.User
-	AllLabels []model.Label
-	CanWrite  bool
+	Repo          model.Repository
+	Issue         model.Issue
+	Comments      []RenderedComment
+	Owner         string
+	RepoName      string
+	BodyHTML      template.HTML
+	Labels        []model.Label
+	Assignees     []model.User
+	AllLabels     []model.Label
+	Milestone     *model.Milestone
+	AllMilestones []model.Milestone
+	CanWrite      bool
 }
 
 type PullsData struct {
 	BasePage
-	Repo       model.Repository
-	Pulls      []model.PullRequest
-	Owner      string
-	RepoName   string
-	PullLabels map[int64][]model.Label
+	Repo            model.Repository
+	Pulls           []model.PullRequest
+	Owner           string
+	RepoName        string
+	PullLabels      map[int64][]model.Label
+	AllMilestones   []model.Milestone
+	ActiveMilestone *model.Milestone
 }
 
 type PullDetailData struct {
 	BasePage
-	Repo      model.Repository
-	Pull      model.PullRequest
-	Owner     string
-	RepoName  string
-	Diff      *service.PRDiffResult
-	BodyHTML  template.HTML
-	Labels    []model.Label
-	Assignees []model.User
-	AllLabels []model.Label
-	CanWrite  bool
+	Repo          model.Repository
+	Pull          model.PullRequest
+	Owner         string
+	RepoName      string
+	Diff          *service.PRDiffResult
+	BodyHTML      template.HTML
+	Labels        []model.Label
+	Assignees     []model.User
+	AllLabels     []model.Label
+	Milestone     *model.Milestone
+	AllMilestones []model.Milestone
+	CanWrite      bool
+	HeadStatuses  []model.CommitStatus
 }
 
 type SettingsData struct {
@@ -259,6 +290,7 @@ type CommitData struct {
 	Owner    string
 	RepoName string
 	Commit   *service.CommitDetail
+	Statuses []model.CommitStatus
 }
 
 type SetupData struct {
@@ -355,6 +387,37 @@ type StarButtonData struct {
 	Count     int
 	IsStarred bool
 	LoggedIn  bool
+}
+
+// Milestones page
+type MilestonesData struct {
+	BasePage
+	Repo             model.Repository
+	Owner            string
+	RepoName         string
+	OpenMilestones   []model.Milestone
+	ClosedMilestones []model.Milestone
+	CanWrite         bool
+}
+
+// Milestones list fragment (HTMX swap)
+type MilestonesListFragData struct {
+	Owner            string
+	RepoName         string
+	OpenMilestones   []model.Milestone
+	ClosedMilestones []model.Milestone
+	CanWrite         bool
+}
+
+// Milestone sidebar fragment for issue/PR detail pages
+type MilestoneSidebarFragData struct {
+	Owner         string
+	RepoName      string
+	ItemNumber    int
+	IsPull        bool
+	Current       *model.Milestone
+	AllMilestones []model.Milestone
+	CanWrite      bool
 }
 
 // Stargazers page

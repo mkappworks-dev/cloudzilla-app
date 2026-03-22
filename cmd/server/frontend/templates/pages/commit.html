@@ -33,6 +33,29 @@
     {{end}}
   </div>
 
+  <!-- Commit status checks -->
+  {{if .Statuses}}
+  <div class="bg-white border border-gray-200 rounded-lg p-4 space-y-2">
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">Checks</h3>
+    {{range .Statuses}}
+    <div class="flex items-center gap-3 text-sm">
+      {{if eq (printf "%s" .State) "success"}}
+      <span class="text-green-600">&#10003;</span>
+      {{else if eq (printf "%s" .State) "failure"}}
+      <span class="text-red-600">&#10007;</span>
+      {{else if eq (printf "%s" .State) "error"}}
+      <span class="text-red-600">&#9888;</span>
+      {{else}}
+      <span class="text-yellow-500">&#9679;</span>
+      {{end}}
+      <span class="font-medium text-gray-800">{{.Context}}</span>
+      {{if .Description}}<span class="text-gray-500">— {{.Description}}</span>{{end}}
+      {{if .TargetURL}}<a href="{{.TargetURL}}" class="text-blue-600 hover:underline ml-auto text-xs">Details</a>{{end}}
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
   <!-- Stats bar -->
   <div class="bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-600">
     {{len .Commit.Files}} files changed,

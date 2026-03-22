@@ -202,20 +202,23 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		forkOfPath = repo.ForkOfOwner + "/" + repo.ForkOfName
 	}
 
+	latestRelease, _ := h.Services.Release.GetLatest(r.Context(), owner, repoName)
+
 	h.render(w, "repo", RepoData{
-		BasePage:   basePage(r, h.Services),
-		Repo:       *repo,
-		Owner:      owner,
-		RepoName:   repoName,
-		CloneHTTP:  cloneHTTP,
-		CloneSSH:   cloneSSH,
-		CanWrite:   canWrite,
-		ReadmeHTML: readmeHTML,
-		StarCount:  starCount,
-		IsStarred:  isStarred,
-		ForkCount:  repo.ForkCount,
-		IsFork:     repo.IsFork,
-		ForkOfPath: forkOfPath,
+		BasePage:      basePage(r, h.Services),
+		Repo:          *repo,
+		Owner:         owner,
+		RepoName:      repoName,
+		CloneHTTP:     cloneHTTP,
+		CloneSSH:      cloneSSH,
+		CanWrite:      canWrite,
+		ReadmeHTML:    readmeHTML,
+		StarCount:     starCount,
+		IsStarred:     isStarred,
+		ForkCount:     repo.ForkCount,
+		IsFork:        repo.IsFork,
+		ForkOfPath:    forkOfPath,
+		LatestRelease: latestRelease,
 	})
 }
 
@@ -294,13 +297,19 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		issueLabels = map[int64][]model.Label{}
 	}
 
+	allMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	if allMilestones == nil {
+		allMilestones = []model.Milestone{}
+	}
+
 	h.render(w, "issues", IssuesData{
-		BasePage:    basePage(r, h.Services),
-		Repo:        *repo,
-		Issues:      issues,
-		Owner:       owner,
-		RepoName:    repoName,
-		IssueLabels: issueLabels,
+		BasePage:      basePage(r, h.Services),
+		Repo:          *repo,
+		Issues:        issues,
+		Owner:         owner,
+		RepoName:      repoName,
+		IssueLabels:   issueLabels,
+		AllMilestones: allMilestones,
 	})
 }
 
@@ -348,18 +357,26 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
+	issueMilestone, _ := h.Services.Milestone.GetForIssue(r.Context(), issue.ID)
+	allIssueMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	if allIssueMilestones == nil {
+		allIssueMilestones = []model.Milestone{}
+	}
+
 	h.render(w, "issue_detail", IssueDetailData{
-		BasePage:  basePage(r, h.Services),
-		Repo:      *repo,
-		Issue:     *issue,
-		Comments:  rendered,
-		Owner:     owner,
-		RepoName:  repoName,
-		BodyHTML:  markdown.Render(issue.Body),
-		Labels:    issueLabels,
-		Assignees: issueAssignees,
-		AllLabels: allLabels,
-		CanWrite:  canWrite,
+		BasePage:      basePage(r, h.Services),
+		Repo:          *repo,
+		Issue:         *issue,
+		Comments:      rendered,
+		Owner:         owner,
+		RepoName:      repoName,
+		BodyHTML:      markdown.Render(issue.Body),
+		Labels:        issueLabels,
+		Assignees:     issueAssignees,
+		AllLabels:     allLabels,
+		Milestone:     issueMilestone,
+		AllMilestones: allIssueMilestones,
+		CanWrite:      canWrite,
 	})
 }
 
@@ -386,13 +403,19 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		pullLabels = map[int64][]model.Label{}
 	}
 
+	allPullMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	if allPullMilestones == nil {
+		allPullMilestones = []model.Milestone{}
+	}
+
 	h.render(w, "pulls", PullsData{
-		BasePage:   basePage(r, h.Services),
-		Repo:       *repo,
-		Pulls:      pulls,
-		Owner:      owner,
-		RepoName:   repoName,
-		PullLabels: pullLabels,
+		BasePage:      basePage(r, h.Services),
+		Repo:          *repo,
+		Pulls:         pulls,
+		Owner:         owner,
+		RepoName:      repoName,
+		PullLabels:    pullLabels,
+		AllMilestones: allPullMilestones,
 	})
 }
 
@@ -438,18 +461,35 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		canWrite2 = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
+	var headStatuses []model.CommitStatus
+	if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); err == nil {
+		headStatuses, _ = h.Services.CommitStatus.List(r.Context(), owner, repoName, headCommit.Hash.String())
+	}
+	if headStatuses == nil {
+		headStatuses = []model.CommitStatus{}
+	}
+
+	pullMilestone, _ := h.Services.Milestone.GetForPull(r.Context(), pull.ID)
+	allPullDetailMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	if allPullDetailMilestones == nil {
+		allPullDetailMilestones = []model.Milestone{}
+	}
+
 	h.render(w, "pull_detail", PullDetailData{
-		BasePage:  basePage(r, h.Services),
-		Repo:      *repo,
-		Pull:      *pull,
-		Owner:     owner,
-		RepoName:  repoName,
-		Diff:      diff,
-		BodyHTML:  markdown.Render(pull.Body),
-		Labels:    pullLabels2,
-		Assignees: pullAssignees,
-		AllLabels: allLabels2,
-		CanWrite:  canWrite2,
+		BasePage:      basePage(r, h.Services),
+		Repo:          *repo,
+		Pull:          *pull,
+		Owner:         owner,
+		RepoName:      repoName,
+		Diff:          diff,
+		BodyHTML:      markdown.Render(pull.Body),
+		Labels:        pullLabels2,
+		Assignees:     pullAssignees,
+		AllLabels:     allLabels2,
+		Milestone:     pullMilestone,
+		AllMilestones: allPullDetailMilestones,
+		CanWrite:      canWrite2,
+		HeadStatuses:  headStatuses,
 	})
 }
 
@@ -660,12 +700,18 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	statuses, _ := h.Services.CommitStatus.List(r.Context(), owner, repoName, sha)
+	if statuses == nil {
+		statuses = []model.CommitStatus{}
+	}
+
 	h.render(w, "commit", CommitData{
 		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
 		Commit:   commit,
+		Statuses: statuses,
 	})
 }
 

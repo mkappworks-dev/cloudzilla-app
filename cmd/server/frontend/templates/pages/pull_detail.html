@@ -39,6 +39,28 @@
           {{.BodyHTML}}
         </div>
 
+        {{if .HeadStatuses}}
+        <div class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded space-y-1">
+          <p class="text-xs font-semibold text-gray-600 mb-2">Checks on {{.Pull.HeadBranch}}</p>
+          {{range .HeadStatuses}}
+          <div class="flex items-center gap-2 text-sm">
+            {{if eq (printf "%s" .State) "success"}}
+            <span class="text-green-600">&#10003;</span>
+            {{else if eq (printf "%s" .State) "failure"}}
+            <span class="text-red-600">&#10007;</span>
+            {{else if eq (printf "%s" .State) "error"}}
+            <span class="text-red-600">&#9888;</span>
+            {{else}}
+            <span class="text-yellow-500">&#9679;</span>
+            {{end}}
+            <span class="font-medium text-gray-800">{{.Context}}</span>
+            {{if .Description}}<span class="text-gray-500">— {{.Description}}</span>{{end}}
+            {{if .TargetURL}}<a href="{{.TargetURL}}" class="text-blue-600 hover:underline ml-auto text-xs">Details</a>{{end}}
+          </div>
+          {{end}}
+        </div>
+        {{end}}
+
         {{if eq .Pull.State "open"}}
         <div class="flex flex-wrap gap-2 items-center mt-4">
           {{if .Diff}}
@@ -164,6 +186,54 @@
                 {{.Name}}
               </button>
               {{end}}
+            </div>
+          </details>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div id="issue-milestone">
+          <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Milestone</h3>
+          {{if .Milestone}}
+          <div class="text-sm">
+            <a href="/{{.Owner}}/{{.RepoName}}/milestones" class="font-medium text-gray-800 hover:underline">{{.Milestone.Title}}</a>
+            {{$total := add .Milestone.OpenCount .Milestone.ClosedCount}}
+            {{if gt $total 0}}
+            <div class="mt-1">
+              <div class="w-full bg-gray-200 rounded-full h-1">
+                <div class="bg-green-500 h-1 rounded-full" style="width: {{percent .Milestone.ClosedCount $total}}%"></div>
+              </div>
+              <p class="text-xs text-gray-400 mt-0.5">{{.Milestone.ClosedCount}}/{{$total}} closed</p>
+            </div>
+            {{end}}
+          </div>
+          {{else}}
+          <span class="text-xs text-gray-400">No milestone</span>
+          {{end}}
+          {{if and .CanWrite .AllMilestones}}
+          <details class="mt-2">
+            <summary class="text-xs text-blue-600 cursor-pointer hover:underline">
+              {{if .Milestone}}Change{{else}}Set milestone{{end}}
+            </summary>
+            <div class="mt-1 space-y-1 max-h-40 overflow-y-auto border border-gray-100 rounded">
+              <form hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}/milestone"
+                    hx-target="#issue-milestone"
+                    hx-swap="outerHTML"
+                    class="p-1">
+                <button type="submit" name="milestone_id" value=""
+                  class="w-full text-left px-2 py-1 hover:bg-gray-50 text-xs text-gray-500">
+                  No milestone
+                </button>
+                {{range .AllMilestones}}
+                <button type="submit" name="milestone_id" value="{{.ID}}"
+                  class="w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-gray-50 text-xs
+                    {{if and $.Milestone (eq $.Milestone.ID .ID)}}font-semibold text-blue-600{{end}}">
+                  <span class="w-2 h-2 rounded-full inline-block shrink-0 {{if eq .State `closed`}}bg-gray-400{{else}}bg-green-500{{end}}"></span>
+                  {{.Title}}
+                </button>
+                {{end}}
+              </form>
             </div>
           </details>
           {{end}}
