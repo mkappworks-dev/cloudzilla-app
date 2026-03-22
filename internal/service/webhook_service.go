@@ -160,3 +160,21 @@ func (s *WebhookService) PullPayload(action string, repo model.Repository, pr mo
 		},
 	}
 }
+
+func (s *WebhookService) ReleasePayload(action, owner, repoName string, release model.Release) map[string]any {
+	return map[string]any{
+		"action": action,
+		"release": map[string]any{
+			"id":            release.ID,
+			"tag_name":      release.TagName,
+			"name":          release.Name,
+			"is_prerelease": release.IsPrerelease,
+			"is_draft":      release.IsDraft,
+		},
+		"repository": map[string]any{
+			"id":        release.RepoID,
+			"name":      repoName,
+			"full_name": owner + "/" + repoName,
+		},
+	}
+}
