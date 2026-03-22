@@ -63,6 +63,12 @@
 
         {{if eq .Pull.State "open"}}
         <div class="flex flex-wrap gap-2 items-center mt-4">
+          {{if not .CanMerge}}
+          <div class="w-full px-4 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+            &#128683; Merge blocked: {{.MergeBlockReason}}
+          </div>
+          {{end}}
+          {{if .CanMerge}}
           {{if .Diff}}
             {{if .Diff.CanFastForward}}
             <button
@@ -98,6 +104,7 @@
             </div>
             {{end}}
           {{end}}
+          {{end}}
           <button
             hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}"
             hx-vals='{"state":"closed"}'
@@ -118,34 +125,141 @@
             </span>
           </div>
           {{range .Diff.Files}}
+          {{$filePath := .NewPath}}{{if not .NewPath}}{{$filePath = .OldPath}}{{end}}
           <div class="border border-gray-200 rounded-lg overflow-hidden">
             <div class="bg-gray-50 px-4 py-2 text-sm font-mono border-b border-gray-200 flex items-center gap-2">
               {{if .IsNew}}<span class="text-green-600 text-xs">added</span>
               {{else if .IsDelete}}<span class="text-red-600 text-xs">deleted</span>{{end}}
-              <span>{{if .NewPath}}{{.NewPath}}{{else}}{{.OldPath}}{{end}}</span>
+              <span>{{$filePath}}</span>
               <span class="ml-auto text-xs text-green-600">+{{.Added}}</span>
               <span class="text-xs text-red-500 ml-1">-{{.Deleted}}</span>
             </div>
             {{if .IsBinary}}
             <div class="px-4 py-3 text-sm text-gray-500">Binary file</div>
             {{else}}
+            <table class="w-full border-collapse">
               {{range .Hunks}}
-              <div class="text-xs font-mono bg-gray-100 px-4 py-1 text-gray-500 border-b border-gray-200">{{.Header}}</div>
+              <tr><td colspan="2" class="text-xs font-mono bg-gray-100 px-4 py-1 text-gray-500 border-b border-gray-200">{{.Header}}</td></tr>
               {{range .Lines}}
-              <div class="flex font-mono text-xs {{if eq .Type "add"}}bg-green-50{{else if eq .Type "del"}}bg-red-50{{end}}">
-                <span class="w-12 text-right pr-3 text-gray-400 select-none border-r border-gray-200 shrink-0 py-0.5">
+              {{$lineNum := .NewNum}}{{if eq .Type "del"}}{{$lineNum = .OldNum}}{{else if eq .Type "ctx"}}{{$lineNum = .OldNum}}{{end}}
+              <tr class="{{if eq .Type "add"}}bg-green-50{{else if eq .Type "del"}}bg-red-50{{end}}">
+                <td class="w-10 text-right pr-2 text-gray-400 select-none border-r border-gray-200 py-0.5 text-xs font-mono align-top">
                   {{if eq .Type "add"}}{{.NewNum}}{{else if eq .Type "del"}}{{.OldNum}}{{else}}{{.OldNum}}{{end}}
-                </span>
-                <span class="pl-3 py-0.5 whitespace-pre
+                  {{if and $.CanWrite (eq $.Pull.State "open") (ne .Type "del")}}
+                  <span
+                    hx-get="/api/repos/{{$.Owner}}/{{$.RepoName}}/pulls/{{$.Pull.Number}}/line_comments/form?path={{$filePath}}&line={{$lineNum}}"
+                    hx-target="#lc-form-{{$filePath}}-{{$lineNum}}"
+                    hx-swap="innerHTML"
+                    class="cursor-pointer text-gray-300 hover:text-blue-500 select-none pl-0.5">+</span>
+                  {{end}}
+                </td>
+                <td class="pl-3 py-0.5 whitespace-pre text-xs font-mono
                   {{if eq .Type "add"}}text-green-800{{else if eq .Type "del"}}text-red-800{{else}}text-gray-700{{end}}">
-                  {{if eq .Type "add"}}+{{else if eq .Type "del"}}-{{else}} {{end}}{{.Content}}</span>
-              </div>
+                  {{if eq .Type "add"}}+{{else if eq .Type "del"}}-{{else}} {{end}}{{.Content}}</td>
+              </tr>
+              {{if and (ne .Type "del") ($.LineComments)}}
+              {{$key := printf "%s:%d" $filePath $lineNum}}
+              {{if index $.LineComments $key}}
+              <tr id="lc-{{$filePath}}-{{$lineNum}}" class="bg-blue-50 border-t border-blue-100">
+                <td colspan="2" class="px-4 py-0">
+                  {{range index $.LineComments $key}}
+                  <div class="flex items-start gap-2 py-2 border-b border-blue-100 last:border-0">
+                    <div class="w-6 h-6 rounded-full bg-blue-400 flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
+                      {{slice .AuthorName 0 1}}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <a href="/{{.AuthorName}}" class="text-xs font-semibold hover:underline">{{.AuthorName}}</a>
+                        <span class="text-xs text-gray-400">{{.CreatedAt.Format "Jan 2, 2006"}}</span>
+                      </div>
+                      <div class="text-xs text-gray-700 mt-0.5">{{.BodyHTML}}</div>
+                    </div>
+                    {{if $.CanWrite}}
+                    <button
+                      hx-delete="/api/repos/{{$.Owner}}/{{$.RepoName}}/pulls/{{$.Pull.Number}}/line_comments/{{.ID}}"
+                      hx-target="#lc-{{$filePath}}-{{$lineNum}}"
+                      hx-swap="outerHTML"
+                      class="text-gray-300 hover:text-red-400 text-xs shrink-0">&times;</button>
+                    {{end}}
+                  </div>
+                  {{end}}
+                  <div id="lc-form-{{$filePath}}-{{$lineNum}}"></div>
+                </td>
+              </tr>
+              {{else}}
+              <tr><td colspan="2"><div id="lc-form-{{$filePath}}-{{$lineNum}}"></div></td></tr>
+              {{end}}
+              {{else if ne .Type "del"}}
+              <tr><td colspan="2"><div id="lc-form-{{$filePath}}-{{$lineNum}}"></div></td></tr>
               {{end}}
               {{end}}
+              {{end}}
+            </table>
             {{end}}
           </div>
           {{end}}
         </div>
+        {{end}}
+      </div>
+
+      <!-- PR Reviews section -->
+      <div id="pr-reviews" class="bg-white border border-gray-200 rounded-lg p-6">
+        <h2 class="text-lg font-semibold mb-4">Reviews</h2>
+        {{range .Reviews}}
+        <div class="flex items-start gap-3 mb-4 pb-4 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0
+            {{if eq (printf "%s" .State) "approved"}}bg-green-500
+            {{else if eq (printf "%s" .State) "changes_requested"}}bg-red-500
+            {{else}}bg-gray-400{{end}}">
+            {{slice .AuthorName 0 1}}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <a href="/{{.AuthorName}}" class="text-sm font-semibold hover:underline">{{.AuthorName}}</a>
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium
+                {{if eq (printf "%s" .State) "approved"}}bg-green-100 text-green-700
+                {{else if eq (printf "%s" .State) "changes_requested"}}bg-red-100 text-red-700
+                {{else}}bg-gray-100 text-gray-600{{end}}">
+                {{if eq (printf "%s" .State) "approved"}}&#10003; Approved
+                {{else if eq (printf "%s" .State) "changes_requested"}}&#10007; Changes requested
+                {{else}}Commented{{end}}
+              </span>
+            </div>
+            {{if .Body}}<p class="text-sm text-gray-700 mt-1">{{.Body}}</p>{{end}}
+          </div>
+        </div>
+        {{else}}
+        <p class="text-sm text-gray-400">No reviews yet.</p>
+        {{end}}
+
+        {{if and .CanWrite (eq .Pull.State "open")}}
+        <form
+          hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}/reviews"
+          hx-target="#pr-reviews"
+          hx-swap="outerHTML"
+          class="mt-4 border-t border-gray-100 pt-4 space-y-3">
+          <h3 class="text-sm font-medium text-gray-700">Submit a review</h3>
+          <textarea name="body" rows="3" placeholder="Leave a comment (optional)"
+            class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"></textarea>
+          <div class="flex flex-wrap gap-4 text-sm">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="state" value="commented" checked class="accent-gray-500">
+              <span>Comment</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="state" value="approved" class="accent-green-600">
+              <span class="text-green-700">Approve</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="state" value="changes_requested" class="accent-red-600">
+              <span class="text-red-700">Request changes</span>
+            </label>
+          </div>
+          <button type="submit"
+            class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors">
+            Submit review
+          </button>
+        </form>
         {{end}}
       </div>
     </div>

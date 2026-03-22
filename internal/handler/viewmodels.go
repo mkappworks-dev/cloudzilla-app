@@ -156,19 +156,35 @@ type PullsData struct {
 
 type PullDetailData struct {
 	BasePage
-	Repo          model.Repository
-	Pull          model.PullRequest
-	Owner         string
-	RepoName      string
-	Diff          *service.PRDiffResult
-	BodyHTML      template.HTML
-	Labels        []model.Label
-	Assignees     []model.User
-	AllLabels     []model.Label
-	Milestone     *model.Milestone
-	AllMilestones []model.Milestone
-	CanWrite      bool
-	HeadStatuses  []model.CommitStatus
+	Repo             model.Repository
+	Pull             model.PullRequest
+	Owner            string
+	RepoName         string
+	Diff             *service.PRDiffResult
+	BodyHTML         template.HTML
+	Labels           []model.Label
+	Assignees        []model.User
+	AllLabels        []model.Label
+	Milestone        *model.Milestone
+	AllMilestones    []model.Milestone
+	CanWrite         bool
+	HeadStatuses     []model.CommitStatus
+	Reviews          []model.PullReview
+	CanMerge         bool
+	MergeBlockReason string
+	// LineComments keyed by "path:line" (e.g. "src/main.go:42")
+	LineComments map[string][]RenderedLineComment
+}
+
+type PRReviewsFragData struct {
+	Owner            string
+	RepoName         string
+	PullNumber       int
+	Reviews          []model.PullReview
+	CanWrite         bool
+	PullOpen         bool
+	CanMerge         bool
+	MergeBlockReason string
 }
 
 type SettingsData struct {
@@ -418,6 +434,33 @@ type MilestoneSidebarFragData struct {
 	Current       *model.Milestone
 	AllMilestones []model.Milestone
 	CanWrite      bool
+}
+
+// Line comment fragments
+type LineCommentsFragData struct {
+	Owner      string
+	RepoName   string
+	PullNumber int
+	Path       string
+	Line       int
+	Comments   []RenderedLineComment
+	CanWrite   bool
+}
+
+type LineCommentFormFragData struct {
+	Owner      string
+	RepoName   string
+	PullNumber int
+	Path       string
+	Line       int
+}
+
+// Search page
+type SearchData struct {
+	BasePage
+	Query   string
+	Type    string
+	Results *service.SearchResults
 }
 
 // Stargazers page

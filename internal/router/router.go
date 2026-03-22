@@ -35,6 +35,7 @@ func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *templat
 		"stargazers", "user_stars",
 		"releases", "release_detail",
 		"milestones",
+		"search",
 	}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
@@ -73,6 +74,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Admin routes
 	r.With(authMW, superadminMW).Get("/admin/settings", h.PageAdminSettings)
+
+	// Search
+	r.With(optAuthMW).Get("/search", h.PageSearch)
 
 	// Page routes
 	r.Get("/", h.PageHome)
@@ -187,6 +191,13 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Post("/", h.CreatePull)
 			r.Get("/{number}", h.GetPull)
 			r.With(authMW).Patch("/{number}", h.UpdatePull)
+			r.Get("/{number}/reviews", h.ListReviews)
+			r.With(authMW).Post("/{number}/reviews", h.SubmitReview)
+			r.Get("/{number}/line_comments", h.ListLineComments)
+			r.With(authMW).Post("/{number}/line_comments", h.CreateLineComment)
+			// /form must be before /{id} to avoid chi wildcard conflict
+			r.With(authMW).Get("/{number}/line_comments/form", h.GetLineCommentForm)
+			r.With(authMW).Delete("/{number}/line_comments/{id}", h.DeleteLineComment)
 		})
 
 		// Webhooks

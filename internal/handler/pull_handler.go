@@ -106,6 +106,10 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "pull request not found")
 			return
 		}
+		if ok, reason, _ := h.Services.PullReview.CanMerge(r.Context(), existingPR.ID); !ok {
+			writeError(w, http.StatusUnprocessableEntity, "merge blocked: "+reason)
+			return
+		}
 		claims, _ := middleware.ClaimsFromContext(r.Context())
 		authorName := claims.Username
 		authorEmail := claims.Username + "@localhost"

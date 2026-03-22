@@ -24,6 +24,9 @@ type Stores struct {
 	Release      *ReleaseStore
 	CommitStatus *CommitStatusStore
 	Milestone    *MilestoneStore
+	PullReview      *PullReviewStore
+	PullLineComment *PullLineCommentStore
+	Search          *SearchStore
 }
 
 func New(database *sql.DB) *Stores {
@@ -46,5 +49,8 @@ func New(database *sql.DB) *Stores {
 		Release:      NewReleaseStore(database),
 		CommitStatus: NewCommitStatusStore(database),
 		Milestone:    NewMilestoneStore(database),
+		PullReview:      NewPullReviewStore(database),
+		PullLineComment: NewPullLineCommentStore(database),
+		Search:          NewSearchStore(database),
 	}
 }

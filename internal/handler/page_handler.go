@@ -475,21 +475,41 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		allPullDetailMilestones = []model.Milestone{}
 	}
 
+	reviews, _ := h.Services.PullReview.ListByPull(r.Context(), owner, repoName, number)
+	if reviews == nil {
+		reviews = []model.PullReview{}
+	}
+	canMerge, mergeBlockReason, _ := h.Services.PullReview.CanMerge(r.Context(), pull.ID)
+
+	rawLineComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
+	lineComments := map[string][]RenderedLineComment{}
+	for _, c := range rawLineComments {
+		key := fmt.Sprintf("%s:%d", c.Path, c.Line)
+		lineComments[key] = append(lineComments[key], RenderedLineComment{
+			PullLineComment: c,
+			BodyHTML:        markdown.Render(c.Body),
+		})
+	}
+
 	h.render(w, "pull_detail", PullDetailData{
-		BasePage:      basePage(r, h.Services),
-		Repo:          *repo,
-		Pull:          *pull,
-		Owner:         owner,
-		RepoName:      repoName,
-		Diff:          diff,
-		BodyHTML:      markdown.Render(pull.Body),
-		Labels:        pullLabels2,
-		Assignees:     pullAssignees,
-		AllLabels:     allLabels2,
-		Milestone:     pullMilestone,
-		AllMilestones: allPullDetailMilestones,
-		CanWrite:      canWrite2,
-		HeadStatuses:  headStatuses,
+		BasePage:         basePage(r, h.Services),
+		Repo:             *repo,
+		Pull:             *pull,
+		Owner:            owner,
+		RepoName:         repoName,
+		Diff:             diff,
+		BodyHTML:         markdown.Render(pull.Body),
+		Labels:           pullLabels2,
+		Assignees:        pullAssignees,
+		AllLabels:        allLabels2,
+		Milestone:        pullMilestone,
+		AllMilestones:    allPullDetailMilestones,
+		CanWrite:         canWrite2,
+		HeadStatuses:     headStatuses,
+		Reviews:          reviews,
+		CanMerge:         canMerge,
+		MergeBlockReason: mergeBlockReason,
+		LineComments:     lineComments,
 	})
 }
 

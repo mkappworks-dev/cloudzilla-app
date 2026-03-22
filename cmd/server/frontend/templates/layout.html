@@ -12,6 +12,10 @@
     <a href="/" class="text-lg font-bold">☁ Cloudzilla</a>
     <nav class="flex gap-4 text-sm text-gray-300 flex-1 items-center">
       <a href="/" class="hover:text-white">Explore</a>
+      <form action="/search" method="GET" class="flex items-center">
+        <input type="text" name="q" placeholder="Search..." value=""
+          class="bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 w-40">
+      </form>
       {{if .CurrentUser}}
         <a href="/settings" class="hover:text-white">Settings</a>
         {{if .CurrentUser.IsSuperadmin}}
