@@ -231,6 +231,9 @@ graph TD
 - **Assignees** — assign any user to an issue or PR; sidebar on detail pages with inline add/remove via HTMX
 - **Stars** — star/unstar any repo; star count shown on the repo header; stargazers list page (`/{owner}/{repo}/stargazers`); user starred repos page (`/{owner}/stars`)
 - **Repository forks** — fork any readable repo into your own namespace with one click; forked repo shows "Forked from owner/name" badge; original repo's fork count increments; forked repo is a fully functional bare git repo (clone, push, pull all work)
+- **Releases** — publish versioned releases tied to git tags; supports markdown bodies, draft and prerelease flags; latest release badge on repo page; full CRUD via web UI and API
+- **Commit Status API** — CI tools can post build statuses (`pending`, `success`, `failure`, `error`) per SHA and context; combined status aggregated from all contexts; status checks surface on commit pages and PR detail pages
+- **Milestones** — create sprint-planning milestones per repo with title, description, and optional due date; assign issues and PRs to milestones via sidebar picker; progress bar tracks open/closed issue counts; open/close milestones; full CRUD via web UI and API
 - User accounts with JWT authentication (httpOnly cookie)
 - Google OAuth sign-in (links to existing accounts by email)
 - Organization accounts — shared namespaces with member roles (owner/member), org profile page, member management
@@ -690,6 +693,9 @@ Browse repository contents directly from the web UI. All views respect repo visi
 | Stargazers          | `/{owner}/{repo}/stargazers`                          |
 | User starred repos  | `/{owner}/stars`                                      |
 | Forked repo         | `/{forkOwner}/{forkName}` (shows "Forked from" badge) |
+| Releases list       | `/{owner}/{repo}/releases`                            |
+| Release detail      | `/{owner}/{repo}/releases/tag/{tagName}`              |
+| Milestones list     | `/{owner}/{repo}/milestones`                          |
 
 `{ref}` can be a branch name, tag name, or commit SHA. If the ref is not found, the server returns 404.
 
@@ -828,6 +834,39 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | GET    | `/api/repos/:owner/:repo/pulls/:number` | —        | Get PR details                                                                                                                                                    |
 | PATCH  | `/api/repos/:owner/:repo/pulls/:number` | Required | Update PR state. `state=merged` merges the PR using the strategy in `merge_strategy` (`ff` default, `merge`, or `squash`); `state=closed` closes without merging. |
 
+### Releases
+
+| Method | Path                                            | Auth         | Description                                                                            |
+| ------ | ----------------------------------------------- | ------------ | -------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/releases`              | —            | List releases                                                                          |
+| POST   | `/api/repos/:owner/:repo/releases`              | Write access | Create a release (`tag_name`, `name`, `body`, `is_prerelease`, `is_draft`)             |
+| GET    | `/api/repos/:owner/:repo/releases/latest`       | —            | Get the latest non-draft release                                                       |
+| GET    | `/api/repos/:owner/:repo/releases/:id`          | —            | Get release by ID                                                                      |
+| PATCH  | `/api/repos/:owner/:repo/releases/:id`          | Write access | Update a release                                                                       |
+| DELETE | `/api/repos/:owner/:repo/releases/:id`          | Write access | Delete a release; HTMX requests return `HX-Redirect` to the releases list             |
+
+### Commit Statuses
+
+| Method | Path                                              | Auth         | Description                                                                             |
+| ------ | ------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------- |
+| POST   | `/api/repos/:owner/:repo/statuses/:sha`           | Required     | Create or update a status (`state`, `context`, `target_url`, `description`)             |
+| GET    | `/api/repos/:owner/:repo/statuses/:sha`           | —            | List all statuses for a commit SHA                                                      |
+| GET    | `/api/repos/:owner/:repo/commits/:sha/status`     | —            | Get combined status (`{state, statuses:[]}`) — aggregated from all contexts             |
+
+Valid `state` values: `pending`, `success`, `failure`, `error`. Combined state uses worst-case: `error` > `failure` > `pending` > `success`.
+
+### Milestones
+
+| Method | Path                                                        | Auth         | Description                                                   |
+| ------ | ----------------------------------------------------------- | ------------ | ------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/milestones`                        | —            | List all milestones (with open/closed issue counts)           |
+| POST   | `/api/repos/:owner/:repo/milestones`                        | Write access | Create a milestone (`title`, `description`, `due_date`)       |
+| GET    | `/api/repos/:owner/:repo/milestones/:number`                | —            | Get milestone by number                                       |
+| PATCH  | `/api/repos/:owner/:repo/milestones/:number`                | Write access | Update or change state (`state=closed`/`open` to close/reopen)|
+| DELETE | `/api/repos/:owner/:repo/milestones/:number`                | Write access | Delete a milestone (issues/PRs have `milestone_id` cleared)   |
+| POST   | `/api/repos/:owner/:repo/issues/:number/milestone`          | Write access | Set or remove milestone on an issue (`milestone_id` in body)  |
+| POST   | `/api/repos/:owner/:repo/pulls/:number/milestone`           | Write access | Set or remove milestone on a pull request                     |
+
 ### Branches & Tags
 
 | Method | Path                                      | Auth     | Description                                                                   |
@@ -952,10 +991,12 @@ cmd/
         layout.html          # Base HTML shell
         pages/               # Page templates (home, login, user, repo, org, org_settings,
         |                    #   repo_settings, issues, pulls, tree, blob, blame, refs,
-        |                    #   notifications, setup, invite, admin_settings)
+        |                    #   notifications, setup, invite, admin_settings,
+        |                    #   releases, release_detail, milestones)
         fragments/           # HTMX swap fragments (issues, pull requests, SSH keys,
                              #   branches/tags, org members, webhooks, notifications,
-                             #   admin settings, admin invitations, repo collaborators)
+                             #   admin settings, admin invitations, repo collaborators,
+                             #   milestone_sidebar)
       static/
         main.css             # Compiled Tailwind output
       htmx.min.js            # HTMX library
@@ -978,6 +1019,9 @@ internal/
     admin_handler.go         # Superadmin panel: instance settings + invitations
     invite_handler.go        # Invitation acceptance flow
     fork_handler.go          # Repository fork handler
+    release_handler.go       # Releases page + API handlers
+    commit_status_handler.go # Commit Status API handlers
+    milestone_handler.go     # Milestones page + API + sidebar handlers
     viewmodels.go            # Data structs for templates (with BasePage for auth)
     git_http.go              # Git HTTP smart protocol handler
     ssh_key_handler.go       # SSH key management endpoints
@@ -1029,6 +1073,9 @@ Migrations live in `migrations/` and are embedded into the binary at build time.
 | `017_create_assignees.sql`     | `issue_assignees`, `pull_assignees` tables                                        |
 | `018_create_stars.sql`         | `stars` table + `idx_stars_repo`, `idx_stars_user` indexes                        |
 | `019_add_fork_columns.sql`     | Adds `is_fork`, `fork_of_id`, `fork_count` columns to `repositories` + index      |
+| `020_create_releases.sql`      | `releases` table + `idx_releases_repo` index                                      |
+| `021_create_commit_statuses.sql` | `commit_statuses` table + `idx_commit_statuses_repo_sha` index                  |
+| `022_create_milestones.sql`    | `milestones` table; adds `milestone_id` FK to `issues` and `pull_requests`        |
 
 ---
 

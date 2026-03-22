@@ -175,9 +175,9 @@ POST /api/repos/{owner}/{repo}/fork  (authMW)
 
 ---
 
-## Phase 3 — Releases, Commit Status API, Milestones
+## Phase 3 — Releases, Commit Status API, Milestones ✅ IMPLEMENTED
 
-_"Ship something" workflow + CI integration + sprint planning. NOT YET IMPLEMENTED._
+_"Ship something" workflow + CI integration + sprint planning._
 
 ### 3.1 Releases
 
@@ -476,9 +476,9 @@ GET /search?q=...&type=repos|issues|pulls|users  (optAuthMW)
 | 1.2   | Assignees         | ✅ Done | 017          |
 | 1.3   | Stars             | ✅ Done | 018          |
 | 2     | Repository Fork   | ✅ Done | 019          |
-| 3.1   | Releases          | ⬜ TODO | 020          |
-| 3.2   | Commit Status API | ⬜ TODO | 021          |
-| 3.3   | Milestones        | ⬜ TODO | 022          |
+| 3.1   | Releases          | ✅ Done | 020          |
+| 3.2   | Commit Status API | ✅ Done | 021          |
+| 3.3   | Milestones        | ✅ Done | 022          |
 | 4.1   | PR Reviews        | ⬜ TODO | 023          |
 | 4.2   | PR Line Comments  | ⬜ TODO | 024          |
 | 4.3   | Search            | ⬜ TODO | 025          |

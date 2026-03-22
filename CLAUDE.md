@@ -287,13 +287,21 @@ HTMX flow: button click → PATCH → handler returns fragment → HTMX replaces
 
 Templates are parsed at startup in `router.mustParseTemplates()`:
 
-1. Parse `layout.html` into a base template
-2. Clone base template for each page, parse page file into clone
-3. Parse all fragments into a shared template set
-4. Store page clones in map, fragment set in handler
-5. Handler calls `tmpl.ExecuteTemplate(w, "layout", data)` for pages or `frags.ExecuteTemplate(w, "fragment-NAME", data)` for fragments
+1. Create a `template.FuncMap` with custom helpers (`add`, `percent`)
+2. Parse `layout.html` into a base template with the FuncMap
+3. Clone base template for each page, parse page file into clone
+4. Parse all fragments into a shared template set (also with the FuncMap)
+5. Store page clones in map, fragment set in handler
+6. Handler calls `tmpl.ExecuteTemplate(w, "layout", data)` for pages or `frags.ExecuteTemplate(w, "fragment-NAME", data)` for fragments
 
 This pattern avoids Go template's global `define` namespace issue.
+
+**Custom FuncMap helpers** (defined in `router.go`):
+
+- `add a b` — integer addition (`{{add .OpenCount .ClosedCount}}`)
+- `percent part total` — integer percentage, 0 when total=0 (`{{percent .ClosedCount $total}}`)
+
+Page templates cannot call fragment templates directly (they are in separate template sets). Fragment templates are only used as HTMX swap responses from handlers. Inline the shared HTML in page templates if needed.
 
 ## PostgreSQL Notes
 
@@ -793,9 +801,9 @@ Full phase specs (all phases, implemented and planned): [docs/ROADMAP.md](./docs
 | 1.2   | Assignees         | ✅ Done | 017          |
 | 1.3   | Stars             | ✅ Done | 018          |
 | 2     | Repository Fork   | ✅ Done | 019          |
-| 3.1   | Releases          | ⬜ TODO | 020          |
-| 3.2   | Commit Status API | ⬜ TODO | 021          |
-| 3.3   | Milestones        | ⬜ TODO | 022          |
+| 3.1   | Releases          | ✅ Done | 020          |
+| 3.2   | Commit Status API | ✅ Done | 021          |
+| 3.3   | Milestones        | ✅ Done | 022          |
 | 4.1   | PR Reviews        | ⬜ TODO | 023          |
 | 4.2   | PR Line Comments  | ⬜ TODO | 024          |
 | 4.3   | Search            | ⬜ TODO | 025          |
@@ -814,7 +822,7 @@ See [docs/ROADMAP.md](./docs/ROADMAP.md) for full implementation details.
 
 ---
 
-## Phase 3 — Releases, Commit Status API, Milestones ⬜ TODO
+## Phase 3 — Releases, Commit Status API, Milestones ✅ IMPLEMENTED
 
 See [docs/ROADMAP.md](./docs/ROADMAP.md) for full specs.
 
