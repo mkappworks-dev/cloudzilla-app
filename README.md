@@ -234,6 +234,9 @@ graph TD
 - **Releases** — publish versioned releases tied to git tags; supports markdown bodies, draft and prerelease flags; latest release badge on repo page; full CRUD via web UI and API
 - **Commit Status API** — CI tools can post build statuses (`pending`, `success`, `failure`, `error`) per SHA and context; combined status aggregated from all contexts; status checks surface on commit pages and PR detail pages
 - **Milestones** — create sprint-planning milestones per repo with title, description, and optional due date; assign issues and PRs to milestones via sidebar picker; progress bar tracks open/closed issue counts; open/close milestones; full CRUD via web UI and API
+- **PR Reviews** — reviewers submit Approve / Request Changes / Comment reviews on open PRs; any `changes_requested` review blocks all merge buttons until the reviewer re-submits with a different state; reviewer cannot review their own PR; notifications sent to PR author
+- **PR Line Comments** — click "+" on any diff line to open an inline comment form (HTMX, no page reload); comments anchor to `path:line` and render below the target line; repo writers and comment authors can delete comments
+- **Search** — full-text search across repositories, issues, pull requests, and users via PostgreSQL `tsvector` + GIN indexes; search bar in the navbar on every page; tabbed results page (`/search?q=...&type=repos|issues|pulls|users|all`)
 - User accounts with JWT authentication (httpOnly cookie)
 - Google OAuth sign-in (links to existing accounts by email)
 - Organization accounts — shared namespaces with member roles (owner/member), org profile page, member management
@@ -696,6 +699,7 @@ Browse repository contents directly from the web UI. All views respect repo visi
 | Releases list       | `/{owner}/{repo}/releases`                            |
 | Release detail      | `/{owner}/{repo}/releases/tag/{tagName}`              |
 | Milestones list     | `/{owner}/{repo}/milestones`                          |
+| Search results      | `/search?q=...&type=all\|repos\|issues\|pulls\|users` |
 
 `{ref}` can be a branch name, tag name, or commit SHA. If the ref is not found, the server returns 404.
 
@@ -739,6 +743,25 @@ The PR detail page (`/{owner}/{repo}/pulls/{number}`) shows:
   - **Create merge commit** — visible when either FF or clean three-way merge is possible. Creates a new commit with two parents (base and head).
   - **Squash and merge** — visible under the same conditions. Collapses all head commits into a single new commit on top of base.
 - **Conflict warning**: shown when both branches have edited the same file(s). All merge buttons are hidden; the developer must rebase locally and push.
+- **Merge gate**: if any reviewer has submitted a `changes_requested` review, all merge buttons are replaced with a red banner until the block is cleared.
+
+### PR Reviews
+
+Each PR detail page has a **Reviews** section below the diff:
+
+- Reviewers submit a **Comment**, **Approve**, or **Request changes** review with an optional body
+- A reviewer's latest review replaces their previous one (upsert on `(pull_id, author_id)`)
+- Any active `changes_requested` review blocks all merge buttons; re-submitting as `approved` or `commented` lifts the block
+- A reviewer cannot review their own PR
+
+### PR Line Comments
+
+Inline comments are anchored to specific diff lines:
+
+- A `+` button appears on each diff line for users with write access on open PRs
+- Clicking `+` reveals an inline form via HTMX — no page reload
+- Comments render below their target line and survive page reloads
+- Repo writers and comment authors can delete comments with the `×` button
 
 ---
 
@@ -834,38 +857,62 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | GET    | `/api/repos/:owner/:repo/pulls/:number` | —        | Get PR details                                                                                                                                                    |
 | PATCH  | `/api/repos/:owner/:repo/pulls/:number` | Required | Update PR state. `state=merged` merges the PR using the strategy in `merge_strategy` (`ff` default, `merge`, or `squash`); `state=closed` closes without merging. |
 
+### PR Reviews
+
+| Method | Path                                            | Auth     | Description                                                                                                           |
+| ------ | ----------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/pulls/:number/reviews` | Optional | List all reviews for a pull request                                                                                   |
+| POST   | `/api/repos/:owner/:repo/pulls/:number/reviews` | Required | Submit or update a review (`state`, `body`); upserts per reviewer; `state=changes_requested` blocks all merge buttons |
+
+Valid `state` values: `approved`, `changes_requested`, `commented`, `pending`.
+
+### PR Line Comments
+
+| Method | Path                                                       | Auth     | Description                                                    |
+| ------ | ---------------------------------------------------------- | -------- | -------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/pulls/:number/line_comments`      | Optional | List all line comments for a pull request                      |
+| POST   | `/api/repos/:owner/:repo/pulls/:number/line_comments`      | Required | Create a line comment (`path`, `line`, `body`, `diff_side`)    |
+| GET    | `/api/repos/:owner/:repo/pulls/:number/line_comments/form` | Required | Returns inline comment form HTML fragment (`?path=...&line=N`) |
+| DELETE | `/api/repos/:owner/:repo/pulls/:number/line_comments/:id`  | Required | Delete a line comment (author or repo writer only)             |
+
+### Search
+
+| Method | Path      | Auth     | Description                                                                                                                                        |
+| ------ | --------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/search` | Optional | Full-text search. Query params: `q` (search term), `type` (`all`, `repos`, `issues`, `pulls`, `users`). Private repos visible only to their owner. |
+
 ### Releases
 
-| Method | Path                                            | Auth         | Description                                                                            |
-| ------ | ----------------------------------------------- | ------------ | -------------------------------------------------------------------------------------- |
-| GET    | `/api/repos/:owner/:repo/releases`              | —            | List releases                                                                          |
-| POST   | `/api/repos/:owner/:repo/releases`              | Write access | Create a release (`tag_name`, `name`, `body`, `is_prerelease`, `is_draft`)             |
-| GET    | `/api/repos/:owner/:repo/releases/latest`       | —            | Get the latest non-draft release                                                       |
-| GET    | `/api/repos/:owner/:repo/releases/:id`          | —            | Get release by ID                                                                      |
-| PATCH  | `/api/repos/:owner/:repo/releases/:id`          | Write access | Update a release                                                                       |
-| DELETE | `/api/repos/:owner/:repo/releases/:id`          | Write access | Delete a release; HTMX requests return `HX-Redirect` to the releases list             |
+| Method | Path                                      | Auth         | Description                                                                |
+| ------ | ----------------------------------------- | ------------ | -------------------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/releases`        | —            | List releases                                                              |
+| POST   | `/api/repos/:owner/:repo/releases`        | Write access | Create a release (`tag_name`, `name`, `body`, `is_prerelease`, `is_draft`) |
+| GET    | `/api/repos/:owner/:repo/releases/latest` | —            | Get the latest non-draft release                                           |
+| GET    | `/api/repos/:owner/:repo/releases/:id`    | —            | Get release by ID                                                          |
+| PATCH  | `/api/repos/:owner/:repo/releases/:id`    | Write access | Update a release                                                           |
+| DELETE | `/api/repos/:owner/:repo/releases/:id`    | Write access | Delete a release; HTMX requests return `HX-Redirect` to the releases list  |
 
 ### Commit Statuses
 
-| Method | Path                                              | Auth         | Description                                                                             |
-| ------ | ------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------- |
-| POST   | `/api/repos/:owner/:repo/statuses/:sha`           | Required     | Create or update a status (`state`, `context`, `target_url`, `description`)             |
-| GET    | `/api/repos/:owner/:repo/statuses/:sha`           | —            | List all statuses for a commit SHA                                                      |
-| GET    | `/api/repos/:owner/:repo/commits/:sha/status`     | —            | Get combined status (`{state, statuses:[]}`) — aggregated from all contexts             |
+| Method | Path                                          | Auth     | Description                                                                 |
+| ------ | --------------------------------------------- | -------- | --------------------------------------------------------------------------- |
+| POST   | `/api/repos/:owner/:repo/statuses/:sha`       | Required | Create or update a status (`state`, `context`, `target_url`, `description`) |
+| GET    | `/api/repos/:owner/:repo/statuses/:sha`       | —        | List all statuses for a commit SHA                                          |
+| GET    | `/api/repos/:owner/:repo/commits/:sha/status` | —        | Get combined status (`{state, statuses:[]}`) — aggregated from all contexts |
 
 Valid `state` values: `pending`, `success`, `failure`, `error`. Combined state uses worst-case: `error` > `failure` > `pending` > `success`.
 
 ### Milestones
 
-| Method | Path                                                        | Auth         | Description                                                   |
-| ------ | ----------------------------------------------------------- | ------------ | ------------------------------------------------------------- |
-| GET    | `/api/repos/:owner/:repo/milestones`                        | —            | List all milestones (with open/closed issue counts)           |
-| POST   | `/api/repos/:owner/:repo/milestones`                        | Write access | Create a milestone (`title`, `description`, `due_date`)       |
-| GET    | `/api/repos/:owner/:repo/milestones/:number`                | —            | Get milestone by number                                       |
-| PATCH  | `/api/repos/:owner/:repo/milestones/:number`                | Write access | Update or change state (`state=closed`/`open` to close/reopen)|
-| DELETE | `/api/repos/:owner/:repo/milestones/:number`                | Write access | Delete a milestone (issues/PRs have `milestone_id` cleared)   |
-| POST   | `/api/repos/:owner/:repo/issues/:number/milestone`          | Write access | Set or remove milestone on an issue (`milestone_id` in body)  |
-| POST   | `/api/repos/:owner/:repo/pulls/:number/milestone`           | Write access | Set or remove milestone on a pull request                     |
+| Method | Path                                               | Auth         | Description                                                    |
+| ------ | -------------------------------------------------- | ------------ | -------------------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/milestones`               | —            | List all milestones (with open/closed issue counts)            |
+| POST   | `/api/repos/:owner/:repo/milestones`               | Write access | Create a milestone (`title`, `description`, `due_date`)        |
+| GET    | `/api/repos/:owner/:repo/milestones/:number`       | —            | Get milestone by number                                        |
+| PATCH  | `/api/repos/:owner/:repo/milestones/:number`       | Write access | Update or change state (`state=closed`/`open` to close/reopen) |
+| DELETE | `/api/repos/:owner/:repo/milestones/:number`       | Write access | Delete a milestone (issues/PRs have `milestone_id` cleared)    |
+| POST   | `/api/repos/:owner/:repo/issues/:number/milestone` | Write access | Set or remove milestone on an issue (`milestone_id` in body)   |
+| POST   | `/api/repos/:owner/:repo/pulls/:number/milestone`  | Write access | Set or remove milestone on a pull request                      |
 
 ### Branches & Tags
 
@@ -992,11 +1039,11 @@ cmd/
         pages/               # Page templates (home, login, user, repo, org, org_settings,
         |                    #   repo_settings, issues, pulls, tree, blob, blame, refs,
         |                    #   notifications, setup, invite, admin_settings,
-        |                    #   releases, release_detail, milestones)
+        |                    #   releases, release_detail, milestones, search)
         fragments/           # HTMX swap fragments (issues, pull requests, SSH keys,
                              #   branches/tags, org members, webhooks, notifications,
                              #   admin settings, admin invitations, repo collaborators,
-                             #   milestone_sidebar)
+                             #   milestone_sidebar, pr_reviews, line_comments)
       static/
         main.css             # Compiled Tailwind output
       htmx.min.js            # HTMX library
@@ -1022,6 +1069,9 @@ internal/
     release_handler.go       # Releases page + API handlers
     commit_status_handler.go # Commit Status API handlers
     milestone_handler.go     # Milestones page + API + sidebar handlers
+    pull_review_handler.go   # PR review submit + list handlers
+    pull_line_comment_handler.go # PR inline line comment handlers
+    search_handler.go        # Global search page handler
     viewmodels.go            # Data structs for templates (with BasePage for auth)
     git_http.go              # Git HTTP smart protocol handler
     ssh_key_handler.go       # SSH key management endpoints
@@ -1052,30 +1102,33 @@ Handlers call services only. Services call stores only. Stores own all SQL.
 
 Migrations live in `migrations/` and are embedded into the binary at build time. They run in order on `cloudzilla migrate`.
 
-| File                           | Creates                                                                           |
-| ------------------------------ | --------------------------------------------------------------------------------- |
-| `001_create_users.sql`         | `users` table                                                                     |
-| `002_create_repositories.sql`  | `repositories` table                                                              |
-| `003_create_issues.sql`        | `issues` table                                                                    |
-| `004_create_pull_requests.sql` | `pull_requests` table                                                             |
-| `005_create_comments.sql`      | `comments` table                                                                  |
-| `006_create_permissions.sql`   | `permissions` table                                                               |
-| `007_create_ssh_keys.sql`      | `ssh_keys` table                                                                  |
-| `008_oauth_users.sql`          | Adds `oauth_provider`, `oauth_id` columns to `users`                              |
-| `009_create_organizations.sql` | `organizations` + `org_members` tables                                            |
-| `010_repo_owner_name.sql`      | Adds `owner_name` + `org_id` columns to `repositories`                            |
-| `011_create_webhooks.sql`      | `webhooks` + `webhook_deliveries` tables                                          |
-| `012_create_notifications.sql` | `notifications` table                                                             |
-| `013_superadmin.sql`           | Adds `is_superadmin` column to `users`                                            |
-| `014_site_settings.sql`        | `site_settings` table (seeded with `allow_registration=true`, `allow_login=true`) |
-| `015_invitations.sql`          | `invitations` table; adds `is_invited` column to `users`                          |
-| `016_create_labels.sql`        | `labels`, `issue_labels`, `pull_labels` tables                                    |
-| `017_create_assignees.sql`     | `issue_assignees`, `pull_assignees` tables                                        |
-| `018_create_stars.sql`         | `stars` table + `idx_stars_repo`, `idx_stars_user` indexes                        |
-| `019_add_fork_columns.sql`     | Adds `is_fork`, `fork_of_id`, `fork_count` columns to `repositories` + index      |
-| `020_create_releases.sql`      | `releases` table + `idx_releases_repo` index                                      |
-| `021_create_commit_statuses.sql` | `commit_statuses` table + `idx_commit_statuses_repo_sha` index                  |
-| `022_create_milestones.sql`    | `milestones` table; adds `milestone_id` FK to `issues` and `pull_requests`        |
+| File                                | Creates                                                                                                         |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `001_create_users.sql`              | `users` table                                                                                                   |
+| `002_create_repositories.sql`       | `repositories` table                                                                                            |
+| `003_create_issues.sql`             | `issues` table                                                                                                  |
+| `004_create_pull_requests.sql`      | `pull_requests` table                                                                                           |
+| `005_create_comments.sql`           | `comments` table                                                                                                |
+| `006_create_permissions.sql`        | `permissions` table                                                                                             |
+| `007_create_ssh_keys.sql`           | `ssh_keys` table                                                                                                |
+| `008_oauth_users.sql`               | Adds `oauth_provider`, `oauth_id` columns to `users`                                                            |
+| `009_create_organizations.sql`      | `organizations` + `org_members` tables                                                                          |
+| `010_repo_owner_name.sql`           | Adds `owner_name` + `org_id` columns to `repositories`                                                          |
+| `011_create_webhooks.sql`           | `webhooks` + `webhook_deliveries` tables                                                                        |
+| `012_create_notifications.sql`      | `notifications` table                                                                                           |
+| `013_superadmin.sql`                | Adds `is_superadmin` column to `users`                                                                          |
+| `014_site_settings.sql`             | `site_settings` table (seeded with `allow_registration=true`, `allow_login=true`)                               |
+| `015_invitations.sql`               | `invitations` table; adds `is_invited` column to `users`                                                        |
+| `016_create_labels.sql`             | `labels`, `issue_labels`, `pull_labels` tables                                                                  |
+| `017_create_assignees.sql`          | `issue_assignees`, `pull_assignees` tables                                                                      |
+| `018_create_stars.sql`              | `stars` table + `idx_stars_repo`, `idx_stars_user` indexes                                                      |
+| `019_add_fork_columns.sql`          | Adds `is_fork`, `fork_of_id`, `fork_count` columns to `repositories` + index                                    |
+| `020_create_releases.sql`           | `releases` table + `idx_releases_repo` index                                                                    |
+| `021_create_commit_statuses.sql`    | `commit_statuses` table + `idx_commit_statuses_repo_sha` index                                                  |
+| `022_create_milestones.sql`         | `milestones` table; adds `milestone_id` FK to `issues` and `pull_requests`                                      |
+| `023_create_pr_reviews.sql`         | `pull_reviews` table with `UNIQUE(pull_id, author_id)` upsert constraint                                        |
+| `024_create_pull_line_comments.sql` | `pull_line_comments` table with path + line indexes                                                             |
+| `025_search_indexes.sql`            | `search_vector tsvector` columns + GIN indexes + triggers on repos/issues/PRs; `idx_users_username_lower` index |
 
 ---
 

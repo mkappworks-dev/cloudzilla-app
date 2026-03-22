@@ -330,9 +330,9 @@ PATCH            /api/repos/{owner}/{repo}/pulls/{number}           extend Updat
 
 ---
 
-## Phase 4 — PR Reviews, Line Comments, Search
+## Phase 4 — PR Reviews, Line Comments, Search ✅ IMPLEMENTED
 
-_Professional code review workflow + content discoverability. NOT YET IMPLEMENTED._
+_Professional code review workflow + content discoverability._
 
 ### 4.1 PR Reviews
 
@@ -479,9 +479,9 @@ GET /search?q=...&type=repos|issues|pulls|users  (optAuthMW)
 | 3.1   | Releases          | ✅ Done | 020          |
 | 3.2   | Commit Status API | ✅ Done | 021          |
 | 3.3   | Milestones        | ✅ Done | 022          |
-| 4.1   | PR Reviews        | ⬜ TODO | 023          |
-| 4.2   | PR Line Comments  | ⬜ TODO | 024          |
-| 4.3   | Search            | ⬜ TODO | 025          |
+| 4.1   | PR Reviews        | ✅ Done | 023          |
+| 4.2   | PR Line Comments  | ✅ Done | 024          |
+| 4.3   | Search            | ✅ Done | 025          |
 
 **Critical files touched by every phase:**
 

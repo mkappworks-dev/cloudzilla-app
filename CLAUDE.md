@@ -804,9 +804,9 @@ Full phase specs (all phases, implemented and planned): [docs/ROADMAP.md](./docs
 | 3.1   | Releases          | ✅ Done | 020          |
 | 3.2   | Commit Status API | ✅ Done | 021          |
 | 3.3   | Milestones        | ✅ Done | 022          |
-| 4.1   | PR Reviews        | ⬜ TODO | 023          |
-| 4.2   | PR Line Comments  | ⬜ TODO | 024          |
-| 4.3   | Search            | ⬜ TODO | 025          |
+| 4.1   | PR Reviews        | ✅ Done | 023          |
+| 4.2   | PR Line Comments  | ✅ Done | 024          |
+| 4.3   | Search            | ✅ Done | 025          |
 
 ---
 
@@ -828,6 +828,6 @@ See [docs/ROADMAP.md](./docs/ROADMAP.md) for full specs.
 
 ---
 
-## Phase 4 — PR Reviews, Line Comments, Search ⬜ TODO
+## Phase 4 — PR Reviews, Line Comments, Search ✅ IMPLEMENTED
 
 See [docs/ROADMAP.md](./docs/ROADMAP.md) for full specs.
