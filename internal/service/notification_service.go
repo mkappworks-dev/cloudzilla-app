@@ -90,6 +90,24 @@ func (s *NotificationService) NotifyIssueStateChange(ctx context.Context, repo m
 	_ = s.notifs.Create(ctx, n)
 }
 
+func (s *NotificationService) NotifyPRReview(ctx context.Context, repo model.Repository, pr model.PullRequest, actorID int64, actorName string) {
+	if actorID == pr.AuthorID {
+		return
+	}
+	n := &model.Notification{
+		UserID:     pr.AuthorID,
+		ActorID:    actorID,
+		ActorName:  actorName,
+		Type:       model.NotifPRReview,
+		RepoID:     repo.ID,
+		RepoName:   repo.Name,
+		OwnerName:  repo.OwnerName,
+		SubjectID:  int64(pr.Number),
+		SubjectURL: fmt.Sprintf("/%s/%s/pulls/%d", repo.OwnerName, repo.Name, pr.Number),
+	}
+	_ = s.notifs.Create(ctx, n)
+}
+
 func (s *NotificationService) NotifyPRStateChange(ctx context.Context, repo model.Repository, pr model.PullRequest, actorID int64, actorName string) {
 	if actorID == pr.AuthorID {
 		return

@@ -12,6 +12,7 @@ const (
 	NotifPRMerged      NotificationType = "pr_merged"
 	NotifPRClosed      NotificationType = "pr_closed"
 	NotifPROpened      NotificationType = "pr_opened"
+	NotifPRReview      NotificationType = "pr_review"
 )
 
 type Notification struct {
