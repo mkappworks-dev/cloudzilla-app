@@ -99,144 +99,22 @@ go test ./...           # Run Go tests
 
 ### Google OAuth Flow
 
-```
-User clicks "Sign in with Google"
-  → GET /auth/google
-      → generate random state, set oauth_state cookie (5 min, httpOnly)
-      → redirect to Google auth URL
-  → User approves on Google
-  → GET /auth/google/callback?code=...&state=...
-      → validate state cookie
-      → exchange code → access token
-      → fetch https://www.googleapis.com/oauth2/v2/userinfo
-      → upsert user (see account linking below)
-      → generate JWT, set cz_token cookie
-      → redirect to /
-```
+`GET /auth/google` → state cookie → Google → `GET /auth/google/callback` → upsert user → `cz_token` cookie → redirect `/`
 
-**Account linking priority:**
+**Account linking priority:** existing `oauth_id` match → email match (links to password account) → create new user
 
-1. `oauth_provider=google` + `oauth_id` found → log in directly
-2. Email already exists (password user) → link OAuth to existing account → log in
-3. Neither → create new user (username derived from name/email prefix, deduplicated)
+**Config** (`config.yaml`): `oauth.google_client_id`, `oauth.google_client_secret`, `oauth.google_redirect_url`. If `google_client_id` is empty, returns 501 (button still renders, fails gracefully).
 
-**Configuration** (`config.yaml`):
+**Error sentinels** (`service/user_service.go`): `ErrRegistrationDisabled` (allow_registration=false, user not found), `ErrLoginDisabled` (allow_login=false, not superadmin/invited) — `GoogleOAuthCallback` returns 403 on these.
 
-```yaml
-oauth:
-  google_client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com"
-  google_client_secret: "YOUR_SECRET"
-  google_redirect_url: "http://localhost:8080/auth/google/callback"
-```
+## Git Transport (HTTP + SSH)
 
-If `google_client_id` is empty, `GET /auth/google` returns 501 Not Implemented. The button still renders on the login page but fails gracefully.
+See [docs/git-transport.md](./docs/git-transport.md) for full details (endpoints, config, curl examples, SSH auth flow).
 
-## SSH Key Management
-
-### Adding SSH Keys
-
-Users can add SSH public keys for git operations:
-
-```bash
-curl -X POST http://localhost:8080/api/user/keys \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"title": "laptop", "public_key": "ssh-ed25519 AAAA..."}'
-```
-
-### SSH Key Storage
-
-- Public keys stored in `ssh_keys` table with MD5 fingerprints
-- Fingerprints used for fast public key lookups during SSH handshakes
-- One key per user; users can have multiple keys with different titles
-
-### Listing and Deleting Keys
-
-```bash
-# List all keys for authenticated user
-GET /api/user/keys
-
-# Delete a key by ID
-DELETE /api/user/keys/{id}
-```
-
-## Git HTTP Smart Protocol
-
-### Overview
-
-Cloudzilla exposes repositories via the Git HTTP smart protocol, allowing standard `git clone/push/pull` operations.
-
-### Endpoints
-
-- `GET /{owner}/{repo}/info/refs?service=git-upload-pack` — List refs (clone/fetch)
-- `POST /{owner}/{repo}/git-upload-pack` — Upload pack (clone/fetch data)
-- `POST /{owner}/{repo}/git-receive-pack` — Receive pack (push data)
-
-### Authentication
-
-- **Public repos**: No authentication required
-- **Private repos**: Requires HTTP Basic Auth or JWT cookie
-- Permissions enforced: read access for clone/fetch, write access for push
-
-### Example
-
-```bash
-# Clone a public repo
-git clone http://localhost:8080/admin/my-project.git
-
-# Clone a private repo (with basic auth)
-git clone http://user:password@localhost:8080/admin/private-repo.git
-
-# Push requires write access
-git push origin main
-```
-
-## SSH Server
-
-### Overview
-
-Cloudzilla runs an SSH server (port 2222 by default) for git operations using public key authentication.
-
-### Configuration
-
-In `config.yaml`:
-
-```yaml
-git:
-  repos_root: ./git-repos
-  ssh_port: 2222 # SSH server port
-  ssh_host_key: ./cloudzilla_host_key # Host key file (auto-generated if missing)
-```
-
-### SSH Git Operations
-
-Users with SSH keys can clone, fetch, and push via SSH:
-
-```bash
-# Add an SSH key first
-curl -X POST http://localhost:8080/api/user/keys \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"title": "mykey", "public_key": "'$(cat ~/.ssh/id_ed25519.pub)'"}'
-
-# Clone via SSH
-git clone ssh://git@localhost:2222/owner/repo.git
-
-# Standard git operations work
-git push origin main
-git fetch
-git pull
-```
-
-### How SSH Auth Works
-
-1. Client initiates SSH connection to port 2222
-2. Server presents host public key
-3. Client sends user's SSH public key
-4. Server computes MD5 fingerprint and looks up matching SSH key in database
-5. If found, extracts user ID from key owner
-6. User is authenticated and context is populated
-7. `git-upload-pack` or `git-receive-pack` command is dispatched with user context
-8. Repository permissions are checked (read for upload-pack, write for receive-pack)
+- HTTP: `GET /{owner}/{repo}/info/refs`, `POST /{owner}/{repo}/git-upload-pack`, `POST /{owner}/{repo}/git-receive-pack`
+- SSH: port 2222; public key auth via `ssh_keys` table (MD5 fingerprint lookup)
+- SSH keys managed via `GET/POST/DELETE /api/user/keys`
+- `CanRead` / `CanWrite` enforced on both transports before processing
 
 ## HTMX Pattern (Example: Close Issue)
 
@@ -339,193 +217,31 @@ All git operations (HTTP and SSH) respect the same permission rules:
 - Both HTTP handlers and SSH handlers call `CanRead`/`CanWrite` before processing git commands
 - Bare repository created with `go-git.PlainInit()`, fully compatible with git CLI
 
-## Code Browser
+## Code Browser & Refs
 
-### URL Patterns
+See [docs/code-browser.md](./docs/code-browser.md) for full CodeService API, URL patterns, ResolveRef priority, result types, and Branch/Tag management endpoints.
 
-| View                    | Route                                     |
-| ----------------------- | ----------------------------------------- |
-| Root tree               | `/{owner}/{repo}/tree/{ref}`              |
-| Subtree                 | `/{owner}/{repo}/tree/{ref}/{path...}`    |
-| Blob                    | `/{owner}/{repo}/blob/{ref}/{path...}`    |
-| Blame                   | `/{owner}/{repo}/blame/{ref}/{path...}`   |
-| Commit log              | `/{owner}/{repo}/commits/{ref}`           |
-| Commit log (file scope) | `/{owner}/{repo}/commits/{ref}/{path...}` |
-| Single commit diff      | `/{owner}/{repo}/commit/{sha}`            |
-| Branches & Tags         | `/{owner}/{repo}/refs`                    |
-
-`{ref}` = branch name, tag name, or commit SHA. Pagination via `?page=N` (1-indexed, 30 per page).
-
-### CodeService (`internal/service/code_service.go`)
-
-`CodeService` has **no store dependency** — it reads git data directly from bare repos on disk via go-git. It is wired in `services.New()` and receives `config.GitConfig` (for `ReposRoot`).
-
-Key methods:
-
-- `ResolveRef(owner, repoName, ref)` → `(*object.Commit, displayRef, error)`
-- `GetTree(owner, repoName, ref, path)` → `*TreeResult`
-- `GetBlob(owner, repoName, ref, path)` → `*BlobResult`
-- `GetBlame(owner, repoName, ref, path)` → `*BlameResult`
-- `GetCommits(owner, repoName, ref, page, pageSize)` → `*CommitLog`
-- `GetCommit(owner, repoName, sha)` → `*CommitDetail`
-- `ListRefs(owner, repoName, defaultBranch)` → `*RefsResult`
-- `CreateBranch(owner, repoName, name, fromRef)` → `error`
-- `DeleteBranch(owner, repoName, name)` → `error`
-- `CreateTag(owner, repoName, name, fromRef)` → `error`
-- `DeleteTag(owner, repoName, name)` → `error`
-
-### ResolveRef Priority
-
-1. Branch: `repo.Reference(plumbing.NewBranchReferenceName(ref), true)`
-2. Tag: `repo.Reference(plumbing.NewTagReferenceName(ref), true)`
-3. Raw SHA: `repo.CommitObject(plumbing.NewHash(ref))`
-4. HEAD fallback (when `ref == ""`): `repo.Head()`
-
-Returns `ErrEmptyRepo` sentinel when HEAD resolution fails (repo has no commits). Handlers return 404 on this error.
-
-### Result Types
-
-- `TreeResult` — `Entries []TreeEntry` (dirs first, then files, both sorted), `Ref`, `Path`, `Breadcrumbs`
-- `BlobResult` — `Lines []CodeLine`, `IsBinary bool`, `BlameURL`, breadcrumbs
-- `BlameResult` — `Lines []BlameLine` with `ShowMeta bool` (true when commit run changes), `BlobURL`, breadcrumbs
-- `CommitLog` — `Commits []CommitSummary`, `Ref`, `Page`, `PrevPage`, `NextPage`, `HasMore`
-- `CommitDetail` — full commit with `Files []FileDiff` (hunks with add/del/ctx lines), `TotalAdded`, `TotalDeleted`
-- `RefsResult` — `Branches []BranchInfo` (`Name`, `Hash`, `IsDefault`), `Tags []TagInfo` (`Name`, `Hash`)
+- Routes: `tree/{ref}`, `blob/{ref}`, `blame/{ref}`, `commits/{ref}`, `commit/{sha}`, `refs`
+- `CodeService` in `internal/service/code_service.go` — no store dependency, reads bare repos via go-git
+- `ErrEmptyRepo` sentinel → 404 when repo has no commits
+- Write access required for branch/tag create/delete; default branch delete is blocked
 
 ## Deployment
 
-1. Run `make build` — produces single `dist/cloudzilla` binary with embedded templates + CSS
-2. No Node.js, npm, or Bun needed
-3. `./dist/cloudzilla` runs the server on the configured port
-4. Set config via `config.yaml` or environment variables (see `internal/config/`)
+See [docs/deployment.md](./docs/deployment.md) for Docker setup, env var reference, and first-run bootstrap.
 
-## Docker
-
-Cloudzilla ships a multi-stage `Dockerfile` and `docker-compose.yml`.
-
-### Image build stages
-
-| Stage     | Base                 | Purpose                                                                                                          |
-| --------- | -------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `builder` | `golang:1.23-alpine` | Downloads Tailwind CLI (arch-aware), compiles CSS, builds both Go binaries with `CGO_ENABLED=0 -ldflags="-s -w"` |
-| runtime   | `alpine:3.21`        | Copies binaries; installs `ca-certificates tzdata`; exposes 8080/2222                                            |
-
-### Persistent volume (`/data`)
-
-All mutable state lives under `/data` inside the container, mounted as a named Docker volume:
-
-| What             | Path                        |
-| ---------------- | --------------------------- |
-| Git repositories | `/data/git-repos/`          |
-| SSH host key     | `/data/cloudzilla_host_key` |
-
-### Key environment variables (Viper `CZ_` prefix)
-
-```
-CZ_DATABASE_DRIVER=postgres
-CZ_DATABASE_DSN=postgres://cloudzilla:cloudzilla@postgres:5432/cloudzilla?sslmode=disable
-CZ_GIT_REPOS_ROOT=/data/git-repos
-CZ_GIT_SSH_HOST_KEY=/data/cloudzilla_host_key
-CZ_AUTH_JWT_SECRET=<strong secret>
-CZ_SERVER_PORT=8080
-CZ_GIT_SSH_PORT=2222
-```
-
-No `config.yaml` file is needed at runtime when env vars are set.
-
-### Docker make targets
-
-```bash
-make docker-build   # docker build -t cloudzilla:latest .
-make docker-run     # docker compose up -d
-make docker-down    # docker compose down
-```
-
-### First-run bootstrap
-
-```bash
-make docker-run
-docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli migrate
-```
-
-Then open `http://localhost:8080` in a browser — the first request redirects to `/setup` where you create the superadmin account via the web wizard.
-
-The SSH host key is auto-generated into the named volume on first boot — no manual `ssh-keygen` step needed.
-
-## Branch & Tag Management
-
-The Refs page (`/{owner}/{repo}/refs`) lists all branches and tags. Authenticated users with write access can create and delete branches/tags via HTMX forms.
-
-**Permission rules:**
-
-- Public repos: refs page always visible (read-only for unauthenticated)
-- Write access required for create/delete; default branch delete is blocked (button hidden)
-
-**API endpoints** (all require `authMW`):
-
-| Method | Path                                        | Description                                |
-| ------ | ------------------------------------------- | ------------------------------------------ |
-| POST   | `/api/repos/{owner}/{repo}/branches`        | Create branch (`name`, `from` form fields) |
-| DELETE | `/api/repos/{owner}/{repo}/branches?name=…` | Delete branch                              |
-| POST   | `/api/repos/{owner}/{repo}/tags`            | Create tag (`name`, `from` form fields)    |
-| DELETE | `/api/repos/{owner}/{repo}/tags?name=…`     | Delete tag                                 |
-
-HTMX responses swap `fragment-branches-list` into `#branches-list` and `fragment-tags-list` into `#tags-list`.
-
-The ref badge on tree and commits pages links to `/{owner}/{repo}/refs` (via `RefsURL` field on `TreeData` / `CommitsData`).
-
----
+- Build: `make build` → single binary `dist/cloudzilla` (embedded templates + CSS)
+- Key env vars: `CZ_DATABASE_DSN`, `CZ_AUTH_JWT_SECRET`, `CZ_GIT_REPOS_ROOT`, `CZ_GIT_SSH_HOST_KEY`
+- Docker: `make docker-build && make docker-run`; first-run: `docker exec ... cloudzilla-cli migrate`
 
 ## Pull Request Merge Strategies
 
-Cloudzilla supports three merge strategies selectable from the PR detail page.
+See [docs/pr-merge.md](./docs/pr-merge.md) for full CodeService merge API and PRDiffResult type.
 
-**Diff view:** The PR detail page shows a full file diff between base and head tips for open PRs. Diff is omitted for closed/merged PRs.
-
-**Available strategies:**
-
-| Strategy        | Button                 | When shown                           | What it does                                            |
-| --------------- | ---------------------- | ------------------------------------ | ------------------------------------------------------- |
-| Fast-forward    | "Merge (fast-forward)" | Head is a direct descendant of base  | Advances base branch ref — no new commit                |
-| Three-way merge | "Create merge commit"  | FF or clean three-way merge possible | Creates a commit with two parents (base + head)         |
-| Squash merge    | "Squash and merge"     | FF or clean three-way merge possible | Collapses head commits into a single new commit on base |
-
-**Conflict detection:** `mergeTreesNoConflict` performs a pure tree-level three-way merge — if the same file path was modified on both sides relative to the merge base, all merge buttons are hidden and a conflict warning is shown. The developer must rebase locally and push.
-
-**Merge flow:**
-
-1. `PagePullDetail` calls `CodeService.GetPullDiff(base, head)` → `PRDiffResult{Files, CanFastForward, CanThreeWayMerge}`
-2. Template renders diff + conditionally shows strategy buttons based on capability flags
-3. On button click → HTMX `PATCH /api/repos/{owner}/{repo}/pulls/{number}` with `state=merged` and `merge_strategy=ff|merge|squash`
-4. `UpdatePull` dispatches to `MergePullRequest`, `ThreeWayMergePullRequest`, or `SquashMergePullRequest`
-5. On success → `PullService.SetState(merged)` → fragment returned
-6. On failure (conflict, missing branch, etc.) → 422 → `hx-on::response-error` fires alert
-
-**`CodeService` methods:**
-
-- `GetPullDiff(owner, repo, base, head)` → `*PRDiffResult`
-- `MergePullRequest(owner, repo, base, head)` → `error` (fast-forward only)
-- `ThreeWayMergePullRequest(owner, repo, base, head, authorName, authorEmail)` → `error`
-- `SquashMergePullRequest(owner, repo, base, head, authorName, authorEmail)` → `error`
-- `checkFastForward(repo, baseCommit, headCommit)` → `bool` (private)
-- `findMergeBase(repo, a, b)` → `(*object.Commit, error)` (private; LCA via ancestor walk)
-- `mergeTreesNoConflict(repo, mergeBase, base, head)` → `(plumbing.Hash, bool, error)` (private)
-- `flattenTree(tree)` → `(map[string]mergeFile, error)` (private)
-- `buildTree(repo, files)` → `(plumbing.Hash, error)` (private; recursively encodes tree objects)
-
-**`PRDiffResult` type:**
-
-```go
-type PRDiffResult struct {
-    Files            []FileDiff
-    TotalAdded       int
-    TotalDeleted     int
-    CanFastForward   bool  // head is a descendant of base
-    CanThreeWayMerge bool  // branches diverged but no conflicting file edits
-}
-```
-
----
+- Three strategies: fast-forward (`ff`), three-way merge (`merge`), squash (`squash`)
+- `PATCH /api/repos/{owner}/{repo}/pulls/{number}` with `state=merged&merge_strategy=ff|merge|squash`
+- `mergeTreesNoConflict` detects file-level conflicts → hides all merge buttons, shows warning
+- Diff view shown for open PRs only; omitted for closed/merged
 
 ## Instance Permissions & Access Control
 
@@ -560,10 +276,6 @@ Seeded by migration 014. Two boolean keys:
 | -------------------- | ------- | ----------------------------------------------------------------------------- |
 | `allow_registration` | `true`  | Blocks new account creation (form & OAuth). Invite tokens bypass this.        |
 | `allow_login`        | `true`  | Blocks non-superadmin, non-invited logins. "Sign in" link hidden from navbar. |
-
-`SiteSettingService` holds a `sync.RWMutex`-protected `map[string]string` cache. `AllowLogin` / `AllowRegistration` call `loadCache` once on first access and read from the map thereafter. Every `Set` refreshes the cache.
-
-`basePage()` reads `AllowLogin` and sets `BasePage.AllowLogin`; the layout template conditionally renders the "Sign in" link.
 
 ### Invitation system
 
@@ -620,163 +332,44 @@ For org repos, any org `owner` additionally gets read/write/manage on all repos 
 
 HTMX responses swap `fragment-repo-collaborators` into `#repo-collaborators`.
 
-### Error sentinels
-
-`service/user_service.go` exports two errors for OAuth policy enforcement:
-
-- `ErrRegistrationDisabled` — returned when `allow_registration=false` and the user does not exist
-- `ErrLoginDisabled` — returned when `allow_login=false` and the user is neither superadmin nor invited
-
-`GoogleOAuthCallback` matches against these and returns 403 with a plain-text message.
-
 ---
 
 ## Organizations
 
-Cloudzilla supports organization accounts. An org is a shared namespace that can own repositories and have multiple members with roles.
+See [docs/organizations.md](./docs/organizations.md) for OrgService API + full endpoint table.
 
-### Roles
-
-| Role     | Description                                                               |
-| -------- | ------------------------------------------------------------------------- |
-| `owner`  | Full admin: add/remove members, create/manage all repos in the org        |
-| `member` | Can view org profile and be listed as a member; no repo management rights |
-
-### Pages
-
-| Route                  | Auth       | Description                      |
-| ---------------------- | ---------- | -------------------------------- |
-| `/{org}`               | Optional   | Org profile: repos + member list |
-| `/orgs/{org}/settings` | Owner only | Manage members (add/remove)      |
-
-The `/{owner}` route first checks if `owner` is a user; if not, falls back to org lookup. Org profile and user profile share the same URL pattern.
-
-### API Endpoints
-
-| Method | Path                                 | Auth     | Description                                                                         |
-| ------ | ------------------------------------ | -------- | ----------------------------------------------------------------------------------- |
-| POST   | `/api/orgs/`                         | Required | Create org (`name`, `display_name`, `description`)                                  |
-| GET    | `/api/orgs/{org}`                    | —        | Get org by name                                                                     |
-| GET    | `/api/orgs/{org}/members`            | —        | List org members                                                                    |
-| POST   | `/api/orgs/{org}/members`            | Required | Add member (`username`, `role`); owner only                                         |
-| DELETE | `/api/orgs/{org}/members/{username}` | Required | Remove member; owner only; last owner blocked                                       |
-| POST   | `/api/orgs/{org}/repos`              | Required | Create a repo under the org; owner only                                             |
-| POST   | `/api/orgs/{org}/transfer`           | Required | Transfer org ownership (`new_owner` form field); owner only; demotes self to member |
-
-HTMX responses from add/remove member swap `fragment-org-members` into `#org-members`.
-
-### OrgService
-
-- `Create(ctx, creatorUserID, name, displayName, description)` → `(*Organization, error)` — validates name uniqueness against users table; auto-adds creator as owner
-- `Get(ctx, name)` → `(*Organization, error)`
-- `ListMembers(ctx, orgID)` → `([]OrgMember, error)`
-- `IsOwner(ctx, orgID, userID)` → `bool`
-- `IsMember(ctx, orgID, userID)` → `bool`
-- `AddMember(ctx, orgID, requestingUserID, targetUserID, role)` → `error` — owner-only
-- `RemoveMember(ctx, orgID, requestingUserID, targetUserID)` → `error` — owner-only; blocks removing last owner
-- `CreateRepo(ctx, orgID, requestingUserID, name, description, private)` → `(*Repository, error)` — owner-only; sets `owner_name` to org name, `org_id` to org ID
-- `ListRepos(ctx, orgID)` → `([]Repository, error)`
-- `TransferOrg(ctx, orgID, requestingUserID, newOwnerUsername)` → `error` — owner-only; promotes new user to `owner`, demotes requesting user to `member`; adds new user as member if not already one
+- Roles: `owner` (full admin: members + repos), `member` (view-only)
+- `/{org}` profile page (repos + members); `/orgs/{org}/settings` for owners
+- `/{owner}` route checks user first, falls back to org lookup
+- `OrgService` in `internal/service/org_service.go`
 
 ---
 
 ## Webhooks
 
-Webhooks let repo owners receive HTTP POST callbacks when events occur in a repository.
+See [docs/webhooks.md](./docs/webhooks.md) for WebhookService API + full endpoint table.
 
-### Supported Events
-
-- `push` — fired when commits are pushed (HTTP or SSH receive-pack)
-- `issues` — fired on issue create, close, reopen
-- `pull_request` — fired on PR create, close, merge
-
-### Delivery
-
-Webhooks are dispatched fire-and-forget (`go s.Dispatch(...)`). Each delivery is recorded in `webhook_deliveries` with the event name, payload, response code, and any error.
-
-**HMAC signing:** if a secret is configured, requests include `X-Hub-Signature-256: sha256=<HMAC-SHA256>` (GitHub-compatible).
-
-### API Endpoints
-
-All webhook endpoints are under `/api/repos/{owner}/{repo}/hooks`:
-
-| Method | Path                                              | Auth         | Description                                |
-| ------ | ------------------------------------------------- | ------------ | ------------------------------------------ |
-| GET    | `/api/repos/{owner}/{repo}/hooks/`                | —            | List webhooks for repo                     |
-| POST   | `/api/repos/{owner}/{repo}/hooks/`                | Write access | Create webhook (`url`, `secret`, `events`) |
-| DELETE | `/api/repos/{owner}/{repo}/hooks/{id}`            | Write access | Delete webhook                             |
-| GET    | `/api/repos/{owner}/{repo}/hooks/{id}/deliveries` | Write access | List delivery history                      |
-
-HTMX requests for create/delete swap `fragment-webhooks-list` into `#webhooks-list`.
-
-Default events when `events` is omitted: `push,issues,pull_request`.
-
-### WebhookService
-
-- `Create(ctx, repoID, url, secret, events)` → `(*Webhook, error)`
-- `ListByRepo(ctx, repoID)` → `([]Webhook, error)`
-- `Delete(ctx, id, repoID)` → `error`
-- `ListDeliveries(ctx, webhookID)` → `([]WebhookDelivery, error)`
-- `Dispatch(repoID, event, payload)` — fire-and-forget; call as `go s.Webhook.Dispatch(...)`
-- `PushPayload(repo, pusher, branch, headSHA)` → `map[string]any`
-- `IssuePayload(action, repo, issue)` → `map[string]any`
-- `PullPayload(action, repo, pr)` → `map[string]any`
-
-### Repo Settings Page
-
-`/{owner}/{repo}/settings` (write access required) — shows a **Collaborators** section, a **Webhooks** section, and (for personal repo owners) a **Transfer Ownership** danger zone. The collaborators section is only editable by the repo owner or an org owner (`CanManage`). Collaborators with `admin` role can see the settings page (write access) but cannot modify collaborators or transfer.
+- Events: `push`, `issues`, `pull_request`; HMAC-SHA256 signed if secret set
+- Dispatch: `go s.Webhook.Dispatch(repoID, event, payload)` (fire-and-forget)
+- Extend: add event string + `XPayload()` to `webhook_service.go`; no schema change
+- Repo settings page (`/{owner}/{repo}/settings`) shows Collaborators + Webhooks + Transfer sections
 
 ---
 
 ## Notifications
 
-In-app notification system that creates notifications for issue/PR activity involving the author.
+See [docs/notifications.md](./docs/notifications.md) for NotificationService API + pages/API table.
 
-### Notification Types
-
-| Type             | Triggered when                            |
-| ---------------- | ----------------------------------------- |
-| `issue_comment`  | Someone comments on an issue you opened   |
-| `pr_comment`     | Someone comments on a PR you opened       |
-| `issue_closed`   | Someone closes an issue you opened        |
-| `issue_reopened` | Someone reopens an issue you opened       |
-| `pr_merged`      | Someone merges a PR you opened            |
-| `pr_closed`      | Someone closes a PR you opened            |
-| `pr_opened`      | (type reserved; not currently auto-fired) |
-
-Notifications are never created when `actorID == authorID` (self-actions are silent).
-
-### Unread Count in Navbar
-
-`basePage()` calls `NotificationService.CountUnread` on every page render and passes the count as `BasePage.UnreadNotifCount`. Templates show a badge next to the Notifications link.
-
-### Pages & API
-
-| Route / Endpoint                      | Auth     | Description                                   |
-| ------------------------------------- | -------- | --------------------------------------------- |
-| GET `/notifications`                  | Required | Notifications page (list all)                 |
-| PATCH `/api/notifications/{id}`       | Required | Mark single notification as read (HTMX-aware) |
-| POST `/api/notifications/read-all`    | Required | Mark all notifications as read (HTMX-aware)   |
-| GET `/api/notifications/unread-count` | Required | Returns `{"count": N}` JSON                   |
-
-HTMX responses swap `fragment-notifications-list` into `#notifications-list`.
-
-### NotificationService
-
-- `List(ctx, userID)` → `([]Notification, error)`
-- `CountUnread(ctx, userID)` → `(int, error)`
-- `MarkRead(ctx, id, userID)` → `error`
-- `MarkAllRead(ctx, userID)` → `error`
-- `NotifyIssueComment(ctx, repo, issue, actorID, actorName)` — call from `CreateIssueComment` handler
-- `NotifyPRComment(ctx, repo, pr, actorID, actorName)` — call from `CreatePRComment` handler
-- `NotifyIssueStateChange(ctx, repo, issue, actorID, actorName)` — call from `UpdateIssue` handler
-- `NotifyPRStateChange(ctx, repo, pr, actorID, actorName)` — call from `UpdatePull` handler
+- Types: `issue_comment`, `pr_comment`, `issue_closed`, `issue_reopened`, `pr_merged`, `pr_closed`
+- Never fire when `actorID == authorID` (self-actions are silent)
+- Extend: add const to `model/notification.go`, add `NotifyX` to `notification_service.go`
+- `basePage()` calls `CountUnread` on every render → `BasePage.UnreadNotifCount` badge in navbar
 
 ---
 
 ## Cloudzilla Feature Roadmap
 
-Full phase specs (all phases, implemented and planned): [docs/ROADMAP.md](./docs/ROADMAP.md)
+Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs/roadmap.md)
 
 **Cross-cutting rules (all phases):**
 
@@ -795,39 +388,22 @@ Full phase specs (all phases, implemented and planned): [docs/ROADMAP.md](./docs
 - `internal/store/stores.go` — wire new store into `Stores` struct + `New()`
 - `internal/handler/page_handler.go` — extend existing page handlers with new data fetches
 
-| Phase | Feature           | Status  | Migration(s) |
-| ----- | ----------------- | ------- | ------------ |
-| 1.1   | Labels            | ✅ Done | 016          |
-| 1.2   | Assignees         | ✅ Done | 017          |
-| 1.3   | Stars             | ✅ Done | 018          |
-| 2     | Repository Fork   | ✅ Done | 019          |
-| 3.1   | Releases          | ✅ Done | 020          |
-| 3.2   | Commit Status API | ✅ Done | 021          |
-| 3.3   | Milestones        | ✅ Done | 022          |
-| 4.1   | PR Reviews        | ✅ Done | 023          |
-| 4.2   | PR Line Comments  | ✅ Done | 024          |
-| 4.3   | Search            | ✅ Done | 025          |
+| Phase | Feature                             | Status     | Migration(s) |
+| ----- | ----------------------------------- | ---------- | ------------ |
+| 0.1   | Core Platform                       | ✅ Done    | 001–007      |
+| 0.2   | OAuth & Organizations               | ✅ Done    | 008–010      |
+| 0.3   | Webhooks, Notifs, Admin             | ✅ Done    | 011–015      |
+| 1.1   | Labels                              | ✅ Done    | 016          |
+| 1.2   | Assignees                           | ✅ Done    | 017          |
+| 1.3   | Stars                               | ✅ Done    | 018          |
+| 2     | Repository Fork                     | ✅ Done    | 019          |
+| 3.1   | Releases                            | ✅ Done    | 020          |
+| 3.2   | Commit Status API                   | ✅ Done    | 021          |
+| 3.3   | Milestones                          | ✅ Done    | 022          |
+| 4.1   | PR Reviews                          | ✅ Done    | 023          |
+| 4.2   | PR Line Comments                    | ✅ Done    | 024          |
+| 4.3   | Search                              | ✅ Done    | 025          |
+| —     | Bug fixes (Phase 0–4)               | ✅ Done    | 026          |
+| 5–20  | Personal Access Tokens → GraphQL v2 | ⬜ Planned | 027–060      |
 
----
-
-## Phase 1 — Labels, Assignees, Stars ✅ IMPLEMENTED
-
-See [docs/ROADMAP.md](./docs/ROADMAP.md) for full implementation details.
-
----
-
-## Phase 2 — Repository Fork ✅ IMPLEMENTED
-
-See [docs/ROADMAP.md](./docs/ROADMAP.md) for full implementation details.
-
----
-
-## Phase 3 — Releases, Commit Status API, Milestones ✅ IMPLEMENTED
-
-See [docs/ROADMAP.md](./docs/ROADMAP.md) for full specs.
-
----
-
-## Phase 4 — PR Reviews, Line Comments, Search ✅ IMPLEMENTED
-
-See [docs/ROADMAP.md](./docs/ROADMAP.md) for full specs.
+> Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)
