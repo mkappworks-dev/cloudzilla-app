@@ -269,19 +269,6 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, comment)
 }
 
-// lineCommentID returns a safe HTML ID from path and line number
-func lineCommentID(path string, line int) string {
-	safe := ""
-	for _, ch := range path {
-		if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '_' {
-			safe += string(ch)
-		} else {
-			safe += "-"
-		}
-	}
-	return fmt.Sprintf("lc-%s-%d", safe, line)
-}
-
 // RenderedLineComment wraps PullLineComment with pre-rendered HTML body.
 type RenderedLineComment struct {
 	model.PullLineComment

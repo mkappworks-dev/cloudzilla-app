@@ -17,7 +17,7 @@ func NewPullService(pulls *store.PullStore, repos *store.RepoStore) *PullService
 	return &PullService{pulls: pulls, repos: repos}
 }
 
-func (s *PullService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, head, base string) (*model.PullRequest, error) {
+func (s *PullService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, head, base string, isDraft bool) (*model.PullRequest, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
@@ -30,6 +30,7 @@ func (s *PullService) Create(ctx context.Context, owner, repoName string, author
 		State:      model.PRStateOpen,
 		HeadBranch: head,
 		BaseBranch: base,
+		IsDraft:    isDraft,
 	}
 	if err := s.pulls.Create(ctx, pr); err != nil {
 		return nil, err
@@ -51,6 +52,17 @@ func (s *PullService) Get(ctx context.Context, owner, repoName string, number in
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
 	return s.pulls.GetByNumber(ctx, repo.ID, number)
+}
+
+func (s *PullService) SetDraft(ctx context.Context, owner, repoName string, number int, isDraft bool) error {
+	pr, err := s.Get(ctx, owner, repoName, number)
+	if err != nil {
+		return err
+	}
+	if pr.State == model.PRStateMerged || pr.State == model.PRStateClosed {
+		return fmt.Errorf("cannot change draft state of a closed or merged pull request")
+	}
+	return s.pulls.SetDraft(ctx, pr.ID, isDraft)
 }
 
 func (s *PullService) SetState(ctx context.Context, owner, repoName string, number int, state model.PRState) (*model.PullRequest, error) {

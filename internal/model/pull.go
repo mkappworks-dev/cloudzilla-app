@@ -26,4 +26,6 @@ type PullRequest struct {
 	UpdatedAt   time.Time  `db:"updated_at"    json:"updated_at"`
 	MergedAt    *time.Time `db:"merged_at"     json:"merged_at"`
 	ClosedAt    *time.Time `db:"closed_at"     json:"closed_at"`
+	IsDraft     bool       `db:"is_draft"      json:"is_draft"`
+	DraftAt     *time.Time `db:"draft_at"      json:"draft_at,omitempty"`
 }

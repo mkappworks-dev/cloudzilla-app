@@ -12,25 +12,37 @@
       <div id="pull-detail" class="bg-white border border-gray-200 rounded-lg p-6">
         <div class="flex justify-between items-start mb-4">
           <div>
-            <h1 class="text-3xl font-bold">{{.Pull.Title}}</h1>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h1 class="text-3xl font-bold">{{.Pull.Title}}</h1>
+              {{if .Pull.IsDraft}}
+              <span class="px-2 py-0.5 rounded text-sm font-medium bg-yellow-100 text-yellow-800">Draft</span>
+              {{end}}
+            </div>
             <p class="text-gray-600 text-sm mt-2">
               #{{.Pull.Number}} by {{.Pull.AuthorName}} on {{.Pull.CreatedAt.Format "Jan 2, 2006"}}
               · {{.Pull.HeadBranch}} &rarr; {{.Pull.BaseBranch}}
             </p>
           </div>
-          <span class="px-3 py-1 rounded-full text-sm font-medium
-            {{if eq .Pull.State "open"}}bg-green-100 text-green-700
-            {{else if eq .Pull.State "merged"}}bg-purple-100 text-purple-700
-            {{else}}bg-red-100 text-red-700{{end}}">
+          <span class="px-3 py-1 rounded-full text-sm font-medium {{if eq .Pull.State "open"}}bg-green-100 text-green-700{{else if eq .Pull.State "merged"}}bg-purple-100 text-purple-700{{else}}bg-red-100 text-red-700{{end}}">
             {{.Pull.State}}
           </span>
         </div>
 
+        {{if and (eq .Pull.State "open") .Pull.IsDraft}}
+        <div class="mb-4 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between gap-4">
+          <p class="text-sm text-yellow-800">&#9998; This pull request is still a work in progress. Merge is blocked until it is marked ready for review.</p>
+          {{if .CanWrite}}
+          <button hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}" hx-vals='{"is_draft":"false"}' hx-target="#pull-detail" hx-swap="outerHTML" class="shrink-0 px-4 py-1.5 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors">
+            Ready for review
+          </button>
+          {{end}}
+        </div>
+        {{end}}
+
         {{if .Labels}}
         <div class="flex flex-wrap gap-1 mb-3">
           {{range .Labels}}
-          <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                style="background-color: {{.Color}}">{{.Name}}</span>
+          <span class="px-2 py-0.5 rounded-full text-xs font-medium" style="background-color: {{.Color}}">{{.Name}}</span>
           {{end}}
         </div>
         {{end}}
@@ -63,6 +75,7 @@
 
         {{if eq .Pull.State "open"}}
         <div class="flex flex-wrap gap-2 items-center mt-4">
+          {{if not .Pull.IsDraft}}
           {{if not .CanMerge}}
           <div class="w-full px-4 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-800">
             &#128683; Merge blocked: {{.MergeBlockReason}}
@@ -70,46 +83,28 @@
           {{end}}
           {{if .CanMerge}}
           {{if .Diff}}
-            {{if .Diff.CanFastForward}}
-            <button
-              hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}"
-              hx-vals='{"state":"merged","merge_strategy":"ff"}'
-              hx-target="#pull-detail" hx-swap="outerHTML"
-              hx-on::response-error="alert('Merge failed. Please refresh and try again.')"
-              class="px-4 py-2 bg-purple-600 text-white rounded font-medium hover:bg-purple-700 transition-colors">
-              Merge (fast-forward)
-            </button>
-            {{end}}
-            {{if or .Diff.CanFastForward .Diff.CanThreeWayMerge}}
-            <button
-              hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}"
-              hx-vals='{"state":"merged","merge_strategy":"merge"}'
-              hx-target="#pull-detail" hx-swap="outerHTML"
-              hx-on::response-error="alert('Merge failed. Please refresh and try again.')"
-              class="px-4 py-2 bg-indigo-600 text-white rounded font-medium hover:bg-indigo-700 transition-colors">
-              Create merge commit
-            </button>
-            <button
-              hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}"
-              hx-vals='{"state":"merged","merge_strategy":"squash"}'
-              hx-target="#pull-detail" hx-swap="outerHTML"
-              hx-on::response-error="alert('Merge failed. Please refresh and try again.')"
-              class="px-4 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition-colors">
-              Squash and merge
-            </button>
-            {{else}}
-            <div class="px-4 py-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-              Cannot merge automatically — conflicting changes in both branches. Rebase the head branch onto
-              <code class="font-mono">{{.Pull.BaseBranch}}</code> and push to enable merge.
-            </div>
-            {{end}}
+          {{if .Diff.CanFastForward}}
+          <button hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}" hx-vals='{"state":"merged","merge_strategy":"ff"}' hx-target="#pull-detail" hx-swap="outerHTML" hx-on::response-error="alert('Merge failed. Please refresh and try again.')" class="px-4 py-2 bg-purple-600 text-white rounded font-medium hover:bg-purple-700 transition-colors">
+            Merge (fast-forward)
+          </button>
+          {{end}}
+          {{if or .Diff.CanFastForward .Diff.CanThreeWayMerge}}
+          <button hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}" hx-vals='{"state":"merged","merge_strategy":"merge"}' hx-target="#pull-detail" hx-swap="outerHTML" hx-on::response-error="alert('Merge failed. Please refresh and try again.')" class="px-4 py-2 bg-indigo-600 text-white rounded font-medium hover:bg-indigo-700 transition-colors">
+            Create merge commit
+          </button>
+          <button hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}" hx-vals='{"state":"merged","merge_strategy":"squash"}' hx-target="#pull-detail" hx-swap="outerHTML" hx-on::response-error="alert('Merge failed. Please refresh and try again.')" class="px-4 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition-colors">
+            Squash and merge
+          </button>
+          {{else}}
+          <div class="px-4 py-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+            Cannot merge automatically — conflicting changes in both branches. Rebase the head branch onto
+            <code class="font-mono">{{.Pull.BaseBranch}}</code> and push to enable merge.
+          </div>
           {{end}}
           {{end}}
-          <button
-            hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}"
-            hx-vals='{"state":"closed"}'
-            hx-target="#pull-detail" hx-swap="outerHTML"
-            class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors">
+          {{end}}
+          {{end}}
+          <button hx-patch="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}" hx-vals='{"state":"closed"}' hx-target="#pull-detail" hx-swap="outerHTML" class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors">
             Close PR
           </button>
         </div>
@@ -146,15 +141,10 @@
                 <td class="w-10 text-right pr-2 text-gray-400 select-none border-r border-gray-200 py-0.5 text-xs font-mono align-top">
                   {{if eq .Type "add"}}{{.NewNum}}{{else if eq .Type "del"}}{{.OldNum}}{{else}}{{.OldNum}}{{end}}
                   {{if and $.CanWrite (eq $.Pull.State "open") (ne .Type "del")}}
-                  <span
-                    hx-get="/api/repos/{{$.Owner}}/{{$.RepoName}}/pulls/{{$.Pull.Number}}/line_comments/form?path={{$filePath}}&line={{$lineNum}}"
-                    hx-target="#lc-form-{{$filePath}}-{{$lineNum}}"
-                    hx-swap="innerHTML"
-                    class="cursor-pointer text-gray-300 hover:text-blue-500 select-none pl-0.5">+</span>
+                  <span hx-get="/api/repos/{{$.Owner}}/{{$.RepoName}}/pulls/{{$.Pull.Number}}/line_comments/form?path={{$filePath}}&line={{$lineNum}}" hx-target="#lc-form-{{$filePath}}-{{$lineNum}}" hx-swap="innerHTML" class="cursor-pointer text-gray-300 hover:text-blue-500 select-none pl-0.5">+</span>
                   {{end}}
                 </td>
-                <td class="pl-3 py-0.5 whitespace-pre text-xs font-mono
-                  {{if eq .Type "add"}}text-green-800{{else if eq .Type "del"}}text-red-800{{else}}text-gray-700{{end}}">
+                <td class="pl-3 py-0.5 whitespace-pre text-xs font-mono {{if eq .Type "add"}}text-green-800{{else if eq .Type "del"}}text-red-800{{else}}text-gray-700{{end}}">
                   {{if eq .Type "add"}}+{{else if eq .Type "del"}}-{{else}} {{end}}{{.Content}}</td>
               </tr>
               {{if and (ne .Type "del") ($.LineComments)}}
@@ -175,11 +165,7 @@
                       <div class="text-xs text-gray-700 mt-0.5">{{.BodyHTML}}</div>
                     </div>
                     {{if $.CanWrite}}
-                    <button
-                      hx-delete="/api/repos/{{$.Owner}}/{{$.RepoName}}/pulls/{{$.Pull.Number}}/line_comments/{{.ID}}"
-                      hx-target="#lc-{{$filePath}}-{{$lineNum}}"
-                      hx-swap="outerHTML"
-                      class="text-gray-300 hover:text-red-400 text-xs shrink-0">&times;</button>
+                    <button hx-delete="/api/repos/{{$.Owner}}/{{$.RepoName}}/pulls/{{$.Pull.Number}}/line_comments/{{.ID}}" hx-target="#lc-{{$filePath}}-{{$lineNum}}" hx-swap="outerHTML" class="text-gray-300 hover:text-red-400 text-xs shrink-0">&times;</button>
                     {{end}}
                   </div>
                   {{end}}
@@ -207,19 +193,13 @@
         <h2 class="text-lg font-semibold mb-4">Reviews</h2>
         {{range .Reviews}}
         <div class="flex items-start gap-3 mb-4 pb-4 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0
-            {{if eq (printf "%s" .State) "approved"}}bg-green-500
-            {{else if eq (printf "%s" .State) "changes_requested"}}bg-red-500
-            {{else}}bg-gray-400{{end}}">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 {{if eq (printf "%s" .State) "approved"}}bg-green-500{{else if eq (printf "%s" .State) "changes_requested"}}bg-red-500{{else}}bg-gray-400{{end}}">
             {{slice .AuthorName 0 1}}
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
               <a href="/{{.AuthorName}}" class="text-sm font-semibold hover:underline">{{.AuthorName}}</a>
-              <span class="px-2 py-0.5 rounded-full text-xs font-medium
-                {{if eq (printf "%s" .State) "approved"}}bg-green-100 text-green-700
-                {{else if eq (printf "%s" .State) "changes_requested"}}bg-red-100 text-red-700
-                {{else}}bg-gray-100 text-gray-600{{end}}">
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium {{if eq (printf "%s" .State) "approved"}}bg-green-100 text-green-700{{else if eq (printf "%s" .State) "changes_requested"}}bg-red-100 text-red-700{{else}}bg-gray-100 text-gray-600{{end}}">
                 {{if eq (printf "%s" .State) "approved"}}&#10003; Approved
                 {{else if eq (printf "%s" .State) "changes_requested"}}&#10007; Changes requested
                 {{else}}Commented{{end}}
@@ -232,15 +212,10 @@
         <p class="text-sm text-gray-400">No reviews yet.</p>
         {{end}}
 
-        {{if and .CanWrite (eq .Pull.State "open")}}
-        <form
-          hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}/reviews"
-          hx-target="#pr-reviews"
-          hx-swap="outerHTML"
-          class="mt-4 border-t border-gray-100 pt-4 space-y-3">
+        {{if and .CanWrite (eq .Pull.State "open") (not .Pull.IsDraft)}}
+        <form hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}/reviews" hx-target="#pr-reviews" hx-swap="outerHTML" class="mt-4 border-t border-gray-100 pt-4 space-y-3">
           <h3 class="text-sm font-medium text-gray-700">Submit a review</h3>
-          <textarea name="body" rows="3" placeholder="Leave a comment (optional)"
-            class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"></textarea>
+          <textarea name="body" rows="3" placeholder="Leave a comment (optional)" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"></textarea>
           <div class="flex flex-wrap gap-4 text-sm">
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="radio" name="state" value="commented" checked class="accent-gray-500">
@@ -255,8 +230,7 @@
               <span class="text-red-700">Request changes</span>
             </label>
           </div>
-          <button type="submit"
-            class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors">
             Submit review
           </button>
         </form>
@@ -271,15 +245,10 @@
           <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Labels</h3>
           <div class="flex flex-wrap gap-1">
             {{range .Labels}}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
-                  style="background-color: {{.Color}}">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" style="background-color: {{.Color}}">
               {{.Name}}
               {{if $.CanWrite}}
-              <button
-                hx-delete="/api/repos/{{$.Owner}}/{{$.RepoName}}/pulls/{{$.Pull.Number}}/labels/{{.ID}}"
-                hx-target="#pull-labels"
-                hx-swap="outerHTML"
-                class="ml-0.5 hover:opacity-70 font-bold leading-none">&times;</button>
+              <button hx-delete="/api/repos/{{$.Owner}}/{{$.RepoName}}/pulls/{{$.Pull.Number}}/labels/{{.ID}}" hx-target="#pull-labels" hx-swap="outerHTML" class="ml-0.5 hover:opacity-70 font-bold leading-none">&times;</button>
               {{end}}
             </span>
             {{else}}
@@ -291,11 +260,7 @@
             <summary class="text-xs text-blue-600 cursor-pointer hover:underline">Add label</summary>
             <div class="mt-1 space-y-1 max-h-40 overflow-y-auto border border-gray-100 rounded">
               {{range .AllLabels}}
-              <button
-                hx-post="/api/repos/{{$.Owner}}/{{$.RepoName}}/pulls/{{$.Pull.Number}}/labels/{{.ID}}"
-                hx-target="#pull-labels"
-                hx-swap="outerHTML"
-                class="w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-gray-50 text-xs">
+              <button hx-post="/api/repos/{{$.Owner}}/{{$.RepoName}}/pulls/{{$.Pull.Number}}/labels/{{.ID}}" hx-target="#pull-labels" hx-swap="outerHTML" class="w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-gray-50 text-xs">
                 <span class="w-3 h-3 rounded-full inline-block shrink-0" style="background-color: {{.Color}}"></span>
                 {{.Name}}
               </button>
@@ -331,18 +296,12 @@
               {{if .Milestone}}Change{{else}}Set milestone{{end}}
             </summary>
             <div class="mt-1 space-y-1 max-h-40 overflow-y-auto border border-gray-100 rounded">
-              <form hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}/milestone"
-                    hx-target="#issue-milestone"
-                    hx-swap="outerHTML"
-                    class="p-1">
-                <button type="submit" name="milestone_id" value=""
-                  class="w-full text-left px-2 py-1 hover:bg-gray-50 text-xs text-gray-500">
+              <form hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}/milestone" hx-target="#issue-milestone" hx-swap="outerHTML" class="p-1">
+                <button type="submit" name="milestone_id" value="" class="w-full text-left px-2 py-1 hover:bg-gray-50 text-xs text-gray-500">
                   No milestone
                 </button>
                 {{range .AllMilestones}}
-                <button type="submit" name="milestone_id" value="{{.ID}}"
-                  class="w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-gray-50 text-xs
-                    {{if and $.Milestone (eq $.Milestone.ID .ID)}}font-semibold text-blue-600{{end}}">
+                <button type="submit" name="milestone_id" value="{{.ID}}" class="w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-gray-50 text-xs {{if and $.Milestone (eq $.Milestone.ID .ID)}}font-semibold text-blue-600{{end}}">
                   <span class="w-2 h-2 rounded-full inline-block shrink-0 {{if eq .State `closed`}}bg-gray-400{{else}}bg-green-500{{end}}"></span>
                   {{.Title}}
                 </button>
@@ -362,11 +321,7 @@
             <div class="flex items-center justify-between">
               <a href="/{{.Username}}" class="text-xs font-medium hover:underline">{{.Username}}</a>
               {{if $.CanWrite}}
-              <button
-                hx-delete="/api/repos/{{$.Owner}}/{{$.RepoName}}/pulls/{{$.Pull.Number}}/assignees?username={{.Username}}"
-                hx-target="#pull-assignees"
-                hx-swap="outerHTML"
-                class="text-xs text-red-500 hover:underline ml-2">&times;</button>
+              <button hx-delete="/api/repos/{{$.Owner}}/{{$.RepoName}}/pulls/{{$.Pull.Number}}/assignees?username={{.Username}}" hx-target="#pull-assignees" hx-swap="outerHTML" class="text-xs text-red-500 hover:underline ml-2">&times;</button>
               {{end}}
             </div>
             {{else}}
@@ -374,14 +329,9 @@
             {{end}}
           </div>
           {{if .CanWrite}}
-          <form hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}/assignees"
-                hx-target="#pull-assignees"
-                hx-swap="outerHTML"
-                class="mt-2 flex gap-1">
-            <input type="text" name="username" placeholder="Username" required
-              class="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 min-w-0">
-            <button type="submit"
-              class="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 shrink-0">+</button>
+          <form hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/pulls/{{.Pull.Number}}/assignees" hx-target="#pull-assignees" hx-swap="outerHTML" class="mt-2 flex gap-1">
+            <input type="text" name="username" placeholder="Username" required class="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 min-w-0">
+            <button type="submit" class="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 shrink-0">+</button>
           </form>
           {{end}}
         </div>

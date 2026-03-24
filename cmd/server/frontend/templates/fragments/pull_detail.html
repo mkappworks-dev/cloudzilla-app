@@ -2,19 +2,33 @@
 <div id="pull-detail" class="bg-white border border-gray-200 rounded-lg p-6">
   <div class="flex justify-between items-start mb-4">
     <div>
-      <h1 class="text-3xl font-bold">{{.Pull.Title}}</h1>
+      <div class="flex items-center gap-2 flex-wrap">
+        <h1 class="text-3xl font-bold">{{.Pull.Title}}</h1>
+        {{if .Pull.IsDraft}}
+        <span class="px-2 py-0.5 rounded text-sm font-medium bg-yellow-100 text-yellow-800">Draft</span>
+        {{end}}
+      </div>
       <p class="text-gray-600 text-sm mt-2">
         #{{.Pull.Number}} by {{.Pull.AuthorName}} on {{.Pull.CreatedAt.Format "Jan 2, 2006"}}
         · {{.Pull.HeadBranch}} &rarr; {{.Pull.BaseBranch}}
       </p>
     </div>
-    <span class="px-3 py-1 rounded-full text-sm font-medium
-      {{if eq .Pull.State "open"}}bg-green-100 text-green-700
-      {{else if eq .Pull.State "merged"}}bg-purple-100 text-purple-700
-      {{else}}bg-red-100 text-red-700{{end}}">
+    <span class="px-3 py-1 rounded-full text-sm font-medium {{if eq .Pull.State "open"}}bg-green-100 text-green-700{{else if eq .Pull.State "merged"}}bg-purple-100 text-purple-700{{else}}bg-red-100 text-red-700{{end}}">
       {{.Pull.State}}
     </span>
   </div>
+
+  {{if and (eq .Pull.State "open") .Pull.IsDraft}}
+  <div class="mb-4 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between gap-4">
+    <p class="text-sm text-yellow-800">&#9998; This pull request is still a work in progress. Merge is blocked until it
+      is marked ready for review.</p>
+    <button hx-patch="/api/repos/{{.Owner}}/{{.Repo}}/pulls/{{.Pull.Number}}" hx-vals='{"is_draft":"false"}'
+      hx-target="#pull-detail" hx-swap="outerHTML"
+      class="shrink-0 px-4 py-1.5 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors">
+      Ready for review
+    </button>
+  </div>
+  {{end}}
 
   <div class="prose prose-sm max-w-none bg-gray-50 p-4 rounded border border-gray-200 my-4">
     {{.BodyHTML}}
@@ -22,9 +36,7 @@
 
   {{if eq .Pull.State "open"}}
   <div class="flex gap-2">
-    <button
-      hx-patch="/api/repos/{{.Owner}}/{{.Repo}}/pulls/{{.Pull.Number}}"
-      hx-vals='{"state":"closed"}'
+    <button hx-patch="/api/repos/{{.Owner}}/{{.Repo}}/pulls/{{.Pull.Number}}" hx-vals='{"state":"closed"}'
       hx-target="#pull-detail" hx-swap="outerHTML"
       class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors">
       Close PR

@@ -30,6 +30,7 @@ func (s *PullStore) Create(ctx context.Context, pr *model.PullRequest) error {
 		State:      string(pr.State),
 		HeadBranch: pr.HeadBranch,
 		BaseBranch: pr.BaseBranch,
+		IsDraft:    pr.IsDraft,
 	})
 	if err != nil {
 		return fmt.Errorf("pr create: %w", err)
@@ -37,6 +38,10 @@ func (s *PullStore) Create(ctx context.Context, pr *model.PullRequest) error {
 	pr.ID = result.ID
 	pr.CreatedAt = result.CreatedAt
 	pr.UpdatedAt = result.UpdatedAt
+	pr.IsDraft = result.IsDraft
+	if result.DraftAt.Valid {
+		pr.DraftAt = &result.DraftAt.Time
+	}
 	return nil
 }
 
@@ -85,6 +90,13 @@ func (s *PullStore) UpdateState(ctx context.Context, id int64, state model.PRSta
 	}
 }
 
+func (s *PullStore) SetDraft(ctx context.Context, id int64, isDraft bool) error {
+	return s.q.UpdatePullDraft(ctx, db.UpdatePullDraftParams{
+		IsDraft: isDraft,
+		ID:      id,
+	})
+}
+
 func mapDBPullToModel(dbPull *db.PullRequest) *model.PullRequest {
 	pr := &model.PullRequest{
 		ID:         dbPull.ID,
@@ -104,6 +116,10 @@ func mapDBPullToModel(dbPull *db.PullRequest) *model.PullRequest {
 	}
 	if dbPull.ClosedAt.Valid {
 		pr.ClosedAt = &dbPull.ClosedAt.Time
+	}
+	pr.IsDraft = dbPull.IsDraft
+	if dbPull.DraftAt.Valid {
+		pr.DraftAt = &dbPull.DraftAt.Time
 	}
 	return pr
 }

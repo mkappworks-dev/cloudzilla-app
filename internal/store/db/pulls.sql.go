@@ -12,9 +12,9 @@ import (
 )
 
 const createPull = `-- name: CreatePull :one
-INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, repo_id, number, author_id, title, body, state, head_branch, base_branch, created_at, updated_at, merged_at, closed_at
+INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch, is_draft)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, repo_id, number, author_id, title, body, state, head_branch, base_branch, created_at, updated_at, merged_at, closed_at, is_draft, draft_at
 `
 
 type CreatePullParams struct {
@@ -26,6 +26,7 @@ type CreatePullParams struct {
 	State      string `json:"state"`
 	HeadBranch string `json:"head_branch"`
 	BaseBranch string `json:"base_branch"`
+	IsDraft    bool   `json:"is_draft"`
 }
 
 func (q *Queries) CreatePull(ctx context.Context, arg CreatePullParams) (PullRequest, error) {
@@ -38,6 +39,7 @@ func (q *Queries) CreatePull(ctx context.Context, arg CreatePullParams) (PullReq
 		arg.State,
 		arg.HeadBranch,
 		arg.BaseBranch,
+		arg.IsDraft,
 	)
 	var i PullRequest
 	err := row.Scan(
@@ -54,6 +56,8 @@ func (q *Queries) CreatePull(ctx context.Context, arg CreatePullParams) (PullReq
 		&i.UpdatedAt,
 		&i.MergedAt,
 		&i.ClosedAt,
+		&i.IsDraft,
+		&i.DraftAt,
 	)
 	return i, err
 }
@@ -70,7 +74,7 @@ func (q *Queries) GetNextPullNumber(ctx context.Context, repoID int64) (int32, e
 }
 
 const getPull = `-- name: GetPull :one
-SELECT p.id, p.repo_id, p.number, p.author_id, p.title, p.body, p.state, p.head_branch, p.base_branch, p.created_at, p.updated_at, p.merged_at, p.closed_at FROM pull_requests p
+SELECT p.id, p.repo_id, p.number, p.author_id, p.title, p.body, p.state, p.head_branch, p.base_branch, p.created_at, p.updated_at, p.merged_at, p.closed_at, p.is_draft, p.draft_at FROM pull_requests p
 WHERE p.repo_id = $1 AND p.number = $2
 `
 
@@ -96,12 +100,14 @@ func (q *Queries) GetPull(ctx context.Context, arg GetPullParams) (PullRequest, 
 		&i.UpdatedAt,
 		&i.MergedAt,
 		&i.ClosedAt,
+		&i.IsDraft,
+		&i.DraftAt,
 	)
 	return i, err
 }
 
 const listPulls = `-- name: ListPulls :many
-SELECT p.id, p.repo_id, p.number, p.author_id, p.title, p.body, p.state, p.head_branch, p.base_branch, p.created_at, p.updated_at, p.merged_at, p.closed_at FROM pull_requests p
+SELECT p.id, p.repo_id, p.number, p.author_id, p.title, p.body, p.state, p.head_branch, p.base_branch, p.created_at, p.updated_at, p.merged_at, p.closed_at, p.is_draft, p.draft_at FROM pull_requests p
 WHERE p.repo_id = $1
 ORDER BY p.number DESC
 `
@@ -129,6 +135,8 @@ func (q *Queries) ListPulls(ctx context.Context, repoID int64) ([]PullRequest, e
 			&i.UpdatedAt,
 			&i.MergedAt,
 			&i.ClosedAt,
+			&i.IsDraft,
+			&i.DraftAt,
 		); err != nil {
 			return nil, err
 		}
@@ -141,6 +149,23 @@ func (q *Queries) ListPulls(ctx context.Context, repoID int64) ([]PullRequest, e
 		return nil, err
 	}
 	return items, nil
+}
+
+const updatePullDraft = `-- name: UpdatePullDraft :exec
+UPDATE pull_requests
+  SET is_draft = $1,
+      draft_at = CASE WHEN $1 = TRUE THEN NOW() ELSE draft_at END,
+      updated_at = NOW()
+WHERE id = $2`
+
+type UpdatePullDraftParams struct {
+	IsDraft bool  `json:"is_draft"`
+	ID      int64 `json:"id"`
+}
+
+func (q *Queries) UpdatePullDraft(ctx context.Context, arg UpdatePullDraftParams) error {
+	_, err := q.db.ExecContext(ctx, updatePullDraft, arg.IsDraft, arg.ID)
+	return err
 }
 
 const updatePullStateClosed = `-- name: UpdatePullStateClosed :exec

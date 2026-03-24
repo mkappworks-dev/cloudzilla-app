@@ -8,28 +8,49 @@
     </h1>
   </div>
 
+  <!-- State filter tabs -->
+  <div class="flex gap-1 border-b border-gray-200">
+    <a href="/{{.Owner}}/{{.RepoName}}/pulls?state=open"
+       class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors {{if eq .StateFilter "open"}}border-blue-600 text-blue-600{{else}}border-transparent text-gray-500 hover:text-gray-700{{end}}">
+      Open
+    </a>
+    <a href="/{{.Owner}}/{{.RepoName}}/pulls?state=draft"
+       class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors {{if eq .StateFilter "draft"}}border-blue-600 text-blue-600{{else}}border-transparent text-gray-500 hover:text-gray-700{{end}}">
+      Draft
+    </a>
+    <a href="/{{.Owner}}/{{.RepoName}}/pulls?state=closed"
+       class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors {{if eq .StateFilter "closed"}}border-blue-600 text-blue-600{{else}}border-transparent text-gray-500 hover:text-gray-700{{end}}">
+      Closed
+    </a>
+    <a href="/{{.Owner}}/{{.RepoName}}/pulls?state=merged"
+       class="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors {{if eq .StateFilter "merged"}}border-blue-600 text-blue-600{{else}}border-transparent text-gray-500 hover:text-gray-700{{end}}">
+      Merged
+    </a>
+  </div>
+
   {{if .Pulls}}
   <div class="space-y-3">
     {{range .Pulls}}
     <a href="/{{$.Owner}}/{{$.RepoName}}/pulls/{{.Number}}" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
       <div class="flex justify-between items-start">
         <div class="min-w-0 flex-1">
-          <h3 class="text-lg font-semibold">{{.Title}}</h3>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h3 class="text-lg font-semibold">{{.Title}}</h3>
+            {{if .IsDraft}}
+            <span class="px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">Draft</span>
+            {{end}}
+          </div>
           <p class="text-gray-600 text-sm mt-1">#{{.Number}} by {{.AuthorName}} · {{.HeadBranch}} &rarr; {{.BaseBranch}}</p>
           {{$labels := index $.PullLabels .ID}}
           {{if $labels}}
           <div class="flex flex-wrap gap-1 mt-2">
             {{range $labels}}
-            <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                  style="background-color: {{.Color}}">{{.Name}}</span>
+            <span class="px-2 py-0.5 rounded-full text-xs font-medium" style="background-color: {{.Color}}">{{.Name}}</span>
             {{end}}
           </div>
           {{end}}
         </div>
-        <span class="px-2 py-1 rounded-full text-xs font-medium ml-3 shrink-0
-          {{if eq .State "open"}}bg-green-100 text-green-700
-          {{else if eq .State "merged"}}bg-purple-100 text-purple-700
-          {{else}}bg-red-100 text-red-700{{end}}">
+        <span class="px-2 py-1 rounded-full text-xs font-medium ml-3 shrink-0 {{if eq .State "open"}}bg-green-100 text-green-700{{else if eq .State "merged"}}bg-purple-100 text-purple-700{{else}}bg-red-100 text-red-700{{end}}">
           {{.State}}
         </span>
       </div>
@@ -38,7 +59,7 @@
   </div>
   {{else}}
   <div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
-    <p class="text-gray-500">No pull requests yet.</p>
+    <p class="text-gray-500">No pull requests found.</p>
   </div>
   {{end}}
 </div>
