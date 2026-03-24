@@ -7,14 +7,14 @@ import (
 	"crypto/rand"
 	"encoding/pem"
 	"fmt"
-	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
 	gossh "golang.org/x/crypto/ssh"
 	"github.com/gliderlabs/ssh"
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	"github.com/mkappworks/cloudzilla/internal/config"
@@ -61,9 +61,8 @@ func (s *Server) loadOrGenerateHostKey() (ssh.Signer, error) {
 	keyPath := s.cfg.SSHHostKey
 
 	// Try to load existing key
-	keyData, err := ioutil.ReadFile(keyPath)
+	keyData, err := os.ReadFile(keyPath)
 	if err == nil {
-		// Parse the loaded key
 		signer, err := gossh.ParsePrivateKey(keyData)
 		if err == nil {
 			return signer, nil
@@ -76,21 +75,17 @@ func (s *Server) loadOrGenerateHostKey() (ssh.Signer, error) {
 		return nil, fmt.Errorf("generate ed25519 key: %w", err)
 	}
 
-	// Encode as PEM
 	privKeyBlock, err := gossh.MarshalPrivateKey(privKey, "")
 	if err != nil {
 		return nil, fmt.Errorf("marshal private key: %w", err)
 	}
 
-	// Encode PEM block to bytes
 	privKeyBytes := pem.EncodeToMemory(privKeyBlock)
 
-	// Write to file
-	if err := ioutil.WriteFile(keyPath, privKeyBytes, 0600); err != nil {
+	if err := os.WriteFile(keyPath, privKeyBytes, 0600); err != nil {
 		return nil, fmt.Errorf("write key file: %w", err)
 	}
 
-	// Create signer
 	signer, err := gossh.NewSignerFromKey(privKey)
 	if err != nil {
 		return nil, fmt.Errorf("create signer: %w", err)
@@ -100,19 +95,16 @@ func (s *Server) loadOrGenerateHostKey() (ssh.Signer, error) {
 }
 
 func (s *Server) publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
-	// Convert gliderlabs/ssh.PublicKey to golang.org/x/crypto/ssh.PublicKey
 	gosshKey, err := gossh.ParsePublicKey(key.Marshal())
 	if err != nil {
 		return false
 	}
 
-	// Authenticate user by public key
 	user, err := s.services.SSHKey.AuthenticatePublicKey(ctx, gosshKey)
 	if err != nil {
 		return false
 	}
 
-	// Store user in context for later use in session handler
 	ctx.SetValue("cloudzilla_user", user)
 	return true
 }
@@ -132,13 +124,10 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		return
 	}
 
-	// Extract repository path from argument
 	var repoPath string
 	if len(cmd) > 1 {
 		repoPath = cmd[1]
-		// Strip surrounding quotes if present
 		repoPath = strings.Trim(repoPath, "'\"")
-		// Ensure it ends with .git
 		if !strings.HasSuffix(repoPath, ".git") {
 			repoPath = repoPath + ".git"
 		}
@@ -148,7 +137,6 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		return
 	}
 
-	// Get user from context
 	userVal := session.Context().Value("cloudzilla_user")
 	if userVal == nil {
 		fmt.Fprintf(session, "authentication required\n")
@@ -157,7 +145,6 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	}
 	user := userVal.(*model.User)
 
-	// Parse repo path: /owner/repo.git or owner/repo.git
 	pathParts := strings.Trim(repoPath, "/")
 	pathParts = strings.TrimSuffix(pathParts, ".git")
 	parts := strings.Split(pathParts, "/")
@@ -169,7 +156,6 @@ func (s *Server) sessionHandler(session ssh.Session) {
 
 	owner, repoName := parts[0], parts[1]
 
-	// Get repository from service
 	ctx := session.Context()
 	repo, err := s.services.Repo.Get(ctx, owner, repoName)
 	if err != nil {
@@ -178,14 +164,13 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		return
 	}
 
-	// Check permissions
 	if gitCmd == "git-upload-pack" {
 		if !s.services.Repo.CanRead(ctx, repo, &user.ID) {
 			fmt.Fprintf(session, "access denied\n")
 			session.Exit(1)
 			return
 		}
-	} else if gitCmd == "git-receive-pack" {
+	} else {
 		if !s.services.Repo.CanWrite(ctx, repo, user.ID) {
 			fmt.Fprintf(session, "access denied\n")
 			session.Exit(1)
@@ -193,7 +178,6 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		}
 	}
 
-	// Open git repository
 	diskRepoPath := filepath.Join(s.cfg.ReposRoot, owner, repoName+".git")
 	gitRepo, err := gogit.PlainOpen(diskRepoPath)
 	if err != nil {
@@ -202,71 +186,111 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		return
 	}
 
-	// Execute git service
-	if err := s.execGitService(session, gitCmd, gitRepo); err != nil {
+	commands, err := s.execGitService(session, gitCmd, gitRepo)
+	if err != nil {
 		fmt.Fprintf(session, "error: %v\n", err)
 		session.Exit(1)
 		return
 	}
 
+	// Dispatch push webhooks for each updated branch
+	if gitCmd == "git-receive-pack" && err == nil {
+		for _, cmd := range commands {
+			if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
+				continue
+			}
+			if cmd.Action() == packp.Delete {
+				continue
+			}
+			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
+			payload := s.services.Webhook.PushPayload(*repo, user.Username, branch, cmd.New.String())
+			go s.services.Webhook.Dispatch(repo.ID, "push", payload)
+		}
+	}
+
 	session.Exit(0)
 }
 
-func (s *Server) execGitService(session ssh.Session, service string, gitRepo *gogit.Repository) error {
-	storer := gitRepo.Storer
+// execGitService runs the git pack protocol over the SSH session and returns
+// the pushed commands (non-nil only for git-receive-pack).
+func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.Repository) ([]*packp.Command, error) {
 	ep, err := transport.NewEndpoint("/")
 	if err != nil {
-		return fmt.Errorf("create endpoint: %w", err)
+		return nil, fmt.Errorf("create endpoint: %w", err)
 	}
 
-	srv := server.NewServer(server.MapLoader{"/": storer})
+	srv := server.NewServer(server.MapLoader{"/": gitRepo.Storer})
 
-	if service == "git-upload-pack" {
+	if svc == "git-upload-pack" {
 		sess, err := srv.NewUploadPackSession(ep, nil)
 		if err != nil {
-			return fmt.Errorf("create upload pack session: %w", err)
+			return nil, fmt.Errorf("create upload pack session: %w", err)
 		}
 
-		// Send advertised references
 		ar, err := sess.AdvertisedReferences()
 		if err != nil {
-			return fmt.Errorf("get advertised references: %w", err)
+			return nil, fmt.Errorf("get advertised references: %w", err)
 		}
 
-		// Write advertised refs to session
 		var buf bytes.Buffer
 		if err := ar.Encode(&buf); err != nil {
-			return fmt.Errorf("encode advertised refs: %w", err)
+			return nil, fmt.Errorf("encode advertised refs: %w", err)
+		}
+		if _, err := buf.WriteTo(session); err != nil {
+			return nil, fmt.Errorf("write advertised refs: %w", err)
 		}
 
-		// Write to stdout and read from stdin for pack protocol
-		// This is a simplified implementation
-		io.Copy(session, &buf)
+		req := packp.NewUploadPackRequest()
+		if err := req.Decode(session); err != nil {
+			return nil, fmt.Errorf("decode upload-pack request: %w", err)
+		}
 
-	} else if service == "git-receive-pack" {
+		resp, err := sess.UploadPack(context.Background(), req)
+		if err != nil {
+			return nil, fmt.Errorf("upload-pack: %w", err)
+		}
+
+		if err := resp.Encode(session); err != nil {
+			return nil, fmt.Errorf("encode upload-pack response: %w", err)
+		}
+
+		return nil, nil
+
+	} else { // git-receive-pack
 		sess, err := srv.NewReceivePackSession(ep, nil)
 		if err != nil {
-			return fmt.Errorf("create receive pack session: %w", err)
+			return nil, fmt.Errorf("create receive pack session: %w", err)
 		}
 
-		// Send advertised references
 		ar, err := sess.AdvertisedReferences()
 		if err != nil {
-			return fmt.Errorf("get advertised references: %w", err)
+			return nil, fmt.Errorf("get advertised references: %w", err)
 		}
 
-		// Write advertised refs to session
 		var buf bytes.Buffer
 		if err := ar.Encode(&buf); err != nil {
-			return fmt.Errorf("encode advertised refs: %w", err)
+			return nil, fmt.Errorf("encode advertised refs: %w", err)
+		}
+		if _, err := buf.WriteTo(session); err != nil {
+			return nil, fmt.Errorf("write advertised refs: %w", err)
 		}
 
-		// Write to stdout and read from stdin for pack protocol
-		// This is a simplified implementation
-		io.Copy(session, &buf)
+		req := packp.NewReferenceUpdateRequest()
+		if err := req.Decode(session); err != nil {
+			return nil, fmt.Errorf("decode receive-pack request: %w", err)
+		}
 
-		_ = sess // TODO: process pack data from stdin
+		status, err := sess.ReceivePack(context.Background(), req)
+		if err != nil {
+			return nil, fmt.Errorf("receive-pack: %w", err)
+		}
+
+		if status != nil {
+			if err := status.Encode(session); err != nil {
+				return nil, fmt.Errorf("encode receive-pack status: %w", err)
+			}
+		}
+
+		return req.Commands, nil
 	}
-
-	return nil
 }
