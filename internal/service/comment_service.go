@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/store"
@@ -15,12 +16,13 @@ func NewCommentService(comments *store.CommentStore) *CommentService {
 	return &CommentService{comments: comments}
 }
 
-func (s *CommentService) CreateForIssue(ctx context.Context, repoID, issueID, authorID int64, body string) (*model.Comment, error) {
+func (s *CommentService) CreateForIssue(ctx context.Context, repoID, issueID, authorID int64, authorName, body string) (*model.Comment, error) {
 	c := &model.Comment{
-		RepoID:   repoID,
-		IssueID:  &issueID,
-		AuthorID: authorID,
-		Body:     body,
+		RepoID:     repoID,
+		IssueID:    &issueID,
+		AuthorID:   authorID,
+		AuthorName: authorName,
+		Body:       body,
 	}
 	if err := s.comments.Create(ctx, c); err != nil {
 		return nil, err
@@ -28,17 +30,33 @@ func (s *CommentService) CreateForIssue(ctx context.Context, repoID, issueID, au
 	return c, nil
 }
 
-func (s *CommentService) CreateForPull(ctx context.Context, repoID, pullID, authorID int64, body string) (*model.Comment, error) {
+func (s *CommentService) CreateForPull(ctx context.Context, repoID, pullID, authorID int64, authorName, body string) (*model.Comment, error) {
 	c := &model.Comment{
-		RepoID:   repoID,
-		PullID:   &pullID,
-		AuthorID: authorID,
-		Body:     body,
+		RepoID:     repoID,
+		PullID:     &pullID,
+		AuthorID:   authorID,
+		AuthorName: authorName,
+		Body:       body,
 	}
 	if err := s.comments.Create(ctx, c); err != nil {
 		return nil, err
 	}
 	return c, nil
+}
+
+func (s *CommentService) GetByID(ctx context.Context, id int64) (*model.Comment, error) {
+	return s.comments.GetByID(ctx, id)
+}
+
+func (s *CommentService) Update(ctx context.Context, id, callerID int64, body string) (*model.Comment, error) {
+	c, err := s.comments.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("comment not found: %w", err)
+	}
+	if c.AuthorID != callerID {
+		return nil, fmt.Errorf("forbidden")
+	}
+	return s.comments.Update(ctx, id, body)
 }
 
 func (s *CommentService) ListByIssue(ctx context.Context, issueID int64) ([]model.Comment, error) {

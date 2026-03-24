@@ -10,14 +10,15 @@ import (
 )
 
 type Comment struct {
-	ID        int64         `json:"id"`
-	RepoID    int64         `json:"repo_id"`
-	IssueID   sql.NullInt64 `json:"issue_id"`
-	PullID    sql.NullInt64 `json:"pull_id"`
-	AuthorID  int64         `json:"author_id"`
-	Body      string        `json:"body"`
-	CreatedAt time.Time     `json:"created_at"`
-	UpdatedAt time.Time     `json:"updated_at"`
+	ID         int64         `json:"id"`
+	RepoID     int64         `json:"repo_id"`
+	IssueID    sql.NullInt64 `json:"issue_id"`
+	PullID     sql.NullInt64 `json:"pull_id"`
+	AuthorID   int64         `json:"author_id"`
+	AuthorName string        `json:"author_name"`
+	Body       string        `json:"body"`
+	CreatedAt  time.Time     `json:"created_at"`
+	UpdatedAt  time.Time     `json:"updated_at"`
 }
 
 type Invitation struct {

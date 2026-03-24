@@ -11,17 +11,18 @@ import (
 )
 
 const createComment = `-- name: CreateComment :one
-INSERT INTO comments (repo_id, issue_id, pull_id, author_id, body)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, repo_id, issue_id, pull_id, author_id, body, created_at, updated_at
+INSERT INTO comments (repo_id, issue_id, pull_id, author_id, author_name, body)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, repo_id, issue_id, pull_id, author_id, author_name, body, created_at, updated_at
 `
 
 type CreateCommentParams struct {
-	RepoID   int64         `json:"repo_id"`
-	IssueID  sql.NullInt64 `json:"issue_id"`
-	PullID   sql.NullInt64 `json:"pull_id"`
-	AuthorID int64         `json:"author_id"`
-	Body     string        `json:"body"`
+	RepoID     int64         `json:"repo_id"`
+	IssueID    sql.NullInt64 `json:"issue_id"`
+	PullID     sql.NullInt64 `json:"pull_id"`
+	AuthorID   int64         `json:"author_id"`
+	AuthorName string        `json:"author_name"`
+	Body       string        `json:"body"`
 }
 
 func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) (Comment, error) {
@@ -30,6 +31,7 @@ func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) (C
 		arg.IssueID,
 		arg.PullID,
 		arg.AuthorID,
+		arg.AuthorName,
 		arg.Body,
 	)
 	var i Comment
@@ -39,6 +41,7 @@ func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) (C
 		&i.IssueID,
 		&i.PullID,
 		&i.AuthorID,
+		&i.AuthorName,
 		&i.Body,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -55,8 +58,56 @@ func (q *Queries) DeleteComment(ctx context.Context, id int64) error {
 	return err
 }
 
+const getCommentByID = `-- name: GetCommentByID :one
+SELECT c.id, c.repo_id, c.issue_id, c.pull_id, c.author_id, u.username AS author_name, c.body, c.created_at, c.updated_at
+FROM comments c
+JOIN users u ON c.author_id = u.id
+WHERE c.id = $1
+`
+
+func (q *Queries) GetCommentByID(ctx context.Context, id int64) (Comment, error) {
+	row := q.db.QueryRowContext(ctx, getCommentByID, id)
+	var i Comment
+	err := row.Scan(
+		&i.ID,
+		&i.RepoID,
+		&i.IssueID,
+		&i.PullID,
+		&i.AuthorID,
+		&i.AuthorName,
+		&i.Body,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateComment = `-- name: UpdateComment :one
+UPDATE comments SET body = $2, updated_at = NOW() WHERE id = $1
+RETURNING id, repo_id, issue_id, pull_id, author_id, author_name, body, created_at, updated_at
+`
+
+func (q *Queries) UpdateComment(ctx context.Context, id int64, body string) (Comment, error) {
+	row := q.db.QueryRowContext(ctx, updateComment, id, body)
+	var i Comment
+	err := row.Scan(
+		&i.ID,
+		&i.RepoID,
+		&i.IssueID,
+		&i.PullID,
+		&i.AuthorID,
+		&i.AuthorName,
+		&i.Body,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listCommentsByIssue = `-- name: ListCommentsByIssue :many
-SELECT c.id, c.repo_id, c.issue_id, c.pull_id, c.author_id, c.body, c.created_at, c.updated_at FROM comments c
+SELECT c.id, c.repo_id, c.issue_id, c.pull_id, c.author_id, u.username AS author_name, c.body, c.created_at, c.updated_at
+FROM comments c
+JOIN users u ON c.author_id = u.id
 WHERE c.issue_id = $1
 ORDER BY c.created_at ASC
 `
@@ -76,6 +127,7 @@ func (q *Queries) ListCommentsByIssue(ctx context.Context, issueID sql.NullInt64
 			&i.IssueID,
 			&i.PullID,
 			&i.AuthorID,
+			&i.AuthorName,
 			&i.Body,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -94,7 +146,9 @@ func (q *Queries) ListCommentsByIssue(ctx context.Context, issueID sql.NullInt64
 }
 
 const listCommentsByPull = `-- name: ListCommentsByPull :many
-SELECT c.id, c.repo_id, c.issue_id, c.pull_id, c.author_id, c.body, c.created_at, c.updated_at FROM comments c
+SELECT c.id, c.repo_id, c.issue_id, c.pull_id, c.author_id, u.username AS author_name, c.body, c.created_at, c.updated_at
+FROM comments c
+JOIN users u ON c.author_id = u.id
 WHERE c.pull_id = $1
 ORDER BY c.created_at ASC
 `
@@ -114,6 +168,7 @@ func (q *Queries) ListCommentsByPull(ctx context.Context, pullID sql.NullInt64) 
 			&i.IssueID,
 			&i.PullID,
 			&i.AuthorID,
+			&i.AuthorName,
 			&i.Body,
 			&i.CreatedAt,
 			&i.UpdatedAt,

@@ -23,19 +23,37 @@ func (s *CommentStore) Create(ctx context.Context, c *model.Comment) error {
 	}
 
 	result, err := s.q.CreateComment(ctx, db.CreateCommentParams{
-		RepoID:   c.RepoID,
-		IssueID:  issueID,
-		PullID:   pullID,
-		AuthorID: c.AuthorID,
-		Body:     c.Body,
+		RepoID:     c.RepoID,
+		IssueID:    issueID,
+		PullID:     pullID,
+		AuthorID:   c.AuthorID,
+		AuthorName: c.AuthorName,
+		Body:       c.Body,
 	})
 	if err != nil {
 		return fmt.Errorf("comment create: %w", err)
 	}
 	c.ID = result.ID
+	c.AuthorName = result.AuthorName
 	c.CreatedAt = result.CreatedAt
 	c.UpdatedAt = result.UpdatedAt
 	return nil
+}
+
+func (s *CommentStore) GetByID(ctx context.Context, id int64) (*model.Comment, error) {
+	result, err := s.q.GetCommentByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("comment get by id: %w", err)
+	}
+	return mapDBCommentToModel(&result), nil
+}
+
+func (s *CommentStore) Update(ctx context.Context, id int64, body string) (*model.Comment, error) {
+	result, err := s.q.UpdateComment(ctx, id, body)
+	if err != nil {
+		return nil, fmt.Errorf("comment update: %w", err)
+	}
+	return mapDBCommentToModel(&result), nil
 }
 
 func (s *CommentStore) ListByIssue(ctx context.Context, issueID int64) ([]model.Comment, error) {
@@ -60,12 +78,13 @@ func (s *CommentStore) Delete(ctx context.Context, id int64) error {
 
 func mapDBCommentToModel(dbComment *db.Comment) *model.Comment {
 	c := &model.Comment{
-		ID:        dbComment.ID,
-		RepoID:    dbComment.RepoID,
-		AuthorID:  dbComment.AuthorID,
-		Body:      dbComment.Body,
-		CreatedAt: dbComment.CreatedAt,
-		UpdatedAt: dbComment.UpdatedAt,
+		ID:         dbComment.ID,
+		RepoID:     dbComment.RepoID,
+		AuthorID:   dbComment.AuthorID,
+		AuthorName: dbComment.AuthorName,
+		Body:       dbComment.Body,
+		CreatedAt:  dbComment.CreatedAt,
+		UpdatedAt:  dbComment.UpdatedAt,
 	}
 	if dbComment.IssueID.Valid {
 		c.IssueID = &dbComment.IssueID.Int64
