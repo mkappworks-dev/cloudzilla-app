@@ -36,6 +36,7 @@ func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *templat
 		"releases", "release_detail",
 		"milestones",
 		"search",
+		"tokens",
 	}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
@@ -59,8 +60,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.Use(middleware.CORS(true))
 	r.Use(middleware.RequireSetup(services.SiteSetting))
 
-	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName)
-	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName)
+	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken)
+	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken)
 
 	superadminMW := middleware.RequireSuperadmin
 
@@ -252,6 +253,14 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 		// Ownership transfer
 		r.With(authMW).Post("/{owner}/{repo}/transfer", h.TransferRepo)
+
+		// Deploy keys
+		r.Route("/{owner}/{repo}/keys", func(r chi.Router) {
+			r.Use(optAuthMW)
+			r.Get("/", h.ListDeployKeys)
+			r.With(authMW).Post("/", h.AddDeployKey)
+			r.With(authMW).Delete("/{id}", h.DeleteDeployKey)
+		})
 	})
 
 	// Admin API routes
@@ -282,6 +291,14 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Get("/", h.ListSSHKeys)
 		r.Post("/", h.AddSSHKey)
 		r.Delete("/{id}", h.DeleteSSHKey)
+	})
+
+	// Personal Access Token routes
+	r.With(authMW).Get("/settings/tokens", h.PageTokens)
+	r.Route("/api/user/tokens", func(r chi.Router) {
+		r.Use(authMW)
+		r.Post("/", h.CreateToken)
+		r.Delete("/{id}", h.DeleteToken)
 	})
 
 	// Git HTTP Smart Protocol routes

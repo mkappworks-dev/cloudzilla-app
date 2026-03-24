@@ -257,6 +257,11 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		labels = []model.Label{}
 	}
 
+	deployKeys, _ := h.Services.DeployKey.List(r.Context(), repo.ID)
+	if deployKeys == nil {
+		deployKeys = []model.DeployKey{}
+	}
+
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	// Transfer is only for personal repo owners (not org repos)
 	canTransfer := repo.OwnerID == claims.UserID && repo.OrgID == 0
@@ -269,6 +274,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		Webhooks:    webhooks,
 		Collabs:     collabs,
 		Labels:      labels,
+		DeployKeys:  deployKeys,
 		CanManage:   canManage,
 		CanTransfer: canTransfer,
 	})
@@ -390,9 +396,38 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pulls, err := h.Services.Pull.List(r.Context(), owner, repoName)
+	allPulls, err := h.Services.Pull.List(r.Context(), owner, repoName)
 	if err != nil {
-		pulls = []model.PullRequest{}
+		allPulls = []model.PullRequest{}
+	}
+	if allPulls == nil {
+		allPulls = []model.PullRequest{}
+	}
+
+	stateFilter := r.URL.Query().Get("state")
+	if stateFilter == "" {
+		stateFilter = "open"
+	}
+	var pulls []model.PullRequest
+	for _, p := range allPulls {
+		switch stateFilter {
+		case "draft":
+			if p.IsDraft && p.State == model.PRStateOpen {
+				pulls = append(pulls, p)
+			}
+		case "closed":
+			if p.State == model.PRStateClosed {
+				pulls = append(pulls, p)
+			}
+		case "merged":
+			if p.State == model.PRStateMerged {
+				pulls = append(pulls, p)
+			}
+		default: // "open"
+			if p.State == model.PRStateOpen && !p.IsDraft {
+				pulls = append(pulls, p)
+			}
+		}
 	}
 	if pulls == nil {
 		pulls = []model.PullRequest{}
@@ -416,6 +451,7 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		RepoName:      repoName,
 		PullLabels:    pullLabels,
 		AllMilestones: allPullMilestones,
+		StateFilter:   stateFilter,
 	})
 }
 

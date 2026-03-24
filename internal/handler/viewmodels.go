@@ -104,8 +104,17 @@ type RepoSettingsData struct {
 	Webhooks    []model.Webhook
 	Collabs     []model.Permission
 	Labels      []model.Label
+	DeployKeys  []model.DeployKey
 	CanManage   bool
 	CanTransfer bool
+}
+
+type DeployKeysFragData struct {
+	Owner      string
+	RepoName   string
+	RepoID     int64
+	DeployKeys []model.DeployKey
+	CanManage  bool
 }
 
 type WebhooksFragData struct {
@@ -118,13 +127,13 @@ type WebhooksFragData struct {
 
 type IssuesData struct {
 	BasePage
-	Repo             model.Repository
-	Issues           []model.Issue
-	Owner            string
-	RepoName         string
-	IssueLabels      map[int64][]model.Label
-	AllMilestones    []model.Milestone
-	ActiveMilestone  *model.Milestone
+	Repo            model.Repository
+	Issues          []model.Issue
+	Owner           string
+	RepoName        string
+	IssueLabels     map[int64][]model.Label
+	AllMilestones   []model.Milestone
+	ActiveMilestone *model.Milestone
 }
 
 type IssueDetailData struct {
@@ -152,6 +161,7 @@ type PullsData struct {
 	PullLabels      map[int64][]model.Label
 	AllMilestones   []model.Milestone
 	ActiveMilestone *model.Milestone
+	StateFilter     string
 }
 
 type PullDetailData struct {
@@ -478,4 +488,16 @@ type UserStarsData struct {
 	BasePage
 	ProfileUser model.User
 	Repos       []model.Repository
+}
+
+// Tokens page
+type TokensData struct {
+	BasePage
+	Tokens   []model.AccessToken
+	NewToken string // raw token, shown only once after creation
+}
+
+// Tokens list fragment
+type TokensListFragData struct {
+	Tokens []model.AccessToken
 }
