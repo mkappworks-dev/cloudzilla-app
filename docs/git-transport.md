@@ -94,3 +94,30 @@ git pull
 6. User is authenticated and context is populated
 7. `git-upload-pack` or `git-receive-pack` command is dispatched with user context
 8. Repository permissions are checked (read for upload-pack, write for receive-pack)
+
+## Repository Permission Rules
+
+All git operations (HTTP and SSH) respect the same permission rules.
+
+**Read Access** (`git clone`, `git fetch`, `git pull`):
+
+- Public repositories: Always allowed (no auth required)
+- Private repositories: Requires authentication + one of:
+  - User is the repository owner
+  - User has a permission record with any role (`reader`, `writer`, or `admin`)
+  - A deploy key with matching fingerprint exists for this repo
+
+**Write Access** (`git push`):
+
+- Requires authentication + one of:
+  - User is the repository owner
+  - User has a permission record with role `writer` or `admin`
+  - A read-write deploy key with matching fingerprint exists for this repo
+
+**Service API:**
+
+- `RepoService.CanRead(ctx, repo, userID)` — checks public/private + permissions
+- `RepoService.CanWrite(ctx, repo, userID)` — owner, org owner, or `writer`/`admin` role
+- `RepoService.CanManage(ctx, repo, userID)` — owner or org owner **only** (not `admin` collaborator)
+- `RepoService.TransferRepo(ctx, repo, requestingUserID, newOwnerUsername)` — moves git dir on disk, updates `owner_id`/`owner_name`; personal repos only
+- Bare repository created with `go-git.PlainInit()`, fully compatible with git CLI

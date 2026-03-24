@@ -700,6 +700,8 @@ Browse repository contents directly from the web UI. All views respect repo visi
 | Release detail      | `/{owner}/{repo}/releases/tag/{tagName}`              |
 | Milestones list     | `/{owner}/{repo}/milestones`                          |
 | Search results      | `/search?q=...&type=all\|repos\|issues\|pulls\|users` |
+| Personal tokens     | `/settings/tokens`                                    |
+| Repo settings       | `/{owner}/{repo}/settings` (collaborators, webhooks, deploy keys, transfer) |
 
 `{ref}` can be a branch name, tag name, or commit SHA. If the ref is not found, the server returns 404.
 
@@ -732,6 +734,35 @@ http://localhost:8080/admin/my-project/tree/abc1234
 - **Binary files**: blob page shows "Binary file not shown" instead of raw bytes
 - **Empty repos**: returns a clear error rather than crashing
 - **Ref badge**: clickable badge on tree/commits pages links to the Branches & Tags page
+
+### Personal Access Tokens
+
+Generate long-lived API tokens scoped to specific capabilities without exposing your password:
+
+- Create tokens at `/settings/tokens` — choose a name, one or more scopes, and an optional expiry date
+- Scopes: `repo:read`, `repo:write`, `issues:write`, `pulls:write`
+- The raw token (`czp_<hex>`) is displayed **once** at creation time — only its SHA-256 hash is stored
+- Use as `Authorization: Bearer czp_<token>` on any API endpoint in place of a JWT cookie
+- Tokens can be revoked at any time from the settings page
+
+### Deploy Keys
+
+Per-repository SSH keys for CI/CD pipelines, isolated from user SSH keys:
+
+- Added and managed from `/{owner}/{repo}/settings` — title, public key, and read-only flag
+- A read-only deploy key may clone/fetch but cannot push; a read-write key can push
+- During SSH auth, deploy keys are checked alongside user SSH keys; access is restricted to the specific repository the key was created for
+- Revoke a key at any time from the repository settings page
+
+### Draft Pull Requests
+
+PRs can be opened (or converted) as drafts to signal work in progress:
+
+- Create with `"is_draft": true` in the API, or convert any open PR via `PATCH {"is_draft": true}`
+- Draft PRs appear in the **Draft** filter tab on `/{owner}/{repo}/pulls` — excluded from the default **Open** view
+- The PR detail page shows a yellow **Draft** banner and a **Ready for review** button; all merge buttons and the review form are hidden
+- Click **Ready for review** (or `PATCH {"is_draft": false}`) to convert — merge buttons reappear
+- Attempting to merge a draft PR returns `422 cannot merge a draft pull request`
 
 ### Pull Request Diff & Merge
 
@@ -786,6 +817,26 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | GET    | `/api/user/keys`     | Required | List SSH keys for authenticated user |
 | POST   | `/api/user/keys`     | Required | Add a new SSH public key             |
 | DELETE | `/api/user/keys/:id` | Required | Delete an SSH key by ID              |
+
+### Personal Access Tokens
+
+| Method | Path                   | Auth     | Description                                                                                     |
+| ------ | ---------------------- | -------- | ----------------------------------------------------------------------------------------------- |
+| GET    | `/settings/tokens`     | Required | Page: list tokens + create form; shows raw token once via `?new_token=...` after creation       |
+| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, `scopes[]`, optional `expires_at`); returns `{"token": "czp_..."}` once    |
+| DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                              |
+
+Raw token format: `czp_<32-byte hex>`. Use as `Authorization: Bearer czp_<token>`. Only the SHA-256 hash is stored; the raw value cannot be recovered after creation.
+
+### Deploy Keys
+
+| Method | Path                                          | Auth                       | Description                                          |
+| ------ | --------------------------------------------- | -------------------------- | ---------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/keys`                | Required + CanManage       | List deploy keys for a repository                    |
+| POST   | `/api/repos/:owner/:repo/keys`                | Required + CanManage       | Add deploy key (`title`, `public_key`, `read_only`)  |
+| DELETE | `/api/repos/:owner/:repo/keys/:id`            | Required + CanManage       | Delete a deploy key by ID                            |
+
+Deploy keys authenticate via SSH using the key's MD5 fingerprint. A `read_only` key cannot push; a read-write key can. Each key is scoped to a single repository — attempting to use it against another repo is rejected.
 
 ### Users
 

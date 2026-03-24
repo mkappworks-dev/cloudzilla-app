@@ -1850,9 +1850,9 @@ POST  /api/repos/{owner}/{repo}/hooks/{id}/redeliver (authMW + write) — manual
 | 4.1   | PR Reviews                           | ✅ Done    | 023          |
 | 4.2   | PR Line Comments                     | ✅ Done    | 024          |
 | 4.3   | Search                               | ✅ Done    | 025          |
-| 5.1   | Personal Access Tokens               | ⬜ Planned | 027          |
-| 5.2   | Deploy Keys                          | ⬜ Planned | 028          |
-| 5.3   | Draft Pull Requests                  | ⬜ Planned | 029          |
+| 5.1   | Personal Access Tokens               | ✅ Done    | 027          |
+| 5.2   | Deploy Keys                          | ✅ Done    | 028          |
+| 5.3   | Draft Pull Requests                  | ✅ Done    | 029          |
 | 6.1   | Protected Branches                   | ⬜ Planned | 030          |
 | 6.2   | CODEOWNERS Support                   | ⬜ Planned | —            |
 | 6.3   | Code Review Suggestions              | ⬜ Planned | 031          |
