@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
 type contextKey string
@@ -18,18 +19,35 @@ type Claims struct {
 	IsSuperadmin bool
 }
 
+// PATValidator is implemented by AccessTokenService. Defined here to avoid import cycle.
+type PATValidator interface {
+	Validate(ctx context.Context, rawToken string) (*model.AccessToken, *model.User, error)
+	UpdateLastUsed(ctx context.Context, tokenID int64) error
+}
+
 func ClaimsFromContext(ctx context.Context) (Claims, bool) {
 	c, ok := ctx.Value(claimsKey).(Claims)
 	return c, ok
 }
 
-func Auth(secret, cookieName string) func(http.Handler) http.Handler {
+func Auth(secret, cookieName string, patValidator PATValidator) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenStr := extractToken(r, cookieName)
 			if tokenStr == "" {
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
+			}
+
+			if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
+				token, user, err := patValidator.Validate(r.Context(), tokenStr)
+				if err == nil {
+					go patValidator.UpdateLastUsed(context.Background(), token.ID)
+					claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin}
+					ctx := context.WithValue(r.Context(), claimsKey, claims)
+					next.ServeHTTP(w, r.WithContext(ctx))
+					return
+				}
 			}
 
 			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
@@ -56,11 +74,22 @@ func Auth(secret, cookieName string) func(http.Handler) http.Handler {
 	}
 }
 
-func OptionalAuth(secret, cookieName string) func(http.Handler) http.Handler {
+func OptionalAuth(secret, cookieName string, patValidator PATValidator) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenStr := extractToken(r, cookieName)
 			if tokenStr != "" {
+				if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
+					pat, user, err := patValidator.Validate(r.Context(), tokenStr)
+					if err == nil {
+						go patValidator.UpdateLastUsed(context.Background(), pat.ID)
+						claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin}
+						ctx := context.WithValue(r.Context(), claimsKey, claims)
+						r = r.WithContext(ctx)
+						next.ServeHTTP(w, r)
+						return
+					}
+				}
 				token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
 					if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 						return nil, jwt.ErrSignatureInvalid
