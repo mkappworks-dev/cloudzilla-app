@@ -235,7 +235,7 @@ graph TD
 - **Commit Status API** — CI tools can post build statuses (`pending`, `success`, `failure`, `error`) per SHA and context; combined status aggregated from all contexts; status checks surface on commit pages and PR detail pages
 - **Milestones** — create sprint-planning milestones per repo with title, description, and optional due date; assign issues and PRs to milestones via sidebar picker; progress bar tracks open/closed issue counts; open/close milestones; full CRUD via web UI and API
 - **PR Reviews** — reviewers submit Approve / Request Changes / Comment reviews on open PRs; any `changes_requested` review blocks all merge buttons until the reviewer re-submits with a different state; reviewer cannot review their own PR; notifications sent to PR author
-- **PR Line Comments** — click "+" on any diff line to open an inline comment form (HTMX, no page reload); comments anchor to `path:line` and render below the target line; repo writers and comment authors can delete comments
+- **PR Line Comments** — click "+" on any diff line to open an inline comment form (HTMX, no page reload); comments anchor to `path:line` and render below the target line; comment authors can edit their comment inline; repo writers and comment authors can delete comments
 - **Search** — full-text search across repositories, issues, pull requests, and users via PostgreSQL `tsvector` + GIN indexes; search bar in the navbar on every page; tabbed results page (`/search?q=...&type=repos|issues|pulls|users|all`)
 - User accounts with JWT authentication (httpOnly cookie)
 - Google OAuth sign-in (links to existing accounts by email)
@@ -243,12 +243,12 @@ graph TD
 - Repository management (public/private), repo settings page
 - Issues with open/close state
 - Pull requests with fast-forward, three-way, and squash merge strategies, diff view, and close workflow
-- Inline comments with HTMX live updates (no page reload)
-- Webhooks — per-repo HTTP callbacks for push, issues, and pull_request events with HMAC signing and delivery log
+- Inline comments on issues and PRs with HTMX live updates (no page reload); comment authors can edit their own comments; deletion restricted to the author or a repo writer
+- Webhooks — per-repo HTTP callbacks for `push`, `issues`, and `pull_request` events with HMAC signing and delivery log; push events fired on both HTTP and SSH pushes
 - In-app notifications — notified on comments, state changes, and merges; unread badge in navbar
 - SSH keys for git operations (ED25519, RSA)
-- Git over HTTP (smart protocol) — `git clone/push/pull` with HTTP Basic Auth or JWT cookie
-- Git over SSH (port 2222 by default) — public key authentication
+- Git over HTTP (smart protocol) — full pack protocol; `git clone/push/pull` with HTTP Basic Auth or JWT cookie; push triggers webhooks
+- Git over SSH (port 2222 by default) — full pack protocol; public key authentication; push triggers webhooks
 - Code browser — file tree, blob viewer with line numbers, per-line blame
 - Commit history — paginated commit log per branch/ref
 - Commit diff view — unified diff with added/deleted line highlighting
@@ -761,6 +761,7 @@ Inline comments are anchored to specific diff lines:
 - A `+` button appears on each diff line for users with write access on open PRs
 - Clicking `+` reveals an inline form via HTMX — no page reload
 - Comments render below their target line and survive page reloads
+- Comment authors can edit their comment inline (author-only; repo writers cannot edit others' comments)
 - Repo writers and comment authors can delete comments with the `×` button
 
 ---
@@ -803,15 +804,16 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 ### Issues
 
-| Method | Path                                                  | Auth     | Description               |
-| ------ | ----------------------------------------------------- | -------- | ------------------------- |
-| GET    | `/api/repos/:owner/:repo/issues/`                     | —        | List issues               |
-| POST   | `/api/repos/:owner/:repo/issues/`                     | Required | Create an issue           |
-| GET    | `/api/repos/:owner/:repo/issues/:number`              | —        | Get issue details         |
-| PATCH  | `/api/repos/:owner/:repo/issues/:number`              | Required | Update issue (open/close) |
-| GET    | `/api/repos/:owner/:repo/issues/:number/comments`     | —        | List comments             |
-| POST   | `/api/repos/:owner/:repo/issues/:number/comments`     | Required | Add a comment             |
-| DELETE | `/api/repos/:owner/:repo/issues/:number/comments/:id` | Required | Delete a comment          |
+| Method | Path                                                  | Auth     | Description                              |
+| ------ | ----------------------------------------------------- | -------- | ---------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/issues/`                     | —        | List issues                              |
+| POST   | `/api/repos/:owner/:repo/issues/`                     | Required | Create an issue                          |
+| GET    | `/api/repos/:owner/:repo/issues/:number`              | —        | Get issue details                        |
+| PATCH  | `/api/repos/:owner/:repo/issues/:number`              | Required | Update issue (open/close)                |
+| GET    | `/api/repos/:owner/:repo/issues/:number/comments`     | —        | List comments                            |
+| POST   | `/api/repos/:owner/:repo/issues/:number/comments`     | Required | Add a comment                            |
+| PATCH  | `/api/repos/:owner/:repo/issues/:number/comments/:id` | Required | Edit a comment body (author only)        |
+| DELETE | `/api/repos/:owner/:repo/issues/:number/comments/:id` | Required | Delete a comment (author or repo writer) |
 
 ### Labels
 
@@ -873,6 +875,7 @@ Valid `state` values: `approved`, `changes_requested`, `commented`, `pending`.
 | GET    | `/api/repos/:owner/:repo/pulls/:number/line_comments`      | Optional | List all line comments for a pull request                      |
 | POST   | `/api/repos/:owner/:repo/pulls/:number/line_comments`      | Required | Create a line comment (`path`, `line`, `body`, `diff_side`)    |
 | GET    | `/api/repos/:owner/:repo/pulls/:number/line_comments/form` | Required | Returns inline comment form HTML fragment (`?path=...&line=N`) |
+| PATCH  | `/api/repos/:owner/:repo/pulls/:number/line_comments/:id`  | Required | Edit a line comment body (author only)                         |
 | DELETE | `/api/repos/:owner/:repo/pulls/:number/line_comments/:id`  | Required | Delete a line comment (author or repo writer only)             |
 
 ### Search
@@ -935,9 +938,10 @@ All four endpoints require write access. For HTMX requests they return an HTML f
 
 \*Depends on repo privacy and user permissions:
 
-- Public repos: no auth required for read
-- Private repos: requires HTTP Basic Auth or JWT cookie for read
-- Push: requires write permission (owner or `writer`/`admin` role)
+- Public repos: no auth required for clone/fetch; push always requires auth
+- Private repos: requires HTTP Basic Auth or JWT cookie for clone/fetch
+- Push (`git-receive-pack`): requires write permission (owner or `writer`/`admin` role); unauthenticated requests to the receive-pack info/refs endpoint receive `401 Unauthorized` with a `WWW-Authenticate: Basic` challenge
+- Both HTTP and SSH pushes fire `push` webhooks per updated branch
 
 ### Instance Admin (superadmin only)
 
