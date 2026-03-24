@@ -150,6 +150,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Patch("/{number}", h.UpdateIssue)
 			r.Get("/{number}/comments", h.ListIssueComments)
 			r.With(authMW).Post("/{number}/comments", h.CreateIssueComment)
+			r.With(authMW).Patch("/{number}/comments/{commentID}", h.UpdateComment)
 			r.With(authMW).Delete("/{number}/comments/{commentID}", h.DeleteComment)
 		})
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/markdown"
@@ -58,13 +59,18 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 		body = req.Body
 	}
 
+	if strings.TrimSpace(body) == "" {
+		writeError(w, http.StatusBadRequest, "body required")
+		return
+	}
+
 	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "issue not found")
 		return
 	}
 
-	comment, err := h.Services.Comment.CreateForIssue(r.Context(), issue.RepoID, issue.ID, claims.UserID, body)
+	comment, err := h.Services.Comment.CreateForIssue(r.Context(), issue.RepoID, issue.ID, claims.UserID, claims.Username, body)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -86,8 +92,76 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, comment)
 }
 
-func (h *Handler) DeleteComment(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
 	id, _ := strconv.ParseInt(chi.URLParam(r, "commentID"), 10, 64)
+
+	var body string
+	if r.Header.Get("HX-Request") == "true" {
+		r.ParseForm()
+		body = r.FormValue("body")
+	} else {
+		var req createCommentRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		body = req.Body
+	}
+
+	if strings.TrimSpace(body) == "" {
+		writeError(w, http.StatusBadRequest, "body required")
+		return
+	}
+
+	comment, err := h.Services.Comment.Update(r.Context(), id, claims.UserID, body)
+	if err != nil {
+		if err.Error() == "forbidden" {
+			writeError(w, http.StatusForbidden, "forbidden")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to update comment")
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		h.renderFragment(w, "fragment-comment", CommentFragData{
+			Comment: RenderedComment{Comment: *comment, BodyHTML: markdown.Render(comment.Body)},
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, comment)
+}
+
+func (h *Handler) DeleteComment(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	id, _ := strconv.ParseInt(chi.URLParam(r, "commentID"), 10, 64)
+
+	existing, err := h.Services.Comment.GetByID(r.Context(), id)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "comment not found")
+		return
+	}
+
+	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
+	canWrite := repo != nil && h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	if existing.AuthorID != claims.UserID && !canWrite {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
 	if err := h.Services.Comment.Delete(r.Context(), id); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to delete comment")
 		return
@@ -102,13 +176,13 @@ func (h *Handler) IssueCommentsFragment(w http.ResponseWriter, r *http.Request) 
 
 	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber)
 	if err != nil {
-		http.Error(w, "issue not found", http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "issue not found")
 		return
 	}
 
 	comments, err := h.Services.Comment.ListByIssue(r.Context(), issue.ID)
 	if err != nil {
-		http.Error(w, "failed to load comments", http.StatusInternalServerError)
+		writeError(w, http.StatusInternalServerError, "failed to load comments")
 		return
 	}
 
