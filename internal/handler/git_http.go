@@ -2,6 +2,7 @@ package handler
 
 import (
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +16,29 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 )
+
+type gitUser struct {
+	ID       int64
+	Username string
+}
+
+// resolveGitUser returns the authenticated user for git operations.
+// It checks JWT claims first (browser/cookie), then falls back to HTTP Basic Auth
+// where the password is a PAT (git CLI: username:czp_xxx).
+func (h *Handler) resolveGitUser(r *http.Request) *gitUser {
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		return &gitUser{ID: claims.UserID, Username: claims.Username}
+	}
+	_, password, ok := r.BasicAuth()
+	if ok && strings.HasPrefix(password, "czp_") {
+		token, user, err := h.Services.AccessToken.Validate(r.Context(), password)
+		if err == nil {
+			go h.Services.AccessToken.UpdateLastUsed(context.Background(), token.ID)
+			return &gitUser{ID: user.ID, Username: user.Username}
+		}
+	}
+	return nil
+}
 
 func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
@@ -32,20 +56,24 @@ func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check permissions — receive-pack needs write access
-	var userID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
-	}
+	gu := h.resolveGitUser(r)
 
 	if svc == "git-receive-pack" {
-		if userID == nil || !h.Services.Repo.CanWrite(r.Context(), repo, *userID) {
+		var uid *int64
+		if gu != nil {
+			uid = &gu.ID
+		}
+		if uid == nil || !h.Services.Repo.CanWrite(r.Context(), repo, *uid) {
 			w.Header().Set("WWW-Authenticate", `Basic realm="git"`)
 			http.Error(w, "access denied", http.StatusUnauthorized)
 			return
 		}
 	} else {
-		if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
+		var uid *int64
+		if gu != nil {
+			uid = &gu.ID
+		}
+		if !h.Services.Repo.CanRead(r.Context(), repo, uid) {
 			w.Header().Set("WWW-Authenticate", `Basic realm="git"`)
 			http.Error(w, "access denied", http.StatusUnauthorized)
 			return
@@ -106,9 +134,10 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	gu := h.resolveGitUser(r)
 	var userID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
+	if gu != nil {
+		userID = &gu.ID
 	}
 
 	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
@@ -182,9 +211,10 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok || !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		http.Error(w, "access denied", http.StatusForbidden)
+	gu := h.resolveGitUser(r)
+	if gu == nil || !h.Services.Repo.CanWrite(r.Context(), repo, gu.ID) {
+		w.Header().Set("WWW-Authenticate", `Basic realm="git"`)
+		http.Error(w, "access denied", http.StatusUnauthorized)
 		return
 	}
 
@@ -244,6 +274,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Dispatch push webhooks for each updated branch
+	pusherName := gu.Username
 	for _, cmd := range req.Commands {
 		if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
 			continue
@@ -253,6 +284,6 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		}
 		branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
 		go h.Services.Webhook.Dispatch(repo.ID, "push",
-			h.Services.Webhook.PushPayload(*repo, claims.Username, branch, cmd.New.String()))
+			h.Services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String()))
 	}
 }

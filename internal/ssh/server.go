@@ -100,13 +100,22 @@ func (s *Server) publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		return false
 	}
 
+	// 1. Try user SSH key (existing behaviour)
 	user, err := s.services.SSHKey.AuthenticatePublicKey(ctx, gosshKey)
-	if err != nil {
-		return false
+	if err == nil {
+		ctx.SetValue("cloudzilla_user", user)
+		return true
 	}
 
-	ctx.SetValue("cloudzilla_user", user)
-	return true
+	// 2. Try deploy key
+	dk, err := s.services.DeployKey.AuthenticatePublicKey(ctx, gosshKey)
+	if err == nil {
+		go s.services.DeployKey.UpdateLastUsed(context.Background(), dk.ID)
+		ctx.SetValue("cloudzilla_deploy_key", dk)
+		return true
+	}
+
+	return false
 }
 
 func (s *Server) sessionHandler(session ssh.Session) {
@@ -138,12 +147,13 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	}
 
 	userVal := session.Context().Value("cloudzilla_user")
-	if userVal == nil {
+	dkVal := session.Context().Value("cloudzilla_deploy_key")
+
+	if userVal == nil && dkVal == nil {
 		fmt.Fprintf(session, "authentication required\n")
 		session.Exit(1)
 		return
 	}
-	user := userVal.(*model.User)
 
 	pathParts := strings.Trim(repoPath, "/")
 	pathParts = strings.TrimSuffix(pathParts, ".git")
@@ -164,17 +174,41 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		return
 	}
 
-	if gitCmd == "git-upload-pack" {
-		if !s.services.Repo.CanRead(ctx, repo, &user.ID) {
-			fmt.Fprintf(session, "access denied\n")
+	var pusherName string
+
+	if dkVal != nil {
+		dk := dkVal.(*model.DeployKey)
+
+		// Enforce repo binding — deploy key is scoped to one repo
+		if repo.ID != dk.RepoID {
+			fmt.Fprintf(session, "deploy key not authorized for this repository\n")
 			session.Exit(1)
 			return
 		}
-	} else {
-		if !s.services.Repo.CanWrite(ctx, repo, user.ID) {
-			fmt.Fprintf(session, "access denied\n")
+
+		// Enforce read-only restriction
+		if gitCmd == "git-receive-pack" && dk.ReadOnly {
+			fmt.Fprintf(session, "deploy key is read-only\n")
 			session.Exit(1)
 			return
+		}
+		// pusherName stays "" for deploy key pushes
+	} else {
+		user := userVal.(*model.User)
+		pusherName = user.Username
+
+		if gitCmd == "git-upload-pack" {
+			if !s.services.Repo.CanRead(ctx, repo, &user.ID) {
+				fmt.Fprintf(session, "access denied\n")
+				session.Exit(1)
+				return
+			}
+		} else {
+			if !s.services.Repo.CanWrite(ctx, repo, user.ID) {
+				fmt.Fprintf(session, "access denied\n")
+				session.Exit(1)
+				return
+			}
 		}
 	}
 
@@ -203,7 +237,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 				continue
 			}
 			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
-			payload := s.services.Webhook.PushPayload(*repo, user.Username, branch, cmd.New.String())
+			payload := s.services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String())
 			go s.services.Webhook.Dispatch(repo.ID, "push", payload)
 		}
 	}
