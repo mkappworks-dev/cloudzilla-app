@@ -72,3 +72,15 @@ func (s *PullLineCommentService) Delete(ctx context.Context, owner, repoName str
 func (s *PullLineCommentService) GetComment(ctx context.Context, id int64) (*model.PullLineComment, error) {
 	return s.comments.GetByID(ctx, id)
 }
+
+// Update edits a line comment body. Only the author may edit.
+func (s *PullLineCommentService) Update(ctx context.Context, id, callerID int64, body string) (*model.PullLineComment, error) {
+	c, err := s.comments.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("line comment not found: %w", err)
+	}
+	if c.AuthorID != callerID {
+		return nil, fmt.Errorf("forbidden")
+	}
+	return s.comments.Update(ctx, id, body)
+}

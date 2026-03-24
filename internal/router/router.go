@@ -198,6 +198,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Post("/{number}/line_comments", h.CreateLineComment)
 			// /form must be before /{id} to avoid chi wildcard conflict
 			r.With(authMW).Get("/{number}/line_comments/form", h.GetLineCommentForm)
+			r.With(authMW).Patch("/{number}/line_comments/{id}", h.UpdateLineComment)
 			r.With(authMW).Delete("/{number}/line_comments/{id}", h.DeleteLineComment)
 		})
 

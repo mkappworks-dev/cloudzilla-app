@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/markdown"
@@ -193,6 +194,79 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+
+	var body string
+	if r.Header.Get("HX-Request") == "true" || r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+		r.ParseForm()
+		body = r.FormValue("body")
+	} else {
+		var req struct {
+			Body string `json:"body"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		body = req.Body
+	}
+
+	if strings.TrimSpace(body) == "" {
+		writeError(w, http.StatusBadRequest, "body required")
+		return
+	}
+
+	comment, err := h.Services.PullLineComment.Update(r.Context(), id, claims.UserID, body)
+	if err != nil {
+		if err.Error() == "forbidden" {
+			writeError(w, http.StatusForbidden, "forbidden")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to update comment")
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		allComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
+		key := fmt.Sprintf("%s:%d", comment.Path, comment.Line)
+		var lineComments []RenderedLineComment
+		for _, c := range allComments {
+			if fmt.Sprintf("%s:%d", c.Path, c.Line) == key {
+				lineComments = append(lineComments, RenderedLineComment{
+					PullLineComment: c,
+					BodyHTML:        markdown.Render(c.Body),
+				})
+			}
+		}
+		repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
+		canWrite := false
+		if repo != nil {
+			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		}
+		h.renderFragment(w, "fragment-line-comments", LineCommentsFragData{
+			Owner:      owner,
+			RepoName:   repoName,
+			PullNumber: number,
+			Path:       comment.Path,
+			Line:       comment.Line,
+			Comments:   lineComments,
+			CanWrite:   canWrite,
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, comment)
 }
 
 // lineCommentID returns a safe HTML ID from path and line number

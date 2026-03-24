@@ -62,6 +62,21 @@ FROM pull_line_comments WHERE id=$1`
 	return &c, nil
 }
 
+func (s *PullLineCommentStore) Update(ctx context.Context, id int64, body string) (*model.PullLineComment, error) {
+	const q = `
+UPDATE pull_line_comments SET body=$2, updated_at=NOW() WHERE id=$1
+RETURNING id, pull_id, repo_id, author_id, author_name, path, diff_side, line, body, created_at, updated_at`
+	var c model.PullLineComment
+	err := s.db.QueryRowContext(ctx, q, id, body).Scan(
+		&c.ID, &c.PullID, &c.RepoID, &c.AuthorID, &c.AuthorName,
+		&c.Path, &c.DiffSide, &c.Line, &c.Body, &c.CreatedAt, &c.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("pull line comment update: %w", err)
+	}
+	return &c, nil
+}
+
 func (s *PullLineCommentStore) Delete(ctx context.Context, id, repoID int64) error {
 	_, err := s.db.ExecContext(ctx,
 		`DELETE FROM pull_line_comments WHERE id=$1 AND repo_id=$2`,
