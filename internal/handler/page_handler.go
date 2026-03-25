@@ -549,9 +549,11 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		CanWrite:         canWrite2,
 		HeadStatuses:     headStatuses,
 		Reviews:          reviews,
-		CanMerge:         canMerge,
-		MergeBlockReason: mergeBlockReason,
-		LineComments:     lineComments,
+		CanMerge:          canMerge,
+		MergeBlockReason:  mergeBlockReason,
+		AutoMergeEnabled:  pull.AutoMergeEnabled,
+		AutoMergeStrategy: pull.AutoMergeStrategy,
+		LineComments:      lineComments,
 	})
 }
 
