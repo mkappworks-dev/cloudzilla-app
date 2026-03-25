@@ -860,7 +860,7 @@ GET /search?q=...&type=repos|issues|pulls|users  (optAuthMW)
 
 ---
 
-## Phase 5 — Personal Access Tokens, Deploy Keys, Draft Pull Requests
+## Phase 5 — Personal Access Tokens, Deploy Keys, Draft Pull Requests ✅ IMPLEMENTED
 
 _Programmatic API access, CI/CD key isolation, and work-in-progress PRs._
 
@@ -1012,7 +1012,7 @@ ALTER TABLE pull_requests
 
 ---
 
-## Phase 6 — Protected Branches, CODEOWNERS Support, Code Review Suggestions
+## Phase 6 — Protected Branches, CODEOWNERS Support, Code Review Suggestions ✅ IMPLEMENTED
 
 _Workflow quality gates, automated review routing, and inline suggested changes._
 
@@ -1853,9 +1853,9 @@ POST  /api/repos/{owner}/{repo}/hooks/{id}/redeliver (authMW + write) — manual
 | 5.1   | Personal Access Tokens               | ✅ Done    | 027          |
 | 5.2   | Deploy Keys                          | ✅ Done    | 028          |
 | 5.3   | Draft Pull Requests                  | ✅ Done    | 029          |
-| 6.1   | Protected Branches                   | ⬜ Planned | 030          |
-| 6.2   | CODEOWNERS Support                   | ⬜ Planned | —            |
-| 6.3   | Code Review Suggestions              | ⬜ Planned | 031          |
+| 6.1   | Protected Branches                   | ✅ Done    | 030          |
+| 6.2   | CODEOWNERS Support                   | ✅ Done    | —            |
+| 6.3   | Code Review Suggestions              | ✅ Done    | 031          |
 | 7.1   | Auto-merge                           | ⬜ Planned | 032          |
 | 7.2   | Issue & PR Templates                 | ⬜ Planned | —            |
 | 7.3   | Comment Reactions                    | ⬜ Planned | 033          |

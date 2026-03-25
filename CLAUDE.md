@@ -218,9 +218,10 @@ Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs
 - `internal/store/stores.go` — wire new store into `Stores` struct + `New()`
 - `internal/handler/page_handler.go` — extend existing page handlers with new data fetches
 
-| Phase   | Feature                              | Status     | Migration(s) |
-| ------- | ------------------------------------ | ---------- | ------------ |
-| 0.1–5.3 | Core Platform → Draft PRs (all done) | ✅ Done    | 001–029      |
-| 5.4–20  | Audit Log → GraphQL v2               | ⬜ Planned | 030–060      |
+| Phase   | Feature                                      | Status     | Migration(s) |
+| ------- | -------------------------------------------- | ---------- | ------------ |
+| 0.1–5.3 | Core Platform → Draft PRs (all done)         | ✅ Done    | 001–029      |
+| 6.1–6.3 | Protected Branches → Code Review Suggestions | ✅ Done    | 030–031      |
+| 6.4–20  | Audit Log → GraphQL v2                       | ⬜ Planned | 032–060      |
 
 > Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)

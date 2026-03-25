@@ -236,6 +236,9 @@ graph TD
 - **Milestones** — create sprint-planning milestones per repo with title, description, and optional due date; assign issues and PRs to milestones via sidebar picker; progress bar tracks open/closed issue counts; open/close milestones; full CRUD via web UI and API
 - **PR Reviews** — reviewers submit Approve / Request Changes / Comment reviews on open PRs; any `changes_requested` review blocks all merge buttons until the reviewer re-submits with a different state; reviewer cannot review their own PR; notifications sent to PR author
 - **PR Line Comments** — click "+" on any diff line to open an inline comment form (HTMX, no page reload); comments anchor to `path:line` and render below the target line; comment authors can edit their comment inline; repo writers and comment authors can delete comments
+- **Code Review Suggestions** — inline ` ```suggestion ` blocks in PR line comments render as a green suggested-change preview; repo writers can apply a suggestion with one click, which writes a new commit directly to the PR head branch
+- **Branch Protection** — per-repo glob patterns (e.g. `main`, `release/*`) that enforce required review counts, required commit-status checks, and optional force-push blocking; enforced on both HTTP and SSH push, and on PR merge
+- **CODEOWNERS** — repo owners can add a `CODEOWNERS` (or `.github/CODEOWNERS`) file; when a PR is opened, matched owners are automatically added as assignees based on the files changed
 - **Search** — full-text search across repositories, issues, pull requests, and users via PostgreSQL `tsvector` + GIN indexes; search bar in the navbar on every page; tabbed results page (`/search?q=...&type=repos|issues|pulls|users|all`)
 - User accounts with JWT authentication (httpOnly cookie)
 - Google OAuth sign-in (links to existing accounts by email)
@@ -795,6 +798,34 @@ Inline comments are anchored to specific diff lines:
 - Comment authors can edit their comment inline (author-only; repo writers cannot edit others' comments)
 - Repo writers and comment authors can delete comments with the `×` button
 
+### Code Review Suggestions
+
+Inline suggestions let reviewers propose exact text replacements directly in a line comment:
+
+- Write a line comment with a fenced ` ```suggestion ` block containing the replacement text
+- The suggestion renders as a green diff preview (removed lines in red, added lines in green) on the PR diff page
+- Any user with write access on the repo can click **Apply suggestion** — this writes a new commit to the PR head branch with the suggested change applied
+- Suggestion commits are authored as the applying user and appear in the commit history
+
+### Branch Protection
+
+Protect branches from unreviewed or broken pushes by defining glob-matched protection rules:
+
+- Create rules at `/{owner}/{repo}/settings` — each rule has a pattern (e.g. `main`, `release/*`), a required review count, required status check contexts, and an optional force-push block
+- **Required reviews**: merging a PR into a protected branch is blocked until at least N Approve reviews (with no outstanding Request Changes) are present
+- **Required status checks**: merging is blocked until all named CI contexts report `success` on the PR head SHA
+- **Block force push**: the HTTP and SSH receive-pack handlers reject `--force` pushes to matching branches
+- Rules are checked on both HTTP and SSH push, and on every PR merge attempt
+- Sentinels: `ErrForcePushBlocked`, `ErrPushRequiresPR`, `ErrInsufficientReviews`, `ErrStatusCheckFailed`
+
+### CODEOWNERS
+
+Automatically assign reviewers based on file ownership:
+
+- Place a `CODEOWNERS` or `.github/CODEOWNERS` file in the repository root; format follows the standard `pattern @owner` syntax (one rule per line, `#` comments ignored)
+- When a PR is opened, the service resolves which patterns match the changed files and adds the corresponding owners as PR assignees
+- Works with both usernames (`@alice`) and multiple owners per line (`@alice @bob`)
+
 ---
 
 ## API Reference
@@ -928,6 +959,15 @@ Valid `state` values: `approved`, `changes_requested`, `commented`, `pending`.
 | GET    | `/api/repos/:owner/:repo/pulls/:number/line_comments/form` | Required | Returns inline comment form HTML fragment (`?path=...&line=N`) |
 | PATCH  | `/api/repos/:owner/:repo/pulls/:number/line_comments/:id`  | Required | Edit a line comment body (author only)                         |
 | DELETE | `/api/repos/:owner/:repo/pulls/:number/line_comments/:id`  | Required | Delete a line comment (author or repo writer only)             |
+
+### Branch Protections
+
+| Method | Path                                                   | Auth    | Description                                                                                                 |
+| ------ | ------------------------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------- |
+| GET    | `/{owner}/{repo}/branches/protections`                 | Manage  | List all branch protection rules for the repository                                                         |
+| POST   | `/{owner}/{repo}/branches/protections`                 | Manage  | Create a rule (`pattern`, `require_review_count`, `require_status_checks[]`, `block_force_push`)            |
+| PATCH  | `/{owner}/{repo}/branches/protections/:id`             | Manage  | Update an existing rule (same fields as POST; only provided fields are changed)                             |
+| DELETE | `/{owner}/{repo}/branches/protections/:id`             | Manage  | Delete a protection rule                                                                                    |
 
 ### Search
 
@@ -1184,6 +1224,12 @@ Migrations live in `migrations/` and are embedded into the binary at build time.
 | `023_create_pr_reviews.sql`         | `pull_reviews` table with `UNIQUE(pull_id, author_id)` upsert constraint                                        |
 | `024_create_pull_line_comments.sql` | `pull_line_comments` table with path + line indexes                                                             |
 | `025_search_indexes.sql`            | `search_vector tsvector` columns + GIN indexes + triggers on repos/issues/PRs; `idx_users_username_lower` index |
+| `026_fix_comments_author_name.sql`  | Backfills author name on existing comments                                                                      |
+| `027_create_access_tokens.sql`      | `access_tokens` table for Personal Access Tokens (PATs) with scope array and optional expiry                    |
+| `028_create_deploy_keys.sql`        | `deploy_keys` table; per-repo SSH keys with `read_only` flag                                                    |
+| `029_add_draft_to_pulls.sql`        | Adds `is_draft` boolean column to `pull_requests`                                                               |
+| `030_create_branch_protections.sql` | `branch_protections` table with `pattern`, `require_review_count`, `require_status_checks`, `block_force_push`  |
+| `031_add_suggestion_to_line_comments.sql` | Adds `is_suggestion` and `suggestion_body` columns to `pull_line_comments`                               |
 
 ---
 
