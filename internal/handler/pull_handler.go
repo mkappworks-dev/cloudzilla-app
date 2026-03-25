@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -71,6 +72,26 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if repo != nil {
 		go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload("opened", *repo, *pr))
+
+		// Auto-assign code owners based on CODEOWNERS file.
+		go func(owner, repoName string, pr *model.PullRequest, defaultBranch string) {
+			diff, err := h.Services.Code.GetPullDiff(owner, repoName, pr.BaseBranch, pr.HeadBranch)
+			if err != nil {
+				return
+			}
+			changedFiles := make([]string, 0, len(diff.Files))
+			for _, f := range diff.Files {
+				changedFiles = append(changedFiles, f.NewPath)
+			}
+			rules, err := h.Services.Code.GetCodeOwners(owner, repoName, defaultBranch)
+			if err != nil || len(rules) == 0 {
+				return
+			}
+			owners := h.Services.Code.MatchCodeOwners(rules, changedFiles)
+			for _, u := range owners {
+				_ = h.Services.Assignee.AddToPull(context.Background(), owner, repoName, pr.Number, u)
+			}
+		}(owner, repoName, pr, repo.DefaultBranch)
 	}
 
 	writeJSON(w, http.StatusCreated, pr)
@@ -140,6 +161,20 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		}
 		if ok, reason, _ := h.Services.PullReview.CanMerge(r.Context(), existingPR.ID); !ok {
 			writeError(w, http.StatusUnprocessableEntity, "merge blocked: "+reason)
+			return
+		}
+		// Resolve the HEAD SHA of the head branch for status check enforcement.
+		var headSHA string
+		if _, sha, err := h.Services.Code.ResolveRef(owner, repoName, existingPR.HeadBranch); err == nil {
+			headSHA = sha
+		}
+		repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+		if err != nil {
+			writeError(w, http.StatusNotFound, "repo not found")
+			return
+		}
+		if err := h.Services.BranchProtection.CheckMerge(r.Context(), repo.ID, existingPR, headSHA); err != nil {
+			writeError(w, http.StatusUnprocessableEntity, "merge blocked: "+err.Error())
 			return
 		}
 		claims, _ := middleware.ClaimsFromContext(r.Context())

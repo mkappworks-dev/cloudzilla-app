@@ -15,6 +15,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/mkappworks/cloudzilla/internal/config"
+	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
 // ErrEmptyRepo is returned when a repository has no commits.
@@ -1218,4 +1219,149 @@ func (s *CodeService) GetBlame(owner, repoName, ref, path string) (*BlameResult,
 		Breadcrumbs: buildBreadcrumbs(owner, repoName, displayRef, path, true),
 		BlobURL:     "/" + owner + "/" + repoName + "/blob/" + displayRef + "/" + path,
 	}, nil
+}
+
+// GetCodeOwners reads the CODEOWNERS file from the default branch and returns parsed rules.
+// Returns an empty slice (not an error) when no CODEOWNERS file exists.
+func (s *CodeService) GetCodeOwners(owner, repoName, defaultBranch string) ([]model.CodeOwnerRule, error) {
+	var raw []byte
+	var err error
+	for _, path := range []string{"CODEOWNERS", ".github/CODEOWNERS"} {
+		raw, err = s.GetRawBlob(owner, repoName, defaultBranch, path)
+		if err == nil {
+			break
+		}
+	}
+	if raw == nil {
+		return nil, nil
+	}
+	var rules []model.CodeOwnerRule
+	for _, line := range strings.Split(string(raw), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			continue
+		}
+		rule := model.CodeOwnerRule{Pattern: fields[0]}
+		for _, owner := range fields[1:] {
+			rule.Owners = append(rule.Owners, strings.TrimPrefix(owner, "@"))
+		}
+		rules = append(rules, rule)
+	}
+	return rules, nil
+}
+
+// MatchCodeOwners returns a de-duplicated list of owner usernames whose patterns
+// match any of the given changed files.
+func (s *CodeService) MatchCodeOwners(rules []model.CodeOwnerRule, changedFiles []string) []string {
+	seen := make(map[string]bool)
+	var owners []string
+	for _, rule := range rules {
+		for _, file := range changedFiles {
+			matched, err := filepath.Match(rule.Pattern, file)
+			if err != nil {
+				continue
+			}
+			if matched {
+				for _, o := range rule.Owners {
+					if !seen[o] {
+						seen[o] = true
+						owners = append(owners, o)
+					}
+				}
+				break
+			}
+		}
+	}
+	return owners
+}
+
+// ApplySuggestion replaces targetLine (1-based) in filePath on branch with the replacement
+// text and creates a new commit on that branch.
+func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, targetLine int, replacement, authorName, authorEmail string) error {
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return err
+	}
+	headCommit, _, err := resolveRef(repo, branch)
+	if err != nil {
+		return err
+	}
+
+	// Read current file content.
+	raw, err := s.GetRawBlob(owner, repoName, branch, filePath)
+	if err != nil {
+		return fmt.Errorf("read file: %w", err)
+	}
+	lines := strings.Split(string(raw), "\n")
+	if targetLine < 1 || targetLine > len(lines) {
+		return fmt.Errorf("line %d out of range (file has %d lines)", targetLine, len(lines))
+	}
+	// Replace the target line with the suggestion content.
+	replacementLines := strings.Split(replacement, "\n")
+	updated := make([]string, 0, len(lines)+len(replacementLines)-1)
+	updated = append(updated, lines[:targetLine-1]...)
+	updated = append(updated, replacementLines...)
+	updated = append(updated, lines[targetLine:]...)
+	newContent := strings.Join(updated, "\n")
+
+	// Write the new blob.
+	blobObj := repo.Storer.NewEncodedObject()
+	blobObj.SetType(plumbing.BlobObject)
+	w, err := blobObj.Writer()
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write([]byte(newContent)); err != nil {
+		return err
+	}
+	_ = w.Close()
+	blobHash, err := repo.Storer.SetEncodedObject(blobObj)
+	if err != nil {
+		return err
+	}
+
+	// Rebuild the tree with the updated file.
+	tree, err := headCommit.Tree()
+	if err != nil {
+		return err
+	}
+	files, err := flattenTree(tree)
+	if err != nil {
+		return err
+	}
+	existing, ok := files[filePath]
+	if !ok {
+		existing = mergeFile{mode: filemode.Regular}
+	}
+	files[filePath] = mergeFile{hash: blobHash, mode: existing.mode}
+	newTreeHash, err := buildTree(repo, files)
+	if err != nil {
+		return err
+	}
+
+	// Create new commit.
+	now := time.Now()
+	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
+	commit := &object.Commit{
+		Author:       sig,
+		Committer:    sig,
+		Message:      "Apply suggestion to " + filePath,
+		TreeHash:     newTreeHash,
+		ParentHashes: []plumbing.Hash{headCommit.Hash},
+	}
+	obj := repo.Storer.NewEncodedObject()
+	if err := commit.Encode(obj); err != nil {
+		return err
+	}
+	newHash, err := repo.Storer.SetEncodedObject(obj)
+	if err != nil {
+		return err
+	}
+
+	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(branch), newHash)
+	return repo.Storer.SetReference(ref)
 }
