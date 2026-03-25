@@ -1856,7 +1856,7 @@ POST  /api/repos/{owner}/{repo}/hooks/{id}/redeliver (authMW + write) — manual
 | 6.1   | Protected Branches                   | ✅ Done    | 030          |
 | 6.2   | CODEOWNERS Support                   | ✅ Done    | —            |
 | 6.3   | Code Review Suggestions              | ✅ Done    | 031          |
-| 7.1   | Auto-merge                           | ⬜ Planned | 032          |
+| 7.1   | Auto-merge                           | ✅ Done    | 032          |
 | 7.2   | Issue & PR Templates                 | ⬜ Planned | —            |
 | 7.3   | Comment Reactions                    | ⬜ Planned | 033          |
 | 8.1   | Two-Factor Auth (TOTP)               | ⬜ Planned | 034          |
