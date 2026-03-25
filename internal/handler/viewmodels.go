@@ -189,8 +189,10 @@ type PullDetailData struct {
 	CanWrite         bool
 	HeadStatuses     []model.CommitStatus
 	Reviews          []model.PullReview
-	CanMerge         bool
-	MergeBlockReason string
+	CanMerge          bool
+	MergeBlockReason  string
+	AutoMergeEnabled  bool
+	AutoMergeStrategy string
 	// LineComments keyed by "path:line" (e.g. "src/main.go:42")
 	LineComments map[string][]RenderedLineComment
 }
@@ -234,10 +236,13 @@ type IssueDetailFragData struct {
 }
 
 type PullDetailFragData struct {
-	Pull     model.PullRequest
-	Owner    string
-	Repo     string
-	BodyHTML template.HTML
+	Pull              model.PullRequest
+	Owner             string
+	Repo              string
+	BodyHTML          template.HTML
+	CanWrite          bool
+	AutoMergeEnabled  bool
+	AutoMergeStrategy string
 }
 
 type CommentFragData struct {
