@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/store"
@@ -30,20 +31,39 @@ func (s *PullLineCommentService) Create(ctx context.Context, owner, repoName str
 	if diffSide == "" {
 		diffSide = "right"
 	}
+	isSuggestion, suggestionBody := parseSuggestion(body)
 	c := &model.PullLineComment{
-		PullID:     pr.ID,
-		RepoID:     repo.ID,
-		AuthorID:   authorID,
-		AuthorName: authorName,
-		Path:       path,
-		DiffSide:   diffSide,
-		Line:       line,
-		Body:       body,
+		PullID:         pr.ID,
+		RepoID:         repo.ID,
+		AuthorID:       authorID,
+		AuthorName:     authorName,
+		Path:           path,
+		DiffSide:       diffSide,
+		Line:           line,
+		Body:           body,
+		IsSuggestion:   isSuggestion,
+		SuggestionBody: suggestionBody,
 	}
 	if err := s.comments.Create(ctx, c); err != nil {
 		return nil, fmt.Errorf("create line comment: %w", err)
 	}
 	return c, nil
+}
+
+// parseSuggestion detects a ```suggestion fenced block in the body and extracts its content.
+func parseSuggestion(body string) (isSuggestion bool, suggestionBody string) {
+	const open = "```suggestion\n"
+	const close = "\n```"
+	start := strings.Index(body, open)
+	if start == -1 {
+		return false, ""
+	}
+	content := body[start+len(open):]
+	end := strings.Index(content, close)
+	if end == -1 {
+		return false, ""
+	}
+	return true, content[:end]
 }
 
 func (s *PullLineCommentService) ListByPull(ctx context.Context, owner, repoName string, pullNumber int) ([]model.PullLineComment, error) {

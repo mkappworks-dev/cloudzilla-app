@@ -274,3 +274,63 @@ type RenderedLineComment struct {
 	model.PullLineComment
 	BodyHTML template.HTML
 }
+
+func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	comment, err := h.Services.PullLineComment.GetComment(r.Context(), id)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "comment not found")
+		return
+	}
+	if !comment.IsSuggestion {
+		writeError(w, http.StatusUnprocessableEntity, "comment is not a suggestion")
+		return
+	}
+
+	pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "pull request not found")
+		return
+	}
+	if pr.State != "open" {
+		writeError(w, http.StatusUnprocessableEntity, "cannot apply suggestion to a closed or merged pull request")
+		return
+	}
+
+	authorEmail := claims.Username + "@localhost"
+	if err := h.Services.Code.ApplySuggestion(
+		owner, repoName, pr.HeadBranch, comment.Path,
+		comment.Line, comment.SuggestionBody,
+		claims.Username, authorEmail,
+	); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to apply suggestion: "+err.Error())
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", fmt.Sprintf("/%s/%s/pulls/%d", owner, repoName, number))
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
