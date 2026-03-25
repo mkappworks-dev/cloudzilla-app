@@ -21,9 +21,11 @@ type createPRRequest struct {
 }
 
 type updatePRRequest struct {
-	State         string `json:"state"`
-	MergeStrategy string `json:"merge_strategy"` // "ff" | "merge" | "squash"
-	IsDraft       *bool  `json:"is_draft"`
+	State             string `json:"state"`
+	MergeStrategy     string `json:"merge_strategy"`     // "ff" | "merge" | "squash"
+	IsDraft           *bool  `json:"is_draft"`
+	AutoMerge         string `json:"auto_merge"`          // "enable" | "disable"
+	AutoMergeStrategy string `json:"auto_merge_strategy"` // "ff" | "merge" | "squash"
 }
 
 func (h *Handler) ListPulls(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +104,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
 
-	var state, mergeStrategy, isDraftStr string
+	var state, mergeStrategy, isDraftStr, autoMergeAction, autoMergeStrategy string
 	var req *updatePRRequest
 	if r.Header.Get("HX-Request") == "true" {
 		if err := r.ParseForm(); err != nil {
@@ -112,6 +114,8 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		state = r.FormValue("state")
 		mergeStrategy = r.FormValue("merge_strategy")
 		isDraftStr = r.FormValue("is_draft")
+		autoMergeAction = r.FormValue("auto_merge")
+		autoMergeStrategy = r.FormValue("auto_merge_strategy")
 	} else {
 		var decoded updatePRRequest
 		if err := json.NewDecoder(r.Body).Decode(&decoded); err != nil {
@@ -121,6 +125,8 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		req = &decoded
 		state = req.State
 		mergeStrategy = req.MergeStrategy
+		autoMergeAction = req.AutoMerge
+		autoMergeStrategy = req.AutoMergeStrategy
 	}
 	if mergeStrategy == "" {
 		mergeStrategy = "ff"
@@ -139,9 +145,66 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if r.Header.Get("HX-Request") == "true" {
+			canWrite := false
+			if draftRepo, err2 := h.Services.Repo.Get(r.Context(), owner, repoName); err2 == nil {
+				if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+					canWrite = h.Services.Repo.CanWrite(r.Context(), draftRepo, claims.UserID)
+				}
+			}
 			h.renderFragment(w, "fragment-pull-detail", PullDetailFragData{
-				Pull: *pr, Owner: owner, Repo: repoName,
-				BodyHTML: markdown.Render(pr.Body),
+				Pull:              *pr,
+				Owner:             owner,
+				Repo:              repoName,
+				BodyHTML:          markdown.Render(pr.Body),
+				CanWrite:          canWrite,
+				AutoMergeEnabled:  pr.AutoMergeEnabled,
+				AutoMergeStrategy: pr.AutoMergeStrategy,
+			})
+			return
+		}
+		writeJSON(w, http.StatusOK, pr)
+		return
+	}
+
+	// Handle auto-merge enable/disable
+	if autoMergeAction != "" {
+		claims, ok := middleware.ClaimsFromContext(r.Context())
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		var svcErr error
+		if autoMergeAction == "enable" {
+			if autoMergeStrategy == "" {
+				autoMergeStrategy = "ff"
+			}
+			svcErr = h.Services.Pull.EnableAutoMerge(r.Context(), owner, repoName, number, claims.UserID, autoMergeStrategy)
+		} else {
+			svcErr = h.Services.Pull.DisableAutoMerge(r.Context(), owner, repoName, number, claims.UserID)
+		}
+		if svcErr != nil {
+			writeError(w, http.StatusUnprocessableEntity, svcErr.Error())
+			return
+		}
+		pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if r.Header.Get("HX-Request") == "true" {
+			amRepo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
+			canWrite := false
+			if amRepo != nil {
+				canWrite = h.Services.Repo.CanWrite(r.Context(), amRepo, claims.UserID)
+			}
+			h.renderFragment(w, "fragment-pull-detail", PullDetailFragData{
+				Pull:              *pr,
+				Owner:             owner,
+				Repo:              repoName,
+				BodyHTML:          markdown.Render(pr.Body),
+				CanWrite:          canWrite,
+				AutoMergeEnabled:  pr.AutoMergeEnabled,
+				AutoMergeStrategy: pr.AutoMergeStrategy,
 			})
 			return
 		}
@@ -220,4 +283,53 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, pr)
+}
+
+// tryAutoMerge checks if auto-merge conditions are satisfied for the given PR and,
+// if so, executes the merge. Safe to call as a goroutine — idempotent and silently
+// no-ops when conditions are not met.
+func (h *Handler) tryAutoMerge(owner, repoName string, pullID int64) {
+	ctx := context.Background()
+
+	pr, err := h.Services.Pull.GetByID(ctx, pullID)
+	if err != nil {
+		return
+	}
+	// Guard: only act when auto-merge is armed and PR is eligible.
+	if !pr.AutoMergeEnabled || pr.State != model.PRStateOpen || pr.IsDraft {
+		return
+	}
+
+	canMerge, _, _ := h.Services.PullReview.CanMerge(ctx, pr.ID)
+	if !canMerge {
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(ctx, owner, repoName)
+	if err != nil {
+		return
+	}
+
+	_, headSHA, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadBranch)
+	if err != nil {
+		return
+	}
+	if err := h.Services.BranchProtection.CheckMerge(ctx, repo.ID, pr, headSHA); err != nil {
+		return
+	}
+
+	// All checks passed — execute merge.
+	var mergeErr error
+	switch pr.AutoMergeStrategy {
+	case "merge":
+		mergeErr = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, "auto-merge", "auto-merge@localhost")
+	case "squash":
+		mergeErr = h.Services.Code.SquashMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, "auto-merge", "auto-merge@localhost")
+	default: // "ff"
+		mergeErr = h.Services.Code.MergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch)
+	}
+	if mergeErr != nil {
+		return
+	}
+	_, _ = h.Services.Pull.SetState(ctx, owner, repoName, pr.Number, model.PRStateMerged)
 }
