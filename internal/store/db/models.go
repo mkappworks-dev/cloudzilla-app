@@ -99,8 +99,10 @@ type PullRequest struct {
 	UpdatedAt  time.Time    `json:"updated_at"`
 	MergedAt   sql.NullTime `json:"merged_at"`
 	ClosedAt   sql.NullTime `json:"closed_at"`
-	IsDraft    bool         `json:"is_draft"`
-	DraftAt    sql.NullTime `json:"draft_at"`
+	IsDraft           bool           `json:"is_draft"`
+	DraftAt           sql.NullTime   `json:"draft_at"`
+	AutoMergeEnabled  bool           `json:"auto_merge_enabled"`
+	AutoMergeStrategy sql.NullString `json:"auto_merge_strategy"`
 }
 
 type Repository struct {
