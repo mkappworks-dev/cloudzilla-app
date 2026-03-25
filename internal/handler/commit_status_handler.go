@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -52,6 +53,26 @@ func (h *Handler) CreateStatus(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	// Kick off auto-merge for any open PR whose head branch tip matches this SHA.
+	go func(owner, repoName, sha string) {
+		ctx := context.Background()
+		openPRs, err := h.Services.Pull.ListOpen(ctx, owner, repoName)
+		if err != nil {
+			return
+		}
+		for _, pr := range openPRs {
+			if !pr.AutoMergeEnabled {
+				continue
+			}
+			_, headSHA, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadBranch)
+			if err != nil || headSHA != sha {
+				continue
+			}
+			h.tryAutoMerge(owner, repoName, pr.ID)
+		}
+	}(owner, repoName, sha)
+
 	writeJSON(w, http.StatusCreated, cs)
 }
 

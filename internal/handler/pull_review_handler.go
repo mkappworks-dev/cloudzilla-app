@@ -64,6 +64,7 @@ func (h *Handler) SubmitReview(w http.ResponseWriter, r *http.Request) {
 	pr, _ := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 	if repo != nil && pr != nil {
 		go h.Services.Notification.NotifyPRReview(r.Context(), *repo, *pr, claims.UserID, claims.Username)
+		go h.tryAutoMerge(owner, repoName, pr.ID)
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
