@@ -24,6 +24,9 @@ config.yaml
 # SSH host key (private key — never commit)
 cloudzilla_host_key
 
+# Worktrees
+.worktrees/
+
 # OS
 .DS_Store
 Thumbs.db
