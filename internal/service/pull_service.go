@@ -54,6 +54,57 @@ func (s *PullService) Get(ctx context.Context, owner, repoName string, number in
 	return s.pulls.GetByNumber(ctx, repo.ID, number)
 }
 
+// autoMergeGuard validates that auto-merge can be enabled. Returns "" if valid,
+// or a human-readable error string. Package-private so the test file can call it.
+func autoMergeGuard(pr *model.PullRequest, strategy string) string {
+	if pr.State != model.PRStateOpen {
+		return "auto-merge requires an open pull request"
+	}
+	if pr.IsDraft {
+		return "cannot enable auto-merge on a draft pull request"
+	}
+	switch strategy {
+	case "ff", "merge", "squash":
+	default:
+		return "strategy must be ff, merge, or squash"
+	}
+	return ""
+}
+
+func (s *PullService) EnableAutoMerge(ctx context.Context, owner, repoName string, number int, userID int64, strategy string) error {
+	pr, err := s.Get(ctx, owner, repoName, number)
+	if err != nil {
+		return err
+	}
+	if msg := autoMergeGuard(pr, strategy); msg != "" {
+		return fmt.Errorf("%s", msg)
+	}
+	return s.pulls.SetAutoMerge(ctx, pr.ID, true, strategy)
+}
+
+func (s *PullService) DisableAutoMerge(ctx context.Context, owner, repoName string, number int, userID int64) error {
+	pr, err := s.Get(ctx, owner, repoName, number)
+	if err != nil {
+		return err
+	}
+	if pr.State == model.PRStateMerged {
+		return fmt.Errorf("cannot change auto-merge on a merged pull request")
+	}
+	return s.pulls.SetAutoMerge(ctx, pr.ID, false, "")
+}
+
+func (s *PullService) ListOpen(ctx context.Context, owner, repoName string) ([]model.PullRequest, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	return s.pulls.ListOpen(ctx, repo.ID)
+}
+
+func (s *PullService) GetByID(ctx context.Context, id int64) (*model.PullRequest, error) {
+	return s.pulls.GetByID(ctx, id)
+}
+
 func (s *PullService) SetDraft(ctx context.Context, owner, repoName string, number int, isDraft bool) error {
 	pr, err := s.Get(ctx, owner, repoName, number)
 	if err != nil {
