@@ -222,6 +222,7 @@ Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs
 | ------- | -------------------------------------------- | ---------- | ------------ |
 | 0.1–5.3 | Core Platform → Draft PRs (all done)         | ✅ Done    | 001–029      |
 | 6.1–6.3 | Protected Branches → Code Review Suggestions | ✅ Done    | 030–031      |
-| 6.4–20  | Audit Log → GraphQL v2                       | ⬜ Planned | 032–060      |
+| 7.1     | Auto-merge                                   | ✅ Done    | 032          |
+| 7.2–20  | Issue & PR Templates → GraphQL v2            | ⬜ Planned | 033–060      |
 
 > Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)

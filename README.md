@@ -239,6 +239,7 @@ graph TD
 - **Code Review Suggestions** — inline ` ```suggestion ` blocks in PR line comments render as a green suggested-change preview; repo writers can apply a suggestion with one click, which writes a new commit directly to the PR head branch
 - **Branch Protection** — per-repo glob patterns (e.g. `main`, `release/*`) that enforce required review counts, required commit-status checks, and optional force-push blocking; enforced on both HTTP and SSH push, and on PR merge
 - **CODEOWNERS** — repo owners can add a `CODEOWNERS` (or `.github/CODEOWNERS`) file; when a PR is opened, matched owners are automatically added as assignees based on the files changed
+- **Auto-merge** — enable auto-merge on any open PR with a chosen strategy (fast-forward, merge commit, or squash); merges automatically once all required reviews are approved and all required commit-status checks pass; can be disabled at any time
 - **Search** — full-text search across repositories, issues, pull requests, and users via PostgreSQL `tsvector` + GIN indexes; search bar in the navbar on every page; tabbed results page (`/search?q=...&type=repos|issues|pulls|users|all`)
 - User accounts with JWT authentication (httpOnly cookie)
 - Google OAuth sign-in (links to existing accounts by email)
