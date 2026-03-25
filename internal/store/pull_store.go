@@ -97,6 +97,34 @@ func (s *PullStore) SetDraft(ctx context.Context, id int64, isDraft bool) error 
 	})
 }
 
+func (s *PullStore) SetAutoMerge(ctx context.Context, id int64, enabled bool, strategy string) error {
+	var strat sql.NullString
+	if strategy != "" {
+		strat = sql.NullString{String: strategy, Valid: true}
+	}
+	return s.q.SetAutoMerge(ctx, db.SetAutoMergeParams{
+		ID:                id,
+		AutoMergeEnabled:  enabled,
+		AutoMergeStrategy: strat,
+	})
+}
+
+func (s *PullStore) ListOpen(ctx context.Context, repoID int64) ([]model.PullRequest, error) {
+	prs, err := s.q.ListOpen(ctx, repoID)
+	if err != nil {
+		return nil, fmt.Errorf("pr list open: %w", err)
+	}
+	return mapDBPullsToModel(prs), nil
+}
+
+func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, error) {
+	result, err := s.q.GetPullByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("pr get by id: %w", err)
+	}
+	return mapDBPullToModel(&result), nil
+}
+
 func mapDBPullToModel(dbPull *db.PullRequest) *model.PullRequest {
 	pr := &model.PullRequest{
 		ID:         dbPull.ID,
@@ -120,6 +148,10 @@ func mapDBPullToModel(dbPull *db.PullRequest) *model.PullRequest {
 	pr.IsDraft = dbPull.IsDraft
 	if dbPull.DraftAt.Valid {
 		pr.DraftAt = &dbPull.DraftAt.Time
+	}
+	pr.AutoMergeEnabled = dbPull.AutoMergeEnabled
+	if dbPull.AutoMergeStrategy.Valid {
+		pr.AutoMergeStrategy = dbPull.AutoMergeStrategy.String
 	}
 	return pr
 }

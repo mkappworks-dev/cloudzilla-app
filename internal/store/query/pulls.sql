@@ -23,3 +23,18 @@ UPDATE pull_requests SET state = $1, closed_at = $2, updated_at = $3 WHERE id = 
 
 -- name: UpdatePullStateOpen :exec
 UPDATE pull_requests SET state = $1, updated_at = $2 WHERE id = $3;
+
+-- name: SetAutoMerge :exec
+UPDATE pull_requests
+SET auto_merge_enabled  = $2,
+    auto_merge_strategy = $3,
+    updated_at          = NOW()
+WHERE id = $1;
+
+-- name: ListOpen :many
+SELECT * FROM pull_requests
+WHERE repo_id = $1 AND state = 'open'
+ORDER BY number DESC;
+
+-- name: GetPullByID :one
+SELECT * FROM pull_requests WHERE id = $1;

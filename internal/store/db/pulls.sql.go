@@ -14,7 +14,7 @@ import (
 const createPull = `-- name: CreatePull :one
 INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch, is_draft)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, repo_id, number, author_id, title, body, state, head_branch, base_branch, created_at, updated_at, merged_at, closed_at, is_draft, draft_at
+RETURNING id, repo_id, number, author_id, title, body, state, head_branch, base_branch, created_at, updated_at, merged_at, closed_at, is_draft, draft_at, auto_merge_enabled, auto_merge_strategy
 `
 
 type CreatePullParams struct {
@@ -58,6 +58,8 @@ func (q *Queries) CreatePull(ctx context.Context, arg CreatePullParams) (PullReq
 		&i.ClosedAt,
 		&i.IsDraft,
 		&i.DraftAt,
+		&i.AutoMergeEnabled,
+		&i.AutoMergeStrategy,
 	)
 	return i, err
 }
@@ -74,7 +76,7 @@ func (q *Queries) GetNextPullNumber(ctx context.Context, repoID int64) (int32, e
 }
 
 const getPull = `-- name: GetPull :one
-SELECT p.id, p.repo_id, p.number, p.author_id, p.title, p.body, p.state, p.head_branch, p.base_branch, p.created_at, p.updated_at, p.merged_at, p.closed_at, p.is_draft, p.draft_at FROM pull_requests p
+SELECT p.id, p.repo_id, p.number, p.author_id, p.title, p.body, p.state, p.head_branch, p.base_branch, p.created_at, p.updated_at, p.merged_at, p.closed_at, p.is_draft, p.draft_at, p.auto_merge_enabled, p.auto_merge_strategy FROM pull_requests p
 WHERE p.repo_id = $1 AND p.number = $2
 `
 
@@ -102,12 +104,14 @@ func (q *Queries) GetPull(ctx context.Context, arg GetPullParams) (PullRequest, 
 		&i.ClosedAt,
 		&i.IsDraft,
 		&i.DraftAt,
+		&i.AutoMergeEnabled,
+		&i.AutoMergeStrategy,
 	)
 	return i, err
 }
 
 const listPulls = `-- name: ListPulls :many
-SELECT p.id, p.repo_id, p.number, p.author_id, p.title, p.body, p.state, p.head_branch, p.base_branch, p.created_at, p.updated_at, p.merged_at, p.closed_at, p.is_draft, p.draft_at FROM pull_requests p
+SELECT p.id, p.repo_id, p.number, p.author_id, p.title, p.body, p.state, p.head_branch, p.base_branch, p.created_at, p.updated_at, p.merged_at, p.closed_at, p.is_draft, p.draft_at, p.auto_merge_enabled, p.auto_merge_strategy FROM pull_requests p
 WHERE p.repo_id = $1
 ORDER BY p.number DESC
 `
@@ -137,6 +141,8 @@ func (q *Queries) ListPulls(ctx context.Context, repoID int64) ([]PullRequest, e
 			&i.ClosedAt,
 			&i.IsDraft,
 			&i.DraftAt,
+			&i.AutoMergeEnabled,
+			&i.AutoMergeStrategy,
 		); err != nil {
 			return nil, err
 		}
@@ -223,4 +229,75 @@ type UpdatePullStateOpenParams struct {
 func (q *Queries) UpdatePullStateOpen(ctx context.Context, arg UpdatePullStateOpenParams) error {
 	_, err := q.db.ExecContext(ctx, updatePullStateOpen, arg.State, arg.UpdatedAt, arg.ID)
 	return err
+}
+
+const setAutoMerge = `-- name: SetAutoMerge :exec
+UPDATE pull_requests
+SET auto_merge_enabled  = $2,
+    auto_merge_strategy = $3,
+    updated_at          = NOW()
+WHERE id = $1
+`
+
+type SetAutoMergeParams struct {
+	ID                int64          `json:"id"`
+	AutoMergeEnabled  bool           `json:"auto_merge_enabled"`
+	AutoMergeStrategy sql.NullString `json:"auto_merge_strategy"`
+}
+
+func (q *Queries) SetAutoMerge(ctx context.Context, arg SetAutoMergeParams) error {
+	_, err := q.db.ExecContext(ctx, setAutoMerge, arg.ID, arg.AutoMergeEnabled, arg.AutoMergeStrategy)
+	return err
+}
+
+const listOpen = `-- name: ListOpen :many
+SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
+       created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
+       auto_merge_enabled, auto_merge_strategy
+FROM pull_requests
+WHERE repo_id = $1 AND state = 'open'
+ORDER BY number DESC
+`
+
+func (q *Queries) ListOpen(ctx context.Context, repoID int64) ([]PullRequest, error) {
+	rows, err := q.db.QueryContext(ctx, listOpen, repoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PullRequest
+	for rows.Next() {
+		var i PullRequest
+		if err := rows.Scan(
+			&i.ID, &i.RepoID, &i.Number, &i.AuthorID, &i.Title, &i.Body,
+			&i.State, &i.HeadBranch, &i.BaseBranch,
+			&i.CreatedAt, &i.UpdatedAt, &i.MergedAt, &i.ClosedAt,
+			&i.IsDraft, &i.DraftAt,
+			&i.AutoMergeEnabled, &i.AutoMergeStrategy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	return items, rows.Err()
+}
+
+const getPullByID = `-- name: GetPullByID :one
+SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
+       created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
+       auto_merge_enabled, auto_merge_strategy
+FROM pull_requests WHERE id = $1
+`
+
+func (q *Queries) GetPullByID(ctx context.Context, id int64) (PullRequest, error) {
+	row := q.db.QueryRowContext(ctx, getPullByID, id)
+	var i PullRequest
+	err := row.Scan(
+		&i.ID, &i.RepoID, &i.Number, &i.AuthorID, &i.Title, &i.Body,
+		&i.State, &i.HeadBranch, &i.BaseBranch,
+		&i.CreatedAt, &i.UpdatedAt, &i.MergedAt, &i.ClosedAt,
+		&i.IsDraft, &i.DraftAt,
+		&i.AutoMergeEnabled, &i.AutoMergeStrategy,
+	)
+	return i, err
 }
