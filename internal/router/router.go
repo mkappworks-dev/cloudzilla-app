@@ -261,6 +261,15 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Post("/", h.AddDeployKey)
 			r.With(authMW).Delete("/{id}", h.DeleteDeployKey)
 		})
+
+		// Branch protections
+		r.Route("/{owner}/{repo}/branches/protections", func(r chi.Router) {
+			r.Use(optAuthMW)
+			r.Get("/", h.ListBranchProtections)
+			r.With(authMW).Post("/", h.CreateBranchProtection)
+			r.With(authMW).Patch("/{id}", h.UpdateBranchProtection)
+			r.With(authMW).Delete("/{id}", h.DeleteBranchProtection)
+		})
 	})
 
 	// Admin API routes

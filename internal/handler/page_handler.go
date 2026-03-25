@@ -262,21 +262,27 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		deployKeys = []model.DeployKey{}
 	}
 
+	branchProtections, _ := h.Services.BranchProtection.List(r.Context(), repo.ID)
+	if branchProtections == nil {
+		branchProtections = []*model.BranchProtection{}
+	}
+
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	// Transfer is only for personal repo owners (not org repos)
 	canTransfer := repo.OwnerID == claims.UserID && repo.OrgID == 0
 
 	h.render(w, "repo_settings", RepoSettingsData{
-		BasePage:    basePage(r, h.Services),
-		Repo:        *repo,
-		Owner:       owner,
-		RepoName:    repoName,
-		Webhooks:    webhooks,
-		Collabs:     collabs,
-		Labels:      labels,
-		DeployKeys:  deployKeys,
-		CanManage:   canManage,
-		CanTransfer: canTransfer,
+		BasePage:           basePage(r, h.Services),
+		Repo:               *repo,
+		Owner:              owner,
+		RepoName:           repoName,
+		Webhooks:           webhooks,
+		Collabs:            collabs,
+		Labels:             labels,
+		DeployKeys:         deployKeys,
+		BranchProtections:  branchProtections,
+		CanManage:          canManage,
+		CanTransfer:        canTransfer,
 	})
 }
 

@@ -98,15 +98,24 @@ type ReleaseDetailData struct {
 
 type RepoSettingsData struct {
 	BasePage
-	Repo        model.Repository
-	Owner       string
-	RepoName    string
-	Webhooks    []model.Webhook
-	Collabs     []model.Permission
-	Labels      []model.Label
-	DeployKeys  []model.DeployKey
-	CanManage   bool
-	CanTransfer bool
+	Repo               model.Repository
+	Owner              string
+	RepoName           string
+	Webhooks           []model.Webhook
+	Collabs            []model.Permission
+	Labels             []model.Label
+	DeployKeys         []model.DeployKey
+	BranchProtections  []*model.BranchProtection
+	CanManage          bool
+	CanTransfer        bool
+}
+
+type BranchProtectionsFragData struct {
+	Owner     string
+	RepoName  string
+	RepoID    int64
+	Rules     []*model.BranchProtection
+	CanManage bool
 }
 
 type DeployKeysFragData struct {

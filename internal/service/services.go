@@ -27,8 +27,9 @@ type Services struct {
 	PullReview      *PullReviewService
 	PullLineComment *PullLineCommentService
 	Search          *SearchService
-	AccessToken     *AccessTokenService
-	DeployKey       *DeployKeyService
+	AccessToken      *AccessTokenService
+	DeployKey        *DeployKeyService
+	BranchProtection *BranchProtectionService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -55,7 +56,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		PullReview:      NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo),
 		PullLineComment: NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
 		Search:          NewSearchService(stores.Search),
-		AccessToken:     NewAccessTokenService(stores.AccessToken, stores.User),
-		DeployKey:       NewDeployKeyService(stores.DeployKey, stores.SSHKey),
+		AccessToken:      NewAccessTokenService(stores.AccessToken, stores.User),
+		DeployKey:        NewDeployKeyService(stores.DeployKey, stores.SSHKey),
+		BranchProtection: NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus),
 	}
 }

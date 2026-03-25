@@ -11,12 +11,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	gossh "golang.org/x/crypto/ssh"
 	"github.com/gliderlabs/ssh"
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
+	gossh "golang.org/x/crypto/ssh"
 	"github.com/mkappworks/cloudzilla/internal/config"
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/service"
@@ -227,8 +228,23 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		return
 	}
 
-	// Dispatch push webhooks for each updated branch
+	// Enforce branch protection rules and dispatch push webhooks
 	if gitCmd == "git-receive-pack" && err == nil {
+		for _, cmd := range commands {
+			if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
+				continue
+			}
+			if cmd.Action() == packp.Delete {
+				continue
+			}
+			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
+			forcePush := cmd.Action() == packp.Update && cmd.Old != plumbing.ZeroHash && isForcePushSSH(gitRepo, cmd)
+			if err := s.services.BranchProtection.CheckPush(ctx, repo.ID, branch, forcePush); err != nil {
+				fmt.Fprintf(session.Stderr(), "error: push rejected: %v\n", err)
+				session.Exit(1)
+				return
+			}
+		}
 		for _, cmd := range commands {
 			if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
 				continue
@@ -243,6 +259,23 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	}
 
 	session.Exit(0)
+}
+
+// isForcePushSSH returns true when the push is non-fast-forward (old commit is not an ancestor of new).
+func isForcePushSSH(gitRepo *gogit.Repository, cmd *packp.Command) bool {
+	oldCommit, err := gitRepo.CommitObject(cmd.Old)
+	if err != nil {
+		return false
+	}
+	newCommit, err := gitRepo.CommitObject(cmd.New)
+	if err != nil {
+		return false
+	}
+	isAncestor, err := oldCommit.IsAncestor(newCommit)
+	if err != nil {
+		return false
+	}
+	return !isAncestor
 }
 
 // execGitService runs the git pack protocol over the SSH session and returns

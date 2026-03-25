@@ -212,6 +212,85 @@
     </div>
   </div>
 
+  <!-- Branch Protection section -->
+  <div class="bg-white border border-gray-200 rounded-lg p-6">
+    <h2 class="text-lg font-semibold mb-1">Branch Protection</h2>
+    <p class="text-sm text-gray-500 mb-4">Protect branches by requiring reviews, status checks, or blocking force pushes.</p>
+
+    {{if .CanManage}}
+    <form hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/branches/protections"
+          hx-target="#branch-protections"
+          hx-swap="outerHTML"
+          class="space-y-3 mb-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
+      <h3 class="font-medium text-sm">Add Protection Rule</h3>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Branch Pattern</label>
+        <input type="text" name="pattern" placeholder="e.g., main or release/*" required
+          class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Required Approvals</label>
+        <input type="number" name="require_review_count" value="0" min="0"
+          class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Required Status Checks (comma-separated)</label>
+        <input type="text" name="require_status_checks" placeholder="e.g., ci/build,ci/test"
+          class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+      </div>
+      <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input type="checkbox" name="block_force_push" value="true" checked class="rounded">
+        Block force pushes
+      </label>
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+        Add Rule
+      </button>
+    </form>
+    {{end}}
+
+    <div id="branch-protections">
+      {{if .BranchProtections}}
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-gray-500 border-b border-gray-200">
+            <th class="pb-2 font-medium">Pattern</th>
+            <th class="pb-2 font-medium">Required Reviews</th>
+            <th class="pb-2 font-medium">Status Checks</th>
+            <th class="pb-2 font-medium">Block Force Push</th>
+            <th class="pb-2"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {{range .BranchProtections}}
+          <tr>
+            <td class="py-3 font-mono text-sm text-gray-900">{{.Pattern}}</td>
+            <td class="py-3 text-gray-700">{{.RequireReviewCount}}</td>
+            <td class="py-3 text-gray-500 text-xs">{{if .RequireStatusChecks}}{{range $i, $c := .RequireStatusChecks}}{{if $i}}, {{end}}{{$c}}{{end}}{{else}}—{{end}}</td>
+            <td class="py-3">{{if .BlockForcePush}}<span class="inline-block bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded">Blocked</span>{{else}}<span class="inline-block bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded">Allowed</span>{{end}}</td>
+            <td class="py-3">
+              {{if $.CanManage}}
+              <button hx-delete="/api/repos/{{$.Owner}}/{{$.RepoName}}/branches/protections/{{.ID}}"
+                      hx-target="#branch-protections"
+                      hx-swap="outerHTML"
+                      hx-confirm="Delete this branch protection rule?"
+                      class="px-3 py-1 text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors text-xs">
+                Delete
+              </button>
+              {{end}}
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+      {{else}}
+      <div class="text-center py-6 border border-gray-200 border-dashed rounded-lg bg-gray-50">
+        <p class="text-gray-500 text-sm">No branch protection rules yet.</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+
+  <!-- Webhooks section -->
   <div class="bg-white border border-gray-200 rounded-lg p-6">
     <h2 class="text-lg font-semibold mb-4">Webhooks</h2>
 

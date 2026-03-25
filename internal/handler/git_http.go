@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
@@ -273,6 +274,22 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		status.Encode(w) //nolint:errcheck
 	}
 
+	// Enforce branch protection rules before dispatching webhooks
+	for _, cmd := range req.Commands {
+		if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
+			continue
+		}
+		if cmd.Action() == packp.Delete {
+			continue
+		}
+		branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
+		forcePush := cmd.Action() == packp.Update && cmd.Old != plumbing.ZeroHash && isForcePushHTTP(gitRepo, cmd)
+		if err := h.Services.BranchProtection.CheckPush(r.Context(), repo.ID, branch, forcePush); err != nil {
+			http.Error(w, "push rejected: "+err.Error(), http.StatusForbidden)
+			return
+		}
+	}
+
 	// Dispatch push webhooks for each updated branch
 	pusherName := gu.Username
 	for _, cmd := range req.Commands {
@@ -286,4 +303,21 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		go h.Services.Webhook.Dispatch(repo.ID, "push",
 			h.Services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String()))
 	}
+}
+
+// isForcePushHTTP returns true when the push is non-fast-forward (old commit is not an ancestor of new).
+func isForcePushHTTP(gitRepo *gogit.Repository, cmd *packp.Command) bool {
+	oldCommit, err := gitRepo.CommitObject(cmd.Old)
+	if err != nil {
+		return false
+	}
+	newCommit, err := gitRepo.CommitObject(cmd.New)
+	if err != nil {
+		return false
+	}
+	isAncestor, err := oldCommit.IsAncestor(newCommit)
+	if err != nil {
+		return false
+	}
+	return !isAncestor
 }
