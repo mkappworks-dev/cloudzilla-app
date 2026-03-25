@@ -35,12 +35,31 @@
   </div>
 
   {{if eq .Pull.State "open"}}
-  <div class="flex gap-2">
-    <button hx-patch="/api/repos/{{.Owner}}/{{.Repo}}/pulls/{{.Pull.Number}}" hx-vals='{"state":"closed"}'
-      hx-target="#pull-detail" hx-swap="outerHTML"
-      class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors">
+  <div class="flex flex-wrap items-center gap-2 mt-2">
+    <button hx-patch="/api/repos/{{.Owner}}/{{.Repo}}/pulls/{{.Pull.Number}}" hx-vals='{"state":"closed"}' hx-target="#pull-detail" hx-swap="outerHTML" class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors">
       Close PR
     </button>
+
+    {{if .AutoMergeEnabled}}
+    <span class="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">&#10003; Auto-merge enabled ({{.AutoMergeStrategy}})</span>
+    {{if .CanWrite}}
+    <button hx-patch="/api/repos/{{.Owner}}/{{.Repo}}/pulls/{{.Pull.Number}}" hx-vals='{"auto_merge":"disable"}' hx-target="#pull-detail" hx-swap="outerHTML" class="px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+      Disable auto-merge
+    </button>
+    {{end}}
+    {{else if .CanWrite}}
+    <form hx-patch="/api/repos/{{.Owner}}/{{.Repo}}/pulls/{{.Pull.Number}}" hx-target="#pull-detail" hx-swap="outerHTML" class="flex items-center gap-1">
+      <input type="hidden" name="auto_merge" value="enable">
+      <select name="auto_merge_strategy" class="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400">
+        <option value="ff">Fast-forward</option>
+        <option value="merge">Merge commit</option>
+        <option value="squash">Squash</option>
+      </select>
+      <button type="submit" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors">
+        Enable auto-merge
+      </button>
+    </form>
+    {{end}}
   </div>
   {{end}}
 </div>
