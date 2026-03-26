@@ -7,6 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
 func (h *Handler) PageTokens(w http.ResponseWriter, r *http.Request) {
@@ -21,12 +23,12 @@ func (h *Handler) PageTokens(w http.ResponseWriter, r *http.Request) {
 		tokens = nil
 	}
 
-	data := TokensData{
+	data := view.TokensData{
 		BasePage: basePage(r, h.Services),
 		Tokens:   tokens,
 		NewToken: r.URL.Query().Get("new_token"),
 	}
-	h.render(w, "tokens", data)
+	h.render(w, r, pages.Tokens(data))
 }
 
 func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {

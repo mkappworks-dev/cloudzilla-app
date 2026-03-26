@@ -1,0 +1,42 @@
+package pages
+
+import (
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Home(data view.HomeData) {
+	@layout.Base(data.BasePage, "Explore Repositories") {
+		<div class="space-y-6">
+			<div class="flex justify-between items-center">
+				<h1 class="text-3xl font-bold">Repositories</h1>
+			</div>
+			if len(data.Repos) > 0 {
+				<div class="grid gap-4">
+					for _, repo := range data.Repos {
+						<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+							<h2 class="text-xl font-semibold text-blue-600">{ repo.OwnerName }/{ repo.Name }</h2>
+							if repo.Description != "" {
+								<p class="text-gray-600 mt-1">{ repo.Description }</p>
+							}
+							<div class="mt-2 text-xs text-gray-500 flex gap-3">
+								<span>
+									if repo.Private {
+										Private
+									} else {
+										Public
+									}
+								</span>
+								<span>Updated { repo.UpdatedAt.Format("Jan 2, 2006") }</span>
+							</div>
+						</a>
+					}
+				</div>
+			} else {
+				<div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
+					<p class="text-gray-500">No repositories yet.</p>
+				</div>
+			}
+		</div>
+	}
+}

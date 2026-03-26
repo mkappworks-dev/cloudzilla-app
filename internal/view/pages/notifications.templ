@@ -1,0 +1,56 @@
+package pages
+
+import (
+	"strconv"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Notifications(data view.NotificationsData) {
+	@layout.Base(data.BasePage, "Notifications") {
+		<div class="space-y-4">
+			<div class="flex justify-between items-center">
+				<h1 class="text-2xl font-bold">Notifications</h1>
+				if data.UnreadCount > 0 {
+					<button hx-post="/api/notifications/read-all" hx-target="#notifications-list" hx-swap="outerHTML" class="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm">Mark all as read</button>
+				}
+			</div>
+			<div id="notifications-list" class="space-y-2">
+				if len(data.Notifications) > 0 {
+					for _, n := range data.Notifications {
+						<div class={ "bg-white border border-gray-200 rounded-lg p-4 flex justify-between items-start", templ.KV("border-l-4 border-l-blue-500", !n.Read) }>
+							<div>
+								<p class="text-sm">
+									<span class="font-medium">{ n.ActorName }</span>
+									if n.Type == "issue_comment" {
+										commented on issue
+									} else if n.Type == "pr_comment" {
+										commented on PR
+									} else if n.Type == "issue_closed" {
+										closed issue
+									} else if n.Type == "issue_reopened" {
+										reopened issue
+									} else if n.Type == "pr_merged" {
+										merged PR
+									} else if n.Type == "pr_closed" {
+										closed PR
+									} else if n.Type == "pr_opened" {
+										opened PR
+									}
+									in <a href={ templ.SafeURL("/" + n.OwnerName + "/" + n.RepoName) } class="text-blue-600 hover:underline">{ n.OwnerName }/{ n.RepoName }</a>
+								</p>
+								<a href={ templ.SafeURL(n.SubjectURL) } class="text-xs text-blue-600 hover:underline mt-1 block">View →</a>
+								<p class="text-xs text-gray-400 mt-1">{ n.CreatedAt.Format("Jan 2, 2006 15:04") }</p>
+							</div>
+							if !n.Read {
+								<button hx-patch={ "/api/notifications/" + strconv.FormatInt(n.ID, 10) } hx-target="#notifications-list" hx-swap="outerHTML" class="text-xs text-gray-500 hover:text-gray-700 ml-4 shrink-0">Mark read</button>
+							}
+						</div>
+					}
+				} else {
+					<div class="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-500">No notifications yet.</div>
+				}
+			</div>
+		</div>
+	}
+}

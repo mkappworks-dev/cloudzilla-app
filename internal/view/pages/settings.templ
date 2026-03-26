@@ -1,0 +1,83 @@
+package pages
+
+import (
+	"strconv"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Settings(data view.SettingsData) {
+	@layout.Base(data.BasePage, "Settings") {
+		<div class="space-y-8 max-w-2xl">
+			<div>
+				<h1 class="text-3xl font-bold mb-6">Settings</h1>
+			</div>
+			<div class="bg-white border border-gray-200 rounded-lg p-6">
+				<div class="flex items-center justify-between mb-6">
+					<div>
+						<h2 class="text-2xl font-bold">SSH Keys</h2>
+						<p class="text-gray-600 text-sm mt-1">Manage your SSH public keys for git operations</p>
+					</div>
+				</div>
+				<div class="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+					<h3 class="font-semibold mb-4">Add SSH Key</h3>
+					<form id="add-ssh-key-form" hx-post="/api/user/keys" hx-target="#ssh-keys-list" hx-swap="outerHTML">
+						<div class="space-y-4">
+							<div>
+								<label for="key-title" class="block text-sm font-medium text-gray-700 mb-1">Key Title</label>
+								<input type="text" id="key-title" name="title" placeholder="e.g., laptop, desktop" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required/>
+								<p class="text-gray-500 text-xs mt-1">A name to help you remember this key</p>
+							</div>
+							<div>
+								<label for="public-key" class="block text-sm font-medium text-gray-700 mb-1">Public Key</label>
+								<textarea id="public-key" name="public_key" placeholder="ssh-ed25519 AAAA... or ssh-rsa AAAA..." rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs" required></textarea>
+								<p class="text-gray-500 text-xs mt-1">Paste your SSH public key (from ~/.ssh/id_ed25519.pub or similar)</p>
+							</div>
+							<div class="flex gap-2">
+								<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+									Add Key
+								</button>
+								<button type="reset" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+									Clear
+								</button>
+							</div>
+						</div>
+					</form>
+				</div>
+				<div id="ssh-keys-list" class="space-y-3">
+					if len(data.SSHKeys) > 0 {
+						for _, k := range data.SSHKeys {
+							<div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors" data-key-id={ strconv.FormatInt(k.ID, 10) }>
+								<div class="flex-1">
+									<h4 class="font-semibold text-gray-900">{ k.Title }</h4>
+									<p class="text-gray-600 text-sm mt-1">{ k.Fingerprint }</p>
+									<p class="text-gray-500 text-xs mt-2">Added { k.CreatedAt.Format("Jan 2, 2006") }</p>
+								</div>
+								<button
+									hx-delete={ "/api/user/keys/" + strconv.FormatInt(k.ID, 10) }
+									hx-target="#ssh-keys-list"
+									hx-swap="outerHTML"
+									class="ml-4 px-3 py-2 text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors text-sm">
+									Delete
+								</button>
+							</div>
+						}
+					} else {
+						<div class="text-center py-8 border border-gray-200 border-dashed rounded-lg bg-gray-50">
+							<p class="text-gray-500">No SSH keys yet. Add one above to get started.</p>
+						</div>
+					}
+				</div>
+				<div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+					<h4 class="font-semibold text-blue-900 mb-3">Getting Started with SSH</h4>
+					<ol class="space-y-2 text-sm text-blue-800">
+						<li><strong>1. Generate a key:</strong> <code class="bg-white px-2 py-1 rounded border border-blue-200 text-xs">ssh-keygen -t ed25519</code></li>
+						<li><strong>2. Copy your public key:</strong> <code class="bg-white px-2 py-1 rounded border border-blue-200 text-xs">cat ~/.ssh/id_ed25519.pub</code></li>
+						<li><strong>3. Paste it above and save</strong></li>
+						<li><strong>4. Clone via SSH:</strong> <code class="bg-white px-2 py-1 rounded border border-blue-200 text-xs">git clone ssh://git@localhost:2222/owner/repo.git</code></li>
+					</ol>
+				</div>
+			</div>
+		</div>
+	}
+}

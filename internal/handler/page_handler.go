@@ -35,7 +35,7 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 	if repos == nil {
 		repos = []model.Repository{}
 	}
-	h.render(w, "home", HomeData{BasePage: basePage(r, h.Services), Repos: repos})
+	h.render(w, r, pages.Home(view.HomeData{BasePage: basePage(r, h.Services), Repos: repos}))
 }
 
 func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
@@ -92,11 +92,11 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		repos = []model.Repository{}
 	}
 
-	h.render(w, "user", UserData{
+	h.render(w, r, pages.User(view.UserData{
 		BasePage: basePage(r, h.Services),
 		User:     *user,
 		Repos:    repos,
-	})
+	}))
 }
 
 func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *model.Organization) {
@@ -114,13 +114,13 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 		canManage = h.Services.Org.IsOwner(r.Context(), org.ID, claims.UserID)
 	}
 
-	h.render(w, "org", OrgData{
+	h.render(w, r, pages.Org(view.OrgData{
 		BasePage:  basePage(r, h.Services),
 		Org:       *org,
 		Repos:     repos,
 		Members:   members,
 		CanManage: canManage,
-	})
+	}))
 }
 
 func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
@@ -147,11 +147,11 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 		members = []model.OrgMember{}
 	}
 
-	h.render(w, "org_settings", OrgSettingsData{
+	h.render(w, r, pages.OrgSettings(view.OrgSettingsData{
 		BasePage: basePage(r, h.Services),
 		Org:      *org,
 		Members:  members,
-	})
+	}))
 }
 
 func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
@@ -736,10 +736,10 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		keys = []model.SSHKey{}
 	}
 
-	h.render(w, "settings", SettingsData{
+	h.render(w, r, pages.Settings(view.SettingsData{
 		BasePage: basePage(r, h.Services),
 		SSHKeys:  keys,
-	})
+	}))
 }
 
 func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
@@ -996,9 +996,9 @@ func (h *Handler) PageNotifications(w http.ResponseWriter, r *http.Request) {
 	}
 	unread, _ := h.Services.Notification.CountUnread(r.Context(), claims.UserID)
 
-	h.render(w, "notifications", NotificationsData{
+	h.render(w, r, pages.Notifications(view.NotificationsData{
 		BasePage:      basePage(r, h.Services),
 		Notifications: notifs,
 		UnreadCount:   unread,
-	})
+	}))
 }

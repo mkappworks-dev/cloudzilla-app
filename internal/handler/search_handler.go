@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/mkappworks/cloudzilla/internal/middleware"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
 func (h *Handler) PageSearch(w http.ResponseWriter, r *http.Request) {
@@ -15,7 +17,7 @@ func (h *Handler) PageSearch(w http.ResponseWriter, r *http.Request) {
 		userID = &claims.UserID
 	}
 
-	data := SearchData{
+	data := view.SearchData{
 		BasePage: basePage(r, h.Services),
 		Query:    q,
 		Type:     searchType,
@@ -26,5 +28,5 @@ func (h *Handler) PageSearch(w http.ResponseWriter, r *http.Request) {
 		data.Results = results
 	}
 
-	h.render(w, "search", data)
+	h.render(w, r, pages.Search(data))
 }

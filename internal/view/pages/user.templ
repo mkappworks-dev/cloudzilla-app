@@ -1,0 +1,48 @@
+package pages
+
+import (
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ User(data view.UserData) {
+	@layout.Base(data.BasePage, data.User.Username) {
+		<div class="space-y-6">
+			<div class="bg-white border border-gray-200 rounded-lg p-6">
+				<h1 class="text-3xl font-bold">{ data.User.Username }</h1>
+				if data.User.Email != "" {
+					<p class="text-gray-600 mt-1">{ data.User.Email }</p>
+				}
+				<div class="mt-3 flex gap-3">
+					<a href={ templ.SafeURL("/" + data.User.Username + "/stars") } class="text-sm text-blue-600 hover:underline">&#9733; Starred repos</a>
+				</div>
+			</div>
+			<div>
+				<h2 class="text-2xl font-bold mb-4">Repositories</h2>
+				if len(data.Repos) > 0 {
+					<div class="grid gap-4">
+						for _, repo := range data.Repos {
+							<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+								<h3 class="text-lg font-semibold text-blue-600">{ repo.Name }</h3>
+								if repo.Description != "" {
+									<p class="text-gray-600 mt-1">{ repo.Description }</p>
+								}
+								<div class="mt-2 text-xs text-gray-500">
+									if repo.Private {
+										Private
+									} else {
+										Public
+									}
+								</div>
+							</a>
+						}
+					</div>
+				} else {
+					<div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
+						<p class="text-gray-500">No repositories.</p>
+					</div>
+				}
+			</div>
+		</div>
+	}
+}
