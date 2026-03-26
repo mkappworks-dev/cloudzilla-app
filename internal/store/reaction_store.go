@@ -45,6 +45,19 @@ func (s *ReactionStore) Toggle(ctx context.Context, userID, commentID int64, emo
 	return false, nil
 }
 
+// CommentBelongsToRepo returns true if the comment with the given id belongs to the given repo.
+func (s *ReactionStore) CommentBelongsToRepo(ctx context.Context, commentID, repoID int64) (bool, error) {
+	var exists bool
+	err := s.db.QueryRowContext(ctx,
+		`SELECT EXISTS(SELECT 1 FROM comments WHERE id=$1 AND repo_id=$2)`,
+		commentID, repoID,
+	).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("comment belongs to repo: %w", err)
+	}
+	return exists, nil
+}
+
 // ListByComment returns one ReactionSummary per emoji that has at least one reaction on commentID.
 // callerID=0 means anonymous — UserReacted will always be false.
 func (s *ReactionStore) ListByComment(ctx context.Context, commentID, callerID int64) ([]model.ReactionSummary, error) {

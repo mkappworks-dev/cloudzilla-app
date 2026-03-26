@@ -29,6 +29,11 @@ func (s *ReactionService) Toggle(ctx context.Context, userID, commentID int64, e
 	return s.store.Toggle(ctx, userID, commentID, emoji)
 }
 
+// CommentBelongsToRepo returns true if the comment belongs to the given repo.
+func (s *ReactionService) CommentBelongsToRepo(ctx context.Context, commentID, repoID int64) (bool, error) {
+	return s.store.CommentBelongsToRepo(ctx, commentID, repoID)
+}
+
 // List returns reaction summaries for one comment. callerID=0 means anonymous.
 func (s *ReactionService) List(ctx context.Context, commentID, callerID int64) ([]model.ReactionSummary, error) {
 	reactions, err := s.store.ListByComment(ctx, commentID, callerID)
