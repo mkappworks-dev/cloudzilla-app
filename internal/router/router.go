@@ -1,7 +1,6 @@
 package router
 
 import (
-	"html/template"
 	"io/fs"
 	"net/http"
 
@@ -13,55 +12,9 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/service"
 )
 
-func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *template.Template) {
-	sub, _ := fs.Sub(frontend, "frontend/templates")
-	funcMap := template.FuncMap{
-		"add": func(a, b int) int { return a + b },
-		"percent": func(part, total int) int {
-			if total == 0 {
-				return 0
-			}
-			return part * 100 / total
-		},
-		"emojiChar": func(emoji string) string {
-			m := map[string]string{
-				"+1": "👍", "-1": "👎", "laugh": "😄", "hooray": "🎉",
-				"confused": "😕", "heart": "❤️", "rocket": "🚀", "eyes": "👀",
-			}
-			if ch, ok := m[emoji]; ok {
-				return ch
-			}
-			return emoji
-		},
-	}
-	base := template.Must(template.New("layout.html").Funcs(funcMap).ParseFS(sub, "layout.html"))
-
-	pageNames := []string{
-		"home", "login", "user", "repo", "issues",
-		"issue_detail", "issue_new", "pulls", "pull_detail", "pull_new", "settings",
-		"tree", "blob", "blame", "commits", "commit", "refs",
-		"org", "org_settings", "repo_settings", "notifications",
-		"setup", "admin_settings", "invite",
-		"stargazers", "user_stars",
-		"releases", "release_detail",
-		"milestones",
-		"search",
-		"tokens",
-	}
-	pages := make(map[string]*template.Template, len(pageNames))
-	for _, name := range pageNames {
-		clone := template.Must(base.Clone())
-		template.Must(clone.ParseFS(sub, "pages/"+name+".html"))
-		pages[name] = clone
-	}
-	frags := template.Must(template.New("frags").Funcs(funcMap).ParseFS(sub, "fragments/*.html"))
-	return pages, frags
-}
-
 func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Handler {
 	r := chi.NewRouter()
-	pages, frags := mustParseTemplates(frontend)
-	h := handler.New(services, cfg, pages, frags)
+	h := handler.New(services, cfg)
 
 	// Global middleware
 	r.Use(chiMiddleware.RequestID)
