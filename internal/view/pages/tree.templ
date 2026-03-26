@@ -1,0 +1,41 @@
+package pages
+
+import (
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Tree(data view.TreeData) {
+	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" · "+data.Ref) {
+		<div class="space-y-4">
+			<div class="bg-white border border-gray-200 rounded-lg p-4">
+				<div class="flex items-center text-sm text-gray-600 flex-wrap gap-1">
+					for i, b := range data.Breadcrumbs {
+						if i > 0 {
+							<span class="text-gray-400">/</span>
+						}
+						<a href={ templ.SafeURL(b.URL) } class="hover:text-blue-600 hover:underline font-medium">{ b.Name }</a>
+					}
+					<a href={ templ.SafeURL(data.RefsURL) } class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-mono hover:bg-blue-200">{ data.Ref }</a>
+				</div>
+			</div>
+			<div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+				if len(data.Entries) > 0 {
+					for _, entry := range data.Entries {
+						<div class="flex items-center px-4 py-2.5 hover:bg-gray-50">
+							if entry.IsDir {
+								<span class="text-blue-500 mr-3 text-base">&#128193;</span>
+								<a href={ templ.SafeURL(entry.URL) } class="text-blue-600 hover:underline font-medium text-sm">{ entry.Name }</a>
+							} else {
+								<span class="text-gray-400 mr-3 text-base">&#128196;</span>
+								<a href={ templ.SafeURL(entry.URL) } class="text-gray-800 hover:text-blue-600 hover:underline text-sm">{ entry.Name }</a>
+							}
+						</div>
+					}
+				} else {
+					<div class="px-4 py-8 text-center text-gray-500 text-sm">This directory is empty.</div>
+				}
+			</div>
+		</div>
+	}
+}

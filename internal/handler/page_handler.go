@@ -769,7 +769,7 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 
 	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
 
-	h.render(w, "refs", RefsData{
+	h.render(w, r, pages.Refs(view.RefsData{
 		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Owner:    owner,
@@ -777,7 +777,7 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 		Branches: result.Branches,
 		Tags:     result.Tags,
 		CanWrite: canWrite,
-	})
+	}))
 }
 
 func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
@@ -807,7 +807,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, "tree", TreeData{
+	h.render(w, r, pages.Tree(view.TreeData{
 		BasePage:    basePage(r, h.Services),
 		Repo:        *repo,
 		Owner:       owner,
@@ -817,7 +817,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		Breadcrumbs: result.Breadcrumbs,
 		Entries:     result.Entries,
 		RefsURL:     "/" + owner + "/" + repoName + "/refs",
-	})
+	}))
 }
 
 func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
@@ -847,7 +847,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, "blob", BlobData{
+	h.render(w, r, pages.Blob(view.BlobData{
 		BasePage:    basePage(r, h.Services),
 		Repo:        *repo,
 		Owner:       owner,
@@ -858,7 +858,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		Lines:       result.Lines,
 		IsBinary:    result.IsBinary,
 		BlameURL:    result.BlameURL,
-	})
+	}))
 }
 
 func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
@@ -892,14 +892,14 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, "commits", CommitsData{
+	h.render(w, r, pages.Commits(view.CommitsData{
 		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
 		Log:      log,
 		RefsURL:  "/" + owner + "/" + repoName + "/refs",
-	})
+	}))
 }
 
 func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
@@ -933,14 +933,14 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 		statuses = []model.CommitStatus{}
 	}
 
-	h.render(w, "commit", CommitData{
+	h.render(w, r, pages.Commit(view.CommitData{
 		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
 		Commit:   commit,
 		Statuses: statuses,
-	})
+	}))
 }
 
 func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
@@ -970,7 +970,7 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, "blame", BlameData{
+	h.render(w, r, pages.Blame(view.BlameData{
 		BasePage:    basePage(r, h.Services),
 		Repo:        *repo,
 		Owner:       owner,
@@ -980,7 +980,7 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 		Breadcrumbs: result.Breadcrumbs,
 		Lines:       result.Lines,
 		BlobURL:     result.BlobURL,
-	})
+	}))
 }
 
 func (h *Handler) PageNotifications(w http.ResponseWriter, r *http.Request) {

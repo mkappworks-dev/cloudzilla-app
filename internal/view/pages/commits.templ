@@ -1,0 +1,55 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Commits(data view.CommitsData) {
+	@layout.Base(data.BasePage, "Commits · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-4">
+			<div class="bg-white border border-gray-200 rounded-lg p-4">
+				<div class="flex items-center justify-between flex-wrap gap-2">
+					<div class="flex items-center gap-2 text-sm text-gray-600">
+						<a href={ templ.SafeURL("/"+data.Owner) } class="hover:text-blue-600 hover:underline font-medium">{ data.Owner }</a>
+						<span class="text-gray-400">/</span>
+						<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName) } class="hover:text-blue-600 hover:underline font-medium">{ data.RepoName }</a>
+						<a href={ templ.SafeURL(data.RefsURL) } class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-mono hover:bg-blue-200">{ data.Log.Ref }</a>
+					</div>
+					<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/tree/"+data.Log.Ref) } class="text-sm text-blue-600 hover:underline">Browse Code</a>
+				</div>
+			</div>
+			<div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+				if len(data.Log.Commits) > 0 {
+					for _, c := range data.Log.Commits {
+						<div class="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
+							<div class="min-w-0 flex-1">
+								<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commit/"+c.FullHash) } class="text-gray-900 hover:text-blue-600 hover:underline font-medium text-sm truncate block">{ c.Message }</a>
+								<div class="text-xs text-gray-500 mt-0.5">{ c.Author } &middot; { c.AuthorTime.Format("2006-01-02") }</div>
+							</div>
+							<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commit/"+c.FullHash) } class="ml-4 font-mono text-xs text-gray-500 hover:text-blue-600 hover:underline shrink-0">{ c.Hash }</a>
+						</div>
+					}
+				} else {
+					<div class="px-4 py-8 text-center text-gray-500 text-sm">No commits yet.</div>
+				}
+			</div>
+			if data.Log.PrevPage > 0 || data.Log.HasMore {
+				<div class="flex items-center justify-between">
+					<div>
+						if data.Log.PrevPage > 0 {
+							<a href={ templ.SafeURL("?page="+strconv.Itoa(data.Log.PrevPage)) } class="text-sm text-blue-600 hover:underline">&larr; Newer</a>
+						}
+					</div>
+					<div>
+						if data.Log.HasMore {
+							<a href={ templ.SafeURL("?page="+strconv.Itoa(data.Log.NextPage)) } class="text-sm text-blue-600 hover:underline">Older &rarr;</a>
+						}
+					</div>
+				</div>
+			}
+		</div>
+	}
+}

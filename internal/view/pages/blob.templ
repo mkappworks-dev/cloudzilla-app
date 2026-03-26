@@ -1,0 +1,51 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Blob(data view.BlobData) {
+	@layout.Base(data.BasePage, data.Path+" · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-4">
+			<div class="bg-white border border-gray-200 rounded-lg p-4">
+				<div class="flex items-center justify-between flex-wrap gap-2">
+					<div class="flex items-center text-sm text-gray-600 flex-wrap gap-1">
+						for i, b := range data.Breadcrumbs {
+							if i > 0 {
+								<span class="text-gray-400">/</span>
+							}
+							<a href={ templ.SafeURL(b.URL) } class="hover:text-blue-600 hover:underline font-medium">{ b.Name }</a>
+						}
+						<span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-mono">{ data.Ref }</span>
+					</div>
+					if !data.IsBinary {
+						<a href={ templ.SafeURL(data.BlameURL) } class="text-sm text-blue-600 hover:underline">View Blame</a>
+					}
+				</div>
+			</div>
+			if data.IsBinary {
+				<div class="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-500 text-sm">
+					Binary file not shown.
+				</div>
+			} else {
+				<div class="bg-gray-950 text-gray-100 rounded-lg overflow-x-auto">
+					<table class="w-full text-sm font-mono">
+						<tbody>
+							for _, line := range data.Lines {
+								<tr id={ "L"+strconv.Itoa(line.Num) } class="hover:bg-gray-800">
+									<td class="select-none text-gray-500 pr-4 pl-4 py-0.5 text-right w-12 align-top border-r border-gray-800">
+										<a href={ templ.SafeURL("#L"+strconv.Itoa(line.Num)) } class="hover:text-blue-400">{ strconv.Itoa(line.Num) }</a>
+									</td>
+									<td class="pl-4 pr-4 py-0.5 whitespace-pre">{ line.Text }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</div>
+	}
+}
