@@ -1,0 +1,50 @@
+package pages
+
+import (
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ IssueNew(data view.IssueNewData) {
+	@layout.Base(data.BasePage, "New Issue · "+data.Owner+"/"+data.RepoName) {
+		<div class="max-w-2xl mx-auto space-y-6">
+			<div>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues") } class="text-blue-600 hover:underline text-sm">&larr; Back to Issues</a>
+			</div>
+			<h1 class="text-2xl font-bold">New Issue</h1>
+			if data.Error != "" {
+				<div class="px-4 py-3 bg-red-50 border border-red-300 rounded text-sm text-red-700">{ data.Error }</div>
+			}
+			if data.ShowForm {
+				<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/new") } class="space-y-4 bg-white border border-gray-200 rounded-lg p-6">
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1" for="title">Title</label>
+						<input id="title" name="title" type="text" required autofocus placeholder="Short summary of the issue" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1" for="body">Description</label>
+						<textarea id="body" name="body" rows="12" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical font-mono">{ data.Selected }</textarea>
+					</div>
+					<div class="flex items-center gap-3">
+						<button type="submit" class="px-5 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors">
+							Submit new issue
+						</button>
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues") } class="text-sm text-gray-500 hover:underline">Cancel</a>
+					</div>
+				</form>
+			} else {
+				<p class="text-gray-600 text-sm">Choose a template or open a blank issue.</p>
+				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+					for _, t := range data.Templates {
+						<a href={ templ.SafeURL("?template=" + t.Slug) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all">
+							<div class="font-medium text-gray-800">{ t.Name }</div>
+						</a>
+					}
+					<a href="?blank=1" class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all">
+						<div class="font-medium text-gray-500">Blank issue</div>
+					</a>
+				</div>
+			}
+		</div>
+	}
+}

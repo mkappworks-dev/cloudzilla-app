@@ -1,0 +1,48 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Issues(data view.IssuesData) {
+	@layout.Base(data.BasePage, "Issues · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-6">
+			<div class="flex justify-between items-center">
+				<h1 class="text-2xl font-bold">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline">{ data.Owner }/{ data.RepoName }</a> Issues
+				</h1>
+			</div>
+			if len(data.Issues) > 0 {
+				<div class="space-y-3">
+					for _, issue := range data.Issues {
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(issue.Number)) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+							<div class="flex justify-between items-start">
+								<div class="min-w-0 flex-1">
+									<h3 class="text-lg font-semibold">{ issue.Title }</h3>
+									<p class="text-gray-600 text-sm mt-1">#{ strconv.Itoa(issue.Number) } opened by { issue.AuthorName }</p>
+									if labels, ok := data.IssueLabels[issue.ID]; ok && len(labels) > 0 {
+										<div class="flex flex-wrap gap-1 mt-2">
+											for _, l := range labels {
+												<span class="px-2 py-0.5 rounded-full text-xs font-medium" style={ "background-color: " + l.Color }>{ l.Name }</span>
+											}
+										</div>
+									}
+								</div>
+								<span class={ "px-2 py-1 rounded-full text-xs font-medium ml-3 shrink-0", templ.KV("bg-green-100 text-green-700", issue.State == "open"), templ.KV("bg-red-100 text-red-700", issue.State != "open") }>
+									{ string(issue.State) }
+								</span>
+							</div>
+						</a>
+					}
+				</div>
+			} else {
+				<div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
+					<p class="text-gray-500">No issues yet.</p>
+				</div>
+			}
+		</div>
+	}
+}

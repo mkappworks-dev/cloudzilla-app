@@ -1,0 +1,68 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Pulls(data view.PullsData) {
+	@layout.Base(data.BasePage, "Pull Requests · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-6">
+			<div class="flex justify-between items-center">
+				<h1 class="text-2xl font-bold">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline">{ data.Owner }/{ data.RepoName }</a> Pull Requests
+				</h1>
+			</div>
+			<!-- State filter tabs -->
+			<div class="flex gap-1 border-b border-gray-200">
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls?state=open") } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors", templ.KV("border-blue-600 text-blue-600", data.StateFilter == "open"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.StateFilter != "open") }>
+					Open
+				</a>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls?state=draft") } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors", templ.KV("border-blue-600 text-blue-600", data.StateFilter == "draft"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.StateFilter != "draft") }>
+					Draft
+				</a>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls?state=closed") } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors", templ.KV("border-blue-600 text-blue-600", data.StateFilter == "closed"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.StateFilter != "closed") }>
+					Closed
+				</a>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls?state=merged") } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors", templ.KV("border-blue-600 text-blue-600", data.StateFilter == "merged"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.StateFilter != "merged") }>
+					Merged
+				</a>
+			</div>
+			if len(data.Pulls) > 0 {
+				<div class="space-y-3">
+					for _, pull := range data.Pulls {
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(pull.Number)) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+							<div class="flex justify-between items-start">
+								<div class="min-w-0 flex-1">
+									<div class="flex items-center gap-2 flex-wrap">
+										<h3 class="text-lg font-semibold">{ pull.Title }</h3>
+										if pull.IsDraft {
+											<span class="px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">Draft</span>
+										}
+									</div>
+									<p class="text-gray-600 text-sm mt-1">#{ strconv.Itoa(pull.Number) } by { pull.AuthorName } · { pull.HeadBranch } &rarr; { pull.BaseBranch }</p>
+									if labels, ok := data.PullLabels[pull.ID]; ok && len(labels) > 0 {
+										<div class="flex flex-wrap gap-1 mt-2">
+											for _, l := range labels {
+												<span class="px-2 py-0.5 rounded-full text-xs font-medium" style={ "background-color: " + l.Color }>{ l.Name }</span>
+											}
+										</div>
+									}
+								</div>
+								<span class={ "px-2 py-1 rounded-full text-xs font-medium ml-3 shrink-0", templ.KV("bg-green-100 text-green-700", pull.State == "open"), templ.KV("bg-purple-100 text-purple-700", pull.State == "merged"), templ.KV("bg-red-100 text-red-700", pull.State != "open" && pull.State != "merged") }>
+									{ string(pull.State) }
+								</span>
+							</div>
+						</a>
+					}
+				</div>
+			} else {
+				<div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
+					<p class="text-gray-500">No pull requests found.</p>
+				</div>
+			}
+		</div>
+	}
+}

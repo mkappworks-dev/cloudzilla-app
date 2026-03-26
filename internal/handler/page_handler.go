@@ -315,7 +315,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		allMilestones = []model.Milestone{}
 	}
 
-	h.render(w, "issues", IssuesData{
+	h.render(w, r, pages.Issues(view.IssuesData{
 		BasePage:      basePage(r, h.Services),
 		Repo:          *repo,
 		Issues:        issues,
@@ -323,7 +323,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		RepoName:      repoName,
 		IssueLabels:   issueLabels,
 		AllMilestones: allMilestones,
-	})
+	}))
 }
 
 func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
@@ -376,7 +376,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		allIssueMilestones = []model.Milestone{}
 	}
 
-	h.render(w, "issue_detail", IssueDetailData{
+	h.render(w, r, pages.IssueDetail(view.IssueDetailData{
 		BasePage:      basePage(r, h.Services),
 		Repo:          *repo,
 		Issue:         *issue,
@@ -390,7 +390,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		Milestone:     issueMilestone,
 		AllMilestones: allIssueMilestones,
 		CanWrite:      canWrite,
-	})
+	}))
 }
 
 func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
@@ -416,7 +416,7 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	showForm := blank || selected != "" || len(templates) == 0
 
-	h.render(w, "issue_new", IssueNewData{
+	h.render(w, r, pages.IssueNew(view.IssueNewData{
 		BasePage:  basePage(r, h.Services),
 		Repo:      *repo,
 		Owner:     owner,
@@ -424,7 +424,7 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 		Templates: templates,
 		Selected:  selected,
 		ShowForm:  showForm,
-	})
+	}))
 }
 
 func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
@@ -447,7 +447,7 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	renderErr := func(msg string) {
-		h.render(w, "issue_new", IssueNewData{
+		h.render(w, r, pages.IssueNew(view.IssueNewData{
 			BasePage: basePage(r, h.Services),
 			Repo:     *repo,
 			Owner:    owner,
@@ -455,7 +455,7 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 			Selected: body,
 			ShowForm: true,
 			Error:    msg,
-		})
+		}))
 	}
 
 	if title == "" {
@@ -531,7 +531,7 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		allPullMilestones = []model.Milestone{}
 	}
 
-	h.render(w, "pulls", PullsData{
+	h.render(w, r, pages.Pulls(view.PullsData{
 		BasePage:      basePage(r, h.Services),
 		Repo:          *repo,
 		Pulls:         pulls,
@@ -540,7 +540,7 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		PullLabels:    pullLabels,
 		AllMilestones: allPullMilestones,
 		StateFilter:   stateFilter,
-	})
+	}))
 }
 
 func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
@@ -560,14 +560,14 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		branches = refs.Branches
 	}
 
-	h.render(w, "pull_new", PullNewData{
+	h.render(w, r, pages.PullNew(view.PullNewData{
 		BasePage:     basePage(r, h.Services),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,
 		TemplateBody: templateBody,
 		Branches:     branches,
-	})
+	}))
 }
 
 func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
@@ -598,7 +598,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	baseBranch := r.FormValue("base_branch")
 
 	renderErr := func(msg string) {
-		h.render(w, "pull_new", PullNewData{
+		h.render(w, r, pages.PullNew(view.PullNewData{
 			BasePage:     basePage(r, h.Services),
 			Repo:         *repo,
 			Owner:        owner,
@@ -606,7 +606,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 			TemplateBody: body,
 			Branches:     branches,
 			Error:        msg,
-		})
+		}))
 	}
 
 	if title == "" {
@@ -697,28 +697,28 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	h.render(w, "pull_detail", PullDetailData{
-		BasePage:         basePage(r, h.Services),
-		Repo:             *repo,
-		Pull:             *pull,
-		Owner:            owner,
-		RepoName:         repoName,
-		Diff:             diff,
-		BodyHTML:         markdown.Render(pull.Body),
-		Labels:           pullLabels2,
-		Assignees:        pullAssignees,
-		AllLabels:        allLabels2,
-		Milestone:        pullMilestone,
-		AllMilestones:    allPullDetailMilestones,
-		CanWrite:         canWrite2,
-		HeadStatuses:     headStatuses,
-		Reviews:          reviews,
+	h.render(w, r, pages.PullDetail(view.PullDetailData{
+		BasePage:          basePage(r, h.Services),
+		Repo:              *repo,
+		Pull:              *pull,
+		Owner:             owner,
+		RepoName:          repoName,
+		Diff:              diff,
+		BodyHTML:          markdown.Render(pull.Body),
+		Labels:            pullLabels2,
+		Assignees:         pullAssignees,
+		AllLabels:         allLabels2,
+		Milestone:         pullMilestone,
+		AllMilestones:     allPullDetailMilestones,
+		CanWrite:          canWrite2,
+		HeadStatuses:      headStatuses,
+		Reviews:           reviews,
 		CanMerge:          canMerge,
 		MergeBlockReason:  mergeBlockReason,
 		AutoMergeEnabled:  pull.AutoMergeEnabled,
 		AutoMergeStrategy: pull.AutoMergeStrategy,
 		LineComments:      lineComments,
-	})
+	}))
 }
 
 func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
