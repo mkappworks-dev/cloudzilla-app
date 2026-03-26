@@ -12,6 +12,8 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/service"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
 func basePage(r *http.Request, services *service.Services) BasePage {
@@ -37,7 +39,7 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
-	h.render(w, "login", LoginData{BasePage: basePage(r, h.Services)})
+	h.render(w, r, pages.Login(view.LoginData{BasePage: basePage(r, h.Services)}))
 }
 
 func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
@@ -46,12 +48,12 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	user, token, err := h.Services.User.Authenticate(r.Context(), email, password)
 	if err != nil {
-		h.render(w, "login", LoginData{BasePage: basePage(r, h.Services), Error: "Invalid credentials"})
+		h.render(w, r, pages.Login(view.LoginData{BasePage: basePage(r, h.Services), Error: "Invalid credentials"}))
 		return
 	}
 
 	if !user.IsSuperadmin && !user.IsInvited && !h.Services.SiteSetting.AllowLogin(r.Context()) {
-		h.render(w, "login", LoginData{BasePage: basePage(r, h.Services), Error: "Login is currently disabled"})
+		h.render(w, r, pages.Login(view.LoginData{BasePage: basePage(r, h.Services), Error: "Login is currently disabled"}))
 		return
 	}
 

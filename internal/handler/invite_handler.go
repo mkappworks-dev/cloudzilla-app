@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
 func (h *Handler) PageInvite(w http.ResponseWriter, r *http.Request) {
@@ -17,11 +19,11 @@ func (h *Handler) PageInvite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Invitation.Validate(inv); err != nil {
-		h.render(w, "invite", InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: err.Error()})
+		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: err.Error()}))
 		return
 	}
 
-	h.render(w, "invite", InviteData{BasePage: basePage(r, h.Services), Invitation: inv})
+	h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv}))
 }
 
 func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +36,7 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Invitation.Validate(inv); err != nil {
-		h.render(w, "invite", InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: err.Error()})
+		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: err.Error()}))
 		return
 	}
 
@@ -42,14 +44,14 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	if username == "" || password == "" {
-		h.render(w, "invite", InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: "All fields are required"})
+		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: "All fields are required"}))
 		return
 	}
 
 	// Create the user (bypasses allow_registration)
 	user, err := h.Services.User.Create(r.Context(), username, inv.Email, password)
 	if err != nil {
-		h.render(w, "invite", InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: "Failed to create account: " + err.Error()})
+		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: "Failed to create account: " + err.Error()}))
 		return
 	}
 
