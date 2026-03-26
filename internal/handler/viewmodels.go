@@ -197,6 +197,31 @@ type PullDetailData struct {
 	LineComments map[string][]RenderedLineComment
 }
 
+// IssueNewData is used by the new-issue page (template chooser + form).
+type IssueNewData struct {
+	BasePage
+	Repo      model.Repository
+	Owner     string
+	RepoName  string
+	Templates []service.IssueTemplate
+	// Selected is the pre-filled body when a specific template was chosen.
+	Selected string
+	// ShowForm is true when the form should be shown (vs. the template chooser).
+	ShowForm bool
+	Error    string
+}
+
+// PullNewData is used by the new-pull-request page.
+type PullNewData struct {
+	BasePage
+	Repo         model.Repository
+	Owner        string
+	RepoName     string
+	TemplateBody string
+	Branches     []service.BranchInfo
+	Error        string
+}
+
 type PRReviewsFragData struct {
 	Owner            string
 	RepoName         string

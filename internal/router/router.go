@@ -28,7 +28,7 @@ func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *templat
 
 	pageNames := []string{
 		"home", "login", "user", "repo", "issues",
-		"issue_detail", "pulls", "pull_detail", "settings",
+		"issue_detail", "issue_new", "pulls", "pull_detail", "pull_new", "settings",
 		"tree", "blob", "blame", "commits", "commit", "refs",
 		"org", "org_settings", "repo_settings", "notifications",
 		"setup", "admin_settings", "invite",
@@ -95,8 +95,13 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/stars", h.PageUserStars)
 	r.With(optAuthMW).Get("/{owner}/{repo}/milestones", h.PageMilestones)
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues", h.PageIssues)
+	// Issue and PR creation pages
+	r.With(authMW).Get("/{owner}/{repo}/issues/new", h.PageNewIssue)
+	r.With(authMW).Post("/{owner}/{repo}/issues/new", h.PageNewIssueSubmit)
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues/{number}", h.PageIssueDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls", h.PagePulls)
+	r.With(authMW).Get("/{owner}/{repo}/pulls/new", h.PageNewPull)
+	r.With(authMW).Post("/{owner}/{repo}/pulls/new", h.PageNewPullSubmit)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls/{number}", h.PagePullDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/refs", h.PageRefs)
 	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}", h.PageTree)

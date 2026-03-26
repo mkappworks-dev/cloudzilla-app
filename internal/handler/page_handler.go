@@ -392,6 +392,87 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+
+	templates, _ := h.Services.Code.GetIssueTemplates(owner, repoName, repo.DefaultBranch)
+
+	slug := r.URL.Query().Get("template")
+	blank := r.URL.Query().Get("blank") == "1"
+	selected := ""
+	for _, t := range templates {
+		if t.Slug == slug {
+			selected = t.Body
+			break
+		}
+	}
+	showForm := blank || selected != "" || len(templates) == 0
+
+	h.render(w, "issue_new", IssueNewData{
+		BasePage:  basePage(r, h.Services),
+		Repo:      *repo,
+		Owner:     owner,
+		RepoName:  repoName,
+		Templates: templates,
+		Selected:  selected,
+		ShowForm:  showForm,
+	})
+}
+
+func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	r.ParseForm()
+	title := r.FormValue("title")
+	body := r.FormValue("body")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+
+	renderErr := func(msg string) {
+		h.render(w, "issue_new", IssueNewData{
+			BasePage: basePage(r, h.Services),
+			Repo:     *repo,
+			Owner:    owner,
+			RepoName: repoName,
+			Selected: body,
+			ShowForm: true,
+			Error:    msg,
+		})
+	}
+
+	if title == "" {
+		renderErr("Title is required")
+		return
+	}
+
+	issue, err := h.Services.Issue.Create(r.Context(), owner, repoName, claims.UserID, title, body)
+	if err != nil {
+		renderErr("Failed to create issue: " + err.Error())
+		return
+	}
+
+	go h.Services.Webhook.Dispatch(repo.ID, "issues", h.Services.Webhook.IssuePayload("opened", *repo, *issue))
+
+	http.Redirect(w, r, fmt.Sprintf("/%s/%s/issues/%d", owner, repoName, issue.Number), http.StatusSeeOther)
+}
+
 func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -459,6 +540,88 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		AllMilestones: allPullMilestones,
 		StateFilter:   stateFilter,
 	})
+}
+
+func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+
+	templateBody, _ := h.Services.Code.GetPRTemplate(owner, repoName, repo.DefaultBranch)
+	refs, _ := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch)
+	var branches []service.BranchInfo
+	if refs != nil {
+		branches = refs.Branches
+	}
+
+	h.render(w, "pull_new", PullNewData{
+		BasePage:     basePage(r, h.Services),
+		Repo:         *repo,
+		Owner:        owner,
+		RepoName:     repoName,
+		TemplateBody: templateBody,
+		Branches:     branches,
+	})
+}
+
+func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+
+	refs, _ := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch)
+	var branches []service.BranchInfo
+	if refs != nil {
+		branches = refs.Branches
+	}
+
+	r.ParseForm()
+	title := r.FormValue("title")
+	body := r.FormValue("body")
+	headBranch := r.FormValue("head_branch")
+	baseBranch := r.FormValue("base_branch")
+
+	renderErr := func(msg string) {
+		h.render(w, "pull_new", PullNewData{
+			BasePage:     basePage(r, h.Services),
+			Repo:         *repo,
+			Owner:        owner,
+			RepoName:     repoName,
+			TemplateBody: body,
+			Branches:     branches,
+			Error:        msg,
+		})
+	}
+
+	if title == "" {
+		renderErr("Title is required")
+		return
+	}
+
+	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, title, body, headBranch, baseBranch, false)
+	if err != nil {
+		renderErr("Failed to create pull request: " + err.Error())
+		return
+	}
+
+	go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload("opened", *repo, *pr))
+
+	http.Redirect(w, r, fmt.Sprintf("/%s/%s/pulls/%d", owner, repoName, pr.Number), http.StatusSeeOther)
 }
 
 func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
