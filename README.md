@@ -688,23 +688,23 @@ Browse repository contents directly from the web UI. All views respect repo visi
 
 ### URL Patterns
 
-| View                | URL                                                   |
-| ------------------- | ----------------------------------------------------- |
-| Root file tree      | `/{owner}/{repo}/tree/{ref}`                          |
-| Subdirectory tree   | `/{owner}/{repo}/tree/{ref}/{path...}`                |
-| File content (blob) | `/{owner}/{repo}/blob/{ref}/{path...}`                |
-| Per-line blame      | `/{owner}/{repo}/blame/{ref}/{path...}`               |
-| Commit log          | `/{owner}/{repo}/commits/{ref}`                       |
-| Single commit diff  | `/{owner}/{repo}/commit/{sha}`                        |
-| Branches & Tags     | `/{owner}/{repo}/refs`                                |
-| Stargazers          | `/{owner}/{repo}/stargazers`                          |
-| User starred repos  | `/{owner}/stars`                                      |
-| Forked repo         | `/{forkOwner}/{forkName}` (shows "Forked from" badge) |
-| Releases list       | `/{owner}/{repo}/releases`                            |
-| Release detail      | `/{owner}/{repo}/releases/tag/{tagName}`              |
-| Milestones list     | `/{owner}/{repo}/milestones`                          |
-| Search results      | `/search?q=...&type=all\|repos\|issues\|pulls\|users` |
-| Personal tokens     | `/settings/tokens`                                    |
+| View                | URL                                                                         |
+| ------------------- | --------------------------------------------------------------------------- |
+| Root file tree      | `/{owner}/{repo}/tree/{ref}`                                                |
+| Subdirectory tree   | `/{owner}/{repo}/tree/{ref}/{path...}`                                      |
+| File content (blob) | `/{owner}/{repo}/blob/{ref}/{path...}`                                      |
+| Per-line blame      | `/{owner}/{repo}/blame/{ref}/{path...}`                                     |
+| Commit log          | `/{owner}/{repo}/commits/{ref}`                                             |
+| Single commit diff  | `/{owner}/{repo}/commit/{sha}`                                              |
+| Branches & Tags     | `/{owner}/{repo}/refs`                                                      |
+| Stargazers          | `/{owner}/{repo}/stargazers`                                                |
+| User starred repos  | `/{owner}/stars`                                                            |
+| Forked repo         | `/{forkOwner}/{forkName}` (shows "Forked from" badge)                       |
+| Releases list       | `/{owner}/{repo}/releases`                                                  |
+| Release detail      | `/{owner}/{repo}/releases/tag/{tagName}`                                    |
+| Milestones list     | `/{owner}/{repo}/milestones`                                                |
+| Search results      | `/search?q=...&type=all\|repos\|issues\|pulls\|users`                       |
+| Personal tokens     | `/settings/tokens`                                                          |
 | Repo settings       | `/{owner}/{repo}/settings` (collaborators, webhooks, deploy keys, transfer) |
 
 `{ref}` can be a branch name, tag name, or commit SHA. If the ref is not found, the server returns 404.
@@ -852,21 +852,21 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 ### Personal Access Tokens
 
-| Method | Path                   | Auth     | Description                                                                                     |
-| ------ | ---------------------- | -------- | ----------------------------------------------------------------------------------------------- |
-| GET    | `/settings/tokens`     | Required | Page: list tokens + create form; shows raw token once via `?new_token=...` after creation       |
-| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, `scopes[]`, optional `expires_at`); returns `{"token": "czp_..."}` once    |
-| DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                              |
+| Method | Path                   | Auth     | Description                                                                                 |
+| ------ | ---------------------- | -------- | ------------------------------------------------------------------------------------------- |
+| GET    | `/settings/tokens`     | Required | Page: list tokens + create form; shows raw token once via `?new_token=...` after creation   |
+| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, `scopes[]`, optional `expires_at`); returns `{"token": "czp_..."}` once |
+| DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                          |
 
 Raw token format: `czp_<32-byte hex>`. Use as `Authorization: Bearer czp_<token>`. Only the SHA-256 hash is stored; the raw value cannot be recovered after creation.
 
 ### Deploy Keys
 
-| Method | Path                                          | Auth                       | Description                                          |
-| ------ | --------------------------------------------- | -------------------------- | ---------------------------------------------------- |
-| GET    | `/api/repos/:owner/:repo/keys`                | Required + CanManage       | List deploy keys for a repository                    |
-| POST   | `/api/repos/:owner/:repo/keys`                | Required + CanManage       | Add deploy key (`title`, `public_key`, `read_only`)  |
-| DELETE | `/api/repos/:owner/:repo/keys/:id`            | Required + CanManage       | Delete a deploy key by ID                            |
+| Method | Path                               | Auth                 | Description                                         |
+| ------ | ---------------------------------- | -------------------- | --------------------------------------------------- |
+| GET    | `/api/repos/:owner/:repo/keys`     | Required + CanManage | List deploy keys for a repository                   |
+| POST   | `/api/repos/:owner/:repo/keys`     | Required + CanManage | Add deploy key (`title`, `public_key`, `read_only`) |
+| DELETE | `/api/repos/:owner/:repo/keys/:id` | Required + CanManage | Delete a deploy key by ID                           |
 
 Deploy keys authenticate via SSH using the key's MD5 fingerprint. A `read_only` key cannot push; a read-write key can. Each key is scoped to a single repository — attempting to use it against another repo is rejected.
 
@@ -963,12 +963,12 @@ Valid `state` values: `approved`, `changes_requested`, `commented`, `pending`.
 
 ### Branch Protections
 
-| Method | Path                                                   | Auth    | Description                                                                                                 |
-| ------ | ------------------------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------- |
-| GET    | `/{owner}/{repo}/branches/protections`                 | Manage  | List all branch protection rules for the repository                                                         |
-| POST   | `/{owner}/{repo}/branches/protections`                 | Manage  | Create a rule (`pattern`, `require_review_count`, `require_status_checks[]`, `block_force_push`)            |
-| PATCH  | `/{owner}/{repo}/branches/protections/:id`             | Manage  | Update an existing rule (same fields as POST; only provided fields are changed)                             |
-| DELETE | `/{owner}/{repo}/branches/protections/:id`             | Manage  | Delete a protection rule                                                                                    |
+| Method | Path                                       | Auth   | Description                                                                                      |
+| ------ | ------------------------------------------ | ------ | ------------------------------------------------------------------------------------------------ |
+| GET    | `/{owner}/{repo}/branches/protections`     | Manage | List all branch protection rules for the repository                                              |
+| POST   | `/{owner}/{repo}/branches/protections`     | Manage | Create a rule (`pattern`, `require_review_count`, `require_status_checks[]`, `block_force_push`) |
+| PATCH  | `/{owner}/{repo}/branches/protections/:id` | Manage | Update an existing rule (same fields as POST; only provided fields are changed)                  |
+| DELETE | `/{owner}/{repo}/branches/protections/:id` | Manage | Delete a protection rule                                                                         |
 
 ### Search
 
@@ -1198,39 +1198,39 @@ Handlers call services only. Services call stores only. Stores own all SQL.
 
 Migrations live in `migrations/` and are embedded into the binary at build time. They run in order on `cloudzilla migrate`.
 
-| File                                | Creates                                                                                                         |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `001_create_users.sql`              | `users` table                                                                                                   |
-| `002_create_repositories.sql`       | `repositories` table                                                                                            |
-| `003_create_issues.sql`             | `issues` table                                                                                                  |
-| `004_create_pull_requests.sql`      | `pull_requests` table                                                                                           |
-| `005_create_comments.sql`           | `comments` table                                                                                                |
-| `006_create_permissions.sql`        | `permissions` table                                                                                             |
-| `007_create_ssh_keys.sql`           | `ssh_keys` table                                                                                                |
-| `008_oauth_users.sql`               | Adds `oauth_provider`, `oauth_id` columns to `users`                                                            |
-| `009_create_organizations.sql`      | `organizations` + `org_members` tables                                                                          |
-| `010_repo_owner_name.sql`           | Adds `owner_name` + `org_id` columns to `repositories`                                                          |
-| `011_create_webhooks.sql`           | `webhooks` + `webhook_deliveries` tables                                                                        |
-| `012_create_notifications.sql`      | `notifications` table                                                                                           |
-| `013_superadmin.sql`                | Adds `is_superadmin` column to `users`                                                                          |
-| `014_site_settings.sql`             | `site_settings` table (seeded with `allow_registration=true`, `allow_login=true`)                               |
-| `015_invitations.sql`               | `invitations` table; adds `is_invited` column to `users`                                                        |
-| `016_create_labels.sql`             | `labels`, `issue_labels`, `pull_labels` tables                                                                  |
-| `017_create_assignees.sql`          | `issue_assignees`, `pull_assignees` tables                                                                      |
-| `018_create_stars.sql`              | `stars` table + `idx_stars_repo`, `idx_stars_user` indexes                                                      |
-| `019_add_fork_columns.sql`          | Adds `is_fork`, `fork_of_id`, `fork_count` columns to `repositories` + index                                    |
-| `020_create_releases.sql`           | `releases` table + `idx_releases_repo` index                                                                    |
-| `021_create_commit_statuses.sql`    | `commit_statuses` table + `idx_commit_statuses_repo_sha` index                                                  |
-| `022_create_milestones.sql`         | `milestones` table; adds `milestone_id` FK to `issues` and `pull_requests`                                      |
-| `023_create_pr_reviews.sql`         | `pull_reviews` table with `UNIQUE(pull_id, author_id)` upsert constraint                                        |
-| `024_create_pull_line_comments.sql` | `pull_line_comments` table with path + line indexes                                                             |
-| `025_search_indexes.sql`            | `search_vector tsvector` columns + GIN indexes + triggers on repos/issues/PRs; `idx_users_username_lower` index |
-| `026_fix_comments_author_name.sql`  | Backfills author name on existing comments                                                                      |
-| `027_create_access_tokens.sql`      | `access_tokens` table for Personal Access Tokens (PATs) with scope array and optional expiry                    |
-| `028_create_deploy_keys.sql`        | `deploy_keys` table; per-repo SSH keys with `read_only` flag                                                    |
-| `029_add_draft_to_pulls.sql`        | Adds `is_draft` boolean column to `pull_requests`                                                               |
-| `030_create_branch_protections.sql` | `branch_protections` table with `pattern`, `require_review_count`, `require_status_checks`, `block_force_push`  |
-| `031_add_suggestion_to_line_comments.sql` | Adds `is_suggestion` and `suggestion_body` columns to `pull_line_comments`                               |
+| File                                      | Creates                                                                                                         |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `001_create_users.sql`                    | `users` table                                                                                                   |
+| `002_create_repositories.sql`             | `repositories` table                                                                                            |
+| `003_create_issues.sql`                   | `issues` table                                                                                                  |
+| `004_create_pull_requests.sql`            | `pull_requests` table                                                                                           |
+| `005_create_comments.sql`                 | `comments` table                                                                                                |
+| `006_create_permissions.sql`              | `permissions` table                                                                                             |
+| `007_create_ssh_keys.sql`                 | `ssh_keys` table                                                                                                |
+| `008_oauth_users.sql`                     | Adds `oauth_provider`, `oauth_id` columns to `users`                                                            |
+| `009_create_organizations.sql`            | `organizations` + `org_members` tables                                                                          |
+| `010_repo_owner_name.sql`                 | Adds `owner_name` + `org_id` columns to `repositories`                                                          |
+| `011_create_webhooks.sql`                 | `webhooks` + `webhook_deliveries` tables                                                                        |
+| `012_create_notifications.sql`            | `notifications` table                                                                                           |
+| `013_superadmin.sql`                      | Adds `is_superadmin` column to `users`                                                                          |
+| `014_site_settings.sql`                   | `site_settings` table (seeded with `allow_registration=true`, `allow_login=true`)                               |
+| `015_invitations.sql`                     | `invitations` table; adds `is_invited` column to `users`                                                        |
+| `016_create_labels.sql`                   | `labels`, `issue_labels`, `pull_labels` tables                                                                  |
+| `017_create_assignees.sql`                | `issue_assignees`, `pull_assignees` tables                                                                      |
+| `018_create_stars.sql`                    | `stars` table + `idx_stars_repo`, `idx_stars_user` indexes                                                      |
+| `019_add_fork_columns.sql`                | Adds `is_fork`, `fork_of_id`, `fork_count` columns to `repositories` + index                                    |
+| `020_create_releases.sql`                 | `releases` table + `idx_releases_repo` index                                                                    |
+| `021_create_commit_statuses.sql`          | `commit_statuses` table + `idx_commit_statuses_repo_sha` index                                                  |
+| `022_create_milestones.sql`               | `milestones` table; adds `milestone_id` FK to `issues` and `pull_requests`                                      |
+| `023_create_pr_reviews.sql`               | `pull_reviews` table with `UNIQUE(pull_id, author_id)` upsert constraint                                        |
+| `024_create_pull_line_comments.sql`       | `pull_line_comments` table with path + line indexes                                                             |
+| `025_search_indexes.sql`                  | `search_vector tsvector` columns + GIN indexes + triggers on repos/issues/PRs; `idx_users_username_lower` index |
+| `026_fix_comments_author_name.sql`        | Backfills author name on existing comments                                                                      |
+| `027_create_access_tokens.sql`            | `access_tokens` table for Personal Access Tokens (PATs) with scope array and optional expiry                    |
+| `028_create_deploy_keys.sql`              | `deploy_keys` table; per-repo SSH keys with `read_only` flag                                                    |
+| `029_add_draft_to_pulls.sql`              | Adds `is_draft` boolean column to `pull_requests`                                                               |
+| `030_create_branch_protections.sql`       | `branch_protections` table with `pattern`, `require_review_count`, `require_status_checks`, `block_force_push`  |
+| `031_add_suggestion_to_line_comments.sql` | Adds `is_suggestion` and `suggestion_body` columns to `pull_line_comments`                                      |
 
 ---
 

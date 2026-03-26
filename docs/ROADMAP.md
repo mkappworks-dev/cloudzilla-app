@@ -1833,82 +1833,6 @@ POST  /api/repos/{owner}/{repo}/hooks/{id}/redeliver (authMW + write) — manual
 
 ---
 
-## Roadmap Summary
-
-| Phase | Feature                              | Status     | Migration(s) |
-| ----- | ------------------------------------ | ---------- | ------------ |
-| 0.1   | Core Platform                        | ✅ Done    | 001–007      |
-| 0.2   | OAuth & Organizations                | ✅ Done    | 008–010      |
-| 0.3   | Webhooks, Notifs, Admin              | ✅ Done    | 011–015      |
-| 1.1   | Labels                               | ✅ Done    | 016          |
-| 1.2   | Assignees                            | ✅ Done    | 017          |
-| 1.3   | Stars                                | ✅ Done    | 018          |
-| 2     | Repository Fork                      | ✅ Done    | 019          |
-| 3.1   | Releases                             | ✅ Done    | 020          |
-| 3.2   | Commit Status API                    | ✅ Done    | 021          |
-| 3.3   | Milestones                           | ✅ Done    | 022          |
-| 4.1   | PR Reviews                           | ✅ Done    | 023          |
-| 4.2   | PR Line Comments                     | ✅ Done    | 024          |
-| 4.3   | Search                               | ✅ Done    | 025          |
-| 5.1   | Personal Access Tokens               | ✅ Done    | 027          |
-| 5.2   | Deploy Keys                          | ✅ Done    | 028          |
-| 5.3   | Draft Pull Requests                  | ✅ Done    | 029          |
-| 6.1   | Protected Branches                   | ✅ Done    | 030          |
-| 6.2   | CODEOWNERS Support                   | ✅ Done    | —            |
-| 6.3   | Code Review Suggestions              | ✅ Done    | 031          |
-| 7.1   | Auto-merge                           | ✅ Done    | 032          |
-| 7.2   | Issue & PR Templates                 | ⬜ Planned | —            |
-| 7.3   | Comment Reactions                    | ⬜ Planned | 033          |
-| 8.1   | Two-Factor Auth (TOTP)               | ⬜ Planned | 034          |
-| 8.2   | Audit Log                            | ⬜ Planned | 035          |
-| 8.3   | LDAP / SAML SSO                      | ⬜ Planned | 036          |
-| 9.1   | Project Boards / Kanban              | ⬜ Planned | 037          |
-| 9.2   | Wiki                                 | ⬜ Planned | —            |
-| 9.3   | Issue Pinning & Locking              | ⬜ Planned | 038          |
-| 10.1  | Repository Insights & Stats          | ⬜ Planned | —            |
-| 10.2  | @Mentions in Comments                | ⬜ Planned | 039          |
-| 10.3  | Saved Replies                        | ⬜ Planned | 040          |
-| 11.1  | Email Notifications                  | ⬜ Planned | 041          |
-| 11.2  | OAuth Apps / Third-party Clients     | ⬜ Planned | 042          |
-| 11.3  | Webhook Improvements (retry, filter) | ⬜ Planned | —            |
-| 12.1  | Watching                             | ⬜ Planned | 043          |
-| 12.2  | Activity Feed                        | ⬜ Planned | 044          |
-| 12.3  | Discussions                          | ⬜ Planned | 045          |
-| 13.1  | Gists                                | ⬜ Planned | 046          |
-| 13.2  | Profile README                       | ⬜ Planned | —            |
-| 13.3  | Repository Topics / Tags             | ⬜ Planned | 047          |
-| 14.1  | Private Issues                       | ⬜ Planned | 048          |
-| 14.2  | Archive & Templates                  | ⬜ Planned | 049          |
-| 14.3  | Repository Soft-delete & Recovery    | ⬜ Planned | 050          |
-| 15.1  | Advanced Code Search                 | ⬜ Planned | 051          |
-| 15.2  | Explore / Trending                   | ⬜ Planned | —            |
-| 15.3  | Dependency Graph                     | ⬜ Planned | 052          |
-| 16.1  | Container Registry (Docker)          | ⬜ Planned | 053          |
-| 16.2  | Generic Package Registry             | ⬜ Planned | 054          |
-| 16.3  | Release Asset Enhancements           | ⬜ Planned | —            |
-| 17.1  | Git LFS Support                      | ⬜ Planned | 055          |
-| 17.2  | Signed Commit Verification (GPG/SSH) | ⬜ Planned | —            |
-| 17.3  | Secret Scanning                      | ⬜ Planned | 056          |
-| 18.1  | CI/CD Pipeline Runner (basic)        | ⬜ Planned | 057          |
-| 18.2  | Pipeline YAML Config & UI            | ⬜ Planned | 058          |
-| 18.3  | CI Status Dashboard                  | ⬜ Planned | —            |
-| 19.1  | LDAP / SAML Improvements             | ⬜ Planned | —            |
-| 19.2  | IP Allowlisting & Access Policies    | ⬜ Planned | 059          |
-| 19.3  | API Rate Limiting & Quotas           | ⬜ Planned | 060          |
-| 20.1  | S3/GCS Storage Backend               | ⬜ Planned | —            |
-| 20.2  | Instance Clustering / HA             | ⬜ Planned | —            |
-| 20.3  | GraphQL API v2                       | ⬜ Planned | —            |
-
-**Critical files touched by every phase:**
-
-- `internal/router/router.go` — register new routes + add page names to `pageNames`
-- `internal/handler/viewmodels.go` — add data structs for new pages/fragments
-- `internal/service/services.go` — wire new service into `Services` struct + `New()`
-- `internal/store/stores.go` — wire new store into `Stores` struct + `New()`
-- `internal/handler/page_handler.go` — extend existing page handlers with new data fetches
-
----
-
 ## Phase 12 — Watching, Activity Feed, Discussions
 
 _Staying informed, personalized discovery, and threaded community forums._
@@ -2446,5 +2370,81 @@ Multiple Cloudzilla instances share the same PostgreSQL database and S3/GCS stor
 _Zero-migration — GraphQL sits on top of existing services._
 
 Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over the existing service layer. Schema covers: `User`, `Repository`, `Issue`, `PullRequest`, `Comment`, `Release`, `Label`, `Milestone`, `Organization`. Resolvers call service methods — no store access bypassing the service layer. Built using `encoding/json` + a lightweight hand-rolled schema executor (no new GraphQL library required for v1 of the schema). Introspection enabled. Authentication via the same JWT/PAT bearer token as the REST API. A GraphQL Playground page at `GET /api/graphql/playground` (superadmin only).
+
+---
+
+## Roadmap Summary
+
+| Phase | Feature                              | Status     | Migration(s) |
+| ----- | ------------------------------------ | ---------- | ------------ |
+| 0.1   | Core Platform                        | ✅ Done    | 001–007      |
+| 0.2   | OAuth & Organizations                | ✅ Done    | 008–010      |
+| 0.3   | Webhooks, Notifs, Admin              | ✅ Done    | 011–015      |
+| 1.1   | Labels                               | ✅ Done    | 016          |
+| 1.2   | Assignees                            | ✅ Done    | 017          |
+| 1.3   | Stars                                | ✅ Done    | 018          |
+| 2     | Repository Fork                      | ✅ Done    | 019          |
+| 3.1   | Releases                             | ✅ Done    | 020          |
+| 3.2   | Commit Status API                    | ✅ Done    | 021          |
+| 3.3   | Milestones                           | ✅ Done    | 022          |
+| 4.1   | PR Reviews                           | ✅ Done    | 023          |
+| 4.2   | PR Line Comments                     | ✅ Done    | 024          |
+| 4.3   | Search                               | ✅ Done    | 025          |
+| 5.1   | Personal Access Tokens               | ✅ Done    | 027          |
+| 5.2   | Deploy Keys                          | ✅ Done    | 028          |
+| 5.3   | Draft Pull Requests                  | ✅ Done    | 029          |
+| 6.1   | Protected Branches                   | ✅ Done    | 030          |
+| 6.2   | CODEOWNERS Support                   | ✅ Done    | —            |
+| 6.3   | Code Review Suggestions              | ✅ Done    | 031          |
+| 7.1   | Auto-merge                           | ✅ Done    | 032          |
+| 7.2   | Issue & PR Templates                 | ⬜ Planned | —            |
+| 7.3   | Comment Reactions                    | ⬜ Planned | 033          |
+| 8.1   | Two-Factor Auth (TOTP)               | ⬜ Planned | 034          |
+| 8.2   | Audit Log                            | ⬜ Planned | 035          |
+| 8.3   | LDAP / SAML SSO                      | ⬜ Planned | 036          |
+| 9.1   | Project Boards / Kanban              | ⬜ Planned | 037          |
+| 9.2   | Wiki                                 | ⬜ Planned | —            |
+| 9.3   | Issue Pinning & Locking              | ⬜ Planned | 038          |
+| 10.1  | Repository Insights & Stats          | ⬜ Planned | —            |
+| 10.2  | @Mentions in Comments                | ⬜ Planned | 039          |
+| 10.3  | Saved Replies                        | ⬜ Planned | 040          |
+| 11.1  | Email Notifications                  | ⬜ Planned | 041          |
+| 11.2  | OAuth Apps / Third-party Clients     | ⬜ Planned | 042          |
+| 11.3  | Webhook Improvements (retry, filter) | ⬜ Planned | —            |
+| 12.1  | Watching                             | ⬜ Planned | 043          |
+| 12.2  | Activity Feed                        | ⬜ Planned | 044          |
+| 12.3  | Discussions                          | ⬜ Planned | 045          |
+| 13.1  | Gists                                | ⬜ Planned | 046          |
+| 13.2  | Profile README                       | ⬜ Planned | —            |
+| 13.3  | Repository Topics / Tags             | ⬜ Planned | 047          |
+| 14.1  | Private Issues                       | ⬜ Planned | 048          |
+| 14.2  | Archive & Templates                  | ⬜ Planned | 049          |
+| 14.3  | Repository Soft-delete & Recovery    | ⬜ Planned | 050          |
+| 15.1  | Advanced Code Search                 | ⬜ Planned | 051          |
+| 15.2  | Explore / Trending                   | ⬜ Planned | —            |
+| 15.3  | Dependency Graph                     | ⬜ Planned | 052          |
+| 16.1  | Container Registry (Docker)          | ⬜ Planned | 053          |
+| 16.2  | Generic Package Registry             | ⬜ Planned | 054          |
+| 16.3  | Release Asset Enhancements           | ⬜ Planned | —            |
+| 17.1  | Git LFS Support                      | ⬜ Planned | 055          |
+| 17.2  | Signed Commit Verification (GPG/SSH) | ⬜ Planned | —            |
+| 17.3  | Secret Scanning                      | ⬜ Planned | 056          |
+| 18.1  | CI/CD Pipeline Runner (basic)        | ⬜ Planned | 057          |
+| 18.2  | Pipeline YAML Config & UI            | ⬜ Planned | 058          |
+| 18.3  | CI Status Dashboard                  | ⬜ Planned | —            |
+| 19.1  | LDAP / SAML Improvements             | ⬜ Planned | —            |
+| 19.2  | IP Allowlisting & Access Policies    | ⬜ Planned | 059          |
+| 19.3  | API Rate Limiting & Quotas           | ⬜ Planned | 060          |
+| 20.1  | S3/GCS Storage Backend               | ⬜ Planned | —            |
+| 20.2  | Instance Clustering / HA             | ⬜ Planned | —            |
+| 20.3  | GraphQL API v2                       | ⬜ Planned | —            |
+
+**Critical files touched by every phase:**
+
+- `internal/router/router.go` — register new routes + add page names to `pageNames`
+- `internal/handler/viewmodels.go` — add data structs for new pages/fragments
+- `internal/service/services.go` — wire new service into `Services` struct + `New()`
+- `internal/store/stores.go` — wire new store into `Stores` struct + `New()`
+- `internal/handler/page_handler.go` — extend existing page handlers with new data fetches
 
 ---
