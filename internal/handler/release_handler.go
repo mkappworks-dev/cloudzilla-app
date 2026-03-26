@@ -9,6 +9,8 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/markdown"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
 func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
@@ -39,14 +41,14 @@ func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
 		releases = []model.Release{}
 	}
 
-	h.render(w, "releases", ReleasesData{
+	h.render(w, r, pages.Releases(view.ReleasesData{
 		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
 		Releases: releases,
 		CanWrite: canWrite,
-	})
+	}))
 }
 
 func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +80,7 @@ func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, "release_detail", ReleaseDetailData{
+	h.render(w, r, pages.ReleaseDetail(view.ReleaseDetailData{
 		BasePage: basePage(r, h.Services),
 		Repo:     *repo,
 		Owner:    owner,
@@ -86,7 +88,7 @@ func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 		Release:  *release,
 		BodyHTML: markdown.Render(release.Body),
 		CanWrite: canWrite,
-	})
+	}))
 }
 
 func (h *Handler) ListReleases(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,144 @@
+package pages
+
+import (
+	"strconv"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Milestones(data view.MilestonesData) {
+	@layout.Base(data.BasePage, "Milestones · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-6">
+			<div class="flex items-center justify-between">
+				<div>
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline text-sm font-medium">{ data.Owner }/{ data.RepoName }</a>
+					<span class="text-gray-400 mx-1">/</span>
+					<span class="text-sm font-medium text-gray-700">Milestones</span>
+				</div>
+				if data.CanWrite {
+					<details class="relative">
+						<summary class="px-4 py-2 bg-green-600 text-white rounded font-medium hover:bg-green-700 transition-colors cursor-pointer text-sm list-none">
+							New milestone
+						</summary>
+						<div class="absolute right-0 mt-2 w-96 bg-white border border-gray-200 rounded-lg shadow-lg p-4 z-10">
+							<h3 class="font-semibold text-gray-900 mb-3">Create milestone</h3>
+							<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones" } hx-target="#milestones-list" hx-swap="outerHTML" class="space-y-3">
+								<div>
+									<label class="block text-xs font-medium text-gray-700 mb-1">Title <span class="text-red-500">*</span></label>
+									<input type="text" name="title" required class="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"/>
+								</div>
+								<div>
+									<label class="block text-xs font-medium text-gray-700 mb-1">Description</label>
+									<textarea name="description" rows="2" class="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"></textarea>
+								</div>
+								<div>
+									<label class="block text-xs font-medium text-gray-700 mb-1">Due date</label>
+									<input type="date" name="due_date" class="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"/>
+								</div>
+								<div class="flex justify-end gap-2">
+									<button type="submit" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors">
+										Create milestone
+									</button>
+								</div>
+							</form>
+						</div>
+					</details>
+				}
+			</div>
+			<div id="milestones-list" class="space-y-4">
+				if len(data.OpenMilestones) == 0 && len(data.ClosedMilestones) == 0 {
+					<div class="text-center py-12 text-gray-400">
+						<p class="text-sm">No milestones yet.</p>
+						if data.CanWrite {
+							<p class="text-xs mt-1">Create one to start tracking progress.</p>
+						}
+					</div>
+				} else {
+					if len(data.OpenMilestones) > 0 {
+						<div>
+							<h2 class="text-sm font-semibold text-gray-700 mb-2">Open ({ strconv.Itoa(len(data.OpenMilestones)) })</h2>
+							<div class="space-y-3">
+								for _, m := range data.OpenMilestones {
+									<div class="bg-white border border-gray-200 rounded-lg p-4">
+										<div class="flex items-start justify-between gap-2">
+											<div class="flex-1 min-w-0">
+												<h3 class="font-semibold text-gray-900">{ m.Title }</h3>
+												if m.Description != "" {
+													<p class="text-sm text-gray-500 mt-0.5 truncate">{ m.Description }</p>
+												}
+												if m.DueDate != nil {
+													<p class="text-xs text-gray-400 mt-1">Due { m.DueDate.Format("Jan 2, 2006") }</p>
+												}
+												if m.OpenCount+m.ClosedCount > 0 {
+													<div class="mt-2">
+														<div class="flex items-center gap-2 text-xs text-gray-500 mb-1">
+															<span>{ strconv.Itoa(m.ClosedCount) } / { strconv.Itoa(m.OpenCount + m.ClosedCount) } issues closed</span>
+														</div>
+														<div class="w-full bg-gray-200 rounded-full h-1.5">
+															<div class="bg-green-500 h-1.5 rounded-full" style={ "width: " + strconv.Itoa(view.Percent(m.ClosedCount, m.OpenCount+m.ClosedCount)) + "%" }></div>
+														</div>
+													</div>
+												} else {
+													<p class="text-xs text-gray-400 mt-1">No issues assigned</p>
+												}
+											</div>
+											if data.CanWrite {
+												<div class="flex gap-2 shrink-0">
+													<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(m.Number) } hx-vals="{&quot;state&quot;:&quot;closed&quot;}" hx-target="#milestones-list" hx-swap="outerHTML" class="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 border border-gray-200 rounded hover:bg-gray-50">
+														Close
+													</button>
+													<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(m.Number) } hx-target="#milestones-list" hx-swap="outerHTML" hx-confirm="Delete this milestone?" class="text-xs text-red-500 hover:text-red-700 px-2 py-1 border border-red-200 rounded hover:bg-red-50">
+														Delete
+													</button>
+												</div>
+											}
+										</div>
+									</div>
+								}
+							</div>
+						</div>
+					}
+					if len(data.ClosedMilestones) > 0 {
+						<div>
+							<h2 class="text-sm font-semibold text-gray-700 mb-2">Closed ({ strconv.Itoa(len(data.ClosedMilestones)) })</h2>
+							<div class="space-y-3">
+								for _, m := range data.ClosedMilestones {
+									<div class="bg-white border border-gray-200 rounded-lg p-4 opacity-70">
+										<div class="flex items-start justify-between gap-2">
+											<div class="flex-1 min-w-0">
+												<h3 class="font-semibold text-gray-900 line-through">{ m.Title }</h3>
+												if m.Description != "" {
+													<p class="text-sm text-gray-500 mt-0.5 truncate">{ m.Description }</p>
+												}
+												if m.ClosedAt != nil {
+													<p class="text-xs text-gray-400 mt-1">Closed { m.ClosedAt.Format("Jan 2, 2006") }</p>
+												}
+												if m.OpenCount+m.ClosedCount > 0 {
+													<div class="mt-2">
+														<div class="w-full bg-gray-200 rounded-full h-1.5">
+															<div class="bg-green-500 h-1.5 rounded-full" style={ "width: " + strconv.Itoa(view.Percent(m.ClosedCount, m.OpenCount+m.ClosedCount)) + "%" }></div>
+														</div>
+													</div>
+												}
+											</div>
+											if data.CanWrite {
+												<div class="flex gap-2 shrink-0">
+													<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(m.Number) } hx-vals="{&quot;state&quot;:&quot;open&quot;}" hx-target="#milestones-list" hx-swap="outerHTML" class="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 border border-blue-200 rounded hover:bg-blue-50">
+														Reopen
+													</button>
+													<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(m.Number) } hx-target="#milestones-list" hx-swap="outerHTML" hx-confirm="Delete this milestone?" class="text-xs text-red-500 hover:text-red-700 px-2 py-1 border border-red-200 rounded hover:bg-red-50">
+														Delete
+													</button>
+												</div>
+											}
+										</div>
+									</div>
+								}
+							</div>
+						</div>
+					}
+				}
+			</div>
+		</div>
+	}
+}

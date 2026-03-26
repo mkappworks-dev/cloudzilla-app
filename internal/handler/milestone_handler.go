@@ -9,6 +9,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
 func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +44,7 @@ func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h.render(w, "milestones", MilestonesData{
+	h.render(w, r, pages.Milestones(view.MilestonesData{
 		BasePage:         basePage(r, h.Services),
 		Repo:             *repo,
 		Owner:            owner,
@@ -50,7 +52,7 @@ func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
 		OpenMilestones:   open,
 		ClosedMilestones: closed,
 		CanWrite:         canWrite,
-	})
+	}))
 }
 
 // ─── API handlers ────────────────────────────────────────────────────────────
