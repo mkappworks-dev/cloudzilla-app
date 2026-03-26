@@ -11,6 +11,8 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/markdown"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 func (h *Handler) ListLineComments(w http.ResponseWriter, r *http.Request) {
@@ -90,7 +92,7 @@ func (h *Handler) CreateLineComment(w http.ResponseWriter, r *http.Request) {
 		if repo != nil {
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
-		h.renderFragment(w, "fragment-line-comments", LineCommentsFragData{
+		h.render(w, r, fragments.LineComments(view.LineCommentsFragData{
 			Owner:      owner,
 			RepoName:   repoName,
 			PullNumber: number,
@@ -98,7 +100,7 @@ func (h *Handler) CreateLineComment(w http.ResponseWriter, r *http.Request) {
 			Line:       comment.Line,
 			Comments:   lineComments,
 			CanWrite:   canWrite,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusCreated, comment)
@@ -117,13 +119,13 @@ func (h *Handler) GetLineCommentForm(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
 	line, _ := strconv.Atoi(r.URL.Query().Get("line"))
 
-	h.renderFragment(w, "fragment-line-comment-form", LineCommentFormFragData{
+	h.render(w, r, fragments.LineCommentForm(view.LineCommentFormFragData{
 		Owner:      owner,
 		RepoName:   repoName,
 		PullNumber: number,
 		Path:       path,
 		Line:       line,
-	})
+	}))
 }
 
 func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
@@ -181,7 +183,7 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 		if repo != nil {
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
-		h.renderFragment(w, "fragment-line-comments", LineCommentsFragData{
+		h.render(w, r, fragments.LineComments(view.LineCommentsFragData{
 			Owner:      owner,
 			RepoName:   repoName,
 			PullNumber: number,
@@ -189,7 +191,7 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 			Line:       deletedComment.Line,
 			Comments:   lineComments,
 			CanWrite:   canWrite,
-		})
+		}))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -254,7 +256,7 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 		if repo != nil {
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
-		h.renderFragment(w, "fragment-line-comments", LineCommentsFragData{
+		h.render(w, r, fragments.LineComments(view.LineCommentsFragData{
 			Owner:      owner,
 			RepoName:   repoName,
 			PullNumber: number,
@@ -262,7 +264,7 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 			Line:       comment.Line,
 			Comments:   lineComments,
 			CanWrite:   canWrite,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusOK, comment)

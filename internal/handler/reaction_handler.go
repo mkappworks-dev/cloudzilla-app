@@ -7,6 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 // ListReactions returns the fragment-reactions snippet for one comment.
@@ -46,13 +48,13 @@ func (h *Handler) ListReactions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reactions, _ := h.Services.Reaction.List(r.Context(), commentID, callerID)
-	h.renderFragment(w, "fragment-reactions", ReactionFragData{
+	h.render(w, r, fragments.Reactions(view.ReactionFragData{
 		Owner:     owner,
 		RepoName:  repoName,
 		CommentID: commentID,
 		Reactions: reactions,
 		LoggedIn:  loggedIn,
-	})
+	}))
 }
 
 // ToggleReaction adds or removes a reaction and returns the updated fragment.
@@ -101,11 +103,11 @@ func (h *Handler) ToggleReaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reactions, _ := h.Services.Reaction.List(r.Context(), commentID, claims.UserID)
-	h.renderFragment(w, "fragment-reactions", ReactionFragData{
+	h.render(w, r, fragments.Reactions(view.ReactionFragData{
 		Owner:     owner,
 		RepoName:  repoName,
 		CommentID: commentID,
 		Reactions: reactions,
 		LoggedIn:  true,
-	})
+	}))
 }

@@ -7,6 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 func (h *Handler) ListReviews(w http.ResponseWriter, r *http.Request) {
@@ -74,16 +76,16 @@ func (h *Handler) SubmitReview(w http.ResponseWriter, r *http.Request) {
 		if repo != nil {
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
-		h.renderFragment(w, "fragment-pr-reviews", PRReviewsFragData{
-			Owner:           owner,
-			RepoName:        repoName,
-			PullNumber:      number,
-			Reviews:         reviews,
-			CanWrite:        canWrite,
-			PullOpen:        pr != nil && pr.State == "open",
-			CanMerge:        canMerge,
+		h.render(w, r, fragments.PRReviews(view.PRReviewsFragData{
+			Owner:            owner,
+			RepoName:         repoName,
+			PullNumber:       number,
+			Reviews:          reviews,
+			CanWrite:         canWrite,
+			PullOpen:         pr != nil && pr.State == "open",
+			CanMerge:         canMerge,
 			MergeBlockReason: mergeBlockReason,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusCreated, review)

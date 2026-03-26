@@ -1,0 +1,59 @@
+package fragments
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+)
+
+templ LineComments(data view.LineCommentsFragData) {
+	<tr id={ "lc-" + data.Path + "-" + strconv.Itoa(data.Line) } class="bg-blue-50 border-t border-blue-100">
+		<td colspan="2" class="px-4 py-0">
+			for _, c := range data.Comments {
+				<div class="flex items-start gap-2 py-2 border-b border-blue-100 last:border-0">
+					<div class="w-6 h-6 rounded-full bg-blue-400 flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
+						{ string([]rune(c.AuthorName)[0:1]) }
+					</div>
+					<div class="flex-1 min-w-0">
+						<div class="flex items-center gap-2">
+							<a href={ templ.SafeURL("/" + c.AuthorName) } class="text-xs font-semibold hover:underline">{ c.AuthorName }</a>
+							<span class="text-xs text-gray-400">{ c.CreatedAt.Format("Jan 2, 2006") }</span>
+						</div>
+						<div class="text-xs text-gray-700 mt-0.5 prose prose-xs max-w-none">@templ.Raw(c.BodyHTML)</div>
+					</div>
+					if data.CanWrite {
+						<button
+							hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments/" + strconv.FormatInt(c.ID, 10) }
+							hx-target={ "#lc-" + data.Path + "-" + strconv.Itoa(data.Line) }
+							hx-swap="outerHTML"
+							class="text-gray-300 hover:text-red-400 text-xs shrink-0"
+						>&times;</button>
+					}
+				</div>
+			}
+			<div id={ "lc-form-" + data.Path + "-" + strconv.Itoa(data.Line) }></div>
+		</td>
+	</tr>
+}
+
+templ LineCommentForm(data view.LineCommentFormFragData) {
+	<form
+		hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments" }
+		hx-target={ "#lc-" + data.Path + "-" + strconv.Itoa(data.Line) }
+		hx-swap="outerHTML"
+		class="p-2 space-y-2"
+	>
+		<input type="hidden" name="path" value={ data.Path }/>
+		<input type="hidden" name="line" value={ strconv.Itoa(data.Line) }/>
+		<input type="hidden" name="diff_side" value="right"/>
+		<textarea name="body" rows="2" placeholder="Leave a comment..." required class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"></textarea>
+		<div class="flex gap-2">
+			<button type="submit" class="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700">
+				Comment
+			</button>
+			<button type="button" onclick="this.closest('form').remove()" class="px-3 py-1 bg-white border border-gray-300 text-gray-600 rounded text-xs hover:bg-gray-50">
+				Cancel
+			</button>
+		</div>
+	</form>
+}

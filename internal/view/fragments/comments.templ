@@ -1,0 +1,13 @@
+package fragments
+
+import "github.com/mkappworks/cloudzilla/internal/view"
+
+templ Comments(data view.CommentsFragData) {
+	for _, c := range data.Comments {
+		<div class="bg-white border border-gray-200 rounded-lg p-4">
+			<div class="font-semibold text-sm text-gray-700">{ c.AuthorName }</div>
+			<div class="text-xs text-gray-500 mb-2">{ c.CreatedAt.Format("Jan 2, 2006 at 3:04 PM") }</div>
+			<div class="prose prose-sm max-w-none text-gray-800">@templ.Raw(c.BodyHTML)</div>
+		</div>
+	}
+}

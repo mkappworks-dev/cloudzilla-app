@@ -10,6 +10,8 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/markdown"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 type createCommentRequest struct {
@@ -84,9 +86,9 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderFragment(w, "fragment-comment", CommentFragData{
-			Comment: RenderedComment{Comment: *comment, BodyHTML: markdown.Render(comment.Body)},
-		})
+		h.render(w, r, fragments.Comment(view.CommentFragData{
+			Comment: view.RenderedComment{Comment: *comment, BodyHTML: markdown.Render(comment.Body)},
+		}))
 		return
 	}
 	writeJSON(w, http.StatusCreated, comment)
@@ -130,9 +132,9 @@ func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderFragment(w, "fragment-comment", CommentFragData{
-			Comment: RenderedComment{Comment: *comment, BodyHTML: markdown.Render(comment.Body)},
-		})
+		h.render(w, r, fragments.Comment(view.CommentFragData{
+			Comment: view.RenderedComment{Comment: *comment, BodyHTML: markdown.Render(comment.Body)},
+		}))
 		return
 	}
 	writeJSON(w, http.StatusOK, comment)
@@ -193,5 +195,5 @@ func (h *Handler) IssueCommentsFragment(w http.ResponseWriter, r *http.Request) 
 	for i, c := range comments {
 		renderedComments[i] = RenderedComment{Comment: c, BodyHTML: markdown.Render(c.Body)}
 	}
-	h.renderFragment(w, "fragment-comments", CommentsFragData{Comments: renderedComments})
+	h.render(w, r, fragments.Comments(view.CommentsFragData{Comments: renderedComments}))
 }
