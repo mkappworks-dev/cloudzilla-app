@@ -32,6 +32,25 @@ type TagInfo struct {
 	Hash string
 }
 
+// IssueTemplate holds a parsed issue template file.
+type IssueTemplate struct {
+	Slug string // URL-safe key: filename without .md extension
+	Name string // Display name: slug with dashes/underscores replaced by spaces
+	Body string
+}
+
+// templateName converts a filename to a display name.
+// "bug_report.md" → "bug report", "feature-request.md" → "feature request"
+func templateName(filename string) string {
+	name := strings.TrimSuffix(filename, ".md")
+	if name == filename {
+		return name // no .md suffix — return as-is
+	}
+	name = strings.ReplaceAll(name, "-", " ")
+	name = strings.ReplaceAll(name, "_", " ")
+	return name
+}
+
 type RefsResult struct {
 	Branches []BranchInfo
 	Tags     []TagInfo
@@ -680,6 +699,82 @@ func (s *CodeService) ListRefs(owner, repoName, defaultBranch string) (*RefsResu
 	sort.Slice(tags, func(i, j int) bool { return tags[i].Name < tags[j].Name })
 
 	return &RefsResult{Branches: branches, Tags: tags}, nil
+}
+
+// GetIssueTemplates reads .github/ISSUE_TEMPLATE/*.md from the default branch.
+// Falls back to .github/ISSUE_TEMPLATE.md if the directory is absent.
+// Returns nil (not an error) if no templates exist.
+func (s *CodeService) GetIssueTemplates(owner, repoName, defaultBranch string) ([]IssueTemplate, error) {
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return nil, err
+	}
+	commit, _, err := resolveRef(repo, defaultBranch)
+	if err != nil {
+		return nil, err
+	}
+	tree, err := commit.Tree()
+	if err != nil {
+		return nil, err
+	}
+
+	// Try .github/ISSUE_TEMPLATE/ directory first
+	if dirTree, err := tree.Tree(".github/ISSUE_TEMPLATE"); err == nil {
+		var templates []IssueTemplate
+		for _, entry := range dirTree.Entries {
+			if entry.Mode != filemode.Regular && entry.Mode != filemode.Executable {
+				continue
+			}
+			if !strings.HasSuffix(entry.Name, ".md") {
+				continue
+			}
+			f, ferr := dirTree.File(entry.Name)
+			if ferr != nil {
+				continue
+			}
+			body, berr := f.Contents()
+			if berr != nil {
+				continue
+			}
+			slug := strings.TrimSuffix(entry.Name, ".md")
+			templates = append(templates, IssueTemplate{Slug: slug, Name: templateName(entry.Name), Body: body})
+		}
+		if len(templates) > 0 {
+			return templates, nil
+		}
+	}
+
+	// Fall back to single .github/ISSUE_TEMPLATE.md
+	if f, err := tree.File(".github/ISSUE_TEMPLATE.md"); err == nil {
+		body, berr := f.Contents()
+		if berr != nil {
+			return nil, berr
+		}
+		return []IssueTemplate{{Slug: "issue", Name: "Issue", Body: body}}, nil
+	}
+	return nil, nil
+}
+
+// GetPRTemplate reads .github/PULL_REQUEST_TEMPLATE.md from the default branch.
+// Returns "" (not an error) when the file does not exist.
+func (s *CodeService) GetPRTemplate(owner, repoName, defaultBranch string) (string, error) {
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return "", err
+	}
+	commit, _, err := resolveRef(repo, defaultBranch)
+	if err != nil {
+		return "", err
+	}
+	tree, err := commit.Tree()
+	if err != nil {
+		return "", err
+	}
+	f, err := tree.File(".github/PULL_REQUEST_TEMPLATE.md")
+	if err != nil {
+		return "", nil // file absent — not an error
+	}
+	return f.Contents()
 }
 
 // CreateBranch creates a new branch pointing to the resolved fromRef commit.
