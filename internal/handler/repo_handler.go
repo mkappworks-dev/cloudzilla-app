@@ -8,6 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 type createRepoRequest struct {
@@ -129,13 +131,13 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		if collabs == nil {
 			collabs = []model.Permission{}
 		}
-		h.renderFragment(w, "fragment-repo-collaborators", RepoCollaboratorsFragData{
+		h.render(w, r, fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
 			Owner:    owner,
 			RepoName: repoName,
 			RepoID:   repo.ID,
 			Collabs:  collabs,
 			CanWrite: true,
-		})
+		}))
 		return
 	}
 
@@ -220,13 +222,13 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 		if collabs == nil {
 			collabs = []model.Permission{}
 		}
-		h.renderFragment(w, "fragment-repo-collaborators", RepoCollaboratorsFragData{
+		h.render(w, r, fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
 			Owner:    owner,
 			RepoName: repoName,
 			RepoID:   repo.ID,
 			Collabs:  collabs,
 			CanWrite: true,
-		})
+		}))
 		return
 	}
 

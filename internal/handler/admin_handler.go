@@ -8,6 +8,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
@@ -55,7 +56,7 @@ func (h *Handler) UpdateSiteSetting(w http.ResponseWriter, r *http.Request) {
 		if settings == nil {
 			settings = []model.SiteSetting{}
 		}
-		h.renderFragment(w, "fragment-admin-settings", AdminSettingsFragData{Settings: settings})
+		h.render(w, r, fragments.AdminSettings(view.AdminSettingsFragData{Settings: settings}))
 		return
 	}
 
@@ -86,7 +87,7 @@ func (h *Handler) CreateInvitation(w http.ResponseWriter, r *http.Request) {
 		if invitations == nil {
 			invitations = []model.Invitation{}
 		}
-		h.renderFragment(w, "fragment-admin-invitations", AdminInvitationsFragData{Invitations: invitations})
+		h.render(w, r, fragments.AdminInvitations(view.AdminInvitationsFragData{Invitations: invitations}))
 		return
 	}
 
@@ -116,7 +117,7 @@ func (h *Handler) DeleteInvitation(w http.ResponseWriter, r *http.Request) {
 		if invitations == nil {
 			invitations = []model.Invitation{}
 		}
-		h.renderFragment(w, "fragment-admin-invitations", AdminInvitationsFragData{Invitations: invitations})
+		h.render(w, r, fragments.AdminInvitations(view.AdminInvitationsFragData{Invitations: invitations}))
 		return
 	}
 

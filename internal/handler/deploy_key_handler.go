@@ -6,6 +6,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 func (h *Handler) ListDeployKeys(w http.ResponseWriter, r *http.Request) {
@@ -69,13 +71,13 @@ func (h *Handler) AddDeployKey(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("HX-Request") == "true" {
 		keys, _ := h.Services.DeployKey.List(r.Context(), repo.ID)
-		h.renderFragment(w, "fragment-deploy-keys", DeployKeysFragData{
+		h.render(w, r, fragments.DeployKeys(view.DeployKeysFragData{
 			Owner:      owner,
 			RepoName:   repoName,
 			RepoID:     repo.ID,
 			DeployKeys: keys,
 			CanManage:  true,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusCreated, dk)
@@ -115,13 +117,13 @@ func (h *Handler) DeleteDeployKey(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("HX-Request") == "true" {
 		keys, _ := h.Services.DeployKey.List(r.Context(), repo.ID)
-		h.renderFragment(w, "fragment-deploy-keys", DeployKeysFragData{
+		h.render(w, r, fragments.DeployKeys(view.DeployKeysFragData{
 			Owner:      owner,
 			RepoName:   repoName,
 			RepoID:     repo.ID,
 			DeployKeys: keys,
 			CanManage:  true,
-		})
+		}))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

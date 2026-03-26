@@ -1,0 +1,36 @@
+package fragments
+
+import "github.com/mkappworks/cloudzilla/internal/view"
+
+templ AdminSettings(data view.AdminSettingsFragData) {
+	<div id="admin-settings-list" class="space-y-3">
+		if len(data.Settings) > 0 {
+			for _, setting := range data.Settings {
+				<div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+					<div>
+						<p class="text-sm font-medium">{ setting.Key }</p>
+					</div>
+					<form
+						hx-post="/api/admin/settings"
+						hx-target="#admin-settings-list"
+						hx-swap="outerHTML"
+						class="flex items-center gap-3"
+					>
+						<input type="hidden" name="key" value={ setting.Key }/>
+						if setting.Value == "true" {
+							<span class="text-xs text-green-600 font-medium">Enabled</span>
+							<input type="hidden" name="value" value="false"/>
+							<button type="submit" class="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Disable</button>
+						} else {
+							<span class="text-xs text-gray-400 font-medium">Disabled</span>
+							<input type="hidden" name="value" value="true"/>
+							<button type="submit" class="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Enable</button>
+						}
+					</form>
+				</div>
+			}
+		} else {
+			<p class="text-gray-500 text-sm">No settings found.</p>
+		}
+	</div>
+}

@@ -1,0 +1,40 @@
+package fragments
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+)
+
+templ WebhooksList(data view.WebhooksFragData) {
+	<div id="webhooks-list" class="space-y-2">
+		if len(data.Webhooks) > 0 {
+			for _, wh := range data.Webhooks {
+				<div class="border border-gray-200 rounded-lg p-4 flex justify-between items-start">
+					<div>
+						<p class="font-medium text-sm font-mono break-all">{ wh.URL }</p>
+						<p class="text-xs text-gray-500 mt-1">Events: { wh.Events }</p>
+						if wh.Active {
+							<p class="text-xs mt-1 text-green-600">Active</p>
+						} else {
+							<p class="text-xs mt-1 text-gray-400">Inactive</p>
+						}
+					</div>
+					if data.CanWrite {
+						<button
+							hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10) }
+							hx-target="#webhooks-list"
+							hx-swap="outerHTML"
+							hx-confirm="Delete this webhook?"
+							class="text-xs text-red-600 hover:underline ml-4 shrink-0"
+						>
+							Delete
+						</button>
+					}
+				</div>
+			}
+		} else {
+			<p class="text-gray-500 text-sm">No webhooks configured.</p>
+		}
+	</div>
+}

@@ -8,6 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 type createWebhookRequest struct {
@@ -85,13 +87,13 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		if hooks == nil {
 			hooks = []model.Webhook{}
 		}
-		h.renderFragment(w, "fragment-webhooks-list", WebhooksFragData{
+		h.render(w, r, fragments.WebhooksList(view.WebhooksFragData{
 			Owner:    owner,
 			RepoName: repoName,
 			RepoID:   repo.ID,
 			Webhooks: hooks,
 			CanWrite: true,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusCreated, wh)
@@ -128,13 +130,13 @@ func (h *Handler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
 		if hooks == nil {
 			hooks = []model.Webhook{}
 		}
-		h.renderFragment(w, "fragment-webhooks-list", WebhooksFragData{
+		h.render(w, r, fragments.WebhooksList(view.WebhooksFragData{
 			Owner:    owner,
 			RepoName: repoName,
 			RepoID:   repo.ID,
 			Webhooks: hooks,
 			CanWrite: true,
-		})
+		}))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

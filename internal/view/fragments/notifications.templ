@@ -1,0 +1,67 @@
+package fragments
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+)
+
+templ NotificationsList(data view.NotificationsFragData) {
+	<div id="notifications-list" class="space-y-2">
+		if len(data.Notifications) > 0 {
+			for _, notif := range data.Notifications {
+				if !notif.Read {
+					<div class="bg-white border border-gray-200 rounded-lg p-4 flex justify-between items-start border-l-4 border-l-blue-500">
+						@notificationItem(notif)
+					</div>
+				} else {
+					<div class="bg-white border border-gray-200 rounded-lg p-4 flex justify-between items-start">
+						@notificationItem(notif)
+					</div>
+				}
+			}
+		} else {
+			<div class="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-500">
+				No notifications yet.
+			</div>
+		}
+	</div>
+}
+
+templ notificationItem(notif model.Notification) {
+	<div>
+		<p class="text-sm">
+			<span class="font-medium">{ notif.ActorName }</span>
+			switch notif.Type {
+				case model.NotifIssueComment:
+					commented on issue
+				case model.NotifPRComment:
+					commented on PR
+				case model.NotifIssueClosed:
+					closed issue
+				case model.NotifIssueReopened:
+					reopened issue
+				case model.NotifPRMerged:
+					merged PR
+				case model.NotifPRClosed:
+					closed PR
+				case model.NotifPROpened:
+					opened PR
+			}
+			in <a href={ templ.SafeURL("/" + notif.OwnerName + "/" + notif.RepoName) } class="text-blue-600 hover:underline">{ notif.OwnerName }/{ notif.RepoName }</a>
+		</p>
+		<a href={ templ.SafeURL(notif.SubjectURL) } class="text-xs text-blue-600 hover:underline mt-1 block">View →</a>
+		<p class="text-xs text-gray-400 mt-1">{ notif.CreatedAt.Format("Jan 2, 2006 15:04") }</p>
+	</div>
+	if !notif.Read {
+		<button
+			hx-patch={ "/api/notifications/" + strconv.FormatInt(notif.ID, 10) }
+			hx-target="#notifications-list"
+			hx-swap="outerHTML"
+			class="text-xs text-gray-500 hover:text-gray-700 ml-4 shrink-0"
+		>
+			Mark read
+		</button>
+	}
+}

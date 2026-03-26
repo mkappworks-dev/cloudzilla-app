@@ -1,0 +1,43 @@
+package fragments
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+)
+
+templ AdminInvitations(data view.AdminInvitationsFragData) {
+	<div id="admin-invitations-list" class="space-y-2">
+		if len(data.Invitations) > 0 {
+			for _, inv := range data.Invitations {
+				<div class="border border-gray-200 rounded-lg p-4 flex justify-between items-start">
+					<div class="space-y-1">
+						<p class="text-sm font-medium">{ inv.Email }</p>
+						<p class="text-xs text-gray-500 font-mono break-all">/invite/{ inv.Token }</p>
+						<div class="flex gap-3 text-xs text-gray-400">
+							<span>Expires: { inv.ExpiresAt.Format("2006-01-02") }</span>
+							if inv.AcceptedAt != nil {
+								<span class="text-green-600">Accepted</span>
+							} else {
+								<span class="text-yellow-600">Pending</span>
+							}
+						</div>
+					</div>
+					if inv.AcceptedAt == nil {
+						<button
+							hx-delete={ "/api/admin/invitations/" + strconv.FormatInt(inv.ID, 10) }
+							hx-target="#admin-invitations-list"
+							hx-swap="outerHTML"
+							hx-confirm="Delete this invitation?"
+							class="text-xs text-red-600 hover:underline ml-4 shrink-0"
+						>
+							Delete
+						</button>
+					}
+				</div>
+			}
+		} else {
+			<p class="text-gray-500 text-sm">No invitations yet.</p>
+		}
+	</div>
+}

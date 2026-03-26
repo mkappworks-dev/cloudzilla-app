@@ -8,6 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 func (h *Handler) AddSSHKey(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +56,7 @@ func (h *Handler) AddSSHKey(w http.ResponseWriter, r *http.Request) {
 		if keys == nil {
 			keys = []model.SSHKey{}
 		}
-		h.renderFragment(w, "fragment-ssh-keys-list", SettingsData{SSHKeys: keys})
+		h.render(w, r, fragments.SSHKeysList(view.SSHKeysFragData{SSHKeys: keys}))
 		return
 	}
 
@@ -102,7 +104,7 @@ func (h *Handler) DeleteSSHKey(w http.ResponseWriter, r *http.Request) {
 		if keys == nil {
 			keys = []model.SSHKey{}
 		}
-		h.renderFragment(w, "fragment-ssh-keys-list", SettingsData{SSHKeys: keys})
+		h.render(w, r, fragments.SSHKeysList(view.SSHKeysFragData{SSHKeys: keys}))
 		return
 	}
 

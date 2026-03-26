@@ -7,6 +7,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 type createOrgRequest struct {
@@ -121,11 +123,11 @@ func (h *Handler) AddOrgMember(w http.ResponseWriter, r *http.Request) {
 
 	canManage := h.Services.Org.IsOwner(r.Context(), org.ID, claims.UserID)
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderFragment(w, "fragment-org-members", OrgMembersFragData{
+		h.render(w, r, fragments.OrgMembers(view.OrgMembersFragData{
 			OrgName:   orgName,
 			Members:   members,
 			CanManage: canManage,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]string{"status": "ok"})
@@ -164,11 +166,11 @@ func (h *Handler) RemoveOrgMember(w http.ResponseWriter, r *http.Request) {
 
 	canManage := h.Services.Org.IsOwner(r.Context(), org.ID, claims.UserID)
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderFragment(w, "fragment-org-members", OrgMembersFragData{
+		h.render(w, r, fragments.OrgMembers(view.OrgMembersFragData{
 			OrgName:   orgName,
 			Members:   members,
 			CanManage: canManage,
-		})
+		}))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

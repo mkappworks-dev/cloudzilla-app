@@ -8,6 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 func (h *Handler) ListBranchProtections(w http.ResponseWriter, r *http.Request) {
@@ -86,13 +88,13 @@ func (h *Handler) CreateBranchProtection(w http.ResponseWriter, r *http.Request)
 
 	if r.Header.Get("HX-Request") == "true" {
 		rules, _ := h.Services.BranchProtection.List(r.Context(), repo.ID)
-		h.renderFragment(w, "fragment-branch-protections", BranchProtectionsFragData{
+		h.render(w, r, fragments.BranchProtections(view.BranchProtectionsFragData{
 			Owner:     owner,
 			RepoName:  repoName,
 			RepoID:    repo.ID,
 			Rules:     rules,
 			CanManage: true,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusCreated, bp)
@@ -149,13 +151,13 @@ func (h *Handler) UpdateBranchProtection(w http.ResponseWriter, r *http.Request)
 
 	if r.Header.Get("HX-Request") == "true" {
 		rules, _ := h.Services.BranchProtection.List(r.Context(), repo.ID)
-		h.renderFragment(w, "fragment-branch-protections", BranchProtectionsFragData{
+		h.render(w, r, fragments.BranchProtections(view.BranchProtectionsFragData{
 			Owner:     owner,
 			RepoName:  repoName,
 			RepoID:    repo.ID,
 			Rules:     rules,
 			CanManage: true,
-		})
+		}))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -195,13 +197,13 @@ func (h *Handler) DeleteBranchProtection(w http.ResponseWriter, r *http.Request)
 
 	if r.Header.Get("HX-Request") == "true" {
 		rules, _ := h.Services.BranchProtection.List(r.Context(), repo.ID)
-		h.renderFragment(w, "fragment-branch-protections", BranchProtectionsFragData{
+		h.render(w, r, fragments.BranchProtections(view.BranchProtectionsFragData{
 			Owner:     owner,
 			RepoName:  repoName,
 			RepoID:    repo.ID,
 			Rules:     rules,
 			CanManage: true,
-		})
+		}))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

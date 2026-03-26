@@ -5,6 +5,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 func (h *Handler) CreateBranch(w http.ResponseWriter, r *http.Request) {
@@ -49,13 +51,13 @@ func (h *Handler) CreateBranch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderFragment(w, "fragment-branches-list", BranchesFragData{
+		h.render(w, r, fragments.BranchesList(view.BranchesFragData{
 			Owner:         owner,
 			RepoName:      repoName,
 			Branches:      result.Branches,
 			CanWrite:      true,
 			DefaultBranch: repo.DefaultBranch,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]string{"name": name})
@@ -103,13 +105,13 @@ func (h *Handler) DeleteBranch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderFragment(w, "fragment-branches-list", BranchesFragData{
+		h.render(w, r, fragments.BranchesList(view.BranchesFragData{
 			Owner:         owner,
 			RepoName:      repoName,
 			Branches:      result.Branches,
 			CanWrite:      true,
 			DefaultBranch: repo.DefaultBranch,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"deleted": name})
@@ -157,12 +159,12 @@ func (h *Handler) CreateTag(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderFragment(w, "fragment-tags-list", TagsFragData{
+		h.render(w, r, fragments.TagsList(view.TagsFragData{
 			Owner:    owner,
 			RepoName: repoName,
 			Tags:     result.Tags,
 			CanWrite: true,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]string{"name": name})
@@ -206,12 +208,12 @@ func (h *Handler) DeleteTag(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderFragment(w, "fragment-tags-list", TagsFragData{
+		h.render(w, r, fragments.TagsList(view.TagsFragData{
 			Owner:    owner,
 			RepoName: repoName,
 			Tags:     result.Tags,
 			CanWrite: true,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"deleted": name})

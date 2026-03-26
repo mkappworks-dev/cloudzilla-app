@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
@@ -88,7 +89,7 @@ func (h *Handler) DeleteToken(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("HX-Request") == "true" {
 		tokens, _ := h.Services.AccessToken.List(r.Context(), claims.UserID)
-		h.renderFragment(w, "fragment-tokens-list", TokensListFragData{Tokens: tokens})
+		h.render(w, r, fragments.TokensList(view.TokensListFragData{Tokens: tokens}))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

@@ -40,10 +40,10 @@ func (h *Handler) ListLabels(w http.ResponseWriter, r *http.Request) {
 		if repo != nil {
 			repoID = repo.ID
 		}
-		h.renderFragment(w, "fragment-repo-labels", RepoLabelsFragData{
+		h.render(w, r, fragments.RepoLabels(view.RepoLabelsFragData{
 			Owner: owner, RepoName: repoName, RepoID: repoID,
 			Labels: labels, CanWrite: canWrite,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusOK, labels)
@@ -92,10 +92,10 @@ func (h *Handler) CreateLabel(w http.ResponseWriter, r *http.Request) {
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 			repoID = repo.ID
 		}
-		h.renderFragment(w, "fragment-repo-labels", RepoLabelsFragData{
+		h.render(w, r, fragments.RepoLabels(view.RepoLabelsFragData{
 			Owner: owner, RepoName: repoName, RepoID: repoID,
 			Labels: labels, CanWrite: canWrite,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusCreated, label)
@@ -123,10 +123,10 @@ func (h *Handler) DeleteLabel(w http.ResponseWriter, r *http.Request) {
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 			repoID = repo.ID
 		}
-		h.renderFragment(w, "fragment-repo-labels", RepoLabelsFragData{
+		h.render(w, r, fragments.RepoLabels(view.RepoLabelsFragData{
 			Owner: owner, RepoName: repoName, RepoID: repoID,
 			Labels: labels, CanWrite: canWrite,
-		})
+		}))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
