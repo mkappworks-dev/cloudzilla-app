@@ -540,3 +540,12 @@ type TokensData struct {
 type TokensListFragData struct {
 	Tokens []model.AccessToken
 }
+
+// ReactionFragData is used by fragment-reactions.
+type ReactionFragData struct {
+	Owner     string
+	RepoName  string
+	CommentID int64
+	Reactions []model.ReactionSummary
+	LoggedIn  bool
+}

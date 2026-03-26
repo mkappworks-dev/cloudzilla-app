@@ -1,0 +1,22 @@
+{{define "fragment-reactions"}}
+<div id="reactions-{{.CommentID}}" class="flex flex-wrap items-center gap-1 mt-2">
+  {{range .Reactions}}
+  <button hx-post="/api/repos/{{$.Owner}}/{{$.RepoName}}/comments/{{$.CommentID}}/reactions" hx-vals='{"emoji":"{{.Emoji}}"}' hx-target="#reactions-{{$.CommentID}}" hx-swap="outerHTML" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors hover:border-blue-400 {{if .UserReacted}}bg-blue-50 border-blue-400 text-blue-700{{else}}bg-white border-gray-300 text-gray-600{{end}}">{{emojiChar .Emoji}} <span class="text-xs font-medium">{{.Count}}</span></button>
+  {{end}}
+  {{if .LoggedIn}}
+  <details class="relative">
+    <summary class="list-none inline-flex items-center justify-center w-7 h-7 rounded-full border border-gray-200 text-gray-400 hover:border-blue-400 hover:text-blue-500 cursor-pointer text-sm transition-colors">+</summary>
+    <div class="absolute z-10 left-0 top-8 bg-white border border-gray-200 rounded-lg shadow-md p-2 flex gap-1 flex-wrap">
+      <button hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/comments/{{.CommentID}}/reactions" hx-vals='{"emoji":"+1"}' hx-target="#reactions-{{.CommentID}}" hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">👍</button>
+      <button hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/comments/{{.CommentID}}/reactions" hx-vals='{"emoji":"-1"}' hx-target="#reactions-{{.CommentID}}" hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">👎</button>
+      <button hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/comments/{{.CommentID}}/reactions" hx-vals='{"emoji":"laugh"}' hx-target="#reactions-{{.CommentID}}" hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">😄</button>
+      <button hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/comments/{{.CommentID}}/reactions" hx-vals='{"emoji":"hooray"}' hx-target="#reactions-{{.CommentID}}" hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">🎉</button>
+      <button hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/comments/{{.CommentID}}/reactions" hx-vals='{"emoji":"confused"}' hx-target="#reactions-{{.CommentID}}" hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">😕</button>
+      <button hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/comments/{{.CommentID}}/reactions" hx-vals='{"emoji":"heart"}' hx-target="#reactions-{{.CommentID}}" hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">❤️</button>
+      <button hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/comments/{{.CommentID}}/reactions" hx-vals='{"emoji":"rocket"}' hx-target="#reactions-{{.CommentID}}" hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">🚀</button>
+      <button hx-post="/api/repos/{{.Owner}}/{{.RepoName}}/comments/{{.CommentID}}/reactions" hx-vals='{"emoji":"eyes"}' hx-target="#reactions-{{.CommentID}}" hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">👀</button>
+    </div>
+  </details>
+  {{end}}
+</div>
+{{end}}

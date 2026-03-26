@@ -23,6 +23,16 @@ func mustParseTemplates(frontend fs.FS) (map[string]*template.Template, *templat
 			}
 			return part * 100 / total
 		},
+		"emojiChar": func(emoji string) string {
+			m := map[string]string{
+				"+1": "👍", "-1": "👎", "laugh": "😄", "hooray": "🎉",
+				"confused": "😕", "heart": "❤️", "rocket": "🚀", "eyes": "👀",
+			}
+			if ch, ok := m[emoji]; ok {
+				return ch
+			}
+			return emoji
+		},
 	}
 	base := template.Must(template.New("layout.html").Funcs(funcMap).ParseFS(sub, "layout.html"))
 
@@ -267,6 +277,10 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Post("/", h.AddDeployKey)
 			r.With(authMW).Delete("/{id}", h.DeleteDeployKey)
 		})
+
+		// Reactions
+		r.With(optAuthMW).Get("/{owner}/{repo}/comments/{id}/reactions", h.ListReactions)
+		r.With(authMW).Post("/{owner}/{repo}/comments/{id}/reactions", h.ToggleReaction)
 
 		// Branch protections
 		r.Route("/{owner}/{repo}/branches/protections", func(r chi.Router) {
