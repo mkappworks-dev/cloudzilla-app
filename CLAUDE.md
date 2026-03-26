@@ -5,10 +5,10 @@
 ## Architecture
 
 - **Backend**: Go 1.23+, chi router, sqlx, go-git, cobra CLI
-- **Frontend**: Go `html/template`, HTMX for partial updates, Tailwind CSS
+- **Frontend**: [Templ](https://templ.guide/) (type-safe Go HTML components), HTMX for partial updates, Tailwind CSS
 - **DB**: PostgreSQL (default and production)
 - **Pattern**: Stores → Services → Handlers (strict layer separation)
-- **Rendering**: Server-driven; no JavaScript framework, no build tooling needed
+- **Rendering**: Server-driven; no JavaScript framework; Templ components compile to Go code
 - **Git Transport**: HTTP smart protocol + SSH server (both via pure Go, no git binary required)
 - **SSH Auth**: Public key authentication via stored SSH keys
 
@@ -23,13 +23,14 @@
 - `internal/service/` — Business logic (calls stores)
 - `internal/handler/` — HTTP handlers (calls services + renders templates)
 - `internal/middleware/` — Auth, logger, CORS
-- `internal/router/` — chi route registration + template parsing
+- `internal/router/` — chi route registration
 - `internal/ssh/` — SSH server for git operations (gliderlabs/ssh)
+- `internal/view/` — Templ components (compiled to `_templ.go` files)
+  - `internal/view/layout/` — Base layout component
+  - `internal/view/pages/` — Page components (one per page)
+  - `internal/view/fragments/` — HTMX fragment components
 - `migrations/` — SQL files, embedded via embed.FS
-- `cmd/server/frontend/` — Static files + templates
-  - `templates/layout.html` — Base HTML shell
-  - `templates/pages/*.html` — Page templates (home, login, user, repo, issues, pulls, etc.)
-  - `templates/fragments/*.html` — HTMX swap fragments
+- `cmd/server/frontend/` — Static files
   - `static/main.css` — Compiled Tailwind output
   - `htmx.min.js` — HTMX library
 - `tailwind/` — Tailwind CSS config
@@ -60,13 +61,14 @@ go test ./...           # Run Go tests
 - Use `context.Context` as first arg in all service/store methods
 - JWT is read from `Authorization: Bearer` header OR `cz_token` httpOnly cookie
 
-### Templates (Go html/template)
+### Templates (Templ)
 
-- **Layout**: `{{define "layout"}}...{{template "content" .}}...{{end}}`
-- **Pages**: Each page file defines `{{define "title"}}...{{end}}` and `{{define "content"}}...{{end}}`
-- **Fragments**: Fragments define `{{define "fragment-NAME"}}...{{end}}`
+- **Layout**: `layout.Base(title, unreadCount, user)` component in `internal/view/layout/`
+- **Pages**: Each page is a `templ` component in `internal/view/pages/`; call `layout.Base(...)` and pass content as a child component
+- **Fragments**: Fragment components live in `internal/view/fragments/`; rendered directly via `component.Render(ctx, w)`
 - HTMX attributes go on HTML elements: `hx-post="/api/..."`, `hx-target="#id"`, `hx-swap="outerHTML"`
-- Template auto-escaping prevents XSS (no `html.HTML` needed for user content)
+- Templ auto-escapes all output; use `templ.Raw(...)` only for trusted HTML (e.g. rendered Markdown)
+- Regenerate Go code after editing `.templ` files: `~/go/bin/templ generate`
 
 ### CSS (Tailwind)
 
