@@ -10,6 +10,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
@@ -153,13 +154,13 @@ func (h *Handler) CreateMilestone(w http.ResponseWriter, r *http.Request) {
 		if repo != nil {
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
-		h.renderFragment(w, "fragment-milestones-list", MilestonesListFragData{
+		h.render(w, r, fragments.MilestonesList(view.MilestonesListFragData{
 			Owner:            owner,
 			RepoName:         repoName,
 			OpenMilestones:   open,
 			ClosedMilestones: closed,
 			CanWrite:         canWrite,
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusCreated, m)
@@ -269,13 +270,13 @@ func (h *Handler) DeleteMilestone(w http.ResponseWriter, r *http.Request) {
 		if repo != nil {
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
-		h.renderFragment(w, "fragment-milestones-list", MilestonesListFragData{
+		h.render(w, r, fragments.MilestonesList(view.MilestonesListFragData{
 			Owner:            owner,
 			RepoName:         repoName,
 			OpenMilestones:   open,
 			ClosedMilestones: closed,
 			CanWrite:         canWrite,
-		})
+		}))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -325,7 +326,7 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 	if repo != nil {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
-	h.renderFragment(w, "fragment-milestone-sidebar", MilestoneSidebarFragData{
+	h.render(w, r, fragments.MilestoneSidebar(view.MilestoneSidebarFragData{
 		Owner:         owner,
 		RepoName:      repoName,
 		ItemNumber:    issueNumber,
@@ -333,7 +334,7 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 		Current:       currentMilestone,
 		AllMilestones: allMilestones,
 		CanWrite:      canWrite,
-	})
+	}))
 }
 
 // SetPullMilestone assigns/removes a milestone from a pull request via sidebar.
@@ -380,7 +381,7 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 	if repo != nil {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
-	h.renderFragment(w, "fragment-milestone-sidebar", MilestoneSidebarFragData{
+	h.render(w, r, fragments.MilestoneSidebar(view.MilestoneSidebarFragData{
 		Owner:         owner,
 		RepoName:      repoName,
 		ItemNumber:    pullNumber,
@@ -388,5 +389,5 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 		Current:       currentMilestone,
 		AllMilestones: allMilestones,
 		CanWrite:      canWrite,
-	})
+	}))
 }

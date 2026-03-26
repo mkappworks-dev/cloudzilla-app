@@ -8,6 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 type createLabelRequest struct {
@@ -221,10 +223,10 @@ func (h *Handler) renderIssueLabelFragment(w http.ResponseWriter, r *http.Reques
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
 	}
-	h.renderFragment(w, "fragment-issue-labels", IssueLabelSidebarData{
+	h.render(w, r, fragments.IssueLabels(view.IssueLabelSidebarData{
 		Owner: owner, RepoName: repoName, IssueNumber: issueNumber,
 		Labels: labels, AllLabels: allLabels, CanWrite: canWrite,
-	})
+	}))
 }
 
 func (h *Handler) renderPullLabelFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, pullNumber int) {
@@ -246,8 +248,8 @@ func (h *Handler) renderPullLabelFragment(w http.ResponseWriter, r *http.Request
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
 	}
-	h.renderFragment(w, "fragment-pull-labels", PullLabelSidebarData{
+	h.render(w, r, fragments.PullLabels(view.PullLabelSidebarData{
 		Owner: owner, RepoName: repoName, PullNumber: pullNumber,
 		Labels: labels, AllLabels: allLabels, CanWrite: canWrite,
-	})
+	}))
 }

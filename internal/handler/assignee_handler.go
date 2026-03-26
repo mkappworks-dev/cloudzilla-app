@@ -8,6 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 func assigneeUsername(r *http.Request) string {
@@ -139,10 +141,10 @@ func (h *Handler) renderIssueAssigneeFragment(w http.ResponseWriter, r *http.Req
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
 	}
-	h.renderFragment(w, "fragment-issue-assignees", IssueAssigneeSidebarData{
+	h.render(w, r, fragments.IssueAssignees(view.IssueAssigneeSidebarData{
 		Owner: owner, RepoName: repoName, IssueNumber: issueNumber,
 		Assignees: assignees, CanWrite: canWrite,
-	})
+	}))
 }
 
 func (h *Handler) renderPullAssigneeFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, pullNumber int) {
@@ -160,8 +162,8 @@ func (h *Handler) renderPullAssigneeFragment(w http.ResponseWriter, r *http.Requ
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
 	}
-	h.renderFragment(w, "fragment-pull-assignees", PullAssigneeSidebarData{
+	h.render(w, r, fragments.PullAssignees(view.PullAssigneeSidebarData{
 		Owner: owner, RepoName: repoName, PullNumber: pullNumber,
 		Assignees: assignees, CanWrite: canWrite,
-	})
+	}))
 }

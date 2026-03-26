@@ -10,6 +10,8 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/markdown"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 type createPRRequest struct {
@@ -151,7 +153,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 					canWrite = h.Services.Repo.CanWrite(r.Context(), draftRepo, claims.UserID)
 				}
 			}
-			h.renderFragment(w, "fragment-pull-detail", PullDetailFragData{
+			h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
 				Pull:              *pr,
 				Owner:             owner,
 				Repo:              repoName,
@@ -159,7 +161,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 				CanWrite:          canWrite,
 				AutoMergeEnabled:  pr.AutoMergeEnabled,
 				AutoMergeStrategy: pr.AutoMergeStrategy,
-			})
+			}))
 			return
 		}
 		writeJSON(w, http.StatusOK, pr)
@@ -197,7 +199,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			if amRepo != nil {
 				canWrite = h.Services.Repo.CanWrite(r.Context(), amRepo, claims.UserID)
 			}
-			h.renderFragment(w, "fragment-pull-detail", PullDetailFragData{
+			h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
 				Pull:              *pr,
 				Owner:             owner,
 				Repo:              repoName,
@@ -205,7 +207,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 				CanWrite:          canWrite,
 				AutoMergeEnabled:  pr.AutoMergeEnabled,
 				AutoMergeStrategy: pr.AutoMergeStrategy,
-			})
+			}))
 			return
 		}
 		writeJSON(w, http.StatusOK, pr)
@@ -276,10 +278,10 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderFragment(w, "fragment-pull-detail", PullDetailFragData{
+		h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
 			Pull: *pr, Owner: owner, Repo: repoName,
 			BodyHTML: markdown.Render(pr.Body),
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusOK, pr)

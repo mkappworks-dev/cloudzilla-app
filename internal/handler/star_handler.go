@@ -7,6 +7,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
@@ -140,12 +141,12 @@ func (h *Handler) renderStarButtonFragment(w http.ResponseWriter, r *http.Reques
 	}
 	count, _ := h.Services.Star.GetStarCount(r.Context(), repo.ID)
 	isStarred, _ := h.Services.Star.IsStarred(r.Context(), repo.ID, userID)
-	h.renderFragment(w, "fragment-star-button", StarButtonData{
+	h.render(w, r, fragments.StarButton(view.StarButtonData{
 		Owner:     owner,
 		RepoName:  repoName,
 		RepoID:    repo.ID,
 		Count:     count,
 		IsStarred: isStarred,
 		LoggedIn:  true,
-	})
+	}))
 }

@@ -1,0 +1,73 @@
+package fragments
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+)
+
+templ PullDetail(data view.PullDetailFragData) {
+	<div id="pull-detail" class="bg-white border border-gray-200 rounded-lg p-6">
+		<div class="flex justify-between items-start mb-4">
+			<div>
+				<div class="flex items-center gap-2 flex-wrap">
+					<h1 class="text-3xl font-bold">{ data.Pull.Title }</h1>
+					if data.Pull.IsDraft {
+						<span class="px-2 py-0.5 rounded text-sm font-medium bg-yellow-100 text-yellow-800">Draft</span>
+					}
+				</div>
+				<p class="text-gray-600 text-sm mt-2">
+					#{ strconv.Itoa(data.Pull.Number) } by { data.Pull.AuthorName } on { data.Pull.CreatedAt.Format("Jan 2, 2006") }
+					&middot; { data.Pull.HeadBranch } &rarr; { data.Pull.BaseBranch }
+				</p>
+			</div>
+			<span class={ "px-3 py-1 rounded-full text-sm font-medium", templ.KV("bg-green-100 text-green-700", data.Pull.State == "open"), templ.KV("bg-purple-100 text-purple-700", data.Pull.State == "merged"), templ.KV("bg-red-100 text-red-700", data.Pull.State != "open" && data.Pull.State != "merged") }>
+				{ string(data.Pull.State) }
+			</span>
+		</div>
+		if data.Pull.State == "open" && data.Pull.IsDraft {
+			<div class="mb-4 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between gap-4">
+				<p class="text-sm text-yellow-800">&#9998; This pull request is still a work in progress. Merge is blocked until it is marked ready for review.</p>
+				<button
+					hx-patch={ "/api/repos/" + data.Owner + "/" + data.Repo + "/pulls/" + strconv.Itoa(data.Pull.Number) }
+					hx-vals={ `{"is_draft":"false"}` }
+					hx-target="#pull-detail"
+					hx-swap="outerHTML"
+					class="shrink-0 px-4 py-1.5 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors"
+				>
+					Ready for review
+				</button>
+			</div>
+		}
+		<div class="prose prose-sm max-w-none bg-gray-50 p-4 rounded border border-gray-200 my-4">
+			@templ.Raw(data.BodyHTML)
+		</div>
+		if data.Pull.State == "open" {
+			<div class="flex flex-wrap items-center gap-2 mt-2">
+				<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.Repo + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-vals={ `{"state":"closed"}` } hx-target="#pull-detail" hx-swap="outerHTML" class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors">
+					Close PR
+				</button>
+				if data.AutoMergeEnabled {
+					<span class="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">&#10003; Auto-merge enabled ({ data.AutoMergeStrategy })</span>
+					if data.CanWrite {
+						<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.Repo + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-vals={ `{"auto_merge":"disable"}` } hx-target="#pull-detail" hx-swap="outerHTML" class="px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+							Disable auto-merge
+						</button>
+					}
+				} else if data.CanWrite {
+					<form hx-patch={ "/api/repos/" + data.Owner + "/" + data.Repo + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-target="#pull-detail" hx-swap="outerHTML" class="flex items-center gap-1">
+						<input type="hidden" name="auto_merge" value="enable"/>
+						<select name="auto_merge_strategy" class="text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400">
+							<option value="ff">Fast-forward</option>
+							<option value="merge">Merge commit</option>
+							<option value="squash">Squash</option>
+						</select>
+						<button type="submit" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors">
+							Enable auto-merge
+						</button>
+					</form>
+				}
+			</div>
+		}
+	</div>
+}

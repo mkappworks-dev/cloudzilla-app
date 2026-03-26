@@ -1,0 +1,44 @@
+package fragments
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+)
+
+templ PullAssignees(data view.PullAssigneeSidebarData) {
+	<div id="pull-assignees" class="space-y-2">
+		<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Assignees</h3>
+		<div class="space-y-1">
+			if len(data.Assignees) == 0 {
+				<span class="text-xs text-gray-400">No one assigned</span>
+			} else {
+				for _, a := range data.Assignees {
+					<div class="flex items-center justify-between">
+						<span class="text-xs font-medium">{ a.Username }</span>
+						if data.CanWrite {
+							<button
+								hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/assignees?username=" + a.Username }
+								hx-target="#pull-assignees"
+								hx-swap="outerHTML"
+								class="text-xs text-red-500 hover:underline ml-2"
+								title="Remove assignee"
+							>&times;</button>
+						}
+					</div>
+				}
+			}
+		</div>
+		if data.CanWrite {
+			<form
+				hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/assignees" }
+				hx-target="#pull-assignees"
+				hx-swap="outerHTML"
+				class="mt-2 flex gap-1"
+			>
+				<input type="text" name="username" placeholder="Username" required class="flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"/>
+				<button type="submit" class="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">+</button>
+			</form>
+		}
+	</div>
+}

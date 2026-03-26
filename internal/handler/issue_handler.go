@@ -9,6 +9,8 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/markdown"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 )
 
 type createIssueRequest struct {
@@ -109,10 +111,10 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderFragment(w, "fragment-issue-detail", IssueDetailFragData{
+		h.render(w, r, fragments.IssueDetail(view.IssueDetailFragData{
 			Issue: *issue, Owner: owner, Repo: repoName,
 			BodyHTML: markdown.Render(issue.Body),
-		})
+		}))
 		return
 	}
 	writeJSON(w, http.StatusOK, issue)
