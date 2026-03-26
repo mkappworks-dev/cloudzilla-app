@@ -6,6 +6,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
 func (h *Handler) StarRepo(w http.ResponseWriter, r *http.Request) {
@@ -72,14 +74,14 @@ func (h *Handler) ListStargazers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.render(w, "stargazers", StargazersData{
+	h.render(w, r, pages.Stargazers(view.StargazersData{
 		BasePage:   basePage(r, h.Services),
 		Repo:       *repo,
 		Owner:      owner,
 		RepoName:   repoName,
 		Stargazers: stargazers,
 		StarCount:  starCount,
-	})
+	}))
 }
 
 func (h *Handler) PageStargazers(w http.ResponseWriter, r *http.Request) {
@@ -99,14 +101,14 @@ func (h *Handler) PageStargazers(w http.ResponseWriter, r *http.Request) {
 
 	starCount, _ := h.Services.Star.GetStarCount(r.Context(), repo.ID)
 
-	h.render(w, "stargazers", StargazersData{
+	h.render(w, r, pages.Stargazers(view.StargazersData{
 		BasePage:   basePage(r, h.Services),
 		Repo:       *repo,
 		Owner:      owner,
 		RepoName:   repoName,
 		Stargazers: stargazers,
 		StarCount:  starCount,
-	})
+	}))
 }
 
 func (h *Handler) PageUserStars(w http.ResponseWriter, r *http.Request) {
@@ -123,11 +125,11 @@ func (h *Handler) PageUserStars(w http.ResponseWriter, r *http.Request) {
 		repos = []model.Repository{}
 	}
 
-	h.render(w, "user_stars", UserStarsData{
+	h.render(w, r, pages.UserStars(view.UserStarsData{
 		BasePage:    basePage(r, h.Services),
 		ProfileUser: *user,
 		Repos:       repos,
-	})
+	}))
 }
 
 func (h *Handler) renderStarButtonFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, userID int64) {

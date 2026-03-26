@@ -1,0 +1,134 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Repo(data view.RepoData) {
+	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName) {
+		<div class="space-y-6">
+			<div class="bg-white border border-gray-200 rounded-lg p-6">
+				<div class="flex justify-between items-start mb-4">
+					<div>
+						<h1 class="text-3xl font-bold">
+							<a href={ templ.SafeURL("/" + data.Owner) } class="text-blue-600 hover:underline">{ data.Owner }</a>/<span>{ data.RepoName }</span>
+						</h1>
+						if data.Repo.Description != "" {
+							<p class="text-gray-600 mt-2">{ data.Repo.Description }</p>
+						}
+						if data.IsFork {
+							<p class="text-sm text-gray-500 mt-1">Forked from
+								<a href={ templ.SafeURL("/" + data.ForkOfPath) } class="text-blue-600 hover:underline">{ data.ForkOfPath }</a>
+							</p>
+						}
+					</div>
+					<div class="flex items-center gap-3">
+						<span class="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+							if data.Repo.Private {
+								Private
+							} else {
+								Public
+							}
+						</span>
+						<div id="fork-button" class="flex items-center gap-1">
+							if data.BasePage.CurrentUser != nil {
+								<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/fork" } hx-target="#fork-button" hx-swap="outerHTML" class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
+									&#x2442; Fork
+								</button>
+							} else {
+								<a href="/login" class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
+									&#x2442; Fork
+								</a>
+							}
+							<span class="px-2 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm">{ strconv.Itoa(data.ForkCount) }</span>
+						</div>
+						<div id="star-button" class="flex items-center gap-1">
+							if data.BasePage.CurrentUser != nil {
+								if data.IsStarred {
+									<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/star" } hx-target="#star-button" hx-swap="outerHTML" class="inline-flex items-center gap-1 px-3 py-1.5 border border-yellow-400 bg-yellow-50 text-yellow-700 rounded text-sm font-medium hover:bg-yellow-100 transition-colors">
+										&#9733; Starred
+									</button>
+								} else {
+									<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/star" } hx-target="#star-button" hx-swap="outerHTML" class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
+										&#9734; Star
+									</button>
+								}
+							} else {
+								<a href="/login" class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
+									&#9734; Star
+								</a>
+							}
+							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/stargazers") } class="px-2 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm hover:bg-gray-50 transition-colors">
+								{ strconv.Itoa(data.StarCount) }
+							</a>
+						</div>
+					</div>
+				</div>
+				<div class="text-sm text-gray-500">
+					<p>Default branch: <code class="bg-gray-100 px-2 py-1 rounded">{ data.Repo.DefaultBranch }</code></p>
+				</div>
+			</div>
+			<div class="bg-white border border-gray-200 rounded-lg p-6">
+				<h3 class="font-semibold mb-3">Clone this repository</h3>
+				<div class="space-y-3">
+					<div>
+						<label class="block text-xs font-medium text-gray-500 mb-1">HTTPS</label>
+						<code class="block bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm font-mono">{ data.CloneHTTP }</code>
+					</div>
+					<div>
+						<label class="block text-xs font-medium text-gray-500 mb-1">SSH</label>
+						<code class="block bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm font-mono">{ data.CloneSSH }</code>
+					</div>
+				</div>
+			</div>
+			if data.ReadmeHTML != "" {
+				<div class="bg-white border border-gray-200 rounded-lg p-6">
+					<div class="prose prose-sm max-w-none">@templ.Raw(data.ReadmeHTML)</div>
+				</div>
+			}
+			<div class="grid grid-cols-2 gap-4">
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues") } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+					<h3 class="text-lg font-semibold">Issues</h3>
+					<p class="text-gray-500 text-sm mt-1">Track and discuss problems</p>
+				</a>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+					<h3 class="text-lg font-semibold">Pull Requests</h3>
+					<p class="text-gray-500 text-sm mt-1">Review and merge changes</p>
+				</a>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Repo.DefaultBranch) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+					<h3 class="text-lg font-semibold">Browse Code</h3>
+					<p class="text-gray-500 text-sm mt-1">Explore files and history</p>
+				</a>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commits/" + data.Repo.DefaultBranch) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+					<h3 class="text-lg font-semibold">Commits</h3>
+					<p class="text-gray-500 text-sm mt-1">Browse commit history</p>
+				</a>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+					<h3 class="text-lg font-semibold">Milestones</h3>
+					<p class="text-gray-500 text-sm mt-1">Track progress with sprints</p>
+				</a>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases") } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+					<h3 class="text-lg font-semibold">Releases</h3>
+					if data.LatestRelease != nil {
+						<p class="text-gray-500 text-sm mt-1">Latest: <span class="font-mono text-blue-600">{ data.LatestRelease.TagName }</span></p>
+					} else {
+						<p class="text-gray-500 text-sm mt-1">No releases yet</p>
+					}
+				</a>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/refs") } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+					<h3 class="text-lg font-semibold">Branches &amp; Tags</h3>
+					<p class="text-gray-500 text-sm mt-1">Manage refs and create branches</p>
+				</a>
+				if data.CanWrite {
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings") } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+						<h3 class="text-lg font-semibold">Settings</h3>
+						<p class="text-gray-500 text-sm mt-1">Manage webhooks and repo settings</p>
+					</a>
+				}
+			</div>
+		</div>
+	}
+}

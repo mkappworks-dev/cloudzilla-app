@@ -205,7 +205,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 
 	latestRelease, _ := h.Services.Release.GetLatest(r.Context(), owner, repoName)
 
-	h.render(w, "repo", RepoData{
+	h.render(w, r, pages.Repo(view.RepoData{
 		BasePage:      basePage(r, h.Services),
 		Repo:          *repo,
 		Owner:         owner,
@@ -220,7 +220,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		IsFork:        repo.IsFork,
 		ForkOfPath:    forkOfPath,
 		LatestRelease: latestRelease,
-	})
+	}))
 }
 
 func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
@@ -272,19 +272,19 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 	// Transfer is only for personal repo owners (not org repos)
 	canTransfer := repo.OwnerID == claims.UserID && repo.OrgID == 0
 
-	h.render(w, "repo_settings", RepoSettingsData{
-		BasePage:           basePage(r, h.Services),
-		Repo:               *repo,
-		Owner:              owner,
-		RepoName:           repoName,
-		Webhooks:           webhooks,
-		Collabs:            collabs,
-		Labels:             labels,
-		DeployKeys:         deployKeys,
-		BranchProtections:  branchProtections,
-		CanManage:          canManage,
-		CanTransfer:        canTransfer,
-	})
+	h.render(w, r, pages.RepoSettings(view.RepoSettingsData{
+		BasePage:          basePage(r, h.Services),
+		Repo:              *repo,
+		Owner:             owner,
+		RepoName:          repoName,
+		Webhooks:          webhooks,
+		Collabs:           collabs,
+		Labels:            labels,
+		DeployKeys:        deployKeys,
+		BranchProtections: branchProtections,
+		CanManage:         canManage,
+		CanTransfer:       canTransfer,
+	}))
 }
 
 func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {

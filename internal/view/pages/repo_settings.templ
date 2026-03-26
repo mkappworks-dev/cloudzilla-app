@@ -1,0 +1,314 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ RepoSettings(data view.RepoSettingsData) {
+	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" — Settings") {
+		<div class="space-y-6">
+			<div class="flex justify-between items-center">
+				<h1 class="text-2xl font-bold">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline">{ data.Owner }/{ data.RepoName }</a> / Settings
+				</h1>
+			</div>
+			<!-- Collaborators section -->
+			<div class="bg-white border border-gray-200 rounded-lg p-6">
+				<h2 class="text-lg font-semibold mb-4">Collaborators</h2>
+				<div id="repo-collaborators" class="space-y-2">
+					if data.CanManage {
+						<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/collaborators" } hx-target="#repo-collaborators" hx-swap="outerHTML" class="flex gap-3 mb-4">
+							<input type="text" name="username" placeholder="Username" required class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+							<select name="role" class="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+								<option value="reader">Reader</option>
+								<option value="writer">Writer</option>
+								<option value="admin">Admin</option>
+							</select>
+							<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+								Add
+							</button>
+						</form>
+					}
+					if len(data.Collabs) > 0 {
+						for _, c := range data.Collabs {
+							<div class="border border-gray-200 rounded-lg p-4 flex justify-between items-center">
+								<div>
+									<p class="text-sm font-medium">{ c.Username }</p>
+									<p class="text-xs text-gray-500 capitalize">{ c.Role }</p>
+								</div>
+								if data.CanManage {
+									<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/collaborators?user_id=" + strconv.FormatInt(c.UserID, 10) } hx-target="#repo-collaborators" hx-swap="outerHTML" hx-confirm="Remove this collaborator?" class="text-xs text-red-600 hover:underline ml-4">
+										Remove
+									</button>
+								}
+							</div>
+						}
+					} else {
+						<p class="text-gray-500 text-sm">No collaborators yet.</p>
+					}
+				</div>
+			</div>
+			if data.CanTransfer {
+				<div class="bg-white border border-red-200 rounded-lg p-6">
+					<h2 class="text-lg font-semibold text-red-700 mb-2">Transfer Ownership</h2>
+					<p class="text-sm text-gray-600 mb-4">Transfer this repository to another user. You will lose owner access.</p>
+					<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer") } onsubmit="return confirm('Transfer this repository? This cannot be undone.')">
+						<div class="flex gap-3">
+							<input type="text" name="new_owner" placeholder="New owner username" required class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"/>
+							<button type="submit" class="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700">
+								Transfer
+							</button>
+						</div>
+					</form>
+				</div>
+			}
+			<!-- Deploy Keys section -->
+			<div class="bg-white border border-gray-200 rounded-lg p-6">
+				<h2 class="text-lg font-semibold mb-1">Deploy Keys</h2>
+				<p class="text-sm text-gray-500 mb-4">SSH keys that grant CI/CD pipelines access to this repository.</p>
+				if data.CanManage {
+					<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys" } hx-target="#deploy-keys" hx-swap="outerHTML" class="space-y-3 mb-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
+						<h3 class="font-medium text-sm">Add Deploy Key</h3>
+						<div>
+							<label class="block text-xs font-medium text-gray-500 mb-1">Title</label>
+							<input type="text" name="title" placeholder="e.g., CI server" required class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+						</div>
+						<div>
+							<label class="block text-xs font-medium text-gray-500 mb-1">Public Key</label>
+							<textarea name="public_key" placeholder="ssh-ed25519 AAAA..." rows="3" required class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
+						</div>
+						<label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+							<input type="checkbox" name="read_only" value="true" checked class="rounded"/>
+							Read-only (uncheck to allow push access)
+						</label>
+						<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+							Add Deploy Key
+						</button>
+					</form>
+				}
+				<div id="deploy-keys">
+					if len(data.DeployKeys) > 0 {
+						<table class="w-full text-sm">
+							<thead>
+								<tr class="text-left text-gray-500 border-b border-gray-200">
+									<th class="pb-2 font-medium">Title</th>
+									<th class="pb-2 font-medium">Fingerprint</th>
+									<th class="pb-2 font-medium">Access</th>
+									<th class="pb-2 font-medium">Last used</th>
+									<th class="pb-2"></th>
+								</tr>
+							</thead>
+							<tbody class="divide-y divide-gray-100">
+								for _, dk := range data.DeployKeys {
+									<tr>
+										<td class="py-3 font-medium text-gray-900">{ dk.Title }</td>
+										<td class="py-3 font-mono text-gray-500 text-xs">{ dk.Fingerprint }</td>
+										<td class="py-3">
+											if dk.ReadOnly {
+												<span class="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded">Read-only</span>
+											} else {
+												<span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded">Read-write</span>
+											}
+										</td>
+										<td class="py-3 text-gray-500 text-xs">
+											if dk.LastUsedAt != nil {
+												{ dk.LastUsedAt.Format("Jan 2, 2006") }
+											} else {
+												Never
+											}
+										</td>
+										<td class="py-3">
+											if data.CanManage {
+												<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys/" + strconv.FormatInt(dk.ID, 10) } hx-target="#deploy-keys" hx-swap="outerHTML" hx-confirm="Revoke this deploy key?" class="px-3 py-1 text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors text-xs">
+													Revoke
+												</button>
+											}
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					} else {
+						<div class="text-center py-6 border border-gray-200 border-dashed rounded-lg bg-gray-50">
+							<p class="text-gray-500 text-sm">No deploy keys yet.</p>
+						</div>
+					}
+				</div>
+			</div>
+			<!-- Labels section -->
+			<div class="bg-white border border-gray-200 rounded-lg p-6">
+				<h2 class="text-lg font-semibold mb-4">Labels</h2>
+				<div id="repo-labels" class="space-y-3">
+					if data.CanManage {
+						<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/labels" } hx-target="#repo-labels" hx-swap="outerHTML" class="flex gap-2 flex-wrap items-end border border-gray-200 rounded-lg p-3 bg-gray-50">
+							<div>
+								<label class="block text-xs font-medium text-gray-500 mb-1">Name</label>
+								<input type="text" name="name" placeholder="bug, enhancement…" required class="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+							</div>
+							<div>
+								<label class="block text-xs font-medium text-gray-500 mb-1">Color</label>
+								<input type="color" name="color" value="#e5e5e5" class="w-12 h-8 border border-gray-300 rounded cursor-pointer"/>
+							</div>
+							<div class="flex-1">
+								<label class="block text-xs font-medium text-gray-500 mb-1">Description (optional)</label>
+								<input type="text" name="description" placeholder="Short description" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+							</div>
+							<button type="submit" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 shrink-0">
+								Create label
+							</button>
+						</form>
+					}
+					if len(data.Labels) > 0 {
+						for _, l := range data.Labels {
+							<div class="flex items-center justify-between border border-gray-200 rounded-lg p-3">
+								<div class="flex items-center gap-2">
+									<span class="w-4 h-4 rounded-full inline-block border border-gray-200 shrink-0" style={ "background-color: " + l.Color }></span>
+									<div>
+										<span class="text-sm font-medium">{ l.Name }</span>
+										if l.Description != "" {
+											<span class="text-xs text-gray-500 ml-2">{ l.Description }</span>
+										}
+									</div>
+								</div>
+								if data.CanManage {
+									<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/labels/" + strconv.FormatInt(l.ID, 10) } hx-target="#repo-labels" hx-swap="outerHTML" hx-confirm="Delete this label?" class="text-xs text-red-600 hover:underline ml-4">
+										Delete
+									</button>
+								}
+							</div>
+						}
+					} else {
+						<p class="text-sm text-gray-500">No labels defined yet.</p>
+					}
+				</div>
+			</div>
+			<!-- Branch Protection section -->
+			<div class="bg-white border border-gray-200 rounded-lg p-6">
+				<h2 class="text-lg font-semibold mb-1">Branch Protection</h2>
+				<p class="text-sm text-gray-500 mb-4">Protect branches by requiring reviews, status checks, or blocking force pushes.</p>
+				if data.CanManage {
+					<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections" } hx-target="#branch-protections" hx-swap="outerHTML" class="space-y-3 mb-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
+						<h3 class="font-medium text-sm">Add Protection Rule</h3>
+						<div>
+							<label class="block text-xs font-medium text-gray-500 mb-1">Branch Pattern</label>
+							<input type="text" name="pattern" placeholder="e.g., main or release/*" required class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+						</div>
+						<div>
+							<label class="block text-xs font-medium text-gray-500 mb-1">Required Approvals</label>
+							<input type="number" name="require_review_count" value="0" min="0" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+						</div>
+						<div>
+							<label class="block text-xs font-medium text-gray-500 mb-1">Required Status Checks (comma-separated)</label>
+							<input type="text" name="require_status_checks" placeholder="e.g., ci/build,ci/test" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+						</div>
+						<label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+							<input type="checkbox" name="block_force_push" value="true" checked class="rounded"/>
+							Block force pushes
+						</label>
+						<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+							Add Rule
+						</button>
+					</form>
+				}
+				<div id="branch-protections">
+					if len(data.BranchProtections) > 0 {
+						<table class="w-full text-sm">
+							<thead>
+								<tr class="text-left text-gray-500 border-b border-gray-200">
+									<th class="pb-2 font-medium">Pattern</th>
+									<th class="pb-2 font-medium">Required Reviews</th>
+									<th class="pb-2 font-medium">Status Checks</th>
+									<th class="pb-2 font-medium">Block Force Push</th>
+									<th class="pb-2"></th>
+								</tr>
+							</thead>
+							<tbody class="divide-y divide-gray-100">
+								for _, p := range data.BranchProtections {
+									<tr>
+										<td class="py-3 font-mono text-sm text-gray-900">{ p.Pattern }</td>
+										<td class="py-3 text-gray-700">{ strconv.Itoa(p.RequireReviewCount) }</td>
+										<td class="py-3 text-gray-500 text-xs">
+											if len(p.RequireStatusChecks) > 0 {
+												for i, c := range p.RequireStatusChecks {
+													if i > 0 {
+														,{ " " }
+													}
+													{ c }
+												}
+											} else {
+												—
+											}
+										</td>
+										<td class="py-3">
+											if p.BlockForcePush {
+												<span class="inline-block bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded">Blocked</span>
+											} else {
+												<span class="inline-block bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded">Allowed</span>
+											}
+										</td>
+										<td class="py-3">
+											if data.CanManage {
+												<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections/" + strconv.FormatInt(p.ID, 10) } hx-target="#branch-protections" hx-swap="outerHTML" hx-confirm="Delete this branch protection rule?" class="px-3 py-1 text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors text-xs">
+													Delete
+												</button>
+											}
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					} else {
+						<div class="text-center py-6 border border-gray-200 border-dashed rounded-lg bg-gray-50">
+							<p class="text-gray-500 text-sm">No branch protection rules yet.</p>
+						</div>
+					}
+				</div>
+			</div>
+			<!-- Webhooks section -->
+			<div class="bg-white border border-gray-200 rounded-lg p-6">
+				<h2 class="text-lg font-semibold mb-4">Webhooks</h2>
+				<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks" } hx-target="#webhooks-list" hx-swap="outerHTML" class="space-y-3 mb-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
+					<h3 class="font-medium text-sm">Add Webhook</h3>
+					<div>
+						<label class="block text-xs font-medium text-gray-500 mb-1">Payload URL</label>
+						<input type="url" name="url" placeholder="https://example.com/webhook" required class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+					</div>
+					<div>
+						<label class="block text-xs font-medium text-gray-500 mb-1">Secret</label>
+						<input type="text" name="secret" placeholder="Optional HMAC secret" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+					</div>
+					<div>
+						<label class="block text-xs font-medium text-gray-500 mb-1">Events (comma-separated)</label>
+						<input type="text" name="events" value="push,issues,pull_request" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+					</div>
+					<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Add Webhook</button>
+				</form>
+				<div id="webhooks-list" class="space-y-2">
+					if len(data.Webhooks) > 0 {
+						for _, wh := range data.Webhooks {
+							<div class="border border-gray-200 rounded-lg p-4 flex justify-between items-start">
+								<div>
+									<p class="font-medium text-sm font-mono break-all">{ wh.URL }</p>
+									<p class="text-xs text-gray-500 mt-1">Events: { wh.Events }</p>
+									if wh.Active {
+									<p class="text-xs mt-1 text-green-600">Active</p>
+								} else {
+									<p class="text-xs mt-1 text-gray-400">Inactive</p>
+								}
+								</div>
+								<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10) } hx-target="#webhooks-list" hx-swap="outerHTML" hx-confirm="Delete this webhook?" class="text-xs text-red-600 hover:underline ml-4 shrink-0">
+									Delete
+								</button>
+							</div>
+						}
+					} else {
+						<p class="text-gray-500 text-sm">No webhooks configured.</p>
+					}
+				</div>
+			</div>
+		</div>
+	}
+}
