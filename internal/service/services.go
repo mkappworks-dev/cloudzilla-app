@@ -30,6 +30,7 @@ type Services struct {
 	AccessToken      *AccessTokenService
 	DeployKey        *DeployKeyService
 	BranchProtection *BranchProtectionService
+	Reaction         *ReactionService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -59,5 +60,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		AccessToken:      NewAccessTokenService(stores.AccessToken, stores.User),
 		DeployKey:        NewDeployKeyService(stores.DeployKey, stores.SSHKey),
 		BranchProtection: NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus),
+		Reaction:         NewReactionService(stores.Reaction),
 	}
 }

@@ -30,6 +30,7 @@ type Stores struct {
 	AccessToken      *AccessTokenStore
 	DeployKey        *DeployKeyStore
 	BranchProtection *BranchProtectionStore
+	Reaction         *ReactionStore
 }
 
 func New(database *sql.DB) *Stores {
@@ -58,5 +59,6 @@ func New(database *sql.DB) *Stores {
 		AccessToken:      NewAccessTokenStore(database),
 		DeployKey:        NewDeployKeyStore(database),
 		BranchProtection: NewBranchProtectionStore(database),
+		Reaction:         NewReactionStore(database),
 	}
 }
