@@ -1,4 +1,4 @@
-.PHONY: dev build migrate lint test clean setup-tailwind build-css download-mermaid docker-build docker-run docker-down
+.PHONY: dev build migrate lint test clean setup-tailwind setup-templ build-css generate-templ download-mermaid docker-build docker-run docker-down
 
 BINARY := dist/cloudzilla
 GO := /usr/local/go/bin/go
@@ -26,6 +26,12 @@ setup-tailwind:                    ## Download Tailwind standalone CLI
 		fi \
 	fi
 
+setup-templ:                       ## Install the templ CLI
+	go install github.com/a-h/templ/cmd/templ@latest
+
+generate-templ:                    ## Generate *_templ.go from *.templ files
+	~/go/bin/templ generate ./internal/view/...
+
 download-mermaid:                  ## Download mermaid.min.js for self-hosting (one-time)
 	@mkdir -p cmd/server/frontend/static
 	@if [ ! -f cmd/server/frontend/static/mermaid.min.js ]; then \
@@ -39,14 +45,15 @@ build-css:                         ## Compile Tailwind → static/main.css
 	$(TAILWIND) -c tailwind/tailwind.config.js -i tailwind/input.css \
 	  -o $(TAILWIND_OUT) --minify
 
-dev: download-mermaid build-css    ## Run backend + Tailwind watch
+dev: download-mermaid build-css generate-templ  ## Run backend + Tailwind + templ watch
 	@(trap 'kill 0' SIGINT; \
 		$(GO) run ./cmd/server/. & \
 		$(TAILWIND) -c tailwind/tailwind.config.js -i tailwind/input.css \
 		  -o $(TAILWIND_OUT) --watch & \
+		~/go/bin/templ generate --watch ./internal/view/... & \
 		wait)
 
-build: download-mermaid build-css build-backend build-cli  ## Full build (Go + CLI)
+build: download-mermaid build-css generate-templ build-backend build-cli  ## Full build (Go + CLI)
 
 build-backend:
 	@mkdir -p dist

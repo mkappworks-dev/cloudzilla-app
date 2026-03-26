@@ -1,5 +1,8 @@
 module.exports = {
-  content: ["./cmd/server/frontend/templates/**/*.html"],
+  content: [
+    "./cmd/server/frontend/templates/**/*.html",
+    "./internal/view/**/*.templ",
+  ],
   theme: {
     extend: {
       colors: {
