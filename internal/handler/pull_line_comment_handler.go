@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
@@ -269,11 +268,6 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, comment)
 }
 
-// RenderedLineComment wraps PullLineComment with pre-rendered HTML body.
-type RenderedLineComment struct {
-	model.PullLineComment
-	BodyHTML template.HTML
-}
 
 func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())

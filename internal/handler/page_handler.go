@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"html/template"
 	"net"
 	"net/http"
 	"strconv"
@@ -182,7 +181,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		currentUserID = claims.UserID
 	}
 
-	var readmeHTML template.HTML
+	var readmeHTML string
 	for _, name := range []string{"README.md", "readme.md", "Readme.md"} {
 		raw, err := h.Services.Code.GetRawBlob(owner, repoName, repo.DefaultBranch, name)
 		if err == nil {

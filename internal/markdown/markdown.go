@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"bytes"
+	"html"
 	"html/template"
 
 	"github.com/yuin/goldmark"
@@ -53,7 +54,7 @@ func (r *mermaidRenderer) renderFencedCode(w util.BufWriter, source []byte, node
 
 // Render converts markdown src to safe HTML. Mermaid fenced blocks are
 // wrapped in <pre class="mermaid"> for client-side rendering by mermaid.js.
-func Render(src string) template.HTML {
+func Render(src string) string {
 	var buf bytes.Buffer
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
@@ -66,7 +67,7 @@ func Render(src string) template.HTML {
 		),
 	)
 	if err := md.Convert([]byte(src), &buf); err != nil {
-		return template.HTML(template.HTMLEscapeString(src))
+		return html.EscapeString(src)
 	}
-	return template.HTML(buf.String())
+	return buf.String()
 }
