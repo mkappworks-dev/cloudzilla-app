@@ -283,6 +283,16 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Delete("/{id}", h.DeleteToken)
 	})
 
+	// Security / TOTP routes
+	r.With(authMW).Get("/settings/security", h.PageSecuritySettings)
+	r.With(authMW).Post("/settings/security/setup", h.PageSecuritySettingsSetup)
+	r.With(authMW).Post("/api/user/totp/enable", h.EnableTOTP)
+	r.With(authMW).Post("/api/user/totp/disable", h.DisableTOTP)
+
+	// TOTP verification (no auth — reads cz_totp_pending cookie)
+	r.Get("/auth/2fa", h.PageTOTPVerify)
+	r.Post("/auth/2fa/verify", h.VerifyTOTP)
+
 	// Git HTTP Smart Protocol routes
 	r.With(optAuthMW).Get("/{owner}/{repo}/info/refs", h.GitInfoRefs)
 	r.With(optAuthMW).Post("/{owner}/{repo}/git-upload-pack", h.GitUploadPack)

@@ -31,6 +31,7 @@ type Services struct {
 	DeployKey        *DeployKeyService
 	BranchProtection *BranchProtectionService
 	Reaction         *ReactionService
+	TOTP             *TOTPService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -61,5 +62,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		DeployKey:        NewDeployKeyService(stores.DeployKey, stores.SSHKey),
 		BranchProtection: NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus),
 		Reaction:         NewReactionService(stores.Reaction),
+		TOTP:             NewTOTPService(stores.User),
 	}
 }

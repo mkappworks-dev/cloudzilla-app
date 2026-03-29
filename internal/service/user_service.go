@@ -130,6 +130,16 @@ func (s *UserService) uniqueUsername(ctx context.Context, email, name string) st
 	}
 }
 
+// GenerateTokenForUser generates a JWT for an existing user by ID.
+// Used by the TOTP verification flow after a successful 2FA check.
+func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (string, error) {
+	u, err := s.store.GetByID(ctx, userID)
+	if err != nil {
+		return "", fmt.Errorf("get user: %w", err)
+	}
+	return s.generateJWT(u)
+}
+
 func (s *UserService) generateJWT(u *model.User) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":          u.ID,

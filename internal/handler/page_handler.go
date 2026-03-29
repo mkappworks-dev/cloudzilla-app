@@ -57,6 +57,30 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	totpEnabled, _, err := h.Services.TOTP.GetUserTOTPState(r.Context(), user.ID)
+	if err != nil {
+		h.render(w, r, pages.Login(view.LoginData{BasePage: basePage(r, h.Services), Error: "Internal error"}))
+		return
+	}
+
+	if totpEnabled {
+		pendingToken, err := h.Services.TOTP.GeneratePendingToken(user.ID, h.Cfg.Auth.JWTSecret)
+		if err != nil {
+			h.render(w, r, pages.Login(view.LoginData{BasePage: basePage(r, h.Services), Error: "Internal error"}))
+			return
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name:     totpPendingCookieName,
+			Value:    pendingToken,
+			HttpOnly: true,
+			Path:     "/",
+			Expires:  time.Now().Add(5 * time.Minute),
+			SameSite: http.SameSiteLaxMode,
+		})
+		http.Redirect(w, r, "/auth/2fa", http.StatusSeeOther)
+		return
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     h.Cfg.Auth.CookieName,
 		Value:    token,

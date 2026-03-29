@@ -3,7 +3,9 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
 	storedb "github.com/mkappworks/cloudzilla/internal/store/db"
@@ -133,6 +135,132 @@ func (s *UserStore) MarkInvited(ctx context.Context, userID int64) error {
 		return fmt.Errorf("user mark invited: %w", err)
 	}
 	return nil
+}
+
+// GetByIDWithTOTP fetches a user by ID including TOTP columns.
+func (s *UserStore) GetByIDWithTOTP(ctx context.Context, id int64) (*model.User, error) {
+	u := &model.User{}
+	var backupCodesStr sql.NullString
+	err := s.db.QueryRowContext(ctx,
+		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
+		        is_superadmin, is_invited, totp_secret, totp_enabled,
+		        totp_backup_codes::text,
+		        created_at, updated_at
+		 FROM users WHERE id = $1`,
+		id,
+	).Scan(
+		&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
+		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
+		&u.TOTPSecret, &u.TOTPEnabled, &backupCodesStr,
+		&u.CreatedAt, &u.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("user get by id with totp: %w", err)
+	}
+	if backupCodesStr.Valid && backupCodesStr.String != "" {
+		jsonBytes := postgresArrayToJSON(backupCodesStr.String)
+		_ = json.Unmarshal(jsonBytes, &u.TOTPBackupCodes)
+	}
+	return u, nil
+}
+
+// GetByEmailWithTOTP fetches a user by email including TOTP fields.
+func (s *UserStore) GetByEmailWithTOTP(ctx context.Context, email string) (*model.User, error) {
+	u := &model.User{}
+	var backupCodesStr sql.NullString
+	err := s.db.QueryRowContext(ctx,
+		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
+		        is_superadmin, is_invited, totp_secret, totp_enabled,
+		        totp_backup_codes::text,
+		        created_at, updated_at
+		 FROM users WHERE email = $1`,
+		email,
+	).Scan(
+		&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
+		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
+		&u.TOTPSecret, &u.TOTPEnabled, &backupCodesStr,
+		&u.CreatedAt, &u.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("user get by email with totp: %w", err)
+	}
+	if backupCodesStr.Valid && backupCodesStr.String != "" {
+		jsonBytes := postgresArrayToJSON(backupCodesStr.String)
+		_ = json.Unmarshal(jsonBytes, &u.TOTPBackupCodes)
+	}
+	return u, nil
+}
+
+// SetTOTPSecret stores the base32 TOTP secret for a user (does not enable TOTP yet).
+func (s *UserStore) SetTOTPSecret(ctx context.Context, userID int64, secret string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users SET totp_secret = $1, updated_at = NOW() WHERE id = $2`,
+		secret, userID,
+	)
+	if err != nil {
+		return fmt.Errorf("user set totp secret: %w", err)
+	}
+	return nil
+}
+
+// SetTOTPEnabled toggles the totp_enabled flag. Pass secret="" to clear it on disable.
+func (s *UserStore) SetTOTPEnabled(ctx context.Context, userID int64, enabled bool, secret string) error {
+	if enabled {
+		_, err := s.db.ExecContext(ctx,
+			`UPDATE users SET totp_enabled = TRUE, totp_secret = $1, updated_at = NOW() WHERE id = $2`,
+			secret, userID,
+		)
+		return err
+	}
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users SET totp_enabled = FALSE, totp_secret = NULL, totp_backup_codes = NULL, updated_at = NOW() WHERE id = $1`,
+		userID,
+	)
+	return err
+}
+
+// SetBackupCodes stores bcrypt hashes of backup codes as a PostgreSQL TEXT[].
+func (s *UserStore) SetBackupCodes(ctx context.Context, userID int64, codeHashes []string) error {
+	raw, err := json.Marshal(codeHashes)
+	if err != nil {
+		return fmt.Errorf("marshal backup codes: %w", err)
+	}
+	pgArr := jsonToPostgresArray(raw)
+	_, err = s.db.ExecContext(ctx,
+		`UPDATE users SET totp_backup_codes = $1, updated_at = NOW() WHERE id = $2`,
+		pgArr, userID,
+	)
+	if err != nil {
+		return fmt.Errorf("user set backup codes: %w", err)
+	}
+	return nil
+}
+
+// jsonToPostgresArray converts a JSON array like ["a","b"] to PostgreSQL literal {"a","b"}.
+func jsonToPostgresArray(jsonArr []byte) string {
+	var items []string
+	if err := json.Unmarshal(jsonArr, &items); err != nil {
+		return "{}"
+	}
+	quoted := make([]string, len(items))
+	for i, item := range items {
+		escaped := strings.ReplaceAll(item, `"`, `\"`)
+		quoted[i] = `"` + escaped + `"`
+	}
+	return "{" + strings.Join(quoted, ",") + "}"
+}
+
+// postgresArrayToJSON converts a PostgreSQL array literal {"a","b"} to JSON ["a","b"].
+func postgresArrayToJSON(pgArr string) []byte {
+	pgArr = strings.TrimSpace(pgArr)
+	if len(pgArr) < 2 || pgArr[0] != '{' || pgArr[len(pgArr)-1] != '}' {
+		return []byte("[]")
+	}
+	inner := pgArr[1 : len(pgArr)-1]
+	if inner == "" {
+		return []byte("[]")
+	}
+	return []byte("[" + inner + "]")
 }
 
 func mapDBUserToModel(dbUser *storedb.User) *model.User {
