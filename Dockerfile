@@ -1,18 +1,20 @@
 # ── Stage 1: Build ──────────────────────────────────────────────────────────
-FROM golang:1.23-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 RUN apk add --no-cache make curl
 
 WORKDIR /app
 COPY . .
 
-# Download Tailwind CLI (arch-aware) and build CSS
+# Download Tailwind CLI (arch-aware, pinned version) and build CSS
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "aarch64" ]; then TW=tailwindcss-linux-arm64; else TW=tailwindcss-linux-x64; fi && \
-    mkdir -p bin && \
-    curl -sL "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/${TW}" -o bin/tailwindcss && \
+    mkdir -p bin cmd/server/frontend/static && \
+    curl -sLf "https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.19/${TW}" \
+      -o bin/tailwindcss && \
     chmod +x bin/tailwindcss && \
-    make build-css
+    bin/tailwindcss -c tailwind/tailwind.config.js -i tailwind/input.css \
+      -o cmd/server/frontend/static/main.css --minify
 
 # Download mermaid.min.js for embedding
 RUN curl -sL https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js \
