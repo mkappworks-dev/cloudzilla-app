@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -70,6 +71,7 @@ func Load(cfgFile string) (*Config, error) {
 
 	// Env overrides
 	v.SetEnvPrefix("CZ")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
 	if cfgFile != "" {
