@@ -1,9 +1,9 @@
 CREATE TABLE IF NOT EXISTS permissions (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    repo_id    INTEGER NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+    id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id    BIGINT  NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    repo_id    BIGINT  NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
     role       TEXT    NOT NULL CHECK(role IN ('owner','admin','writer','reader')),
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(user_id, repo_id)
 );
 

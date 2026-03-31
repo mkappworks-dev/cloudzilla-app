@@ -1,12 +1,12 @@
 CREATE TABLE IF NOT EXISTS comments (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    repo_id    INTEGER NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
-    issue_id   INTEGER REFERENCES issues(id) ON DELETE CASCADE,
-    pull_id    INTEGER REFERENCES pull_requests(id) ON DELETE CASCADE,
-    author_id  INTEGER NOT NULL REFERENCES users(id),
+    id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    repo_id    BIGINT  NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+    issue_id   BIGINT  REFERENCES issues(id) ON DELETE CASCADE,
+    pull_id    BIGINT  REFERENCES pull_requests(id) ON DELETE CASCADE,
+    author_id  BIGINT  NOT NULL REFERENCES users(id),
     body       TEXT    NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CHECK (
         (issue_id IS NOT NULL AND pull_id IS NULL) OR
         (issue_id IS NULL AND pull_id IS NOT NULL)
