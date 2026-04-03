@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install templ
+        run: go install github.com/a-h/templ/cmd/templ@latest
+
+      - name: Download Tailwind CLI
+        run: |
+          mkdir -p bin
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "aarch64" ]; then
+            curl -sLf https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.19/tailwindcss-linux-arm64 -o bin/tailwindcss
+          else
+            curl -sLf https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.19/tailwindcss-linux-x64 -o bin/tailwindcss
+          fi
+          chmod +x bin/tailwindcss
+
+      - name: Download Mermaid
+        run: |
+          mkdir -p cmd/server/frontend/static
+          curl -sL https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js \
+            -o cmd/server/frontend/static/mermaid.min.js
+
+      - name: Generate templ
+        run: templ generate ./internal/view/...
+
+      - name: Build Tailwind CSS
+        run: |
+          bin/tailwindcss -c tailwind/tailwind.config.js -i tailwind/input.css \
+            -o cmd/server/frontend/static/main.css --minify
+
+      - name: Run tests
+        run: go test ./...
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install templ
+        run: go install github.com/a-h/templ/cmd/templ@latest
+
+      - name: Download Tailwind CLI
+        run: |
+          mkdir -p bin
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "aarch64" ]; then
+            curl -sLf https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.19/tailwindcss-linux-arm64 -o bin/tailwindcss
+          else
+            curl -sLf https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.19/tailwindcss-linux-x64 -o bin/tailwindcss
+          fi
+          chmod +x bin/tailwindcss
+
+      - name: Download Mermaid
+        run: |
+          mkdir -p cmd/server/frontend/static
+          curl -sL https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js \
+            -o cmd/server/frontend/static/mermaid.min.js
+
+      - name: Generate templ
+        run: templ generate ./internal/view/...
+
+      - name: Build Tailwind CSS
+        run: |
+          bin/tailwindcss -c tailwind/tailwind.config.js -i tailwind/input.css \
+            -o cmd/server/frontend/static/main.css --minify
+
+      - name: Build server binary
+        run: go build -o dist/cloudzilla ./cmd/server/.
+
+      - name: Build CLI binary
+        run: go build -o dist/cloudzilla-cli ./cmd/cloudzilla/.
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudzilla-binaries
+          path: dist/
+          retention-days: 7
