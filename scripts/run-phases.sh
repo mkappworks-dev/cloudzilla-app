@@ -46,11 +46,26 @@ END_PHASE="${2:-15.3}"
 phase_gte() { awk "BEGIN{exit !($1 >= $2)}"; }
 phase_lte() { awk "BEGIN{exit !($1 <= $2)}"; }
 
+# Print the next phase number after the given one, for display purposes
+next_phase() {
+  local current="$1"
+  local found=false
+  for entry in "${PHASES[@]}"; do
+    IFS=':' read -r p _ _ _ <<< "$entry"
+    if $found; then echo "$p"; return; fi
+    [[ "$p" == "$current" ]] && found=true
+  done
+  echo "complete"
+}
+
 run_phase() {
   local phase="$1" type="$2" name="$3" plan_file="$4"
   local branch="${type}/phase-${phase}-${name}"
   local plan_path="$PLANS_DIR/$plan_file"
   local log_file="$LOG_DIR/phase-${phase}-${name}.log"
+  local silent_failure_log="$LOG_DIR/phase-${phase}-${name}-silent-failures.log"
+  local code_review_log="$LOG_DIR/phase-${phase}-${name}-code-review.log"
+  local security_log="$LOG_DIR/phase-${phase}-${name}-security.log"
 
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -99,25 +114,102 @@ IMPORTANT: Do not ask clarifying questions. Follow the plan as written.
 PROMPT
 )" 2>&1 | tee "$log_file"
 
-  local exit_code="${PIPESTATUS[0]}"
+  local impl_exit="${PIPESTATUS[0]}"
 
-  if [[ $exit_code -eq 0 ]]; then
+  if [[ $impl_exit -ne 0 ]]; then
     echo ""
-    echo "✓ Phase ${phase} completed. Branch: ${branch}"
-    echo "  Merging to main..."
-    git checkout main
-    git merge --ff-only "$branch" || {
-      echo "  FF merge failed — merging with commit."
-      git merge --no-ff "$branch" -m "feat: merge phase-${phase}-${name}"
-    }
-    echo "  ✓ Merged."
-  else
-    echo ""
-    echo "✗ Phase ${phase} FAILED (exit $exit_code). Branch left at: ${branch}"
+    echo "✗ Phase ${phase} FAILED (exit $impl_exit). Branch left at: ${branch}"
     echo "  Check log: $log_file"
     git checkout main
     return 1
   fi
+
+  # --- Review 1: Silent failure hunter ---
+  echo ""
+  echo "Review 1/3: Silent failure hunter... (log: $silent_failure_log)"
+  echo ""
+
+  claude --model claude-sonnet-4-6 -p "$(cat <<PROMPT
+Use the pr-review-toolkit:silent-failure-hunter skill to review the Phase ${phase} (${name}) implementation.
+
+The changes are on branch: ${branch}
+Run: git diff main...HEAD to see what was added.
+
+Focus on:
+- Silent failures and swallowed errors
+- Missing error returns or unchecked error values
+- Unhandled edge cases that could cause data loss or incorrect state
+
+Report high-confidence findings only. Be concise.
+PROMPT
+)" 2>&1 | tee "$silent_failure_log"
+
+  # --- Review 2: Code reviewer ---
+  echo ""
+  echo "Review 2/3: Code reviewer... (log: $code_review_log)"
+  echo ""
+
+  claude --model claude-sonnet-4-6 -p "$(cat <<PROMPT
+Use the pr-review-toolkit:code-reviewer skill to review the Phase ${phase} (${name}) implementation.
+
+The changes are on branch: ${branch}
+Run: git diff main...HEAD to see what was added.
+
+Focus on:
+- Bugs and logic errors
+- Code quality and maintainability
+- Adherence to CLAUDE.md conventions (Store→Service→Handler layering, PostgreSQL syntax, Templ patterns)
+- Missing tests or validation
+
+Report high-confidence findings only. Be concise.
+PROMPT
+)" 2>&1 | tee "$code_review_log"
+
+  # --- Review 3: Security review ---
+  echo ""
+  echo "Review 3/3: Security review... (log: $security_log)"
+  echo ""
+
+  claude --model claude-sonnet-4-6 -p "$(cat <<PROMPT
+Perform a targeted security review of the Phase ${phase} (${name}) implementation.
+
+The changes are on branch: ${branch}
+Run: git diff main...HEAD to see what was added.
+
+Focus exclusively on security issues:
+- Authentication and authorization bypasses
+- SQL injection (missing parameterization, raw query construction)
+- XSS (unescaped output in Templ templates — note: Templ auto-escapes, but check templ.Raw() usage)
+- CSRF (state-mutating endpoints without protection)
+- Insecure direct object references (missing ownership checks)
+- Sensitive data exposure (tokens, keys, PII in logs or responses)
+- Input validation gaps at system boundaries
+
+Report high-confidence findings only. Be concise.
+PROMPT
+)" 2>&1 | tee "$security_log"
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "  Phase ${phase} ready for review"
+  echo "  Branch:            ${branch}"
+  echo "  Impl log:          ${log_file}"
+  echo "  Silent failures:   ${silent_failure_log}"
+  echo "  Code review:       ${code_review_log}"
+  echo "  Security review:   ${security_log}"
+  echo ""
+  echo "  Next steps:"
+  echo "  1. Fix any high-confidence findings from the reviews above"
+  echo "  2. Create PR:  gh pr create --base main --head ${branch}"
+  echo "  3. Review and merge the PR"
+  echo "  4. Press Enter here to continue to the next phase"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  read -r -p "  → Press Enter to continue to phase $(next_phase "$phase")... "
+
+  # Pull merged main before starting next phase
+  git checkout main
+  git pull --ff-only 2>/dev/null || git pull
 }
 
 echo "Cloudzilla Phase Runner"
