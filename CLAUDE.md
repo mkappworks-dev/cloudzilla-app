@@ -69,6 +69,7 @@ go test ./...           # Run Go tests
 - HTMX attributes go on HTML elements: `hx-post="/api/..."`, `hx-target="#id"`, `hx-swap="outerHTML"`
 - Templ auto-escapes all output; use `templ.Raw(...)` only for trusted HTML (e.g. rendered Markdown)
 - Regenerate Go code after editing `.templ` files: `~/go/bin/templ generate`
+- **Never manually edit `_templ.go` files** — they are generated; only run `templ generate` to update them
 
 ### CSS (Tailwind)
 
@@ -265,4 +266,8 @@ Create branch feat/phase-<X.Y>-<name> from main. Follow all conventions in CLAUD
 Use the next available migration number. Commit when done."
 ```
 
-**After each phase completes:** merge the branch to main before starting the next phase.
+**After each phase completes — required workflow before merging:**
+
+1. **Security review** — run the `pr-review-toolkit:silent-failure-hunter` agent against the branch to check for silent failures, missing error handling, and security issues. Fix any high-confidence findings before opening a PR.
+2. **Open a pull request** — do not merge directly to main. Create a PR with `gh pr create` so the diff is visible for review.
+3. **Merge after approval** — once the PR is reviewed, merge to main before starting the next phase.
