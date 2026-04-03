@@ -20,11 +20,6 @@ func NewUserStore(q *storedb.Queries, database *sql.DB) *UserStore {
 	return &UserStore{q: q, db: database}
 }
 
-// DB returns the underlying *sql.DB. Used by services that need raw SQL access
-// without going through store methods (e.g. SSO user linking).
-func (s *UserStore) DB() *sql.DB {
-	return s.db
-}
 
 func (s *UserStore) Create(ctx context.Context, u *model.User) error {
 	result, err := s.q.CreateUser(ctx, storedb.CreateUserParams{
@@ -133,6 +128,19 @@ func (s *UserStore) CreateSuperadmin(ctx context.Context, username, email, passw
 		return nil, fmt.Errorf("create superadmin: %w", err)
 	}
 	return s.GetByEmailWithRole(ctx, email)
+}
+
+// LinkSSO sets sso_provider and sso_id on an existing user account.
+// Used when an SSO login matches an existing local account by email.
+func (s *UserStore) LinkSSO(ctx context.Context, userID int64, provider, ssoID string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users SET sso_provider = $1, sso_id = $2, updated_at = NOW() WHERE id = $3`,
+		provider, ssoID, userID,
+	)
+	if err != nil {
+		return fmt.Errorf("user link sso: %w", err)
+	}
+	return nil
 }
 
 func (s *UserStore) MarkInvited(ctx context.Context, userID int64) error {

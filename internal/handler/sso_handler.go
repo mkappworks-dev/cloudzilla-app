@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -18,8 +19,18 @@ func (h *Handler) PageSSOSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ldapCfg, _ := h.Services.SSO.GetConfig(r.Context(), "ldap")
-	samlCfg, _ := h.Services.SSO.GetConfig(r.Context(), "saml")
+	ldapCfg, err := h.Services.SSO.GetConfig(r.Context(), "ldap")
+	if err != nil {
+		slog.Error("failed to load ldap sso config", "error", err)
+		http.Error(w, "failed to load SSO configuration", http.StatusInternalServerError)
+		return
+	}
+	samlCfg, err := h.Services.SSO.GetConfig(r.Context(), "saml")
+	if err != nil {
+		slog.Error("failed to load saml sso config", "error", err)
+		http.Error(w, "failed to load SSO configuration", http.StatusInternalServerError)
+		return
+	}
 
 	h.render(w, r, pages.SSOSettings(view.SSOSettingsData{
 		BasePage:   basePage(r, h.Services),
@@ -37,7 +48,9 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	provider := r.FormValue("provider")
-	enabled := r.FormValue("enabled") == "true"
+	// HTML checkboxes submit the field only when checked (value may be "on",
+	// "true", or any custom value). Presence means enabled; absence means false.
+	enabled := r.FormValue("enabled") != ""
 
 	var cfg map[string]string
 	switch provider {
@@ -53,12 +66,19 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 		cfg = map[string]string{
 			model.SAMLKeyEntityID:    r.FormValue("saml_entity_id"),
 			model.SAMLKeyMetadataURL: r.FormValue("saml_metadata_url"),
+			model.SAMLKeySSOURL:      r.FormValue("saml_sso_url"),
 			model.SAMLKeyACSURL:      r.FormValue("saml_acs_url"),
 			model.SAMLKeyCert:        r.FormValue("saml_idp_cert"),
 		}
 	default:
-		ldapCfg, _ := h.Services.SSO.GetConfig(r.Context(), "ldap")
-		samlCfg, _ := h.Services.SSO.GetConfig(r.Context(), "saml")
+		ldapCfg, ldapErr := h.Services.SSO.GetConfig(r.Context(), "ldap")
+		if ldapErr != nil {
+			slog.Error("failed to reload ldap sso config", "error", ldapErr)
+		}
+		samlCfg, samlErr := h.Services.SSO.GetConfig(r.Context(), "saml")
+		if samlErr != nil {
+			slog.Error("failed to reload saml sso config", "error", samlErr)
+		}
 		h.render(w, r, pages.SSOSettings(view.SSOSettingsData{
 			BasePage:   basePage(r, h.Services),
 			LDAPConfig: ldapCfg,
@@ -69,8 +89,14 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.SSO.SetConfig(r.Context(), provider, cfg, enabled); err != nil {
-		ldapCfg, _ := h.Services.SSO.GetConfig(r.Context(), "ldap")
-		samlCfg, _ := h.Services.SSO.GetConfig(r.Context(), "saml")
+		ldapCfg, ldapErr := h.Services.SSO.GetConfig(r.Context(), "ldap")
+		if ldapErr != nil {
+			slog.Error("failed to reload ldap sso config", "error", ldapErr)
+		}
+		samlCfg, samlErr := h.Services.SSO.GetConfig(r.Context(), "saml")
+		if samlErr != nil {
+			slog.Error("failed to reload saml sso config", "error", samlErr)
+		}
 		h.render(w, r, pages.SSOSettings(view.SSOSettingsData{
 			BasePage:   basePage(r, h.Services),
 			LDAPConfig: ldapCfg,
@@ -80,8 +106,14 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ldapCfg, _ := h.Services.SSO.GetConfig(r.Context(), "ldap")
-	samlCfg, _ := h.Services.SSO.GetConfig(r.Context(), "saml")
+	ldapCfg, ldapErr := h.Services.SSO.GetConfig(r.Context(), "ldap")
+	if ldapErr != nil {
+		slog.Error("failed to reload ldap sso config", "error", ldapErr)
+	}
+	samlCfg, samlErr := h.Services.SSO.GetConfig(r.Context(), "saml")
+	if samlErr != nil {
+		slog.Error("failed to reload saml sso config", "error", samlErr)
+	}
 	h.render(w, r, pages.SSOSettings(view.SSOSettingsData{
 		BasePage:   basePage(r, h.Services),
 		LDAPConfig: ldapCfg,
@@ -104,7 +136,7 @@ func (h *Handler) LDAPLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, token, err := h.Services.SSO.AuthenticateLDAP(r.Context(), username, password)
+	_, token, err := h.Services.SSO.AuthenticateLDAP(r.Context(), username, password)
 	if err != nil {
 		ldapEnabled, samlEnabled := h.ssoEnabled(r)
 		h.render(w, r, pages.Login(view.LoginData{
@@ -124,7 +156,6 @@ func (h *Handler) LDAPLogin(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
 		SameSite: http.SameSiteLaxMode,
 	})
-	_ = user
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -146,14 +177,15 @@ func (h *Handler) SAMLCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, token, err := h.Services.SSO.HandleSAMLCallback(r.Context(), samlResponse)
+	_, token, err := h.Services.SSO.HandleSAMLCallback(r.Context(), samlResponse)
 	if err != nil {
+		slog.Error("saml callback failed", "error", err)
 		ldapEnabled, samlEnabled := h.ssoEnabled(r)
 		h.render(w, r, pages.Login(view.LoginData{
 			BasePage:    basePage(r, h.Services),
 			LDAPEnabled: ldapEnabled,
 			SAMLEnabled: samlEnabled,
-			Error:       "SAML authentication failed: " + err.Error(),
+			Error:       "SAML authentication failed.",
 		}))
 		return
 	}
@@ -166,7 +198,6 @@ func (h *Handler) SAMLCallback(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
 		SameSite: http.SameSiteLaxMode,
 	})
-	_ = user
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 

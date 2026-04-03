@@ -38,6 +38,7 @@ type Services struct {
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
 	code := NewCodeService(cfg.Git)
+	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
 	return &Services{
 		User:         NewUserService(stores.User, cfg.Auth),
 		Repo:         NewRepoService(stores.Repo, stores.User, stores.Org, cfg.Git),
@@ -49,7 +50,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Org:          NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git),
 		Webhook:      NewWebhookService(stores.Webhook),
 		Notification: NewNotificationService(stores.Notification),
-		SiteSetting:  NewSiteSettingService(stores.SiteSetting, stores.User),
+		SiteSetting:  siteSettingSvc,
 		Invitation:   NewInvitationService(stores.Invitation),
 		Label:        NewLabelService(stores.Label, stores.Repo, stores.Issue, stores.Pull),
 		Assignee:     NewAssigneeService(stores.Assignee, stores.Repo, stores.Issue, stores.Pull, stores.User),
@@ -66,6 +67,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Reaction:         NewReactionService(stores.Reaction),
 		TOTP:             NewTOTPService(stores.User),
 		AuditLog:         NewAuditService(stores.AuditLog),
-		SSO:              NewSSOService(stores.SSO, stores.User, cfg.Auth),
+		SSO:              NewSSOService(stores.SSO, stores.User, cfg.Auth, siteSettingSvc),
 	}
 }

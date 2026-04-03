@@ -24,7 +24,8 @@ const (
 // SAML config map keys.
 const (
 	SAMLKeyEntityID    = "entity_id"
-	SAMLKeyMetadataURL = "metadata_url"
-	SAMLKeyACSURL      = "acs_url"    // Assertion Consumer Service URL (our endpoint)
-	SAMLKeyCert        = "idp_cert"   // PEM-encoded IdP signing certificate (base64, no headers)
+	SAMLKeyMetadataURL = "metadata_url" // URL to fetch IdP XML metadata document
+	SAMLKeySSOURL      = "sso_url"      // IdP Single Sign-On endpoint (redirect target for AuthnRequest)
+	SAMLKeyACSURL      = "acs_url"      // Assertion Consumer Service URL (our endpoint)
+	SAMLKeyCert        = "idp_cert"     // PEM-encoded IdP signing certificate (base64, no headers)
 )

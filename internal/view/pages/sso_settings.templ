@@ -78,6 +78,11 @@ templ SSOSettings(data view.SSOSettingsData) {
 						}
 						<label for="ldap_use_tls" class="text-sm text-gray-700">Use TLS</label>
 					</div>
+					if data.LDAPConfig != nil && data.LDAPConfig.Enabled && data.LDAPConfig.Config["use_tls"] != "true" {
+						<p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+							Warning: TLS is disabled. LDAP credentials will be transmitted in plaintext. Enable TLS or use an ldaps:// host for production use.
+						</p>
+					}
 					<div class="flex items-center gap-2">
 						if data.LDAPConfig != nil && data.LDAPConfig.Enabled {
 							<input type="checkbox" id="ldap_enabled" name="enabled" value="true" checked class="h-4 w-4 text-blue-600 border-gray-300 rounded"/>

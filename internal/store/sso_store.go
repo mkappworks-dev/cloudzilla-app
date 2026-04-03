@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
@@ -32,7 +33,9 @@ func (s *SSOStore) GetByProvider(ctx context.Context, provider string) (*model.S
 	}
 	cfg.Config = make(map[string]string)
 	if len(configRaw) > 0 {
-		_ = json.Unmarshal(configRaw, &cfg.Config)
+		if err := json.Unmarshal(configRaw, &cfg.Config); err != nil {
+			return nil, fmt.Errorf("sso config corrupt for provider %s: %w", cfg.Provider, err)
+		}
 	}
 	return cfg, nil
 }
@@ -56,7 +59,9 @@ func (s *SSOStore) ListAll(ctx context.Context) ([]*model.SSOConfig, error) {
 		}
 		cfg.Config = make(map[string]string)
 		if len(configRaw) > 0 {
-			_ = json.Unmarshal(configRaw, &cfg.Config)
+			if err := json.Unmarshal(configRaw, &cfg.Config); err != nil {
+				return nil, fmt.Errorf("sso config corrupt for provider %s: %w", cfg.Provider, err)
+			}
 		}
 		result = append(result, cfg)
 	}
@@ -99,6 +104,37 @@ func (s *SSOStore) GetUserBySSO(ctx context.Context, provider, ssoID string) (*m
 		return nil, fmt.Errorf("sso get user: %w", err)
 	}
 	return u, nil
+}
+
+// IsAssertionUsed reports whether a SAML assertion ID has already been consumed
+// and has not yet expired. Returns false (no error) when the assertion is new.
+func (s *SSOStore) IsAssertionUsed(ctx context.Context, assertionID string) (bool, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM saml_used_assertions
+		 WHERE assertion_id = $1 AND expires_at > NOW()`,
+		assertionID,
+	).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("sso check assertion: %w", err)
+	}
+	return count > 0, nil
+}
+
+// MarkAssertionUsed records a SAML assertion ID as consumed until expiresAt.
+// Uses ON CONFLICT DO NOTHING so a concurrent duplicate is silently ignored
+// (the first writer wins; both paths return the assertion-already-used error).
+func (s *SSOStore) MarkAssertionUsed(ctx context.Context, assertionID string, expiresAt time.Time) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO saml_used_assertions (assertion_id, expires_at)
+		 VALUES ($1, $2)
+		 ON CONFLICT (assertion_id) DO NOTHING`,
+		assertionID, expiresAt,
+	)
+	if err != nil {
+		return fmt.Errorf("sso mark assertion used: %w", err)
+	}
+	return nil
 }
 
 // ProvisionSSOUser creates a new user account for an SSO login.
