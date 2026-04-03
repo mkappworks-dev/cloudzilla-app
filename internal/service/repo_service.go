@@ -54,6 +54,10 @@ func (s *RepoService) List(ctx context.Context) ([]model.Repository, error) {
 	return s.repos.List(ctx)
 }
 
+func (s *RepoService) GetByID(ctx context.Context, id int64) (*model.Repository, error) {
+	return s.repos.GetByID(ctx, id)
+}
+
 func (s *RepoService) Get(ctx context.Context, owner, name string) (*model.Repository, error) {
 	repo, err := s.repos.GetByOwnerName(ctx, owner, name)
 	if err != nil {

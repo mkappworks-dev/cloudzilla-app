@@ -75,6 +75,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/commits/{ref}", h.PageCommits)
 	r.With(optAuthMW).Get("/{owner}/{repo}/commits/{ref}/{path...}", h.PageCommits)
 	r.With(optAuthMW).Get("/{owner}/{repo}/commit/{sha}", h.PageCommit)
+	r.With(optAuthMW).Get("/{owner}/{repo}/projects", h.PageProjects)
+	r.With(optAuthMW).Get("/{owner}/{repo}/projects/{id}", h.PageProjectDetail)
 
 	// OAuth routes
 	r.Get("/auth/google", h.GoogleOAuthBegin)
@@ -243,6 +245,17 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Post("/", h.CreateBranchProtection)
 			r.With(authMW).Patch("/{id}", h.UpdateBranchProtection)
 			r.With(authMW).Delete("/{id}", h.DeleteBranchProtection)
+		})
+
+		// Projects
+		r.Route("/{owner}/{repo}/projects", func(r chi.Router) {
+			r.With(authMW).Post("/", h.CreateProject)
+			r.With(authMW).Delete("/{id}", h.DeleteProject)
+			r.With(authMW).Post("/{id}/columns", h.CreateColumn)
+			r.With(authMW).Delete("/{id}/columns/{colID}", h.DeleteColumn)
+			r.With(authMW).Post("/{id}/cards", h.CreateCard)
+			r.With(authMW).Patch("/{id}/cards/{cardID}", h.MoveCard)
+			r.With(authMW).Delete("/{id}/cards/{cardID}", h.DeleteCard)
 		})
 	})
 

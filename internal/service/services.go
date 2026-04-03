@@ -33,13 +33,15 @@ type Services struct {
 	Reaction         *ReactionService
 	TOTP             *TOTPService
 	AuditLog         *AuditService
+	Project          *ProjectService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
 	code := NewCodeService(cfg.Git)
+	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, cfg.Git)
 	return &Services{
 		User:         NewUserService(stores.User, cfg.Auth),
-		Repo:         NewRepoService(stores.Repo, stores.User, stores.Org, cfg.Git),
+		Repo:         repoSvc,
 		Issue:        NewIssueService(stores.Issue, stores.Repo),
 		Pull:         NewPullService(stores.Pull, stores.Repo),
 		Comment:      NewCommentService(stores.Comment),
@@ -65,5 +67,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Reaction:         NewReactionService(stores.Reaction),
 		TOTP:             NewTOTPService(stores.User),
 		AuditLog:         NewAuditService(stores.AuditLog),
+		Project:          NewProjectService(stores.Project, repoSvc),
 	}
 }
