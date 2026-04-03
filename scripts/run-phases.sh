@@ -62,10 +62,8 @@ run_phase() {
   local phase="$1" type="$2" name="$3" plan_file="$4"
   local branch="${type}/phase-${phase}-${name}"
   local plan_path="$PLANS_DIR/$plan_file"
-  local log_file="$LOG_DIR/phase-${phase}-${name}.log"
-  local silent_failure_log="$LOG_DIR/phase-${phase}-${name}-silent-failures.log"
-  local code_review_log="$LOG_DIR/phase-${phase}-${name}-code-review.log"
-  local security_log="$LOG_DIR/phase-${phase}-${name}-security.log"
+  local prompts_dir="$REPO_ROOT/scripts/prompts"
+  mkdir -p "$prompts_dir"
 
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -92,11 +90,8 @@ run_phase() {
     git checkout -b "$branch"
   fi
 
-  echo "Running Claude session... (log: $log_file)"
-  echo ""
-
-  # Run Claude non-interactively with the plan as context
-  claude --model claude-sonnet-4-6 -p "$(cat <<PROMPT
+  # --- Session 1: Implementation ---
+  cat > "$prompts_dir/phase-${phase}-${name}-impl.md" <<PROMPT
 You are implementing Phase ${phase} of the Cloudzilla project.
 
 Read and implement the plan at: docs/superpowers/plans/${plan_file}
@@ -112,24 +107,17 @@ Instructions:
 
 IMPORTANT: Do not ask clarifying questions. Follow the plan as written.
 PROMPT
-)" 2>&1 | tee "$log_file"
 
-  local impl_exit="${PIPESTATUS[0]}"
-
-  if [[ $impl_exit -ne 0 ]]; then
-    echo ""
-    echo "✗ Phase ${phase} FAILED (exit $impl_exit). Branch left at: ${branch}"
-    echo "  Check log: $log_file"
-    git checkout main
-    return 1
-  fi
-
-  # --- Review 1: Silent failure hunter ---
   echo ""
-  echo "Review 1/3: Silent failure hunter... (log: $silent_failure_log)"
+  echo "  Step 1/4 — Implementation"
+  echo "  When Claude opens, type:"
+  echo "  @scripts/prompts/phase-${phase}-${name}-impl.md"
   echo ""
+  read -r -p "  Press Enter to open Claude... "
+  claude --model claude-sonnet-4-6
 
-  claude --model claude-sonnet-4-6 -p "$(cat <<PROMPT
+  # --- Session 2: Silent failure hunter ---
+  cat > "$prompts_dir/phase-${phase}-${name}-silent-failures.md" <<PROMPT
 Use the pr-review-toolkit:silent-failure-hunter skill to review the Phase ${phase} (${name}) implementation.
 
 The changes are on branch: ${branch}
@@ -142,14 +130,17 @@ Focus on:
 
 Report high-confidence findings only. Be concise.
 PROMPT
-)" 2>&1 | tee "$silent_failure_log"
 
-  # --- Review 2: Code reviewer ---
   echo ""
-  echo "Review 2/3: Code reviewer... (log: $code_review_log)"
+  echo "  Step 2/4 — Silent failure review"
+  echo "  When Claude opens, type:"
+  echo "  @scripts/prompts/phase-${phase}-${name}-silent-failures.md"
   echo ""
+  read -r -p "  Press Enter to open Claude... "
+  claude --model claude-sonnet-4-6
 
-  claude --model claude-sonnet-4-6 -p "$(cat <<PROMPT
+  # --- Session 3: Code reviewer ---
+  cat > "$prompts_dir/phase-${phase}-${name}-code-review.md" <<PROMPT
 Use the pr-review-toolkit:code-reviewer skill to review the Phase ${phase} (${name}) implementation.
 
 The changes are on branch: ${branch}
@@ -163,14 +154,17 @@ Focus on:
 
 Report high-confidence findings only. Be concise.
 PROMPT
-)" 2>&1 | tee "$code_review_log"
 
-  # --- Review 3: Security review ---
   echo ""
-  echo "Review 3/3: Security review... (log: $security_log)"
+  echo "  Step 3/4 — Code review"
+  echo "  When Claude opens, type:"
+  echo "  @scripts/prompts/phase-${phase}-${name}-code-review.md"
   echo ""
+  read -r -p "  Press Enter to open Claude... "
+  claude --model claude-sonnet-4-6
 
-  claude --model claude-sonnet-4-6 -p "$(cat <<PROMPT
+  # --- Session 4: Security review ---
+  cat > "$prompts_dir/phase-${phase}-${name}-security.md" <<PROMPT
 Perform a targeted security review of the Phase ${phase} (${name}) implementation.
 
 The changes are on branch: ${branch}
@@ -187,16 +181,19 @@ Focus exclusively on security issues:
 
 Report high-confidence findings only. Be concise.
 PROMPT
-)" 2>&1 | tee "$security_log"
+
+  echo ""
+  echo "  Step 4/4 — Security review"
+  echo "  When Claude opens, type:"
+  echo "  @scripts/prompts/phase-${phase}-${name}-security.md"
+  echo ""
+  read -r -p "  Press Enter to open Claude... "
+  claude --model claude-sonnet-4-6
 
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "  Phase ${phase} ready for review"
-  echo "  Branch:            ${branch}"
-  echo "  Impl log:          ${log_file}"
-  echo "  Silent failures:   ${silent_failure_log}"
-  echo "  Code review:       ${code_review_log}"
-  echo "  Security review:   ${security_log}"
+  echo "  Branch: ${branch}"
   echo ""
   echo "  Next steps:"
   echo "  1. Fix any high-confidence findings from the reviews above"
