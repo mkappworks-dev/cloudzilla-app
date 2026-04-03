@@ -101,15 +101,16 @@ You are already on branch: ${branch}
 Instructions:
 1. Use the superpowers:executing-plans skill to implement the plan task-by-task.
 2. Follow all conventions in CLAUDE.md exactly (PostgreSQL syntax, Templ components, Store→Service→Handler layering).
-3. After completing the implementation, run: go build ./... to verify it compiles.
-4. Commit all changes with message format: feat(phase-${phase}): <description>
-5. Do NOT merge or push — leave the branch ready for review.
+3. Write Go tests for any new logic, service methods, or security-sensitive code where testing adds value. Not everything needs a test — use judgement.
+4. Run: go test ./... and go build ./... to verify everything passes and compiles.
+5. Commit all changes with message format: feat(phase-${phase}): <description>
+6. Do NOT merge or push — leave the branch ready for review.
 
 IMPORTANT: Do not ask clarifying questions. Follow the plan as written.
 PROMPT
 
   echo ""
-  echo "  Step 1/4 — Implementation"
+  echo "  Step 1/5 — Implementation"
   echo "  When Claude opens, type:"
   echo "  @scripts/prompts/phase-${phase}-${name}-impl.md"
   echo ""
@@ -132,7 +133,7 @@ Report high-confidence findings only. Be concise.
 PROMPT
 
   echo ""
-  echo "  Step 2/4 — Silent failure review"
+  echo "  Step 2/5 — Silent failure review"
   echo "  When Claude opens, type:"
   echo "  @scripts/prompts/phase-${phase}-${name}-silent-failures.md"
   echo ""
@@ -156,7 +157,7 @@ Report high-confidence findings only. Be concise.
 PROMPT
 
   echo ""
-  echo "  Step 3/4 — Code review"
+  echo "  Step 3/5 — Code review"
   echo "  When Claude opens, type:"
   echo "  @scripts/prompts/phase-${phase}-${name}-code-review.md"
   echo ""
@@ -183,13 +184,51 @@ Report high-confidence findings only. Be concise.
 PROMPT
 
   echo ""
-  echo "  Step 4/4 — Security review"
+  echo "  Step 4/5 — Security review"
   echo "  When Claude opens, type:"
   echo "  @scripts/prompts/phase-${phase}-${name}-security.md"
   echo ""
   read -r -p "  Press Enter to open Claude... "
   claude --model claude-sonnet-4-6
 
+  # --- Session 5: Docs update ---
+  cat > "$prompts_dir/phase-${phase}-${name}-docs.md" <<PROMPT
+Review the Phase ${phase} (${name}) implementation and update project documentation where necessary.
+
+The changes are on branch: ${branch}
+Run: git diff main...HEAD to see what was added.
+
+Check and update the following files if they are outdated or incomplete:
+- README.md — update feature list, setup instructions, or environment variables if new ones were added
+- CLAUDE.md — update architecture notes, conventions, or the phase status table (mark phase ${phase} as Done)
+- docs/roadmap.md — mark phase ${phase} as completed
+
+Only make changes that are factually necessary based on what was implemented. Do not add fluff.
+If a file is already accurate, leave it unchanged.
+Commit any documentation changes with message: docs(phase-${phase}): update readme, claude.md, and roadmap
+PROMPT
+
+  echo ""
+  echo "  Step 5/5 — Docs update (README, CLAUDE.md, roadmap)"
+  echo "  When Claude opens, type:"
+  echo "  @scripts/prompts/phase-${phase}-${name}-docs.md"
+  echo ""
+  read -r -p "  Press Enter to open Claude... "
+  claude --model claude-sonnet-4-6
+
+  # Clean up prompt files
+  rm -f "$prompts_dir/phase-${phase}-${name}-"*.md
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "  Phase ${phase} — Branch Summary"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "  Commits:"
+  git log main..HEAD --oneline | sed 's/^/    /'
+  echo ""
+  echo "  Files changed:"
+  git diff --stat main...HEAD | sed 's/^/    /'
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "  Phase ${phase} ready for review"
@@ -197,9 +236,7 @@ PROMPT
   echo ""
   echo "  Next steps:"
   echo "  1. Fix any high-confidence findings from the reviews above"
-  echo "  2. Create PR:  gh pr create --base main --head ${branch}"
-  echo "  3. Review and merge the PR"
-  echo "  4. Press Enter here to continue to the next phase"
+  echo "  2. Press Enter here to continue to the next phase"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
   read -r -p "  → Press Enter to continue to phase $(next_phase "$phase")... "
