@@ -32,6 +32,7 @@ type Services struct {
 	BranchProtection *BranchProtectionService
 	Reaction         *ReactionService
 	TOTP             *TOTPService
+	AuditLog         *AuditService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -63,5 +64,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		BranchProtection: NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus),
 		Reaction:         NewReactionService(stores.Reaction),
 		TOTP:             NewTOTPService(stores.User),
+		AuditLog:         NewAuditService(stores.AuditLog),
 	}
 }

@@ -31,6 +31,7 @@ type Stores struct {
 	DeployKey        *DeployKeyStore
 	BranchProtection *BranchProtectionStore
 	Reaction         *ReactionStore
+	AuditLog         *AuditLogStore
 }
 
 func New(database *sql.DB) *Stores {
@@ -60,5 +61,6 @@ func New(database *sql.DB) *Stores {
 		DeployKey:        NewDeployKeyStore(database),
 		BranchProtection: NewBranchProtectionStore(database),
 		Reaction:         NewReactionStore(database),
+		AuditLog:         NewAuditLogStore(database),
 	}
 }

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
 type loginRequest struct {
@@ -37,6 +39,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
 		SameSite: http.SameSiteLaxMode,
 	})
+
+	h.Services.AuditLog.Record(r.Context(), r, user.ID, user.Username, model.AuditActionLogin, "user", user.ID, user.Username, nil)
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"token": token,
