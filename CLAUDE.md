@@ -225,6 +225,8 @@ Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs
 | 0.1–5.3 | Core Platform → Draft PRs (all done)         | ✅ Done    | 001–029      |
 | 6.1–6.3 | Protected Branches → Code Review Suggestions | ✅ Done    | 030–031      |
 | 7.1     | Auto-merge                                   | ✅ Done    | 032          |
-| 7.2–20  | Issue & PR Templates → GraphQL v2            | ⬜ Planned | 033–060      |
+| 7.2–7.3 | Issue & PR Templates, Reactions              | ✅ Done    | 033          |
+| 8.1     | TOTP Two-Factor Authentication               | ✅ Done    | 034          |
+| 8.2–20  | Audit Log → GraphQL v2                       | ⬜ Planned | 035–060      |
 
 > Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)
