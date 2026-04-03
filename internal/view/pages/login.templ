@@ -49,6 +49,47 @@ templ Login(data view.LoginData) {
 						</a>
 					</div>
 				</div>
+				if data.LDAPEnabled || data.SAMLEnabled {
+					<div class="mt-6">
+						<div class="relative">
+							<div class="absolute inset-0 flex items-center">
+								<div class="w-full border-t border-gray-200"></div>
+							</div>
+							<div class="relative flex justify-center text-sm">
+								<span class="bg-white px-3 text-gray-500">SSO</span>
+							</div>
+						</div>
+						<div class="mt-4 space-y-3">
+							if data.SAMLEnabled {
+								<a href="/auth/saml" class="flex w-full items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-colors">
+									Sign in with SAML SSO
+								</a>
+							}
+							if data.LDAPEnabled {
+								<details class="border border-gray-200 rounded-md">
+									<summary class="px-4 py-2 text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors">
+										Sign in with LDAP
+									</summary>
+									<div class="p-4 border-t border-gray-100">
+										<form method="POST" action="/auth/ldap" class="space-y-3">
+											<div>
+												<label for="ldap-username" class="block text-xs font-medium text-gray-700 mb-1">Username</label>
+												<input type="text" id="ldap-username" name="username" required class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+											</div>
+											<div>
+												<label for="ldap-password" class="block text-xs font-medium text-gray-700 mb-1">Password</label>
+												<input type="password" id="ldap-password" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+											</div>
+											<button type="submit" class="w-full px-4 py-2 bg-gray-700 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition-colors">
+												Sign in with LDAP
+											</button>
+										</form>
+									</div>
+								</details>
+							}
+						</div>
+					</div>
+				}
 			</div>
 		</div>
 	}

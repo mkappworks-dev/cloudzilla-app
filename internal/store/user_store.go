@@ -20,6 +20,12 @@ func NewUserStore(q *storedb.Queries, database *sql.DB) *UserStore {
 	return &UserStore{q: q, db: database}
 }
 
+// DB returns the underlying *sql.DB. Used by services that need raw SQL access
+// without going through store methods (e.g. SSO user linking).
+func (s *UserStore) DB() *sql.DB {
+	return s.db
+}
+
 func (s *UserStore) Create(ctx context.Context, u *model.User) error {
 	result, err := s.q.CreateUser(ctx, storedb.CreateUserParams{
 		Username:     u.Username,

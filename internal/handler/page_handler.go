@@ -39,27 +39,48 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, pages.Login(view.LoginData{BasePage: basePage(r, h.Services)}))
+	ldapEnabled, samlEnabled := h.ssoEnabled(r)
+	h.render(w, r, pages.Login(view.LoginData{
+		BasePage:    basePage(r, h.Services),
+		LDAPEnabled: ldapEnabled,
+		SAMLEnabled: samlEnabled,
+	}))
 }
 
 func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	password := r.FormValue("password")
+	ldapEnabled, samlEnabled := h.ssoEnabled(r)
 
 	user, token, err := h.Services.User.Authenticate(r.Context(), email, password)
 	if err != nil {
-		h.render(w, r, pages.Login(view.LoginData{BasePage: basePage(r, h.Services), Error: "Invalid credentials"}))
+		h.render(w, r, pages.Login(view.LoginData{
+			BasePage:    basePage(r, h.Services),
+			LDAPEnabled: ldapEnabled,
+			SAMLEnabled: samlEnabled,
+			Error:       "Invalid credentials",
+		}))
 		return
 	}
 
 	if !user.IsSuperadmin && !user.IsInvited && !h.Services.SiteSetting.AllowLogin(r.Context()) {
-		h.render(w, r, pages.Login(view.LoginData{BasePage: basePage(r, h.Services), Error: "Login is currently disabled"}))
+		h.render(w, r, pages.Login(view.LoginData{
+			BasePage:    basePage(r, h.Services),
+			LDAPEnabled: ldapEnabled,
+			SAMLEnabled: samlEnabled,
+			Error:       "Login is currently disabled",
+		}))
 		return
 	}
 
 	totpEnabled, _, err := h.Services.TOTP.GetUserTOTPState(r.Context(), user.ID)
 	if err != nil {
-		h.render(w, r, pages.Login(view.LoginData{BasePage: basePage(r, h.Services), Error: "Internal error"}))
+		h.render(w, r, pages.Login(view.LoginData{
+			BasePage:    basePage(r, h.Services),
+			LDAPEnabled: ldapEnabled,
+			SAMLEnabled: samlEnabled,
+			Error:       "Internal error",
+		}))
 		return
 	}
 

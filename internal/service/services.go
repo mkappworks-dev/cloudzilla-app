@@ -33,6 +33,7 @@ type Services struct {
 	Reaction         *ReactionService
 	TOTP             *TOTPService
 	AuditLog         *AuditService
+	SSO              *SSOService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -65,5 +66,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Reaction:         NewReactionService(stores.Reaction),
 		TOTP:             NewTOTPService(stores.User),
 		AuditLog:         NewAuditService(stores.AuditLog),
+		SSO:              NewSSOService(stores.SSO, stores.User, cfg.Auth),
 	}
 }
