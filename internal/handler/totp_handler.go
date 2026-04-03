@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
+	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/view"
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
@@ -229,5 +230,6 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
 		SameSite: http.SameSiteLaxMode,
 	})
+	h.Services.AuditLog.Record(r.Context(), r, u.ID, u.Username, model.AuditActionLogin, "user", u.ID, u.Username, nil)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

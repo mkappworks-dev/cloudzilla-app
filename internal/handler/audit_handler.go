@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -28,6 +29,7 @@ func (h *Handler) PageAuditLog(w http.ResponseWriter, r *http.Request) {
 
 	entries, total, err := h.Services.AuditLog.List(ctx, filter, page, perPage)
 	if err != nil {
+		slog.Error("failed to list audit log entries", "error", err)
 		http.Error(w, "Failed to load audit log", http.StatusInternalServerError)
 		return
 	}

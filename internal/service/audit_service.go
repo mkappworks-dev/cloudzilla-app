@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -58,7 +59,14 @@ func (s *AuditService) Record(
 
 	go func() {
 		// Use a background context so the record outlives the request context.
-		_ = s.store.Create(context.Background(), entry)
+		if err := s.store.Create(context.Background(), entry); err != nil {
+			slog.Error("audit log write failed",
+				"action", entry.Action,
+				"actor_id", entry.ActorID,
+				"actor_name", entry.ActorName,
+				"error", err,
+			)
+		}
 	}()
 }
 
@@ -80,7 +88,7 @@ func extractIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		parts := strings.SplitN(xff, ",", 2)
 		ip := strings.TrimSpace(parts[0])
-		if ip != "" {
+		if net.ParseIP(ip) != nil {
 			return ip
 		}
 	}

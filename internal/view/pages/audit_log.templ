@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"net/url"
 	"strconv"
 	"github.com/mkappworks/cloudzilla/internal/view"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
@@ -91,13 +92,13 @@ templ AuditLog(data view.AuditLogData) {
 					<div class="flex gap-2">
 						if data.Page > 1 {
 							<a
-								href={ templ.SafeURL("/admin/audit-log?page=" + strconv.Itoa(data.Page-1) + "&action=" + data.Filter.Action + "&target_type=" + data.Filter.TargetType) }
+								href={ templ.SafeURL("/admin/audit-log?page=" + strconv.Itoa(data.Page-1) + "&action=" + url.QueryEscape(data.Filter.Action) + "&target_type=" + url.QueryEscape(data.Filter.TargetType)) }
 								class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
 							>← Previous</a>
 						}
 						if data.Page*data.PerPage < data.TotalCount {
 							<a
-								href={ templ.SafeURL("/admin/audit-log?page=" + strconv.Itoa(data.Page+1) + "&action=" + data.Filter.Action + "&target_type=" + data.Filter.TargetType) }
+								href={ templ.SafeURL("/admin/audit-log?page=" + strconv.Itoa(data.Page+1) + "&action=" + url.QueryEscape(data.Filter.Action) + "&target_type=" + url.QueryEscape(data.Filter.TargetType)) }
 								class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
 							>Next →</a>
 						}

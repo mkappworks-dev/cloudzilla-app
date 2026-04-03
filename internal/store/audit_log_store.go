@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
@@ -22,7 +23,7 @@ func NewAuditLogStore(db *sql.DB) *AuditLogStore {
 func (s *AuditLogStore) Create(ctx context.Context, e *model.AuditEntry) error {
 	meta, err := json.Marshal(e.Metadata)
 	if err != nil {
-		meta = []byte("{}")
+		return fmt.Errorf("audit log marshal metadata: %w", err)
 	}
 	err = s.db.QueryRowContext(ctx,
 		`INSERT INTO audit_log
@@ -81,11 +82,16 @@ func (s *AuditLogStore) List(ctx context.Context, f model.AuditFilter, page, pag
 			return nil, fmt.Errorf("audit log scan: %w", err)
 		}
 		if len(metaRaw) > 0 {
-			_ = json.Unmarshal(metaRaw, &e.Metadata)
+			if err := json.Unmarshal(metaRaw, &e.Metadata); err != nil {
+				slog.Warn("audit log metadata unmarshal failed", "entry_id", e.ID, "error", err)
+			}
 		}
 		entries = append(entries, e)
 	}
-	return entries, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("audit log list rows: %w", err)
+	}
+	return entries, nil
 }
 
 // buildAuditQuery builds a filtered SQL query for audit_log.
