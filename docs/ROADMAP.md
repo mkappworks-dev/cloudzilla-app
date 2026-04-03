@@ -1140,9 +1140,9 @@ POST /api/repos/{owner}/{repo}/pulls/{number}/line_comments/{id}/apply  (authMW 
 
 ---
 
-## Phase 7 — Auto-merge, Issue & PR Templates, Comment Reactions
+## Phase 7 — Auto-merge, Issue & PR Templates, Comment Reactions ✅ IMPLEMENTED
 
-_Automation, workflow quality-of-life, and expressiveness in comment threads._
+_Automation, workflow quality-of-life, and expressiveness in comment threads. Migrations 032–033._
 
 ### 7.1 Auto-merge
 
@@ -1253,9 +1253,9 @@ POST   /api/repos/{owner}/{repo}/comments/{id}/reactions   (authMW)  — toggle 
 
 ---
 
-## Phase 8 — Two-Factor Auth (TOTP), Audit Log, LDAP / SAML SSO
+## Phase 8 — Two-Factor Auth (TOTP), Audit Log, LDAP / SAML SSO (8.1 ✅ IMPLEMENTED)
 
-_Instance security hardening: strong authentication, accountability, and enterprise identity integration._
+_Instance security hardening: strong authentication, accountability, and enterprise identity integration. 8.1 implemented (migration 034); 8.2–8.3 planned._
 
 ### 8.1 Two-Factor Authentication (TOTP)
 

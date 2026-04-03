@@ -29,7 +29,7 @@ graph TB
         end
 
         subgraph Frontend["Embedded Frontend"]
-            Templates["Go html/template"]
+            Templates["Templ Components"]
             Static["Tailwind CSS + HTMX"]
         end
     end
@@ -240,6 +240,9 @@ graph TD
 - **Branch Protection** — per-repo glob patterns (e.g. `main`, `release/*`) that enforce required review counts, required commit-status checks, and optional force-push blocking; enforced on both HTTP and SSH push, and on PR merge
 - **CODEOWNERS** — repo owners can add a `CODEOWNERS` (or `.github/CODEOWNERS`) file; when a PR is opened, matched owners are automatically added as assignees based on the files changed
 - **Auto-merge** — enable auto-merge on any open PR with a chosen strategy (fast-forward, merge commit, or squash); merges automatically once all required reviews are approved and all required commit-status checks pass; can be disabled at any time
+- **Issue & PR Templates** — `.github/ISSUE_TEMPLATE.md` and `.github/PULL_REQUEST_TEMPLATE.md` auto-populate the new issue/PR form body when present in the repository
+- **Comment Reactions** — emoji reactions on issue and PR comments; per-user toggle; reaction counts displayed inline
+- **TOTP Two-Factor Authentication** — optional TOTP 2FA (RFC 6238) on user accounts; QR code setup via settings page; enforced at login with recovery codes
 - **Search** — full-text search across repositories, issues, pull requests, and users via PostgreSQL `tsvector` + GIN indexes; search bar in the navbar on every page; tabbed results page (`/search?q=...&type=repos|issues|pulls|users|all`)
 - User accounts with JWT authentication (httpOnly cookie)
 - Google OAuth sign-in (links to existing accounts by email)
@@ -1103,6 +1106,42 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 
 ---
 
+## Roadmap
+
+| Phase   | Feature                                      | Status     | Migration(s) |
+| ------- | -------------------------------------------- | ---------- | ------------ |
+| 0.1–5.3 | Core Platform → Draft PRs                    | ✅ Done    | 001–029      |
+| 6.1–6.3 | Protected Branches → Code Review Suggestions | ✅ Done    | 030–031      |
+| 7.1–7.3 | Auto-merge, Issue & PR Templates, Reactions  | ✅ Done    | 032–033      |
+| 8.1     | TOTP Two-Factor Authentication               | ✅ Done    | 034          |
+| 8.2     | Audit Log                                    | ⬜ Planned | 035          |
+| 8.3     | LDAP / SAML SSO                              | ⬜ Planned | 036          |
+| 9.1     | Project Boards / Kanban                      | ⬜ Planned | 037          |
+| 9.2     | Wiki                                         | ⬜ Planned | 038          |
+| 9.3     | Issue Pinning & Locking                      | ⬜ Planned | 039          |
+| 10.1    | Repository Insights & Stats                  | ⬜ Planned | —            |
+| 10.2    | @Mentions in Comments                        | ⬜ Planned | 040          |
+| 10.3    | Saved Replies                                | ⬜ Planned | 041          |
+| 11.1    | Email Notifications (SMTP)                   | ⬜ Planned | 042          |
+| 11.2    | OAuth Apps / Third-party Clients             | ⬜ Planned | 043          |
+| 11.3    | Webhook Improvements                         | ⬜ Planned | 044          |
+| 12.1    | Watching                                     | ⬜ Planned | 045          |
+| 12.2    | Activity Feed                                | ⬜ Planned | 046          |
+| 12.3    | Discussions                                  | ⬜ Planned | 047          |
+| 13.1    | Gists                                        | ⬜ Planned | 048          |
+| 13.2    | Profile README                               | ⬜ Planned | —            |
+| 13.3    | Repository Topics / Tags                     | ⬜ Planned | 049          |
+| 14.1    | Private Issues                               | ⬜ Planned | 050          |
+| 14.2    | Repository Archive & Templates               | ⬜ Planned | 051          |
+| 14.3    | Soft-delete & Recovery                       | ⬜ Planned | 052          |
+| 15.1    | Advanced Code Search                         | ⬜ Planned | 053          |
+| 15.2    | Explore / Trending                           | ⬜ Planned | 054          |
+| 15.3    | Dependency Graph                             | ⬜ Planned | 055          |
+
+> Full specs for all phases: [docs/roadmap.md](./docs/roadmap.md). Implementation plans: [docs/superpowers/plans/](./docs/superpowers/plans/).
+
+---
+
 ## Make Targets
 
 | Target                  | Description                                                   |
@@ -1129,17 +1168,7 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 ```
 cmd/
   server/          # HTTP server entrypoint
-    frontend/      # Templates + static files (embedded in binary)
-      templates/
-        layout.html          # Base HTML shell
-        pages/               # Page templates (home, login, user, repo, org, org_settings,
-        |                    #   repo_settings, issues, pulls, tree, blob, blame, refs,
-        |                    #   notifications, setup, invite, admin_settings,
-        |                    #   releases, release_detail, milestones, search)
-        fragments/           # HTMX swap fragments (issues, pull requests, SSH keys,
-                             #   branches/tags, org members, webhooks, notifications,
-                             #   admin settings, admin invitations, repo collaborators,
-                             #   milestone_sidebar, pr_reviews, line_comments)
+    frontend/      # Static files (embedded in binary)
       static/
         main.css             # Compiled Tailwind output
       htmx.min.js            # HTMX library
@@ -1147,40 +1176,25 @@ cmd/
 internal/
   config/          # Config loading (viper + YAML)
   db/              # DB connection + migration runner
+    migrations/    # SQL migration files (embedded via embed.FS)
   model/           # Data structs (db + json tags)
-  store/           # Store layer (uses sqlc-generated db queries)
-    query/         # SQL query files for sqlc code generation
-    db/            # Generated sqlc code (models + query methods)
+  store/           # Store layer (raw SQL queries via sqlx)
   service/         # Business logic (calls stores)
   handler/         # HTTP handlers (page + API + git HTTP)
-    page_handler.go          # Page rendering handlers
-    ref_handler.go           # Branch & tag create/delete handlers
-    org_handler.go           # Organization API handlers
-    webhook_handler.go       # Webhook API handlers
-    notification_handler.go  # Notification API handlers
-    setup_handler.go         # First-run wizard handlers
-    admin_handler.go         # Superadmin panel: instance settings + invitations
-    invite_handler.go        # Invitation acceptance flow
-    fork_handler.go          # Repository fork handler
-    release_handler.go       # Releases page + API handlers
-    commit_status_handler.go # Commit Status API handlers
-    milestone_handler.go     # Milestones page + API + sidebar handlers
-    pull_review_handler.go   # PR review submit + list handlers
-    pull_line_comment_handler.go # PR inline line comment handlers
-    search_handler.go        # Global search page handler
-    viewmodels.go            # Data structs for templates (with BasePage for auth)
-    git_http.go              # Git HTTP smart protocol handler
-    ssh_key_handler.go       # SSH key management endpoints
   middleware/      # Auth, logger, CORS, RequireSetup (first-run redirect)
-  router/          # chi route registration + template parsing
+  router/          # chi route registration
   ssh/             # SSH server for git operations (gliderlabs/ssh)
-    server.go      # SSH server implementation
-migrations/        # SQL migration files (embedded via embed.FS)
+  view/            # Templ components (compiled to _templ.go files)
+    layout/        # Base layout component
+    pages/         # Page components (one per page)
+    fragments/     # HTMX fragment components
 tailwind/          # Tailwind CSS configuration
   input.css        # Tailwind directives
   tailwind.config.js         # Theme customization
+docs/
+  superpowers/
+    plans/         # Implementation plans for phases 8.2–15.3
 config.yaml        # Default configuration
-sqlc.yaml          # sqlc code generation config
 Makefile
 ```
 
@@ -1231,6 +1245,9 @@ Migrations live in `migrations/` and are embedded into the binary at build time.
 | `029_add_draft_to_pulls.sql`              | Adds `is_draft` boolean column to `pull_requests`                                                               |
 | `030_create_branch_protections.sql`       | `branch_protections` table with `pattern`, `require_review_count`, `require_status_checks`, `block_force_push`  |
 | `031_add_suggestion_to_line_comments.sql` | Adds `is_suggestion` and `suggestion_body` columns to `pull_line_comments`                                      |
+| `032_add_auto_merge_to_pulls.sql`         | Adds `auto_merge_strategy` column to `pull_requests` for auto-merge support                                     |
+| `033_create_reactions.sql`                | `reactions` table for emoji reactions on issue/PR comments                                                       |
+| `034_add_2fa_to_users.sql`               | Adds `totp_secret`, `totp_enabled`, `recovery_codes` columns to `users` for TOTP 2FA                           |
 
 ---
 

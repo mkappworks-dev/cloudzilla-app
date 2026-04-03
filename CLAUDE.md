@@ -230,3 +230,39 @@ Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs
 | 8.2–20  | Audit Log → GraphQL v2                       | ⬜ Planned | 035–060      |
 
 > Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)
+> Implementation plans for each phase: [docs/superpowers/plans/](./docs/superpowers/plans/)
+
+## Branch Naming Convention
+
+When starting work on a new phase or task, create a branch following this format:
+
+```
+<type>/phase-<number>-<name-of-plan>
+```
+
+**Types:** `feat` (new feature), `bug` (bug fix), `tech` (technical/infrastructure)
+
+**Examples:**
+- `feat/phase-8.2-audit-log`
+- `feat/phase-9.1-project-boards`
+- `feat/phase-12.3-discussions`
+- `bug/phase-8.1-totp-recovery-fix`
+- `tech/phase-8.3-sso`
+
+## Running Phases Individually
+
+Each phase (8.2–15.3) has a self-contained implementation plan in `docs/superpowers/plans/`. Phases should be implemented **sequentially** (not in parallel) because:
+
+1. Migration numbers must be sequential (035, 036, ...)
+2. Shared files (`router.go`, `services.go`, `stores.go`) would conflict
+3. Some phases depend on earlier schema
+
+**To implement a phase in a standalone Claude session:**
+
+```bash
+claude -p "Read the plan at docs/superpowers/plans/2026-03-25-phase-<X.Y>-<name>.md and implement it. \
+Create branch feat/phase-<X.Y>-<name> from main. Follow all conventions in CLAUDE.md. \
+Use the next available migration number. Commit when done."
+```
+
+**After each phase completes:** merge the branch to main before starting the next phase.
