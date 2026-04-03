@@ -90,6 +90,8 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
+	h.Services.AuditLog.Record(r.Context(), r, user.ID, user.Username, model.AuditActionLogin, "user", user.ID, user.Username, nil)
+
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 

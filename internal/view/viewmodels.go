@@ -575,3 +575,13 @@ type TOTPVerifyPageData struct {
 	BasePage
 	Error string
 }
+
+// AuditLogData holds data for the admin audit log page.
+type AuditLogData struct {
+	BasePage
+	Entries    []model.AuditEntry
+	Filter     model.AuditFilter
+	TotalCount int
+	Page       int
+	PerPage    int
+}

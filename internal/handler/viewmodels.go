@@ -71,4 +71,5 @@ type (
 	TokensListFragData     = view.TokensListFragData
 	ReactionFragData       = view.ReactionFragData
 	SSHKeysFragData        = view.SSHKeysFragData
+	AuditLogData           = view.AuditLogData
 )

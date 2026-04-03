@@ -59,6 +59,9 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionRepoCreate, "repo", repo.ID, repo.Name, nil)
+
 	writeJSON(w, http.StatusCreated, repo)
 }
 
@@ -170,6 +173,8 @@ func (h *Handler) TransferRepo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
+
+	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionRepoTransfer, "repo", repo.ID, repo.Name, nil)
 
 	http.Redirect(w, r, "/"+newOwner+"/"+repoName, http.StatusSeeOther)
 }

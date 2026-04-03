@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/service"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -82,7 +83,7 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	allowReg := h.Services.SiteSetting.AllowRegistration(r.Context())
 	allowLogin := h.Services.SiteSetting.AllowLogin(r.Context())
 
-	_, jwtToken, err := h.Services.User.AuthenticateOAuth(r.Context(), "google", info.ID, info.Email, info.Name, info.Picture, allowReg, allowLogin)
+	oauthUser, jwtToken, err := h.Services.User.AuthenticateOAuth(r.Context(), "google", info.ID, info.Email, info.Name, info.Picture, allowReg, allowLogin)
 	if err != nil {
 		switch err {
 		case service.ErrRegistrationDisabled:
@@ -103,5 +104,6 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
 		SameSite: http.SameSiteLaxMode,
 	})
+	h.Services.AuditLog.Record(r.Context(), r, oauthUser.ID, oauthUser.Username, model.AuditActionLogin, "user", oauthUser.ID, oauthUser.Username, nil)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

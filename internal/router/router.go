@@ -38,6 +38,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Admin routes
 	r.With(authMW, superadminMW).Get("/admin/settings", h.PageAdminSettings)
+	r.With(authMW, superadminMW).Get("/admin/audit-log", h.PageAuditLog)
 
 	// Search
 	r.With(optAuthMW).Get("/search", h.PageSearch)
