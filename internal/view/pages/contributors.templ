@@ -1,0 +1,59 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Contributors(data view.ContributorsData) {
+	@layout.Base(data.BasePage, "Contributors · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-6">
+			<div class="flex items-center gap-2 text-sm text-gray-500">
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline font-medium">{ data.Owner }/{ data.RepoName }</a>
+				<span>/</span>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulse") } class="text-blue-600 hover:underline">Pulse</a>
+				<span>/</span>
+				<span class="font-medium text-gray-700">Contributors</span>
+			</div>
+			<h1 class="text-2xl font-bold">Contributors</h1>
+			if len(data.Contributors) > 0 {
+				<div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+					<table class="w-full text-sm">
+						<thead class="bg-gray-50 border-b border-gray-200">
+							<tr>
+								<th class="text-left px-4 py-2 font-medium text-gray-600">Contributor</th>
+								<th class="text-left px-4 py-2 font-medium text-gray-600 hidden sm:table-cell">Email</th>
+								<th class="text-right px-4 py-2 font-medium text-gray-600">Commits</th>
+								<th class="text-right px-4 py-2 font-medium text-gray-600 hidden sm:table-cell">Additions</th>
+								<th class="text-right px-4 py-2 font-medium text-gray-600 hidden sm:table-cell">Deletions</th>
+								<th class="px-4 py-2 w-48 hidden md:table-cell"></th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-50">
+							for _, c := range data.Contributors {
+								<tr class="hover:bg-gray-50">
+									<td class="px-4 py-2 font-medium text-gray-800">{ c.Name }</td>
+									<td class="px-4 py-2 text-gray-500 hidden sm:table-cell text-xs">{ c.Email }</td>
+									<td class="px-4 py-2 text-right font-semibold">{ strconv.Itoa(c.Commits) }</td>
+									<td class="px-4 py-2 text-right text-green-600 hidden sm:table-cell">+{ strconv.Itoa(c.Additions) }</td>
+									<td class="px-4 py-2 text-right text-red-500 hidden sm:table-cell">-{ strconv.Itoa(c.Deletions) }</td>
+									<td class="px-4 py-2 hidden md:table-cell">
+										<div class="bg-gray-100 rounded-full h-2 w-full overflow-hidden">
+											<div class="bg-blue-500 h-2 rounded-full" style={ "width: " + pct(c.Commits, data.MaxCommits) + "%" }></div>
+										</div>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			} else {
+				<div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
+					<p class="text-gray-500">No commits yet.</p>
+				</div>
+			}
+		</div>
+	}
+}

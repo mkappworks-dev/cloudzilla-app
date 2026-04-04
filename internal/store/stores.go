@@ -42,7 +42,7 @@ func New(database *sql.DB) *Stores {
 		User:             NewUserStore(q, database),
 		Repo:             NewRepoStore(q, database),
 		Issue:            NewIssueStore(q, database),
-		Pull:             NewPullStore(q),
+		Pull:             NewPullStore(q, database),
 		Comment:          NewCommentStore(q),
 		SSHKey:           NewSSHKeyStore(q),
 		Org:              NewOrgStore(database),

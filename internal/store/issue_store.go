@@ -221,3 +221,21 @@ func scanIssueRows(rows *sql.Rows) ([]model.Issue, error) {
 	}
 	return issues, rows.Err()
 }
+
+func (s *IssueStore) CountCreatedSince(ctx context.Context, repoID int64, since time.Time) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM issues WHERE repo_id = $1 AND created_at >= $2`,
+		repoID, since,
+	).Scan(&n)
+	return n, err
+}
+
+func (s *IssueStore) CountClosedSince(ctx context.Context, repoID int64, since time.Time) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM issues WHERE repo_id = $1 AND closed_at >= $2`,
+		repoID, since,
+	).Scan(&n)
+	return n, err
+}

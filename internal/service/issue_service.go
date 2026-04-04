@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/store"
@@ -159,4 +160,12 @@ func (s *IssueService) ListPinned(ctx context.Context, owner, repoName string) (
 // canManage checks whether userID can manage the repo (owner or org owner).
 func (s *IssueService) canManage(ctx context.Context, repo *model.Repository, userID int64) bool {
 	return s.repoSvc.CanManage(ctx, repo, userID)
+}
+
+func (s *IssueService) CountCreatedSince(ctx context.Context, repoID int64, since time.Time) (int, error) {
+	return s.issues.CountCreatedSince(ctx, repoID, since)
+}
+
+func (s *IssueService) CountClosedSince(ctx context.Context, repoID int64, since time.Time) (int, error) {
+	return s.issues.CountClosedSince(ctx, repoID, since)
 }

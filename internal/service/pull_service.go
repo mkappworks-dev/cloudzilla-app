@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/store"
@@ -129,4 +130,16 @@ func (s *PullService) SetState(ctx context.Context, owner, repoName string, numb
 	}
 	// Re-fetch so merged_at/closed_at and updated_at reflect DB values
 	return s.Get(ctx, owner, repoName, number)
+}
+
+func (s *PullService) CountCreatedSince(ctx context.Context, repoID int64, since time.Time) (int, error) {
+	return s.pulls.CountCreatedSince(ctx, repoID, since)
+}
+
+func (s *PullService) CountMergedSince(ctx context.Context, repoID int64, since time.Time) (int, error) {
+	return s.pulls.CountMergedSince(ctx, repoID, since)
+}
+
+func (s *PullService) CountOpen(ctx context.Context, repoID int64) (int, error) {
+	return s.pulls.CountOpen(ctx, repoID)
 }
