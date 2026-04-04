@@ -1,0 +1,67 @@
+package fragments
+
+import (
+	"strconv"
+	"strings"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+)
+
+templ WebhookDeliveriesList(data view.WebhookDeliveriesFragData) {
+	<div id={ "webhook-deliveries-" + strconv.FormatInt(data.WebhookID, 10) } class="space-y-2 mt-3">
+		if len(data.Deliveries) > 0 {
+			for _, d := range data.Deliveries {
+				<div class="border border-gray-200 rounded-lg p-3 text-sm">
+					<div class="flex justify-between items-start gap-3">
+						<div class="min-w-0 flex-1">
+							<div class="flex items-center gap-2 flex-wrap">
+								<span class="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">{ d.Event }</span>
+								if d.ResponseCode > 0 {
+									if d.ResponseCode >= 200 && d.ResponseCode < 300 {
+										<span class="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700">
+											HTTP { strconv.Itoa(d.ResponseCode) }
+										</span>
+									} else {
+										<span class="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700">
+											HTTP { strconv.Itoa(d.ResponseCode) }
+										</span>
+									}
+								}
+								if d.AttemptCount > 1 {
+									<span class="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">
+										Attempt { strconv.Itoa(d.AttemptCount) }
+									</span>
+								}
+								if d.NextRetryAt != nil {
+									<span class="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+										Retry pending
+									</span>
+								}
+							</div>
+							if d.Error != "" {
+								<p class="text-red-600 text-xs mt-1 font-mono">{ d.Error }</p>
+							}
+							<p class="text-gray-400 text-xs mt-1">{ d.DeliveredAt.Format("Jan 2, 2006 15:04:05 UTC") }</p>
+						</div>
+						if data.CanWrite {
+							<button
+								hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(data.WebhookID, 10) + "/redeliver?delivery_id=" + strconv.FormatInt(d.ID, 10) }
+								hx-swap="none"
+								class="text-xs text-blue-600 hover:underline shrink-0"
+							>
+								Redeliver
+							</button>
+						}
+					</div>
+				</div>
+			}
+		} else {
+			<p class="text-gray-500 text-sm">No deliveries yet.</p>
+		}
+	</div>
+}
+
+// hasEvent checks if an event name is included in a comma-separated events string.
+func hasEvent(events, event string) bool {
+	return strings.Contains(events, event)
+}

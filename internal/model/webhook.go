@@ -14,12 +14,14 @@ type Webhook struct {
 }
 
 type WebhookDelivery struct {
-	ID           int64     `db:"id"            json:"id"`
-	WebhookID    int64     `db:"webhook_id"    json:"webhook_id"`
-	Event        string    `db:"event"         json:"event"`
-	Payload      string    `db:"payload"       json:"payload"`
-	ResponseCode int       `db:"response_code" json:"response_code"`
-	ResponseBody string    `db:"response_body" json:"response_body"`
-	Error        string    `db:"error"         json:"error"`
-	DeliveredAt  time.Time `db:"delivered_at"  json:"delivered_at"`
+	ID           int64      `db:"id"             json:"id"`
+	WebhookID    int64      `db:"webhook_id"     json:"webhook_id"`
+	Event        string     `db:"event"          json:"event"`
+	Payload      string     `db:"payload"        json:"payload"`
+	ResponseCode int        `db:"response_code"  json:"response_code"`
+	ResponseBody string     `db:"response_body"  json:"response_body"`
+	Error        string     `db:"error"          json:"error"`
+	DeliveredAt  time.Time  `db:"delivered_at"   json:"delivered_at"`
+	AttemptCount int        `db:"attempt_count"  json:"attempt_count"`
+	NextRetryAt  *time.Time `db:"next_retry_at"  json:"next_retry_at,omitempty"`
 }

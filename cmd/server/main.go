@@ -42,6 +42,9 @@ func main() {
 
 	go runEmailDigest(context.Background(), services)
 
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
 	// Start SSH server
 	sshSrv := ssh.New(cfg.Git, services)
 	go func() {
@@ -49,6 +52,22 @@ func main() {
 		slog.Info("ssh server starting", "addr", sshAddr)
 		if err := sshSrv.ListenAndServe(); err != nil {
 			slog.Error("ssh server error", "error", err)
+		}
+	}()
+
+	// Webhook retry worker — runs every 60 seconds
+	go func() {
+		ticker := time.NewTicker(60 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := services.Webhook.RetryPending(context.Background()); err != nil {
+					slog.Warn("webhook retry pending failed", "error", err)
+				}
+			case <-quit:
+				return
+			}
 		}
 	}()
 
@@ -68,8 +87,6 @@ func main() {
 		}
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
