@@ -86,7 +86,7 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	comment, err := h.Services.Comment.CreateForIssue(r.Context(), *repo, issue.ID, claims.UserID, claims.Username, body)
+	comment, err := h.Services.Comment.CreateForIssue(r.Context(), *repo, issue.ID, issue.Number, claims.UserID, claims.Username, body)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
