@@ -10,9 +10,14 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store/db"
 )
 
-type IssueStore struct{ q *db.Queries }
+type IssueStore struct {
+	q  *db.Queries
+	db *sql.DB
+}
 
-func NewIssueStore(q *db.Queries) *IssueStore { return &IssueStore{q: q} }
+func NewIssueStore(q *db.Queries, database *sql.DB) *IssueStore {
+	return &IssueStore{q: q, db: database}
+}
 
 func (s *IssueStore) Create(ctx context.Context, issue *model.Issue) error {
 	// Get next number for repo
@@ -48,14 +53,30 @@ func (s *IssueStore) List(ctx context.Context, repoID int64) ([]model.Issue, err
 }
 
 func (s *IssueStore) GetByNumber(ctx context.Context, repoID int64, number int) (*model.Issue, error) {
-	result, err := s.q.GetIssue(ctx, db.GetIssueParams{
-		RepoID: repoID,
-		Number: int32(number),
-	})
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT i.id, i.repo_id, i.number, i.author_id,
+		        COALESCE(u.username, '') AS author_name,
+		        i.title, i.body, i.state,
+		        i.milestone_id, i.created_at, i.updated_at, i.closed_at,
+		        i.is_pinned, i.is_locked, i.locked_at
+		 FROM issues i
+		 LEFT JOIN users u ON u.id = i.author_id
+		 WHERE i.repo_id = $1 AND i.number = $2
+		 LIMIT 1`,
+		repoID, number,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("issue get: %w", err)
 	}
-	return mapDBIssueToModel(&result), nil
+	defer rows.Close()
+	issues, err := scanIssueRows(rows)
+	if err != nil {
+		return nil, fmt.Errorf("issue get: %w", err)
+	}
+	if len(issues) == 0 {
+		return nil, fmt.Errorf("issue get: not found")
+	}
+	return &issues[0], nil
 }
 
 func (s *IssueStore) UpdateState(ctx context.Context, id int64, state model.IssueState) error {
@@ -99,4 +120,88 @@ func mapDBIssuesToModel(dbIssues []db.Issue) []model.Issue {
 		issues[i] = *mapDBIssueToModel(&dbIssue)
 	}
 	return issues
+}
+
+// CountPinnedByRepo returns the number of currently pinned issues in a repo.
+func (s *IssueStore) CountPinnedByRepo(ctx context.Context, repoID int64) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM issues WHERE repo_id = $1 AND is_pinned = TRUE`,
+		repoID,
+	).Scan(&count)
+	return count, err
+}
+
+// SetPinned pins or unpins an issue.
+func (s *IssueStore) SetPinned(ctx context.Context, issueID int64, pinned bool) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE issues SET is_pinned = $1, updated_at = NOW() WHERE id = $2`,
+		pinned, issueID,
+	)
+	return err
+}
+
+// SetLocked locks or unlocks an issue. When locking, locked_at is set to NOW(); when unlocking it is cleared.
+func (s *IssueStore) SetLocked(ctx context.Context, issueID int64, locked bool) error {
+	if locked {
+		_, err := s.db.ExecContext(ctx,
+			`UPDATE issues SET is_locked = TRUE, locked_at = NOW(), updated_at = NOW() WHERE id = $1`,
+			issueID,
+		)
+		return err
+	}
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE issues SET is_locked = FALSE, locked_at = NULL, updated_at = NOW() WHERE id = $1`,
+		issueID,
+	)
+	return err
+}
+
+// ListPinned returns all pinned issues for a repo, ordered by number ascending.
+func (s *IssueStore) ListPinned(ctx context.Context, repoID int64) ([]model.Issue, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT i.id, i.repo_id, i.number, i.author_id,
+		        COALESCE(u.username, '') AS author_name,
+		        i.title, i.body, i.state,
+		        i.milestone_id, i.created_at, i.updated_at, i.closed_at,
+		        i.is_pinned, i.is_locked, i.locked_at
+		 FROM issues i
+		 LEFT JOIN users u ON u.id = i.author_id
+		 WHERE i.repo_id = $1 AND i.is_pinned = TRUE
+		 ORDER BY i.number ASC`,
+		repoID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanIssueRows(rows)
+}
+
+func scanIssueRows(rows *sql.Rows) ([]model.Issue, error) {
+	var issues []model.Issue
+	for rows.Next() {
+		var iss model.Issue
+		var closedAt, lockedAt sql.NullTime
+		var milestoneID sql.NullInt64
+		if err := rows.Scan(
+			&iss.ID, &iss.RepoID, &iss.Number, &iss.AuthorID,
+			&iss.AuthorName, &iss.Title, &iss.Body, &iss.State,
+			&milestoneID, &iss.CreatedAt, &iss.UpdatedAt, &closedAt,
+			&iss.IsPinned, &iss.IsLocked, &lockedAt,
+		); err != nil {
+			return nil, err
+		}
+		if closedAt.Valid {
+			iss.ClosedAt = &closedAt.Time
+		}
+		if lockedAt.Valid {
+			iss.LockedAt = &lockedAt.Time
+		}
+		if milestoneID.Valid {
+			iss.MilestoneID = &milestoneID.Int64
+		}
+		issues = append(issues, iss)
+	}
+	return issues, rows.Err()
 }

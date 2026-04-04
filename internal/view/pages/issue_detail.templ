@@ -22,9 +22,14 @@ templ IssueDetail(data view.IssueDetailData) {
 								<h1 class="text-3xl font-bold">{ data.Issue.Title }</h1>
 								<p class="text-gray-600 text-sm mt-2">#{ strconv.Itoa(data.Issue.Number) } opened by { data.Issue.AuthorName } on { data.Issue.CreatedAt.Format("Jan 2, 2006") }</p>
 							</div>
-							<span class={ "px-3 py-1 rounded-full text-sm font-medium", templ.KV("bg-green-100 text-green-700", data.Issue.State == "open"), templ.KV("bg-red-100 text-red-700", data.Issue.State != "open") }>
-								{ string(data.Issue.State) }
-							</span>
+							<div class="flex items-center gap-2">
+								<span class={ "px-3 py-1 rounded-full text-sm font-medium", templ.KV("bg-green-100 text-green-700", data.Issue.State == "open"), templ.KV("bg-red-100 text-red-700", data.Issue.State != "open") }>
+									{ string(data.Issue.State) }
+								</span>
+								if data.Issue.IsLocked {
+									<span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">Locked</span>
+								}
+							</div>
 						</div>
 						if len(data.Labels) > 0 {
 							<div class="flex flex-wrap gap-1 mb-3">
@@ -45,6 +50,28 @@ templ IssueDetail(data view.IssueDetailData) {
 								Re-open Issue
 							</button>
 						}
+						if data.CanManage {
+							<div class="flex gap-2 mt-3">
+								if data.Issue.IsPinned {
+									<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/pin" } hx-vals='{"action":"unpin"}' hx-swap="none" class="px-3 py-1.5 text-sm bg-yellow-100 text-yellow-800 border border-yellow-300 rounded hover:bg-yellow-200 transition-colors">
+										Unpin
+									</button>
+								} else {
+									<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/pin" } hx-vals='{"action":"pin"}' hx-swap="none" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded hover:bg-gray-200 transition-colors">
+										Pin
+									</button>
+								}
+								if data.Issue.IsLocked {
+									<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/lock" } hx-vals='{"action":"unlock"}' hx-swap="none" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded hover:bg-gray-200 transition-colors">
+										Unlock
+									</button>
+								} else {
+									<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/lock" } hx-vals='{"action":"lock"}' hx-swap="none" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded hover:bg-gray-200 transition-colors">
+										Lock
+									</button>
+								}
+							</div>
+						}
 					</div>
 					<div class="mt-8">
 						<h2 class="text-2xl font-bold mb-4">Comments</h2>
@@ -58,12 +85,21 @@ templ IssueDetail(data view.IssueDetailData) {
 								</div>
 							}
 						</div>
-						<form class="bg-white border border-gray-200 rounded-lg p-4">
-							<textarea name="body" placeholder="Add a comment..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical min-h-24"></textarea>
-							<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/comments" } hx-swap="beforeend" hx-target="#comments" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition-colors">
-								Comment
-							</button>
-						</form>
+						if !data.Issue.IsLocked || data.CanManage {
+							if data.BasePage.CurrentUser != nil {
+								<form class="bg-white border border-gray-200 rounded-lg p-4">
+									<textarea name="body" placeholder="Add a comment..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical min-h-24"></textarea>
+									<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/comments" } hx-swap="beforeend" hx-target="#comments" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition-colors">
+										Comment
+									</button>
+								</form>
+							}
+						}
+						if data.Issue.IsLocked && !data.CanManage {
+							<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-sm text-gray-500">
+								This issue is locked. Only maintainers can comment.
+							</div>
+						}
 					</div>
 				</div>
 				<!-- Sidebar -->

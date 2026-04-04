@@ -41,7 +41,7 @@ func New(database *sql.DB) *Stores {
 	return &Stores{
 		User:             NewUserStore(q, database),
 		Repo:             NewRepoStore(q, database),
-		Issue:            NewIssueStore(q),
+		Issue:            NewIssueStore(q, database),
 		Pull:             NewPullStore(q),
 		Comment:          NewCommentStore(q),
 		SSHKey:           NewSSHKeyStore(q),

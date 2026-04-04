@@ -15,6 +15,24 @@ templ Issues(data view.IssuesData) {
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline">{ data.Owner }/{ data.RepoName }</a> Issues
 				</h1>
 			</div>
+			if len(data.PinnedIssues) > 0 {
+				<div class="mb-4">
+					<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Pinned</h2>
+					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+						for _, pinned := range data.PinnedIssues {
+							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(pinned.Number)) } class="block bg-yellow-50 border border-yellow-200 rounded-lg p-4 hover:border-yellow-400 hover:shadow-md transition-all">
+								<div class="flex items-start gap-2">
+									<svg class="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.32L10 13.27l-4.77 2.51.91-5.32L2.27 6.62l5.34-.78L10 1z"></path></svg>
+									<div class="min-w-0">
+										<p class="font-semibold text-sm truncate">{ pinned.Title }</p>
+										<p class="text-xs text-gray-500 mt-1">#{ strconv.Itoa(pinned.Number) } · { string(pinned.State) }</p>
+									</div>
+								</div>
+							</a>
+						}
+					</div>
+				</div>
+			}
 			if len(data.Issues) > 0 {
 				<div class="space-y-3">
 					for _, issue := range data.Issues {
