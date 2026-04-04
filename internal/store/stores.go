@@ -34,6 +34,7 @@ type Stores struct {
 	AuditLog         *AuditLogStore
 	Project          *ProjectStore
 	SSO              *SSOStore
+	Mention          *MentionStore
 }
 
 func New(database *sql.DB) *Stores {
@@ -66,5 +67,6 @@ func New(database *sql.DB) *Stores {
 		AuditLog:         NewAuditLogStore(database),
 		Project:          NewProjectStore(database),
 		SSO:              NewSSOStore(database),
+		Mention:          NewMentionStore(database),
 	}
 }

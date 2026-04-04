@@ -402,7 +402,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	rendered := make([]RenderedComment, len(rawComments))
 	for i, c := range rawComments {
-		rendered[i] = RenderedComment{Comment: c, BodyHTML: markdown.Render(c.Body)}
+		rendered[i] = RenderedComment{Comment: c, BodyHTML: renderMentionsHTML(markdown.Render(c.Body))}
 	}
 
 	issueLabels, _ := h.Services.Label.GetForIssue(r.Context(), issue.ID)

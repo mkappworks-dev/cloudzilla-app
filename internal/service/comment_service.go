@@ -10,15 +10,31 @@ import (
 
 type CommentService struct {
 	comments *store.CommentStore
+	mentions *store.MentionStore
+	users    *UserService
+	notifs   *NotificationService
+	repos    *store.RepoStore
 }
 
-func NewCommentService(comments *store.CommentStore) *CommentService {
-	return &CommentService{comments: comments}
+func NewCommentService(
+	comments *store.CommentStore,
+	mentions *store.MentionStore,
+	users *UserService,
+	notifs *NotificationService,
+	repos *store.RepoStore,
+) *CommentService {
+	return &CommentService{
+		comments: comments,
+		mentions: mentions,
+		users:    users,
+		notifs:   notifs,
+		repos:    repos,
+	}
 }
 
-func (s *CommentService) CreateForIssue(ctx context.Context, repoID, issueID, authorID int64, authorName, body string) (*model.Comment, error) {
+func (s *CommentService) CreateForIssue(ctx context.Context, repo model.Repository, issueID, authorID int64, authorName, body string) (*model.Comment, error) {
 	c := &model.Comment{
-		RepoID:     repoID,
+		RepoID:     repo.ID,
 		IssueID:    &issueID,
 		AuthorID:   authorID,
 		AuthorName: authorName,
@@ -27,12 +43,13 @@ func (s *CommentService) CreateForIssue(ctx context.Context, repoID, issueID, au
 	if err := s.comments.Create(ctx, c); err != nil {
 		return nil, err
 	}
+	s.processMentions(ctx, repo, c, authorID, authorName)
 	return c, nil
 }
 
-func (s *CommentService) CreateForPull(ctx context.Context, repoID, pullID, authorID int64, authorName, body string) (*model.Comment, error) {
+func (s *CommentService) CreateForPull(ctx context.Context, repo model.Repository, pullID, authorID int64, authorName, body string) (*model.Comment, error) {
 	c := &model.Comment{
-		RepoID:     repoID,
+		RepoID:     repo.ID,
 		PullID:     &pullID,
 		AuthorID:   authorID,
 		AuthorName: authorName,
@@ -41,6 +58,7 @@ func (s *CommentService) CreateForPull(ctx context.Context, repoID, pullID, auth
 	if err := s.comments.Create(ctx, c); err != nil {
 		return nil, err
 	}
+	s.processMentions(ctx, repo, c, authorID, authorName)
 	return c, nil
 }
 
@@ -69,4 +87,32 @@ func (s *CommentService) ListByPull(ctx context.Context, pullID int64) ([]model.
 
 func (s *CommentService) Delete(ctx context.Context, id int64) error {
 	return s.comments.Delete(ctx, id)
+}
+
+// processMentions extracts @mentions from the comment body, fires notifications,
+// and persists mention rows. Errors are silently dropped (best-effort).
+func (s *CommentService) processMentions(ctx context.Context, repo model.Repository, c *model.Comment, actorID int64, actorName string) {
+	usernames := parseMentions(c.Body)
+	if len(usernames) == 0 {
+		return
+	}
+	var userIDs []int64
+	for _, username := range usernames {
+		u, err := s.users.GetByUsername(ctx, username)
+		if err != nil {
+			continue // user does not exist — skip
+		}
+		if u.ID == actorID {
+			continue // no self-notifications
+		}
+		var subjectURL string
+		if c.IssueID != nil {
+			subjectURL = fmt.Sprintf("/%s/%s/issues/%d", repo.OwnerName, repo.Name, *c.IssueID)
+		} else if c.PullID != nil {
+			subjectURL = fmt.Sprintf("/%s/%s/pulls/%d", repo.OwnerName, repo.Name, *c.PullID)
+		}
+		s.notifs.NotifyMention(ctx, repo, actorID, actorName, u.ID, subjectURL)
+		userIDs = append(userIDs, u.ID)
+	}
+	_ = s.mentions.CreateBatch(ctx, c.ID, userIDs)
 }

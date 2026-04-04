@@ -108,6 +108,25 @@ func (s *NotificationService) NotifyPRReview(ctx context.Context, repo model.Rep
 	_ = s.notifs.Create(ctx, n)
 }
 
+// NotifyMention fires a mention notification for mentionedUserID.
+// Silent if actorID == mentionedUserID.
+func (s *NotificationService) NotifyMention(ctx context.Context, repo model.Repository, actorID int64, actorName string, mentionedUserID int64, subjectURL string) {
+	if actorID == mentionedUserID {
+		return
+	}
+	n := &model.Notification{
+		UserID:     mentionedUserID,
+		ActorID:    actorID,
+		ActorName:  actorName,
+		Type:       model.NotifMention,
+		RepoID:     repo.ID,
+		RepoName:   repo.Name,
+		OwnerName:  repo.OwnerName,
+		SubjectURL: subjectURL,
+	}
+	_ = s.notifs.Create(ctx, n)
+}
+
 func (s *NotificationService) NotifyPRStateChange(ctx context.Context, repo model.Repository, pr model.PullRequest, actorID int64, actorName string) {
 	if actorID == pr.AuthorID {
 		return
