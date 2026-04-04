@@ -230,6 +230,7 @@ Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs
 | 8.1     | TOTP Two-Factor Authentication               | ✅ Done    | 034          |
 | 9.1     | Project Boards / Kanban                      | ✅ Done    | 036          |
 | 9.2     | Wiki                                         | ✅ Done    | —            |
+| 9.3     | Issue Pinning & Locking                      | ✅ Done    | 038          |
 | 8.2–20  | Audit Log → GraphQL v2                       | ⬜ Planned | 035–060      |
 
 > Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)
@@ -246,6 +247,7 @@ When starting work on a new phase or task, create a branch following this format
 **Types:** `feat` (new feature), `bug` (bug fix), `tech` (technical/infrastructure)
 
 **Examples:**
+
 - `feat/phase-8.2-audit-log`
 - `feat/phase-9.1-project-boards`
 - `feat/phase-12.3-discussions`

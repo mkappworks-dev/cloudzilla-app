@@ -1114,11 +1114,11 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 | 6.1–6.3 | Protected Branches → Code Review Suggestions | ✅ Done    | 030–031      |
 | 7.1–7.3 | Auto-merge, Issue & PR Templates, Reactions  | ✅ Done    | 032–033      |
 | 8.1     | TOTP Two-Factor Authentication               | ✅ Done    | 034          |
-| 8.2     | Audit Log                                    | ⬜ Planned | 035          |
-| 8.3     | LDAP / SAML SSO                              | ⬜ Planned | 036          |
+| 8.2     | Audit Log                                    | ✅ Done    | 035          |
+| 8.3     | LDAP / SAML SSO                              | ✅ Done    | 036          |
 | 9.1     | Project Boards / Kanban                      | ✅ Done    | 036          |
 | 9.2     | Wiki                                         | ✅ Done    | —            |
-| 9.3     | Issue Pinning & Locking                      | ⬜ Planned | 039          |
+| 9.3     | Issue Pinning & Locking                      | ✅ Done    | 038          |
 | 10.1    | Repository Insights & Stats                  | ⬜ Planned | —            |
 | 10.2    | @Mentions in Comments                        | ⬜ Planned | 040          |
 | 10.3    | Saved Replies                                | ⬜ Planned | 041          |
@@ -1246,8 +1246,8 @@ Migrations live in `migrations/` and are embedded into the binary at build time.
 | `030_create_branch_protections.sql`       | `branch_protections` table with `pattern`, `require_review_count`, `require_status_checks`, `block_force_push`  |
 | `031_add_suggestion_to_line_comments.sql` | Adds `is_suggestion` and `suggestion_body` columns to `pull_line_comments`                                      |
 | `032_add_auto_merge_to_pulls.sql`         | Adds `auto_merge_strategy` column to `pull_requests` for auto-merge support                                     |
-| `033_create_reactions.sql`                | `reactions` table for emoji reactions on issue/PR comments                                                       |
-| `034_add_2fa_to_users.sql`               | Adds `totp_secret`, `totp_enabled`, `recovery_codes` columns to `users` for TOTP 2FA                           |
+| `033_create_reactions.sql`                | `reactions` table for emoji reactions on issue/PR comments                                                      |
+| `034_add_2fa_to_users.sql`                | Adds `totp_secret`, `totp_enabled`, `recovery_codes` columns to `users` for TOTP 2FA                            |
 
 ---
 
