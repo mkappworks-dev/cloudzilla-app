@@ -48,7 +48,7 @@ func ProjectDetail(data view.ProjectDetailData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"px-4 py-6\"><div class=\"flex items-center justify-between mb-6\"><div><nav class=\"text-sm text-gray-500 mb-1\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"px-4 py-6\" x-data=\"{ showAddCol: false }\"><div class=\"flex items-center justify-between mb-6\"><div><nav class=\"text-sm text-gray-500 mb-1\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -128,7 +128,7 @@ func ProjectDetail(data view.ProjectDetailData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if data.CanWrite {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<button class=\"px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700\" onclick=\"document.getElementById('add-column-form').classList.toggle('hidden')\">+ Column</button>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<button class=\"px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700\" x-on:click=\"showAddCol = !showAddCol\">+ Column</button>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -138,7 +138,7 @@ func ProjectDetail(data view.ProjectDetailData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if data.CanWrite {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div id=\"add-column-form\" class=\"hidden mb-4 flex gap-2 items-center\"><input id=\"new-col-name\" type=\"text\" placeholder=\"Column name\" class=\"border border-gray-300 rounded px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-400\"> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div x-show=\"showAddCol\" class=\"mb-4 flex gap-2 items-center\"><input id=\"new-col-name\" type=\"text\" placeholder=\"Column name\" class=\"border border-gray-300 rounded px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-400\"> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -155,7 +155,7 @@ func ProjectDetail(data view.ProjectDetailData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\">Add</button> <button onclick=\"document.getElementById('add-column-form').classList.add('hidden')\" class=\"text-sm text-gray-500 hover:text-gray-700 px-2\">Cancel</button></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\">Add</button> <button x-on:click=\"showAddCol = false\" class=\"text-sm text-gray-500 hover:text-gray-700 px-2\">Cancel</button></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

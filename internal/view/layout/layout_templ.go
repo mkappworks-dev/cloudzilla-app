@@ -118,7 +118,7 @@ func Base(base view.BasePage, title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</main><footer class=\"text-center text-gray-500 py-4 text-xs border-t border-gray-200\"><p>&copy; 2026 Cloudzilla. Built with Go, HTMX, and Tailwind.</p></footer><script src=\"/htmx.min.js\" defer></script><script src=\"https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js\" defer></script><script src=\"/static/mermaid.min.js\"></script><script>\n\t\t\t\tmermaid.initialize({ startOnLoad: false, theme: 'default' });\n\t\t\t\tdocument.addEventListener('DOMContentLoaded', function () { mermaid.run(); });\n\t\t\t\tdocument.addEventListener('htmx:afterSwap', function () { mermaid.run(); });\n\t\t\t</script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</main><footer class=\"text-center text-gray-500 py-4 text-xs border-t border-gray-200\"><p>&copy; 2026 Cloudzilla. Built with Go, HTMX, and Tailwind.</p></footer><script src=\"/htmx.min.js\" defer></script><script src=\"/alpine.min.js\" defer></script><script src=\"/static/mermaid.min.js\"></script><script>\n\t\t\t\tmermaid.initialize({ startOnLoad: false, theme: 'default' });\n\t\t\t\tdocument.addEventListener('DOMContentLoaded', function () { mermaid.run(); });\n\t\t\t\tdocument.addEventListener('htmx:afterSwap', function () { mermaid.run(); });\n\t\t\t</script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

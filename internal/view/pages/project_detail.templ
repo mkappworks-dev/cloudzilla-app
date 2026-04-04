@@ -9,7 +9,7 @@ import (
 
 templ ProjectDetail(data view.ProjectDetailData) {
 	@layout.Base(data.BasePage, data.Project.Name+" · "+data.Owner+"/"+data.RepoName) {
-		<div class="px-4 py-6">
+		<div class="px-4 py-6" x-data="{ showAddCol: false }">
 			<div class="flex items-center justify-between mb-6">
 				<div>
 					<nav class="text-sm text-gray-500 mb-1">
@@ -25,13 +25,13 @@ templ ProjectDetail(data view.ProjectDetailData) {
 				if data.CanWrite {
 					<button
 						class="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700"
-						onclick="document.getElementById('add-column-form').classList.toggle('hidden')">
+						x-on:click="showAddCol = !showAddCol">
 						+ Column
 					</button>
 				}
 			</div>
 			if data.CanWrite {
-				<div id="add-column-form" class="hidden mb-4 flex gap-2 items-center">
+				<div x-show="showAddCol" class="mb-4 flex gap-2 items-center">
 					<input id="new-col-name" type="text" placeholder="Column name" class="border border-gray-300 rounded px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-400"/>
 					<button
 						class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -39,7 +39,7 @@ templ ProjectDetail(data view.ProjectDetailData) {
 						onclick={ addColumnJS(data.Owner, data.RepoName, data.Project.ID) }>
 						Add
 					</button>
-					<button onclick="document.getElementById('add-column-form').classList.add('hidden')" class="text-sm text-gray-500 hover:text-gray-700 px-2">Cancel</button>
+					<button x-on:click="showAddCol = false" class="text-sm text-gray-500 hover:text-gray-700 px-2">Cancel</button>
 				</div>
 			}
 			<div class="flex gap-4 overflow-x-auto pb-4">

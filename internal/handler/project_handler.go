@@ -2,8 +2,10 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
@@ -25,14 +27,21 @@ func (h *Handler) PageProjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var userID *int64
 	canWrite := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		userID = &claims.UserID
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
 	}
 
 	projects, err := h.Services.Project.ListByRepo(r.Context(), owner, repoName)
 	if err != nil {
-		projects = []model.Project{}
+		http.Error(w, "failed to load projects", http.StatusInternalServerError)
+		return
 	}
 	if projects == nil {
 		projects = []model.Project{}
@@ -63,13 +72,23 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var userID *int64
 	canWrite := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		userID = &claims.UserID
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
 	}
 
 	project, err := h.Services.Project.GetProject(r.Context(), projectID)
 	if err != nil {
+		http.Error(w, "project not found", http.StatusNotFound)
+		return
+	}
+	if project.RepoID != repo.ID {
 		http.Error(w, "project not found", http.StatusNotFound)
 		return
 	}
@@ -122,7 +141,7 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 
 	project, err := h.Services.Project.CreateProject(r.Context(), owner, repoName, claims.UserID, req.Name, req.Description)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		writeProjectError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, project)
@@ -140,7 +159,7 @@ func (h *Handler) DeleteProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Project.DeleteProject(r.Context(), projectID, claims.UserID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		writeProjectError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -172,7 +191,7 @@ func (h *Handler) CreateColumn(w http.ResponseWriter, r *http.Request) {
 	}
 	col, err := h.Services.Project.CreateColumn(r.Context(), projectID, claims.UserID, req.Name)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		writeProjectError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, col)
@@ -195,7 +214,7 @@ func (h *Handler) DeleteColumn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Project.DeleteColumn(r.Context(), projectID, columnID, claims.UserID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		writeProjectError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -226,9 +245,13 @@ func (h *Handler) CreateCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "column_id is required")
 		return
 	}
+	if req.IssueID == nil && req.PullID == nil && strings.TrimSpace(req.Note) == "" {
+		writeError(w, http.StatusBadRequest, "one of issue_id, pull_id, or note is required")
+		return
+	}
 	card, err := h.Services.Project.CreateCard(r.Context(), projectID, req.ColumnID, claims.UserID, req.IssueID, req.PullID, req.Note)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		writeProjectError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, card)
@@ -258,8 +281,12 @@ func (h *Handler) MoveCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if err := h.Services.Project.MoveCard(r.Context(), projectID, cardID, req.ColumnID, req.Position, claims.UserID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+	if req.ColumnID == 0 {
+		writeError(w, http.StatusBadRequest, "column_id is required")
+		return
+	}
+	if err := h.Services.Project.MoveCard(r.Context(), projectID, cardID, req.ColumnID, claims.UserID); err != nil {
+		writeProjectError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -282,8 +309,20 @@ func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Project.DeleteCard(r.Context(), projectID, cardID, claims.UserID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		writeProjectError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func writeProjectError(w http.ResponseWriter, err error) {
+	if errors.Is(err, service.ErrProjectNotFound) {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	if errors.Is(err, service.ErrForbidden) {
+		writeError(w, http.StatusForbidden, err.Error())
+		return
+	}
+	writeError(w, http.StatusInternalServerError, err.Error())
 }

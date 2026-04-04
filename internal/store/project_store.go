@@ -103,9 +103,22 @@ func (s *ProjectStore) UpdateColumnName(ctx context.Context, id int64, name stri
 	return err
 }
 
-func (s *ProjectStore) DeleteColumn(ctx context.Context, id int64) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM project_columns WHERE id = $1`, id)
-	return err
+func (s *ProjectStore) DeleteColumn(ctx context.Context, id, projectID int64) error {
+	res, err := s.db.ExecContext(ctx,
+		`DELETE FROM project_columns WHERE id = $1 AND project_id = $2`,
+		id, projectID,
+	)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return fmt.Errorf("column %d not found in project %d", id, projectID)
+	}
+	return nil
 }
 
 // --- Cards ---
@@ -172,18 +185,35 @@ func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64) ([
 	return cards, rows.Err()
 }
 
-// MoveCard updates a card's column and position.
-func (s *ProjectStore) MoveCard(ctx context.Context, cardID, newColumnID, newPosition int64) error {
+// MoveCard moves a card to a new column, appending it at the end of that column.
+func (s *ProjectStore) MoveCard(ctx context.Context, cardID, newColumnID int64) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE project_cards SET column_id = $1, position = $2 WHERE id = $3`,
-		newColumnID, newPosition, cardID,
+		`UPDATE project_cards
+		 SET column_id = $1,
+		     position  = COALESCE((SELECT MAX(position)+1 FROM project_cards WHERE column_id = $1 AND id != $2), 0)
+		 WHERE id = $2`,
+		newColumnID, cardID,
 	)
 	return err
 }
 
-func (s *ProjectStore) DeleteCard(ctx context.Context, id int64) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM project_cards WHERE id = $1`, id)
-	return err
+func (s *ProjectStore) DeleteCard(ctx context.Context, id, projectID int64) error {
+	res, err := s.db.ExecContext(ctx,
+		`DELETE FROM project_cards WHERE id = $1
+		 AND column_id IN (SELECT id FROM project_columns WHERE project_id = $2)`,
+		id, projectID,
+	)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return fmt.Errorf("card %d not found in project %d", id, projectID)
+	}
+	return nil
 }
 
 // TouchProject updates updated_at for a project (called after card mutations).
