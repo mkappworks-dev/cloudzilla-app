@@ -58,18 +58,24 @@ func (h *Handler) ConfirmAuthorize(w http.ResponseWriter, r *http.Request) {
 	scopeParam := r.FormValue("scope")
 	scopes := strings.Fields(scopeParam)
 
+	// Fetch and validate the app before using redirectURI in any redirect.
+	// This prevents open-redirect attacks on the deny path.
+	app, err := h.Services.OAuthApp.GetByClientID(r.Context(), clientID)
+	if err != nil {
+		http.Error(w, "unknown client_id", http.StatusBadRequest)
+		return
+	}
+	if !h.Services.OAuthApp.IsRedirectURIAllowed(app, redirectURI) {
+		http.Error(w, "redirect_uri not allowed", http.StatusBadRequest)
+		return
+	}
+
 	if r.FormValue("action") == "deny" {
 		redir := redirectURI + "?error=access_denied"
 		if state != "" {
 			redir += "&state=" + state
 		}
 		http.Redirect(w, r, redir, http.StatusSeeOther)
-		return
-	}
-
-	app, err := h.Services.OAuthApp.GetByClientID(r.Context(), clientID)
-	if err != nil {
-		http.Error(w, "unknown client_id", http.StatusBadRequest)
 		return
 	}
 
@@ -119,8 +125,16 @@ func (h *Handler) PageOAuthApps(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	apps, _ := h.Services.OAuthApp.ListByOwner(r.Context(), claims.UserID)
-	auths, _ := h.Services.OAuthApp.ListAuthorizationsByUser(r.Context(), claims.UserID)
+	apps, err := h.Services.OAuthApp.ListByOwner(r.Context(), claims.UserID)
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	auths, err := h.Services.OAuthApp.ListAuthorizationsByUser(r.Context(), claims.UserID)
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 	h.render(w, r, pages.OAuthApps(view.OAuthAppsData{
 		BasePage:       basePage(r, h.Services),
 		Apps:           apps,
@@ -167,7 +181,11 @@ func (h *Handler) DeleteOAuthApp(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	if err := h.Services.OAuthApp.DeleteApp(r.Context(), id, claims.UserID); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to delete app")
 		return
@@ -182,7 +200,11 @@ func (h *Handler) RevokeOAuthAuthorization(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid id")
+		return
+	}
 	if err := h.Services.OAuthApp.RevokeAccess(r.Context(), id, claims.UserID); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to revoke authorization")
 		return

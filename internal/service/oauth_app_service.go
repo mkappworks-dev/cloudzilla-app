@@ -68,6 +68,15 @@ func (s *OAuthAppService) DeleteApp(ctx context.Context, id, ownerID int64) erro
 	return s.apps.Delete(ctx, id, ownerID)
 }
 
+// IsRedirectURIAllowed returns true when redirectURI is in the app's allowed
+// list, or when the app has no registered redirect URIs (unrestricted).
+func (s *OAuthAppService) IsRedirectURIAllowed(app *model.OAuthApp, redirectURI string) bool {
+	if len(app.RedirectURIs) == 0 {
+		return true
+	}
+	return slices.Contains(app.RedirectURIs, redirectURI)
+}
+
 // Authorize creates an authorization code for the given user + app + scopes.
 // It validates that redirectURI is in the app's allowed list.
 func (s *OAuthAppService) Authorize(ctx context.Context, appID, userID int64, redirectURI string, scopes []string, app *model.OAuthApp) (code string, err error) {
