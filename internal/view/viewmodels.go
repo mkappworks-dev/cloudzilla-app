@@ -685,3 +685,10 @@ type SavedRepliesFragData struct {
 type SavedRepliesPickerFragData struct {
 	Replies []model.SavedReply
 }
+
+// Notification settings page
+type NotificationSettingsData struct {
+	BasePage
+	EmailNotifications bool
+	EmailDigest        string
+}

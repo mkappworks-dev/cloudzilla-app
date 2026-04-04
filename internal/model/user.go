@@ -19,6 +19,8 @@ type User struct {
 	TOTPSecret      sql.NullString `db:"totp_secret"      json:"-"`
 	TOTPEnabled     bool           `db:"totp_enabled"     json:"-"`
 	TOTPBackupCodes []string       `db:"-"                json:"-"`
-	CreatedAt       time.Time      `db:"created_at"       json:"created_at"`
-	UpdatedAt       time.Time      `db:"updated_at"       json:"updated_at"`
+	CreatedAt          time.Time      `db:"created_at"          json:"created_at"`
+	UpdatedAt          time.Time      `db:"updated_at"          json:"updated_at"`
+	EmailNotifications bool           `db:"email_notifications" json:"email_notifications"`
+	EmailDigest        string         `db:"email_digest"        json:"email_digest"`
 }

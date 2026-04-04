@@ -36,6 +36,7 @@ type Services struct {
 	Project          *ProjectService
 	SSO              *SSOService
 	SavedReply       *SavedReplyService
+	Email            *EmailService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -43,7 +44,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, cfg.Git)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
 	userSvc := NewUserService(stores.User, cfg.Auth)
-	notifSvc := NewNotificationService(stores.Notification)
+	emailSvc := NewEmailService(cfg.SMTP)
+	notifSvc := NewNotificationService(stores.Notification, emailSvc, userSvc)
 	return &Services{
 		User:             userSvc,
 		Repo:             repoSvc,
@@ -75,5 +77,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Project:          NewProjectService(stores.Project, repoSvc),
 		SSO:              NewSSOService(stores.SSO, stores.User, cfg.Auth, siteSettingSvc),
 		SavedReply:       NewSavedReplyService(stores.SavedReply),
+		Email:            emailSvc,
 	}
 }

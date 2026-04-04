@@ -135,6 +135,11 @@ func (s *UserService) GetByID(ctx context.Context, id int64) (*model.User, error
 	return s.store.GetByID(ctx, id)
 }
 
+// UpdateEmailPrefs saves the user's email notification preferences.
+func (s *UserService) UpdateEmailPrefs(ctx context.Context, userID int64, emailNotifications bool, emailDigest string) error {
+	return s.store.UpdateEmailPrefs(ctx, userID, emailNotifications, emailDigest)
+}
+
 // GenerateTokenForUser generates a JWT for an existing user by ID.
 // Used by the TOTP verification flow after a successful 2FA check.
 func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (string, error) {
