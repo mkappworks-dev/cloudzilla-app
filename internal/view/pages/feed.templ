@@ -41,7 +41,7 @@ templ Feed(data view.FeedData) {
 									} else if e.EventType == "release_published" {
 										published a release in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName + "/releases") } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
 									} else if e.EventType == "member_added" {
-										was added as a member to <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
+										added a member to <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
 									} else {
 										performed action <span class="font-mono text-xs bg-gray-100 px-1 rounded">{ e.EventType }</span> in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
 									}
@@ -57,7 +57,7 @@ templ Feed(data view.FeedData) {
 					} else {
 						<span></span>
 					}
-					if len(data.Events) == 30 {
+					if data.HasNextPage {
 						<a href={ templ.SafeURL("/feed?page=" + strconv.Itoa(data.Page+1)) } class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">Next</a>
 					}
 				</div>

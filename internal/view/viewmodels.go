@@ -34,8 +34,9 @@ type HomeData struct {
 // Feed page
 type FeedData struct {
 	BasePage
-	Events []model.Event
-	Page   int
+	Events      []model.Event
+	Page        int
+	HasNextPage bool
 }
 
 type LoginData struct {

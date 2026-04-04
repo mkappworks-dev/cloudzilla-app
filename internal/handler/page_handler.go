@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"strconv"
@@ -143,7 +144,11 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		repos = []model.Repository{}
 	}
 
-	activity, _ := h.Services.Event.UserActivity(r.Context(), username, 1, 15)
+	activity, err := h.Services.Event.UserActivity(r.Context(), username, 1, 15)
+	if err != nil {
+		slog.Warn("user activity: failed to load events", "username", username, "error", err)
+		activity = []model.Event{}
+	}
 	if activity == nil {
 		activity = []model.Event{}
 	}

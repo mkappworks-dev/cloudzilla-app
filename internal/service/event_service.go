@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/store"
@@ -35,7 +36,9 @@ func (s *EventService) Record(ctx context.Context, actorID int64, actorName stri
 		EventType: eventType,
 		Payload:   raw,
 	}
-	_ = s.events.Record(ctx, e)
+	if err := s.events.Record(ctx, e); err != nil {
+		slog.Warn("event record failed", "event_type", eventType, "actor_id", actorID, "error", err)
+	}
 }
 
 // Feed returns a paginated list of events for a user's personalised feed.
@@ -60,6 +63,9 @@ func (s *EventService) RepoActivity(ctx context.Context, owner, repoName string,
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	if repo.Private {
+		return []model.Event{}, nil
 	}
 	return s.events.ListByRepo(ctx, repo.ID, page, pageSize)
 }

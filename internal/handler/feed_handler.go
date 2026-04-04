@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -24,17 +25,24 @@ func (h *Handler) PageFeed(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	events, err := h.Services.Event.Feed(r.Context(), int(claims.UserID), page, 30)
+	const pageSize = 30
+	events, err := h.Services.Event.Feed(r.Context(), int(claims.UserID), page, pageSize+1)
 	if err != nil {
+		slog.Error("feed: failed to load events", "user_id", claims.UserID, "error", err)
 		events = []model.Event{}
 	}
 	if events == nil {
 		events = []model.Event{}
 	}
+	hasNextPage := len(events) > pageSize
+	if hasNextPage {
+		events = events[:pageSize]
+	}
 
 	h.render(w, r, pages.Feed(view.FeedData{
-		BasePage: basePage(r, h.Services),
-		Events:   events,
-		Page:     page,
+		BasePage:    basePage(r, h.Services),
+		Events:      events,
+		Page:        page,
+		HasNextPage: hasNextPage,
 	}))
 }
