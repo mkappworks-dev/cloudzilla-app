@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -68,6 +69,8 @@ func (h *Handler) CreateIssue(w http.ResponseWriter, r *http.Request) {
 	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if repo != nil {
 		go h.Services.Webhook.Dispatch(repo.ID, "issues", h.Services.Webhook.IssuePayload("opened", *repo, *issue))
+		repoID := repo.ID
+		go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventIssueOpened, map[string]any{"number": issue.Number, "title": issue.Title})
 	}
 
 	writeJSON(w, http.StatusCreated, issue)
@@ -107,6 +110,10 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 			go func() {
 				h.Services.Notification.NotifyIssueStateChange(r.Context(), *repo, *issue, claims.UserID, claims.Username)
 			}()
+			if state == "closed" {
+				repoID := repo.ID
+				go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventIssueClosed, map[string]any{"number": issue.Number})
+			}
 		}
 	}
 

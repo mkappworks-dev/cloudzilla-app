@@ -39,6 +39,7 @@ type Stores struct {
 	OAuthApp          *OAuthAppStore
 	OAuthAuthorization *OAuthAuthorizationStore
 	Watch              *WatchStore
+	Event              *EventStore
 }
 
 func New(database *sql.DB) *Stores {
@@ -76,5 +77,6 @@ func New(database *sql.DB) *Stores {
 		OAuthApp:           NewOAuthAppStore(database),
 		OAuthAuthorization: NewOAuthAuthorizationStore(database),
 		Watch:              NewWatchStore(database),
+		Event:              NewEventStore(database),
 	}
 }

@@ -39,6 +39,7 @@ type Services struct {
 	Email            *EmailService
 	OAuthApp         *OAuthAppService
 	Watch            *WatchService
+	Event            *EventService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -82,5 +83,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Email:            emailSvc,
 		OAuthApp:         NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization),
 		Watch:            NewWatchService(stores.Watch, stores.Repo),
+		Event:            NewEventService(stores.Event, stores.User, stores.Repo),
 	}
 }

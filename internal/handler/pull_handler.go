@@ -76,6 +76,8 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if repo != nil {
 		go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload("opened", *repo, *pr))
+		repoID := repo.ID
+		go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventPROpened, map[string]any{"number": pr.Number, "title": pr.Title})
 
 		// Auto-assign code owners based on CODEOWNERS file.
 		go func(owner, repoName string, pr *model.PullRequest, defaultBranch string) {
@@ -274,6 +276,12 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			go func() {
 				h.Services.Notification.NotifyPRStateChange(r.Context(), *repo, *pr, claims.UserID, claims.Username)
 			}()
+			evType := model.EventPRClosed
+			if pr.State == model.PRStateMerged {
+				evType = model.EventPRMerged
+			}
+			repoID := repo.ID
+			go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, evType, map[string]any{"number": pr.Number})
 		}
 	}
 

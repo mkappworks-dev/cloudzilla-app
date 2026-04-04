@@ -31,6 +31,13 @@ type HomeData struct {
 	Repos []model.Repository
 }
 
+// Feed page
+type FeedData struct {
+	BasePage
+	Events []model.Event
+	Page   int
+}
+
 type LoginData struct {
 	BasePage
 	Error       string
@@ -40,8 +47,9 @@ type LoginData struct {
 
 type UserData struct {
 	BasePage
-	User  model.User
-	Repos []model.Repository
+	User           model.User
+	Repos          []model.Repository
+	RecentActivity []model.Event
 }
 
 type OrgData struct {
