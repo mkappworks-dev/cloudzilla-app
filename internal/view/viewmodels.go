@@ -588,6 +588,27 @@ type AuditLogData struct {
 	PerPage    int
 }
 
+// ProjectsData is the view model for the projects list page.
+type ProjectsData struct {
+	BasePage
+	Repo     model.Repository
+	Owner    string
+	RepoName string
+	Projects []model.Project
+	CanWrite bool
+}
+
+// ProjectDetailData is the view model for the Kanban board page.
+type ProjectDetailData struct {
+	BasePage
+	Repo     model.Repository
+	Owner    string
+	RepoName string
+	Project  model.Project
+	Columns  []service.ColumnWithCards
+	CanWrite bool
+}
+
 // SSOSettingsData is the view model for GET/POST /admin/sso.
 type SSOSettingsData struct {
 	BasePage

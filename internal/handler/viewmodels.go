@@ -72,5 +72,7 @@ type (
 	ReactionFragData       = view.ReactionFragData
 	SSHKeysFragData        = view.SSHKeysFragData
 	AuditLogData           = view.AuditLogData
+	ProjectsData           = view.ProjectsData
+	ProjectDetailData      = view.ProjectDetailData
 	SSOSettingsData        = view.SSOSettingsData
 )

@@ -1,0 +1,160 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ ProjectDetail(data view.ProjectDetailData) {
+	@layout.Base(data.BasePage, data.Project.Name+" · "+data.Owner+"/"+data.RepoName) {
+		<div class="px-4 py-6" x-data="{ showAddCol: false }">
+			<div class="flex items-center justify-between mb-6">
+				<div>
+					<nav class="text-sm text-gray-500 mb-1">
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+						<span class="mx-1">/</span>
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/projects") } class="hover:underline">Projects</a>
+					</nav>
+					<h1 class="text-2xl font-bold">{ data.Project.Name }</h1>
+					if data.Project.Description != "" {
+						<p class="text-sm text-gray-500">{ data.Project.Description }</p>
+					}
+				</div>
+				if data.CanWrite {
+					<button
+						class="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+						x-on:click="showAddCol = !showAddCol">
+						+ Column
+					</button>
+				}
+			</div>
+			if data.CanWrite {
+				<div x-show="showAddCol" class="mb-4 flex gap-2 items-center">
+					<input id="new-col-name" type="text" placeholder="Column name" class="border border-gray-300 rounded px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+					<button
+						class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+						hx-ext="json-enc"
+						onclick={ addColumnJS(data.Owner, data.RepoName, data.Project.ID) }>
+						Add
+					</button>
+					<button x-on:click="showAddCol = false" class="text-sm text-gray-500 hover:text-gray-700 px-2">Cancel</button>
+				</div>
+			}
+			<div class="flex gap-4 overflow-x-auto pb-4">
+				for _, col := range data.Columns {
+					<div class="flex-none w-72 bg-gray-100 rounded-lg p-3" data-column-id={ strconv.FormatInt(col.Column.ID, 10) }>
+						<div class="flex items-center justify-between mb-3">
+							<h3 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">{ col.Column.Name }</h3>
+							if data.CanWrite {
+								<button
+									onclick={ deleteColumnJS(data.Owner, data.RepoName, data.Project.ID, col.Column.ID) }
+									class="text-gray-400 hover:text-red-500 text-xs px-1">✕</button>
+							}
+						</div>
+						<div class="space-y-2 min-h-8">
+							for _, card := range col.Cards {
+								<div class="bg-white rounded shadow-sm p-3 text-sm border border-gray-200">
+									if card.IssueID != nil {
+										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(card.IssueNumber)) } class="font-medium text-blue-600 hover:underline">{ card.IssueTitle }</a>
+										<div class="flex items-center gap-2 mt-1">
+											<span class="text-xs text-gray-500">#{ strconv.Itoa(card.IssueNumber) }</span>
+											<span class={ "text-xs px-1.5 py-0.5 rounded-full", templ.KV("bg-green-100 text-green-700", card.IssueState == "open"), templ.KV("bg-purple-100 text-purple-700", card.IssueState != "open") }>{ card.IssueState }</span>
+										</div>
+									} else if card.PullID != nil {
+										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(card.PullNumber)) } class="font-medium text-blue-600 hover:underline">{ card.PullTitle }</a>
+										<div class="flex items-center gap-2 mt-1">
+											<span class="text-xs text-gray-500">#{ strconv.Itoa(card.PullNumber) }</span>
+											<span class={ "text-xs px-1.5 py-0.5 rounded-full", templ.KV("bg-green-100 text-green-700", card.PullState == "open"), templ.KV("bg-purple-100 text-purple-700", card.PullState != "open") }>{ card.PullState }</span>
+										</div>
+									} else {
+										<p class="text-gray-700">{ card.Note }</p>
+									}
+									if data.CanWrite {
+										<div class="mt-2 flex items-center gap-2">
+											<select
+												class="text-xs border border-gray-200 rounded px-1 py-0.5 text-gray-600"
+												onchange={ moveCardJS(data.Owner, data.RepoName, data.Project.ID, card.ID) }>
+												<option value="">Move to…</option>
+												for _, destCol := range data.Columns {
+													<option value={ strconv.FormatInt(destCol.Column.ID, 10) }>{ destCol.Column.Name }</option>
+												}
+											</select>
+											<button
+												onclick={ deleteCardJS(data.Owner, data.RepoName, data.Project.ID, card.ID) }
+												class="text-xs text-red-400 hover:text-red-600">Remove</button>
+										</div>
+									}
+								</div>
+							}
+						</div>
+						if data.CanWrite {
+							<div class="mt-3">
+								<button
+									class="w-full text-left text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-200"
+									onclick={ addCardJS(data.Owner, data.RepoName, data.Project.ID, col.Column.ID) }>
+									+ Add card
+								</button>
+							</div>
+						}
+					</div>
+				}
+				if data.CanWrite && len(data.Columns) == 0 {
+					<p class="text-gray-500 text-sm mt-2">Add a column to get started.</p>
+				}
+			</div>
+		</div>
+	}
+}
+
+script addColumnJS(owner, repoName string, projectID int64) {
+	var name = document.getElementById('new-col-name').value.trim();
+	if (!name) return;
+	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/columns', {
+		method: 'POST',
+		headers: {'Content-Type': 'application/json'},
+		body: JSON.stringify({name: name})
+	}).then(function(r){ if(r.ok) window.location.reload(); });
+}
+
+script deleteColumnJS(owner, repoName string, projectID, columnID int64) {
+	if(!confirm('Delete column and all its cards?')) return;
+	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/columns/' + columnID, {method:'DELETE'})
+		.then(function(r){ if(r.ok) window.location.reload(); });
+}
+
+script moveCardJS(owner, repoName string, projectID, cardID int64) {
+	var sel = event.target;
+	var colID = sel.value;
+	if (!colID) return;
+	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards/' + cardID, {
+		method: 'PATCH',
+		headers: {'Content-Type': 'application/json'},
+		body: JSON.stringify({column_id: parseInt(colID), position: 0})
+	}).then(function(r){ if(r.ok) window.location.reload(); });
+}
+
+script deleteCardJS(owner, repoName string, projectID, cardID int64) {
+	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards/' + cardID, {method:'DELETE'})
+		.then(function(r){ if(r.ok) window.location.reload(); });
+}
+
+script addCardJS(owner, repoName string, projectID, columnID int64) {
+	var note = prompt('Note text (or leave blank to link an issue/PR by number):');
+	if (note === null) return;
+	var body = {column_id: columnID};
+	if (note.trim() !== '') {
+		body.note = note.trim();
+	} else {
+		var n = prompt('Issue number (prefix i) or PR number (prefix p), e.g. i5 or p3:');
+		if (!n) return;
+		if (n[0] === 'i') body.issue_id = parseInt(n.slice(1));
+		else body.pull_id = parseInt(n.slice(1));
+	}
+	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards', {
+		method: 'POST',
+		headers: {'Content-Type': 'application/json'},
+		body: JSON.stringify(body)
+	}).then(function(r){ if(r.ok) window.location.reload(); });
+}
