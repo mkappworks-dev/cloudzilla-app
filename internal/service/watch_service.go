@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/store"
@@ -39,10 +40,14 @@ func (s *WatchService) Unwatch(ctx context.Context, owner, repoName string, user
 }
 
 // GetLevel returns the watch level for the given user on repoID.
-// Returns "" if the user is not watching.
+// Returns "" if the user is not watching. DB errors are logged and treated as not-watching.
 func (s *WatchService) GetLevel(ctx context.Context, userID, repoID int64) string {
 	w, err := s.watches.Get(ctx, userID, repoID)
-	if err != nil || w == nil {
+	if err != nil {
+		slog.Error("WatchService.GetLevel: DB error", "user_id", userID, "repo_id", repoID, "error", err)
+		return ""
+	}
+	if w == nil {
 		return ""
 	}
 	return w.Level

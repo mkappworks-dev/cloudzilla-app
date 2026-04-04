@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/store"
@@ -27,6 +28,7 @@ func (s *NotificationService) fanOutToWatchers(ctx context.Context, n *model.Not
 	}
 	watchers, err := s.watches.ListWatchersByRepo(ctx, n.RepoID, "")
 	if err != nil {
+		slog.Error("fanOutToWatchers: failed to list watchers", "repo_id", n.RepoID, "error", err)
 		return
 	}
 	for _, uid := range watchers {
@@ -35,7 +37,9 @@ func (s *NotificationService) fanOutToWatchers(ctx context.Context, n *model.Not
 		}
 		copy := *n
 		copy.UserID = uid
-		_ = s.notifs.Create(ctx, &copy)
+		if err := s.notifs.Create(ctx, &copy); err != nil {
+			slog.Error("fanOutToWatchers: failed to create notification", "user_id", uid, "repo_id", n.RepoID, "error", err)
+		}
 	}
 }
 

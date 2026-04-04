@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -22,6 +23,16 @@ func (h *Handler) WatchRepo(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repository not found")
+		return
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+		writeError(w, http.StatusNotFound, "repository not found")
+		return
+	}
+
 	var body struct {
 		Level string `json:"level"`
 	}
@@ -30,12 +41,13 @@ func (h *Handler) WatchRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Watch.Watch(r.Context(), owner, repoName, claims.UserID, body.Level); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		slog.Error("WatchRepo failed", "owner", owner, "repo", repoName, "user_id", claims.UserID, "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to update watch preference")
 		return
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderWatchButtonFragment(w, r, owner, repoName, claims.UserID)
+		h.renderWatchButtonFragment(w, r, repo.ID, owner, repoName, claims.UserID)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -51,13 +63,24 @@ func (h *Handler) UnwatchRepo(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repository not found")
+		return
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+		writeError(w, http.StatusNotFound, "repository not found")
+		return
+	}
+
 	if err := h.Services.Watch.Unwatch(r.Context(), owner, repoName, claims.UserID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("UnwatchRepo failed", "owner", owner, "repo", repoName, "user_id", claims.UserID, "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to update watch preference")
 		return
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderWatchButtonFragment(w, r, owner, repoName, claims.UserID)
+		h.renderWatchButtonFragment(w, r, repo.ID, owner, repoName, claims.UserID)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -69,29 +92,36 @@ func (h *Handler) GetWatchButton(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	claims, loggedIn := middleware.ClaimsFromContext(r.Context())
-	var userID int64
-	if loggedIn {
-		userID = claims.UserID
-	}
-	h.renderWatchButtonFragment(w, r, owner, repoName, userID)
-}
-
-func (h *Handler) renderWatchButtonFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, userID int64) {
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		http.Error(w, "repository not found", http.StatusNotFound)
 		return
 	}
+
+	var userID *int64
+	var uid int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		uid = claims.UserID
+		userID = &uid
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	h.renderWatchButtonFragment(w, r, repo.ID, owner, repoName, uid)
+}
+
+func (h *Handler) renderWatchButtonFragment(w http.ResponseWriter, r *http.Request, repoID int64, owner, repoName string, userID int64) {
 	loggedIn := userID != 0
 	level := ""
 	if loggedIn {
-		level = h.Services.Watch.GetLevel(r.Context(), userID, repo.ID)
+		level = h.Services.Watch.GetLevel(r.Context(), userID, repoID)
 	}
 	h.render(w, r, fragments.WatchButton(view.WatchButtonData{
 		Owner:    owner,
 		RepoName: repoName,
-		RepoID:   repo.ID,
+		RepoID:   repoID,
 		Level:    level,
 		LoggedIn: loggedIn,
 	}))
