@@ -39,11 +39,19 @@ func (s *UserStore) Create(ctx context.Context, u *model.User) error {
 }
 
 func (s *UserStore) GetByID(ctx context.Context, id int64) (*model.User, error) {
-	result, err := s.q.GetUserByID(ctx, id)
+	u := &model.User{}
+	err := s.db.QueryRowContext(ctx,
+		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
+		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
+		 FROM users WHERE id = $1`,
+		id,
+	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
+		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
 	if err != nil {
 		return nil, fmt.Errorf("user get by id: %w", err)
 	}
-	return mapDBUserToModel(&result), nil
+	return u, nil
 }
 
 func (s *UserStore) GetByUsername(ctx context.Context, username string) (*model.User, error) {

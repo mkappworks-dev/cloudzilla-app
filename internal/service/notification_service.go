@@ -32,6 +32,11 @@ func (s *NotificationService) List(ctx context.Context, userID int64) ([]model.N
 	return s.notifs.ListByUser(ctx, userID)
 }
 
+// ListUnreadByUser returns all unread notifications for a user.
+func (s *NotificationService) ListUnreadByUser(ctx context.Context, userID int64) ([]model.Notification, error) {
+	return s.notifs.ListUnreadByUser(ctx, userID)
+}
+
 func (s *NotificationService) CountUnread(ctx context.Context, userID int64) (int, error) {
 	return s.notifs.CountUnread(ctx, userID)
 }
