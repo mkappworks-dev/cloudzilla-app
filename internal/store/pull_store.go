@@ -181,7 +181,7 @@ func (s *PullStore) CountCreatedSince(ctx context.Context, repoID int64, since t
 func (s *PullStore) CountMergedSince(ctx context.Context, repoID int64, since time.Time) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM pull_requests WHERE repo_id = $1 AND state = 'merged' AND updated_at >= $2`,
+		`SELECT COUNT(*) FROM pull_requests WHERE repo_id = $1 AND state = 'merged' AND merged_at >= $2`,
 		repoID, since,
 	).Scan(&n)
 	return n, err
