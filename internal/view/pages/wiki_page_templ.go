@@ -194,7 +194,7 @@ func WikiPage(data view.WikiPageData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			if data.CanWrite && data.Exists {
+			if data.CanManage && data.Exists {
 				templ_7745c5c3_Err = templ.RenderScriptItems(ctx, templ_7745c5c3_Buffer, deleteWikiPageJS(data.Owner, data.RepoName, data.Slug))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err

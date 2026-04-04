@@ -42,7 +42,7 @@ templ WikiPage(data view.WikiPageData) {
 						if data.CanWrite {
 							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug + "/edit") } class="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-100">Edit</a>
 						}
-						if data.CanWrite && data.Exists {
+						if data.CanManage && data.Exists {
 							<button
 								onclick={ deleteWikiPageJS(data.Owner, data.RepoName, data.Slug) }
 								class="px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50">Delete</button>

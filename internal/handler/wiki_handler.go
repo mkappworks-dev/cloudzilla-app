@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
+	"regexp"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/markdown"
@@ -9,6 +11,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/view"
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
+
+// validWikiSlug restricts page names to safe alphanumeric slugs to prevent
+// path traversal into the bare wiki git repo.
+var validWikiSlug = regexp.MustCompile(`^[A-Za-z0-9_-]{1,100}$`)
 
 // PageWikiHome redirects /{owner}/{repo}/wiki → /{owner}/{repo}/wiki/Home.
 func (h *Handler) PageWikiHome(w http.ResponseWriter, r *http.Request) {
@@ -23,18 +29,35 @@ func (h *Handler) PageWikiPage(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 	slug := chi.URLParam(r, "slug")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+	if !validWikiSlug.MatchString(slug) {
+		http.Error(w, "invalid page name", http.StatusBadRequest)
 		return
 	}
 
-	canWrite := false
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
 	}
 
-	pageList, _ := h.Services.Code.WikiPageList(owner, repoName)
+	// Gate private repos: check read permission before serving any wiki content.
+	var uid *int64
+	canWrite := false
+	canManage := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		uid = &claims.UserID
+		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, uid) {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	pageList, err := h.Services.Code.WikiPageList(owner, repoName)
+	if err != nil {
+		slog.Error("failed to list wiki pages", "owner", owner, "repo", repoName, "error", err)
+	}
 	if pageList == nil {
 		pageList = []string{}
 	}
@@ -56,6 +79,7 @@ func (h *Handler) PageWikiPage(w http.ResponseWriter, r *http.Request) {
 		ContentHTML: markdown.Render(rawContent),
 		PageList:    pageList,
 		CanWrite:    canWrite,
+		CanManage:   canManage,
 		Exists:      exists,
 	}))
 }
@@ -65,6 +89,11 @@ func (h *Handler) PageWikiEdit(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 	slug := chi.URLParam(r, "slug")
+
+	if !validWikiSlug.MatchString(slug) {
+		http.Error(w, "invalid page name", http.StatusBadRequest)
+		return
+	}
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -84,7 +113,9 @@ func (h *Handler) PageWikiEdit(w http.ResponseWriter, r *http.Request) {
 
 	rawContent, err := h.Services.Code.WikiPageGet(owner, repoName, slug)
 	if err != nil {
-		rawContent = ""
+		slog.Error("failed to load wiki page for editing", "owner", owner, "repo", repoName, "slug", slug, "error", err)
+		http.Error(w, "failed to load page content", http.StatusInternalServerError)
+		return
 	}
 
 	h.render(w, r, pages.WikiEdit(view.WikiEditData{
@@ -104,6 +135,11 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 	slug := chi.URLParam(r, "slug")
+
+	if !validWikiSlug.MatchString(slug) {
+		writeError(w, http.StatusBadRequest, "invalid page name")
+		return
+	}
 
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -140,7 +176,8 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.Services.Code.WikiPageSave(owner, repoName, slug, content, user.Username, authorEmail, message); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("failed to save wiki page", "owner", owner, "repo", repoName, "slug", slug, "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to save wiki page")
 		return
 	}
 
@@ -152,6 +189,11 @@ func (h *Handler) DeleteWikiPage(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 	slug := chi.URLParam(r, "slug")
+
+	if !validWikiSlug.MatchString(slug) {
+		writeError(w, http.StatusBadRequest, "invalid page name")
+		return
+	}
 
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -180,7 +222,8 @@ func (h *Handler) DeleteWikiPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Code.WikiPageDelete(owner, repoName, slug, user.Username, authorEmail); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("failed to delete wiki page", "owner", owner, "repo", repoName, "slug", slug, "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to delete wiki page")
 		return
 	}
 

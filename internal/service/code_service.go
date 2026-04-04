@@ -302,12 +302,14 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, authorN
 		return err
 	}
 
-	// If HEAD is a symbolic ref pointing nowhere yet, point it at main.
-	headRef, err := storer.Reference(plumbing.HEAD)
-	if err != nil || headRef.Type() == plumbing.HashReference {
-		// Set symbolic HEAD → main
+	// If HEAD is missing or is a detached hash ref, make it a symbolic ref
+	// pointing at main so that future repo.Head() calls resolve correctly.
+	headRef, headErr := storer.Reference(plumbing.HEAD)
+	if headErr != nil || headRef.Type() == plumbing.HashReference {
 		symRef := plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.NewBranchReferenceName("main"))
-		return storer.SetReference(symRef)
+		if err := storer.SetReference(symRef); err != nil {
+			return fmt.Errorf("set symbolic HEAD: %w", err)
+		}
 	}
 	return nil
 }
@@ -332,10 +334,16 @@ func wikiDelete(repo *gogit.Repository, filename, authorName, authorEmail, messa
 	}
 
 	entries := []object.TreeEntry{}
+	found := false
 	for _, e := range existingTree.Entries {
-		if e.Name != filename {
+		if e.Name == filename {
+			found = true
+		} else {
 			entries = append(entries, e)
 		}
+	}
+	if !found {
+		return nil // file not present; skip vacuous commit
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i].Name < entries[j].Name })
 
