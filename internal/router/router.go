@@ -39,6 +39,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	// Admin routes
 	r.With(authMW, superadminMW).Get("/admin/settings", h.PageAdminSettings)
 	r.With(authMW, superadminMW).Get("/admin/audit-log", h.PageAuditLog)
+	r.With(authMW, superadminMW).Get("/admin/sso", h.PageSSOSettings)
+	r.With(authMW, superadminMW).Post("/admin/sso", h.SaveSSOConfig)
 
 	// Search
 	r.With(optAuthMW).Get("/search", h.PageSearch)
@@ -81,6 +83,12 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	// OAuth routes
 	r.Get("/auth/google", h.GoogleOAuthBegin)
 	r.Get("/auth/google/callback", h.GoogleOAuthCallback)
+
+	// SSO auth endpoints
+	r.Post("/auth/ldap", h.LDAPLogin)
+	r.Get("/auth/saml", h.InitiateSAML)
+	r.Post("/auth/saml/callback", h.SAMLCallback)
+	r.Get("/auth/saml/metadata", h.SAMLMetadata)
 
 	// Auth routes
 	r.Route("/api/auth", func(r chi.Router) {

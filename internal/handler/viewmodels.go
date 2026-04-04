@@ -74,4 +74,5 @@ type (
 	AuditLogData           = view.AuditLogData
 	ProjectsData           = view.ProjectsData
 	ProjectDetailData      = view.ProjectDetailData
+	SSOSettingsData        = view.SSOSettingsData
 )

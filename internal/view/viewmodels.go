@@ -33,7 +33,9 @@ type HomeData struct {
 
 type LoginData struct {
 	BasePage
-	Error string
+	Error       string
+	LDAPEnabled bool
+	SAMLEnabled bool
 }
 
 type UserData struct {
@@ -605,4 +607,13 @@ type ProjectDetailData struct {
 	Project  model.Project
 	Columns  []service.ColumnWithCards
 	CanWrite bool
+}
+
+// SSOSettingsData is the view model for GET/POST /admin/sso.
+type SSOSettingsData struct {
+	BasePage
+	LDAPConfig *model.SSOConfig
+	SAMLConfig *model.SSOConfig
+	Error      string
+	Success    string
 }
