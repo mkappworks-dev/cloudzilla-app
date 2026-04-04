@@ -216,7 +216,7 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 
 // hasEvent checks if an event name is included in a comma-separated events string.
 func hasEvent(events, event string) bool {
-	return strings.Contains(events, event)
+	return strings.Contains(","+events+",", ","+event+",")
 }
 
 var _ = templruntime.GeneratedTemplate

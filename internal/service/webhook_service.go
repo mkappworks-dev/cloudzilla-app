@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -52,7 +53,14 @@ func (s *WebhookService) Delete(ctx context.Context, id, repoID int64) error {
 	return s.webhooks.Delete(ctx, id, repoID)
 }
 
-func (s *WebhookService) ListDeliveries(ctx context.Context, webhookID int64) ([]model.WebhookDelivery, error) {
+func (s *WebhookService) ListDeliveries(ctx context.Context, webhookID, repoID int64) ([]model.WebhookDelivery, error) {
+	wh, err := s.webhooks.GetByID(ctx, webhookID)
+	if err != nil {
+		return nil, fmt.Errorf("webhook not found: %w", err)
+	}
+	if wh.RepoID != repoID {
+		return nil, fmt.Errorf("forbidden")
+	}
 	return s.webhooks.ListDeliveriesWithRetry(ctx, webhookID)
 }
 
@@ -71,7 +79,7 @@ func (s *WebhookService) Dispatch(repoID int64, event string, payload any) {
 		if !wh.Active {
 			continue
 		}
-		if !strings.Contains(wh.Events, event) {
+		if !strings.Contains(","+wh.Events+",", ","+event+",") {
 			continue
 		}
 		go s.deliver(wh, event, payloadBytes)
@@ -91,7 +99,9 @@ func (s *WebhookService) deliver(wh model.Webhook, event string, payload []byte)
 		d.Error = err.Error()
 		if logErr := s.webhooks.LogDelivery(ctx, d); logErr == nil {
 			t := time.Now().Add(webhookBackoff(1))
-			_ = s.webhooks.UpdateDeliveryRetry(ctx, d.ID, &t, 1, 0, d.Error)
+			if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, &t, 1, 0, d.Error); retryErr != nil {
+				slog.Warn("webhook: failed to schedule retry", "delivery_id", d.ID, "error", retryErr)
+			}
 		}
 		return
 	}
@@ -106,7 +116,9 @@ func (s *WebhookService) deliver(wh model.Webhook, event string, payload []byte)
 		d.Error = err.Error()
 		if logErr := s.webhooks.LogDelivery(ctx, d); logErr == nil {
 			t := time.Now().Add(webhookBackoff(1))
-			_ = s.webhooks.UpdateDeliveryRetry(ctx, d.ID, &t, 1, 0, d.Error)
+			if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, &t, 1, 0, d.Error); retryErr != nil {
+				slog.Warn("webhook: failed to schedule retry", "delivery_id", d.ID, "error", retryErr)
+			}
 		}
 		return
 	}
@@ -118,7 +130,9 @@ func (s *WebhookService) deliver(wh model.Webhook, event string, payload []byte)
 	// Schedule retry on non-2xx
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		t := time.Now().Add(webhookBackoff(1))
-		_ = s.webhooks.UpdateDeliveryRetry(ctx, d.ID, &t, 1, resp.StatusCode, "")
+		if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, &t, 1, resp.StatusCode, ""); retryErr != nil {
+			slog.Warn("webhook: failed to schedule retry", "delivery_id", d.ID, "error", retryErr)
+		}
 	}
 }
 
@@ -174,7 +188,9 @@ func (s *WebhookService) retryDeliver(ctx context.Context, wh model.Webhook, d m
 			t := time.Now().Add(webhookBackoff(newAttempt))
 			nextRetry = &t
 		}
-		_ = s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nextRetry, newAttempt, 0, err.Error())
+		if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nextRetry, newAttempt, 0, err.Error()); retryErr != nil {
+			slog.Warn("webhook: failed to update retry state", "delivery_id", d.ID, "error", retryErr)
+		}
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -190,13 +206,17 @@ func (s *WebhookService) retryDeliver(ctx context.Context, wh model.Webhook, d m
 			t := time.Now().Add(webhookBackoff(newAttempt))
 			nextRetry = &t
 		}
-		_ = s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nextRetry, newAttempt, 0, err.Error())
+		if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nextRetry, newAttempt, 0, err.Error()); retryErr != nil {
+			slog.Warn("webhook: failed to update retry state", "delivery_id", d.ID, "error", retryErr)
+		}
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		_ = s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nil, newAttempt, resp.StatusCode, "")
+		if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nil, newAttempt, resp.StatusCode, ""); retryErr != nil {
+			slog.Warn("webhook: failed to clear retry state", "delivery_id", d.ID, "error", retryErr)
+		}
 		return
 	}
 
@@ -206,7 +226,9 @@ func (s *WebhookService) retryDeliver(ctx context.Context, wh model.Webhook, d m
 		t := time.Now().Add(webhookBackoff(newAttempt))
 		nextRetry = &t
 	}
-	_ = s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nextRetry, newAttempt, resp.StatusCode, "")
+	if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nextRetry, newAttempt, resp.StatusCode, ""); retryErr != nil {
+		slog.Warn("webhook: failed to update retry state", "delivery_id", d.ID, "error", retryErr)
+	}
 }
 
 // RedeliverByID re-sends a specific delivery immediately (manual redeliver).
@@ -222,7 +244,7 @@ func (s *WebhookService) RedeliverByID(ctx context.Context, deliveryID, repoID i
 	if wh.RepoID != repoID {
 		return fmt.Errorf("forbidden")
 	}
-	go s.retryDeliver(ctx, *wh, *d)
+	go s.retryDeliver(context.Background(), *wh, *d)
 	return nil
 }
 

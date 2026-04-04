@@ -56,6 +56,7 @@ func main() {
 	}()
 
 	// Webhook retry worker — runs every 60 seconds
+	workerCtx, workerCancel := context.WithCancel(context.Background())
 	go func() {
 		ticker := time.NewTicker(60 * time.Second)
 		defer ticker.Stop()
@@ -65,7 +66,7 @@ func main() {
 				if err := services.Webhook.RetryPending(context.Background()); err != nil {
 					slog.Warn("webhook retry pending failed", "error", err)
 				}
-			case <-quit:
+			case <-workerCtx.Done():
 				return
 			}
 		}
@@ -88,6 +89,7 @@ func main() {
 	}()
 
 	<-quit
+	workerCancel()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

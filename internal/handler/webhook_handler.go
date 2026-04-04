@@ -22,10 +22,20 @@ type createWebhookRequest struct {
 func (h *Handler) ListWebhooks(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 
@@ -62,7 +72,10 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 
 	var url, secret, events string
 	if r.Header.Get("HX-Request") == "true" {
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form data")
+			return
+		}
 		url = r.FormValue("url")
 		secret = r.FormValue("secret")
 		events = r.FormValue("events")
@@ -75,6 +88,11 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		url = req.URL
 		secret = req.Secret
 		events = req.Events
+	}
+
+	if url == "" {
+		writeError(w, http.StatusBadRequest, "url is required")
+		return
 	}
 
 	wh, err := h.Services.Webhook.Create(r.Context(), repo.ID, url, secret, events)
@@ -164,7 +182,7 @@ func (h *Handler) ListWebhookDeliveries(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	deliveries, err := h.Services.Webhook.ListDeliveries(r.Context(), id)
+	deliveries, err := h.Services.Webhook.ListDeliveries(r.Context(), id, repo.ID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list deliveries")
 		return
@@ -196,7 +214,11 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	hookID, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	hookID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid hook id")
+		return
+	}
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -210,7 +232,10 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 
 	var events string
 	if r.Header.Get("HX-Request") == "true" {
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form data")
+			return
+		}
 		var parts []string
 		for _, ev := range []string{"push", "issues", "pull_request"} {
 			if r.FormValue(ev) == "1" {
@@ -229,6 +254,14 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
+		}
+		allowed := map[string]bool{"push": true, "issues": true, "pull_request": true}
+		for _, ev := range strings.Split(req.Events, ",") {
+			ev = strings.TrimSpace(ev)
+			if ev != "" && !allowed[ev] {
+				writeError(w, http.StatusBadRequest, "invalid event: "+ev)
+				return
+			}
 		}
 		events = req.Events
 	}
@@ -286,7 +319,7 @@ func (h *Handler) RedeliverWebhook(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusForbidden, "forbidden")
 			return
 		}
-		writeError(w, http.StatusInternalServerError, err.Error())
+		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)
