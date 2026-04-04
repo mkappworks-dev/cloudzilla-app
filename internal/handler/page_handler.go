@@ -252,6 +252,11 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 
 	latestRelease, _ := h.Services.Release.GetLatest(r.Context(), owner, repoName)
 
+	watchLevel := ""
+	if currentUserID != 0 {
+		watchLevel = h.Services.Watch.GetLevel(r.Context(), currentUserID, repo.ID)
+	}
+
 	h.render(w, r, pages.Repo(view.RepoData{
 		BasePage:      basePage(r, h.Services),
 		Repo:          *repo,
@@ -263,6 +268,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		ReadmeHTML:    readmeHTML,
 		StarCount:     starCount,
 		IsStarred:     isStarred,
+		WatchLevel:    watchLevel,
 		ForkCount:     repo.ForkCount,
 		IsFork:        repo.IsFork,
 		ForkOfPath:    forkOfPath,

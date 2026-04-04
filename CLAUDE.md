@@ -239,7 +239,8 @@ Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs
 | 11.1    | Email Notifications (SMTP)                   | ✅ Done    | 041          |
 | 11.2    | OAuth Apps / Third-party Clients             | ✅ Done    | 042          |
 | 11.3    | Webhook Improvements (retry, filter)         | ✅ Done    | 043          |
-| 12–20   | (next planned phases)                        | ⬜ Planned | 044–060      |
+| 12.1    | Watching                                     | ✅ Done    | 044          |
+| 12.2–20 | (next planned phases)                        | ⬜ Planned | 045–060      |
 
 > Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)
 > Implementation plans for each phase: [docs/superpowers/plans/](./docs/superpowers/plans/)

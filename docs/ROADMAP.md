@@ -1837,9 +1837,9 @@ POST  /api/repos/{owner}/{repo}/hooks/{id}/redeliver (authMW + write) — manual
 
 _Staying informed, personalized discovery, and threaded community forums._
 
-### Phase 12.1 — Watching
+### Phase 12.1 — Watching ✅ IMPLEMENTED
 
-**Migration** (`043_create_watches.sql`):
+**Migration** (`044_create_watches.sql`):
 
 ```sql
 CREATE TABLE watches (
@@ -2411,7 +2411,7 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 11.1  | Email Notifications                  | ✅ Done    | 041          |
 | 11.2  | OAuth Apps / Third-party Clients     | ✅ Done    | 042          |
 | 11.3  | Webhook Improvements (retry, filter) | ✅ Done    | 043          |
-| 12.1  | Watching                             | ⬜ Planned | 043          |
+| 12.1  | Watching                             | ✅ Done    | 044          |
 | 12.2  | Activity Feed                        | ⬜ Planned | 044          |
 | 12.3  | Discussions                          | ⬜ Planned | 045          |
 | 13.1  | Gists                                | ⬜ Planned | 046          |
