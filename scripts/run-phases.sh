@@ -110,108 +110,72 @@ IMPORTANT: Do not ask clarifying questions. Follow the plan as written.
 PROMPT
 
   echo ""
-  echo "  Step 1/5 — Implementation"
+  echo "  Step 1/2 — Implementation"
   echo "  When Claude opens, type:"
   echo "  @scripts/prompts/phase-${phase}-${name}-impl.md"
   echo ""
   read -r -p "  Press Enter to open Claude... "
   claude --model claude-sonnet-4-6
 
-  # --- Session 2: Silent failure hunter ---
-  cat > "$prompts_dir/phase-${phase}-${name}-silent-failures.md" <<PROMPT
-Use the pr-review-toolkit:silent-failure-hunter skill to review the Phase ${phase} (${name}) implementation.
+  # --- Session 2: Review + docs + PR summary ---
+  cat > "$prompts_dir/phase-${phase}-${name}-review.md" <<PROMPT
+You are doing post-implementation work for Phase ${phase} (${name}). Complete all four steps below in order.
 
 The changes are on branch: ${branch}
 Run: git diff main...HEAD to see what was added.
 
-Focus on:
-- Silent failures and swallowed errors
-- Missing error returns or unchecked error values
+## Step 1 — Silent failures
+Check for:
+- Swallowed errors or missing error returns
+- Unchecked error values (e.g. \`_ = someErr\`)
 - Unhandled edge cases that could cause data loss or incorrect state
 
-Report high-confidence findings only. Be concise.
-PROMPT
-
-  echo ""
-  echo "  Step 2/5 — Silent failure review"
-  echo "  When Claude opens, type:"
-  echo "  @scripts/prompts/phase-${phase}-${name}-silent-failures.md"
-  echo ""
-  read -r -p "  Press Enter to open Claude... "
-  claude --model claude-sonnet-4-6
-
-  # --- Session 3: Code reviewer ---
-  cat > "$prompts_dir/phase-${phase}-${name}-code-review.md" <<PROMPT
-Use the pr-review-toolkit:code-reviewer skill to review the Phase ${phase} (${name}) implementation.
-
-The changes are on branch: ${branch}
-Run: git diff main...HEAD to see what was added.
-
-Focus on:
+## Step 2 — Code quality
+Check for:
 - Bugs and logic errors
-- Code quality and maintainability
 - Adherence to CLAUDE.md conventions (Store→Service→Handler layering, PostgreSQL syntax, Templ patterns)
-- Missing tests or validation
+- Missing input validation or tests for security-sensitive code
 
-Report high-confidence findings only. Be concise.
-PROMPT
-
-  echo ""
-  echo "  Step 3/5 — Code review"
-  echo "  When Claude opens, type:"
-  echo "  @scripts/prompts/phase-${phase}-${name}-code-review.md"
-  echo ""
-  read -r -p "  Press Enter to open Claude... "
-  claude --model claude-sonnet-4-6
-
-  # --- Session 4: Security review ---
-  cat > "$prompts_dir/phase-${phase}-${name}-security.md" <<PROMPT
-Perform a targeted security review of the Phase ${phase} (${name}) implementation.
-
-The changes are on branch: ${branch}
-Run: git diff main...HEAD to see what was added.
-
-Focus exclusively on security issues:
+## Step 3 — Security
+Check for:
 - Authentication and authorization bypasses
 - SQL injection (missing parameterization, raw query construction)
-- XSS (unescaped output in Templ templates — note: Templ auto-escapes, but check templ.Raw() usage)
-- CSRF (state-mutating endpoints without protection)
+- XSS (unescaped output in Templ — Templ auto-escapes, but check templ.Raw() usage)
 - Insecure direct object references (missing ownership checks)
 - Sensitive data exposure (tokens, keys, PII in logs or responses)
-- Input validation gaps at system boundaries
 
-Report high-confidence findings only. Be concise.
-PROMPT
+Fix all high-confidence findings from steps 1–3, then commit with message: fix(phase-${phase}): address review findings
 
-  echo ""
-  echo "  Step 4/5 — Security review"
-  echo "  When Claude opens, type:"
-  echo "  @scripts/prompts/phase-${phase}-${name}-security.md"
-  echo ""
-  read -r -p "  Press Enter to open Claude... "
-  claude --model claude-sonnet-4-6
-
-  # --- Session 5: Docs update ---
-  cat > "$prompts_dir/phase-${phase}-${name}-docs.md" <<PROMPT
-Review the Phase ${phase} (${name}) implementation and update project documentation where necessary.
-
-The changes are on branch: ${branch}
-Run: git diff main...HEAD to see what was added.
-
+## Step 4 — Docs update
 Check and update the following files if they are outdated or incomplete:
 - README.md — update feature list, setup instructions, or environment variables if new ones were added
 - CLAUDE.md — update architecture notes, conventions, or the phase status table (mark phase ${phase} as Done)
 - docs/roadmap.md — mark phase ${phase} as completed
 
-Only make changes that are factually necessary based on what was implemented. Do not add fluff.
-If a file is already accurate, leave it unchanged.
+Only make changes that are factually necessary. If a file is already accurate, leave it unchanged.
 Commit any documentation changes with message: docs(phase-${phase}): update readme, claude.md, and roadmap
+
+## Step 5 — PR summary
+Write a PR summary to pr-summary.md at the repo root. Use the Write tool — do not print it in chat.
+
+The file must contain exactly these two sections:
+
+## Summary
+Bullet points covering what was built: new tables, new service/store methods, new routes, new UI pages. Be specific — mention migration numbers, table names, route paths, and key design decisions.
+
+## Security fixes
+Bullet points for any security hardening done during implementation or review: authorization checks, scoped queries, input validation, error handling. Omit this section entirely if there were no security fixes.
+
+Rules for pr-summary.md:
+- Plain prose bullet points only — no code blocks, no markdown tables, no headings inside sections
+- Name symbols inline with backticks: \`ErrProjectNotFound\`, \`CanRead\`, \`/projects/{id}\`
+- Each bullet is one sentence, self-contained, specific enough to appear in a changelog
 PROMPT
 
   echo ""
-  echo "  Step 5/5 — Docs update (README, CLAUDE.md, roadmap)"
+  echo "  Step 2/2 — Review, docs, and PR summary"
   echo "  When Claude opens, type:"
-  echo "  @scripts/prompts/phase-${phase}-${name}-docs.md"
+  echo "  @scripts/prompts/phase-${phase}-${name}-review.md"
   echo ""
   read -r -p "  Press Enter to open Claude... "
   claude --model claude-sonnet-4-6
