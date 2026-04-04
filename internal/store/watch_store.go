@@ -75,7 +75,7 @@ func (s *WatchStore) ListWatchersByRepo(ctx context.Context, repoID int64, level
 	for rows.Next() {
 		var id int64
 		if err := rows.Scan(&id); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("watch list watchers: scan user_id: %w", err)
 		}
 		ids = append(ids, id)
 	}

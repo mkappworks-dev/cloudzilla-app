@@ -49,7 +49,9 @@ func (s *NotificationService) sendEmailAsync(notif model.Notification) {
 		if err != nil || u.EmailDigest != "immediate" {
 			return
 		}
-		_ = s.emailSvc.SendNotification(context.Background(), u, &notif)
+		if err := s.emailSvc.SendNotification(context.Background(), u, &notif); err != nil {
+			slog.Error("sendEmailAsync: failed to send notification email", "user_id", notif.UserID, "notif_type", notif.Type, "error", err)
+		}
 	}()
 }
 
@@ -87,7 +89,9 @@ func (s *NotificationService) NotifyIssueComment(ctx context.Context, repo model
 	}
 	if actorID != issue.AuthorID {
 		n.UserID = issue.AuthorID
-		if err := s.notifs.Create(ctx, n); err == nil {
+		if err := s.notifs.Create(ctx, n); err != nil {
+			slog.Error("NotifyIssueComment: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
+		} else {
 			s.sendEmailAsync(*n)
 		}
 	}
@@ -107,7 +111,9 @@ func (s *NotificationService) NotifyPRComment(ctx context.Context, repo model.Re
 	}
 	if actorID != pr.AuthorID {
 		n.UserID = pr.AuthorID
-		if err := s.notifs.Create(ctx, n); err == nil {
+		if err := s.notifs.Create(ctx, n); err != nil {
+			slog.Error("NotifyPRComment: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
+		} else {
 			s.sendEmailAsync(*n)
 		}
 	}
@@ -131,7 +137,9 @@ func (s *NotificationService) NotifyIssueStateChange(ctx context.Context, repo m
 	}
 	if actorID != issue.AuthorID {
 		n.UserID = issue.AuthorID
-		if err := s.notifs.Create(ctx, n); err == nil {
+		if err := s.notifs.Create(ctx, n); err != nil {
+			slog.Error("NotifyIssueStateChange: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
+		} else {
 			s.sendEmailAsync(*n)
 		}
 	}
@@ -151,7 +159,9 @@ func (s *NotificationService) NotifyPRReview(ctx context.Context, repo model.Rep
 	}
 	if actorID != pr.AuthorID {
 		n.UserID = pr.AuthorID
-		if err := s.notifs.Create(ctx, n); err == nil {
+		if err := s.notifs.Create(ctx, n); err != nil {
+			slog.Error("NotifyPRReview: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
+		} else {
 			s.sendEmailAsync(*n)
 		}
 	}
@@ -174,7 +184,9 @@ func (s *NotificationService) NotifyMention(ctx context.Context, repo model.Repo
 		OwnerName:  repo.OwnerName,
 		SubjectURL: subjectURL,
 	}
-	if err := s.notifs.Create(ctx, n); err == nil {
+	if err := s.notifs.Create(ctx, n); err != nil {
+		slog.Error("NotifyMention: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
+	} else {
 		s.sendEmailAsync(*n)
 	}
 }
@@ -196,7 +208,9 @@ func (s *NotificationService) NotifyPRStateChange(ctx context.Context, repo mode
 	}
 	if actorID != pr.AuthorID {
 		n.UserID = pr.AuthorID
-		if err := s.notifs.Create(ctx, n); err == nil {
+		if err := s.notifs.Create(ctx, n); err != nil {
+			slog.Error("NotifyPRStateChange: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
+		} else {
 			s.sendEmailAsync(*n)
 		}
 	}

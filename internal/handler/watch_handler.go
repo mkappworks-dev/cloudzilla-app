@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -33,14 +32,19 @@ func (h *Handler) WatchRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var body struct {
-		Level string `json:"level"`
+	// hx-vals sends form-encoded parameters, not a JSON body.
+	level := r.FormValue("level")
+	if level == "" {
+		level = model.WatchLevelWatching
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Level == "" {
-		body.Level = model.WatchLevelWatching
+	switch level {
+	case model.WatchLevelWatching, model.WatchLevelReleasesOnly, model.WatchLevelIgnoring:
+	default:
+		writeError(w, http.StatusBadRequest, "invalid watch level")
+		return
 	}
 
-	if err := h.Services.Watch.Watch(r.Context(), owner, repoName, claims.UserID, body.Level); err != nil {
+	if err := h.Services.Watch.Watch(r.Context(), owner, repoName, claims.UserID, level); err != nil {
 		slog.Error("WatchRepo failed", "owner", owner, "repo", repoName, "user_id", claims.UserID, "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to update watch preference")
 		return
