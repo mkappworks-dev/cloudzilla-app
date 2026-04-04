@@ -1136,7 +1136,7 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 | 10.3    | Saved Replies                                | ✅ Done    | 040          |
 | 11.1    | Email Notifications (SMTP)                   | ✅ Done    | 041          |
 | 11.2    | OAuth Apps / Third-party Clients             | ✅ Done    | 042          |
-| 11.3    | Webhook Improvements                         | ⬜ Planned | 044          |
+| 11.3    | Webhook Improvements                         | ✅ Done    | 043          |
 | 12.1    | Watching                                     | ⬜ Planned | 045          |
 | 12.2    | Activity Feed                                | ⬜ Planned | 046          |
 | 12.3    | Discussions                                  | ⬜ Planned | 047          |
