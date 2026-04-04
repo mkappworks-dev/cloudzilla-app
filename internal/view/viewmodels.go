@@ -617,3 +617,27 @@ type SSOSettingsData struct {
 	Error      string
 	Success    string
 }
+
+// Wiki page view (read mode)
+type WikiPageData struct {
+	BasePage
+	Repo        model.Repository
+	Owner       string
+	RepoName    string
+	Slug        string
+	ContentHTML string // rendered HTML from markdown, use @templ.Raw(data.ContentHTML) in template
+	PageList    []string
+	CanWrite    bool
+	Exists      bool // false when the page has never been created
+}
+
+// Wiki editor (create / edit mode)
+type WikiEditData struct {
+	BasePage
+	Repo     model.Repository
+	Owner    string
+	RepoName string
+	Slug     string
+	Content  string
+	CanWrite bool
+}
