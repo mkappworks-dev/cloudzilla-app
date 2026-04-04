@@ -216,3 +216,21 @@ func (s *NotificationService) NotifyPRStateChange(ctx context.Context, repo mode
 	}
 	s.fanOutToWatchers(ctx, n, pr.AuthorID)
 }
+
+func (s *NotificationService) NotifyDiscussionReply(ctx context.Context, repo model.Repository, discussion model.Discussion, actorID int64, actorName string) {
+	if actorID == discussion.AuthorID {
+		return
+	}
+	n := &model.Notification{
+		UserID:     discussion.AuthorID,
+		ActorID:    actorID,
+		ActorName:  actorName,
+		Type:       model.NotifDiscussionReply,
+		RepoID:     repo.ID,
+		RepoName:   repo.Name,
+		OwnerName:  repo.OwnerName,
+		SubjectID:  int64(discussion.Number),
+		SubjectURL: fmt.Sprintf("/%s/%s/discussions/%d", repo.OwnerName, repo.Name, discussion.Number),
+	}
+	_ = s.notifs.Create(ctx, n)
+}

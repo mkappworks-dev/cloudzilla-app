@@ -1886,7 +1886,7 @@ Event types: `push`, `issue_opened`, `issue_closed`, `pr_opened`, `pr_merged`, `
 
 _Threaded forum separate from the issue tracker — for Q&A, RFCs, and announcements._
 
-**Migration** (`045_create_discussions.sql`):
+**Migration** (`046_create_discussions.sql`):
 
 ```sql
 CREATE TABLE discussion_categories (
@@ -2413,8 +2413,8 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 11.3  | Webhook Improvements (retry, filter) | ✅ Done    | 043          |
 | 12.1  | Watching                             | ✅ Done    | 044          |
 | 12.2  | Activity Feed                        | ✅ Done    | 045          |
-| 12.3  | Discussions                          | ⬜ Planned | 046          |
-| 13.1  | Gists                                | ⬜ Planned | 046          |
+| 12.3  | Discussions                          | ✅ Done    | 046          |
+| 13.1  | Gists                                | ⬜ Planned | 047          |
 | 13.2  | Profile README                       | ⬜ Planned | —            |
 | 13.3  | Repository Topics / Tags             | ⬜ Planned | 047          |
 | 14.1  | Private Issues                       | ⬜ Planned | 048          |

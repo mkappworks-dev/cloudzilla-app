@@ -1139,8 +1139,8 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 | 11.3    | Webhook Improvements                         | ✅ Done    | 043          |
 | 12.1    | Watching                                     | ✅ Done    | 044          |
 | 12.2    | Activity Feed                                | ✅ Done    | 045          |
-| 12.3    | Discussions                                  | ⬜ Planned | 047          |
-| 13.1    | Gists                                        | ⬜ Planned | 048          |
+| 12.3    | Discussions                                  | ✅ Done    | 046          |
+| 13.1    | Gists                                        | ⬜ Planned | 047          |
 | 13.2    | Profile README                               | ⬜ Planned | —            |
 | 13.3    | Repository Topics / Tags                     | ⬜ Planned | 049          |
 | 14.1    | Private Issues                               | ⬜ Planned | 050          |

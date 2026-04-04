@@ -1,0 +1,154 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ DiscussionDetail(data view.DiscussionDetailData) {
+	@layout.Base(data.BasePage, data.Discussion.Title+" · "+data.Owner+"/"+data.RepoName) {
+		<div class="max-w-4xl mx-auto space-y-6">
+			<!-- Header -->
+			<div>
+				<div class="text-sm text-gray-500 mb-1">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/discussions") } class="text-blue-600 hover:underline">Discussions</a>
+					<span class="mx-1">/</span>
+					<span>#{ strconv.Itoa(data.Discussion.Number) }</span>
+				</div>
+				<h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+					if data.Discussion.IsAnswered {
+						<span class="inline-flex items-center justify-center w-6 h-6 bg-green-500 text-white text-sm rounded-full">✓</span>
+					}
+					{ data.Discussion.Title }
+				</h1>
+				<div class="flex items-center gap-3 mt-2 text-sm text-gray-500">
+					<span class="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">{ data.Category.Emoji } { data.Category.Name }</span>
+					<span>By <a href={ templ.SafeURL("/" + data.Discussion.AuthorName) } class="text-blue-600 hover:underline">{ data.Discussion.AuthorName }</a></span>
+					<span>{ data.Discussion.CreatedAt.Format("Jan 2, 2006") }</span>
+					if data.Discussion.IsLocked {
+						<span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">Locked</span>
+					}
+				</div>
+			</div>
+			<!-- Body -->
+			<div class="bg-white border border-gray-200 rounded-lg p-6">
+				<div class="prose max-w-none text-gray-800">
+					@templ.Raw(data.BodyHTML)
+				</div>
+				if data.CanWrite {
+					<div class="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3 text-sm">
+						if data.Discussion.IsLocked {
+							<button
+								hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number) }
+								hx-vals={ `{"locked": false}` }
+								hx-on::after-request="window.location.reload()"
+								class="text-gray-500 hover:text-gray-700"
+							>
+								Unlock
+							</button>
+						} else {
+							<button
+								hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number) }
+								hx-vals={ `{"locked": true}` }
+								hx-on::after-request="window.location.reload()"
+								class="text-gray-500 hover:text-gray-700"
+							>
+								Lock
+							</button>
+						}
+					</div>
+				}
+			</div>
+			<!-- Replies -->
+			<div class="space-y-4">
+				if len(data.Replies) == 1 {
+					<h2 class="text-lg font-semibold text-gray-800">1 reply</h2>
+				} else {
+					<h2 class="text-lg font-semibold text-gray-800">{ strconv.Itoa(len(data.Replies)) } replies</h2>
+				}
+				for _, reply := range data.Replies {
+					<div
+						id={ "reply-" + strconv.FormatInt(reply.ID, 10) }
+						class={ "bg-white rounded-lg p-5", templ.KV("border border-green-400", reply.IsAnswer), templ.KV("border border-gray-200", !reply.IsAnswer) }
+					>
+						if reply.IsAnswer {
+							<div class="flex items-center gap-2 mb-3 text-green-700 text-sm font-medium">
+								<span>✓ Accepted Answer</span>
+							</div>
+						}
+						<div class="flex items-start gap-3">
+							<div class="flex-1 min-w-0">
+								<div class="flex items-center gap-2 mb-2">
+									<a href={ templ.SafeURL("/" + reply.AuthorName) } class="text-blue-600 hover:underline font-medium text-sm">{ reply.AuthorName }</a>
+									<span class="text-xs text-gray-400">{ reply.CreatedAt.Format("Jan 2, 2006 at 15:04") }</span>
+								</div>
+								<div class="prose max-w-none text-gray-800 text-sm">
+									@templ.Raw(reply.BodyHTML)
+								</div>
+							</div>
+							if data.CanWrite {
+								<div class="flex-shrink-0 flex flex-col gap-1">
+									if !reply.IsAnswer {
+										<button
+											hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number) }
+											hx-vals={ `{"answer_id": ` + strconv.FormatInt(reply.ID, 10) + `}` }
+											hx-on::after-request="window.location.reload()"
+											class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200"
+										>
+											Mark Answer
+										</button>
+									} else {
+										<button
+											hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number) }
+											hx-vals={ `{"answer_id": null}` }
+											hx-on::after-request="window.location.reload()"
+											class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200"
+										>
+											Unmark
+										</button>
+									}
+									<button
+										hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number) + "/replies/" + strconv.FormatInt(reply.ID, 10) }
+										hx-confirm="Delete this reply?"
+										hx-target={ "#reply-" + strconv.FormatInt(reply.ID, 10) }
+										hx-swap="outerHTML"
+										class="px-2 py-1 bg-red-50 text-red-600 rounded text-xs hover:bg-red-100"
+									>
+										Delete
+									</button>
+								</div>
+							}
+						</div>
+					</div>
+				}
+			</div>
+			<!-- Reply form -->
+			if data.BasePage.CurrentUser != nil {
+				if !data.Discussion.IsLocked {
+					<div class="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+						<h3 class="text-base font-semibold text-gray-800">Add a reply</h3>
+						<textarea id="reply-body" rows="5" class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Write a reply (Markdown supported)..."></textarea>
+						<button
+							hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number) + "/replies" }
+							hx-vals={ `js:{body: document.getElementById("reply-body").value}` }
+							hx-on::after-request="window.location.reload()"
+							class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700"
+						>
+							Reply
+						</button>
+					</div>
+				} else {
+					<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-500 text-center">
+						This discussion is locked. No new replies can be added.
+					</div>
+				}
+			} else {
+				<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-500 text-center">
+					<a href="/login" class="text-blue-600 hover:underline">Sign in</a> to reply.
+				</div>
+			}
+		</div>
+	}
+}

@@ -78,6 +78,9 @@ type (
 	SSOSettingsData        = view.SSOSettingsData
 	PulseData              = view.PulseData
 	ContributorsData       = view.ContributorsData
-	OAuthAuthorizeData     = view.OAuthAuthorizeData
-	OAuthAppsData          = view.OAuthAppsData
+	OAuthAuthorizeData          = view.OAuthAuthorizeData
+	OAuthAppsData               = view.OAuthAppsData
+	RenderedDiscussionReply     = view.RenderedDiscussionReply
+	DiscussionsData             = view.DiscussionsData
+	DiscussionDetailData        = view.DiscussionDetailData
 )

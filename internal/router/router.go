@@ -93,6 +93,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Get("/{owner}/{repo}/wiki/{slug}/edit", h.PageWikiEdit)
 	r.With(optAuthMW).Get("/{owner}/{repo}/projects", h.PageProjects)
 	r.With(optAuthMW).Get("/{owner}/{repo}/projects/{id}", h.PageProjectDetail)
+	r.With(optAuthMW).Get("/{owner}/{repo}/discussions", h.PageDiscussions)
+	r.With(optAuthMW).Get("/{owner}/{repo}/discussions/{number}", h.PageDiscussionDetail)
 
 	// OAuth routes
 	r.Get("/auth/google", h.GoogleOAuthBegin)
@@ -292,6 +294,16 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		// Wiki
 		r.With(authMW).Post("/{owner}/{repo}/wiki/{slug}", h.CreateOrUpdateWikiPage)
 		r.With(authMW).Delete("/{owner}/{repo}/wiki/{slug}", h.DeleteWikiPage)
+
+		// Discussions
+		r.Route("/{owner}/{repo}/discussions", func(r chi.Router) {
+			r.With(authMW).Post("/", h.CreateDiscussion)
+			r.With(authMW).Post("/{number}/replies", h.CreateReply)
+			r.With(authMW).Patch("/{number}", h.MarkAnswer)
+			r.With(authMW).Delete("/{number}/replies/{id}", h.DeleteDiscussionReply)
+			r.With(authMW).Post("/categories", h.CreateDiscussionCategory)
+			r.With(authMW).Delete("/categories/{id}", h.DeleteDiscussionCategory)
+		})
 	})
 
 	// Admin API routes
