@@ -88,11 +88,34 @@ templ IssueDetail(data view.IssueDetailData) {
 						if !data.Issue.IsLocked || data.CanManage {
 							if data.BasePage.CurrentUser != nil {
 								<form class="bg-white border border-gray-200 rounded-lg p-4">
-									<textarea name="body" placeholder="Add a comment..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical min-h-24"></textarea>
-									<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/comments" } hx-swap="beforeend" hx-target="#comments" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition-colors">
+									<div class="relative">
+										<div class="flex justify-end mb-1">
+											<button type="button"
+												hx-get="/api/user/replies"
+												hx-target="#saved-replies-picker-container"
+												hx-swap="outerHTML"
+												class="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 border border-gray-200 rounded px-2 py-1">
+												Saved replies
+											</button>
+										</div>
+										<div id="saved-replies-picker-container"></div>
+										<textarea id="comment-body" name="body" placeholder="Add a comment..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical min-h-24"></textarea>
+									</div>
+									<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/comments" } hx-include="#comment-body" hx-swap="beforeend" hx-target="#comments" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition-colors">
 										Comment
 									</button>
 								</form>
+								<script>
+								document.addEventListener('click', function(e) {
+								  var btn = e.target.closest('[data-saved-reply-body]');
+								  if (btn) {
+								    var ta = document.getElementById('comment-body');
+								    if (ta) { ta.value = btn.dataset.savedReplyBody; }
+								    var container = document.getElementById('saved-replies-picker-container');
+								    if (container) { container.replaceChildren(); }
+								  }
+								});
+								</script>
 							}
 						}
 						if data.Issue.IsLocked && !data.CanManage {

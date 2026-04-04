@@ -316,6 +316,16 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Delete("/{id}", h.DeleteToken)
 	})
 
+	// Saved replies routes
+	r.With(authMW).Get("/settings/replies", h.PageSavedReplies)
+	r.Route("/api/user/replies", func(r chi.Router) {
+		r.Use(authMW)
+		r.Get("/", h.ListSavedRepliesFragment)
+		r.Post("/", h.CreateSavedReply)
+		r.Patch("/{id}", h.UpdateSavedReply)
+		r.Delete("/{id}", h.DeleteSavedReply)
+	})
+
 	// Security / TOTP routes
 	r.With(authMW).Get("/settings/security", h.PageSecuritySettings)
 	r.With(authMW).Post("/settings/security/setup", h.PageSecuritySettingsSetup)
