@@ -140,6 +140,14 @@ type WebhooksFragData struct {
 	CanWrite bool
 }
 
+type WebhookDeliveriesFragData struct {
+	Owner      string
+	RepoName   string
+	WebhookID  int64
+	Deliveries []model.WebhookDelivery
+	CanWrite   bool
+}
+
 type IssuesData struct {
 	BasePage
 	Repo            model.Repository

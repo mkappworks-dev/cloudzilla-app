@@ -205,6 +205,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Post("/", h.CreateWebhook)
 			r.With(authMW).Delete("/{id}", h.DeleteWebhook)
 			r.With(authMW).Get("/{id}/deliveries", h.ListWebhookDeliveries)
+			r.With(authMW).Patch("/{id}", h.UpdateWebhook)
+			r.With(authMW).Post("/{id}/redeliver", h.RedeliverWebhook)
 		})
 
 		// Collaborators
