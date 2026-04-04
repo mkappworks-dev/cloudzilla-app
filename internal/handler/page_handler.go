@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"strconv"
@@ -27,6 +28,10 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 }
 
 func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
+	if _, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		http.Redirect(w, r, "/feed", http.StatusSeeOther)
+		return
+	}
 	repos, err := h.Services.Repo.List(r.Context())
 	if err != nil {
 		http.Error(w, "failed to list repos", http.StatusInternalServerError)
@@ -139,10 +144,19 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		repos = []model.Repository{}
 	}
 
+	activity, err := h.Services.Event.UserActivity(r.Context(), username, 1, 15)
+	if err != nil {
+		slog.Warn("user activity: failed to load events", "username", username, "error", err)
+		activity = []model.Event{}
+	}
+	if activity == nil {
+		activity = []model.Event{}
+	}
 	h.render(w, r, pages.User(view.UserData{
-		BasePage: basePage(r, h.Services),
-		User:     *user,
-		Repos:    repos,
+		BasePage:       basePage(r, h.Services),
+		User:           *user,
+		Repos:          repos,
+		RecentActivity: activity,
 	}))
 }
 

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -128,6 +129,9 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+
+	repoID := repo.ID
+	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventMemberAdded, map[string]any{"username": username})
 
 	if r.Header.Get("HX-Request") == "true" {
 		collabs, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)

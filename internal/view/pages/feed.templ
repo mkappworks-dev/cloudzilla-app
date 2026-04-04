@@ -1,0 +1,67 @@
+package pages
+
+import (
+	"strconv"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Feed(data view.FeedData) {
+	@layout.Base(data.BasePage, "Activity Feed") {
+		<div class="max-w-3xl mx-auto space-y-4">
+			<h1 class="text-2xl font-bold text-gray-900">Your Activity Feed</h1>
+			if len(data.Events) == 0 {
+				<div class="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-500">
+					<p class="text-lg">No activity yet.</p>
+					<p class="mt-2 text-sm">Watch some repositories to see events here.</p>
+				</div>
+			} else {
+				<div class="space-y-3">
+					for _, e := range data.Events {
+						<div class="bg-white border border-gray-200 rounded-lg px-5 py-4 flex items-start gap-4">
+							<div class="flex-1 min-w-0">
+								<div class="text-sm text-gray-700">
+									<a href={ templ.SafeURL("/" + e.ActorName) } class="text-blue-600 hover:underline font-medium">{ e.ActorName }</a>
+									if e.EventType == "push" {
+										pushed to <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
+									} else if e.EventType == "issue_opened" {
+										opened an issue in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName + "/issues") } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
+									} else if e.EventType == "issue_closed" {
+										closed an issue in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName + "/issues") } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
+									} else if e.EventType == "pr_opened" {
+										opened a pull request in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName + "/pulls") } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
+									} else if e.EventType == "pr_merged" {
+										merged a pull request in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName + "/pulls") } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
+									} else if e.EventType == "pr_closed" {
+										closed a pull request in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName + "/pulls") } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
+									} else if e.EventType == "fork" {
+										forked <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
+									} else if e.EventType == "star" {
+										starred <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
+									} else if e.EventType == "release_published" {
+										published a release in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName + "/releases") } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
+									} else if e.EventType == "member_added" {
+										added a member to <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
+									} else {
+										performed action <span class="font-mono text-xs bg-gray-100 px-1 rounded">{ e.EventType }</span> in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="text-blue-600 hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
+									}
+								</div>
+								<div class="text-xs text-gray-400 mt-1">{ e.CreatedAt.Format("Jan 2, 2006 at 15:04") }</div>
+							</div>
+						</div>
+					}
+				</div>
+				<div class="flex justify-between items-center pt-2">
+					if data.Page > 1 {
+						<a href={ templ.SafeURL("/feed?page=" + strconv.Itoa(data.Page-1)) } class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">Previous</a>
+					} else {
+						<span></span>
+					}
+					if data.HasNextPage {
+						<a href={ templ.SafeURL("/feed?page=" + strconv.Itoa(data.Page+1)) } class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">Next</a>
+					}
+				</div>
+			}
+		</div>
+	}
+}

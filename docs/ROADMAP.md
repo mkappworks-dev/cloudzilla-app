@@ -1858,9 +1858,9 @@ Users can watch a repo at three levels: `watching` (all events), `releases_only`
 
 ---
 
-### Phase 12.2 — Activity Feed
+### Phase 12.2 — Activity Feed ✅ IMPLEMENTED
 
-**Migration** (`044_create_events.sql`):
+**Migration** (`045_create_events.sql`):
 
 ```sql
 CREATE TABLE events (
@@ -2412,8 +2412,8 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 11.2  | OAuth Apps / Third-party Clients     | ✅ Done    | 042          |
 | 11.3  | Webhook Improvements (retry, filter) | ✅ Done    | 043          |
 | 12.1  | Watching                             | ✅ Done    | 044          |
-| 12.2  | Activity Feed                        | ⬜ Planned | 044          |
-| 12.3  | Discussions                          | ⬜ Planned | 045          |
+| 12.2  | Activity Feed                        | ✅ Done    | 045          |
+| 12.3  | Discussions                          | ⬜ Planned | 046          |
 | 13.1  | Gists                                | ⬜ Planned | 046          |
 | 13.2  | Profile README                       | ⬜ Planned | —            |
 | 13.3  | Repository Topics / Tags             | ⬜ Planned | 047          |
