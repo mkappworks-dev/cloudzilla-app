@@ -35,6 +35,7 @@ type Services struct {
 	AuditLog         *AuditService
 	Project          *ProjectService
 	SSO              *SSOService
+	SavedReply       *SavedReplyService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -73,5 +74,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		AuditLog:         NewAuditService(stores.AuditLog),
 		Project:          NewProjectService(stores.Project, repoSvc),
 		SSO:              NewSSOService(stores.SSO, stores.User, cfg.Auth, siteSettingSvc),
+		SavedReply:       NewSavedReplyService(stores.SavedReply),
 	}
 }

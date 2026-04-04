@@ -669,3 +669,19 @@ type ContributorsData struct {
 	Contributors []service.ContributorStat
 	MaxCommits   int
 }
+
+// Saved replies settings page
+type SavedRepliesData struct {
+	BasePage
+	Replies []model.SavedReply
+}
+
+// Saved replies HTMX list fragment
+type SavedRepliesFragData struct {
+	Replies []model.SavedReply
+}
+
+// Saved replies picker fragment (for comment textareas)
+type SavedRepliesPickerFragData struct {
+	Replies []model.SavedReply
+}

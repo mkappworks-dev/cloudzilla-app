@@ -35,6 +35,7 @@ type Stores struct {
 	Project          *ProjectStore
 	SSO              *SSOStore
 	Mention          *MentionStore
+	SavedReply       *SavedReplyStore
 }
 
 func New(database *sql.DB) *Stores {
@@ -68,5 +69,6 @@ func New(database *sql.DB) *Stores {
 		Project:          NewProjectStore(database),
 		SSO:              NewSSOStore(database),
 		Mention:          NewMentionStore(database),
+		SavedReply:       NewSavedReplyStore(database),
 	}
 }
