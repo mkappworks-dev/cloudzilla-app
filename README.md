@@ -404,6 +404,18 @@ environment:
   CZ_AUTH_JWT_SECRET: "replace-with-a-long-random-string"
 ```
 
+**To enable email notifications**, add SMTP settings (all optional; email is skipped when `CZ_SMTP_HOST` is empty):
+
+```yaml
+environment:
+  CZ_SMTP_HOST: "smtp.example.com"
+  CZ_SMTP_PORT: "587"
+  CZ_SMTP_USERNAME: "user@example.com"
+  CZ_SMTP_PASSWORD: "your-smtp-password"
+  CZ_SMTP_FROM: "noreply@example.com"
+  CZ_SMTP_TLS: "true"
+```
+
 ### Logs and teardown
 
 ```bash
@@ -1122,7 +1134,7 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 | 10.1    | Repository Insights & Stats                  | ✅ Done    | —            |
 | 10.2    | @Mentions in Comments                        | ✅ Done    | 039          |
 | 10.3    | Saved Replies                                | ✅ Done    | 040          |
-| 11.1    | Email Notifications (SMTP)                   | ⬜ Planned | 042          |
+| 11.1    | Email Notifications (SMTP)                   | ✅ Done    | 041          |
 | 11.2    | OAuth Apps / Third-party Clients             | ⬜ Planned | 043          |
 | 11.3    | Webhook Improvements                         | ⬜ Planned | 044          |
 | 12.1    | Watching                                     | ⬜ Planned | 045          |
