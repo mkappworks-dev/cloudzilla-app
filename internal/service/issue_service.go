@@ -2,40 +2,29 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
-// ErrIssueLocked is returned when a non-maintainer tries to comment on a locked issue.
-var ErrIssueLocked = errors.New("issue is locked")
-
-// pinLimitGuard returns an error string if pinnedCount exceeds the 3-pin limit.
+// pinLimitGuard returns an error string if pinnedCount is at or above the 3-pin limit.
 // An empty string means no error.
 func pinLimitGuard(pinnedCount int) string {
-	if pinnedCount > 3 {
+	if pinnedCount >= 3 {
 		return "repositories may not have more than 3 pinned issues"
 	}
 	return ""
 }
 
-// lockGuard returns an error string if the issue is locked (blocking a comment).
-func lockGuard(isLocked bool) string {
-	if isLocked {
-		return "issue is locked"
-	}
-	return ""
-}
-
 type IssueService struct {
-	issues *store.IssueStore
-	repos  *store.RepoStore
+	issues   *store.IssueStore
+	repos    *store.RepoStore
+	repoSvc  *RepoService
 }
 
-func NewIssueService(issues *store.IssueStore, repos *store.RepoStore) *IssueService {
-	return &IssueService{issues: issues, repos: repos}
+func NewIssueService(issues *store.IssueStore, repos *store.RepoStore, repoSvc *RepoService) *IssueService {
+	return &IssueService{issues: issues, repos: repos, repoSvc: repoSvc}
 }
 
 func (s *IssueService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body string) (*model.Issue, error) {
@@ -90,7 +79,7 @@ func (s *IssueService) PinIssue(ctx context.Context, owner, repoName string, num
 	if err != nil {
 		return fmt.Errorf("repo not found: %w", err)
 	}
-	if !s.canManage(repo, userID) {
+	if !s.canManage(ctx, repo, userID) {
 		return fmt.Errorf("forbidden")
 	}
 	issue, err := s.issues.GetByNumber(ctx, repo.ID, number)
@@ -116,7 +105,7 @@ func (s *IssueService) UnpinIssue(ctx context.Context, owner, repoName string, n
 	if err != nil {
 		return fmt.Errorf("repo not found: %w", err)
 	}
-	if !s.canManage(repo, userID) {
+	if !s.canManage(ctx, repo, userID) {
 		return fmt.Errorf("forbidden")
 	}
 	issue, err := s.issues.GetByNumber(ctx, repo.ID, number)
@@ -132,7 +121,7 @@ func (s *IssueService) LockIssue(ctx context.Context, owner, repoName string, nu
 	if err != nil {
 		return fmt.Errorf("repo not found: %w", err)
 	}
-	if !s.canManage(repo, userID) {
+	if !s.canManage(ctx, repo, userID) {
 		return fmt.Errorf("forbidden")
 	}
 	issue, err := s.issues.GetByNumber(ctx, repo.ID, number)
@@ -148,7 +137,7 @@ func (s *IssueService) UnlockIssue(ctx context.Context, owner, repoName string, 
 	if err != nil {
 		return fmt.Errorf("repo not found: %w", err)
 	}
-	if !s.canManage(repo, userID) {
+	if !s.canManage(ctx, repo, userID) {
 		return fmt.Errorf("forbidden")
 	}
 	issue, err := s.issues.GetByNumber(ctx, repo.ID, number)
@@ -167,7 +156,7 @@ func (s *IssueService) ListPinned(ctx context.Context, owner, repoName string) (
 	return s.issues.ListPinned(ctx, repo.ID)
 }
 
-// canManage checks whether userID is the direct repo owner.
-func (s *IssueService) canManage(repo *model.Repository, userID int64) bool {
-	return repo.OwnerID == userID
+// canManage checks whether userID can manage the repo (owner or org owner).
+func (s *IssueService) canManage(ctx context.Context, repo *model.Repository, userID int64) bool {
+	return s.repoSvc.CanManage(ctx, repo, userID)
 }

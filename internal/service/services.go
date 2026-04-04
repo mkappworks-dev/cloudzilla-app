@@ -44,7 +44,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	return &Services{
 		User:             NewUserService(stores.User, cfg.Auth),
 		Repo:             repoSvc,
-		Issue:            NewIssueService(stores.Issue, stores.Repo),
+		Issue:            NewIssueService(stores.Issue, stores.Repo, repoSvc),
 		Pull:             NewPullService(stores.Pull, stores.Repo),
 		Comment:          NewCommentService(stores.Comment),
 		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),

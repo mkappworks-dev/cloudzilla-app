@@ -129,11 +129,18 @@ func (h *Handler) PinIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
 
 	var action string
 	if r.Header.Get("HX-Request") == "true" {
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
 		action = r.FormValue("action")
 	} else {
 		var req struct {
@@ -146,7 +153,6 @@ func (h *Handler) PinIssue(w http.ResponseWriter, r *http.Request) {
 		action = req.Action
 	}
 
-	var err error
 	if action == "unpin" {
 		err = h.Services.Issue.UnpinIssue(r.Context(), owner, repoName, number, claims.UserID)
 	} else {
@@ -157,7 +163,7 @@ func (h *Handler) PinIssue(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusForbidden, "forbidden")
 			return
 		}
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -172,11 +178,18 @@ func (h *Handler) LockIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
 
 	var action string
 	if r.Header.Get("HX-Request") == "true" {
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
 		action = r.FormValue("action")
 	} else {
 		var req struct {
@@ -189,7 +202,6 @@ func (h *Handler) LockIssue(w http.ResponseWriter, r *http.Request) {
 		action = req.Action
 	}
 
-	var err error
 	if action == "unlock" {
 		err = h.Services.Issue.UnlockIssue(r.Context(), owner, repoName, number, claims.UserID)
 	} else {

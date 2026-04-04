@@ -75,7 +75,11 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 	// Enforce lock: non-managers cannot comment on locked issues.
 	if issue.IsLocked {
 		repo, repoErr := h.Services.Repo.Get(r.Context(), owner, repoName)
-		if repoErr != nil || !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
+		if repoErr != nil {
+			writeError(w, http.StatusInternalServerError, "failed to check permissions")
+			return
+		}
+		if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
 			writeError(w, http.StatusForbidden, "issue is locked")
 			return
 		}

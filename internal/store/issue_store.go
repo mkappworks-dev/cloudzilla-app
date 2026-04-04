@@ -45,11 +45,27 @@ func (s *IssueStore) Create(ctx context.Context, issue *model.Issue) error {
 }
 
 func (s *IssueStore) List(ctx context.Context, repoID int64) ([]model.Issue, error) {
-	issues, err := s.q.ListIssues(ctx, repoID)
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT i.id, i.repo_id, i.number, i.author_id,
+		        COALESCE(u.username, '') AS author_name,
+		        i.title, i.body, i.state,
+		        i.milestone_id, i.created_at, i.updated_at, i.closed_at,
+		        i.is_pinned, i.is_locked, i.locked_at
+		 FROM issues i
+		 LEFT JOIN users u ON u.id = i.author_id
+		 WHERE i.repo_id = $1
+		 ORDER BY i.created_at DESC`,
+		repoID,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("issue list: %w", err)
 	}
-	return mapDBIssuesToModel(issues), nil
+	defer rows.Close()
+	issues, err := scanIssueRows(rows)
+	if err != nil {
+		return nil, fmt.Errorf("issue list: %w", err)
+	}
+	return issues, nil
 }
 
 func (s *IssueStore) GetByNumber(ctx context.Context, repoID int64, number int) (*model.Issue, error) {
