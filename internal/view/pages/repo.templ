@@ -65,6 +65,15 @@ templ Repo(data view.RepoData) {
 								{ strconv.Itoa(data.StarCount) }
 							</a>
 						</div>
+						<div
+							id="watch-button"
+							hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
+							hx-trigger="load"
+							hx-swap="outerHTML"
+							class="flex items-center"
+						>
+							<span class="text-xs text-gray-400">Loading...</span>
+						</div>
 					</div>
 				</div>
 				<div class="text-sm text-gray-500">

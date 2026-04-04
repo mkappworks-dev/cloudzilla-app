@@ -38,6 +38,7 @@ type Services struct {
 	SavedReply       *SavedReplyService
 	Email            *EmailService
 	OAuthApp         *OAuthAppService
+	Watch            *WatchService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -46,7 +47,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
 	userSvc := NewUserService(stores.User, cfg.Auth)
 	emailSvc := NewEmailService(cfg.SMTP)
-	notifSvc := NewNotificationService(stores.Notification, emailSvc, userSvc)
+	notifSvc := NewNotificationService(stores.Notification, stores.Watch, emailSvc, userSvc)
 	return &Services{
 		User:             userSvc,
 		Repo:             repoSvc,
@@ -80,5 +81,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		SavedReply:       NewSavedReplyService(stores.SavedReply),
 		Email:            emailSvc,
 		OAuthApp:         NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization),
+		Watch:            NewWatchService(stores.Watch, stores.Repo),
 	}
 }

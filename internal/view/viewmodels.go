@@ -75,6 +75,7 @@ type RepoData struct {
 	ReadmeHTML    string
 	StarCount     int
 	IsStarred     bool
+	WatchLevel    string
 	ForkCount     int
 	IsFork        bool
 	ForkOfPath    string
@@ -468,6 +469,15 @@ type StarButtonData struct {
 	Count     int
 	IsStarred bool
 	LoggedIn  bool
+}
+
+// Watch button fragment
+type WatchButtonData struct {
+	Owner    string
+	RepoName string
+	RepoID   int64
+	Level    string
+	LoggedIn bool
 }
 
 // Milestones page

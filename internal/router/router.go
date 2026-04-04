@@ -175,6 +175,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.With(authMW).Delete("/{owner}/{repo}/star", h.UnstarRepo)
 		r.With(optAuthMW).Get("/{owner}/{repo}/stargazers", h.ListStargazers)
 
+		// Watch
+		r.With(authMW).Put("/{owner}/{repo}/watch", h.WatchRepo)
+		r.With(authMW).Delete("/{owner}/{repo}/watch", h.UnwatchRepo)
+		r.With(optAuthMW).Get("/{owner}/{repo}/watch", h.GetWatchButton)
+
 		// Branches and tags
 		r.With(authMW).Post("/{owner}/{repo}/branches", h.CreateBranch)
 		r.With(authMW).Delete("/{owner}/{repo}/branches", h.DeleteBranch)
