@@ -130,6 +130,11 @@ func (s *UserService) uniqueUsername(ctx context.Context, email, name string) st
 	}
 }
 
+// GetByID returns a user by their numeric ID.
+func (s *UserService) GetByID(ctx context.Context, id int64) (*model.User, error) {
+	return s.store.GetByID(ctx, id)
+}
+
 // GenerateTokenForUser generates a JWT for an existing user by ID.
 // Used by the TOTP verification flow after a successful 2FA check.
 func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (string, error) {

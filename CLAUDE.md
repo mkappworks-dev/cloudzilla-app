@@ -228,6 +228,8 @@ Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs
 | 7.1     | Auto-merge                                   | ✅ Done    | 032          |
 | 7.2–7.3 | Issue & PR Templates, Reactions              | ✅ Done    | 033          |
 | 8.1     | TOTP Two-Factor Authentication               | ✅ Done    | 034          |
+| 9.1     | Project Boards / Kanban                      | ✅ Done    | 036          |
+| 9.2     | Wiki                                         | ✅ Done    | —            |
 | 8.2–20  | Audit Log → GraphQL v2                       | ⬜ Planned | 035–060      |
 
 > Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)

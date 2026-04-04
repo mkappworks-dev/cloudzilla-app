@@ -1505,7 +1505,7 @@ _Per-repository wiki backed by a bare git repo on disk._
 **`CodeService` additions:**
 
 - `WikiPageList(owner, repo string)` → `([]string, error)` — reads root tree of default branch, returns `.md` filenames (stripped of extension)
-- `WikiPageGet(owner, repo, slug string)` → `(string, error)` — reads `<slug>.md` blob, returns raw markdown; returns `ErrNotFound` if absent
+- `WikiPageGet(owner, repo, slug string)` → `(string, bool, error)` — reads `<slug>.md` blob, returns raw markdown and found=true; returns `("", false, nil)` if absent
 - `WikiPageSave(owner, repo, slug, content, authorName, authorEmail, message string)` → `error` — creates or updates `<slug>.md` in wiki repo; commits directly to `main` branch (creates branch if first commit)
 - `WikiPageDelete(owner, repo, slug string)` → `error`
 
@@ -2402,8 +2402,8 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 8.1   | Two-Factor Auth (TOTP)               | ⬜ Planned | 034          |
 | 8.2   | Audit Log                            | ⬜ Planned | 035          |
 | 8.3   | LDAP / SAML SSO                      | ⬜ Planned | 036          |
-| 9.1   | Project Boards / Kanban              | ⬜ Planned | 037          |
-| 9.2   | Wiki                                 | ⬜ Planned | —            |
+| 9.1   | Project Boards / Kanban              | ✅ Done    | 036          |
+| 9.2   | Wiki                                 | ✅ Done    | —            |
 | 9.3   | Issue Pinning & Locking              | ⬜ Planned | 038          |
 | 10.1  | Repository Insights & Stats          | ⬜ Planned | —            |
 | 10.2  | @Mentions in Comments                | ⬜ Planned | 039          |
