@@ -33,8 +33,8 @@ func (s *DiscussionService) CreateCategory(ctx context.Context, repoID int64, na
 	return c, nil
 }
 
-func (s *DiscussionService) DeleteCategory(ctx context.Context, id int64) error {
-	return s.discussions.DeleteCategory(ctx, id)
+func (s *DiscussionService) DeleteCategory(ctx context.Context, id, repoID int64) error {
+	return s.discussions.DeleteCategory(ctx, id, repoID)
 }
 
 func (s *DiscussionService) List(ctx context.Context, owner, repoName string, categoryID int64) ([]model.Discussion, error) {
@@ -113,6 +113,6 @@ func (s *DiscussionService) Lock(ctx context.Context, discussionID int64, locked
 	return s.discussions.LockDiscussion(ctx, discussionID, locked)
 }
 
-func (s *DiscussionService) DeleteReply(ctx context.Context, id int64) error {
-	return s.discussions.DeleteReply(ctx, id)
+func (s *DiscussionService) DeleteReply(ctx context.Context, id, discussionID int64) error {
+	return s.discussions.DeleteReply(ctx, id, discussionID)
 }

@@ -53,8 +53,8 @@ func (s *DiscussionStore) GetCategory(ctx context.Context, id int64) (*model.Dis
 	return &c, err
 }
 
-func (s *DiscussionStore) DeleteCategory(ctx context.Context, id int64) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM discussion_categories WHERE id = $1`, id)
+func (s *DiscussionStore) DeleteCategory(ctx context.Context, id, repoID int64) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM discussion_categories WHERE id = $1 AND repo_id = $2`, id, repoID)
 	return err
 }
 
@@ -136,12 +136,21 @@ func (s *DiscussionStore) SetAnswer(ctx context.Context, discussionID int64, rep
 		)
 		return err
 	}
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE discussions SET answer_id = $2, is_answered = TRUE, updated_at = NOW() WHERE id = $1`,
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE discussions SET answer_id = $2, is_answered = TRUE, updated_at = NOW()
+		 WHERE id = $1
+		   AND EXISTS (SELECT 1 FROM discussion_replies WHERE id = $2 AND discussion_id = $1)`,
 		discussionID, *replyID,
 	)
 	if err != nil {
 		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return fmt.Errorf("reply does not belong to this discussion")
 	}
 	_, err = s.db.ExecContext(ctx,
 		`UPDATE discussion_replies SET is_answer = (id = $2) WHERE discussion_id = $1`,
@@ -202,7 +211,7 @@ func (s *DiscussionStore) ListReplies(ctx context.Context, discussionID int64) (
 	return replies, rows.Err()
 }
 
-func (s *DiscussionStore) DeleteReply(ctx context.Context, id int64) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM discussion_replies WHERE id = $1`, id)
+func (s *DiscussionStore) DeleteReply(ctx context.Context, id, discussionID int64) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM discussion_replies WHERE id = $1 AND discussion_id = $2`, id, discussionID)
 	return err
 }

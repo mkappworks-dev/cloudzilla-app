@@ -24,6 +24,15 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var userID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		userID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
 	var activeCategoryID int64
 	if cidStr := r.URL.Query().Get("category"); cidStr != "" {
 		if cid, err := strconv.ParseInt(cidStr, 10, 64); err == nil {
@@ -41,10 +50,7 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 		discussions = []model.Discussion{}
 	}
 
-	canWrite := false
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-	}
+	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Discussions(view.DiscussionsData{
 		BasePage:         basePage(r, h.Services),
@@ -75,6 +81,15 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var userID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		userID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
 	discussion, err := h.Services.Discussion.Get(r.Context(), owner, repoName, number)
 	if err != nil || discussion == nil {
 		http.Error(w, "discussion not found", http.StatusNotFound)
@@ -102,10 +117,7 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	canWrite := false
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-	}
+	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.DiscussionDetail(view.DiscussionDetailData{
 		BasePage:   basePage(r, h.Services),
@@ -227,18 +239,30 @@ func (h *Handler) MarkAnswer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		AnswerID *int64 `json:"answer_id"`
-		Locked   *bool  `json:"locked"`
+		AnswerID json.RawMessage `json:"answer_id"`
+		Locked   *bool           `json:"locked"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON")
 		return
 	}
 
-	if body.AnswerID != nil || (body.AnswerID == nil && body.Locked == nil) {
-		if err := h.Services.Discussion.SetAnswer(r.Context(), discussion.ID, body.AnswerID); err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
-			return
+	if body.AnswerID != nil {
+		if string(body.AnswerID) == "null" {
+			if err := h.Services.Discussion.SetAnswer(r.Context(), discussion.ID, nil); err != nil {
+				writeError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		} else {
+			var replyID int64
+			if err := json.Unmarshal(body.AnswerID, &replyID); err != nil {
+				writeError(w, http.StatusBadRequest, "invalid answer_id")
+				return
+			}
+			if err := h.Services.Discussion.SetAnswer(r.Context(), discussion.ID, &replyID); err != nil {
+				writeError(w, http.StatusBadRequest, err.Error())
+				return
+			}
 		}
 	}
 	if body.Locked != nil {
@@ -260,6 +284,12 @@ func (h *Handler) DeleteDiscussionReply(w http.ResponseWriter, r *http.Request) 
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	numberStr := chi.URLParam(r, "number")
+	number, err := strconv.Atoi(numberStr)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid discussion number")
+		return
+	}
 	idStr := chi.URLParam(r, "id")
 	replyID, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -277,7 +307,13 @@ func (h *Handler) DeleteDiscussionReply(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.Services.Discussion.DeleteReply(r.Context(), replyID); err != nil {
+	discussion, err := h.Services.Discussion.Get(r.Context(), owner, repoName, number)
+	if err != nil || discussion == nil {
+		writeError(w, http.StatusNotFound, "discussion not found")
+		return
+	}
+
+	if err := h.Services.Discussion.DeleteReply(r.Context(), replyID, discussion.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -347,7 +383,7 @@ func (h *Handler) DeleteDiscussionCategory(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.Services.Discussion.DeleteCategory(r.Context(), catID); err != nil {
+	if err := h.Services.Discussion.DeleteCategory(r.Context(), catID, repo.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
