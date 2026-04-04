@@ -41,17 +41,19 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	code := NewCodeService(cfg.Git)
 	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, cfg.Git)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
+	userSvc := NewUserService(stores.User, cfg.Auth)
+	notifSvc := NewNotificationService(stores.Notification)
 	return &Services{
-		User:             NewUserService(stores.User, cfg.Auth),
+		User:             userSvc,
 		Repo:             repoSvc,
 		Issue:            NewIssueService(stores.Issue, stores.Repo, repoSvc),
 		Pull:             NewPullService(stores.Pull, stores.Repo),
-		Comment:          NewCommentService(stores.Comment),
+		Comment:          NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc),
 		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),
 		Code:             code,
 		Org:              NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git),
 		Webhook:          NewWebhookService(stores.Webhook),
-		Notification:     NewNotificationService(stores.Notification),
+		Notification:     notifSvc,
 		SiteSetting:      siteSettingSvc,
 		Invitation:       NewInvitationService(stores.Invitation),
 		Label:            NewLabelService(stores.Label, stores.Repo, stores.Issue, stores.Pull),

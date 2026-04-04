@@ -1120,7 +1120,7 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 | 9.2     | Wiki                                         | ✅ Done    | —            |
 | 9.3     | Issue Pinning & Locking                      | ✅ Done    | 038          |
 | 10.1    | Repository Insights & Stats                  | ✅ Done    | —            |
-| 10.2    | @Mentions in Comments                        | ⬜ Planned | 040          |
+| 10.2    | @Mentions in Comments                        | ✅ Done    | 039          |
 | 10.3    | Saved Replies                                | ⬜ Planned | 041          |
 | 11.1    | Email Notifications (SMTP)                   | ⬜ Planned | 042          |
 | 11.2    | OAuth Apps / Third-party Clients             | ⬜ Planned | 043          |

@@ -72,35 +72,33 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	repo, repoErr := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if repoErr != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load repository")
+		return
+	}
+
 	// Enforce lock: non-managers cannot comment on locked issues.
 	if issue.IsLocked {
-		repo, repoErr := h.Services.Repo.Get(r.Context(), owner, repoName)
-		if repoErr != nil {
-			writeError(w, http.StatusInternalServerError, "failed to check permissions")
-			return
-		}
 		if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
 			writeError(w, http.StatusForbidden, "issue is locked")
 			return
 		}
 	}
 
-	comment, err := h.Services.Comment.CreateForIssue(r.Context(), issue.RepoID, issue.ID, claims.UserID, claims.Username, body)
+	comment, err := h.Services.Comment.CreateForIssue(r.Context(), *repo, issue.ID, issue.Number, claims.UserID, claims.Username, body)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if repo != nil {
-		go func() {
-			h.Services.Notification.NotifyIssueComment(r.Context(), *repo, *issue, claims.UserID, claims.Username)
-		}()
-	}
+	go func() {
+		h.Services.Notification.NotifyIssueComment(r.Context(), *repo, *issue, claims.UserID, claims.Username)
+	}()
 
 	if r.Header.Get("HX-Request") == "true" {
 		h.render(w, r, fragments.Comment(view.CommentFragData{
-			Comment: view.RenderedComment{Comment: *comment, BodyHTML: markdown.Render(comment.Body)},
+			Comment: view.RenderedComment{Comment: *comment, BodyHTML: renderMentionsHTML(markdown.Render(comment.Body))},
 		}))
 		return
 	}
@@ -146,7 +144,7 @@ func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("HX-Request") == "true" {
 		h.render(w, r, fragments.Comment(view.CommentFragData{
-			Comment: view.RenderedComment{Comment: *comment, BodyHTML: markdown.Render(comment.Body)},
+			Comment: view.RenderedComment{Comment: *comment, BodyHTML: renderMentionsHTML(markdown.Render(comment.Body))},
 		}))
 		return
 	}
@@ -206,7 +204,7 @@ func (h *Handler) IssueCommentsFragment(w http.ResponseWriter, r *http.Request) 
 	}
 	renderedComments := make([]RenderedComment, len(comments))
 	for i, c := range comments {
-		renderedComments[i] = RenderedComment{Comment: c, BodyHTML: markdown.Render(c.Body)}
+		renderedComments[i] = RenderedComment{Comment: c, BodyHTML: renderMentionsHTML(markdown.Render(c.Body))}
 	}
 	h.render(w, r, fragments.Comments(view.CommentsFragData{Comments: renderedComments}))
 }
