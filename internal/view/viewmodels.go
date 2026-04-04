@@ -644,3 +644,28 @@ type WikiEditData struct {
 	Content  string
 	CanWrite bool
 }
+
+// PulseData is used by the /{owner}/{repo}/pulse page.
+type PulseData struct {
+	BasePage
+	Repo          model.Repository
+	Owner         string
+	RepoName      string
+	NewIssues     int
+	ClosedIssues  int
+	NewPRs        int
+	MergedPRs     int
+	OpenPRs       int
+	RecentCommits int
+	Contributors  []service.ContributorStat
+}
+
+// ContributorsData is used by the /{owner}/{repo}/graphs/contributors page.
+type ContributorsData struct {
+	BasePage
+	Repo         model.Repository
+	Owner        string
+	RepoName     string
+	Contributors []service.ContributorStat
+	MaxCommits   int
+}

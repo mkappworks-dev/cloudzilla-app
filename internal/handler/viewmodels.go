@@ -75,4 +75,6 @@ type (
 	ProjectsData           = view.ProjectsData
 	ProjectDetailData      = view.ProjectDetailData
 	SSOSettingsData        = view.SSOSettingsData
+	PulseData              = view.PulseData
+	ContributorsData       = view.ContributorsData
 )

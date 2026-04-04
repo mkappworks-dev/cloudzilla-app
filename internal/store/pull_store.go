@@ -10,9 +10,14 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store/db"
 )
 
-type PullStore struct{ q *db.Queries }
+type PullStore struct {
+	q  *db.Queries
+	db *sql.DB
+}
 
-func NewPullStore(q *db.Queries) *PullStore { return &PullStore{q: q} }
+func NewPullStore(q *db.Queries, database *sql.DB) *PullStore {
+	return &PullStore{q: q, db: database}
+}
 
 func (s *PullStore) Create(ctx context.Context, pr *model.PullRequest) error {
 	num, err := s.q.GetNextPullNumber(ctx, pr.RepoID)
@@ -162,4 +167,31 @@ func mapDBPullsToModel(dbPulls []db.PullRequest) []model.PullRequest {
 		prs[i] = *mapDBPullToModel(&dbPull)
 	}
 	return prs
+}
+
+func (s *PullStore) CountCreatedSince(ctx context.Context, repoID int64, since time.Time) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM pull_requests WHERE repo_id = $1 AND created_at >= $2`,
+		repoID, since,
+	).Scan(&n)
+	return n, err
+}
+
+func (s *PullStore) CountMergedSince(ctx context.Context, repoID int64, since time.Time) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM pull_requests WHERE repo_id = $1 AND state = 'merged' AND updated_at >= $2`,
+		repoID, since,
+	).Scan(&n)
+	return n, err
+}
+
+func (s *PullStore) CountOpen(ctx context.Context, repoID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM pull_requests WHERE repo_id = $1 AND state = 'open'`,
+		repoID,
+	).Scan(&n)
+	return n, err
 }
