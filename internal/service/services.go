@@ -40,6 +40,7 @@ type Services struct {
 	OAuthApp         *OAuthAppService
 	Watch            *WatchService
 	Event            *EventService
+	Discussion       *DiscussionService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -84,5 +85,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		OAuthApp:         NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization),
 		Watch:            NewWatchService(stores.Watch, stores.Repo),
 		Event:            NewEventService(stores.Event, stores.User, stores.Repo),
+		Discussion:       NewDiscussionService(stores.Discussion, stores.Repo),
 	}
 }

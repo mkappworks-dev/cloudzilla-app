@@ -734,3 +734,34 @@ type OAuthAppsData struct {
 	Apps           []model.OAuthApp
 	Authorizations []model.OAuthAuthorization
 }
+
+// RenderedDiscussionReply wraps a DiscussionReply with its body pre-rendered as HTML.
+type RenderedDiscussionReply struct {
+	model.DiscussionReply
+	BodyHTML string
+}
+
+// DiscussionsData is the view model for /{owner}/{repo}/discussions
+type DiscussionsData struct {
+	BasePage
+	Repo             model.Repository
+	Owner            string
+	RepoName         string
+	Categories       []model.DiscussionCategory
+	Discussions      []model.Discussion
+	ActiveCategoryID int64
+	CanWrite         bool
+}
+
+// DiscussionDetailData is the view model for /{owner}/{repo}/discussions/{number}
+type DiscussionDetailData struct {
+	BasePage
+	Repo       model.Repository
+	Owner      string
+	RepoName   string
+	Discussion model.Discussion
+	Category   model.DiscussionCategory
+	Replies    []RenderedDiscussionReply
+	BodyHTML   string
+	CanWrite   bool
+}

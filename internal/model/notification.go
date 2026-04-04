@@ -13,7 +13,8 @@ const (
 	NotifPRClosed      NotificationType = "pr_closed"
 	NotifPROpened      NotificationType = "pr_opened"
 	NotifPRReview      NotificationType = "pr_review"
-	NotifMention       NotificationType = "mention"
+	NotifMention            NotificationType = "mention"
+	NotifDiscussionReply    NotificationType = "discussion_reply"
 )
 
 type Notification struct {

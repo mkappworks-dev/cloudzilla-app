@@ -1,0 +1,111 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Discussions(data view.DiscussionsData) {
+	@layout.Base(data.BasePage, "Discussions · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-4">
+			<div class="flex items-center justify-between">
+				<h1 class="text-2xl font-bold text-gray-900">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline">{ data.Owner }/{ data.RepoName }</a>
+					<span class="text-gray-400 font-normal"> / Discussions</span>
+				</h1>
+				if data.CanWrite {
+					<button
+						x-data
+						x-on:click="document.getElementById('new-discussion-form').classList.toggle('hidden')"
+						class="px-4 py-2 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700"
+					>
+						New Discussion
+					</button>
+				}
+			</div>
+			if data.CanWrite {
+				<div id="new-discussion-form" class="hidden bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+					<h2 class="text-lg font-semibold">Start a Discussion</h2>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+						<select id="new-discussion-category" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+							for _, cat := range data.Categories {
+								<option value={ strconv.FormatInt(cat.ID, 10) }>{ cat.Emoji } { cat.Name }</option>
+							}
+						</select>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+						<input id="new-discussion-title" type="text" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Discussion title"/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">Body (Markdown)</label>
+						<textarea id="new-discussion-body" rows="6" class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+					</div>
+					<button
+						hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions" }
+						hx-vals={ `js:{category_id: parseInt(document.getElementById("new-discussion-category").value), title: document.getElementById("new-discussion-title").value, body: document.getElementById("new-discussion-body").value}` }
+						hx-on::after-request="window.location.reload()"
+						class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700"
+					>
+						Submit
+					</button>
+				</div>
+			}
+			<div class="flex gap-6">
+				<!-- Category sidebar -->
+				<div class="w-48 flex-shrink-0 space-y-1">
+					<a
+						href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/discussions") }
+						class={ "block px-3 py-2 rounded text-sm", templ.KV("bg-blue-50 text-blue-700 font-medium", data.ActiveCategoryID == 0), templ.KV("text-gray-600 hover:bg-gray-50", data.ActiveCategoryID != 0) }
+					>
+						All discussions
+					</a>
+					for _, cat := range data.Categories {
+						<a
+							href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/discussions?category=" + strconv.FormatInt(cat.ID, 10)) }
+							class={ "block px-3 py-2 rounded text-sm", templ.KV("bg-blue-50 text-blue-700 font-medium", cat.ID == data.ActiveCategoryID), templ.KV("text-gray-600 hover:bg-gray-50", cat.ID != data.ActiveCategoryID) }
+						>
+							{ cat.Emoji } { cat.Name }
+						</a>
+					}
+				</div>
+				<!-- Discussion list -->
+				<div class="flex-1 space-y-2">
+					if len(data.Discussions) == 0 {
+						<div class="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-500">
+							<p>No discussions yet.</p>
+							if data.CanWrite {
+								<p class="text-sm mt-1">Be the first to start one.</p>
+							}
+						</div>
+					} else {
+						for _, d := range data.Discussions {
+							<div class="bg-white border border-gray-200 rounded-lg px-5 py-4 hover:border-gray-300 transition-colors">
+								<div class="flex items-start gap-3">
+									<div class="flex-1 min-w-0">
+										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(d.Number)) } class="text-base font-semibold text-gray-900 hover:text-blue-600 hover:underline">
+											if d.IsAnswered {
+												<span class="inline-flex items-center justify-center w-4 h-4 bg-green-500 text-white text-xs rounded-full mr-1">✓</span>
+											}
+											{ d.Title }
+										</a>
+										<div class="text-xs text-gray-500 mt-1">
+											#{ strconv.Itoa(d.Number) } opened by <a href={ templ.SafeURL("/" + d.AuthorName) } class="text-blue-600 hover:underline">{ d.AuthorName }</a>
+											on { d.CreatedAt.Format("Jan 2, 2006") }
+											if d.IsLocked {
+												<span class="ml-2 px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">Locked</span>
+											}
+										</div>
+									</div>
+								</div>
+							</div>
+						}
+					}
+				</div>
+			</div>
+		</div>
+	}
+}
