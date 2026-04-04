@@ -63,7 +63,7 @@ func (s *SavedReplyService) Update(ctx context.Context, id, userID int64, title,
 		return nil, fmt.Errorf("saved reply not found: %w", err)
 	}
 	if existing.UserID != userID {
-		return nil, fmt.Errorf("forbidden")
+		return nil, ErrForbidden
 	}
 	existing.Title = strings.TrimSpace(title)
 	existing.Body = strings.TrimSpace(body)

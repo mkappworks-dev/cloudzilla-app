@@ -2,11 +2,13 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
+	"github.com/mkappworks/cloudzilla/internal/service"
 	"github.com/mkappworks/cloudzilla/internal/view"
 	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
@@ -36,7 +38,10 @@ func (h *Handler) CreateSavedReply(w http.ResponseWriter, r *http.Request) {
 
 	var title, body string
 	if r.Header.Get("HX-Request") == "true" {
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form data")
+			return
+		}
 		title = r.FormValue("title")
 		body = r.FormValue("body")
 	} else {
@@ -81,7 +86,10 @@ func (h *Handler) UpdateSavedReply(w http.ResponseWriter, r *http.Request) {
 
 	var title, body string
 	if r.Header.Get("HX-Request") == "true" {
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form data")
+			return
+		}
 		title = r.FormValue("title")
 		body = r.FormValue("body")
 	} else {
@@ -99,7 +107,7 @@ func (h *Handler) UpdateSavedReply(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.Services.SavedReply.Update(r.Context(), id, claims.UserID, title, body)
 	if err != nil {
-		if err.Error() == "forbidden" {
+		if errors.Is(err, service.ErrForbidden) {
 			writeError(w, http.StatusForbidden, "forbidden")
 			return
 		}
