@@ -156,26 +156,29 @@ func (s *CodeService) WikiPageList(owner, repoName string) ([]string, error) {
 
 // WikiPageGet returns the raw Markdown content of a single wiki page identified
 // by its slug (filename without .md).
-// Returns an empty string and a nil error when the page does not exist.
-func (s *CodeService) WikiPageGet(owner, repoName, slug string) (string, error) {
+// Returns ("", false, nil) when the page does not exist and ("", true, nil) when
+// the page exists but has no content. Callers must use found to distinguish the
+// two cases.
+func (s *CodeService) WikiPageGet(owner, repoName, slug string) (content string, found bool, err error) {
 	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
 	if err != nil {
-		return "", nil
+		return "", false, nil
 	}
 	head, err := repo.Head()
 	if err != nil {
-		return "", nil
+		return "", false, nil
 	}
 	commit, err := repo.CommitObject(head.Hash())
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	f, err := commit.File(slug + ".md")
 	if err != nil {
-		// Page not found — not an error for the caller.
-		return "", nil
+		// Page not found in tree — not an error for the caller.
+		return "", false, nil
 	}
-	return f.Contents()
+	c, err := f.Contents()
+	return c, true, err
 }
 
 // WikiPageSave creates or updates a wiki page in the bare repo, creating the

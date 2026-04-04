@@ -62,13 +62,11 @@ func (h *Handler) PageWikiPage(w http.ResponseWriter, r *http.Request) {
 		pageList = []string{}
 	}
 
-	rawContent, err := h.Services.Code.WikiPageGet(owner, repoName, slug)
+	rawContent, exists, err := h.Services.Code.WikiPageGet(owner, repoName, slug)
 	if err != nil {
 		http.Error(w, "failed to load wiki page", http.StatusInternalServerError)
 		return
 	}
-
-	exists := rawContent != ""
 
 	h.render(w, r, pages.WikiPage(view.WikiPageData{
 		BasePage:    basePage(r, h.Services),
@@ -97,7 +95,7 @@ func (h *Handler) PageWikiEdit(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 
@@ -106,12 +104,17 @@ func (h *Handler) PageWikiEdit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
+	// Gate private repos: check read permission before serving any wiki content.
+	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
-	rawContent, err := h.Services.Code.WikiPageGet(owner, repoName, slug)
+	rawContent, _, err := h.Services.Code.WikiPageGet(owner, repoName, slug)
 	if err != nil {
 		slog.Error("failed to load wiki page for editing", "owner", owner, "repo", repoName, "slug", slug, "error", err)
 		http.Error(w, "failed to load page content", http.StatusInternalServerError)

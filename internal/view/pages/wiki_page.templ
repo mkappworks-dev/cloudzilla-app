@@ -11,6 +11,13 @@ script deleteWikiPageJS(owner, repoName, slug string) {
 		.then(function(r) { if (r.ok || r.redirected) window.location.href = '/' + owner + '/' + repoName + '/wiki'; });
 }
 
+script newWikiPageJS(owner, repoName string) {
+	var name = prompt('Page name (letters, numbers, hyphens, underscores):');
+	if (!name) return;
+	if (!/^[A-Za-z0-9_-]{1,100}$/.test(name)) { alert('Invalid page name. Use letters, numbers, hyphens, and underscores only.'); return; }
+	window.location.href = '/' + owner + '/' + repoName + '/wiki/' + name + '/edit';
+}
+
 templ WikiPage(data view.WikiPageData) {
 	@layout.Base(data.BasePage, data.Slug+" — Wiki — "+data.RepoName+" — Cloudzilla") {
 		<div class="max-w-6xl mx-auto px-4 py-8 flex gap-8">
@@ -30,7 +37,7 @@ templ WikiPage(data view.WikiPageData) {
 				</ul>
 				if data.CanWrite {
 					<div class="mt-4">
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/NewPage/edit") } class="block text-sm text-blue-600 hover:underline px-2">+ New page</a>
+						<button onclick={ newWikiPageJS(data.Owner, data.RepoName) } class="block text-sm text-blue-600 hover:underline px-2">+ New page</button>
 					</div>
 				}
 			</aside>
