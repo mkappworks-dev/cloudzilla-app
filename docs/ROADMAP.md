@@ -2397,14 +2397,14 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 6.2   | CODEOWNERS Support                   | ✅ Done    | —            |
 | 6.3   | Code Review Suggestions              | ✅ Done    | 031          |
 | 7.1   | Auto-merge                           | ✅ Done    | 032          |
-| 7.2   | Issue & PR Templates                 | ⬜ Planned | —            |
-| 7.3   | Comment Reactions                    | ⬜ Planned | 033          |
-| 8.1   | Two-Factor Auth (TOTP)               | ⬜ Planned | 034          |
-| 8.2   | Audit Log                            | ⬜ Planned | 035          |
-| 8.3   | LDAP / SAML SSO                      | ⬜ Planned | 036          |
+| 7.2   | Issue & PR Templates                 | ✅ Done    | —            |
+| 7.3   | Comment Reactions                    | ✅ Done    | 033          |
+| 8.1   | Two-Factor Auth (TOTP)               | ✅ Done    | 034          |
+| 8.2   | Audit Log                            | ✅ Done    | 035          |
+| 8.3   | LDAP / SAML SSO                      | ✅ Done    | 036          |
 | 9.1   | Project Boards / Kanban              | ✅ Done    | 036          |
 | 9.2   | Wiki                                 | ✅ Done    | —            |
-| 9.3   | Issue Pinning & Locking              | ⬜ Planned | 038          |
+| 9.3   | Issue Pinning & Locking              | ✅ Done    | 038          |
 | 10.1  | Repository Insights & Stats          | ⬜ Planned | —            |
 | 10.2  | @Mentions in Comments                | ⬜ Planned | 039          |
 | 10.3  | Saved Replies                        | ⬜ Planned | 040          |

@@ -131,6 +131,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Post("/", h.CreateIssue)
 			r.Get("/{number}", h.GetIssue)
 			r.With(authMW).Patch("/{number}", h.UpdateIssue)
+			r.With(authMW).Patch("/{number}/pin", h.PinIssue)
+			r.With(authMW).Patch("/{number}/lock", h.LockIssue)
 			r.Get("/{number}/comments", h.ListIssueComments)
 			r.With(authMW).Post("/{number}/comments", h.CreateIssueComment)
 			r.With(authMW).Patch("/{number}/comments/{commentID}", h.UpdateComment)

@@ -362,10 +362,16 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		allMilestones = []model.Milestone{}
 	}
 
+	pinnedIssues, _ := h.Services.Issue.ListPinned(r.Context(), owner, repoName)
+	if pinnedIssues == nil {
+		pinnedIssues = []model.Issue{}
+	}
+
 	h.render(w, r, pages.Issues(view.IssuesData{
 		BasePage:      basePage(r, h.Services),
 		Repo:          *repo,
 		Issues:        issues,
+		PinnedIssues:  pinnedIssues,
 		Owner:         owner,
 		RepoName:      repoName,
 		IssueLabels:   issueLabels,
@@ -413,8 +419,10 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canWrite := false
+	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 
 	issueMilestone, _ := h.Services.Milestone.GetForIssue(r.Context(), issue.ID)
@@ -437,6 +445,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		Milestone:     issueMilestone,
 		AllMilestones: allIssueMilestones,
 		CanWrite:      canWrite,
+		CanManage:     canManage,
 	}))
 }
 

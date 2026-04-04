@@ -21,5 +21,8 @@ type Issue struct {
 	MilestoneID *int64     `db:"milestone_id" json:"milestone_id,omitempty"`
 	CreatedAt   time.Time  `db:"created_at"   json:"created_at"`
 	UpdatedAt   time.Time  `db:"updated_at"   json:"updated_at"`
-	ClosedAt    *time.Time `db:"closed_at"    json:"closed_at"`
+	ClosedAt    *time.Time `db:"closed_at"    json:"closed_at,omitempty"`
+	IsPinned    bool       `db:"is_pinned"    json:"is_pinned"`
+	IsLocked    bool       `db:"is_locked"    json:"is_locked"`
+	LockedAt    *time.Time `db:"locked_at"    json:"locked_at,omitempty"`
 }

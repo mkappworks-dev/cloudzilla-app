@@ -144,6 +144,7 @@ type IssuesData struct {
 	BasePage
 	Repo            model.Repository
 	Issues          []model.Issue
+	PinnedIssues    []model.Issue
 	Owner           string
 	RepoName        string
 	IssueLabels     map[int64][]model.Label
@@ -165,6 +166,7 @@ type IssueDetailData struct {
 	Milestone     *model.Milestone
 	AllMilestones []model.Milestone
 	CanWrite      bool
+	CanManage     bool
 }
 
 type PullsData struct {

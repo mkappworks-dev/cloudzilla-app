@@ -119,3 +119,101 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, issue)
 }
+
+// PinIssue handles PATCH /api/repos/{owner}/{repo}/issues/{number}/pin
+func (h *Handler) PinIssue(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
+
+	var action string
+	if r.Header.Get("HX-Request") == "true" {
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		action = r.FormValue("action")
+	} else {
+		var req struct {
+			Action string `json:"action"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		action = req.Action
+	}
+
+	if action == "unpin" {
+		err = h.Services.Issue.UnpinIssue(r.Context(), owner, repoName, number, claims.UserID)
+	} else {
+		err = h.Services.Issue.PinIssue(r.Context(), owner, repoName, number, claims.UserID)
+	}
+	if err != nil {
+		if err.Error() == "forbidden" {
+			writeError(w, http.StatusForbidden, "forbidden")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// LockIssue handles PATCH /api/repos/{owner}/{repo}/issues/{number}/lock
+func (h *Handler) LockIssue(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
+
+	var action string
+	if r.Header.Get("HX-Request") == "true" {
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		action = r.FormValue("action")
+	} else {
+		var req struct {
+			Action string `json:"action"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		action = req.Action
+	}
+
+	if action == "unlock" {
+		err = h.Services.Issue.UnlockIssue(r.Context(), owner, repoName, number, claims.UserID)
+	} else {
+		err = h.Services.Issue.LockIssue(r.Context(), owner, repoName, number, claims.UserID)
+	}
+	if err != nil {
+		if err.Error() == "forbidden" {
+			writeError(w, http.StatusForbidden, "forbidden")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
