@@ -692,3 +692,18 @@ type NotificationSettingsData struct {
 	EmailNotifications bool
 	EmailDigest        string
 }
+
+// OAuth Apps pages
+type OAuthAuthorizeData struct {
+	BasePage
+	App         model.OAuthApp
+	Scopes      []string
+	RedirectURI string
+	State       string
+}
+
+type OAuthAppsData struct {
+	BasePage
+	Apps           []model.OAuthApp
+	Authorizations []model.OAuthAuthorization
+}

@@ -23,8 +23,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.Use(middleware.CORS(true))
 	r.Use(middleware.RequireSetup(services.SiteSetting))
 
-	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken)
-	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken)
+	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp)
+	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp)
 
 	superadminMW := middleware.RequireSuperadmin
 
@@ -52,7 +52,13 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Get("/settings", h.PageSettings)
 	r.With(authMW).Get("/settings/notifications", h.PageNotificationSettings)
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
+	r.With(authMW).Get("/settings/oauth-apps", h.PageOAuthApps)
 	r.With(authMW).Get("/notifications", h.PageNotifications)
+
+	// OAuth 2.0 authorization code flow
+	r.With(optAuthMW).Get("/oauth/authorize", h.PageOAuthAuthorize)
+	r.With(authMW).Post("/oauth/authorize", h.ConfirmAuthorize)
+	r.Post("/oauth/token", h.TokenEndpoint)
 	r.With(optAuthMW).Get("/{owner}", h.PageUser)
 	r.With(authMW).Get("/orgs/{org}/settings", h.PageOrgSettings)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
@@ -316,6 +322,14 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Use(authMW)
 		r.Post("/", h.CreateToken)
 		r.Delete("/{id}", h.DeleteToken)
+	})
+
+	// OAuth app API routes
+	r.Route("/api/oauth", func(r chi.Router) {
+		r.Use(authMW)
+		r.Post("/apps", h.CreateOAuthApp)
+		r.Delete("/apps/{id}", h.DeleteOAuthApp)
+		r.Delete("/authorizations/{id}", h.RevokeOAuthAuthorization)
 	})
 
 	// Saved replies routes

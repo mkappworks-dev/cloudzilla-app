@@ -1739,7 +1739,7 @@ GET/POST /settings/notifications    (authMW)   — email preference page
 
 ---
 
-### 11.2 OAuth Apps / Third-party Clients
+### 11.2 OAuth Apps / Third-party Clients ✅ IMPLEMENTED
 
 _Allow third-party applications to request access to user accounts via a standard OAuth 2.0 authorization code flow._
 
@@ -2409,7 +2409,7 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 10.2  | @Mentions in Comments                | ✅ Done    | 039          |
 | 10.3  | Saved Replies                        | ✅ Done    | 040          |
 | 11.1  | Email Notifications                  | ✅ Done    | 041          |
-| 11.2  | OAuth Apps / Third-party Clients     | ⬜ Planned | 042          |
+| 11.2  | OAuth Apps / Third-party Clients     | ✅ Done    | 042          |
 | 11.3  | Webhook Improvements (retry, filter) | ⬜ Planned | —            |
 | 12.1  | Watching                             | ⬜ Planned | 043          |
 | 12.2  | Activity Feed                        | ⬜ Planned | 044          |

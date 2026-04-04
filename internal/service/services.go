@@ -37,6 +37,7 @@ type Services struct {
 	SSO              *SSOService
 	SavedReply       *SavedReplyService
 	Email            *EmailService
+	OAuthApp         *OAuthAppService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -78,5 +79,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		SSO:              NewSSOService(stores.SSO, stores.User, cfg.Auth, siteSettingSvc),
 		SavedReply:       NewSavedReplyService(stores.SavedReply),
 		Email:            emailSvc,
+		OAuthApp:         NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization),
 	}
 }

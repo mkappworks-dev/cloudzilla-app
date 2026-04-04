@@ -77,4 +77,6 @@ type (
 	SSOSettingsData        = view.SSOSettingsData
 	PulseData              = view.PulseData
 	ContributorsData       = view.ContributorsData
+	OAuthAuthorizeData     = view.OAuthAuthorizeData
+	OAuthAppsData          = view.OAuthAppsData
 )
