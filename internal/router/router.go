@@ -50,6 +50,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.Get("/login", h.PageLogin)
 	r.Post("/login", h.PageLoginSubmit)
 	r.With(authMW).Get("/settings", h.PageSettings)
+	r.With(authMW).Get("/settings/notifications", h.PageNotificationSettings)
+	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
 	r.With(authMW).Get("/notifications", h.PageNotifications)
 	r.With(optAuthMW).Get("/{owner}", h.PageUser)
 	r.With(authMW).Get("/orgs/{org}/settings", h.PageOrgSettings)

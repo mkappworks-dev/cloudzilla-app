@@ -13,6 +13,7 @@ type Config struct {
 	Auth     AuthConfig     `mapstructure:"auth"`
 	Git      GitConfig      `mapstructure:"git"`
 	OAuth    OAuthConfig    `mapstructure:"oauth"`
+	SMTP     SMTPConfig     `mapstructure:"smtp"`
 }
 
 type ServerConfig struct {
@@ -47,6 +48,15 @@ type OAuthConfig struct {
 	GoogleRedirectURL  string `mapstructure:"google_redirect_url"`
 }
 
+type SMTPConfig struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+	From     string `mapstructure:"from"`
+	TLS      bool   `mapstructure:"tls"`
+}
+
 func Load(cfgFile string) (*Config, error) {
 	v := viper.New()
 
@@ -68,6 +78,12 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("oauth.google_client_id", "")
 	v.SetDefault("oauth.google_client_secret", "")
 	v.SetDefault("oauth.google_redirect_url", "http://localhost:8080/auth/google/callback")
+	v.SetDefault("smtp.host", "")
+	v.SetDefault("smtp.port", 587)
+	v.SetDefault("smtp.username", "")
+	v.SetDefault("smtp.password", "")
+	v.SetDefault("smtp.from", "noreply@localhost")
+	v.SetDefault("smtp.tls", false)
 
 	// Env overrides
 	v.SetEnvPrefix("CZ")

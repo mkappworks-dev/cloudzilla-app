@@ -39,11 +39,19 @@ func (s *UserStore) Create(ctx context.Context, u *model.User) error {
 }
 
 func (s *UserStore) GetByID(ctx context.Context, id int64) (*model.User, error) {
-	result, err := s.q.GetUserByID(ctx, id)
+	u := &model.User{}
+	err := s.db.QueryRowContext(ctx,
+		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
+		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
+		 FROM users WHERE id = $1`,
+		id,
+	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
+		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
 	if err != nil {
 		return nil, fmt.Errorf("user get by id: %w", err)
 	}
-	return mapDBUserToModel(&result), nil
+	return u, nil
 }
 
 func (s *UserStore) GetByUsername(ctx context.Context, username string) (*model.User, error) {
@@ -68,12 +76,12 @@ func (s *UserStore) GetByEmailWithRole(ctx context.Context, email string) (*mode
 	u := &model.User{}
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at
+		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
 		 FROM users WHERE email = $1`,
 		email,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt)
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email with role: %w", err)
 	}
@@ -159,14 +167,14 @@ func (s *UserStore) GetByIDWithTOTP(ctx context.Context, id int64) (*model.User,
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
 		        is_superadmin, is_invited, totp_secret, totp_enabled,
 		        totp_backup_codes::text,
-		        created_at, updated_at
+		        created_at, updated_at, email_notifications, email_digest
 		 FROM users WHERE id = $1`,
 		id,
 	).Scan(
 		&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
 		&u.TOTPSecret, &u.TOTPEnabled, &backupCodesStr,
-		&u.CreatedAt, &u.UpdatedAt,
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user get by id with totp: %w", err)
@@ -186,14 +194,14 @@ func (s *UserStore) GetByEmailWithTOTP(ctx context.Context, email string) (*mode
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
 		        is_superadmin, is_invited, totp_secret, totp_enabled,
 		        totp_backup_codes::text,
-		        created_at, updated_at
+		        created_at, updated_at, email_notifications, email_digest
 		 FROM users WHERE email = $1`,
 		email,
 	).Scan(
 		&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
 		&u.TOTPSecret, &u.TOTPEnabled, &backupCodesStr,
-		&u.CreatedAt, &u.UpdatedAt,
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email with totp: %w", err)
@@ -248,6 +256,40 @@ func (s *UserStore) SetBackupCodes(ctx context.Context, userID int64, codeHashes
 		return fmt.Errorf("user set backup codes: %w", err)
 	}
 	return nil
+}
+
+// UpdateEmailPrefs saves the user's email notification preferences.
+func (s *UserStore) UpdateEmailPrefs(ctx context.Context, userID int64, emailNotifications bool, emailDigest string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users SET email_notifications=$1, email_digest=$2, updated_at=NOW() WHERE id=$3`,
+		emailNotifications, emailDigest, userID,
+	)
+	return err
+}
+
+// ListUsersForDigest returns users who have email notifications enabled with the given digest mode.
+func (s *UserStore) ListUsersForDigest(ctx context.Context, digestMode string) ([]model.User, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
+		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
+		 FROM users WHERE email_notifications = TRUE AND email_digest = $1`,
+		digestMode,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list users for digest: %w", err)
+	}
+	defer rows.Close()
+	var users []model.User
+	for rows.Next() {
+		var u model.User
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
+			&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited, &u.CreatedAt, &u.UpdatedAt,
+			&u.EmailNotifications, &u.EmailDigest); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
 }
 
 // jsonToPostgresArray converts a JSON array like ["a","b"] to PostgreSQL literal {"a","b"}.

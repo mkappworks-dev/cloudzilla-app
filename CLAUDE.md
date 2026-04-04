@@ -236,7 +236,8 @@ Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs
 | 10.1    | Repository Insights & Stats                  | ✅ Done    | —            |
 | 10.2    | @Mentions in Comments                        | ✅ Done    | 039          |
 | 10.3    | Saved Replies                                | ✅ Done    | 040          |
-| 11.1–20 | (next planned phases)                        | ⬜ Planned | 041–060      |
+| 11.1    | Email Notifications (SMTP)                   | ✅ Done    | 041          |
+| 11.2–20 | (next planned phases)                        | ⬜ Planned | 042–060      |
 
 > Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)
 > Implementation plans for each phase: [docs/superpowers/plans/](./docs/superpowers/plans/)

@@ -1,0 +1,50 @@
+package pages
+
+import (
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ NotificationSettings(data view.NotificationSettingsData) {
+	@layout.Base(data.BasePage, "Notification Settings — Cloudzilla") {
+		<div class="max-w-2xl mx-auto py-8 px-4">
+			<h1 class="text-2xl font-bold mb-6">Notification Settings</h1>
+			<form method="POST" action="/settings/notifications" class="space-y-6">
+				<div class="flex items-center gap-3">
+					if data.EmailNotifications {
+						<input type="checkbox" id="email_notifications" name="email_notifications" checked class="h-4 w-4 rounded border-gray-300"/>
+					} else {
+						<input type="checkbox" id="email_notifications" name="email_notifications" class="h-4 w-4 rounded border-gray-300"/>
+					}
+					<label for="email_notifications" class="text-sm font-medium">Enable email notifications</label>
+				</div>
+				<div>
+					<label for="email_digest" class="block text-sm font-medium mb-1">Email digest frequency</label>
+					<select id="email_digest" name="email_digest" class="border border-gray-300 rounded px-3 py-2 text-sm w-48">
+						if data.EmailDigest == "immediate" {
+							<option value="immediate" selected>Immediate</option>
+						} else {
+							<option value="immediate">Immediate</option>
+						}
+						if data.EmailDigest == "daily" {
+							<option value="daily" selected>Daily digest</option>
+						} else {
+							<option value="daily">Daily digest</option>
+						}
+						if data.EmailDigest == "weekly" {
+							<option value="weekly" selected>Weekly digest</option>
+						} else {
+							<option value="weekly">Weekly digest</option>
+						}
+						if data.EmailDigest == "never" {
+							<option value="never" selected>Never</option>
+						} else {
+							<option value="never">Never</option>
+						}
+					</select>
+				</div>
+				<button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">Save preferences</button>
+			</form>
+		</div>
+	}
+}

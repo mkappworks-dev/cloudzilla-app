@@ -65,6 +65,27 @@ func (s *NotificationStore) MarkRead(ctx context.Context, id, userID int64) erro
 	return err
 }
 
+func (s *NotificationStore) ListUnreadByUser(ctx context.Context, userID int64) ([]model.Notification, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, user_id, actor_id, actor_name, type, repo_id, repo_name, owner_name, subject_id, subject_url, read, created_at
+		 FROM notifications WHERE user_id = $1 AND read = FALSE ORDER BY created_at DESC`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("notification list unread by user: %w", err)
+	}
+	defer rows.Close()
+	var notifs []model.Notification
+	for rows.Next() {
+		var n model.Notification
+		if err := rows.Scan(&n.ID, &n.UserID, &n.ActorID, &n.ActorName, &n.Type, &n.RepoID, &n.RepoName, &n.OwnerName, &n.SubjectID, &n.SubjectURL, &n.Read, &n.CreatedAt); err != nil {
+			return nil, err
+		}
+		notifs = append(notifs, n)
+	}
+	return notifs, rows.Err()
+}
+
 func (s *NotificationStore) MarkAllRead(ctx context.Context, userID int64) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE notifications SET read = TRUE WHERE user_id = $1 AND read = FALSE`,
