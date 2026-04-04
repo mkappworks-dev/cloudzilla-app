@@ -235,7 +235,8 @@ Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs
 | 9.3     | Issue Pinning & Locking                      | ✅ Done    | 038          |
 | 10.1    | Repository Insights & Stats                  | ✅ Done    | —            |
 | 10.2    | @Mentions in Comments                        | ✅ Done    | 039          |
-| 10.3–20 | (next planned phases)                        | ⬜ Planned | 040–060      |
+| 10.3    | Saved Replies                                | ✅ Done    | 040          |
+| 11.1–20 | (next planned phases)                        | ⬜ Planned | 041–060      |
 
 > Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)
 > Implementation plans for each phase: [docs/superpowers/plans/](./docs/superpowers/plans/)
