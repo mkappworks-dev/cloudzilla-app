@@ -241,7 +241,8 @@ Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs
 | 11.3    | Webhook Improvements (retry, filter)         | ✅ Done    | 043          |
 | 12.1    | Watching                                     | ✅ Done    | 044          |
 | 12.2    | Activity Feed                                | ✅ Done    | 045          |
-| 12.3–20 | (next planned phases)                        | ⬜ Planned | 046–060      |
+| 12.3    | Discussions                                  | ✅ Done    | 046          |
+| 13–20   | (next planned phases)                        | ⬜ Planned | 047–060      |
 
 > Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)
 > Implementation plans for each phase: [docs/superpowers/plans/](./docs/superpowers/plans/)
