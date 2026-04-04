@@ -25,18 +25,33 @@ type PATValidator interface {
 	UpdateLastUsed(ctx context.Context, tokenID int64) error
 }
 
+// OAuthUserIDResolver resolves a raw OAuth bearer token to a user ID.
+// Implemented by OAuthAppService; defined here to avoid import cycle.
+type OAuthUserIDResolver interface {
+	ResolveOAuthUserID(ctx context.Context, rawToken string) (int64, error)
+}
+
 func ClaimsFromContext(ctx context.Context) (Claims, bool) {
 	c, ok := ctx.Value(claimsKey).(Claims)
 	return c, ok
 }
 
-func Auth(secret, cookieName string, patValidator PATValidator) func(http.Handler) http.Handler {
+func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthUserIDResolver) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenStr := extractToken(r, cookieName)
 			if tokenStr == "" {
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
+			}
+
+			if oauthResolver != nil && !strings.HasPrefix(tokenStr, "czp_") {
+				if uid, err := oauthResolver.ResolveOAuthUserID(r.Context(), tokenStr); err == nil {
+					claims := Claims{UserID: uid}
+					ctx := context.WithValue(r.Context(), claimsKey, claims)
+					next.ServeHTTP(w, r.WithContext(ctx))
+					return
+				}
 			}
 
 			if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
@@ -74,11 +89,20 @@ func Auth(secret, cookieName string, patValidator PATValidator) func(http.Handle
 	}
 }
 
-func OptionalAuth(secret, cookieName string, patValidator PATValidator) func(http.Handler) http.Handler {
+func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthUserIDResolver) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenStr := extractToken(r, cookieName)
 			if tokenStr != "" {
+				if oauthResolver != nil && !strings.HasPrefix(tokenStr, "czp_") {
+					if uid, err := oauthResolver.ResolveOAuthUserID(r.Context(), tokenStr); err == nil {
+						claims := Claims{UserID: uid}
+						ctx := context.WithValue(r.Context(), claimsKey, claims)
+						r = r.WithContext(ctx)
+						next.ServeHTTP(w, r)
+						return
+					}
+				}
 				if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
 					pat, user, err := patValidator.Validate(r.Context(), tokenStr)
 					if err == nil {

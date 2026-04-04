@@ -1,0 +1,38 @@
+package pages
+
+import (
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+	"strings"
+)
+
+templ OAuthAuthorize(data view.OAuthAuthorizeData) {
+	@layout.Base(data.BasePage, "Authorize " + data.App.Name + " — Cloudzilla") {
+		<div class="max-w-md mx-auto py-12 px-4">
+			<div class="border border-gray-200 rounded-lg p-6 space-y-5">
+				<h1 class="text-xl font-bold">Authorize { data.App.Name }</h1>
+				if data.App.Description != "" {
+					<p class="text-sm text-gray-600">{ data.App.Description }</p>
+				}
+				if len(data.Scopes) > 0 {
+					<div>
+						<p class="text-sm font-medium mb-2">This application is requesting access to:</p>
+						<ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
+							for _, s := range data.Scopes {
+								<li>{ s }</li>
+							}
+						</ul>
+					</div>
+				}
+				<form method="POST" action="/oauth/authorize" class="flex gap-3">
+					<input type="hidden" name="client_id" value={ data.App.ClientID }/>
+					<input type="hidden" name="redirect_uri" value={ data.RedirectURI }/>
+					<input type="hidden" name="scope" value={ strings.Join(data.Scopes, " ") }/>
+					<input type="hidden" name="state" value={ data.State }/>
+					<button name="action" value="approve" type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">Authorize</button>
+					<button name="action" value="deny" type="submit" class="bg-gray-200 text-gray-800 px-4 py-2 rounded text-sm hover:bg-gray-300">Deny</button>
+				</form>
+			</div>
+		</div>
+	}
+}
