@@ -2406,7 +2406,7 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 9.2   | Wiki                                 | ✅ Done    | —            |
 | 9.3   | Issue Pinning & Locking              | ✅ Done    | 038          |
 | 10.1  | Repository Insights & Stats          | ✅ Done    | —            |
-| 10.2  | @Mentions in Comments                | ⬜ Planned | 039          |
+| 10.2  | @Mentions in Comments                | ✅ Done    | 039          |
 | 10.3  | Saved Replies                        | ⬜ Planned | 040          |
 | 11.1  | Email Notifications                  | ⬜ Planned | 041          |
 | 11.2  | OAuth Apps / Third-party Clients     | ⬜ Planned | 042          |
