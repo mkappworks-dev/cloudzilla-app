@@ -247,7 +247,8 @@ Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs
 | 13.3    | Repository Topics / Tags                     | ✅ Done    | 048          |
 | 14.1    | Private Issues                               | ✅ Done    | 049          |
 | 14.2    | Archive & Templates                          | ✅ Done    | 050          |
-| 14.3–20 | (next planned phases)                        | ⬜ Planned | 051–060      |
+| 14.3    | Soft-delete & Recovery                       | ✅ Done    | 051          |
+| 15–20   | (next planned phases)                        | ⬜ Planned | 052–060      |
 
 > Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)
 > Implementation plans for each phase: [docs/superpowers/plans/](./docs/superpowers/plans/)

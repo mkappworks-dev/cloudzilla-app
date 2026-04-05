@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
+	"time"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/mkappworks/cloudzilla/internal/config"
@@ -352,6 +355,90 @@ func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, ne
 
 func (s *RepoService) ListTemplates(ctx context.Context) ([]model.Repository, error) {
 	return s.repos.ListTemplates(ctx)
+}
+
+// deleteGuard returns an error if the caller does not have manage permission.
+func deleteGuard(canManage bool) error {
+	if !canManage {
+		return fmt.Errorf("forbidden: only the repo owner or org owner can delete a repo")
+	}
+	return nil
+}
+
+func (s *RepoService) Delete(ctx context.Context, repoID, userID int64) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	if err := deleteGuard(s.CanManage(ctx, repo, userID)); err != nil {
+		return err
+	}
+
+	repoPath := filepath.Join(s.cfg.ReposRoot, repo.OwnerName, repo.Name+".git")
+	deletedPath := repoPath + ".deleted." + strconv.FormatInt(time.Now().Unix(), 10)
+	if _, err := os.Stat(repoPath); err == nil {
+		if err := os.Rename(repoPath, deletedPath); err != nil {
+			return fmt.Errorf("rename git dir for soft delete: %w", err)
+		}
+	}
+
+	return s.repos.Delete(ctx, repoID, userID)
+}
+
+func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, isSuperadmin bool) error {
+	repo, err := s.repos.GetDeletedByID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("deleted repo not found: %w", err)
+	}
+	if repo.OwnerID != requesterID && !isSuperadmin {
+		return fmt.Errorf("forbidden: only the original owner or a superadmin can restore a repo")
+	}
+
+	ownerDir := filepath.Join(s.cfg.ReposRoot, repo.OwnerName)
+	pattern := filepath.Join(ownerDir, repo.Name+".git.deleted.*")
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return fmt.Errorf("glob deleted git dir: %w", err)
+	}
+	if len(matches) > 0 {
+		latestMatch := matches[len(matches)-1]
+		restoredPath := filepath.Join(ownerDir, repo.Name+".git")
+		if _, statErr := os.Stat(restoredPath); statErr == nil {
+			return fmt.Errorf("restore conflict: live repo dir already exists at %s", restoredPath)
+		}
+		if err := os.Rename(latestMatch, restoredPath); err != nil {
+			return fmt.Errorf("rename git dir back on restore: %w", err)
+		}
+	}
+
+	return s.repos.Restore(ctx, repoID)
+}
+
+func (s *RepoService) GetDeleted(ctx context.Context, ownerName, name string) (*model.Repository, error) {
+	return s.repos.GetDeletedByOwnerAndName(ctx, ownerName, name)
+}
+
+func (s *RepoService) PurgeExpired(ctx context.Context) error {
+	cutoff := time.Now().Add(-30 * 24 * time.Hour)
+	expired, err := s.repos.PurgeExpired(ctx, cutoff)
+	if err != nil {
+		return fmt.Errorf("purge expired repos: %w", err)
+	}
+	for _, r := range expired {
+		ownerDir := filepath.Join(s.cfg.ReposRoot, r.OwnerName)
+		pattern := filepath.Join(ownerDir, r.Name+".git.deleted.*")
+		matches, globErr := filepath.Glob(pattern)
+		if globErr != nil {
+			slog.Warn("purge: failed to glob deleted git dir", "pattern", pattern, "error", globErr)
+			continue
+		}
+		for _, m := range matches {
+			if removeErr := os.RemoveAll(m); removeErr != nil {
+				slog.Warn("purge: failed to remove deleted git dir", "path", m, "error", removeErr)
+			}
+		}
+	}
+	return nil
 }
 
 // TransferRepo transfers ownership of a personal repo to another user.

@@ -278,6 +278,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		// Ownership transfer
 		r.With(authMW).Post("/{owner}/{repo}/transfer", h.TransferRepo)
 
+		// Soft-delete restore
+		r.With(authMW).Post("/{owner}/{repo}/restore", h.RestoreRepo)
+
 		// Archive / unarchive
 		r.With(authMW).Post("/{owner}/{repo}/archive", h.ArchiveRepo)
 		r.With(authMW).Post("/{owner}/{repo}/unarchive", h.UnarchiveRepo)

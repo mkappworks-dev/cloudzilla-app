@@ -72,6 +72,24 @@ func main() {
 		}
 	}()
 
+	// Daily purge of soft-deleted repos older than 30 days
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := services.Repo.PurgeExpired(context.Background()); err != nil {
+					slog.Error("repo purge failed", "error", err)
+				} else {
+					slog.Info("repo purge completed")
+				}
+			case <-workerCtx.Done():
+				return
+			}
+		}
+	}()
+
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	srv := &http.Server{
 		Addr:         addr,
