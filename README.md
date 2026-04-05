@@ -264,6 +264,7 @@ graph TD
 - **Gists** — create, edit, and delete multi-file code snippets; public gists browsable at `/gists`; per-user listing at `/{owner}/gists`; private gists visible only to their owner
 - **Profile README** — create a public repo named after your username (e.g. `alice/alice`) with a `README.md` at the root; it renders as Markdown above your repo list on your profile page
 - **Repository topics** — tag repos with up to 20 lowercase topic labels (e.g. `go`, `web-framework`); click any tag to browse all public repos with that topic at `/topic/{name}`
+- **Private issues** — mark any issue as private at creation time; private issues are visible only to the author and collaborators with `writer`/`admin`/`owner` role; shown with a lock badge in lists and a "Private" header badge on detail pages; only users with write access see the private-issue checkbox on the new-issue form
 - Auth-aware navigation (Sign in/Settings/Notifications/Admin/Sign out)
 - Admin CLI for bootstrapping
 - Single binary ships API + embedded frontend + CSS
