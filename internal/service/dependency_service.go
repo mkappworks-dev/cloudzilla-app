@@ -37,10 +37,11 @@ func (s *DependencyService) ParseAndStore(ctx context.Context, repo *model.Repos
 	}
 
 	var all []model.RepoDependency
+	infraErr := false
 	for _, m := range manifests {
 		raw, err := s.code.GetRawBlob(repo.OwnerName, repo.Name, repo.DefaultBranch, m.path)
 		if err != nil {
-			if !errors.Is(err, ErrEmptyRepo) && !errors.Is(err, object.ErrFileNotFound) {
+			if !errors.Is(err, ErrEmptyRepo) && !errors.Is(err, ErrRefNotFound) && !errors.Is(err, object.ErrFileNotFound) {
 				slog.Warn("dependency: unexpected error reading manifest",
 					"repo_id", repo.ID,
 					"owner", repo.OwnerName,
@@ -48,11 +49,18 @@ func (s *DependencyService) ParseAndStore(ctx context.Context, repo *model.Repos
 					"manifest", m.path,
 					"error", err,
 				)
+				infraErr = true
 			}
 			continue
 		}
 		parsed := m.parser(string(raw))
 		all = append(all, parsed...)
+	}
+
+	// If infrastructure errors prevented all reads, skip the replace to avoid
+	// wiping the stored dependency graph due to a transient failure.
+	if infraErr && len(all) == 0 {
+		return errors.New("dependency: manifest reads failed due to infrastructure errors; skipping replace")
 	}
 
 	return s.dep.Replace(ctx, repo.ID, all)
@@ -157,6 +165,10 @@ func parseRequirementsTxt(content string) []model.RepoDependency {
 		// Strip inline comments
 		if idx := strings.Index(line, " #"); idx != -1 {
 			line = strings.TrimSpace(line[:idx])
+		}
+		// Skip pip flags (-r, -c, -e, --find-links, etc.) and URL-based requirements
+		if strings.HasPrefix(line, "-") || strings.Contains(line, "://") {
+			continue
 		}
 		pkg := line
 		ver := ""

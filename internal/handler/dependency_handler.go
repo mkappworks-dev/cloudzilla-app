@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"database/sql"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -17,7 +19,12 @@ func (h *Handler) PageDependencies(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "repo not found", http.StatusNotFound)
+		} else {
+			slog.Error("dependency: failed to get repo", "owner", owner, "repo", repoName, "error", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+		}
 		return
 	}
 

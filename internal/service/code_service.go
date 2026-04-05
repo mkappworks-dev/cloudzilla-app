@@ -24,6 +24,9 @@ import (
 // ErrEmptyRepo is returned when a repository has no commits.
 var ErrEmptyRepo = errors.New("repository is empty")
 
+// ErrRefNotFound is returned when a named ref (branch, tag, or SHA) cannot be resolved.
+var ErrRefNotFound = errors.New("ref not found")
+
 type BranchInfo struct {
 	Name      string
 	Hash      string
@@ -431,7 +434,7 @@ func resolveRef(repo *gogit.Repository, ref string) (*object.Commit, string, err
 		if commit, err := repo.CommitObject(hash); err == nil {
 			return commit, ref[:7], nil
 		}
-		return nil, "", errors.New("ref not found: " + ref)
+		return nil, "", fmt.Errorf("%w: %s", ErrRefNotFound, ref)
 	}
 
 	// Fall back to HEAD

@@ -30,21 +30,31 @@ func (s *DependencyStore) Replace(ctx context.Context, repoID int64, deps []mode
 		return tx.Commit()
 	}
 
-	// Batch insert using VALUES placeholders
-	placeholders := make([]string, len(deps))
-	args := make([]interface{}, 0, len(deps)*5)
-	for i, d := range deps {
-		base := i * 5
-		placeholders[i] = fmt.Sprintf("($%d, $%d, $%d, $%d, $%d)", base+1, base+2, base+3, base+4, base+5)
-		args = append(args, repoID, d.PackageMgr, d.Package, d.Version, d.IsDev)
-	}
+	// Insert in chunks to stay within PostgreSQL's 65535-parameter limit.
+	// With 5 params per row, 1000 rows = 5000 parameters per statement.
+	const chunkSize = 1000
+	for start := 0; start < len(deps); start += chunkSize {
+		end := start + chunkSize
+		if end > len(deps) {
+			end = len(deps)
+		}
+		chunk := deps[start:end]
 
-	q := `INSERT INTO repo_dependencies (repo_id, package_mgr, package, version, is_dev) VALUES ` +
-		strings.Join(placeholders, ", ") +
-		` ON CONFLICT (repo_id, package_mgr, package) DO UPDATE SET version = EXCLUDED.version, is_dev = EXCLUDED.is_dev, updated_at = NOW()`
+		placeholders := make([]string, len(chunk))
+		args := make([]interface{}, 0, len(chunk)*5)
+		for i, d := range chunk {
+			base := i * 5
+			placeholders[i] = fmt.Sprintf("($%d, $%d, $%d, $%d, $%d)", base+1, base+2, base+3, base+4, base+5)
+			args = append(args, repoID, d.PackageMgr, d.Package, d.Version, d.IsDev)
+		}
 
-	if _, err := tx.ExecContext(ctx, q, args...); err != nil {
-		return fmt.Errorf("dependency replace insert: %w", err)
+		q := `INSERT INTO repo_dependencies (repo_id, package_mgr, package, version, is_dev) VALUES ` +
+			strings.Join(placeholders, ", ") +
+			` ON CONFLICT (repo_id, package_mgr, package) DO UPDATE SET version = EXCLUDED.version, is_dev = EXCLUDED.is_dev, updated_at = NOW()`
+
+		if _, err := tx.ExecContext(ctx, q, args...); err != nil {
+			return fmt.Errorf("dependency replace insert: %w", err)
+		}
 	}
 
 	return tx.Commit()
