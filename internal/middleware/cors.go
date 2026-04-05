@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -10,8 +11,12 @@ import (
 // CORS returns middleware that restricts cross-origin requests to the
 // configured base URL origin. In development (localhost), the Tailwind
 // dev server origin is also permitted.
+// Panics if baseURL is empty or unparseable — must be caught at startup.
 func CORS(baseURL string) func(http.Handler) http.Handler {
-	parsed, _ := url.Parse(baseURL)
+	parsed, err := url.Parse(baseURL)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		panic(fmt.Sprintf("CORS: invalid server.base_url %q — must include scheme and host (e.g. http://localhost:8080)", baseURL))
+	}
 	origin := parsed.Scheme + "://" + parsed.Host
 
 	origins := []string{origin}
