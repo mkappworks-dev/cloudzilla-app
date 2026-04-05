@@ -92,6 +92,7 @@ type RepoData struct {
 	IsFork        bool
 	ForkOfPath    string
 	LatestRelease *model.Release
+	Topics        []model.Topic
 }
 
 // Releases page
@@ -802,4 +803,21 @@ type UserGistsData struct {
 	ProfileUser model.User
 	Gists       []model.Gist
 	Page        int
+}
+
+// RepoTopicsFragData is the view model for the repo-topics HTMX fragment.
+type RepoTopicsFragData struct {
+	Owner     string
+	RepoName  string
+	RepoID    int64
+	Topics    []model.Topic
+	CanManage bool
+}
+
+// TopicData is the view model for the /topic/{name} explore page.
+type TopicData struct {
+	BasePage
+	TopicName string
+	Repos     []model.Repository
+	Page      int
 }

@@ -88,4 +88,6 @@ type (
 	GistNewData                = view.GistNewData
 	GistEditData               = view.GistEditData
 	UserGistsData              = view.UserGistsData
+	RepoTopicsFragData         = view.RepoTopicsFragData
+	TopicData                  = view.TopicData
 )

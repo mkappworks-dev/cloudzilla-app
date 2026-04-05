@@ -42,6 +42,7 @@ type Stores struct {
 	Event              *EventStore
 	Discussion         *DiscussionStore
 	Gist               *GistStore
+	Topic              *TopicStore
 }
 
 func New(database *sql.DB) *Stores {
@@ -82,5 +83,6 @@ func New(database *sql.DB) *Stores {
 		Event:              NewEventStore(database),
 		Discussion:         NewDiscussionStore(database),
 		Gist:               NewGistStore(database),
+		Topic:              NewTopicStore(database),
 	}
 }

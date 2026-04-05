@@ -75,6 +75,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.With(authMW).Delete("/{id}", h.DeleteGist)
 	})
 
+	// Topic explore page
+	r.With(optAuthMW).Get("/topic/{name}", h.PageTopic)
+
 	r.With(optAuthMW).Get("/{owner}", h.PageUser)
 	r.With(authMW).Get("/orgs/{org}/settings", h.PageOrgSettings)
 	r.With(optAuthMW).Get("/{owner}/gists", h.PageUserGists)
@@ -310,6 +313,10 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		// Wiki
 		r.With(authMW).Post("/{owner}/{repo}/wiki/{slug}", h.CreateOrUpdateWikiPage)
 		r.With(authMW).Delete("/{owner}/{repo}/wiki/{slug}", h.DeleteWikiPage)
+
+		// Topics
+		r.With(authMW).Put("/{owner}/{repo}/topics", h.SetTopics)
+		r.With(optAuthMW).Get("/{owner}/{repo}/topics", h.GetTopicsFragment)
 
 		// Discussions
 		r.Route("/{owner}/{repo}/discussions", func(r chi.Router) {

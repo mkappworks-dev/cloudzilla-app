@@ -244,7 +244,8 @@ Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs
 | 12.3    | Discussions                                  | ✅ Done    | 046          |
 | 13.1    | Gists                                        | ✅ Done    | 047          |
 | 13.2    | Profile README                               | ✅ Done    | —            |
-| 13.3–20 | (next planned phases)                        | ⬜ Planned | 047–060      |
+| 13.3    | Repository Topics / Tags                     | ✅ Done    | 048          |
+| 14–20   | (next planned phases)                        | ⬜ Planned | 049–060      |
 
 > Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)
 > Implementation plans for each phase: [docs/superpowers/plans/](./docs/superpowers/plans/)
