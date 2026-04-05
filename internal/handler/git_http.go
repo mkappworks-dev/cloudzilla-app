@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -18,6 +19,12 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 )
+
+var validGitNameRe = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
+
+func validGitName(name string) bool {
+	return len(name) > 0 && len(name) <= 100 && validGitNameRe.MatchString(name) && name != "." && name != ".."
+}
 
 type gitUser struct {
 	ID       int64
@@ -45,6 +52,11 @@ func (h *Handler) resolveGitUser(r *http.Request) *gitUser {
 func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := strings.TrimSuffix(chi.URLParam(r, "repo"), ".git")
+
+	if !validGitName(owner) || !validGitName(repoName) {
+		http.Error(w, "invalid repository path", http.StatusBadRequest)
+		return
+	}
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -134,6 +146,11 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := strings.TrimSuffix(chi.URLParam(r, "repo"), ".git")
 
+	if !validGitName(owner) || !validGitName(repoName) {
+		http.Error(w, "invalid repository path", http.StatusBadRequest)
+		return
+	}
+
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
 		http.Error(w, "repository not found", http.StatusNotFound)
@@ -211,6 +228,11 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := strings.TrimSuffix(chi.URLParam(r, "repo"), ".git")
 
+	if !validGitName(owner) || !validGitName(repoName) {
+		http.Error(w, "invalid repository path", http.StatusBadRequest)
+		return
+	}
+
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
 		http.Error(w, "repository not found", http.StatusNotFound)
@@ -284,7 +306,8 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		status.Encode(w) //nolint:errcheck
 	}
 
-	// Enforce branch protection rules before dispatching webhooks
+	// Enforce branch protection rules before dispatching webhooks.
+	// If protection rejects the push, rollback the ref to its previous value.
 	for _, cmd := range req.Commands {
 		if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
 			continue
@@ -295,6 +318,9 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
 		forcePush := cmd.Action() == packp.Update && cmd.Old != plumbing.ZeroHash && isForcePushHTTP(gitRepo, cmd)
 		if err := h.Services.BranchProtection.CheckPush(r.Context(), repo.ID, branch, forcePush); err != nil {
+			// Rollback the ref to its previous value
+			ref := plumbing.NewHashReference(cmd.Name, cmd.Old)
+			_ = gitRepo.Storer.SetReference(ref)
 			http.Error(w, "push rejected: "+err.Error(), http.StatusForbidden)
 			return
 		}

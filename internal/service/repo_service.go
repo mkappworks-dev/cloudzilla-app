@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -15,6 +16,24 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
+
+var validNameRe = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
+
+// validateName checks that a repository or owner name is safe for filesystem
+// use and URL routing. Names must start with an alphanumeric character and
+// contain only alphanumeric, dot, underscore, or hyphen characters.
+func validateName(name string) error {
+	if len(name) == 0 || len(name) > 100 {
+		return fmt.Errorf("name must be 1-100 characters")
+	}
+	if !validNameRe.MatchString(name) {
+		return fmt.Errorf("name contains invalid characters")
+	}
+	if name == "." || name == ".." {
+		return fmt.Errorf("name is reserved")
+	}
+	return nil
+}
 
 type RepoService struct {
 	repos *store.RepoStore
@@ -28,6 +47,10 @@ func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.
 }
 
 func (s *RepoService) Create(ctx context.Context, ownerUsername, name, description string, private bool) (*model.Repository, error) {
+	if err := validateName(name); err != nil {
+		return nil, fmt.Errorf("invalid repository name: %w", err)
+	}
+
 	owner, err := s.users.GetByUsername(ctx, ownerUsername)
 	if err != nil {
 		return nil, fmt.Errorf("owner not found: %w", err)
