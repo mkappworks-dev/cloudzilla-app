@@ -1,0 +1,69 @@
+package pages
+
+import (
+	"fmt"
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ Explore(data view.ExploreData) {
+	@layout.Base(data.BasePage, "Explore") {
+		<div class="space-y-6">
+			<div class="bg-white border border-gray-200 rounded-lg p-6">
+				<h1 class="text-2xl font-bold">Explore Repositories</h1>
+				<p class="text-sm text-gray-500 mt-1">Discover public repositories on this instance.</p>
+			</div>
+			<!-- Tab bar -->
+			<div class="flex gap-1 border-b border-gray-200">
+				<a href={ templ.SafeURL("/explore?tab=trending&period=" + data.Period) } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px", templ.KV("border-blue-500 text-blue-600", data.Tab == "trending"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.Tab != "trending") }>
+					Trending
+				</a>
+				<a href="/explore?tab=newest" class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px", templ.KV("border-blue-500 text-blue-600", data.Tab == "newest"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.Tab != "newest") }>
+					Newest
+				</a>
+				<a href="/explore?tab=forked" class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px", templ.KV("border-blue-500 text-blue-600", data.Tab == "forked"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.Tab != "forked") }>
+					Most Forked
+				</a>
+			</div>
+			if data.Tab == "trending" {
+				<!-- Period pills (only shown for Trending tab) -->
+				<div class="flex gap-2">
+					<a href="/explore?tab=trending&period=daily" class={ "px-3 py-1 rounded-full text-xs font-medium border", templ.KV("bg-blue-600 text-white border-blue-600", data.Period == "daily"), templ.KV("bg-white text-gray-600 border-gray-300 hover:border-gray-400", data.Period != "daily") }>
+						Today
+					</a>
+					<a href="/explore?tab=trending&period=weekly" class={ "px-3 py-1 rounded-full text-xs font-medium border", templ.KV("bg-blue-600 text-white border-blue-600", data.Period == "weekly"), templ.KV("bg-white text-gray-600 border-gray-300 hover:border-gray-400", data.Period != "weekly") }>
+						This week
+					</a>
+					<a href="/explore?tab=trending&period=monthly" class={ "px-3 py-1 rounded-full text-xs font-medium border", templ.KV("bg-blue-600 text-white border-blue-600", data.Period == "monthly"), templ.KV("bg-white text-gray-600 border-gray-300 hover:border-gray-400", data.Period != "monthly") }>
+						This month
+					</a>
+				</div>
+			}
+			if len(data.Repos) > 0 {
+				<div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+					for _, repo := range data.Repos {
+						<div class="px-6 py-4">
+							<div class="flex items-start justify-between gap-4">
+								<div class="min-w-0">
+									<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-blue-600 font-semibold hover:underline">{ repo.OwnerName }/{ repo.Name }</a>
+									if repo.Description != "" {
+										<p class="text-sm text-gray-500 mt-0.5 truncate">{ repo.Description }</p>
+									}
+									<p class="text-xs text-gray-400 mt-1">Created { repo.CreatedAt.Format("Jan 2, 2006") }</p>
+								</div>
+								<div class="shrink-0 flex items-center gap-3 text-xs text-gray-500">
+									<span title="Stars">&#9733; { fmt.Sprintf("%d", repo.StarCount) }</span>
+									<span title="Forks">&#8921; { fmt.Sprintf("%d", repo.ForkCount) }</span>
+								</div>
+							</div>
+						</div>
+					}
+				</div>
+			} else {
+				<div class="bg-white border border-gray-200 rounded-lg p-12 text-center">
+					<p class="text-gray-500">No public repositories to show yet.</p>
+				</div>
+			}
+		</div>
+	}
+}

@@ -24,3 +24,11 @@ type Repository struct {
 	DeletedAt     *time.Time `db:"deleted_at"     json:"deleted_at,omitempty"`
 	DeletedBy     *int64        `db:"deleted_by"     json:"deleted_by,omitempty"`
 }
+
+// RepositoryWithStats augments a Repository with aggregated star and fork counts
+// for display on explore/trending pages.
+type RepositoryWithStats struct {
+	Repository
+	StarCount int `db:"star_count"`
+	ForkCount int `db:"fork_count"`
+}

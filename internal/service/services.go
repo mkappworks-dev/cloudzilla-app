@@ -44,6 +44,7 @@ type Services struct {
 	Gist             *GistService
 	Topic            *TopicService
 	Index            *IndexService
+	Explore          *ExploreService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -93,5 +94,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Gist:             NewGistService(stores.Gist),
 		Topic:            NewTopicService(stores.Topic),
 		Index:            index,
+		Explore:          NewExploreService(stores.Explore),
 	}
 }

@@ -91,4 +91,5 @@ type (
 	RepoTopicsFragData         = view.RepoTopicsFragData
 	TopicData                  = view.TopicData
 	CodeSearchData             = view.CodeSearchData
+	ExploreData                = view.ExploreData
 )
