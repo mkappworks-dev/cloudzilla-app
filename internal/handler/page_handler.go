@@ -381,7 +381,11 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issues, err := h.Services.Issue.List(r.Context(), owner, repoName)
+	var callerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		callerID = &claims.UserID
+	}
+	issues, err := h.Services.Issue.List(r.Context(), owner, repoName, callerID)
 	if err != nil {
 		issues = []model.Issue{}
 	}
@@ -427,7 +431,11 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, number)
+	var issueCallerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		issueCallerID = &claims.UserID
+	}
+	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, number, issueCallerID)
 	if err != nil {
 		http.Error(w, "issue not found", http.StatusNotFound)
 		return
@@ -509,6 +517,10 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	showForm := blank || selected != "" || len(templates) == 0
 
+	canWrite := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	}
 	h.render(w, r, pages.IssueNew(view.IssueNewData{
 		BasePage:  basePage(r, h.Services),
 		Repo:      *repo,
@@ -517,6 +529,7 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 		Templates: templates,
 		Selected:  selected,
 		ShowForm:  showForm,
+		CanWrite:  canWrite,
 	}))
 }
 
@@ -556,7 +569,11 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, err := h.Services.Issue.Create(r.Context(), owner, repoName, claims.UserID, title, body)
+	vis := r.FormValue("visibility")
+	if vis != "private" {
+		vis = "public"
+	}
+	issue, err := h.Services.Issue.Create(r.Context(), owner, repoName, claims.UserID, title, body, vis)
 	if err != nil {
 		renderErr("Failed to create issue: " + err.Error())
 		return

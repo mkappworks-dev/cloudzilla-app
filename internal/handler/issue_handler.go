@@ -15,8 +15,9 @@ import (
 )
 
 type createIssueRequest struct {
-	Title string `json:"title"`
-	Body  string `json:"body"`
+	Title      string `json:"title"`
+	Body       string `json:"body"`
+	Visibility string `json:"visibility"`
 }
 
 type updateIssueRequest struct {
@@ -26,7 +27,11 @@ type updateIssueRequest struct {
 func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repo := chi.URLParam(r, "repo")
-	issues, err := h.Services.Issue.List(r.Context(), owner, repo)
+	var callerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		callerID = &claims.UserID
+	}
+	issues, err := h.Services.Issue.List(r.Context(), owner, repo, callerID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "repo not found")
 		return
@@ -38,7 +43,11 @@ func (h *Handler) GetIssue(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repo := chi.URLParam(r, "repo")
 	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
-	issue, err := h.Services.Issue.Get(r.Context(), owner, repo, number)
+	var callerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		callerID = &claims.UserID
+	}
+	issue, err := h.Services.Issue.Get(r.Context(), owner, repo, number, callerID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "issue not found")
 		return
@@ -60,7 +69,11 @@ func (h *Handler) CreateIssue(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	issue, err := h.Services.Issue.Create(r.Context(), owner, repoName, claims.UserID, req.Title, req.Body)
+	vis := req.Visibility
+	if vis != "private" {
+		vis = "public"
+	}
+	issue, err := h.Services.Issue.Create(r.Context(), owner, repoName, claims.UserID, req.Title, req.Body, vis)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return

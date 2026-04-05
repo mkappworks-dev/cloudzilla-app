@@ -127,7 +127,11 @@ func (h *Handler) RemovePullAssignee(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) renderIssueAssigneeFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, issueNumber int) {
-	issue, _ := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber)
+	var callerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		callerID = &claims.UserID
+	}
+	issue, _ := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber, callerID)
 	var assignees []model.User
 	if issue != nil {
 		assignees, _ = h.Services.Assignee.GetForIssue(r.Context(), issue.ID)

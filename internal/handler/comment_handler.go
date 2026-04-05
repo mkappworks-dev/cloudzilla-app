@@ -23,7 +23,11 @@ func (h *Handler) ListIssueComments(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 	issueNumber, _ := strconv.Atoi(chi.URLParam(r, "number"))
 
-	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber)
+	var callerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		callerID = &claims.UserID
+	}
+	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber, callerID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "issue not found")
 		return
@@ -66,7 +70,7 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber)
+	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber, &claims.UserID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "issue not found")
 		return
@@ -187,7 +191,11 @@ func (h *Handler) IssueCommentsFragment(w http.ResponseWriter, r *http.Request) 
 	repoName := chi.URLParam(r, "repo")
 	issueNumber, _ := strconv.Atoi(chi.URLParam(r, "number"))
 
-	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber)
+	var callerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		callerID = &claims.UserID
+	}
+	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber, callerID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "issue not found")
 		return

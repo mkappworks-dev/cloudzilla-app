@@ -305,7 +305,7 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber)
+	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber, &claims.UserID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "issue not found")
 		return

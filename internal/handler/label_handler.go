@@ -205,7 +205,11 @@ func (h *Handler) RemovePullLabel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) renderIssueLabelFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, issueNumber int) {
-	issue, _ := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber)
+	var callerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		callerID = &claims.UserID
+	}
+	issue, _ := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber, callerID)
 	var labels, allLabels []model.Label
 	if issue != nil {
 		labels, _ = h.Services.Label.GetForIssue(r.Context(), issue.ID)
