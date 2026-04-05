@@ -44,6 +44,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Search
 	r.With(optAuthMW).Get("/search", h.PageSearch)
+	r.With(optAuthMW).Get("/search/code", h.PageCodeSearch)
 
 	// Page routes
 	r.Get("/", h.PageHome)

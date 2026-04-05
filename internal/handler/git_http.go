@@ -312,6 +312,11 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		go h.Services.Webhook.Dispatch(repo.ID, "push",
 			h.Services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String()))
 	}
+
+	// Re-index the repository for code search after each push.
+	go func() {
+		_ = h.Services.Index.IndexRepo(context.Background(), repo)
+	}()
 }
 
 // isForcePushHTTP returns true when the push is non-fast-forward (old commit is not an ancestor of new).

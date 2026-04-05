@@ -43,6 +43,7 @@ type Stores struct {
 	Discussion         *DiscussionStore
 	Gist               *GistStore
 	Topic              *TopicStore
+	CodeSearch         *CodeSearchStore
 }
 
 func New(database *sql.DB) *Stores {
@@ -84,5 +85,6 @@ func New(database *sql.DB) *Stores {
 		Discussion:         NewDiscussionStore(database),
 		Gist:               NewGistStore(database),
 		Topic:              NewTopicStore(database),
+		CodeSearch:         NewCodeSearchStore(database),
 	}
 }

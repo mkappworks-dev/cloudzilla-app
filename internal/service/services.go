@@ -43,10 +43,12 @@ type Services struct {
 	Discussion       *DiscussionService
 	Gist             *GistService
 	Topic            *TopicService
+	Index            *IndexService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
 	code := NewCodeService(cfg.Git)
+	index := NewIndexService(stores.CodeSearch, code)
 	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, cfg.Git)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
 	userSvc := NewUserService(stores.User, cfg.Auth)
@@ -90,5 +92,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Discussion:       NewDiscussionService(stores.Discussion, stores.Repo),
 		Gist:             NewGistService(stores.Gist),
 		Topic:            NewTopicService(stores.Topic),
+		Index:            index,
 	}
 }
