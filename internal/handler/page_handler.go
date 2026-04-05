@@ -41,7 +41,11 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 	if repos == nil {
 		repos = []model.Repository{}
 	}
-	h.render(w, r, pages.Home(view.HomeData{BasePage: basePage(r, h.Services), Repos: repos}))
+	templates, _ := h.Services.Repo.ListTemplates(r.Context())
+	if templates == nil {
+		templates = []model.Repository{}
+	}
+	h.render(w, r, pages.Home(view.HomeData{BasePage: basePage(r, h.Services), Repos: repos, Templates: templates}))
 }
 
 func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
@@ -304,6 +308,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		ForkOfPath:    forkOfPath,
 		LatestRelease: latestRelease,
 		Topics:        topics,
+		IsArchived:    repo.IsArchived,
 	}))
 }
 

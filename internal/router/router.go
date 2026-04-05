@@ -278,6 +278,16 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		// Ownership transfer
 		r.With(authMW).Post("/{owner}/{repo}/transfer", h.TransferRepo)
 
+		// Archive / unarchive
+		r.With(authMW).Post("/{owner}/{repo}/archive", h.ArchiveRepo)
+		r.With(authMW).Post("/{owner}/{repo}/unarchive", h.UnarchiveRepo)
+
+		// Template
+		r.With(authMW).Patch("/{owner}/{repo}/template", h.SetRepoTemplate)
+
+		// Create from template
+		r.With(authMW).Post("/from-template", h.CreateFromTemplate)
+
 		// Deploy keys
 		r.Route("/{owner}/{repo}/keys", func(r chi.Router) {
 			r.Use(optAuthMW)

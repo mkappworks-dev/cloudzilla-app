@@ -1147,8 +1147,8 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 | 13.1    | Gists                                        | ✅ Done    | 047          |
 | 13.2    | Profile README                               | ✅ Done    | —            |
 | 13.3    | Repository Topics / Tags                     | ✅ Done    | 048          |
-| 14.1    | Private Issues                               | ⬜ Planned | 050          |
-| 14.2    | Repository Archive & Templates               | ⬜ Planned | 051          |
+| 14.1    | Private Issues                               | ✅ Done    | 049          |
+| 14.2    | Repository Archive & Templates               | ✅ Done    | 050          |
 | 14.3    | Soft-delete & Recovery                       | ⬜ Planned | 052          |
 | 15.1    | Advanced Code Search                         | ⬜ Planned | 053          |
 | 15.2    | Explore / Trending                           | ⬜ Planned | 054          |

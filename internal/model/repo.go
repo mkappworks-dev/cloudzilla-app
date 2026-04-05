@@ -17,5 +17,8 @@ type Repository struct {
 	ForkOfID      *int64    `db:"fork_of_id"     json:"fork_of_id,omitempty"`
 	ForkOfOwner   string    `db:"-"              json:"fork_of_owner,omitempty"`
 	ForkOfName    string    `db:"-"              json:"fork_of_name,omitempty"`
-	ForkCount     int       `db:"fork_count"     json:"fork_count"`
+	ForkCount     int        `db:"fork_count"     json:"fork_count"`
+	IsArchived    bool       `db:"is_archived"    json:"is_archived"`
+	ArchivedAt    *time.Time `db:"archived_at"    json:"archived_at,omitempty"`
+	IsTemplate    bool       `db:"is_template"    json:"is_template"`
 }

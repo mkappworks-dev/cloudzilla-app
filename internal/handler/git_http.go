@@ -69,6 +69,10 @@ func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "access denied", http.StatusUnauthorized)
 			return
 		}
+		if repo.IsArchived {
+			http.Error(w, "Repository is archived and read-only.\n", http.StatusForbidden)
+			return
+		}
 	} else {
 		var uid *int64
 		if gu != nil {
@@ -216,6 +220,11 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	if gu == nil || !h.Services.Repo.CanWrite(r.Context(), repo, gu.ID) {
 		w.Header().Set("WWW-Authenticate", `Basic realm="git"`)
 		http.Error(w, "access denied", http.StatusUnauthorized)
+		return
+	}
+
+	if repo.IsArchived {
+		http.Error(w, "Repository is archived and read-only.\n", http.StatusForbidden)
 		return
 	}
 

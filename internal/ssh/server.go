@@ -213,6 +213,12 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		}
 	}
 
+	if gitCmd == "git-receive-pack" && repo.IsArchived {
+		fmt.Fprintf(session, "Repository is archived and read-only.\n")
+		session.Exit(1)
+		return
+	}
+
 	diskRepoPath := filepath.Join(s.cfg.ReposRoot, owner, repoName+".git")
 	gitRepo, err := gogit.PlainOpen(diskRepoPath)
 	if err != nil {
