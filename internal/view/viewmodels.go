@@ -824,3 +824,14 @@ type TopicData struct {
 	Repos     []model.Repository
 	Page      int
 }
+
+// CodeSearchData is the view model for the /search/code page.
+type CodeSearchData struct {
+	BasePage
+	Query      string
+	RepoFilter string
+	Lang       string
+	Results    []model.CodeSearchResult
+	Total      int
+	Page       int
+}

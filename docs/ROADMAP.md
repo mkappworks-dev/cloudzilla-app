@@ -2420,7 +2420,7 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 14.1  | Private Issues                       | ✅ Done    | 049          |
 | 14.2  | Archive & Templates                  | ✅ Done    | 050          |
 | 14.3  | Repository Soft-delete & Recovery    | ✅ Done    | 051          |
-| 15.1  | Advanced Code Search                 | ⬜ Planned | 051          |
+| 15.1  | Advanced Code Search                 | ✅ Done    | 052          |
 | 15.2  | Explore / Trending                   | ⬜ Planned | —            |
 | 15.3  | Dependency Graph                     | ⬜ Planned | 052          |
 | 16.1  | Container Registry (Docker)          | ⬜ Planned | 053          |

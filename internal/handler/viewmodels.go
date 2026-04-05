@@ -90,4 +90,5 @@ type (
 	UserGistsData              = view.UserGistsData
 	RepoTopicsFragData         = view.RepoTopicsFragData
 	TopicData                  = view.TopicData
+	CodeSearchData             = view.CodeSearchData
 )
