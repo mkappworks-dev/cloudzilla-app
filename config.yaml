@@ -5,8 +5,7 @@ server:
   write_timeout: 15s
 
 database:
-  driver: sqlite3
-  dsn: ./cloudzilla.db
+  dsn: postgres://cloudzilla:cloudzilla@localhost:5432/cloudzilla?sslmode=disable
   max_open_conns: 10
   max_idle_conns: 5
 
