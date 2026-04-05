@@ -10,11 +10,13 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// SSHKeyService manages user SSH public keys for git authentication.
 type SSHKeyService struct {
 	keys  *store.SSHKeyStore
 	users *store.UserStore
 }
 
+// NewSSHKeyService creates an SSHKeyService backed by the given stores.
 func NewSSHKeyService(keys *store.SSHKeyStore, users *store.UserStore) *SSHKeyService {
 	return &SSHKeyService{keys: keys, users: users}
 }

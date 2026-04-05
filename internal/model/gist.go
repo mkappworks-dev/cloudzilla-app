@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// Gist represents a shareable snippet of code or text with multiple files.
 type Gist struct {
 	ID          string    `db:"id"          json:"id"`
 	OwnerID     int64     `db:"owner_id"    json:"owner_id"`
@@ -12,6 +13,7 @@ type Gist struct {
 	UpdatedAt   time.Time `db:"updated_at"  json:"updated_at"`
 }
 
+// GistFile represents a single file within a gist.
 type GistFile struct {
 	ID       int64  `db:"id"       json:"id"`
 	GistID   string `db:"gist_id"  json:"gist_id"`

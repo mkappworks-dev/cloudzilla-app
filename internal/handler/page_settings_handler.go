@@ -9,6 +9,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
+// PageSettings renders the user account settings page.
 func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -30,6 +31,7 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageNotifications renders the in-app notifications page.
 func (h *Handler) PageNotifications(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {

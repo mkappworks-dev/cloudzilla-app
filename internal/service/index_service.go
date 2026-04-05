@@ -21,11 +21,13 @@ func isBinaryContent(data []byte) bool {
 	return false
 }
 
+// IndexService indexes repository source code into the full-text search store.
 type IndexService struct {
 	codeSearch *store.CodeSearchStore
 	code       *CodeService
 }
 
+// NewIndexService creates an IndexService backed by the given search store and code service.
 func NewIndexService(codeSearch *store.CodeSearchStore, code *CodeService) *IndexService {
 	return &IndexService{codeSearch: codeSearch, code: code}
 }

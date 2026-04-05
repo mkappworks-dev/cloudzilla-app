@@ -23,10 +23,12 @@ func periodToDuration(period string) time.Duration {
 	}
 }
 
+// ExploreService provides trending repository and user discovery.
 type ExploreService struct {
 	explore *store.ExploreStore
 }
 
+// NewExploreService creates an ExploreService backed by the given explore store.
 func NewExploreService(explore *store.ExploreStore) *ExploreService {
 	return &ExploreService{explore: explore}
 }

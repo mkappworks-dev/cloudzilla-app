@@ -5,6 +5,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/service"
 )
 
+// IssuesData holds template data for the issue list page.
 type IssuesData struct {
 	BasePage
 	Repo            model.Repository
@@ -17,6 +18,7 @@ type IssuesData struct {
 	ActiveMilestone *model.Milestone
 }
 
+// IssueDetailData holds template data for the issue detail page.
 type IssueDetailData struct {
 	BasePage
 	Repo          model.Repository
@@ -35,6 +37,7 @@ type IssueDetailData struct {
 }
 
 // IssueNewData is used by the new-issue page (template chooser + form).
+// IssueNewData holds template data for the new issue form page.
 type IssueNewData struct {
 	BasePage
 	Repo      model.Repository
@@ -50,6 +53,7 @@ type IssueNewData struct {
 }
 
 // Fragment data structs
+// IssueDetailFragData holds template data for the issue detail HTMX fragment.
 type IssueDetailFragData struct {
 	Issue    model.Issue
 	Owner    string
@@ -58,6 +62,7 @@ type IssueDetailFragData struct {
 }
 
 // Label sidebar fragments
+// IssueLabelSidebarData holds template data for the issue label sidebar HTMX fragment.
 type IssueLabelSidebarData struct {
 	Owner       string
 	RepoName    string
@@ -68,6 +73,7 @@ type IssueLabelSidebarData struct {
 }
 
 // Assignee sidebar fragments
+// IssueAssigneeSidebarData holds template data for the issue assignee sidebar HTMX fragment.
 type IssueAssigneeSidebarData struct {
 	Owner       string
 	RepoName    string
@@ -77,6 +83,7 @@ type IssueAssigneeSidebarData struct {
 }
 
 // Milestones page
+// MilestonesData holds template data for the milestones list page.
 type MilestonesData struct {
 	BasePage
 	Repo             model.Repository
@@ -88,6 +95,7 @@ type MilestonesData struct {
 }
 
 // Milestones list fragment (HTMX swap)
+// MilestonesListFragData holds template data for the milestones list HTMX fragment.
 type MilestonesListFragData struct {
 	Owner            string
 	RepoName         string
@@ -97,6 +105,7 @@ type MilestonesListFragData struct {
 }
 
 // Milestone sidebar fragment for issue/PR detail pages
+// MilestoneSidebarFragData holds template data for the milestone sidebar HTMX fragment.
 type MilestoneSidebarFragData struct {
 	Owner         string
 	RepoName      string

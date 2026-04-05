@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// SavedReplyStore provides database operations for user-defined saved reply templates.
 type SavedReplyStore struct{ db *sql.DB }
 
+// NewSavedReplyStore creates a SavedReplyStore backed by the given database.
 func NewSavedReplyStore(db *sql.DB) *SavedReplyStore { return &SavedReplyStore{db: db} }
 
 func (s *SavedReplyStore) Create(ctx context.Context, r *model.SavedReply) error {

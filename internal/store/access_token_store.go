@@ -9,8 +9,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// AccessTokenStore provides database operations for personal access tokens.
 type AccessTokenStore struct{ db *sql.DB }
 
+// NewAccessTokenStore creates an AccessTokenStore backed by the given database.
 func NewAccessTokenStore(db *sql.DB) *AccessTokenStore { return &AccessTokenStore{db: db} }
 
 func (s *AccessTokenStore) Create(ctx context.Context, t *model.AccessToken) error {

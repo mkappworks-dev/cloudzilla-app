@@ -15,8 +15,10 @@ var allowedEmojis = map[string]bool{
 
 func validEmoji(emoji string) bool { return allowedEmojis[emoji] }
 
+// ReactionService manages emoji reactions on issue and PR comments.
 type ReactionService struct{ store *store.ReactionStore }
 
+// NewReactionService creates a ReactionService backed by the given reaction store.
 func NewReactionService(s *store.ReactionStore) *ReactionService {
 	return &ReactionService{store: s}
 }

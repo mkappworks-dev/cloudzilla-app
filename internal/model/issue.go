@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// IssueState represents the open/closed state of an issue.
 type IssueState string
 
 const (
@@ -9,6 +10,7 @@ const (
 	IssueStateClosed IssueState = "closed"
 )
 
+// Issue represents a repository issue.
 type Issue struct {
 	ID          int64      `db:"id"           json:"id"`
 	RepoID      int64      `db:"repo_id"      json:"repo_id"`

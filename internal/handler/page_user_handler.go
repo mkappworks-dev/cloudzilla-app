@@ -12,6 +12,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
+// PageUser renders the user or organization profile page at /:username.
 func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "owner")
 
@@ -85,6 +86,7 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	}))
 }
 
+// PageOrgSettings renders the organization settings page for org owners.
 func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 	orgName := chi.URLParam(r, "org")
 	claims, ok := middleware.ClaimsFromContext(r.Context())

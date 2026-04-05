@@ -9,10 +9,12 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// InvitationStore provides database operations for user invite tokens.
 type InvitationStore struct {
 	db *sql.DB
 }
 
+// NewInvitationStore creates an InvitationStore backed by the given database.
 func NewInvitationStore(db *sql.DB) *InvitationStore {
 	return &InvitationStore{db: db}
 }

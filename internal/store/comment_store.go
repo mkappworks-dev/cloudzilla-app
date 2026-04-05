@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// CommentStore provides database operations for issue and PR comments.
 type CommentStore struct{ db *sql.DB }
 
+// NewCommentStore creates a CommentStore backed by the given database.
 func NewCommentStore(db *sql.DB) *CommentStore { return &CommentStore{db: db} }
 
 func (s *CommentStore) Create(ctx context.Context, c *model.Comment) error {

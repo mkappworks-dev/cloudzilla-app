@@ -9,11 +9,13 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// WatchService manages repository watch subscriptions.
 type WatchService struct {
 	watches *store.WatchStore
 	repos   *store.RepoStore
 }
 
+// NewWatchService creates a WatchService backed by the given stores.
 func NewWatchService(watches *store.WatchStore, repos *store.RepoStore) *WatchService {
 	return &WatchService{watches: watches, repos: repos}
 }

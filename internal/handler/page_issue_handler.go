@@ -13,6 +13,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
+// PageIssues renders the paginated issue list for a repository.
 func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -62,6 +63,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageIssueDetail renders the issue detail page with comments and sidebar.
 func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -140,6 +142,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageNewIssue renders the new issue form, optionally pre-filled from an issue template.
 func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -179,6 +182,7 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageNewIssueSubmit handles new issue form submission and redirects to the created issue.
 func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {

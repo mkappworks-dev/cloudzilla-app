@@ -12,6 +12,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
+// CommitSummary holds abbreviated commit metadata for list views.
 type CommitSummary struct {
 	Hash       string
 	FullHash   string
@@ -20,6 +21,7 @@ type CommitSummary struct {
 	AuthorTime time.Time
 }
 
+// CommitLog holds a paginated list of commits for a ref.
 type CommitLog struct {
 	Commits  []CommitSummary
 	Ref      string
@@ -29,6 +31,7 @@ type CommitLog struct {
 	HasMore  bool
 }
 
+// DiffLine represents one line in a unified diff with type (add/del/ctx) and line numbers.
 type DiffLine struct {
 	Type    string // "add", "del", "ctx"
 	Content string
@@ -36,11 +39,13 @@ type DiffLine struct {
 	NewNum  int
 }
 
+// DiffHunk groups contiguous diff lines under a unified diff hunk header.
 type DiffHunk struct {
 	Header string
 	Lines  []DiffLine
 }
 
+// FileDiff holds the complete diff for a single file including all hunks and stats.
 type FileDiff struct {
 	OldPath  string
 	NewPath  string
@@ -52,6 +57,7 @@ type FileDiff struct {
 	Hunks    []DiffHunk
 }
 
+// CommitDetail holds full metadata and file diffs for a single commit.
 type CommitDetail struct {
 	Hash         string
 	FullHash     string

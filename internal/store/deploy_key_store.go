@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// DeployKeyStore provides database operations for repository deploy keys.
 type DeployKeyStore struct{ db *sql.DB }
 
+// NewDeployKeyStore creates a DeployKeyStore backed by the given database.
 func NewDeployKeyStore(db *sql.DB) *DeployKeyStore { return &DeployKeyStore{db: db} }
 
 func (s *DeployKeyStore) Create(ctx context.Context, k *model.DeployKey) error {

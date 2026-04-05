@@ -10,6 +10,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
+// ContributorStat holds commit and diff statistics for a single contributor.
 type ContributorStat struct {
 	Name      string
 	Email     string
@@ -18,11 +19,13 @@ type ContributorStat struct {
 	Deletions int
 }
 
+// WeeklyActivity holds the total commit count for a calendar week.
 type WeeklyActivity struct {
 	WeekStart time.Time
 	Total     int
 }
 
+// CodeFrequencyWeek holds line addition and deletion counts for a calendar week.
 type CodeFrequencyWeek struct {
 	WeekStart time.Time
 	Additions int

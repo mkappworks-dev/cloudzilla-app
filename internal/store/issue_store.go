@@ -9,10 +9,12 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// IssueStore provides database operations for issues.
 type IssueStore struct {
 	db *sql.DB
 }
 
+// NewIssueStore creates an IssueStore backed by the given database.
 func NewIssueStore(database *sql.DB) *IssueStore {
 	return &IssueStore{db: database}
 }

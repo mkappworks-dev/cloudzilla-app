@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// TopicStore provides database operations for repository topic tags.
 type TopicStore struct{ db *sql.DB }
 
+// NewTopicStore creates a TopicStore backed by the given database.
 func NewTopicStore(db *sql.DB) *TopicStore { return &TopicStore{db: db} }
 
 // SetTopics replaces all topics for a repo atomically.

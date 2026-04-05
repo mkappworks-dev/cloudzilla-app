@@ -3,6 +3,7 @@ package service
 import "regexp"
 
 // MentionRegex matches @username tokens.
+// MentionRegex matches @username mentions in comment text.
 var MentionRegex = regexp.MustCompile(`@([A-Za-z0-9_-]+)`)
 
 // parseMentions returns unique usernames found in body (without the @ prefix).

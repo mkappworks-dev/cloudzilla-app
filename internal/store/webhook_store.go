@@ -9,8 +9,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// WebhookStore provides database operations for webhooks and delivery history.
 type WebhookStore struct{ db *sql.DB }
 
+// NewWebhookStore creates a WebhookStore backed by the given database.
 func NewWebhookStore(db *sql.DB) *WebhookStore { return &WebhookStore{db: db} }
 
 func (s *WebhookStore) Create(ctx context.Context, wh *model.Webhook) error {

@@ -18,12 +18,14 @@ func pinLimitGuard(pinnedCount int) string {
 	return ""
 }
 
+// IssueService manages issue lifecycle including creation, state transitions, and visibility.
 type IssueService struct {
 	issues   *store.IssueStore
 	repos    *store.RepoStore
 	repoSvc  *RepoService
 }
 
+// NewIssueService creates an IssueService backed by the given stores.
 func NewIssueService(issues *store.IssueStore, repos *store.RepoStore, repoSvc *RepoService) *IssueService {
 	return &IssueService{issues: issues, repos: repos, repoSvc: repoSvc}
 }

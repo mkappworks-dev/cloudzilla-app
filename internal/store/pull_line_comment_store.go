@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// PullLineCommentStore provides database operations for inline PR diff comments.
 type PullLineCommentStore struct{ db *sql.DB }
 
+// NewPullLineCommentStore creates a PullLineCommentStore backed by the given database.
 func NewPullLineCommentStore(db *sql.DB) *PullLineCommentStore {
 	return &PullLineCommentStore{db: db}
 }

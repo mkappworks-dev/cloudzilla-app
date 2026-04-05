@@ -8,6 +8,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// LabelService manages repository labels and their assignment to issues and PRs.
 type LabelService struct {
 	labels *store.LabelStore
 	repos  *store.RepoStore
@@ -15,6 +16,7 @@ type LabelService struct {
 	pulls  *store.PullStore
 }
 
+// NewLabelService creates a LabelService backed by the given stores.
 func NewLabelService(labels *store.LabelStore, repos *store.RepoStore, issues *store.IssueStore, pulls *store.PullStore) *LabelService {
 	return &LabelService{labels: labels, repos: repos, issues: issues, pulls: pulls}
 }

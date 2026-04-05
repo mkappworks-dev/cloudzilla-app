@@ -9,8 +9,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// ExploreStore provides database queries for trending repositories and users.
 type ExploreStore struct{ db *sql.DB }
 
+// NewExploreStore creates an ExploreStore backed by the given database.
 func NewExploreStore(db *sql.DB) *ExploreStore { return &ExploreStore{db: db} }
 
 // TrendingRepos returns public repos ordered by stars gained since the given cutoff time.

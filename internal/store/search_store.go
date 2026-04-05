@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// SearchStore provides full-text search queries across repos, issues, PRs, and users.
 type SearchStore struct{ db *sql.DB }
 
+// NewSearchStore creates a SearchStore backed by the given database.
 func NewSearchStore(db *sql.DB) *SearchStore { return &SearchStore{db: db} }
 
 func (s *SearchStore) SearchRepos(ctx context.Context, query string, requestingUserID *int64, limit int) ([]model.Repository, error) {

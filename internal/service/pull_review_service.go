@@ -8,12 +8,14 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// PullReviewService manages PR review submission and approval state.
 type PullReviewService struct {
 	reviews *store.PullReviewStore
 	pulls   *store.PullStore
 	repos   *store.RepoStore
 }
 
+// NewPullReviewService creates a PullReviewService backed by the given stores.
 func NewPullReviewService(reviews *store.PullReviewStore, pulls *store.PullStore, repos *store.RepoStore) *PullReviewService {
 	return &PullReviewService{reviews: reviews, pulls: pulls, repos: repos}
 }

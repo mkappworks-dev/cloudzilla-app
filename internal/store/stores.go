@@ -4,6 +4,7 @@ import (
 	"database/sql"
 )
 
+// Stores bundles all database store instances used by the application.
 type Stores struct {
 	User             *UserStore
 	Repo             *RepoStore
@@ -46,6 +47,7 @@ type Stores struct {
 	Dependency         *DependencyStore
 }
 
+// New constructs and wires all stores from the given database connection.
 func New(database *sql.DB) *Stores {
 	return &Stores{
 		User:             NewUserStore(database),

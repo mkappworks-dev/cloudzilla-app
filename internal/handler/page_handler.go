@@ -20,6 +20,7 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 	return BasePage{CurrentUser: &claims, UnreadNotifCount: count, AllowLogin: allowLogin}
 }
 
+// PageHome renders the home feed page.
 func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 	if _, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		http.Redirect(w, r, "/feed", http.StatusSeeOther)

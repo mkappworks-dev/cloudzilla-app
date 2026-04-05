@@ -11,6 +11,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// OrgService manages organization creation, membership, and ownership transfers.
 type OrgService struct {
 	orgs  *store.OrgStore
 	repos *store.RepoStore
@@ -18,6 +19,7 @@ type OrgService struct {
 	cfg   config.GitConfig
 }
 
+// NewOrgService creates an OrgService backed by the given stores and git config.
 func NewOrgService(orgs *store.OrgStore, repos *store.RepoStore, users *store.UserStore, cfg config.GitConfig) *OrgService {
 	return &OrgService{orgs: orgs, repos: repos, users: users, cfg: cfg}
 }

@@ -11,11 +11,13 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
+// DeployKeyService manages repository deploy keys used for SSH authentication.
 type DeployKeyService struct {
 	keys    *store.DeployKeyStore
 	sshKeys *store.SSHKeyStore
 }
 
+// NewDeployKeyService creates a DeployKeyService backed by the given stores.
 func NewDeployKeyService(keys *store.DeployKeyStore, sshKeys *store.SSHKeyStore) *DeployKeyService {
 	return &DeployKeyService{keys: keys, sshKeys: sshKeys}
 }

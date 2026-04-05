@@ -18,36 +18,43 @@ var ErrEmptyRepo = errors.New("repository is empty")
 // ErrRefNotFound is returned when a named ref (branch, tag, or SHA) cannot be resolved.
 var ErrRefNotFound = errors.New("ref not found")
 
+// BranchInfo holds summary information about a git branch.
 type BranchInfo struct {
 	Name      string
 	Hash      string
 	IsDefault bool
 }
 
+// TagInfo holds summary information about a git tag.
 type TagInfo struct {
 	Name string
 	Hash string
 }
 
+// RefsResult holds all branches and tags for a repository.
 type RefsResult struct {
 	Branches []BranchInfo
 	Tags     []TagInfo
 }
 
+// BreadcrumbPart represents one segment of a file path breadcrumb navigation.
 type BreadcrumbPart struct {
 	Name string
 	URL  string
 }
 
+// CodeLine represents a single numbered line of source code.
 type CodeLine struct {
 	Num  int
 	Text string
 }
 
+// CodeService provides read and write operations over bare git repositories on disk.
 type CodeService struct {
 	cfg config.GitConfig
 }
 
+// NewCodeService returns a CodeService configured to read repos from cfg.ReposRoot.
 func NewCodeService(cfg config.GitConfig) *CodeService {
 	return &CodeService{cfg: cfg}
 }

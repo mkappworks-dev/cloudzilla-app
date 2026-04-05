@@ -21,11 +21,13 @@ var (
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
 )
 
+// UserService manages user account operations including authentication and profile updates.
 type UserService struct {
 	store *store.UserStore
 	cfg   config.AuthConfig
 }
 
+// NewUserService creates a UserService backed by the given user store and auth config.
 func NewUserService(s *store.UserStore, cfg config.AuthConfig) *UserService {
 	return &UserService{store: s, cfg: cfg}
 }

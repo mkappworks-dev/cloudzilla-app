@@ -13,12 +13,14 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/markdown"
 )
 
+// TreeEntry represents a single file or directory in a git tree.
 type TreeEntry struct {
 	Name  string
 	IsDir bool
 	URL   string
 }
 
+// TreeResult holds the directory listing returned by GetTree.
 type TreeResult struct {
 	Entries     []TreeEntry
 	Ref         string
@@ -26,6 +28,7 @@ type TreeResult struct {
 	Breadcrumbs []BreadcrumbPart
 }
 
+// BlobResult holds the content of a single file as numbered lines.
 type BlobResult struct {
 	Ref         string
 	Path        string

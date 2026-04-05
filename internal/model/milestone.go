@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// Milestone represents an issue/PR milestone with a due date and progress tracking.
 type Milestone struct {
 	ID          int64      `db:"id"          json:"id"`
 	RepoID      int64      `db:"repo_id"     json:"repo_id"`

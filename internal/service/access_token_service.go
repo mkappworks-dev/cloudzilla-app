@@ -15,11 +15,13 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// AccessTokenService manages personal access token (PAT) generation and validation.
 type AccessTokenService struct {
 	tokens *store.AccessTokenStore
 	users  *store.UserStore
 }
 
+// NewAccessTokenService creates an AccessTokenService backed by the given stores.
 func NewAccessTokenService(tokens *store.AccessTokenStore, users *store.UserStore) *AccessTokenService {
 	return &AccessTokenService{tokens: tokens, users: users}
 }

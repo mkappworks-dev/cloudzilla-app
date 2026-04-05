@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// SavedReply represents a user-defined reply template for reuse in comments.
 type SavedReply struct {
 	ID        int64     `db:"id"         json:"id"`
 	UserID    int64     `db:"user_id"    json:"user_id"`

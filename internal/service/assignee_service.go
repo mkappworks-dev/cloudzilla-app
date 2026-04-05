@@ -8,6 +8,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// AssigneeService manages assigning and removing users from issues and pull requests.
 type AssigneeService struct {
 	assignees *store.AssigneeStore
 	repos     *store.RepoStore
@@ -16,6 +17,7 @@ type AssigneeService struct {
 	users     *store.UserStore
 }
 
+// NewAssigneeService creates an AssigneeService backed by the given stores.
 func NewAssigneeService(assignees *store.AssigneeStore, repos *store.RepoStore, issues *store.IssueStore, pulls *store.PullStore, users *store.UserStore) *AssigneeService {
 	return &AssigneeService{assignees: assignees, repos: repos, issues: issues, pulls: pulls, users: users}
 }

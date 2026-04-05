@@ -8,10 +8,12 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// SiteSettingStore provides database operations for instance-wide site settings.
 type SiteSettingStore struct {
 	db *sql.DB
 }
 
+// NewSiteSettingStore creates a SiteSettingStore backed by the given database.
 func NewSiteSettingStore(db *sql.DB) *SiteSettingStore {
 	return &SiteSettingStore{db: db}
 }

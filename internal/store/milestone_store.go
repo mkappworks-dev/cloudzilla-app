@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// MilestoneStore provides database operations for milestones.
 type MilestoneStore struct{ db *sql.DB }
 
+// NewMilestoneStore creates a MilestoneStore backed by the given database.
 func NewMilestoneStore(db *sql.DB) *MilestoneStore { return &MilestoneStore{db: db} }
 
 const milestoneCountsSQL = `

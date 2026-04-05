@@ -20,10 +20,12 @@ func savedReplyValidate(title, body string) string {
 	return ""
 }
 
+// SavedReplyService manages user-defined saved reply templates for comments.
 type SavedReplyService struct {
 	replies *store.SavedReplyStore
 }
 
+// NewSavedReplyService creates a SavedReplyService backed by the given store.
 func NewSavedReplyService(replies *store.SavedReplyStore) *SavedReplyService {
 	return &SavedReplyService{replies: replies}
 }

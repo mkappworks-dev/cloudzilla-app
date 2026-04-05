@@ -9,8 +9,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// DependencyStore provides database operations for repository dependency manifests.
 type DependencyStore struct{ db *sql.DB }
 
+// NewDependencyStore creates a DependencyStore backed by the given database.
 func NewDependencyStore(db *sql.DB) *DependencyStore { return &DependencyStore{db: db} }
 
 // Replace atomically replaces all dependencies for a repo in a single transaction.

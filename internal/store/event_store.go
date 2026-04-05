@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// EventStore provides database operations for activity feed events.
 type EventStore struct{ db *sql.DB }
 
+// NewEventStore creates an EventStore backed by the given database.
 func NewEventStore(db *sql.DB) *EventStore { return &EventStore{db: db} }
 
 // Record inserts one event row.

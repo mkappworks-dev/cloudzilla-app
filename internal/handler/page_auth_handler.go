@@ -9,6 +9,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
+// PageLogin renders the login form page.
 func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
 	ldapEnabled, samlEnabled := h.ssoEnabled(r)
 	h.render(w, r, pages.Login(view.LoginData{
@@ -18,6 +19,7 @@ func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageLoginSubmit handles form login, sets the auth cookie, and redirects on success.
 func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	password := r.FormValue("password")

@@ -14,6 +14,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
+// PageRepo renders the repository home page with the default branch tree.
 func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -96,6 +97,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageRepoSettings renders the repository settings page with collaborators and webhooks.
 func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -162,6 +164,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageRefs renders the branches and tags overview page.
 func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -200,6 +203,7 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageTree renders the directory tree browser at a given ref and path.
 func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -240,6 +244,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageBlob renders a single file with syntax-highlighted numbered lines.
 func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -281,6 +286,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageCommits renders the paginated commit log for a ref.
 func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -322,6 +328,7 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageCommit renders the full diff and metadata for a single commit SHA.
 func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -363,6 +370,7 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageBlame renders the per-line blame annotation for a file at a given ref.
 func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")

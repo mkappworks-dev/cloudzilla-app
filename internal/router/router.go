@@ -12,6 +12,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/service"
 )
 
+// New registers all application routes and returns the configured chi router.
 func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Handler {
 	r := chi.NewRouter()
 	h := handler.New(services, cfg)

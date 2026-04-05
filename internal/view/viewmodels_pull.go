@@ -5,6 +5,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/service"
 )
 
+// PullsData holds template data for the pull request list page.
 type PullsData struct {
 	BasePage
 	Repo            model.Repository
@@ -17,6 +18,7 @@ type PullsData struct {
 	StateFilter     string
 }
 
+// PullDetailData holds template data for the pull request detail page.
 type PullDetailData struct {
 	BasePage
 	Repo              model.Repository
@@ -42,6 +44,7 @@ type PullDetailData struct {
 }
 
 // PullNewData is used by the new-pull-request page.
+// PullNewData holds template data for the new pull request form page.
 type PullNewData struct {
 	BasePage
 	Repo         model.Repository
@@ -52,6 +55,7 @@ type PullNewData struct {
 	Error        string
 }
 
+// PRReviewsFragData holds template data for the PR reviews HTMX fragment.
 type PRReviewsFragData struct {
 	Owner            string
 	RepoName         string
@@ -63,6 +67,7 @@ type PRReviewsFragData struct {
 	MergeBlockReason string
 }
 
+// PullDetailFragData holds template data for the pull request detail HTMX fragment.
 type PullDetailFragData struct {
 	Pull              model.PullRequest
 	Owner             string
@@ -73,6 +78,7 @@ type PullDetailFragData struct {
 	AutoMergeStrategy string
 }
 
+// PullLabelSidebarData holds template data for the PR label sidebar HTMX fragment.
 type PullLabelSidebarData struct {
 	Owner      string
 	RepoName   string
@@ -82,6 +88,7 @@ type PullLabelSidebarData struct {
 	CanWrite   bool
 }
 
+// PullAssigneeSidebarData holds template data for the PR assignee sidebar HTMX fragment.
 type PullAssigneeSidebarData struct {
 	Owner      string
 	RepoName   string
@@ -91,6 +98,7 @@ type PullAssigneeSidebarData struct {
 }
 
 // Line comment fragments
+// LineCommentsFragData holds template data for the inline line comments HTMX fragment.
 type LineCommentsFragData struct {
 	Owner      string
 	RepoName   string
@@ -101,6 +109,7 @@ type LineCommentsFragData struct {
 	CanWrite   bool
 }
 
+// LineCommentFormFragData holds template data for the inline comment form HTMX fragment.
 type LineCommentFormFragData struct {
 	Owner      string
 	RepoName   string

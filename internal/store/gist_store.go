@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// GistStore provides database operations for gists and their files.
 type GistStore struct{ db *sql.DB }
 
+// NewGistStore creates a GistStore backed by the given database.
 func NewGistStore(db *sql.DB) *GistStore { return &GistStore{db: db} }
 
 func (s *GistStore) Create(ctx context.Context, g *model.Gist, files []model.GistFile) error {

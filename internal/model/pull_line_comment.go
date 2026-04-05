@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// PullLineComment represents an inline comment on a specific line of a PR diff.
 type PullLineComment struct {
 	ID             int64     `db:"id"              json:"id"`
 	PullID         int64     `db:"pull_id"         json:"pull_id"`

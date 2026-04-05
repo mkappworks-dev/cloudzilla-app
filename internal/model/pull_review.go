@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// PRReviewState represents the state of a pull request review.
 type PRReviewState string
 
 const (
@@ -11,6 +12,7 @@ const (
 	PRReviewPending          PRReviewState = "pending"
 )
 
+// PullReview represents a reviewer's submitted review on a pull request.
 type PullReview struct {
 	ID          int64         `db:"id"           json:"id"`
 	PullID      int64         `db:"pull_id"      json:"pull_id"`

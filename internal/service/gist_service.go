@@ -19,10 +19,12 @@ const (
 
 var ErrGistNotFound = errors.New("gist not found")
 
+// GistService manages gist creation, updates, and access control.
 type GistService struct {
 	gists *store.GistStore
 }
 
+// NewGistService creates a GistService backed by the given gist store.
 func NewGistService(gists *store.GistStore) *GistService {
 	return &GistService{gists: gists}
 }

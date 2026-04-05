@@ -14,6 +14,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
 )
 
+// PagePulls renders the paginated pull request list for a repository.
 func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -83,6 +84,7 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageNewPull renders the new pull request form with branch selection and diff preview.
 func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -110,6 +112,7 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageNewPullSubmit handles new PR form submission and redirects to the created PR.
 func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -168,6 +171,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/%s/%s/pulls/%d", owner, repoName, pr.Number), http.StatusSeeOther)
 }
 
+// PagePullDetail renders the pull request detail page with diff, reviews, and merge controls.
 func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")

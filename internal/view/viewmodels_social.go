@@ -6,12 +6,14 @@ import (
 )
 
 // RenderedDiscussionReply wraps a DiscussionReply with its body pre-rendered as HTML.
+// RenderedDiscussionReply holds a discussion reply pre-rendered to safe HTML.
 type RenderedDiscussionReply struct {
 	model.DiscussionReply
 	BodyHTML string
 }
 
 // DiscussionsData is the view model for /{owner}/{repo}/discussions
+// DiscussionsData holds template data for the discussions list page.
 type DiscussionsData struct {
 	BasePage
 	Repo             model.Repository
@@ -24,6 +26,7 @@ type DiscussionsData struct {
 }
 
 // DiscussionDetailData is the view model for /{owner}/{repo}/discussions/{number}
+// DiscussionDetailData holds template data for the discussion detail page.
 type DiscussionDetailData struct {
 	BasePage
 	Repo       model.Repository
@@ -37,6 +40,7 @@ type DiscussionDetailData struct {
 }
 
 // GistsData is the view model for /gists (explore page)
+// GistsData holds template data for the gist list page.
 type GistsData struct {
 	BasePage
 	Gists []model.Gist
@@ -44,6 +48,7 @@ type GistsData struct {
 }
 
 // GistDetailData is the view model for /gists/{id}
+// GistDetailData holds template data for the gist detail page.
 type GistDetailData struct {
 	BasePage
 	Gist    model.Gist
@@ -52,11 +57,13 @@ type GistDetailData struct {
 }
 
 // GistNewData is the view model for /gists/new
+// GistNewData holds template data for the new gist form page.
 type GistNewData struct {
 	BasePage
 }
 
 // GistEditData is the view model for /gists/{id}/edit
+// GistEditData holds template data for the gist edit form page.
 type GistEditData struct {
 	BasePage
 	Gist  model.Gist
@@ -64,6 +71,7 @@ type GistEditData struct {
 }
 
 // StargazersData page
+// StargazersData holds template data for the repository stargazers page.
 type StargazersData struct {
 	BasePage
 	Repo       model.Repository
@@ -74,6 +82,7 @@ type StargazersData struct {
 }
 
 // SearchData page
+// SearchData holds template data for the search results page.
 type SearchData struct {
 	BasePage
 	Query   string
@@ -82,6 +91,7 @@ type SearchData struct {
 }
 
 // TopicData is the view model for the /topic/{name} explore page.
+// TopicData holds template data for the topic explore page.
 type TopicData struct {
 	BasePage
 	TopicName string
@@ -90,6 +100,7 @@ type TopicData struct {
 }
 
 // CodeSearchData is the view model for the /search/code page.
+// CodeSearchData holds template data for the code search results page.
 type CodeSearchData struct {
 	BasePage
 	Query      string
@@ -101,6 +112,7 @@ type CodeSearchData struct {
 }
 
 // ExploreData is the view model for the /explore page.
+// ExploreData holds template data for the explore/trending page.
 type ExploreData struct {
 	BasePage
 	Tab    string
@@ -109,6 +121,7 @@ type ExploreData struct {
 }
 
 // DependenciesData is the view model for the /{owner}/{repo}/network/dependencies page.
+// DependenciesData holds template data for the dependency graph page.
 type DependenciesData struct {
 	BasePage
 	Repo         model.Repository
@@ -119,6 +132,7 @@ type DependenciesData struct {
 }
 
 // ProjectsData is the view model for the projects list page.
+// ProjectsData holds template data for the project boards list page.
 type ProjectsData struct {
 	BasePage
 	Repo     model.Repository
@@ -129,6 +143,7 @@ type ProjectsData struct {
 }
 
 // ProjectDetailData is the view model for the Kanban board page.
+// ProjectDetailData holds template data for the Kanban project board detail page.
 type ProjectDetailData struct {
 	BasePage
 	Repo     model.Repository
@@ -140,6 +155,7 @@ type ProjectDetailData struct {
 }
 
 // Wiki page view (read mode)
+// WikiPageData holds template data for a wiki page view.
 type WikiPageData struct {
 	BasePage
 	Repo        model.Repository
@@ -154,6 +170,7 @@ type WikiPageData struct {
 }
 
 // Wiki editor (create / edit mode)
+// WikiEditData holds template data for the wiki page editor.
 type WikiEditData struct {
 	BasePage
 	Repo     model.Repository
@@ -165,6 +182,7 @@ type WikiEditData struct {
 }
 
 // PulseData is used by the /{owner}/{repo}/pulse page.
+// PulseData holds template data for the repository pulse/insights page.
 type PulseData struct {
 	BasePage
 	Repo          model.Repository
@@ -180,6 +198,7 @@ type PulseData struct {
 }
 
 // ContributorsData is used by the /{owner}/{repo}/graphs/contributors page.
+// ContributorsData holds template data for the contributors graph page.
 type ContributorsData struct {
 	BasePage
 	Repo         model.Repository

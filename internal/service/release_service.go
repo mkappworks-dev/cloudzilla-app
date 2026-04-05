@@ -9,12 +9,14 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// ReleaseService manages repository release creation, updates, and deletion.
 type ReleaseService struct {
 	releases *store.ReleaseStore
 	repos    *store.RepoStore
 	code     *CodeService
 }
 
+// NewReleaseService creates a ReleaseService backed by the given stores and code service.
 func NewReleaseService(releases *store.ReleaseStore, repos *store.RepoStore, code *CodeService) *ReleaseService {
 	return &ReleaseService{releases: releases, repos: repos, code: code}
 }

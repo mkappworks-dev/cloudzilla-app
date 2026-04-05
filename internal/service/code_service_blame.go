@@ -6,6 +6,7 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 )
 
+// BlameLine represents one annotated line of blame output with commit metadata.
 type BlameLine struct {
 	LineNum    int
 	Text       string
@@ -15,6 +16,7 @@ type BlameLine struct {
 	ShowMeta   bool
 }
 
+// BlameResult holds per-line blame annotations for a file at a given ref.
 type BlameResult struct {
 	Ref         string
 	Path        string

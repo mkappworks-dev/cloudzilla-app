@@ -5,6 +5,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/service"
 )
 
+// RepoData holds template data for the repository home page.
 type RepoData struct {
 	BasePage
 	Repo          model.Repository
@@ -26,6 +27,7 @@ type RepoData struct {
 }
 
 // Releases page
+// ReleasesData holds template data for the releases list page.
 type ReleasesData struct {
 	BasePage
 	Repo     model.Repository
@@ -36,6 +38,7 @@ type ReleasesData struct {
 }
 
 // Release detail page
+// ReleaseDetailData holds template data for a single release detail page.
 type ReleaseDetailData struct {
 	BasePage
 	Repo     model.Repository
@@ -46,6 +49,7 @@ type ReleaseDetailData struct {
 	CanWrite bool
 }
 
+// RepoSettingsData holds template data for the repository settings page.
 type RepoSettingsData struct {
 	BasePage
 	Repo              model.Repository
@@ -61,6 +65,7 @@ type RepoSettingsData struct {
 	CanTransfer       bool
 }
 
+// BranchProtectionsFragData holds template data for the branch protections HTMX fragment.
 type BranchProtectionsFragData struct {
 	Owner     string
 	RepoName  string
@@ -69,6 +74,7 @@ type BranchProtectionsFragData struct {
 	CanManage bool
 }
 
+// DeployKeysFragData holds template data for the deploy keys HTMX fragment.
 type DeployKeysFragData struct {
 	Owner      string
 	RepoName   string
@@ -77,6 +83,7 @@ type DeployKeysFragData struct {
 	CanManage  bool
 }
 
+// WebhooksFragData holds template data for the webhooks list HTMX fragment.
 type WebhooksFragData struct {
 	Owner     string
 	RepoName  string
@@ -85,6 +92,7 @@ type WebhooksFragData struct {
 	CanManage bool
 }
 
+// WebhookDeliveriesFragData holds template data for the webhook delivery history HTMX fragment.
 type WebhookDeliveriesFragData struct {
 	Owner      string
 	RepoName   string
@@ -93,6 +101,7 @@ type WebhookDeliveriesFragData struct {
 	CanManage  bool
 }
 
+// RefsData holds template data for the branches and tags page.
 type RefsData struct {
 	BasePage
 	Repo     model.Repository
@@ -103,6 +112,7 @@ type RefsData struct {
 	CanWrite bool
 }
 
+// BranchesFragData holds template data for the branches list HTMX fragment.
 type BranchesFragData struct {
 	Owner         string
 	RepoName      string
@@ -111,6 +121,7 @@ type BranchesFragData struct {
 	DefaultBranch string
 }
 
+// TagsFragData holds template data for the tags list HTMX fragment.
 type TagsFragData struct {
 	Owner    string
 	RepoName string
@@ -118,6 +129,7 @@ type TagsFragData struct {
 	CanWrite bool
 }
 
+// TreeData holds template data for the repository tree browser page.
 type TreeData struct {
 	BasePage
 	Repo        model.Repository
@@ -130,6 +142,7 @@ type TreeData struct {
 	RefsURL     string
 }
 
+// BlobData holds template data for the file blob viewer page.
 type BlobData struct {
 	BasePage
 	Repo        model.Repository
@@ -143,6 +156,7 @@ type BlobData struct {
 	BlameURL    string
 }
 
+// BlameData holds template data for the file blame page.
 type BlameData struct {
 	BasePage
 	Repo        model.Repository
@@ -155,6 +169,7 @@ type BlameData struct {
 	BlobURL     string
 }
 
+// CommitsData holds template data for the commit log page.
 type CommitsData struct {
 	BasePage
 	Repo     model.Repository
@@ -164,6 +179,7 @@ type CommitsData struct {
 	RefsURL  string
 }
 
+// CommitData holds template data for the single commit detail page.
 type CommitData struct {
 	BasePage
 	Repo     model.Repository
@@ -173,6 +189,7 @@ type CommitData struct {
 	Statuses []model.CommitStatus
 }
 
+// RepoCollaboratorsFragData holds template data for the repository collaborators HTMX fragment.
 type RepoCollaboratorsFragData struct {
 	Owner     string
 	RepoName  string
@@ -182,6 +199,7 @@ type RepoCollaboratorsFragData struct {
 }
 
 // Repo labels management (settings page)
+// RepoLabelsFragData holds template data for the repository labels HTMX fragment.
 type RepoLabelsFragData struct {
 	Owner    string
 	RepoName string
@@ -191,6 +209,7 @@ type RepoLabelsFragData struct {
 }
 
 // Fork button fragment
+// ForkButtonData holds template data for the fork button HTMX fragment.
 type ForkButtonData struct {
 	BasePage
 	Owner     string
@@ -199,6 +218,7 @@ type ForkButtonData struct {
 }
 
 // Star button fragment
+// StarButtonData holds template data for the star/unstar button HTMX fragment.
 type StarButtonData struct {
 	Owner     string
 	RepoName  string
@@ -209,6 +229,7 @@ type StarButtonData struct {
 }
 
 // Watch button fragment
+// WatchButtonData holds template data for the watch/unwatch button HTMX fragment.
 type WatchButtonData struct {
 	Owner    string
 	RepoName string
@@ -218,6 +239,7 @@ type WatchButtonData struct {
 }
 
 // RepoTopicsFragData is the view model for the repo-topics HTMX fragment.
+// RepoTopicsFragData holds template data for the repository topics HTMX fragment.
 type RepoTopicsFragData struct {
 	Owner     string
 	RepoName  string

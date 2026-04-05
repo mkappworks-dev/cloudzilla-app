@@ -10,6 +10,7 @@ import (
 
 // RequireSetup redirects all requests to /setup when setup is not complete.
 // Allows /setup, /static/, and /invite/ through unconditionally.
+// RequireSetup redirects all requests to /setup until the instance has been configured.
 func RequireSetup(svc *service.SiteSettingService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

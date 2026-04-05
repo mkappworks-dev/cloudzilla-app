@@ -9,11 +9,13 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// MilestoneService manages milestone creation, updates, and issue/PR associations.
 type MilestoneService struct {
 	milestones *store.MilestoneStore
 	repos      *store.RepoStore
 }
 
+// NewMilestoneService creates a MilestoneService backed by the given stores.
 func NewMilestoneService(milestones *store.MilestoneStore, repos *store.RepoStore) *MilestoneService {
 	return &MilestoneService{milestones: milestones, repos: repos}
 }

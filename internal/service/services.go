@@ -5,6 +5,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// Services bundles all application service instances used by HTTP handlers.
 type Services struct {
 	User             *UserService
 	Repo             *RepoService
@@ -48,6 +49,7 @@ type Services struct {
 	Dependency       *DependencyService
 }
 
+// New constructs and wires all services from the given stores and configuration.
 func New(stores *store.Stores, cfg *config.Config) *Services {
 	code := NewCodeService(cfg.Git)
 	index := NewIndexService(stores.CodeSearch, code)

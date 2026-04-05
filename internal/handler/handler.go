@@ -10,11 +10,13 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/service"
 )
 
+// Handler holds all application services and configuration needed by HTTP handlers.
 type Handler struct {
 	Services *service.Services
 	Cfg      *config.Config
 }
 
+// New creates a Handler wiring the given services and configuration.
 func New(services *service.Services, cfg *config.Config) *Handler {
 	return &Handler{Services: services, Cfg: cfg}
 }

@@ -9,12 +9,14 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// PullLineCommentService manages inline line comments on pull request diffs.
 type PullLineCommentService struct {
 	comments *store.PullLineCommentStore
 	pulls    *store.PullStore
 	repos    *store.RepoStore
 }
 
+// NewPullLineCommentService creates a PullLineCommentService backed by the given stores.
 func NewPullLineCommentService(comments *store.PullLineCommentStore, pulls *store.PullStore, repos *store.RepoStore) *PullLineCommentService {
 	return &PullLineCommentService{comments: comments, pulls: pulls, repos: repos}
 }

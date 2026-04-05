@@ -8,6 +8,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// CommentService manages issue and PR comment creation, editing, and deletion.
 type CommentService struct {
 	comments *store.CommentStore
 	mentions *store.MentionStore
@@ -15,6 +16,7 @@ type CommentService struct {
 	notifs   *NotificationService
 }
 
+// NewCommentService creates a CommentService backed by the given stores.
 func NewCommentService(
 	comments *store.CommentStore,
 	mentions *store.MentionStore,
