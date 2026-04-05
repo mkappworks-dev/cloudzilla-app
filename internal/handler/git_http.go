@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -316,6 +317,18 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	// Re-index the repository for code search after each push.
 	go func() {
 		_ = h.Services.Index.IndexRepo(context.Background(), repo)
+	}()
+
+	// Re-parse dependency manifests for code graph after each push.
+	go func() {
+		if err := h.Services.Dependency.ParseAndStore(context.Background(), repo); err != nil {
+			slog.Error("dependency: failed to parse and store manifests",
+				"repo_id", repo.ID,
+				"owner", repo.OwnerName,
+				"repo", repo.Name,
+				"error", err,
+			)
+		}
 	}()
 }
 

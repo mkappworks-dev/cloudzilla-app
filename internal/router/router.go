@@ -109,6 +109,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/commit/{sha}", h.PageCommit)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulse", h.PagePulse)
 	r.With(optAuthMW).Get("/{owner}/{repo}/graphs/contributors", h.PageContributors)
+	r.With(optAuthMW).Get("/{owner}/{repo}/network/dependencies", h.PageDependencies)
 	r.With(optAuthMW).Get("/{owner}/{repo}/wiki", h.PageWikiHome)
 	r.With(optAuthMW).Get("/{owner}/{repo}/wiki/{slug}", h.PageWikiPage)
 	r.With(authMW).Get("/{owner}/{repo}/wiki/{slug}/edit", h.PageWikiEdit)
