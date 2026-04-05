@@ -765,3 +765,38 @@ type DiscussionDetailData struct {
 	BodyHTML   string
 	CanWrite   bool
 }
+
+// GistsData is the view model for /gists (explore page)
+type GistsData struct {
+	BasePage
+	Gists []model.Gist
+	Page  int
+}
+
+// GistDetailData is the view model for /gists/{id}
+type GistDetailData struct {
+	BasePage
+	Gist    model.Gist
+	Files   []model.GistFile
+	IsOwner bool
+}
+
+// GistNewData is the view model for /gists/new
+type GistNewData struct {
+	BasePage
+}
+
+// GistEditData is the view model for /gists/{id}/edit
+type GistEditData struct {
+	BasePage
+	Gist  model.Gist
+	Files []model.GistFile
+}
+
+// UserGistsData is the view model for /{owner}/gists
+type UserGistsData struct {
+	BasePage
+	ProfileUser model.User
+	Gists       []model.Gist
+	Page        int
+}
