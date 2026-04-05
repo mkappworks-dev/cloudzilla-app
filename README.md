@@ -143,10 +143,12 @@ First visit redirects to `/setup` to create your superadmin account.
 | Document                                           | Description                                                 |
 | -------------------------------------------------- | ----------------------------------------------------------- |
 | [CLAUDE.md](./CLAUDE.md)                           | Developer guide: conventions, architecture, adding features |
+| [docs/api-reference.md](./docs/api-reference.md)   | Full API endpoint tables with auth levels                   |
+| [docs/configuration.md](./docs/configuration.md)   | Config reference, env vars, CLI, production deployment      |
 | [docs/ROADMAP.md](./docs/ROADMAP.md)               | Full feature roadmap with phase specs and migration details |
 | [docs/access-control.md](./docs/access-control.md) | Permission model: instance, org, and repo levels            |
 | [docs/code-browser.md](./docs/code-browser.md)     | Code browser URL patterns, CodeService API, ref resolution  |
-| [docs/deployment.md](./docs/deployment.md)         | Docker setup, env vars, systemd, first-run bootstrap        |
+| [docs/deployment.md](./docs/deployment.md)         | Docker quick start, env var overrides                       |
 | [docs/git-transport.md](./docs/git-transport.md)   | HTTP smart protocol, SSH auth, permission rules             |
 | [docs/htmx-patterns.md](./docs/htmx-patterns.md)   | HTMX fragment rendering, template parse sequence            |
 | [docs/notifications.md](./docs/notifications.md)   | Notification types, service API, extension pattern          |
