@@ -250,6 +250,110 @@ func copyFile(src, dst string, mode os.FileMode) error {
 	return err
 }
 
+// archiveGuard returns an error if the caller does not have manage permission.
+func archiveGuard(canManage bool) error {
+	if !canManage {
+		return fmt.Errorf("forbidden: only the repo owner or org owner can archive a repo")
+	}
+	return nil
+}
+
+// templateGuard returns an error if the caller does not have manage permission.
+func templateGuard(canManage bool) error {
+	if !canManage {
+		return fmt.Errorf("forbidden: only the repo owner or org owner can change template status")
+	}
+	return nil
+}
+
+func (s *RepoService) Archive(ctx context.Context, repoID, userID int64) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	if err := archiveGuard(s.CanManage(ctx, repo, userID)); err != nil {
+		return err
+	}
+	return s.repos.SetArchived(ctx, repoID, true)
+}
+
+func (s *RepoService) Unarchive(ctx context.Context, repoID, userID int64) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	if err := archiveGuard(s.CanManage(ctx, repo, userID)); err != nil {
+		return err
+	}
+	return s.repos.SetArchived(ctx, repoID, false)
+}
+
+func (s *RepoService) SetTemplate(ctx context.Context, repoID, userID int64, isTemplate bool) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	if err := templateGuard(s.CanManage(ctx, repo, userID)); err != nil {
+		return err
+	}
+	return s.repos.SetTemplate(ctx, repoID, isTemplate)
+}
+
+func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, newOwnerID int64, newOwnerUsername, newName, description string) (*model.Repository, error) {
+	tmpl, err := s.repos.GetByID(ctx, templateRepoID)
+	if err != nil {
+		return nil, fmt.Errorf("template repo not found: %w", err)
+	}
+	if !tmpl.IsTemplate {
+		return nil, fmt.Errorf("repository is not a template")
+	}
+	if tmpl.Private {
+		return nil, fmt.Errorf("template repo must be public")
+	}
+	if tmpl.IsArchived {
+		return nil, fmt.Errorf("template repo is archived")
+	}
+
+	newRepo := &model.Repository{
+		OwnerID:       newOwnerID,
+		OwnerName:     newOwnerUsername,
+		Name:          newName,
+		Description:   description,
+		Private:       false,
+		DefaultBranch: tmpl.DefaultBranch,
+	}
+	if err := s.repos.CreateWithOwnerName(ctx, newRepo); err != nil {
+		return nil, fmt.Errorf("create repo from template: %w", err)
+	}
+
+	srcPath := filepath.Join(s.cfg.ReposRoot, tmpl.OwnerName, tmpl.Name+".git")
+	dstDir := filepath.Join(s.cfg.ReposRoot, newOwnerUsername)
+	dstPath := filepath.Join(dstDir, newName+".git")
+
+	if err := os.MkdirAll(dstDir, 0755); err != nil {
+		_ = s.repos.DeleteByID(ctx, newRepo.ID)
+		return nil, fmt.Errorf("create owner dir: %w", err)
+	}
+
+	if _, statErr := os.Stat(srcPath); statErr == nil {
+		if err := copyDir(srcPath, dstPath); err != nil {
+			_ = s.repos.DeleteByID(ctx, newRepo.ID)
+			return nil, fmt.Errorf("copy template git dir: %w", err)
+		}
+	} else {
+		if _, err := gogit.PlainInit(dstPath, true); err != nil {
+			_ = s.repos.DeleteByID(ctx, newRepo.ID)
+			return nil, fmt.Errorf("git init bare for template copy: %w", err)
+		}
+	}
+
+	return newRepo, nil
+}
+
+func (s *RepoService) ListTemplates(ctx context.Context) ([]model.Repository, error) {
+	return s.repos.ListTemplates(ctx)
+}
+
 // TransferRepo transfers ownership of a personal repo to another user.
 // Only the current owner (repo.OwnerID == requestingUserID) may call this.
 // Org repos cannot be transferred via this method.

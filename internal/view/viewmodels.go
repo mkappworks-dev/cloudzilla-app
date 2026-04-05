@@ -30,7 +30,8 @@ type BasePage struct {
 // Page data structs
 type HomeData struct {
 	BasePage
-	Repos []model.Repository
+	Repos     []model.Repository
+	Templates []model.Repository
 }
 
 // Feed page
@@ -93,6 +94,7 @@ type RepoData struct {
 	ForkOfPath    string
 	LatestRelease *model.Release
 	Topics        []model.Topic
+	IsArchived    bool
 }
 
 // Releases page
