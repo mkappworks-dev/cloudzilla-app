@@ -11,6 +11,12 @@
 
 ---
 
+# Milestone 1 — Core Platform (Phases 0–15.3) ✅ COMPLETE
+
+_All 53 migrations implemented. Code complete — closing with licensing, security audit, documentation overhaul, refactoring, and test coverage._
+
+---
+
 ## Phase 0 — Core Platform ✅ IMPLEMENTED
 
 _The foundational layer: identity, repositories, collaboration primitives, and instance management. Migrations 001–015._
@@ -2095,6 +2101,16 @@ CREATE TABLE repo_dependencies (
 ```
 
 After each push, a `DependencyService.ParseAndStore(ctx, repo)` goroutine reads manifest files (`go.mod`, `package.json`, `requirements.txt`, `Cargo.toml`) from the default branch tip and upserts rows. `GET /{owner}/{repo}/network/dependencies` renders a table of parsed dependencies. No external package-registry API calls needed; purely local parsing.
+
+---
+
+> **Milestone 1 Closing (April 2026):** All Phases 0–15.3 are code-complete with 53 migrations. Current work: BSL 1.1 licensing, security audit, Go server refactor, frontend DRY refactor, documentation overhaul, and test coverage plan. These close Milestone 1 before tagging v0.1.0.
+
+---
+
+# Milestone 2 — Advanced Infrastructure (Phases 16–20) ⬜ PLANNED
+
+_Container registry, Git LFS, CI/CD pipelines, clustering, and GraphQL API._
 
 ---
 
