@@ -64,10 +64,12 @@ Request → RequestID → Recoverer → Logger → CORS → CSRF → RequireSetu
 
 ### Organization Roles
 
-| Role     | Read repos | Create repos | Manage members | Transfer org | Delete org |
-| -------- | :--------: | :----------: | :------------: | :----------: | :--------: |
-| `owner`  |    Yes     |     Yes      |      Yes       |     Yes      |    Yes     |
-| `member` |    Yes     |      No      |       No       |      No      |     No     |
+| Role     | Read public repos | Read private repos | Create repos | Manage members | Transfer org | Delete org |
+| -------- | :---------------: | :----------------: | :----------: | :------------: | :----------: | :--------: |
+| `owner`  |        Yes        |        Yes         |     Yes      |      Yes       |     Yes      |    Yes     |
+| `member` |        Yes        |   No (need role)   |      No      |       No       |      No      |     No     |
+
+Org members do not get implicit access to private repos. They must be added as explicit collaborators (`reader`/`writer`/`admin`) on each repo.
 
 ### Repository Roles
 
@@ -77,15 +79,30 @@ Request → RequestID → Recoverer → Logger → CORS → CSRF → RequireSetu
 | Authenticated (no role)  |      Yes      |       No       |      No      |             No             |    No    |   No   |
 | `reader`                 |      Yes      |      Yes       |      No      |             No             |    No    |   No   |
 | `writer`                 |      Yes      |      Yes       |     Yes      |             No             |    No    |   No   |
-| `admin`                  |      Yes      |      Yes       |     Yes      |             No             |    No    |   No   |
+| `admin`                  |      Yes      |      Yes       |     Yes      |            Yes             |    No    |   No   |
 | Repo owner               |      Yes      |      Yes       |     Yes      |            Yes             |   Yes    |  Yes   |
-| Org owner (org repos)    |      Yes      |      Yes       |     Yes      |            Yes             |    No    |   No   |
+| Org owner (org repos)    |      Yes      |      Yes       |     Yes      |            Yes             |   Yes    |  Yes   |
+
+**Manage** includes: collaborator CRUD, branch protection, deploy keys, topics, wiki deletion, discussion categories, webhook CRUD, repo settings page access.
+
+**Transfer/Delete** (owner-only) includes: repo transfer, archive, unarchive, template toggle, soft-delete/restore.
+
+### Organization Repo Ownership
+
+For org repos, `owner_id` points to the org entity. Access is determined by `org_members`:
+
+| Org Role | Create repos | Manage repos | Transfer repos | Delete repos | Appoint admins |
+| -------- | :----------: | :----------: | :------------: | :----------: | :------------: |
+| `owner`  |     Yes      |     Yes      |      Yes       |     Yes      |      Yes       |
+| `member` |      No      |      No      |       No       |      No      |       No       |
+
+Org owners can also appoint `admin` collaborators who can manage settings and assign `reader`/`writer` roles.
 
 ---
 
 ## Authorization Checks in Code
 
-Three methods on `RepoService` enforce repository permissions:
+Four methods on `RepoService` enforce repository permissions:
 
 ```go
 // CanRead — public repos always pass; private require auth + any role
@@ -94,8 +111,11 @@ func (s *RepoService) CanRead(ctx, repo, userID *int64) bool
 // CanWrite — owner, org owner, or writer/admin collaborator
 func (s *RepoService) CanWrite(ctx, repo, userID int64) bool
 
-// CanManage — owner or org owner only (NOT admin collaborator)
+// CanManage — owner, org owner, or admin collaborator
 func (s *RepoService) CanManage(ctx, repo, userID int64) bool
+
+// IsOwner — repo owner or org owner only (for transfer, delete, archive)
+func (s *RepoService) IsOwner(ctx, repo, userID int64) bool
 ```
 
 ### Two-Layer Enforcement Pattern
@@ -264,22 +284,22 @@ Superadmin generates token link → shares manually. No SMTP required.
 
 ### Repository Endpoints — Manage (Require CanManage or Owner)
 
-| Method            | Path                                      | Auth   | AuthZ Check          | Handler                 |
-| ----------------- | ----------------------------------------- | ------ | -------------------- | ----------------------- |
-| PATCH             | `.../issues/{number}/pin`                 | authMW | CanManage (handler)  | PinIssue                |
-| PATCH             | `.../issues/{number}/lock`                | authMW | CanManage (handler)  | LockIssue               |
-| POST/PATCH/DELETE | `.../branches/protections`                | authMW | CanManage (handler)  | BranchProtection CRUD   |
-| POST/DELETE       | `.../hooks`                               | authMW | CanWrite (handler)   | Webhook CRUD            |
-| POST/DELETE       | `/api/repos/{owner}/{repo}/collaborators` | authMW | CanManage (handler)  | Collaborator CRUD       |
-| POST/DELETE       | `/api/repos/{owner}/{repo}/keys`          | authMW | CanManage (handler)  | DeployKey CRUD          |
-| PUT               | `/api/repos/{owner}/{repo}/topics`        | authMW | CanManage (handler)  | SetTopics               |
-| POST              | `/api/repos/{owner}/{repo}/transfer`      | authMW | Owner only (handler) | TransferRepo            |
-| POST              | `/api/repos/{owner}/{repo}/archive`       | authMW | CanManage (handler)  | ArchiveRepo             |
-| POST              | `/api/repos/{owner}/{repo}/unarchive`     | authMW | CanManage (handler)  | UnarchiveRepo           |
-| POST              | `/api/repos/{owner}/{repo}/restore`       | authMW | CanManage (handler)  | RestoreRepo             |
-| PATCH             | `/api/repos/{owner}/{repo}/template`      | authMW | CanManage (handler)  | SetRepoTemplate         |
-| DELETE            | `/api/repos/{owner}/{repo}/wiki/{slug}`   | authMW | CanManage (handler)  | DeleteWikiPage          |
-| POST/DELETE       | `.../discussions/categories`              | authMW | CanManage (handler)  | DiscussionCategory CRUD |
+| Method            | Path                                      | Auth   | AuthZ Check         | Handler                 |
+| ----------------- | ----------------------------------------- | ------ | ------------------- | ----------------------- |
+| PATCH             | `.../issues/{number}/pin`                 | authMW | CanManage (handler) | PinIssue                |
+| PATCH             | `.../issues/{number}/lock`                | authMW | CanManage (handler) | LockIssue               |
+| POST/PATCH/DELETE | `.../branches/protections`                | authMW | CanManage (handler) | BranchProtection CRUD   |
+| POST/DELETE       | `.../hooks`                               | authMW | CanManage (handler) | Webhook CRUD            |
+| POST/DELETE       | `/api/repos/{owner}/{repo}/collaborators` | authMW | CanManage (handler) | Collaborator CRUD       |
+| POST/DELETE       | `/api/repos/{owner}/{repo}/keys`          | authMW | CanManage (handler) | DeployKey CRUD          |
+| PUT               | `/api/repos/{owner}/{repo}/topics`        | authMW | CanManage (handler) | SetTopics               |
+| POST              | `/api/repos/{owner}/{repo}/transfer`      | authMW | IsOwner (service)   | TransferRepo            |
+| POST              | `/api/repos/{owner}/{repo}/archive`       | authMW | IsOwner (service)   | ArchiveRepo             |
+| POST              | `/api/repos/{owner}/{repo}/unarchive`     | authMW | IsOwner (service)   | UnarchiveRepo           |
+| POST              | `/api/repos/{owner}/{repo}/restore`       | authMW | IsOwner (service)   | RestoreRepo             |
+| PATCH             | `/api/repos/{owner}/{repo}/template`      | authMW | IsOwner (service)   | SetRepoTemplate         |
+| DELETE            | `/api/repos/{owner}/{repo}/wiki/{slug}`   | authMW | CanManage (handler) | DeleteWikiPage          |
+| POST/DELETE       | `.../discussions/categories`              | authMW | CanManage (handler) | DiscussionCategory CRUD |
 
 ### Repository Endpoints — Service-Layer Auth (Project Board)
 

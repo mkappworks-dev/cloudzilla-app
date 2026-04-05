@@ -198,7 +198,7 @@ CREATE TABLE permissions (
 );
 ```
 
-Roles: `reader` (read private repos), `writer` (push), `admin` (write + see settings; cannot manage collaborators).
+Roles: `reader` (read private repos), `writer` (push), `admin` (write + manage collaborators, settings, branch protection, deploy keys).
 
 **Store:** `internal/store/permission_store.go` — `Set`, `Get`, `ListByRepo` (`ListPermissionsWithUsername` via JOIN), `Delete`.
 
@@ -2030,7 +2030,7 @@ ALTER TABLE repositories
 CREATE INDEX idx_repos_template ON repositories(is_template) WHERE is_template = TRUE;
 ```
 
-**Archive:** `RepoService.Archive/Unarchive` (CanManage). Archived repos block all pushes with "repository is archived". UI shows a yellow banner and hides write-action buttons. **Templates:** `RepoService.SetTemplate` (CanManage) marks a repo as a template. `CreateFromTemplate` copies the bare git directory and inserts a new `repositories` row. `PageNewRepo` shows a template selector dropdown.
+**Archive:** `RepoService.Archive/Unarchive` (IsOwner). Archived repos block all pushes with "repository is archived". UI shows a yellow banner and hides write-action buttons. **Templates:** `RepoService.SetTemplate` (IsOwner) marks a repo as a template. `CreateFromTemplate` copies the bare git directory and inserts a new `repositories` row. `PageNewRepo` shows a template selector dropdown.
 
 ---
 

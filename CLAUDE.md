@@ -109,7 +109,8 @@ See [docs/git-transport.md](./docs/git-transport.md) for full endpoints, config,
 - SSH: port 2222; public key auth via `ssh_keys` + `deploy_keys` tables (MD5 fingerprint)
 - `RepoService.CanRead` — public repos always pass; private require auth + any role
 - `RepoService.CanWrite` — owner, org owner, or `writer`/`admin` role
-- `RepoService.CanManage` — owner or org owner only (not `admin` collaborator)
+- `RepoService.CanManage` — owner, org owner, or `admin` collaborator (settings, collabs, branch protection)
+- `RepoService.IsOwner` — owner or org owner only (transfer, delete, archive)
 - `RepoService.TransferRepo` — personal repos only; moves git dir on disk
 
 ## HTMX & Template Patterns
