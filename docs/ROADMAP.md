@@ -2418,7 +2418,7 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 13.2  | Profile README                       | ✅ Done    | —            |
 | 13.3  | Repository Topics / Tags             | ✅ Done    | 048          |
 | 14.1  | Private Issues                       | ✅ Done    | 049          |
-| 14.2  | Archive & Templates                  | ⬜ Planned | 050          |
+| 14.2  | Archive & Templates                  | ✅ Done    | 050          |
 | 14.3  | Repository Soft-delete & Recovery    | ⬜ Planned | 051          |
 | 15.1  | Advanced Code Search                 | ⬜ Planned | 051          |
 | 15.2  | Explore / Trending                   | ⬜ Planned | —            |
