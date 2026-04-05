@@ -65,7 +65,7 @@ func (h *Handler) AddDeployKey(w http.ResponseWriter, r *http.Request) {
 
 	dk, err := h.Services.DeployKey.Add(r.Context(), repo.ID, title, publicKey, readOnly)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		writeError(w, http.StatusUnprocessableEntity, "failed to add deploy key")
 		return
 	}
 

@@ -8,13 +8,44 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
+
+// isInternalURL checks if a URL targets a private/internal IP range.
+func isInternalURL(rawURL string) bool {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Host == "" {
+		return true // reject unparseable or hostless URLs
+	}
+	host := u.Hostname()
+
+	// Block common internal hostnames
+	if host == "localhost" || host == "metadata.google.internal" {
+		return true
+	}
+
+	ip := net.ParseIP(host)
+	if ip == nil {
+		// Could be a hostname that resolves to internal IP — resolve it
+		addrs, err := net.LookupHost(host)
+		if err != nil || len(addrs) == 0 {
+			return false // let it fail naturally
+		}
+		ip = net.ParseIP(addrs[0])
+		if ip == nil {
+			return false
+		}
+	}
+
+	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast()
+}
 
 type WebhookService struct {
 	webhooks *store.WebhookStore
@@ -29,6 +60,9 @@ func NewWebhookService(webhooks *store.WebhookStore) *WebhookService {
 }
 
 func (s *WebhookService) Create(ctx context.Context, repoID int64, url, secret, events string) (*model.Webhook, error) {
+	if isInternalURL(url) {
+		return nil, fmt.Errorf("webhook URL must not target internal networks")
+	}
 	if events == "" {
 		events = "push,issues,pull_request"
 	}
@@ -87,6 +121,11 @@ func (s *WebhookService) Dispatch(repoID int64, event string, payload any) {
 }
 
 func (s *WebhookService) deliver(wh model.Webhook, event string, payload []byte) {
+	if isInternalURL(wh.URL) {
+		slog.Warn("webhook: blocked delivery to internal URL", "webhook_id", wh.ID, "url", wh.URL)
+		return
+	}
+
 	ctx := context.Background()
 	d := &model.WebhookDelivery{
 		WebhookID: wh.ID,

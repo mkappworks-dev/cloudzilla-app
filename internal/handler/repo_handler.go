@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -57,7 +58,8 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Create(r.Context(), claims.Username, req.Name, req.Description, req.Private)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("failed to create repo", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to create repository")
 		return
 	}
 
@@ -143,7 +145,7 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 			RepoName: repoName,
 			RepoID:   repo.ID,
 			Collabs:  collabs,
-			CanWrite: true,
+			CanManage: true,
 		}))
 		return
 	}
@@ -167,6 +169,11 @@ func (h *Handler) TransferRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !h.Services.Repo.IsOwner(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
 	newOwner := r.FormValue("new_owner")
 	if newOwner == "" {
 		writeError(w, http.StatusBadRequest, "new_owner is required")
@@ -174,7 +181,7 @@ func (h *Handler) TransferRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Repo.TransferRepo(r.Context(), repo, claims.UserID, newOwner); err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		writeError(w, http.StatusUnprocessableEntity, "transfer failed")
 		return
 	}
 
@@ -206,7 +213,12 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 
 	var userID int64
 	if v := r.URL.Query().Get("user_id"); v != "" {
-		userID, _ = strconv.ParseInt(v, 10, 64)
+		var parseErr error
+		userID, parseErr = strconv.ParseInt(v, 10, 64)
+		if parseErr != nil {
+			writeError(w, http.StatusBadRequest, "invalid user_id")
+			return
+		}
 	} else {
 		var body struct {
 			UserID int64 `json:"user_id"`
@@ -222,7 +234,8 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Repo.RemoveCollaborator(r.Context(), repo.ID, userID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -236,7 +249,7 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 			RepoName: repoName,
 			RepoID:   repo.ID,
 			Collabs:  collabs,
-			CanWrite: true,
+			CanManage: true,
 		}))
 		return
 	}

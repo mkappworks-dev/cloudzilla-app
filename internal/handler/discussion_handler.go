@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -142,6 +143,16 @@ func (h *Handler) CreateDiscussion(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
 	var body struct {
 		CategoryID int64  `json:"category_id"`
 		Title      string `json:"title"`
@@ -250,7 +261,8 @@ func (h *Handler) MarkAnswer(w http.ResponseWriter, r *http.Request) {
 	if body.AnswerID != nil {
 		if string(body.AnswerID) == "null" {
 			if err := h.Services.Discussion.SetAnswer(r.Context(), discussion.ID, nil); err != nil {
-				writeError(w, http.StatusInternalServerError, err.Error())
+				slog.Error("operation failed", "error", err)
+				writeError(w, http.StatusInternalServerError, "internal server error")
 				return
 			}
 		} else {
@@ -267,7 +279,8 @@ func (h *Handler) MarkAnswer(w http.ResponseWriter, r *http.Request) {
 	}
 	if body.Locked != nil {
 		if err := h.Services.Discussion.Lock(r.Context(), discussion.ID, *body.Locked); err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			slog.Error("operation failed", "error", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 	}
@@ -314,7 +327,8 @@ func (h *Handler) DeleteDiscussionReply(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := h.Services.Discussion.DeleteReply(r.Context(), replyID, discussion.ID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -384,7 +398,8 @@ func (h *Handler) DeleteDiscussionCategory(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := h.Services.Discussion.DeleteCategory(r.Context(), catID, repo.ID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

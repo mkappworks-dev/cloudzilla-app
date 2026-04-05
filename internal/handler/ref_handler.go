@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -94,7 +95,8 @@ func (h *Handler) DeleteBranch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Code.DeleteBranch(owner, repoName, name); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -197,7 +199,8 @@ func (h *Handler) DeleteTag(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Code.DeleteTag(owner, repoName, name); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 

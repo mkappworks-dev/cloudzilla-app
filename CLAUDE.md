@@ -109,7 +109,8 @@ See [docs/git-transport.md](./docs/git-transport.md) for full endpoints, config,
 - SSH: port 2222; public key auth via `ssh_keys` + `deploy_keys` tables (MD5 fingerprint)
 - `RepoService.CanRead` — public repos always pass; private require auth + any role
 - `RepoService.CanWrite` — owner, org owner, or `writer`/`admin` role
-- `RepoService.CanManage` — owner or org owner only (not `admin` collaborator)
+- `RepoService.CanManage` — owner, org owner, or `admin` collaborator (settings, collabs, branch protection)
+- `RepoService.IsOwner` — owner or org owner only (transfer, delete, archive)
 - `RepoService.TransferRepo` — personal repos only; moves git dir on disk
 
 ## HTMX & Template Patterns
@@ -136,7 +137,8 @@ See [docs/access-control.md](./docs/access-control.md) for full tables and flows
 - Three levels: instance (`superadmin`/`user`), org (`owner`/`member`), repo (`reader`/`writer`/`admin`)
 - First-run `/setup` → first submitter becomes superadmin; `RequireSetup` middleware redirects all routes until done
 - `allow_registration` / `allow_login` site settings; invite tokens bypass both
-- `CanManage` — owner or org owner only (not `admin` collaborator); gates collaborator CRUD
+- `CanManage` — owner, org owner, or `admin` collaborator; gates settings, collaborators, webhooks, branch protection
+- `IsOwner` — owner or org owner only; gates transfer, delete, archive
 - HTMX responses swap `fragment-repo-collaborators` into `#repo-collaborators`
 
 ---
@@ -253,8 +255,14 @@ Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs
 | 15.3    | Dependency Graph                             | ✅ Done    | 053          |
 | 16–20   | (next planned phases)                        | ⬜ Planned | 054–060      |
 
-> Full specs for all planned phases (5–20): [docs/roadmap.md](./docs/roadmap.md)
-> Implementation plans for each phase: [docs/superpowers/plans/](./docs/superpowers/plans/)
+### Milestone Structure
+
+- **Milestone 1** (Phases 0–15.3, migrations 001–053): Core platform — code complete, closing in progress
+- **Milestone 2** (Phases 16–20, migrations 054–060+): Advanced infrastructure — planned
+
+Milestone 1 closing work: BSL 1.1 licensing, security audit, Go server refactor, frontend DRY refactor, documentation overhaul, and test coverage. Plans at [docs/superpowers/plans/](./docs/superpowers/plans/).
+
+> Full roadmap: [docs/ROADMAP.md](./docs/ROADMAP.md)
 
 ## Branch Naming Convention
 

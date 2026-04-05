@@ -2,8 +2,6 @@ package store
 
 import (
 	"database/sql"
-
-	storedb "github.com/mkappworks/cloudzilla/internal/store/db"
 )
 
 type Stores struct {
@@ -49,14 +47,13 @@ type Stores struct {
 }
 
 func New(database *sql.DB) *Stores {
-	q := storedb.New(database)
 	return &Stores{
-		User:             NewUserStore(q, database),
-		Repo:             NewRepoStore(q, database),
-		Issue:            NewIssueStore(q, database),
-		Pull:             NewPullStore(q, database),
-		Comment:          NewCommentStore(q),
-		SSHKey:           NewSSHKeyStore(q),
+		User:             NewUserStore(database),
+		Repo:             NewRepoStore(database),
+		Issue:            NewIssueStore(database),
+		Pull:             NewPullStore(database),
+		Comment:          NewCommentStore(database),
+		SSHKey:           NewSSHKeyStore(database),
 		Org:              NewOrgStore(database),
 		Webhook:          NewWebhookStore(database),
 		Notification:     NewNotificationStore(database),

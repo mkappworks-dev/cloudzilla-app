@@ -309,8 +309,8 @@ templ RepoSettings(data view.RepoSettingsData) {
 					}
 				</div>
 			</div>
-			if data.CanManage {
-				<!-- Archive / Unarchive section -->
+			if data.IsOwner {
+				<!-- Archive / Unarchive section (owner-only) -->
 				<section class="mt-8 rounded-md border border-gray-200 bg-white p-6">
 					<h2 class="text-base font-semibold text-gray-900">Danger Zone</h2>
 					<div class="mt-4 flex items-center justify-between">

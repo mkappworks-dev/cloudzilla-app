@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -53,6 +54,21 @@ func (h *Handler) CreateLabel(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
 	var name, color, description string
 	if r.Header.Get("HX-Request") == "true" {
 		if err := r.ParseForm(); err != nil {
@@ -76,7 +92,8 @@ func (h *Handler) CreateLabel(w http.ResponseWriter, r *http.Request) {
 
 	label, err := h.Services.Label.Create(r.Context(), owner, repoName, name, color, description)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -104,10 +121,31 @@ func (h *Handler) CreateLabel(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteLabel(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	labelID, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	labelID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid label id")
+		return
+	}
 
 	if err := h.Services.Label.Delete(r.Context(), owner, repoName, labelID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -135,11 +173,36 @@ func (h *Handler) DeleteLabel(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AddIssueLabel(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
-	labelID, _ := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
+	labelID, err := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid label id")
+		return
+	}
 
 	if err := h.Services.Label.AddToIssue(r.Context(), owner, repoName, number, labelID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -153,11 +216,36 @@ func (h *Handler) AddIssueLabel(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RemoveIssueLabel(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
-	labelID, _ := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
+	labelID, err := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid label id")
+		return
+	}
 
 	if err := h.Services.Label.RemoveFromIssue(r.Context(), owner, repoName, number, labelID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -171,11 +259,36 @@ func (h *Handler) RemoveIssueLabel(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AddPullLabel(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
-	labelID, _ := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
+	labelID, err := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid label id")
+		return
+	}
 
 	if err := h.Services.Label.AddToPull(r.Context(), owner, repoName, number, labelID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -189,11 +302,36 @@ func (h *Handler) AddPullLabel(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RemovePullLabel(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
-	labelID, _ := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
+	labelID, err := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid label id")
+		return
+	}
 
 	if err := h.Services.Label.RemoveFromPull(r.Context(), owner, repoName, number, labelID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 

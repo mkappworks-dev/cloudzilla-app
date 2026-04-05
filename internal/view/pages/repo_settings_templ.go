@@ -676,8 +676,8 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if data.CanManage {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 79, "<!-- Archive / Unarchive section --> <section class=\"mt-8 rounded-md border border-gray-200 bg-white p-6\"><h2 class=\"text-base font-semibold text-gray-900\">Danger Zone</h2><div class=\"mt-4 flex items-center justify-between\"><div>")
+			if data.IsOwner {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 79, "<!-- Archive / Unarchive section (owner-only) --> <section class=\"mt-8 rounded-md border border-gray-200 bg-white p-6\"><h2 class=\"text-base font-semibold text-gray-900\">Danger Zone</h2><div class=\"mt-4 flex items-center justify-between\"><div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

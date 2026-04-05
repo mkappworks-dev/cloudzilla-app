@@ -234,7 +234,8 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		return
 	}
 
-	// Enforce branch protection rules and dispatch push webhooks
+	// Enforce branch protection rules and dispatch push webhooks.
+	// If protection rejects the push, rollback the ref to its previous value.
 	if gitCmd == "git-receive-pack" && err == nil {
 		for _, cmd := range commands {
 			if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
@@ -246,6 +247,9 @@ func (s *Server) sessionHandler(session ssh.Session) {
 			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
 			forcePush := cmd.Action() == packp.Update && cmd.Old != plumbing.ZeroHash && isForcePushSSH(gitRepo, cmd)
 			if err := s.services.BranchProtection.CheckPush(ctx, repo.ID, branch, forcePush); err != nil {
+				// Rollback the ref to its previous value
+				ref := plumbing.NewHashReference(cmd.Name, cmd.Old)
+				_ = gitRepo.Storer.SetReference(ref)
 				fmt.Fprintf(session.Stderr(), "error: push rejected: %v\n", err)
 				session.Exit(1)
 				return

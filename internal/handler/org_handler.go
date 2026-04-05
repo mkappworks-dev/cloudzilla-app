@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -198,7 +199,7 @@ func (h *Handler) TransferOrg(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Org.TransferOrg(r.Context(), org.ID, claims.UserID, newOwner); err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		writeError(w, http.StatusUnprocessableEntity, "transfer failed")
 		return
 	}
 
@@ -227,7 +228,8 @@ func (h *Handler) CreateOrgRepo(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Org.CreateRepo(r.Context(), org.ID, claims.UserID, req.Name, req.Description, req.Private)
 	if err != nil {
-		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		slog.Error("failed to create org repo", "org", orgName, "error", err)
+		writeError(w, http.StatusUnprocessableEntity, "failed to create repository")
 		return
 	}
 	writeJSON(w, http.StatusCreated, repo)

@@ -11,6 +11,12 @@
 
 ---
 
+# Milestone 1 — Core Platform (Phases 0–15.3) ✅ COMPLETE
+
+_All 53 migrations implemented. Code complete — closing with licensing, security audit, documentation overhaul, refactoring, and test coverage._
+
+---
+
 ## Phase 0 — Core Platform ✅ IMPLEMENTED
 
 _The foundational layer: identity, repositories, collaboration primitives, and instance management. Migrations 001–015._
@@ -192,7 +198,7 @@ CREATE TABLE permissions (
 );
 ```
 
-Roles: `reader` (read private repos), `writer` (push), `admin` (write + see settings; cannot manage collaborators).
+Roles: `reader` (read private repos), `writer` (push), `admin` (write + manage collaborators, settings, branch protection, deploy keys).
 
 **Store:** `internal/store/permission_store.go` — `Set`, `Get`, `ListByRepo` (`ListPermissionsWithUsername` via JOIN), `Delete`.
 
@@ -2024,7 +2030,7 @@ ALTER TABLE repositories
 CREATE INDEX idx_repos_template ON repositories(is_template) WHERE is_template = TRUE;
 ```
 
-**Archive:** `RepoService.Archive/Unarchive` (CanManage). Archived repos block all pushes with "repository is archived". UI shows a yellow banner and hides write-action buttons. **Templates:** `RepoService.SetTemplate` (CanManage) marks a repo as a template. `CreateFromTemplate` copies the bare git directory and inserts a new `repositories` row. `PageNewRepo` shows a template selector dropdown.
+**Archive:** `RepoService.Archive/Unarchive` (IsOwner). Archived repos block all pushes with "repository is archived". UI shows a yellow banner and hides write-action buttons. **Templates:** `RepoService.SetTemplate` (IsOwner) marks a repo as a template. `CreateFromTemplate` copies the bare git directory and inserts a new `repositories` row. `PageNewRepo` shows a template selector dropdown.
 
 ---
 
@@ -2095,6 +2101,16 @@ CREATE TABLE repo_dependencies (
 ```
 
 After each push, a `DependencyService.ParseAndStore(ctx, repo)` goroutine reads manifest files (`go.mod`, `package.json`, `requirements.txt`, `Cargo.toml`) from the default branch tip and upserts rows. `GET /{owner}/{repo}/network/dependencies` renders a table of parsed dependencies. No external package-registry API calls needed; purely local parsing.
+
+---
+
+> **Milestone 1 Closing (April 2026):** All Phases 0–15.3 are code-complete with 53 migrations. Current work: BSL 1.1 licensing, security audit, Go server refactor, frontend DRY refactor, documentation overhaul, and test coverage plan. These close Milestone 1 before tagging v0.1.0.
+
+---
+
+# Milestone 2 — Advanced Infrastructure (Phases 16–20) ⬜ PLANNED
+
+_Container registry, Git LFS, CI/CD pipelines, clustering, and GraphQL API._
 
 ---
 

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -34,7 +35,7 @@ func (h *Handler) ListWebhooks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
 		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -65,7 +66,7 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
 		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -97,7 +98,8 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 
 	wh, err := h.Services.Webhook.Create(r.Context(), repo.ID, url, secret, events)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -111,7 +113,7 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 			RepoName: repoName,
 			RepoID:   repo.ID,
 			Webhooks: hooks,
-			CanWrite: true,
+			CanManage: true,
 		}))
 		return
 	}
@@ -121,7 +123,11 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid webhook id")
+		return
+	}
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
@@ -134,7 +140,7 @@ func (h *Handler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
 		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -154,7 +160,7 @@ func (h *Handler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
 			RepoName: repoName,
 			RepoID:   repo.ID,
 			Webhooks: hooks,
-			CanWrite: true,
+			CanManage: true,
 		}))
 		return
 	}
@@ -162,7 +168,11 @@ func (h *Handler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ListWebhookDeliveries(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid webhook id")
+		return
+	}
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
@@ -177,7 +187,7 @@ func (h *Handler) ListWebhookDeliveries(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
 		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -192,13 +202,12 @@ func (h *Handler) ListWebhookDeliveries(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		h.render(w, r, fragments.WebhookDeliveriesList(view.WebhookDeliveriesFragData{
 			Owner:      owner,
 			RepoName:   repoName,
 			WebhookID:  id,
 			Deliveries: deliveries,
-			CanWrite:   canWrite,
+			CanManage:  true, // already verified above
 		}))
 		return
 	}
@@ -225,7 +234,7 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "repo not found")
 		return
 	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
 		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -281,7 +290,7 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 			RepoName: repoName,
 			RepoID:   repo.ID,
 			Webhooks: hooks,
-			CanWrite: true,
+			CanManage: true,
 		}))
 		return
 	}
@@ -309,7 +318,7 @@ func (h *Handler) RedeliverWebhook(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "repo not found")
 		return
 	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
 		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}

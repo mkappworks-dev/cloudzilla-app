@@ -18,7 +18,11 @@ import (
 func (h *Handler) ListLineComments(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
 
 	comments, err := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
 	if err != nil {
@@ -37,7 +41,11 @@ func (h *Handler) CreateLineComment(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
 
 	var path, diffSide, body string
 	var line int
@@ -50,6 +58,10 @@ func (h *Handler) CreateLineComment(w http.ResponseWriter, r *http.Request) {
 		path = r.FormValue("path")
 		diffSide = r.FormValue("diff_side")
 		line, _ = strconv.Atoi(r.FormValue("line"))
+		if line <= 0 {
+			writeError(w, http.StatusBadRequest, "invalid line number")
+			return
+		}
 		body = r.FormValue("body")
 	} else {
 		var req struct {
@@ -115,9 +127,17 @@ func (h *Handler) GetLineCommentForm(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
 	path := r.URL.Query().Get("path")
 	line, _ := strconv.Atoi(r.URL.Query().Get("line"))
+	if line <= 0 {
+		writeError(w, http.StatusBadRequest, "invalid line number")
+		return
+	}
 
 	h.render(w, r, fragments.LineCommentForm(view.LineCommentFormFragData{
 		Owner:      owner,
@@ -137,8 +157,16 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid comment id")
+		return
+	}
 
 	// Fetch comment before deleting so we know path/line for the response
 	allBefore, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
@@ -206,12 +234,23 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid comment id")
+		return
+	}
 
 	var body string
 	if r.Header.Get("HX-Request") == "true" || r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form")
+			return
+		}
 		body = r.FormValue("body")
 	} else {
 		var req struct {
@@ -280,8 +319,16 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid comment id")
+		return
+	}
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {

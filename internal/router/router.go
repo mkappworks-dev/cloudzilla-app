@@ -20,11 +20,13 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.Use(chiMiddleware.RequestID)
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(middleware.Logger)
-	r.Use(middleware.CORS(true))
+	r.Use(middleware.CORS(cfg.Server.BaseURL))
+	r.Use(middleware.CSRF(cfg.Auth.CookieSecure))
 	r.Use(middleware.RequireSetup(services.SiteSetting))
 
 	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp)
 	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp)
+	apiBodyLimit := middleware.MaxBodySize(1 << 20) // 1 MB
 
 	superadminMW := middleware.RequireSuperadmin
 
@@ -71,6 +73,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Gist API routes
 	r.Route("/api/gists", func(r chi.Router) {
+		r.Use(apiBodyLimit)
 		r.With(authMW).Post("/", h.CreateGist)
 		r.With(authMW).Get("/file-row", h.AddFileFragment)
 		r.With(authMW).Patch("/{id}", h.UpdateGist)
@@ -130,6 +133,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Auth routes
 	r.Route("/api/auth", func(r chi.Router) {
+		r.Use(apiBodyLimit)
 		r.Post("/login", h.Login)
 		r.Post("/logout", h.Logout)
 	})
@@ -143,7 +147,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Org routes
 	r.Route("/api/orgs", func(r chi.Router) {
-		r.Use(optAuthMW)
+		r.Use(optAuthMW, apiBodyLimit)
 		r.With(authMW).Post("/", h.CreateOrg)
 		r.Get("/{org}", h.GetOrg)
 		r.Get("/{org}/members", h.ListOrgMembers)
@@ -155,7 +159,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Repo routes
 	r.Route("/api/repos", func(r chi.Router) {
-		r.Use(optAuthMW)
+		r.Use(optAuthMW, apiBodyLimit)
 		r.Get("/", h.ListRepos)
 		r.With(authMW).Post("/", h.CreateRepo)
 		r.Get("/{owner}/{repo}", h.GetRepo)
@@ -347,7 +351,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Admin API routes
 	r.Route("/api/admin", func(r chi.Router) {
-		r.Use(authMW, superadminMW)
+		r.Use(authMW, superadminMW, apiBodyLimit)
 		r.Post("/settings", h.UpdateSiteSetting)
 		r.Post("/invitations", h.CreateInvitation)
 		r.Delete("/invitations/{id}", h.DeleteInvitation)
@@ -355,7 +359,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Notification routes
 	r.Route("/api/notifications", func(r chi.Router) {
-		r.Use(authMW)
+		r.Use(authMW, apiBodyLimit)
 		r.Post("/read-all", h.MarkAllNotificationsRead)
 		r.Patch("/{id}", h.MarkNotificationRead)
 		r.Get("/unread-count", h.GetUnreadCount)
@@ -369,7 +373,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// SSH Key routes
 	r.Route("/api/user/keys", func(r chi.Router) {
-		r.Use(authMW)
+		r.Use(authMW, apiBodyLimit)
 		r.Get("/", h.ListSSHKeys)
 		r.Post("/", h.AddSSHKey)
 		r.Delete("/{id}", h.DeleteSSHKey)
@@ -378,14 +382,14 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	// Personal Access Token routes
 	r.With(authMW).Get("/settings/tokens", h.PageTokens)
 	r.Route("/api/user/tokens", func(r chi.Router) {
-		r.Use(authMW)
+		r.Use(authMW, apiBodyLimit)
 		r.Post("/", h.CreateToken)
 		r.Delete("/{id}", h.DeleteToken)
 	})
 
 	// OAuth app API routes
 	r.Route("/api/oauth", func(r chi.Router) {
-		r.Use(authMW)
+		r.Use(authMW, apiBodyLimit)
 		r.Post("/apps", h.CreateOAuthApp)
 		r.Delete("/apps/{id}", h.DeleteOAuthApp)
 		r.Delete("/authorizations/{id}", h.RevokeOAuthAuthorization)
@@ -394,7 +398,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	// Saved replies routes
 	r.With(authMW).Get("/settings/replies", h.PageSavedReplies)
 	r.Route("/api/user/replies", func(r chi.Router) {
-		r.Use(authMW)
+		r.Use(authMW, apiBodyLimit)
 		r.Get("/", h.ListSavedRepliesFragment)
 		r.Post("/", h.CreateSavedReply)
 		r.Patch("/{id}", h.UpdateSavedReply)

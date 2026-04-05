@@ -12,7 +12,11 @@ import (
 )
 
 func (h *Handler) MarkNotificationRead(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid notification id")
+		return
+	}
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "unauthorized")

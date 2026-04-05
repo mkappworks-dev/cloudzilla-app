@@ -129,6 +129,7 @@ type RepoSettingsData struct {
 	DeployKeys        []model.DeployKey
 	BranchProtections []*model.BranchProtection
 	CanManage         bool
+	IsOwner           bool
 	CanTransfer       bool
 }
 
@@ -153,7 +154,7 @@ type WebhooksFragData struct {
 	RepoName string
 	RepoID   int64
 	Webhooks []model.Webhook
-	CanWrite bool
+	CanManage bool
 }
 
 type WebhookDeliveriesFragData struct {
@@ -161,7 +162,7 @@ type WebhookDeliveriesFragData struct {
 	RepoName   string
 	WebhookID  int64
 	Deliveries []model.WebhookDelivery
-	CanWrite   bool
+	CanManage  bool
 }
 
 type IssuesData struct {
@@ -421,7 +422,7 @@ type RepoCollaboratorsFragData struct {
 	RepoName string
 	RepoID   int64
 	Collabs  []model.Permission
-	CanWrite bool
+	CanManage bool
 }
 
 // Label sidebar fragments
@@ -664,7 +665,7 @@ type WikiPageData struct {
 	ContentHTML string // rendered HTML from markdown, use @templ.Raw(data.ContentHTML) in template
 	PageList    []string
 	CanWrite    bool
-	CanManage   bool // true for repo owners only; gates the Delete button
+	CanManage   bool // true for owners and admin collaborators; gates the Delete button
 	Exists      bool // false when the page has never been created
 }
 

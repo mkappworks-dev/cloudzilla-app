@@ -19,21 +19,22 @@ type Config struct {
 type ServerConfig struct {
 	Port         int           `mapstructure:"port"`
 	Host         string        `mapstructure:"host"`
+	BaseURL      string        `mapstructure:"base_url"`
 	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
 	WriteTimeout time.Duration `mapstructure:"write_timeout"`
 }
 
 type DatabaseConfig struct {
-	Driver       string `mapstructure:"driver"`
 	DSN          string `mapstructure:"dsn"`
 	MaxOpenConns int    `mapstructure:"max_open_conns"`
 	MaxIdleConns int    `mapstructure:"max_idle_conns"`
 }
 
 type AuthConfig struct {
-	JWTSecret  string        `mapstructure:"jwt_secret"`
-	JWTExpiry  time.Duration `mapstructure:"jwt_expiry"`
-	CookieName string        `mapstructure:"cookie_name"`
+	JWTSecret    string        `mapstructure:"jwt_secret"`
+	JWTExpiry    time.Duration `mapstructure:"jwt_expiry"`
+	CookieName   string        `mapstructure:"cookie_name"`
+	CookieSecure bool          `mapstructure:"cookie_secure"`
 }
 
 type GitConfig struct {
@@ -63,15 +64,16 @@ func Load(cfgFile string) (*Config, error) {
 	// Defaults
 	v.SetDefault("server.port", 8080)
 	v.SetDefault("server.host", "0.0.0.0")
+	v.SetDefault("server.base_url", "http://localhost:8080")
 	v.SetDefault("server.read_timeout", "15s")
 	v.SetDefault("server.write_timeout", "15s")
-	v.SetDefault("database.driver", "postgres")
 	v.SetDefault("database.dsn", "postgres://cloudzilla:cloudzilla@localhost:5432/cloudzilla?sslmode=disable")
 	v.SetDefault("database.max_open_conns", 10)
 	v.SetDefault("database.max_idle_conns", 5)
 	v.SetDefault("auth.jwt_secret", "change-me")
 	v.SetDefault("auth.jwt_expiry", "24h")
 	v.SetDefault("auth.cookie_name", "cz_token")
+	v.SetDefault("auth.cookie_secure", false)
 	v.SetDefault("git.repos_root", "./git-repos")
 	v.SetDefault("git.ssh_port", 2222)
 	v.SetDefault("git.ssh_host_key", "./cloudzilla_host_key")

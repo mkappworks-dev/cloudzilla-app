@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -15,6 +16,24 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
+
+var validNameRe = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
+
+// ValidateName checks that a repository or owner name is safe for filesystem
+// use and URL routing. Names must start with an alphanumeric character and
+// contain only alphanumeric, dot, underscore, or hyphen characters.
+func ValidateName(name string) error {
+	if len(name) == 0 || len(name) > 100 {
+		return fmt.Errorf("name must be 1-100 characters")
+	}
+	if !validNameRe.MatchString(name) {
+		return fmt.Errorf("name contains invalid characters")
+	}
+	if name == "." || name == ".." {
+		return fmt.Errorf("name is reserved")
+	}
+	return nil
+}
 
 type RepoService struct {
 	repos *store.RepoStore
@@ -28,6 +47,10 @@ func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.
 }
 
 func (s *RepoService) Create(ctx context.Context, ownerUsername, name, description string, private bool) (*model.Repository, error) {
+	if err := ValidateName(name); err != nil {
+		return nil, fmt.Errorf("invalid repository name: %w", err)
+	}
+
 	owner, err := s.users.GetByUsername(ctx, ownerUsername)
 	if err != nil {
 		return nil, fmt.Errorf("owner not found: %w", err)
@@ -139,9 +162,26 @@ func (s *RepoService) CanWrite(ctx context.Context, repo *model.Repository, user
 	return role == string(model.RoleWriter) || role == string(model.RoleAdmin)
 }
 
-// CanManage returns true only for the repo owner or an org owner.
-// Collaborators with admin role can read/write but cannot manage collaborators or settings.
+// CanManage returns true for the repo owner, org owner, or admin collaborators.
+// Grants access to manage collaborators, settings, branch protection, deploy keys, etc.
+// Does NOT grant transfer or delete — use IsOwner for those.
 func (s *RepoService) CanManage(ctx context.Context, repo *model.Repository, userID int64) bool {
+	if repo.OwnerID == userID {
+		return true
+	}
+	if s.isOrgOwner(ctx, repo, userID) {
+		return true
+	}
+	role, err := s.repos.GetPermission(ctx, repo.ID, userID)
+	if err != nil || role == "" {
+		return false
+	}
+	return role == string(model.RoleAdmin)
+}
+
+// IsOwner returns true only for the repo owner or org owner.
+// Used for destructive operations: transfer, delete, archive, unarchive, template toggle.
+func (s *RepoService) IsOwner(ctx context.Context, repo *model.Repository, userID int64) bool {
 	if repo.OwnerID == userID {
 		return true
 	}
@@ -253,17 +293,17 @@ func copyFile(src, dst string, mode os.FileMode) error {
 	return err
 }
 
-// archiveGuard returns an error if the caller does not have manage permission.
-func archiveGuard(canManage bool) error {
-	if !canManage {
+// archiveGuard returns an error if the caller is not an owner.
+func archiveGuard(isOwner bool) error {
+	if !isOwner {
 		return fmt.Errorf("forbidden: only the repo owner or org owner can archive a repo")
 	}
 	return nil
 }
 
-// templateGuard returns an error if the caller does not have manage permission.
-func templateGuard(canManage bool) error {
-	if !canManage {
+// templateGuard returns an error if the caller is not an owner.
+func templateGuard(isOwner bool) error {
+	if !isOwner {
 		return fmt.Errorf("forbidden: only the repo owner or org owner can change template status")
 	}
 	return nil
@@ -274,7 +314,7 @@ func (s *RepoService) Archive(ctx context.Context, repoID, userID int64) error {
 	if err != nil {
 		return fmt.Errorf("repo not found: %w", err)
 	}
-	if err := archiveGuard(s.CanManage(ctx, repo, userID)); err != nil {
+	if err := archiveGuard(s.IsOwner(ctx, repo, userID)); err != nil {
 		return err
 	}
 	return s.repos.SetArchived(ctx, repoID, true)
@@ -285,7 +325,7 @@ func (s *RepoService) Unarchive(ctx context.Context, repoID, userID int64) error
 	if err != nil {
 		return fmt.Errorf("repo not found: %w", err)
 	}
-	if err := archiveGuard(s.CanManage(ctx, repo, userID)); err != nil {
+	if err := archiveGuard(s.IsOwner(ctx, repo, userID)); err != nil {
 		return err
 	}
 	return s.repos.SetArchived(ctx, repoID, false)
@@ -296,7 +336,7 @@ func (s *RepoService) SetTemplate(ctx context.Context, repoID, userID int64, isT
 	if err != nil {
 		return fmt.Errorf("repo not found: %w", err)
 	}
-	if err := templateGuard(s.CanManage(ctx, repo, userID)); err != nil {
+	if err := templateGuard(s.IsOwner(ctx, repo, userID)); err != nil {
 		return err
 	}
 	return s.repos.SetTemplate(ctx, repoID, isTemplate)
@@ -357,9 +397,9 @@ func (s *RepoService) ListTemplates(ctx context.Context) ([]model.Repository, er
 	return s.repos.ListTemplates(ctx)
 }
 
-// deleteGuard returns an error if the caller does not have manage permission.
-func deleteGuard(canManage bool) error {
-	if !canManage {
+// deleteGuard returns an error if the caller is not an owner.
+func deleteGuard(isOwner bool) error {
+	if !isOwner {
 		return fmt.Errorf("forbidden: only the repo owner or org owner can delete a repo")
 	}
 	return nil
@@ -370,7 +410,7 @@ func (s *RepoService) Delete(ctx context.Context, repoID, userID int64) error {
 	if err != nil {
 		return fmt.Errorf("repo not found: %w", err)
 	}
-	if err := deleteGuard(s.CanManage(ctx, repo, userID)); err != nil {
+	if err := deleteGuard(s.IsOwner(ctx, repo, userID)); err != nil {
 		return err
 	}
 

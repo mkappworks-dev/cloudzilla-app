@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -37,7 +38,27 @@ func assigneeUsernameDelete(r *http.Request) string {
 func (h *Handler) AddIssueAssignee(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
 	username := assigneeUsername(r)
 
 	if username == "" {
@@ -46,7 +67,8 @@ func (h *Handler) AddIssueAssignee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Assignee.AddToIssue(r.Context(), owner, repoName, number, username); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -60,7 +82,27 @@ func (h *Handler) AddIssueAssignee(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RemoveIssueAssignee(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
 	username := assigneeUsernameDelete(r)
 
 	if username == "" {
@@ -69,7 +111,8 @@ func (h *Handler) RemoveIssueAssignee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Assignee.RemoveFromIssue(r.Context(), owner, repoName, number, username); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -83,7 +126,27 @@ func (h *Handler) RemoveIssueAssignee(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AddPullAssignee(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
 	username := assigneeUsername(r)
 
 	if username == "" {
@@ -92,7 +155,8 @@ func (h *Handler) AddPullAssignee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Assignee.AddToPull(r.Context(), owner, repoName, number, username); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -106,7 +170,27 @@ func (h *Handler) AddPullAssignee(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RemovePullAssignee(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
 	username := assigneeUsernameDelete(r)
 
 	if username == "" {
@@ -115,7 +199,8 @@ func (h *Handler) RemovePullAssignee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Assignee.RemoveFromPull(r.Context(), owner, repoName, number, username); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 

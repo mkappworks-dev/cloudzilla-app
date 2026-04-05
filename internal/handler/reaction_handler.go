@@ -90,7 +90,10 @@ func (h *Handler) ToggleReaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
 	emoji := r.FormValue("emoji")
 
 	if _, err := h.Services.Reaction.Toggle(r.Context(), claims.UserID, commentID, emoji); err != nil {

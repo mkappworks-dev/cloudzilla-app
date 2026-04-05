@@ -28,6 +28,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	if cfg.Auth.JWTSecret == "change-me" {
+		slog.Warn("SECURITY: using default JWT secret 'change-me' — set CZ_AUTH_JWT_SECRET or auth.jwt_secret in config.yaml for production")
+	}
+
 	database, err := db.Connect(cfg.Database)
 	if err != nil {
 		slog.Error("failed to connect to database", "error", err)

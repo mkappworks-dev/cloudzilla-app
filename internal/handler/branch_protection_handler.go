@@ -62,7 +62,10 @@ func (h *Handler) CreateBranchProtection(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	requireReviewCount, _ := strconv.Atoi(r.FormValue("require_review_count"))
+	requireReviewCount, _ := strconv.Atoi(r.FormValue("require_review_count")) // defaults to 0 (disabled) on invalid input
+	if requireReviewCount < 0 {
+		requireReviewCount = 0
+	}
 	blockForcePush := r.FormValue("block_force_push") == "true"
 
 	var statusChecks model.StringSlice
@@ -82,7 +85,7 @@ func (h *Handler) CreateBranchProtection(w http.ResponseWriter, r *http.Request)
 		BlockForcePush:      blockForcePush,
 	}
 	if err := h.Services.BranchProtection.Create(r.Context(), bp); err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		writeError(w, http.StatusUnprocessableEntity, "failed to create branch protection")
 		return
 	}
 
@@ -132,7 +135,10 @@ func (h *Handler) UpdateBranchProtection(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	requireReviewCount, _ := strconv.Atoi(r.FormValue("require_review_count"))
+	requireReviewCount, _ := strconv.Atoi(r.FormValue("require_review_count")) // defaults to 0 (disabled) on invalid input
+	if requireReviewCount < 0 {
+		requireReviewCount = 0
+	}
 	blockForcePush := r.FormValue("block_force_push") == "true"
 
 	var statusChecks model.StringSlice
@@ -145,7 +151,7 @@ func (h *Handler) UpdateBranchProtection(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.Services.BranchProtection.Update(r.Context(), id, repo.ID, requireReviewCount, statusChecks, blockForcePush); err != nil {
-		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		writeError(w, http.StatusUnprocessableEntity, "failed to update branch protection")
 		return
 	}
 

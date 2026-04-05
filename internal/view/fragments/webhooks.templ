@@ -68,7 +68,7 @@ templ WebhooksList(data view.WebhooksFragData) {
 								<p class="text-xs mt-1 text-gray-400">Inactive</p>
 							}
 						</div>
-						if data.CanWrite {
+						if data.CanManage {
 							<div class="flex gap-2 ml-4 shrink-0">
 								<button
 									hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10) + "/deliveries" }

@@ -39,6 +39,7 @@ func (h *Handler) GoogleOAuthBegin(w http.ResponseWriter, r *http.Request) {
 		Name:     oauthStateCookie,
 		Value:    state,
 		HttpOnly: true,
+		Secure:   h.Cfg.Auth.CookieSecure,
 		Path:     "/",
 		Expires:  time.Now().Add(5 * time.Minute),
 		SameSite: http.SameSiteLaxMode,
@@ -52,7 +53,7 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid OAuth state", http.StatusBadRequest)
 		return
 	}
-	http.SetCookie(w, &http.Cookie{Name: oauthStateCookie, MaxAge: -1, Path: "/"})
+	http.SetCookie(w, &http.Cookie{Name: oauthStateCookie, MaxAge: -1, Path: "/", Secure: h.Cfg.Auth.CookieSecure})
 
 	cfg := h.googleOAuthConfig()
 	token, err := cfg.Exchange(context.Background(), r.URL.Query().Get("code"))
@@ -100,6 +101,7 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		Name:     h.Cfg.Auth.CookieName,
 		Value:    jwtToken,
 		HttpOnly: true,
+		Secure:   h.Cfg.Auth.CookieSecure,
 		Path:     "/",
 		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
 		SameSite: http.SameSiteLaxMode,

@@ -27,7 +27,11 @@ func (h *Handler) PageOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 
 	_, loggedIn := middleware.ClaimsFromContext(r.Context())
 	if !loggedIn {
-		http.Redirect(w, r, "/login?next="+r.URL.RequestURI(), http.StatusSeeOther)
+		next := r.URL.RequestURI()
+		if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") {
+			next = "/"
+		}
+		http.Redirect(w, r, "/login?next="+next, http.StatusSeeOther)
 		return
 	}
 
@@ -81,7 +85,7 @@ func (h *Handler) ConfirmAuthorize(w http.ResponseWriter, r *http.Request) {
 
 	code, err := h.Services.OAuthApp.Authorize(r.Context(), app.ID, claims.UserID, redirectURI, scopes, app)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 

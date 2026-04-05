@@ -173,7 +173,7 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil || !token.Valid {
 		http.SetCookie(w, &http.Cookie{
-			Name: totpPendingCookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true,
+			Name: totpPendingCookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure,
 		})
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
@@ -220,12 +220,13 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name: totpPendingCookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true,
+		Name: totpPendingCookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure,
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:     h.Cfg.Auth.CookieName,
 		Value:    fullToken,
 		HttpOnly: true,
+		Secure:   h.Cfg.Auth.CookieSecure,
 		Path:     "/",
 		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
 		SameSite: http.SameSiteLaxMode,

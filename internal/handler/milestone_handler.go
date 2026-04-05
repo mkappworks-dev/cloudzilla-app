@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -72,7 +73,11 @@ func (h *Handler) ListMilestones(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid milestone number")
+		return
+	}
 	m, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "milestone not found")
@@ -93,9 +98,18 @@ func (h *Handler) CreateMilestone(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	_ = claims
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
 
 	var title, description string
 	var dueDate *time.Time
@@ -135,7 +149,8 @@ func (h *Handler) CreateMilestone(w http.ResponseWriter, r *http.Request) {
 
 	m, err := h.Services.Milestone.Create(r.Context(), owner, repoName, title, description, dueDate)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -174,9 +189,29 @@ type updateMilestoneRequest struct {
 }
 
 func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid milestone number")
+		return
+	}
 
 	var req updateMilestoneRequest
 	if r.Header.Get("HX-Request") == "true" || r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
@@ -199,7 +234,8 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	if req.State == "closed" {
 		m, err := h.Services.Milestone.Close(r.Context(), owner, repoName, number)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			slog.Error("operation failed", "error", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 		writeJSON(w, http.StatusOK, m)
@@ -208,7 +244,8 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	if req.State == "open" {
 		m, err := h.Services.Milestone.Reopen(r.Context(), owner, repoName, number)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			slog.Error("operation failed", "error", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 		writeJSON(w, http.StatusOK, m)
@@ -234,7 +271,8 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 	m, err := h.Services.Milestone.Update(r.Context(), owner, repoName, number, title, req.Description, dueDate)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	writeJSON(w, http.StatusOK, m)
@@ -248,10 +286,26 @@ func (h *Handler) DeleteMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid milestone number")
+		return
+	}
 
 	if err := h.Services.Milestone.Delete(r.Context(), owner, repoName, number); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -291,7 +345,22 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	issueNumber, _ := strconv.Atoi(chi.URLParam(r, "number"))
+
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	issueNumber, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
 
 	if err := r.ParseForm(); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid form")
@@ -311,7 +380,8 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Milestone.SetIssue(r.Context(), issue.ID, milestoneID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -346,7 +416,22 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	pullNumber, _ := strconv.Atoi(chi.URLParam(r, "number"))
+
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	pullNumber, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
 
 	if err := r.ParseForm(); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid form")
@@ -366,7 +451,8 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Milestone.SetPull(r.Context(), pull.ID, milestoneID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 

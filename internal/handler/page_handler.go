@@ -104,6 +104,7 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 			Name:     totpPendingCookieName,
 			Value:    pendingToken,
 			HttpOnly: true,
+			Secure:   h.Cfg.Auth.CookieSecure,
 			Path:     "/",
 			Expires:  time.Now().Add(5 * time.Minute),
 			SameSite: http.SameSiteLaxMode,
@@ -116,6 +117,7 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		Name:     h.Cfg.Auth.CookieName,
 		Value:    token,
 		HttpOnly: true,
+		Secure:   h.Cfg.Auth.CookieSecure,
 		Path:     "/",
 		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
 		SameSite: http.SameSiteLaxMode,
@@ -327,7 +329,8 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	if !canManage {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
@@ -357,9 +360,9 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		branchProtections = []*model.BranchProtection{}
 	}
 
-	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
-	// Transfer is only for personal repo owners (not org repos)
-	canTransfer := repo.OwnerID == claims.UserID && repo.OrgID == 0
+	// Transfer/delete only for repo owner or org owner (not admin collaborators)
+	isOwner := h.Services.Repo.IsOwner(r.Context(), repo, claims.UserID)
+	canTransfer := isOwner && repo.OrgID == 0
 
 	h.render(w, r, pages.RepoSettings(view.RepoSettingsData{
 		BasePage:          basePage(r, h.Services),
@@ -372,6 +375,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		DeployKeys:        deployKeys,
 		BranchProtections: branchProtections,
 		CanManage:         canManage,
+		IsOwner:           isOwner,
 		CanTransfer:       canTransfer,
 	}))
 }
@@ -428,7 +432,11 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		http.Error(w, "invalid issue number", http.StatusBadRequest)
+		return
+	}
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -547,7 +555,10 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
 	title := r.FormValue("title")
 	body := r.FormValue("body")
 
@@ -706,7 +717,10 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 		branches = refs.Branches
 	}
 
-	r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
 	title := r.FormValue("title")
 	body := r.FormValue("body")
 	headBranch := r.FormValue("head_branch")
@@ -743,7 +757,11 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		http.Error(w, "invalid pull number", http.StatusBadRequest)
+		return
+	}
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
