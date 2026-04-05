@@ -200,9 +200,28 @@ type updateReleaseRequest struct {
 }
 
 func (h *Handler) UpdateRelease(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid release id")
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
 
 	var tagName, name, body string
 	var isPrerelease, isDraft bool
@@ -242,9 +261,28 @@ func (h *Handler) UpdateRelease(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteRelease(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid release id")
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
 
 	if err := h.Services.Release.Delete(r.Context(), owner, repoName, id); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())

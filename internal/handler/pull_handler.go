@@ -104,9 +104,28 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull request number")
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
 
 	var state, mergeStrategy, isDraftStr, autoMergeAction, autoMergeStrategy string
 	var req *updatePRRequest
@@ -136,6 +155,12 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		mergeStrategy = "ff"
 	}
 
+	// Validate state if provided
+	if state != "" && state != "open" && state != "closed" && state != "merged" {
+		writeError(w, http.StatusBadRequest, "state must be 'open', 'closed', or 'merged'")
+		return
+	}
+
 	// Handle is_draft toggle
 	if isDraftStr != "" || (req != nil && req.IsDraft != nil) {
 		newDraft := isDraftStr == "true" || (req != nil && req.IsDraft != nil && *req.IsDraft)
@@ -149,18 +174,12 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if r.Header.Get("HX-Request") == "true" {
-			canWrite := false
-			if draftRepo, err2 := h.Services.Repo.Get(r.Context(), owner, repoName); err2 == nil {
-				if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-					canWrite = h.Services.Repo.CanWrite(r.Context(), draftRepo, claims.UserID)
-				}
-			}
 			h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
 				Pull:              *pr,
 				Owner:             owner,
 				Repo:              repoName,
 				BodyHTML:          markdown.Render(pr.Body),
-				CanWrite:          canWrite,
+				CanWrite:          true, // already verified above
 				AutoMergeEnabled:  pr.AutoMergeEnabled,
 				AutoMergeStrategy: pr.AutoMergeStrategy,
 			}))
@@ -172,11 +191,6 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 
 	// Handle auto-merge enable/disable
 	if autoMergeAction != "" {
-		claims, ok := middleware.ClaimsFromContext(r.Context())
-		if !ok {
-			writeError(w, http.StatusUnauthorized, "unauthorized")
-			return
-		}
 		var svcErr error
 		if autoMergeAction == "enable" {
 			if autoMergeStrategy == "" {
@@ -196,17 +210,12 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if r.Header.Get("HX-Request") == "true" {
-			amRepo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-			canWrite := false
-			if amRepo != nil {
-				canWrite = h.Services.Repo.CanWrite(r.Context(), amRepo, claims.UserID)
-			}
 			h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
 				Pull:              *pr,
 				Owner:             owner,
 				Repo:              repoName,
 				BodyHTML:          markdown.Render(pr.Body),
-				CanWrite:          canWrite,
+				CanWrite:          true, // already verified above
 				AutoMergeEnabled:  pr.AutoMergeEnabled,
 				AutoMergeStrategy: pr.AutoMergeStrategy,
 			}))
@@ -235,16 +244,10 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		if _, sha, err := h.Services.Code.ResolveRef(owner, repoName, existingPR.HeadBranch); err == nil {
 			headSHA = sha
 		}
-		repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-		if err != nil {
-			writeError(w, http.StatusNotFound, "repo not found")
-			return
-		}
 		if err := h.Services.BranchProtection.CheckMerge(r.Context(), repo.ID, existingPR, headSHA); err != nil {
 			writeError(w, http.StatusUnprocessableEntity, "merge blocked: "+err.Error())
 			return
 		}
-		claims, _ := middleware.ClaimsFromContext(r.Context())
 		authorName := claims.Username
 		authorEmail := claims.Username + "@localhost"
 		base := existingPR.BaseBranch
@@ -269,21 +272,16 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if repo != nil {
-		go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload(state, *repo, *pr))
-		if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-			go func() {
-				h.Services.Notification.NotifyPRStateChange(r.Context(), *repo, *pr, claims.UserID, claims.Username)
-			}()
-			evType := model.EventPRClosed
-			if pr.State == model.PRStateMerged {
-				evType = model.EventPRMerged
-			}
-			repoID := repo.ID
-			go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, evType, map[string]any{"number": pr.Number})
-		}
+	go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload(state, *repo, *pr))
+	go func() {
+		h.Services.Notification.NotifyPRStateChange(r.Context(), *repo, *pr, claims.UserID, claims.Username)
+	}()
+	evType := model.EventPRClosed
+	if pr.State == model.PRStateMerged {
+		evType = model.EventPRMerged
 	}
+	repoID := repo.ID
+	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, evType, map[string]any{"number": pr.Number})
 
 	if r.Header.Get("HX-Request") == "true" {
 		h.render(w, r, fragments.PullDetail(view.PullDetailFragData{

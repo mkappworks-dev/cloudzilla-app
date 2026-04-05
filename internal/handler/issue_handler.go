@@ -90,9 +90,28 @@ func (h *Handler) CreateIssue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
 
 	var state string
 	if r.Header.Get("HX-Request") == "true" {
@@ -110,24 +129,24 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 		state = req.State
 	}
 
+	if state != "open" && state != "closed" {
+		writeError(w, http.StatusBadRequest, "state must be 'open' or 'closed'")
+		return
+	}
+
 	issue, err := h.Services.Issue.SetState(r.Context(), owner, repoName, number, model.IssueState(state))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if repo != nil {
-		go h.Services.Webhook.Dispatch(repo.ID, "issues", h.Services.Webhook.IssuePayload(state, *repo, *issue))
-		if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-			go func() {
-				h.Services.Notification.NotifyIssueStateChange(r.Context(), *repo, *issue, claims.UserID, claims.Username)
-			}()
-			if state == "closed" {
-				repoID := repo.ID
-				go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventIssueClosed, map[string]any{"number": issue.Number})
-			}
-		}
+	go h.Services.Webhook.Dispatch(repo.ID, "issues", h.Services.Webhook.IssuePayload(state, *repo, *issue))
+	go func() {
+		h.Services.Notification.NotifyIssueStateChange(r.Context(), *repo, *issue, claims.UserID, claims.Username)
+	}()
+	if state == "closed" {
+		repoID := repo.ID
+		go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventIssueClosed, map[string]any{"number": issue.Number})
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
