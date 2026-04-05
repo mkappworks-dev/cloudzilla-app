@@ -329,7 +329,8 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	if !canManage {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
@@ -359,9 +360,9 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		branchProtections = []*model.BranchProtection{}
 	}
 
-	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
-	// Transfer is only for personal repo owners (not org repos)
-	canTransfer := repo.OwnerID == claims.UserID && repo.OrgID == 0
+	// Transfer/delete only for repo owner or org owner (not admin collaborators)
+	isOwner := h.Services.Repo.IsOwner(r.Context(), repo, claims.UserID)
+	canTransfer := isOwner && repo.OrgID == 0
 
 	h.render(w, r, pages.RepoSettings(view.RepoSettingsData{
 		BasePage:          basePage(r, h.Services),
@@ -374,6 +375,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		DeployKeys:        deployKeys,
 		BranchProtections: branchProtections,
 		CanManage:         canManage,
+		IsOwner:           isOwner,
 		CanTransfer:       canTransfer,
 	}))
 }

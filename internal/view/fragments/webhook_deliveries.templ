@@ -43,7 +43,7 @@ templ WebhookDeliveriesList(data view.WebhookDeliveriesFragData) {
 							}
 							<p class="text-gray-400 text-xs mt-1">{ d.DeliveredAt.Format("Jan 2, 2006 15:04:05 UTC") }</p>
 						</div>
-						if data.CanWrite {
+						if data.CanManage {
 							<button
 								hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(data.WebhookID, 10) + "/redeliver?delivery_id=" + strconv.FormatInt(d.ID, 10) }
 								hx-swap="none"

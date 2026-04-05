@@ -129,6 +129,7 @@ type RepoSettingsData struct {
 	DeployKeys        []model.DeployKey
 	BranchProtections []*model.BranchProtection
 	CanManage         bool
+	IsOwner           bool
 	CanTransfer       bool
 }
 
@@ -153,7 +154,7 @@ type WebhooksFragData struct {
 	RepoName string
 	RepoID   int64
 	Webhooks []model.Webhook
-	CanWrite bool
+	CanManage bool
 }
 
 type WebhookDeliveriesFragData struct {
@@ -161,7 +162,7 @@ type WebhookDeliveriesFragData struct {
 	RepoName   string
 	WebhookID  int64
 	Deliveries []model.WebhookDelivery
-	CanWrite   bool
+	CanManage  bool
 }
 
 type IssuesData struct {
@@ -421,7 +422,7 @@ type RepoCollaboratorsFragData struct {
 	RepoName string
 	RepoID   int64
 	Collabs  []model.Permission
-	CanWrite bool
+	CanManage bool
 }
 
 // Label sidebar fragments

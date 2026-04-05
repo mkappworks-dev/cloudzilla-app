@@ -8,7 +8,7 @@ import (
 
 templ RepoCollaborators(data view.RepoCollaboratorsFragData) {
 	<div id="repo-collaborators" class="space-y-2">
-		if data.CanWrite {
+		if data.CanManage {
 			<form
 				hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/collaborators" }
 				hx-target="#repo-collaborators"
@@ -42,7 +42,7 @@ templ RepoCollaborators(data view.RepoCollaboratorsFragData) {
 						<p class="text-sm font-medium">{ collab.Username }</p>
 						<p class="text-xs text-gray-500 capitalize">{ string(collab.Role) }</p>
 					</div>
-					if data.CanWrite {
+					if data.CanManage {
 						<button
 							hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/collaborators?user_id=" + strconv.FormatInt(collab.UserID, 10) }
 							hx-target="#repo-collaborators"

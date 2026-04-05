@@ -143,7 +143,7 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 			RepoName: repoName,
 			RepoID:   repo.ID,
 			Collabs:  collabs,
-			CanWrite: true,
+			CanManage: true,
 		}))
 		return
 	}
@@ -241,7 +241,7 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 			RepoName: repoName,
 			RepoID:   repo.ID,
 			Collabs:  collabs,
-			CanWrite: true,
+			CanManage: true,
 		}))
 		return
 	}
