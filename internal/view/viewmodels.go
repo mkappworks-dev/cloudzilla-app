@@ -238,6 +238,7 @@ type IssueNewData struct {
 	Selected string
 	// ShowForm is true when the form should be shown (vs. the template chooser).
 	ShowForm bool
+	CanWrite bool
 	Error    string
 }
 

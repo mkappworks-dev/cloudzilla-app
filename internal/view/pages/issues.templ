@@ -39,7 +39,12 @@ templ Issues(data view.IssuesData) {
 						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(issue.Number)) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
 							<div class="flex justify-between items-start">
 								<div class="min-w-0 flex-1">
-									<h3 class="text-lg font-semibold">{ issue.Title }</h3>
+									<h3 class="text-lg font-semibold">
+									if issue.Visibility == "private" {
+										<span class="inline-flex items-center mr-1 text-yellow-600" title="Private">&#128274;</span>
+									}
+									{ issue.Title }
+								</h3>
 									<p class="text-gray-600 text-sm mt-1">#{ strconv.Itoa(issue.Number) } opened by { issue.AuthorName }</p>
 									if labels, ok := data.IssueLabels[issue.ID]; ok && len(labels) > 0 {
 										<div class="flex flex-wrap gap-1 mt-2">
