@@ -104,7 +104,11 @@ func (h *Handler) CreateLabel(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteLabel(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	labelID, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	labelID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid label id")
+		return
+	}
 
 	if err := h.Services.Label.Delete(r.Context(), owner, repoName, labelID); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -135,8 +139,16 @@ func (h *Handler) DeleteLabel(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AddIssueLabel(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
-	labelID, _ := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
+	labelID, err := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid label id")
+		return
+	}
 
 	if err := h.Services.Label.AddToIssue(r.Context(), owner, repoName, number, labelID); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -153,8 +165,16 @@ func (h *Handler) AddIssueLabel(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RemoveIssueLabel(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
-	labelID, _ := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
+	labelID, err := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid label id")
+		return
+	}
 
 	if err := h.Services.Label.RemoveFromIssue(r.Context(), owner, repoName, number, labelID); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -171,8 +191,16 @@ func (h *Handler) RemoveIssueLabel(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AddPullLabel(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
-	labelID, _ := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
+	labelID, err := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid label id")
+		return
+	}
 
 	if err := h.Services.Label.AddToPull(r.Context(), owner, repoName, number, labelID); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -189,8 +217,16 @@ func (h *Handler) AddPullLabel(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RemovePullLabel(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
-	labelID, _ := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
+	labelID, err := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid label id")
+		return
+	}
 
 	if err := h.Services.Label.RemoveFromPull(r.Context(), owner, repoName, number, labelID); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())

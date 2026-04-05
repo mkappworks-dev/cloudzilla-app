@@ -110,7 +110,11 @@ func (h *Handler) ListReleases(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetRelease(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid release id")
+		return
+	}
 
 	release, err := h.Services.Release.GetByID(r.Context(), owner, repoName, id)
 	if err != nil {

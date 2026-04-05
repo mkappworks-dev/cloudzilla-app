@@ -206,7 +206,12 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 
 	var userID int64
 	if v := r.URL.Query().Get("user_id"); v != "" {
-		userID, _ = strconv.ParseInt(v, 10, 64)
+		var parseErr error
+		userID, parseErr = strconv.ParseInt(v, 10, 64)
+		if parseErr != nil {
+			writeError(w, http.StatusBadRequest, "invalid user_id")
+			return
+		}
 	} else {
 		var body struct {
 			UserID int64 `json:"user_id"`

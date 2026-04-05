@@ -42,7 +42,11 @@ func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetIssue(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repo := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
 	var callerID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		callerID = &claims.UserID

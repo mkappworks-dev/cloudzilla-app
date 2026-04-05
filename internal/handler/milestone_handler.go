@@ -72,7 +72,11 @@ func (h *Handler) ListMilestones(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid milestone number")
+		return
+	}
 	m, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "milestone not found")
@@ -176,7 +180,11 @@ type updateMilestoneRequest struct {
 func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid milestone number")
+		return
+	}
 
 	var req updateMilestoneRequest
 	if r.Header.Get("HX-Request") == "true" || r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
@@ -248,7 +256,11 @@ func (h *Handler) DeleteMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid milestone number")
+		return
+	}
 
 	if err := h.Services.Milestone.Delete(r.Context(), owner, repoName, number); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -291,7 +303,11 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	issueNumber, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	issueNumber, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
 
 	if err := r.ParseForm(); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid form")
@@ -346,7 +362,11 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	pullNumber, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	pullNumber, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
 
 	if err := r.ParseForm(); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid form")

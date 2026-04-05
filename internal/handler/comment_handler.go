@@ -21,7 +21,11 @@ type createCommentRequest struct {
 func (h *Handler) ListIssueComments(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	issueNumber, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	issueNumber, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
 
 	var callerID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
@@ -50,7 +54,11 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	issueNumber, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	issueNumber, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
 
 	var body string
 	if r.Header.Get("HX-Request") == "true" {
@@ -116,7 +124,11 @@ func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, _ := strconv.ParseInt(chi.URLParam(r, "commentID"), 10, 64)
+	id, err := strconv.ParseInt(chi.URLParam(r, "commentID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid comment id")
+		return
+	}
 
 	var body string
 	if r.Header.Get("HX-Request") == "true" {
@@ -164,7 +176,11 @@ func (h *Handler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	id, _ := strconv.ParseInt(chi.URLParam(r, "commentID"), 10, 64)
+	id, err := strconv.ParseInt(chi.URLParam(r, "commentID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid comment id")
+		return
+	}
 
 	existing, err := h.Services.Comment.GetByID(r.Context(), id)
 	if err != nil {
@@ -189,7 +205,11 @@ func (h *Handler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) IssueCommentsFragment(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	issueNumber, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	issueNumber, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
 
 	var callerID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {

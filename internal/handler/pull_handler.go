@@ -44,7 +44,11 @@ func (h *Handler) ListPulls(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetPull(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repo := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
 	pr, err := h.Services.Pull.Get(r.Context(), owner, repo, number)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "pull request not found")

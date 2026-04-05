@@ -37,7 +37,11 @@ func assigneeUsernameDelete(r *http.Request) string {
 func (h *Handler) AddIssueAssignee(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
 	username := assigneeUsername(r)
 
 	if username == "" {
@@ -60,7 +64,11 @@ func (h *Handler) AddIssueAssignee(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RemoveIssueAssignee(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid issue number")
+		return
+	}
 	username := assigneeUsernameDelete(r)
 
 	if username == "" {
@@ -83,7 +91,11 @@ func (h *Handler) RemoveIssueAssignee(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AddPullAssignee(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
 	username := assigneeUsername(r)
 
 	if username == "" {
@@ -106,7 +118,11 @@ func (h *Handler) AddPullAssignee(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RemovePullAssignee(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	number, _ := strconv.Atoi(chi.URLParam(r, "number"))
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
 	username := assigneeUsernameDelete(r)
 
 	if username == "" {
