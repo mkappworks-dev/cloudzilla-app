@@ -1,0 +1,65 @@
+package fragments
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/view"
+)
+
+templ RepoTopics(data view.RepoTopicsFragData) {
+	<div id="repo-topics">
+		<div class="flex flex-wrap gap-2 items-center">
+			for _, t := range data.Topics {
+				<a href={ templ.SafeURL("/topic/" + t.Name) } class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium hover:bg-blue-200">{ t.Name }</a>
+			}
+			if data.CanManage {
+				<button
+					type="button"
+					class="px-2 py-0.5 border border-dashed border-gray-400 text-gray-500 rounded-full text-xs hover:bg-gray-50"
+					onclick={ toggleTopicEdit(data.RepoID) }
+				>
+					if len(data.Topics) > 0 {
+						Edit topics
+					} else {
+						Add topics
+					}
+				</button>
+			}
+		</div>
+		if data.CanManage {
+			<div id={ "topic-edit-row-" + strconv.FormatInt(data.RepoID, 10) } class="hidden mt-2">
+				<div class="flex items-center gap-2">
+					<input
+						type="text"
+						id={ "topic-input-" + strconv.FormatInt(data.RepoID, 10) }
+						placeholder="go, web, api (comma-separated)"
+						value={ topicNames(data.Topics) }
+						class="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
+					/>
+					<button
+						type="button"
+						onclick={ saveTopics(data.Owner, data.RepoName, data.RepoID) }
+						class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+					>Save</button>
+				</div>
+				<p class="text-xs text-gray-400 mt-1">Lowercase letters, digits, hyphens only. Max 20 topics, 20 chars each.</p>
+			</div>
+		}
+	</div>
+}
+
+script toggleTopicEdit(repoID int64) {
+	document.getElementById('topic-edit-row-' + repoID).classList.toggle('hidden');
+}
+
+script saveTopics(owner string, repo string, repoID int64) {
+	var raw = document.getElementById('topic-input-' + repoID).value;
+	var topics = raw.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
+	fetch('/api/repos/' + owner + '/' + repo + '/topics', {
+		method: 'PUT',
+		headers: {'Content-Type': 'application/json', 'HX-Request': 'true'},
+		body: JSON.stringify({ topics: topics })
+	}).then(function(r) { return r.text(); }).then(function(html) {
+		document.getElementById('repo-topics').outerHTML = html;
+	}).catch(function(err) { alert('Failed to save topics: ' + err); });
+}
