@@ -47,6 +47,7 @@ func (h *Handler) PageSetupSubmit(w http.ResponseWriter, r *http.Request) {
 		Name:     h.Cfg.Auth.CookieName,
 		Value:    token,
 		HttpOnly: true,
+		Secure:   h.Cfg.Auth.CookieSecure,
 		Path:     "/",
 		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
 		SameSite: http.SameSiteLaxMode,

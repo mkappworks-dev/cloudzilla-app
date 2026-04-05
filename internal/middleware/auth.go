@@ -82,7 +82,11 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 				return
 			}
 
-			claims := claimsFromMap(mapClaims)
+			claims, ok := claimsFromMap(mapClaims)
+			if !ok {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
 			ctx := context.WithValue(r.Context(), claimsKey, claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -122,9 +126,10 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 				})
 				if err == nil && token.Valid {
 					if mapClaims, ok := token.Claims.(jwt.MapClaims); ok {
-						claims := claimsFromMap(mapClaims)
-						ctx := context.WithValue(r.Context(), claimsKey, claims)
-						r = r.WithContext(ctx)
+						if claims, ok := claimsFromMap(mapClaims); ok {
+							ctx := context.WithValue(r.Context(), claimsKey, claims)
+							r = r.WithContext(ctx)
+						}
 					}
 				}
 			}
@@ -144,15 +149,23 @@ func RequireSuperadmin(next http.Handler) http.Handler {
 	})
 }
 
-func claimsFromMap(m jwt.MapClaims) Claims {
+func claimsFromMap(m jwt.MapClaims) (Claims, bool) {
+	sub, ok := m["sub"].(float64)
+	if !ok {
+		return Claims{}, false
+	}
+	username, ok := m["username"].(string)
+	if !ok {
+		return Claims{}, false
+	}
 	c := Claims{
-		UserID:   int64(m["sub"].(float64)),
-		Username: m["username"].(string),
+		UserID:   int64(sub),
+		Username: username,
 	}
-	if v, ok := m["is_superadmin"]; ok {
-		c.IsSuperadmin, _ = v.(bool)
+	if v, ok := m["is_superadmin"].(bool); ok {
+		c.IsSuperadmin = v
 	}
-	return c
+	return c, true
 }
 
 func extractToken(r *http.Request, cookieName string) string {
