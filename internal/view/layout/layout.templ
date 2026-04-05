@@ -52,9 +52,26 @@ templ Base(base view.BasePage, title string) {
 				<p>&copy; 2026 Cloudzilla. Built with Go, HTMX, and Tailwind.</p>
 			</footer>
 			<script>
-			document.body.setAttribute('hx-headers', JSON.stringify({
-				'X-CSRF-Token': document.cookie.match(/csrf_token=([^;]+)/)?.[1] || ''
-			}));
+			(function() {
+				var token = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+				document.body.setAttribute('hx-headers', JSON.stringify({'X-CSRF-Token': token}));
+				function injectCSRF(form) {
+					if (form.method && form.method.toUpperCase() !== 'GET' && !form.querySelector('input[name="csrf_token"]')) {
+						var input = document.createElement('input');
+						input.type = 'hidden'; input.name = 'csrf_token'; input.value = token;
+						form.appendChild(input);
+					}
+				}
+				document.querySelectorAll('form').forEach(injectCSRF);
+				new MutationObserver(function(mutations) {
+					mutations.forEach(function(m) {
+						m.addedNodes.forEach(function(n) {
+							if (n.tagName === 'FORM') injectCSRF(n);
+							else if (n.querySelectorAll) n.querySelectorAll('form').forEach(injectCSRF);
+						});
+					});
+				}).observe(document.body, {childList: true, subtree: true});
+			})();
 		</script>
 		<script src="/htmx.min.js" defer></script>
 			<script src="/alpine.min.js" defer></script>

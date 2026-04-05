@@ -21,7 +21,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(middleware.Logger)
 	r.Use(middleware.CORS(cfg.Server.BaseURL))
-	r.Use(middleware.CSRF)
+	r.Use(middleware.CSRF(cfg.Auth.CookieSecure))
 	r.Use(middleware.RequireSetup(services.SiteSetting))
 
 	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp)
