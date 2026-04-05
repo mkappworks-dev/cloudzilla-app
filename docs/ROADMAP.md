@@ -2030,7 +2030,7 @@ CREATE INDEX idx_repos_template ON repositories(is_template) WHERE is_template =
 
 ### Phase 14.3 — Repository Soft-delete & Recovery
 
-**Migration** (`050_add_soft_delete_to_repos.sql`):
+**Migration** (`051_add_soft_delete_to_repos.sql`):
 
 ```sql
 ALTER TABLE repositories
@@ -2039,7 +2039,7 @@ ALTER TABLE repositories
 CREATE INDEX idx_repos_deleted ON repositories(deleted_at) WHERE deleted_at IS NOT NULL;
 ```
 
-Instead of a hard `DELETE`, `RepoService.Delete` sets `deleted_at = NOW()` and renames the on-disk bare repo to `<name>.deleted.<unix_ts>.git`. A 30-day recovery window allows superadmins or the original owner to restore: `POST /api/repos/{owner}/{repo}/restore` renames the directory back and clears `deleted_at`. After 30 days a background cleanup goroutine permanently removes soft-deleted repos. All `ListByOwner` and repo lookup queries add `WHERE deleted_at IS NULL`.
+Instead of a hard `DELETE`, `RepoService.Delete` sets `deleted_at = NOW()` and renames the on-disk bare repo to `<name>.git.deleted.<unix_ts>`. A 30-day recovery window allows superadmins or the original owner to restore: `POST /{owner}/{repo}/restore` renames the directory back and clears `deleted_at`. After 30 days a background cleanup goroutine permanently removes soft-deleted repos. All `ListByOwner` and repo lookup queries add `WHERE deleted_at IS NULL`.
 
 ---
 
@@ -2419,7 +2419,7 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 13.3  | Repository Topics / Tags             | ✅ Done    | 048          |
 | 14.1  | Private Issues                       | ✅ Done    | 049          |
 | 14.2  | Archive & Templates                  | ✅ Done    | 050          |
-| 14.3  | Repository Soft-delete & Recovery    | ⬜ Planned | 051          |
+| 14.3  | Repository Soft-delete & Recovery    | ✅ Done    | 051          |
 | 15.1  | Advanced Code Search                 | ⬜ Planned | 051          |
 | 15.2  | Explore / Trending                   | ⬜ Planned | —            |
 | 15.3  | Dependency Graph                     | ⬜ Planned | 052          |
