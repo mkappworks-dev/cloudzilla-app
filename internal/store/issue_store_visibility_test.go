@@ -9,7 +9,6 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks/cloudzilla/internal/store"
-	storedb "github.com/mkappworks/cloudzilla/internal/store/db"
 )
 
 func openTestDB(t *testing.T) *sql.DB {
@@ -101,8 +100,7 @@ func TestListIssues_VisibilityFilter(t *testing.T) {
 		t.Fatalf("insert private issue: %v", err)
 	}
 
-	q := storedb.New(db)
-	issueStore := store.NewIssueStore(q, db)
+	issueStore := store.NewIssueStore(db)
 
 	// Anonymous caller — only public visible.
 	anonIssues, err := issueStore.ListByRepo(ctx, repoID, nil, nil, 1, 50)

@@ -7,16 +7,14 @@ import (
 	"time"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
-	"github.com/mkappworks/cloudzilla/internal/store/db"
 )
 
 type IssueStore struct {
-	q  *db.Queries
 	db *sql.DB
 }
 
-func NewIssueStore(q *db.Queries, database *sql.DB) *IssueStore {
-	return &IssueStore{q: q, db: database}
+func NewIssueStore(database *sql.DB) *IssueStore {
+	return &IssueStore{db: database}
 }
 
 func (s *IssueStore) Create(ctx context.Context, issue *model.Issue) error {
@@ -24,11 +22,15 @@ func (s *IssueStore) Create(ctx context.Context, issue *model.Issue) error {
 		issue.Visibility = "public"
 	}
 	// Get next number for repo
-	num, err := s.q.GetNextIssueNumber(ctx, issue.RepoID)
+	var num int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COALESCE(MAX(number), 0) + 1 FROM issues WHERE repo_id = $1`,
+		issue.RepoID,
+	).Scan(&num)
 	if err != nil {
 		return fmt.Errorf("issue next num: %w", err)
 	}
-	issue.Number = int(num)
+	issue.Number = num
 
 	now := time.Now().UTC()
 	err = s.db.QueryRowContext(ctx,
@@ -228,44 +230,17 @@ func (s *IssueStore) ListByRepo(ctx context.Context, repoID int64, state *string
 func (s *IssueStore) UpdateState(ctx context.Context, id int64, state model.IssueState) error {
 	now := time.Now().UTC()
 	if state == model.IssueStateClosed {
-		return s.q.UpdateIssueStateClosed(ctx, db.UpdateIssueStateClosedParams{
-			State:     string(state),
-			ClosedAt:  sql.NullTime{Time: now, Valid: true},
-			UpdatedAt: now,
-			ID:        id,
-		})
+		_, err := s.db.ExecContext(ctx,
+			`UPDATE issues SET state = $1, closed_at = $2, updated_at = $3 WHERE id = $4`,
+			string(state), sql.NullTime{Time: now, Valid: true}, now, id,
+		)
+		return err
 	}
-	return s.q.UpdateIssueStateOpen(ctx, db.UpdateIssueStateOpenParams{
-		State:     string(state),
-		UpdatedAt: now,
-		ID:        id,
-	})
-}
-
-func mapDBIssueToModel(dbIssue *db.Issue) *model.Issue {
-	issue := &model.Issue{
-		ID:        dbIssue.ID,
-		RepoID:    dbIssue.RepoID,
-		Number:    int(dbIssue.Number),
-		AuthorID:  dbIssue.AuthorID,
-		Title:     dbIssue.Title,
-		Body:      dbIssue.Body,
-		State:     model.IssueState(dbIssue.State),
-		CreatedAt: dbIssue.CreatedAt,
-		UpdatedAt: dbIssue.UpdatedAt,
-	}
-	if dbIssue.ClosedAt.Valid {
-		issue.ClosedAt = &dbIssue.ClosedAt.Time
-	}
-	return issue
-}
-
-func mapDBIssuesToModel(dbIssues []db.Issue) []model.Issue {
-	issues := make([]model.Issue, len(dbIssues))
-	for i, dbIssue := range dbIssues {
-		issues[i] = *mapDBIssueToModel(&dbIssue)
-	}
-	return issues
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE issues SET state = $1, closed_at = NULL, updated_at = $2 WHERE id = $3`,
+		string(state), now, id,
+	)
+	return err
 }
 
 // CountPinnedByRepo returns the number of currently pinned issues in a repo.

@@ -7,99 +7,136 @@ import (
 	"time"
 
 	"github.com/mkappworks/cloudzilla/internal/model"
-	"github.com/mkappworks/cloudzilla/internal/store/db"
 )
 
 type PullStore struct {
-	q  *db.Queries
 	db *sql.DB
 }
 
-func NewPullStore(q *db.Queries, database *sql.DB) *PullStore {
-	return &PullStore{q: q, db: database}
+func NewPullStore(database *sql.DB) *PullStore {
+	return &PullStore{db: database}
 }
 
 func (s *PullStore) Create(ctx context.Context, pr *model.PullRequest) error {
-	num, err := s.q.GetNextPullNumber(ctx, pr.RepoID)
+	var num int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COALESCE(MAX(number), 0) + 1 FROM pull_requests WHERE repo_id = $1`,
+		pr.RepoID,
+	).Scan(&num)
 	if err != nil {
 		return fmt.Errorf("pr next num: %w", err)
 	}
-	pr.Number = int(num)
+	pr.Number = num
 
-	result, err := s.q.CreatePull(ctx, db.CreatePullParams{
-		RepoID:     pr.RepoID,
-		Number:     int32(pr.Number),
-		AuthorID:   pr.AuthorID,
-		Title:      pr.Title,
-		Body:       pr.Body,
-		State:      string(pr.State),
-		HeadBranch: pr.HeadBranch,
-		BaseBranch: pr.BaseBranch,
-		IsDraft:    pr.IsDraft,
-	})
+	var mergedAt, closedAt, draftAt sql.NullTime
+	var autoMergeStrategy sql.NullString
+	err = s.db.QueryRowContext(ctx,
+		`INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch, is_draft)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		 RETURNING id, created_at, updated_at, merged_at, closed_at, is_draft, draft_at, auto_merge_enabled, auto_merge_strategy`,
+		pr.RepoID, pr.Number, pr.AuthorID, pr.Title, pr.Body,
+		string(pr.State), pr.HeadBranch, pr.BaseBranch, pr.IsDraft,
+	).Scan(&pr.ID, &pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
+		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy)
 	if err != nil {
 		return fmt.Errorf("pr create: %w", err)
 	}
-	pr.ID = result.ID
-	pr.CreatedAt = result.CreatedAt
-	pr.UpdatedAt = result.UpdatedAt
-	pr.IsDraft = result.IsDraft
-	if result.DraftAt.Valid {
-		pr.DraftAt = &result.DraftAt.Time
+	if mergedAt.Valid {
+		pr.MergedAt = &mergedAt.Time
+	}
+	if closedAt.Valid {
+		pr.ClosedAt = &closedAt.Time
+	}
+	if draftAt.Valid {
+		pr.DraftAt = &draftAt.Time
+	}
+	if autoMergeStrategy.Valid {
+		pr.AutoMergeStrategy = autoMergeStrategy.String
 	}
 	return nil
 }
 
 func (s *PullStore) List(ctx context.Context, repoID int64) ([]model.PullRequest, error) {
-	prs, err := s.q.ListPulls(ctx, repoID)
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
+		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
+		        auto_merge_enabled, auto_merge_strategy
+		 FROM pull_requests WHERE repo_id = $1 ORDER BY number DESC`,
+		repoID,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("pr list: %w", err)
 	}
-	return mapDBPullsToModel(prs), nil
+	defer rows.Close()
+	return scanPullRows(rows)
 }
 
 func (s *PullStore) GetByNumber(ctx context.Context, repoID int64, number int) (*model.PullRequest, error) {
-	result, err := s.q.GetPull(ctx, db.GetPullParams{
-		RepoID: repoID,
-		Number: int32(number),
-	})
+	pr := &model.PullRequest{}
+	var mergedAt, closedAt, draftAt sql.NullTime
+	var autoMergeStrategy sql.NullString
+	err := s.db.QueryRowContext(ctx,
+		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
+		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
+		        auto_merge_enabled, auto_merge_strategy
+		 FROM pull_requests WHERE repo_id = $1 AND number = $2`,
+		repoID, number,
+	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
+		&pr.State, &pr.HeadBranch, &pr.BaseBranch,
+		&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
+		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy)
 	if err != nil {
 		return nil, fmt.Errorf("pr get: %w", err)
 	}
-	return mapDBPullToModel(&result), nil
+	if mergedAt.Valid {
+		pr.MergedAt = &mergedAt.Time
+	}
+	if closedAt.Valid {
+		pr.ClosedAt = &closedAt.Time
+	}
+	if draftAt.Valid {
+		pr.DraftAt = &draftAt.Time
+	}
+	if autoMergeStrategy.Valid {
+		pr.AutoMergeStrategy = autoMergeStrategy.String
+	}
+	return pr, nil
 }
 
 func (s *PullStore) UpdateState(ctx context.Context, id int64, state model.PRState) error {
 	now := time.Now().UTC()
 	switch state {
 	case model.PRStateMerged:
-		return s.q.UpdatePullStateMerged(ctx, db.UpdatePullStateMergedParams{
-			State:     string(state),
-			MergedAt:  sql.NullTime{Time: now, Valid: true},
-			UpdatedAt: now,
-			ID:        id,
-		})
+		_, err := s.db.ExecContext(ctx,
+			`UPDATE pull_requests SET state = $1, merged_at = $2, updated_at = $3 WHERE id = $4`,
+			string(state), sql.NullTime{Time: now, Valid: true}, now, id,
+		)
+		return err
 	case model.PRStateClosed:
-		return s.q.UpdatePullStateClosed(ctx, db.UpdatePullStateClosedParams{
-			State:     string(state),
-			ClosedAt:  sql.NullTime{Time: now, Valid: true},
-			UpdatedAt: now,
-			ID:        id,
-		})
+		_, err := s.db.ExecContext(ctx,
+			`UPDATE pull_requests SET state = $1, closed_at = $2, updated_at = $3 WHERE id = $4`,
+			string(state), sql.NullTime{Time: now, Valid: true}, now, id,
+		)
+		return err
 	default:
-		return s.q.UpdatePullStateOpen(ctx, db.UpdatePullStateOpenParams{
-			State:     string(state),
-			UpdatedAt: now,
-			ID:        id,
-		})
+		_, err := s.db.ExecContext(ctx,
+			`UPDATE pull_requests SET state = $1, updated_at = $2 WHERE id = $3`,
+			string(state), now, id,
+		)
+		return err
 	}
 }
 
 func (s *PullStore) SetDraft(ctx context.Context, id int64, isDraft bool) error {
-	return s.q.UpdatePullDraft(ctx, db.UpdatePullDraftParams{
-		IsDraft: isDraft,
-		ID:      id,
-	})
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE pull_requests
+		  SET is_draft = $1,
+		      draft_at = CASE WHEN $1 = TRUE THEN NOW() ELSE draft_at END,
+		      updated_at = NOW()
+		WHERE id = $2`,
+		isDraft, id,
+	)
+	return err
 }
 
 func (s *PullStore) SetAutoMerge(ctx context.Context, id int64, enabled bool, strategy string) error {
@@ -107,66 +144,93 @@ func (s *PullStore) SetAutoMerge(ctx context.Context, id int64, enabled bool, st
 	if strategy != "" {
 		strat = sql.NullString{String: strategy, Valid: true}
 	}
-	return s.q.SetAutoMerge(ctx, db.SetAutoMergeParams{
-		ID:                id,
-		AutoMergeEnabled:  enabled,
-		AutoMergeStrategy: strat,
-	})
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE pull_requests
+		 SET auto_merge_enabled  = $2,
+		     auto_merge_strategy = $3,
+		     updated_at          = NOW()
+		 WHERE id = $1`,
+		id, enabled, strat,
+	)
+	return err
 }
 
 func (s *PullStore) ListOpen(ctx context.Context, repoID int64) ([]model.PullRequest, error) {
-	prs, err := s.q.ListOpen(ctx, repoID)
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
+		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
+		        auto_merge_enabled, auto_merge_strategy
+		 FROM pull_requests WHERE repo_id = $1 AND state = 'open' ORDER BY number DESC`,
+		repoID,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("pr list open: %w", err)
 	}
-	return mapDBPullsToModel(prs), nil
+	defer rows.Close()
+	return scanPullRows(rows)
 }
 
 func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, error) {
-	result, err := s.q.GetPullByID(ctx, id)
+	pr := &model.PullRequest{}
+	var mergedAt, closedAt, draftAt sql.NullTime
+	var autoMergeStrategy sql.NullString
+	err := s.db.QueryRowContext(ctx,
+		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
+		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
+		        auto_merge_enabled, auto_merge_strategy
+		 FROM pull_requests WHERE id = $1`,
+		id,
+	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
+		&pr.State, &pr.HeadBranch, &pr.BaseBranch,
+		&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
+		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy)
 	if err != nil {
 		return nil, fmt.Errorf("pr get by id: %w", err)
 	}
-	return mapDBPullToModel(&result), nil
+	if mergedAt.Valid {
+		pr.MergedAt = &mergedAt.Time
+	}
+	if closedAt.Valid {
+		pr.ClosedAt = &closedAt.Time
+	}
+	if draftAt.Valid {
+		pr.DraftAt = &draftAt.Time
+	}
+	if autoMergeStrategy.Valid {
+		pr.AutoMergeStrategy = autoMergeStrategy.String
+	}
+	return pr, nil
 }
 
-func mapDBPullToModel(dbPull *db.PullRequest) *model.PullRequest {
-	pr := &model.PullRequest{
-		ID:         dbPull.ID,
-		RepoID:     dbPull.RepoID,
-		Number:     int(dbPull.Number),
-		AuthorID:   dbPull.AuthorID,
-		Title:      dbPull.Title,
-		Body:       dbPull.Body,
-		State:      model.PRState(dbPull.State),
-		HeadBranch: dbPull.HeadBranch,
-		BaseBranch: dbPull.BaseBranch,
-		CreatedAt:  dbPull.CreatedAt,
-		UpdatedAt:  dbPull.UpdatedAt,
+func scanPullRows(rows *sql.Rows) ([]model.PullRequest, error) {
+	var prs []model.PullRequest
+	for rows.Next() {
+		var pr model.PullRequest
+		var mergedAt, closedAt, draftAt sql.NullTime
+		var autoMergeStrategy sql.NullString
+		if err := rows.Scan(
+			&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
+			&pr.State, &pr.HeadBranch, &pr.BaseBranch,
+			&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
+			&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy,
+		); err != nil {
+			return nil, err
+		}
+		if mergedAt.Valid {
+			pr.MergedAt = &mergedAt.Time
+		}
+		if closedAt.Valid {
+			pr.ClosedAt = &closedAt.Time
+		}
+		if draftAt.Valid {
+			pr.DraftAt = &draftAt.Time
+		}
+		if autoMergeStrategy.Valid {
+			pr.AutoMergeStrategy = autoMergeStrategy.String
+		}
+		prs = append(prs, pr)
 	}
-	if dbPull.MergedAt.Valid {
-		pr.MergedAt = &dbPull.MergedAt.Time
-	}
-	if dbPull.ClosedAt.Valid {
-		pr.ClosedAt = &dbPull.ClosedAt.Time
-	}
-	pr.IsDraft = dbPull.IsDraft
-	if dbPull.DraftAt.Valid {
-		pr.DraftAt = &dbPull.DraftAt.Time
-	}
-	pr.AutoMergeEnabled = dbPull.AutoMergeEnabled
-	if dbPull.AutoMergeStrategy.Valid {
-		pr.AutoMergeStrategy = dbPull.AutoMergeStrategy.String
-	}
-	return pr
-}
-
-func mapDBPullsToModel(dbPulls []db.PullRequest) []model.PullRequest {
-	prs := make([]model.PullRequest, len(dbPulls))
-	for i, dbPull := range dbPulls {
-		prs[i] = *mapDBPullToModel(&dbPull)
-	}
-	return prs
+	return prs, rows.Err()
 }
 
 func (s *PullStore) CountCreatedSince(ctx context.Context, repoID int64, since time.Time) (int, error) {
