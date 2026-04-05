@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"html/template"
 	"log/slog"
 	"net"
 	"net/http"
@@ -138,6 +139,7 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 
 	repos, err := h.Services.Repo.ListByOwner(r.Context(), username)
 	if err != nil {
+		slog.Warn("user profile: failed to load repositories", "username", username, "error", err)
 		repos = []model.Repository{}
 	}
 	if repos == nil {
@@ -152,11 +154,20 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 	if activity == nil {
 		activity = []model.Event{}
 	}
+	var profileReadme template.HTML
+	for _, repo := range repos {
+		if repo.Name == user.Username && !repo.Private {
+			profileReadme = h.Services.Code.GetProfileReadme(user.Username, user.Username, repo.DefaultBranch)
+			break
+		}
+	}
+
 	h.render(w, r, pages.User(view.UserData{
 		BasePage:       basePage(r, h.Services),
 		User:           *user,
 		Repos:          repos,
 		RecentActivity: activity,
+		ProfileReadme:  profileReadme,
 	}))
 }
 

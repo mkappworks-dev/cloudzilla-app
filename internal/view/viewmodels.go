@@ -1,6 +1,8 @@
 package view
 
 import (
+	"html/template"
+
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/service"
@@ -51,6 +53,7 @@ type UserData struct {
 	User           model.User
 	Repos          []model.Repository
 	RecentActivity []model.Event
+	ProfileReadme  template.HTML
 }
 
 type OrgData struct {

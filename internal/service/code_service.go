@@ -3,6 +3,8 @@ package service
 import (
 	"errors"
 	"fmt"
+	"html/template"
+	"log/slog"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -15,6 +17,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/mkappworks/cloudzilla/internal/config"
+	"github.com/mkappworks/cloudzilla/internal/markdown"
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
@@ -604,6 +607,26 @@ func (s *CodeService) GetRawBlob(owner, repoName, ref, path string) ([]byte, err
 		return nil, err
 	}
 	return []byte(contents), nil
+}
+
+// GetProfileReadme reads README.md from the root of the given repo's default
+// branch and renders it as HTML. Returns empty template.HTML when the repo,
+// commit, or README does not exist. Unexpected infrastructure errors (corrupt
+// repo, unreadable blob) are logged at warn level and also yield empty HTML.
+func (s *CodeService) GetProfileReadme(ownerName, repoName, defaultBranch string) template.HTML {
+	raw, err := s.GetRawBlob(ownerName, repoName, defaultBranch, "README.md")
+	if err != nil {
+		if !errors.Is(err, ErrEmptyRepo) && !errors.Is(err, object.ErrFileNotFound) {
+			slog.Warn("profile readme: unexpected error reading README.md",
+				"owner", ownerName,
+				"repo", repoName,
+				"branch", defaultBranch,
+				"error", err,
+			)
+		}
+		return template.HTML("")
+	}
+	return template.HTML(markdown.Render(string(raw)))
 }
 
 type CommitSummary struct {
