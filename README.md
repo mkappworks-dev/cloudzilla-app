@@ -1151,7 +1151,7 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 | 14.2    | Repository Archive & Templates               | ✅ Done    | 050          |
 | 14.3    | Soft-delete & Recovery                       | ✅ Done    | 051          |
 | 15.1    | Advanced Code Search                         | ✅ Done    | 052          |
-| 15.2    | Explore / Trending                           | ⬜ Planned | 054          |
+| 15.2    | Explore / Trending                           | ✅ Done    | —            |
 | 15.3    | Dependency Graph                             | ⬜ Planned | 055          |
 
 > Full specs for all phases: [docs/roadmap.md](./docs/roadmap.md). Implementation plans: [docs/superpowers/plans/](./docs/superpowers/plans/).
