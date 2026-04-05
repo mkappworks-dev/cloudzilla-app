@@ -1,6 +1,6 @@
-# Milestone 1 — Chunk 3: Go Server Refactor + Professional Comments
+# Milestone 1 — Chunk 3: Go Server Refactor + Professional Comments ⬜ NOT STARTED
 
-> **For agentic workers:** Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task.
+> **Scope:** Out of scope for `tech/m1-licensing-security-cleanup`. Implement on a separate branch (e.g., `tech/chunk-3-go-server-refactor`).
 
 **Goal:** Split three oversized Go files into focused, domain-specific files and add GoDoc comments to all exported functions/types across the codebase.
 

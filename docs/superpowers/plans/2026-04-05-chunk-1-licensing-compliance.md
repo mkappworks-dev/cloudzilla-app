@@ -1,6 +1,6 @@
-# Milestone 1 — Chunk 1: Licensing & Compliance
+# Milestone 1 — Chunk 1: Licensing & Compliance ✅ COMPLETE
 
-> **For agentic workers:** Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task.
+> **Status:** All code deliverables done on branch `tech/m1-licensing-security-cleanup`. Task 7 (CLA Assistant app) is manual and requires GitHub admin access.
 
 **Goal:** Establish the legal foundation for Cloudzilla by adding a BSL 1.1 license, contributor guidelines with CLA requirement, and a security vulnerability reporting policy.
 
@@ -20,9 +20,9 @@
 
 ---
 
-## Task 1: Create the LICENSE File
+## Task 1: Create the LICENSE File ✅
 
-- [ ] Create file `LICENSE` in the repository root with the full BSL 1.1 text.
+- [x] Create file `LICENSE` in the repository root with the full BSL 1.1 text.
 
 Use the official MariaDB BSL 1.1 template with these parameters:
 
@@ -68,9 +68,9 @@ Then include the full BSL 1.1 license body text below the parameters block.
 
 ---
 
-## Task 2: Create CONTRIBUTING.md
+## Task 2: Create CONTRIBUTING.md ✅
 
-- [ ] Create file `CONTRIBUTING.md` in the repository root.
+- [x] Create file `CONTRIBUTING.md` in the repository root.
 
 Must include:
 - CLA requirement (CLA Assistant GitHub App — sign on first PR)
@@ -85,9 +85,9 @@ Must include:
 
 ---
 
-## Task 3: Create SECURITY.md
+## Task 3: Create SECURITY.md ✅
 
-- [ ] Create file `SECURITY.md` in the repository root.
+- [x] Create file `SECURITY.md` in the repository root.
 
 Must include:
 - Email-based reporting: **security@cloudzilla.dev** (not public issues)
@@ -101,9 +101,9 @@ Must include:
 
 ---
 
-## Task 4: Create .github/CLA.md
+## Task 4: Create .github/CLA.md ✅
 
-- [ ] Create file `.github/CLA.md` with the CLA text.
+- [x] Create file `.github/CLA.md` with the CLA text.
 
 The CLA must grant Cloudzilla:
 - Perpetual, worldwide, non-exclusive, royalty-free, irrevocable license
@@ -119,9 +119,9 @@ Contributor represents:
 
 ---
 
-## Task 5: Update README.md with License Section
+## Task 5: Update README.md with License Section ✅
 
-- [ ] Add a "License" section at the bottom of `README.md`:
+- [x] Add a "License" section at the bottom of `README.md`:
 
 ```markdown
 ## License
@@ -163,10 +163,10 @@ No action required.
 
 ## Verification Checklist
 
-- [ ] `LICENSE` exists with BSL 1.1 and correct parameters
-- [ ] `CONTRIBUTING.md` references CLA, BSL 1.1, and contribution workflow
-- [ ] `SECURITY.md` has email reporting and response timelines
-- [ ] `.github/CLA.md` has full CLA with commercial re-licensing rights
-- [ ] `README.md` has License section
-- [ ] No per-file license headers (intentional)
-- [ ] All files use LF line endings with trailing newline
+- [x] `LICENSE` exists with BSL 1.1 and correct parameters
+- [x] `CONTRIBUTING.md` references CLA, BSL 1.1, and contribution workflow
+- [x] `SECURITY.md` has email reporting and response timelines
+- [x] `.github/CLA.md` has full CLA with commercial re-licensing rights
+- [x] `README.md` has License section
+- [x] No per-file license headers (intentional)
+- [x] All files use LF line endings with trailing newline

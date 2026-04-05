@@ -1,6 +1,6 @@
-# Milestone 1 — Chunk 6: Test Coverage Plan
+# Milestone 1 — Chunk 6: Test Coverage Plan ⬜ NOT STARTED
 
-> **For agentic workers:** Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task.
+> **Scope:** Out of scope for `tech/m1-licensing-security-cleanup`. Implement on a separate branch (e.g., `tech/chunk-6-test-coverage`). Note: Chunk 4's permission model changes added tests for guard functions and `IsOwner`.
 
 **Goal:** Document testing gaps, establish test infrastructure, and write critical-path tests prioritized by security impact.
 

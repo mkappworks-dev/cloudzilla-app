@@ -1,6 +1,6 @@
-# Milestone 1 — Chunk 2: Documentation Overhaul
+# Milestone 1 — Chunk 2: Documentation Overhaul ⚠️ PARTIAL
 
-> **For agentic workers:** Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task.
+> **Status:** Tasks 3-5 done on `tech/m1-licensing-security-cleanup`. Tasks 1-2 (doc extraction) still pending.
 
 **Goal:** Slim the README from 1,292 → ~200 lines by extracting reference material into docs/, add milestone labels to the roadmap, and fix stale references in CLAUDE.md.
 
@@ -18,7 +18,7 @@
 
 ---
 
-## Task 1: Create `docs/api-reference.md`
+## Task 1: Create `docs/api-reference.md` ⏳ PENDING
 
 - [ ] Extract the entire "API Reference" section from README (17 subsections of endpoint tables)
 - [ ] Straight extraction — no content changes needed
@@ -26,7 +26,7 @@
 
 ---
 
-## Task 2: Create `docs/configuration.md`
+## Task 2: Create `docs/configuration.md` ⏳ PENDING
 
 - [ ] Merge content from multiple README sections into one file:
   - Configuration Reference table (key/default/description)
@@ -37,7 +37,7 @@
 
 ---
 
-## Task 3: Slim down `README.md` to ~200 lines
+## Task 3: Slim down `README.md` to ~200 lines ✅ DONE
 
 **Sections to KEEP (with trimming):**
 
@@ -89,43 +89,43 @@
 
 ---
 
-## Task 4: Update `docs/ROADMAP.md`
+## Task 4: Update `docs/ROADMAP.md` ✅ DONE
 
-- [ ] Add **Milestone 1 header** before Phase 0:
+- [x] Add **Milestone 1 header** before Phase 0:
   ```
   # Milestone 1 — Core Platform (Phases 0-15.3) ✅ COMPLETE
   All 53 migrations implemented. Cleanup and review in progress.
   ```
 
-- [ ] Add **Milestone 2 header** before Phase 16:
+- [x] Add **Milestone 2 header** before Phase 16:
   ```
   # Milestone 2 — Advanced Infrastructure (Phases 16-20) ⬜ PLANNED
   Container registry, Git LFS, CI/CD, clustering, and GraphQL API.
   ```
 
-- [ ] Add closing note after Phase 15.3 content:
+- [x] Add closing note after Phase 15.3 content:
   > Milestone 1 Closing (April 2026): All phases code-complete. Current work: BSL 1.1 license, documentation overhaul, testing, final review before v0.1.0.
 
 ---
 
-## Task 5: Update `CLAUDE.md`
+## Task 5: Update `CLAUDE.md` ✅ DONE
 
-- [ ] **Add milestone structure** after the roadmap table:
+- [x] **Add milestone structure** after the roadmap table:
   ```
   ### Milestone Structure
   - Milestone 1 (Phases 0-15.3, migrations 001-053): Core platform — code complete
   - Milestone 2 (Phases 16-20, migrations 054-060+): Advanced infrastructure — planned
   ```
 
-- [ ] **Fix stale Templ references** (from pre-migration html/template era):
+- [x] **Fix stale Templ references** (from pre-migration html/template era):
   - "Adding a New Feature" step 8: change `cmd/server/frontend/templates/` → `internal/view/pages/`
   - Step 10: update fragment reference to `internal/view/fragments/`
   - HTMX & Template Patterns section: update "Templates parsed at startup in `router.mustParseTemplates()`" to reflect Templ compilation model
   - Verify `pageNames` slice reference in step 11 still exists
 
-- [ ] **Verify all referenced paths** still exist (internal/*, cmd/*, docs/*, etc.)
+- [x] **Verify all referenced paths** still exist (internal/*, cmd/*, docs/*, etc.)
 
-- [ ] **Add references** for new docs: `docs/api-reference.md`, `docs/configuration.md`
+- [ ] **Add references** for new docs: `docs/api-reference.md`, `docs/configuration.md` (blocked on Tasks 1-2)
 
 ---
 

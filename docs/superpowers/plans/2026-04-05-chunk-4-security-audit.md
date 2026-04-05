@@ -1,6 +1,6 @@
-# Milestone 1 — Chunk 4: Security Audit
+# Milestone 1 — Chunk 4: Security Audit ✅ COMPLETE (P1/P2)
 
-> **For agentic workers:** Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task.
+> **Status:** All Priority 1 (critical) and Priority 2 (high) tasks done on `tech/m1-licensing-security-cleanup`. Priority 3 items deferred to M2. Additional authorization model upgrade (CanManage/IsOwner) completed beyond original plan scope.
 
 **Goal:** Identify and fix security vulnerabilities across HTMX, git transport, SQL, auth, SSO, and input validation layers.
 
@@ -232,23 +232,36 @@ User-provided webhook URLs can target internal services (`localhost`, `169.254.1
 
 ## Implementation Tasks
 
-### Priority 1 — Must Fix Before Launch
+### Priority 1 — Must Fix Before Launch ✅ ALL DONE
 
-- [ ] **Task 1:** Fix CORS — add `cors.allowed_origins` config, use explicit allowlist in production (`middleware/cors.go`)
-- [ ] **Task 2:** Add startup check — panic/warn if `jwt_secret == "change-me"` (`config/config.go` or `cmd/server/main.go`)
-- [ ] **Task 3:** Add CSRF middleware — generate per-session token, validate on state-changing requests, inject via HTMX `hx-headers`
+- [x] **Task 1:** Fix CORS — add `cors.allowed_origins` config, use explicit allowlist in production (`middleware/cors.go`) — commit `db6d889`
+- [x] **Task 2:** Add startup check — panic/warn if `jwt_secret == "change-me"` — commit `726b236`
+- [x] **Task 3:** Add CSRF middleware — double-submit cookie pattern, `X-CSRF-Token` header via HTMX `hx-headers` — commit `db6d889`
 
-### Priority 2 — Should Fix
+### Priority 2 — Should Fix ✅ ALL DONE
 
-- [ ] **Task 4:** Add input validation for repo/owner/branch names — `^[a-zA-Z0-9._-]+$` (`repo_service.go`, `git_http.go`, `ssh/server.go`)
-- [ ] **Task 5:** Add `Secure` cookie flag — configurable via `auth.cookie_secure` (all cookie-setting handlers)
-- [ ] **Task 6:** Fix branch protection timing — check before ReceivePack or implement pre-receive hook
-- [ ] **Task 7:** Fix claimsFromMap — use comma-ok type assertions (`middleware/auth.go`)
-- [ ] **Task 8:** Add webhook SSRF protection — block private IP ranges (`webhook_service.go`)
+- [x] **Task 4:** Add input validation for repo/owner/branch names — `^[a-zA-Z0-9._-]+$` — commit `68465d9`
+- [x] **Task 5:** Add `Secure` cookie flag — configurable via `auth.cookie_secure` — commit `726b236`
+- [x] **Task 6:** Fix branch protection timing — rollback on violation before ReceivePack completes — commit `68465d9`
+- [x] **Task 7:** Fix claimsFromMap — comma-ok type assertions — commit `726b236`
+- [x] **Task 8:** Add webhook SSRF protection — block private IP ranges — commit `68465d9`
 
-### Priority 3 — Should Improve
+### Priority 3 — Should Improve (deferred to M2)
 
 - [ ] **Task 9:** Make SAML `entity_id` and `acs_url` required when SAML enabled
 - [ ] **Task 10:** Escape LIKE wildcards in search input
 - [ ] **Task 11:** Document templ.Raw trust boundary
-- [ ] **Task 12:** Consider JWT revocation or server-side sessions (larger effort, may defer to M2)
+- [ ] **Task 12:** Consider JWT revocation or server-side sessions (larger effort, deferred to M2)
+
+### Additional Work (beyond original plan)
+
+- [x] **Task 13:** Add `MaxBodySize` middleware — 1 MB limit on all API routes — commit `3468224`
+- [x] **Task 14:** Validate all URL path parameter parsing (strconv errors) — commit `3841431`
+- [x] **Task 15:** Check ParseForm errors in all handlers — commit `b4c9b73`
+- [x] **Task 16:** Fix open redirect in OAuth authorize flow — commit `cf2f2d5`
+- [x] **Task 17:** Add CanWrite authorization to 18 unprotected state-mutating handlers — commits `a3cb53e`, `4026753`
+- [x] **Task 18:** Upgrade admin role — `CanManage` includes admin collaborators, new `IsOwner` for destructive ops — commit `c95a000`
+- [x] **Task 19:** Align handlers and views with new permission model (webhooks, collaborators, settings) — commit `9a41160`
+- [x] **Task 20:** Comprehensive access-control documentation — commit `a2df86c`, `2f75a20`
+- [x] **Task 21:** Remove SQLite support, standardize on PostgreSQL — commit `6ad536a`
+- [x] **Task 22:** Remove sqlc, standardize all stores on direct sqlx queries — commit `e86fc13`

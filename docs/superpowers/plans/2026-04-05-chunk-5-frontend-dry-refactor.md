@@ -1,6 +1,6 @@
-# Milestone 1 — Chunk 5: Frontend DRY Refactor
+# Milestone 1 — Chunk 5: Frontend DRY Refactor ⬜ NOT STARTED
 
-> **For agentic workers:** Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task.
+> **Scope:** Out of scope for `tech/m1-licensing-security-cleanup`. Implement on a separate branch (e.g., `tech/chunk-5-frontend-dry-refactor`).
 
 **Goal:** Extract duplicated Templ patterns into shared components, deduplicate sidebar pickers, and clean up Tailwind configuration.
 
