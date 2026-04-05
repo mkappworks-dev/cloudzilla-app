@@ -42,8 +42,10 @@ func (s *CodeSearchStore) Search(ctx context.Context, query string, repoID *int6
 		argIdx++
 	}
 	if lang != "" {
-		filters = append(filters, fmt.Sprintf("csi.file_path LIKE $%d", argIdx))
-		args = append(args, "%"+lang)
+		// Escape LIKE special characters so user input is treated as a literal suffix.
+		safeLang := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(lang)
+		filters = append(filters, fmt.Sprintf(`csi.file_path LIKE $%d ESCAPE '\'`, argIdx))
+		args = append(args, "%"+safeLang)
 		argIdx++
 	}
 

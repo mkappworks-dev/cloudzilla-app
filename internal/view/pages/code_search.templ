@@ -2,6 +2,7 @@ package pages
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 	"github.com/mkappworks/cloudzilla/internal/view"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
@@ -48,11 +49,11 @@ templ CodeSearch(data view.CodeSearchData) {
 					if data.Total > 20 {
 						<div class="flex justify-center gap-3 text-sm">
 							if data.Page > 1 {
-								<a href={ templ.SafeURL("/search/code?q=" + data.Query + "&repo=" + data.RepoFilter + "&lang=" + data.Lang + "&page=" + strconv.Itoa(data.Page-1)) } class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Previous</a>
+								<a href={ templ.SafeURL("/search/code?q=" + url.QueryEscape(data.Query) + "&repo=" + url.QueryEscape(data.RepoFilter) + "&lang=" + url.QueryEscape(data.Lang) + "&page=" + strconv.Itoa(data.Page-1)) } class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Previous</a>
 							}
 							<span class="px-3 py-1 text-gray-500">Page { strconv.Itoa(data.Page) }</span>
 							if data.Page*20 < data.Total {
-								<a href={ templ.SafeURL("/search/code?q=" + data.Query + "&repo=" + data.RepoFilter + "&lang=" + data.Lang + "&page=" + strconv.Itoa(data.Page+1)) } class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Next</a>
+								<a href={ templ.SafeURL("/search/code?q=" + url.QueryEscape(data.Query) + "&repo=" + url.QueryEscape(data.RepoFilter) + "&lang=" + url.QueryEscape(data.Lang) + "&page=" + strconv.Itoa(data.Page+1)) } class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Next</a>
 							}
 						</div>
 					}
