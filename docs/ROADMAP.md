@@ -2414,7 +2414,7 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 12.1  | Watching                             | ✅ Done    | 044          |
 | 12.2  | Activity Feed                        | ✅ Done    | 045          |
 | 12.3  | Discussions                          | ✅ Done    | 046          |
-| 13.1  | Gists                                | ⬜ Planned | 047          |
+| 13.1  | Gists                                | ✅ Done    | 047          |
 | 13.2  | Profile README                       | ⬜ Planned | —            |
 | 13.3  | Repository Topics / Tags             | ⬜ Planned | 047          |
 | 14.1  | Private Issues                       | ⬜ Planned | 048          |
