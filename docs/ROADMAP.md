@@ -1999,7 +1999,7 @@ _Confidential triage, repo lifecycle management, and a safety net for accidental
 
 ### Phase 14.1 — Private Issues
 
-**Migration** (`048_add_visibility_to_issues.sql`):
+**Migration** (`049_add_visibility_to_issues.sql`):
 
 ```sql
 ALTER TABLE issues
@@ -2417,9 +2417,9 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 13.1  | Gists                                | ✅ Done    | 047          |
 | 13.2  | Profile README                       | ✅ Done    | —            |
 | 13.3  | Repository Topics / Tags             | ✅ Done    | 048          |
-| 14.1  | Private Issues                       | ⬜ Planned | 048          |
-| 14.2  | Archive & Templates                  | ⬜ Planned | 049          |
-| 14.3  | Repository Soft-delete & Recovery    | ⬜ Planned | 050          |
+| 14.1  | Private Issues                       | ✅ Done    | 049          |
+| 14.2  | Archive & Templates                  | ⬜ Planned | 050          |
+| 14.3  | Repository Soft-delete & Recovery    | ⬜ Planned | 051          |
 | 15.1  | Advanced Code Search                 | ⬜ Planned | 051          |
 | 15.2  | Explore / Trending                   | ⬜ Planned | —            |
 | 15.3  | Dependency Graph                     | ⬜ Planned | 052          |
