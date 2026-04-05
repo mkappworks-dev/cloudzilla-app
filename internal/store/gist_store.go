@@ -89,6 +89,20 @@ func (s *GistStore) ListByOwner(ctx context.Context, ownerID int64, page, pageSi
 	return scanGists(rows)
 }
 
+func (s *GistStore) ListPublicByOwner(ctx context.Context, ownerID int64, page, pageSize int) ([]model.Gist, error) {
+	offset := (page - 1) * pageSize
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, owner_id, owner_name, description, public, created_at, updated_at
+         FROM gists WHERE owner_id = $1 AND public = true ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+		ownerID, pageSize, offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("gist list public by owner: %w", err)
+	}
+	defer rows.Close()
+	return scanGists(rows)
+}
+
 func (s *GistStore) ListPublic(ctx context.Context, page, pageSize int) ([]model.Gist, error) {
 	offset := (page - 1) * pageSize
 	rows, err := s.db.QueryContext(ctx,

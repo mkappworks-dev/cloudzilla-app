@@ -17,6 +17,8 @@ const (
 	maxGistFileSize = 1 * 1024 * 1024 // 1 MB
 )
 
+var ErrGistNotFound = errors.New("gist not found")
+
 type GistService struct {
 	gists *store.GistStore
 }
@@ -101,13 +103,23 @@ func (s *GistService) Explore(ctx context.Context, page, pageSize int) ([]model.
 	return s.gists.ListPublic(ctx, page, pageSize)
 }
 
+func (s *GistService) ListPublicByOwner(ctx context.Context, ownerID int64, page, pageSize int) ([]model.Gist, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	return s.gists.ListPublicByOwner(ctx, ownerID, page, pageSize)
+}
+
 func (s *GistService) Update(ctx context.Context, gistID string, requesterID int64, description string, public bool, files []model.GistFile) error {
 	g, _, err := s.gists.Get(ctx, gistID)
 	if err != nil {
-		return fmt.Errorf("gist not found: %w", err)
+		return ErrGistNotFound
 	}
 	if g.OwnerID != requesterID {
-		return errors.New("forbidden: only the owner can edit a gist")
+		return ErrForbidden
 	}
 	if err := validateGistFiles(files); err != nil {
 		return err
@@ -120,10 +132,10 @@ func (s *GistService) Update(ctx context.Context, gistID string, requesterID int
 func (s *GistService) Delete(ctx context.Context, gistID string, requesterID int64) error {
 	g, _, err := s.gists.Get(ctx, gistID)
 	if err != nil {
-		return fmt.Errorf("gist not found: %w", err)
+		return ErrGistNotFound
 	}
 	if g.OwnerID != requesterID {
-		return errors.New("forbidden: only the owner can delete a gist")
+		return ErrForbidden
 	}
 	return s.gists.Delete(ctx, gistID)
 }

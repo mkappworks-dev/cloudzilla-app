@@ -2,12 +2,14 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
 	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks/cloudzilla/internal/service"
 	"github.com/mkappworks/cloudzilla/internal/view"
 	"github.com/mkappworks/cloudzilla/internal/view/fragments"
 	"github.com/mkappworks/cloudzilla/internal/view/pages"
@@ -136,7 +138,14 @@ func (h *Handler) UpdateGist(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Gist.Update(r.Context(), id, claims.UserID, body.Description, body.Public, body.Files); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		switch {
+		case errors.Is(err, service.ErrGistNotFound):
+			writeError(w, http.StatusNotFound, "gist not found")
+		case errors.Is(err, service.ErrForbidden):
+			writeError(w, http.StatusForbidden, "forbidden")
+		default:
+			writeError(w, http.StatusBadRequest, err.Error())
+		}
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -152,7 +161,14 @@ func (h *Handler) DeleteGist(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.Services.Gist.Delete(r.Context(), id, claims.UserID); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		switch {
+		case errors.Is(err, service.ErrGistNotFound):
+			writeError(w, http.StatusNotFound, "gist not found")
+		case errors.Is(err, service.ErrForbidden):
+			writeError(w, http.StatusForbidden, "forbidden")
+		default:
+			writeError(w, http.StatusBadRequest, err.Error())
+		}
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -182,13 +198,7 @@ func (h *Handler) PageUserGists(w http.ResponseWriter, r *http.Request) {
 	if isOwner {
 		gists, _ = h.Services.Gist.ListByOwner(r.Context(), user.ID, page, 20)
 	} else {
-		// Non-owners only see public gists; filter after listing.
-		all, _ := h.Services.Gist.ListByOwner(r.Context(), user.ID, page, 20)
-		for _, g := range all {
-			if g.Public {
-				gists = append(gists, g)
-			}
-		}
+		gists, _ = h.Services.Gist.ListPublicByOwner(r.Context(), user.ID, page, 20)
 	}
 	if gists == nil {
 		gists = []model.Gist{}
