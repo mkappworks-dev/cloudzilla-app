@@ -137,7 +137,8 @@ See [docs/access-control.md](./docs/access-control.md) for full tables and flows
 - Three levels: instance (`superadmin`/`user`), org (`owner`/`member`), repo (`reader`/`writer`/`admin`)
 - First-run `/setup` → first submitter becomes superadmin; `RequireSetup` middleware redirects all routes until done
 - `allow_registration` / `allow_login` site settings; invite tokens bypass both
-- `CanManage` — owner or org owner only (not `admin` collaborator); gates collaborator CRUD
+- `CanManage` — owner, org owner, or `admin` collaborator; gates settings, collaborators, webhooks, branch protection
+- `IsOwner` — owner or org owner only; gates transfer, delete, archive
 - HTMX responses swap `fragment-repo-collaborators` into `#repo-collaborators`
 
 ---

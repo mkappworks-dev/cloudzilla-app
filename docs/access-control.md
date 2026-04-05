@@ -241,21 +241,21 @@ Superadmin generates token link → shares manually. No SMTP required.
 | GET    | `/{owner}/{repo}/releases`                       | optAuthMW | CanRead              | ListReleases      |
 | GET    | `/{owner}/{repo}/milestones`                     | optAuthMW | CanRead              | ListMilestones    |
 | GET    | `/{owner}/{repo}/labels`                         | optAuthMW | CanRead              | ListLabels        |
-| GET    | `/{owner}/{repo}/hooks`                          | optAuthMW | CanWrite (handler)   | ListWebhooks      |
+| GET    | `/{owner}/{repo}/hooks`                          | optAuthMW | CanManage (handler)  | ListWebhooks      |
 | GET    | `/{owner}/{repo}/collaborators`                  | optAuthMW | Public list          | ListCollaborators |
 
 ### Repository Endpoints — Write (Require CanWrite)
 
 | Method            | Path                                                      | Auth   | AuthZ Check             | Handler                     |
 | ----------------- | --------------------------------------------------------- | ------ | ----------------------- | --------------------------- |
-| POST              | `/api/repos/{owner}/{repo}/issues`                        | authMW | CanWrite (handler)      | CreateIssue                 |
+| POST              | `/api/repos/{owner}/{repo}/issues`                        | authMW | Authenticated (private: CanWrite in service) | CreateIssue |
 | PATCH             | `/api/repos/{owner}/{repo}/issues/{number}`               | authMW | CanWrite (handler)      | UpdateIssue                 |
 | POST              | `/api/repos/{owner}/{repo}/issues/{number}/comments`      | authMW | CanWrite (handler)      | CreateIssueComment          |
-| PATCH             | `/api/repos/{owner}/{repo}/issues/{number}/comments/{id}` | authMW | Author OR CanWrite      | UpdateComment               |
-| DELETE            | `/api/repos/{owner}/{repo}/issues/{number}/comments/{id}` | authMW | Author OR CanManage     | DeleteComment               |
-| POST              | `/api/repos/{owner}/{repo}/pulls`                         | authMW | CanWrite (handler)      | CreatePull                  |
+| PATCH             | `/api/repos/{owner}/{repo}/issues/{number}/comments/{id}` | authMW | Author only             | UpdateComment               |
+| DELETE            | `/api/repos/{owner}/{repo}/issues/{number}/comments/{id}` | authMW | Author OR CanWrite      | DeleteComment               |
+| POST              | `/api/repos/{owner}/{repo}/pulls`                         | authMW | Authenticated           | CreatePull                  |
 | PATCH             | `/api/repos/{owner}/{repo}/pulls/{number}`                | authMW | CanWrite (handler)      | UpdatePull                  |
-| POST              | `/api/repos/{owner}/{repo}/pulls/{number}/reviews`        | authMW | CanWrite (handler)      | SubmitReview                |
+| POST              | `/api/repos/{owner}/{repo}/pulls/{number}/reviews`        | authMW | Authenticated (not PR author) | SubmitReview           |
 | POST/PATCH/DELETE | `.../pulls/{number}/line_comments`                        | authMW | CanWrite (handler)      | Line comment CRUD           |
 | POST              | `/api/repos/{owner}/{repo}/labels`                        | authMW | CanWrite (handler)      | CreateLabel                 |
 | DELETE            | `/api/repos/{owner}/{repo}/labels/{id}`                   | authMW | CanWrite (handler)      | DeleteLabel                 |
@@ -286,17 +286,17 @@ Superadmin generates token link → shares manually. No SMTP required.
 
 | Method            | Path                                      | Auth   | AuthZ Check         | Handler                 |
 | ----------------- | ----------------------------------------- | ------ | ------------------- | ----------------------- |
-| PATCH             | `.../issues/{number}/pin`                 | authMW | CanManage (handler) | PinIssue                |
-| PATCH             | `.../issues/{number}/lock`                | authMW | CanManage (handler) | LockIssue               |
+| PATCH             | `.../issues/{number}/pin`                 | authMW | CanManage (service) | PinIssue                |
+| PATCH             | `.../issues/{number}/lock`                | authMW | CanManage (service) | LockIssue               |
 | POST/PATCH/DELETE | `.../branches/protections`                | authMW | CanManage (handler) | BranchProtection CRUD   |
 | POST/DELETE       | `.../hooks`                               | authMW | CanManage (handler) | Webhook CRUD            |
 | POST/DELETE       | `/api/repos/{owner}/{repo}/collaborators` | authMW | CanManage (handler) | Collaborator CRUD       |
 | POST/DELETE       | `/api/repos/{owner}/{repo}/keys`          | authMW | CanManage (handler) | DeployKey CRUD          |
 | PUT               | `/api/repos/{owner}/{repo}/topics`        | authMW | CanManage (handler) | SetTopics               |
-| POST              | `/api/repos/{owner}/{repo}/transfer`      | authMW | IsOwner (service)   | TransferRepo            |
+| POST              | `/api/repos/{owner}/{repo}/transfer`      | authMW | IsOwner (handler)   | TransferRepo            |
 | POST              | `/api/repos/{owner}/{repo}/archive`       | authMW | IsOwner (service)   | ArchiveRepo             |
 | POST              | `/api/repos/{owner}/{repo}/unarchive`     | authMW | IsOwner (service)   | UnarchiveRepo           |
-| POST              | `/api/repos/{owner}/{repo}/restore`       | authMW | IsOwner (service)   | RestoreRepo             |
+| POST              | `/api/repos/{owner}/{repo}/restore`       | authMW | OwnerID + superadmin (service) | RestoreRepo    |
 | PATCH             | `/api/repos/{owner}/{repo}/template`      | authMW | IsOwner (service)   | SetRepoTemplate         |
 | DELETE            | `/api/repos/{owner}/{repo}/wiki/{slug}`   | authMW | CanManage (handler) | DeleteWikiPage          |
 | POST/DELETE       | `.../discussions/categories`              | authMW | CanManage (handler) | DiscussionCategory CRUD |
