@@ -57,7 +57,7 @@ func (s *LabelService) AddToIssue(ctx context.Context, owner, repoName string, i
 	if err != nil {
 		return fmt.Errorf("repo not found: %w", err)
 	}
-	issue, err := s.issues.GetByNumber(ctx, repo.ID, issueNumber)
+	issue, err := s.issues.GetByNumberUnfiltered(ctx, repo.ID, issueNumber)
 	if err != nil {
 		return fmt.Errorf("issue not found: %w", err)
 	}
@@ -73,7 +73,7 @@ func (s *LabelService) RemoveFromIssue(ctx context.Context, owner, repoName stri
 	if err != nil {
 		return fmt.Errorf("repo not found: %w", err)
 	}
-	issue, err := s.issues.GetByNumber(ctx, repo.ID, issueNumber)
+	issue, err := s.issues.GetByNumberUnfiltered(ctx, repo.ID, issueNumber)
 	if err != nil {
 		return fmt.Errorf("issue not found: %w", err)
 	}
