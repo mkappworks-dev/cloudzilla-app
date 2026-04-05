@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"html"
 	"html/template"
+	"log/slog"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -11,8 +12,43 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
 	ghtml "github.com/yuin/goldmark/renderer/html"
+	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
 )
+
+// linkSanitizer is a goldmark AST transformer that rewrites links whose
+// destination uses a dangerous scheme (javascript:, vbscript:, data:) to "#".
+// It must run before rendering so the default goldmark HTML renderer emits the
+// sanitised href without any additional logic.
+type linkSanitizer struct{}
+
+func (t *linkSanitizer) Transform(doc *ast.Document, _ text.Reader, _ parser.Context) {
+	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+		if link, ok := n.(*ast.Link); ok {
+			if hasDangerousScheme(link.Destination) {
+				link.Destination = []byte("#")
+			}
+		}
+		return ast.WalkContinue, nil
+	})
+}
+
+func hasDangerousScheme(dest []byte) bool {
+	lower := bytes.ToLower(bytes.TrimSpace(dest))
+	for _, prefix := range [][]byte{
+		[]byte("javascript:"),
+		[]byte("vbscript:"),
+		[]byte("data:"),
+	} {
+		if bytes.HasPrefix(lower, prefix) {
+			return true
+		}
+	}
+	return false
+}
 
 type mermaidRenderer struct{}
 
@@ -58,7 +94,12 @@ func Render(src string) string {
 	var buf bytes.Buffer
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
-		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
+		goldmark.WithParserOptions(
+			parser.WithAutoHeadingID(),
+			parser.WithASTTransformers(
+				util.Prioritized(&linkSanitizer{}, 999),
+			),
+		),
 		goldmark.WithRendererOptions(
 			ghtml.WithHardWraps(),
 			renderer.WithNodeRenderers(
@@ -67,6 +108,7 @@ func Render(src string) string {
 		),
 	)
 	if err := md.Convert([]byte(src), &buf); err != nil {
+		slog.Warn("markdown: failed to convert content, falling back to escaped source", "error", err)
 		return html.EscapeString(src)
 	}
 	return buf.String()
