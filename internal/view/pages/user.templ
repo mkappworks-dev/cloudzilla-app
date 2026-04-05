@@ -17,6 +17,9 @@ templ User(data view.UserData) {
 					<a href={ templ.SafeURL("/" + data.User.Username + "/stars") } class="text-sm text-blue-600 hover:underline">&#9733; Starred repos</a>
 				</div>
 			</div>
+			if data.ProfileReadme != "" {
+				<div class="mb-6 prose max-w-none">@templ.Raw(string(data.ProfileReadme))</div>
+			}
 			<div>
 				<h2 class="text-2xl font-bold mb-4">Repositories</h2>
 				if len(data.Repos) > 0 {
