@@ -262,6 +262,7 @@ graph TD
 - Branch & tag management — list, create, and delete branches/tags via web UI (HTMX, no reload)
 - Clone URLs on repo pages (HTTP & SSH)
 - **Gists** — create, edit, and delete multi-file code snippets; public gists browsable at `/gists`; per-user listing at `/{owner}/gists`; private gists visible only to their owner
+- **Profile README** — create a public repo named after your username (e.g. `alice/alice`) with a `README.md` at the root; it renders as Markdown above your repo list on your profile page
 - Auth-aware navigation (Sign in/Settings/Notifications/Admin/Sign out)
 - Admin CLI for bootstrapping
 - Single binary ships API + embedded frontend + CSS
@@ -1142,7 +1143,7 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 | 12.2    | Activity Feed                                | ✅ Done    | 045          |
 | 12.3    | Discussions                                  | ✅ Done    | 046          |
 | 13.1    | Gists                                        | ✅ Done    | 047          |
-| 13.2    | Profile README                               | ⬜ Planned | —            |
+| 13.2    | Profile README                               | ✅ Done    | —            |
 | 13.3    | Repository Topics / Tags                     | ⬜ Planned | 049          |
 | 14.1    | Private Issues                               | ⬜ Planned | 050          |
 | 14.2    | Repository Archive & Templates               | ⬜ Planned | 051          |
