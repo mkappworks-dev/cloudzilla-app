@@ -45,6 +45,7 @@ type Stores struct {
 	Topic              *TopicStore
 	CodeSearch         *CodeSearchStore
 	Explore            *ExploreStore
+	Dependency         *DependencyStore
 }
 
 func New(database *sql.DB) *Stores {
@@ -88,5 +89,6 @@ func New(database *sql.DB) *Stores {
 		Topic:              NewTopicStore(database),
 		CodeSearch:         NewCodeSearchStore(database),
 		Explore:            NewExploreStore(database),
+		Dependency:         NewDependencyStore(database),
 	}
 }

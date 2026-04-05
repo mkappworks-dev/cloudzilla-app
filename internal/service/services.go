@@ -45,6 +45,7 @@ type Services struct {
 	Topic            *TopicService
 	Index            *IndexService
 	Explore          *ExploreService
+	Dependency       *DependencyService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -95,5 +96,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Topic:            NewTopicService(stores.Topic),
 		Index:            index,
 		Explore:          NewExploreService(stores.Explore),
+		Dependency:       NewDependencyService(stores.Dependency, code),
 	}
 }

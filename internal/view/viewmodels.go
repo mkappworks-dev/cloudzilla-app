@@ -843,3 +843,13 @@ type ExploreData struct {
 	Period string
 	Repos  []model.RepositoryWithStats
 }
+
+// DependenciesData is the view model for the /{owner}/{repo}/network/dependencies page.
+type DependenciesData struct {
+	BasePage
+	Repo         model.Repository
+	Owner        string
+	RepoName     string
+	Dependencies []model.RepoDependency
+	ByManager    map[string][]model.RepoDependency
+}

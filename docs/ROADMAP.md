@@ -2079,7 +2079,7 @@ _Zero-migration — aggregates from existing tables._
 
 ### Phase 15.3 — Dependency Graph
 
-**Migration** (`052_create_dependency_graph.sql`):
+**Migration** (`053_create_dependency_graph.sql`):
 
 ```sql
 CREATE TABLE repo_dependencies (
@@ -2422,7 +2422,7 @@ Exposes a `POST /api/graphql` endpoint implementing a typed GraphQL schema over 
 | 14.3  | Repository Soft-delete & Recovery    | ✅ Done    | 051          |
 | 15.1  | Advanced Code Search                 | ✅ Done    | 052          |
 | 15.2  | Explore / Trending                   | ✅ Done    | —            |
-| 15.3  | Dependency Graph                     | ⬜ Planned | 052          |
+| 15.3  | Dependency Graph                     | ✅ Done    | 053          |
 | 16.1  | Container Registry (Docker)          | ⬜ Planned | 053          |
 | 16.2  | Generic Package Registry             | ⬜ Planned | 054          |
 | 16.3  | Release Asset Enhancements           | ⬜ Planned | —            |

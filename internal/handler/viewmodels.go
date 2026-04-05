@@ -92,4 +92,5 @@ type (
 	TopicData                  = view.TopicData
 	CodeSearchData             = view.CodeSearchData
 	ExploreData                = view.ExploreData
+	DependenciesData           = view.DependenciesData
 )
