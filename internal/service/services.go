@@ -41,6 +41,7 @@ type Services struct {
 	Watch            *WatchService
 	Event            *EventService
 	Discussion       *DiscussionService
+	Gist             *GistService
 }
 
 func New(stores *store.Stores, cfg *config.Config) *Services {
@@ -86,5 +87,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Watch:            NewWatchService(stores.Watch, stores.Repo),
 		Event:            NewEventService(stores.Event, stores.User, stores.Repo),
 		Discussion:       NewDiscussionService(stores.Discussion, stores.Repo),
+		Gist:             NewGistService(stores.Gist),
 	}
 }

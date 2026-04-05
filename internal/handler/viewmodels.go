@@ -83,4 +83,9 @@ type (
 	RenderedDiscussionReply     = view.RenderedDiscussionReply
 	DiscussionsData             = view.DiscussionsData
 	DiscussionDetailData        = view.DiscussionDetailData
+	GistsData                  = view.GistsData
+	GistDetailData             = view.GistDetailData
+	GistNewData                = view.GistNewData
+	GistEditData               = view.GistEditData
+	UserGistsData              = view.UserGistsData
 )

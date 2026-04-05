@@ -261,6 +261,7 @@ graph TD
 - Commit diff view — unified diff with added/deleted line highlighting
 - Branch & tag management — list, create, and delete branches/tags via web UI (HTMX, no reload)
 - Clone URLs on repo pages (HTTP & SSH)
+- **Gists** — create, edit, and delete multi-file code snippets; public gists browsable at `/gists`; per-user listing at `/{owner}/gists`; private gists visible only to their owner
 - Auth-aware navigation (Sign in/Settings/Notifications/Admin/Sign out)
 - Admin CLI for bootstrapping
 - Single binary ships API + embedded frontend + CSS
@@ -1140,7 +1141,7 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 | 12.1    | Watching                                     | ✅ Done    | 044          |
 | 12.2    | Activity Feed                                | ✅ Done    | 045          |
 | 12.3    | Discussions                                  | ✅ Done    | 046          |
-| 13.1    | Gists                                        | ⬜ Planned | 047          |
+| 13.1    | Gists                                        | ✅ Done    | 047          |
 | 13.2    | Profile README                               | ⬜ Planned | —            |
 | 13.3    | Repository Topics / Tags                     | ⬜ Planned | 049          |
 | 14.1    | Private Issues                               | ⬜ Planned | 050          |

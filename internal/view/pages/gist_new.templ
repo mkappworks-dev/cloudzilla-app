@@ -1,0 +1,67 @@
+package pages
+
+import (
+	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/layout"
+)
+
+templ GistNew(data view.GistNewData) {
+	@layout.Base(data.BasePage, "New Gist") {
+		<div class="max-w-4xl mx-auto py-8 px-4">
+			<h1 class="text-2xl font-bold mb-6">Create a New Gist</h1>
+			<form id="gist-form">
+				<div class="mb-4">
+					<label class="block text-sm font-medium text-gray-700 mb-1">Description <span class="text-gray-400">(optional)</span></label>
+					<input type="text" name="description" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="Gist description..."/>
+				</div>
+				<div class="mb-4 flex items-center gap-2">
+					<input type="checkbox" id="public" name="public" checked/>
+					<label for="public" class="text-sm text-gray-700">Public gist</label>
+				</div>
+				<div id="file-rows" class="space-y-4">
+					<div class="border border-gray-200 rounded p-4">
+						<input type="text" name="filename[]" placeholder="Filename including extension" class="w-full border border-gray-300 rounded px-3 py-1 text-sm mb-2" required/>
+						<textarea name="content[]" rows="8" class="w-full border border-gray-300 rounded px-3 py-1 text-sm font-mono" placeholder="File contents..."></textarea>
+					</div>
+				</div>
+				<div class="mt-3">
+					<button
+						type="button"
+						hx-get="/api/gists/file-row"
+						hx-target="#file-rows"
+						hx-swap="beforeend"
+						class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50"
+					>
+						Add file
+					</button>
+				</div>
+				<div class="mt-6 flex gap-3">
+					<button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium">Create Gist</button>
+					<a href="/gists" class="px-4 py-2 border rounded text-sm hover:bg-gray-50">Cancel</a>
+				</div>
+			</form>
+			<script>
+				document.getElementById('gist-form').addEventListener('submit', async function(e) {
+					e.preventDefault();
+					const desc = this.querySelector('[name=description]').value;
+					const pub = this.querySelector('[name=public]').checked;
+					const filenames = [...this.querySelectorAll('[name="filename[]"]')].map(el => el.value);
+					const contents = [...this.querySelectorAll('[name="content[]"]')].map(el => el.value);
+					const files = filenames.map((fn, i) => ({ filename: fn, content: contents[i] }));
+					const res = await fetch('/api/gists', {
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'},
+						body: JSON.stringify({ description: desc, public: pub, files })
+					});
+					if (res.ok) {
+						const g = await res.json();
+						window.location.href = '/gists/' + g.id;
+					} else {
+						const err = await res.json();
+						alert(err.error || 'Failed to create gist');
+					}
+				});
+			</script>
+		</div>
+	}
+}

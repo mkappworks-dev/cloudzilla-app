@@ -60,8 +60,24 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/oauth/authorize", h.PageOAuthAuthorize)
 	r.With(authMW).Post("/oauth/authorize", h.ConfirmAuthorize)
 	r.Post("/oauth/token", h.TokenEndpoint)
+
+	// Gist page routes
+	r.With(optAuthMW).Get("/gists", h.PageGists)
+	r.With(authMW).Get("/gists/new", h.PageGistNew)
+	r.With(optAuthMW).Get("/gists/{id}", h.PageGistDetail)
+	r.With(authMW).Get("/gists/{id}/edit", h.PageGistEdit)
+
+	// Gist API routes
+	r.Route("/api/gists", func(r chi.Router) {
+		r.With(authMW).Post("/", h.CreateGist)
+		r.With(authMW).Get("/file-row", h.AddFileFragment)
+		r.With(authMW).Patch("/{id}", h.UpdateGist)
+		r.With(authMW).Delete("/{id}", h.DeleteGist)
+	})
+
 	r.With(optAuthMW).Get("/{owner}", h.PageUser)
 	r.With(authMW).Get("/orgs/{org}/settings", h.PageOrgSettings)
+	r.With(optAuthMW).Get("/{owner}/gists", h.PageUserGists)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases", h.PageReleases)
