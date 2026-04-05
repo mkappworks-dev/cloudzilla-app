@@ -51,7 +51,12 @@ templ Base(base view.BasePage, title string) {
 			<footer class="text-center text-gray-500 py-4 text-xs border-t border-gray-200">
 				<p>&copy; 2026 Cloudzilla. Built with Go, HTMX, and Tailwind.</p>
 			</footer>
-			<script src="/htmx.min.js" defer></script>
+			<script>
+			document.body.setAttribute('hx-headers', JSON.stringify({
+				'X-CSRF-Token': document.cookie.match(/csrf_token=([^;]+)/)?.[1] || ''
+			}));
+		</script>
+		<script src="/htmx.min.js" defer></script>
 			<script src="/alpine.min.js" defer></script>
 			<script src="/static/mermaid.min.js"></script>
 			<script>
