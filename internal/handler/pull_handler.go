@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -73,7 +74,8 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 	}
 	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, req.Title, req.Body, req.HeadBranch, req.BaseBranch, req.IsDraft)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -174,7 +176,8 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		}
 		pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 		if r.Header.Get("HX-Request") == "true" {
@@ -210,7 +213,8 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		}
 		pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 		if r.Header.Get("HX-Request") == "true" {
@@ -272,7 +276,8 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 
 	pr, err := h.Services.Pull.SetState(r.Context(), owner, repoName, number, model.PRState(state))
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 

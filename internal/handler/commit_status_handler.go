@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -60,7 +61,8 @@ func (h *Handler) CreateStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.CommitStatus.Upsert(r.Context(), owner, repoName, sha, cs); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 

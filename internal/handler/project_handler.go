@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -324,5 +325,6 @@ func writeProjectError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusForbidden, err.Error())
 		return
 	}
-	writeError(w, http.StatusInternalServerError, err.Error())
+	slog.Error("operation failed", "error", err)
+	writeError(w, http.StatusInternalServerError, "internal server error")
 }

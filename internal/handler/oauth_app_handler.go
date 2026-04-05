@@ -85,7 +85,7 @@ func (h *Handler) ConfirmAuthorize(w http.ResponseWriter, r *http.Request) {
 
 	code, err := h.Services.OAuthApp.Authorize(r.Context(), app.ID, claims.UserID, redirectURI, scopes, app)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 

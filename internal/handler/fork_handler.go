@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -21,7 +22,8 @@ func (h *Handler) ForkRepo(w http.ResponseWriter, r *http.Request) {
 
 	forked, err := h.Services.Repo.Fork(r.Context(), owner, repoName, claims.UserID, claims.Username)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -148,7 +149,8 @@ func (h *Handler) CreateMilestone(w http.ResponseWriter, r *http.Request) {
 
 	m, err := h.Services.Milestone.Create(r.Context(), owner, repoName, title, description, dueDate)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -232,7 +234,8 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	if req.State == "closed" {
 		m, err := h.Services.Milestone.Close(r.Context(), owner, repoName, number)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			slog.Error("operation failed", "error", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 		writeJSON(w, http.StatusOK, m)
@@ -241,7 +244,8 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	if req.State == "open" {
 		m, err := h.Services.Milestone.Reopen(r.Context(), owner, repoName, number)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			slog.Error("operation failed", "error", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 		writeJSON(w, http.StatusOK, m)
@@ -267,7 +271,8 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 	m, err := h.Services.Milestone.Update(r.Context(), owner, repoName, number, title, req.Description, dueDate)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	writeJSON(w, http.StatusOK, m)
@@ -299,7 +304,8 @@ func (h *Handler) DeleteMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Milestone.Delete(r.Context(), owner, repoName, number); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -374,7 +380,8 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Milestone.SetIssue(r.Context(), issue.ID, milestoneID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -444,7 +451,8 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Milestone.SetPull(r.Context(), pull.ID, milestoneID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 

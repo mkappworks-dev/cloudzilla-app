@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -22,7 +23,8 @@ func (h *Handler) StarRepo(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 
 	if err := h.Services.Star.Star(r.Context(), owner, repoName, claims.UserID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -49,7 +51,8 @@ func (h *Handler) UnstarRepo(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 
 	if err := h.Services.Star.Unstar(r.Context(), owner, repoName, claims.UserID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 

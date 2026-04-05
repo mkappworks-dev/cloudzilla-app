@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -91,7 +92,8 @@ func (h *Handler) CreateLabel(w http.ResponseWriter, r *http.Request) {
 
 	label, err := h.Services.Label.Create(r.Context(), owner, repoName, name, color, description)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -142,7 +144,8 @@ func (h *Handler) DeleteLabel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Label.Delete(r.Context(), owner, repoName, labelID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -198,7 +201,8 @@ func (h *Handler) AddIssueLabel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Label.AddToIssue(r.Context(), owner, repoName, number, labelID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -240,7 +244,8 @@ func (h *Handler) RemoveIssueLabel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Label.RemoveFromIssue(r.Context(), owner, repoName, number, labelID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -282,7 +287,8 @@ func (h *Handler) AddPullLabel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Label.AddToPull(r.Context(), owner, repoName, number, labelID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -324,7 +330,8 @@ func (h *Handler) RemovePullLabel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Label.RemoveFromPull(r.Context(), owner, repoName, number, labelID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 

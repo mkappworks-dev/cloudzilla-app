@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/a-h/templ"
@@ -31,6 +32,7 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, component templ.Component) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := component.Render(r.Context(), w); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		slog.Error("render failed", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
 }

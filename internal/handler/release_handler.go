@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -299,7 +300,8 @@ func (h *Handler) DeleteRelease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Release.Delete(r.Context(), owner, repoName, id); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
