@@ -665,7 +665,7 @@ type WikiPageData struct {
 	ContentHTML string // rendered HTML from markdown, use @templ.Raw(data.ContentHTML) in template
 	PageList    []string
 	CanWrite    bool
-	CanManage   bool // true for repo owners only; gates the Delete button
+	CanManage   bool // true for owners and admin collaborators; gates the Delete button
 	Exists      bool // false when the page has never been created
 }
 

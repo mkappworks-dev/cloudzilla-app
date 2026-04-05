@@ -58,6 +58,10 @@ func (h *Handler) CreateLineComment(w http.ResponseWriter, r *http.Request) {
 		path = r.FormValue("path")
 		diffSide = r.FormValue("diff_side")
 		line, _ = strconv.Atoi(r.FormValue("line"))
+		if line <= 0 {
+			writeError(w, http.StatusBadRequest, "invalid line number")
+			return
+		}
 		body = r.FormValue("body")
 	} else {
 		var req struct {
@@ -130,6 +134,10 @@ func (h *Handler) GetLineCommentForm(w http.ResponseWriter, r *http.Request) {
 	}
 	path := r.URL.Query().Get("path")
 	line, _ := strconv.Atoi(r.URL.Query().Get("line"))
+	if line <= 0 {
+		writeError(w, http.StatusBadRequest, "invalid line number")
+		return
+	}
 
 	h.render(w, r, fragments.LineCommentForm(view.LineCommentFormFragData{
 		Owner:      owner,

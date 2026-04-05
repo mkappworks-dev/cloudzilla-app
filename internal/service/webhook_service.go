@@ -21,8 +21,8 @@ import (
 // isInternalURL checks if a URL targets a private/internal IP range.
 func isInternalURL(rawURL string) bool {
 	u, err := url.Parse(rawURL)
-	if err != nil {
-		return true // reject unparseable URLs
+	if err != nil || u.Host == "" {
+		return true // reject unparseable or hostless URLs
 	}
 	host := u.Hostname()
 

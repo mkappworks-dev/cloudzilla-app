@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -18,12 +17,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
+	"github.com/mkappworks/cloudzilla/internal/service"
 )
 
-var validGitNameRe = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
-
 func validGitName(name string) bool {
-	return len(name) > 0 && len(name) <= 100 && validGitNameRe.MatchString(name) && name != "." && name != ".."
+	return service.ValidateName(name) == nil
 }
 
 type gitUser struct {
@@ -320,7 +318,9 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		if err := h.Services.BranchProtection.CheckPush(r.Context(), repo.ID, branch, forcePush); err != nil {
 			// Rollback the ref to its previous value
 			ref := plumbing.NewHashReference(cmd.Name, cmd.Old)
-			_ = gitRepo.Storer.SetReference(ref)
+			if rbErr := gitRepo.Storer.SetReference(ref); rbErr != nil {
+				slog.Error("branch protection rollback failed", "ref", cmd.Name.String(), "error", rbErr)
+			}
 			http.Error(w, "push rejected: "+err.Error(), http.StatusForbidden)
 			return
 		}

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -97,7 +98,8 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 
 	wh, err := h.Services.Webhook.Create(r.Context(), repo.ID, url, secret, events)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -200,13 +202,12 @@ func (h *Handler) ListWebhookDeliveries(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 		h.render(w, r, fragments.WebhookDeliveriesList(view.WebhookDeliveriesFragData{
 			Owner:      owner,
 			RepoName:   repoName,
 			WebhookID:  id,
 			Deliveries: deliveries,
-			CanManage:  canManage,
+			CanManage:  true, // already verified above
 		}))
 		return
 	}

@@ -19,10 +19,10 @@ import (
 
 var validNameRe = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
 
-// validateName checks that a repository or owner name is safe for filesystem
+// ValidateName checks that a repository or owner name is safe for filesystem
 // use and URL routing. Names must start with an alphanumeric character and
 // contain only alphanumeric, dot, underscore, or hyphen characters.
-func validateName(name string) error {
+func ValidateName(name string) error {
 	if len(name) == 0 || len(name) > 100 {
 		return fmt.Errorf("name must be 1-100 characters")
 	}
@@ -47,7 +47,7 @@ func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.
 }
 
 func (s *RepoService) Create(ctx context.Context, ownerUsername, name, description string, private bool) (*model.Repository, error) {
-	if err := validateName(name); err != nil {
+	if err := ValidateName(name); err != nil {
 		return nil, fmt.Errorf("invalid repository name: %w", err)
 	}
 
