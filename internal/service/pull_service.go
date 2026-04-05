@@ -9,11 +9,13 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// PullService manages pull request creation, state transitions, and merge operations.
 type PullService struct {
 	pulls *store.PullStore
 	repos *store.RepoStore
 }
 
+// NewPullService creates a PullService backed by the given stores.
 func NewPullService(pulls *store.PullStore, repos *store.RepoStore) *PullService {
 	return &PullService{pulls: pulls, repos: repos}
 }

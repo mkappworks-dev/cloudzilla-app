@@ -13,6 +13,7 @@ type contextKey string
 
 const claimsKey contextKey = "claims"
 
+// Claims holds the authenticated user's identity extracted from a JWT or PAT.
 type Claims struct {
 	UserID       int64
 	Username     string
@@ -20,6 +21,7 @@ type Claims struct {
 }
 
 // PATValidator is implemented by AccessTokenService. Defined here to avoid import cycle.
+// PATValidator validates a raw personal access token and returns the associated user ID.
 type PATValidator interface {
 	Validate(ctx context.Context, rawToken string) (*model.AccessToken, *model.User, error)
 	UpdateLastUsed(ctx context.Context, tokenID int64) error
@@ -27,15 +29,18 @@ type PATValidator interface {
 
 // OAuthUserIDResolver resolves a raw OAuth bearer token to a user ID.
 // Implemented by OAuthAppService; defined here to avoid import cycle.
+// OAuthUserIDResolver resolves an OAuth access token to an internal user ID.
 type OAuthUserIDResolver interface {
 	ResolveOAuthUserID(ctx context.Context, rawToken string) (int64, error)
 }
 
+// ClaimsFromContext extracts the authenticated user claims from a request context.
 func ClaimsFromContext(ctx context.Context) (Claims, bool) {
 	c, ok := ctx.Value(claimsKey).(Claims)
 	return c, ok
 }
 
+// Auth returns middleware that requires a valid JWT cookie, Bearer token, or PAT. Returns 401 if unauthenticated.
 func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthUserIDResolver) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -93,6 +98,7 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 	}
 }
 
+// OptionalAuth returns middleware that reads auth credentials if present but allows unauthenticated requests.
 func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthUserIDResolver) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -138,6 +144,7 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 	}
 }
 
+// RequireSuperadmin returns 403 if the authenticated user is not a superadmin.
 func RequireSuperadmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, ok := ClaimsFromContext(r.Context())

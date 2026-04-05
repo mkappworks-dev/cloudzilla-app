@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// Repository represents a git repository and its metadata.
 type Repository struct {
 	ID            int64     `db:"id"             json:"id"`
 	OwnerID       int64     `db:"owner_id"       json:"owner_id"`
@@ -27,6 +28,7 @@ type Repository struct {
 
 // RepositoryWithStats augments a Repository with aggregated star and fork counts
 // for display on explore/trending pages.
+// RepositoryWithStats extends Repository with aggregated issue, PR, and star counts.
 type RepositoryWithStats struct {
 	Repository
 	StarCount int `db:"star_count"`

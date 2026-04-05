@@ -14,12 +14,14 @@ var (
 	ErrStatusCheckFailed   = errors.New("required status checks have not passed")
 )
 
+// BranchProtectionService manages branch protection rules and enforces them on push.
 type BranchProtectionService struct {
 	protections   *store.BranchProtectionStore
 	pullReviews   *store.PullReviewStore
 	commitStatuses *store.CommitStatusStore
 }
 
+// NewBranchProtectionService creates a BranchProtectionService backed by the given stores.
 func NewBranchProtectionService(
 	protections *store.BranchProtectionStore,
 	pullReviews *store.PullReviewStore,

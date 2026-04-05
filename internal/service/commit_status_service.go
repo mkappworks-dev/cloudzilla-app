@@ -8,11 +8,13 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// CommitStatusService manages commit status checks from CI/CD integrations.
 type CommitStatusService struct {
 	statuses *store.CommitStatusStore
 	repos    *store.RepoStore
 }
 
+// NewCommitStatusService creates a CommitStatusService backed by the given stores.
 func NewCommitStatusService(statuses *store.CommitStatusStore, repos *store.RepoStore) *CommitStatusService {
 	return &CommitStatusService{statuses: statuses, repos: repos}
 }

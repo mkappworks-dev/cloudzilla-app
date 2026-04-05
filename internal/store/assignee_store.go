@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// AssigneeStore provides database operations for issue and PR assignees.
 type AssigneeStore struct{ db *sql.DB }
 
+// NewAssigneeStore creates an AssigneeStore backed by the given database.
 func NewAssigneeStore(db *sql.DB) *AssigneeStore { return &AssigneeStore{db: db} }
 
 func (s *AssigneeStore) AddToIssue(ctx context.Context, issueID, userID int64) error {

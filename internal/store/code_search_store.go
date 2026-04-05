@@ -9,8 +9,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// CodeSearchStore provides database operations for code search indexing and queries.
 type CodeSearchStore struct{ db *sql.DB }
 
+// NewCodeSearchStore creates a CodeSearchStore backed by the given database.
 func NewCodeSearchStore(db *sql.DB) *CodeSearchStore { return &CodeSearchStore{db: db} }
 
 // Index upserts a file's content into the search index.

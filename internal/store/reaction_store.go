@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// ReactionStore provides database operations for comment reactions.
 type ReactionStore struct{ db *sql.DB }
 
+// NewReactionStore creates a ReactionStore backed by the given database.
 func NewReactionStore(db *sql.DB) *ReactionStore { return &ReactionStore{db: db} }
 
 // Toggle adds the reaction if it does not exist, or removes it if it does.

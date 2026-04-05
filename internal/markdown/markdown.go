@@ -90,6 +90,7 @@ func (r *mermaidRenderer) renderFencedCode(w util.BufWriter, source []byte, node
 
 // Render converts markdown src to safe HTML. Mermaid fenced blocks are
 // wrapped in <pre class="mermaid"> for client-side rendering by mermaid.js.
+// Render converts Markdown source to safe HTML, sanitizing links and disabling raw HTML.
 func Render(src string) string {
 	var buf bytes.Buffer
 	md := goldmark.New(

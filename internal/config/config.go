@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config holds the full application configuration loaded from YAML and environment variables.
 type Config struct {
 	Server   ServerConfig   `mapstructure:"server"`
 	Database DatabaseConfig `mapstructure:"database"`
@@ -16,6 +17,7 @@ type Config struct {
 	SMTP     SMTPConfig     `mapstructure:"smtp"`
 }
 
+// ServerConfig holds HTTP server settings.
 type ServerConfig struct {
 	Port         int           `mapstructure:"port"`
 	Host         string        `mapstructure:"host"`
@@ -24,12 +26,14 @@ type ServerConfig struct {
 	WriteTimeout time.Duration `mapstructure:"write_timeout"`
 }
 
+// DatabaseConfig holds PostgreSQL connection settings.
 type DatabaseConfig struct {
 	DSN          string `mapstructure:"dsn"`
 	MaxOpenConns int    `mapstructure:"max_open_conns"`
 	MaxIdleConns int    `mapstructure:"max_idle_conns"`
 }
 
+// AuthConfig holds JWT and cookie authentication settings.
 type AuthConfig struct {
 	JWTSecret    string        `mapstructure:"jwt_secret"`
 	JWTExpiry    time.Duration `mapstructure:"jwt_expiry"`
@@ -37,18 +41,21 @@ type AuthConfig struct {
 	CookieSecure bool          `mapstructure:"cookie_secure"`
 }
 
+// GitConfig holds git repository storage and SSH server settings.
 type GitConfig struct {
 	ReposRoot  string `mapstructure:"repos_root"`
 	SSHPort    int    `mapstructure:"ssh_port"`
 	SSHHostKey string `mapstructure:"ssh_host_key"`
 }
 
+// OAuthConfig holds Google OAuth provider settings.
 type OAuthConfig struct {
 	GoogleClientID     string `mapstructure:"google_client_id"`
 	GoogleClientSecret string `mapstructure:"google_client_secret"`
 	GoogleRedirectURL  string `mapstructure:"google_redirect_url"`
 }
 
+// SMTPConfig holds outgoing SMTP email settings.
 type SMTPConfig struct {
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
@@ -58,6 +65,7 @@ type SMTPConfig struct {
 	TLS      bool   `mapstructure:"tls"`
 }
 
+// Load reads config from cfgFile (or config.yaml in the current directory) and applies CZ_ env overrides.
 func Load(cfgFile string) (*Config, error) {
 	v := viper.New()
 

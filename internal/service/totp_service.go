@@ -21,11 +21,13 @@ import (
 )
 
 // TOTPService handles all TOTP (RFC 6238) operations.
+// TOTPService manages TOTP two-factor authentication setup and verification.
 type TOTPService struct {
 	store *store.UserStore
 }
 
 // NewTOTPService creates a new TOTPService.
+// NewTOTPService creates a TOTPService backed by the given user store.
 func NewTOTPService(s *store.UserStore) *TOTPService {
 	return &TOTPService{store: s}
 }

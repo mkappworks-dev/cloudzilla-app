@@ -9,6 +9,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// NotificationService creates and delivers in-app and email notifications.
 type NotificationService struct {
 	notifs   *store.NotificationStore
 	watches  *store.WatchStore
@@ -16,6 +17,7 @@ type NotificationService struct {
 	userSvc  *UserService
 }
 
+// NewNotificationService creates a NotificationService backed by the given stores and services.
 func NewNotificationService(notifs *store.NotificationStore, watches *store.WatchStore, emailSvc *EmailService, userSvc *UserService) *NotificationService {
 	return &NotificationService{notifs: notifs, watches: watches, emailSvc: emailSvc, userSvc: userSvc}
 }

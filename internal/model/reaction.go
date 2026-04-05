@@ -3,6 +3,7 @@ package model
 import "time"
 
 // Reaction is a single emoji reaction row.
+// Reaction represents an emoji reaction by a user on a comment.
 type Reaction struct {
 	ID        int64     `db:"id"         json:"id"`
 	UserID    int64     `db:"user_id"    json:"user_id"`
@@ -12,6 +13,7 @@ type Reaction struct {
 }
 
 // ReactionSummary aggregates reactions for one emoji on one comment.
+// ReactionSummary aggregates reaction counts and viewer state for a single emoji.
 type ReactionSummary struct {
 	Emoji       string `db:"emoji"        json:"emoji"`
 	Count       int    `db:"count"        json:"count"`

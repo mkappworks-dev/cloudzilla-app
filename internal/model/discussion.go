@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// DiscussionCategory represents a category grouping for repository discussions.
 type DiscussionCategory struct {
 	ID     int64  `db:"id"      json:"id"`
 	RepoID int64  `db:"repo_id" json:"repo_id"`
@@ -12,6 +13,7 @@ type DiscussionCategory struct {
 	Emoji  string `db:"emoji"   json:"emoji"`
 }
 
+// Discussion represents a threaded discussion post in a repository.
 type Discussion struct {
 	ID         int64         `db:"id"          json:"id"`
 	RepoID     int64         `db:"repo_id"      json:"repo_id"`
@@ -28,6 +30,7 @@ type Discussion struct {
 	UpdatedAt  time.Time     `db:"updated_at"   json:"updated_at"`
 }
 
+// DiscussionReply represents a reply within a discussion thread.
 type DiscussionReply struct {
 	ID           int64         `db:"id"            json:"id"`
 	DiscussionID int64         `db:"discussion_id" json:"discussion_id"`

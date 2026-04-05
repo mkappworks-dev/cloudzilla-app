@@ -14,11 +14,13 @@ import (
 var ErrProjectNotFound = errors.New("project not found")
 var ErrForbidden = errors.New("forbidden")
 
+// ProjectService manages Kanban project boards, columns, and cards.
 type ProjectService struct {
 	projects *store.ProjectStore
 	repos    *RepoService
 }
 
+// NewProjectService creates a ProjectService backed by the given store and repo service.
 func NewProjectService(projects *store.ProjectStore, repos *RepoService) *ProjectService {
 	return &ProjectService{projects: projects, repos: repos}
 }
@@ -189,6 +191,7 @@ func (s *ProjectService) ListColumnsWithCards(ctx context.Context, projectID int
 }
 
 // ColumnWithCards pairs a ProjectColumn with its loaded cards.
+// ColumnWithCards holds a Kanban column together with its ordered cards.
 type ColumnWithCards struct {
 	Column model.ProjectColumn
 	Cards  []model.ProjectCard

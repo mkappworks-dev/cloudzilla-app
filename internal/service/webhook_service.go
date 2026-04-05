@@ -47,11 +47,13 @@ func isInternalURL(rawURL string) bool {
 	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast()
 }
 
+// WebhookService dispatches signed webhook payloads to registered endpoints with retry.
 type WebhookService struct {
 	webhooks *store.WebhookStore
 	client   *http.Client
 }
 
+// NewWebhookService creates a WebhookService backed by the given webhook store.
 func NewWebhookService(webhooks *store.WebhookStore) *WebhookService {
 	return &WebhookService{
 		webhooks: webhooks,

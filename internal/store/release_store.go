@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// ReleaseStore provides database operations for repository releases.
 type ReleaseStore struct{ db *sql.DB }
 
+// NewReleaseStore creates a ReleaseStore backed by the given database.
 func NewReleaseStore(db *sql.DB) *ReleaseStore { return &ReleaseStore{db: db} }
 
 func (s *ReleaseStore) Create(ctx context.Context, r *model.Release) error {

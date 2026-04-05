@@ -9,11 +9,13 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// DiscussionService manages repository discussions, replies, and categories.
 type DiscussionService struct {
 	discussions *store.DiscussionStore
 	repos       *store.RepoStore
 }
 
+// NewDiscussionService creates a DiscussionService backed by the given stores.
 func NewDiscussionService(discussions *store.DiscussionStore, repos *store.RepoStore) *DiscussionService {
 	return &DiscussionService{discussions: discussions, repos: repos}
 }

@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// SSHKeyStore provides database operations for user SSH public keys.
 type SSHKeyStore struct{ db *sql.DB }
 
+// NewSSHKeyStore creates an SSHKeyStore backed by the given database.
 func NewSSHKeyStore(db *sql.DB) *SSHKeyStore { return &SSHKeyStore{db: db} }
 
 func (s *SSHKeyStore) Create(ctx context.Context, key *model.SSHKey) error {

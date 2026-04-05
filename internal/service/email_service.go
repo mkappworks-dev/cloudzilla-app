@@ -10,10 +10,12 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// EmailService sends transactional emails via SMTP. Email is skipped when SMTP host is empty.
 type EmailService struct {
 	cfg config.SMTPConfig
 }
 
+// NewEmailService creates an EmailService from the given SMTP configuration.
 func NewEmailService(cfg config.SMTPConfig) *EmailService {
 	return &EmailService{cfg: cfg}
 }

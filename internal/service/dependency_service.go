@@ -13,11 +13,13 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// DependencyService parses and stores dependency manifests for the dependency graph.
 type DependencyService struct {
 	dep  *store.DependencyStore
 	code *CodeService
 }
 
+// NewDependencyService creates a DependencyService backed by the given store and code service.
 func NewDependencyService(dep *store.DependencyStore, code *CodeService) *DependencyService {
 	return &DependencyService{dep: dep, code: code}
 }

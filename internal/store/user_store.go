@@ -10,10 +10,12 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// UserStore provides database operations for user accounts.
 type UserStore struct {
 	db *sql.DB
 }
 
+// NewUserStore creates a UserStore backed by the given database.
 func NewUserStore(database *sql.DB) *UserStore {
 	return &UserStore{db: database}
 }

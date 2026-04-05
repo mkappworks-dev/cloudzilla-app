@@ -12,9 +12,11 @@ import (
 )
 
 // AuditLogStore provides read/write access to the audit_log table.
+// AuditLogStore provides database operations for audit log entries.
 type AuditLogStore struct{ db *sql.DB }
 
 // NewAuditLogStore creates a new AuditLogStore.
+// NewAuditLogStore creates an AuditLogStore backed by the given database.
 func NewAuditLogStore(db *sql.DB) *AuditLogStore {
 	return &AuditLogStore{db: db}
 }

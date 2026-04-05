@@ -3,6 +3,7 @@ package model
 import "time"
 
 // RepoDependency is a single dependency entry for a repository.
+// RepoDependency represents a parsed package dependency from a repository manifest.
 type RepoDependency struct {
 	ID         int64     `db:"id"          json:"id"`
 	RepoID     int64     `db:"repo_id"     json:"repo_id"`

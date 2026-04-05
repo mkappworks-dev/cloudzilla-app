@@ -3,6 +3,7 @@ package model
 import "time"
 
 // AuditEntry represents a single row in the audit_log table.
+// AuditEntry represents a single recorded action in the audit log.
 type AuditEntry struct {
 	ID         int64          `db:"id"          json:"id"`
 	ActorID    *int64         `db:"actor_id"    json:"actor_id"`
@@ -18,6 +19,7 @@ type AuditEntry struct {
 }
 
 // AuditFilter restricts which audit entries are returned by List.
+// AuditFilter defines query parameters for filtering audit log entries.
 type AuditFilter struct {
 	ActorID    *int64
 	Action     string

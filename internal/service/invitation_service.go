@@ -11,10 +11,12 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// InvitationService manages invite tokens for user registration.
 type InvitationService struct {
 	store *store.InvitationStore
 }
 
+// NewInvitationService creates an InvitationService backed by the given store.
 func NewInvitationService(s *store.InvitationStore) *InvitationService {
 	return &InvitationService{store: s}
 }

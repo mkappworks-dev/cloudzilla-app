@@ -12,11 +12,13 @@ import (
 )
 
 // AuditService records security-relevant events to the audit_log table.
+// AuditService records and retrieves audit log entries for superadmin review.
 type AuditService struct {
 	store *store.AuditLogStore
 }
 
 // NewAuditService creates a new AuditService.
+// NewAuditService creates an AuditService backed by the given audit log store.
 func NewAuditService(s *store.AuditLogStore) *AuditService {
 	return &AuditService{store: s}
 }

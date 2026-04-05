@@ -9,6 +9,7 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// SiteSettingService manages instance-wide settings such as registration and login toggles.
 type SiteSettingService struct {
 	store     *store.SiteSettingStore
 	userStore *store.UserStore
@@ -17,6 +18,7 @@ type SiteSettingService struct {
 	cache     map[string]string
 }
 
+// NewSiteSettingService creates a SiteSettingService backed by the given stores.
 func NewSiteSettingService(s *store.SiteSettingStore, u *store.UserStore) *SiteSettingService {
 	return &SiteSettingService{
 		store:     s,

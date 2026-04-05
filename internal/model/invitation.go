@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// Invitation represents a pending invite token for user registration.
 type Invitation struct {
 	ID          int64      `db:"id"            json:"id"`
 	Token       string     `db:"token"         json:"token"`

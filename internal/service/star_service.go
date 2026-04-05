@@ -8,12 +8,14 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// StarService manages repository starring and unstarring.
 type StarService struct {
 	stars *store.StarStore
 	repos *store.RepoStore
 	users *store.UserStore
 }
 
+// NewStarService creates a StarService backed by the given stores.
 func NewStarService(stars *store.StarStore, repos *store.RepoStore, users *store.UserStore) *StarService {
 	return &StarService{stars: stars, repos: repos, users: users}
 }

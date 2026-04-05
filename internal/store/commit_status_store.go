@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// CommitStatusStore provides database operations for commit status checks.
 type CommitStatusStore struct{ db *sql.DB }
 
+// NewCommitStatusStore creates a CommitStatusStore backed by the given database.
 func NewCommitStatusStore(db *sql.DB) *CommitStatusStore { return &CommitStatusStore{db: db} }
 
 func (s *CommitStatusStore) Upsert(ctx context.Context, cs *model.CommitStatus) error {

@@ -10,12 +10,14 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/store"
 )
 
+// EventService records and retrieves activity feed events.
 type EventService struct {
 	events *store.EventStore
 	users  *store.UserStore
 	repos  *store.RepoStore
 }
 
+// NewEventService creates an EventService backed by the given stores.
 func NewEventService(events *store.EventStore, users *store.UserStore, repos *store.RepoStore) *EventService {
 	return &EventService{events: events, users: users, repos: repos}
 }

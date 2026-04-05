@@ -12,6 +12,7 @@ import (
 // It sets a non-HttpOnly cookie with a random token and validates that
 // state-changing requests include the same token in the X-CSRF-Token header
 // (for HTMX/AJAX) or in a "csrf_token" form field (for plain HTML forms).
+// CSRF returns middleware that enforces double-submit cookie CSRF protection on state-changing requests.
 func CSRF(secure bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

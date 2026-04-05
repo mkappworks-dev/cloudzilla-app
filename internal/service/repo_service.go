@@ -35,6 +35,7 @@ func ValidateName(name string) error {
 	return nil
 }
 
+// RepoService manages repository creation, access control, and git directory lifecycle.
 type RepoService struct {
 	repos *store.RepoStore
 	users *store.UserStore
@@ -42,6 +43,7 @@ type RepoService struct {
 	cfg   config.GitConfig
 }
 
+// NewRepoService creates a RepoService backed by the given stores and git config.
 func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, cfg config.GitConfig) *RepoService {
 	return &RepoService{repos: repos, users: users, orgs: orgs, cfg: cfg}
 }

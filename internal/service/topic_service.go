@@ -14,10 +14,12 @@ const maxTopics = 20
 
 var topicNameRE = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,19}$`)
 
+// TopicService manages repository topic tags.
 type TopicService struct {
 	topics *store.TopicStore
 }
 
+// NewTopicService creates a TopicService backed by the given topic store.
 func NewTopicService(topics *store.TopicStore) *TopicService {
 	return &TopicService{topics: topics}
 }

@@ -11,9 +11,11 @@ import (
 )
 
 // SSOStore provides read/write access to the sso_configs table.
+// SSOStore provides database operations for SSO provider configuration and assertion replay.
 type SSOStore struct{ db *sql.DB }
 
 // NewSSOStore creates a new SSOStore.
+// NewSSOStore creates an SSOStore backed by the given database.
 func NewSSOStore(db *sql.DB) *SSOStore {
 	return &SSOStore{db: db}
 }

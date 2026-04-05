@@ -9,8 +9,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// BranchProtectionStore provides database operations for branch protection rules.
 type BranchProtectionStore struct{ db *sql.DB }
 
+// NewBranchProtectionStore creates a BranchProtectionStore backed by the given database.
 func NewBranchProtectionStore(db *sql.DB) *BranchProtectionStore {
 	return &BranchProtectionStore{db: db}
 }

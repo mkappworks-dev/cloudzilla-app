@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// NotificationStore provides database operations for in-app notifications.
 type NotificationStore struct{ db *sql.DB }
 
+// NewNotificationStore creates a NotificationStore backed by the given database.
 func NewNotificationStore(db *sql.DB) *NotificationStore { return &NotificationStore{db: db} }
 
 func (s *NotificationStore) Create(ctx context.Context, n *model.Notification) error {

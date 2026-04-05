@@ -14,11 +14,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// OAuthAppService manages OAuth 2.0 application registration and authorization code flow.
 type OAuthAppService struct {
 	apps  *store.OAuthAppStore
 	auths *store.OAuthAuthorizationStore
 }
 
+// NewOAuthAppService creates an OAuthAppService backed by the given stores.
 func NewOAuthAppService(apps *store.OAuthAppStore, auths *store.OAuthAuthorizationStore) *OAuthAppService {
 	return &OAuthAppService{apps: apps, auths: auths}
 }

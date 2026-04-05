@@ -9,10 +9,12 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// RepoStore provides database operations for repositories and their permissions.
 type RepoStore struct {
 	db *sql.DB
 }
 
+// NewRepoStore creates a RepoStore backed by the given database.
 func NewRepoStore(database *sql.DB) *RepoStore {
 	return &RepoStore{db: database}
 }

@@ -9,8 +9,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// LabelStore provides database operations for repository labels.
 type LabelStore struct{ db *sql.DB }
 
+// NewLabelStore creates a LabelStore backed by the given database.
 func NewLabelStore(db *sql.DB) *LabelStore { return &LabelStore{db: db} }
 
 func (s *LabelStore) Create(ctx context.Context, label *model.Label) error {

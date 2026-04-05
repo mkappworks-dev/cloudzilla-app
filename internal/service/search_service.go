@@ -12,6 +12,7 @@ import (
 const searchLimit = 20
 
 // SearchResults holds results across all entity types.
+// SearchResults holds paginated results across repos, issues, PRs, and users.
 type SearchResults struct {
 	Repos  []model.Repository
 	Issues []model.Issue
@@ -21,10 +22,12 @@ type SearchResults struct {
 	Type   string // "all","repos","issues","pulls","users"
 }
 
+// SearchService provides full-text search across repositories, issues, PRs, and users.
 type SearchService struct {
 	search *store.SearchStore
 }
 
+// NewSearchService creates a SearchService backed by the given search store.
 func NewSearchService(search *store.SearchStore) *SearchService {
 	return &SearchService{search: search}
 }

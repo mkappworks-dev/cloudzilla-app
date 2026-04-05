@@ -9,8 +9,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// ProjectStore provides database operations for Kanban project boards, columns, and cards.
 type ProjectStore struct{ db *sql.DB }
 
+// NewProjectStore creates a ProjectStore backed by the given database.
 func NewProjectStore(db *sql.DB) *ProjectStore { return &ProjectStore{db: db} }
 
 // --- Projects ---

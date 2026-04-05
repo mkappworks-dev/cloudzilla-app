@@ -28,6 +28,7 @@ import (
 )
 
 // SSOService handles LDAP and SAML authentication flows.
+// SSOService manages LDAP and SAML SSO authentication flows.
 type SSOService struct {
 	store       *store.SSOStore
 	users       *store.UserStore
@@ -36,6 +37,7 @@ type SSOService struct {
 }
 
 // NewSSOService creates a new SSOService.
+// NewSSOService creates an SSOService with the given stores, auth config, and site settings.
 func NewSSOService(s *store.SSOStore, users *store.UserStore, cfg config.AuthConfig, siteSetting *SiteSettingService) *SSOService {
 	return &SSOService{store: s, users: users, cfg: cfg, siteSetting: siteSetting}
 }

@@ -10,8 +10,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// OAuthAuthorizationStore provides database operations for OAuth authorization grants.
 type OAuthAuthorizationStore struct{ db *sql.DB }
 
+// NewOAuthAuthorizationStore creates an OAuthAuthorizationStore backed by the given database.
 func NewOAuthAuthorizationStore(db *sql.DB) *OAuthAuthorizationStore {
 	return &OAuthAuthorizationStore{db: db}
 }

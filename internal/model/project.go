@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// Project represents a Kanban project board associated with a repository.
 type Project struct {
 	ID          int64     `db:"id"          json:"id"`
 	RepoID      int64     `db:"repo_id"     json:"repo_id"`
@@ -11,6 +12,7 @@ type Project struct {
 	UpdatedAt   time.Time `db:"updated_at"  json:"updated_at"`
 }
 
+// ProjectColumn represents a column (e.g. To Do, In Progress) within a project board.
 type ProjectColumn struct {
 	ID        int64     `db:"id"         json:"id"`
 	ProjectID int64     `db:"project_id" json:"project_id"`
@@ -22,6 +24,7 @@ type ProjectColumn struct {
 // ProjectCard is a card in a column. IssueID / PullID / Note are mutually
 // exclusive per the DB CHECK constraint. IssueTitle, IssueState, PullTitle,
 // and PullState are populated via JOIN when listing cards.
+// ProjectCard represents a card within a project column, optionally linked to an issue or PR.
 type ProjectCard struct {
 	ID        int64     `db:"id"          json:"id"`
 	ColumnID  int64     `db:"column_id"   json:"column_id"`

@@ -9,10 +9,12 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// PullStore provides database operations for pull requests.
 type PullStore struct {
 	db *sql.DB
 }
 
+// NewPullStore creates a PullStore backed by the given database.
 func NewPullStore(database *sql.DB) *PullStore {
 	return &PullStore{db: database}
 }

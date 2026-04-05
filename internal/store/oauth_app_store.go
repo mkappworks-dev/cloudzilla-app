@@ -9,8 +9,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// OAuthAppStore provides database operations for registered OAuth applications.
 type OAuthAppStore struct{ db *sql.DB }
 
+// NewOAuthAppStore creates an OAuthAppStore backed by the given database.
 func NewOAuthAppStore(db *sql.DB) *OAuthAppStore { return &OAuthAppStore{db: db} }
 
 func (s *OAuthAppStore) Create(ctx context.Context, app *model.OAuthApp) error {

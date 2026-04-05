@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// PullReviewStore provides database operations for pull request reviews.
 type PullReviewStore struct{ db *sql.DB }
 
+// NewPullReviewStore creates a PullReviewStore backed by the given database.
 func NewPullReviewStore(db *sql.DB) *PullReviewStore { return &PullReviewStore{db: db} }
 
 func (s *PullReviewStore) Upsert(ctx context.Context, r *model.PullReview) error {

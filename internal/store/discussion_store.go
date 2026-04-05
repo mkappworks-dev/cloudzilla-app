@@ -9,8 +9,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// DiscussionStore provides database operations for repository discussions and replies.
 type DiscussionStore struct{ db *sql.DB }
 
+// NewDiscussionStore creates a DiscussionStore backed by the given database.
 func NewDiscussionStore(db *sql.DB) *DiscussionStore { return &DiscussionStore{db: db} }
 
 // ---- Categories ----

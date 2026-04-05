@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// OrgStore provides database operations for organizations and their membership.
 type OrgStore struct{ db *sql.DB }
 
+// NewOrgStore creates an OrgStore backed by the given database.
 func NewOrgStore(db *sql.DB) *OrgStore { return &OrgStore{db: db} }
 
 func (s *OrgStore) Create(ctx context.Context, o *model.Organization) error {

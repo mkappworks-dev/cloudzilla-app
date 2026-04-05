@@ -8,8 +8,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// StarStore provides database operations for repository stars.
 type StarStore struct{ db *sql.DB }
 
+// NewStarStore creates a StarStore backed by the given database.
 func NewStarStore(db *sql.DB) *StarStore { return &StarStore{db: db} }
 
 func (s *StarStore) Star(ctx context.Context, userID, repoID int64) error {

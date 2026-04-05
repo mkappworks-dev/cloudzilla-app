@@ -5,8 +5,10 @@ import (
 	"database/sql"
 )
 
+// MentionStore provides database operations for @mention records.
 type MentionStore struct{ db *sql.DB }
 
+// NewMentionStore creates a MentionStore backed by the given database.
 func NewMentionStore(db *sql.DB) *MentionStore { return &MentionStore{db: db} }
 
 // Create inserts a single mention row. Ignores conflicts (duplicate mention).

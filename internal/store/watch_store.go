@@ -9,8 +9,10 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/model"
 )
 
+// WatchStore provides database operations for repository watch subscriptions.
 type WatchStore struct{ db *sql.DB }
 
+// NewWatchStore creates a WatchStore backed by the given database.
 func NewWatchStore(db *sql.DB) *WatchStore { return &WatchStore{db: db} }
 
 // Set upserts the watch level for a user/repo pair.
