@@ -44,6 +44,7 @@ type Stores struct {
 	Gist               *GistStore
 	Topic              *TopicStore
 	CodeSearch         *CodeSearchStore
+	Explore            *ExploreStore
 }
 
 func New(database *sql.DB) *Stores {
@@ -86,5 +87,6 @@ func New(database *sql.DB) *Stores {
 		Gist:               NewGistStore(database),
 		Topic:              NewTopicStore(database),
 		CodeSearch:         NewCodeSearchStore(database),
+		Explore:            NewExploreStore(database),
 	}
 }

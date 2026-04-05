@@ -835,3 +835,11 @@ type CodeSearchData struct {
 	Total      int
 	Page       int
 }
+
+// ExploreData is the view model for the /explore page.
+type ExploreData struct {
+	BasePage
+	Tab    string
+	Period string
+	Repos  []model.RepositoryWithStats
+}

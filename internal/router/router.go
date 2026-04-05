@@ -48,6 +48,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Page routes
 	r.Get("/", h.PageHome)
+	r.With(optAuthMW).Get("/explore", h.PageExplore)
 	r.Get("/login", h.PageLogin)
 	r.Post("/login", h.PageLoginSubmit)
 	r.With(authMW).Get("/settings", h.PageSettings)
