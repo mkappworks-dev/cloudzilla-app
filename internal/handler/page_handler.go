@@ -553,7 +553,10 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
 	title := r.FormValue("title")
 	body := r.FormValue("body")
 
@@ -712,7 +715,10 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 		branches = refs.Branches
 	}
 
-	r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
 	title := r.FormValue("title")
 	body := r.FormValue("body")
 	headBranch := r.FormValue("head_branch")

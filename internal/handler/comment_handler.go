@@ -62,7 +62,10 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 
 	var body string
 	if r.Header.Get("HX-Request") == "true" {
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form")
+			return
+		}
 		body = r.FormValue("body")
 	} else {
 		var req createCommentRequest
@@ -132,7 +135,10 @@ func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 
 	var body string
 	if r.Header.Get("HX-Request") == "true" {
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form")
+			return
+		}
 		body = r.FormValue("body")
 	} else {
 		var req createCommentRequest

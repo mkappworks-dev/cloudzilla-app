@@ -239,7 +239,10 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 
 	var body string
 	if r.Header.Get("HX-Request") == "true" || r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form")
+			return
+		}
 		body = r.FormValue("body")
 	} else {
 		var req struct {
