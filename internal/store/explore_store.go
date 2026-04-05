@@ -22,7 +22,7 @@ SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.privat
        r.fork_count     AS fork_count
 FROM repositories r
 LEFT JOIN stars s ON s.repo_id = r.id AND s.created_at >= $1
-WHERE r.private = FALSE
+WHERE r.private = FALSE AND r.deleted_at IS NULL
 GROUP BY r.id
 ORDER BY star_count DESC, r.created_at DESC
 LIMIT $2`
@@ -42,7 +42,7 @@ SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.privat
        COALESCE((SELECT COUNT(*) FROM stars s WHERE s.repo_id = r.id), 0) AS star_count,
        r.fork_count AS fork_count
 FROM repositories r
-WHERE r.private = FALSE
+WHERE r.private = FALSE AND r.deleted_at IS NULL
 ORDER BY r.created_at DESC
 LIMIT $1`
 	rows, err := s.db.QueryContext(ctx, q, limit)
@@ -61,7 +61,7 @@ SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.privat
        COALESCE((SELECT COUNT(*) FROM stars s WHERE s.repo_id = r.id), 0) AS star_count,
        r.fork_count AS fork_count
 FROM repositories r
-WHERE r.private = FALSE
+WHERE r.private = FALSE AND r.deleted_at IS NULL
 ORDER BY r.fork_count DESC, r.created_at DESC
 LIMIT $1`
 	rows, err := s.db.QueryContext(ctx, q, limit)
@@ -82,7 +82,7 @@ func scanReposWithStats(rows *sql.Rows) ([]model.RepositoryWithStats, error) {
 			&r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt, &r.IsFork, &forkOfID,
 			&r.StarCount, &r.ForkCount,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan repo with stats: %w", err)
 		}
 		if orgID.Valid {
 			r.OrgID = orgID.Int64

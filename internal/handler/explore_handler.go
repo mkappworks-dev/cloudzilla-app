@@ -11,7 +11,10 @@ import (
 
 func (h *Handler) PageExplore(w http.ResponseWriter, r *http.Request) {
 	tab := r.URL.Query().Get("tab")
-	if tab == "" {
+	switch tab {
+	case "newest", "forked", "trending":
+		// valid
+	default:
 		tab = "trending"
 	}
 
@@ -43,6 +46,8 @@ func (h *Handler) PageExplore(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		slog.Error("explore: failed to load repositories", "tab", tab, "period", period, "error", err)
+		http.Error(w, "Failed to load explore page", http.StatusInternalServerError)
+		return
 	}
 	if repos == nil {
 		repos = []model.RepositoryWithStats{}

@@ -30,5 +30,4 @@ type Repository struct {
 type RepositoryWithStats struct {
 	Repository
 	StarCount int `db:"star_count"`
-	ForkCount int `db:"fork_count"`
 }

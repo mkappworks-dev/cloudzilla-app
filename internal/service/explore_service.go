@@ -38,9 +38,6 @@ func (s *ExploreService) Trending(ctx context.Context, period string) ([]model.R
 	if err != nil {
 		return nil, err
 	}
-	if repos == nil {
-		repos = []model.RepositoryWithStats{}
-	}
 	return repos, nil
 }
 
@@ -50,9 +47,6 @@ func (s *ExploreService) Newest(ctx context.Context) ([]model.RepositoryWithStat
 	if err != nil {
 		return nil, err
 	}
-	if repos == nil {
-		repos = []model.RepositoryWithStats{}
-	}
 	return repos, nil
 }
 
@@ -61,9 +55,6 @@ func (s *ExploreService) MostForked(ctx context.Context) ([]model.RepositoryWith
 	repos, err := s.explore.MostForkedRepos(ctx, exploreLimit)
 	if err != nil {
 		return nil, err
-	}
-	if repos == nil {
-		repos = []model.RepositoryWithStats{}
 	}
 	return repos, nil
 }
