@@ -1,4 +1,4 @@
-# Milestone 1 — Chunk 6: Test Coverage Plan 🔄 IN PROGRESS
+# Milestone 1 — Chunk 6: Test Coverage Plan ✅ COMPLETE
 
 > **Scope:** Out of scope for `tech/m1-licensing-security-cleanup`. Implement on a separate branch (e.g., `tech/chunk-6-test-coverage`). Note: Chunk 4's permission model changes added tests for guard functions and `IsOwner`.
 
@@ -183,12 +183,12 @@ claimsFromMap with missing "username" → error (not panic)
 4. `service/access_token_service_test.go` (~150 lines) — protects PAT auth.
 5. `testutil/testdb.go` (~120 lines) — unblocks all integration tests.
 
-**Recommended schedule:**
+**Completed schedule:**
 
-- **Week 1:** Items 0-3 + 7 (testdb, auth_test, setup_test, totp_test, access_token_test) — ~770 lines, all P0, mostly unit tests
-- **Week 2:** Items 4-6 (permissions, auth handler, git HTTP) — ~550 lines, P0 integration tests
-- **Week 3:** Items 8-11 (store tests, branch protection, webhook) — ~650 lines, P1
-- **Week 4:** Items 12-17 (issue service, pull service, org service, oauth app, setup handler, issue handler) — ~980 lines, P2/P3
+- **Week 1:** ✅ Items 0-3 + 7 (testdb, auth_test, setup_test, totp_test, access_token_test)
+- **Week 2:** ✅ Items 4-6 (permissions, auth handler, git HTTP)
+- **Week 3:** ✅ Items 8-11 (store tests, branch protection, webhook)
+- **Week 4:** ✅ Items 12-17 (issue service, pull service, org service, oauth app, setup handler, issue handler)
 
 **Total new test code:** ~2,950 lines across 18 files (~4x current test volume). First 1,320 lines (weeks 1-2) cover all P0 security paths.
 
