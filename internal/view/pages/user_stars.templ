@@ -36,7 +36,7 @@ templ UserStars(data view.UserStarsData) {
 					}
 				</div>
 			} else {
-				@components.EmptyState("{ data.ProfileUser.Username } hasn&#39;t starred any repositories yet.")
+				@components.EmptyState(data.ProfileUser.Username + " hasn't starred any repositories yet.")
 			}
 		</div>
 	}
