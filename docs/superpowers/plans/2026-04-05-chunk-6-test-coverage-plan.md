@@ -1,4 +1,4 @@
-# Milestone 1 — Chunk 6: Test Coverage Plan ⬜ NOT STARTED
+# Milestone 1 — Chunk 6: Test Coverage Plan 🔄 IN PROGRESS
 
 > **Scope:** Out of scope for `tech/m1-licensing-security-cleanup`. Implement on a separate branch (e.g., `tech/chunk-6-test-coverage`). Note: Chunk 4's permission model changes added tests for guard functions and `IsOwner`.
 
