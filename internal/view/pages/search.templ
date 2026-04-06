@@ -136,9 +136,7 @@ templ Search(data view.SearchData) {
 					@components.EmptyState("Enter a search query above to get started.")
 				}
 			} else {
-				<div class="bg-white border border-gray-200 rounded-lg p-12 text-center">
-					<p class="text-gray-500">Enter a search query above to get started.</p>
-				</div>
+				@components.EmptyState("Enter a search query above to get started.")
 			}
 		</div>
 	}

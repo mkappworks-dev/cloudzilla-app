@@ -12,10 +12,16 @@ func idPrefix(kind string) string {
 	return strings.TrimSuffix(kind, "s")
 }
 
+// validKind reports whether kind is a recognised sidebar kind.
+func validKind(kind string) bool {
+	return kind == "issues" || kind == "pulls"
+}
+
 // LabelSidebar renders the labels sidebar panel for an issue or pull request.
 // kind must be "issues" or "pulls" — it determines the HTMX target ID and API URL path.
 // The outer div ID is "issue-labels" or "pull-labels" to satisfy stable HTMX swap targets.
 templ LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []model.Label, allLabels []model.Label, canWrite bool) {
+	if validKind(kind) {
 	{{ prefix := idPrefix(kind) }}
 	{{ divID := prefix + "-labels" }}
 	<div id={ divID } class="space-y-2">
@@ -62,12 +68,14 @@ templ LabelSidebar(owner, repoName string, itemNumber int, kind string, labels [
 			</details>
 		}
 	</div>
+	}
 }
 
 // AssigneeSidebar renders the assignees sidebar panel for an issue or pull request.
 // kind must be "issues" or "pulls" — it determines the HTMX target ID and API URL path.
 // The outer div ID is "issue-assignees" or "pull-assignees" to satisfy stable HTMX swap targets.
 templ AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assignees []model.User, canWrite bool) {
+	if validKind(kind) {
 	{{ prefix := idPrefix(kind) }}
 	{{ divID := prefix + "-assignees" }}
 	<div id={ divID } class="space-y-2">
@@ -104,4 +112,5 @@ templ AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assig
 			</form>
 		}
 	</div>
+	}
 }

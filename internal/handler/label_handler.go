@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -88,6 +89,10 @@ func (h *Handler) CreateLabel(w http.ResponseWriter, r *http.Request) {
 	}
 	if color == "" {
 		color = "#e5e5e5"
+	}
+	if !validLabelColor(color) {
+		writeError(w, http.StatusBadRequest, "color must be a valid hex color (e.g. #abc or #aabbcc)")
+		return
 	}
 
 	label, err := h.Services.Label.Create(r.Context(), owner, repoName, name, color, description)
@@ -369,6 +374,12 @@ func (h *Handler) renderIssueLabelFragment(w http.ResponseWriter, r *http.Reques
 		Owner: owner, RepoName: repoName, IssueNumber: issueNumber,
 		Labels: labels, AllLabels: allLabels, CanWrite: canWrite,
 	}))
+}
+
+var hexColorRe = regexp.MustCompile(`^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)
+
+func validLabelColor(color string) bool {
+	return hexColorRe.MatchString(color)
 }
 
 func (h *Handler) renderPullLabelFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, pullNumber int) {
