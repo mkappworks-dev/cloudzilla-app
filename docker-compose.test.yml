@@ -1,0 +1,14 @@
+services:
+  test-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: cloudzilla_test
+      POSTGRES_USER: cloudzilla
+      POSTGRES_PASSWORD: test
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cloudzilla -d cloudzilla_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 10

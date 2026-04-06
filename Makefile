@@ -1,4 +1,4 @@
-.PHONY: dev build migrate lint test clean setup-tailwind setup-templ build-css generate-templ download-mermaid docker-build docker-run docker-down
+.PHONY: dev build migrate lint test test-db test-integration clean setup-tailwind setup-templ build-css generate-templ download-mermaid docker-build docker-run docker-down
 
 BINARY := dist/cloudzilla
 GO := /usr/local/go/bin/go
@@ -72,8 +72,16 @@ migrate:
 lint:
 	golangci-lint run ./...
 
-test:
+test:                              ## Run unit tests (no database required)
 	$(GO) test ./...
+
+test-db:                           ## Start the test database container
+	docker compose -f docker-compose.test.yml up -d --wait
+	@echo "TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5433/cloudzilla_test?sslmode=disable"
+
+test-integration: test-db          ## Run all tests including integration tests (requires Docker)
+	TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5433/cloudzilla_test?sslmode=disable \
+	  $(GO) test ./...
 
 clean:
 	rm -rf dist/
