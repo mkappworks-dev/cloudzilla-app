@@ -2,6 +2,7 @@ package pages
 
 import (
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -16,9 +17,7 @@ templ PullNew(data view.PullNewData) {
 				<div class="px-4 py-3 bg-red-50 border border-red-300 rounded text-sm text-red-700">{ data.Error }</div>
 			}
 			if len(data.Branches) == 0 {
-				<div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
-					<p class="text-gray-500 text-sm">This repository has no branches yet. Push at least one commit to create a pull request.</p>
-				</div>
+				@components.EmptyState("This repository has no branches yet. Push at least one commit to create a pull request.")
 			} else {
 				<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/new") } class="space-y-4 bg-white border border-gray-200 rounded-lg p-6">
 					<div class="flex gap-3 items-end">

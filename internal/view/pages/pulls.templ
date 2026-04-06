@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -15,21 +16,12 @@ templ Pulls(data view.PullsData) {
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline">{ data.Owner }/{ data.RepoName }</a> Pull Requests
 				</h1>
 			</div>
-			<!-- State filter tabs -->
-			<div class="flex gap-1 border-b border-gray-200">
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls?state=open") } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors", templ.KV("border-blue-600 text-blue-600", data.StateFilter == "open"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.StateFilter != "open") }>
-					Open
-				</a>
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls?state=draft") } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors", templ.KV("border-blue-600 text-blue-600", data.StateFilter == "draft"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.StateFilter != "draft") }>
-					Draft
-				</a>
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls?state=closed") } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors", templ.KV("border-blue-600 text-blue-600", data.StateFilter == "closed"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.StateFilter != "closed") }>
-					Closed
-				</a>
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls?state=merged") } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors", templ.KV("border-blue-600 text-blue-600", data.StateFilter == "merged"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.StateFilter != "merged") }>
-					Merged
-				</a>
-			</div>
+			@components.TabBar([]components.Tab{
+				{Label: "Open", URL: "/" + data.Owner + "/" + data.RepoName + "/pulls?state=open", IsActive: data.StateFilter == "open", Count: -1},
+				{Label: "Draft", URL: "/" + data.Owner + "/" + data.RepoName + "/pulls?state=draft", IsActive: data.StateFilter == "draft", Count: -1},
+				{Label: "Closed", URL: "/" + data.Owner + "/" + data.RepoName + "/pulls?state=closed", IsActive: data.StateFilter == "closed", Count: -1},
+				{Label: "Merged", URL: "/" + data.Owner + "/" + data.RepoName + "/pulls?state=merged", IsActive: data.StateFilter == "merged", Count: -1},
+			})
 			if len(data.Pulls) > 0 {
 				<div class="space-y-3">
 					for _, pull := range data.Pulls {
@@ -51,17 +43,15 @@ templ Pulls(data view.PullsData) {
 										</div>
 									}
 								</div>
-								<span class={ "px-2 py-1 rounded-full text-xs font-medium ml-3 shrink-0", templ.KV("bg-green-100 text-green-700", pull.State == "open"), templ.KV("bg-purple-100 text-purple-700", pull.State == "merged"), templ.KV("bg-red-100 text-red-700", pull.State != "open" && pull.State != "merged") }>
-									{ string(pull.State) }
-								</span>
+								<div class="ml-3 shrink-0">
+									@components.PullStateBadge(string(pull.State))
+								</div>
 							</div>
 						</a>
 					}
 				</div>
 			} else {
-				<div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
-					<p class="text-gray-500">No pull requests found.</p>
-				</div>
+				@components.EmptyState("No pull requests found.")
 			}
 		</div>
 	}

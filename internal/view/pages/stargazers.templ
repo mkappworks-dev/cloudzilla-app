@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -38,9 +39,7 @@ templ Stargazers(data view.StargazersData) {
 					}
 				</div>
 			} else {
-				<div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
-					<p class="text-gray-500">No stargazers yet. Be the first to star this repository!</p>
-				</div>
+				@components.EmptyState("No stargazers yet. Be the first to star this repository!")
 			}
 		</div>
 	}

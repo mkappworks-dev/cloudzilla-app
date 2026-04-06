@@ -6,6 +6,7 @@ import (
 
 	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -53,9 +54,7 @@ templ PullDetail(data view.PullDetailData) {
 								}
 							</div>
 						}
-						<div class="prose prose-sm max-w-none bg-gray-50 p-4 rounded border border-gray-200 my-4">
-							@templ.Raw(data.BodyHTML)
-						</div>
+						@components.MarkdownBody(data.BodyHTML)
 						if len(data.HeadStatuses) > 0 {
 							<div class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded space-y-1">
 								<p class="text-xs font-semibold text-gray-600 mb-2">Checks on { data.Pull.HeadBranch }</p>

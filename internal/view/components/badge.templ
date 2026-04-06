@@ -1,0 +1,15 @@
+package components
+
+// IssueStateBadge renders an open (green) or closed (red) pill badge for an issue.
+templ IssueStateBadge(state string) {
+	<span class={ "px-2 py-1 rounded-full text-xs font-medium", templ.KV("bg-green-100 text-green-700", state == "open"), templ.KV("bg-red-100 text-red-700", state != "open") }>
+		{ state }
+	</span>
+}
+
+// PullStateBadge renders an open (green), merged (purple), or closed (red) pill badge for a PR.
+templ PullStateBadge(state string) {
+	<span class={ "px-2 py-1 rounded-full text-xs font-medium", templ.KV("bg-green-100 text-green-700", state == "open"), templ.KV("bg-purple-100 text-purple-700", state == "merged"), templ.KV("bg-red-100 text-red-700", state != "open" && state != "merged") }>
+		{ state }
+	</span>
+}

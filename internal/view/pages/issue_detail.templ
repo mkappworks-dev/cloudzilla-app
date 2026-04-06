@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -43,9 +44,7 @@ templ IssueDetail(data view.IssueDetailData) {
 								}
 							</div>
 						}
-						<div class="prose prose-sm max-w-none bg-gray-50 p-4 rounded border border-gray-200 my-4">
-							@templ.Raw(data.BodyHTML)
-						</div>
+						@components.MarkdownBody(data.BodyHTML)
 						if data.Issue.State == "open" {
 							<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) } hx-vals='{"state":"closed"}' hx-target="#issue-detail" hx-swap="outerHTML" class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors">
 								Close Issue

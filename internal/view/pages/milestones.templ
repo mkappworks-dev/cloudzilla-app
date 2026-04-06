@@ -3,6 +3,7 @@ package pages
 import (
 	"strconv"
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -70,14 +71,7 @@ templ Milestones(data view.MilestonesData) {
 													<p class="text-xs text-gray-400 mt-1">Due { m.DueDate.Format("Jan 2, 2006") }</p>
 												}
 												if m.OpenCount+m.ClosedCount > 0 {
-													<div class="mt-2">
-														<div class="flex items-center gap-2 text-xs text-gray-500 mb-1">
-															<span>{ strconv.Itoa(m.ClosedCount) } / { strconv.Itoa(m.OpenCount + m.ClosedCount) } issues closed</span>
-														</div>
-														<div class="w-full bg-gray-200 rounded-full h-1.5">
-															<div class="bg-green-500 h-1.5 rounded-full" style={ "width: " + strconv.Itoa(view.Percent(m.ClosedCount, m.OpenCount+m.ClosedCount)) + "%" }></div>
-														</div>
-													</div>
+													@components.ProgressBar(m.ClosedCount, m.OpenCount+m.ClosedCount)
 												} else {
 													<p class="text-xs text-gray-400 mt-1">No issues assigned</p>
 												}
@@ -114,11 +108,7 @@ templ Milestones(data view.MilestonesData) {
 													<p class="text-xs text-gray-400 mt-1">Closed { m.ClosedAt.Format("Jan 2, 2006") }</p>
 												}
 												if m.OpenCount+m.ClosedCount > 0 {
-													<div class="mt-2">
-														<div class="w-full bg-gray-200 rounded-full h-1.5">
-															<div class="bg-green-500 h-1.5 rounded-full" style={ "width: " + strconv.Itoa(view.Percent(m.ClosedCount, m.OpenCount+m.ClosedCount)) + "%" }></div>
-														</div>
-													</div>
+													@components.ProgressBar(m.ClosedCount, m.OpenCount+m.ClosedCount)
 												}
 											</div>
 											if data.CanWrite {

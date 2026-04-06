@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -36,20 +37,15 @@ templ Commits(data view.CommitsData) {
 					<div class="px-4 py-8 text-center text-gray-500 text-sm">No commits yet.</div>
 				}
 			</div>
-			if data.Log.PrevPage > 0 || data.Log.HasMore {
-				<div class="flex items-center justify-between">
-					<div>
-						if data.Log.PrevPage > 0 {
-							<a href={ templ.SafeURL("?page="+strconv.Itoa(data.Log.PrevPage)) } class="text-sm text-blue-600 hover:underline">&larr; Newer</a>
-						}
-					</div>
-					<div>
-						if data.Log.HasMore {
-							<a href={ templ.SafeURL("?page="+strconv.Itoa(data.Log.NextPage)) } class="text-sm text-blue-600 hover:underline">Older &rarr;</a>
-						}
-					</div>
-				</div>
+			{{ newerURL := "" }}
+			if data.Log.PrevPage > 0 {
+				{{ newerURL = "?page=" + strconv.Itoa(data.Log.PrevPage) }}
 			}
+			{{ olderURL := "" }}
+			if data.Log.HasMore {
+				{{ olderURL = "?page=" + strconv.Itoa(data.Log.NextPage) }}
+			}
+			@components.PaginationLabeled(newerURL, olderURL)
 		</div>
 	}
 }

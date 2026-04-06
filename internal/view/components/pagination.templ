@@ -1,0 +1,57 @@
+package components
+
+import "strconv"
+
+// Pagination renders Previous / Next navigation links for cursor-style (has-more) pagination.
+// prevURL and nextURL are empty strings when the corresponding link should be hidden.
+templ Pagination(prevURL, nextURL string) {
+	if prevURL != "" || nextURL != "" {
+		<div class="flex justify-between items-center pt-2">
+			<div>
+				if prevURL != "" {
+					<a href={ templ.SafeURL(prevURL) } class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">&larr; Previous</a>
+				}
+			</div>
+			<div>
+				if nextURL != "" {
+					<a href={ templ.SafeURL(nextURL) } class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">Next &rarr;</a>
+				}
+			</div>
+		</div>
+	}
+}
+
+// PaginationLabeled renders Newer / Older navigation links for commit-log style pagination.
+templ PaginationLabeled(newerURL, olderURL string) {
+	if newerURL != "" || olderURL != "" {
+		<div class="flex items-center justify-between">
+			<div>
+				if newerURL != "" {
+					<a href={ templ.SafeURL(newerURL) } class="text-sm text-blue-600 hover:underline">&larr; Newer</a>
+				}
+			</div>
+			<div>
+				if olderURL != "" {
+					<a href={ templ.SafeURL(olderURL) } class="text-sm text-blue-600 hover:underline">Older &rarr;</a>
+				}
+			</div>
+		</div>
+	}
+}
+
+// PaginationWithCount renders Previous / Next links with a "Page X of Y" counter.
+templ PaginationWithCount(prevURL, nextURL string, page, totalPages int) {
+	if totalPages > 1 {
+		<div class="flex justify-between items-center text-sm">
+			<span class="text-gray-500">Page { strconv.Itoa(page) } of { strconv.Itoa(totalPages) }</span>
+			<div class="flex gap-2">
+				if prevURL != "" {
+					<a href={ templ.SafeURL(prevURL) } class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors">&larr; Previous</a>
+				}
+				if nextURL != "" {
+					<a href={ templ.SafeURL(nextURL) } class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors">Next &rarr;</a>
+				}
+			</div>
+		</div>
+	}
+}

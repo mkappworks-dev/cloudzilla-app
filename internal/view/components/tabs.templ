@@ -1,0 +1,25 @@
+package components
+
+import "strconv"
+
+// Tab describes a single tab in a TabBar.
+type Tab struct {
+	Label    string
+	URL      string
+	IsActive bool
+	Count    int // -1 means no count badge
+}
+
+// TabBar renders a horizontal tab navigation bar with optional count badges.
+templ TabBar(tabs []Tab) {
+	<div class="flex gap-1 border-b border-gray-200">
+		for _, t := range tabs {
+			<a href={ templ.SafeURL(t.URL) } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors", templ.KV("border-blue-600 text-blue-600", t.IsActive), templ.KV("border-transparent text-gray-500 hover:text-gray-700", !t.IsActive) }>
+				{ t.Label }
+				if t.Count >= 0 {
+					<span class="ml-1 text-xs bg-gray-100 px-1.5 py-0.5 rounded-full">{ strconv.Itoa(t.Count) }</span>
+				}
+			</a>
+		}
+	</div>
+}
