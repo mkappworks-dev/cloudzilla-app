@@ -13,6 +13,8 @@ import (
 	"github.com/mkappworks/cloudzilla/internal/testutil"
 )
 
+// newAccessTokenSvc creates an AccessTokenService backed by the test database
+// and seeds a user for token ownership. All tests skip if TEST_DATABASE_DSN is not set.
 func newAccessTokenSvc(t *testing.T) (*service.AccessTokenService, int64) {
 	t.Helper()
 	db := testutil.OpenTestDB(t)
@@ -25,6 +27,8 @@ func newAccessTokenSvc(t *testing.T) (*service.AccessTokenService, int64) {
 	return svc, userID
 }
 
+// TestAccessToken_Generate_HasCZPPrefix verifies that the raw token returned by Generate
+// starts with the "czp_" prefix used to identify personal access tokens.
 func TestAccessToken_Generate_HasCZPPrefix(t *testing.T) {
 	svc, userID := newAccessTokenSvc(t)
 	raw, tok, err := svc.Generate(context.Background(), userID, "test-token", nil, nil)
@@ -39,6 +43,8 @@ func TestAccessToken_Generate_HasCZPPrefix(t *testing.T) {
 	}
 }
 
+// TestAccessToken_Generate_HashNotExposed verifies that the stored hash differs from
+// the raw token — the secret is never persisted in plain text.
 func TestAccessToken_Generate_HashNotExposed(t *testing.T) {
 	svc, userID := newAccessTokenSvc(t)
 	raw, tok, err := svc.Generate(context.Background(), userID, "test-hash", nil, nil)
@@ -53,6 +59,8 @@ func TestAccessToken_Generate_HashNotExposed(t *testing.T) {
 	}
 }
 
+// TestAccessToken_Validate_MatchesGenerated verifies that a freshly generated token
+// validates successfully and resolves to the correct user.
 func TestAccessToken_Validate_MatchesGenerated(t *testing.T) {
 	svc, userID := newAccessTokenSvc(t)
 	raw, _, err := svc.Generate(context.Background(), userID, "validate-test", nil, nil)
@@ -71,6 +79,8 @@ func TestAccessToken_Validate_MatchesGenerated(t *testing.T) {
 	}
 }
 
+// TestAccessToken_Validate_WrongToken_Fails verifies that an unknown token string
+// is rejected by Validate (no matching hash in the database).
 func TestAccessToken_Validate_WrongToken_Fails(t *testing.T) {
 	svc, _ := newAccessTokenSvc(t)
 	_, _, err := svc.Validate(context.Background(), "czp_notarealtoken00000000000000000000000000000000000000000000000000")
@@ -79,6 +89,8 @@ func TestAccessToken_Validate_WrongToken_Fails(t *testing.T) {
 	}
 }
 
+// TestAccessToken_Validate_NoCZPPrefix_Fails verifies that Validate immediately rejects
+// tokens that do not start with the "czp_" prefix, without hitting the database.
 func TestAccessToken_Validate_NoCZPPrefix_Fails(t *testing.T) {
 	svc, _ := newAccessTokenSvc(t)
 	_, _, err := svc.Validate(context.Background(), "not_a_pat_token")
@@ -87,6 +99,8 @@ func TestAccessToken_Validate_NoCZPPrefix_Fails(t *testing.T) {
 	}
 }
 
+// TestAccessToken_Validate_Expired_Fails verifies that a token with an expiry in the past
+// is rejected by Validate even if the hash matches.
 func TestAccessToken_Validate_Expired_Fails(t *testing.T) {
 	svc, userID := newAccessTokenSvc(t)
 	past := time.Now().Add(-time.Hour)
@@ -100,8 +114,9 @@ func TestAccessToken_Validate_Expired_Fails(t *testing.T) {
 	}
 }
 
+// TestAccessToken_Validate_FutureExpiry_Passes verifies that a token with an expiry
+// in the future is accepted by Validate.
 func TestAccessToken_Validate_FutureExpiry_Passes(t *testing.T) {
-	// Re-use the same DB and user from a fresh call
 	db := testutil.OpenTestDB(t)
 	suffix := fmt.Sprintf("%d_expok", os.Getpid())
 	userID := testutil.SeedUser(t, db, suffix)
@@ -111,13 +126,14 @@ func TestAccessToken_Validate_FutureExpiry_Passes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Generate: %v", err)
 	}
-	_ = raw
 	_, _, err = svc2.Validate(context.Background(), raw)
 	if err != nil {
 		t.Errorf("Validate must accept token with future expiry: %v", err)
 	}
 }
 
+// TestAccessToken_Generate_UniqueTokens verifies that successive Generate calls produce
+// different raw token values (entropy comes from crypto/rand).
 func TestAccessToken_Generate_UniqueTokens(t *testing.T) {
 	svc, userID := newAccessTokenSvc(t)
 	raw1, _, _ := svc.Generate(context.Background(), userID, "tok1", nil, nil)

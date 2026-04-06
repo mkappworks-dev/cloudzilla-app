@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
+	"golang.org/x/crypto/bcrypt"
 )
 
 // OpenTestDB opens a connection to the test database using TEST_DATABASE_DSN.
@@ -48,6 +49,30 @@ func SeedUser(t *testing.T, db *sql.DB, suffix string) int64 {
 		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, id)
 	})
 	return id
+}
+
+// SeedUserWithPassword inserts a test user with the given plaintext password and
+// returns the user's ID and email. The user is deleted when the test ends.
+func SeedUserWithPassword(t *testing.T, db *sql.DB, suffix, password string) (id int64, email string) {
+	t.Helper()
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	if err != nil {
+		t.Fatalf("SeedUserWithPassword hash: %v", err)
+	}
+	email = "testpw_" + suffix + "@test.invalid"
+	ctx := context.Background()
+	err = db.QueryRowContext(ctx,
+		`INSERT INTO users (username, email, password_hash, is_superadmin, is_invited)
+		 VALUES ($1, $2, $3, false, true) RETURNING id`,
+		"testpw_"+suffix, email, string(hash),
+	).Scan(&id)
+	if err != nil {
+		t.Fatalf("SeedUserWithPassword: %v", err)
+	}
+	t.Cleanup(func() {
+		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, id)
+	})
+	return id, email
 }
 
 // SeedSuperadmin inserts a test superadmin user and returns the user's ID.

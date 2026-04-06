@@ -17,6 +17,8 @@ import (
 
 // --- Pure-logic tests (no DB required) ---
 
+// TestCanRead_PublicRepo_AnonymousAllowed verifies that any anonymous user can read
+// a public repository (no auth required for public content).
 func TestCanRead_PublicRepo_AnonymousAllowed(t *testing.T) {
 	svc := newPermSvc(nil)
 	repo := &model.Repository{Private: false, OwnerID: 1}
@@ -25,6 +27,8 @@ func TestCanRead_PublicRepo_AnonymousAllowed(t *testing.T) {
 	}
 }
 
+// TestCanRead_PublicRepo_AnyUserAllowed verifies that any authenticated user can read
+// a public repository regardless of whether they have an explicit permission row.
 func TestCanRead_PublicRepo_AnyUserAllowed(t *testing.T) {
 	svc := newPermSvc(nil)
 	repo := &model.Repository{Private: false, OwnerID: 1}
@@ -34,6 +38,8 @@ func TestCanRead_PublicRepo_AnyUserAllowed(t *testing.T) {
 	}
 }
 
+// TestCanRead_PrivateRepo_AnonymousDenied verifies that anonymous users cannot
+// read a private repository.
 func TestCanRead_PrivateRepo_AnonymousDenied(t *testing.T) {
 	svc := newPermSvc(nil)
 	repo := &model.Repository{Private: true, OwnerID: 1}
@@ -42,6 +48,8 @@ func TestCanRead_PrivateRepo_AnonymousDenied(t *testing.T) {
 	}
 }
 
+// TestCanRead_PrivateRepo_OwnerAllowed verifies that the repository owner is always
+// granted read access to their own private repository (owner check precedes DB lookup).
 func TestCanRead_PrivateRepo_OwnerAllowed(t *testing.T) {
 	svc := newPermSvc(nil)
 	repo := &model.Repository{Private: true, OwnerID: 42}
@@ -51,6 +59,8 @@ func TestCanRead_PrivateRepo_OwnerAllowed(t *testing.T) {
 	}
 }
 
+// TestCanWrite_Owner_Allowed verifies that the repository owner always has write access
+// without a separate permissions row (owner check is short-circuited).
 func TestCanWrite_Owner_Allowed(t *testing.T) {
 	svc := newPermSvc(nil)
 	repo := &model.Repository{Private: true, OwnerID: 42}
@@ -59,6 +69,8 @@ func TestCanWrite_Owner_Allowed(t *testing.T) {
 	}
 }
 
+// TestCanWrite_NonOwner_NoPermission_Denied verifies that a non-owner with no permission
+// row is denied write access (the DB lookup fails with a broken DB → false).
 func TestCanWrite_NonOwner_NoPermission_Denied(t *testing.T) {
 	svc := newPermSvc(nil)
 	repo := &model.Repository{Private: false, OwnerID: 1}
@@ -68,6 +80,8 @@ func TestCanWrite_NonOwner_NoPermission_Denied(t *testing.T) {
 	}
 }
 
+// TestCanManage_Owner_Allowed verifies that the repository owner always has manage
+// access (settings, collaborators, branch protection).
 func TestCanManage_Owner_Allowed(t *testing.T) {
 	svc := newPermSvc(nil)
 	repo := &model.Repository{OwnerID: 5}
@@ -76,6 +90,8 @@ func TestCanManage_Owner_Allowed(t *testing.T) {
 	}
 }
 
+// TestIsOwner_Owner_True verifies that IsOwner returns true when userID matches
+// the repository's OwnerID.
 func TestIsOwner_Owner_True(t *testing.T) {
 	svc := newPermSvc(nil)
 	repo := &model.Repository{OwnerID: 7}
@@ -84,6 +100,8 @@ func TestIsOwner_Owner_True(t *testing.T) {
 	}
 }
 
+// TestIsOwner_NonOwner_False verifies that IsOwner returns false when userID does
+// not match the repository's OwnerID.
 func TestIsOwner_NonOwner_False(t *testing.T) {
 	svc := newPermSvc(nil)
 	repo := &model.Repository{OwnerID: 7}
@@ -94,6 +112,8 @@ func TestIsOwner_NonOwner_False(t *testing.T) {
 
 // --- Integration tests (require TEST_DATABASE_DSN) ---
 
+// TestCanWrite_WriterRole_Allowed verifies that a user with the "writer" role on a repo
+// is granted CanWrite but not CanManage or IsOwner.
 func TestCanWrite_WriterRole_Allowed(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := fmt.Sprintf("%d_%d", os.Getpid(), 1)
@@ -126,6 +146,8 @@ func TestCanWrite_WriterRole_Allowed(t *testing.T) {
 	}
 }
 
+// TestCanWrite_ReaderRole_Denied verifies that a user with the "reader" role is granted
+// CanRead on a private repo but not CanWrite.
 func TestCanWrite_ReaderRole_Denied(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := fmt.Sprintf("%d_%d", os.Getpid(), 2)
@@ -156,6 +178,8 @@ func TestCanWrite_ReaderRole_Denied(t *testing.T) {
 	}
 }
 
+// TestCanManage_AdminRole_Allowed verifies that a user with the "admin" role is granted
+// CanWrite and CanManage, but not IsOwner (admin ≠ repo owner).
 func TestCanManage_AdminRole_Allowed(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := fmt.Sprintf("%d_%d", os.Getpid(), 3)
@@ -188,6 +212,8 @@ func TestCanManage_AdminRole_Allowed(t *testing.T) {
 	}
 }
 
+// TestCanRead_PrivateRepo_NoPermission_Denied verifies that a user with no permission row
+// for a private repository is denied read access.
 func TestCanRead_PrivateRepo_NoPermission_Denied(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := fmt.Sprintf("%d_%d", os.Getpid(), 4)
