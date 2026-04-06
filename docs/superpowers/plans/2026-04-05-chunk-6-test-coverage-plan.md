@@ -188,7 +188,7 @@ claimsFromMap with missing "username" → error (not panic)
 - **Week 1:** Items 0-3 + 7 (testdb, auth_test, setup_test, totp_test, access_token_test) — ~770 lines, all P0, mostly unit tests
 - **Week 2:** Items 4-6 (permissions, auth handler, git HTTP) — ~550 lines, P0 integration tests
 - **Week 3:** Items 8-11 (store tests, branch protection, webhook) — ~650 lines, P1
-- **Future M2:** Items 12-17, store interfaces for mocking — ~980 lines, P2/P3
+- **Week 4:** Items 12-17 (issue service, pull service, org service, oauth app, setup handler, issue handler) — ~980 lines, P2/P3
 
 **Total new test code:** ~2,950 lines across 18 files (~4x current test volume). First 1,320 lines (weeks 1-2) cover all P0 security paths.
 
