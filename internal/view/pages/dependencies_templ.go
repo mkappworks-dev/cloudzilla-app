@@ -257,7 +257,7 @@ func Dependencies(data view.DependenciesData) templ.Component {
 					}
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<div class=\"bg-white border border-gray-200 rounded-lg p-12 text-center\"><p class=\"text-gray-500 font-medium\">No dependencies detected.</p><p class=\"text-sm text-gray-400 mt-2\">Push a commit containing <code class=\"bg-gray-100 px-1 rounded\">go.mod</code>, <code class=\"bg-gray-100 px-1 rounded\">package.json</code>, <code class=\"bg-gray-100 px-1 rounded\">requirements.txt</code>, or <code class=\"bg-gray-100 px-1 rounded\">Cargo.toml</code> to populate this graph.</p></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<div class=\"bg-white border border-gray-200 rounded-lg p-12 text-center\"><p class=\"text-gray-500\">No dependencies detected.</p><p class=\"text-sm text-gray-400 mt-2\">Push a commit containing <code class=\"bg-gray-100 px-1 rounded\">go.mod</code>, <code class=\"bg-gray-100 px-1 rounded\">package.json</code>, <code class=\"bg-gray-100 px-1 rounded\">requirements.txt</code>, or <code class=\"bg-gray-100 px-1 rounded\">Cargo.toml</code> to populate this graph.</p></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

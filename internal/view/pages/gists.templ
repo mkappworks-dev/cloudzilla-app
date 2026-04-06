@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -43,14 +44,13 @@ templ Gists(data view.GistsData) {
 						</li>
 					}
 				</ul>
-				<div class="mt-6 flex gap-2">
-					if data.Page > 1 {
-						<a href={ templ.SafeURL("?page=" + strconv.Itoa(data.Page-1)) } class="px-3 py-1 border rounded text-sm">Previous</a>
-					}
-					<a href={ templ.SafeURL("?page=" + strconv.Itoa(data.Page+1)) } class="px-3 py-1 border rounded text-sm">Next</a>
-				</div>
+				{{ gistPrev := "" }}
+				if data.Page > 1 {
+					{{ gistPrev = "?page=" + strconv.Itoa(data.Page-1) }}
+				}
+				@components.Pagination(gistPrev, "?page=" + strconv.Itoa(data.Page+1))
 			} else {
-				<p class="text-gray-500">No public gists yet.</p>
+				@components.EmptyState("No public gists yet.")
 			}
 		</div>
 	}

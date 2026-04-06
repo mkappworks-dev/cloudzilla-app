@@ -3,6 +3,7 @@ package pages
 import (
 	"strconv"
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -11,10 +12,7 @@ templ Feed(data view.FeedData) {
 		<div class="max-w-3xl mx-auto space-y-4">
 			<h1 class="text-2xl font-bold text-gray-900">Your Activity Feed</h1>
 			if len(data.Events) == 0 {
-				<div class="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-500">
-					<p class="text-lg">No activity yet.</p>
-					<p class="mt-2 text-sm">Watch some repositories to see events here.</p>
-				</div>
+				@components.EmptyStateWithHint("No activity yet.", "Watch some repositories to see events here.")
 			} else {
 				<div class="space-y-3">
 					for _, e := range data.Events {
@@ -51,16 +49,15 @@ templ Feed(data view.FeedData) {
 						</div>
 					}
 				</div>
-				<div class="flex justify-between items-center pt-2">
-					if data.Page > 1 {
-						<a href={ templ.SafeURL("/feed?page=" + strconv.Itoa(data.Page-1)) } class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">Previous</a>
-					} else {
-						<span></span>
-					}
-					if data.HasNextPage {
-						<a href={ templ.SafeURL("/feed?page=" + strconv.Itoa(data.Page+1)) } class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">Next</a>
-					}
-				</div>
+				{{ prevURL := "" }}
+				if data.Page > 1 {
+					{{ prevURL = "/feed?page=" + strconv.Itoa(data.Page-1) }}
+				}
+				{{ nextURL := "" }}
+				if data.HasNextPage {
+					{{ nextURL = "/feed?page=" + strconv.Itoa(data.Page+1) }}
+				}
+				@components.Pagination(prevURL, nextURL)
 			}
 		</div>
 	}

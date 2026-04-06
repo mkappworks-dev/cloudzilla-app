@@ -1,0 +1,31 @@
+package components
+
+import "github.com/mkappworks/cloudzilla/internal/model"
+
+// StatusIcon renders a colored symbol for a commit status state:
+// success=green ✓, failure=red ✗, error=red ⚠, pending=yellow ●
+templ StatusIcon(state model.CommitStatusState) {
+	if state == model.CommitStatusSuccess {
+		<span class="text-green-600">&#10003;</span>
+	} else if state == model.CommitStatusFailure {
+		<span class="text-red-600">&#10007;</span>
+	} else if state == model.CommitStatusError {
+		<span class="text-red-600">&#9888;</span>
+	} else {
+		<span class="text-yellow-500">&#9679;</span>
+	}
+}
+
+// StatusRow renders a single commit status check row with icon, context name, description, and details link.
+templ StatusRow(s model.CommitStatus) {
+	<div class="flex items-center gap-3 text-sm">
+		@StatusIcon(s.State)
+		<span class="font-medium text-gray-800">{ s.Context }</span>
+		if s.Description != "" {
+			<span class="text-gray-500">— { s.Description }</span>
+		}
+		if s.TargetURL != "" {
+			<a href={ templ.SafeURL(s.TargetURL) } class="text-blue-600 hover:underline ml-auto text-xs">Details</a>
+		}
+	</div>
+}

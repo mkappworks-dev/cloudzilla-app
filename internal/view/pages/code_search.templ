@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strconv"
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -46,22 +47,18 @@ templ CodeSearch(data view.CodeSearchData) {
 							</div>
 						}
 					</div>
-					if data.Total > 20 {
-						<div class="flex justify-center gap-3 text-sm">
-							if data.Page > 1 {
-								<a href={ templ.SafeURL("/search/code?q=" + url.QueryEscape(data.Query) + "&repo=" + url.QueryEscape(data.RepoFilter) + "&lang=" + url.QueryEscape(data.Lang) + "&page=" + strconv.Itoa(data.Page-1)) } class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Previous</a>
-							}
-							<span class="px-3 py-1 text-gray-500">Page { strconv.Itoa(data.Page) }</span>
-							if data.Page*20 < data.Total {
-								<a href={ templ.SafeURL("/search/code?q=" + url.QueryEscape(data.Query) + "&repo=" + url.QueryEscape(data.RepoFilter) + "&lang=" + url.QueryEscape(data.Lang) + "&page=" + strconv.Itoa(data.Page+1)) } class="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">Next</a>
-							}
-						</div>
+					{{ csPages := (data.Total + 19) / 20 }}
+					{{ csPrev := "" }}
+					if data.Page > 1 {
+						{{ csPrev = "/search/code?q=" + url.QueryEscape(data.Query) + "&repo=" + url.QueryEscape(data.RepoFilter) + "&lang=" + url.QueryEscape(data.Lang) + "&page=" + strconv.Itoa(data.Page-1) }}
 					}
+					{{ csNext := "" }}
+					if data.Page*20 < data.Total {
+						{{ csNext = "/search/code?q=" + url.QueryEscape(data.Query) + "&repo=" + url.QueryEscape(data.RepoFilter) + "&lang=" + url.QueryEscape(data.Lang) + "&page=" + strconv.Itoa(data.Page+1) }}
+					}
+					@components.PaginationWithCount(csPrev, csNext, data.Page, csPages)
 				} else {
-					<div class="bg-white border border-gray-200 rounded-lg p-12 text-center">
-						<p class="text-gray-500">No code results found for <strong>{ data.Query }</strong>.</p>
-						<p class="text-sm text-gray-400 mt-2">Files are indexed after each push. Empty or binary-only repos will return no results.</p>
-					</div>
+					@components.EmptyStateWithHint("No code results found for "+data.Query+".", "Files are indexed after each push. Empty or binary-only repos will return no results.")
 				}
 			} else {
 				<div class="bg-white border border-gray-200 rounded-lg p-12 text-center">

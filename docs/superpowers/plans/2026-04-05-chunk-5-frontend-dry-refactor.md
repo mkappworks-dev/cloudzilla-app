@@ -1,4 +1,4 @@
-# Milestone 1 — Chunk 5: Frontend DRY Refactor ⬜ NOT STARTED
+# Milestone 1 — Chunk 5: Frontend DRY Refactor ✅ COMPLETE
 
 > **Scope:** Out of scope for `tech/m1-licensing-security-cleanup`. Implement on a separate branch (e.g., `tech/chunk-5-frontend-dry-refactor`).
 

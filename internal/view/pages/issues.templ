@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -54,17 +55,15 @@ templ Issues(data view.IssuesData) {
 										</div>
 									}
 								</div>
-								<span class={ "px-2 py-1 rounded-full text-xs font-medium ml-3 shrink-0", templ.KV("bg-green-100 text-green-700", issue.State == "open"), templ.KV("bg-red-100 text-red-700", issue.State != "open") }>
-									{ string(issue.State) }
-								</span>
+								<div class="ml-3 shrink-0">
+									@components.IssueStateBadge(string(issue.State))
+								</div>
 							</div>
 						</a>
 					}
 				</div>
 			} else {
-				<div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
-					<p class="text-gray-500">No issues yet.</p>
-				</div>
+				@components.EmptyState("No issues yet.")
 			}
 		</div>
 	}

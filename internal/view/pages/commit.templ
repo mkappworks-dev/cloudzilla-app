@@ -3,8 +3,8 @@ package pages
 import (
 	"strconv"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -43,24 +43,7 @@ templ Commit(data view.CommitData) {
 				<div class="bg-white border border-gray-200 rounded-lg p-4 space-y-2">
 					<h3 class="text-sm font-semibold text-gray-700 mb-3">Checks</h3>
 					for _, s := range data.Statuses {
-						<div class="flex items-center gap-3 text-sm">
-							if s.State == model.CommitStatusSuccess {
-								<span class="text-green-600">&#10003;</span>
-							} else if s.State == model.CommitStatusFailure {
-								<span class="text-red-600">&#10007;</span>
-							} else if s.State == model.CommitStatusError {
-								<span class="text-red-600">&#9888;</span>
-							} else {
-								<span class="text-yellow-500">&#9679;</span>
-							}
-							<span class="font-medium text-gray-800">{ s.Context }</span>
-							if s.Description != "" {
-								<span class="text-gray-500">— { s.Description }</span>
-							}
-							if s.TargetURL != "" {
-								<a href={ templ.SafeURL(s.TargetURL) } class="text-blue-600 hover:underline ml-auto text-xs">Details</a>
-							}
-						</div>
+						@components.StatusRow(s)
 					}
 				</div>
 			}
@@ -87,66 +70,13 @@ templ Commit(data view.CommitData) {
 			<!-- Per-file diffs -->
 			for _, f := range data.Commit.Files {
 				<div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-					<!-- File header -->
-					<div class="bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center justify-between">
-						<code class="text-sm font-mono text-gray-800">
-							if f.IsNew {
-								{ f.NewPath }
-							} else if f.IsDelete {
-								{ f.OldPath }
-							} else if f.OldPath != f.NewPath {
-								{ f.OldPath } &rarr; { f.NewPath }
-							} else {
-								{ f.NewPath }
-							}
-						</code>
-						<div class="text-xs text-gray-500 ml-4 shrink-0">
-							if !f.IsBinary {
-								<span class="text-green-600">+{ strconv.Itoa(f.Added) }</span>
-								<span class="text-red-600 ml-1">-{ strconv.Itoa(f.Deleted) }</span>
-							}
-						</div>
-					</div>
+					@components.DiffFileHeader(f)
 					if f.IsBinary {
 						<div class="px-4 py-3 text-sm text-gray-500 italic">Binary files differ</div>
 					} else if len(f.Hunks) == 0 {
 						<div class="px-4 py-3 text-sm text-gray-500 italic">No changes</div>
 					} else {
-						<div class="overflow-x-auto">
-							<table class="w-full text-xs font-mono border-collapse">
-								<tbody>
-									for _, hunk := range f.Hunks {
-										<tr>
-											<td colspan="4" class="bg-blue-50 text-blue-600 px-4 py-1 select-none">{ hunk.Header }</td>
-										</tr>
-										for _, line := range hunk.Lines {
-											<tr class={ templ.KV("bg-green-50", line.Type == "add"), templ.KV("bg-red-50", line.Type == "del") }>
-												<td class="select-none text-gray-400 text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-gray-100">
-													if line.OldNum != 0 {
-														{ strconv.Itoa(line.OldNum) }
-													}
-												</td>
-												<td class="select-none text-gray-400 text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-gray-100">
-													if line.NewNum != 0 {
-														{ strconv.Itoa(line.NewNum) }
-													}
-												</td>
-												<td class={ "select-none px-2 py-0.5 w-4 align-top", templ.KV("text-green-600", line.Type == "add"), templ.KV("text-red-600", line.Type == "del"), templ.KV("text-gray-400", line.Type != "add" && line.Type != "del") }>
-													if line.Type == "add" {
-														+
-													} else if line.Type == "del" {
-														-
-													} else {
-														{ " " }
-													}
-												</td>
-												<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">{ line.Content }</td>
-											</tr>
-										}
-									}
-								</tbody>
-							</table>
-						</div>
+						@components.DiffHunkTable(f.Hunks)
 					}
 				</div>
 			}

@@ -1,0 +1,9 @@
+package components
+
+// MarkdownBody renders trusted rendered HTML inside a styled prose container.
+// html MUST come from the internal markdown renderer — never pass raw user input.
+templ MarkdownBody(html string) {
+	<div class="prose prose-sm max-w-none bg-gray-50 p-4 rounded border border-gray-200 my-4">
+		@templ.Raw(html)
+	</div>
+}

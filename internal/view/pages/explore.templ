@@ -3,6 +3,7 @@ package pages
 import (
 	"fmt"
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -60,9 +61,7 @@ templ Explore(data view.ExploreData) {
 					}
 				</div>
 			} else {
-				<div class="bg-white border border-gray-200 rounded-lg p-12 text-center">
-					<p class="text-gray-500">No public repositories to show yet.</p>
-				</div>
+				@components.EmptyState("No public repositories to show yet.")
 			}
 		</div>
 	}

@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"strconv"
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -83,28 +84,16 @@ templ AuditLog(data view.AuditLogData) {
 					</div>
 				}
 			</div>
-			<!-- Pagination -->
-			if data.TotalCount > data.PerPage {
-				<div class="flex justify-between items-center text-sm">
-					<span class="text-gray-500">
-						Page { strconv.Itoa(data.Page) } of { strconv.Itoa((data.TotalCount + data.PerPage - 1) / data.PerPage) }
-					</span>
-					<div class="flex gap-2">
-						if data.Page > 1 {
-							<a
-								href={ templ.SafeURL("/admin/audit-log?page=" + strconv.Itoa(data.Page-1) + "&action=" + url.QueryEscape(data.Filter.Action) + "&target_type=" + url.QueryEscape(data.Filter.TargetType)) }
-								class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-							>← Previous</a>
-						}
-						if data.Page*data.PerPage < data.TotalCount {
-							<a
-								href={ templ.SafeURL("/admin/audit-log?page=" + strconv.Itoa(data.Page+1) + "&action=" + url.QueryEscape(data.Filter.Action) + "&target_type=" + url.QueryEscape(data.Filter.TargetType)) }
-								class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-							>Next →</a>
-						}
-					</div>
-				</div>
+			{{ totalPages := (data.TotalCount + data.PerPage - 1) / data.PerPage }}
+			{{ auditPrevURL := "" }}
+			if data.Page > 1 {
+				{{ auditPrevURL = "/admin/audit-log?page=" + strconv.Itoa(data.Page-1) + "&action=" + url.QueryEscape(data.Filter.Action) + "&target_type=" + url.QueryEscape(data.Filter.TargetType) }}
 			}
+			{{ auditNextURL := "" }}
+			if data.Page*data.PerPage < data.TotalCount {
+				{{ auditNextURL = "/admin/audit-log?page=" + strconv.Itoa(data.Page+1) + "&action=" + url.QueryEscape(data.Filter.Action) + "&target_type=" + url.QueryEscape(data.Filter.TargetType) }}
+			}
+			@components.PaginationWithCount(auditPrevURL, auditNextURL, data.Page, totalPages)
 		</div>
 	}
 }

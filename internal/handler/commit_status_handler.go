@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks/cloudzilla/internal/middleware"
@@ -50,6 +51,14 @@ func (h *Handler) CreateStatus(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeError(w, http.StatusBadRequest, "state must be pending, success, failure, or error")
 		return
+	}
+
+	if req.TargetURL != "" {
+		u, err := url.Parse(req.TargetURL)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+			writeError(w, http.StatusBadRequest, "target_url must be an http or https URL")
+			return
+		}
 	}
 
 	cs := &model.CommitStatus{

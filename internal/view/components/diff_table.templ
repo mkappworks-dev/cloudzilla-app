@@ -1,0 +1,70 @@
+package components
+
+import (
+	"strconv"
+
+	"github.com/mkappworks/cloudzilla/internal/service"
+)
+
+// DiffFileHeader renders the header bar of a diff block showing file path and +/- stats.
+templ DiffFileHeader(f service.FileDiff) {
+	<div class="bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center justify-between">
+		<code class="text-sm font-mono text-gray-800">
+			if f.IsNew {
+				{ f.NewPath }
+			} else if f.IsDelete {
+				{ f.OldPath }
+			} else if f.OldPath != f.NewPath {
+				{ f.OldPath } &rarr; { f.NewPath }
+			} else {
+				{ f.NewPath }
+			}
+		</code>
+		if !f.IsBinary {
+			<div class="text-xs text-gray-500 ml-4 shrink-0">
+				<span class="text-green-600">+{ strconv.Itoa(f.Added) }</span>
+				<span class="text-red-600 ml-1">-{ strconv.Itoa(f.Deleted) }</span>
+			</div>
+		}
+	</div>
+}
+
+// DiffHunkTable renders a read-only unified diff table for a set of hunks.
+// For PR diff tables with inline comments, use the pull_detail template directly.
+templ DiffHunkTable(hunks []service.DiffHunk) {
+	<div class="overflow-x-auto">
+		<table class="w-full text-xs font-mono border-collapse">
+			<tbody>
+				for _, hunk := range hunks {
+					<tr>
+						<td colspan="4" class="bg-blue-50 text-blue-600 px-4 py-1 select-none">{ hunk.Header }</td>
+					</tr>
+					for _, line := range hunk.Lines {
+						<tr class={ templ.KV("bg-green-50", line.Type == "add"), templ.KV("bg-red-50", line.Type == "del") }>
+							<td class="select-none text-gray-400 text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-gray-100">
+								if line.OldNum != 0 {
+									{ strconv.Itoa(line.OldNum) }
+								}
+							</td>
+							<td class="select-none text-gray-400 text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-gray-100">
+								if line.NewNum != 0 {
+									{ strconv.Itoa(line.NewNum) }
+								}
+							</td>
+							<td class={ "select-none px-2 py-0.5 w-4 align-top", templ.KV("text-green-600", line.Type == "add"), templ.KV("text-red-600", line.Type == "del"), templ.KV("text-gray-400", line.Type != "add" && line.Type != "del") }>
+								if line.Type == "add" {
+									+
+								} else if line.Type == "del" {
+									-
+								} else {
+									{ " " }
+								}
+							</td>
+							<td class="pl-2 pr-4 py-0.5 whitespace-pre align-top">{ line.Content }</td>
+						</tr>
+					}
+				}
+			</tbody>
+		</table>
+	</div>
+}

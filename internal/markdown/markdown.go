@@ -32,6 +32,11 @@ func (t *linkSanitizer) Transform(doc *ast.Document, _ text.Reader, _ parser.Con
 				link.Destination = []byte("#")
 			}
 		}
+		if img, ok := n.(*ast.Image); ok {
+			if hasDangerousScheme(img.Destination) {
+				img.Destination = []byte("")
+			}
+		}
 		return ast.WalkContinue, nil
 	})
 }

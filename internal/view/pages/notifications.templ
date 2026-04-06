@@ -3,6 +3,7 @@ package pages
 import (
 	"strconv"
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -48,7 +49,7 @@ templ Notifications(data view.NotificationsData) {
 						</div>
 					}
 				} else {
-					<div class="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-500">No notifications yet.</div>
+					@components.EmptyState("No notifications yet.")
 				}
 			</div>
 		</div>

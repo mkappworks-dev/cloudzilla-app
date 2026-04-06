@@ -3,6 +3,7 @@ package pages
 import (
 	"strconv"
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -22,35 +23,29 @@ templ Search(data view.SearchData) {
 				</form>
 			</div>
 			if data.Query != "" {
-				<div class="flex gap-1 border-b border-gray-200">
-					<a href={ templ.SafeURL("/search?q=" + data.Query + "&type=all") } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px", templ.KV("border-blue-500 text-blue-600", data.Type == "all" || data.Type == ""), templ.KV("border-transparent text-gray-500 hover:text-gray-700", !(data.Type == "all" || data.Type == "")) }>
-						All
-					</a>
-					<a href={ templ.SafeURL("/search?q=" + data.Query + "&type=repos") } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px", templ.KV("border-blue-500 text-blue-600", data.Type == "repos"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.Type != "repos") }>
-						Repositories
-						if data.Results != nil && len(data.Results.Repos) > 0 {
-							<span class="ml-1 text-xs bg-gray-100 px-1.5 py-0.5 rounded-full">{ strconv.Itoa(len(data.Results.Repos)) }</span>
-						}
-					</a>
-					<a href={ templ.SafeURL("/search?q=" + data.Query + "&type=issues") } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px", templ.KV("border-blue-500 text-blue-600", data.Type == "issues"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.Type != "issues") }>
-						Issues
-						if data.Results != nil && len(data.Results.Issues) > 0 {
-							<span class="ml-1 text-xs bg-gray-100 px-1.5 py-0.5 rounded-full">{ strconv.Itoa(len(data.Results.Issues)) }</span>
-						}
-					</a>
-					<a href={ templ.SafeURL("/search?q=" + data.Query + "&type=pulls") } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px", templ.KV("border-blue-500 text-blue-600", data.Type == "pulls"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.Type != "pulls") }>
-						Pull Requests
-						if data.Results != nil && len(data.Results.Pulls) > 0 {
-							<span class="ml-1 text-xs bg-gray-100 px-1.5 py-0.5 rounded-full">{ strconv.Itoa(len(data.Results.Pulls)) }</span>
-						}
-					</a>
-					<a href={ templ.SafeURL("/search?q=" + data.Query + "&type=users") } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px", templ.KV("border-blue-500 text-blue-600", data.Type == "users"), templ.KV("border-transparent text-gray-500 hover:text-gray-700", data.Type != "users") }>
-						Users
-						if data.Results != nil && len(data.Results.Users) > 0 {
-							<span class="ml-1 text-xs bg-gray-100 px-1.5 py-0.5 rounded-full">{ strconv.Itoa(len(data.Results.Users)) }</span>
-						}
-					</a>
-				</div>
+			{{ repoCount := -1 }}
+				if data.Results != nil && len(data.Results.Repos) > 0 {
+					{{ repoCount = len(data.Results.Repos) }}
+				}
+				{{ issueCount := -1 }}
+				if data.Results != nil && len(data.Results.Issues) > 0 {
+					{{ issueCount = len(data.Results.Issues) }}
+				}
+				{{ pullCount := -1 }}
+				if data.Results != nil && len(data.Results.Pulls) > 0 {
+					{{ pullCount = len(data.Results.Pulls) }}
+				}
+				{{ userCount := -1 }}
+				if data.Results != nil && len(data.Results.Users) > 0 {
+					{{ userCount = len(data.Results.Users) }}
+				}
+				@components.TabBar([]components.Tab{
+					{Label: "All", URL: "/search?q=" + data.Query + "&type=all", IsActive: data.Type == "all" || data.Type == "", Count: -1},
+					{Label: "Repositories", URL: "/search?q=" + data.Query + "&type=repos", IsActive: data.Type == "repos", Count: repoCount},
+					{Label: "Issues", URL: "/search?q=" + data.Query + "&type=issues", IsActive: data.Type == "issues", Count: issueCount},
+					{Label: "Pull Requests", URL: "/search?q=" + data.Query + "&type=pulls", IsActive: data.Type == "pulls", Count: pullCount},
+					{Label: "Users", URL: "/search?q=" + data.Query + "&type=users", IsActive: data.Type == "users", Count: userCount},
+				})
 				if data.Results != nil {
 					if (data.Type == "all" || data.Type == "" || data.Type == "repos") && len(data.Results.Repos) > 0 {
 						<div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
@@ -135,20 +130,13 @@ templ Search(data view.SearchData) {
 						</div>
 					}
 					if data.Results != nil && len(data.Results.Repos) == 0 && len(data.Results.Issues) == 0 && len(data.Results.Pulls) == 0 && len(data.Results.Users) == 0 {
-						<div class="bg-white border border-gray-200 rounded-lg p-12 text-center">
-							<p class="text-gray-500">No results found for <strong>{ data.Query }</strong></p>
-							<p class="text-sm text-gray-400 mt-2">Try different keywords or broaden your search.</p>
-						</div>
+						@components.EmptyStateWithHint("No results found for " + data.Query + ".", "Try different keywords or broaden your search.")
 					}
 				} else {
-					<div class="bg-white border border-gray-200 rounded-lg p-12 text-center">
-						<p class="text-gray-500">Enter a search query above to get started.</p>
-					</div>
+					@components.EmptyState("Enter a search query above to get started.")
 				}
 			} else {
-				<div class="bg-white border border-gray-200 rounded-lg p-12 text-center">
-					<p class="text-gray-500">Enter a search query above to get started.</p>
-				</div>
+				@components.EmptyState("Enter a search query above to get started.")
 			}
 		</div>
 	}

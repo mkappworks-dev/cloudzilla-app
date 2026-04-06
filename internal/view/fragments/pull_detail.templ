@@ -3,6 +3,7 @@ package fragments
 import (
 	"strconv"
 
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view"
 )
 
@@ -39,9 +40,7 @@ templ PullDetail(data view.PullDetailFragData) {
 				</button>
 			</div>
 		}
-		<div class="prose prose-sm max-w-none bg-gray-50 p-4 rounded border border-gray-200 my-4">
-			@templ.Raw(data.BodyHTML)
-		</div>
+		@components.MarkdownBody(data.BodyHTML)
 		if data.Pull.State == "open" {
 			<div class="flex flex-wrap items-center gap-2 mt-2">
 				<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.Repo + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-vals={ `{"state":"closed"}` } hx-target="#pull-detail" hx-swap="outerHTML" class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors">

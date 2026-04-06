@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks/cloudzilla/internal/view/components"
 	"github.com/mkappworks/cloudzilla/internal/view/layout"
 )
 
@@ -50,9 +51,7 @@ templ Contributors(data view.ContributorsData) {
 					</table>
 				</div>
 			} else {
-				<div class="bg-white border border-gray-200 rounded-lg p-8 text-center">
-					<p class="text-gray-500">No commits yet.</p>
-				</div>
+				@components.EmptyState("No commits yet.")
 			}
 		</div>
 	}
