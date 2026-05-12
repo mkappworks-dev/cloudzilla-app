@@ -12,7 +12,26 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
+
+// PageNewRepo renders the form for creating a new repository.
+func (h *Handler) PageNewRepo(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	orgs, err := h.Services.Org.ListOwnedByUser(r.Context(), claims.UserID)
+	if err != nil {
+		slog.Error("list owned orgs", "error", err)
+		orgs = []model.Organization{}
+	}
+	h.render(w, r, pages.RepoNew(view.RepoNewData{
+		BasePage:  basePage(r, h.Services),
+		OwnedOrgs: orgs,
+	}))
+}
 
 type createRepoRequest struct {
 	Name        string `json:"name"`

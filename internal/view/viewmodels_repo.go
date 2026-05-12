@@ -26,6 +26,12 @@ type RepoData struct {
 	IsArchived    bool
 }
 
+// RepoNewData holds template data for the new repository form page.
+type RepoNewData struct {
+	BasePage
+	OwnedOrgs []model.Organization
+}
+
 // Releases page
 // ReleasesData holds template data for the releases list page.
 type ReleasesData struct {

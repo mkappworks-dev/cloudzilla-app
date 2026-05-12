@@ -54,6 +54,22 @@ func (s *OrgService) ListMembers(ctx context.Context, orgID int64) ([]model.OrgM
 	return s.orgs.ListMembers(ctx, orgID)
 }
 
+// ListOwnedByUser returns the organizations in which the given user has the owner role.
+// Used by the "new repository" form to populate the owner-selector with eligible orgs.
+func (s *OrgService) ListOwnedByUser(ctx context.Context, userID int64) ([]model.Organization, error) {
+	orgs, err := s.orgs.ListByMember(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	owned := make([]model.Organization, 0, len(orgs))
+	for _, o := range orgs {
+		if s.IsOwner(ctx, o.ID, userID) {
+			owned = append(owned, o)
+		}
+	}
+	return owned, nil
+}
+
 func (s *OrgService) IsOwner(ctx context.Context, orgID, userID int64) bool {
 	m, err := s.orgs.GetMember(ctx, orgID, userID)
 	if err != nil {

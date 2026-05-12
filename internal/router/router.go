@@ -59,6 +59,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/register", h.PageRegister)
 	r.With(optAuthMW).Post("/register", h.PageRegisterSubmit)
 	r.With(optAuthMW).Post("/login", h.PageLoginSubmit)
+	r.With(authMW).Get("/new", h.PageNewRepo)
 	r.With(authMW).Get("/settings", h.PageSettings)
 	r.With(authMW).Get("/settings/notifications", h.PageNotificationSettings)
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)

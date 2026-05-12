@@ -1,0 +1,111 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ RepoNew(data view.RepoNewData) {
+	{{ var me string }}
+	if data.CurrentUser != nil {
+		{{ me = data.CurrentUser.Username }}
+	}
+	@layout.Base(data.BasePage, "New Repository") {
+		<div class="max-w-2xl mx-auto py-8 px-4">
+			<h1 class="text-2xl font-bold mb-1">Create a new repository</h1>
+			<p class="text-gray-500 mb-6">A repository contains all project files, including the revision history.</p>
+			<form id="repo-form" class="space-y-5" data-username={ me }>
+				<div class="flex items-end gap-2">
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">Owner</label>
+						<select name="owner" class="border border-gray-300 rounded px-3 py-2 text-sm bg-white">
+							if data.CurrentUser != nil {
+								<option value={ data.CurrentUser.Username }>{ data.CurrentUser.Username }</option>
+							}
+							for _, o := range data.OwnedOrgs {
+								<option value={ o.Name }>{ o.Name }</option>
+							}
+						</select>
+					</div>
+					<span class="text-gray-400 pb-2 text-lg">/</span>
+					<div class="flex-1">
+						<label class="block text-sm font-medium text-gray-700 mb-1">Repository name <span class="text-red-500">*</span></label>
+						<input
+							type="text"
+							name="name"
+							required
+							pattern="[A-Za-z0-9._-]+"
+							class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono"
+							placeholder="my-awesome-project"
+						/>
+					</div>
+				</div>
+				<p class="text-xs text-gray-500 -mt-3">Great repository names are short and memorable. Letters, numbers, dots, dashes, and underscores only.</p>
+				<div>
+					<label class="block text-sm font-medium text-gray-700 mb-1">Description <span class="text-gray-400">(optional)</span></label>
+					<input
+						type="text"
+						name="description"
+						class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+						placeholder="Short description of the project"
+					/>
+				</div>
+				<fieldset class="space-y-2 border-t border-gray-200 pt-4">
+					<legend class="sr-only">Visibility</legend>
+					<label class="flex items-start gap-2 cursor-pointer">
+						<input type="radio" name="visibility" value="public" checked class="mt-0.5"/>
+						<span>
+							<span class="font-medium">Public</span>
+							<span class="block text-xs text-gray-500">Anyone on the internet can see this repository. You choose who can commit.</span>
+						</span>
+					</label>
+					<label class="flex items-start gap-2 cursor-pointer">
+						<input type="radio" name="visibility" value="private" class="mt-0.5"/>
+						<span>
+							<span class="font-medium">Private</span>
+							<span class="block text-xs text-gray-500">You choose who can see and commit to this repository.</span>
+						</span>
+					</label>
+				</fieldset>
+				<div id="repo-form-error" class="hidden text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2"></div>
+				<div class="flex gap-3 pt-2">
+					<button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium">Create repository</button>
+					<a href="/" class="px-4 py-2 border rounded text-sm hover:bg-gray-50">Cancel</a>
+				</div>
+			</form>
+			<script>
+				(function() {
+					const form = document.getElementById('repo-form');
+					const errBox = document.getElementById('repo-form-error');
+					form.addEventListener('submit', async function(e) {
+						e.preventDefault();
+						errBox.classList.add('hidden');
+						const ownerSel = form.querySelector('[name=owner]');
+						const owner = ownerSel ? ownerSel.value : '';
+						const name = form.querySelector('[name=name]').value.trim();
+						const description = form.querySelector('[name=description]').value;
+						const isPrivate = form.querySelector('[name=visibility]:checked').value === 'private';
+						const csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+						const me = form.dataset.username;
+						const isOrg = owner && owner !== me;
+						const url = isOrg ? ('/api/orgs/' + encodeURIComponent(owner) + '/repos') : '/api/repos/';
+						const res = await fetch(url, {
+							method: 'POST',
+							headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+							body: JSON.stringify({ name: name, description: description, private: isPrivate })
+						});
+						if (res.ok) {
+							window.location.href = '/' + owner + '/' + name;
+							return;
+						}
+						const text = await res.text();
+						let msg = text;
+						try { msg = JSON.parse(text).error || text; } catch (_) {}
+						errBox.textContent = msg || ('Failed to create repository (HTTP ' + res.status + ')');
+						errBox.classList.remove('hidden');
+					});
+				})();
+			</script>
+		</div>
+	}
+}
