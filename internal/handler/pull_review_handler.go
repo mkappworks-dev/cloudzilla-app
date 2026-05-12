@@ -20,6 +20,20 @@ func (h *Handler) ListReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
+
 	reviews, err := h.Services.PullReview.ListByPull(r.Context(), owner, repoName, number)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "not found")
@@ -40,6 +54,16 @@ func (h *Handler) SubmitReview(w http.ResponseWriter, r *http.Request) {
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 
@@ -70,7 +94,6 @@ func (h *Handler) SubmitReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
 	pr, _ := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 	if repo != nil && pr != nil {
 		go h.Services.Notification.NotifyPRReview(r.Context(), *repo, *pr, claims.UserID, claims.Username)

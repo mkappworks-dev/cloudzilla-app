@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/format/pktline"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
@@ -109,9 +110,21 @@ func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	srv := server.NewServer(server.MapLoader{"/": gitRepo.Storer})
+	// MapLoader is keyed on ep.String() (e.g. "file:///"), not the input to NewEndpoint.
+	srv := server.NewServer(server.MapLoader{ep.String(): gitRepo.Storer})
 
 	w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", strings.TrimPrefix(svc, "git-")))
+
+	// Smart-HTTP preamble required before the advertisement.
+	pe := pktline.NewEncoder(w)
+	if err := pe.Encodef("# service=%s\n", svc); err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	if err := pe.Flush(); err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
 
 	if svc == "git-upload-pack" {
 		sess, err := srv.NewUploadPackSession(ep, nil)
@@ -191,7 +204,7 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	srv := server.NewServer(server.MapLoader{"/": gitRepo.Storer})
+	srv := server.NewServer(server.MapLoader{ep.String(): gitRepo.Storer})
 	sess, err := srv.NewUploadPackSession(ep, nil)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -274,7 +287,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	srv := server.NewServer(server.MapLoader{"/": gitRepo.Storer})
+	srv := server.NewServer(server.MapLoader{ep.String(): gitRepo.Storer})
 	sess, err := srv.NewReceivePackSession(ep, nil)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)

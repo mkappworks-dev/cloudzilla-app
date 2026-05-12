@@ -11,19 +11,26 @@ import (
 
 // PullService manages pull request creation, state transitions, and merge operations.
 type PullService struct {
-	pulls *store.PullStore
-	repos *store.RepoStore
+	pulls   *store.PullStore
+	repos   *store.RepoStore
+	repoSvc *RepoService
 }
 
 // NewPullService creates a PullService backed by the given stores.
-func NewPullService(pulls *store.PullStore, repos *store.RepoStore) *PullService {
-	return &PullService{pulls: pulls, repos: repos}
+func NewPullService(pulls *store.PullStore, repos *store.RepoStore, repoSvc *RepoService) *PullService {
+	return &PullService{pulls: pulls, repos: repos, repoSvc: repoSvc}
 }
+
+// ErrPullForbidden is returned when an author lacks read access to the target repo.
+var ErrPullForbidden = fmt.Errorf("forbidden: cannot open pull requests on this repository")
 
 func (s *PullService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, head, base string, isDraft bool) (*model.PullRequest, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	if !s.repoSvc.CanRead(ctx, repo, &authorID) {
+		return nil, ErrPullForbidden
 	}
 	pr := &model.PullRequest{
 		RepoID:     repo.ID,

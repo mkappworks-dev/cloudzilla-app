@@ -54,6 +54,22 @@ func (s *OrgService) ListMembers(ctx context.Context, orgID int64) ([]model.OrgM
 	return s.orgs.ListMembers(ctx, orgID)
 }
 
+// ListOwnedByUser returns the organizations in which the given user has the owner role.
+// Used by the "new repository" form to populate the owner-selector with eligible orgs.
+func (s *OrgService) ListOwnedByUser(ctx context.Context, userID int64) ([]model.Organization, error) {
+	orgs, err := s.orgs.ListByMember(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	owned := make([]model.Organization, 0, len(orgs))
+	for _, o := range orgs {
+		if s.IsOwner(ctx, o.ID, userID) {
+			owned = append(owned, o)
+		}
+	}
+	return owned, nil
+}
+
 func (s *OrgService) IsOwner(ctx context.Context, orgID, userID int64) bool {
 	m, err := s.orgs.GetMember(ctx, orgID, userID)
 	if err != nil {
@@ -138,6 +154,35 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 
 func (s *OrgService) ListRepos(ctx context.Context, orgID int64) ([]model.Repository, error) {
 	return s.repos.GetByOrgID(ctx, orgID)
+}
+
+// ListReposVisibleTo returns the org's repositories filtered to those the
+// viewer is allowed to see. Org owners see all repos; everyone else sees
+// public repos plus private repos where they have a collaborator role.
+// Pass nil for viewerID for anonymous viewers.
+func (s *OrgService) ListReposVisibleTo(ctx context.Context, orgID int64, viewerID *int64) ([]model.Repository, error) {
+	repos, err := s.repos.GetByOrgID(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	isOrgOwner := false
+	if viewerID != nil {
+		isOrgOwner = s.IsOwner(ctx, orgID, *viewerID)
+	}
+	visible := make([]model.Repository, 0, len(repos))
+	for _, repo := range repos {
+		switch {
+		case !repo.Private, isOrgOwner:
+			visible = append(visible, repo)
+		case viewerID == nil:
+			// anonymous viewer; private repo hidden
+		default:
+			if role, err := s.repos.GetPermission(ctx, repo.ID, *viewerID); err == nil && role != "" {
+				visible = append(visible, repo)
+			}
+		}
+	}
+	return visible, nil
 }
 
 // TransferOrg transfers ownership of an org from the requesting user to another user.

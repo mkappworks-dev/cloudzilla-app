@@ -22,7 +22,12 @@ templ User(data view.UserData) {
 				<div class="mb-6 prose max-w-none">@templ.Raw(string(data.ProfileReadme))</div>
 			}
 			<div>
-				<h2 class="text-2xl font-bold mb-4">Repositories</h2>
+				<div class="flex items-center justify-between mb-4">
+					<h2 class="text-2xl font-bold">Repositories</h2>
+					if data.BasePage.CurrentUser != nil && data.BasePage.CurrentUser.UserID == data.User.ID {
+						<a href="/new" class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">+ New repository</a>
+					}
+				</div>
 				if len(data.Repos) > 0 {
 					<div class="grid gap-4">
 						for _, repo := range data.Repos {
