@@ -1,4 +1,4 @@
-.PHONY: dev build migrate lint test test-db test-integration clean setup-tailwind setup-templ build-css generate-templ download-mermaid docker-build docker-run docker-down
+.PHONY: dev build migrate lint test test-db test-integration clean setup-tailwind setup-templ build-css generate-templ download-mermaid download-htmx docker-build docker-run docker-down
 
 BINARY := dist/cloudzilla
 GO := /usr/local/go/bin/go
@@ -43,12 +43,20 @@ download-mermaid:                  ## Download mermaid.min.js for self-hosting (
 		  -o cmd/server/frontend/static/mermaid.min.js; \
 	fi
 
+download-htmx:                     ## Download htmx.min.js for self-hosting (one-time)
+	@mkdir -p cmd/server/frontend
+	@if [ ! -s cmd/server/frontend/htmx.min.js ] || ! grep -q "function" cmd/server/frontend/htmx.min.js; then \
+		echo "Downloading htmx.min.js..."; \
+		curl -sL https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js \
+		  -o cmd/server/frontend/htmx.min.js; \
+	fi
+
 build-css:                         ## Compile Tailwind → static/main.css
 	@mkdir -p cmd/server/frontend/static
 	$(TAILWIND) -c tailwind/tailwind.config.js -i tailwind/input.css \
 	  -o $(TAILWIND_OUT) --minify
 
-dev: download-mermaid build-css generate-templ  ## Run backend + Tailwind + templ watch
+dev: download-mermaid download-htmx build-css generate-templ  ## Run backend + Tailwind + templ watch
 	@(trap 'kill 0' SIGINT; \
 		$(GO) run ./cmd/server/. & \
 		$(TAILWIND) -c tailwind/tailwind.config.js -i tailwind/input.css \
@@ -56,7 +64,7 @@ dev: download-mermaid build-css generate-templ  ## Run backend + Tailwind + temp
 		~/go/bin/templ generate --watch ./internal/view/... & \
 		wait)
 
-build: download-mermaid build-css generate-templ build-backend build-cli  ## Full build (Go + CLI)
+build: download-mermaid download-htmx build-css generate-templ build-backend build-cli  ## Full build (Go + CLI)
 
 build-backend:
 	@mkdir -p dist

@@ -164,6 +164,7 @@ First visit redirects to `/setup` to create your superadmin account.
 | ----------------------- | ---------------------------------------------------------- |
 | `make setup-tailwind`   | Download Tailwind CLI (one-time)                           |
 | `make download-mermaid` | Download mermaid.min.js (one-time; auto-runs in build/dev) |
+| `make download-htmx`    | Download htmx.min.js (one-time; auto-runs in build/dev)    |
 | `make build-css`        | Compile Tailwind CSS                                       |
 | `make dev`              | Run backend + Tailwind watch concurrently                  |
 | `make build`            | Build Go binaries (with embedded CSS)                      |

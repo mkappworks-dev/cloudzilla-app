@@ -15,8 +15,9 @@ cloudzilla.db-shm
 cloudzilla.db-wal
 cloudzilla_host_key
 
-# Compiled CSS (rebuilt in Docker)
+# Compiled CSS and vendored JS (rebuilt/redownloaded in Docker)
 cmd/server/frontend/static/main.css
+cmd/server/frontend/htmx.min.js
 
 # Dev and config files
 *.env
