@@ -296,7 +296,8 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 		return nil, fmt.Errorf("create endpoint: %w", err)
 	}
 
-	srv := server.NewServer(server.MapLoader{"/": gitRepo.Storer})
+	// MapLoader is keyed on ep.String() (e.g. "file:///"), not the input to NewEndpoint.
+	srv := server.NewServer(server.MapLoader{ep.String(): gitRepo.Storer})
 
 	if svc == "git-upload-pack" {
 		sess, err := srv.NewUploadPackSession(ep, nil)
