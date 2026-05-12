@@ -1,14 +1,17 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "go",
+  "pull-request-title-pattern": "chore: release v${version}",
+  "pull-request-header": "Release ready for review",
+  "pull-request-footer": "- Merging this PR triggers `build-and-publish.yml` (chained from `release-please.yml`) to build multi-arch Go binaries (linux/darwin × amd64/arm64), package tarballs with SHA256 sums, push a multi-arch Docker image to GHCR, and attach assets to the draft release. The git tag is created up front (`force-tag-creation: true`) so the chained build has a stable anchor before the release is published.\n- Do not edit `CHANGELOG.md` manually — release-please owns it. The version itself is injected into the binary at build time via `-ldflags=\"-X main.version=${TAG}\"`, so there is no version file to hand-edit.\n- To skip a release, close this PR; release-please will reopen it on the next merge to main.",
   "include-component-in-tag": false,
-  "include-v-in-tag": true,
-  "bump-minor-pre-major": true,
-  "bump-patch-for-minor-pre-major": true,
+  "draft": true,
+  "force-tag-creation": true,
   "packages": {
     ".": {
       "package-name": "cloudzilla-app",
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true
     }
   },
   "changelog-sections": [
