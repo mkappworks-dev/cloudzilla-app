@@ -48,17 +48,20 @@ templ GistNew(data view.GistNewData) {
 					const filenames = [...this.querySelectorAll('[name="filename[]"]')].map(el => el.value);
 					const contents = [...this.querySelectorAll('[name="content[]"]')].map(el => el.value);
 					const files = filenames.map((fn, i) => ({ filename: fn, content: contents[i] }));
+					const csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 					const res = await fetch('/api/gists', {
 						method: 'POST',
-						headers: {'Content-Type': 'application/json'},
+						headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
 						body: JSON.stringify({ description: desc, public: pub, files })
 					});
 					if (res.ok) {
 						const g = await res.json();
 						window.location.href = '/gists/' + g.id;
 					} else {
-						const err = await res.json();
-						alert(err.error || 'Failed to create gist');
+						const text = await res.text();
+						let msg = text;
+						try { msg = JSON.parse(text).error || text; } catch (_) {}
+						alert(msg || ('Failed to create gist (HTTP ' + res.status + ')'));
 					}
 				});
 			</script>

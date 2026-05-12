@@ -25,7 +25,7 @@ templ OAuthApps(data view.OAuthAppsData) {
 						x-on:click="
 							fetch('/api/oauth/apps', {
 								method: 'POST',
-								headers: {'Content-Type': 'application/json'},
+								headers: {'Content-Type': 'application/json', 'X-CSRF-Token': (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || ''},
 								body: JSON.stringify({name, homepage_url: homepage, description: desc, redirect_uris: redirect ? [redirect] : []})
 							}).then(r => r.ok ? r.json() : Promise.reject()).then(d => { secret = d.client_secret; setTimeout(() => location.reload(), 5000) }).catch(() => alert('Failed to create application'))
 						"

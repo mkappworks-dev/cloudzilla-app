@@ -111,16 +111,18 @@ templ ProjectDetail(data view.ProjectDetailData) {
 script addColumnJS(owner, repoName string, projectID int64) {
 	var name = document.getElementById('new-col-name').value.trim();
 	if (!name) return;
+	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/columns', {
 		method: 'POST',
-		headers: {'Content-Type': 'application/json'},
+		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
 		body: JSON.stringify({name: name})
 	}).then(function(r){ if(r.ok) window.location.reload(); });
 }
 
 script deleteColumnJS(owner, repoName string, projectID, columnID int64) {
 	if(!confirm('Delete column and all its cards?')) return;
-	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/columns/' + columnID, {method:'DELETE'})
+	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/columns/' + columnID, {method:'DELETE', headers: {'X-CSRF-Token': csrf}})
 		.then(function(r){ if(r.ok) window.location.reload(); });
 }
 
@@ -128,15 +130,17 @@ script moveCardJS(owner, repoName string, projectID, cardID int64) {
 	var sel = event.target;
 	var colID = sel.value;
 	if (!colID) return;
+	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards/' + cardID, {
 		method: 'PATCH',
-		headers: {'Content-Type': 'application/json'},
+		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
 		body: JSON.stringify({column_id: parseInt(colID), position: 0})
 	}).then(function(r){ if(r.ok) window.location.reload(); });
 }
 
 script deleteCardJS(owner, repoName string, projectID, cardID int64) {
-	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards/' + cardID, {method:'DELETE'})
+	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards/' + cardID, {method:'DELETE', headers: {'X-CSRF-Token': csrf}})
 		.then(function(r){ if(r.ok) window.location.reload(); });
 }
 
@@ -152,9 +156,10 @@ script addCardJS(owner, repoName string, projectID, columnID int64) {
 		if (n[0] === 'i') body.issue_id = parseInt(n.slice(1));
 		else body.pull_id = parseInt(n.slice(1));
 	}
+	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards', {
 		method: 'POST',
-		headers: {'Content-Type': 'application/json'},
+		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
 		body: JSON.stringify(body)
 	}).then(function(r){ if(r.ok) window.location.reload(); });
 }

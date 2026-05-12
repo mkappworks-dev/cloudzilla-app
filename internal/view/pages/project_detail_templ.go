@@ -535,64 +535,68 @@ func ProjectDetail(data view.ProjectDetailData) templ.Component {
 
 func addColumnJS(owner, repoName string, projectID int64) templ.ComponentScript {
 	return templ.ComponentScript{
-		Name: `__templ_addColumnJS_59c2`,
-		Function: `function __templ_addColumnJS_59c2(owner, repoName, projectID){var name = document.getElementById('new-col-name').value.trim();
+		Name: `__templ_addColumnJS_89d1`,
+		Function: `function __templ_addColumnJS_89d1(owner, repoName, projectID){var name = document.getElementById('new-col-name').value.trim();
 	if (!name) return;
+	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/columns', {
 		method: 'POST',
-		headers: {'Content-Type': 'application/json'},
+		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
 		body: JSON.stringify({name: name})
 	}).then(function(r){ if(r.ok) window.location.reload(); });
 }`,
-		Call:       templ.SafeScript(`__templ_addColumnJS_59c2`, owner, repoName, projectID),
-		CallInline: templ.SafeScriptInline(`__templ_addColumnJS_59c2`, owner, repoName, projectID),
+		Call:       templ.SafeScript(`__templ_addColumnJS_89d1`, owner, repoName, projectID),
+		CallInline: templ.SafeScriptInline(`__templ_addColumnJS_89d1`, owner, repoName, projectID),
 	}
 }
 
 func deleteColumnJS(owner, repoName string, projectID, columnID int64) templ.ComponentScript {
 	return templ.ComponentScript{
-		Name: `__templ_deleteColumnJS_cd0e`,
-		Function: `function __templ_deleteColumnJS_cd0e(owner, repoName, projectID, columnID){if(!confirm('Delete column and all its cards?')) return;
-	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/columns/' + columnID, {method:'DELETE'})
+		Name: `__templ_deleteColumnJS_b2a9`,
+		Function: `function __templ_deleteColumnJS_b2a9(owner, repoName, projectID, columnID){if(!confirm('Delete column and all its cards?')) return;
+	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/columns/' + columnID, {method:'DELETE', headers: {'X-CSRF-Token': csrf}})
 		.then(function(r){ if(r.ok) window.location.reload(); });
 }`,
-		Call:       templ.SafeScript(`__templ_deleteColumnJS_cd0e`, owner, repoName, projectID, columnID),
-		CallInline: templ.SafeScriptInline(`__templ_deleteColumnJS_cd0e`, owner, repoName, projectID, columnID),
+		Call:       templ.SafeScript(`__templ_deleteColumnJS_b2a9`, owner, repoName, projectID, columnID),
+		CallInline: templ.SafeScriptInline(`__templ_deleteColumnJS_b2a9`, owner, repoName, projectID, columnID),
 	}
 }
 
 func moveCardJS(owner, repoName string, projectID, cardID int64) templ.ComponentScript {
 	return templ.ComponentScript{
-		Name: `__templ_moveCardJS_c8bc`,
-		Function: `function __templ_moveCardJS_c8bc(owner, repoName, projectID, cardID){var sel = event.target;
+		Name: `__templ_moveCardJS_9c8b`,
+		Function: `function __templ_moveCardJS_9c8b(owner, repoName, projectID, cardID){var sel = event.target;
 	var colID = sel.value;
 	if (!colID) return;
+	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards/' + cardID, {
 		method: 'PATCH',
-		headers: {'Content-Type': 'application/json'},
+		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
 		body: JSON.stringify({column_id: parseInt(colID), position: 0})
 	}).then(function(r){ if(r.ok) window.location.reload(); });
 }`,
-		Call:       templ.SafeScript(`__templ_moveCardJS_c8bc`, owner, repoName, projectID, cardID),
-		CallInline: templ.SafeScriptInline(`__templ_moveCardJS_c8bc`, owner, repoName, projectID, cardID),
+		Call:       templ.SafeScript(`__templ_moveCardJS_9c8b`, owner, repoName, projectID, cardID),
+		CallInline: templ.SafeScriptInline(`__templ_moveCardJS_9c8b`, owner, repoName, projectID, cardID),
 	}
 }
 
 func deleteCardJS(owner, repoName string, projectID, cardID int64) templ.ComponentScript {
 	return templ.ComponentScript{
-		Name: `__templ_deleteCardJS_8d52`,
-		Function: `function __templ_deleteCardJS_8d52(owner, repoName, projectID, cardID){fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards/' + cardID, {method:'DELETE'})
+		Name: `__templ_deleteCardJS_5b23`,
+		Function: `function __templ_deleteCardJS_5b23(owner, repoName, projectID, cardID){var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards/' + cardID, {method:'DELETE', headers: {'X-CSRF-Token': csrf}})
 		.then(function(r){ if(r.ok) window.location.reload(); });
 }`,
-		Call:       templ.SafeScript(`__templ_deleteCardJS_8d52`, owner, repoName, projectID, cardID),
-		CallInline: templ.SafeScriptInline(`__templ_deleteCardJS_8d52`, owner, repoName, projectID, cardID),
+		Call:       templ.SafeScript(`__templ_deleteCardJS_5b23`, owner, repoName, projectID, cardID),
+		CallInline: templ.SafeScriptInline(`__templ_deleteCardJS_5b23`, owner, repoName, projectID, cardID),
 	}
 }
 
 func addCardJS(owner, repoName string, projectID, columnID int64) templ.ComponentScript {
 	return templ.ComponentScript{
-		Name: `__templ_addCardJS_920e`,
-		Function: `function __templ_addCardJS_920e(owner, repoName, projectID, columnID){var note = prompt('Note text (or leave blank to link an issue/PR by number):');
+		Name: `__templ_addCardJS_46c6`,
+		Function: `function __templ_addCardJS_46c6(owner, repoName, projectID, columnID){var note = prompt('Note text (or leave blank to link an issue/PR by number):');
 	if (note === null) return;
 	var body = {column_id: columnID};
 	if (note.trim() !== '') {
@@ -603,14 +607,15 @@ func addCardJS(owner, repoName string, projectID, columnID int64) templ.Componen
 		if (n[0] === 'i') body.issue_id = parseInt(n.slice(1));
 		else body.pull_id = parseInt(n.slice(1));
 	}
+	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards', {
 		method: 'POST',
-		headers: {'Content-Type': 'application/json'},
+		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
 		body: JSON.stringify(body)
 	}).then(function(r){ if(r.ok) window.location.reload(); });
 }`,
-		Call:       templ.SafeScript(`__templ_addCardJS_920e`, owner, repoName, projectID, columnID),
-		CallInline: templ.SafeScriptInline(`__templ_addCardJS_920e`, owner, repoName, projectID, columnID),
+		Call:       templ.SafeScript(`__templ_addCardJS_46c6`, owner, repoName, projectID, columnID),
+		CallInline: templ.SafeScriptInline(`__templ_addCardJS_46c6`, owner, repoName, projectID, columnID),
 	}
 }
 
