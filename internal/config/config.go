@@ -7,6 +7,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+// DevJWTSecret is the loud placeholder used as the default jwt_secret in dev.
+// main.go warns at startup if the loaded secret matches this value.
+const DevJWTSecret = "dev-only-do-not-use-in-production-override-via-CZ_AUTH_JWT_SECRET"
+
 // Config holds the full application configuration loaded from YAML and environment variables.
 type Config struct {
 	Server   ServerConfig   `mapstructure:"server"`
@@ -78,7 +82,7 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("database.dsn", "postgres://cloudzilla:cloudzilla@localhost:5432/cloudzilla?sslmode=disable")
 	v.SetDefault("database.max_open_conns", 10)
 	v.SetDefault("database.max_idle_conns", 5)
-	v.SetDefault("auth.jwt_secret", "change-me")
+	v.SetDefault("auth.jwt_secret", DevJWTSecret)
 	v.SetDefault("auth.jwt_expiry", "24h")
 	v.SetDefault("auth.cookie_name", "cz_token")
 	v.SetDefault("auth.cookie_secure", false)
