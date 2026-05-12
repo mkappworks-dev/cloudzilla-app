@@ -153,3 +153,15 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  publish:
+    name: Publish release
+    needs: [binaries, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Promote draft to published
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+        run: gh release edit "${TAG}" --draft=false --latest
