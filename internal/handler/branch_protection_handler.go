@@ -13,12 +13,22 @@ import (
 )
 
 func (h *Handler) ListBranchProtections(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
 		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+
+	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 

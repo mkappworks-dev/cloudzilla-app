@@ -62,7 +62,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		User:             userSvc,
 		Repo:             repoSvc,
 		Issue:            NewIssueService(stores.Issue, stores.Repo, repoSvc),
-		Pull:             NewPullService(stores.Pull, stores.Repo),
+		Pull:             NewPullService(stores.Pull, stores.Repo, repoSvc),
 		Comment:          NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc),
 		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),
 		Code:             code,

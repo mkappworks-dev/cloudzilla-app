@@ -59,6 +59,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/register", h.PageRegister)
 	r.With(optAuthMW).Post("/register", h.PageRegisterSubmit)
 	r.With(optAuthMW).Post("/login", h.PageLoginSubmit)
+	r.With(authMW).Get("/new", h.PageNewRepo)
 	r.With(authMW).Get("/settings", h.PageSettings)
 	r.With(authMW).Get("/settings/notifications", h.PageNotificationSettings)
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
@@ -110,11 +111,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls/{number}", h.PagePullDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/refs", h.PageRefs)
 	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}", h.PageTree)
-	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}/{path...}", h.PageTree)
-	r.With(optAuthMW).Get("/{owner}/{repo}/blob/{ref}/{path...}", h.PageBlob)
-	r.With(optAuthMW).Get("/{owner}/{repo}/blame/{ref}/{path...}", h.PageBlame)
+	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}/*", h.PageTree)
+	r.With(optAuthMW).Get("/{owner}/{repo}/blob/{ref}/*", h.PageBlob)
+	r.With(optAuthMW).Get("/{owner}/{repo}/blame/{ref}/*", h.PageBlame)
 	r.With(optAuthMW).Get("/{owner}/{repo}/commits/{ref}", h.PageCommits)
-	r.With(optAuthMW).Get("/{owner}/{repo}/commits/{ref}/{path...}", h.PageCommits)
+	r.With(optAuthMW).Get("/{owner}/{repo}/commits/{ref}/*", h.PageCommits)
 	r.With(optAuthMW).Get("/{owner}/{repo}/commit/{sha}", h.PageCommit)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulse", h.PagePulse)
 	r.With(optAuthMW).Get("/{owner}/{repo}/graphs/contributors", h.PageContributors)
@@ -433,6 +434,15 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.Handle("/static/*", fileServer)
 	r.Handle("/htmx.min.js", fileServer)
 	r.Handle("/alpine.min.js", fileServer)
+
+	// Serve the SVG favicon for the legacy /favicon.ico path that some browsers
+	// and bots auto-request even when <link rel="icon"> is declared.
+	faviconBytes, _ := fs.ReadFile(staticFS, "static/favicon.svg")
+	r.Get("/favicon.ico", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		_, _ = w.Write(faviconBytes)
+	})
 
 	return r
 }

@@ -18,6 +18,7 @@ type (
 	OrgSettingsData        = view.OrgSettingsData
 	OrgMembersFragData     = view.OrgMembersFragData
 	RepoData               = view.RepoData
+	RepoNewData            = view.RepoNewData
 	ReleasesData           = view.ReleasesData
 	ReleaseDetailData      = view.ReleaseDetailData
 	RepoSettingsData       = view.RepoSettingsData

@@ -28,7 +28,11 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repos, err := h.Services.Repo.ListByOwner(r.Context(), username)
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	repos, err := h.Services.Repo.ListByOwnerVisibleTo(r.Context(), username, viewerID)
 	if err != nil {
 		slog.Warn("user profile: failed to load repositories", "username", username, "error", err)
 		repos = []model.Repository{}
@@ -63,7 +67,11 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *model.Organization) {
-	repos, _ := h.Services.Org.ListRepos(r.Context(), org.ID)
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	repos, _ := h.Services.Org.ListReposVisibleTo(r.Context(), org.ID, viewerID)
 	members, _ := h.Services.Org.ListMembers(r.Context(), org.ID)
 	if repos == nil {
 		repos = []model.Repository{}

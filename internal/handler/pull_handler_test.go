@@ -38,7 +38,7 @@ func newPullHandler(db *sql.DB) *handler.Handler {
 	svc := &service.Services{
 		User:         userSvc,
 		Repo:         repoSvc,
-		Pull:         service.NewPullService(store.NewPullStore(db), store.NewRepoStore(db)),
+		Pull:         service.NewPullService(store.NewPullStore(db), store.NewRepoStore(db), repoSvc),
 		Webhook:      service.NewWebhookService(store.NewWebhookStore(db)),
 		Event:        service.NewEventService(store.NewEventStore(db), store.NewUserStore(db), store.NewRepoStore(db)),
 		Notification: notifSvc,

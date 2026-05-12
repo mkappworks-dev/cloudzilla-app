@@ -10,7 +10,12 @@ import (
 templ UserGists(data view.UserGistsData) {
 	@layout.Base(data.BasePage, data.ProfileUser.Username+"'s Gists") {
 		<div class="max-w-4xl mx-auto py-8 px-4">
-			<h1 class="text-2xl font-bold mb-6">{ data.ProfileUser.Username }&#39;s Gists</h1>
+			<div class="flex items-center justify-between mb-6">
+				<h1 class="text-2xl font-bold">{ data.ProfileUser.Username }&#39;s Gists</h1>
+				if data.BasePage.CurrentUser != nil && data.BasePage.CurrentUser.UserID == data.ProfileUser.ID {
+					<a href="/gists/new" class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">+ New gist</a>
+				}
+			</div>
 			if len(data.Gists) > 0 {
 				<ul class="space-y-4">
 					for _, g := range data.Gists {

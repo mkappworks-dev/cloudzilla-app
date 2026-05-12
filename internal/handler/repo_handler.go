@@ -12,7 +12,26 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
+
+// PageNewRepo renders the form for creating a new repository.
+func (h *Handler) PageNewRepo(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	orgs, err := h.Services.Org.ListOwnedByUser(r.Context(), claims.UserID)
+	if err != nil {
+		slog.Error("list owned orgs", "error", err)
+		orgs = []model.Organization{}
+	}
+	h.render(w, r, pages.RepoNew(view.RepoNewData{
+		BasePage:  basePage(r, h.Services),
+		OwnedOrgs: orgs,
+	}))
+}
 
 type createRepoRequest struct {
 	Name        string `json:"name"`
@@ -37,6 +56,14 @@ func (h *Handler) GetRepo(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "repo")
 	repo, err := h.Services.Repo.Get(r.Context(), owner, name)
 	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
 		writeError(w, http.StatusNotFound, "repo not found")
 		return
 	}
@@ -70,7 +97,11 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) ListUserRepos(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "username")
-	repos, err := h.Services.Repo.ListByOwner(r.Context(), owner)
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	repos, err := h.Services.Repo.ListByOwnerVisibleTo(r.Context(), owner, viewerID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "user not found")
 		return
@@ -82,12 +113,22 @@ func (h *Handler) ListUserRepos(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ListCollaborators(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+
+	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 

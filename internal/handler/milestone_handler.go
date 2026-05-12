@@ -62,6 +62,19 @@ func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListMilestones(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
 	milestones, err := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "repo not found")
@@ -76,6 +89,19 @@ func (h *Handler) GetMilestone(w http.ResponseWriter, r *http.Request) {
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid milestone number")
+		return
+	}
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		writeError(w, http.StatusNotFound, "milestone not found")
 		return
 	}
 	m, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number)

@@ -111,6 +111,24 @@ func (s *RepoService) ListByOwner(ctx context.Context, ownerUsername string) ([]
 	return s.repos.GetByOwnerNameList(ctx, ownerUsername)
 }
 
+// ListByOwnerVisibleTo returns the owner's repositories filtered to those the
+// viewer is allowed to see: public repos plus any private repo the viewer owns,
+// administers as an org owner, or has been granted a collaborator role on.
+// Pass nil for viewerID for anonymous viewers.
+func (s *RepoService) ListByOwnerVisibleTo(ctx context.Context, ownerUsername string, viewerID *int64) ([]model.Repository, error) {
+	repos, err := s.repos.GetByOwnerNameList(ctx, ownerUsername)
+	if err != nil {
+		return nil, err
+	}
+	visible := make([]model.Repository, 0, len(repos))
+	for i := range repos {
+		if s.CanRead(ctx, &repos[i], viewerID) {
+			visible = append(visible, repos[i])
+		}
+	}
+	return visible, nil
+}
+
 // isOrgOwner returns true when the repo belongs to an org and userID is an owner of that org.
 func (s *RepoService) isOrgOwner(ctx context.Context, repo *model.Repository, userID int64) bool {
 	if repo.OrgID == 0 {

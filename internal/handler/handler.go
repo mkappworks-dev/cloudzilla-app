@@ -7,6 +7,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
@@ -37,4 +38,19 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, component templ
 		slog.Error("render failed", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
+}
+
+// viewerCanReadRepo looks up the repo by owner/name and returns true if the
+// viewer (resolved from the request context, anonymous if no claims) has read
+// access. Returns false when the repo does not exist or is not visible.
+func (h *Handler) viewerCanReadRepo(r *http.Request, owner, repoName string) bool {
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		return false
+	}
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	return h.Services.Repo.CanRead(r.Context(), repo, viewerID)
 }

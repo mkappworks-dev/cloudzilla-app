@@ -102,6 +102,11 @@ func (h *Handler) ListStatuses(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 	sha := chi.URLParam(r, "sha")
 
+	if !h.viewerCanReadRepo(r, owner, repoName) {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
+
 	statuses, err := h.Services.CommitStatus.List(r.Context(), owner, repoName, sha)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "not found")
@@ -117,6 +122,11 @@ func (h *Handler) GetCombinedStatus(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 	sha := chi.URLParam(r, "sha")
+
+	if !h.viewerCanReadRepo(r, owner, repoName) {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
 
 	combined, statuses, err := h.Services.CommitStatus.GetCombined(r.Context(), owner, repoName, sha)
 	if err != nil {
