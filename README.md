@@ -120,14 +120,22 @@ make docker-down        # Stop and remove containers
 
 ### Local Development
 
-**Prerequisites:** Go 1.23+, PostgreSQL 14+
+**Prerequisites:** Go 1.23+, PostgreSQL 14+ (or Docker, for the Postgres step below)
 
 ```bash
 go mod tidy
 make setup-tailwind     # One-time: download Tailwind CLI
 ```
 
-Copy and edit `config.yaml` with your database DSN, then:
+Start Postgres. The simplest option is the `postgres` service from the bundled compose file, which is preconfigured with the user/db that `config.yaml` expects:
+
+```bash
+docker compose up -d postgres    # exposes 5432 to host; data persists in postgres_data volume
+```
+
+Prefer a native install? Run any PostgreSQL 14+ and create a `cloudzilla` role and database (password `cloudzilla`) — or edit the DSN in `config.yaml` to match what you already have.
+
+Then run migrations and start the dev server:
 
 ```bash
 make migrate            # Run DB migrations
