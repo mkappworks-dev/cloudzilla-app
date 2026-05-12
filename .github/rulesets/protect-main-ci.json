@@ -15,10 +15,10 @@
         "strict_required_status_checks_policy": false,
         "required_status_checks": [
           {
-            "context": "Analyze & Test"
+            "context": "Test"
           },
           {
-            "context": "Build (macos)"
+            "context": "Build"
           }
         ]
       }
