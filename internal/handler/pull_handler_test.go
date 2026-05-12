@@ -61,7 +61,7 @@ func pullRouter(h *handler.Handler) *chi.Mux {
 
 // pullRouterWithAuth wraps the pull router in the Auth middleware.
 func pullRouterWithAuth(h *handler.Handler) http.Handler {
-	return middleware.Auth(testJWTSecret, testCookieName, nil, nil)(pullRouter(h))
+	return middleware.Auth(testJWTSecret, testCookieName, nil, nil, func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) })(pullRouter(h))
 }
 
 // createPullBody serializes pull request fields into a JSON request body.

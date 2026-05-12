@@ -1,0 +1,19 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ Forbidden(base view.BasePage) {
+	@layout.Base(base, "Access denied") {
+		<div class="max-w-md mx-auto mt-24 text-center">
+			<p class="text-7xl font-bold text-gray-300">403</p>
+			<h1 class="mt-4 text-2xl font-semibold text-gray-900">Access denied</h1>
+			<p class="mt-2 text-sm text-gray-600">You don't have permission to view this page.</p>
+			<a href="/" class="mt-6 inline-block px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
+				Go home
+			</a>
+		</div>
+	}
+}

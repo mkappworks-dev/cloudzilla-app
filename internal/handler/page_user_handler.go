@@ -21,7 +21,7 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		// Not a user — try org
 		org, orgErr := h.Services.Org.Get(r.Context(), username)
 		if orgErr != nil {
-			http.Error(w, "not found", http.StatusNotFound)
+			h.NotFound(w, r)
 			return
 		}
 		h.pageOrgProfile(w, r, org)
@@ -97,7 +97,7 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 
 	org, err := h.Services.Org.Get(r.Context(), orgName)
 	if err != nil {
-		http.Error(w, "org not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 

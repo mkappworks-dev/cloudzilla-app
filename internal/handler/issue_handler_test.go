@@ -92,7 +92,7 @@ func issueRouter(h *handler.Handler) *chi.Mux {
 // JWT in the Authorization header is decoded and claims are set in the request context.
 func issueRouterWithAuth(h *handler.Handler) http.Handler {
 	r := issueRouter(h)
-	authMW := middleware.Auth(testJWTSecret, testCookieName, nil, nil)
+	authMW := middleware.Auth(testJWTSecret, testCookieName, nil, nil, func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) })
 	return authMW(r)
 }
 

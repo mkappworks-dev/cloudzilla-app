@@ -60,7 +60,7 @@ func commentRouter(h *handler.Handler) *chi.Mux {
 
 // commentRouterWithAuth wraps the comment router in Auth middleware.
 func commentRouterWithAuth(h *handler.Handler) http.Handler {
-	return middleware.Auth(testJWTSecret, testCookieName, nil, nil)(commentRouter(h))
+	return middleware.Auth(testJWTSecret, testCookieName, nil, nil, func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) })(commentRouter(h))
 }
 
 // commentBody serializes a comment body string into a JSON request buffer.

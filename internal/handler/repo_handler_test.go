@@ -54,7 +54,7 @@ func repoAPIRouter(h *handler.Handler) *chi.Mux {
 
 // repoAPIRouterWithAuth wraps the repo router in Auth middleware.
 func repoAPIRouterWithAuth(h *handler.Handler) http.Handler {
-	return middleware.Auth(testJWTSecret, testCookieName, nil, nil)(repoAPIRouter(h))
+	return middleware.Auth(testJWTSecret, testCookieName, nil, nil, func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) })(repoAPIRouter(h))
 }
 
 // repoCreateBody serializes repo creation fields into a JSON request buffer.

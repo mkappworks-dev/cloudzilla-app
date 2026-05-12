@@ -16,6 +16,17 @@ import (
 
 const testSecret = "test-jwt-secret-32-bytes-minimum!"
 
+// testUnauthorized writes a 401 — mimics the old http.Error behavior so tests
+// that asserted on the 401 status still pass.
+var testUnauthorized http.HandlerFunc = func(w http.ResponseWriter, _ *http.Request) {
+	http.Error(w, "unauthorized", http.StatusUnauthorized)
+}
+
+// testForbidden writes a 403 — same idea for RequireSuperadmin tests.
+var testForbidden http.HandlerFunc = func(w http.ResponseWriter, _ *http.Request) {
+	http.Error(w, "forbidden", http.StatusForbidden)
+}
+
 // makeValidJWT creates a signed HS256 JWT with the given user fields and a 1-hour expiry.
 func makeValidJWT(t *testing.T, userID int64, username string, superadmin bool) string {
 	t.Helper()
@@ -84,7 +95,7 @@ func runAuth(mw func(http.Handler) http.Handler, req *http.Request) *httptest.Re
 func TestAuth_ValidJWTInHeader(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+makeValidJWT(t, 7, "alice", false))
-	if rr := runAuth(Auth(testSecret, "cz_token", nil, nil), req); rr.Code != http.StatusOK {
+	if rr := runAuth(Auth(testSecret, "cz_token", nil, nil, testUnauthorized), req); rr.Code != http.StatusOK {
 		t.Errorf("want 200, got %d", rr.Code)
 	}
 }
@@ -93,7 +104,7 @@ func TestAuth_ValidJWTInHeader(t *testing.T) {
 func TestAuth_ValidJWTInCookie(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{Name: "cz_token", Value: makeValidJWT(t, 7, "alice", false)})
-	if rr := runAuth(Auth(testSecret, "cz_token", nil, nil), req); rr.Code != http.StatusOK {
+	if rr := runAuth(Auth(testSecret, "cz_token", nil, nil, testUnauthorized), req); rr.Code != http.StatusOK {
 		t.Errorf("want 200, got %d", rr.Code)
 	}
 }
@@ -102,7 +113,7 @@ func TestAuth_ValidJWTInCookie(t *testing.T) {
 func TestAuth_ExpiredJWT_Unauthorized(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+makeExpiredJWT(t))
-	if rr := runAuth(Auth(testSecret, "cz_token", nil, nil), req); rr.Code != http.StatusUnauthorized {
+	if rr := runAuth(Auth(testSecret, "cz_token", nil, nil, testUnauthorized), req); rr.Code != http.StatusUnauthorized {
 		t.Errorf("want 401, got %d", rr.Code)
 	}
 }
@@ -119,7 +130,7 @@ func TestAuth_WrongAlgorithm_Unauthorized(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+signed)
-	if rr := runAuth(Auth(testSecret, "cz_token", nil, nil), req); rr.Code != http.StatusUnauthorized {
+	if rr := runAuth(Auth(testSecret, "cz_token", nil, nil, testUnauthorized), req); rr.Code != http.StatusUnauthorized {
 		t.Errorf("want 401, got %d", rr.Code)
 	}
 }
@@ -127,7 +138,7 @@ func TestAuth_WrongAlgorithm_Unauthorized(t *testing.T) {
 // TestAuth_NoToken_Unauthorized verifies that a request with no token at all is rejected with 401.
 func TestAuth_NoToken_Unauthorized(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	if rr := runAuth(Auth(testSecret, "cz_token", nil, nil), req); rr.Code != http.StatusUnauthorized {
+	if rr := runAuth(Auth(testSecret, "cz_token", nil, nil, testUnauthorized), req); rr.Code != http.StatusUnauthorized {
 		t.Errorf("want 401, got %d", rr.Code)
 	}
 }
@@ -148,7 +159,7 @@ func TestAuth_ValidPAT_InjectsUserClaims(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 	rr := httptest.NewRecorder()
-	Auth(testSecret, "cz_token", pat, nil)(handler).ServeHTTP(rr, req)
+	Auth(testSecret, "cz_token", pat, nil, testUnauthorized)(handler).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("want 200, got %d", rr.Code)
@@ -165,7 +176,7 @@ func TestAuth_InvalidPAT_Unauthorized(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer czp_bad")
 	// PAT fails, falls through to JWT parse which also fails → 401
-	if rr := runAuth(Auth(testSecret, "cz_token", pat, nil), req); rr.Code != http.StatusUnauthorized {
+	if rr := runAuth(Auth(testSecret, "cz_token", pat, nil, testUnauthorized), req); rr.Code != http.StatusUnauthorized {
 		t.Errorf("want 401, got %d", rr.Code)
 	}
 }
@@ -182,7 +193,7 @@ func TestAuth_ClaimsInContext(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 	rr := httptest.NewRecorder()
-	Auth(testSecret, "cz_token", nil, nil)(handler).ServeHTTP(rr, req)
+	Auth(testSecret, "cz_token", nil, nil, testUnauthorized)(handler).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("want 200, got %d", rr.Code)
@@ -261,7 +272,7 @@ func TestRequireSuperadmin_Superadmin_Passes(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	ctx := context.WithValue(req.Context(), claimsKey, Claims{UserID: 1, IsSuperadmin: true})
 	rr := httptest.NewRecorder()
-	RequireSuperadmin(http.HandlerFunc(okHandler)).ServeHTTP(rr, req.WithContext(ctx))
+	RequireSuperadmin(testForbidden)(http.HandlerFunc(okHandler)).ServeHTTP(rr, req.WithContext(ctx))
 	if rr.Code != http.StatusOK {
 		t.Errorf("want 200, got %d", rr.Code)
 	}
@@ -273,7 +284,7 @@ func TestRequireSuperadmin_RegularUser_Forbidden(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	ctx := context.WithValue(req.Context(), claimsKey, Claims{UserID: 2, IsSuperadmin: false})
 	rr := httptest.NewRecorder()
-	RequireSuperadmin(http.HandlerFunc(okHandler)).ServeHTTP(rr, req.WithContext(ctx))
+	RequireSuperadmin(testForbidden)(http.HandlerFunc(okHandler)).ServeHTTP(rr, req.WithContext(ctx))
 	if rr.Code != http.StatusForbidden {
 		t.Errorf("want 403, got %d", rr.Code)
 	}
@@ -284,7 +295,7 @@ func TestRequireSuperadmin_RegularUser_Forbidden(t *testing.T) {
 func TestRequireSuperadmin_NoClaims_Forbidden(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	rr := httptest.NewRecorder()
-	RequireSuperadmin(http.HandlerFunc(okHandler)).ServeHTTP(rr, req)
+	RequireSuperadmin(testForbidden)(http.HandlerFunc(okHandler)).ServeHTTP(rr, req)
 	if rr.Code != http.StatusForbidden {
 		t.Errorf("want 403, got %d", rr.Code)
 	}

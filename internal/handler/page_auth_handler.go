@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
@@ -90,5 +91,14 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	h.Services.AuditLog.Record(r.Context(), r, user.ID, user.Username, model.AuditActionLogin, "user", user.ID, user.Username, nil)
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, safeNextPath(r.URL.Query().Get("next")), http.StatusSeeOther)
+}
+
+// safeNextPath returns the next= query value if it is a safe same-site path, else "/".
+// Rejects schemed URLs, protocol-relative URLs, and non-rooted paths to prevent open redirects.
+func safeNextPath(next string) string {
+	if next == "" || !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") {
+		return "/"
+	}
+	return next
 }

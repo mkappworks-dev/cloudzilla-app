@@ -21,7 +21,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -109,7 +109,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -171,7 +171,7 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -186,7 +186,7 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch)
 	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -212,7 +212,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -227,7 +227,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.Services.Code.GetTree(owner, repoName, ref, path)
 	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -253,7 +253,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -268,7 +268,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.Services.Code.GetBlob(owner, repoName, ref, path)
 	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -299,7 +299,7 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -314,7 +314,7 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 
 	log, err := h.Services.Code.GetCommits(owner, repoName, ref, page, 30)
 	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -336,7 +336,7 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -351,7 +351,7 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 
 	commit, err := h.Services.Code.GetCommit(owner, repoName, sha)
 	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -379,7 +379,7 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -394,7 +394,7 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.Services.Code.GetBlame(owner, repoName, ref, path)
 	if err != nil {
-		http.Error(w, "not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 

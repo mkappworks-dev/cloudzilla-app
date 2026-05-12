@@ -55,7 +55,7 @@ func notifRouter(h *handler.Handler) *chi.Mux {
 
 // notifRouterWithAuth wraps the notification router in Auth middleware.
 func notifRouterWithAuth(h *handler.Handler) http.Handler {
-	return middleware.Auth(testJWTSecret, testCookieName, nil, nil)(notifRouter(h))
+	return middleware.Auth(testJWTSecret, testCookieName, nil, nil, func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) })(notifRouter(h))
 }
 
 // seedNotification inserts a single unread notification for the given user and returns its ID.

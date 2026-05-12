@@ -58,7 +58,7 @@ func makeSuperadminJWT(t *testing.T, userID int64, username string) string {
 
 // withAuth returns a new http.Handler that wraps h in the Auth middleware.
 func withAuth(h *handler.Handler) http.Handler {
-	return middleware.Auth(testJWTSecret, testCookieName, nil, nil)(
+	return middleware.Auth(testJWTSecret, testCookieName, nil, nil, func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) })(
 		http.HandlerFunc(h.UpdateSiteSetting),
 	)
 }

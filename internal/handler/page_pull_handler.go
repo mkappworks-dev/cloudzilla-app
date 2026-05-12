@@ -21,7 +21,7 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -91,7 +91,7 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
@@ -183,13 +183,13 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 
 	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 	if err != nil {
-		http.Error(w, "pull request not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 

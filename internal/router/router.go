@@ -25,11 +25,14 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.Use(middleware.CSRF(cfg.Auth.CookieSecure))
 	r.Use(middleware.RequireSetup(services.SiteSetting))
 
-	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp)
+	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, h.Unauthorized)
 	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp)
 	apiBodyLimit := middleware.MaxBodySize(1 << 20) // 1 MB
 
-	superadminMW := middleware.RequireSuperadmin
+	superadminMW := middleware.RequireSuperadmin(h.Forbidden)
+
+	// Custom 404 handler — branded HTML page for site requests, JSON for API.
+	r.NotFound(h.NotFound)
 
 	// Setup route (first-run wizard)
 	r.Get("/setup", h.PageSetup)

@@ -40,13 +40,14 @@ func ClaimsFromContext(ctx context.Context) (Claims, bool) {
 	return c, ok
 }
 
-// Auth returns middleware that requires a valid JWT cookie, Bearer token, or PAT. Returns 401 if unauthenticated.
-func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthUserIDResolver) func(http.Handler) http.Handler {
+// Auth returns middleware that requires a valid JWT cookie, Bearer token, or PAT.
+// onUnauthorized handles unauthenticated requests (redirect to /login for HTML, JSON 401 for API).
+func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthUserIDResolver, onUnauthorized http.HandlerFunc) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenStr := extractToken(r, cookieName)
 			if tokenStr == "" {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				onUnauthorized(w, r)
 				return
 			}
 
@@ -77,19 +78,19 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 				return []byte(secret), nil
 			})
 			if err != nil || !token.Valid {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				onUnauthorized(w, r)
 				return
 			}
 
 			mapClaims, ok := token.Claims.(jwt.MapClaims)
 			if !ok {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				onUnauthorized(w, r)
 				return
 			}
 
 			claims, ok := claimsFromMap(mapClaims)
 			if !ok {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				onUnauthorized(w, r)
 				return
 			}
 			ctx := context.WithValue(r.Context(), claimsKey, claims)
@@ -144,16 +145,18 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 	}
 }
 
-// RequireSuperadmin returns 403 if the authenticated user is not a superadmin.
-func RequireSuperadmin(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		claims, ok := ClaimsFromContext(r.Context())
-		if !ok || !claims.IsSuperadmin {
-			http.Error(w, "forbidden", http.StatusForbidden)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+// RequireSuperadmin returns middleware that calls onForbidden if the authenticated user is not a superadmin.
+func RequireSuperadmin(onForbidden http.HandlerFunc) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims, ok := ClaimsFromContext(r.Context())
+			if !ok || !claims.IsSuperadmin {
+				onForbidden(w, r)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func claimsFromMap(m jwt.MapClaims) (Claims, bool) {
