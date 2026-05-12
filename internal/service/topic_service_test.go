@@ -1,6 +1,9 @@
 package service
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestValidateTopicName_Valid(t *testing.T) {
 	cases := []string{"go", "web", "machine-learning", "go123", "a"}
@@ -46,7 +49,7 @@ func TestSetTopics_TooMany(t *testing.T) {
 	for i := range names {
 		names[i] = "go"
 	}
-	if err := svc.SetTopics(nil, 1, names); err == nil {
+	if err := svc.SetTopics(context.TODO(), 1, names); err == nil {
 		t.Fatal("expected error for too many topics, got nil")
 	}
 }
