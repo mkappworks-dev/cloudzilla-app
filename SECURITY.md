@@ -4,7 +4,7 @@
 
 ## Reporting a Vulnerability
 
-You can report security vulnerabilities by opening a [GitHub issue](https://github.com/cloudzilla/cloudzilla/issues).
+You can report security vulnerabilities by opening a [GitHub issue](https://github.com/mkappworks-dev/cloudzilla-app/issues).
 
 > **Note:** Cloudzilla is not yet hosted as a production service. Public issue reporting is acceptable during this stage. Once Cloudzilla is available as a hosted service, we will switch to private disclosure only.
 
