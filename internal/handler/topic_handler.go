@@ -82,8 +82,14 @@ func (h *Handler) GetTopicsFragment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canManage := false
+	var viewerID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
 	}
 
 	topics, _ := h.Services.Topic.ListByRepo(r.Context(), repo.ID)

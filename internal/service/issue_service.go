@@ -38,6 +38,9 @@ func (s *IssueService) Create(ctx context.Context, owner, repoName string, autho
 	if visibility == "" {
 		visibility = "public"
 	}
+	if !s.repoSvc.CanRead(ctx, repo, &authorID) {
+		return nil, fmt.Errorf("forbidden: cannot create issues on this repository")
+	}
 	if visibility == "private" && !s.repoSvc.CanWrite(ctx, repo, authorID) {
 		return nil, fmt.Errorf("forbidden: only collaborators with write access may create private issues")
 	}

@@ -25,6 +25,15 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		h.NotFound(w, r)
+		return
+	}
+
 	scheme := "http"
 	if r.TLS != nil {
 		scheme = "https"

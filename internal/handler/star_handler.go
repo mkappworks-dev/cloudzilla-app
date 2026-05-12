@@ -72,6 +72,14 @@ func (h *Handler) ListStargazers(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "repo not found")
 		return
 	}
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
 
 	stargazers, _ := h.Services.Star.ListStargazers(r.Context(), owner, repoName)
 	if stargazers == nil {
@@ -102,6 +110,14 @@ func (h *Handler) PageStargazers(w http.ResponseWriter, r *http.Request) {
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
 		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		h.NotFound(w, r)
 		return
 	}
 

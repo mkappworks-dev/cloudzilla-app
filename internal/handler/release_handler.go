@@ -97,6 +97,11 @@ func (h *Handler) ListReleases(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
+	if !h.viewerCanReadRepo(r, owner, repoName) {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+
 	releases, err := h.Services.Release.ListByRepo(r.Context(), owner, repoName)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "repo not found")
@@ -117,6 +122,11 @@ func (h *Handler) GetRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !h.viewerCanReadRepo(r, owner, repoName) {
+		writeError(w, http.StatusNotFound, "release not found")
+		return
+	}
+
 	release, err := h.Services.Release.GetByID(r.Context(), owner, repoName, id)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "release not found")
@@ -128,6 +138,11 @@ func (h *Handler) GetRelease(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetLatestRelease(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+
+	if !h.viewerCanReadRepo(r, owner, repoName) {
+		writeError(w, http.StatusNotFound, "no release found")
+		return
+	}
 
 	release, err := h.Services.Release.GetLatest(r.Context(), owner, repoName)
 	if err != nil {

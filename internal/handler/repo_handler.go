@@ -40,6 +40,14 @@ func (h *Handler) GetRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "repo not found")
 		return
 	}
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
 	writeJSON(w, http.StatusOK, repo)
 }
 
@@ -70,7 +78,11 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) ListUserRepos(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "username")
-	repos, err := h.Services.Repo.ListByOwner(r.Context(), owner)
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	repos, err := h.Services.Repo.ListByOwnerVisibleTo(r.Context(), owner, viewerID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "user not found")
 		return
@@ -82,12 +94,22 @@ func (h *Handler) ListUserRepos(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ListCollaborators(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+
+	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 

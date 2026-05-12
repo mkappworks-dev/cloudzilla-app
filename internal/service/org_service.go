@@ -140,6 +140,35 @@ func (s *OrgService) ListRepos(ctx context.Context, orgID int64) ([]model.Reposi
 	return s.repos.GetByOrgID(ctx, orgID)
 }
 
+// ListReposVisibleTo returns the org's repositories filtered to those the
+// viewer is allowed to see. Org owners see all repos; everyone else sees
+// public repos plus private repos where they have a collaborator role.
+// Pass nil for viewerID for anonymous viewers.
+func (s *OrgService) ListReposVisibleTo(ctx context.Context, orgID int64, viewerID *int64) ([]model.Repository, error) {
+	repos, err := s.repos.GetByOrgID(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	isOrgOwner := false
+	if viewerID != nil {
+		isOrgOwner = s.IsOwner(ctx, orgID, *viewerID)
+	}
+	visible := make([]model.Repository, 0, len(repos))
+	for _, repo := range repos {
+		switch {
+		case !repo.Private, isOrgOwner:
+			visible = append(visible, repo)
+		case viewerID == nil:
+			// anonymous viewer; private repo hidden
+		default:
+			if role, err := s.repos.GetPermission(ctx, repo.ID, *viewerID); err == nil && role != "" {
+				visible = append(visible, repo)
+			}
+		}
+	}
+	return visible, nil
+}
+
 // TransferOrg transfers ownership of an org from the requesting user to another user.
 // The requesting user must be an owner. They are demoted to member; the new user becomes owner.
 func (s *OrgService) TransferOrg(ctx context.Context, orgID, requestingUserID int64, newOwnerUsername string) error {
