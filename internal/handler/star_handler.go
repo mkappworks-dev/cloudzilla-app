@@ -6,11 +6,11 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mkappworks/cloudzilla/internal/middleware"
-	"github.com/mkappworks/cloudzilla/internal/model"
-	"github.com/mkappworks/cloudzilla/internal/view"
-	"github.com/mkappworks/cloudzilla/internal/view/fragments"
-	"github.com/mkappworks/cloudzilla/internal/view/pages"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
 func (h *Handler) StarRepo(w http.ResponseWriter, r *http.Request) {

@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mkappworks/cloudzilla/internal/view"
-	"github.com/mkappworks/cloudzilla/internal/view/pages"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
 func (h *Handler) PageInvite(w http.ResponseWriter, r *http.Request) {

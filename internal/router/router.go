@@ -6,10 +6,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/mkappworks/cloudzilla/internal/config"
-	"github.com/mkappworks/cloudzilla/internal/handler"
-	"github.com/mkappworks/cloudzilla/internal/middleware"
-	"github.com/mkappworks/cloudzilla/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 // New registers all application routes and returns the configured chi router.

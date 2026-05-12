@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
-	"github.com/mkappworks/cloudzilla/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 func openTestDB(t *testing.T) *sql.DB {

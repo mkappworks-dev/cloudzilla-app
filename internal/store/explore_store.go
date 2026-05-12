@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // ExploreStore provides database queries for trending repositories and users.

@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/mkappworks/cloudzilla/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 // renderMentionsHTML wraps @username tokens in the already-HTML-rendered string

@@ -8,8 +8,8 @@ import (
 	"net/url"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mkappworks/cloudzilla/internal/middleware"
-	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 type createStatusRequest struct {

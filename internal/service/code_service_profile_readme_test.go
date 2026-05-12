@@ -4,7 +4,7 @@ import (
 	"html/template"
 	"testing"
 
-	"github.com/mkappworks/cloudzilla/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 )
 
 func TestGetProfileReadme_MissingRepo(t *testing.T) {

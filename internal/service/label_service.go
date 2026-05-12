@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
-	"github.com/mkappworks/cloudzilla/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 // LabelService manages repository labels and their assignment to issues and PRs.

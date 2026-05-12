@@ -6,8 +6,8 @@ import (
 	"html"
 	"net/smtp"
 
-	"github.com/mkappworks/cloudzilla/internal/config"
-	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // EmailService sends transactional emails via SMTP. Email is skipped when SMTP host is empty.

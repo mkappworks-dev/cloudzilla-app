@@ -1,8 +1,8 @@
 package view
 
 import (
-	"github.com/mkappworks/cloudzilla/internal/middleware"
-	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // RenderedComment wraps a model.Comment with its body pre-rendered as HTML.

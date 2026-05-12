@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mkappworks/cloudzilla/internal/service"
-	"github.com/mkappworks/cloudzilla/internal/store"
-	"github.com/mkappworks/cloudzilla/internal/testutil"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 // newOAuthSvc builds an OAuthAppService backed by the test database and seeds an owner user.

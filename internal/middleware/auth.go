@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 type contextKey string

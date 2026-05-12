@@ -8,10 +8,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
-	"github.com/mkappworks/cloudzilla/internal/service"
-	"github.com/mkappworks/cloudzilla/internal/store"
-	"github.com/mkappworks/cloudzilla/internal/testutil"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 // newBPSvc builds a BranchProtectionService backed by the test database.

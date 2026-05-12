@@ -12,13 +12,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/config"
-	"github.com/mkappworks/cloudzilla/internal/db"
-	"github.com/mkappworks/cloudzilla/internal/model"
-	"github.com/mkappworks/cloudzilla/internal/router"
-	"github.com/mkappworks/cloudzilla/internal/service"
-	"github.com/mkappworks/cloudzilla/internal/ssh"
-	"github.com/mkappworks/cloudzilla/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/db"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/router"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/ssh"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 func main() {

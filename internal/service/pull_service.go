@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
-	"github.com/mkappworks/cloudzilla/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 // PullService manages pull request creation, state transitions, and merge operations.

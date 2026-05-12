@@ -9,7 +9,7 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/mkappworks/cloudzilla/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 )
 
 // ErrEmptyRepo is returned when a repository has no commits.

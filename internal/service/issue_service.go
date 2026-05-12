@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
-	"github.com/mkappworks/cloudzilla/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 // pinLimitGuard returns an error string if pinnedCount is at or above the 3-pin limit.

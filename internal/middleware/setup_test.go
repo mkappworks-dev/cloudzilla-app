@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/mkappworks/cloudzilla/internal/middleware"
-	"github.com/mkappworks/cloudzilla/internal/service"
-	"github.com/mkappworks/cloudzilla/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 // newIncompleteSetupService returns a SiteSettingService backed by an unreachable

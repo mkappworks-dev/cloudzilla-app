@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 )
 
 func BranchProtections(data view.BranchProtectionsFragData) templ.Component {

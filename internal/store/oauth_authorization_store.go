@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // OAuthAuthorizationStore provides database operations for OAuth authorization grants.

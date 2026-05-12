@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mkappworks/cloudzilla/internal/config"
-	"github.com/mkappworks/cloudzilla/internal/db"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/db"
 	"github.com/spf13/cobra"
 )
 

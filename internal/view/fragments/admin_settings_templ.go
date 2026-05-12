@@ -8,7 +8,7 @@ package fragments
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/mkappworks/cloudzilla/internal/view"
+import "github.com/mkappworks-dev/cloudzilla-app/internal/view"
 
 func AdminSettings(data view.AdminSettingsFragData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {

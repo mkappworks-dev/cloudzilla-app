@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/service"
-	"github.com/mkappworks/cloudzilla/internal/store"
-	"github.com/mkappworks/cloudzilla/internal/testutil"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 // newAccessTokenSvc creates an AccessTokenService backed by the test database

@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/a-h/templ"
-	"github.com/mkappworks/cloudzilla/internal/config"
-	"github.com/mkappworks/cloudzilla/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 // Handler holds all application services and configuration needed by HTTP handlers.

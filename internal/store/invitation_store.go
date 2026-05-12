@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // InvitationStore provides database operations for user invite tokens.

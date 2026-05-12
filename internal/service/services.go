@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/mkappworks/cloudzilla/internal/config"
-	"github.com/mkappworks/cloudzilla/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 // Services bundles all application service instances used by HTTP handlers.

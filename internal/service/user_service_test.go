@@ -9,10 +9,10 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/mkappworks/cloudzilla/internal/config"
-	"github.com/mkappworks/cloudzilla/internal/service"
-	"github.com/mkappworks/cloudzilla/internal/store"
-	"github.com/mkappworks/cloudzilla/internal/testutil"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 // newUserSvc builds a UserService backed by the test database.

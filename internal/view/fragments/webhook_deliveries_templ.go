@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 )
 
 func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component {

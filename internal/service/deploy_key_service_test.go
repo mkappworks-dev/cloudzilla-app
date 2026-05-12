@@ -11,9 +11,9 @@ import (
 
 	gossh "golang.org/x/crypto/ssh"
 
-	"github.com/mkappworks/cloudzilla/internal/service"
-	"github.com/mkappworks/cloudzilla/internal/store"
-	"github.com/mkappworks/cloudzilla/internal/testutil"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 // newDeployKeySvc builds a DeployKeyService backed by the test database and seeds

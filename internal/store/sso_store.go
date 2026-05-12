@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // SSOStore provides read/write access to the sso_configs table.

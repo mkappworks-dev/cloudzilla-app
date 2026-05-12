@@ -11,8 +11,8 @@ import templruntime "github.com/a-h/templ/runtime"
 import (
 	"strconv"
 
-	"github.com/mkappworks/cloudzilla/internal/view"
-	"github.com/mkappworks/cloudzilla/internal/view/layout"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 func Topic(data view.TopicData) templ.Component {

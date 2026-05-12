@@ -10,7 +10,7 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/mkappworks/cloudzilla/internal/markdown"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 )
 
 // TreeEntry represents a single file or directory in a git tree.

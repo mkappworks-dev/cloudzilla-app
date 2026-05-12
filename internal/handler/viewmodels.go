@@ -4,7 +4,7 @@ package handler
 // code can continue to reference them without a package qualifier.  The
 // canonical definitions now live in internal/view/viewmodels.go.
 
-import "github.com/mkappworks/cloudzilla/internal/view"
+import "github.com/mkappworks-dev/cloudzilla-app/internal/view"
 
 type (
 	BasePage               = view.BasePage

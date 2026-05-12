@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // DiscussionStore provides database operations for repository discussions and replies.

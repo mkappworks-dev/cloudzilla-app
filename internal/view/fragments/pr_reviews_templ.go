@@ -11,7 +11,7 @@ import templruntime "github.com/a-h/templ/runtime"
 import (
 	"strconv"
 
-	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 )
 
 func PRReviews(data view.PRReviewsFragData) templ.Component {

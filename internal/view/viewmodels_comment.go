@@ -1,6 +1,6 @@
 package view
 
-import "github.com/mkappworks/cloudzilla/internal/model"
+import "github.com/mkappworks-dev/cloudzilla-app/internal/model"
 
 // CommentFragData holds template data for a single comment HTMX fragment.
 type CommentFragData struct {

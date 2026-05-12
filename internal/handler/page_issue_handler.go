@@ -6,11 +6,11 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mkappworks/cloudzilla/internal/markdown"
-	"github.com/mkappworks/cloudzilla/internal/middleware"
-	"github.com/mkappworks/cloudzilla/internal/model"
-	"github.com/mkappworks/cloudzilla/internal/view"
-	"github.com/mkappworks/cloudzilla/internal/view/pages"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
 // PageIssues renders the paginated issue list for a repository.

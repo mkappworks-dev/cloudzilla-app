@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // TestWebhookBackoff verifies that webhookBackoff returns the correct delay for each

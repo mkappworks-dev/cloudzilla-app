@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
-	"github.com/mkappworks/cloudzilla/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )

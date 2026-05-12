@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/mkappworks/cloudzilla/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 // RequireSetup redirects all requests to /setup when setup is not complete.

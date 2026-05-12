@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/mkappworks/cloudzilla/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 

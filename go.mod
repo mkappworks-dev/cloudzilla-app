@@ -1,4 +1,4 @@
-module github.com/mkappworks/cloudzilla
+module github.com/mkappworks-dev/cloudzilla-app
 
 go 1.26
 

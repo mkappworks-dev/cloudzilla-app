@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
-	"github.com/mkappworks/cloudzilla/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 // AccessTokenService manages personal access token (PAT) generation and validation.

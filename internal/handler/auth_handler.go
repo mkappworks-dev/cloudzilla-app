@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 type loginRequest struct {

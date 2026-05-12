@@ -9,7 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"github.com/mkappworks/cloudzilla/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"strconv"
 )
 

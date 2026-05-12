@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // ProjectStore provides database operations for Kanban project boards, columns, and cards.

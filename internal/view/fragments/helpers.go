@@ -3,7 +3,7 @@ package fragments
 import (
 	"strings"
 
-	"github.com/mkappworks/cloudzilla/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // topicNames returns the topic names as a comma-separated string.

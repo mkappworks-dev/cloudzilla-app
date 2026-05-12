@@ -8,7 +8,7 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/mkappworks/cloudzilla/internal/model"
+import "github.com/mkappworks-dev/cloudzilla-app/internal/model"
 
 // StatusIcon renders a colored symbol for a commit status state:
 // success=green ✓, failure=red ✗, error=red ⚠, pending=yellow ●

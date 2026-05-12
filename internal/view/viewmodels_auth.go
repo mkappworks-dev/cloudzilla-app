@@ -1,6 +1,6 @@
 package view
 
-import "github.com/mkappworks/cloudzilla/internal/model"
+import "github.com/mkappworks-dev/cloudzilla-app/internal/model"
 
 // LoginData holds template data for the login page.
 type LoginData struct {

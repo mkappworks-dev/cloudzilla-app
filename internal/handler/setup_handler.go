@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mkappworks/cloudzilla/internal/view"
-	"github.com/mkappworks/cloudzilla/internal/view/pages"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
 func (h *Handler) PageSetup(w http.ResponseWriter, r *http.Request) {
