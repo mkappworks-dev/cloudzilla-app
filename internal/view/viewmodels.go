@@ -22,9 +22,10 @@ type RenderedLineComment struct {
 // BasePage contains common data for all pages
 // BasePage holds data common to every rendered page, including the current user and unread notification count.
 type BasePage struct {
-	CurrentUser      *middleware.Claims
-	UnreadNotifCount int
-	AllowLogin       bool
+	CurrentUser       *middleware.Claims
+	UnreadNotifCount  int
+	AllowLogin        bool
+	AllowRegistration bool
 }
 
 // Page data structs

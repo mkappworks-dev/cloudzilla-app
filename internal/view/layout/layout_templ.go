@@ -47,7 +47,7 @@ func Base(base view.BasePage, title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " — Cloudzilla</title><link rel=\"stylesheet\" href=\"/static/main.css\"></head><body class=\"bg-gray-50 text-gray-900 text-sm font-sans min-h-screen flex flex-col\"><header class=\"bg-gray-900 text-white h-12 flex items-center px-4 gap-6 shadow-md\"><a href=\"/\" class=\"text-lg font-bold\">☁ Cloudzilla</a><nav class=\"flex gap-4 text-sm text-gray-300 flex-1 items-center\"><a href=\"/\" class=\"hover:text-white\">Explore</a><form action=\"/search\" method=\"GET\" class=\"flex items-center\"><input type=\"text\" name=\"q\" placeholder=\"Search...\" value=\"\" class=\"bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 w-40\"></form>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " — Cloudzilla</title><link rel=\"stylesheet\" href=\"/static/main.css\"></head><body class=\"bg-gray-50 text-gray-900 text-sm font-sans min-h-screen flex flex-col\"><header class=\"bg-gray-900 text-white h-12 flex items-center px-4 gap-6 shadow-md\"><a href=\"/\" class=\"text-lg font-bold\">☁ Cloudzilla</a><nav class=\"flex gap-4 text-sm text-gray-300 flex-1 items-center\"><a href=\"/explore\" class=\"hover:text-white\">Explore</a><form action=\"/search\" method=\"GET\" class=\"flex items-center\"><input type=\"text\" name=\"q\" placeholder=\"Search...\" value=\"\" class=\"bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 w-40\"></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -109,8 +109,18 @@ func Base(base view.BasePage, title string) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, " ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if base.AllowRegistration {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<a href=\"/register\" class=\"px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors\">Register</a>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</nav></header><main class=\"max-w-5xl mx-auto my-6 px-4 flex-1 w-full\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</nav></header><main class=\"max-w-5xl mx-auto my-6 px-4 flex-1 w-full\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -118,7 +128,7 @@ func Base(base view.BasePage, title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</main><footer class=\"text-center text-gray-500 py-4 text-xs border-t border-gray-200\"><p>&copy; 2026 Cloudzilla. Built with Go, HTMX, and Tailwind.</p></footer><script>\n\t\t\t(function() {\n\t\t\t\tvar token = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\tdocument.body.setAttribute('hx-headers', JSON.stringify({'X-CSRF-Token': token}));\n\t\t\t\tfunction injectCSRF(form) {\n\t\t\t\t\tif (form.method && form.method.toUpperCase() !== 'GET' && !form.querySelector('input[name=\"csrf_token\"]')) {\n\t\t\t\t\t\tvar input = document.createElement('input');\n\t\t\t\t\t\tinput.type = 'hidden'; input.name = 'csrf_token'; input.value = token;\n\t\t\t\t\t\tform.appendChild(input);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\tdocument.querySelectorAll('form').forEach(injectCSRF);\n\t\t\t\tnew MutationObserver(function(mutations) {\n\t\t\t\t\tmutations.forEach(function(m) {\n\t\t\t\t\t\tm.addedNodes.forEach(function(n) {\n\t\t\t\t\t\t\tif (n.tagName === 'FORM') injectCSRF(n);\n\t\t\t\t\t\t\telse if (n.querySelectorAll) n.querySelectorAll('form').forEach(injectCSRF);\n\t\t\t\t\t\t});\n\t\t\t\t\t});\n\t\t\t\t}).observe(document.body, {childList: true, subtree: true});\n\t\t\t})();\n\t\t</script><script src=\"/htmx.min.js\" defer></script><script src=\"/alpine.min.js\" defer></script><script src=\"/static/mermaid.min.js\"></script><script>\n\t\t\t\tmermaid.initialize({ startOnLoad: false, theme: 'default' });\n\t\t\t\tdocument.addEventListener('DOMContentLoaded', function () { mermaid.run(); });\n\t\t\t\tdocument.addEventListener('htmx:afterSwap', function () { mermaid.run(); });\n\t\t\t</script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</main><footer class=\"text-center text-gray-500 py-4 text-xs border-t border-gray-200\"><p>&copy; 2026 Cloudzilla. Built with Go, HTMX, and Tailwind.</p></footer><script>\n\t\t\t(function() {\n\t\t\t\tvar token = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\tdocument.body.setAttribute('hx-headers', JSON.stringify({'X-CSRF-Token': token}));\n\t\t\t\tfunction injectCSRF(form) {\n\t\t\t\t\tif (form.method && form.method.toUpperCase() !== 'GET' && !form.querySelector('input[name=\"csrf_token\"]')) {\n\t\t\t\t\t\tvar input = document.createElement('input');\n\t\t\t\t\t\tinput.type = 'hidden'; input.name = 'csrf_token'; input.value = token;\n\t\t\t\t\t\tform.appendChild(input);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\tdocument.querySelectorAll('form').forEach(injectCSRF);\n\t\t\t\tnew MutationObserver(function(mutations) {\n\t\t\t\t\tmutations.forEach(function(m) {\n\t\t\t\t\t\tm.addedNodes.forEach(function(n) {\n\t\t\t\t\t\t\tif (n.tagName === 'FORM') injectCSRF(n);\n\t\t\t\t\t\t\telse if (n.querySelectorAll) n.querySelectorAll('form').forEach(injectCSRF);\n\t\t\t\t\t\t});\n\t\t\t\t\t});\n\t\t\t\t}).observe(document.body, {childList: true, subtree: true});\n\t\t\t})();\n\t\t</script><script src=\"/htmx.min.js\" defer></script><script src=\"/alpine.min.js\" defer></script><script src=\"/static/mermaid.min.js\"></script><script>\n\t\t\t\tmermaid.initialize({ startOnLoad: false, theme: 'default' });\n\t\t\t\tdocument.addEventListener('DOMContentLoaded', function () { mermaid.run(); });\n\t\t\t\tdocument.addEventListener('htmx:afterSwap', function () { mermaid.run(); });\n\t\t\t</script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

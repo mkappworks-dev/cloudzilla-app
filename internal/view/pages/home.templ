@@ -14,6 +14,16 @@ templ Home(data view.HomeData) {
 			<div class="flex justify-between items-center">
 				<h1 class="text-3xl font-bold">Repositories</h1>
 			</div>
+			<nav aria-label="Quick links" class="flex flex-wrap gap-2 text-sm">
+				<a href="/explore" class="px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:border-blue-300 hover:text-blue-600 transition-colors">Explore</a>
+				<a href="/gists" class="px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:border-blue-300 hover:text-blue-600 transition-colors">Gists</a>
+				if data.BasePage.CurrentUser != nil {
+					<a href="/feed" class="px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:border-blue-300 hover:text-blue-600 transition-colors">Activity Feed</a>
+					<a href="/notifications" class="px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:border-blue-300 hover:text-blue-600 transition-colors">Notifications</a>
+					<a href={ templ.SafeURL("/" + data.BasePage.CurrentUser.Username) } class="px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:border-blue-300 hover:text-blue-600 transition-colors">Your profile</a>
+					<a href="/settings" class="px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:border-blue-300 hover:text-blue-600 transition-colors">Settings</a>
+				}
+			</nav>
 			if len(data.Repos) > 0 {
 				<div class="grid gap-4">
 					for _, repo := range data.Repos {

@@ -12,12 +12,13 @@ import (
 
 func basePage(r *http.Request, services *service.Services) BasePage {
 	allowLogin := services.SiteSetting.AllowLogin(r.Context())
+	allowRegistration := services.SiteSetting.AllowRegistration(r.Context())
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
-		return BasePage{AllowLogin: allowLogin}
+		return BasePage{AllowLogin: allowLogin, AllowRegistration: allowRegistration}
 	}
 	count, _ := services.Notification.CountUnread(r.Context(), claims.UserID)
-	return BasePage{CurrentUser: &claims, UnreadNotifCount: count, AllowLogin: allowLogin}
+	return BasePage{CurrentUser: &claims, UnreadNotifCount: count, AllowLogin: allowLogin, AllowRegistration: allowRegistration}
 }
 
 // PageHome renders the home feed page.

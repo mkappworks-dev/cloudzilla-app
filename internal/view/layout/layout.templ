@@ -18,7 +18,7 @@ templ Base(base view.BasePage, title string) {
 			<header class="bg-gray-900 text-white h-12 flex items-center px-4 gap-6 shadow-md">
 				<a href="/" class="text-lg font-bold">☁ Cloudzilla</a>
 				<nav class="flex gap-4 text-sm text-gray-300 flex-1 items-center">
-					<a href="/" class="hover:text-white">Explore</a>
+					<a href="/explore" class="hover:text-white">Explore</a>
 					<form action="/search" method="GET" class="flex items-center">
 						<input type="text" name="q" placeholder="Search..." value="" class="bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 w-40"/>
 					</form>
@@ -41,6 +41,9 @@ templ Base(base view.BasePage, title string) {
 					} else {
 						if base.AllowLogin {
 							<a href="/login" class="hover:text-white">Sign in</a>
+						}
+						if base.AllowRegistration {
+							<a href="/register" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">Register</a>
 						}
 					}
 				</nav>

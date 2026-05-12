@@ -11,6 +11,15 @@ templ Feed(data view.FeedData) {
 	@layout.Base(data.BasePage, "Activity Feed") {
 		<div class="max-w-3xl mx-auto space-y-4">
 			<h1 class="text-2xl font-bold text-gray-900">Your Activity Feed</h1>
+			<nav aria-label="Quick links" class="flex flex-wrap gap-2 text-sm">
+				<a href="/explore" class="px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:border-blue-300 hover:text-blue-600 transition-colors">Explore</a>
+				<a href="/gists" class="px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:border-blue-300 hover:text-blue-600 transition-colors">Gists</a>
+				<a href="/notifications" class="px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:border-blue-300 hover:text-blue-600 transition-colors">Notifications</a>
+				if data.BasePage.CurrentUser != nil {
+					<a href={ templ.SafeURL("/" + data.BasePage.CurrentUser.Username) } class="px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:border-blue-300 hover:text-blue-600 transition-colors">Your profile</a>
+					<a href="/settings" class="px-3 py-1.5 bg-white border border-gray-200 rounded-md hover:border-blue-300 hover:text-blue-600 transition-colors">Settings</a>
+				}
+			</nav>
 			if len(data.Events) == 0 {
 				@components.EmptyStateWithHint("No activity yet.", "Watch some repositories to see events here.")
 			} else {
