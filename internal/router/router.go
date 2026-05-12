@@ -421,10 +421,13 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Post("/{owner}/{repo}/git-upload-pack", h.GitUploadPack)
 	r.With(optAuthMW).Post("/{owner}/{repo}/git-receive-pack", h.GitReceivePack)
 
-	// Static file serving
+	// Static file serving — registered on explicit prefixes so chi's radix
+	// tree prefers these over the parameterized /{owner}/{repo} routes.
 	staticFS, _ := fs.Sub(frontend, "frontend")
 	fileServer := http.FileServer(http.FS(staticFS))
-	r.Get("/*", fileServer.ServeHTTP)
+	r.Handle("/static/*", fileServer)
+	r.Handle("/htmx.min.js", fileServer)
+	r.Handle("/alpine.min.js", fileServer)
 
 	return r
 }
