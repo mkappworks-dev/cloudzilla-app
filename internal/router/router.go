@@ -435,5 +435,14 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.Handle("/htmx.min.js", fileServer)
 	r.Handle("/alpine.min.js", fileServer)
 
+	// Serve the SVG favicon for the legacy /favicon.ico path that some browsers
+	// and bots auto-request even when <link rel="icon"> is declared.
+	faviconBytes, _ := fs.ReadFile(staticFS, "static/favicon.svg")
+	r.Get("/favicon.ico", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		_, _ = w.Write(faviconBytes)
+	})
+
 	return r
 }

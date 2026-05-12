@@ -12,6 +12,7 @@ templ Base(base view.BasePage, title string) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>{ title } — Cloudzilla</title>
+			<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
 			<link rel="stylesheet" href="/static/main.css"/>
 		</head>
 		<body class="bg-gray-50 text-gray-900 text-sm font-sans min-h-screen flex flex-col">
@@ -19,25 +20,45 @@ templ Base(base view.BasePage, title string) {
 				<a href="/" class="text-lg font-bold">☁ Cloudzilla</a>
 				<nav class="flex gap-4 text-sm text-gray-300 flex-1 items-center">
 					<a href="/explore" class="hover:text-white">Explore</a>
+					<a href="/gists" class="hover:text-white">Gists</a>
 					<form action="/search" method="GET" class="flex items-center">
 						<input type="text" name="q" placeholder="Search..." value="" class="bg-gray-800 text-gray-200 placeholder-gray-500 border border-gray-700 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 w-40"/>
 					</form>
 					if base.CurrentUser != nil {
-						<a href="/settings" class="hover:text-white">Settings</a>
+						<a href="/new" class="hover:text-white" title="Create new repository">+ New</a>
 						if base.CurrentUser.IsSuperadmin {
 							<a href="/admin/settings" class="hover:text-white text-yellow-400">Admin</a>
 						}
-						<span class="text-gray-500">|</span>
-						<span class="text-gray-400">{ base.CurrentUser.Username }</span>
-						<a href="/notifications" class="relative text-gray-300 hover:text-white">
+						<a href="/notifications" class="relative text-gray-300 hover:text-white" title="Notifications">
 							🔔
 							if base.UnreadNotifCount > 0 {
 								<span class="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full px-1 leading-4">{ strconv.Itoa(base.UnreadNotifCount) }</span>
 							}
 						</a>
-						<form method="POST" action="/api/auth/logout" class="inline">
-							<button type="submit" class="hover:text-white">Sign out</button>
-						</form>
+						<div x-data="{ open: false }" class="relative">
+							<button
+								x-on:click="open = !open"
+								x-on:click.outside="open = false"
+								type="button"
+								class="text-gray-200 hover:text-white flex items-center gap-1">
+								{ base.CurrentUser.Username }
+								<span class="text-xs">&#9662;</span>
+							</button>
+							<div
+								x-show="open"
+								x-cloak
+								x-transition.opacity
+								class="absolute right-0 top-full mt-1 w-48 bg-white text-gray-800 rounded-md shadow-lg border border-gray-200 py-1 z-50">
+								<a href={ templ.SafeURL("/" + base.CurrentUser.Username) } class="block px-3 py-1.5 hover:bg-gray-100">Your profile</a>
+								<a href={ templ.SafeURL("/" + base.CurrentUser.Username + "/gists") } class="block px-3 py-1.5 hover:bg-gray-100">Your gists</a>
+								<a href={ templ.SafeURL("/" + base.CurrentUser.Username + "/stars") } class="block px-3 py-1.5 hover:bg-gray-100">Your stars</a>
+								<a href="/settings" class="block px-3 py-1.5 hover:bg-gray-100">Settings</a>
+								<div class="border-t border-gray-100 my-1"></div>
+								<form method="POST" action="/api/auth/logout">
+									<button type="submit" class="w-full text-left px-3 py-1.5 hover:bg-gray-100">Sign out</button>
+								</form>
+							</div>
+						</div>
 					} else {
 						if base.AllowLogin {
 							<a href="/login" class="hover:text-white">Sign in</a>
@@ -52,7 +73,7 @@ templ Base(base view.BasePage, title string) {
 				{ children... }
 			</main>
 			<footer class="text-center text-gray-500 py-4 text-xs border-t border-gray-200">
-				<p>&copy; 2026 Cloudzilla. Built with Go, HTMX, and Tailwind.</p>
+				<p>&copy; 2026 Cloudzilla. Created by <a href="https://mkappworks.com" class="underline hover:text-gray-700">mkappworks</a></p>
 			</footer>
 			<script>
 			(function() {
