@@ -1,0 +1,155 @@
+name: Build and Publish
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Git tag for the release (e.g. v0.1.0)
+        type: string
+        required: true
+      release_id:
+        description: GitHub release ID to attach assets to
+        type: string
+        required: true
+      sha:
+        description: Commit SHA being released
+        type: string
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  binaries:
+    name: Build binaries (${{ matrix.goos }}/${{ matrix.goarch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install templ
+        run: go install github.com/a-h/templ/cmd/templ@latest
+
+      - name: Download Tailwind CLI
+        run: |
+          mkdir -p bin
+          curl -sLf https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.19/tailwindcss-linux-x64 -o bin/tailwindcss
+          chmod +x bin/tailwindcss
+
+      - name: Download Mermaid
+        run: |
+          mkdir -p cmd/server/frontend/static
+          curl -sL https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js \
+            -o cmd/server/frontend/static/mermaid.min.js
+
+      - name: Download HTMX
+        run: |
+          mkdir -p cmd/server/frontend
+          curl -sL https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js \
+            -o cmd/server/frontend/htmx.min.js
+
+      - name: Generate templ
+        run: templ generate ./internal/view/...
+
+      - name: Build Tailwind CSS
+        run: |
+          bin/tailwindcss -c tailwind/tailwind.config.js -i tailwind/input.css \
+            -o cmd/server/frontend/static/main.css --minify
+
+      - name: Build binaries
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+          TAG: ${{ inputs.tag }}
+        run: |
+          mkdir -p dist
+          go build -ldflags="-s -w -X main.version=${TAG}" \
+            -o "dist/cloudzilla" ./cmd/server/.
+          go build -ldflags="-s -w -X main.version=${TAG}" \
+            -o "dist/cloudzilla-cli" ./cmd/cloudzilla/.
+
+      - name: Package archive
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          ARCHIVE="cloudzilla_${TAG}_${GOOS}_${GOARCH}.tar.gz"
+          tar -C dist -czf "${ARCHIVE}" cloudzilla cloudzilla-cli
+          sha256sum "${ARCHIVE}" > "${ARCHIVE}.sha256"
+          echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          gh release upload "${TAG}" \
+            "${ARCHIVE}" "${ARCHIVE}.sha256" \
+            --clobber
+
+  docker:
+    name: Build and push Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=${{ inputs.tag }}
+            type=semver,pattern={{version}},value=${{ inputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag }}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
