@@ -15,7 +15,7 @@ services:
 
   cloudzilla:
     build: .
-    image: cloudzilla:latest
+    image: cloudzilla-app:latest
     ports:
       - "8080:8080"
       - "2222:2222"

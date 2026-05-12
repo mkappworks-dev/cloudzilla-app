@@ -45,7 +45,7 @@ No `config.yaml` file is needed at runtime when env vars are set.
 ### Docker make targets
 
 ```bash
-make docker-build   # docker build -t cloudzilla:latest .
+make docker-build   # docker build -t cloudzilla-app:latest .
 make docker-run     # docker compose up -d
 make docker-down    # docker compose down
 ```

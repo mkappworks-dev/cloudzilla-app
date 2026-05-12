@@ -85,10 +85,10 @@ test-integration: test-db          ## Run all tests including integration tests 
 
 clean:
 	rm -rf dist/
-	rm -f $(TAILWIND_OUT) cmd/server/frontend/static/mermaid.min.js cloudzilla.db cloudzilla.db-shm cloudzilla.db-wal
+	rm -f $(TAILWIND_OUT) cmd/server/frontend/static/mermaid.min.js
 
 docker-build:              ## Build Docker image
-	docker build -t cloudzilla:latest .
+	docker build -t cloudzilla-app:latest .
 
 docker-run:                ## Start with docker compose (detached)
 	docker compose up -d

@@ -104,12 +104,12 @@ make docker-build
 make docker-run
 
 # Run migrations
-docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli migrate
+docker exec -it cloudzilla-app-cloudzilla-1 /app/cloudzilla-cli migrate
 
 # Open http://localhost:8080 — redirects to /setup to create superadmin
 ```
 
-All data persists in Docker named volumes (`cloudzilla_data`, `cloudzilla_pg_data`).
+All data persists in Docker named volumes (`cloudzilla_data`, `postgres_data`).
 Set `CZ_AUTH_JWT_SECRET` in `docker-compose.yml` before exposing publicly.
 
 ```bash
