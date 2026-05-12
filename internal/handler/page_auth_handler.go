@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -11,11 +12,16 @@ import (
 
 // PageLogin renders the login form page.
 func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
+	if _, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 	ldapEnabled, samlEnabled := h.ssoEnabled(r)
 	h.render(w, r, pages.Login(view.LoginData{
-		BasePage:    basePage(r, h.Services),
-		LDAPEnabled: ldapEnabled,
-		SAMLEnabled: samlEnabled,
+		BasePage:          basePage(r, h.Services),
+		LDAPEnabled:       ldapEnabled,
+		SAMLEnabled:       samlEnabled,
+		AllowRegistration: h.Services.SiteSetting.AllowRegistration(r.Context()),
 	}))
 }
 
@@ -24,43 +30,39 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 	ldapEnabled, samlEnabled := h.ssoEnabled(r)
+	allowReg := h.Services.SiteSetting.AllowRegistration(r.Context())
+
+	renderLoginError := func(msg string) {
+		h.render(w, r, pages.Login(view.LoginData{
+			BasePage:          basePage(r, h.Services),
+			LDAPEnabled:       ldapEnabled,
+			SAMLEnabled:       samlEnabled,
+			AllowRegistration: allowReg,
+			Error:             msg,
+		}))
+	}
 
 	user, token, err := h.Services.User.Authenticate(r.Context(), email, password)
 	if err != nil {
-		h.render(w, r, pages.Login(view.LoginData{
-			BasePage:    basePage(r, h.Services),
-			LDAPEnabled: ldapEnabled,
-			SAMLEnabled: samlEnabled,
-			Error:       "Invalid credentials",
-		}))
+		renderLoginError("Invalid credentials")
 		return
 	}
 
 	if !user.IsSuperadmin && !user.IsInvited && !h.Services.SiteSetting.AllowLogin(r.Context()) {
-		h.render(w, r, pages.Login(view.LoginData{
-			BasePage:    basePage(r, h.Services),
-			LDAPEnabled: ldapEnabled,
-			SAMLEnabled: samlEnabled,
-			Error:       "Login is currently disabled",
-		}))
+		renderLoginError("Login is currently disabled")
 		return
 	}
 
 	totpEnabled, _, err := h.Services.TOTP.GetUserTOTPState(r.Context(), user.ID)
 	if err != nil {
-		h.render(w, r, pages.Login(view.LoginData{
-			BasePage:    basePage(r, h.Services),
-			LDAPEnabled: ldapEnabled,
-			SAMLEnabled: samlEnabled,
-			Error:       "Internal error",
-		}))
+		renderLoginError("Internal error")
 		return
 	}
 
 	if totpEnabled {
 		pendingToken, err := h.Services.TOTP.GeneratePendingToken(user.ID, h.Cfg.Auth.JWTSecret)
 		if err != nil {
-			h.render(w, r, pages.Login(view.LoginData{BasePage: basePage(r, h.Services), Error: "Internal error"}))
+			renderLoginError("Internal error")
 			return
 		}
 		http.SetCookie(w, &http.Cookie{

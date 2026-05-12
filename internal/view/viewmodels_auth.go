@@ -5,9 +5,18 @@ import "github.com/mkappworks-dev/cloudzilla-app/internal/model"
 // LoginData holds template data for the login page.
 type LoginData struct {
 	BasePage
-	Error       string
-	LDAPEnabled bool
-	SAMLEnabled bool
+	Error             string
+	LDAPEnabled       bool
+	SAMLEnabled       bool
+	AllowRegistration bool
+}
+
+// RegisterData holds template data for the public registration page.
+type RegisterData struct {
+	BasePage
+	Error    string
+	Username string
+	Email    string
 }
 
 // SetupData holds template data for the first-run setup wizard page.
