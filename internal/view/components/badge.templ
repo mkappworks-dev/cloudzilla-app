@@ -1,15 +1,77 @@
 package components
 
-// IssueStateBadge renders an open (green) or closed (red) pill badge for an issue.
-templ IssueStateBadge(state string) {
-	<span class={ "px-2 py-1 rounded-full text-xs font-medium", templ.KV("bg-green-100 text-green-700", state == "open"), templ.KV("bg-red-100 text-red-700", state != "open") }>
-		{ state }
+// BadgeVariant controls the visual style of a Badge.
+type BadgeVariant string
+
+const (
+	BadgeDefault     BadgeVariant = "default"
+	BadgeSecondary   BadgeVariant = "secondary"
+	BadgeOutline     BadgeVariant = "outline"
+	BadgeSuccess     BadgeVariant = "success"
+	BadgeWarning     BadgeVariant = "warning"
+	BadgeDestructive BadgeVariant = "destructive"
+	BadgeMerged      BadgeVariant = "merged" // purple, for merged-PR semantics
+	BadgeDraft       BadgeVariant = "draft"  // muted, for draft state
+)
+
+func badgeVariantClass(v BadgeVariant) string {
+	switch v {
+	case BadgeSecondary:
+		return "bg-secondary text-secondary-foreground border-transparent"
+	case BadgeOutline:
+		return "border-border text-foreground"
+	case BadgeSuccess:
+		return "bg-success/15 text-success border-success/30"
+	case BadgeWarning:
+		return "bg-warning/15 text-warning border-warning/30"
+	case BadgeDestructive:
+		return "bg-destructive/15 text-destructive border-destructive/30"
+	case BadgeMerged:
+		// Purple — distinct from the success green so merged PRs read differently from open ones.
+		return "bg-[hsl(270_70%_50%/0.15)] text-[hsl(270_70%_70%)] border-[hsl(270_70%_50%/0.30)]"
+	case BadgeDraft:
+		return "bg-muted text-muted-foreground border-transparent"
+	default:
+		return "bg-primary text-primary-foreground border-transparent"
+	}
+}
+
+// Badge renders a small pill-shaped label.
+templ Badge(variant BadgeVariant) {
+	<span class={ "inline-flex items-center gap-1.5 h-[22px] px-2 rounded-full border text-[11px] font-medium", badgeVariantClass(variant) }>
+		{ children... }
 	</span>
 }
 
-// PullStateBadge renders an open (green), merged (purple), or closed (red) pill badge for a PR.
+// IssueStateBadge renders an open (green) or closed (red) pill badge for an issue.
+// Kept as a wrapper around Badge for existing callers.
+templ IssueStateBadge(state string) {
+	if state == "open" {
+		@Badge(BadgeSuccess) {
+			{ state }
+		}
+	} else {
+		@Badge(BadgeDestructive) {
+			{ state }
+		}
+	}
+}
+
+// PullStateBadge renders an open / merged / closed pill badge for a PR.
+// Kept as a wrapper around Badge for existing callers.
 templ PullStateBadge(state string) {
-	<span class={ "px-2 py-1 rounded-full text-xs font-medium", templ.KV("bg-green-100 text-green-700", state == "open"), templ.KV("bg-purple-100 text-purple-700", state == "merged"), templ.KV("bg-red-100 text-red-700", state != "open" && state != "merged") }>
-		{ state }
-	</span>
+	switch state {
+	case "open":
+		@Badge(BadgeSuccess) {
+			{ state }
+		}
+	case "merged":
+		@Badge(BadgeMerged) {
+			{ state }
+		}
+	default:
+		@Badge(BadgeDestructive) {
+			{ state }
+		}
+	}
 }

@@ -62,14 +62,14 @@ func Issues(data view.IssuesData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"text-blue-600 hover:underline\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"text-foreground hover:underline\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.Owner)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 16, Col: 121}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 16, Col: 123}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -82,7 +82,7 @@ func Issues(data view.IssuesData) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.RepoName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 16, Col: 139}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 16, Col: 141}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -93,7 +93,7 @@ func Issues(data view.IssuesData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if len(data.PinnedIssues) > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"mb-4\"><h2 class=\"text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2\">Pinned</h2><div class=\"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"mb-4\"><h2 class=\"text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2\">Pinned</h2><div class=\"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -111,7 +111,7 @@ func Issues(data view.IssuesData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"block bg-yellow-50 border border-yellow-200 rounded-lg p-4 hover:border-yellow-400 hover:shadow-md transition-all\"><div class=\"flex items-start gap-2\"><svg class=\"w-4 h-4 text-yellow-500 shrink-0 mt-0.5\" fill=\"currentColor\" viewBox=\"0 0 20 20\"><path d=\"M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.32L10 13.27l-4.77 2.51.91-5.32L2.27 6.62l5.34-.78L10 1z\"></path></svg><div class=\"min-w-0\"><p class=\"font-semibold text-sm truncate\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"block rounded-md border border-warning/40 bg-warning/10 p-4 hover:border-warning/60 hover:shadow-sm transition-all\"><div class=\"flex items-start gap-2\"><svg class=\"w-4 h-4 text-warning shrink-0 mt-0.5\" fill=\"currentColor\" viewBox=\"0 0 20 20\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.32L10 13.27l-4.77 2.51.91-5.32L2.27 6.62l5.34-.78L10 1z\"></path></svg><div class=\"min-w-0\"><p class=\"font-semibold text-sm truncate\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -124,14 +124,14 @@ func Issues(data view.IssuesData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</p><p class=\"text-xs text-gray-500 mt-1\">#")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</p><p class=\"text-xs text-muted-foreground mt-1\">#")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var8 string
 					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(pinned.Number))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 29, Col: 78}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 29, Col: 86}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 					if templ_7745c5c3_Err != nil {
@@ -144,7 +144,7 @@ func Issues(data view.IssuesData) templ.Component {
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(string(pinned.State))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 29, Col: 106}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 29, Col: 114}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -179,12 +179,12 @@ func Issues(data view.IssuesData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" class=\"block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all\"><div class=\"flex justify-between items-start\"><div class=\"min-w-0 flex-1\"><h3 class=\"text-lg font-semibold\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" class=\"block rounded-md border border-border bg-card p-4 hover:border-ring/40 hover:shadow-sm transition-all\"><div class=\"flex justify-between items-start\"><div class=\"min-w-0 flex-1\"><h3 class=\"text-lg font-semibold\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					if issue.Visibility == "private" {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<span class=\"inline-flex items-center mr-1 text-yellow-600\" title=\"Private\">&#128274;</span> ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<span class=\"inline-flex items-center mr-1 text-warning\" title=\"Private\" aria-label=\"Private\">&#128274;</span> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -192,20 +192,20 @@ func Issues(data view.IssuesData) templ.Component {
 					var templ_7745c5c3_Var11 string
 					templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(issue.Title)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 47, Col: 22}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 47, Col: 23}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</h3><p class=\"text-gray-600 text-sm mt-1\">#")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</h3><p class=\"text-muted-foreground text-sm mt-1\">#")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var12 string
 					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(issue.Number))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 49, Col: 76}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 49, Col: 84}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 					if templ_7745c5c3_Err != nil {
@@ -218,7 +218,7 @@ func Issues(data view.IssuesData) templ.Component {
 					var templ_7745c5c3_Var13 string
 					templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(issue.AuthorName)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 49, Col: 107}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 49, Col: 115}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 					if templ_7745c5c3_Err != nil {
@@ -229,19 +229,19 @@ func Issues(data view.IssuesData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					if labels, ok := data.IssueLabels[issue.ID]; ok && len(labels) > 0 {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"flex flex-wrap gap-1 mt-2\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"flex flex-wrap gap-1 mt-2\" aria-label=\"Labels\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						for _, l := range labels {
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<span class=\"px-2 py-0.5 rounded-full text-xs font-medium\" style=\"")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<span class=\"inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border\" style=\"")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var14 string
-							templ_7745c5c3_Var14, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("background-color: " + l.Color)
+							templ_7745c5c3_Var14, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("background-color: " + l.Color + "33; color: " + l.Color + "; border-color: " + l.Color + "55")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 53, Col: 109}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 53, Col: 209}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 							if templ_7745c5c3_Err != nil {
@@ -254,7 +254,7 @@ func Issues(data view.IssuesData) templ.Component {
 							var templ_7745c5c3_Var15 string
 							templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(l.Name)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 53, Col: 120}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/issues.templ`, Line: 53, Col: 220}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 							if templ_7745c5c3_Err != nil {

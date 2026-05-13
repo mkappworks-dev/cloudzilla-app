@@ -1,0 +1,62 @@
+package components
+
+// Dialog wraps the native HTML <dialog> element — the browser handles
+// backdrop, ESC-to-close, focus trap, and inert background for us.
+//
+// Open via JS: document.getElementById("id").showModal()
+// Close via a <form method="dialog"> button (see DialogClose) or .close().
+//
+// Compose with DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter, DialogClose.
+templ Dialog(id string) {
+	<dialog
+		id={ id }
+		class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] backdrop:bg-foreground/40 open:animate-in"
+		aria-labelledby={ id + "-title" }
+	>
+		{ children... }
+	</dialog>
+}
+
+// DialogHeader is the top section — typically holds DialogTitle + DialogDescription.
+templ DialogHeader() {
+	<div class="flex flex-col gap-1 p-5 border-b border-border">
+		{ children... }
+	</div>
+}
+
+// DialogTitle is the primary heading. dialogId must match Dialog's id (for aria-labelledby).
+templ DialogTitle(dialogId string) {
+	<h2 id={ dialogId + "-title" } class="text-base font-semibold leading-tight">{ children... }</h2>
+}
+
+// DialogDescription is the supporting text under a DialogTitle.
+templ DialogDescription() {
+	<p class="text-[13px] text-muted-foreground leading-snug">{ children... }</p>
+}
+
+// DialogBody is the main content region.
+templ DialogBody() {
+	<div class="p-5 text-sm">
+		{ children... }
+	</div>
+}
+
+// DialogFooter is the bottom action row — right-aligned by default.
+templ DialogFooter() {
+	<div class="flex items-center justify-end gap-2 p-5 border-t border-border">
+		{ children... }
+	</div>
+}
+
+// DialogClose wraps any button content in <form method="dialog"> so submitting
+// the form closes the parent <dialog> without any JS. Use this for cancel buttons.
+//
+// To run an HTMX request and then close, fire the request as normal and use
+// `hx-on::after-request="this.closest('dialog').close()"` on the trigger.
+templ DialogClose(attrs templ.Attributes) {
+	<form method="dialog" class="contents">
+		<button type="submit" { attrs... }>
+			{ children... }
+		</button>
+	</form>
+}

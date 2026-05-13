@@ -2,6 +2,7 @@ package pages
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -12,45 +13,45 @@ templ Commit(data view.CommitData) {
 	@layout.Base(data.BasePage, data.Commit.Hash+" · "+data.Owner+"/"+data.RepoName) {
 		<div class="space-y-4">
 			<!-- Commit header -->
-			<div class="bg-white border border-gray-200 rounded-lg p-6">
-				<div class="flex items-center gap-2 text-sm text-gray-500 mb-3">
-					<a href={ templ.SafeURL("/"+data.Owner) } class="hover:text-blue-600 hover:underline">{ data.Owner }</a>
-					<span>/</span>
-					<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName) } class="hover:text-blue-600 hover:underline">{ data.RepoName }</a>
-					<span>/</span>
-					<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commits/"+data.Repo.DefaultBranch) } class="hover:text-blue-600 hover:underline">commits</a>
+			<div class="rounded-md border border-border bg-card p-6">
+				<div class="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+					<a href={ templ.SafeURL("/"+data.Owner) } class="hover:text-foreground hover:underline">{ data.Owner }</a>
+					<span aria-hidden="true">/</span>
+					<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName) } class="hover:text-foreground hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">/</span>
+					<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commits/"+data.Repo.DefaultBranch) } class="hover:text-foreground hover:underline">commits</a>
 				</div>
-				<h1 class="text-xl font-semibold text-gray-900 mb-1">{ data.Commit.Message }</h1>
+				<h1 class="text-xl font-semibold text-foreground mb-1">{ data.Commit.Message }</h1>
 				if data.Commit.Body != "" {
-					<pre class="text-sm text-gray-600 whitespace-pre-wrap mt-2 font-sans">{ data.Commit.Body }</pre>
+					<pre class="text-sm text-muted-foreground whitespace-pre-wrap mt-2 font-sans">{ data.Commit.Body }</pre>
 				}
-				<div class="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-					<span><span class="font-medium text-gray-900">{ data.Commit.Author }</span> &lt;{ data.Commit.AuthorEmail }&gt;</span>
-					<span>{ data.Commit.AuthorTime.Format("2006-01-02 15:04:05 UTC") }</span>
-					<code class="bg-gray-100 px-2 py-0.5 rounded text-xs font-mono text-gray-700">{ data.Commit.FullHash }</code>
+				<div class="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+					<span><span class="font-medium text-foreground">{ data.Commit.Author }</span> &lt;{ data.Commit.AuthorEmail }&gt;</span>
+					<time datetime={ data.Commit.AuthorTime.UTC().Format(time.RFC3339) }>{ data.Commit.AuthorTime.Format("2006-01-02 15:04:05 UTC") }</time>
+					<code class="bg-muted px-2 py-0.5 rounded text-xs font-mono text-foreground border border-border">{ data.Commit.FullHash }</code>
 				</div>
 				if len(data.Commit.ParentHashes) > 0 {
-					<div class="mt-3 text-sm text-gray-500">
+					<div class="mt-3 text-sm text-muted-foreground">
 						Parents:
 						for _, ph := range data.Commit.ParentHashes {
-							<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commit/"+ph) } class="font-mono text-blue-600 hover:underline ml-1">{ ph }</a>
+							<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commit/"+ph) } class="font-mono text-foreground hover:underline ml-1">{ ph }</a>
 						}
 					</div>
 				}
 			</div>
 			<!-- Commit status checks -->
 			if len(data.Statuses) > 0 {
-				<div class="bg-white border border-gray-200 rounded-lg p-4 space-y-2">
-					<h3 class="text-sm font-semibold text-gray-700 mb-3">Checks</h3>
+				<div class="rounded-md border border-border bg-card p-4 space-y-2">
+					<h3 class="text-sm font-semibold text-foreground mb-3">Checks</h3>
 					for _, s := range data.Statuses {
 						@components.StatusRow(s)
 					}
 				</div>
 			}
 			<!-- Stats bar -->
-			<div class="bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-600">
+			<div class="rounded-md border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
 				{ strconv.Itoa(len(data.Commit.Files)) } files changed,
-				<span class="text-green-600 font-medium">
+				<span class="text-success font-medium">
 					{ strconv.Itoa(data.Commit.TotalAdded) }
 					if data.Commit.TotalAdded == 1 {
 						insertion(+)
@@ -58,7 +59,7 @@ templ Commit(data view.CommitData) {
 						insertions(+)
 					}
 				</span>,
-				<span class="text-red-600 font-medium">
+				<span class="text-destructive font-medium">
 					{ strconv.Itoa(data.Commit.TotalDeleted) }
 					if data.Commit.TotalDeleted == 1 {
 						deletion(-)
@@ -69,12 +70,12 @@ templ Commit(data view.CommitData) {
 			</div>
 			<!-- Per-file diffs -->
 			for _, f := range data.Commit.Files {
-				<div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+				<div class="rounded-md border border-border bg-card overflow-hidden">
 					@components.DiffFileHeader(f)
 					if f.IsBinary {
-						<div class="px-4 py-3 text-sm text-gray-500 italic">Binary files differ</div>
+						<div class="px-4 py-3 text-sm text-muted-foreground italic">Binary files differ</div>
 					} else if len(f.Hunks) == 0 {
-						<div class="px-4 py-3 text-sm text-gray-500 italic">No changes</div>
+						<div class="px-4 py-3 text-sm text-muted-foreground italic">No changes</div>
 					} else {
 						@components.DiffHunkTable(f.Hunks)
 					}

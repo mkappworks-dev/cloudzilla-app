@@ -2,8 +2,10 @@ package pages
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -13,22 +15,24 @@ templ UserGists(data view.UserGistsData) {
 			<div class="flex items-center justify-between mb-6">
 				<h1 class="text-2xl font-bold">{ data.ProfileUser.Username }&#39;s Gists</h1>
 				if data.BasePage.CurrentUser != nil && data.BasePage.CurrentUser.UserID == data.ProfileUser.ID {
-					<a href="/gists/new" class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">+ New gist</a>
+					@components.LinkButton("/gists/new", components.ButtonDefault, components.ButtonSizeSM, nil) {
+						+ New gist
+					}
 				}
 			</div>
 			if len(data.Gists) > 0 {
 				<ul class="space-y-4">
 					for _, g := range data.Gists {
-						<li class="border border-gray-200 rounded p-4">
+						<li class="rounded-md border border-border bg-card p-4">
 							<div class="flex items-center justify-between mb-1">
-								<a href={ templ.SafeURL("/gists/" + g.ID) } class="text-blue-600 hover:underline font-medium">
+								<a href={ templ.SafeURL("/gists/" + g.ID) } class="text-foreground hover:underline font-medium">
 									if g.Description != "" {
 										{ g.Description }
 									} else {
-										<span class="text-gray-400 italic">No description</span>
+										<span class="text-muted-foreground italic">No description</span>
 									}
 								</a>
-								<span class="text-xs text-gray-400">
+								<span class="text-xs text-muted-foreground">
 									if g.Public {
 										Public
 									} else {
@@ -36,18 +40,24 @@ templ UserGists(data view.UserGistsData) {
 									}
 								</span>
 							</div>
-							<div class="text-sm text-gray-500">{ g.CreatedAt.Format("Jan 2, 2006") }</div>
+							<div class="text-sm text-muted-foreground">
+								<time datetime={ g.CreatedAt.UTC().Format(time.RFC3339) }>{ g.CreatedAt.Format("Jan 2, 2006") }</time>
+							</div>
 						</li>
 					}
 				</ul>
 				<div class="mt-6 flex gap-2">
 					if data.Page > 1 {
-						<a href={ templ.SafeURL("?page=" + strconv.Itoa(data.Page-1)) } class="px-3 py-1 border rounded text-sm">Previous</a>
+						@components.LinkButton("?page="+strconv.Itoa(data.Page-1), components.ButtonOutline, components.ButtonSizeSM, nil) {
+							Previous
+						}
 					}
-					<a href={ templ.SafeURL("?page=" + strconv.Itoa(data.Page+1)) } class="px-3 py-1 border rounded text-sm">Next</a>
+					@components.LinkButton("?page="+strconv.Itoa(data.Page+1), components.ButtonOutline, components.ButtonSizeSM, nil) {
+						Next
+					}
 				</div>
 			} else {
-				<p class="text-gray-500">No gists yet.</p>
+				<p class="text-muted-foreground">No gists yet.</p>
 			}
 		</div>
 	}

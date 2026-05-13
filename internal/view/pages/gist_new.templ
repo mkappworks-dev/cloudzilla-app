@@ -2,6 +2,7 @@ package pages
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -11,33 +12,43 @@ templ GistNew(data view.GistNewData) {
 			<h1 class="text-2xl font-bold mb-6">Create a New Gist</h1>
 			<form id="gist-form">
 				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Description <span class="text-gray-400">(optional)</span></label>
-					<input type="text" name="description" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="Gist description..."/>
+					<label for="gist-description" class="block text-sm font-medium text-foreground mb-1">Description <span class="text-muted-foreground">(optional)</span></label>
+					@components.Input(templ.Attributes{
+						"id":          "gist-description",
+						"type":        "text",
+						"name":        "description",
+						"placeholder": "Gist description...",
+					})
 				</div>
 				<div class="mb-4 flex items-center gap-2">
 					<input type="checkbox" id="public" name="public" checked/>
-					<label for="public" class="text-sm text-gray-700">Public gist</label>
+					<label for="public" class="text-sm text-foreground">Public gist</label>
 				</div>
 				<div id="file-rows" class="space-y-4">
-					<div class="border border-gray-200 rounded p-4">
-						<input type="text" name="filename[]" placeholder="Filename including extension" class="w-full border border-gray-300 rounded px-3 py-1 text-sm mb-2" required/>
-						<textarea name="content[]" rows="8" class="w-full border border-gray-300 rounded px-3 py-1 text-sm font-mono" placeholder="File contents..."></textarea>
+					<div class="rounded-md border border-border bg-card p-4">
+						<label for="gist-filename-0" class="sr-only">Filename</label>
+						<input id="gist-filename-0" type="text" name="filename[]" placeholder="Filename including extension" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground mb-2" required/>
+						<label for="gist-content-0" class="sr-only">File contents</label>
+						<textarea id="gist-content-0" name="content[]" rows="8" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground font-mono" placeholder="File contents..."></textarea>
 					</div>
 				</div>
 				<div class="mt-3">
-					<button
-						type="button"
-						hx-get="/api/gists/file-row"
-						hx-target="#file-rows"
-						hx-swap="beforeend"
-						class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50"
-					>
+					@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+						"type":       "button",
+						"hx-get":     "/api/gists/file-row",
+						"hx-target":  "#file-rows",
+						"hx-swap":    "beforeend",
+					}) {
 						Add file
-					</button>
+					}
 				</div>
 				<div class="mt-6 flex gap-3">
-					<button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium">Create Gist</button>
-					<a href="/gists" class="px-4 py-2 border rounded text-sm hover:bg-gray-50">Cancel</a>
+					@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+						Create Gist
+					}
+					@components.LinkButton("/gists", components.ButtonOutline, components.ButtonSizeDefault, nil) {
+						Cancel
+					}
 				</div>
 			</form>
 			<script>

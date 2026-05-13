@@ -10,18 +10,28 @@ import (
 templ Search(data view.SearchData) {
 	@layout.Base(data.BasePage, searchTitle(data)) {
 		<div class="space-y-6">
-			<div class="bg-white border border-gray-200 rounded-lg p-6">
-				<h1 class="text-2xl font-bold mb-4">Search</h1>
-				<form action="/search" method="GET" class="flex gap-2">
-					<input type="text" name="q" value={ data.Query } placeholder="Search repos, issues, PRs, users..." class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"/>
-					if data.Type != "" {
-						<input type="hidden" name="type" value={ data.Type }/>
-					}
-					<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700">
-						Search
-					</button>
-				</form>
-			</div>
+			@components.Card(nil) {
+				@components.CardContent() {
+					<h1 class="text-2xl font-bold mb-4">Search</h1>
+					<form action="/search" method="GET" class="flex gap-2">
+						<label for="search-query" class="sr-only">Search query</label>
+						@components.Input(templ.Attributes{
+							"id":          "search-query",
+							"type":        "text",
+							"name":        "q",
+							"value":       data.Query,
+							"placeholder": "Search repos, issues, PRs, users...",
+							"class":       "flex-1",
+						})
+						if data.Type != "" {
+							<input type="hidden" name="type" value={ data.Type }/>
+						}
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							Search
+						}
+					</form>
+				}
+			}
 			if data.Query != "" {
 			{{ repoCount := -1 }}
 				if data.Results != nil && len(data.Results.Repos) > 0 {
@@ -48,81 +58,81 @@ templ Search(data view.SearchData) {
 				})
 				if data.Results != nil {
 					if (data.Type == "all" || data.Type == "" || data.Type == "repos") && len(data.Results.Repos) > 0 {
-						<div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+						<div class="rounded-md border border-border bg-card divide-y divide-border">
 							if data.Type == "all" || data.Type == "" {
-								<div class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 rounded-t-lg">Repositories</div>
+								<div class="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted rounded-t-md">Repositories</div>
 							}
 							for _, repo := range data.Results.Repos {
 								<div class="px-6 py-4">
 									<div class="flex items-start justify-between gap-4">
 										<div class="min-w-0">
-											<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-blue-600 font-semibold hover:underline">{ repo.OwnerName }/{ repo.Name }</a>
+											<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-foreground font-semibold hover:underline">{ repo.OwnerName }/{ repo.Name }</a>
 											if repo.Description != "" {
-												<p class="text-sm text-gray-500 mt-0.5 truncate">{ repo.Description }</p>
+												<p class="text-sm text-muted-foreground mt-0.5 truncate">{ repo.Description }</p>
 											}
 										</div>
-										<span class={ "shrink-0 text-xs px-2 py-0.5 rounded-full", templ.KV("bg-yellow-100 text-yellow-700", repo.Private), templ.KV("bg-gray-100 text-gray-500", !repo.Private) }>
-											if repo.Private {
+										if repo.Private {
+											@components.Badge(components.BadgeWarning) {
 												Private
-											} else {
+											}
+										} else {
+											@components.Badge(components.BadgeOutline) {
 												Public
 											}
-										</span>
+										}
 									</div>
 								</div>
 							}
 						</div>
 					}
 					if (data.Type == "all" || data.Type == "" || data.Type == "issues") && len(data.Results.Issues) > 0 {
-						<div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+						<div class="rounded-md border border-border bg-card divide-y divide-border">
 							if data.Type == "all" || data.Type == "" {
-								<div class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 rounded-t-lg">Issues</div>
+								<div class="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted rounded-t-md">Issues</div>
 							}
 							for _, issue := range data.Results.Issues {
 								<div class="px-6 py-4 flex items-start gap-3">
-									<span class={ "shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-xs font-medium", templ.KV("bg-green-100 text-green-700", string(issue.State) == "open"), templ.KV("bg-red-100 text-red-700", string(issue.State) != "open") }>
-										{ string(issue.State) }
+									<span class="shrink-0 mt-0.5">
+										@components.IssueStateBadge(string(issue.State))
 									</span>
 									<div class="min-w-0">
-										<a href={ templ.SafeURL("/issues/" + strconv.Itoa(issue.Number)) } class="text-blue-600 font-medium hover:underline">{ issue.Title }</a>
-										<p class="text-xs text-gray-400 mt-0.5">#{ strconv.Itoa(issue.Number) } by { issue.AuthorName }</p>
+										<a href={ templ.SafeURL("/issues/" + strconv.Itoa(issue.Number)) } class="text-foreground font-medium hover:underline">{ issue.Title }</a>
+										<p class="text-xs text-muted-foreground mt-0.5">#{ strconv.Itoa(issue.Number) } by { issue.AuthorName }</p>
 									</div>
 								</div>
 							}
 						</div>
 					}
 					if (data.Type == "all" || data.Type == "" || data.Type == "pulls") && len(data.Results.Pulls) > 0 {
-						<div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+						<div class="rounded-md border border-border bg-card divide-y divide-border">
 							if data.Type == "all" || data.Type == "" {
-								<div class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 rounded-t-lg">Pull Requests</div>
+								<div class="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted rounded-t-md">Pull Requests</div>
 							}
 							for _, pr := range data.Results.Pulls {
 								<div class="px-6 py-4 flex items-start gap-3">
-									<span class={ "shrink-0 mt-0.5 px-1.5 py-0.5 rounded text-xs font-medium", templ.KV("bg-green-100 text-green-700", string(pr.State) == "open"), templ.KV("bg-purple-100 text-purple-700", string(pr.State) == "merged"), templ.KV("bg-red-100 text-red-700", string(pr.State) != "open" && string(pr.State) != "merged") }>
-										{ string(pr.State) }
+									<span class="shrink-0 mt-0.5">
+										@components.PullStateBadge(string(pr.State))
 									</span>
 									<div class="min-w-0">
-										<span class="text-gray-800 font-medium">{ pr.Title }</span>
-										<p class="text-xs text-gray-400 mt-0.5">#{ strconv.Itoa(pr.Number) } by { pr.AuthorName } · { pr.HeadBranch } → { pr.BaseBranch }</p>
+										<span class="text-foreground font-medium">{ pr.Title }</span>
+										<p class="text-xs text-muted-foreground mt-0.5">#{ strconv.Itoa(pr.Number) } by { pr.AuthorName } · { pr.HeadBranch } → { pr.BaseBranch }</p>
 									</div>
 								</div>
 							}
 						</div>
 					}
 					if (data.Type == "all" || data.Type == "" || data.Type == "users") && len(data.Results.Users) > 0 {
-						<div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+						<div class="rounded-md border border-border bg-card divide-y divide-border">
 							if data.Type == "all" || data.Type == "" {
-								<div class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50 rounded-t-lg">Users</div>
+								<div class="px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide bg-muted rounded-t-md">Users</div>
 							}
 							for _, u := range data.Results.Users {
 								<div class="px-6 py-4 flex items-center gap-3">
-									<div class="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-sm shrink-0">
-										{ u.Username[:1] }
-									</div>
+									@components.Avatar(u.Username, components.AvatarSizeDefault, u.Username)
 									<div>
-										<a href={ templ.SafeURL("/" + u.Username) } class="text-blue-600 font-semibold hover:underline">{ u.Username }</a>
+										<a href={ templ.SafeURL("/" + u.Username) } class="text-foreground font-semibold hover:underline">{ u.Username }</a>
 										if u.Bio != "" {
-											<p class="text-xs text-gray-500">{ u.Bio }</p>
+											<p class="text-xs text-muted-foreground">{ u.Bio }</p>
 										}
 									</div>
 								</div>

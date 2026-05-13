@@ -11,21 +11,21 @@ templ UserStars(data view.UserStarsData) {
 		<div class="space-y-6">
 			<div class="flex items-center gap-4">
 				<h1 class="text-2xl font-bold">
-					<a href={ templ.SafeURL("/" + data.ProfileUser.Username) } class="text-blue-600 hover:underline">{ data.ProfileUser.Username }</a>
+					<a href={ templ.SafeURL("/" + data.ProfileUser.Username) } class="text-foreground hover:underline">{ data.ProfileUser.Username }</a>
 				</h1>
-				<span class="text-gray-500">Starred repositories</span>
+				<span class="text-muted-foreground">Starred repositories</span>
 			</div>
 			if len(data.Repos) > 0 {
 				<div class="space-y-3">
 					for _, repo := range data.Repos {
-						<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
-							<h3 class="text-lg font-semibold text-blue-600">
-								<span class="text-gray-700">{ repo.OwnerName }</span>/{ repo.Name }
+						<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="block rounded-md border border-border bg-card p-4 hover:border-foreground/30 hover:shadow-md transition-all">
+							<h3 class="text-lg font-semibold text-foreground">
+								<span class="text-muted-foreground">{ repo.OwnerName }</span>/{ repo.Name }
 							</h3>
 							if repo.Description != "" {
-								<p class="text-gray-600 mt-1 text-sm">{ repo.Description }</p>
+								<p class="text-muted-foreground mt-1 text-sm">{ repo.Description }</p>
 							}
-							<div class="mt-2 text-xs text-gray-500">
+							<div class="mt-2 text-xs text-muted-foreground">
 								if repo.Private {
 									Private
 								} else {

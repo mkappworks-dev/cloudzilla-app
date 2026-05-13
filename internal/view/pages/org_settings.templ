@@ -2,6 +2,7 @@ package pages
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -9,50 +10,92 @@ templ OrgSettings(data view.OrgSettingsData) {
 	@layout.Base(data.BasePage, data.Org.Name+" — Settings") {
 		<div class="space-y-6">
 			<div class="flex justify-between items-center">
-				<h1 class="text-2xl font-bold"><a href={ templ.SafeURL("/" + data.Org.Name) } class="text-blue-600 hover:underline">{ data.Org.Name }</a> / Settings</h1>
+				<h1 class="text-2xl font-semibold tracking-tight">
+					<a href={ templ.SafeURL("/" + data.Org.Name) } class="text-foreground hover:underline">{ data.Org.Name }</a>
+					<span class="text-muted-foreground"> / Settings</span>
+				</h1>
 			</div>
-			<div class="bg-white border border-gray-200 rounded-lg p-6">
-				<h2 class="text-lg font-semibold mb-4">Members</h2>
-				<form hx-post={ "/api/orgs/" + data.Org.Name + "/members" } hx-target="#org-members-list" hx-swap="outerHTML" class="flex gap-2 mb-4">
-					<input type="text" name="username" placeholder="Username" required class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-					<select name="role" class="border border-gray-300 rounded px-3 py-2 text-sm">
-						<option value="member">Member</option>
-						<option value="owner">Owner</option>
-					</select>
-					<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Add Member</button>
-				</form>
-				<div id="org-members-list" class="divide-y divide-gray-100 border border-gray-200 rounded-lg">
-					if len(data.Members) == 0 {
-						<div class="px-4 py-3 text-gray-500 text-sm">No members yet.</div>
+			@components.Card(nil) {
+				@components.CardHeader() {
+					@components.CardTitle(2) {
+						Members
 					}
-					for _, m := range data.Members {
-						<div class="px-4 py-3 flex justify-between items-center">
-							<div>
-								<a href={ templ.SafeURL("/" + m.Username) } class="text-blue-600 hover:underline font-medium">{ m.Username }</a>
-								<span class="ml-2 text-xs text-gray-500 capitalize">{ m.Role }</span>
+					@components.CardDescription() {
+						Manage organization membership and roles.
+					}
+				}
+				@components.CardContent() {
+					<form hx-post={ "/api/orgs/" + data.Org.Name + "/members" } hx-target="#org-members-list" hx-swap="outerHTML" class="flex gap-2 mb-4">
+						<label for="org-member-username" class="sr-only">Username</label>
+						@components.Input(templ.Attributes{
+							"id":          "org-member-username",
+							"type":        "text",
+							"name":        "username",
+							"placeholder": "Username",
+							"required":    "required",
+							"class":       "flex-1",
+						})
+						<label for="org-member-role" class="sr-only">Role</label>
+						<select id="org-member-role" name="role" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+							<option value="member">Member</option>
+							<option value="owner">Owner</option>
+						</select>
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							Add Member
+						}
+					</form>
+					<div id="org-members-list" class="divide-y divide-border border border-border rounded-md">
+						if len(data.Members) == 0 {
+							<div class="px-4 py-3 text-muted-foreground text-sm">No members yet.</div>
+						}
+						for _, m := range data.Members {
+							<div class="px-4 py-3 flex justify-between items-center">
+								<div>
+									<a href={ templ.SafeURL("/" + m.Username) } class="text-foreground hover:underline font-medium">{ m.Username }</a>
+									<span class="ml-2 text-xs text-muted-foreground capitalize">{ m.Role }</span>
+								</div>
+								@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
+									"hx-delete":  "/api/orgs/" + data.Org.Name + "/members/" + m.Username,
+									"hx-target":  "#org-members-list",
+									"hx-swap":    "outerHTML",
+									"hx-confirm": "Remove " + m.Username + " from this organization?",
+									"type":       "button",
+								}) {
+									Remove
+								}
 							</div>
-							<button
-								hx-delete={ "/api/orgs/" + data.Org.Name + "/members/" + m.Username }
-								hx-target="#org-members-list"
-								hx-swap="outerHTML"
-								hx-confirm={ "Remove " + m.Username + " from this organization?" }
-								class="text-xs text-red-600 hover:underline">
-								Remove
-							</button>
-						</div>
-					}
-				</div>
-			</div>
-			<div class="bg-white border border-red-200 rounded-lg p-6">
-				<h2 class="text-lg font-semibold text-red-700 mb-2">Transfer Ownership</h2>
-				<p class="text-sm text-gray-600 mb-4">Transfer ownership of this organization to another member. You will be demoted to member.</p>
-				<form method="POST" action={ templ.SafeURL("/api/orgs/" + data.Org.Name + "/transfer") } onsubmit="return confirm('Transfer this organization? You will lose owner access.')">
-					<div class="flex gap-3">
-						<input type="text" name="new_owner" placeholder="New owner username" required class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"/>
-						<button type="submit" class="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700">Transfer</button>
+						}
 					</div>
-				</form>
-			</div>
+				}
+			}
+			@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
+				@components.CardHeader() {
+					@components.CardTitle(2) {
+						<span class="text-destructive">Transfer Ownership</span>
+					}
+					@components.CardDescription() {
+						Transfer ownership of this organization to another member. You will be demoted to member.
+					}
+				}
+				@components.CardContent() {
+					<form method="POST" action={ templ.SafeURL("/api/orgs/" + data.Org.Name + "/transfer") } onsubmit="return confirm('Transfer this organization? You will lose owner access.')">
+						<div class="flex gap-3">
+							<label for="org-transfer-new-owner" class="sr-only">New owner username</label>
+							@components.Input(templ.Attributes{
+								"id":          "org-transfer-new-owner",
+								"type":        "text",
+								"name":        "new_owner",
+								"placeholder": "New owner username",
+								"required":    "required",
+								"class":       "flex-1",
+							})
+							@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+								Transfer
+							}
+						</div>
+					</form>
+				}
+			}
 		</div>
 	}
 }

@@ -2,6 +2,7 @@ package pages
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -14,22 +15,24 @@ templ Gists(data view.GistsData) {
 			<div class="flex items-center justify-between mb-6">
 				<h1 class="text-2xl font-bold">Explore Gists</h1>
 				if data.CurrentUser != nil {
-					<a href="/gists/new" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium">New Gist</a>
+					@components.LinkButton("/gists/new", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
+						New Gist
+					}
 				}
 			</div>
 			if len(data.Gists) > 0 {
 				<ul class="space-y-4">
 					for _, g := range data.Gists {
-						<li class="border border-gray-200 rounded p-4">
+						<li class="rounded-md border border-border bg-card p-4">
 							<div class="flex items-center justify-between mb-1">
-								<a href={ templ.SafeURL("/gists/" + g.ID) } class="text-blue-600 hover:underline font-medium">
+								<a href={ templ.SafeURL("/gists/" + g.ID) } class="text-foreground hover:underline font-medium">
 									if g.Description != "" {
 										{ g.Description }
 									} else {
-										<span class="text-gray-400 italic">No description</span>
+										<span class="text-muted-foreground italic">No description</span>
 									}
 								</a>
-								<span class="text-xs text-gray-400">
+								<span class="text-xs text-muted-foreground">
 									if g.Public {
 										Public
 									} else {
@@ -37,9 +40,9 @@ templ Gists(data view.GistsData) {
 									}
 								</span>
 							</div>
-							<div class="text-sm text-gray-500">
+							<div class="text-sm text-muted-foreground">
 								by <a href={ templ.SafeURL("/" + g.OwnerName) } class="hover:underline">{ g.OwnerName }</a>
-								&middot; { g.CreatedAt.Format("Jan 2, 2006") }
+								&middot; <time datetime={ g.CreatedAt.UTC().Format(time.RFC3339) }>{ g.CreatedAt.Format("Jan 2, 2006") }</time>
 							</div>
 						</li>
 					}

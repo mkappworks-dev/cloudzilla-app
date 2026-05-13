@@ -2,106 +2,151 @@ package pages
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ Refs(data view.RefsData) {
 	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" · Branches & Tags") {
 		<div class="space-y-6">
-			<div class="bg-white border border-gray-200 rounded-lg p-4">
-				<div class="flex items-center gap-2 text-sm text-gray-600">
-					<a href={ templ.SafeURL("/"+data.Owner) } class="hover:text-blue-600 hover:underline font-medium">{ data.Owner }</a>
-					<span class="text-gray-400">/</span>
-					<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName) } class="hover:text-blue-600 hover:underline font-medium">{ data.RepoName }</a>
-					<span class="text-gray-400">/</span>
-					<span class="font-medium text-gray-900">Branches &amp; Tags</span>
+			<div class="rounded-md border border-border bg-card p-4">
+				<div class="flex items-center gap-2 text-sm text-muted-foreground">
+					<a href={ templ.SafeURL("/"+data.Owner) } class="hover:text-foreground hover:underline font-medium">{ data.Owner }</a>
+					<span class="text-muted-foreground" aria-hidden="true">/</span>
+					<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName) } class="hover:text-foreground hover:underline font-medium">{ data.RepoName }</a>
+					<span class="text-muted-foreground" aria-hidden="true">/</span>
+					<span class="font-medium text-foreground">Branches &amp; Tags</span>
 				</div>
 			</div>
 			<!-- Branches -->
-			<div class="bg-white border border-gray-200 rounded-lg">
-				<div class="px-4 py-3 border-b border-gray-200">
-					<h2 class="font-semibold text-gray-900">Branches</h2>
+			<div class="rounded-md border border-border bg-card">
+				<div class="px-4 py-3 border-b border-border">
+					<h2 class="font-semibold text-foreground">Branches</h2>
 				</div>
 				<div id="branches-list">
 					if len(data.Branches) > 0 {
 						for _, b := range data.Branches {
-							<div class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
+							<div class="flex items-center justify-between px-4 py-3 hover:bg-muted/50 border-b border-border last:border-b-0">
 								<div class="flex items-center gap-2 min-w-0">
-									<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/tree/"+b.Name) } class="font-mono text-sm text-blue-600 hover:underline truncate">{ b.Name }</a>
+									<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/tree/"+b.Name) } class="font-mono text-sm text-foreground hover:underline truncate">{ b.Name }</a>
 									if b.IsDefault {
-										<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded shrink-0">default</span>
+										<span class="shrink-0">
+											@components.Badge(components.BadgeSuccess) {
+												default
+											}
+										</span>
 									}
-									<span class="text-xs text-gray-400 font-mono shrink-0">{ b.Hash }</span>
+									<span class="text-xs text-muted-foreground font-mono shrink-0">{ b.Hash }</span>
 								</div>
 								<div class="flex items-center gap-3 ml-4 shrink-0">
-									<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commits/"+b.Name) } class="text-xs text-gray-500 hover:text-blue-600">commits</a>
+									<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commits/"+b.Name) } class="text-xs text-muted-foreground hover:text-foreground">commits</a>
 									if data.CanWrite && !b.IsDefault {
-										<button hx-delete={ "/api/repos/"+data.Owner+"/"+data.RepoName+"/branches?name="+b.Name } hx-target="#branches-list" hx-swap="outerHTML" hx-confirm={ "Delete branch '"+b.Name+"'?" } class="text-xs text-red-600 hover:text-red-800 border border-red-200 px-2 py-1 rounded hover:bg-red-50">Delete</button>
+										@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+											"hx-delete":  "/api/repos/"+data.Owner+"/"+data.RepoName+"/branches?name="+b.Name,
+											"hx-target":  "#branches-list",
+											"hx-swap":    "outerHTML",
+											"hx-confirm": "Delete branch '"+b.Name+"'?",
+											"class":      "text-destructive hover:bg-destructive/10 border-destructive/40",
+											"type":       "button",
+											"aria-label": "Delete branch "+b.Name,
+										}) {
+											Delete
+										}
 									}
 								</div>
 							</div>
 						}
 					} else {
-						<div class="px-4 py-8 text-center text-gray-500 text-sm">No branches yet.</div>
+						<div class="px-4 py-8 text-center text-muted-foreground text-sm">No branches yet.</div>
 					}
 				</div>
 				if data.CanWrite {
-					<div class="px-4 py-4 border-t border-gray-200 bg-gray-50">
+					<div class="px-4 py-4 border-t border-border bg-muted/40">
 						<form hx-post={ "/api/repos/"+data.Owner+"/"+data.RepoName+"/branches" } hx-target="#branches-list" hx-swap="outerHTML" class="flex flex-wrap gap-2 items-end">
 							<div>
-								<label class="block text-xs font-medium text-gray-600 mb-1">Branch name</label>
-								<input name="name" placeholder="new-branch-name" required class="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"/>
+								<label for="new-branch-name" class="block text-xs font-medium text-muted-foreground mb-1">Branch name</label>
+								@components.Input(templ.Attributes{
+									"id":          "new-branch-name",
+									"name":        "name",
+									"placeholder": "new-branch-name",
+									"required":    "required",
+								})
 							</div>
 							<div>
-								<label class="block text-xs font-medium text-gray-600 mb-1">From ref</label>
-								<input name="from" value={ data.Repo.DefaultBranch } placeholder="branch, tag, or SHA" class="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"/>
+								<label for="new-branch-from" class="block text-xs font-medium text-muted-foreground mb-1">From ref</label>
+								@components.Input(templ.Attributes{
+									"id":          "new-branch-from",
+									"name":        "from",
+									"value":       data.Repo.DefaultBranch,
+									"placeholder": "branch, tag, or SHA",
+								})
 							</div>
-							<button type="submit" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors">
+							@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
 								Create Branch
-							</button>
+							}
 						</form>
 					</div>
 				}
 			</div>
 			<!-- Tags -->
-			<div class="bg-white border border-gray-200 rounded-lg">
-				<div class="px-4 py-3 border-b border-gray-200">
-					<h2 class="font-semibold text-gray-900">Tags</h2>
+			<div class="rounded-md border border-border bg-card">
+				<div class="px-4 py-3 border-b border-border">
+					<h2 class="font-semibold text-foreground">Tags</h2>
 				</div>
 				<div id="tags-list">
 					if len(data.Tags) > 0 {
 						for _, t := range data.Tags {
-							<div class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
+							<div class="flex items-center justify-between px-4 py-3 hover:bg-muted/50 border-b border-border last:border-b-0">
 								<div class="flex items-center gap-2 min-w-0">
-									<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/tree/"+t.Name) } class="font-mono text-sm text-blue-600 hover:underline truncate">{ t.Name }</a>
-									<span class="text-xs text-gray-400 font-mono shrink-0">{ t.Hash }</span>
+									<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/tree/"+t.Name) } class="font-mono text-sm text-foreground hover:underline truncate">{ t.Name }</a>
+									<span class="text-xs text-muted-foreground font-mono shrink-0">{ t.Hash }</span>
 								</div>
 								<div class="flex items-center gap-3 ml-4 shrink-0">
-									<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commits/"+t.Name) } class="text-xs text-gray-500 hover:text-blue-600">commits</a>
+									<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commits/"+t.Name) } class="text-xs text-muted-foreground hover:text-foreground">commits</a>
 									if data.CanWrite {
-										<button hx-delete={ "/api/repos/"+data.Owner+"/"+data.RepoName+"/tags?name="+t.Name } hx-target="#tags-list" hx-swap="outerHTML" hx-confirm={ "Delete tag '"+t.Name+"'?" } class="text-xs text-red-600 hover:text-red-800 border border-red-200 px-2 py-1 rounded hover:bg-red-50">Delete</button>
+										@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+											"hx-delete":  "/api/repos/"+data.Owner+"/"+data.RepoName+"/tags?name="+t.Name,
+											"hx-target":  "#tags-list",
+											"hx-swap":    "outerHTML",
+											"hx-confirm": "Delete tag '"+t.Name+"'?",
+											"class":      "text-destructive hover:bg-destructive/10 border-destructive/40",
+											"type":       "button",
+											"aria-label": "Delete tag "+t.Name,
+										}) {
+											Delete
+										}
 									}
 								</div>
 							</div>
 						}
 					} else {
-						<div class="px-4 py-8 text-center text-gray-500 text-sm">No tags yet.</div>
+						<div class="px-4 py-8 text-center text-muted-foreground text-sm">No tags yet.</div>
 					}
 				</div>
 				if data.CanWrite {
-					<div class="px-4 py-4 border-t border-gray-200 bg-gray-50">
+					<div class="px-4 py-4 border-t border-border bg-muted/40">
 						<form hx-post={ "/api/repos/"+data.Owner+"/"+data.RepoName+"/tags" } hx-target="#tags-list" hx-swap="outerHTML" class="flex flex-wrap gap-2 items-end">
 							<div>
-								<label class="block text-xs font-medium text-gray-600 mb-1">Tag name</label>
-								<input name="name" placeholder="v1.0.0" required class="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"/>
+								<label for="new-tag-name" class="block text-xs font-medium text-muted-foreground mb-1">Tag name</label>
+								@components.Input(templ.Attributes{
+									"id":          "new-tag-name",
+									"name":        "name",
+									"placeholder": "v1.0.0",
+									"required":    "required",
+								})
 							</div>
 							<div>
-								<label class="block text-xs font-medium text-gray-600 mb-1">From ref</label>
-								<input name="from" value={ data.Repo.DefaultBranch } placeholder="branch, tag, or SHA" class="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"/>
+								<label for="new-tag-from" class="block text-xs font-medium text-muted-foreground mb-1">From ref</label>
+								@components.Input(templ.Attributes{
+									"id":          "new-tag-from",
+									"name":        "from",
+									"value":       data.Repo.DefaultBranch,
+									"placeholder": "branch, tag, or SHA",
+								})
 							</div>
-							<button type="submit" class="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors">
+							@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
 								Create Tag
-							</button>
+							}
 						</form>
 					</div>
 				}

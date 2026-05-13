@@ -1,0 +1,115 @@
+package components
+
+// DropdownMenuAlign controls which edge of the trigger the menu pops out from.
+type DropdownMenuAlign string
+
+const (
+	DropdownAlignStart DropdownMenuAlign = "start" // left edge of trigger
+	DropdownAlignEnd   DropdownMenuAlign = "end"   // right edge of trigger (default for nav menus)
+)
+
+// DropdownMenu is the Alpine.js-backed root. It establishes an `open` scope
+// that DropdownMenuTrigger and DropdownMenuContent both read.
+//
+// Example:
+//
+//	@components.DropdownMenu() {
+//	  @components.DropdownMenuTrigger(templ.Attributes{"aria-label": "Account"}) {
+//	    @components.Avatar(name, components.AvatarSizeDefault, "")
+//	  }
+//	  @components.DropdownMenuContent(components.DropdownAlignEnd) {
+//	    @components.DropdownMenuLabel() { "Signed in as Daisy" }
+//	    @components.DropdownMenuSeparator()
+//	    @components.DropdownMenuLink("/settings", nil) { "Settings" }
+//	    @components.DropdownMenuLink("/logout", nil) { "Sign out" }
+//	  }
+//	}
+templ DropdownMenu() {
+	<div x-data="{ open: false }" class="relative inline-block">
+		{ children... }
+	</div>
+}
+
+// DropdownMenuTrigger is the button that opens/closes the menu.
+// Pass styling via attrs — e.g. templ.Attributes{"class": "h-7 w-7 ..."}.
+templ DropdownMenuTrigger(attrs templ.Attributes) {
+	<button
+		type="button"
+		x-on:click="open = !open"
+		x-on:click.outside="open = false"
+		x-on:keydown.escape.window="open = false"
+		:aria-expanded="open ? 'true' : 'false'"
+		aria-haspopup="menu"
+		{ attrs... }
+	>
+		{ children... }
+	</button>
+}
+
+// DropdownMenuContent is the floating panel. Hidden until `open` is true.
+templ DropdownMenuContent(align DropdownMenuAlign) {
+	if align == DropdownAlignEnd {
+		<div
+			x-show="open"
+			x-cloak
+			x-transition.opacity.duration.100ms
+			role="menu"
+			class="absolute right-0 top-full mt-1.5 z-50 min-w-[12rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 text-sm"
+		>
+			{ children... }
+		</div>
+	} else {
+		<div
+			x-show="open"
+			x-cloak
+			x-transition.opacity.duration.100ms
+			role="menu"
+			class="absolute left-0 top-full mt-1.5 z-50 min-w-[12rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 text-sm"
+		>
+			{ children... }
+		</div>
+	}
+}
+
+// DropdownMenuItem is a button-style row. Use for actions that don't navigate (e.g. logout POST forms).
+templ DropdownMenuItem(attrs templ.Attributes) {
+	<button
+		type="button"
+		role="menuitem"
+		x-on:click="open = false"
+		class="flex w-full items-center gap-2 px-2 py-1.5 rounded-sm text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:opacity-50 disabled:pointer-events-none"
+		{ attrs... }
+	>
+		{ children... }
+	</button>
+}
+
+// DropdownMenuLink is the anchor-style row. Use for navigation entries.
+templ DropdownMenuLink(href string, attrs templ.Attributes) {
+	<a
+		href={ templ.SafeURL(href) }
+		role="menuitem"
+		x-on:click="open = false"
+		class="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none"
+		{ attrs... }
+	>
+		{ children... }
+	</a>
+}
+
+// DropdownMenuLabel renders a small section heading inside the menu.
+templ DropdownMenuLabel() {
+	<div class="px-2 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+		{ children... }
+	</div>
+}
+
+// DropdownMenuSeparator is a thin divider between item groups.
+templ DropdownMenuSeparator() {
+	<div role="separator" class="my-1 h-px bg-border"></div>
+}
+
+// DropdownMenuShortcut renders a right-aligned keyboard hint inside an item.
+templ DropdownMenuShortcut() {
+	<span class="ml-auto text-[11px] tracking-wider text-muted-foreground">{ children... }</span>
+}

@@ -2,7 +2,10 @@ package pages
 
 import (
 	"strconv"
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -10,92 +13,119 @@ templ ReleaseDetail(data view.ReleaseDetailData) {
 	@layout.Base(data.BasePage, releaseDetailTitle(data)+" · "+data.Owner+"/"+data.RepoName) {
 		<div class="space-y-6">
 			<div>
-				<nav class="text-sm text-gray-500 mb-2">
+				<nav class="text-sm text-muted-foreground mb-2" aria-label="Breadcrumb">
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.Owner }/{ data.RepoName }</a>
-					<span class="mx-1">/</span>
+					<span class="mx-1" aria-hidden="true">/</span>
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases") } class="hover:underline">Releases</a>
-					<span class="mx-1">/</span>
+					<span class="mx-1" aria-hidden="true">/</span>
 					<span class="font-mono">{ data.Release.TagName }</span>
 				</nav>
 			</div>
-			<div class="bg-white border border-gray-200 rounded-lg p-6">
-				<div class="flex items-start justify-between gap-4 mb-4">
-					<div>
-						<div class="flex items-center gap-2 flex-wrap mb-1">
-							<h1 class="text-2xl font-bold">
-								if data.Release.Name != "" {
-									{ data.Release.Name }
-								} else {
-									{ data.Release.TagName }
-								}
-							</h1>
-							<code class="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded text-sm font-mono">{ data.Release.TagName }</code>
-							if data.Release.IsPrerelease {
-								<span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 border border-yellow-300 rounded text-xs font-medium">Pre-release</span>
-							}
-							if data.Release.IsDraft {
-								<span class="px-2 py-0.5 bg-gray-100 text-gray-600 border border-gray-300 rounded text-xs font-medium">Draft</span>
-							}
-						</div>
-						<p class="text-sm text-gray-500">
-							if data.Release.PublishedAt != nil {
-								Published { data.Release.PublishedAt.Format("January 2, 2006") }
-							} else {
-								Not yet published
-							}
-						</p>
-					</div>
-					if data.CanWrite {
-						<div class="flex items-center gap-2 shrink-0">
-							<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) } hx-confirm="Delete this release?" class="px-3 py-1.5 text-red-600 border border-red-300 rounded text-sm font-medium hover:bg-red-50 transition-colors">
-								Delete
-							</button>
-						</div>
-					}
-				</div>
-				if data.BodyHTML != "" {
-					<div class="prose prose-sm max-w-none border-t border-gray-100 pt-4 mt-4">
-						@templ.Raw(data.BodyHTML)
-					</div>
-				} else {
-					<p class="text-gray-500 text-sm border-t border-gray-100 pt-4 mt-4 italic">No description provided.</p>
-				}
-			</div>
-			if data.CanWrite {
-				<div class="bg-white border border-gray-200 rounded-lg p-6">
-					<h2 class="text-lg font-semibold mb-4">Edit Release</h2>
-					<form hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) } hx-target="body" class="space-y-4">
-						<div class="grid grid-cols-2 gap-4">
-							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">Tag Name <span class="text-red-500">*</span></label>
-								<input type="text" name="tag_name" required value={ data.Release.TagName } class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-							</div>
-							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">Release Title</label>
-								<input type="text" name="name" value={ data.Release.Name } class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-							</div>
-						</div>
+			@components.Card(nil) {
+				@components.CardContent() {
+					<div class="flex items-start justify-between gap-4 mb-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-							<textarea name="body" rows="8" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">{ data.Release.Body }</textarea>
+							<div class="flex items-center gap-2 flex-wrap mb-1">
+								<h1 class="text-2xl font-bold">
+									if data.Release.Name != "" {
+										{ data.Release.Name }
+									} else {
+										{ data.Release.TagName }
+									}
+								</h1>
+								<code class="px-2 py-0.5 bg-muted text-foreground border border-border rounded text-sm font-mono">{ data.Release.TagName }</code>
+								if data.Release.IsPrerelease {
+									@components.Badge(components.BadgeWarning) {
+										Pre-release
+									}
+								}
+								if data.Release.IsDraft {
+									@components.Badge(components.BadgeDraft) {
+										Draft
+									}
+								}
+							</div>
+							<p class="text-sm text-muted-foreground">
+								if data.Release.PublishedAt != nil {
+									Published <time datetime={ data.Release.PublishedAt.UTC().Format(time.RFC3339) }>{ data.Release.PublishedAt.Format("January 2, 2006") }</time>
+								} else {
+									Not yet published
+								}
+							</p>
 						</div>
-						<div class="flex items-center gap-6">
-							<label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-								<input type="checkbox" name="is_prerelease" value="true" checked?={ data.Release.IsPrerelease } class="rounded"/>
-								Pre-release
-							</label>
-							<label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-								<input type="checkbox" name="is_draft" value="true" checked?={ data.Release.IsDraft } class="rounded"/>
-								Draft
-							</label>
+						if data.CanWrite {
+							<div class="flex items-center gap-2 shrink-0">
+								@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+									"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10),
+									"hx-confirm": "Delete this release?",
+									"class":      "text-destructive border-destructive/40 hover:bg-destructive/10",
+								}) {
+									Delete
+								}
+							</div>
+						}
+					</div>
+					if data.BodyHTML != "" {
+						<div class="prose prose-sm max-w-none border-t border-border pt-4 mt-4">
+							@templ.Raw(data.BodyHTML)
 						</div>
-						<div class="flex justify-end">
-							<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
-								Save Changes
-							</button>
-						</div>
-					</form>
-				</div>
+					} else {
+						<p class="text-muted-foreground text-sm border-t border-border pt-4 mt-4 italic">No description provided.</p>
+					}
+				}
+			}
+			if data.CanWrite {
+				@components.Card(nil) {
+					@components.CardHeader() {
+						@components.CardTitle(2) {
+							Edit Release
+						}
+					}
+					@components.CardContent() {
+						<form hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) } hx-target="body" class="space-y-4">
+							<div class="grid grid-cols-2 gap-4">
+								<div>
+									<label for="edit-release-tag-name" class="block text-sm font-medium text-foreground mb-1">Tag Name <span class="text-destructive" aria-hidden="true">*</span></label>
+									@components.Input(templ.Attributes{
+										"id":       "edit-release-tag-name",
+										"type":     "text",
+										"name":     "tag_name",
+										"required": "required",
+										"value":    data.Release.TagName,
+									})
+								</div>
+								<div>
+									<label for="edit-release-name" class="block text-sm font-medium text-foreground mb-1">Release Title</label>
+									@components.Input(templ.Attributes{
+										"id":    "edit-release-name",
+										"type":  "text",
+										"name":  "name",
+										"value": data.Release.Name,
+									})
+								</div>
+							</div>
+							<div>
+								<label for="edit-release-body" class="block text-sm font-medium text-foreground mb-1">Description</label>
+								<textarea id="edit-release-body" name="body" rows="8" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono">{ data.Release.Body }</textarea>
+							</div>
+							<div class="flex items-center gap-6">
+								<label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+									<input type="checkbox" name="is_prerelease" value="true" checked?={ data.Release.IsPrerelease } class="rounded"/>
+									Pre-release
+								</label>
+								<label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+									<input type="checkbox" name="is_draft" value="true" checked?={ data.Release.IsDraft } class="rounded"/>
+									Draft
+								</label>
+							</div>
+							<div class="flex justify-end">
+								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+									Save Changes
+								}
+							</div>
+						</form>
+					}
+				}
 			}
 		</div>
 	}

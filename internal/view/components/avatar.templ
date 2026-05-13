@@ -1,0 +1,58 @@
+package components
+
+import "strings"
+
+// AvatarSize controls the diameter of the avatar.
+type AvatarSize string
+
+const (
+	AvatarSizeXS      AvatarSize = "xs"      // 20px — inline with text
+	AvatarSizeSM      AvatarSize = "sm"      // 24px — list rows
+	AvatarSizeDefault AvatarSize = "default" // 28px — nav bar
+	AvatarSizeLG      AvatarSize = "lg"      // 40px — profile chrome
+)
+
+func avatarSizeClass(s AvatarSize) string {
+	switch s {
+	case AvatarSizeXS:
+		return "h-5 w-5 text-[10px]"
+	case AvatarSizeSM:
+		return "h-6 w-6 text-[10px]"
+	case AvatarSizeLG:
+		return "h-10 w-10 text-sm"
+	default:
+		return "h-7 w-7 text-xs"
+	}
+}
+
+// initials returns 1–2 letters from a name, e.g. "Malith Kuruppu" → "MK", "daisy" → "D".
+func initials(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "?"
+	}
+	parts := strings.Fields(name)
+	if len(parts) == 1 {
+		return strings.ToUpper(parts[0][:1])
+	}
+	return strings.ToUpper(parts[0][:1] + parts[len(parts)-1][:1])
+}
+
+// Avatar renders an initials-only avatar with a subtle bordered background.
+// `name` is the full display name; the component computes initials from it.
+// `alt` is what screen readers will announce — usually the same as `name`,
+// but pass "" for purely decorative avatars to keep them out of the a11y tree.
+templ Avatar(name string, size AvatarSize, alt string) {
+	if alt == "" {
+		<span
+			class={ "inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground", avatarSizeClass(size) }
+			aria-hidden="true"
+		>{ initials(name) }</span>
+	} else {
+		<span
+			class={ "inline-grid place-items-center rounded-full bg-muted border border-border font-medium text-muted-foreground", avatarSizeClass(size) }
+			role="img"
+			aria-label={ alt }
+		>{ initials(name) }</span>
+	}
+}

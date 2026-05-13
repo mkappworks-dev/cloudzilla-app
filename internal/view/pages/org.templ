@@ -2,65 +2,72 @@ package pages
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ Org(data view.OrgData) {
 	@layout.Base(data.BasePage, data.Org.Name) {
 		<div class="space-y-6">
-			<div class="bg-white border border-gray-200 rounded-lg p-6">
-				<div class="flex justify-between items-start">
-					<div>
-						<h1 class="text-3xl font-bold">{ data.Org.Name }</h1>
-						if data.Org.DisplayName != "" {
-							<p class="text-gray-600 text-lg mt-1">{ data.Org.DisplayName }</p>
-						}
-						if data.Org.Description != "" {
-							<p class="text-gray-500 mt-2">{ data.Org.Description }</p>
+			@components.Card(nil) {
+				@components.CardContent() {
+					<div class="flex justify-between items-start">
+						<div>
+							<h1 class="text-3xl font-bold">{ data.Org.Name }</h1>
+							if data.Org.DisplayName != "" {
+								<p class="text-muted-foreground text-lg mt-1">{ data.Org.DisplayName }</p>
+							}
+							if data.Org.Description != "" {
+								<p class="text-muted-foreground mt-2">{ data.Org.Description }</p>
+							}
+						</div>
+						if data.CanManage {
+							@components.LinkButton("/orgs/"+data.Org.Name+"/settings", components.ButtonSecondary, components.ButtonSizeSM, nil) {
+								Settings
+							}
 						}
 					</div>
-					if data.CanManage {
-						<a href={ templ.SafeURL("/orgs/" + data.Org.Name + "/settings") } class="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm">Settings</a>
-					}
-				</div>
-			</div>
+				}
+			}
 			<div class="grid grid-cols-3 gap-6">
 				<div class="col-span-2 space-y-4">
 					<h2 class="text-xl font-semibold">Repositories</h2>
 					if len(data.Repos) > 0 {
 						<div class="space-y-2">
 							for _, repo := range data.Repos {
-								<a href={ templ.SafeURL("/" + data.Org.Name + "/" + repo.Name) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all">
+								<a href={ templ.SafeURL("/" + data.Org.Name + "/" + repo.Name) } class="block rounded-md border border-border bg-card p-4 hover:border-foreground/30 hover:shadow-sm transition-all">
 									<div class="flex justify-between items-center">
-										<span class="font-medium text-blue-600">{ repo.Name }</span>
-										<span class={ "text-xs px-2 py-1 rounded-full", templ.KV("bg-yellow-100 text-yellow-700", repo.Private), templ.KV("bg-green-100 text-green-700", !repo.Private) }>
-											if repo.Private {
+										<span class="font-medium text-foreground">{ repo.Name }</span>
+										if repo.Private {
+											@components.Badge(components.BadgeWarning) {
 												Private
-											} else {
+											}
+										} else {
+											@components.Badge(components.BadgeSuccess) {
 												Public
 											}
-										</span>
+										}
 									</div>
 									if repo.Description != "" {
-										<p class="text-gray-500 text-sm mt-1">{ repo.Description }</p>
+										<p class="text-muted-foreground text-sm mt-1">{ repo.Description }</p>
 									}
 								</a>
 							}
 						</div>
 					} else {
-						<p class="text-gray-500">No repositories yet.</p>
+						<p class="text-muted-foreground">No repositories yet.</p>
 					}
 				</div>
 				<div class="space-y-4">
 					<h2 class="text-xl font-semibold">Members</h2>
-					<div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+					<div class="rounded-md border border-border bg-card divide-y divide-border">
 						if len(data.Members) == 0 {
-							<div class="px-4 py-3 text-gray-500 text-sm">No members.</div>
+							<div class="px-4 py-3 text-muted-foreground text-sm">No members.</div>
 						}
 						for _, m := range data.Members {
 							<div class="px-4 py-3 flex justify-between items-center">
-								<a href={ templ.SafeURL("/" + m.Username) } class="text-blue-600 hover:underline">{ m.Username }</a>
-								<span class="text-xs text-gray-500 capitalize">{ m.Role }</span>
+								<a href={ templ.SafeURL("/" + m.Username) } class="text-foreground hover:underline">{ m.Username }</a>
+								<span class="text-xs text-muted-foreground capitalize">{ m.Role }</span>
 							</div>
 						}
 					</div>

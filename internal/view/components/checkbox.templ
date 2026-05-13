@@ -1,0 +1,74 @@
+package components
+
+// Checkbox renders a styled native <input type="checkbox">.
+// Caller is responsible for the surrounding <label> — typically wrap both
+// the Checkbox and the visible label text in a single <label> so the click
+// target is the entire row.
+//
+// Example:
+//
+//	<label class="flex items-center gap-2 cursor-pointer">
+//	  @components.Checkbox(templ.Attributes{"name": "private", "id": "private", "checked": "checked"})
+//	  <span class="text-sm">Make repository private</span>
+//	</label>
+templ Checkbox(attrs templ.Attributes) {
+	<input
+		type="checkbox"
+		class="h-4 w-4 shrink-0 rounded border border-input bg-transparent accent-foreground checked:bg-primary checked:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+		{ attrs... }
+	/>
+}
+
+// Switch renders a toggle-style checkbox with a sliding visual indicator.
+// Like Checkbox, wrap the whole thing in a <label> for click semantics.
+//
+// Uses the native <input type="checkbox" role="switch"> for accessibility —
+// screen readers announce it as "switch" and report on/off state via the
+// `checked` attribute.
+//
+// Example:
+//
+//	<label class="flex items-center gap-3 cursor-pointer">
+//	  @components.Switch(templ.Attributes{"name": "notifications", "checked": "checked"})
+//	  <span class="text-sm">Email notifications</span>
+//	</label>
+templ Switch(attrs templ.Attributes) {
+	<span class="relative inline-flex items-center">
+		<input
+			type="checkbox"
+			role="switch"
+			class="peer sr-only"
+			{ attrs... }
+		/>
+		<span
+			aria-hidden="true"
+			class="relative w-9 h-5 bg-input rounded-full transition-colors peer-checked:bg-primary peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-ring peer-focus-visible:outline-offset-2 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed after:absolute after:content-[''] after:top-0.5 after:left-0.5 after:bg-background after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-4"
+		></span>
+	</span>
+}
+
+// Radio renders a styled native <input type="radio">.
+// Same wrapping pattern as Checkbox — combine multiple Radios under a shared
+// `name` attribute, each wrapped in its own <label>, ideally inside a
+// <fieldset> with a <legend> describing the group.
+//
+// Example:
+//
+//	<fieldset class="space-y-2">
+//	  <legend class="text-sm font-medium">Visibility</legend>
+//	  <label class="flex items-center gap-2">
+//	    @components.Radio(templ.Attributes{"name": "vis", "value": "public", "checked": "checked"})
+//	    <span class="text-sm">Public</span>
+//	  </label>
+//	  <label class="flex items-center gap-2">
+//	    @components.Radio(templ.Attributes{"name": "vis", "value": "private"})
+//	    <span class="text-sm">Private</span>
+//	  </label>
+//	</fieldset>
+templ Radio(attrs templ.Attributes) {
+	<input
+		type="radio"
+		class="h-4 w-4 shrink-0 border border-input bg-transparent accent-foreground checked:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+		{ attrs... }
+	/>
+}

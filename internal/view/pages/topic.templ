@@ -2,8 +2,10 @@ package pages
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -11,31 +13,39 @@ templ Topic(data view.TopicData) {
 	@layout.Base(data.BasePage, "Topic: "+data.TopicName) {
 		<div class="max-w-4xl mx-auto py-8 px-4">
 			<div class="flex items-center gap-3 mb-6">
-				<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">{ data.TopicName }</span>
+				@components.Badge(components.BadgeOutline) {
+					{ data.TopicName }
+				}
 				<h1 class="text-2xl font-bold">Repositories</h1>
 			</div>
 			if len(data.Repos) > 0 {
 				<ul class="space-y-4">
 					for _, repo := range data.Repos {
-						<li class="border border-gray-200 rounded p-4">
+						<li class="rounded-md border border-border bg-card p-4">
 							<div class="flex items-center gap-2 mb-1">
-								<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-blue-600 hover:underline font-medium">{ repo.OwnerName }/{ repo.Name }</a>
+								<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-foreground hover:underline font-medium">{ repo.OwnerName }/{ repo.Name }</a>
 							</div>
 							if repo.Description != "" {
-								<p class="text-sm text-gray-600">{ repo.Description }</p>
+								<p class="text-sm text-muted-foreground">{ repo.Description }</p>
 							}
-							<div class="text-xs text-gray-400 mt-1">Updated { repo.UpdatedAt.Format("Jan 2, 2006") }</div>
+							<div class="text-xs text-muted-foreground mt-1">
+								Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ repo.UpdatedAt.Format("Jan 2, 2006") }</time>
+							</div>
 						</li>
 					}
 				</ul>
 				<div class="mt-6 flex gap-2">
 					if data.Page > 1 {
-						<a href={ templ.SafeURL("?page=" + strconv.Itoa(data.Page-1)) } class="px-3 py-1 border rounded text-sm">Previous</a>
+						@components.LinkButton("?page="+strconv.Itoa(data.Page-1), components.ButtonOutline, components.ButtonSizeSM, nil) {
+							Previous
+						}
 					}
-					<a href={ templ.SafeURL("?page=" + strconv.Itoa(data.Page+1)) } class="px-3 py-1 border rounded text-sm">Next</a>
+					@components.LinkButton("?page="+strconv.Itoa(data.Page+1), components.ButtonOutline, components.ButtonSizeSM, nil) {
+						Next
+					}
 				</div>
 			} else {
-				<p class="text-gray-500">No public repositories for this topic yet.</p>
+				<p class="text-muted-foreground">No public repositories for this topic yet.</p>
 			}
 		</div>
 	}

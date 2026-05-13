@@ -1,0 +1,41 @@
+package components
+
+// Input renders a styled text input. The caller is responsible for the surrounding
+// <label> — pass `id` via attrs and reference it with `for=` on a sibling <label>,
+// OR provide an `aria-label` via attrs for icon-only / clearly-positioned inputs.
+//
+// `attrs` is any combination of standard input attributes: type, name, id, value,
+// placeholder, required, autocomplete, aria-*, hx-*, etc.
+templ Input(attrs templ.Attributes) {
+	<input
+		class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+		{ attrs... }
+	/>
+}
+
+// SearchInput renders a search-styled input with a leading magnifying-glass icon
+// and an optional trailing keyboard-shortcut hint. Always pair with a <label>
+// (use class="sr-only" if you want a visually-hidden label).
+//
+// `kbdHint` is the text shown in the right-side <kbd> (e.g. "⌘K"). Pass "" to omit.
+templ SearchInput(attrs templ.Attributes, kbdHint string) {
+	<div class="relative">
+		<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+		<input
+			type="search"
+			class={ "flex h-9 w-full rounded-md border border-input bg-transparent pl-8 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50", templ.KV("pr-12", kbdHint != ""), templ.KV("pr-3", kbdHint == "") }
+			{ attrs... }
+		/>
+		if kbdHint != "" {
+			<kbd class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground font-mono" aria-hidden="true">{ kbdHint }</kbd>
+		}
+	</div>
+}
+
+// Textarea renders a styled textarea. As with Input, the caller provides the <label>.
+templ Textarea(attrs templ.Attributes) {
+	<textarea
+		class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+		{ attrs... }
+	></textarea>
+}

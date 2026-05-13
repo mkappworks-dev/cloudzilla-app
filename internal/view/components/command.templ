@@ -1,0 +1,180 @@
+package components
+
+// CommandPalette renders a Vercel-style ⌘K / Ctrl-K search dialog.
+//
+// It is a native <dialog>, so the browser handles backdrop + ESC + focus trap.
+// Cmd/Ctrl-K is wired up globally to open the first .command-palette on the page.
+//
+// Children are CommandGroup + CommandItem elements. The client-side script
+// filters items by substring match against their textContent and supports
+// arrow-key navigation, with Enter activating the highlighted item.
+//
+// Example:
+//
+//	@components.CommandPalette("global-cmd") {
+//	  @components.CommandGroup("Navigation") {
+//	    @components.CommandItem("/issues") { "Issues" }
+//	    @components.CommandItem("/pulls")  { "Pull requests" }
+//	  }
+//	  @components.CommandGroup("Account") {
+//	    @components.CommandItem("/settings") { "Settings" }
+//	  }
+//	}
+//
+// To open programmatically: document.getElementById("global-cmd").showModal()
+templ CommandPalette(id string) {
+	<dialog
+		id={ id }
+		class="command-palette rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[640px] max-w-[calc(100vw-2rem)] backdrop:bg-foreground/40"
+		aria-label="Command palette"
+	>
+		<div class="flex items-center gap-2 border-b border-border px-3.5 py-3">
+			<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" class="text-muted-foreground" aria-hidden="true">
+				<circle cx="7" cy="7" r="5"/>
+				<path d="M14 14l-3-3"/>
+			</svg>
+			<input
+				data-command-input
+				type="search"
+				placeholder="Type a command or search…"
+				autocomplete="off"
+				autocorrect="off"
+				spellcheck="false"
+				class="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+			/>
+			<kbd class="rounded border border-border px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">ESC</kbd>
+		</div>
+		<div data-command-list class="max-h-[400px] overflow-y-auto p-2">
+			{ children... }
+			<div data-command-empty class="hidden p-8 text-center text-sm text-muted-foreground">No results found.</div>
+		</div>
+		<script>
+			(function(){
+				var dlg = document.currentScript.closest('dialog');
+				if (!dlg || dlg.dataset.cmdInit === '1') return;
+				dlg.dataset.cmdInit = '1';
+
+				var input = dlg.querySelector('[data-command-input]');
+				var listEl = dlg.querySelector('[data-command-list]');
+				var emptyEl = dlg.querySelector('[data-command-empty]');
+				var items = function(){
+					return Array.prototype.slice.call(listEl.querySelectorAll('[data-command-item]:not([hidden])'));
+				};
+				var allItems = Array.prototype.slice.call(listEl.querySelectorAll('[data-command-item]'));
+				var groups = Array.prototype.slice.call(listEl.querySelectorAll('[data-command-group]'));
+				var activeIdx = 0;
+
+				function setActive(i){
+					var visible = items();
+					if (visible.length === 0) { activeIdx = -1; return; }
+					if (i < 0) i = visible.length - 1;
+					if (i >= visible.length) i = 0;
+					activeIdx = i;
+					visible.forEach(function(el, idx){
+						if (idx === activeIdx) {
+							el.setAttribute('data-active', 'true');
+							el.scrollIntoView({block: 'nearest'});
+						} else {
+							el.removeAttribute('data-active');
+						}
+					});
+				}
+
+				function filter(q){
+					q = (q || '').trim().toLowerCase();
+					allItems.forEach(function(el){
+						var t = (el.textContent || '').toLowerCase();
+						el.hidden = q.length > 0 && t.indexOf(q) === -1;
+					});
+					// Hide groups that have no visible items.
+					groups.forEach(function(g){
+						var any = g.querySelector('[data-command-item]:not([hidden])');
+						g.hidden = !any;
+					});
+					var visible = items();
+					emptyEl.classList.toggle('hidden', visible.length > 0);
+					setActive(0);
+				}
+
+				input.addEventListener('input', function(e){ filter(e.target.value); });
+
+				dlg.addEventListener('keydown', function(e){
+					if (e.key === 'ArrowDown') { e.preventDefault(); setActive(activeIdx + 1); }
+					else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(activeIdx - 1); }
+					else if (e.key === 'Enter') {
+						var visible = items();
+						if (activeIdx >= 0 && visible[activeIdx]) {
+							e.preventDefault();
+							visible[activeIdx].click();
+							dlg.close();
+						}
+					}
+				});
+
+				dlg.addEventListener('close', function(){
+					input.value = '';
+					filter('');
+				});
+
+				dlg.addEventListener('cancel', function(){ /* let ESC default close */ });
+
+				filter('');
+			})();
+		</script>
+	</dialog>
+}
+
+// CommandGroup is a labeled section inside a CommandPalette.
+templ CommandGroup(heading string) {
+	<div data-command-group class="mb-1 last:mb-0">
+		<div class="px-2 py-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{ heading }</div>
+		{ children... }
+	</div>
+}
+
+// CommandItem is a single row in a CommandGroup. Pass `href` to make it a link;
+// pass empty `href` together with attrs (e.g. {"onclick": "..."}) for an action.
+templ CommandItem(href string, attrs templ.Attributes) {
+	if href != "" {
+		<a
+			href={ templ.SafeURL(href) }
+			data-command-item
+			class="flex items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-none"
+			{ attrs... }
+		>
+			{ children... }
+		</a>
+	} else {
+		<button
+			type="button"
+			data-command-item
+			class="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-none"
+			{ attrs... }
+		>
+			{ children... }
+		</button>
+	}
+}
+
+// CommandShortcut renders a right-aligned keyboard hint inside an item.
+templ CommandShortcut() {
+	<span class="ml-auto text-[11px] tracking-wider text-muted-foreground">{ children... }</span>
+}
+
+// CommandKHook registers a global ⌘K / Ctrl-K listener that opens the first
+// CommandPalette on the page. Render it once near the end of <body>, alongside
+// ToastContainer.
+templ CommandKHook() {
+	<script>
+		(function(){
+			document.addEventListener('keydown', function(e){
+				if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+					var dlg = document.querySelector('dialog.command-palette');
+					if (!dlg) return;
+					e.preventDefault();
+					if (dlg.open) dlg.close(); else dlg.showModal();
+				}
+			});
+		})();
+	</script>
+}

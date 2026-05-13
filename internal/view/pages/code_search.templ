@@ -12,38 +12,48 @@ import (
 templ CodeSearch(data view.CodeSearchData) {
 	@layout.Base(data.BasePage, codeSearchTitle(data)) {
 		<div class="space-y-6">
-			<div class="bg-white border border-gray-200 rounded-lg p-6">
-				<h1 class="text-2xl font-bold mb-4">Code Search</h1>
-				<form action="/search/code" method="GET" class="space-y-3">
-					<div class="flex gap-2">
-						<input type="text" name="q" value={ data.Query } placeholder="Search code..." class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"/>
-						<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700">
-							Search
-						</button>
-					</div>
-					<div class="flex gap-3 text-sm">
-						<div class="flex items-center gap-1">
-							<label for="repo" class="text-gray-500 shrink-0">Repo:</label>
-							<input type="text" id="repo" name="repo" value={ data.RepoFilter } placeholder="owner/repo" class="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 w-40"/>
+			@components.Card(nil) {
+				@components.CardContent() {
+					<h1 class="text-2xl font-bold mb-4">Code Search</h1>
+					<form action="/search/code" method="GET" class="space-y-3">
+						<div class="flex gap-2">
+							<label for="code-search-query" class="sr-only">Search code</label>
+							@components.Input(templ.Attributes{
+								"id":          "code-search-query",
+								"type":        "text",
+								"name":        "q",
+								"value":       data.Query,
+								"placeholder": "Search code...",
+								"class":       "flex-1",
+							})
+							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+								Search
+							}
 						</div>
-						<div class="flex items-center gap-1">
-							<label for="lang" class="text-gray-500 shrink-0">Language:</label>
-							<input type="text" id="lang" name="lang" value={ data.Lang } placeholder="go, py, js..." class="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 w-28"/>
+						<div class="flex gap-3 text-sm">
+							<div class="flex items-center gap-1">
+								<label for="repo" class="text-muted-foreground shrink-0">Repo:</label>
+								<input type="text" id="repo" name="repo" value={ data.RepoFilter } placeholder="owner/repo" class="flex h-8 w-40 rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground"/>
+							</div>
+							<div class="flex items-center gap-1">
+								<label for="lang" class="text-muted-foreground shrink-0">Language:</label>
+								<input type="text" id="lang" name="lang" value={ data.Lang } placeholder="go, py, js..." class="flex h-8 w-28 rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground"/>
+							</div>
 						</div>
-					</div>
-				</form>
-			</div>
+					</form>
+				}
+			}
 			if data.Query != "" {
 				if len(data.Results) > 0 {
-					<p class="text-sm text-gray-500 px-1">{ codeSearchSummary(data) }</p>
-					<div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+					<p class="text-sm text-muted-foreground px-1">{ codeSearchSummary(data) }</p>
+					<div class="rounded-md border border-border bg-card divide-y divide-border">
 						for _, res := range data.Results {
 							<div class="px-6 py-4">
 								<div class="flex items-start justify-between gap-4 mb-1">
-									<a href={ templ.SafeURL("/" + res.OwnerName + "/" + res.RepoName + "/blob/HEAD/" + res.FilePath) } class="text-blue-600 font-medium hover:underline text-sm font-mono">{ res.OwnerName }/{ res.RepoName }/{ res.FilePath }</a>
-									<span class="shrink-0 text-xs text-gray-400">{ fmt.Sprintf("%.3f", res.Rank) }</span>
+									<a href={ templ.SafeURL("/" + res.OwnerName + "/" + res.RepoName + "/blob/HEAD/" + res.FilePath) } class="text-foreground font-medium hover:underline text-sm font-mono">{ res.OwnerName }/{ res.RepoName }/{ res.FilePath }</a>
+									<span class="shrink-0 text-xs text-muted-foreground">{ fmt.Sprintf("%.3f", res.Rank) }</span>
 								</div>
-								<pre class="text-xs text-gray-600 bg-gray-50 rounded p-2 overflow-x-auto whitespace-pre-wrap">{ res.Snippet }</pre>
+								<pre class="text-xs text-foreground bg-muted rounded p-2 overflow-x-auto whitespace-pre-wrap">{ res.Snippet }</pre>
 							</div>
 						}
 					</div>
@@ -61,8 +71,8 @@ templ CodeSearch(data view.CodeSearchData) {
 					@components.EmptyStateWithHint("No code results found for "+data.Query+".", "Files are indexed after each push. Empty or binary-only repos will return no results.")
 				}
 			} else {
-				<div class="bg-white border border-gray-200 rounded-lg p-12 text-center">
-					<p class="text-gray-500">Enter a search query above to search code across all public repositories.</p>
+				<div class="rounded-md border border-border bg-card p-12 text-center">
+					<p class="text-muted-foreground">Enter a search query above to search code across all public repositories.</p>
 				</div>
 			}
 		</div>

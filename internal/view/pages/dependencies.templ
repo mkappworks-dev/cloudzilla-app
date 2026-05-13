@@ -2,7 +2,9 @@ package pages
 
 import (
 	"fmt"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -10,13 +12,13 @@ templ Dependencies(data view.DependenciesData) {
 	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" — Dependencies") {
 		<div class="space-y-6">
 			<!-- Repo sub-nav -->
-			<div class="bg-white border border-gray-200 rounded-lg px-6 py-4 flex items-center gap-4">
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 font-semibold hover:underline">{ data.Owner }/{ data.RepoName }</a>
-				<span class="text-gray-400">/</span>
-				<span class="font-medium text-gray-700">Dependency Graph</span>
+			<div class="rounded-md border border-border bg-card px-6 py-4 flex items-center gap-4">
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-foreground font-semibold hover:underline">{ data.Owner }/{ data.RepoName }</a>
+				<span class="text-muted-foreground" aria-hidden="true">/</span>
+				<span class="font-medium text-foreground">Dependency Graph</span>
 			</div>
 			if len(data.Dependencies) > 0 {
-				<div class="text-sm text-gray-500 px-1">
+				<div class="text-sm text-muted-foreground px-1">
 					{ fmt.Sprintf("%d", len(data.Dependencies)) }
 					if len(data.Dependencies) == 1 {
 						dependency
@@ -32,10 +34,10 @@ templ Dependencies(data view.DependenciesData) {
 					}
 				</div>
 				for mgr, deps := range data.ByManager {
-					<div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-						<div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-							<span class="font-semibold text-gray-700 capitalize">{ mgr }</span>
-							<span class="text-xs text-gray-400">
+					<div class="rounded-md border border-border bg-card overflow-hidden">
+						<div class="px-6 py-3 bg-muted/40 border-b border-border flex items-center justify-between">
+							<span class="font-semibold text-foreground capitalize">{ mgr }</span>
+							<span class="text-xs text-muted-foreground">
 								{ fmt.Sprintf("%d", len(deps)) }
 								if len(deps) == 1 {
 									package
@@ -46,28 +48,32 @@ templ Dependencies(data view.DependenciesData) {
 						</div>
 						<table class="w-full text-sm">
 							<thead>
-								<tr class="text-left text-xs text-gray-500 border-b border-gray-100">
-									<th class="px-6 py-2 font-medium">Package</th>
-									<th class="px-6 py-2 font-medium">Version</th>
-									<th class="px-6 py-2 font-medium">Type</th>
+								<tr class="text-left text-xs text-muted-foreground border-b border-border">
+									<th scope="col" class="px-6 py-2 font-medium">Package</th>
+									<th scope="col" class="px-6 py-2 font-medium">Version</th>
+									<th scope="col" class="px-6 py-2 font-medium">Type</th>
 								</tr>
 							</thead>
-							<tbody class="divide-y divide-gray-50">
+							<tbody class="divide-y divide-border">
 								for _, dep := range deps {
-									<tr class="hover:bg-gray-50">
-										<td class="px-6 py-2 font-mono text-gray-800">{ dep.Package }</td>
-										<td class="px-6 py-2 text-gray-500">
+									<tr class="hover:bg-muted/50">
+										<td class="px-6 py-2 font-mono text-foreground">{ dep.Package }</td>
+										<td class="px-6 py-2 text-muted-foreground">
 											if dep.Version != "" {
 												{ dep.Version }
 											} else {
-												<span class="text-gray-300">—</span>
+												<span class="text-muted-foreground/50" aria-hidden="true">—</span>
 											}
 										</td>
 										<td class="px-6 py-2">
 											if dep.IsDev {
-												<span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">dev</span>
+												@components.Badge(components.BadgeSecondary) {
+													dev
+												}
 											} else {
-												<span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">prod</span>
+												@components.Badge(components.BadgeOutline) {
+													prod
+												}
 											}
 										</td>
 									</tr>
@@ -77,14 +83,14 @@ templ Dependencies(data view.DependenciesData) {
 					</div>
 				}
 			} else {
-				<div class="bg-white border border-gray-200 rounded-lg p-12 text-center">
-					<p class="text-gray-500">No dependencies detected.</p>
-					<p class="text-sm text-gray-400 mt-2">
+				<div class="rounded-md border border-border bg-card p-12 text-center">
+					<p class="text-muted-foreground">No dependencies detected.</p>
+					<p class="text-sm text-muted-foreground mt-2">
 						Push a commit containing
-						<code class="bg-gray-100 px-1 rounded">go.mod</code>,
-						<code class="bg-gray-100 px-1 rounded">package.json</code>,
-						<code class="bg-gray-100 px-1 rounded">requirements.txt</code>,
-						or <code class="bg-gray-100 px-1 rounded">Cargo.toml</code>
+						<code class="bg-muted px-1 rounded border border-border">go.mod</code>,
+						<code class="bg-muted px-1 rounded border border-border">package.json</code>,
+						<code class="bg-muted px-1 rounded border border-border">requirements.txt</code>,
+						or <code class="bg-muted px-1 rounded border border-border">Cargo.toml</code>
 						to populate this graph.
 					</p>
 				</div>

@@ -13,7 +13,7 @@ templ Pulls(data view.PullsData) {
 		<div class="space-y-6">
 			<div class="flex justify-between items-center">
 				<h1 class="text-2xl font-bold">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline">{ data.Owner }/{ data.RepoName }</a> Pull Requests
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-foreground hover:underline">{ data.Owner }/{ data.RepoName }</a> Pull Requests
 				</h1>
 			</div>
 			@components.TabBar([]components.Tab{
@@ -25,20 +25,22 @@ templ Pulls(data view.PullsData) {
 			if len(data.Pulls) > 0 {
 				<div class="space-y-3">
 					for _, pull := range data.Pulls {
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(pull.Number)) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(pull.Number)) } class="block rounded-md border border-border bg-card p-4 hover:border-ring/40 hover:shadow-sm transition-all">
 							<div class="flex justify-between items-start">
 								<div class="min-w-0 flex-1">
 									<div class="flex items-center gap-2 flex-wrap">
 										<h3 class="text-lg font-semibold">{ pull.Title }</h3>
 										if pull.IsDraft {
-											<span class="px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">Draft</span>
+											@components.Badge(components.BadgeDraft) {
+												Draft
+											}
 										}
 									</div>
-									<p class="text-gray-600 text-sm mt-1">#{ strconv.Itoa(pull.Number) } by { pull.AuthorName } · { pull.HeadBranch } &rarr; { pull.BaseBranch }</p>
+									<p class="text-muted-foreground text-sm mt-1">#{ strconv.Itoa(pull.Number) } by { pull.AuthorName } · { pull.HeadBranch } &rarr; { pull.BaseBranch }</p>
 									if labels, ok := data.PullLabels[pull.ID]; ok && len(labels) > 0 {
-										<div class="flex flex-wrap gap-1 mt-2">
+										<div class="flex flex-wrap gap-1 mt-2" aria-label="Labels">
 											for _, l := range labels {
-												<span class="px-2 py-0.5 rounded-full text-xs font-medium" style={ "background-color: " + l.Color }>{ l.Name }</span>
+												<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style={ "background-color: " + l.Color + "33; color: " + l.Color + "; border-color: " + l.Color + "55" }>{ l.Name }</span>
 											}
 										</div>
 									}

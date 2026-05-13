@@ -2,6 +2,7 @@ package pages
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -11,103 +12,165 @@ import (
 templ IssueDetail(data view.IssueDetailData) {
 	@layout.Base(data.BasePage, data.Issue.Title+" · Issue #"+strconv.Itoa(data.Issue.Number)+" · "+data.Owner+"/"+data.RepoName) {
 		<div class="space-y-6">
-			<div class="mb-4">
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues") } class="text-blue-600 hover:underline text-sm">&larr; Back to Issues</a>
+			<div>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues") } class="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+					<span aria-hidden="true">←</span> Back to Issues
+				</a>
 			</div>
 			<div class="flex gap-6">
 				<!-- Main content -->
 				<div class="flex-1 min-w-0 space-y-6">
-					<div id="issue-detail" class="bg-white border border-gray-200 rounded-lg p-6">
-						<div class="flex justify-between items-start mb-4">
-							<div>
-								<h1 class="text-3xl font-bold">
-							{ data.Issue.Title }
-							if data.Issue.Visibility == "private" {
-								<span class="ml-2 px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-700 rounded-full border border-red-300">Private</span>
-							}
-						</h1>
-								<p class="text-gray-600 text-sm mt-2">#{ strconv.Itoa(data.Issue.Number) } opened by { data.Issue.AuthorName } on { data.Issue.CreatedAt.Format("Jan 2, 2006") }</p>
+					<div id="issue-detail" class="rounded-md border border-border bg-card p-6">
+						<div class="flex justify-between items-start gap-4 mb-4">
+							<div class="flex-1 min-w-0">
+								<h1 class="text-2xl font-semibold tracking-tight flex items-center gap-2 flex-wrap">
+									{ data.Issue.Title }
+									<span class="text-muted-foreground font-normal">#{ strconv.Itoa(data.Issue.Number) }</span>
+									if data.Issue.Visibility == "private" {
+										@components.Badge(components.BadgeDestructive) {
+											Private
+										}
+									}
+								</h1>
+								<p class="text-sm text-muted-foreground mt-2">
+									opened by <a href={ templ.SafeURL("/" + data.Issue.AuthorName) } class="hover:underline text-foreground">{ data.Issue.AuthorName }</a>
+									<span aria-hidden="true">·</span>
+									<time datetime={ data.Issue.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Issue.CreatedAt.Format("Jan 2, 2006") }</time>
+								</p>
 							</div>
-							<div class="flex items-center gap-2">
-								<span class={ "px-3 py-1 rounded-full text-sm font-medium", templ.KV("bg-green-100 text-green-700", data.Issue.State == "open"), templ.KV("bg-red-100 text-red-700", data.Issue.State != "open") }>
-									{ string(data.Issue.State) }
-								</span>
+							<div class="flex items-center gap-2 shrink-0">
+								@components.IssueStateBadge(string(data.Issue.State))
 								if data.Issue.IsLocked {
-									<span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">Locked</span>
+									@components.Badge(components.BadgeSecondary) {
+										Locked
+									}
 								}
 							</div>
 						</div>
 						if len(data.Labels) > 0 {
-							<div class="flex flex-wrap gap-1 mb-3">
+							<div class="flex flex-wrap gap-1.5 mb-4" aria-label="Labels">
 								for _, l := range data.Labels {
-									<span class="px-2 py-0.5 rounded-full text-xs font-medium" style={ "background-color: " + l.Color }>{ l.Name }</span>
+									<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style={ "background-color: " + l.Color + "33; color: " + l.Color + "; border-color: " + l.Color + "55" }>{ l.Name }</span>
 								}
 							</div>
 						}
 						@components.MarkdownBody(data.BodyHTML)
-						if data.Issue.State == "open" {
-							<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) } hx-vals='{"state":"closed"}' hx-target="#issue-detail" hx-swap="outerHTML" class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors">
-								Close Issue
-							</button>
-						} else {
-							<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) } hx-vals='{"state":"open"}' hx-target="#issue-detail" hx-swap="outerHTML" class="px-4 py-2 bg-green-600 text-white rounded font-medium hover:bg-green-700 transition-colors">
-								Re-open Issue
-							</button>
-						}
-						if data.CanManage {
-							<div class="flex gap-2 mt-3">
+						<div class="mt-5 flex flex-wrap gap-2">
+							if data.Issue.State == "open" {
+								@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
+									"hx-patch":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number),
+									"hx-vals":   `{"state":"closed"}`,
+									"hx-target": "#issue-detail",
+									"hx-swap":   "outerHTML",
+									"type":      "button",
+								}) {
+									Close Issue
+								}
+							} else {
+								@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{
+									"hx-patch":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number),
+									"hx-vals":   `{"state":"open"}`,
+									"hx-target": "#issue-detail",
+									"hx-swap":   "outerHTML",
+									"type":      "button",
+								}) {
+									Re-open Issue
+								}
+							}
+							if data.CanManage {
 								if data.Issue.IsPinned {
-									<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/pin" } hx-vals='{"action":"unpin"}' hx-swap="none" class="px-3 py-1.5 text-sm bg-yellow-100 text-yellow-800 border border-yellow-300 rounded hover:bg-yellow-200 transition-colors">
+									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+										"hx-patch": "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/pin",
+										"hx-vals":  `{"action":"unpin"}`,
+										"hx-swap":  "none",
+										"type":     "button",
+									}) {
 										Unpin
-									</button>
+									}
 								} else {
-									<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/pin" } hx-vals='{"action":"pin"}' hx-swap="none" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded hover:bg-gray-200 transition-colors">
+									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+										"hx-patch": "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/pin",
+										"hx-vals":  `{"action":"pin"}`,
+										"hx-swap":  "none",
+										"type":     "button",
+									}) {
 										Pin
-									</button>
+									}
 								}
 								if data.Issue.IsLocked {
-									<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/lock" } hx-vals='{"action":"unlock"}' hx-swap="none" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded hover:bg-gray-200 transition-colors">
+									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+										"hx-patch": "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/lock",
+										"hx-vals":  `{"action":"unlock"}`,
+										"hx-swap":  "none",
+										"type":     "button",
+									}) {
 										Unlock
-									</button>
+									}
 								} else {
-									<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/lock" } hx-vals='{"action":"lock"}' hx-swap="none" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 border border-gray-300 rounded hover:bg-gray-200 transition-colors">
+									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+										"hx-patch": "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/lock",
+										"hx-vals":  `{"action":"lock"}`,
+										"hx-swap":  "none",
+										"type":     "button",
+									}) {
 										Lock
-									</button>
+									}
 								}
-							</div>
-						}
+							}
+						</div>
 					</div>
 					<div class="mt-8">
-						<h2 class="text-2xl font-bold mb-4">Comments</h2>
+						<h2 class="text-lg font-semibold mb-4">Comments</h2>
 						<div id="comments" class="space-y-3 mb-6">
 							for _, c := range data.Comments {
-								<div class="bg-white border border-gray-200 rounded-lg p-4">
-									<div class="font-semibold text-sm text-gray-700">{ c.AuthorName }</div>
-									<div class="text-xs text-gray-500 mb-2">{ c.CreatedAt.Format("Jan 2, 2006 at 3:04 PM") }</div>
-									<div class="prose prose-sm max-w-none text-gray-800">@templ.Raw(c.BodyHTML)</div>
+								<div class="rounded-md border border-border bg-card p-4">
+									<div class="flex items-center gap-2">
+										@components.Avatar(c.AuthorName, components.AvatarSizeSM, c.AuthorName)
+										<div class="font-semibold text-sm text-foreground">{ c.AuthorName }</div>
+										<time class="text-xs text-muted-foreground" datetime={ c.CreatedAt.UTC().Format(time.RFC3339) }>{ c.CreatedAt.Format("Jan 2, 2006 at 3:04 PM") }</time>
+									</div>
+									<div class="mt-2">
+										@components.MarkdownBody(c.BodyHTML)
+									</div>
 									<div id={ "reactions-" + strconv.FormatInt(c.ID, 10) } hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/comments/" + strconv.FormatInt(c.ID, 10) + "/reactions" } hx-trigger="load" hx-swap="outerHTML" class="mt-2"></div>
 								</div>
 							}
 						</div>
 						if !data.Issue.IsLocked || data.CanManage {
 							if data.BasePage.CurrentUser != nil {
-								<form class="bg-white border border-gray-200 rounded-lg p-4">
+								<form class="rounded-md border border-border bg-card p-4">
 									<div class="relative">
 										<div class="flex justify-end mb-1">
-											<button type="button"
-												hx-get="/api/user/replies"
-												hx-target="#saved-replies-picker-container"
-												hx-swap="outerHTML"
-												class="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 border border-gray-200 rounded px-2 py-1">
+											@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+												"type":      "button",
+												"hx-get":    "/api/user/replies",
+												"hx-target": "#saved-replies-picker-container",
+												"hx-swap":   "outerHTML",
+											}) {
 												Saved replies
-											</button>
+											}
 										</div>
 										<div id="saved-replies-picker-container"></div>
-										<textarea id="comment-body" name="body" placeholder="Add a comment..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical min-h-24"></textarea>
+										<label for="comment-body" class="sr-only">Add a comment</label>
+										@components.Textarea(templ.Attributes{
+											"id":          "comment-body",
+											"name":        "body",
+											"rows":        "4",
+											"placeholder": "Add a comment...",
+											"class":       "w-full min-h-24",
+										})
 									</div>
-									<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/comments" } hx-include="#comment-body" hx-swap="beforeend" hx-target="#comments" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition-colors">
-										Comment
-									</button>
+									<div class="mt-2">
+										@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
+											"hx-post":    "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/comments",
+											"hx-include": "#comment-body",
+											"hx-swap":    "beforeend",
+											"hx-target":  "#comments",
+											"type":       "button",
+										}) {
+											Comment
+										}
+									</div>
 								</form>
 								<script>
 								document.addEventListener('click', function(e) {
@@ -123,55 +186,60 @@ templ IssueDetail(data view.IssueDetailData) {
 							}
 						}
 						if data.Issue.IsLocked && !data.CanManage {
-							<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-sm text-gray-500">
+							<div class="rounded-md border border-border bg-muted p-4 text-center text-sm text-muted-foreground">
 								This issue is locked. Only maintainers can comment.
 							</div>
 						}
 					</div>
 				</div>
 				<!-- Sidebar -->
-				<div class="w-56 shrink-0 space-y-4">
-					<div class="bg-white border border-gray-200 rounded-lg p-4">
+				<aside class="w-64 shrink-0 space-y-4" aria-label="Issue metadata">
+					<div class="rounded-md border border-border bg-card p-4">
 						@components.LabelSidebar(data.Owner, data.RepoName, data.Issue.Number, "issues", data.Labels, data.AllLabels, data.CanWrite)
 					</div>
-					<div class="bg-white border border-gray-200 rounded-lg p-4">
+					<div class="rounded-md border border-border bg-card p-4">
 						@components.AssigneeSidebar(data.Owner, data.RepoName, data.Issue.Number, "issues", data.Assignees, data.CanWrite)
 					</div>
-					<div class="bg-white border border-gray-200 rounded-lg p-4">
+					<div class="rounded-md border border-border bg-card p-4">
 						<div id="issue-milestone">
-							<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Milestone</h3>
+							<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Milestone</h3>
 							if data.Milestone != nil {
 								<div class="text-sm">
-									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="font-medium text-gray-800 hover:underline">{ data.Milestone.Title }</a>
+									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="font-medium hover:underline">{ data.Milestone.Title }</a>
 									if (data.Milestone.OpenCount + data.Milestone.ClosedCount) > 0 {
-										<div class="mt-1">
-											<div class="w-full bg-gray-200 rounded-full h-1">
-												<div class="bg-green-500 h-1 rounded-full" style={ "width: " + strconv.Itoa(func() int { total := data.Milestone.OpenCount + data.Milestone.ClosedCount; if total == 0 { return 0 }; return data.Milestone.ClosedCount * 100 / total }()) + "%" }></div>
+										{{ total := data.Milestone.OpenCount + data.Milestone.ClosedCount }}
+										{{ pct := 0 }}
+										if total > 0 {
+											{{ pct = data.Milestone.ClosedCount * 100 / total }}
+										}
+										<div class="mt-1.5" role="progressbar" aria-valuenow={ strconv.Itoa(pct) } aria-valuemin="0" aria-valuemax="100" aria-label={ "Milestone progress: " + strconv.Itoa(pct) + "%" }>
+											<div class="w-full bg-muted h-1.5 rounded-full overflow-hidden">
+												<div class="bg-success h-full" style={ "width: " + strconv.Itoa(pct) + "%" }></div>
 											</div>
-											<p class="text-xs text-gray-400 mt-0.5">{ strconv.Itoa(data.Milestone.ClosedCount) }/{ strconv.Itoa(data.Milestone.OpenCount + data.Milestone.ClosedCount) } closed</p>
+											<p class="text-xs text-muted-foreground mt-1 font-mono">{ strconv.Itoa(data.Milestone.ClosedCount) }/{ strconv.Itoa(total) } closed</p>
 										</div>
 									}
 								</div>
 							} else {
-								<span class="text-xs text-gray-400">No milestone</span>
+								<span class="text-xs text-muted-foreground">No milestone</span>
 							}
 							if data.CanWrite && len(data.AllMilestones) > 0 {
 								<details class="mt-2">
-									<summary class="text-xs text-blue-600 cursor-pointer hover:underline">
+									<summary class="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
 										if data.Milestone != nil {
 											Change
 										} else {
 											Set milestone
 										}
 									</summary>
-									<div class="mt-1 space-y-1 max-h-40 overflow-y-auto border border-gray-100 rounded">
+									<div class="mt-1 space-y-1 max-h-40 overflow-y-auto border border-border rounded-md">
 										<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/milestone" } hx-target="#issue-milestone" hx-swap="outerHTML" class="p-1">
-											<button type="submit" name="milestone_id" value="" class="w-full text-left px-2 py-1 hover:bg-gray-50 text-xs text-gray-500">
+											<button type="submit" name="milestone_id" value="" class="w-full text-left px-2 py-1 hover:bg-accent rounded text-xs text-muted-foreground">
 												No milestone
 											</button>
 											for _, m := range data.AllMilestones {
-												<button type="submit" name="milestone_id" value={ strconv.FormatInt(m.ID, 10) } class={ "w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-gray-50 text-xs", templ.KV("font-semibold text-blue-600", data.Milestone != nil && data.Milestone.ID == m.ID) }>
-													<span class={ "w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-gray-400", m.State == "closed"), templ.KV("bg-green-500", m.State != "closed") }></span>
+												<button type="submit" name="milestone_id" value={ strconv.FormatInt(m.ID, 10) } class={ "w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-accent rounded text-xs", templ.KV("font-semibold text-foreground", data.Milestone != nil && data.Milestone.ID == m.ID) }>
+													<span class={ "w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-muted-foreground", m.State == "closed"), templ.KV("bg-success", m.State != "closed") }></span>
 													{ m.Title }
 												</button>
 											}
@@ -181,7 +249,7 @@ templ IssueDetail(data view.IssueDetailData) {
 							}
 						</div>
 					</div>
-				</div>
+				</aside>
 			</div>
 		</div>
 	}

@@ -3,6 +3,8 @@ package pages
 import (
 	"net/url"
 	"strconv"
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -12,46 +14,50 @@ templ AuditLog(data view.AuditLogData) {
 	@layout.Base(data.BasePage, "Audit Log — Cloudzilla") {
 		<div class="space-y-6">
 			<div class="flex justify-between items-center">
-				<h1 class="text-2xl font-bold">Audit Log</h1>
-				<span class="text-sm text-gray-500">{ strconv.Itoa(data.TotalCount) } total entries</span>
+				<h1 class="text-2xl font-semibold tracking-tight">Audit Log</h1>
+				<span class="text-sm text-muted-foreground">{ strconv.Itoa(data.TotalCount) } total entries</span>
 			</div>
 			<!-- Filter bar -->
-			<div class="bg-white border border-gray-200 rounded-lg p-4">
+			<div class="rounded-md border border-border bg-card p-4">
 				<form method="GET" action="/admin/audit-log" class="flex flex-wrap gap-4 items-end">
-					<div>
-						<label for="filter-action" class="block text-xs font-medium text-gray-600 mb-1">Action</label>
-						<input
-							type="text"
-							id="filter-action"
-							name="action"
-							value={ data.Filter.Action }
-							placeholder="e.g. login, repo.create"
-							class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
-						/>
+					<div class="space-y-1.5">
+						<label for="filter-action" class="block text-xs font-medium text-muted-foreground">Action</label>
+						@components.Input(templ.Attributes{
+							"id":          "filter-action",
+							"type":        "text",
+							"name":        "action",
+							"value":       data.Filter.Action,
+							"placeholder": "e.g. login, repo.create",
+							"class":       "w-48",
+						})
 					</div>
-					<div>
-						<label for="filter-target-type" class="block text-xs font-medium text-gray-600 mb-1">Target type</label>
-						<input
-							type="text"
-							id="filter-target-type"
-							name="target_type"
-							value={ data.Filter.TargetType }
-							placeholder="e.g. repo, user"
-							class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-40"
-						/>
+					<div class="space-y-1.5">
+						<label for="filter-target-type" class="block text-xs font-medium text-muted-foreground">Target type</label>
+						@components.Input(templ.Attributes{
+							"id":          "filter-target-type",
+							"type":        "text",
+							"name":        "target_type",
+							"value":       data.Filter.TargetType,
+							"placeholder": "e.g. repo, user",
+							"class":       "w-40",
+						})
 					</div>
 					<div class="flex gap-2">
-						<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm">Filter</button>
-						<a href="/admin/audit-log" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm">Reset</a>
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							Filter
+						}
+						@components.LinkButton("/admin/audit-log", components.ButtonSecondary, components.ButtonSizeDefault, nil) {
+							Reset
+						}
 					</div>
 				</form>
 			</div>
 			<!-- Entries table -->
-			<div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+			<div class="rounded-md border border-border bg-card overflow-hidden">
 				if len(data.Entries) > 0 {
 					<table class="w-full text-sm">
 						<thead>
-							<tr class="text-left text-gray-500 border-b border-gray-200 bg-gray-50">
+							<tr class="text-left text-muted-foreground border-b border-border bg-muted">
 								<th class="px-4 py-3 font-medium">Time</th>
 								<th class="px-4 py-3 font-medium">Actor</th>
 								<th class="px-4 py-3 font-medium">Action</th>
@@ -59,27 +65,29 @@ templ AuditLog(data view.AuditLogData) {
 								<th class="px-4 py-3 font-medium">IP Address</th>
 							</tr>
 						</thead>
-						<tbody class="divide-y divide-gray-100">
+						<tbody class="divide-y divide-border">
 							for _, e := range data.Entries {
-								<tr class="hover:bg-gray-50">
-									<td class="px-4 py-3 text-gray-500 whitespace-nowrap">{ e.CreatedAt.Format("Jan 2, 2006 15:04:05") }</td>
-									<td class="px-4 py-3 font-medium text-gray-900">{ e.ActorName }</td>
-									<td class="px-4 py-3">
-										<span class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded font-mono">{ e.Action }</span>
+								<tr class="hover:bg-muted/40">
+									<td class="px-4 py-3 text-muted-foreground whitespace-nowrap">
+										<time datetime={ e.CreatedAt.UTC().Format(time.RFC3339) }>{ e.CreatedAt.Format("Jan 2, 2006 15:04:05") }</time>
 									</td>
-									<td class="px-4 py-3 text-gray-600">
+									<td class="px-4 py-3 font-medium text-foreground">{ e.ActorName }</td>
+									<td class="px-4 py-3">
+										<code class="text-xs bg-muted border border-border rounded px-1.5 py-0.5 font-mono text-foreground">{ e.Action }</code>
+									</td>
+									<td class="px-4 py-3 text-foreground">
 										if e.TargetType != "" {
-											<span class="text-xs text-gray-400 mr-1">{ e.TargetType }</span>
+											<span class="text-xs text-muted-foreground mr-1">{ e.TargetType }</span>
 										}
 										{ e.TargetName }
 									</td>
-									<td class="px-4 py-3 text-gray-500 font-mono text-xs">{ e.IPAddress }</td>
+									<td class="px-4 py-3 text-muted-foreground font-mono text-xs">{ e.IPAddress }</td>
 								</tr>
 							}
 						</tbody>
 					</table>
 				} else {
-					<div class="text-center py-12 text-gray-500">
+					<div class="text-center py-12 text-muted-foreground">
 						<p>No audit log entries found.</p>
 					</div>
 				}

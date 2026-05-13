@@ -2,18 +2,21 @@ package pages
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ NotFound(base view.BasePage) {
 	@layout.Base(base, "Page not found") {
 		<div class="max-w-md mx-auto mt-24 text-center">
-			<p class="text-7xl font-bold text-gray-300">404</p>
-			<h1 class="mt-4 text-2xl font-semibold text-gray-900">Page not found</h1>
-			<p class="mt-2 text-sm text-gray-600">The page you were looking for doesn't exist or has been moved.</p>
-			<a href="/" class="mt-6 inline-block px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
-				Go home
-			</a>
+			<p class="text-7xl font-bold text-muted-foreground/40">404</p>
+			<h1 class="mt-4 text-2xl font-semibold tracking-tight text-foreground">Page not found</h1>
+			<p class="mt-2 text-sm text-muted-foreground">The page you were looking for doesn't exist or has been moved.</p>
+			<div class="mt-6">
+				@components.LinkButton("/", components.ButtonDefault, components.ButtonSizeDefault, nil) {
+					Go home
+				}
+			</div>
 		</div>
 	}
 }

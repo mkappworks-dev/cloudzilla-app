@@ -10,6 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -46,7 +47,99 @@ func GistNew(data view.GistNewData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-4xl mx-auto py-8 px-4\"><h1 class=\"text-2xl font-bold mb-6\">Create a New Gist</h1><form id=\"gist-form\"><div class=\"mb-4\"><label class=\"block text-sm font-medium text-gray-700 mb-1\">Description <span class=\"text-gray-400\">(optional)</span></label> <input type=\"text\" name=\"description\" class=\"w-full border border-gray-300 rounded px-3 py-2 text-sm\" placeholder=\"Gist description...\"></div><div class=\"mb-4 flex items-center gap-2\"><input type=\"checkbox\" id=\"public\" name=\"public\" checked> <label for=\"public\" class=\"text-sm text-gray-700\">Public gist</label></div><div id=\"file-rows\" class=\"space-y-4\"><div class=\"border border-gray-200 rounded p-4\"><input type=\"text\" name=\"filename[]\" placeholder=\"Filename including extension\" class=\"w-full border border-gray-300 rounded px-3 py-1 text-sm mb-2\" required> <textarea name=\"content[]\" rows=\"8\" class=\"w-full border border-gray-300 rounded px-3 py-1 text-sm font-mono\" placeholder=\"File contents...\"></textarea></div></div><div class=\"mt-3\"><button type=\"button\" hx-get=\"/api/gists/file-row\" hx-target=\"#file-rows\" hx-swap=\"beforeend\" class=\"px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50\">Add file</button></div><div class=\"mt-6 flex gap-3\"><button type=\"submit\" class=\"px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium\">Create Gist</button> <a href=\"/gists\" class=\"px-4 py-2 border rounded text-sm hover:bg-gray-50\">Cancel</a></div></form><script>\n\t\t\t\tdocument.getElementById('gist-form').addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\tconst desc = this.querySelector('[name=description]').value;\n\t\t\t\t\tconst pub = this.querySelector('[name=public]').checked;\n\t\t\t\t\tconst filenames = [...this.querySelectorAll('[name=\"filename[]\"]')].map(el => el.value);\n\t\t\t\t\tconst contents = [...this.querySelectorAll('[name=\"content[]\"]')].map(el => el.value);\n\t\t\t\t\tconst files = filenames.map((fn, i) => ({ filename: fn, content: contents[i] }));\n\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\tconst res = await fetch('/api/gists', {\n\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\tbody: JSON.stringify({ description: desc, public: pub, files })\n\t\t\t\t\t});\n\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\tconst g = await res.json();\n\t\t\t\t\t\twindow.location.href = '/gists/' + g.id;\n\t\t\t\t\t} else {\n\t\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\t\tlet msg = text;\n\t\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\t\talert(msg || ('Failed to create gist (HTTP ' + res.status + ')'));\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t</script></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-4xl mx-auto py-8 px-4\"><h1 class=\"text-2xl font-bold mb-6\">Create a New Gist</h1><form id=\"gist-form\"><div class=\"mb-4\"><label for=\"gist-description\" class=\"block text-sm font-medium text-foreground mb-1\">Description <span class=\"text-muted-foreground\">(optional)</span></label>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.Input(templ.Attributes{
+				"id":          "gist-description",
+				"type":        "text",
+				"name":        "description",
+				"placeholder": "Gist description...",
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div class=\"mb-4 flex items-center gap-2\"><input type=\"checkbox\" id=\"public\" name=\"public\" checked> <label for=\"public\" class=\"text-sm text-foreground\">Public gist</label></div><div id=\"file-rows\" class=\"space-y-4\"><div class=\"rounded-md border border-border bg-card p-4\"><label for=\"gist-filename-0\" class=\"sr-only\">Filename</label> <input id=\"gist-filename-0\" type=\"text\" name=\"filename[]\" placeholder=\"Filename including extension\" class=\"flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground mb-2\" required> <label for=\"gist-content-0\" class=\"sr-only\">File contents</label> <textarea id=\"gist-content-0\" name=\"content[]\" rows=\"8\" class=\"flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground font-mono\" placeholder=\"File contents...\"></textarea></div></div><div class=\"mt-3\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Var3 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+				if !templ_7745c5c3_IsBuffer {
+					defer func() {
+						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+						if templ_7745c5c3_Err == nil {
+							templ_7745c5c3_Err = templ_7745c5c3_BufErr
+						}
+					}()
+				}
+				ctx = templ.InitializeContext(ctx)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "Add file")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				return nil
+			})
+			templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+				"type":      "button",
+				"hx-get":    "/api/gists/file-row",
+				"hx-target": "#file-rows",
+				"hx-swap":   "beforeend",
+			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var3), templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><div class=\"mt-6 flex gap-3\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Var4 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+				if !templ_7745c5c3_IsBuffer {
+					defer func() {
+						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+						if templ_7745c5c3_Err == nil {
+							templ_7745c5c3_Err = templ_7745c5c3_BufErr
+						}
+					}()
+				}
+				ctx = templ.InitializeContext(ctx)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "Create Gist")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				return nil
+			})
+			templ_7745c5c3_Err = components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var4), templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Var5 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+				if !templ_7745c5c3_IsBuffer {
+					defer func() {
+						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+						if templ_7745c5c3_Err == nil {
+							templ_7745c5c3_Err = templ_7745c5c3_BufErr
+						}
+					}()
+				}
+				ctx = templ.InitializeContext(ctx)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "Cancel")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				return nil
+			})
+			templ_7745c5c3_Err = components.LinkButton("/gists", components.ButtonOutline, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></form><script>\n\t\t\t\tdocument.getElementById('gist-form').addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\tconst desc = this.querySelector('[name=description]').value;\n\t\t\t\t\tconst pub = this.querySelector('[name=public]').checked;\n\t\t\t\t\tconst filenames = [...this.querySelectorAll('[name=\"filename[]\"]')].map(el => el.value);\n\t\t\t\t\tconst contents = [...this.querySelectorAll('[name=\"content[]\"]')].map(el => el.value);\n\t\t\t\t\tconst files = filenames.map((fn, i) => ({ filename: fn, content: contents[i] }));\n\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\tconst res = await fetch('/api/gists', {\n\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\tbody: JSON.stringify({ description: desc, public: pub, files })\n\t\t\t\t\t});\n\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\tconst g = await res.json();\n\t\t\t\t\t\twindow.location.href = '/gists/' + g.id;\n\t\t\t\t\t} else {\n\t\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\t\tlet msg = text;\n\t\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\t\talert(msg || ('Failed to create gist (HTTP ' + res.status + ')'));\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t</script></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
