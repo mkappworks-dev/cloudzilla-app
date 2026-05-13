@@ -8,7 +8,7 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// CommandPalette renders a Vercel-style ⌘K / Ctrl-K search dialog.
+// CommandPalette renders a ⌘K / Ctrl-K search dialog.
 //
 // It is a native <dialog>, so the browser handles backdrop + ESC + focus trap.
 // Cmd/Ctrl-K is wired up globally to open the first .command-palette on the page.
