@@ -22,59 +22,75 @@ script newWikiPageJS(owner, repoName string) {
 
 templ WikiPage(data view.WikiPageData) {
 	@layout.Base(data.BasePage, data.Slug+" — Wiki — "+data.RepoName+" — Cloudzilla") {
-		<div class="max-w-6xl mx-auto px-4 py-8 flex gap-8">
-			<!-- Sidebar: page list -->
-			<aside class="w-48 flex-none" aria-label="Wiki pages">
-				<h2 class="text-xs font-semibold uppercase text-muted-foreground mb-2 tracking-wide">Pages</h2>
-				<ul class="space-y-1">
-					for _, pg := range data.PageList {
-						<li>
-							if pg == data.Slug {
-								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + pg) } class="block text-sm px-2 py-1 rounded-md font-semibold text-foreground bg-accent" aria-current="page">{ pg }</a>
-							} else {
-								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + pg) } class="block text-sm px-2 py-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground">{ pg }</a>
-							}
-						</li>
-					}
-				</ul>
-				if data.CanWrite {
-					<div class="mt-4">
-						<button onclick={ newWikiPageJS(data.Owner, data.RepoName) } class="text-sm text-foreground hover:underline px-2" type="button">+ New page</button>
-					</div>
-				}
-			</aside>
-			<!-- Main content -->
-			<main class="flex-1 min-w-0">
-				<div class="flex items-center justify-between mb-4">
-					<h1 class="text-2xl font-bold">{ data.Slug }</h1>
-					<div class="flex gap-2">
-						if data.CanWrite {
-							@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug+"/edit", components.ButtonOutline, components.ButtonSizeSM, nil) {
-								Edit
-							}
-						}
-						if data.CanManage && data.Exists {
-							<button
-								type="button"
-								onclick={ deleteWikiPageJS(data.Owner, data.RepoName, data.Slug) }
-								class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-8 px-3 text-[13px] bg-destructive text-destructive-foreground hover:bg-destructive/90"
-							>Delete</button>
-						}
-					</div>
+		<div class="max-w-[1100px] mx-auto space-y-6">
+
+			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="wiki-title">
+				<div class="min-w-0">
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+						<span aria-hidden="true">·</span>
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki") } class="hover:underline">Wiki</a>
+						<span aria-hidden="true">·</span>
+						{ data.Slug }
+					</p>
+					<h1 id="wiki-title" class="text-2xl font-semibold tracking-tight">{ data.Slug }</h1>
 				</div>
-				if data.Exists {
-					@components.MarkdownBody(data.ContentHTML)
-				} else {
-					<div class="text-muted-foreground">
-						<p class="mb-4">This page does not exist yet.</p>
-						if data.CanWrite {
-							@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug+"/edit", components.ButtonDefault, components.ButtonSizeDefault, nil) {
-								Create this page
-							}
+				<div class="flex items-center gap-2 shrink-0">
+					if data.CanWrite {
+						@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug+"/edit", components.ButtonOutline, components.ButtonSizeSM, nil) {
+							Edit
 						}
-					</div>
-				}
-			</main>
+					}
+					if data.CanManage && data.Exists {
+						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+							"type":    "button",
+							"onclick": deleteWikiPageJS(data.Owner, data.RepoName, data.Slug),
+							"class":   "text-destructive border-destructive/40 hover:bg-destructive/10",
+						}) {
+							Delete
+						}
+					}
+				</div>
+			</section>
+
+			<div class="grid lg:grid-cols-[220px_1fr] gap-8">
+				<aside aria-label="Wiki pages">
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Pages</p>
+					<ul class="space-y-0.5 text-[13px]">
+						for _, pg := range data.PageList {
+							<li>
+								if pg == data.Slug {
+									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + pg) } class="block px-2 py-1.5 rounded-md font-medium bg-muted text-foreground" aria-current="page">{ pg }</a>
+								} else {
+									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + pg) } class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">{ pg }</a>
+								}
+							</li>
+						}
+					</ul>
+					if data.CanWrite {
+						<button
+							type="button"
+							onclick={ newWikiPageJS(data.Owner, data.RepoName) }
+							class="mt-3 text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5"
+						>+ New page</button>
+					}
+				</aside>
+
+				<article class="rounded-md border border-border bg-card p-6">
+					if data.Exists {
+						@components.MarkdownBody(data.ContentHTML)
+					} else {
+						<div class="text-muted-foreground">
+							<p class="mb-4">This page does not exist yet.</p>
+							if data.CanWrite {
+								@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug+"/edit", components.ButtonDefault, components.ButtonSizeDefault, nil) {
+									Create this page
+								}
+							}
+						</div>
+					}
+				</article>
+			</div>
 		</div>
 	}
 }

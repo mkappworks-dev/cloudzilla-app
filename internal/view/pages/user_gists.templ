@@ -11,53 +11,76 @@ import (
 
 templ UserGists(data view.UserGistsData) {
 	@layout.Base(data.BasePage, data.ProfileUser.Username+"'s Gists") {
-		<div class="max-w-4xl mx-auto py-8 px-4">
-			<div class="flex items-center justify-between mb-6">
-				<h1 class="text-2xl font-bold">{ data.ProfileUser.Username }&#39;s Gists</h1>
+		<div class="max-w-4xl mx-auto space-y-6">
+
+			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="ug-title">
+				<div class="min-w-0">
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+						<a href={ templ.SafeURL("/" + data.ProfileUser.Username) } class="hover:underline">{ data.ProfileUser.Username }</a>
+						<span aria-hidden="true">·</span>
+						Gists
+					</p>
+					<h1 id="ug-title" class="text-2xl font-semibold tracking-tight">{ data.ProfileUser.Username }'s gists</h1>
+				</div>
 				if data.BasePage.CurrentUser != nil && data.BasePage.CurrentUser.UserID == data.ProfileUser.ID {
-					@components.LinkButton("/gists/new", components.ButtonDefault, components.ButtonSizeSM, nil) {
-						+ New gist
+					@components.LinkButton("/gists/new", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+							<path d="M12 5v14M5 12h14"></path>
+						</svg>
+						New gist
 					}
 				}
-			</div>
+			</section>
+
 			if len(data.Gists) > 0 {
-				<ul class="space-y-4">
-					for _, g := range data.Gists {
-						<li class="rounded-md border border-border bg-card p-4">
-							<div class="flex items-center justify-between mb-1">
-								<a href={ templ.SafeURL("/gists/" + g.ID) } class="text-foreground hover:underline font-medium">
-									if g.Description != "" {
-										{ g.Description }
+				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="ug-list">
+					<h2 id="ug-list" class="sr-only">{ data.ProfileUser.Username }'s gists</h2>
+					<ol class="divide-y divide-border">
+						for _, g := range data.Gists {
+							<li>
+								<a href={ templ.SafeURL("/gists/" + g.ID) } class="flex items-start gap-3 px-4 py-3 hover:bg-muted/50">
+									<div class="min-w-0 flex-1">
+										<p class="text-[13px] font-medium hover:underline">
+											if g.Description != "" {
+												{ g.Description }
+											} else {
+												<span class="italic text-muted-foreground">No description</span>
+											}
+										</p>
+										<p class="mt-0.5 text-[12px] text-muted-foreground">
+											<time datetime={ g.CreatedAt.UTC().Format(time.RFC3339) }>{ g.CreatedAt.Format("Jan 2, 2006") }</time>
+										</p>
+									</div>
+									if g.Public {
+										@components.Badge(components.BadgeSuccess) {
+											Public
+										}
 									} else {
-										<span class="text-muted-foreground italic">No description</span>
+										@components.Badge(components.BadgeWarning) {
+											Secret
+										}
 									}
 								</a>
-								<span class="text-xs text-muted-foreground">
-									if g.Public {
-										Public
-									} else {
-										Secret
-									}
-								</span>
-							</div>
-							<div class="text-sm text-muted-foreground">
-								<time datetime={ g.CreatedAt.UTC().Format(time.RFC3339) }>{ g.CreatedAt.Format("Jan 2, 2006") }</time>
-							</div>
-						</li>
-					}
-				</ul>
-				<div class="mt-6 flex gap-2">
+							</li>
+						}
+					</ol>
+				</section>
+
+				<nav class="flex items-center justify-between text-[12px]" aria-label="Pagination">
 					if data.Page > 1 {
 						@components.LinkButton("?page="+strconv.Itoa(data.Page-1), components.ButtonOutline, components.ButtonSizeSM, nil) {
-							Previous
+							← Previous
 						}
+					} else {
+						<span></span>
 					}
+					<span class="text-muted-foreground font-mono">page { strconv.Itoa(data.Page) }</span>
 					@components.LinkButton("?page="+strconv.Itoa(data.Page+1), components.ButtonOutline, components.ButtonSizeSM, nil) {
-						Next
+						Next →
 					}
-				</div>
+				</nav>
 			} else {
-				<p class="text-muted-foreground">No gists yet.</p>
+				@components.EmptyState("No gists yet.")
 			}
 		</div>
 	}

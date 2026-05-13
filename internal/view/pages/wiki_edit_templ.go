@@ -47,14 +47,14 @@ func WikiEdit(data view.WikiEditData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-4xl mx-auto px-4 py-8\"><div class=\"mb-4\"><nav class=\"text-sm text-muted-foreground mb-2\" aria-label=\"Breadcrumb\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-4xl mx-auto space-y-6\"><section aria-labelledby=\"edit-title\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 templ.SafeURL
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 14, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 15, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -67,33 +67,33 @@ func WikiEdit(data view.WikiEditData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.RepoName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 14, Col: 110}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 15, Col: 110}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</a> <span class=\"mx-1\" aria-hidden=\"true\">/</span> <a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</a> <span aria-hidden=\"true\">·</span> <a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var5 templ.SafeURL
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 16, Col: 78}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 17, Col: 78}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"hover:underline\">Wiki</a> <span class=\"mx-1\" aria-hidden=\"true\">/</span> <a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"hover:underline\">Wiki</a> <span aria-hidden=\"true\">·</span> <a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var6 templ.SafeURL
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 18, Col: 91}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 19, Col: 91}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -106,52 +106,52 @@ func WikiEdit(data view.WikiEditData) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(data.Slug)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 18, Col: 129}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 19, Col: 129}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</a></nav><h1 class=\"text-2xl font-bold\">Editing: ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</a> <span aria-hidden=\"true\">·</span> Edit</p><h1 id=\"edit-title\" class=\"text-2xl font-semibold tracking-tight\">Editing: ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(data.Slug)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 20, Col: 55}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 23, Col: 90}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</h1></div><form method=\"POST\" action=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</h1></section><form method=\"POST\" action=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var9 templ.SafeURL
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 22, Col: 118}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 26, Col: 118}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"space-y-4\"><div><label for=\"wiki-content\" class=\"block text-sm font-medium text-foreground mb-1\">Content (Markdown)</label> <textarea id=\"wiki-content\" name=\"content\" rows=\"24\" class=\"flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground font-mono\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"space-y-5 rounded-md border border-border bg-card p-6\"><div class=\"space-y-1.5\"><label for=\"wiki-content\" class=\"block text-sm font-medium\">Content <span class=\"text-muted-foreground font-normal\">(Markdown)</span></label> <textarea id=\"wiki-content\" name=\"content\" rows=\"24\" class=\"min-h-[280px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(data.Content)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 30, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 34, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</textarea></div><div><label for=\"wiki-message\" class=\"block text-sm font-medium text-foreground mb-1\">Commit message (optional)</label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</textarea></div><div class=\"space-y-1.5\"><label for=\"wiki-message\" class=\"block text-sm font-medium\">Commit message <span class=\"text-muted-foreground font-normal\">(optional)</span></label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -164,7 +164,7 @@ func WikiEdit(data view.WikiEditData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div><div class=\"flex gap-3\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div><div class=\"flex items-center gap-3 pt-1\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -208,7 +208,7 @@ func WikiEdit(data view.WikiEditData) templ.Component {
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug, components.ButtonOutline, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var12), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug, components.ButtonGhost, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var12), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

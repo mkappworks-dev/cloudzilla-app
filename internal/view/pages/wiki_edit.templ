@@ -8,29 +8,36 @@ import (
 
 templ WikiEdit(data view.WikiEditData) {
 	@layout.Base(data.BasePage, "Edit "+data.Slug+" — Wiki — "+data.RepoName+" — Cloudzilla") {
-		<div class="max-w-4xl mx-auto px-4 py-8">
-			<div class="mb-4">
-				<nav class="text-sm text-muted-foreground mb-2" aria-label="Breadcrumb">
+		<div class="max-w-4xl mx-auto space-y-6">
+
+			<section aria-labelledby="edit-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
-					<span class="mx-1" aria-hidden="true">/</span>
+					<span aria-hidden="true">·</span>
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki") } class="hover:underline">Wiki</a>
-					<span class="mx-1" aria-hidden="true">/</span>
+					<span aria-hidden="true">·</span>
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug) } class="hover:underline">{ data.Slug }</a>
-				</nav>
-				<h1 class="text-2xl font-bold">Editing: { data.Slug }</h1>
-			</div>
-			<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug) } class="space-y-4">
-				<div>
-					<label for="wiki-content" class="block text-sm font-medium text-foreground mb-1">Content (Markdown)</label>
+					<span aria-hidden="true">·</span>
+					Edit
+				</p>
+				<h1 id="edit-title" class="text-2xl font-semibold tracking-tight">Editing: { data.Slug }</h1>
+			</section>
+
+			<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug) } class="space-y-5 rounded-md border border-border bg-card p-6">
+				<div class="space-y-1.5">
+					<label for="wiki-content" class="block text-sm font-medium">Content <span class="text-muted-foreground font-normal">(Markdown)</span></label>
 					<textarea
 						id="wiki-content"
 						name="content"
 						rows="24"
-						class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground font-mono"
+						class="min-h-[280px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical"
 					>{ data.Content }</textarea>
 				</div>
-				<div>
-					<label for="wiki-message" class="block text-sm font-medium text-foreground mb-1">Commit message (optional)</label>
+
+				<div class="space-y-1.5">
+					<label for="wiki-message" class="block text-sm font-medium">
+						Commit message <span class="text-muted-foreground font-normal">(optional)</span>
+					</label>
 					@components.Input(templ.Attributes{
 						"id":          "wiki-message",
 						"type":        "text",
@@ -38,11 +45,12 @@ templ WikiEdit(data view.WikiEditData) {
 						"placeholder": "Update " + data.Slug,
 					})
 				</div>
-				<div class="flex gap-3">
+
+				<div class="flex items-center gap-3 pt-1">
 					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 						Save page
 					}
-					@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug, components.ButtonOutline, components.ButtonSizeDefault, nil) {
+					@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug, components.ButtonGhost, components.ButtonSizeDefault, nil) {
 						Cancel
 					}
 				</div>
