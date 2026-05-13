@@ -10,11 +10,22 @@ import (
 
 templ GistEdit(data view.GistEditData) {
 	@layout.Base(data.BasePage, "Edit Gist") {
-		<div class="max-w-4xl mx-auto py-8 px-4">
-			<h1 class="text-2xl font-bold mb-6">Edit Gist</h1>
-			<form id="gist-edit-form" data-gist-id={ data.Gist.ID }>
-				<div class="mb-4">
-					<label for="gist-edit-description" class="block text-sm font-medium text-foreground mb-1">Description</label>
+		<div class="max-w-4xl mx-auto space-y-6">
+
+			<section aria-labelledby="edit-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href="/gists" class="hover:underline">Gists</a>
+					<span aria-hidden="true">·</span>
+					<a href={ templ.SafeURL("/gists/" + data.Gist.ID) } class="hover:underline">{ data.Gist.ID }</a>
+					<span aria-hidden="true">·</span>
+					Edit
+				</p>
+				<h1 id="edit-title" class="text-2xl font-semibold tracking-tight">Edit gist</h1>
+			</section>
+
+			<form id="gist-edit-form" data-gist-id={ data.Gist.ID } class="space-y-5 rounded-md border border-border bg-card p-6">
+				<div class="space-y-1.5">
+					<label for="gist-edit-description" class="block text-sm font-medium">Description</label>
 					@components.Input(templ.Attributes{
 						"id":    "gist-edit-description",
 						"type":  "text",
@@ -22,43 +33,46 @@ templ GistEdit(data view.GistEditData) {
 						"value": data.Gist.Description,
 					})
 				</div>
-				<div class="mb-4 flex items-center gap-2">
+
+				<label class="flex items-center gap-2 text-sm cursor-pointer">
 					if data.Gist.Public {
-						<input type="checkbox" id="public" name="public" checked/>
+						@components.Checkbox(templ.Attributes{"id": "public", "name": "public", "checked": "checked"})
 					} else {
-						<input type="checkbox" id="public" name="public"/>
+						@components.Checkbox(templ.Attributes{"id": "public", "name": "public"})
 					}
-					<label for="public" class="text-sm text-foreground">Public gist</label>
-				</div>
+					<span>Public gist</span>
+				</label>
+
 				<div id="file-rows" class="space-y-4">
 					for i, f := range data.Files {
-						<div class="rounded-md border border-border bg-card p-4">
+						<div class="rounded-md border border-border bg-muted/30 p-4 space-y-2">
 							<label for={ "gist-edit-filename-" + strconv.Itoa(i) } class="sr-only">Filename</label>
-							<input id={ "gist-edit-filename-" + strconv.Itoa(i) } type="text" name="filename[]" value={ f.Filename } class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground mb-2" required/>
+							<input id={ "gist-edit-filename-" + strconv.Itoa(i) } type="text" name="filename[]" value={ f.Filename } class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-sm placeholder:text-muted-foreground" required/>
 							<label for={ "gist-edit-content-" + strconv.Itoa(i) } class="sr-only">File contents</label>
-							<textarea id={ "gist-edit-content-" + strconv.Itoa(i) } name="content[]" rows="8" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground font-mono">{ f.Content }</textarea>
+							<textarea id={ "gist-edit-content-" + strconv.Itoa(i) } name="content[]" rows="10" class="flex min-h-[160px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical">{ f.Content }</textarea>
 						</div>
 					}
 				</div>
-				<div class="mt-3">
-					@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-						"type":      "button",
-						"hx-get":    "/api/gists/file-row",
-						"hx-target": "#file-rows",
-						"hx-swap":   "beforeend",
-					}) {
-						Add file
-					}
-				</div>
-				<div class="mt-6 flex gap-3">
+
+				@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+					"type":      "button",
+					"hx-get":    "/api/gists/file-row",
+					"hx-target": "#file-rows",
+					"hx-swap":   "beforeend",
+				}) {
+					+ Add file
+				}
+
+				<div class="flex items-center gap-3 pt-2">
 					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-						Save Changes
+						Save changes
 					}
-					@components.LinkButton("/gists/"+data.Gist.ID, components.ButtonOutline, components.ButtonSizeDefault, nil) {
+					@components.LinkButton("/gists/"+data.Gist.ID, components.ButtonGhost, components.ButtonSizeDefault, nil) {
 						Cancel
 					}
 				</div>
 			</form>
+
 			<script>
 				document.getElementById('gist-edit-form').addEventListener('submit', async function(e) {
 					e.preventDefault();

@@ -47,7 +47,7 @@ func GistNew(data view.GistNewData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-4xl mx-auto py-8 px-4\"><h1 class=\"text-2xl font-bold mb-6\">Create a New Gist</h1><form id=\"gist-form\"><div class=\"mb-4\"><label for=\"gist-description\" class=\"block text-sm font-medium text-foreground mb-1\">Description <span class=\"text-muted-foreground\">(optional)</span></label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-4xl mx-auto space-y-6\"><section aria-labelledby=\"new-title\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2\"><a href=\"/gists\" class=\"hover:underline\">Gists</a> <span aria-hidden=\"true\">·</span> New</p><h1 id=\"new-title\" class=\"text-2xl font-semibold tracking-tight\">Create a new gist</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">Add one or more files. Public gists are listed on the Explore page; secret gists are only reachable by direct link.</p></section><form id=\"gist-form\" class=\"space-y-5 rounded-md border border-border bg-card p-6\"><div class=\"space-y-1.5\"><label for=\"gist-description\" class=\"block text-sm font-medium\">Description <span class=\"text-muted-foreground font-normal\">(optional)</span></label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -55,12 +55,35 @@ func GistNew(data view.GistNewData) templ.Component {
 				"id":          "gist-description",
 				"type":        "text",
 				"name":        "description",
-				"placeholder": "Gist description...",
+				"placeholder": "Short summary of what this gist contains",
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><div class=\"mb-4 flex items-center gap-2\"><input type=\"checkbox\" id=\"public\" name=\"public\" checked> <label for=\"public\" class=\"text-sm text-foreground\">Public gist</label></div><div id=\"file-rows\" class=\"space-y-4\"><div class=\"rounded-md border border-border bg-card p-4\"><label for=\"gist-filename-0\" class=\"sr-only\">Filename</label> <input id=\"gist-filename-0\" type=\"text\" name=\"filename[]\" placeholder=\"Filename including extension\" class=\"flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground mb-2\" required> <label for=\"gist-content-0\" class=\"sr-only\">File contents</label> <textarea id=\"gist-content-0\" name=\"content[]\" rows=\"8\" class=\"flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground font-mono\" placeholder=\"File contents...\"></textarea></div></div><div class=\"mt-3\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div><label class=\"flex items-center gap-2 text-sm cursor-pointer\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.Checkbox(templ.Attributes{"id": "public", "name": "public", "checked": "checked"}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<span>Public gist <span class=\"text-muted-foreground\">(listed in Explore)</span></span></label><div id=\"file-rows\" class=\"space-y-4\"><div class=\"rounded-md border border-border bg-muted/30 p-4 space-y-2\"><label for=\"gist-filename-0\" class=\"sr-only\">Filename</label>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.Input(templ.Attributes{
+				"id":          "gist-filename-0",
+				"type":        "text",
+				"name":        "filename[]",
+				"placeholder": "filename.ext",
+				"required":    "required",
+				"class":       "font-mono",
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<label for=\"gist-content-0\" class=\"sr-only\">File contents</label> <textarea id=\"gist-content-0\" name=\"content[]\" rows=\"10\" class=\"flex min-h-[160px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical\" placeholder=\"File contents…\"></textarea></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -76,7 +99,7 @@ func GistNew(data view.GistNewData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "Add file")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "+ Add file")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -91,7 +114,7 @@ func GistNew(data view.GistNewData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><div class=\"mt-6 flex gap-3\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"flex items-center gap-3 pt-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -107,7 +130,7 @@ func GistNew(data view.GistNewData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "Create Gist")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "Create gist")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -129,17 +152,17 @@ func GistNew(data view.GistNewData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "Cancel")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "Cancel")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.LinkButton("/gists", components.ButtonOutline, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.LinkButton("/gists", components.ButtonGhost, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</div></form><script>\n\t\t\t\tdocument.getElementById('gist-form').addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\tconst desc = this.querySelector('[name=description]').value;\n\t\t\t\t\tconst pub = this.querySelector('[name=public]').checked;\n\t\t\t\t\tconst filenames = [...this.querySelectorAll('[name=\"filename[]\"]')].map(el => el.value);\n\t\t\t\t\tconst contents = [...this.querySelectorAll('[name=\"content[]\"]')].map(el => el.value);\n\t\t\t\t\tconst files = filenames.map((fn, i) => ({ filename: fn, content: contents[i] }));\n\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\tconst res = await fetch('/api/gists', {\n\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\tbody: JSON.stringify({ description: desc, public: pub, files })\n\t\t\t\t\t});\n\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\tconst g = await res.json();\n\t\t\t\t\t\twindow.location.href = '/gists/' + g.id;\n\t\t\t\t\t} else {\n\t\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\t\tlet msg = text;\n\t\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\t\talert(msg || ('Failed to create gist (HTTP ' + res.status + ')'));\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t</script></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</div></form><script>\n\t\t\t\tdocument.getElementById('gist-form').addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\tconst desc = this.querySelector('[name=description]').value;\n\t\t\t\t\tconst pub = this.querySelector('[name=public]').checked;\n\t\t\t\t\tconst filenames = [...this.querySelectorAll('[name=\"filename[]\"]')].map(el => el.value);\n\t\t\t\t\tconst contents = [...this.querySelectorAll('[name=\"content[]\"]')].map(el => el.value);\n\t\t\t\t\tconst files = filenames.map((fn, i) => ({ filename: fn, content: contents[i] }));\n\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\tconst res = await fetch('/api/gists', {\n\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\tbody: JSON.stringify({ description: desc, public: pub, files })\n\t\t\t\t\t});\n\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\tconst g = await res.json();\n\t\t\t\t\t\twindow.location.href = '/gists/' + g.id;\n\t\t\t\t\t} else {\n\t\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\t\tlet msg = text;\n\t\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\t\talert(msg || ('Failed to create gist (HTTP ' + res.status + ')'));\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t</script></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
