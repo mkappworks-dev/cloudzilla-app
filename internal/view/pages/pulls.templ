@@ -58,41 +58,46 @@ templ Pulls(data view.PullsData) {
 					<ol class="divide-y divide-border">
 						for _, pull := range data.Pulls {
 							<li>
-								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(pull.Number)) } class="flex items-start gap-3 px-4 py-3 hover:bg-muted/50">
-									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class={ "shrink-0 mt-1", pullStateIconClass(string(pull.State), pull.IsDraft) } aria-hidden="true" focusable="false">
-										<circle cx="6" cy="6" r="2"></circle>
-										<circle cx="6" cy="18" r="2"></circle>
-										<circle cx="18" cy="18" r="2"></circle>
-										<path d="M6 8v8M6 18h6a6 6 0 006-6v-2"></path>
+								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(pull.Number)) } class="flex items-start gap-3 px-4 py-3 hover:bg-muted/50 group">
+									<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class={ "shrink-0 mt-0.5", pullStateIconClass(string(pull.State), pull.IsDraft) } aria-hidden="true" focusable="false">
+										if string(pull.State) == "merged" {
+											<path d="M5 3.254V3.25v.005a.75.75 0 110-.005v.004zm.45 1.9a2.25 2.25 0 10-1.95.218v5.256a2.25 2.25 0 101.5 0V7.123A5.735 5.735 0 009.25 9h1.378a2.251 2.251 0 100-1.5H9.25a4.25 4.25 0 01-3.8-2.346zM12.75 9a.75.75 0 100-1.5.75.75 0 000 1.5zm-8.5 4.5a.75.75 0 100-1.5.75.75 0 000 1.5z"></path>
+										} else if pull.IsDraft {
+											<path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm6.5-9.25a2.25 2.25 0 113 2.122V10.5a2.25 2.25 0 11-1.5 0V4.622a2.25 2.25 0 01-1.5-2.122zm2.25-.75a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5z"></path>
+										} else {
+											<path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zm5.677-.177L9.573.677A.25.25 0 0110 .854V2.5h1A2.5 2.5 0 0113.5 5v5.628a2.251 2.251 0 11-1.5 0V5a1 1 0 00-1-1h-1v1.646a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm8.25.75a.75.75 0 101.5 0 .75.75 0 00-1.5 0z"></path>
+										}
 									</svg>
 									<div class="min-w-0 flex-1">
-										<div class="flex items-center gap-2 flex-wrap">
-											<span class="text-[13px] font-medium hover:underline">{ pull.Title }</span>
+										<div class="flex items-center gap-2">
+											<p class="text-[13.5px] font-medium leading-snug truncate group-hover:underline">{ pull.Title }</p>
 											if pull.IsDraft {
 												@components.Badge(components.BadgeDraft) {
 													Draft
 												}
 											}
+											<span class="shrink-0">
+												@components.PullStateBadge(string(pull.State))
+											</span>
 										</div>
-										<div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+										<div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-muted-foreground">
 											<span class="font-mono">#{ strconv.Itoa(pull.Number) }</span>
-											<span aria-hidden="true">·</span>
-											<span>by { pull.AuthorName }</span>
-											<span aria-hidden="true">·</span>
-											<span class="font-mono">{ pull.HeadBranch }</span>
-											<span aria-hidden="true">→</span>
-											<span class="font-mono">{ pull.BaseBranch }</span>
+											<span>opened by { pull.AuthorName }</span>
+											<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-border bg-muted/40 font-mono text-[10px]" title={ pull.HeadBranch + " → " + pull.BaseBranch }>
+												<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+													<circle cx="6" cy="3" r="3"></circle>
+													<circle cx="18" cy="3" r="3"></circle>
+													<circle cx="12" cy="21" r="3"></circle>
+													<path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path>
+												</svg>
+												{ pull.HeadBranch }
+											</span>
 											if labels, ok := data.PullLabels[pull.ID]; ok && len(labels) > 0 {
-												<span class="ml-2 inline-flex flex-wrap gap-1" aria-label="Labels">
-													for _, l := range labels {
-														<span class="px-2 py-0.5 rounded-full text-[11px] border" style={ "background-color: " + l.Color + "33; color: " + l.Color + "; border-color: " + l.Color + "55" }>{ l.Name }</span>
-													}
-												</span>
+												for _, l := range labels {
+													<span class="px-2 py-0.5 rounded-full text-[11px] border" style={ "background-color: " + l.Color + "33; color: " + l.Color + "; border-color: " + l.Color + "55" }>{ l.Name }</span>
+												}
 											}
 										</div>
-									</div>
-									<div class="shrink-0">
-										@components.PullStateBadge(string(pull.State))
 									</div>
 								</a>
 							</li>
