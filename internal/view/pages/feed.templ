@@ -9,50 +9,75 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
+// feedEventVerb returns the action phrase that follows the actor name for a given event type.
+func feedEventVerb(eventType string) string {
+	switch eventType {
+	case "push":
+		return "pushed to"
+	case "issue_opened":
+		return "opened an issue in"
+	case "issue_closed":
+		return "closed an issue in"
+	case "pr_opened":
+		return "opened a pull request in"
+	case "pr_merged":
+		return "merged a pull request in"
+	case "pr_closed":
+		return "closed a pull request in"
+	case "fork":
+		return "forked"
+	case "star":
+		return "starred"
+	case "release_published":
+		return "published a release in"
+	case "member_added":
+		return "added a member to"
+	default:
+		return ""
+	}
+}
+
 templ Feed(data view.FeedData) {
 	@layout.Base(data.BasePage, "Activity Feed") {
-		<div class="max-w-3xl mx-auto space-y-4">
-			<h1 class="text-2xl font-bold text-foreground">Your Activity Feed</h1>
+		<div class="max-w-3xl mx-auto space-y-6">
+
+			<section aria-labelledby="feed-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Cloudzilla · Feed</p>
+				<h1 id="feed-title" class="text-2xl font-semibold tracking-tight">Activity</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">Events from the people and repositories you watch.</p>
+			</section>
+
 			if len(data.Events) == 0 {
 				@components.EmptyStateWithHint("No activity yet.", "Watch some repositories to see events here.")
 			} else {
-				<div class="space-y-3">
-					for _, e := range data.Events {
-						<div class="rounded-md border border-border bg-card px-5 py-4 flex items-start gap-4">
-							<div class="flex-1 min-w-0">
-								<div class="text-sm text-foreground">
-									<a href={ templ.SafeURL("/" + e.ActorName) } class="text-foreground hover:underline font-medium">{ e.ActorName }</a>
-									if e.EventType == "push" {
-										pushed to <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="text-foreground hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
-									} else if e.EventType == "issue_opened" {
-										opened an issue in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName + "/issues") } class="text-foreground hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
-									} else if e.EventType == "issue_closed" {
-										closed an issue in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName + "/issues") } class="text-foreground hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
-									} else if e.EventType == "pr_opened" {
-										opened a pull request in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName + "/pulls") } class="text-foreground hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
-									} else if e.EventType == "pr_merged" {
-										merged a pull request in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName + "/pulls") } class="text-foreground hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
-									} else if e.EventType == "pr_closed" {
-										closed a pull request in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName + "/pulls") } class="text-foreground hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
-									} else if e.EventType == "fork" {
-										forked <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="text-foreground hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
-									} else if e.EventType == "star" {
-										starred <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="text-foreground hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
-									} else if e.EventType == "release_published" {
-										published a release in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName + "/releases") } class="text-foreground hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
-									} else if e.EventType == "member_added" {
-										added a member to <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="text-foreground hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
-									} else {
-										performed action <span class="font-mono text-xs bg-muted px-1 rounded">{ e.EventType }</span> in <a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="text-foreground hover:underline font-medium">{ e.OwnerName }/{ e.RepoName }</a>
-									}
+				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="feed-list">
+					<h2 id="feed-list" class="sr-only">Feed events</h2>
+					<ol class="divide-y divide-border">
+						for _, e := range data.Events {
+							<li class="px-4 py-3 hover:bg-muted/50 flex items-start gap-3">
+								@components.Avatar(e.ActorName, components.AvatarSizeDefault, "")
+								<div class="min-w-0 flex-1">
+									<div class="text-[13px]">
+										<a href={ templ.SafeURL("/" + e.ActorName) } class="font-medium hover:underline">{ e.ActorName }</a>
+										{{ verb := feedEventVerb(e.EventType) }}
+										if verb != "" {
+											<span class="text-muted-foreground">&nbsp;{ verb }&nbsp;</span>
+										} else {
+											<span class="text-muted-foreground">&nbsp;performed&nbsp;</span>
+											<span class="font-mono text-[11px] bg-muted px-1.5 py-0.5 rounded border border-border">{ e.EventType }</span>
+											<span class="text-muted-foreground">&nbsp;in&nbsp;</span>
+										}
+										<a href={ templ.SafeURL("/" + e.OwnerName + "/" + e.RepoName) } class="font-medium hover:underline">{ e.OwnerName }/{ e.RepoName }</a>
+									</div>
+									<p class="mt-0.5 font-mono text-[11px] text-muted-foreground">
+										<time datetime={ e.CreatedAt.UTC().Format(time.RFC3339) }>{ e.CreatedAt.Format("Jan 2, 2006 at 15:04") }</time>
+									</p>
 								</div>
-								<div class="text-xs text-muted-foreground mt-1">
-									<time datetime={ e.CreatedAt.UTC().Format(time.RFC3339) }>{ e.CreatedAt.Format("Jan 2, 2006 at 15:04") }</time>
-								</div>
-							</div>
-						</div>
-					}
-				</div>
+							</li>
+						}
+					</ol>
+				</section>
+
 				{{ prevURL := "" }}
 				if data.Page > 1 {
 					{{ prevURL = "/feed?page=" + strconv.Itoa(data.Page-1) }}

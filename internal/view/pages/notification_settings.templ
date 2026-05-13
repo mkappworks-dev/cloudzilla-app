@@ -7,51 +7,49 @@ import (
 )
 
 templ NotificationSettings(data view.NotificationSettingsData) {
-	@layout.Base(data.BasePage, "Notification Settings — Cloudzilla") {
-		<div class="max-w-2xl mx-auto py-8 px-4">
-			<h1 class="text-2xl font-semibold tracking-tight mb-6">Notification Settings</h1>
-			@components.Card(nil) {
-				@components.CardContent() {
-					<form method="POST" action="/settings/notifications" class="space-y-6">
-						<div class="flex items-center gap-3">
-							if data.EmailNotifications {
-								<input type="checkbox" id="email_notifications" name="email_notifications" checked class="h-4 w-4 rounded border-input accent-foreground"/>
-							} else {
-								<input type="checkbox" id="email_notifications" name="email_notifications" class="h-4 w-4 rounded border-input accent-foreground"/>
-							}
-							<label for="email_notifications" class="text-sm font-medium text-foreground">Enable email notifications</label>
-						</div>
-						<div class="space-y-1.5">
-							<label for="email_digest" class="block text-sm font-medium text-foreground">Email digest frequency</label>
-							<select id="email_digest" name="email_digest" class="flex h-9 w-48 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
-								if data.EmailDigest == "immediate" {
-									<option value="immediate" selected>Immediate</option>
-								} else {
-									<option value="immediate">Immediate</option>
-								}
-								if data.EmailDigest == "daily" {
-									<option value="daily" selected>Daily digest</option>
-								} else {
-									<option value="daily">Daily digest</option>
-								}
-								if data.EmailDigest == "weekly" {
-									<option value="weekly" selected>Weekly digest</option>
-								} else {
-									<option value="weekly">Weekly digest</option>
-								}
-								if data.EmailDigest == "never" {
-									<option value="never" selected>Never</option>
-								} else {
-									<option value="never">Never</option>
-								}
-							</select>
-						</div>
-						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-							Save preferences
-						}
-					</form>
-				}
-			}
+	@layout.Base(data.BasePage, "Notification settings — Cloudzilla") {
+		<div class="max-w-2xl mx-auto space-y-6">
+
+			<section aria-labelledby="ns-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href="/settings" class="hover:underline">Settings</a>
+					<span aria-hidden="true">·</span>
+					Notifications
+				</p>
+				<h1 id="ns-title" class="text-2xl font-semibold tracking-tight">Notification preferences</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">Choose how Cloudzilla reaches you about issues, pull requests, and other repo activity.</p>
+			</section>
+
+			<form method="POST" action="/settings/notifications" class="space-y-5 rounded-md border border-border bg-card p-6">
+				<label class="flex items-center gap-3 cursor-pointer">
+					if data.EmailNotifications {
+						@components.Checkbox(templ.Attributes{"id": "email_notifications", "name": "email_notifications", "checked": "checked"})
+					} else {
+						@components.Checkbox(templ.Attributes{"id": "email_notifications", "name": "email_notifications"})
+					}
+					<span class="text-sm">
+						<span class="font-medium block">Email notifications</span>
+						<span class="text-muted-foreground text-[12px]">Send email when something happens that needs your attention.</span>
+					</span>
+				</label>
+
+				<div class="space-y-1.5">
+					<label for="email_digest" class="block text-sm font-medium">Email digest frequency</label>
+					<select id="email_digest" name="email_digest" class="flex h-9 w-56 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+						<option value="immediate" selected?={ data.EmailDigest == "immediate" }>Immediate</option>
+						<option value="daily" selected?={ data.EmailDigest == "daily" }>Daily digest</option>
+						<option value="weekly" selected?={ data.EmailDigest == "weekly" }>Weekly digest</option>
+						<option value="never" selected?={ data.EmailDigest == "never" }>Never</option>
+					</select>
+					<p class="text-[11px] text-muted-foreground">Digests batch notifications into a single email at the chosen cadence.</p>
+				</div>
+
+				<div class="pt-2">
+					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+						Save preferences
+					}
+				</div>
+			</form>
 		</div>
 	}
 }
