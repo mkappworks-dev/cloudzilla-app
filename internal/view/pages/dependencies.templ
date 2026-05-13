@@ -1,90 +1,106 @@
 package pages
 
 import (
-	"fmt"
+	"strconv"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ Dependencies(data view.DependenciesData) {
 	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" — Dependencies") {
 		<div class="space-y-6">
-			<!-- Repo sub-nav -->
-			<div class="bg-white border border-gray-200 rounded-lg px-6 py-4 flex items-center gap-4">
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 font-semibold hover:underline">{ data.Owner }/{ data.RepoName }</a>
-				<span class="text-gray-400">/</span>
-				<span class="font-medium text-gray-700">Dependency Graph</span>
-			</div>
-			if len(data.Dependencies) > 0 {
-				<div class="text-sm text-gray-500 px-1">
-					{ fmt.Sprintf("%d", len(data.Dependencies)) }
-					if len(data.Dependencies) == 1 {
-						dependency
-					} else {
-						dependencies
-					}
-					detected across
-					{ fmt.Sprintf("%d", len(data.ByManager)) }
-					if len(data.ByManager) == 1 {
-						package manager.
-					} else {
-						package managers.
-					}
-				</div>
-				for mgr, deps := range data.ByManager {
-					<div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-						<div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-							<span class="font-semibold text-gray-700 capitalize">{ mgr }</span>
-							<span class="text-xs text-gray-400">
-								{ fmt.Sprintf("%d", len(deps)) }
-								if len(deps) == 1 {
-									package
-								} else {
-									packages
-								}
-							</span>
-						</div>
-						<table class="w-full text-sm">
-							<thead>
-								<tr class="text-left text-xs text-gray-500 border-b border-gray-100">
-									<th class="px-6 py-2 font-medium">Package</th>
-									<th class="px-6 py-2 font-medium">Version</th>
-									<th class="px-6 py-2 font-medium">Type</th>
-								</tr>
-							</thead>
-							<tbody class="divide-y divide-gray-50">
-								for _, dep := range deps {
-									<tr class="hover:bg-gray-50">
-										<td class="px-6 py-2 font-mono text-gray-800">{ dep.Package }</td>
-										<td class="px-6 py-2 text-gray-500">
-											if dep.Version != "" {
-												{ dep.Version }
-											} else {
-												<span class="text-gray-300">—</span>
-											}
-										</td>
-										<td class="px-6 py-2">
-											if dep.IsDev {
-												<span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">dev</span>
-											} else {
-												<span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">prod</span>
-											}
-										</td>
-									</tr>
-								}
-							</tbody>
-						</table>
-					</div>
+
+			<section aria-labelledby="deps-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					Dependency graph
+				</p>
+				<h1 id="deps-title" class="text-2xl font-semibold tracking-tight">Dependencies</h1>
+				if len(data.Dependencies) > 0 {
+					<p class="mt-1 text-[13px] text-muted-foreground">
+						<strong class="text-foreground font-medium">{ strconv.Itoa(len(data.Dependencies)) }</strong>
+						if len(data.Dependencies) == 1 {
+							package
+						} else {
+							packages
+						}
+						across
+						<strong class="text-foreground font-medium">{ strconv.Itoa(len(data.ByManager)) }</strong>
+						if len(data.ByManager) == 1 {
+							manager.
+						} else {
+							managers.
+						}
+					</p>
 				}
+			</section>
+
+			if len(data.Dependencies) > 0 {
+				<section class="space-y-6">
+					for mgr, deps := range data.ByManager {
+						<article class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby={ "dep-" + mgr }>
+							<header class="px-4 py-2.5 border-b border-border bg-muted/50 flex items-center justify-between">
+								<h2 id={ "dep-" + mgr } class="text-[13px] font-medium capitalize">{ mgr }</h2>
+								<span class="font-mono text-[11px] text-muted-foreground">
+									{ strconv.Itoa(len(deps)) }
+									if len(deps) == 1 {
+										package
+									} else {
+										packages
+									}
+								</span>
+							</header>
+							@components.Table(nil) {
+								<thead class="sr-only">
+									<tr>
+										<th scope="col">Package</th>
+										<th scope="col">Version</th>
+										<th scope="col">Type</th>
+									</tr>
+								</thead>
+								@components.TableBody() {
+									for _, dep := range deps {
+										@components.TableRow(true) {
+											@components.TableCell(templ.Attributes{"class": "font-mono"}) {
+												{ dep.Package }
+											}
+											@components.TableCell(templ.Attributes{"class": "text-muted-foreground font-mono text-[12px]"}) {
+												if dep.Version != "" {
+													{ dep.Version }
+												} else {
+													<span class="text-muted-foreground/50" aria-hidden="true">—</span>
+												}
+											}
+											@components.TableCell(nil) {
+												if dep.IsDev {
+													@components.Badge(components.BadgeSecondary) {
+														dev
+													}
+												} else {
+													@components.Badge(components.BadgeOutline) {
+														prod
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						</article>
+					}
+				</section>
 			} else {
-				<div class="bg-white border border-gray-200 rounded-lg p-12 text-center">
-					<p class="text-gray-500">No dependencies detected.</p>
-					<p class="text-sm text-gray-400 mt-2">
+				<div class="rounded-md border border-border bg-card p-12 text-center">
+					<p class="text-muted-foreground">No dependencies detected.</p>
+					<p class="mt-2 text-sm text-muted-foreground">
 						Push a commit containing
-						<code class="bg-gray-100 px-1 rounded">go.mod</code>,
-						<code class="bg-gray-100 px-1 rounded">package.json</code>,
-						<code class="bg-gray-100 px-1 rounded">requirements.txt</code>,
-						or <code class="bg-gray-100 px-1 rounded">Cargo.toml</code>
+						<code class="font-mono text-[12px] px-1 py-0.5 bg-muted border border-border rounded">go.mod</code>,
+						<code class="font-mono text-[12px] px-1 py-0.5 bg-muted border border-border rounded">package.json</code>,
+						<code class="font-mono text-[12px] px-1 py-0.5 bg-muted border border-border rounded">requirements.txt</code>,
+						or <code class="font-mono text-[12px] px-1 py-0.5 bg-muted border border-border rounded">Cargo.toml</code>
 						to populate this graph.
 					</p>
 				</div>

@@ -8,50 +8,82 @@ import (
 
 templ PullNew(data view.PullNewData) {
 	@layout.Base(data.BasePage, "New Pull Request · "+data.Owner+"/"+data.RepoName) {
-		<div class="max-w-2xl mx-auto space-y-6">
-			<div>
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="text-blue-600 hover:underline text-sm">&larr; Back to Pull Requests</a>
-			</div>
-			<h1 class="text-2xl font-bold">New Pull Request</h1>
+		<div class="max-w-3xl mx-auto space-y-6">
+
+			<section aria-labelledby="new-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="hover:underline">Pull requests</a>
+					<span aria-hidden="true">·</span>
+					Compare
+				</p>
+				<h1 id="new-title" class="text-2xl font-semibold tracking-tight">Open a pull request</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">Choose a base and head branch — Cloudzilla will compare and let you create the request.</p>
+			</section>
+
 			if data.Error != "" {
-				<div class="px-4 py-3 bg-red-50 border border-red-300 rounded text-sm text-red-700">{ data.Error }</div>
+				@components.Alert(components.AlertDestructive) {
+					@components.AlertDescription() {
+						{ data.Error }
+					}
+				}
 			}
+
 			if len(data.Branches) == 0 {
 				@components.EmptyState("This repository has no branches yet. Push at least one commit to create a pull request.")
 			} else {
-				<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/new") } class="space-y-4 bg-white border border-gray-200 rounded-lg p-6">
-					<div class="flex gap-3 items-end">
-						<div class="flex-1">
-							<label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Head branch</label>
-							<select name="head_branch" required class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-								for _, b := range data.Branches {
-									<option value={ b.Name }>{ b.Name }</option>
-								}
-							</select>
+				<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/new") } class="rounded-md border border-border bg-card p-6 space-y-5">
+
+					<fieldset class="rounded-md border border-border p-4">
+						<legend class="px-2 font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Compare</legend>
+						<div class="flex flex-wrap items-end gap-3">
+							<div class="flex-1 min-w-[10rem] space-y-1.5">
+								<label for="head_branch" class="block text-[12px] font-medium text-muted-foreground">
+									Head branch <span class="text-muted-foreground/70">(yours)</span>
+								</label>
+								<select id="head_branch" name="head_branch" required class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm font-mono shadow-sm">
+									for _, b := range data.Branches {
+										<option value={ b.Name }>{ b.Name }</option>
+									}
+								</select>
+							</div>
+							<span class="text-muted-foreground pb-2" aria-hidden="true">→</span>
+							<div class="flex-1 min-w-[10rem] space-y-1.5">
+								<label for="base_branch" class="block text-[12px] font-medium text-muted-foreground">
+									Base branch <span class="text-muted-foreground/70">(target)</span>
+								</label>
+								<select id="base_branch" name="base_branch" required class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm font-mono shadow-sm">
+									for _, b := range data.Branches {
+										<option value={ b.Name } selected?={ b.IsDefault }>{ b.Name }</option>
+									}
+								</select>
+							</div>
 						</div>
-						<div class="text-gray-400 pb-2">&rarr;</div>
-						<div class="flex-1">
-							<label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Base branch</label>
-							<select name="base_branch" required class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-								for _, b := range data.Branches {
-									<option value={ b.Name } selected?={ b.IsDefault }>{ b.Name }</option>
-								}
-							</select>
-						</div>
+					</fieldset>
+
+					<div class="space-y-1.5">
+						<label for="title" class="block text-sm font-medium">Title</label>
+						@components.Input(templ.Attributes{
+							"id":          "title",
+							"name":        "title",
+							"type":        "text",
+							"required":    "required",
+							"autofocus":   "autofocus",
+							"placeholder": "Summary of changes",
+						})
 					</div>
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1" for="title">Title</label>
-						<input id="title" name="title" type="text" required autofocus placeholder="Summary of changes" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+
+					<div class="space-y-1.5">
+						<label for="body" class="block text-sm font-medium">Description</label>
+						<textarea id="body" name="body" rows="12" class="flex min-h-[200px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical" placeholder="What does this change, and why? Reference any related issues with #number.">{ data.TemplateBody }</textarea>
 					</div>
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1" for="body">Description</label>
-						<textarea id="body" name="body" rows="12" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical font-mono">{ data.TemplateBody }</textarea>
-					</div>
-					<div class="flex items-center gap-3">
-						<button type="submit" class="px-5 py-2 bg-green-600 text-white text-sm font-medium rounded hover:bg-green-700 transition-colors">
+
+					<div class="flex items-center gap-3 pt-2">
+						@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 							Create pull request
-						</button>
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="text-sm text-gray-500 hover:underline">Cancel</a>
+						}
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="text-sm text-muted-foreground hover:underline ml-auto">Cancel</a>
 					</div>
 				</form>
 			}

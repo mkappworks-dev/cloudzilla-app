@@ -53,7 +53,7 @@ func Reactions(data view.ReactionFragData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		for _, r := range data.Reactions {
-			var templ_7745c5c3_Var3 = []any{"inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors hover:border-blue-400", templ.KV("bg-blue-50 border-blue-400 text-blue-700", r.UserReacted), templ.KV("bg-white border-gray-300 text-gray-600", !r.UserReacted)}
+			var templ_7745c5c3_Var3 = []any{"inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors hover:border-primary/40", templ.KV("bg-primary/10 border-primary/40 text-foreground", r.UserReacted), templ.KV("bg-background border-border text-muted-foreground", !r.UserReacted)}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var3...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -117,7 +117,7 @@ func Reactions(data view.ReactionFragData) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(view.EmojiChar(r.Emoji))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 12, Col: 557}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 12, Col: 577}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -130,7 +130,7 @@ func Reactions(data view.ReactionFragData) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(r.Count))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 12, Col: 617}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 12, Col: 637}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -142,7 +142,7 @@ func Reactions(data view.ReactionFragData) templ.Component {
 			}
 		}
 		if data.LoggedIn {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<details class=\"relative\"><summary class=\"list-none inline-flex items-center justify-center w-7 h-7 rounded-full border border-gray-200 text-gray-400 hover:border-blue-400 hover:text-blue-500 cursor-pointer text-sm transition-colors\">+</summary><div class=\"absolute z-10 left-0 top-8 bg-white border border-gray-200 rounded-lg shadow-md p-2 flex gap-1 flex-wrap\"><button hx-post=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<details class=\"relative\"><summary class=\"list-none inline-flex items-center justify-center w-7 h-7 rounded-full border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground cursor-pointer text-sm transition-colors\">+</summary><div class=\"absolute z-10 left-0 top-8 bg-background border border-border rounded-lg shadow-md p-2 flex gap-1 flex-wrap\"><button hx-post=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

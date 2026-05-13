@@ -1,0 +1,48 @@
+package components
+
+// Accordion wraps a stack of AccordionItems. Allow multiple items open at once
+// by default (since each is a standalone <details>). For single-open behavior
+// give every AccordionItem the same `name` attribute via attrs — supported
+// natively in modern browsers (Chrome 120+, Safari 17+, Firefox 129+).
+templ Accordion(attrs templ.Attributes) {
+	<div class="rounded-md border border-border bg-card divide-y divide-border overflow-hidden" { attrs... }>
+		{ children... }
+	</div>
+}
+
+// AccordionItem renders one collapsible section using the native <details>/<summary>
+// elements — keyboard accessible, no JS required.
+//
+// Pass `name` via attrs (e.g. {"name": "faq"}) to enable single-open mode
+// across sibling items.
+templ AccordionItem(attrs templ.Attributes) {
+	<details class="group" { attrs... }>
+		{ children... }
+	</details>
+}
+
+// AccordionTrigger is the clickable header. Renders as <summary> so it's the
+// focusable handle for the disclosure. The chevron auto-rotates when open.
+templ AccordionTrigger() {
+	<summary class="flex w-full items-center justify-between px-4 py-3 text-sm font-medium cursor-pointer hover:bg-muted/50 transition-colors list-none [&::-webkit-details-marker]:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring">
+		<span>{ children... }</span>
+		<svg
+			class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			aria-hidden="true"
+			focusable="false"
+		>
+			<polyline points="6 9 12 15 18 9"></polyline>
+		</svg>
+	</summary>
+}
+
+// AccordionContent is the revealed body region under an AccordionTrigger.
+templ AccordionContent() {
+	<div class="px-4 pb-4 pt-0 text-sm text-muted-foreground">
+		{ children... }
+	</div>
+}

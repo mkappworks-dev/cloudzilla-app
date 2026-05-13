@@ -4,157 +4,218 @@ import (
 	"strconv"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ Repo(data view.RepoData) {
 	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName) {
 		<div class="space-y-6">
+
 			if data.IsArchived {
-				<div class="mb-4 flex items-center gap-2 rounded-md border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-					<svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
-					This repository has been archived and is read-only.
+				<div role="status" class="flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+					<svg class="h-4 w-4 flex-shrink-0 text-warning" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+						<path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
+					</svg>
+					<span class="text-warning">This repository has been archived and is read-only.</span>
 				</div>
 			}
-			<div class="bg-white border border-gray-200 rounded-lg p-6">
-				<div class="flex justify-between items-start mb-4">
-					<div>
-						<h1 class="text-3xl font-bold">
-							<a href={ templ.SafeURL("/" + data.Owner) } class="text-blue-600 hover:underline">{ data.Owner }</a>/<span>{ data.RepoName }</span>
-						</h1>
-						if data.Repo.Description != "" {
-							<p class="text-gray-600 mt-2">{ data.Repo.Description }</p>
-						}
-						if data.IsFork {
-							<p class="text-sm text-gray-500 mt-1">Forked from
-								<a href={ templ.SafeURL("/" + data.ForkOfPath) } class="text-blue-600 hover:underline">{ data.ForkOfPath }</a>
-							</p>
-						}
-						<div
-							id="repo-topics"
-							hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/topics" }
-							hx-trigger="load"
-							hx-swap="outerHTML"
-							class="flex flex-wrap gap-2 mt-2"
-						>
-							for _, t := range data.Topics {
-								<a href={ templ.SafeURL("/topic/" + t.Name) } class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium hover:bg-blue-200">{ t.Name }</a>
-							}
-						</div>
-					</div>
-					<div class="flex items-center gap-3">
-						<span class="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-							if data.Repo.Private {
+
+			<!-- Repo header -->
+			<section class="flex flex-wrap items-start justify-between gap-4 pb-6 border-b border-border" aria-labelledby="repo-title">
+				<div class="min-w-0">
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Repository · Overview</p>
+					<h1 id="repo-title" class="text-xl tracking-tight font-medium mb-1.5 flex items-center gap-2.5 flex-wrap">
+						<a href={ templ.SafeURL("/" + data.Owner) } class="text-muted-foreground hover:underline">{ data.Owner }</a>
+						<span class="text-muted-foreground" aria-hidden="true">/</span>
+						<span class="font-semibold">{ data.RepoName }</span>
+						if data.Repo.Private {
+							@components.Badge(components.BadgeOutline) {
 								Private
-							} else {
+							}
+						} else {
+							@components.Badge(components.BadgeOutline) {
 								Public
 							}
+						}
+						if data.IsArchived {
+							@components.Badge(components.BadgeDraft) {
+								Archived
+							}
+						}
+					</h1>
+
+					if data.Repo.Description != "" {
+						<p class="text-[13px] text-muted-foreground max-w-2xl">{ data.Repo.Description }</p>
+					}
+
+					if data.IsFork {
+						<p class="text-xs text-muted-foreground mt-2">
+							Forked from
+							<a href={ templ.SafeURL("/" + data.ForkOfPath) } class="hover:underline text-foreground font-mono">{ data.ForkOfPath }</a>
+						</p>
+					}
+
+					<!-- Topics: SSR initial render, HTMX swaps in fresh list -->
+					<div
+						id="repo-topics"
+						hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/topics" }
+						hx-trigger="load"
+						hx-swap="outerHTML"
+						class="mt-2 flex flex-wrap gap-1.5"
+						aria-label="Topics"
+					>
+						for _, t := range data.Topics {
+							<a href={ templ.SafeURL("/topic/" + t.Name) } class="text-[11px] px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground">{ t.Name }</a>
+						}
+					</div>
+				</div>
+
+				<!-- Action group: Watch / Star / Fork (each: button + count) -->
+				<div class="flex items-center gap-1.5 flex-shrink-0" role="group" aria-label="Repository actions">
+					<!-- Watch — HTMX loads stateful version -->
+					<div
+						id="watch-button"
+						hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
+						hx-trigger="load"
+						hx-swap="outerHTML"
+						class="flex border border-border rounded-md overflow-hidden"
+					>
+						<span class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 text-muted-foreground">
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+							Watch
 						</span>
-						<div id="fork-button" class="flex items-center gap-1">
-							if data.BasePage.CurrentUser != nil {
-								<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/fork" } hx-target="#fork-button" hx-swap="outerHTML" class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
-									&#x2442; Fork
+						<span class="h-8 inline-flex items-center px-3 text-[13px] font-mono border-l border-border text-muted-foreground">…</span>
+					</div>
+
+					<!-- Star -->
+					<div id="star-button" class="flex border border-border rounded-md overflow-hidden">
+						if data.BasePage.CurrentUser != nil {
+							if data.IsStarred {
+								<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/star" } hx-target="#star-button" hx-swap="outerHTML" type="button" aria-pressed="true" class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 bg-warning/10 text-warning hover:bg-warning/15">
+									<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+									Starred
 								</button>
 							} else {
-								<a href="/login" class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
-									&#x2442; Fork
-								</a>
+								<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/star" } hx-target="#star-button" hx-swap="outerHTML" type="button" aria-pressed="false" class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 hover:bg-accent">
+									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+									Star
+								</button>
 							}
-							<span class="px-2 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm">{ strconv.Itoa(data.ForkCount) }</span>
-						</div>
-						<div id="star-button" class="flex items-center gap-1">
-							if data.BasePage.CurrentUser != nil {
-								if data.IsStarred {
-									<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/star" } hx-target="#star-button" hx-swap="outerHTML" class="inline-flex items-center gap-1 px-3 py-1.5 border border-yellow-400 bg-yellow-50 text-yellow-700 rounded text-sm font-medium hover:bg-yellow-100 transition-colors">
-										&#9733; Starred
-									</button>
-								} else {
-									<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/star" } hx-target="#star-button" hx-swap="outerHTML" class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
-										&#9734; Star
-									</button>
-								}
-							} else {
-								<a href="/login" class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
-									&#9734; Star
-								</a>
-							}
-							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/stargazers") } class="px-2 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm hover:bg-gray-50 transition-colors">
-								{ strconv.Itoa(data.StarCount) }
+						} else {
+							<a href="/login" class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 hover:bg-accent">
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+								Star
 							</a>
-						</div>
-						<div
-							id="watch-button"
-							hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
-							hx-trigger="load"
-							hx-swap="outerHTML"
-							class="flex items-center"
-						>
-							<span class="text-xs text-gray-400">Loading...</span>
-						</div>
+						}
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/stargazers") } class="h-8 inline-flex items-center px-3 text-[13px] font-mono border-l border-border hover:bg-accent" aria-label={ "View " + strconv.Itoa(data.StarCount) + " stargazers" }>{ strconv.Itoa(data.StarCount) }</a>
+					</div>
+
+					<!-- Fork -->
+					<div id="fork-button" class="flex border border-border rounded-md overflow-hidden">
+						if data.BasePage.CurrentUser != nil {
+							<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/fork" } hx-target="#fork-button" hx-swap="outerHTML" type="button" class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 hover:bg-accent">
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="21" r="3"></circle><path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"></path></svg>
+								Fork
+							</button>
+						} else {
+							<a href="/login" class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 hover:bg-accent">
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="21" r="3"></circle><path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"></path></svg>
+								Fork
+							</a>
+						}
+						<span class="h-8 inline-flex items-center px-3 text-[13px] font-mono border-l border-border text-muted-foreground">{ strconv.Itoa(data.ForkCount) }</span>
 					</div>
 				</div>
-				<div class="text-sm text-gray-500">
-					<p>Default branch: <code class="bg-gray-100 px-2 py-1 rounded">{ data.Repo.DefaultBranch }</code></p>
-				</div>
-			</div>
-			<div class="bg-white border border-gray-200 rounded-lg p-6">
-				<h3 class="font-semibold mb-3">Clone this repository</h3>
-				<div class="space-y-3">
-					<div>
-						<label class="block text-xs font-medium text-gray-500 mb-1">HTTPS</label>
-						<code class="block bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm font-mono">{ data.CloneHTTP }</code>
-					</div>
-					<div>
-						<label class="block text-xs font-medium text-gray-500 mb-1">SSH</label>
-						<code class="block bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm font-mono">{ data.CloneSSH }</code>
-					</div>
-				</div>
-			</div>
-			if data.ReadmeHTML != "" {
-				<div class="bg-white border border-gray-200 rounded-lg p-6">
-					<div class="prose prose-sm max-w-none">@templ.Raw(data.ReadmeHTML)</div>
-				</div>
-			}
-			<div class="grid grid-cols-2 gap-4">
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues") } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
-					<h3 class="text-lg font-semibold">Issues</h3>
-					<p class="text-gray-500 text-sm mt-1">Track and discuss problems</p>
-				</a>
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
-					<h3 class="text-lg font-semibold">Pull Requests</h3>
-					<p class="text-gray-500 text-sm mt-1">Review and merge changes</p>
-				</a>
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Repo.DefaultBranch) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
-					<h3 class="text-lg font-semibold">Browse Code</h3>
-					<p class="text-gray-500 text-sm mt-1">Explore files and history</p>
-				</a>
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commits/" + data.Repo.DefaultBranch) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
-					<h3 class="text-lg font-semibold">Commits</h3>
-					<p class="text-gray-500 text-sm mt-1">Browse commit history</p>
-				</a>
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
-					<h3 class="text-lg font-semibold">Milestones</h3>
-					<p class="text-gray-500 text-sm mt-1">Track progress with sprints</p>
-				</a>
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases") } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
-					<h3 class="text-lg font-semibold">Releases</h3>
-					if data.LatestRelease != nil {
-						<p class="text-gray-500 text-sm mt-1">Latest: <span class="font-mono text-blue-600">{ data.LatestRelease.TagName }</span></p>
-					} else {
-						<p class="text-gray-500 text-sm mt-1">No releases yet</p>
-					}
-				</a>
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/refs") } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
-					<h3 class="text-lg font-semibold">Branches &amp; Tags</h3>
-					<p class="text-gray-500 text-sm mt-1">Manage refs and create branches</p>
-				</a>
-				if data.CanWrite {
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings") } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
-						<h3 class="text-lg font-semibold">Settings</h3>
-						<p class="text-gray-500 text-sm mt-1">Manage webhooks and repo settings</p>
+			</section>
+
+			<!-- Default branch info + clone URLs side-by-side -->
+			<div class="grid lg:grid-cols-[1fr_2fr] gap-6">
+				<section aria-labelledby="branch-heading" class="space-y-2">
+					<h2 id="branch-heading" class="text-xs font-medium text-muted-foreground">Default branch</h2>
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Repo.DefaultBranch) } class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border hover:bg-accent text-sm font-mono">
+						<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="3" r="3"></circle><circle cx="12" cy="21" r="3"></circle><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path></svg>
+						{ data.Repo.DefaultBranch }
 					</a>
-				}
+				</section>
+
+				<section aria-labelledby="clone-heading" class="space-y-2">
+					<h2 id="clone-heading" class="text-xs font-medium text-muted-foreground">Clone this repository</h2>
+					<div class="grid sm:grid-cols-2 gap-3">
+						<div>
+							<label for="clone-https" class="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1">HTTPS</label>
+							<code id="clone-https" class="block bg-muted border border-border rounded-md px-3 py-2 text-xs font-mono truncate" title={ data.CloneHTTP }>{ data.CloneHTTP }</code>
+						</div>
+						<div>
+							<label for="clone-ssh" class="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1">SSH</label>
+							<code id="clone-ssh" class="block bg-muted border border-border rounded-md px-3 py-2 text-xs font-mono truncate" title={ data.CloneSSH }>{ data.CloneSSH }</code>
+						</div>
+					</div>
+				</section>
 			</div>
+
+			<!-- README -->
+			if data.ReadmeHTML != "" {
+				<article class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="readme-heading">
+					<header class="px-5 py-3 border-b border-border bg-muted flex items-center gap-2">
+						<svg class="text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+						<h2 id="readme-heading" class="text-[13px] font-medium">README</h2>
+					</header>
+					<div class="prose prose-sm max-w-none dark:prose-invert px-7 py-6">
+						@templ.Raw(data.ReadmeHTML)
+					</div>
+				</article>
+			}
+
+			<!-- Navigation grid -->
+			<section aria-labelledby="explore-heading">
+				<h2 id="explore-heading" class="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider font-mono">Explore</h2>
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+					@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/issues", "Issues", "Track and discuss problems") {
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+					}
+					@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/pulls", "Pull Requests", "Review and merge changes") {
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6v-2"></path></svg>
+					}
+					@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/tree/"+data.Repo.DefaultBranch, "Browse Code", "Explore files and history") {
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+					}
+					@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/commits/"+data.Repo.DefaultBranch, "Commits", "Browse commit history") {
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="6" r="3"></circle><circle cx="12" cy="18" r="3"></circle><path d="M12 9v6"></path></svg>
+					}
+					@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/milestones", "Milestones", "Track progress with sprints") {
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"></path></svg>
+					}
+					if data.LatestRelease != nil {
+						@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/releases", "Releases", "Latest: "+data.LatestRelease.TagName) {
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+						}
+					} else {
+						@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/releases", "Releases", "No releases yet") {
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+						}
+					}
+					@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/refs", "Branches & Tags", "Manage refs and create branches") {
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="6" cy="21" r="3"></circle><line x1="6" y1="6" x2="6" y2="18"></line><path d="M18 21V9a6 6 0 00-6-6"></path></svg>
+					}
+					if data.CanWrite {
+						@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/settings", "Settings", "Manage webhooks and repo settings") {
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
+						}
+					}
+				</div>
+			</section>
 		</div>
 	}
+}
+
+// repoNavCard renders a single card link in the explore grid: icon + title + caption.
+templ repoNavCard(href, title, caption string) {
+	<a href={ templ.SafeURL(href) } class="block rounded-md border border-border bg-card p-4 hover:border-foreground/30 transition-colors group">
+		<div class="flex items-center gap-2 text-muted-foreground group-hover:text-foreground mb-1">
+			{ children... }
+			<h3 class="text-sm font-medium text-foreground">{ title }</h3>
+		</div>
+		<p class="text-xs text-muted-foreground">{ caption }</p>
+	</a>
 }

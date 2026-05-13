@@ -2,6 +2,7 @@ package pages
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -10,45 +11,72 @@ import (
 
 templ Gists(data view.GistsData) {
 	@layout.Base(data.BasePage, "Explore Gists") {
-		<div class="max-w-4xl mx-auto py-8 px-4">
-			<div class="flex items-center justify-between mb-6">
-				<h1 class="text-2xl font-bold">Explore Gists</h1>
+		<div class="max-w-4xl mx-auto space-y-6">
+
+			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="gists-title">
+				<div class="min-w-0">
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Cloudzilla · Gists</p>
+					<h1 id="gists-title" class="text-2xl font-semibold tracking-tight">Explore gists</h1>
+					<p class="mt-0.5 text-[13px] text-muted-foreground">Snippets, scratch notes, and standalone files — public and discoverable.</p>
+				</div>
 				if data.CurrentUser != nil {
-					<a href="/gists/new" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium">New Gist</a>
-				}
-			</div>
-			if len(data.Gists) > 0 {
-				<ul class="space-y-4">
-					for _, g := range data.Gists {
-						<li class="border border-gray-200 rounded p-4">
-							<div class="flex items-center justify-between mb-1">
-								<a href={ templ.SafeURL("/gists/" + g.ID) } class="text-blue-600 hover:underline font-medium">
-									if g.Description != "" {
-										{ g.Description }
-									} else {
-										<span class="text-gray-400 italic">No description</span>
-									}
-								</a>
-								<span class="text-xs text-gray-400">
-									if g.Public {
-										Public
-									} else {
-										Secret
-									}
-								</span>
-							</div>
-							<div class="text-sm text-gray-500">
-								by <a href={ templ.SafeURL("/" + g.OwnerName) } class="hover:underline">{ g.OwnerName }</a>
-								&middot; { g.CreatedAt.Format("Jan 2, 2006") }
-							</div>
-						</li>
+					@components.LinkButton("/gists/new", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+							<path d="M12 5v14M5 12h14"></path>
+						</svg>
+						New gist
 					}
-				</ul>
+				}
+			</section>
+
+			if len(data.Gists) > 0 {
+				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="gist-list">
+					<h2 id="gist-list" class="sr-only">Public gists</h2>
+					<ol class="divide-y divide-border">
+						for _, g := range data.Gists {
+							<li>
+								<a href={ templ.SafeURL("/gists/" + g.ID) } class="flex items-start gap-3 px-4 py-2 hover:bg-muted/50 group">
+									@components.Avatar(g.OwnerName, components.AvatarSizeDefault, "")
+									<div class="min-w-0 flex-1">
+										<div class="flex items-center gap-2">
+											<p class="text-[13.5px] font-medium leading-snug truncate group-hover:underline">
+												if g.Description != "" {
+													{ g.Description }
+												} else {
+													<span class="italic text-muted-foreground">No description</span>
+												}
+											</p>
+											<span class="shrink-0">
+												if g.Public {
+													@components.Badge(components.BadgeSuccess) {
+														Public
+													}
+												} else {
+													@components.Badge(components.BadgeWarning) {
+														Secret
+													}
+												}
+											</span>
+										</div>
+										<p class="mt-0.5 text-[12px] text-muted-foreground truncate">
+											<span class="font-mono">{ g.ID }</span>
+											<span class="px-1.5 text-muted-foreground/60" aria-hidden="true">·</span>
+											by { g.OwnerName }
+											<span class="px-1.5 text-muted-foreground/60" aria-hidden="true">·</span>
+											<time datetime={ g.CreatedAt.UTC().Format(time.RFC3339) }>{ g.CreatedAt.Format("Jan 2, 2006") }</time>
+										</p>
+									</div>
+								</a>
+							</li>
+						}
+					</ol>
+				</section>
+
 				{{ gistPrev := "" }}
 				if data.Page > 1 {
 					{{ gistPrev = "?page=" + strconv.Itoa(data.Page-1) }}
 				}
-				@components.Pagination(gistPrev, "?page=" + strconv.Itoa(data.Page+1))
+				@components.Pagination(gistPrev, "?page="+strconv.Itoa(data.Page+1))
 			} else {
 				@components.EmptyState("No public gists yet.")
 			}

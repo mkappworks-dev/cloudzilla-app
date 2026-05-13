@@ -1,37 +1,54 @@
 package pages
 
 import (
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 	"strings"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ OAuthAuthorize(data view.OAuthAuthorizeData) {
-	@layout.Base(data.BasePage, "Authorize " + data.App.Name + " — Cloudzilla") {
-		<div class="max-w-md mx-auto py-12 px-4">
-			<div class="border border-gray-200 rounded-lg p-6 space-y-5">
-				<h1 class="text-xl font-bold">Authorize { data.App.Name }</h1>
-				if data.App.Description != "" {
-					<p class="text-sm text-gray-600">{ data.App.Description }</p>
-				}
+	@layout.Base(data.BasePage, "Authorize "+data.App.Name+" — Cloudzilla") {
+		<div class="max-w-md mx-auto py-12">
+			<div class="rounded-md border border-border bg-card p-6 space-y-5">
+				<div>
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Authorization</p>
+					<h1 class="text-xl font-semibold tracking-tight">
+						Authorize <span class="font-semibold">{ data.App.Name }</span>
+					</h1>
+					if data.App.Description != "" {
+						<p class="mt-2 text-[13px] text-muted-foreground">{ data.App.Description }</p>
+					}
+				</div>
+
 				if len(data.Scopes) > 0 {
 					<div>
-						<p class="text-sm font-medium mb-2">This application is requesting access to:</p>
-						<ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
+						<p class="text-[12px] text-muted-foreground mb-2">Requesting access to:</p>
+						<ul class="rounded-md border border-border bg-muted/40 divide-y divide-border text-[13px]">
 							for _, s := range data.Scopes {
-								<li>{ s }</li>
+								<li class="px-3 py-2 font-mono">{ s }</li>
 							}
 						</ul>
 					</div>
 				}
-				<form method="POST" action="/oauth/authorize" class="flex gap-3">
+
+				<form method="POST" action="/oauth/authorize" class="flex items-center gap-2">
 					<input type="hidden" name="client_id" value={ data.App.ClientID }/>
 					<input type="hidden" name="redirect_uri" value={ data.RedirectURI }/>
 					<input type="hidden" name="scope" value={ strings.Join(data.Scopes, " ") }/>
 					<input type="hidden" name="state" value={ data.State }/>
-					<button name="action" value="approve" type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">Authorize</button>
-					<button name="action" value="deny" type="submit" class="bg-gray-200 text-gray-800 px-4 py-2 rounded text-sm hover:bg-gray-300">Deny</button>
+					@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"name": "action", "value": "approve", "type": "submit"}) {
+						Authorize
+					}
+					@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"name": "action", "value": "deny", "type": "submit"}) {
+						Deny
+					}
 				</form>
+
+				<p class="text-[11px] text-muted-foreground">
+					Authorizing will redirect to <span class="font-mono">{ data.RedirectURI }</span>. You can revoke this app's access at any time from your <a href="/settings/oauth-apps" class="hover:text-foreground hover:underline">connected apps</a> settings.
+				</p>
 			</div>
 		</div>
 	}

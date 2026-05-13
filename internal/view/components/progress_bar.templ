@@ -9,11 +9,11 @@ import (
 // ProgressBar renders a green progress bar (h-1.5) with a closed/total label above it.
 templ ProgressBar(closedCount, totalCount int) {
 	<div class="mt-2">
-		<div class="flex items-center gap-2 text-xs text-gray-500 mb-1">
+		<div class="flex items-center gap-2 text-xs text-muted-foreground mb-1">
 			<span>{ strconv.Itoa(closedCount) } / { strconv.Itoa(totalCount) } issues closed</span>
 		</div>
-		<div class="w-full bg-gray-200 rounded-full h-1.5">
-			<div class="bg-green-500 h-1.5 rounded-full" style={ "width: " + strconv.Itoa(view.Percent(closedCount, totalCount)) + "%" }></div>
+		<div class="w-full bg-muted rounded-full h-1.5">
+			<div class="bg-success h-1.5 rounded-full" style={ "width: " + strconv.Itoa(view.Percent(closedCount, totalCount)) + "%" }></div>
 		</div>
 	</div>
 }
@@ -22,9 +22,9 @@ templ ProgressBar(closedCount, totalCount int) {
 // Used in narrow sidebar contexts.
 templ ProgressBarSmall(closedCount, totalCount int) {
 	<div class="mt-1">
-		<div class="w-full bg-gray-200 rounded-full h-1">
-			<div class="bg-green-500 h-1 rounded-full" style={ "width: " + strconv.Itoa(view.Percent(closedCount, totalCount)) + "%" }></div>
+		<div class="w-full bg-muted rounded-full h-1">
+			<div class="bg-success h-1 rounded-full" style={ "width: " + strconv.Itoa(view.Percent(closedCount, totalCount)) + "%" }></div>
 		</div>
-		<p class="text-xs text-gray-400 mt-0.5">{ strconv.Itoa(closedCount) }/{ strconv.Itoa(totalCount) } closed</p>
+		<p class="text-xs text-muted-foreground mt-0.5">{ strconv.Itoa(closedCount) }/{ strconv.Itoa(totalCount) } closed</p>
 	</div>
 }

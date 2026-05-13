@@ -13,317 +13,373 @@ import (
 templ PullDetail(data view.PullDetailData) {
 	@layout.Base(data.BasePage, data.Pull.Title+" · PR #"+strconv.Itoa(data.Pull.Number)+" · "+data.Owner+"/"+data.RepoName) {
 		<div class="space-y-6">
-			<div class="mb-4">
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="text-blue-600 hover:underline text-sm">&larr; Back to Pull Requests</a>
+			<div>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+					<span aria-hidden="true">←</span> Back to pull requests
+				</a>
 			</div>
+
 			<div class="flex gap-6">
-				<!-- Main content -->
+
+				<!-- Main column -->
 				<div class="flex-1 min-w-0 space-y-6">
-					<div id="pull-detail" class="bg-white border border-gray-200 rounded-lg p-6">
-						<div class="flex justify-between items-start mb-4">
-							<div>
-								<div class="flex items-center gap-2 flex-wrap">
-									<h1 class="text-3xl font-bold">{ data.Pull.Title }</h1>
-									if data.Pull.IsDraft {
-										<span class="px-2 py-0.5 rounded text-sm font-medium bg-yellow-100 text-yellow-800">Draft</span>
+
+					<!-- PR header / body / actions / diff -->
+					<article id="pull-detail" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="pull-title">
+						<div class="p-6">
+							<!-- Title + state row -->
+							<div class="flex justify-between items-start gap-4 mb-3">
+								<div class="flex-1 min-w-0">
+									<h1 id="pull-title" class="text-2xl font-semibold tracking-tight flex items-center gap-2 flex-wrap">
+										{ data.Pull.Title }
+										<span class="text-muted-foreground font-normal">#{ strconv.Itoa(data.Pull.Number) }</span>
+										if data.Pull.IsDraft {
+											@components.Badge(components.BadgeDraft) {
+												Draft
+											}
+										}
+									</h1>
+									<p class="text-sm text-muted-foreground mt-2">
+										by <a href={ templ.SafeURL("/" + data.Pull.AuthorName) } class="hover:underline text-foreground">{ data.Pull.AuthorName }</a>
+										<span aria-hidden="true">·</span>
+										<time datetime={ data.Pull.CreatedAt.UTC().Format("2006-01-02T15:04:05Z") }>{ data.Pull.CreatedAt.Format("Jan 2, 2006") }</time>
+										<span aria-hidden="true">·</span>
+										<span class="font-mono text-xs px-1.5 py-0.5 bg-muted border border-border rounded">{ data.Pull.HeadBranch }</span>
+										<span aria-hidden="true">→</span>
+										<span class="font-mono text-xs px-1.5 py-0.5 bg-muted border border-border rounded">{ data.Pull.BaseBranch }</span>
+									</p>
+								</div>
+								@pullStateBadge(string(data.Pull.State))
+							</div>
+
+							<!-- Draft warning -->
+							if data.Pull.State == "open" && data.Pull.IsDraft {
+								<div role="status" class="mb-4 px-4 py-3 rounded-md border border-warning/40 bg-warning/10 flex items-center justify-between gap-4">
+									<p class="text-sm text-warning">This pull request is still a work in progress. Merge is blocked until it is marked ready for review.</p>
+									if data.CanWrite {
+										@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{
+											"hx-patch":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number),
+											"hx-vals":   `{"is_draft":"false"}`,
+											"hx-target": "#pull-detail",
+											"hx-swap":   "outerHTML",
+											"type":      "button",
+										}) {
+											Ready for review
+										}
 									}
 								</div>
-								<p class="text-gray-600 text-sm mt-2">
-									#{ strconv.Itoa(data.Pull.Number) } by { data.Pull.AuthorName } on { data.Pull.CreatedAt.Format("Jan 2, 2006") }
-									· { data.Pull.HeadBranch } &rarr; { data.Pull.BaseBranch }
-								</p>
-							</div>
-							<span class={ "px-3 py-1 rounded-full text-sm font-medium", templ.KV("bg-green-100 text-green-700", data.Pull.State == "open"), templ.KV("bg-purple-100 text-purple-700", data.Pull.State == "merged"), templ.KV("bg-red-100 text-red-700", data.Pull.State != "open" && data.Pull.State != "merged") }>
-								{ string(data.Pull.State) }
-							</span>
-						</div>
-						if data.Pull.State == "open" && data.Pull.IsDraft {
-							<div class="mb-4 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between gap-4">
-								<p class="text-sm text-yellow-800">&#9998; This pull request is still a work in progress. Merge is blocked until it is marked ready for review.</p>
-								if data.CanWrite {
-									<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-vals='{"is_draft":"false"}' hx-target="#pull-detail" hx-swap="outerHTML" class="shrink-0 px-4 py-1.5 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors">
-										Ready for review
-									</button>
-								}
-							</div>
-						}
-						if len(data.Labels) > 0 {
-							<div class="flex flex-wrap gap-1 mb-3">
-								for _, l := range data.Labels {
-									<span class="px-2 py-0.5 rounded-full text-xs font-medium" style={ "background-color: " + l.Color }>{ l.Name }</span>
-								}
-							</div>
-						}
-						@components.MarkdownBody(data.BodyHTML)
-						if len(data.HeadStatuses) > 0 {
-							<div class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded space-y-1">
-								<p class="text-xs font-semibold text-gray-600 mb-2">Checks on { data.Pull.HeadBranch }</p>
-								for _, s := range data.HeadStatuses {
-									<div class="flex items-center gap-2 text-sm">
-										if s.State == model.CommitStatusSuccess {
-											<span class="text-green-600">&#10003;</span>
-										} else if s.State == model.CommitStatusFailure {
-											<span class="text-red-600">&#10007;</span>
-										} else if s.State == model.CommitStatusError {
-											<span class="text-red-600">&#9888;</span>
-										} else {
-											<span class="text-yellow-500">&#9679;</span>
-										}
-										<span class="font-medium text-gray-800">{ s.Context }</span>
-										if s.Description != "" {
-											<span class="text-gray-500">— { s.Description }</span>
-										}
-										if s.TargetURL != "" {
-											<a href={ templ.SafeURL(s.TargetURL) } class="text-blue-600 hover:underline ml-auto text-xs">Details</a>
-										}
-									</div>
-								}
-							</div>
-						}
-						if data.Pull.State == "open" {
-							<div class="flex flex-wrap gap-2 items-center mt-4">
-								if !data.Pull.IsDraft {
-									if !data.CanMerge {
-										<div class="w-full px-4 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-800">
-											&#128683; Merge blocked: { data.MergeBlockReason }
+							}
+
+							<!-- Labels -->
+							if len(data.Labels) > 0 {
+								<div class="flex flex-wrap gap-1.5 mb-4" aria-label="Labels">
+									for _, l := range data.Labels {
+										<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style={ "background-color: " + l.Color + "33; color: " + l.Color + "; border-color: " + l.Color + "55" }>{ l.Name }</span>
+									}
+								</div>
+							}
+
+							<!-- Body markdown -->
+							@components.MarkdownBody(data.BodyHTML)
+
+							<!-- CI checks -->
+							if len(data.HeadStatuses) > 0 {
+								<section aria-labelledby="checks-heading" class="mt-4 rounded-md border border-border bg-muted/40 p-3 space-y-1.5">
+									<h2 id="checks-heading" class="text-xs font-medium text-muted-foreground mb-1">Checks on <span class="font-mono">{ data.Pull.HeadBranch }</span></h2>
+									for _, s := range data.HeadStatuses {
+										<div class="flex items-center gap-2 text-sm">
+											@checkStatusIcon(s.State)
+											<span class="font-medium">{ s.Context }</span>
+											if s.Description != "" {
+												<span class="text-muted-foreground">— { s.Description }</span>
+											}
+											if s.TargetURL != "" {
+												<a href={ templ.SafeURL(s.TargetURL) } class="ml-auto text-xs text-muted-foreground hover:text-foreground hover:underline">Details</a>
+											}
 										</div>
 									}
-									if data.CanMerge && data.Diff != nil {
-										if data.Diff.CanFastForward {
-											<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-vals='{"state":"merged","merge_strategy":"ff"}' hx-target="#pull-detail" hx-swap="outerHTML" hx-on--response-error="alert('Merge failed. Please refresh and try again.')" class="px-4 py-2 bg-purple-600 text-white rounded font-medium hover:bg-purple-700 transition-colors">
-												Merge (fast-forward)
-											</button>
-										}
-										if data.Diff.CanFastForward || data.Diff.CanThreeWayMerge {
-											<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-vals='{"state":"merged","merge_strategy":"merge"}' hx-target="#pull-detail" hx-swap="outerHTML" hx-on--response-error="alert('Merge failed. Please refresh and try again.')" class="px-4 py-2 bg-indigo-600 text-white rounded font-medium hover:bg-indigo-700 transition-colors">
-												Create merge commit
-											</button>
-											<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-vals='{"state":"merged","merge_strategy":"squash"}' hx-target="#pull-detail" hx-swap="outerHTML" hx-on--response-error="alert('Merge failed. Please refresh and try again.')" class="px-4 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition-colors">
-												Squash and merge
-											</button>
-										} else {
-											<div class="px-4 py-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-												Cannot merge automatically — conflicting changes in both branches. Rebase the head branch onto
-												<code class="font-mono">{ data.Pull.BaseBranch }</code> and push to enable merge.
+								</section>
+							}
+
+							<!-- Action buttons -->
+							if data.Pull.State == "open" {
+								<div class="flex flex-wrap gap-2 items-center mt-5">
+									if !data.Pull.IsDraft {
+										if !data.CanMerge {
+											<div role="status" class="w-full px-4 py-2 rounded-md border border-destructive/40 bg-destructive/10 text-sm text-destructive">
+												Merge blocked: { data.MergeBlockReason }
 											</div>
 										}
-									}
-								}
-								<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-vals='{"state":"closed"}' hx-target="#pull-detail" hx-swap="outerHTML" class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors">
-									Close PR
-								</button>
-							</div>
-						}
-						if data.Diff != nil {
-							<div class="mt-6 border-t border-gray-200 pt-4 space-y-4">
-								<div class="flex items-center justify-between">
-									<h2 class="font-semibold text-gray-900">Changed files ({ strconv.Itoa(len(data.Diff.Files)) })</h2>
-									<span class="text-sm">
-										<span class="text-green-600">+{ strconv.Itoa(data.Diff.TotalAdded) }</span>
-										<span class="text-red-500 ml-2">-{ strconv.Itoa(data.Diff.TotalDeleted) }</span>
-									</span>
-								</div>
-								for _, f := range data.Diff.Files {
-									{{ filePath := f.NewPath }}
-									if filePath == "" {
-										{{ filePath = f.OldPath }}
-									}
-									<div class="border border-gray-200 rounded-lg overflow-hidden">
-										<div class="bg-gray-50 px-4 py-2 text-sm font-mono border-b border-gray-200 flex items-center gap-2">
-											if f.IsNew {
-												<span class="text-green-600 text-xs">added</span>
-											} else if f.IsDelete {
-												<span class="text-red-600 text-xs">deleted</span>
+										if data.CanMerge && data.Diff != nil {
+											if data.Diff.CanFastForward {
+												@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+													"hx-patch":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number),
+													"hx-vals":               `{"state":"merged","merge_strategy":"ff"}`,
+													"hx-target":             "#pull-detail",
+													"hx-swap":               "outerHTML",
+													"hx-on--response-error": "alert('Merge failed. Please refresh and try again.')",
+													"type":                  "button",
+												}) {
+													Merge (fast-forward)
+												}
 											}
-											<span>{ filePath }</span>
-											<span class="ml-auto text-xs text-green-600">+{ strconv.Itoa(f.Added) }</span>
-											<span class="text-xs text-red-500 ml-1">-{ strconv.Itoa(f.Deleted) }</span>
-										</div>
-										if f.IsBinary {
-											<div class="px-4 py-3 text-sm text-gray-500">Binary file</div>
-										} else {
-											<table class="w-full border-collapse">
-												for _, hunk := range f.Hunks {
-													<tr><td colspan="2" class="text-xs font-mono bg-gray-100 px-4 py-1 text-gray-500 border-b border-gray-200">{ hunk.Header }</td></tr>
-													for _, line := range hunk.Lines {
-														{{ lineNum := line.NewNum }}
-														if line.Type == "del" {
-															{{ lineNum = line.OldNum }}
-														} else if line.Type == "ctx" {
-															{{ lineNum = line.OldNum }}
-														}
-														<tr class={ templ.KV("bg-green-50", line.Type == "add"), templ.KV("bg-red-50", line.Type == "del") }>
-															<td class="w-10 text-right pr-2 text-gray-400 select-none border-r border-gray-200 py-0.5 text-xs font-mono align-top">
-																if line.Type == "add" {
-																	{ strconv.Itoa(line.NewNum) }
-																} else if line.Type == "del" {
-																	{ strconv.Itoa(line.OldNum) }
-																} else {
-																	{ strconv.Itoa(line.OldNum) }
-																}
-																if data.CanWrite && data.Pull.State == "open" && line.Type != "del" {
-																	<span hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/line_comments/form?path=" + filePath + "&line=" + strconv.Itoa(lineNum) } hx-target={ "#lc-form-" + filePath + "-" + strconv.Itoa(lineNum) } hx-swap="innerHTML" class="cursor-pointer text-gray-300 hover:text-blue-500 select-none pl-0.5">+</span>
-																}
-															</td>
-															<td class={ "pl-3 py-0.5 whitespace-pre text-xs font-mono", templ.KV("text-green-800", line.Type == "add"), templ.KV("text-red-800", line.Type == "del"), templ.KV("text-gray-700", line.Type != "add" && line.Type != "del") }>
-																if line.Type == "add" {
-																	+{ line.Content }
-																} else if line.Type == "del" {
-																	-{ line.Content }
-																} else {
-																	{ " " }{ line.Content }
-																}
-															</td>
-														</tr>
-														if line.Type != "del" {
-															{{ key := fmt.Sprintf("%s:%d", filePath, lineNum) }}
-															if comments, ok := data.LineComments[key]; ok && len(comments) > 0 {
-																<tr id={ "lc-" + filePath + "-" + strconv.Itoa(lineNum) } class="bg-blue-50 border-t border-blue-100">
-																	<td colspan="2" class="px-4 py-0">
-																		for _, lc := range comments {
-																			<div class="flex items-start gap-2 py-2 border-b border-blue-100 last:border-0">
-																				<div class="w-6 h-6 rounded-full bg-blue-400 flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5">
-																					if len(lc.AuthorName) > 0 {
-																						{ string(lc.AuthorName[0]) }
-																					}
-																				</div>
-																				<div class="flex-1 min-w-0">
-																					<div class="flex items-center gap-2">
-																						<a href={ templ.SafeURL("/" + lc.AuthorName) } class="text-xs font-semibold hover:underline">{ lc.AuthorName }</a>
-																						<span class="text-xs text-gray-400">{ lc.CreatedAt.Format("Jan 2, 2006") }</span>
-																					</div>
-																					<div class="text-xs text-gray-700 mt-0.5">@templ.Raw(lc.BodyHTML)</div>
-																					if lc.IsSuggestion {
-																						<div class="mt-2 rounded border border-green-300 bg-green-50 text-xs font-mono overflow-x-auto">
-																							<div class="px-3 py-1 text-green-700 font-medium border-b border-green-200">Suggested change</div>
-																							<pre class="px-3 py-2 whitespace-pre-wrap">{ lc.SuggestionBody }</pre>
-																							if data.CanWrite && data.Pull.State == "open" {
-																								<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/line_comments/" + strconv.FormatInt(lc.ID, 10) + "/apply" } hx-on--after-request="window.location.reload()" class="px-3 py-2 border-t border-green-200">
-																									<button type="submit" class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">Apply suggestion</button>
-																								</form>
-																							}
+											if data.Diff.CanFastForward || data.Diff.CanThreeWayMerge {
+												@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+													"hx-patch":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number),
+													"hx-vals":               `{"state":"merged","merge_strategy":"merge"}`,
+													"hx-target":             "#pull-detail",
+													"hx-swap":               "outerHTML",
+													"hx-on--response-error": "alert('Merge failed. Please refresh and try again.')",
+													"type":                  "button",
+												}) {
+													Create merge commit
+												}
+												@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{
+													"hx-patch":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number),
+													"hx-vals":               `{"state":"merged","merge_strategy":"squash"}`,
+													"hx-target":             "#pull-detail",
+													"hx-swap":               "outerHTML",
+													"hx-on--response-error": "alert('Merge failed. Please refresh and try again.')",
+													"type":                  "button",
+												}) {
+													Squash and merge
+												}
+											} else {
+												<div role="status" class="w-full px-4 py-2 rounded-md border border-warning/40 bg-warning/10 text-sm text-warning">
+													Cannot merge automatically — conflicting changes. Rebase the head branch onto
+													<code class="font-mono text-xs mx-1">{ data.Pull.BaseBranch }</code> and push to enable merge.
+												</div>
+											}
+										}
+									}
+									@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
+										"hx-patch":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number),
+										"hx-vals":   `{"state":"closed"}`,
+										"hx-target": "#pull-detail",
+										"hx-swap":   "outerHTML",
+										"type":      "button",
+									}) {
+										Close PR
+									}
+								</div>
+							}
+
+							<!-- Diff -->
+							if data.Diff != nil {
+								<section aria-labelledby="diff-heading" class="mt-6 border-t border-border pt-5 space-y-4">
+									<div class="flex items-center justify-between">
+										<h2 id="diff-heading" class="text-sm font-medium">Changed files <span class="text-muted-foreground font-mono ml-1">({ strconv.Itoa(len(data.Diff.Files)) })</span></h2>
+										<span class="text-xs font-mono">
+											<span class="text-success">+{ strconv.Itoa(data.Diff.TotalAdded) }</span>
+											<span class="text-destructive ml-2">−{ strconv.Itoa(data.Diff.TotalDeleted) }</span>
+										</span>
+									</div>
+									for _, f := range data.Diff.Files {
+										{{ filePath := f.NewPath }}
+										if filePath == "" {
+											{{ filePath = f.OldPath }}
+										}
+										<div class="rounded-md border border-border overflow-hidden">
+											<div class="bg-muted/60 px-4 py-2 text-sm font-mono border-b border-border flex items-center gap-2">
+												if f.IsNew {
+													@components.Badge(components.BadgeSuccess) {
+														added
+													}
+												} else if f.IsDelete {
+													@components.Badge(components.BadgeDestructive) {
+														deleted
+													}
+												}
+												<span class="truncate">{ filePath }</span>
+												<span class="ml-auto text-xs text-success">+{ strconv.Itoa(f.Added) }</span>
+												<span class="text-xs text-destructive ml-1">−{ strconv.Itoa(f.Deleted) }</span>
+											</div>
+											if f.IsBinary {
+												<div class="px-4 py-3 text-sm text-muted-foreground">Binary file</div>
+											} else {
+												<table class="w-full border-collapse">
+													for _, hunk := range f.Hunks {
+														<tr><td colspan="2" class="text-xs font-mono bg-muted px-4 py-1 text-muted-foreground border-b border-border">{ hunk.Header }</td></tr>
+														for _, line := range hunk.Lines {
+															{{ lineNum := line.NewNum }}
+															if line.Type == "del" {
+																{{ lineNum = line.OldNum }}
+															} else if line.Type == "ctx" {
+																{{ lineNum = line.OldNum }}
+															}
+															<tr class={ templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del") }>
+																<td class="w-10 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 text-xs font-mono align-top">
+																	if line.Type == "add" {
+																		{ strconv.Itoa(line.NewNum) }
+																	} else if line.Type == "del" {
+																		{ strconv.Itoa(line.OldNum) }
+																	} else {
+																		{ strconv.Itoa(line.OldNum) }
+																	}
+																	if data.CanWrite && data.Pull.State == "open" && line.Type != "del" {
+																		<span hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/line_comments/form?path=" + filePath + "&line=" + strconv.Itoa(lineNum) } hx-target={ "#lc-form-" + filePath + "-" + strconv.Itoa(lineNum) } hx-swap="innerHTML" class="cursor-pointer text-muted-foreground/50 hover:text-ring select-none pl-0.5">+</span>
+																	}
+																</td>
+																<td class={ "pl-3 py-0.5 whitespace-pre text-xs font-mono", templ.KV("text-success", line.Type == "add"), templ.KV("text-destructive", line.Type == "del"), templ.KV("text-foreground/85", line.Type != "add" && line.Type != "del") }>
+																	if line.Type == "add" {
+																		+{ line.Content }
+																	} else if line.Type == "del" {
+																		-{ line.Content }
+																	} else {
+																		{ " " }{ line.Content }
+																	}
+																</td>
+															</tr>
+															if line.Type != "del" {
+																{{ key := fmt.Sprintf("%s:%d", filePath, lineNum) }}
+																if comments, ok := data.LineComments[key]; ok && len(comments) > 0 {
+																	<tr id={ "lc-" + filePath + "-" + strconv.Itoa(lineNum) } class="bg-muted/40 border-t border-border">
+																		<td colspan="2" class="px-4 py-0">
+																			for _, lc := range comments {
+																				<div class="flex items-start gap-2 py-2 border-b border-border last:border-0">
+																					@components.Avatar(lc.AuthorName, components.AvatarSizeSM, lc.AuthorName)
+																					<div class="flex-1 min-w-0">
+																						<div class="flex items-center gap-2">
+																							<a href={ templ.SafeURL("/" + lc.AuthorName) } class="text-xs font-semibold hover:underline">{ lc.AuthorName }</a>
+																							<time class="text-xs text-muted-foreground" datetime={ lc.CreatedAt.UTC().Format("2006-01-02T15:04:05Z") }>{ lc.CreatedAt.Format("Jan 2, 2006") }</time>
 																						</div>
+																						<div class="text-xs text-foreground/85 mt-0.5">@templ.Raw(lc.BodyHTML)</div>
+																						if lc.IsSuggestion {
+																							<div class="mt-2 rounded-md border border-success/30 bg-success/10 text-xs font-mono overflow-x-auto">
+																								<div class="px-3 py-1 text-success font-medium border-b border-success/20">Suggested change</div>
+																								<pre class="px-3 py-2 whitespace-pre-wrap">{ lc.SuggestionBody }</pre>
+																								if data.CanWrite && data.Pull.State == "open" {
+																									<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/line_comments/" + strconv.FormatInt(lc.ID, 10) + "/apply" } hx-on--after-request="window.location.reload()" class="px-3 py-2 border-t border-success/20">
+																										@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
+																											Apply suggestion
+																										}
+																									</form>
+																								}
+																							</div>
+																						}
+																					</div>
+																					if data.CanWrite {
+																						<button type="button" hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/line_comments/" + strconv.FormatInt(lc.ID, 10) } hx-target={ "#lc-" + filePath + "-" + strconv.Itoa(lineNum) } hx-swap="outerHTML" class="text-muted-foreground/50 hover:text-destructive text-xs shrink-0" aria-label="Delete comment">×</button>
 																					}
 																				</div>
-																				if data.CanWrite {
-																					<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/line_comments/" + strconv.FormatInt(lc.ID, 10) } hx-target={ "#lc-" + filePath + "-" + strconv.Itoa(lineNum) } hx-swap="outerHTML" class="text-gray-300 hover:text-red-400 text-xs shrink-0">&times;</button>
-																				}
-																			</div>
-																		}
-																		<div id={ "lc-form-" + filePath + "-" + strconv.Itoa(lineNum) }></div>
-																	</td>
-																</tr>
-															} else {
-																<tr><td colspan="2"><div id={ "lc-form-" + filePath + "-" + strconv.Itoa(lineNum) }></div></td></tr>
+																			}
+																			<div id={ "lc-form-" + filePath + "-" + strconv.Itoa(lineNum) }></div>
+																		</td>
+																	</tr>
+																} else {
+																	<tr><td colspan="2"><div id={ "lc-form-" + filePath + "-" + strconv.Itoa(lineNum) }></div></td></tr>
+																}
 															}
 														}
 													}
-												}
-											</table>
-										}
-									</div>
-								}
-							</div>
-						}
-					</div>
-					<!-- PR Reviews section -->
-					<div id="pr-reviews" class="bg-white border border-gray-200 rounded-lg p-6">
-						<h2 class="text-lg font-semibold mb-4">Reviews</h2>
+												</table>
+											}
+										</div>
+									}
+								</section>
+							}
+						</div>
+					</article>
+
+					<!-- Reviews -->
+					<section id="pr-reviews" class="rounded-md border border-border bg-card p-6" aria-labelledby="reviews-heading">
+						<h2 id="reviews-heading" class="text-lg font-semibold mb-4">Reviews</h2>
 						if len(data.Reviews) > 0 {
 							for _, rev := range data.Reviews {
-								<div class="flex items-start gap-3 mb-4 pb-4 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0">
-									<div class={ "w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0", templ.KV("bg-green-500", rev.State == "approved"), templ.KV("bg-red-500", rev.State == "changes_requested"), templ.KV("bg-gray-400", rev.State != "approved" && rev.State != "changes_requested") }>
-										if len(rev.AuthorName) > 0 {
-											{ string(rev.AuthorName[0]) }
-										}
-									</div>
+								<div class="flex items-start gap-3 mb-4 pb-4 border-b border-border last:border-0 last:mb-0 last:pb-0">
+									@components.Avatar(rev.AuthorName, components.AvatarSizeDefault, rev.AuthorName)
 									<div class="flex-1 min-w-0">
 										<div class="flex items-center gap-2 flex-wrap">
 											<a href={ templ.SafeURL("/" + rev.AuthorName) } class="text-sm font-semibold hover:underline">{ rev.AuthorName }</a>
-											<span class={ "px-2 py-0.5 rounded-full text-xs font-medium", templ.KV("bg-green-100 text-green-700", rev.State == "approved"), templ.KV("bg-red-100 text-red-700", rev.State == "changes_requested"), templ.KV("bg-gray-100 text-gray-600", rev.State != "approved" && rev.State != "changes_requested") }>
-												if rev.State == "approved" {
-													&#10003; Approved
-												} else if rev.State == "changes_requested" {
-													&#10007; Changes requested
-												} else {
-													Commented
-												}
-											</span>
+											@reviewStateBadge(string(rev.State))
 										</div>
 										if rev.Body != "" {
-											<p class="text-sm text-gray-700 mt-1">{ rev.Body }</p>
+											<p class="text-sm text-foreground/85 mt-1">{ rev.Body }</p>
 										}
 									</div>
 								</div>
 							}
 						} else {
-							<p class="text-sm text-gray-400">No reviews yet.</p>
+							<p class="text-sm text-muted-foreground">No reviews yet.</p>
 						}
 						if data.CanWrite && data.Pull.State == "open" && !data.Pull.IsDraft {
-							<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/reviews" } hx-target="#pr-reviews" hx-swap="outerHTML" class="mt-4 border-t border-gray-100 pt-4 space-y-3">
-								<h3 class="text-sm font-medium text-gray-700">Submit a review</h3>
-								<textarea name="body" rows="3" placeholder="Leave a comment (optional)" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"></textarea>
-								<div class="flex flex-wrap gap-4 text-sm">
+							<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/reviews" } hx-target="#pr-reviews" hx-swap="outerHTML" class="mt-4 border-t border-border pt-4 space-y-3">
+								<h3 class="text-sm font-medium">Submit a review</h3>
+								<label for="review-body" class="sr-only">Review body</label>
+								@components.Textarea(templ.Attributes{
+									"id":          "review-body",
+									"name":        "body",
+									"rows":        "3",
+									"placeholder": "Leave a comment (optional)",
+								})
+								<fieldset class="flex flex-wrap gap-4 text-sm">
+									<legend class="sr-only">Review type</legend>
 									<label class="flex items-center gap-2 cursor-pointer">
-										<input type="radio" name="state" value="commented" checked class="accent-gray-500"/>
+										<input type="radio" name="state" value="commented" checked class="accent-muted-foreground"/>
 										<span>Comment</span>
 									</label>
 									<label class="flex items-center gap-2 cursor-pointer">
-										<input type="radio" name="state" value="approved" class="accent-green-600"/>
-										<span class="text-green-700">Approve</span>
+										<input type="radio" name="state" value="approved" class="accent-success"/>
+										<span class="text-success">Approve</span>
 									</label>
 									<label class="flex items-center gap-2 cursor-pointer">
-										<input type="radio" name="state" value="changes_requested" class="accent-red-600"/>
-										<span class="text-red-700">Request changes</span>
+										<input type="radio" name="state" value="changes_requested" class="accent-destructive"/>
+										<span class="text-destructive">Request changes</span>
 									</label>
-								</div>
-								<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors">
+								</fieldset>
+								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 									Submit review
-								</button>
+								}
 							</form>
 						}
-					</div>
+					</section>
 				</div>
+
 				<!-- Sidebar -->
-				<div class="w-56 shrink-0 space-y-4">
-					<div class="bg-white border border-gray-200 rounded-lg p-4">
+				<aside class="w-64 shrink-0 space-y-4" aria-label="Pull request metadata">
+					<div class="rounded-md border border-border bg-card p-4">
 						@components.LabelSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Labels, data.AllLabels, data.CanWrite)
 					</div>
-					<div class="bg-white border border-gray-200 rounded-lg p-4">
+					<div class="rounded-md border border-border bg-card p-4">
 						<div id="issue-milestone">
-							<h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Milestone</h3>
+							<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Milestone</h3>
 							if data.Milestone != nil {
 								<div class="text-sm">
-									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="font-medium text-gray-800 hover:underline">{ data.Milestone.Title }</a>
+									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="font-medium hover:underline">{ data.Milestone.Title }</a>
 									if (data.Milestone.OpenCount + data.Milestone.ClosedCount) > 0 {
-										<div class="mt-1">
-											<div class="w-full bg-gray-200 rounded-full h-1">
-												<div class="bg-green-500 h-1 rounded-full" style={ "width: " + strconv.Itoa(func() int { total := data.Milestone.OpenCount + data.Milestone.ClosedCount; if total == 0 { return 0 }; return data.Milestone.ClosedCount * 100 / total }()) + "%" }></div>
+										{{ total := data.Milestone.OpenCount + data.Milestone.ClosedCount }}
+										{{ pct := 0 }}
+										if total > 0 {
+											{{ pct = data.Milestone.ClosedCount * 100 / total }}
+										}
+										<div class="mt-1.5" role="progressbar" aria-valuenow={ strconv.Itoa(pct) } aria-valuemin="0" aria-valuemax="100" aria-label={ "Milestone progress: " + strconv.Itoa(pct) + "%" }>
+											<div class="w-full bg-muted h-1.5 rounded-full overflow-hidden">
+												<div class="bg-success h-full" style={ "width: " + strconv.Itoa(pct) + "%" }></div>
 											</div>
-											<p class="text-xs text-gray-400 mt-0.5">{ strconv.Itoa(data.Milestone.ClosedCount) }/{ strconv.Itoa(data.Milestone.OpenCount + data.Milestone.ClosedCount) } closed</p>
+											<p class="text-xs text-muted-foreground mt-1 font-mono">{ strconv.Itoa(data.Milestone.ClosedCount) }/{ strconv.Itoa(total) } closed</p>
 										</div>
 									}
 								</div>
 							} else {
-								<span class="text-xs text-gray-400">No milestone</span>
+								<span class="text-xs text-muted-foreground">No milestone</span>
 							}
 							if data.CanWrite && len(data.AllMilestones) > 0 {
 								<details class="mt-2">
-									<summary class="text-xs text-blue-600 cursor-pointer hover:underline">
+									<summary class="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
 										if data.Milestone != nil {
 											Change
 										} else {
 											Set milestone
 										}
 									</summary>
-									<div class="mt-1 space-y-1 max-h-40 overflow-y-auto border border-gray-100 rounded">
+									<div class="mt-1 space-y-1 max-h-40 overflow-y-auto border border-border rounded-md">
 										<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/milestone" } hx-target="#issue-milestone" hx-swap="outerHTML" class="p-1">
-											<button type="submit" name="milestone_id" value="" class="w-full text-left px-2 py-1 hover:bg-gray-50 text-xs text-gray-500">
+											<button type="submit" name="milestone_id" value="" class="w-full text-left px-2 py-1 hover:bg-accent rounded text-xs text-muted-foreground">
 												No milestone
 											</button>
 											for _, m := range data.AllMilestones {
-												<button type="submit" name="milestone_id" value={ strconv.FormatInt(m.ID, 10) } class={ "w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-gray-50 text-xs", templ.KV("font-semibold text-blue-600", data.Milestone != nil && data.Milestone.ID == m.ID) }>
-													<span class={ "w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-gray-400", m.State == "closed"), templ.KV("bg-green-500", m.State != "closed") }></span>
+												<button type="submit" name="milestone_id" value={ strconv.FormatInt(m.ID, 10) } class={ "w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-accent rounded text-xs", templ.KV("font-semibold text-foreground", data.Milestone != nil && data.Milestone.ID == m.ID) }>
+													<span class={ "w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-muted-foreground", m.State == "closed"), templ.KV("bg-success", m.State != "closed") }></span>
 													{ m.Title }
 												</button>
 											}
@@ -333,11 +389,61 @@ templ PullDetail(data view.PullDetailData) {
 							}
 						</div>
 					</div>
-					<div class="bg-white border border-gray-200 rounded-lg p-4">
+					<div class="rounded-md border border-border bg-card p-4">
 						@components.AssigneeSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Assignees, data.CanWrite)
 					</div>
-				</div>
+				</aside>
 			</div>
 		</div>
+	}
+}
+
+// pullStateBadge renders the open/merged/closed status with the right Badge variant.
+templ pullStateBadge(state string) {
+	switch state {
+	case "open":
+		@components.Badge(components.BadgeSuccess) {
+			Open
+		}
+	case "merged":
+		@components.Badge(components.BadgeMerged) {
+			Merged
+		}
+	default:
+		@components.Badge(components.BadgeDestructive) {
+			Closed
+		}
+	}
+}
+
+// reviewStateBadge renders the review state with the right Badge variant + label.
+templ reviewStateBadge(state string) {
+	switch state {
+	case "approved":
+		@components.Badge(components.BadgeSuccess) {
+			Approved
+		}
+	case "changes_requested":
+		@components.Badge(components.BadgeDestructive) {
+			Changes requested
+		}
+	default:
+		@components.Badge(components.BadgeSecondary) {
+			Commented
+		}
+	}
+}
+
+// checkStatusIcon renders a small status indicator for a CI check.
+templ checkStatusIcon(state model.CommitStatusState) {
+	switch state {
+	case model.CommitStatusSuccess:
+		<span class="text-success" aria-label="Success">✓</span>
+	case model.CommitStatusFailure:
+		<span class="text-destructive" aria-label="Failure">✗</span>
+	case model.CommitStatusError:
+		<span class="text-destructive" aria-label="Error">⚠</span>
+	default:
+		<span class="text-warning" aria-label="Pending">●</span>
 	}
 }

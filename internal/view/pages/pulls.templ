@@ -2,54 +2,129 @@ package pages
 
 import (
 	"strconv"
+	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
+// pullStateIconClass returns the foreground class for the PR-status icon
+// based on the current state — green for open, purple for merged, muted for draft/closed.
+func pullStateIconClass(state string, isDraft bool) string {
+	if isDraft {
+		return "text-muted-foreground"
+	}
+	switch state {
+	case "open":
+		return "text-success"
+	case "merged":
+		return "text-[hsl(270_70%_70%)]"
+	default:
+		return "text-destructive"
+	}
+}
+
+// pullActionTime returns the verb + timestamp pair for the PR meta byline —
+// merged/closed PRs anchor on their merge/close time so the meta line lines up
+// across rows regardless of state.
+func pullActionTime(pull model.PullRequest) (verb string, t time.Time) {
+	if pull.MergedAt != nil {
+		return "merged", *pull.MergedAt
+	}
+	if pull.ClosedAt != nil {
+		return "closed", *pull.ClosedAt
+	}
+	return "opened", pull.CreatedAt
+}
+
 templ Pulls(data view.PullsData) {
 	@layout.Base(data.BasePage, "Pull Requests · "+data.Owner+"/"+data.RepoName) {
 		<div class="space-y-6">
-			<div class="flex justify-between items-center">
-				<h1 class="text-2xl font-bold">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline">{ data.Owner }/{ data.RepoName }</a> Pull Requests
-				</h1>
-			</div>
+
+			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="pulls-title">
+				<div class="min-w-0">
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+						<span aria-hidden="true">·</span>
+						Pull requests
+					</p>
+					<h1 id="pulls-title" class="text-2xl font-semibold tracking-tight">Pull requests</h1>
+				</div>
+				@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/pulls/new", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+						<path d="M12 5v14M5 12h14"></path>
+					</svg>
+					New pull request
+				}
+			</section>
+
 			@components.TabBar([]components.Tab{
 				{Label: "Open", URL: "/" + data.Owner + "/" + data.RepoName + "/pulls?state=open", IsActive: data.StateFilter == "open", Count: -1},
 				{Label: "Draft", URL: "/" + data.Owner + "/" + data.RepoName + "/pulls?state=draft", IsActive: data.StateFilter == "draft", Count: -1},
-				{Label: "Closed", URL: "/" + data.Owner + "/" + data.RepoName + "/pulls?state=closed", IsActive: data.StateFilter == "closed", Count: -1},
 				{Label: "Merged", URL: "/" + data.Owner + "/" + data.RepoName + "/pulls?state=merged", IsActive: data.StateFilter == "merged", Count: -1},
+				{Label: "Closed", URL: "/" + data.Owner + "/" + data.RepoName + "/pulls?state=closed", IsActive: data.StateFilter == "closed", Count: -1},
 			})
+
 			if len(data.Pulls) > 0 {
-				<div class="space-y-3">
-					for _, pull := range data.Pulls {
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(pull.Number)) } class="block bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
-							<div class="flex justify-between items-start">
-								<div class="min-w-0 flex-1">
-									<div class="flex items-center gap-2 flex-wrap">
-										<h3 class="text-lg font-semibold">{ pull.Title }</h3>
-										if pull.IsDraft {
-											<span class="px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">Draft</span>
+				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="pull-list">
+					<h2 id="pull-list" class="sr-only">Pull requests</h2>
+					<ol class="divide-y divide-border">
+						for _, pull := range data.Pulls {
+							<li>
+								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(pull.Number)) } class="flex items-start gap-3 px-4 py-2 hover:bg-muted/50 group">
+									<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class={ "shrink-0 mt-0.5", pullStateIconClass(string(pull.State), pull.IsDraft) } aria-hidden="true" focusable="false">
+										if string(pull.State) == "merged" {
+											<path d="M5 3.254V3.25v.005a.75.75 0 110-.005v.004zm.45 1.9a2.25 2.25 0 10-1.95.218v5.256a2.25 2.25 0 101.5 0V7.123A5.735 5.735 0 009.25 9h1.378a2.251 2.251 0 100-1.5H9.25a4.25 4.25 0 01-3.8-2.346zM12.75 9a.75.75 0 100-1.5.75.75 0 000 1.5zm-8.5 4.5a.75.75 0 100-1.5.75.75 0 000 1.5z"></path>
+										} else if pull.IsDraft {
+											<path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm6.5-9.25a2.25 2.25 0 113 2.122V10.5a2.25 2.25 0 11-1.5 0V4.622a2.25 2.25 0 01-1.5-2.122zm2.25-.75a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5z"></path>
+										} else {
+											<path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zm5.677-.177L9.573.677A.25.25 0 0110 .854V2.5h1A2.5 2.5 0 0113.5 5v5.628a2.251 2.251 0 11-1.5 0V5a1 1 0 00-1-1h-1v1.646a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm8.25.75a.75.75 0 101.5 0 .75.75 0 00-1.5 0z"></path>
 										}
-									</div>
-									<p class="text-gray-600 text-sm mt-1">#{ strconv.Itoa(pull.Number) } by { pull.AuthorName } · { pull.HeadBranch } &rarr; { pull.BaseBranch }</p>
-									if labels, ok := data.PullLabels[pull.ID]; ok && len(labels) > 0 {
-										<div class="flex flex-wrap gap-1 mt-2">
-											for _, l := range labels {
-												<span class="px-2 py-0.5 rounded-full text-xs font-medium" style={ "background-color: " + l.Color }>{ l.Name }</span>
+									</svg>
+									<div class="min-w-0 flex-1">
+										<div class="flex items-center gap-2">
+											<p class="text-[13.5px] font-medium leading-snug truncate group-hover:underline">{ pull.Title }</p>
+											if pull.IsDraft {
+												@components.Badge(components.BadgeDraft) {
+													Draft
+												}
 											}
+											<span class="shrink-0">
+												@components.PullStateBadge(string(pull.State))
+											</span>
 										</div>
-									}
-								</div>
-								<div class="ml-3 shrink-0">
-									@components.PullStateBadge(string(pull.State))
-								</div>
-							</div>
-						</a>
-					}
-				</div>
+										{{ verb, when := pullActionTime(pull) }}
+										<p class="mt-0.5 text-[12px] text-muted-foreground truncate">
+											<span class="font-mono">#{ strconv.Itoa(pull.Number) }</span>
+											<span class="px-1.5 text-muted-foreground/60" aria-hidden="true">·</span>
+											{ verb }
+											<time datetime={ when.UTC().Format(time.RFC3339) }>{ when.Format("Jan 2, 2006") }</time>
+											by { pull.AuthorName }
+											<span class="px-1.5 text-muted-foreground/60" aria-hidden="true">·</span>
+											<span class="inline-flex items-center gap-1 align-baseline font-mono text-[11px]" title={ pull.HeadBranch + " → " + pull.BaseBranch }>
+												<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-70" aria-hidden="true" focusable="false">
+													<circle cx="6" cy="3" r="3"></circle>
+													<circle cx="18" cy="3" r="3"></circle>
+													<circle cx="12" cy="21" r="3"></circle>
+													<path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path>
+												</svg>
+												{ pull.HeadBranch }
+											</span>
+											if labels, ok := data.PullLabels[pull.ID]; ok && len(labels) > 0 {
+												<span class="px-1.5 text-muted-foreground/60" aria-hidden="true">·</span>
+												for _, l := range labels {
+													<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] border align-baseline mx-0.5" style={ "background-color: " + l.Color + "33; color: " + l.Color + "; border-color: " + l.Color + "55" }>{ l.Name }</span>
+												}
+											}
+										</p>
+									</div>
+								</a>
+							</li>
+						}
+					</ol>
+				</section>
 			} else {
 				@components.EmptyState("No pull requests found.")
 			}

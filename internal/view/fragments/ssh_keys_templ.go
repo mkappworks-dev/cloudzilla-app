@@ -41,7 +41,7 @@ func SSHKeysList(data view.SSHKeysFragData) templ.Component {
 		}
 		if len(data.SSHKeys) > 0 {
 			for _, key := range data.SSHKeys {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors\" data-key-id=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/40 transition-colors\" data-key-id=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -54,40 +54,40 @@ func SSHKeysList(data view.SSHKeysFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><div class=\"flex-1\"><h4 class=\"font-semibold text-gray-900\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\"><div class=\"flex-1\"><h4 class=\"font-semibold text-foreground\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(key.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/ssh_keys.templ`, Line: 18, Col: 57}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/ssh_keys.templ`, Line: 18, Col: 59}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</h4><p class=\"text-gray-600 text-sm mt-1\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</h4><p class=\"text-muted-foreground text-sm mt-1\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(key.Fingerprint)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/ssh_keys.templ`, Line: 19, Col: 61}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/ssh_keys.templ`, Line: 19, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p><p class=\"text-gray-500 text-xs mt-2\">Added ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p><p class=\"text-muted-foreground text-xs mt-2\">Added ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(key.CreatedAt.Format("Jan 2, 2006"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/ssh_keys.templ`, Line: 20, Col: 87}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/ssh_keys.templ`, Line: 20, Col: 95}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
@@ -106,13 +106,13 @@ func SSHKeysList(data view.SSHKeysFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" class=\"ml-4 px-3 py-2 text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors text-sm\">Delete</button></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" class=\"ml-4 px-3 py-2 text-destructive border border-destructive/40 rounded hover:bg-destructive/10 transition-colors text-sm\">Delete</button></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"text-center py-8 border border-gray-200 border-dashed rounded-lg bg-gray-50\"><p class=\"text-gray-500\">No SSH keys yet. Add one above to get started.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"text-center py-8 border border-border border-dashed rounded-lg bg-muted/40\"><p class=\"text-muted-foreground\">No SSH keys yet. Add one above to get started.</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

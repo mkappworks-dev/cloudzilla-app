@@ -1,0 +1,32 @@
+package components
+
+// SeparatorOrientation controls whether the separator is a horizontal or vertical rule.
+type SeparatorOrientation string
+
+const (
+	SeparatorHorizontal SeparatorOrientation = "horizontal"
+	SeparatorVertical   SeparatorOrientation = "vertical"
+)
+
+// Separator renders a thin divider. Horizontal separators use a semantic <hr>;
+// vertical separators use a <div role="separator" aria-orientation="vertical">
+// because HTML's <hr> can't be rotated in a flex/inline context.
+//
+// When `decorative` is true the separator is hidden from assistive tech (role=none)
+// — use this for purely visual dividers between unrelated regions where the
+// surrounding markup already conveys structure.
+templ Separator(orientation SeparatorOrientation, decorative bool) {
+	if orientation == SeparatorVertical {
+		if decorative {
+			<div role="none" aria-hidden="true" class="shrink-0 bg-border w-px h-full self-stretch"></div>
+		} else {
+			<div role="separator" aria-orientation="vertical" class="shrink-0 bg-border w-px h-full self-stretch"></div>
+		}
+	} else {
+		if decorative {
+			<hr role="none" aria-hidden="true" class="border-0 bg-border h-px w-full my-0"/>
+		} else {
+			<hr class="border-0 bg-border h-px w-full my-0"/>
+		}
+	}
+}

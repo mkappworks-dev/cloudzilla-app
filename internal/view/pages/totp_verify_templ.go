@@ -10,6 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -46,19 +47,19 @@ func TOTPVerify(data view.TOTPVerifyPageData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-md mx-auto mt-12\"><div class=\"bg-white border border-gray-200 rounded-lg shadow-md p-8\"><div class=\"text-center mb-6\"><div class=\"inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4\"><svg class=\"w-8 h-8 text-blue-600\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z\"></path></svg></div><h1 class=\"text-2xl font-bold\">Two-Factor Authentication</h1><p class=\"text-gray-600 text-sm mt-2\">Enter the 6-digit code from your authenticator app.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-md mx-auto mt-12 rounded-md border border-border bg-card p-6\"><div class=\"text-center mb-6\"><span class=\"inline-grid place-items-center w-12 h-12 rounded-full border border-border bg-success/10\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-success\" aria-hidden=\"true\" focusable=\"false\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z\"></path></svg></span><p class=\"mt-4 font-mono text-[11px] text-muted-foreground uppercase tracking-wider\">Verify identity</p><h1 class=\"mt-1 text-xl font-semibold tracking-tight\">Two-factor authentication</h1><p class=\"mt-2 text-[13px] text-muted-foreground\">Enter the 6-digit code from your authenticator app.</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if data.Error != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm\" role=\"alert\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/totp_verify.templ`, Line: 23, Col: 18}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/totp_verify.templ`, Line: 25, Col: 17}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -69,13 +70,97 @@ func TOTPVerify(data view.TOTPVerifyPageData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<form method=\"POST\" action=\"/auth/2fa/verify\" class=\"space-y-4\"><div><label for=\"code\" class=\"block text-sm font-medium text-gray-700 mb-1\">Authentication Code</label> <input type=\"text\" id=\"code\" name=\"code\" placeholder=\"000000\" maxlength=\"6\" class=\"w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500\" autocomplete=\"one-time-code\" autofocus></div><button type=\"submit\" class=\"w-full px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors\">Verify</button></form><div class=\"mt-6 border-t border-gray-200 pt-4\"><details class=\"text-sm text-gray-600\"><summary class=\"cursor-pointer font-medium hover:text-gray-900\">Use a backup code instead</summary><form method=\"POST\" action=\"/auth/2fa/verify\" class=\"mt-4 space-y-3\"><div><label for=\"backup_code\" class=\"block text-sm font-medium text-gray-700 mb-1\">Backup Code</label> <input type=\"text\" id=\"backup_code\" name=\"backup_code\" placeholder=\"xxxxxxxx\" class=\"w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-center focus:outline-none focus:ring-2 focus:ring-blue-500\"></div><button type=\"submit\" class=\"w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors\">Use Backup Code</button></form></details></div><div class=\"mt-4 text-center\"><a href=\"/login\" class=\"text-sm text-blue-600 hover:underline\">Back to login</a></div></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<form method=\"POST\" action=\"/auth/2fa/verify\" class=\"space-y-4\"><div class=\"space-y-1.5\"><label for=\"code\" class=\"block text-sm font-medium\">Authentication code</label>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.Input(templ.Attributes{
+				"type":         "text",
+				"id":           "code",
+				"name":         "code",
+				"placeholder":  "000000",
+				"maxlength":    "6",
+				"inputmode":    "numeric",
+				"autocomplete": "one-time-code",
+				"autofocus":    "autofocus",
+				"class":        "font-mono text-center text-2xl tracking-[0.4em] h-12",
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Var4 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+				if !templ_7745c5c3_IsBuffer {
+					defer func() {
+						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+						if templ_7745c5c3_Err == nil {
+							templ_7745c5c3_Err = templ_7745c5c3_BufErr
+						}
+					}()
+				}
+				ctx = templ.InitializeContext(ctx)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "Verify")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				return nil
+			})
+			templ_7745c5c3_Err = components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var4), templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</form><details class=\"mt-5 border-t border-border pt-4 text-sm\"><summary class=\"cursor-pointer text-muted-foreground hover:text-foreground font-medium\">Use a backup code instead</summary><form method=\"POST\" action=\"/auth/2fa/verify\" class=\"mt-3 space-y-3\"><div class=\"space-y-1.5\"><label for=\"backup_code\" class=\"block text-sm font-medium text-foreground\">Backup code</label>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.Input(templ.Attributes{
+				"type":        "text",
+				"id":          "backup_code",
+				"name":        "backup_code",
+				"placeholder": "xxxxxxxx",
+				"class":       "font-mono text-center",
+			}).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Var5 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+				if !templ_7745c5c3_IsBuffer {
+					defer func() {
+						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+						if templ_7745c5c3_Err == nil {
+							templ_7745c5c3_Err = templ_7745c5c3_BufErr
+						}
+					}()
+				}
+				ctx = templ.InitializeContext(ctx)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "Use backup code")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				return nil
+			})
+			templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</form></details><p class=\"mt-5 text-center text-[12px]\"><a href=\"/login\" class=\"text-muted-foreground hover:text-foreground hover:underline\">← Back to sign in</a></p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = layout.Base(data.BasePage, "Two-Factor Authentication").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layout.Base(data.BasePage, "Two-factor authentication").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

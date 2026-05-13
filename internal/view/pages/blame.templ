@@ -2,51 +2,98 @@ package pages
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ Blame(data view.BlameData) {
 	@layout.Base(data.BasePage, "blame · "+data.Path+" · "+data.Owner+"/"+data.RepoName) {
-		<div class="space-y-4">
-			<div class="bg-white border border-gray-200 rounded-lg p-4">
-				<div class="flex items-center justify-between flex-wrap gap-2">
-					<div class="flex items-center text-sm text-gray-600 flex-wrap gap-1">
-						for i, b := range data.Breadcrumbs {
-							if i > 0 {
-								<span class="text-gray-400">/</span>
-							}
-							<a href={ templ.SafeURL(b.URL) } class="hover:text-blue-600 hover:underline font-medium">{ b.Name }</a>
+		<div class="space-y-6">
+
+			<section aria-labelledby="blame-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Repository · Blame</p>
+				<h1 id="blame-title" class="text-xl tracking-tight font-medium flex flex-wrap items-center gap-x-1.5 gap-y-1">
+					for i, b := range data.Breadcrumbs {
+						if i > 0 {
+							<span class="text-muted-foreground" aria-hidden="true">/</span>
 						}
-						<span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-mono">{ data.Ref }</span>
-					</div>
-					<a href={ templ.SafeURL(data.BlobURL) } class="text-sm text-blue-600 hover:underline">View File</a>
+						if i == len(data.Breadcrumbs)-1 {
+							<a href={ templ.SafeURL(b.URL) } class="hover:underline font-semibold">{ b.Name }</a>
+						} else {
+							<a href={ templ.SafeURL(b.URL) } class="hover:underline text-muted-foreground">{ b.Name }</a>
+						}
+					}
+				</h1>
+				<div class="mt-3 flex flex-wrap items-center gap-2">
+					<span class="inline-flex items-center gap-1.5 h-8 px-3 border border-border bg-card rounded-md text-[13px]">
+						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+							<circle cx="6" cy="3" r="3"></circle>
+							<circle cx="18" cy="3" r="3"></circle>
+							<circle cx="12" cy="21" r="3"></circle>
+							<path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path>
+						</svg>
+						<span class="font-medium">{ data.Ref }</span>
+					</span>
+					@components.LinkButton(data.BlobURL, components.ButtonOutline, components.ButtonSizeSM, nil) {
+						<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+							<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+							<polyline points="14 2 14 8 20 8"></polyline>
+						</svg>
+						View file
+					}
 				</div>
-			</div>
-			<div class="overflow-x-auto rounded-lg border border-gray-200">
-				<table class="w-full text-sm font-mono">
-					<tbody class="divide-y divide-gray-100">
-						for _, line := range data.Lines {
-							<tr class="hover:bg-gray-50">
-								<td class="w-56 px-3 py-1 align-top text-xs bg-white border-r border-gray-200">
-									if line.ShowMeta {
-										<div class="text-gray-700 font-mono font-medium">{ line.Hash }</div>
-										<div class="text-gray-500 truncate max-w-xs">{ line.Author }</div>
-										<div class="text-gray-400">{ line.AuthorTime.Format("2006-01-02") }</div>
-									} else {
-										<div class="text-gray-200 select-none">·</div>
-									}
-								</td>
-								<td class="select-none text-gray-400 pr-3 pl-3 py-1 text-right w-12 align-top border-r border-gray-200 bg-gray-50">
-									<a id={ "L"+strconv.Itoa(line.LineNum) } href={ templ.SafeURL("#L"+strconv.Itoa(line.LineNum)) } class="hover:text-blue-600">{ strconv.Itoa(line.LineNum) }</a>
-								</td>
-								<td class="pl-4 pr-4 py-1 whitespace-pre text-gray-800">{ line.Text }</td>
+			</section>
+
+			<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="blame-heading">
+				<h2 id="blame-heading" class="sr-only">Blame for { data.Path }</h2>
+				<header class="px-4 py-2 border-b border-border bg-muted/50 flex items-center gap-3">
+					<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+						<path d="M12 20h9"></path>
+						<path d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4z"></path>
+					</svg>
+					<h3 class="text-[13px] font-medium">{ data.Path }</h3>
+					<span class="text-[12px] text-muted-foreground ml-auto">{ strconv.Itoa(len(data.Lines)) } lines</span>
+				</header>
+				<div class="overflow-x-auto">
+					<table class="w-full font-mono text-[12.5px] leading-[1.6]">
+						<caption class="sr-only">Per-line blame annotations for { data.Path }</caption>
+						<colgroup>
+							<col style="width: 240px"/>
+							<col style="width: 48px"/>
+							<col/>
+						</colgroup>
+						<thead class="sr-only">
+							<tr>
+								<th scope="col">Last commit</th>
+								<th scope="col">Line</th>
+								<th scope="col">Code</th>
 							</tr>
-						}
-					</tbody>
-				</table>
-			</div>
+						</thead>
+						<tbody>
+							for _, line := range data.Lines {
+								<tr class="hover:bg-muted/50">
+									<td class="w-60 px-3 py-1.5 align-top text-[11px] border-r border-border bg-card">
+										if line.ShowMeta {
+											<div class="font-medium font-mono">{ line.Hash }</div>
+											<div class="text-muted-foreground truncate max-w-[12rem]">{ line.Author }</div>
+											<time class="text-muted-foreground block" datetime={ line.AuthorTime.UTC().Format(time.RFC3339) }>{ line.AuthorTime.Format("2006-01-02") }</time>
+										} else {
+											<span class="text-muted-foreground/40 select-none" aria-hidden="true">·</span>
+										}
+									</td>
+									<td class="select-none text-muted-foreground px-3 py-1.5 text-right align-top border-r border-border bg-muted/40">
+										<a id={ "L" + strconv.Itoa(line.LineNum) } href={ templ.SafeURL("#L" + strconv.Itoa(line.LineNum)) } class="hover:text-foreground">{ strconv.Itoa(line.LineNum) }</a>
+									</td>
+									<td class="pl-4 pr-4 py-1.5 whitespace-pre">{ line.Text }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</section>
 		</div>
 	}
 }

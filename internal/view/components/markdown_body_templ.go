@@ -10,6 +10,10 @@ import templruntime "github.com/a-h/templ/runtime"
 
 // MarkdownBody renders trusted rendered HTML inside a styled prose container.
 // html MUST come from the internal markdown renderer — never pass raw user input.
+//
+// `dark:prose-invert` flips the Tailwind Typography color stack for dark mode;
+// the surrounding `bg-muted` / `border-border` ties the panel into the
+// design-system tokens so it matches the rest of the page chrome.
 func MarkdownBody(html string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -31,7 +35,7 @@ func MarkdownBody(html string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"prose prose-sm max-w-none bg-gray-50 p-4 rounded border border-gray-200 my-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"prose prose-sm dark:prose-invert max-w-none bg-muted/40 p-4 rounded-md border border-border my-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

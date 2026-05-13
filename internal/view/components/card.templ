@@ -1,0 +1,45 @@
+package components
+
+// Card renders a bordered container with the page's `card` background.
+// Compose with CardHeader, CardTitle, CardDescription, CardContent, CardFooter.
+templ Card(attrs templ.Attributes) {
+	<div class="rounded-lg border border-border bg-card text-card-foreground" { attrs... }>
+		{ children... }
+	</div>
+}
+
+// CardHeader renders the top section of a Card (typically title + description + actions).
+templ CardHeader() {
+	<div class="flex flex-col space-y-1.5 p-5 border-b border-border">
+		{ children... }
+	</div>
+}
+
+// CardTitle is the primary heading inside a CardHeader.
+// Use level=2 for sections inside a page, level=3 for nested cards. Defaults to 2.
+templ CardTitle(level int) {
+	if level == 3 {
+		<h3 class="text-[13px] font-semibold leading-none tracking-tight">{ children... }</h3>
+	} else {
+		<h2 class="text-[13px] font-semibold leading-none tracking-tight">{ children... }</h2>
+	}
+}
+
+// CardDescription is the secondary descriptive text under a CardTitle.
+templ CardDescription() {
+	<p class="text-[12px] text-muted-foreground">{ children... }</p>
+}
+
+// CardContent is the main body region of a Card.
+templ CardContent() {
+	<div class="p-5">
+		{ children... }
+	</div>
+}
+
+// CardFooter is the bottom action region of a Card.
+templ CardFooter() {
+	<div class="flex items-center p-5 border-t border-border">
+		{ children... }
+	</div>
+}

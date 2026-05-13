@@ -51,7 +51,7 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 		}
 		if len(data.Webhooks) > 0 {
 			for _, wh := range data.Webhooks {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div><div class=\"border border-gray-200 rounded-lg p-4 flex justify-between items-start\"><div class=\"min-w-0 flex-1\"><p class=\"font-medium text-sm font-mono break-all\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div><div class=\"border border-border rounded-lg p-4 flex justify-between items-start\"><div class=\"min-w-0 flex-1\"><p class=\"font-medium text-sm font-mono break-all\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -64,7 +64,7 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</p><p class=\"text-xs text-gray-500 mt-1\">Events: ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</p><p class=\"text-xs text-muted-foreground mt-1\">Events: ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -81,7 +81,7 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" class=\"text-blue-600 hover:underline ml-1\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" class=\"text-foreground hover:underline ml-1\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -165,17 +165,17 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "pull_request</label> <button type=\"submit\" class=\"mt-2 px-2 py-1 bg-blue-600 text-white rounded text-xs\">Save</button></form></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "pull_request</label> <button type=\"submit\" class=\"mt-2 px-2 py-1 bg-primary text-background rounded text-xs\">Save</button></form></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if wh.Active {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<p class=\"text-xs mt-1 text-green-600\">Active</p>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<p class=\"text-xs mt-1 text-success\">Active</p>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<p class=\"text-xs mt-1 text-gray-400\">Inactive</p>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<p class=\"text-xs mt-1 text-muted-foreground\">Inactive</p>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -211,7 +211,7 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "\" hx-swap=\"outerHTML\" class=\"text-xs text-blue-600 hover:underline\">Deliveries</button> <button hx-delete=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "\" hx-swap=\"outerHTML\" class=\"text-xs text-foreground hover:underline\">Deliveries</button> <button hx-delete=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -224,7 +224,7 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "\" hx-target=\"#webhooks-list\" hx-swap=\"outerHTML\" hx-confirm=\"Delete this webhook?\" class=\"text-xs text-red-600 hover:underline\">Delete</button></div>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "\" hx-target=\"#webhooks-list\" hx-swap=\"outerHTML\" hx-confirm=\"Delete this webhook?\" class=\"text-xs text-destructive hover:underline\">Delete</button></div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -248,7 +248,7 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 				}
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<p class=\"text-gray-500 text-sm\">No webhooks configured.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<p class=\"text-muted-foreground text-sm\">No webhooks configured.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

@@ -1,0 +1,69 @@
+package components
+
+// TimelineVariant controls the ring color around a TimelineIcon.
+type TimelineVariant string
+
+const (
+	TimelineDefault     TimelineVariant = "default"
+	TimelineSuccess     TimelineVariant = "success"
+	TimelineWarning     TimelineVariant = "warning"
+	TimelineDestructive TimelineVariant = "destructive"
+	TimelineMerged      TimelineVariant = "merged" // purple, for merged-PR events
+)
+
+func timelineIconClass(v TimelineVariant) string {
+	switch v {
+	case TimelineSuccess:
+		return "text-success bg-success/15"
+	case TimelineWarning:
+		return "text-warning bg-warning/15"
+	case TimelineDestructive:
+		return "text-destructive bg-destructive/15"
+	case TimelineMerged:
+		return "text-[hsl(270_70%_70%)] bg-[hsl(270_70%_50%/0.15)]"
+	default:
+		return "text-muted-foreground bg-muted"
+	}
+}
+
+// Timeline renders an ordered list of events connected by a vertical line —
+// the pattern used on PR detail pages, issue activity, and audit logs.
+//
+// The connector line and circular icon positioning are driven by the
+// `cz-timeline` and `cz-timeline-icon` classes in tailwind/input.css.
+//
+// Example:
+//
+//	@components.Timeline("Pull request activity") {
+//	  @components.TimelineItem() {
+//	    @components.TimelineIcon(components.TimelineSuccess) {
+//	      <svg width="12" height="12" ...>check</svg>
+//	    }
+//	    <p>@bot ran 6 checks — all passed <time>2h ago</time></p>
+//	  }
+//	  @components.TimelineItem() {
+//	    @components.TimelineIcon(components.TimelineDefault) { … }
+//	    // a card-style article works too
+//	  }
+//	}
+templ Timeline(ariaLabel string) {
+	<ol class="cz-timeline space-y-4" aria-label={ ariaLabel }>
+		{ children... }
+	</ol>
+}
+
+// TimelineItem is one event in a Timeline. Its first child should be a
+// TimelineIcon — the rest is free-form (a <p>, an <article>, etc.).
+templ TimelineItem() {
+	<li class="text-[13px] text-muted-foreground">
+		{ children... }
+	</li>
+}
+
+// TimelineIcon renders the circular badge that sits on the connector line.
+// The icon content (an SVG, usually 12px) is provided as children.
+templ TimelineIcon(variant TimelineVariant) {
+	<span class={ "cz-timeline-icon", timelineIconClass(variant) } aria-hidden="true">
+		{ children... }
+	</span>
+}

@@ -1,0 +1,79 @@
+package components
+
+// ButtonVariant controls the visual style of a Button.
+type ButtonVariant string
+
+const (
+	ButtonDefault     ButtonVariant = "default"     // primary action — solid foreground bg
+	ButtonOutline     ButtonVariant = "outline"     // bordered, transparent bg
+	ButtonGhost       ButtonVariant = "ghost"       // no border, hover bg only
+	ButtonSecondary   ButtonVariant = "secondary"   // muted solid bg
+	ButtonDestructive ButtonVariant = "destructive" // red, for delete-style actions
+	ButtonSuccess     ButtonVariant = "success"     // green, e.g. merge actions
+	ButtonLink        ButtonVariant = "link"        // text-only, underline on hover
+)
+
+// ButtonSize controls the height/padding of a Button.
+type ButtonSize string
+
+const (
+	ButtonSizeSM      ButtonSize = "sm"
+	ButtonSizeDefault ButtonSize = "default"
+	ButtonSizeLG      ButtonSize = "lg"
+	ButtonSizeIcon    ButtonSize = "icon"
+)
+
+func buttonVariantClass(v ButtonVariant) string {
+	switch v {
+	case ButtonOutline:
+		return "border border-input bg-transparent hover:bg-accent hover:text-accent-foreground"
+	case ButtonGhost:
+		return "hover:bg-accent hover:text-accent-foreground"
+	case ButtonSecondary:
+		return "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+	case ButtonDestructive:
+		return "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+	case ButtonSuccess:
+		return "bg-success text-success-foreground hover:bg-success/90"
+	case ButtonLink:
+		return "text-foreground underline-offset-4 hover:underline"
+	default: // ButtonDefault
+		return "bg-primary text-primary-foreground hover:bg-primary/90"
+	}
+}
+
+func buttonSizeClass(s ButtonSize) string {
+	switch s {
+	case ButtonSizeSM:
+		return "h-8 px-3 text-[13px]"
+	case ButtonSizeLG:
+		return "h-10 px-6 text-sm"
+	case ButtonSizeIcon:
+		return "h-8 w-8"
+	default:
+		return "h-9 px-4 text-sm"
+	}
+}
+
+// Button renders a styled button with the given variant and size.
+// Pass attrs via templ.Attributes — typically `templ.Attributes{"type": "submit"}`,
+// `templ.Attributes{"aria-label": "Close"}`, `templ.Attributes{"onclick": "..."}`, etc.
+templ Button(variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
+	<button
+		class={ "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none", buttonVariantClass(variant), buttonSizeClass(size) }
+		{ attrs... }
+	>
+		{ children... }
+	</button>
+}
+
+// LinkButton renders an <a> styled identically to a Button — for navigation actions.
+templ LinkButton(href string, variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
+	<a
+		href={ templ.SafeURL(href) }
+		class={ "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors", buttonVariantClass(variant), buttonSizeClass(size) }
+		{ attrs... }
+	>
+		{ children... }
+	</a>
+}

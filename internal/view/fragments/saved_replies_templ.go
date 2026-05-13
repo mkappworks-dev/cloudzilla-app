@@ -44,40 +44,40 @@ func SavedRepliesList(data view.SavedRepliesFragData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			for _, reply := range data.Replies {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"bg-white border border-gray-200 rounded-lg p-4\" id=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"bg-background border border-border rounded-lg p-4\" id=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var2 string
 				templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue("reply-" + strconv.FormatInt(reply.ID, 10))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/saved_replies.templ`, Line: 13, Col: 112}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/saved_replies.templ`, Line: 13, Col: 115}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><div class=\"flex justify-between items-start gap-4\"><div class=\"min-w-0 flex-1\"><p class=\"font-semibold text-sm text-gray-900\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><div class=\"flex justify-between items-start gap-4\"><div class=\"min-w-0 flex-1\"><p class=\"font-semibold text-sm text-foreground\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(reply.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/saved_replies.templ`, Line: 16, Col: 68}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/saved_replies.templ`, Line: 16, Col: 70}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p><p class=\"text-sm text-gray-600 mt-1 whitespace-pre-wrap\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p><p class=\"text-sm text-muted-foreground mt-1 whitespace-pre-wrap\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(reply.Body)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/saved_replies.templ`, Line: 17, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/saved_replies.templ`, Line: 17, Col: 86}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -96,7 +96,7 @@ func SavedRepliesList(data view.SavedRepliesFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"text-xs text-blue-600 hover:underline\">Edit</button> <button hx-delete=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" class=\"text-xs text-foreground hover:underline\">Edit</button> <button hx-delete=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -109,7 +109,7 @@ func SavedRepliesList(data view.SavedRepliesFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" hx-target=\"#saved-replies-list\" hx-swap=\"outerHTML\" hx-confirm=\"Delete this saved reply?\" class=\"text-xs text-red-600 hover:underline\">Delete</button></div></div><div id=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" hx-target=\"#saved-replies-list\" hx-swap=\"outerHTML\" hx-confirm=\"Delete this saved reply?\" class=\"text-xs text-destructive hover:underline\">Delete</button></div></div><div id=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -122,7 +122,7 @@ func SavedRepliesList(data view.SavedRepliesFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" class=\"hidden mt-4 space-y-3 border-t border-gray-100 pt-4\"><form hx-patch=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" class=\"hidden mt-4 space-y-3 border-t border-border pt-4\"><form hx-patch=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -148,7 +148,7 @@ func SavedRepliesList(data view.SavedRepliesFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" class=\"w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500\" required> <textarea name=\"body\" rows=\"3\" class=\"w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500\" required>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" class=\"w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus-visible:outline-ring\" required> <textarea name=\"body\" rows=\"3\" class=\"w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus-visible:outline-ring\" required>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -161,7 +161,7 @@ func SavedRepliesList(data view.SavedRepliesFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</textarea><div class=\"flex gap-2\"><button type=\"submit\" class=\"px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700\">Save</button> <button type=\"button\" x-data x-on:click=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</textarea><div class=\"flex gap-2\"><button type=\"submit\" class=\"px-3 py-1.5 bg-primary text-background rounded text-sm hover:bg-primary\">Save</button> <button type=\"button\" x-data x-on:click=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -174,7 +174,7 @@ func SavedRepliesList(data view.SavedRepliesFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" class=\"px-3 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200\">Cancel</button></div></form></div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" class=\"px-3 py-1.5 bg-muted text-foreground rounded text-sm hover:bg-muted\">Cancel</button></div></form></div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -184,7 +184,7 @@ func SavedRepliesList(data view.SavedRepliesFragData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"text-center py-8 border border-gray-200 border-dashed rounded-lg bg-gray-50\"><p class=\"text-gray-500\">No saved replies yet. Create one above.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<div class=\"text-center py-8 border border-border border-dashed rounded-lg bg-muted/40\"><p class=\"text-muted-foreground\">No saved replies yet. Create one above.</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -218,7 +218,7 @@ func SavedRepliesPicker(data view.SavedRepliesPickerFragData) templ.Component {
 			templ_7745c5c3_Var12 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<div id=\"saved-replies-picker-container\" class=\"relative\"><div id=\"saved-replies-picker\" class=\"absolute z-50 right-0 mt-1 w-72 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<div id=\"saved-replies-picker-container\" class=\"relative\"><div id=\"saved-replies-picker\" class=\"absolute z-50 right-0 mt-1 w-72 bg-background border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -228,7 +228,7 @@ func SavedRepliesPicker(data view.SavedRepliesPickerFragData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			for _, reply := range data.Replies {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<li><button type=\"button\" class=\"w-full text-left px-4 py-2 hover:bg-gray-50 text-sm\" data-saved-reply-body=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<li><button type=\"button\" class=\"w-full text-left px-4 py-2 hover:bg-muted/40 text-sm\" data-saved-reply-body=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -241,27 +241,27 @@ func SavedRepliesPicker(data view.SavedRepliesPickerFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\"><span class=\"font-medium text-gray-900\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\"><span class=\"font-medium text-foreground\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(reply.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/saved_replies.templ`, Line: 79, Col: 61}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/saved_replies.templ`, Line: 79, Col: 63}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</span> <span class=\"block text-xs text-gray-500 truncate mt-0.5\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</span> <span class=\"block text-xs text-muted-foreground truncate mt-0.5\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(reply.Body)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/saved_replies.templ`, Line: 80, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/saved_replies.templ`, Line: 80, Col: 86}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -277,7 +277,7 @@ func SavedRepliesPicker(data view.SavedRepliesPickerFragData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<p class=\"px-4 py-3 text-sm text-gray-500\">No saved replies. <a href=\"/settings/replies\" class=\"text-blue-600 hover:underline\">Create one</a>.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<p class=\"px-4 py-3 text-sm text-muted-foreground\">No saved replies. <a href=\"/settings/replies\" class=\"text-foreground hover:underline\">Create one</a>.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

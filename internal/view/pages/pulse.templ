@@ -8,53 +8,58 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
+// statCard renders one cell of the pulse stat strip.
+templ statCard(label, value, accentClass string) {
+	<div class="rounded-md border border-border bg-card p-4">
+		<p class="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">{ label }</p>
+		<p class={ "mt-2 text-3xl font-semibold tabular-nums", accentClass }>{ value }</p>
+	</div>
+}
+
 templ Pulse(data view.PulseData) {
 	@layout.Base(data.BasePage, "Pulse · "+data.Owner+"/"+data.RepoName) {
-		<div class="space-y-6">
-			<div class="flex items-center gap-2 text-sm text-gray-500">
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline font-medium">{ data.Owner }/{ data.RepoName }</a>
-				<span>/</span>
-				<span class="font-medium text-gray-700">Pulse</span>
-			</div>
-			<h1 class="text-2xl font-bold">Repository Pulse <span class="text-gray-400 font-normal text-base">(last 30 days)</span></h1>
-			<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-				<div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
-					<div class="text-3xl font-bold text-green-600">{ strconv.Itoa(data.NewIssues) }</div>
-					<div class="text-xs text-gray-500 mt-1">New Issues</div>
+		<div class="space-y-8">
+
+			<section aria-labelledby="pulse-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					Pulse
+				</p>
+				<h1 id="pulse-title" class="text-2xl font-semibold tracking-tight">
+					Repository pulse
+					<span class="text-muted-foreground font-normal text-base font-mono">last 30 days</span>
+				</h1>
+			</section>
+
+			<section aria-labelledby="stats-heading">
+				<h2 id="stats-heading" class="sr-only">Activity counts</h2>
+				<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+					@statCard("New issues", strconv.Itoa(data.NewIssues), "text-success")
+					@statCard("Closed issues", strconv.Itoa(data.ClosedIssues), "text-destructive")
+					@statCard("New PRs", strconv.Itoa(data.NewPRs), "")
+					@statCard("Merged PRs", strconv.Itoa(data.MergedPRs), "text-[hsl(270_70%_70%)]")
+					@statCard("Commits", strconv.Itoa(data.RecentCommits), "")
 				</div>
-				<div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
-					<div class="text-3xl font-bold text-red-600">{ strconv.Itoa(data.ClosedIssues) }</div>
-					<div class="text-xs text-gray-500 mt-1">Closed Issues</div>
-				</div>
-				<div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
-					<div class="text-3xl font-bold text-blue-600">{ strconv.Itoa(data.NewPRs) }</div>
-					<div class="text-xs text-gray-500 mt-1">New PRs</div>
-				</div>
-				<div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
-					<div class="text-3xl font-bold text-purple-600">{ strconv.Itoa(data.MergedPRs) }</div>
-					<div class="text-xs text-gray-500 mt-1">Merged PRs</div>
-				</div>
-				<div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
-					<div class="text-3xl font-bold text-gray-700">{ strconv.Itoa(data.RecentCommits) }</div>
-					<div class="text-xs text-gray-500 mt-1">Commits</div>
-				</div>
-			</div>
+			</section>
+
 			if len(data.Contributors) > 0 {
-				<div class="bg-white border border-gray-200 rounded-lg">
-					<div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-						<h2 class="font-semibold text-gray-700">Top Contributors</h2>
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/graphs/contributors") } class="text-xs text-blue-600 hover:underline">View all</a>
-					</div>
-					<ul class="divide-y divide-gray-50">
+				<section class="rounded-md border border-border bg-card" aria-labelledby="top-contrib">
+					<header class="px-4 py-3 border-b border-border flex items-center justify-between">
+						<h2 id="top-contrib" class="text-[13px] font-medium">Top contributors</h2>
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/graphs/contributors") } class="text-[12px] text-muted-foreground hover:text-foreground">View all →</a>
+					</header>
+					<ul class="divide-y divide-border">
 						for _, c := range data.Contributors {
-							<li class="flex items-center gap-3 px-4 py-2">
-								<span class="flex-1 font-medium text-gray-800 truncate">{ c.Name }</span>
-								<span class="text-xs text-gray-500 truncate">{ c.Email }</span>
-								<span class="text-xs font-semibold text-gray-700 w-16 text-right">{ strconv.Itoa(c.Commits) } commits</span>
+							<li class="flex items-center gap-3 px-4 py-2.5">
+								@components.Avatar(c.Name, components.AvatarSizeSM, c.Name)
+								<span class="flex-1 font-medium text-[13px] truncate">{ c.Name }</span>
+								<span class="text-[12px] text-muted-foreground truncate hidden sm:inline">{ c.Email }</span>
+								<span class="font-mono text-[12px] font-semibold w-24 text-right">{ strconv.Itoa(c.Commits) } commits</span>
 							</li>
 						}
 					</ul>
-				</div>
+				</section>
 			} else {
 				@components.EmptyState("No commits yet.")
 			}

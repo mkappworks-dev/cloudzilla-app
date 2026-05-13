@@ -27,6 +27,10 @@ cloudzilla_host_key
 # Worktrees
 .worktrees/
 
+# UI design prototypes — kept on disk for reference, not tracked
+mockups/
+.playwright-mcp
+
 # OS
 .DS_Store
 Thumbs.db

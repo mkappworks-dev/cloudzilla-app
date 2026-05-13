@@ -2,109 +2,156 @@ package pages
 
 import (
 	"strconv"
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ Releases(data view.ReleasesData) {
 	@layout.Base(data.BasePage, "Releases · "+data.Owner+"/"+data.RepoName) {
-		<div class="space-y-6">
-			<div class="flex items-center justify-between">
-				<div>
-					<h1 class="text-2xl font-bold">
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline">{ data.Owner }/{ data.RepoName }</a>
-						<span class="text-gray-400 font-normal mx-1">/</span>
-						<span>Releases</span>
-					</h1>
+		<div class="max-w-5xl mx-auto space-y-6">
+
+			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="rel-title">
+				<div class="min-w-0">
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+						<span aria-hidden="true">·</span>
+						Releases
+					</p>
+					<h1 id="rel-title" class="text-2xl font-semibold tracking-tight">Releases</h1>
+					<p class="mt-1 text-[13px] text-muted-foreground">Tag, package, and ship — releases are the cuttable points in your project's history.</p>
 				</div>
 				if data.CanWrite {
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/refs") } class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors">
-						+ New Release
-					</a>
+					@components.LinkButton("#draft", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+							<path d="M12 5v14M5 12h14"></path>
+						</svg>
+						Draft release
+					}
 				}
-			</div>
+			</section>
+
 			if data.CanWrite {
-				<div class="bg-white border border-gray-200 rounded-lg p-6">
-					<h2 class="text-lg font-semibold mb-4">Create Release</h2>
-					<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases" } hx-target="body" class="space-y-4">
-						<div class="grid grid-cols-2 gap-4">
-							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">Tag Name <span class="text-red-500">*</span></label>
-								<input type="text" name="tag_name" required placeholder="v1.0.0" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+				<section id="draft" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="draft-heading">
+					<header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+						<h2 id="draft-heading" class="text-[13px] font-medium">New release</h2>
+						<span class="ml-auto font-mono text-[11px] text-muted-foreground">draft</span>
+					</header>
+					<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases" } hx-target="body" class="p-5 space-y-4">
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div class="space-y-1.5">
+								<label for="release-tag-name" class="block text-sm font-medium">
+									Tag <span class="text-destructive" aria-hidden="true">*</span>
+								</label>
+								@components.Input(templ.Attributes{
+									"id":          "release-tag-name",
+									"type":        "text",
+									"name":        "tag_name",
+									"required":    "required",
+									"placeholder": "v1.0.0",
+									"class":       "font-mono",
+								})
 							</div>
-							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">Release Title</label>
-								<input type="text" name="name" placeholder="Release v1.0.0" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+							<div class="space-y-1.5">
+								<label for="release-name" class="block text-sm font-medium">Release title</label>
+								@components.Input(templ.Attributes{
+									"id":          "release-name",
+									"type":        "text",
+									"name":        "name",
+									"placeholder": "Phase 16 — performance",
+								})
 							</div>
 						</div>
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-							<textarea name="body" rows="6" placeholder="Describe this release..." class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+						<div class="space-y-1.5">
+							<label for="release-body" class="block text-sm font-medium">Description</label>
+							@components.Textarea(templ.Attributes{
+								"id":          "release-body",
+								"name":        "body",
+								"rows":        "6",
+								"placeholder": "What changed, why it matters, upgrade notes…",
+								"class":       "font-mono min-h-[140px]",
+							})
 						</div>
-						<div class="flex items-center gap-6">
-							<label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-								<input type="checkbox" name="is_prerelease" value="true" class="rounded"/>
-								Pre-release
+						<div class="flex flex-wrap items-center gap-6">
+							<label class="flex items-center gap-2 text-sm cursor-pointer">
+								@components.Checkbox(templ.Attributes{"name": "is_prerelease", "value": "true"})
+								<span>Pre-release</span>
 							</label>
-							<label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-								<input type="checkbox" name="is_draft" value="true" class="rounded"/>
-								Draft
+							<label class="flex items-center gap-2 text-sm cursor-pointer">
+								@components.Checkbox(templ.Attributes{"name": "is_draft", "value": "true"})
+								<span>Save as draft</span>
 							</label>
 						</div>
-						<div class="flex justify-end">
-							<button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors">
-								Publish Release
-							</button>
+						<div class="flex justify-end pt-1">
+							@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+								Publish release
+							}
 						</div>
 					</form>
-				</div>
+				</section>
 			}
+
 			if len(data.Releases) > 0 {
-				<div class="space-y-4">
+				<section class="space-y-4" aria-labelledby="rel-list">
+					<h2 id="rel-list" class="sr-only">Published releases</h2>
 					for _, release := range data.Releases {
-						<div class="bg-white border border-gray-200 rounded-lg p-6">
-							<div class="flex items-start justify-between gap-4">
-								<div class="flex-1 min-w-0">
-									<div class="flex items-center gap-2 flex-wrap mb-1">
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases/tag/" + release.TagName) } class="text-xl font-semibold text-blue-600 hover:underline">
+						<article class="rounded-md border border-border bg-card overflow-hidden">
+							<div class="grid sm:grid-cols-[180px_1fr] gap-0">
+								<aside class="border-b sm:border-b-0 sm:border-r border-border p-5 bg-muted/30">
+									if release.PublishedAt != nil {
+										<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Published</p>
+										<p class="mt-1 text-[13px] text-muted-foreground">
+											<time datetime={ release.PublishedAt.UTC().Format(time.RFC3339) }>{ release.PublishedAt.Format("Jan 2, 2006") }</time>
+										</p>
+									} else {
+										<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Status</p>
+										<p class="mt-1 text-[13px] text-muted-foreground">Not yet published</p>
+									}
+								</aside>
+								<div class="p-5">
+									<div class="flex flex-wrap items-center gap-2">
+										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases/tag/" + release.TagName) } class="text-lg font-semibold tracking-tight hover:underline">
 											if release.Name != "" {
 												{ release.Name }
 											} else {
 												{ release.TagName }
 											}
 										</a>
-										<code class="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded text-sm font-mono">{ release.TagName }</code>
+										<code class="font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded text-[12px]">{ release.TagName }</code>
 										if release.IsPrerelease {
-											<span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 border border-yellow-300 rounded text-xs font-medium">Pre-release</span>
+											@components.Badge(components.BadgeWarning) {
+												Pre-release
+											}
 										}
 										if release.IsDraft {
-											<span class="px-2 py-0.5 bg-gray-100 text-gray-600 border border-gray-300 rounded text-xs font-medium">Draft</span>
+											@components.Badge(components.BadgeDraft) {
+												Draft
+											}
 										}
 									</div>
-									<p class="text-xs text-gray-500">
-										if release.PublishedAt != nil {
-											Published { release.PublishedAt.Format("Jan 2, 2006") }
-										} else {
-											Not yet published
-										}
-									</p>
+									if data.CanWrite {
+										<div class="mt-3 flex items-center gap-2">
+											@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+												"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(release.ID, 10),
+												"hx-confirm": "Delete this release?",
+												"class":      "ml-auto text-destructive border-destructive/40 hover:bg-destructive/10",
+											}) {
+												Delete
+											}
+										</div>
+									}
 								</div>
-								if data.CanWrite {
-									<div class="flex items-center gap-2 shrink-0">
-										<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(release.ID, 10) } hx-confirm="Delete this release?" class="px-3 py-1.5 text-red-600 border border-red-300 rounded text-xs font-medium hover:bg-red-50 transition-colors">
-											Delete
-										</button>
-									</div>
-								}
 							</div>
-						</div>
+						</article>
 					}
-				</div>
+				</section>
 			} else {
-				<div class="bg-white border border-gray-200 rounded-lg p-12 text-center text-gray-500">
+				<div class="rounded-md border border-border bg-card p-12 text-center">
 					<p class="text-lg font-medium">No releases yet</p>
 					if data.CanWrite {
-						<p class="text-sm mt-1">Create a release to package and distribute your software.</p>
+						<p class="mt-1 text-sm text-muted-foreground">Create a release to package and distribute your software.</p>
 					}
 				</div>
 			}

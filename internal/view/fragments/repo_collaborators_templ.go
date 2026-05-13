@@ -53,14 +53,14 @@ func RepoCollaborators(data view.RepoCollaboratorsFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" hx-target=\"#repo-collaborators\" hx-swap=\"outerHTML\" class=\"flex gap-3 mb-4\"><input type=\"text\" name=\"username\" placeholder=\"Username\" required class=\"flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400\"> <select name=\"role\" class=\"border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400\"><option value=\"reader\">Reader</option> <option value=\"writer\">Writer</option> <option value=\"admin\">Admin</option></select> <button type=\"submit\" class=\"px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700\">Add</button></form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" hx-target=\"#repo-collaborators\" hx-swap=\"outerHTML\" class=\"flex gap-3 mb-4\"><input type=\"text\" name=\"username\" placeholder=\"Username\" required class=\"flex-1 border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus-visible:outline-ring\"> <select name=\"role\" class=\"border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus-visible:outline-ring\"><option value=\"reader\">Reader</option> <option value=\"writer\">Writer</option> <option value=\"admin\">Admin</option></select> <button type=\"submit\" class=\"px-4 py-2 bg-primary text-background rounded text-sm hover:bg-primary\">Add</button></form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
 		if len(data.Collabs) > 0 {
 			for _, collab := range data.Collabs {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"border border-gray-200 rounded-lg p-4 flex justify-between items-center\"><div><p class=\"text-sm font-medium\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"border border-border rounded-lg p-4 flex justify-between items-center\"><div><p class=\"text-sm font-medium\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -73,14 +73,14 @@ func RepoCollaborators(data view.RepoCollaboratorsFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p><p class=\"text-xs text-gray-500 capitalize\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p><p class=\"text-xs text-muted-foreground capitalize\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(string(collab.Role))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_collaborators.templ`, Line: 43, Col: 71}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_collaborators.templ`, Line: 43, Col: 79}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
@@ -104,7 +104,7 @@ func RepoCollaborators(data view.RepoCollaboratorsFragData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" hx-target=\"#repo-collaborators\" hx-swap=\"outerHTML\" hx-confirm=\"Remove this collaborator?\" class=\"text-xs text-red-600 hover:underline ml-4\">Remove</button>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" hx-target=\"#repo-collaborators\" hx-swap=\"outerHTML\" hx-confirm=\"Remove this collaborator?\" class=\"text-xs text-destructive hover:underline ml-4\">Remove</button>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -115,7 +115,7 @@ func RepoCollaborators(data view.RepoCollaboratorsFragData) templ.Component {
 				}
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<p class=\"text-gray-500 text-sm\">No collaborators yet.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<p class=\"text-muted-foreground text-sm\">No collaborators yet.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

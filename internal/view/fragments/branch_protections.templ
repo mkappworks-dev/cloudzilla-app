@@ -12,7 +12,7 @@ templ BranchProtections(data view.BranchProtectionsFragData) {
 		if len(data.Rules) > 0 {
 			<table class="w-full text-sm">
 				<thead>
-					<tr class="text-left text-gray-500 border-b border-gray-200">
+					<tr class="text-left text-muted-foreground border-b border-border">
 						<th class="pb-2 font-medium">Pattern</th>
 						<th class="pb-2 font-medium">Required Reviews</th>
 						<th class="pb-2 font-medium">Status Checks</th>
@@ -20,12 +20,12 @@ templ BranchProtections(data view.BranchProtectionsFragData) {
 						<th class="pb-2"></th>
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-gray-100">
+				<tbody class="divide-y divide-border">
 					for _, rule := range data.Rules {
 						<tr>
-							<td class="py-3 font-mono text-sm text-gray-900">{ rule.Pattern }</td>
-							<td class="py-3 text-gray-700">{ strconv.Itoa(rule.RequireReviewCount) }</td>
-							<td class="py-3 text-gray-500 text-xs">
+							<td class="py-3 font-mono text-sm text-foreground">{ rule.Pattern }</td>
+							<td class="py-3 text-foreground">{ strconv.Itoa(rule.RequireReviewCount) }</td>
+							<td class="py-3 text-muted-foreground text-xs">
 								if len(rule.RequireStatusChecks) > 0 {
 									{ strings.Join(rule.RequireStatusChecks, ", ") }
 								} else {
@@ -34,9 +34,9 @@ templ BranchProtections(data view.BranchProtectionsFragData) {
 							</td>
 							<td class="py-3">
 								if rule.BlockForcePush {
-									<span class="inline-block bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded">Blocked</span>
+									<span class="inline-block bg-destructive/10 text-destructive text-xs px-2 py-0.5 rounded">Blocked</span>
 								} else {
-									<span class="inline-block bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded">Allowed</span>
+									<span class="inline-block bg-muted text-muted-foreground text-xs px-2 py-0.5 rounded">Allowed</span>
 								}
 							</td>
 							<td class="py-3">
@@ -46,7 +46,7 @@ templ BranchProtections(data view.BranchProtectionsFragData) {
 										hx-target="#branch-protections"
 										hx-swap="outerHTML"
 										hx-confirm="Delete this branch protection rule?"
-										class="px-3 py-1 text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors text-xs"
+										class="px-3 py-1 text-destructive border border-destructive/40 rounded hover:bg-destructive/10 transition-colors text-xs"
 									>
 										Delete
 									</button>
@@ -57,8 +57,8 @@ templ BranchProtections(data view.BranchProtectionsFragData) {
 				</tbody>
 			</table>
 		} else {
-			<div class="text-center py-6 border border-gray-200 border-dashed rounded-lg bg-gray-50">
-				<p class="text-gray-500 text-sm">No branch protection rules yet.</p>
+			<div class="text-center py-6 border border-border border-dashed rounded-lg bg-muted/40">
+				<p class="text-muted-foreground text-sm">No branch protection rules yet.</p>
 			</div>
 		}
 	</div>

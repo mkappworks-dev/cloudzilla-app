@@ -9,10 +9,12 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 	"strconv"
 	"strings"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 func OAuthApps(data view.OAuthAppsData) templ.Component {
@@ -48,141 +50,181 @@ func OAuthApps(data view.OAuthAppsData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto py-8 px-4 space-y-10\"><section><h1 class=\"text-2xl font-bold mb-4\">Your OAuth Applications</h1><div x-data=\"{ name: '', homepage: '', redirect: '', desc: '', secret: '' }\" class=\"border border-gray-200 rounded-lg p-4 mb-6 space-y-3\"><h2 class=\"font-semibold\">Register new application</h2><input x-model=\"name\" type=\"text\" placeholder=\"Application name\" class=\"border border-gray-300 rounded px-3 py-1.5 text-sm w-full\"> <input x-model=\"homepage\" type=\"url\" placeholder=\"Homepage URL\" class=\"border border-gray-300 rounded px-3 py-1.5 text-sm w-full\"> <input x-model=\"redirect\" type=\"url\" placeholder=\"Redirect URI\" class=\"border border-gray-300 rounded px-3 py-1.5 text-sm w-full\"> <textarea x-model=\"desc\" placeholder=\"Description (optional)\" class=\"border border-gray-300 rounded px-3 py-1.5 text-sm w-full\"></textarea> <button x-on:click=\"\n\t\t\t\t\t\t\tfetch('/api/oauth/apps', {\n\t\t\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || ''},\n\t\t\t\t\t\t\t\tbody: JSON.stringify({name, homepage_url: homepage, description: desc, redirect_uris: redirect ? [redirect] : []})\n\t\t\t\t\t\t\t}).then(r => r.ok ? r.json() : Promise.reject()).then(d => { secret = d.client_secret; setTimeout(() => location.reload(), 5000) }).catch(() => alert('Failed to create application'))\n\t\t\t\t\t\t\" class=\"bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700\">Create application</button><div x-show=\"secret\" class=\"mt-2 text-sm bg-yellow-50 border border-yellow-200 rounded p-3\"><span>Client secret (shown once): </span><span x-text=\"secret\" class=\"font-mono\"></span></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-3xl mx-auto space-y-10\"><section aria-labelledby=\"oa-title\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2\"><a href=\"/settings\" class=\"hover:underline\">Settings</a> <span aria-hidden=\"true\">·</span> OAuth apps</p><h1 id=\"oa-title\" class=\"text-2xl font-semibold tracking-tight\">OAuth applications</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">Register and manage applications that can call the Cloudzilla API on your behalf.</p></section><section aria-labelledby=\"oa-register\"><h2 id=\"oa-register\" class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-3\">Register new application</h2><div x-data=\"{ name: '', homepage: '', redirect: '', desc: '', secret: '' }\" class=\"rounded-md border border-border bg-card p-6 space-y-3\"><label for=\"oauth-app-name\" class=\"sr-only\">Application name</label> <input id=\"oauth-app-name\" x-model=\"name\" type=\"text\" placeholder=\"Application name\" class=\"flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground\"> <label for=\"oauth-app-homepage\" class=\"sr-only\">Homepage URL</label> <input id=\"oauth-app-homepage\" x-model=\"homepage\" type=\"url\" placeholder=\"Homepage URL\" class=\"flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground\"> <label for=\"oauth-app-redirect\" class=\"sr-only\">Redirect URI</label> <input id=\"oauth-app-redirect\" x-model=\"redirect\" type=\"url\" placeholder=\"Redirect URI\" class=\"flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-sm placeholder:text-muted-foreground\"> <label for=\"oauth-app-desc\" class=\"sr-only\">Description</label> <textarea id=\"oauth-app-desc\" x-model=\"desc\" placeholder=\"Description (optional)\" class=\"flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground\"></textarea> <button type=\"button\" x-on:click=\"\n\t\t\t\t\t\t\tfetch('/api/oauth/apps', {\n\t\t\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || ''},\n\t\t\t\t\t\t\t\tbody: JSON.stringify({name, homepage_url: homepage, description: desc, redirect_uris: redirect ? [redirect] : []})\n\t\t\t\t\t\t\t}).then(r => r.ok ? r.json() : Promise.reject()).then(d => { secret = d.client_secret; setTimeout(() => location.reload(), 5000) }).catch(() => alert('Failed to create application'))\n\t\t\t\t\t\t\" class=\"inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm\">Create application</button><div x-show=\"secret\" x-cloak class=\"mt-2 text-sm border border-warning/40 bg-warning/10 text-warning rounded p-3\"><span>Client secret (shown once): </span><span x-text=\"secret\" class=\"font-mono\"></span></div></div></section><section aria-labelledby=\"oa-yours\"><h2 id=\"oa-yours\" class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-3\">Your applications</h2>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if len(data.Apps) > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<ul class=\"divide-y divide-gray-100\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"rounded-md border border-border bg-card overflow-hidden\"><ul class=\"divide-y divide-border\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				for _, app := range data.Apps {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<li class=\"py-3 flex items-center justify-between\"><div><p class=\"font-medium\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<li class=\"px-4 py-3 flex items-center justify-between gap-3\"><div class=\"min-w-0\"><p class=\"text-[13px] font-medium\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var3 string
 					templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(app.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 43, Col: 42}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 65, Col: 55}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</p><p class=\"text-xs text-gray-500 font-mono\">Client ID: ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</p><p class=\"mt-0.5 font-mono text-[11px] text-muted-foreground truncate\">Client ID: ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var4 string
 					templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(app.ClientID)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 44, Col: 77}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 66, Col: 106}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p></div><button hx-delete=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p></div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var5 string
-					templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/oauth/apps/" + strconv.FormatInt(app.ID, 10))
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 47, Col: 71}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
+					templ_7745c5c3_Var5 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+						templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+						templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+						if !templ_7745c5c3_IsBuffer {
+							defer func() {
+								templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+								if templ_7745c5c3_Err == nil {
+									templ_7745c5c3_Err = templ_7745c5c3_BufErr
+								}
+							}()
+						}
+						ctx = templ.InitializeContext(ctx)
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "Delete")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						return nil
+					})
+					templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+						"hx-delete":  "/api/oauth/apps/" + strconv.FormatInt(app.ID, 10),
+						"hx-confirm": "Delete this application?",
+						"hx-target":  "closest li",
+						"hx-swap":    "outerHTML",
+						"type":       "button",
+						"class":      "text-destructive border-destructive/40 hover:bg-destructive/10",
+					}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" hx-confirm=\"Delete this application?\" hx-target=\"closest li\" hx-swap=\"outerHTML\" class=\"text-red-600 text-sm hover:underline\">Delete</button></li>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</li>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</ul>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</ul></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<p class=\"text-sm text-gray-500\">No applications registered yet.</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<p class=\"text-sm text-muted-foreground\">No applications registered yet.</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</section><section><h2 class=\"text-xl font-bold mb-4\">Authorized Applications</h2>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</section><section aria-labelledby=\"oa-auths\"><h2 id=\"oa-auths\" class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-3\">Authorized applications</h2>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if len(data.Authorizations) > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<ul class=\"divide-y divide-gray-100\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"rounded-md border border-border bg-card overflow-hidden\"><ul class=\"divide-y divide-border\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				for _, auth := range data.Authorizations {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<li class=\"py-3 flex items-center justify-between\"><div><p class=\"text-sm\">App ID: ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<li class=\"px-4 py-3 flex items-center justify-between gap-3\"><div class=\"min-w-0\"><p class=\"text-[13px]\">App ID <span class=\"font-mono\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var6 string
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.FormatInt(auth.AppID, 10))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 67, Col: 71}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 95, Col: 99}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</p><p class=\"text-xs text-gray-500\">Scopes: ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</span></p><p class=\"mt-0.5 font-mono text-[11px] text-muted-foreground\">Scopes: ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(strings.Join(auth.Scopes, " "))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 68, Col: 82}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 96, Col: 112}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</p></div><button hx-delete=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</p></div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var8 string
-					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/oauth/authorizations/" + strconv.FormatInt(auth.ID, 10))
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 71, Col: 82}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
+					templ_7745c5c3_Var8 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+						templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+						templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+						if !templ_7745c5c3_IsBuffer {
+							defer func() {
+								templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+								if templ_7745c5c3_Err == nil {
+									templ_7745c5c3_Err = templ_7745c5c3_BufErr
+								}
+							}()
+						}
+						ctx = templ.InitializeContext(ctx)
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "Revoke")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+						return nil
+					})
+					templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+						"hx-delete":  "/api/oauth/authorizations/" + strconv.FormatInt(auth.ID, 10),
+						"hx-confirm": "Revoke access?",
+						"hx-target":  "closest li",
+						"hx-swap":    "outerHTML",
+						"type":       "button",
+						"class":      "text-destructive border-destructive/40 hover:bg-destructive/10",
+					}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var8), templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" hx-confirm=\"Revoke access?\" hx-target=\"closest li\" hx-swap=\"outerHTML\" class=\"text-red-600 text-sm hover:underline\">Revoke</button></li>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</li>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</ul>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</ul></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<p class=\"text-sm text-gray-500\">No applications have been authorized.</p>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<p class=\"text-sm text-muted-foreground\">No applications have been authorized.</p>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</section></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</section></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = layout.Base(data.BasePage, "OAuth Apps — Cloudzilla").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layout.Base(data.BasePage, "OAuth apps — Cloudzilla").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

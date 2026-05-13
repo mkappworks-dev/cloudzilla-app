@@ -43,7 +43,7 @@ func NotificationsList(data view.NotificationsFragData) templ.Component {
 		if len(data.Notifications) > 0 {
 			for _, notif := range data.Notifications {
 				if !notif.Read {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"bg-white border border-gray-200 rounded-lg p-4 flex justify-between items-start border-l-4 border-l-blue-500\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"bg-background border border-border rounded-lg p-4 flex justify-between items-start border-l-4 border-l-blue-500\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -56,7 +56,7 @@ func NotificationsList(data view.NotificationsFragData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"bg-white border border-gray-200 rounded-lg p-4 flex justify-between items-start\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"bg-background border border-border rounded-lg p-4 flex justify-between items-start\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -71,7 +71,7 @@ func NotificationsList(data view.NotificationsFragData) templ.Component {
 				}
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-500\">No notifications yet.</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div class=\"bg-background border border-border rounded-lg p-8 text-center text-muted-foreground\">No notifications yet.</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -172,14 +172,14 @@ func notificationItem(notif model.Notification) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"text-blue-600 hover:underline\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"text-foreground hover:underline\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(notif.OwnerName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/notifications.templ`, Line: 52, Col: 133}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/notifications.templ`, Line: 52, Col: 135}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -192,7 +192,7 @@ func notificationItem(notif model.Notification) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(notif.RepoName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/notifications.templ`, Line: 52, Col: 152}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/notifications.templ`, Line: 52, Col: 154}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -211,14 +211,14 @@ func notificationItem(notif model.Notification) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" class=\"text-xs text-blue-600 hover:underline mt-1 block\">View →</a><p class=\"text-xs text-gray-400 mt-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" class=\"text-xs text-foreground hover:underline mt-1 block\">View →</a><p class=\"text-xs text-muted-foreground mt-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(notif.CreatedAt.Format("Jan 2, 2006 15:04"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/notifications.templ`, Line: 55, Col: 85}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/notifications.templ`, Line: 55, Col: 93}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -242,7 +242,7 @@ func notificationItem(notif model.Notification) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "\" hx-target=\"#notifications-list\" hx-swap=\"outerHTML\" class=\"text-xs text-gray-500 hover:text-gray-700 ml-4 shrink-0\">Mark read</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "\" hx-target=\"#notifications-list\" hx-swap=\"outerHTML\" class=\"text-xs text-muted-foreground hover:text-foreground ml-4 shrink-0\">Mark read</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

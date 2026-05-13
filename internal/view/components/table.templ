@@ -1,0 +1,103 @@
+package components
+
+// Table components — thin shadcn-style wrappers around native HTML table elements.
+// Always render real <table>/<thead>/<tbody>/<tr>/<th>/<td> so screen readers get
+// proper row/column semantics — never fake tables with grid/flex.
+//
+// Typical usage:
+//
+//	@components.Table() {
+//	  @components.TableCaption() { "Repositories owned by mkappworks" }
+//	  @components.TableHeader() {
+//	    @components.TableRow(false) {
+//	      @components.TableHead(templ.Attributes{"scope": "col"}) { "Name" }
+//	      @components.TableHead(templ.Attributes{"scope": "col"}) { "Updated" }
+//	    }
+//	  }
+//	  @components.TableBody() {
+//	    @components.TableRow(true) {
+//	      @components.TableCell(templ.Attributes{"scope": "row"}) { "cloudzilla" }
+//	      @components.TableCell(nil) { "2h ago" }
+//	    }
+//	  }
+//	}
+
+// Table is the root <table> element. Wrap in an overflow-x container yourself
+// if your table is wider than the viewport — this component does not add scroll affordances.
+templ Table(attrs templ.Attributes) {
+	<table class="w-full caption-bottom text-sm" { attrs... }>
+		{ children... }
+	</table>
+}
+
+// TableHeader wraps <thead>.
+templ TableHeader() {
+	<thead class="[&_tr]:border-b [&_tr]:border-border">
+		{ children... }
+	</thead>
+}
+
+// TableBody wraps <tbody>.
+templ TableBody() {
+	<tbody class="[&_tr:last-child]:border-0">
+		{ children... }
+	</tbody>
+}
+
+// TableFooter wraps <tfoot> — for totals/summary rows.
+templ TableFooter() {
+	<tfoot class="border-t border-border bg-muted/50 font-medium [&>tr]:last:border-b-0">
+		{ children... }
+	</tfoot>
+}
+
+// TableRow renders a <tr>. `hoverable` enables the hover background — set to false
+// for header rows or summary rows where hover would be confusing.
+templ TableRow(hoverable bool) {
+	if hoverable {
+		<tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+			{ children... }
+		</tr>
+	} else {
+		<tr class="border-b border-border">
+			{ children... }
+		</tr>
+	}
+}
+
+// TableHead renders a <th>. Pass `scope` via attrs:
+//
+//	@TableHead(templ.Attributes{"scope": "col"}) { "Name" }
+//
+// Wrap the visible label in a <span class="sr-only"> if the column is icon-only.
+templ TableHead(attrs templ.Attributes) {
+	<th class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider [&:has([role=checkbox])]:pr-0" { attrs... }>
+		{ children... }
+	</th>
+}
+
+// TableCell renders a <td>. To mark a row-header cell instead (recommended for
+// the primary identifying column of each row), use TableRowHead.
+templ TableCell(attrs templ.Attributes) {
+	<td class="p-4 align-middle [&:has([role=checkbox])]:pr-0" { attrs... }>
+		{ children... }
+	</td>
+}
+
+// TableRowHead renders a <th scope="row"> — use this for the primary identifying
+// cell of each row (typically the leftmost meaningful column, like the repo name
+// or PR title). Screen readers will announce this cell as the row's label.
+templ TableRowHead(attrs templ.Attributes) {
+	<th scope="row" class="p-4 align-middle font-normal text-left" { attrs... }>
+		{ children... }
+	</th>
+}
+
+// TableCaption wraps <caption>. Provides a short description of the table's
+// contents — required by WCAG for non-trivial tables. Use `class="sr-only"`
+// via attrs to hide it visually while keeping it for screen readers.
+templ TableCaption(attrs templ.Attributes) {
+	<caption class="mt-4 text-sm text-muted-foreground" { attrs... }>
+		{ children... }
+	</caption>
+}

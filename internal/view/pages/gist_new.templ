@@ -2,44 +2,77 @@ package pages
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ GistNew(data view.GistNewData) {
 	@layout.Base(data.BasePage, "New Gist") {
-		<div class="max-w-4xl mx-auto py-8 px-4">
-			<h1 class="text-2xl font-bold mb-6">Create a New Gist</h1>
-			<form id="gist-form">
-				<div class="mb-4">
-					<label class="block text-sm font-medium text-gray-700 mb-1">Description <span class="text-gray-400">(optional)</span></label>
-					<input type="text" name="description" class="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="Gist description..."/>
+		<div class="max-w-4xl mx-auto space-y-6">
+
+			<section aria-labelledby="new-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href="/gists" class="hover:underline">Gists</a>
+					<span aria-hidden="true">·</span>
+					New
+				</p>
+				<h1 id="new-title" class="text-2xl font-semibold tracking-tight">Create a new gist</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">Add one or more files. Public gists are listed on the Explore page; secret gists are only reachable by direct link.</p>
+			</section>
+
+			<form id="gist-form" class="space-y-5 rounded-md border border-border bg-card p-6">
+				<div class="space-y-1.5">
+					<label for="gist-description" class="block text-sm font-medium">
+						Description <span class="text-muted-foreground font-normal">(optional)</span>
+					</label>
+					@components.Input(templ.Attributes{
+						"id":          "gist-description",
+						"type":        "text",
+						"name":        "description",
+						"placeholder": "Short summary of what this gist contains",
+					})
 				</div>
-				<div class="mb-4 flex items-center gap-2">
-					<input type="checkbox" id="public" name="public" checked/>
-					<label for="public" class="text-sm text-gray-700">Public gist</label>
-				</div>
+
+				<label class="flex items-center gap-2 text-sm cursor-pointer">
+					@components.Checkbox(templ.Attributes{"id": "public", "name": "public", "checked": "checked"})
+					<span>Public gist <span class="text-muted-foreground">(listed in Explore)</span></span>
+				</label>
+
 				<div id="file-rows" class="space-y-4">
-					<div class="border border-gray-200 rounded p-4">
-						<input type="text" name="filename[]" placeholder="Filename including extension" class="w-full border border-gray-300 rounded px-3 py-1 text-sm mb-2" required/>
-						<textarea name="content[]" rows="8" class="w-full border border-gray-300 rounded px-3 py-1 text-sm font-mono" placeholder="File contents..."></textarea>
+					<div class="rounded-md border border-border bg-muted/30 p-4 space-y-2">
+						<label for="gist-filename-0" class="sr-only">Filename</label>
+						@components.Input(templ.Attributes{
+							"id":          "gist-filename-0",
+							"type":        "text",
+							"name":        "filename[]",
+							"placeholder": "filename.ext",
+							"required":    "required",
+							"class":       "font-mono",
+						})
+						<label for="gist-content-0" class="sr-only">File contents</label>
+						<textarea id="gist-content-0" name="content[]" rows="10" class="flex min-h-[160px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical" placeholder="File contents…"></textarea>
 					</div>
 				</div>
-				<div class="mt-3">
-					<button
-						type="button"
-						hx-get="/api/gists/file-row"
-						hx-target="#file-rows"
-						hx-swap="beforeend"
-						class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50"
-					>
-						Add file
-					</button>
-				</div>
-				<div class="mt-6 flex gap-3">
-					<button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium">Create Gist</button>
-					<a href="/gists" class="px-4 py-2 border rounded text-sm hover:bg-gray-50">Cancel</a>
+
+				@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+					"type":      "button",
+					"hx-get":    "/api/gists/file-row",
+					"hx-target": "#file-rows",
+					"hx-swap":   "beforeend",
+				}) {
+					+ Add file
+				}
+
+				<div class="flex items-center gap-3 pt-2">
+					@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+						Create gist
+					}
+					@components.LinkButton("/gists", components.ButtonGhost, components.ButtonSizeDefault, nil) {
+						Cancel
+					}
 				</div>
 			</form>
+
 			<script>
 				document.getElementById('gist-form').addEventListener('submit', async function(e) {
 					e.preventDefault();

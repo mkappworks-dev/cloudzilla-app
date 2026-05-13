@@ -1,0 +1,29 @@
+package components
+
+// RadioGroup wraps a set of related Radio inputs (defined in checkbox.templ).
+// It applies `role="radiogroup"` and an `aria-label` so screen readers announce
+// the group as one unit. Each child <label> should contain its own Radio.
+//
+//	@components.RadioGroup("Merge strategy", nil) {
+//	  <label class="flex items-center gap-2">
+//	    @components.Radio(templ.Attributes{"name": "strategy", "value": "ff", "checked": "checked"})
+//	    <span class="text-sm">Fast-forward</span>
+//	  </label>
+//	  <label class="flex items-center gap-2">
+//	    @components.Radio(templ.Attributes{"name": "strategy", "value": "merge"})
+//	    <span class="text-sm">Merge commit</span>
+//	  </label>
+//	  <label class="flex items-center gap-2">
+//	    @components.Radio(templ.Attributes{"name": "strategy", "value": "squash"})
+//	    <span class="text-sm">Squash</span>
+//	  </label>
+//	}
+//
+// For form semantics in pages without an aria-label use a <fieldset> + <legend>
+// directly — RadioGroup is for the inline cases where a fieldset would feel
+// heavy.
+templ RadioGroup(ariaLabel string, attrs templ.Attributes) {
+	<div role="radiogroup" aria-label={ ariaLabel } class="grid gap-2" { attrs... }>
+		{ children... }
+	</div>
+}

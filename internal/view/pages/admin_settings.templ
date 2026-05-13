@@ -2,7 +2,10 @@ package pages
 
 import (
 	"strconv"
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -10,74 +13,111 @@ templ AdminSettings(data view.AdminSettingsData) {
 	@layout.Base(data.BasePage, "Admin Settings — Cloudzilla") {
 		<div class="space-y-6">
 			<div class="flex justify-between items-center">
-				<h1 class="text-2xl font-bold">Admin Settings</h1>
+				<h1 class="text-2xl font-semibold tracking-tight">Admin Settings</h1>
 			</div>
 			<!-- Instance Settings -->
-			<div class="bg-white border border-gray-200 rounded-lg p-6">
-				<h2 class="text-lg font-semibold mb-4">Instance Settings</h2>
-				<div id="admin-settings-list" class="space-y-3">
-					if len(data.Settings) > 0 {
-						for _, s := range data.Settings {
-							<div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-								<div>
-									<p class="text-sm font-medium">{ s.Key }</p>
-								</div>
-								<form hx-post="/api/admin/settings" hx-target="#admin-settings-list" hx-swap="outerHTML" class="flex items-center gap-3">
-									<input type="hidden" name="key" value={ s.Key }/>
-									if s.Value == "true" {
-										<span class="text-xs text-green-600 font-medium">Enabled</span>
-										<input type="hidden" name="value" value="false"/>
-										<button type="submit" class="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Disable</button>
-									} else {
-										<span class="text-xs text-gray-400 font-medium">Disabled</span>
-										<input type="hidden" name="value" value="true"/>
-										<button type="submit" class="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Enable</button>
-									}
-								</form>
-							</div>
-						}
-					} else {
-						<p class="text-gray-500 text-sm">No settings found.</p>
+			@components.Card(nil) {
+				@components.CardHeader() {
+					@components.CardTitle(2) {
+						Instance Settings
 					}
-				</div>
-			</div>
-			<!-- Invitations -->
-			<div class="bg-white border border-gray-200 rounded-lg p-6">
-				<h2 class="text-lg font-semibold mb-4">Invitations</h2>
-				<form hx-post="/api/admin/invitations" hx-target="#admin-invitations-list" hx-swap="outerHTML" class="flex gap-3 mb-6">
-					<input type="email" name="email" placeholder="user@example.com" required class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
-					<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-						Send Invite
-					</button>
-				</form>
-				<div id="admin-invitations-list" class="space-y-2">
-					if len(data.Invitations) > 0 {
-						for _, inv := range data.Invitations {
-							<div class="border border-gray-200 rounded-lg p-4 flex justify-between items-start">
-								<div class="space-y-1">
-									<p class="text-sm font-medium">{ inv.Email }</p>
-									<p class="text-xs text-gray-500 font-mono break-all">/invite/{ inv.Token }</p>
-									<div class="flex gap-3 text-xs text-gray-400">
-										<span>Expires: { inv.ExpiresAt.Format("2006-01-02") }</span>
-										if inv.AcceptedAt != nil {
-											<span class="text-green-600">Accepted</span>
-										} else {
-											<span class="text-yellow-600">Pending</span>
-										}
+					@components.CardDescription() {
+						Toggle site-wide feature flags.
+					}
+				}
+				@components.CardContent() {
+					<div id="admin-settings-list" class="space-y-3">
+						if len(data.Settings) > 0 {
+							for _, s := range data.Settings {
+								<div class="flex items-center justify-between py-3 border-b border-border last:border-0">
+									<div>
+										<p class="text-sm font-medium text-foreground">{ s.Key }</p>
 									</div>
+									<form hx-post="/api/admin/settings" hx-target="#admin-settings-list" hx-swap="outerHTML" class="flex items-center gap-3">
+										<input type="hidden" name="key" value={ s.Key }/>
+										if s.Value == "true" {
+											<span class="text-xs text-success font-medium">Enabled</span>
+											<input type="hidden" name="value" value="false"/>
+											@components.Button(components.ButtonSecondary, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
+												Disable
+											}
+										} else {
+											<span class="text-xs text-muted-foreground font-medium">Disabled</span>
+											<input type="hidden" name="value" value="true"/>
+											@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
+												Enable
+											}
+										}
+									</form>
 								</div>
-								if inv.AcceptedAt == nil {
-									<button hx-delete={ "/api/admin/invitations/" + strconv.FormatInt(inv.ID, 10) } hx-target="#admin-invitations-list" hx-swap="outerHTML" hx-confirm="Delete this invitation?" class="text-xs text-red-600 hover:underline ml-4 shrink-0">
-										Delete
-									</button>
-								}
-							</div>
+							}
+						} else {
+							<p class="text-sm text-muted-foreground">No settings found.</p>
 						}
-					} else {
-						<p class="text-gray-500 text-sm">No invitations yet.</p>
+					</div>
+				}
+			}
+			<!-- Invitations -->
+			@components.Card(nil) {
+				@components.CardHeader() {
+					@components.CardTitle(2) {
+						Invitations
 					}
-				</div>
-			</div>
+					@components.CardDescription() {
+						Invite users to join this instance by email.
+					}
+				}
+				@components.CardContent() {
+					<form hx-post="/api/admin/invitations" hx-target="#admin-invitations-list" hx-swap="outerHTML" class="flex gap-3 mb-6">
+						<label for="invite-email" class="sr-only">Invitee email</label>
+						@components.Input(templ.Attributes{
+							"id":          "invite-email",
+							"type":        "email",
+							"name":        "email",
+							"placeholder": "user@example.com",
+							"required":    "required",
+							"class":       "flex-1",
+						})
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							Send Invite
+						}
+					</form>
+					<div id="admin-invitations-list" class="space-y-2">
+						if len(data.Invitations) > 0 {
+							for _, inv := range data.Invitations {
+								<div class="rounded-md border border-border p-4 flex justify-between items-start">
+									<div class="space-y-1">
+										<p class="text-sm font-medium text-foreground">{ inv.Email }</p>
+										<p class="text-xs text-muted-foreground font-mono break-all">/invite/{ inv.Token }</p>
+										<div class="flex gap-3 text-xs text-muted-foreground">
+											<span>Expires: <time datetime={ inv.ExpiresAt.UTC().Format(time.RFC3339) }>{ inv.ExpiresAt.Format("2006-01-02") }</time></span>
+											if inv.AcceptedAt != nil {
+												<span class="text-success">Accepted</span>
+											} else {
+												<span class="text-warning">Pending</span>
+											}
+										</div>
+									</div>
+									if inv.AcceptedAt == nil {
+										@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
+											"hx-delete":  "/api/admin/invitations/" + strconv.FormatInt(inv.ID, 10),
+											"hx-target":  "#admin-invitations-list",
+											"hx-swap":    "outerHTML",
+											"hx-confirm": "Delete this invitation?",
+											"type":       "button",
+											"class":      "ml-4 shrink-0",
+										}) {
+											Delete
+										}
+									}
+								</div>
+							}
+						} else {
+							<p class="text-sm text-muted-foreground">No invitations yet.</p>
+						}
+					</div>
+				}
+			}
 		</div>
 	}
 }

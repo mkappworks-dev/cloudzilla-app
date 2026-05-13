@@ -2,8 +2,12 @@ package components
 
 // MarkdownBody renders trusted rendered HTML inside a styled prose container.
 // html MUST come from the internal markdown renderer — never pass raw user input.
+//
+// `dark:prose-invert` flips the Tailwind Typography color stack for dark mode;
+// the surrounding `bg-muted` / `border-border` ties the panel into the
+// design-system tokens so it matches the rest of the page chrome.
 templ MarkdownBody(html string) {
-	<div class="prose prose-sm max-w-none bg-gray-50 p-4 rounded border border-gray-200 my-4">
+	<div class="prose prose-sm dark:prose-invert max-w-none bg-muted/40 p-4 rounded-md border border-border my-4">
 		@templ.Raw(html)
 	</div>
 }

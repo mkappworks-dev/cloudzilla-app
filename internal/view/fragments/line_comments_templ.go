@@ -48,12 +48,12 @@ func LineComments(data view.LineCommentsFragData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"bg-blue-50 border-t border-blue-100\"><td colspan=\"2\" class=\"px-4 py-0\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"bg-primary/10 border-t border-primary/20\"><td colspan=\"2\" class=\"px-4 py-0\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for _, c := range data.Comments {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"flex items-start gap-2 py-2 border-b border-blue-100 last:border-0\"><div class=\"w-6 h-6 rounded-full bg-blue-400 flex items-center justify-center text-white text-xs font-bold shrink-0 mt-0.5\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"flex items-start gap-2 py-2 border-b border-primary/20 last:border-0\"><div class=\"w-6 h-6 rounded-full bg-primary flex items-center justify-center text-background text-xs font-bold shrink-0 mt-0.5\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -92,20 +92,20 @@ func LineComments(data view.LineCommentsFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</a> <span class=\"text-xs text-gray-400\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</a> <span class=\"text-xs text-muted-foreground\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(c.CreatedAt.Format("Jan 2, 2006"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 20, Col: 78}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 20, Col: 86}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</span></div><div class=\"text-xs text-gray-700 mt-0.5 prose prose-xs max-w-none\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</span></div><div class=\"text-xs text-foreground mt-0.5 prose prose-xs max-w-none\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -144,7 +144,7 @@ func LineComments(data view.LineCommentsFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" hx-swap=\"outerHTML\" class=\"text-gray-300 hover:text-red-400 text-xs shrink-0\">&times;</button>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" hx-swap=\"outerHTML\" class=\"text-muted-foreground/60 hover:text-destructive text-xs shrink-0\">&times;</button>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -248,7 +248,7 @@ func LineCommentForm(data view.LineCommentFormFragData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\"> <input type=\"hidden\" name=\"diff_side\" value=\"right\"> <textarea name=\"body\" rows=\"2\" placeholder=\"Leave a comment...\" required class=\"w-full border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none\"></textarea><div class=\"flex gap-2\"><button type=\"submit\" class=\"px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700\">Comment</button> <button type=\"button\" onclick=\"this.closest('form').remove()\" class=\"px-3 py-1 bg-white border border-gray-300 text-gray-600 rounded text-xs hover:bg-gray-50\">Cancel</button></div></form>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\"> <input type=\"hidden\" name=\"diff_side\" value=\"right\"> <textarea name=\"body\" rows=\"2\" placeholder=\"Leave a comment...\" required class=\"w-full border border-border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus-visible:outline-ring resize-none\"></textarea><div class=\"flex gap-2\"><button type=\"submit\" class=\"px-3 py-1 bg-primary text-background rounded text-xs font-medium hover:bg-primary\">Comment</button> <button type=\"button\" onclick=\"this.closest('form').remove()\" class=\"px-3 py-1 bg-background border border-border text-muted-foreground rounded text-xs hover:bg-muted/40\">Cancel</button></div></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

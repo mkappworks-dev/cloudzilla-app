@@ -1,50 +1,79 @@
 package pages
 
 import (
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ GistDetail(data view.GistDetailData) {
 	@layout.Base(data.BasePage, gistDetailTitle(data)) {
-		<div class="max-w-4xl mx-auto py-8 px-4">
-			<div class="flex items-center justify-between mb-4">
-				<div>
-					<h1 class="text-xl font-bold">
+		<div class="max-w-4xl mx-auto space-y-6">
+
+			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="gist-title">
+				<div class="min-w-0">
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+						<a href="/gists" class="hover:underline">Gists</a>
+						<span aria-hidden="true">·</span>
+						{ data.Gist.ID }
+					</p>
+					<h1 id="gist-title" class="text-xl font-semibold tracking-tight">
 						if data.Gist.Description != "" {
 							{ data.Gist.Description }
 						} else {
-							<span class="text-gray-400 italic">No description</span>
+							<span class="italic text-muted-foreground">No description</span>
 						}
 					</h1>
-					<div class="text-sm text-gray-500 mt-1">
-						by <a href={ templ.SafeURL("/" + data.Gist.OwnerName) } class="hover:underline">{ data.Gist.OwnerName }</a>
-						&middot; { data.Gist.CreatedAt.Format("Jan 2, 2006") } &middot;
+					<div class="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+						@components.Avatar(data.Gist.OwnerName, components.AvatarSizeSM, data.Gist.OwnerName)
+						<a href={ templ.SafeURL("/" + data.Gist.OwnerName) } class="hover:text-foreground font-medium">{ data.Gist.OwnerName }</a>
+						<span aria-hidden="true">·</span>
+						<time datetime={ data.Gist.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Gist.CreatedAt.Format("Jan 2, 2006") }</time>
+						<span aria-hidden="true">·</span>
 						if data.Gist.Public {
-							<span class="text-green-600">Public</span>
+							@components.Badge(components.BadgeSuccess) {
+								Public
+							}
 						} else {
-							<span class="text-yellow-600">Secret</span>
+							@components.Badge(components.BadgeWarning) {
+								Secret
+							}
 						}
 					</div>
 				</div>
 				if data.IsOwner {
-					<div class="flex gap-2">
-						<a href={ templ.SafeURL("/gists/" + data.Gist.ID + "/edit") } class="px-3 py-1 border rounded text-sm hover:bg-gray-50">Edit</a>
-						<button
-							hx-delete={ "/api/gists/" + data.Gist.ID }
-							hx-confirm="Delete this gist?"
-							hx-on::after-request="window.location.href='/gists'"
-							class="px-3 py-1 border border-red-300 text-red-600 rounded text-sm hover:bg-red-50"
-						>Delete</button>
+					<div class="flex items-center gap-2 shrink-0">
+						@components.LinkButton("/gists/"+data.Gist.ID+"/edit", components.ButtonOutline, components.ButtonSizeSM, nil) {
+							Edit
+						}
+						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+							"hx-delete":            "/api/gists/" + data.Gist.ID,
+							"hx-confirm":           "Delete this gist?",
+							"hx-on::after-request": "window.location.href='/gists'",
+							"class":                "text-destructive border-destructive/40 hover:bg-destructive/10",
+						}) {
+							Delete
+						}
 					</div>
 				}
-			</div>
-			for _, f := range data.Files {
-				<div class="border border-gray-200 rounded mb-4">
-					<div class="bg-gray-50 border-b border-gray-200 px-4 py-2 text-sm font-mono font-medium">{ f.Filename }</div>
-					<pre class="p-4 text-sm overflow-x-auto font-mono whitespace-pre-wrap"><code>{ f.Content }</code></pre>
-				</div>
-			}
+			</section>
+
+			<article class="space-y-4">
+				for _, f := range data.Files {
+					<section class="rounded-md border border-border bg-card overflow-hidden">
+						<header class="px-4 py-2 border-b border-border bg-muted/50 flex items-center gap-3">
+							<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+								<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+								<polyline points="14 2 14 8 20 8"></polyline>
+							</svg>
+							<h2 class="font-mono text-[13px] font-medium">{ f.Filename }</h2>
+						</header>
+						<pre class="px-4 py-3 font-mono text-[12.5px] leading-[1.6] overflow-x-auto"><code>{ f.Content }</code></pre>
+					</section>
+				}
+			</article>
 		</div>
 	}
 }

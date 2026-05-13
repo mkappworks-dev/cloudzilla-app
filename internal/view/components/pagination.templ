@@ -9,12 +9,12 @@ templ Pagination(prevURL, nextURL string) {
 		<div class="flex justify-between items-center pt-2">
 			<div>
 				if prevURL != "" {
-					<a href={ templ.SafeURL(prevURL) } class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">&larr; Previous</a>
+					<a href={ templ.SafeURL(prevURL) } class="px-4 py-2 border border-border rounded text-sm text-foreground hover:bg-muted/40">&larr; Previous</a>
 				}
 			</div>
 			<div>
 				if nextURL != "" {
-					<a href={ templ.SafeURL(nextURL) } class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">Next &rarr;</a>
+					<a href={ templ.SafeURL(nextURL) } class="px-4 py-2 border border-border rounded text-sm text-foreground hover:bg-muted/40">Next &rarr;</a>
 				}
 			</div>
 		</div>
@@ -27,12 +27,12 @@ templ PaginationLabeled(newerURL, olderURL string) {
 		<div class="flex items-center justify-between">
 			<div>
 				if newerURL != "" {
-					<a href={ templ.SafeURL(newerURL) } class="text-sm text-blue-600 hover:underline">&larr; Newer</a>
+					<a href={ templ.SafeURL(newerURL) } class="text-sm text-foreground hover:underline">&larr; Newer</a>
 				}
 			</div>
 			<div>
 				if olderURL != "" {
-					<a href={ templ.SafeURL(olderURL) } class="text-sm text-blue-600 hover:underline">Older &rarr;</a>
+					<a href={ templ.SafeURL(olderURL) } class="text-sm text-foreground hover:underline">Older &rarr;</a>
 				}
 			</div>
 		</div>
@@ -43,13 +43,13 @@ templ PaginationLabeled(newerURL, olderURL string) {
 templ PaginationWithCount(prevURL, nextURL string, page, totalPages int) {
 	if totalPages > 1 {
 		<div class="flex justify-between items-center text-sm">
-			<span class="text-gray-500">Page { strconv.Itoa(page) } of { strconv.Itoa(totalPages) }</span>
+			<span class="text-muted-foreground">Page { strconv.Itoa(page) } of { strconv.Itoa(totalPages) }</span>
 			<div class="flex gap-2">
 				if prevURL != "" {
-					<a href={ templ.SafeURL(prevURL) } class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors">&larr; Previous</a>
+					<a href={ templ.SafeURL(prevURL) } class="px-3 py-1 bg-muted text-foreground rounded hover:bg-muted transition-colors">&larr; Previous</a>
 				}
 				if nextURL != "" {
-					<a href={ templ.SafeURL(nextURL) } class="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors">Next &rarr;</a>
+					<a href={ templ.SafeURL(nextURL) } class="px-3 py-1 bg-muted text-foreground rounded hover:bg-muted transition-colors">Next &rarr;</a>
 				}
 			</div>
 		</div>

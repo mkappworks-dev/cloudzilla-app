@@ -2,6 +2,7 @@ package pages
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -12,64 +13,155 @@ script deleteWikiPageJS(owner, repoName, slug string) {
 		.then(function(r) { if (r.ok || r.redirected) window.location.href = '/' + owner + '/' + repoName + '/wiki'; });
 }
 
-script newWikiPageJS(owner, repoName string) {
-	var name = prompt('Page name (letters, numbers, hyphens, underscores):');
-	if (!name) return;
-	if (!/^[A-Za-z0-9_-]{1,100}$/.test(name)) { alert('Invalid page name. Use letters, numbers, hyphens, and underscores only.'); return; }
+templ WikiPage(data view.WikiPageData) {
+	@layout.Base(data.BasePage, data.Slug+" — Wiki — "+data.RepoName+" — Cloudzilla") {
+		<div class="max-w-[1100px] mx-auto space-y-6">
+
+			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="wiki-title">
+				<div class="min-w-0">
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+						<span aria-hidden="true">·</span>
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki") } class="hover:underline">Wiki</a>
+						<span aria-hidden="true">·</span>
+						{ data.Slug }
+					</p>
+					<h1 id="wiki-title" class="text-2xl font-semibold tracking-tight">{ data.Slug }</h1>
+				</div>
+				<div class="flex items-center gap-2 shrink-0">
+					if data.CanWrite {
+						@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug+"/edit", components.ButtonOutline, components.ButtonSizeSM, nil) {
+							Edit
+						}
+					}
+					if data.CanManage && data.Exists {
+						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+							"type":    "button",
+							"onclick": deleteWikiPageJS(data.Owner, data.RepoName, data.Slug),
+							"class":   "text-destructive border-destructive/40 hover:bg-destructive/10",
+						}) {
+							Delete
+						}
+					}
+				</div>
+			</section>
+
+			<div class="grid lg:grid-cols-[220px_1fr] gap-8">
+				<aside aria-label="Wiki pages">
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Pages</p>
+					<ul class="space-y-0.5 text-[13px]">
+						for _, pg := range data.PageList {
+							<li>
+								if pg == data.Slug {
+									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + pg) } class="block px-2 py-1.5 rounded-md font-medium bg-muted text-foreground" aria-current="page">{ pg }</a>
+								} else {
+									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + pg) } class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">{ pg }</a>
+								}
+							</li>
+						}
+					</ul>
+					if data.CanWrite {
+						<button
+							type="button"
+							onclick="document.getElementById('wiki-new-page').showModal()"
+							class="mt-3 text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5"
+						>+ New page</button>
+					}
+				</aside>
+
+				<article class="rounded-md border border-border bg-card p-6">
+					if data.Exists {
+						@components.MarkdownBody(data.ContentHTML)
+					} else {
+						<div class="text-muted-foreground">
+							<p class="mb-4">This page does not exist yet.</p>
+							if data.CanWrite {
+								@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug+"/edit", components.ButtonDefault, components.ButtonSizeDefault, nil) {
+									Create this page
+								}
+							}
+						</div>
+					}
+				</article>
+			</div>
+
+			if data.CanWrite {
+				@components.Dialog("wiki-new-page") {
+					@components.DialogHeader() {
+						@components.DialogTitle("wiki-new-page") {
+							New wiki page
+						}
+						@components.DialogDescription() {
+							Choose a page name. Use letters, numbers, hyphens, and underscores only.
+						}
+					}
+					<form
+						method="dialog"
+						onsubmit={ wikiNewPageSubmit(data.Owner, data.RepoName) }
+						class="p-5 space-y-4"
+					>
+						<div class="space-y-1.5">
+							<label for="wiki-new-page-name" class="block text-sm font-medium">Page name</label>
+							@components.Input(templ.Attributes{
+								"id":          "wiki-new-page-name",
+								"name":        "name",
+								"type":        "text",
+								"required":    "required",
+								"pattern":     "[A-Za-z0-9_-]{1,100}",
+								"placeholder": "Getting-Started",
+								"autofocus":   "autofocus",
+								"class":       "font-mono",
+							})
+							<p id="wiki-new-page-error" class="hidden text-[12px] text-destructive" role="alert"></p>
+						</div>
+					</form>
+					@components.DialogFooter() {
+						@components.DialogClose(templ.Attributes{
+							"class": "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]",
+						}) {
+							Cancel
+						}
+						@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{
+							"type":    "button",
+							"onclick": wikiNewPageGo(data.Owner, data.RepoName),
+						}) {
+							Create page
+						}
+					}
+				}
+			}
+		</div>
+	}
+}
+
+// wikiNewPageGo reads the input value, validates against the regex, and either
+// navigates to the editor URL or surfaces an inline error.
+script wikiNewPageGo(owner, repoName string) {
+	var input = document.getElementById('wiki-new-page-name');
+	var err = document.getElementById('wiki-new-page-error');
+	var name = (input.value || '').trim();
+	if (!/^[A-Za-z0-9_-]{1,100}$/.test(name)) {
+		err.textContent = 'Use letters, numbers, hyphens, and underscores (1–100 chars).';
+		err.classList.remove('hidden');
+		input.focus();
+		return;
+	}
 	window.location.href = '/' + owner + '/' + repoName + '/wiki/' + name + '/edit';
 }
 
-templ WikiPage(data view.WikiPageData) {
-	@layout.Base(data.BasePage, data.Slug+" — Wiki — "+data.RepoName+" — Cloudzilla") {
-		<div class="max-w-6xl mx-auto px-4 py-8 flex gap-8">
-			<!-- Sidebar: page list -->
-			<aside class="w-48 flex-none">
-				<h2 class="text-xs font-semibold uppercase text-gray-500 mb-2 tracking-wide">Pages</h2>
-				<ul class="space-y-1">
-					for _, pg := range data.PageList {
-						<li>
-							if pg == data.Slug {
-								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + pg) } class="block text-sm px-2 py-1 rounded hover:bg-gray-100 font-semibold text-gray-900 bg-gray-100">{ pg }</a>
-							} else {
-								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + pg) } class="block text-sm px-2 py-1 rounded hover:bg-gray-100 text-gray-700">{ pg }</a>
-							}
-						</li>
-					}
-				</ul>
-				if data.CanWrite {
-					<div class="mt-4">
-						<button onclick={ newWikiPageJS(data.Owner, data.RepoName) } class="block text-sm text-blue-600 hover:underline px-2">+ New page</button>
-					</div>
-				}
-			</aside>
-			<!-- Main content -->
-			<main class="flex-1 min-w-0">
-				<div class="flex items-center justify-between mb-4">
-					<h1 class="text-2xl font-bold">{ data.Slug }</h1>
-					<div class="flex gap-2">
-						if data.CanWrite {
-							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug + "/edit") } class="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-100">Edit</a>
-						}
-						if data.CanManage && data.Exists {
-							<button
-								onclick={ deleteWikiPageJS(data.Owner, data.RepoName, data.Slug) }
-								class="px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50">Delete</button>
-						}
-					</div>
-				</div>
-				if data.Exists {
-					<div class="prose prose-sm max-w-none">
-						@templ.Raw(data.ContentHTML)
-					</div>
-				} else {
-					<div class="text-gray-500">
-						<p class="mb-4">This page does not exist yet.</p>
-						if data.CanWrite {
-							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug + "/edit") } class="inline-block px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Create this page</a>
-						}
-					</div>
-				}
-			</main>
-		</div>
+// wikiNewPageSubmit blocks the implicit Enter-key submit on the inline form
+// and routes through wikiNewPageGo so the same validation/redirect path runs.
+script wikiNewPageSubmit(owner, repoName string) {
+	event.preventDefault();
+	var input = document.getElementById('wiki-new-page-name');
+	var err = document.getElementById('wiki-new-page-error');
+	var name = (input.value || '').trim();
+	if (!/^[A-Za-z0-9_-]{1,100}$/.test(name)) {
+		err.textContent = 'Use letters, numbers, hyphens, and underscores (1–100 chars).';
+		err.classList.remove('hidden');
+		input.focus();
+		return false;
 	}
+	window.location.href = '/' + owner + '/' + repoName + '/wiki/' + name + '/edit';
+	return false;
 }

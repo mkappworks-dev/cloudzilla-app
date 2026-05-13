@@ -11,15 +11,55 @@ type Tab struct {
 }
 
 // TabBar renders a horizontal tab navigation bar with optional count badges.
+// Use this for page-level navigation that maps each tab to a URL (server-rendered).
+//
+// For a custom layout (e.g. tabs with a search field on the right side),
+// compose the lower-level `Tabs` + `TabLink` primitives instead.
 templ TabBar(tabs []Tab) {
-	<div class="flex gap-1 border-b border-gray-200">
+	<nav aria-label="Section navigation" class="flex items-center gap-1 border-b border-border text-sm">
 		for _, t := range tabs {
-			<a href={ templ.SafeURL(t.URL) } class={ "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors", templ.KV("border-blue-600 text-blue-600", t.IsActive), templ.KV("border-transparent text-gray-500 hover:text-gray-700", !t.IsActive) }>
+			@TabLink(t.URL, t.IsActive) {
 				{ t.Label }
 				if t.Count >= 0 {
-					<span class="ml-1 text-xs bg-gray-100 px-1.5 py-0.5 rounded-full">{ strconv.Itoa(t.Count) }</span>
+					<span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label={ strconv.Itoa(t.Count) + " items" }>{ strconv.Itoa(t.Count) }</span>
 				}
-			</a>
+			}
 		}
-	</div>
+	</nav>
+}
+
+// Tabs is a container for custom tab layouts.
+// Pair with TabLink children, plus arbitrary additional content on the right.
+//
+// Example:
+//
+//	@components.Tabs("Repository views") {
+//	  @components.TabLink("/repo/code", true) { "Code" }
+//	  @components.TabLink("/repo/issues", false) { "Issues" }
+//	  <div class="ml-auto">…search field…</div>
+//	}
+templ Tabs(ariaLabel string) {
+	<nav aria-label={ ariaLabel } class="flex items-center gap-1 border-b border-border text-sm -mb-px">
+		{ children... }
+	</nav>
+}
+
+// TabLink is a single tab. `isActive` styles it as the current tab and applies aria-current="page".
+templ TabLink(href string, isActive bool) {
+	if isActive {
+		<a
+			href={ templ.SafeURL(href) }
+			aria-current="page"
+			class="px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-1.5"
+		>
+			{ children... }
+		</a>
+	} else {
+		<a
+			href={ templ.SafeURL(href) }
+			class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+		>
+			{ children... }
+		</a>
+	}
 }

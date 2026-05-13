@@ -53,14 +53,14 @@ func RepoTopics(data view.RepoTopicsFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" class=\"px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium hover:bg-blue-200\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" class=\"px-2 py-0.5 bg-primary/10 text-foreground rounded-full text-xs font-medium hover:bg-primary/15\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(t.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_topics.templ`, Line: 13, Col: 155}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_topics.templ`, Line: 13, Col: 161}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -76,7 +76,7 @@ func RepoTopics(data view.RepoTopicsFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<button type=\"button\" class=\"px-2 py-0.5 border border-dashed border-gray-400 text-gray-500 rounded-full text-xs hover:bg-gray-50\" onclick=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<button type=\"button\" class=\"px-2 py-0.5 border border-dashed border-input text-muted-foreground rounded-full text-xs hover:bg-muted/40\" onclick=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -149,7 +149,7 @@ func RepoTopics(data view.RepoTopicsFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" class=\"flex-1 border border-gray-300 rounded px-2 py-1 text-sm\"> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" class=\"flex-1 border border-border rounded px-2 py-1 text-sm\"> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -166,7 +166,7 @@ func RepoTopics(data view.RepoTopicsFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700\">Save</button></div><p class=\"text-xs text-gray-400 mt-1\">Lowercase letters, digits, hyphens only. Max 20 topics, 20 chars each.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"px-3 py-1 bg-primary text-background rounded text-sm hover:bg-primary\">Save</button></div><p class=\"text-xs text-muted-foreground mt-1\">Lowercase letters, digits, hyphens only. Max 20 topics, 20 chars each.</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

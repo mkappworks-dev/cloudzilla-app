@@ -1,0 +1,33 @@
+package components
+
+// Skeleton renders a pulsing placeholder block while real content loads.
+// Pass sizing via `class` in attrs (e.g. {"class": "h-4 w-32"}). The pulse
+// animation respects `prefers-reduced-motion`.
+//
+// Typical HTMX usage: render Skeletons in the initial response, then let an
+// `hx-trigger="load"` swap replace them with the real content.
+//
+//	@components.Skeleton(templ.Attributes{"class": "h-4 w-32"})
+//	@components.Skeleton(templ.Attributes{"class": "h-8 w-8 rounded-full"})
+templ Skeleton(attrs templ.Attributes) {
+	<div
+		class="animate-pulse rounded-md bg-muted motion-reduce:animate-none"
+		aria-hidden="true"
+		{ attrs... }
+	></div>
+}
+
+// SkeletonText renders a stack of pulsing lines mimicking a paragraph.
+// `lines` is the number of bars; the last bar is shorter to look like a paragraph
+// ending mid-line.
+templ SkeletonText(lines int) {
+	<div class="space-y-2" aria-hidden="true">
+		for i := 0; i < lines; i++ {
+			if i == lines-1 && lines > 1 {
+				<div class="animate-pulse rounded-md bg-muted motion-reduce:animate-none h-3 w-2/3"></div>
+			} else {
+				<div class="animate-pulse rounded-md bg-muted motion-reduce:animate-none h-3 w-full"></div>
+			}
+		}
+	</div>
+}

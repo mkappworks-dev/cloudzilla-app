@@ -2,18 +2,25 @@ package pages
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ NotFound(base view.BasePage) {
 	@layout.Base(base, "Page not found") {
-		<div class="max-w-md mx-auto mt-24 text-center">
-			<p class="text-7xl font-bold text-gray-300">404</p>
-			<h1 class="mt-4 text-2xl font-semibold text-gray-900">Page not found</h1>
-			<p class="mt-2 text-sm text-gray-600">The page you were looking for doesn't exist or has been moved.</p>
-			<a href="/" class="mt-6 inline-block px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
-				Go home
-			</a>
+		<div class="max-w-md mx-auto mt-20 rounded-md border border-border bg-card overflow-hidden relative">
+			<div class="absolute inset-0 pointer-events-none opacity-40" style="background-image: linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px); background-size: 56px 56px; mask-image: radial-gradient(ellipse at top, black 30%, transparent 70%);" aria-hidden="true"></div>
+			<div class="relative p-10 text-center">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">404 · Not found</p>
+				<p class="mt-4 font-mono text-[7rem] font-semibold leading-none tracking-tight text-muted-foreground/70">404</p>
+				<h1 class="mt-2 text-xl font-semibold tracking-tight">Page not found</h1>
+				<p class="mt-2 text-[13px] text-muted-foreground max-w-xs mx-auto">This page doesn't exist or has been moved. Check the URL or jump back to your dashboard.</p>
+				<div class="mt-5 flex items-center justify-center gap-2">
+					@components.LinkButton("/", components.ButtonDefault, components.ButtonSizeDefault, nil) {
+						Go home
+					}
+				</div>
+			</div>
 		</div>
 	}
 }

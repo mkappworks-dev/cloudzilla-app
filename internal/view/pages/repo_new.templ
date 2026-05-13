@@ -2,6 +2,7 @@ package pages
 
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -11,14 +12,19 @@ templ RepoNew(data view.RepoNewData) {
 		{{ me = data.CurrentUser.Username }}
 	}
 	@layout.Base(data.BasePage, "New Repository") {
-		<div class="max-w-2xl mx-auto py-8 px-4">
-			<h1 class="text-2xl font-bold mb-1">Create a new repository</h1>
-			<p class="text-gray-500 mb-6">A repository contains all project files, including the revision history.</p>
-			<form id="repo-form" class="space-y-5" data-username={ me }>
+		<div class="max-w-2xl mx-auto space-y-6">
+
+			<section aria-labelledby="rn-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Cloudzilla · New</p>
+				<h1 id="rn-title" class="text-2xl font-semibold tracking-tight">Create a new repository</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">A repository contains all project files, including the revision history.</p>
+			</section>
+
+			<form id="repo-form" class="space-y-5 rounded-md border border-border bg-card p-6" data-username={ me }>
 				<div class="flex items-end gap-2">
-					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">Owner</label>
-						<select name="owner" class="border border-gray-300 rounded px-3 py-2 text-sm bg-white">
+					<div class="space-y-1.5">
+						<label for="repo-owner" class="block text-sm font-medium">Owner</label>
+						<select id="repo-owner" name="owner" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
 							if data.CurrentUser != nil {
 								<option value={ data.CurrentUser.Username }>{ data.CurrentUser.Username }</option>
 							}
@@ -27,52 +33,66 @@ templ RepoNew(data view.RepoNewData) {
 							}
 						</select>
 					</div>
-					<span class="text-gray-400 pb-2 text-lg">/</span>
-					<div class="flex-1">
-						<label class="block text-sm font-medium text-gray-700 mb-1">Repository name <span class="text-red-500">*</span></label>
-						<input
-							type="text"
-							name="name"
-							required
-							pattern="[A-Za-z0-9._-]+"
-							class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono"
-							placeholder="my-awesome-project"
-						/>
+					<span class="text-muted-foreground pb-2 text-lg" aria-hidden="true">/</span>
+					<div class="flex-1 space-y-1.5">
+						<label for="repo-name" class="block text-sm font-medium">
+							Repository name <span class="text-destructive" aria-hidden="true">*</span>
+						</label>
+						@components.Input(templ.Attributes{
+							"type":        "text",
+							"id":          "repo-name",
+							"name":        "name",
+							"required":    "required",
+							"pattern":     "[A-Za-z0-9._-]+",
+							"placeholder": "my-awesome-project",
+							"class":       "font-mono",
+						})
 					</div>
 				</div>
-				<p class="text-xs text-gray-500 -mt-3">Great repository names are short and memorable. Letters, numbers, dots, dashes, and underscores only.</p>
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Description <span class="text-gray-400">(optional)</span></label>
-					<input
-						type="text"
-						name="description"
-						class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-						placeholder="Short description of the project"
-					/>
+				<p class="text-[11px] text-muted-foreground -mt-3">Great repository names are short and memorable. Letters, numbers, dots, dashes, and underscores only.</p>
+
+				<div class="space-y-1.5">
+					<label for="repo-description" class="block text-sm font-medium">
+						Description <span class="text-muted-foreground font-normal">(optional)</span>
+					</label>
+					@components.Input(templ.Attributes{
+						"type":        "text",
+						"id":          "repo-description",
+						"name":        "description",
+						"placeholder": "Short description of the project",
+					})
 				</div>
-				<fieldset class="space-y-2 border-t border-gray-200 pt-4">
-					<legend class="sr-only">Visibility</legend>
-					<label class="flex items-start gap-2 cursor-pointer">
-						<input type="radio" name="visibility" value="public" checked class="mt-0.5"/>
-						<span>
-							<span class="font-medium">Public</span>
-							<span class="block text-xs text-gray-500">Anyone on the internet can see this repository. You choose who can commit.</span>
+
+				<fieldset class="space-y-3 border-t border-border pt-5">
+					<legend class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2">Visibility</legend>
+					<label class="flex items-start gap-3 cursor-pointer">
+						@components.Radio(templ.Attributes{"name": "visibility", "value": "public", "checked": "checked", "class": "mt-0.5"})
+						<span class="text-sm">
+							<span class="font-medium block">Public</span>
+							<span class="text-muted-foreground text-[12px]">Anyone on the internet can see this repository. You choose who can commit.</span>
 						</span>
 					</label>
-					<label class="flex items-start gap-2 cursor-pointer">
-						<input type="radio" name="visibility" value="private" class="mt-0.5"/>
-						<span>
-							<span class="font-medium">Private</span>
-							<span class="block text-xs text-gray-500">You choose who can see and commit to this repository.</span>
+					<label class="flex items-start gap-3 cursor-pointer">
+						@components.Radio(templ.Attributes{"name": "visibility", "value": "private", "class": "mt-0.5"})
+						<span class="text-sm">
+							<span class="font-medium block">Private</span>
+							<span class="text-muted-foreground text-[12px]">You choose who can see and commit to this repository.</span>
 						</span>
 					</label>
 				</fieldset>
-				<div id="repo-form-error" class="hidden text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2"></div>
-				<div class="flex gap-3 pt-2">
-					<button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium">Create repository</button>
-					<a href="/" class="px-4 py-2 border rounded text-sm hover:bg-gray-50">Cancel</a>
+
+				<div id="repo-form-error" role="alert" class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2"></div>
+
+				<div class="flex items-center gap-3 pt-2">
+					@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+						Create repository
+					}
+					@components.LinkButton("/", components.ButtonGhost, components.ButtonSizeDefault, nil) {
+						Cancel
+					}
 				</div>
 			</form>
+
 			<script>
 				(function() {
 					const form = document.getElementById('repo-form');

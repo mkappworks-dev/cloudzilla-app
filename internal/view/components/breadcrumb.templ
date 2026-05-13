@@ -1,0 +1,53 @@
+package components
+
+// BreadcrumbCrumb is a single segment in a Breadcrumb path.
+// Set Href to "" to render as plain text (e.g. for intermediate non-link segments).
+// Set Current=true on the final segment — it renders as an aria-current page label.
+type BreadcrumbCrumb struct {
+	Label   string
+	Href    string
+	Current bool
+}
+
+// Breadcrumb renders a path-style navigation, matching the "owner / repo / file"
+// pattern from the header. Separators (thin diagonal slash SVGs)
+// are inserted automatically between items.
+//
+// Example:
+//
+//	@components.Breadcrumb([]components.BreadcrumbCrumb{
+//	  {Label: "mkappworks", Href: "/mkappworks"},
+//	  {Label: "cloudzilla", Href: "/mkappworks/cloudzilla"},
+//	  {Label: "settings", Current: true},
+//	})
+templ Breadcrumb(crumbs []BreadcrumbCrumb) {
+	<nav aria-label="Breadcrumb" class="flex items-center gap-1 text-sm">
+		for i, c := range crumbs {
+			if i > 0 {
+				@breadcrumbSeparator()
+			}
+			@breadcrumbCrumb(c)
+		}
+	</nav>
+}
+
+templ breadcrumbSeparator() {
+	<svg
+		class="text-muted-foreground mx-0.5"
+		width="14" height="14" viewBox="0 0 24 24"
+		fill="none" stroke="currentColor" stroke-width="1"
+		aria-hidden="true" focusable="false"
+	>
+		<path d="M16 4L8 20"/>
+	</svg>
+}
+
+templ breadcrumbCrumb(c BreadcrumbCrumb) {
+	if c.Current {
+		<span class="px-2 h-7 inline-flex items-center font-medium" aria-current="page">{ c.Label }</span>
+	} else if c.Href != "" {
+		<a href={ templ.SafeURL(c.Href) } class="flex items-center px-2 h-7 rounded-md hover:bg-accent font-medium">{ c.Label }</a>
+	} else {
+		<span class="px-2 h-7 inline-flex items-center text-muted-foreground">{ c.Label }</span>
+	}
+}

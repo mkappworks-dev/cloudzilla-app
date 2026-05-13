@@ -1,0 +1,21 @@
+package components
+
+// Label renders a styled <label> bound to a form control via `for=forID`.
+// Pass `required=true` to append a small red asterisk after the label text.
+//
+// Example:
+//
+//	@components.Label("repo-name", true, nil) { "Repository name" }
+//	@components.Input(templ.Attributes{"id": "repo-name", "name": "name", "required": true})
+templ Label(forID string, required bool, attrs templ.Attributes) {
+	<label
+		for={ forID }
+		class="text-[13px] font-medium leading-none text-foreground"
+		{ attrs... }
+	>
+		{ children... }
+		if required {
+			<span class="text-destructive ml-0.5" aria-hidden="true">*</span>
+		}
+	</label>
+}

@@ -42,8 +42,8 @@ func WatchButton(data view.WatchButtonData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var2 = []any{"inline-flex items-center gap-1 px-3 py-1.5 border rounded-l text-sm font-medium transition-colors",
-					templ.KV("border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100", data.Level != "ignoring"),
-					templ.KV("border-gray-400 bg-gray-100 text-gray-600 hover:bg-gray-200", data.Level == "ignoring")}
+					templ.KV("border-primary/40 bg-primary/10 text-foreground hover:bg-primary/10", data.Level != "ignoring"),
+					templ.KV("border-input bg-muted text-muted-foreground hover:bg-muted", data.Level == "ignoring")}
 				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var2...)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -99,8 +99,8 @@ func WatchButton(data view.WatchButtonData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var5 = []any{"inline-flex items-center px-2 py-1.5 border border-l-0 rounded-r text-sm font-medium transition-colors",
-					templ.KV("border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100", data.Level != "ignoring"),
-					templ.KV("border-gray-400 bg-gray-100 text-gray-600 hover:bg-gray-200", data.Level == "ignoring")}
+					templ.KV("border-primary/40 bg-primary/10 text-foreground hover:bg-primary/10", data.Level != "ignoring"),
+					templ.KV("border-input bg-muted text-muted-foreground hover:bg-muted", data.Level == "ignoring")}
 				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var5...)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -118,7 +118,7 @@ func WatchButton(data view.WatchButtonData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\">&#9660;</button><div x-show=\"open\" @click.outside=\"open = false\" class=\"absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded shadow-lg z-10\"><button hx-put=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\">&#9660;</button><div x-show=\"open\" @click.outside=\"open = false\" class=\"absolute right-0 mt-1 w-48 bg-background border border-border rounded shadow-lg z-10\"><button hx-put=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -144,7 +144,7 @@ func WatchButton(data view.WatchButtonData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" hx-target=\"#watch-button\" hx-swap=\"outerHTML\" class=\"block w-full text-left px-4 py-2 text-sm hover:bg-gray-50\">&#128065; Watching</button> <button hx-put=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" hx-target=\"#watch-button\" hx-swap=\"outerHTML\" class=\"block w-full text-left px-4 py-2 text-sm hover:bg-muted/40\">&#128065; Watching</button> <button hx-put=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -170,7 +170,7 @@ func WatchButton(data view.WatchButtonData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" hx-target=\"#watch-button\" hx-swap=\"outerHTML\" class=\"block w-full text-left px-4 py-2 text-sm hover:bg-gray-50\">&#128276; Releases only</button> <button hx-put=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" hx-target=\"#watch-button\" hx-swap=\"outerHTML\" class=\"block w-full text-left px-4 py-2 text-sm hover:bg-muted/40\">&#128276; Releases only</button> <button hx-put=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -196,7 +196,7 @@ func WatchButton(data view.WatchButtonData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" hx-target=\"#watch-button\" hx-swap=\"outerHTML\" class=\"block w-full text-left px-4 py-2 text-sm hover:bg-gray-50\">&#128274; Ignoring</button><hr class=\"my-1\"><button hx-delete=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" hx-target=\"#watch-button\" hx-swap=\"outerHTML\" class=\"block w-full text-left px-4 py-2 text-sm hover:bg-muted/40\">&#128274; Ignoring</button><hr class=\"my-1\"><button hx-delete=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -209,7 +209,7 @@ func WatchButton(data view.WatchButtonData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" hx-target=\"#watch-button\" hx-swap=\"outerHTML\" class=\"block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50\">Unwatch</button></div></div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" hx-target=\"#watch-button\" hx-swap=\"outerHTML\" class=\"block w-full text-left px-4 py-2 text-sm text-destructive hover:bg-muted/40\">Unwatch</button></div></div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -240,13 +240,13 @@ func WatchButton(data view.WatchButtonData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" hx-target=\"#watch-button\" hx-swap=\"outerHTML\" class=\"inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors\">&#128065; Watch</button>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" hx-target=\"#watch-button\" hx-swap=\"outerHTML\" class=\"inline-flex items-center gap-1 px-3 py-1.5 border border-border bg-background text-foreground rounded text-sm font-medium hover:bg-muted/40 transition-colors\">&#128065; Watch</button>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<a href=\"/login\" class=\"inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors\">&#128065; Watch</a>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<a href=\"/login\" class=\"inline-flex items-center gap-1 px-3 py-1.5 border border-border bg-background text-foreground rounded text-sm font-medium hover:bg-muted/40 transition-colors\">&#128065; Watch</a>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

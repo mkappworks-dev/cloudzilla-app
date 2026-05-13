@@ -35,22 +35,22 @@ func PRReviews(data view.PRReviewsFragData) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"pr-reviews\" class=\"bg-white border border-gray-200 rounded-lg p-6\"><h2 class=\"text-lg font-semibold mb-4\">Reviews</h2>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"pr-reviews\" class=\"bg-background border border-border rounded-lg p-6\"><h2 class=\"text-lg font-semibold mb-4\">Reviews</h2>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if len(data.Reviews) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<p class=\"text-sm text-gray-400\">No reviews yet.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<p class=\"text-sm text-muted-foreground\">No reviews yet.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
 			for _, rev := range data.Reviews {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"flex items-start gap-3 mb-4 pb-4 border-b border-gray-100 last:border-0 last:mb-0 last:pb-0\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"flex items-start gap-3 mb-4 pb-4 border-b border-border last:border-0 last:mb-0 last:pb-0\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var2 = []any{"w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0", templ.KV("bg-green-500", rev.State == "approved"), templ.KV("bg-red-500", rev.State == "changes_requested"), templ.KV("bg-gray-400", rev.State != "approved" && rev.State != "changes_requested")}
+				var templ_7745c5c3_Var2 = []any{"w-8 h-8 rounded-full flex items-center justify-center text-background text-sm font-bold shrink-0", templ.KV("bg-success", rev.State == "approved"), templ.KV("bg-destructive", rev.State == "changes_requested"), templ.KV("bg-muted", rev.State != "approved" && rev.State != "changes_requested")}
 				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var2...)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -111,7 +111,7 @@ func PRReviews(data view.PRReviewsFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var7 = []any{"px-2 py-0.5 rounded-full text-xs font-medium", templ.KV("bg-green-100 text-green-700", rev.State == "approved"), templ.KV("bg-red-100 text-red-700", rev.State == "changes_requested"), templ.KV("bg-gray-100 text-gray-600", rev.State != "approved" && rev.State != "changes_requested")}
+				var templ_7745c5c3_Var7 = []any{"px-2 py-0.5 rounded-full text-xs font-medium", templ.KV("bg-success/10 text-success", rev.State == "approved"), templ.KV("bg-destructive/10 text-destructive", rev.State == "changes_requested"), templ.KV("bg-muted text-muted-foreground", rev.State != "approved" && rev.State != "changes_requested")}
 				templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var7...)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -154,14 +154,14 @@ func PRReviews(data view.PRReviewsFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				if rev.Body != "" {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<p class=\"text-sm text-gray-700 mt-1\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<p class=\"text-sm text-foreground mt-1\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(rev.Body)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pr_reviews.templ`, Line: 34, Col: 55}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pr_reviews.templ`, Line: 34, Col: 57}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -192,7 +192,7 @@ func PRReviews(data view.PRReviewsFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" hx-target=\"#pr-reviews\" hx-swap=\"outerHTML\" class=\"mt-4 border-t border-gray-100 pt-4 space-y-3\"><h3 class=\"text-sm font-medium text-gray-700\">Submit a review</h3><textarea name=\"body\" rows=\"3\" placeholder=\"Leave a comment (optional)\" class=\"w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none\"></textarea><div class=\"flex flex-wrap gap-4 text-sm\"><label class=\"flex items-center gap-2 cursor-pointer\"><input type=\"radio\" name=\"state\" value=\"commented\" checked class=\"accent-gray-500\"> <span>Comment</span></label> <label class=\"flex items-center gap-2 cursor-pointer\"><input type=\"radio\" name=\"state\" value=\"approved\" class=\"accent-green-600\"> <span class=\"text-green-700\">Approve</span></label> <label class=\"flex items-center gap-2 cursor-pointer\"><input type=\"radio\" name=\"state\" value=\"changes_requested\" class=\"accent-red-600\"> <span class=\"text-red-700\">Request changes</span></label></div><button type=\"submit\" class=\"px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors\">Submit review</button></form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" hx-target=\"#pr-reviews\" hx-swap=\"outerHTML\" class=\"mt-4 border-t border-border pt-4 space-y-3\"><h3 class=\"text-sm font-medium text-foreground\">Submit a review</h3><textarea name=\"body\" rows=\"3\" placeholder=\"Leave a comment (optional)\" class=\"w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus-visible:outline-ring resize-none\"></textarea><div class=\"flex flex-wrap gap-4 text-sm\"><label class=\"flex items-center gap-2 cursor-pointer\"><input type=\"radio\" name=\"state\" value=\"commented\" checked class=\"accent-gray-500\"> <span>Comment</span></label> <label class=\"flex items-center gap-2 cursor-pointer\"><input type=\"radio\" name=\"state\" value=\"approved\" class=\"accent-green-600\"> <span class=\"text-success\">Approve</span></label> <label class=\"flex items-center gap-2 cursor-pointer\"><input type=\"radio\" name=\"state\" value=\"changes_requested\" class=\"accent-red-600\"> <span class=\"text-destructive\">Request changes</span></label></div><button type=\"submit\" class=\"px-4 py-2 bg-primary text-background rounded text-sm font-medium hover:bg-primary transition-colors\">Submit review</button></form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

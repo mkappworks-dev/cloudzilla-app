@@ -10,34 +10,37 @@ import (
 
 templ Stargazers(data view.StargazersData) {
 	@layout.Base(data.BasePage, "Stargazers · "+data.Owner+"/"+data.RepoName) {
-		<div class="space-y-6">
-			<div class="mb-2">
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline text-sm">&#8592; Back to { data.Owner }/{ data.RepoName }</a>
-			</div>
-			<div class="flex items-center gap-3">
-				<h1 class="text-2xl font-bold">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-blue-600 hover:underline">{ data.Owner }/{ data.RepoName }</a>
+		<div class="max-w-4xl mx-auto space-y-6">
+
+			<section aria-labelledby="sg-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					Stargazers
+				</p>
+				<h1 id="sg-title" class="text-2xl font-semibold tracking-tight inline-flex items-center gap-3">
+					Stargazers
+					<span class="font-mono text-base text-muted-foreground">
+						<span aria-hidden="true">★</span> { strconv.Itoa(data.StarCount) }
+					</span>
 				</h1>
-				<span class="text-gray-500">
-					&#9733; { strconv.Itoa(data.StarCount) }
-					if data.StarCount == 1 {
-						star
-					} else {
-						stars
-					}
-				</span>
-			</div>
+			</section>
+
 			if len(data.Stargazers) > 0 {
-				<div class="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
-					for _, u := range data.Stargazers {
-						<div class="px-4 py-3 flex items-center gap-3">
-							<a href={ templ.SafeURL("/" + u.Username) } class="font-medium text-blue-600 hover:underline">{ u.Username }</a>
-							if u.Bio != "" {
-								<span class="text-sm text-gray-500">{ u.Bio }</span>
-							}
-						</div>
-					}
-				</div>
+				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="sg-list">
+					<h2 id="sg-list" class="sr-only">Users who starred { data.Owner }/{ data.RepoName }</h2>
+					<ul class="divide-y divide-border">
+						for _, u := range data.Stargazers {
+							<li class="flex items-center gap-3 px-4 py-3 hover:bg-muted/50">
+								@components.Avatar(u.Username, components.AvatarSizeDefault, u.Username)
+								<a href={ templ.SafeURL("/" + u.Username) } class="text-[13px] font-medium hover:underline">{ u.Username }</a>
+								if u.Bio != "" {
+									<span class="text-[12px] text-muted-foreground truncate">{ u.Bio }</span>
+								}
+							</li>
+						}
+					</ul>
+				</section>
 			} else {
 				@components.EmptyState("No stargazers yet. Be the first to star this repository!")
 			}
