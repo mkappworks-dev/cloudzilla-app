@@ -50,7 +50,7 @@ func Gists(data view.GistsData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-4xl mx-auto space-y-6\"><section class=\"flex flex-wrap items-start justify-between gap-4\" aria-labelledby=\"gists-title\"><div class=\"min-w-0\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2\">Cloudzilla · Gists</p><h1 id=\"gists-title\" class=\"text-2xl font-semibold tracking-tight\">Explore gists</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">Snippets, scratch notes, and standalone files — public and discoverable.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-4xl mx-auto space-y-6\"><section class=\"flex flex-wrap items-start justify-between gap-4\" aria-labelledby=\"gists-title\"><div class=\"min-w-0\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2\">Cloudzilla · Gists</p><h1 id=\"gists-title\" class=\"text-2xl font-semibold tracking-tight\">Explore gists</h1><p class=\"mt-0.5 text-[13px] text-muted-foreground\">Snippets, scratch notes, and standalone files — public and discoverable.</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -101,7 +101,7 @@ func Gists(data view.GistsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" class=\"flex items-start gap-3 px-4 py-3.5 hover:bg-muted/50 group\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" class=\"flex items-start gap-3 px-4 py-2 hover:bg-muted/50 group\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -180,7 +180,7 @@ func Gists(data view.GistsData) templ.Component {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</span></div><p class=\"mt-1 text-[12px] text-muted-foreground truncate\"><span class=\"font-mono\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</span></div><p class=\"mt-0.5 text-[12px] text-muted-foreground truncate\"><span class=\"font-mono\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

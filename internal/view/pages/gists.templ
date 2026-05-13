@@ -17,7 +17,7 @@ templ Gists(data view.GistsData) {
 				<div class="min-w-0">
 					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Cloudzilla · Gists</p>
 					<h1 id="gists-title" class="text-2xl font-semibold tracking-tight">Explore gists</h1>
-					<p class="mt-1 text-[13px] text-muted-foreground">Snippets, scratch notes, and standalone files — public and discoverable.</p>
+					<p class="mt-0.5 text-[13px] text-muted-foreground">Snippets, scratch notes, and standalone files — public and discoverable.</p>
 				</div>
 				if data.CurrentUser != nil {
 					@components.LinkButton("/gists/new", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
@@ -35,7 +35,7 @@ templ Gists(data view.GistsData) {
 					<ol class="divide-y divide-border">
 						for _, g := range data.Gists {
 							<li>
-								<a href={ templ.SafeURL("/gists/" + g.ID) } class="flex items-start gap-3 px-4 py-3.5 hover:bg-muted/50 group">
+								<a href={ templ.SafeURL("/gists/" + g.ID) } class="flex items-start gap-3 px-4 py-2 hover:bg-muted/50 group">
 									@components.Avatar(g.OwnerName, components.AvatarSizeDefault, "")
 									<div class="min-w-0 flex-1">
 										<div class="flex items-center gap-2">
@@ -58,7 +58,7 @@ templ Gists(data view.GistsData) {
 												}
 											</span>
 										</div>
-										<p class="mt-1 text-[12px] text-muted-foreground truncate">
+										<p class="mt-0.5 text-[12px] text-muted-foreground truncate">
 											<span class="font-mono">{ g.ID }</span>
 											<span class="px-1.5 text-muted-foreground/60" aria-hidden="true">·</span>
 											by { g.OwnerName }

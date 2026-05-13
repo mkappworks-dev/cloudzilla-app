@@ -149,7 +149,7 @@ func Pulls(data view.PullsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"flex items-start gap-3 px-4 py-3 hover:bg-muted/50 group\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"flex items-start gap-3 px-4 py-2 hover:bg-muted/50 group\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -240,7 +240,7 @@ func Pulls(data view.PullsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</span></div><p class=\"mt-1 text-[12px] text-muted-foreground truncate\"><span class=\"font-mono\">#")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</span></div><p class=\"mt-0.5 text-[12px] text-muted-foreground truncate\"><span class=\"font-mono\">#")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
