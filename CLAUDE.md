@@ -1,16 +1,16 @@
 # CLAUDE.md — Cloudzilla Developer Guide
 
-> ⚠️ **Alpha**: Cloudzilla is under active development. APIs, project structure, and conventions may change as the project matures.
+> ⚠️ **Alpha**: APIs, project structure, and conventions may change.
 
 ## Architecture
 
 - **Backend**: Go 1.23+, chi router, sqlx, go-git, cobra CLI
 - **Frontend**: [Templ](https://templ.guide/) (type-safe Go HTML components), HTMX for partial updates, Tailwind CSS
-- **DB**: PostgreSQL (default and production)
+- **DB**: PostgreSQL
 - **Pattern**: Stores → Services → Handlers (strict layer separation)
-- **Rendering**: Server-driven; no JavaScript framework; Templ components compile to Go code
-- **Git Transport**: HTTP smart protocol + SSH server (both via pure Go, no git binary required)
-- **SSH Auth**: Public key authentication via stored SSH keys
+- **Rendering**: Server-driven; no JS framework; Templ compiles to Go
+- **Git Transport**: HTTP smart protocol + SSH server (both pure Go, no git binary required)
+- **SSH Auth**: Public key auth via stored SSH keys
 
 ## Project Layout
 
@@ -25,26 +25,20 @@
 - `internal/middleware/` — Auth, logger, CORS
 - `internal/router/` — chi route registration
 - `internal/ssh/` — SSH server for git operations (gliderlabs/ssh)
-- `internal/view/` — Templ components (compiled to `_templ.go` files)
-  - `internal/view/layout/` — Base layout component
-  - `internal/view/pages/` — Page components (one per page)
-  - `internal/view/fragments/` — HTMX fragment components
+- `internal/view/` — Templ components (compiled to `_templ.go`)
+  - `layout/` base layout, `pages/` page components, `fragments/` HTMX fragments
 - `migrations/` — SQL files, embedded via embed.FS
-- `cmd/server/frontend/` — Static files
-  - `static/main.css` — Compiled Tailwind output
-  - `htmx.min.js` — HTMX library
-- `tailwind/` — Tailwind CSS config
-  - `input.css` — Tailwind directives
-  - `tailwind.config.js` — Theme + content paths
+- `cmd/server/frontend/static/` — `main.css` (compiled Tailwind), `htmx.min.js`
+- `tailwind/` — `input.css`, `tailwind.config.js`
 
 ## Dev Commands
 
 ```bash
 make setup-tailwind     # Download Tailwind CLI (one-time)
-make download-mermaid   # Download mermaid.min.js (one-time; auto-runs in build/dev)
-make download-htmx      # Download htmx.min.js (one-time; auto-runs in build/dev)
+make download-mermaid   # Download mermaid.min.js (auto-runs in build/dev)
+make download-htmx      # Download htmx.min.js (auto-runs in build/dev)
 make build-css          # Compile Tailwind → static/main.css
-make dev                # Run server + Tailwind watch (auto-downloads mermaid if missing)
+make dev                # Run server + Tailwind watch
 make migrate            # Run DB migrations
 make build              # Build Go binary (embedded templates + CSS)
 make lint               # Lint Go code
@@ -55,252 +49,82 @@ go test ./...           # Run Go tests
 
 ### Go Handlers
 
-- **Page handlers** (`PageHome`, `PageIssues`, etc.) fetch data and call `h.render(page, data)` to render full pages
-- **HTMX handlers** check `r.Header.Get("HX-Request") == "true"` and call `h.renderFragment(name, data)` to return HTML snippets
+- **Page handlers** fetch data and call `h.render(page, data)` to render full pages
+- **HTMX handlers** check `r.Header.Get("HX-Request") == "true"` and call `h.renderFragment(name, data)`
 - **API handlers** return JSON via `writeJSON(w, status, v)`
-- Handlers only call services, never stores directly
-- Use `context.Context` as first arg in all service/store methods
-- JWT is read from `Authorization: Bearer` header OR `cz_token` httpOnly cookie
+- Handlers call services only, never stores directly
+- `context.Context` is the first arg of every service/store method
+- JWT read from `Authorization: Bearer` header OR `cz_token` httpOnly cookie
 
 ### Templates (Templ)
 
-- **Layout**: `layout.Base(title, unreadCount, user)` component in `internal/view/layout/`
-- **Pages**: Each page is a `templ` component in `internal/view/pages/`; call `layout.Base(...)` and pass content as a child component
-- **Fragments**: Fragment components live in `internal/view/fragments/`; rendered directly via `component.Render(ctx, w)`
-- HTMX attributes go on HTML elements: `hx-post="/api/..."`, `hx-target="#id"`, `hx-swap="outerHTML"`
-- Templ auto-escapes all output; use `templ.Raw(...)` only for trusted HTML (e.g. rendered Markdown)
-- Regenerate Go code after editing `.templ` files: `~/go/bin/templ generate`
-- **Never manually edit `_templ.go` files** — they are generated; only run `templ generate` to update them
+- **Layout**: `layout.Base(title, unreadCount, user)` in `internal/view/layout/`
+- **Pages** live in `internal/view/pages/`; call `layout.Base(...)` with content as child
+- **Fragments** in `internal/view/fragments/`; rendered via `component.Render(ctx, w)`
+- HTMX attrs go on HTML elements: `hx-post`, `hx-target`, `hx-swap`
+- Templ auto-escapes output; use `templ.Raw(...)` only for trusted HTML (e.g. rendered Markdown)
+- After editing `.templ` files run `~/go/bin/templ generate`
+- **Never manually edit `_templ.go` files** — they are generated
+- **Keep `{{if}}` inside `class`/`style` attributes on one line** — VS Code's HTML formatter splits string literals and breaks template comparisons
 
 ### CSS (Tailwind)
 
-- Use Tailwind utility classes in templates; no custom CSS
-- Build with `make build-css` (runs before `make dev` and `make build`)
-- Config in `tailwind/tailwind.config.js` — update `content` glob if adding new template dirs
-- Output at `cmd/server/frontend/static/main.css` (gitignored)
+- Tailwind utilities only; no custom CSS
+- Build: `make build-css` (runs before `make dev` and `make build`)
+- Config in `tailwind/tailwind.config.js` — update `content` glob when adding template dirs
+- Output: `cmd/server/frontend/static/main.css` (gitignored)
 
-## Adding a New Feature (checklist)
+## Adding a New Feature
 
-1. Add SQL migration in `migrations/`
+1. Add SQL migration in `migrations/` (next sequential number)
 2. Add/update model struct in `internal/model/`
-3. Add store method in `internal/store/`
-4. Add service method in `internal/service/`
-5. Add handler in `internal/handler/` (or update existing)
-6. Register route in `internal/router/router.go`
-7. If the route must be accessible before setup is complete (e.g. public assets), add it to the allowlist in `middleware/setup.go`
-8. Add/update HTML template in `cmd/server/frontend/templates/`
-9. Add Tailwind CSS classes to template
-10. Add fragment templates if using HTMX swaps
-11. Add new page name to `pageNames` slice in `router/router.go` if adding a new page template
+3. Add store method in `internal/store/` — wire into `Stores` struct in `stores.go`
+4. Add service method in `internal/service/` — wire into `Services` struct in `services.go`
+5. Add handler in `internal/handler/` (extend `page_handler.go` for new page data)
+6. Add view-model struct to `internal/handler/viewmodels.go`
+7. Register route in `internal/router/router.go`; add page name to `pageNames` slice if new page
+8. If route must be accessible pre-setup (e.g. public assets), add to allowlist in `middleware/setup.go`
+9. Add/update Templ component in `internal/view/`; run `templ generate`
+10. Add Tailwind classes; add fragments if using HTMX swaps
 
 ## Authentication Flow
 
-1. **Form login**: POST `/login` (form data) → handler calls `User.Authenticate()` → sets httpOnly cookie → redirects to `/`
-2. **API login**: POST `/api/auth/login` (JSON) → handler returns JWT in cookie + JSON body
-3. **Protected pages**: `optAuthMW` middleware reads cookie, injects claims into context (optional)
-4. **HTMX requests**: Browser automatically includes cookie (same-origin); handler checks claims if needed
-
-**Google OAuth:** `GET /auth/google` → Google → callback upserts user → `cz_token` cookie. Links by `oauth_id` then email. Config: `oauth.google_client_id/secret/redirect_url`. Missing client_id → 501.
-
-## Git Transport & Permissions
-
-See [docs/git-transport.md](./docs/git-transport.md) for full endpoints, config, curl examples, SSH auth flow, and permission rules.
-
-- HTTP: `GET /{owner}/{repo}/info/refs`, `POST .../git-upload-pack`, `POST .../git-receive-pack`
-- SSH: port 2222; public key auth via `ssh_keys` + `deploy_keys` tables (MD5 fingerprint)
-- `RepoService.CanRead` — public repos always pass; private require auth + any role
-- `RepoService.CanWrite` — owner, org owner, or `writer`/`admin` role
-- `RepoService.CanManage` — owner, org owner, or `admin` collaborator (settings, collabs, branch protection)
-- `RepoService.IsOwner` — owner or org owner only (transfer, delete, archive)
-- `RepoService.TransferRepo` — personal repos only; moves git dir on disk
-
-## HTMX & Template Patterns
-
-See [docs/htmx-patterns.md](./docs/htmx-patterns.md) for full example and template parse sequence.
-
-- HTMX handlers check `r.Header.Get("HX-Request") == "true"` → call `h.renderFragment(name, data)`
-- Templates parsed at startup in `router.mustParseTemplates()`; pages and fragments are separate sets — inline shared HTML in page templates when needed
-- FuncMap helpers: `add a b` (int addition), `percent part total` (0-safe integer %)
-- **Keep all `{{if}}` inside `class`/`style` attributes on a single line** — the VS Code HTML formatter inserts leading spaces into split string literals, breaking template comparisons
+1. **Form login**: POST `/login` → `User.Authenticate()` → httpOnly cookie → redirect `/`
+2. **API login**: POST `/api/auth/login` (JSON) → JWT in cookie + JSON body
+3. **Protected pages**: `optAuthMW` reads cookie, injects claims into context
+4. **HTMX**: browser auto-includes cookie (same-origin)
+5. **Google OAuth**: `GET /auth/google` → callback upserts user (links by `oauth_id` then email) → `cz_token` cookie. Config: `oauth.google_client_id/secret/redirect_url`. Missing client_id → 501.
 
 ## PostgreSQL Notes
 
-- Use `$N` numbered placeholders (not `?`)
-- Use `BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY` (not `INTEGER PRIMARY KEY AUTOINCREMENT`)
-- Use `TIMESTAMPTZ NOT NULL DEFAULT NOW()` (not `DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`)
-- Use `INSERT INTO ... ON CONFLICT DO NOTHING` (not `INSERT OR IGNORE INTO`)
-- `LastInsertId()` is not supported — use `RETURNING id` with `QueryRowContext().Scan()`
+- `$N` numbered placeholders (not `?`)
+- `BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY` (not `INTEGER ... AUTOINCREMENT`)
+- `TIMESTAMPTZ NOT NULL DEFAULT NOW()` (not `DATETIME ... DEFAULT CURRENT_TIMESTAMP`)
+- `INSERT ... ON CONFLICT DO NOTHING` (not `INSERT OR IGNORE`)
+- No `LastInsertId()` — use `RETURNING id` with `QueryRowContext().Scan()`
+- Nullable FK: `sql.NullInt64` (see `repo_store.go`)
+- Batch `IN (...)`: `strings.Join` with numbered `$N` params
 
-## Instance Permissions & Access Control
+## Subsystem Docs
 
-See [docs/access-control.md](./docs/access-control.md) for full tables and flows.
+Detailed APIs, endpoint tables, and flows live under `docs/`. Read these before working in the matching area:
 
-- Three levels: instance (`superadmin`/`user`), org (`owner`/`member`), repo (`reader`/`writer`/`admin`)
-- First-run `/setup` → first submitter becomes superadmin; `RequireSetup` middleware redirects all routes until done
-- `allow_registration` / `allow_login` site settings; invite tokens bypass both
-- `CanManage` — owner, org owner, or `admin` collaborator; gates settings, collaborators, webhooks, branch protection
-- `IsOwner` — owner or org owner only; gates transfer, delete, archive
-- HTMX responses swap `fragment-repo-collaborators` into `#repo-collaborators`
+- [docs/git-transport.md](./docs/git-transport.md) — HTTP/SSH endpoints, SSH auth, permission rules (`CanRead`/`CanWrite`/`CanManage`/`IsOwner`)
+- [docs/access-control.md](./docs/access-control.md) — Instance/org/repo role tables, setup flow, invite tokens
+- [docs/htmx-patterns.md](./docs/htmx-patterns.md) — HTMX handler example, template parse order, FuncMap helpers
+- [docs/code-browser.md](./docs/code-browser.md) — `CodeService` API, ref resolution priority. `ErrEmptyRepo` sentinel → 404 when repo has no commits
+- [docs/pr-merge.md](./docs/pr-merge.md) — `ff` / `merge` / `squash` strategies. `mergeTreesNoConflict` detects file-level conflicts and hides merge buttons
+- [docs/organizations.md](./docs/organizations.md) — `OrgService` API. `/{owner}` route checks user first, falls back to org
+- [docs/webhooks.md](./docs/webhooks.md) — Events, HMAC-SHA256 signing, `Dispatch` is fire-and-forget
+- [docs/notifications.md](./docs/notifications.md) — Notification types. Never fire when `actorID == authorID`
+- [docs/deployment.md](./docs/deployment.md) — Docker, env vars (`CZ_DATABASE_DSN`, `CZ_AUTH_JWT_SECRET`, `CZ_GIT_REPOS_ROOT`, `CZ_GIT_SSH_HOST_KEY`), bootstrap
+- [docs/ROADMAP.md](./docs/ROADMAP.md) — Phase status, milestone structure, planned work
+- [docs/superpowers/plans/](./docs/superpowers/plans/) — Per-phase implementation plans
 
----
-
-## Code Browser & Refs
-
-See [docs/code-browser.md](./docs/code-browser.md) for full CodeService API, URL patterns, ResolveRef priority, result types, and Branch/Tag management endpoints.
-
-- Routes: `tree/{ref}`, `blob/{ref}`, `blame/{ref}`, `commits/{ref}`, `commit/{sha}`, `refs`
-- `CodeService` in `internal/service/code_service.go` — no store dependency, reads bare repos via go-git
-- `ErrEmptyRepo` sentinel → 404 when repo has no commits
-- Write access required for branch/tag create/delete; default branch delete is blocked
-
-## Deployment
-
-See [docs/deployment.md](./docs/deployment.md) for Docker setup, env var reference, and first-run bootstrap.
-
-- Build: `make build` → single binary `dist/cloudzilla` (embedded templates + CSS)
-- Key env vars: `CZ_DATABASE_DSN`, `CZ_AUTH_JWT_SECRET`, `CZ_GIT_REPOS_ROOT`, `CZ_GIT_SSH_HOST_KEY`
-- Docker: `make docker-build && make docker-run`; first-run: `docker exec ... cloudzilla-cli migrate`
-
-## Pull Request Merge Strategies
-
-See [docs/pr-merge.md](./docs/pr-merge.md) for full CodeService merge API and PRDiffResult type.
-
-- Three strategies: fast-forward (`ff`), three-way merge (`merge`), squash (`squash`)
-- `PATCH /api/repos/{owner}/{repo}/pulls/{number}` with `state=merged&merge_strategy=ff|merge|squash`
-- `mergeTreesNoConflict` detects file-level conflicts → hides all merge buttons, shows warning
-- Diff view shown for open PRs only; omitted for closed/merged
-
-## Organizations
-
-See [docs/organizations.md](./docs/organizations.md) for OrgService API + full endpoint table.
-
-- Roles: `owner` (full admin: members + repos), `member` (view-only)
-- `/{org}` profile page (repos + members); `/orgs/{org}/settings` for owners
-- `/{owner}` route checks user first, falls back to org lookup
-- `OrgService` in `internal/service/org_service.go`
-
----
-
-## Webhooks
-
-See [docs/webhooks.md](./docs/webhooks.md) for WebhookService API + full endpoint table.
-
-- Events: `push`, `issues`, `pull_request`; HMAC-SHA256 signed if secret set
-- Dispatch: `go s.Webhook.Dispatch(repoID, event, payload)` (fire-and-forget)
-- Extend: add event string + `XPayload()` to `webhook_service.go`; no schema change
-- Repo settings page (`/{owner}/{repo}/settings`) shows Collaborators + Webhooks + Transfer sections
-
----
-
-## Notifications
-
-See [docs/notifications.md](./docs/notifications.md) for NotificationService API + pages/API table.
-
-- Types: `issue_comment`, `pr_comment`, `issue_closed`, `issue_reopened`, `pr_merged`, `pr_closed`
-- Never fire when `actorID == authorID` (self-actions are silent)
-- Extend: add const to `model/notification.go`, add `NotifyX` to `notification_service.go`
-- `basePage()` calls `CountUnread` on every render → `BasePage.UnreadNotifCount` badge in navbar
-
----
-
-## Cloudzilla Feature Roadmap
-
-Full phase specs (all phases, implemented and planned): [docs/roadmap.md](./docs/roadmap.md)
-
-**Cross-cutting rules (all phases):**
-
-- No new Go dependencies needed
-- Notification extension: add const to `model/notification.go`, add `NotifyX` to `notification_service.go`
-- Webhook extension: add event string + `XPayload()` to `webhook_service.go`; no schema change
-- PostgreSQL: `$N` placeholders, `RETURNING id`, `sql.NullInt64` for nullable FK (see `repo_store.go`)
-- Batch SQL `IN (...)`: `strings.Join` with numbered `$N` params
-- HTMX assignee/label API: POST body, DELETE query param
-
-**Critical files touched by every phase:**
-
-- `internal/router/router.go` — register routes + add page names to `pageNames`
-- `internal/handler/viewmodels.go` — add data structs for new pages/fragments
-- `internal/service/services.go` — wire new service into `Services` struct + `New()`
-- `internal/store/stores.go` — wire new store into `Stores` struct + `New()`
-- `internal/handler/page_handler.go` — extend existing page handlers with new data fetches
-
-| Phase   | Feature                                      | Status     | Migration(s) |
-| ------- | -------------------------------------------- | ---------- | ------------ |
-| 0.1–5.3 | Core Platform → Draft PRs (all done)         | ✅ Done    | 001–029      |
-| 6.1–6.3 | Protected Branches → Code Review Suggestions | ✅ Done    | 030–031      |
-| 7.1     | Auto-merge                                   | ✅ Done    | 032          |
-| 7.2–7.3 | Issue & PR Templates, Reactions              | ✅ Done    | 033          |
-| 8.1     | TOTP Two-Factor Authentication               | ✅ Done    | 034          |
-| 8.2     | Audit Log                                    | ✅ Done    | 035          |
-| 8.3     | LDAP / SAML SSO                              | ✅ Done    | 036–037      |
-| 9.1     | Project Boards / Kanban                      | ✅ Done    | 036          |
-| 9.2     | Wiki                                         | ✅ Done    | —            |
-| 9.3     | Issue Pinning & Locking                      | ✅ Done    | 038          |
-| 10.1    | Repository Insights & Stats                  | ✅ Done    | —            |
-| 10.2    | @Mentions in Comments                        | ✅ Done    | 039          |
-| 10.3    | Saved Replies                                | ✅ Done    | 040          |
-| 11.1    | Email Notifications (SMTP)                   | ✅ Done    | 041          |
-| 11.2    | OAuth Apps / Third-party Clients             | ✅ Done    | 042          |
-| 11.3    | Webhook Improvements (retry, filter)         | ✅ Done    | 043          |
-| 12.1    | Watching                                     | ✅ Done    | 044          |
-| 12.2    | Activity Feed                                | ✅ Done    | 045          |
-| 12.3    | Discussions                                  | ✅ Done    | 046          |
-| 13.1    | Gists                                        | ✅ Done    | 047          |
-| 13.2    | Profile README                               | ✅ Done    | —            |
-| 13.3    | Repository Topics / Tags                     | ✅ Done    | 048          |
-| 14.1    | Private Issues                               | ✅ Done    | 049          |
-| 14.2    | Archive & Templates                          | ✅ Done    | 050          |
-| 14.3    | Soft-delete & Recovery                       | ✅ Done    | 051          |
-| 15.1    | Advanced Code Search                         | ✅ Done    | 052          |
-| 15.2    | Explore / Trending                           | ✅ Done    | —            |
-| 15.3    | Dependency Graph                             | ✅ Done    | 053          |
-| 16–20   | (next planned phases)                        | ⬜ Planned | 054–060      |
-
-### Milestone Structure
-
-- **Milestone 1** (Phases 0–15.3, migrations 001–053): Core platform — code complete, closing in progress
-- **Milestone 2** (Phases 16–20, migrations 054–060+): Advanced infrastructure — planned
-
-Milestone 1 closing work: BSL 1.1 licensing, security audit, Go server refactor, frontend DRY refactor, documentation overhaul, and test coverage. Plans at [docs/superpowers/plans/](./docs/superpowers/plans/).
-
-> Full roadmap: [docs/ROADMAP.md](./docs/ROADMAP.md)
-
-## Branch Naming Convention
-
-When starting work on a new phase or task, create a branch following this format:
+## Branch Naming
 
 ```
-<type>/phase-<number>-<name-of-plan>
+<type>/phase-<number>-<slug>
 ```
 
-**Types:** `feat` (new feature), `bug` (bug fix), `tech` (technical/infrastructure)
-
-**Examples:**
-
-- `feat/phase-8.2-audit-log`
-- `feat/phase-9.1-project-boards`
-- `feat/phase-12.3-discussions`
-- `bug/phase-8.1-totp-recovery-fix`
-- `tech/phase-8.3-sso`
-
-## Running Phases Individually
-
-Each phase (8.2–15.3) has a self-contained implementation plan in `docs/superpowers/plans/`. Phases should be implemented **sequentially** (not in parallel) because:
-
-1. Migration numbers must be sequential (035, 036, ...)
-2. Shared files (`router.go`, `services.go`, `stores.go`) would conflict
-3. Some phases depend on earlier schema
-
-**To implement a phase in a standalone Claude session:**
-
-```bash
-claude -p "Read the plan at docs/superpowers/plans/2026-03-25-phase-<X.Y>-<name>.md and implement it. \
-Create branch feat/phase-<X.Y>-<name> from main. Follow all conventions in CLAUDE.md. \
-Use the next available migration number. Commit when done."
-```
-
-**After each phase completes — required workflow before merging:**
-
-1. **Security review** — run the `pr-review-toolkit:silent-failure-hunter` agent against the branch to check for silent failures, missing error handling, and security issues. Fix any high-confidence findings before opening a PR.
-2. **Open a pull request** — do not merge directly to main. Create a PR with `gh pr create` so the diff is visible for review.
-3. **Merge after approval** — once the PR is reviewed, merge to main before starting the next phase.
+`type` is `feat`, `bug`, or `tech`. Example: `feat/phase-12.3-discussions`.
