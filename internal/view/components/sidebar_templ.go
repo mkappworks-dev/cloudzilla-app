@@ -65,25 +65,25 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"space-y-2\"><h3 class=\"text-xs font-semibold text-gray-500 uppercase tracking-wide\">Labels</h3><div class=\"flex flex-wrap gap-1\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"space-y-2\"><h3 class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider\">Labels</h3><div class=\"flex flex-wrap gap-1\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if len(labels) == 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<span class=\"text-xs text-gray-400\">None yet</span>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<span class=\"text-xs text-muted-foreground\">None yet</span>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
 				for _, lbl := range labels {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<span class=\"inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium\" style=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<span class=\"inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border\" style=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var3 string
-					templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("background-color: " + lbl.Color + "; color: #000")
+					templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("background-color: " + lbl.Color + "33; color: " + lbl.Color + "; border-color: " + lbl.Color + "55")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 36, Col: 64}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 36, Col: 114}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 					if templ_7745c5c3_Err != nil {
@@ -149,7 +149,7 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 				return templ_7745c5c3_Err
 			}
 			if canWrite && len(allLabels) > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<details class=\"mt-2\"><summary class=\"text-xs text-blue-600 cursor-pointer hover:underline\">Add label</summary><div class=\"mt-1 space-y-1 max-h-40 overflow-y-auto\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<details class=\"mt-2\"><summary class=\"text-xs text-muted-foreground cursor-pointer hover:text-foreground\">Add label</summary><div class=\"mt-1 space-y-1 max-h-40 overflow-y-auto rounded-md border border-border bg-card p-1\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -180,7 +180,7 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" hx-swap=\"outerHTML\" class=\"w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded text-xs\"><span class=\"w-3 h-3 rounded-full inline-block shrink-0\" style=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" hx-swap=\"outerHTML\" class=\"w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-muted/50 rounded text-xs\"><span class=\"w-3 h-3 rounded-full inline-block shrink-0\" style=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -265,25 +265,25 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" class=\"space-y-2\"><h3 class=\"text-xs font-semibold text-gray-500 uppercase tracking-wide\">Assignees</h3><div class=\"space-y-1\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" class=\"space-y-2\"><h3 class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider\">Assignees</h3><div class=\"space-y-1\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if len(assignees) == 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<span class=\"text-xs text-gray-400\">No one assigned</span>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<span class=\"text-xs text-muted-foreground\">No one assigned</span>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
 				for _, a := range assignees {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<div class=\"flex items-center justify-between\"><span class=\"text-xs font-medium\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<div class=\"flex items-center justify-between\"><span class=\"text-xs font-medium text-foreground\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var13 string
 					templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(a.Username)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 89, Col: 52}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 89, Col: 68}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 					if templ_7745c5c3_Err != nil {
@@ -320,7 +320,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\" hx-swap=\"outerHTML\" class=\"text-xs text-red-500 hover:underline ml-2\" title=\"Remove assignee\">&times;</button>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\" hx-swap=\"outerHTML\" class=\"text-xs text-destructive hover:text-destructive/80 ml-2\" title=\"Remove assignee\">&times;</button>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -362,7 +362,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" hx-swap=\"outerHTML\" class=\"mt-2 flex gap-1\"><input type=\"text\" name=\"username\" placeholder=\"Username\" required class=\"flex-1 border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400\"> <button type=\"submit\" class=\"px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700\">+</button></form>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" hx-swap=\"outerHTML\" class=\"mt-2 flex gap-1\"><input type=\"text\" name=\"username\" placeholder=\"Username\" required class=\"flex-1 h-8 rounded-md border border-input bg-transparent px-2 text-xs text-foreground placeholder:text-muted-foreground shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring\"> <button type=\"submit\" class=\"inline-flex items-center justify-center h-8 px-2.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90\">+</button></form>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
