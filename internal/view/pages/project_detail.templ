@@ -4,104 +4,121 @@ import (
 	"strconv"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ ProjectDetail(data view.ProjectDetailData) {
 	@layout.Base(data.BasePage, data.Project.Name+" · "+data.Owner+"/"+data.RepoName) {
-		<div class="px-4 py-6" x-data="{ showAddCol: false }">
-			<div class="flex items-center justify-between mb-6">
-				<div>
-					<nav class="text-sm text-gray-500 mb-1">
+		<div class="space-y-6" x-data="{ showAddCol: false }">
+
+			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="project-title">
+				<div class="min-w-0">
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
 						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
-						<span class="mx-1">/</span>
+						<span aria-hidden="true">·</span>
 						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/projects") } class="hover:underline">Projects</a>
-					</nav>
-					<h1 class="text-2xl font-bold">{ data.Project.Name }</h1>
+						<span aria-hidden="true">·</span>
+						Board
+					</p>
+					<h1 id="project-title" class="text-2xl font-semibold tracking-tight">{ data.Project.Name }</h1>
 					if data.Project.Description != "" {
-						<p class="text-sm text-gray-500">{ data.Project.Description }</p>
+						<p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">{ data.Project.Description }</p>
 					}
 				</div>
 				if data.CanWrite {
-					<button
-						class="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700"
-						x-on:click="showAddCol = !showAddCol">
-						+ Column
-					</button>
+					@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"x-on:click": "showAddCol = !showAddCol", "aria-expanded": "false", "x-bind:aria-expanded": "showAddCol.toString()"}) {
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+							<path d="M12 5v14M5 12h14"></path>
+						</svg>
+						Column
+					}
 				}
-			</div>
+			</section>
+
 			if data.CanWrite {
-				<div x-show="showAddCol" class="mb-4 flex gap-2 items-center">
-					<input id="new-col-name" type="text" placeholder="Column name" class="border border-gray-300 rounded px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+				<div x-show="showAddCol" x-cloak class="flex flex-wrap gap-2 items-center">
+					<label for="new-col-name" class="sr-only">Column name</label>
+					@components.Input(templ.Attributes{"id": "new-col-name", "type": "text", "placeholder": "Column name"})
 					<button
-						class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-						hx-ext="json-enc"
-						onclick={ addColumnJS(data.Owner, data.RepoName, data.Project.ID) }>
-						Add
-					</button>
-					<button x-on:click="showAddCol = false" class="text-sm text-gray-500 hover:text-gray-700 px-2">Cancel</button>
+						type="button"
+						class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-8 px-3 text-[13px] bg-primary text-primary-foreground hover:bg-primary/90"
+						onclick={ addColumnJS(data.Owner, data.RepoName, data.Project.ID) }
+					>Add</button>
+					<button type="button" class="text-sm text-muted-foreground hover:text-foreground px-2" x-on:click="showAddCol = false">Cancel</button>
 				</div>
 			}
-			<div class="flex gap-4 overflow-x-auto pb-4">
+
+			<div class="flex gap-4 overflow-x-auto pb-6">
 				for _, col := range data.Columns {
-					<div class="flex-none w-72 bg-gray-100 rounded-lg p-3" data-column-id={ strconv.FormatInt(col.Column.ID, 10) }>
-						<div class="flex items-center justify-between mb-3">
-							<h3 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">{ col.Column.Name }</h3>
+					<section class="flex-none w-72 rounded-md border border-border bg-card overflow-hidden" data-column-id={ strconv.FormatInt(col.Column.ID, 10) } aria-labelledby={ "col-" + strconv.FormatInt(col.Column.ID, 10) }>
+						<header class="px-3 py-2.5 border-b border-border flex items-center justify-between">
+							<h2 id={ "col-" + strconv.FormatInt(col.Column.ID, 10) } class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+								{ col.Column.Name }
+								<span class="ml-1 text-muted-foreground/60">{ strconv.Itoa(len(col.Cards)) }</span>
+							</h2>
 							if data.CanWrite {
 								<button
+									type="button"
+									aria-label={ "Delete column " + col.Column.Name }
 									onclick={ deleteColumnJS(data.Owner, data.RepoName, data.Project.ID, col.Column.ID) }
-									class="text-gray-400 hover:text-red-500 text-xs px-1">✕</button>
+									class="text-muted-foreground hover:text-destructive text-xs px-1"
+								>✕</button>
 							}
-						</div>
-						<div class="space-y-2 min-h-8">
+						</header>
+						<ul class="p-2 space-y-2 min-h-12">
 							for _, card := range col.Cards {
-								<div class="bg-white rounded shadow-sm p-3 text-sm border border-gray-200">
+								<li class="rounded-md border border-border bg-muted/50 p-3">
 									if card.IssueID != nil {
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(card.IssueNumber)) } class="font-medium text-blue-600 hover:underline">{ card.IssueTitle }</a>
-										<div class="flex items-center gap-2 mt-1">
-											<span class="text-xs text-gray-500">#{ strconv.Itoa(card.IssueNumber) }</span>
-											<span class={ "text-xs px-1.5 py-0.5 rounded-full", templ.KV("bg-green-100 text-green-700", card.IssueState == "open"), templ.KV("bg-purple-100 text-purple-700", card.IssueState != "open") }>{ card.IssueState }</span>
+										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(card.IssueNumber)) } class="text-[13px] font-medium hover:underline block">{ card.IssueTitle }</a>
+										<div class="mt-1.5 flex items-center gap-2">
+											<span class="font-mono text-[11px] text-muted-foreground">#{ strconv.Itoa(card.IssueNumber) }</span>
+											@components.IssueStateBadge(card.IssueState)
 										</div>
 									} else if card.PullID != nil {
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(card.PullNumber)) } class="font-medium text-blue-600 hover:underline">{ card.PullTitle }</a>
-										<div class="flex items-center gap-2 mt-1">
-											<span class="text-xs text-gray-500">#{ strconv.Itoa(card.PullNumber) }</span>
-											<span class={ "text-xs px-1.5 py-0.5 rounded-full", templ.KV("bg-green-100 text-green-700", card.PullState == "open"), templ.KV("bg-purple-100 text-purple-700", card.PullState != "open") }>{ card.PullState }</span>
+										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(card.PullNumber)) } class="text-[13px] font-medium hover:underline block">{ card.PullTitle }</a>
+										<div class="mt-1.5 flex items-center gap-2">
+											<span class="font-mono text-[11px] text-muted-foreground">#{ strconv.Itoa(card.PullNumber) }</span>
+											@components.PullStateBadge(card.PullState)
 										</div>
 									} else {
-										<p class="text-gray-700">{ card.Note }</p>
+										<p class="text-[13px]">{ card.Note }</p>
+										<p class="mt-1.5 font-mono text-[11px] text-muted-foreground">Note</p>
 									}
 									if data.CanWrite {
 										<div class="mt-2 flex items-center gap-2">
+											<label for={ "move-card-" + strconv.FormatInt(card.ID, 10) } class="sr-only">Move card</label>
 											<select
-												class="text-xs border border-gray-200 rounded px-1 py-0.5 text-gray-600"
-												onchange={ moveCardJS(data.Owner, data.RepoName, data.Project.ID, card.ID) }>
+												id={ "move-card-" + strconv.FormatInt(card.ID, 10) }
+												class="text-[11px] border border-border rounded px-1.5 py-0.5 text-muted-foreground bg-transparent"
+												onchange={ moveCardJS(data.Owner, data.RepoName, data.Project.ID, card.ID) }
+											>
 												<option value="">Move to…</option>
 												for _, destCol := range data.Columns {
 													<option value={ strconv.FormatInt(destCol.Column.ID, 10) }>{ destCol.Column.Name }</option>
 												}
 											</select>
 											<button
+												type="button"
 												onclick={ deleteCardJS(data.Owner, data.RepoName, data.Project.ID, card.ID) }
-												class="text-xs text-red-400 hover:text-red-600">Remove</button>
+												class="text-[11px] text-destructive/80 hover:text-destructive ml-auto"
+											>Remove</button>
 										</div>
 									}
-								</div>
+								</li>
 							}
-						</div>
+						</ul>
 						if data.CanWrite {
-							<div class="mt-3">
-								<button
-									class="w-full text-left text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-200"
-									onclick={ addCardJS(data.Owner, data.RepoName, data.Project.ID, col.Column.ID) }>
-									+ Add card
-								</button>
-							</div>
+							<button
+								type="button"
+								class="w-full text-left text-[12px] text-muted-foreground hover:text-foreground px-3 py-2 border-t border-border"
+								onclick={ addCardJS(data.Owner, data.RepoName, data.Project.ID, col.Column.ID) }
+							>+ Add card</button>
 						}
-					</div>
+					</section>
 				}
 				if data.CanWrite && len(data.Columns) == 0 {
-					<p class="text-gray-500 text-sm mt-2">Add a column to get started.</p>
+					<p class="text-muted-foreground text-sm">Add a column to get started.</p>
 				}
 			</div>
 		</div>
