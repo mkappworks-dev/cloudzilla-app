@@ -41,7 +41,7 @@ func AdminInvitations(data view.AdminInvitationsFragData) templ.Component {
 		}
 		if len(data.Invitations) > 0 {
 			for _, inv := range data.Invitations {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"border border-gray-200 rounded-lg p-4 flex justify-between items-start\"><div class=\"space-y-1\"><p class=\"text-sm font-medium\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"border border-border rounded-lg p-4 flex justify-between items-start\"><div class=\"space-y-1\"><p class=\"text-sm font-medium\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -54,20 +54,20 @@ func AdminInvitations(data view.AdminInvitationsFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</p><p class=\"text-xs text-gray-500 font-mono break-all\">/invite/")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</p><p class=\"text-xs text-muted-foreground font-mono break-all\">/invite/")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(inv.Token)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_invitations.templ`, Line: 16, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_invitations.templ`, Line: 16, Col: 86}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</p><div class=\"flex gap-3 text-xs text-gray-400\"><span>Expires: ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</p><div class=\"flex gap-3 text-xs text-muted-foreground\"><span>Expires: ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -85,12 +85,12 @@ func AdminInvitations(data view.AdminInvitationsFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				if inv.AcceptedAt != nil {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<span class=\"text-green-600\">Accepted</span>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<span class=\"text-success\">Accepted</span>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"text-yellow-600\">Pending</span>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"text-warning\">Pending</span>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -113,7 +113,7 @@ func AdminInvitations(data view.AdminInvitationsFragData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" hx-target=\"#admin-invitations-list\" hx-swap=\"outerHTML\" hx-confirm=\"Delete this invitation?\" class=\"text-xs text-red-600 hover:underline ml-4 shrink-0\">Delete</button>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" hx-target=\"#admin-invitations-list\" hx-swap=\"outerHTML\" hx-confirm=\"Delete this invitation?\" class=\"text-xs text-destructive hover:underline ml-4 shrink-0\">Delete</button>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -124,7 +124,7 @@ func AdminInvitations(data view.AdminInvitationsFragData) templ.Component {
 				}
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<p class=\"text-gray-500 text-sm\">No invitations yet.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<p class=\"text-muted-foreground text-sm\">No invitations yet.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

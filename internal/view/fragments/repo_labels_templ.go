@@ -53,14 +53,14 @@ func RepoLabels(data view.RepoLabelsFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" hx-target=\"#repo-labels\" hx-swap=\"outerHTML\" class=\"flex gap-2 flex-wrap items-end border border-gray-200 rounded-lg p-3 bg-gray-50\"><div><label class=\"block text-xs font-medium text-gray-500 mb-1\">Name</label> <input type=\"text\" name=\"name\" placeholder=\"bug, enhancement…\" required class=\"border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400\"></div><div><label class=\"block text-xs font-medium text-gray-500 mb-1\">Color</label> <input type=\"color\" name=\"color\" value=\"#e5e5e5\" class=\"w-12 h-8 border border-gray-300 rounded cursor-pointer\"></div><div class=\"flex-1\"><label class=\"block text-xs font-medium text-gray-500 mb-1\">Description (optional)</label> <input type=\"text\" name=\"description\" placeholder=\"Short description\" class=\"w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400\"></div><button type=\"submit\" class=\"px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 shrink-0\">Create label</button></form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" hx-target=\"#repo-labels\" hx-swap=\"outerHTML\" class=\"flex gap-2 flex-wrap items-end border border-border rounded-lg p-3 bg-muted/40\"><div><label class=\"block text-xs font-medium text-muted-foreground mb-1\">Name</label> <input type=\"text\" name=\"name\" placeholder=\"bug, enhancement…\" required class=\"border border-border rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus-visible:outline-ring\"></div><div><label class=\"block text-xs font-medium text-muted-foreground mb-1\">Color</label> <input type=\"color\" name=\"color\" value=\"#e5e5e5\" class=\"w-12 h-8 border border-border rounded cursor-pointer\"></div><div class=\"flex-1\"><label class=\"block text-xs font-medium text-muted-foreground mb-1\">Description (optional)</label> <input type=\"text\" name=\"description\" placeholder=\"Short description\" class=\"w-full border border-border rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus-visible:outline-ring\"></div><button type=\"submit\" class=\"px-3 py-1.5 bg-primary text-background rounded text-sm hover:bg-primary shrink-0\">Create label</button></form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
 		if len(data.Labels) > 0 {
 			for _, lbl := range data.Labels {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"flex items-center justify-between border border-gray-200 rounded-lg p-3\"><div class=\"flex items-center gap-2\"><span class=\"w-4 h-4 rounded-full inline-block border border-gray-200 shrink-0\" style=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"flex items-center justify-between border border-border rounded-lg p-3\"><div class=\"flex items-center gap-2\"><span class=\"w-4 h-4 rounded-full inline-block border border-border shrink-0\" style=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -91,14 +91,14 @@ func RepoLabels(data view.RepoLabelsFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				if lbl.Description != "" {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"text-xs text-gray-500 ml-2\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"text-xs text-muted-foreground ml-2\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(lbl.Description)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_labels.templ`, Line: 62, Col: 66}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_labels.templ`, Line: 62, Col: 74}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 					if templ_7745c5c3_Err != nil {
@@ -127,7 +127,7 @@ func RepoLabels(data view.RepoLabelsFragData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" hx-target=\"#repo-labels\" hx-swap=\"outerHTML\" hx-confirm=\"Delete this label?\" class=\"text-xs text-red-600 hover:underline ml-4\">Delete</button>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" hx-target=\"#repo-labels\" hx-swap=\"outerHTML\" hx-confirm=\"Delete this label?\" class=\"text-xs text-destructive hover:underline ml-4\">Delete</button>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -138,7 +138,7 @@ func RepoLabels(data view.RepoLabelsFragData) templ.Component {
 				}
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<p class=\"text-sm text-gray-500\">No labels defined yet.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<p class=\"text-sm text-muted-foreground\">No labels defined yet.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

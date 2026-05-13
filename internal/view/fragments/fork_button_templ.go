@@ -53,17 +53,17 @@ func ForkButton(data view.ForkButtonData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" hx-target=\"#fork-button\" hx-swap=\"outerHTML\" class=\"inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors\">&#x2442; Fork</button> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" hx-target=\"#fork-button\" hx-swap=\"outerHTML\" class=\"inline-flex items-center gap-1 px-3 py-1.5 border border-border bg-background text-foreground rounded text-sm font-medium hover:bg-muted/40 transition-colors\">&#x2442; Fork</button> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<a href=\"/login\" class=\"inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors\">&#x2442; Fork</a> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<a href=\"/login\" class=\"inline-flex items-center gap-1 px-3 py-1.5 border border-border bg-background text-foreground rounded text-sm font-medium hover:bg-muted/40 transition-colors\">&#x2442; Fork</a> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"px-2 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"px-2 py-1.5 border border-border bg-background text-foreground rounded text-sm\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

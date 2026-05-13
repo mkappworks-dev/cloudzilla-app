@@ -13,16 +13,16 @@ templ ForkButton(data view.ForkButtonData) {
 				hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/fork" }
 				hx-target="#fork-button"
 				hx-swap="outerHTML"
-				class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors"
+				class="inline-flex items-center gap-1 px-3 py-1.5 border border-border bg-background text-foreground rounded text-sm font-medium hover:bg-muted/40 transition-colors"
 			>
 				&#x2442; Fork
 			</button>
 		} else {
-			<a href="/login" class="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
+			<a href="/login" class="inline-flex items-center gap-1 px-3 py-1.5 border border-border bg-background text-foreground rounded text-sm font-medium hover:bg-muted/40 transition-colors">
 				&#x2442; Fork
 			</a>
 		}
-		<span class="px-2 py-1.5 border border-gray-300 bg-white text-gray-700 rounded text-sm">
+		<span class="px-2 py-1.5 border border-border bg-background text-foreground rounded text-sm">
 			{ strconv.Itoa(data.ForkCount) }
 		</span>
 	</div>

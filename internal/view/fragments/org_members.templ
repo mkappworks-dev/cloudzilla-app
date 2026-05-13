@@ -3,13 +3,13 @@ package fragments
 import "github.com/mkappworks-dev/cloudzilla-app/internal/view"
 
 templ OrgMembers(data view.OrgMembersFragData) {
-	<div id="org-members-list" class="divide-y divide-gray-100 border border-gray-200 rounded-lg">
+	<div id="org-members-list" class="divide-y divide-border border border-border rounded-lg">
 		if len(data.Members) > 0 {
 			for _, member := range data.Members {
 				<div class="px-4 py-3 flex justify-between items-center">
 					<div>
-						<a href={ templ.SafeURL("/" + member.Username) } class="text-blue-600 hover:underline font-medium">{ member.Username }</a>
-						<span class="ml-2 text-xs text-gray-500 capitalize">{ string(member.Role) }</span>
+						<a href={ templ.SafeURL("/" + member.Username) } class="text-foreground hover:underline font-medium">{ member.Username }</a>
+						<span class="ml-2 text-xs text-muted-foreground capitalize">{ string(member.Role) }</span>
 					</div>
 					if data.CanManage {
 						<button
@@ -17,7 +17,7 @@ templ OrgMembers(data view.OrgMembersFragData) {
 							hx-target="#org-members-list"
 							hx-swap="outerHTML"
 							hx-confirm={ "Remove " + member.Username + " from this organization?" }
-							class="text-xs text-red-600 hover:underline"
+							class="text-xs text-destructive hover:underline"
 						>
 							Remove
 						</button>
@@ -25,7 +25,7 @@ templ OrgMembers(data view.OrgMembersFragData) {
 				</div>
 			}
 		} else {
-			<div class="px-4 py-3 text-gray-500 text-sm">No members yet.</div>
+			<div class="px-4 py-3 text-muted-foreground text-sm">No members yet.</div>
 		}
 	</div>
 }

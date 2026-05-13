@@ -8,13 +8,13 @@ import (
 )
 
 templ IssueDetail(data view.IssueDetailFragData) {
-	<div id="issue-detail" class="bg-white border border-gray-200 rounded-lg p-6">
+	<div id="issue-detail" class="bg-background border border-border rounded-lg p-6">
 		<div class="flex justify-between items-start mb-4">
 			<div>
 				<h1 class="text-3xl font-bold">{ data.Issue.Title }</h1>
-				<p class="text-gray-600 text-sm mt-2">#{ strconv.Itoa(data.Issue.Number) } opened by { data.Issue.AuthorName } on { data.Issue.CreatedAt.Format("Jan 2, 2006") }</p>
+				<p class="text-muted-foreground text-sm mt-2">#{ strconv.Itoa(data.Issue.Number) } opened by { data.Issue.AuthorName } on { data.Issue.CreatedAt.Format("Jan 2, 2006") }</p>
 			</div>
-			<span class={ "px-3 py-1 rounded-full text-sm font-medium", templ.KV("bg-green-100 text-green-700", data.Issue.State == "open"), templ.KV("bg-red-100 text-red-700", data.Issue.State != "open") }>
+			<span class={ "px-3 py-1 rounded-full text-sm font-medium", templ.KV("bg-success/10 text-success", data.Issue.State == "open"), templ.KV("bg-destructive/10 text-destructive", data.Issue.State != "open") }>
 				{ string(data.Issue.State) }
 			</span>
 		</div>
@@ -25,7 +25,7 @@ templ IssueDetail(data view.IssueDetailFragData) {
 				hx-vals={ `{"state":"closed"}` }
 				hx-target="#issue-detail"
 				hx-swap="outerHTML"
-				class="px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors"
+				class="px-4 py-2 bg-destructive text-background rounded font-medium hover:bg-destructive transition-colors"
 			>
 				Close Issue
 			</button>
@@ -35,7 +35,7 @@ templ IssueDetail(data view.IssueDetailFragData) {
 				hx-vals={ `{"state":"open"}` }
 				hx-target="#issue-detail"
 				hx-swap="outerHTML"
-				class="px-4 py-2 bg-green-600 text-white rounded font-medium hover:bg-green-700 transition-colors"
+				class="px-4 py-2 bg-success text-background rounded font-medium hover:bg-success transition-colors"
 			>
 				Re-open Issue
 			</button>

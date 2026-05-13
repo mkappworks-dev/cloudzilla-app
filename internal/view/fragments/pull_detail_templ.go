@@ -36,7 +36,7 @@ func PullDetail(data view.PullDetailFragData) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"pull-detail\" class=\"bg-white border border-gray-200 rounded-lg p-6\"><div class=\"flex justify-between items-start mb-4\"><div><div class=\"flex items-center gap-2 flex-wrap\"><h1 class=\"text-3xl font-bold\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"pull-detail\" class=\"bg-background border border-border rounded-lg p-6\"><div class=\"flex justify-between items-start mb-4\"><div><div class=\"flex items-center gap-2 flex-wrap\"><h1 class=\"text-3xl font-bold\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -54,12 +54,12 @@ func PullDetail(data view.PullDetailFragData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if data.Pull.IsDraft {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<span class=\"px-2 py-0.5 rounded text-sm font-medium bg-yellow-100 text-yellow-800\">Draft</span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<span class=\"px-2 py-0.5 rounded text-sm font-medium bg-warning/10 text-warning\">Draft</span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><p class=\"text-gray-600 text-sm mt-2\">#")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div><p class=\"text-muted-foreground text-sm mt-2\">#")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -128,7 +128,7 @@ func PullDetail(data view.PullDetailFragData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var8 = []any{"px-3 py-1 rounded-full text-sm font-medium", templ.KV("bg-green-100 text-green-700", data.Pull.State == "open"), templ.KV("bg-purple-100 text-purple-700", data.Pull.State == "merged"), templ.KV("bg-red-100 text-red-700", data.Pull.State != "open" && data.Pull.State != "merged")}
+		var templ_7745c5c3_Var8 = []any{"px-3 py-1 rounded-full text-sm font-medium", templ.KV("bg-success/10 text-success", data.Pull.State == "open"), templ.KV("bg-purple-100 text-purple-700", data.Pull.State == "merged"), templ.KV("bg-destructive/10 text-destructive", data.Pull.State != "open" && data.Pull.State != "merged")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var8...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -164,7 +164,7 @@ func PullDetail(data view.PullDetailFragData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if data.Pull.State == "open" && data.Pull.IsDraft {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"mb-4 px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between gap-4\"><p class=\"text-sm text-yellow-800\">&#9998; This pull request is still a work in progress. Merge is blocked until it is marked ready for review.</p><button hx-patch=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div class=\"mb-4 px-4 py-3 bg-warning/10 border border-warning/40 rounded-lg flex items-center justify-between gap-4\"><p class=\"text-sm text-warning\">&#9998; This pull request is still a work in progress. Merge is blocked until it is marked ready for review.</p><button hx-patch=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -190,7 +190,7 @@ func PullDetail(data view.PullDetailFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" hx-target=\"#pull-detail\" hx-swap=\"outerHTML\" class=\"shrink-0 px-4 py-1.5 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors\">Ready for review</button></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" hx-target=\"#pull-detail\" hx-swap=\"outerHTML\" class=\"shrink-0 px-4 py-1.5 bg-success text-background rounded text-sm font-medium hover:bg-success transition-colors\">Ready for review</button></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -226,19 +226,19 @@ func PullDetail(data view.PullDetailFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" hx-target=\"#pull-detail\" hx-swap=\"outerHTML\" class=\"px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 transition-colors\">Close PR</button> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" hx-target=\"#pull-detail\" hx-swap=\"outerHTML\" class=\"px-4 py-2 bg-destructive text-background rounded font-medium hover:bg-destructive transition-colors\">Close PR</button> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if data.AutoMergeEnabled {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<span class=\"px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700\">&#10003; Auto-merge enabled (")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<span class=\"px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-foreground\">&#10003; Auto-merge enabled (")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(data.AutoMergeStrategy)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_detail.templ`, Line: 50, Col: 141}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_detail.templ`, Line: 50, Col: 145}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -275,7 +275,7 @@ func PullDetail(data view.PullDetailFragData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "\" hx-target=\"#pull-detail\" hx-swap=\"outerHTML\" class=\"px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors\">Disable auto-merge</button>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "\" hx-target=\"#pull-detail\" hx-swap=\"outerHTML\" class=\"px-3 py-1 text-sm text-muted-foreground border border-border rounded hover:bg-muted/40 transition-colors\">Disable auto-merge</button>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -294,7 +294,7 @@ func PullDetail(data view.PullDetailFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "\" hx-target=\"#pull-detail\" hx-swap=\"outerHTML\" class=\"flex items-center gap-1\"><input type=\"hidden\" name=\"auto_merge\" value=\"enable\"> <select name=\"auto_merge_strategy\" class=\"text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400\"><option value=\"ff\">Fast-forward</option> <option value=\"merge\">Merge commit</option> <option value=\"squash\">Squash</option></select> <button type=\"submit\" class=\"px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors\">Enable auto-merge</button></form>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "\" hx-target=\"#pull-detail\" hx-swap=\"outerHTML\" class=\"flex items-center gap-1\"><input type=\"hidden\" name=\"auto_merge\" value=\"enable\"> <select name=\"auto_merge_strategy\" class=\"text-sm border border-border rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus-visible:outline-ring\"><option value=\"ff\">Fast-forward</option> <option value=\"merge\">Merge commit</option> <option value=\"squash\">Squash</option></select> <button type=\"submit\" class=\"px-3 py-1.5 bg-primary text-background rounded text-sm font-medium hover:bg-primary transition-colors\">Enable auto-merge</button></form>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

@@ -8,8 +8,8 @@ import (
 
 // DiffFileHeader renders the header bar of a diff block showing file path and +/- stats.
 templ DiffFileHeader(f service.FileDiff) {
-	<div class="bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center justify-between">
-		<code class="text-sm font-mono text-gray-800">
+	<div class="bg-muted/40 border-b border-border px-4 py-2 flex items-center justify-between">
+		<code class="text-sm font-mono text-foreground">
 			if f.IsNew {
 				{ f.NewPath }
 			} else if f.IsDelete {
@@ -21,9 +21,9 @@ templ DiffFileHeader(f service.FileDiff) {
 			}
 		</code>
 		if !f.IsBinary {
-			<div class="text-xs text-gray-500 ml-4 shrink-0">
-				<span class="text-green-600">+{ strconv.Itoa(f.Added) }</span>
-				<span class="text-red-600 ml-1">-{ strconv.Itoa(f.Deleted) }</span>
+			<div class="text-xs text-muted-foreground ml-4 shrink-0">
+				<span class="text-success">+{ strconv.Itoa(f.Added) }</span>
+				<span class="text-destructive ml-1">-{ strconv.Itoa(f.Deleted) }</span>
 			</div>
 		}
 	</div>
@@ -37,21 +37,21 @@ templ DiffHunkTable(hunks []service.DiffHunk) {
 			<tbody>
 				for _, hunk := range hunks {
 					<tr>
-						<td colspan="4" class="bg-blue-50 text-blue-600 px-4 py-1 select-none">{ hunk.Header }</td>
+						<td colspan="4" class="bg-primary/10 text-foreground px-4 py-1 select-none">{ hunk.Header }</td>
 					</tr>
 					for _, line := range hunk.Lines {
-						<tr class={ templ.KV("bg-green-50", line.Type == "add"), templ.KV("bg-red-50", line.Type == "del") }>
-							<td class="select-none text-gray-400 text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-gray-100">
+						<tr class={ templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del") }>
+							<td class="select-none text-muted-foreground text-right pr-2 pl-4 py-0.5 w-10 align-top border-r border-border">
 								if line.OldNum != 0 {
 									{ strconv.Itoa(line.OldNum) }
 								}
 							</td>
-							<td class="select-none text-gray-400 text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-gray-100">
+							<td class="select-none text-muted-foreground text-right pr-2 pl-2 py-0.5 w-10 align-top border-r border-border">
 								if line.NewNum != 0 {
 									{ strconv.Itoa(line.NewNum) }
 								}
 							</td>
-							<td class={ "select-none px-2 py-0.5 w-4 align-top", templ.KV("text-green-600", line.Type == "add"), templ.KV("text-red-600", line.Type == "del"), templ.KV("text-gray-400", line.Type != "add" && line.Type != "del") }>
+							<td class={ "select-none px-2 py-0.5 w-4 align-top", templ.KV("text-success", line.Type == "add"), templ.KV("text-destructive", line.Type == "del"), templ.KV("text-muted-foreground", line.Type != "add" && line.Type != "del") }>
 								if line.Type == "add" {
 									+
 								} else if line.Type == "del" {

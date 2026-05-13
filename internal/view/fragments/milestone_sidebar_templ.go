@@ -41,7 +41,7 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if len(data.OpenMilestones) == 0 && len(data.ClosedMilestones) == 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"text-center py-12 text-gray-400\"><p class=\"text-sm\">No milestones yet.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"text-center py-12 text-muted-foreground\"><p class=\"text-sm\">No milestones yet.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -57,14 +57,14 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 			}
 		} else {
 			if len(data.OpenMilestones) > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div><h2 class=\"text-sm font-semibold text-gray-700 mb-2\">Open (")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div><h2 class=\"text-sm font-semibold text-foreground mb-2\">Open (")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var2 string
 				templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(data.OpenMilestones)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 22, Col: 104}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 22, Col: 106}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 				if templ_7745c5c3_Err != nil {
@@ -75,14 +75,14 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				for _, m := range data.OpenMilestones {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div class=\"bg-white border border-gray-200 rounded-lg p-4\"><div class=\"flex items-start justify-between gap-2\"><div class=\"flex-1 min-w-0\"><h3 class=\"font-semibold text-gray-900\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div class=\"bg-background border border-border rounded-lg p-4\"><div class=\"flex items-start justify-between gap-2\"><div class=\"flex-1 min-w-0\"><h3 class=\"font-semibold text-foreground\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var3 string
 					templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(m.Title)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 28, Col: 59}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 28, Col: 61}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 					if templ_7745c5c3_Err != nil {
@@ -93,14 +93,14 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					if m.Description != "" {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<p class=\"text-sm text-gray-500 mt-0.5 truncate\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<p class=\"text-sm text-muted-foreground mt-0.5 truncate\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var4 string
 						templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(m.Description)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 30, Col: 75}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 30, Col: 83}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 						if templ_7745c5c3_Err != nil {
@@ -112,14 +112,14 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 						}
 					}
 					if m.DueDate != nil {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<p class=\"text-xs text-gray-400 mt-1\">Due ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<p class=\"text-xs text-muted-foreground mt-1\">Due ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var5 string
 						templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(m.DueDate.Format("Jan 2, 2006"))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 33, Col: 86}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 33, Col: 94}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 						if templ_7745c5c3_Err != nil {
@@ -136,7 +136,7 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 							return templ_7745c5c3_Err
 						}
 					} else {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<p class=\"text-xs text-gray-400 mt-1\">No issues assigned</p>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<p class=\"text-xs text-muted-foreground mt-1\">No issues assigned</p>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -172,7 +172,7 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" hx-target=\"#milestones-list\" hx-swap=\"outerHTML\" class=\"text-xs text-gray-500 hover:text-gray-700\">Close</button> <button hx-delete=\"")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" hx-target=\"#milestones-list\" hx-swap=\"outerHTML\" class=\"text-xs text-muted-foreground hover:text-foreground\">Close</button> <button hx-delete=\"")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -185,7 +185,7 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" hx-target=\"#milestones-list\" hx-swap=\"outerHTML\" hx-confirm=\"Delete this milestone?\" class=\"text-xs text-red-500 hover:text-red-700\">Delete</button></div>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" hx-target=\"#milestones-list\" hx-swap=\"outerHTML\" hx-confirm=\"Delete this milestone?\" class=\"text-xs text-destructive hover:text-destructive\">Delete</button></div>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -205,14 +205,14 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if len(data.ClosedMilestones) > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<div><h2 class=\"text-sm font-semibold text-gray-700 mb-2\">Closed (")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<div><h2 class=\"text-sm font-semibold text-foreground mb-2\">Closed (")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(len(data.ClosedMilestones)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 59, Col: 108}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 59, Col: 110}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 				if templ_7745c5c3_Err != nil {
@@ -223,14 +223,14 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				for _, m := range data.ClosedMilestones {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<div class=\"bg-white border border-gray-200 rounded-lg p-4 opacity-70\"><div class=\"flex items-start justify-between gap-2\"><div class=\"flex-1 min-w-0\"><h3 class=\"font-semibold text-gray-900 line-through\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<div class=\"bg-background border border-border rounded-lg p-4 opacity-70\"><div class=\"flex items-start justify-between gap-2\"><div class=\"flex-1 min-w-0\"><h3 class=\"font-semibold text-foreground line-through\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var10 string
 					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(m.Title)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 65, Col: 72}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 65, Col: 74}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 					if templ_7745c5c3_Err != nil {
@@ -241,14 +241,14 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					if m.Description != "" {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<p class=\"text-sm text-gray-500 mt-0.5 truncate\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<p class=\"text-sm text-muted-foreground mt-0.5 truncate\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var11 string
 						templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(m.Description)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 67, Col: 75}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 67, Col: 83}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 						if templ_7745c5c3_Err != nil {
@@ -260,14 +260,14 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 						}
 					}
 					if m.ClosedAt != nil {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<p class=\"text-xs text-gray-400 mt-1\">Closed ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<p class=\"text-xs text-muted-foreground mt-1\">Closed ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var12 string
 						templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(m.ClosedAt.Format("Jan 2, 2006"))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 70, Col: 90}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 70, Col: 98}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 						if templ_7745c5c3_Err != nil {
@@ -315,7 +315,7 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "\" hx-target=\"#milestones-list\" hx-swap=\"outerHTML\" class=\"text-xs text-blue-500 hover:text-blue-700\">Reopen</button> <button hx-delete=\"")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "\" hx-target=\"#milestones-list\" hx-swap=\"outerHTML\" class=\"text-xs text-foreground hover:text-foreground\">Reopen</button> <button hx-delete=\"")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -328,7 +328,7 @@ func MilestonesList(data view.MilestonesListFragData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "\" hx-target=\"#milestones-list\" hx-swap=\"outerHTML\" hx-confirm=\"Delete this milestone?\" class=\"text-xs text-red-500 hover:text-red-700\">Delete</button></div>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "\" hx-target=\"#milestones-list\" hx-swap=\"outerHTML\" hx-confirm=\"Delete this milestone?\" class=\"text-xs text-destructive hover:text-destructive\">Delete</button></div>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -373,19 +373,19 @@ func MilestoneSidebar(data view.MilestoneSidebarFragData) templ.Component {
 			templ_7745c5c3_Var16 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<div id=\"issue-milestone\" class=\"bg-white border border-gray-200 rounded-lg p-4\"><h3 class=\"text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2\">Milestone</h3>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<div id=\"issue-milestone\" class=\"bg-background border border-border rounded-lg p-4\"><h3 class=\"text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2\">Milestone</h3>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.Current != nil {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<div class=\"text-sm\"><span class=\"font-medium text-gray-800\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<div class=\"text-sm\"><span class=\"font-medium text-foreground\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(data.Current.Title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 101, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/milestone_sidebar.templ`, Line: 101, Col: 66}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -406,13 +406,13 @@ func MilestoneSidebar(data view.MilestoneSidebarFragData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "<span class=\"text-xs text-gray-400\">No milestone</span> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "<span class=\"text-xs text-muted-foreground\">No milestone</span> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
 		if data.CanWrite && len(data.AllMilestones) > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<details class=\"mt-2\"><summary class=\"text-xs text-blue-600 cursor-pointer hover:underline\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<details class=\"mt-2\"><summary class=\"text-xs text-foreground cursor-pointer hover:underline\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -427,7 +427,7 @@ func MilestoneSidebar(data view.MilestoneSidebarFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "</summary><div class=\"mt-1 space-y-1 max-h-40 overflow-y-auto border border-gray-100 rounded\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "</summary><div class=\"mt-1 space-y-1 max-h-40 overflow-y-auto border border-border rounded\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -445,12 +445,12 @@ func MilestoneSidebar(data view.MilestoneSidebarFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "\" hx-target=\"#issue-milestone\" hx-swap=\"outerHTML\" class=\"p-1\"><button type=\"submit\" name=\"milestone_id\" value=\"\" class=\"w-full text-left px-2 py-1 hover:bg-gray-50 text-xs text-gray-500\">No milestone</button> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "\" hx-target=\"#issue-milestone\" hx-swap=\"outerHTML\" class=\"p-1\"><button type=\"submit\" name=\"milestone_id\" value=\"\" class=\"w-full text-left px-2 py-1 hover:bg-muted/40 text-xs text-muted-foreground\">No milestone</button> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				for _, m := range data.AllMilestones {
-					var templ_7745c5c3_Var19 = []any{"w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-gray-50 text-xs", templ.KV("font-semibold text-blue-600", data.Current != nil && data.Current.ID == m.ID)}
+					var templ_7745c5c3_Var19 = []any{"w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-muted/40 text-xs", templ.KV("font-semibold text-foreground", data.Current != nil && data.Current.ID == m.ID)}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var19...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -485,7 +485,7 @@ func MilestoneSidebar(data view.MilestoneSidebarFragData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var22 = []any{"w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-gray-400", m.State == "closed"), templ.KV("bg-green-500", m.State != "closed")}
+					var templ_7745c5c3_Var22 = []any{"w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-muted", m.State == "closed"), templ.KV("bg-success", m.State != "closed")}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var22...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -539,12 +539,12 @@ func MilestoneSidebar(data view.MilestoneSidebarFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "\" hx-target=\"#issue-milestone\" hx-swap=\"outerHTML\" class=\"p-1\"><button type=\"submit\" name=\"milestone_id\" value=\"\" class=\"w-full text-left px-2 py-1 hover:bg-gray-50 text-xs text-gray-500\">No milestone</button> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "\" hx-target=\"#issue-milestone\" hx-swap=\"outerHTML\" class=\"p-1\"><button type=\"submit\" name=\"milestone_id\" value=\"\" class=\"w-full text-left px-2 py-1 hover:bg-muted/40 text-xs text-muted-foreground\">No milestone</button> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				for _, m := range data.AllMilestones {
-					var templ_7745c5c3_Var26 = []any{"w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-gray-50 text-xs", templ.KV("font-semibold text-blue-600", data.Current != nil && data.Current.ID == m.ID)}
+					var templ_7745c5c3_Var26 = []any{"w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-muted/40 text-xs", templ.KV("font-semibold text-foreground", data.Current != nil && data.Current.ID == m.ID)}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var26...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -579,7 +579,7 @@ func MilestoneSidebar(data view.MilestoneSidebarFragData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var29 = []any{"w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-gray-400", m.State == "closed"), templ.KV("bg-green-500", m.State != "closed")}
+					var templ_7745c5c3_Var29 = []any{"w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-muted", m.State == "closed"), templ.KV("bg-success", m.State != "closed")}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var29...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err

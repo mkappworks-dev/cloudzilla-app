@@ -29,7 +29,7 @@ func GistFileRow() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"border border-gray-200 rounded p-4\"><input type=\"text\" name=\"filename[]\" placeholder=\"Filename including extension\" class=\"w-full border border-gray-300 rounded px-3 py-1 text-sm mb-2\" required> <textarea name=\"content[]\" rows=\"8\" class=\"w-full border border-gray-300 rounded px-3 py-1 text-sm font-mono\" placeholder=\"File contents...\"></textarea></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"border border-border rounded p-4\"><input type=\"text\" name=\"filename[]\" placeholder=\"Filename including extension\" class=\"w-full border border-border rounded px-3 py-1 text-sm mb-2\" required> <textarea name=\"content[]\" rows=\"8\" class=\"w-full border border-border rounded px-3 py-1 text-sm font-mono\" placeholder=\"File contents...\"></textarea></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
