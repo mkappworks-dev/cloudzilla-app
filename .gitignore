@@ -29,6 +29,7 @@ cloudzilla_host_key
 
 # UI design prototypes — kept on disk for reference, not tracked
 mockups/
+.playwright-mcp
 
 # OS
 .DS_Store
