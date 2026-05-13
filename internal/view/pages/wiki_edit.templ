@@ -23,7 +23,13 @@ templ WikiEdit(data view.WikiEditData) {
 				<h1 id="edit-title" class="text-2xl font-semibold tracking-tight">Editing: { data.Slug }</h1>
 			</section>
 
-			<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug) } class="space-y-5 rounded-md border border-border bg-card p-6">
+			<form
+				id="wiki-edit-form"
+				data-owner={ data.Owner }
+				data-repo={ data.RepoName }
+				data-slug={ data.Slug }
+				class="space-y-5 rounded-md border border-border bg-card p-6"
+			>
 				<div class="space-y-1.5">
 					<label for="wiki-content" class="block text-sm font-medium">Content <span class="text-muted-foreground font-normal">(Markdown)</span></label>
 					<textarea
@@ -46,6 +52,8 @@ templ WikiEdit(data view.WikiEditData) {
 					})
 				</div>
 
+				<div id="wiki-edit-error" role="alert" class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2"></div>
+
 				<div class="flex items-center gap-3 pt-1">
 					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 						Save page
@@ -55,6 +63,43 @@ templ WikiEdit(data view.WikiEditData) {
 					}
 				</div>
 			</form>
+
+			<script>
+				(function() {
+					const form = document.getElementById('wiki-edit-form');
+					const errBox = document.getElementById('wiki-edit-error');
+					form.addEventListener('submit', async function(e) {
+						e.preventDefault();
+						errBox.classList.add('hidden');
+						const owner = form.dataset.owner;
+						const repo = form.dataset.repo;
+						const slug = form.dataset.slug;
+						const content = form.querySelector('[name=content]').value;
+						const message = form.querySelector('[name=message]').value;
+						const csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+						const body = new URLSearchParams();
+						body.set('content', content);
+						body.set('message', message);
+						const res = await fetch('/api/repos/' + owner + '/' + repo + '/wiki/' + slug, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/x-www-form-urlencoded',
+								'X-CSRF-Token': csrf,
+							},
+							body: body.toString(),
+						});
+						if (res.ok || res.redirected) {
+							window.location.href = '/' + owner + '/' + repo + '/wiki/' + slug;
+							return;
+						}
+						const text = await res.text();
+						let msg = text;
+						try { msg = JSON.parse(text).error || text; } catch (_) {}
+						errBox.textContent = msg || ('Failed to save page (HTTP ' + res.status + ')');
+						errBox.classList.remove('hidden');
+					});
+				})();
+			</script>
 		</div>
 	}
 }

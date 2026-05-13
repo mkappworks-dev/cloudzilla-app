@@ -125,33 +125,59 @@ func WikiEdit(data view.WikiEditData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</h1></section><form method=\"POST\" action=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</h1></section><form id=\"wiki-edit-form\" data-owner=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var9 templ.SafeURL
-			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug))
+			var templ_7745c5c3_Var9 string
+			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Owner)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 26, Col: 118}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 28, Col: 27}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" class=\"space-y-5 rounded-md border border-border bg-card p-6\"><div class=\"space-y-1.5\"><label for=\"wiki-content\" class=\"block text-sm font-medium\">Content <span class=\"text-muted-foreground font-normal\">(Markdown)</span></label> <textarea id=\"wiki-content\" name=\"content\" rows=\"24\" class=\"min-h-[280px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" data-repo=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var10 string
-			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(data.Content)
+			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.RepoName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 34, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 29, Col: 29}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</textarea></div><div class=\"space-y-1.5\"><label for=\"wiki-message\" class=\"block text-sm font-medium\">Commit message <span class=\"text-muted-foreground font-normal\">(optional)</span></label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" data-slug=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var11 string
+			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Slug)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 30, Col: 25}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" class=\"space-y-5 rounded-md border border-border bg-card p-6\"><div class=\"space-y-1.5\"><label for=\"wiki-content\" class=\"block text-sm font-medium\">Content <span class=\"text-muted-foreground font-normal\">(Markdown)</span></label> <textarea id=\"wiki-content\" name=\"content\" rows=\"24\" class=\"min-h-[280px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var12 string
+			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(data.Content)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_edit.templ`, Line: 40, Col: 20}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</textarea></div><div class=\"space-y-1.5\"><label for=\"wiki-message\" class=\"block text-sm font-medium\">Commit message <span class=\"text-muted-foreground font-normal\">(optional)</span></label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -164,11 +190,11 @@ func WikiEdit(data view.WikiEditData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div><div class=\"flex items-center gap-3 pt-1\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div><div id=\"wiki-edit-error\" role=\"alert\" class=\"hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2\"></div><div class=\"flex items-center gap-3 pt-1\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var11 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var13 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -180,17 +206,17 @@ func WikiEdit(data view.WikiEditData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "Save page")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "Save page")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var11), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var13), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var12 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var14 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -202,17 +228,17 @@ func WikiEdit(data view.WikiEditData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "Cancel")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "Cancel")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug, components.ButtonGhost, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var12), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug, components.ButtonGhost, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var14), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div></form></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div></form><script>\n\t\t\t\t(function() {\n\t\t\t\t\tconst form = document.getElementById('wiki-edit-form');\n\t\t\t\t\tconst errBox = document.getElementById('wiki-edit-error');\n\t\t\t\t\tform.addEventListener('submit', async function(e) {\n\t\t\t\t\t\te.preventDefault();\n\t\t\t\t\t\terrBox.classList.add('hidden');\n\t\t\t\t\t\tconst owner = form.dataset.owner;\n\t\t\t\t\t\tconst repo = form.dataset.repo;\n\t\t\t\t\t\tconst slug = form.dataset.slug;\n\t\t\t\t\t\tconst content = form.querySelector('[name=content]').value;\n\t\t\t\t\t\tconst message = form.querySelector('[name=message]').value;\n\t\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\t\tconst body = new URLSearchParams();\n\t\t\t\t\t\tbody.set('content', content);\n\t\t\t\t\t\tbody.set('message', message);\n\t\t\t\t\t\tconst res = await fetch('/api/repos/' + owner + '/' + repo + '/wiki/' + slug, {\n\t\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\t\theaders: {\n\t\t\t\t\t\t\t\t'Content-Type': 'application/x-www-form-urlencoded',\n\t\t\t\t\t\t\t\t'X-CSRF-Token': csrf,\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\tbody: body.toString(),\n\t\t\t\t\t\t});\n\t\t\t\t\t\tif (res.ok || res.redirected) {\n\t\t\t\t\t\t\twindow.location.href = '/' + owner + '/' + repo + '/wiki/' + slug;\n\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t}\n\t\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\t\tlet msg = text;\n\t\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\t\terrBox.textContent = msg || ('Failed to save page (HTTP ' + res.status + ')');\n\t\t\t\t\t\terrBox.classList.remove('hidden');\n\t\t\t\t\t});\n\t\t\t\t})();\n\t\t\t</script></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

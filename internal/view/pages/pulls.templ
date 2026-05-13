@@ -2,7 +2,9 @@ package pages
 
 import (
 	"strconv"
+	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -22,6 +24,19 @@ func pullStateIconClass(state string, isDraft bool) string {
 	default:
 		return "text-destructive"
 	}
+}
+
+// pullActionTime returns the verb + timestamp pair for the PR meta byline —
+// merged/closed PRs anchor on their merge/close time so the meta line lines up
+// across rows regardless of state.
+func pullActionTime(pull model.PullRequest) (verb string, t time.Time) {
+	if pull.MergedAt != nil {
+		return "merged", *pull.MergedAt
+	}
+	if pull.ClosedAt != nil {
+		return "closed", *pull.ClosedAt
+	}
+	return "opened", pull.CreatedAt
 }
 
 templ Pulls(data view.PullsData) {
@@ -80,10 +95,13 @@ templ Pulls(data view.PullsData) {
 												@components.PullStateBadge(string(pull.State))
 											</span>
 										</div>
+										{{ verb, when := pullActionTime(pull) }}
 										<p class="mt-0.5 text-[12px] text-muted-foreground truncate">
 											<span class="font-mono">#{ strconv.Itoa(pull.Number) }</span>
 											<span class="px-1.5 text-muted-foreground/60" aria-hidden="true">·</span>
-											opened by { pull.AuthorName }
+											{ verb }
+											<time datetime={ when.UTC().Format(time.RFC3339) }>{ when.Format("Jan 2, 2006") }</time>
+											by { pull.AuthorName }
 											<span class="px-1.5 text-muted-foreground/60" aria-hidden="true">·</span>
 											<span class="inline-flex items-center gap-1 align-baseline font-mono text-[11px]" title={ pull.HeadBranch + " → " + pull.BaseBranch }>
 												<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="opacity-70" aria-hidden="true" focusable="false">

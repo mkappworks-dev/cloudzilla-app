@@ -13,13 +13,6 @@ script deleteWikiPageJS(owner, repoName, slug string) {
 		.then(function(r) { if (r.ok || r.redirected) window.location.href = '/' + owner + '/' + repoName + '/wiki'; });
 }
 
-script newWikiPageJS(owner, repoName string) {
-	var name = prompt('Page name (letters, numbers, hyphens, underscores):');
-	if (!name) return;
-	if (!/^[A-Za-z0-9_-]{1,100}$/.test(name)) { alert('Invalid page name. Use letters, numbers, hyphens, and underscores only.'); return; }
-	window.location.href = '/' + owner + '/' + repoName + '/wiki/' + name + '/edit';
-}
-
 templ WikiPage(data view.WikiPageData) {
 	@layout.Base(data.BasePage, data.Slug+" — Wiki — "+data.RepoName+" — Cloudzilla") {
 		<div class="max-w-[1100px] mx-auto space-y-6">
@@ -70,7 +63,7 @@ templ WikiPage(data view.WikiPageData) {
 					if data.CanWrite {
 						<button
 							type="button"
-							onclick={ newWikiPageJS(data.Owner, data.RepoName) }
+							onclick="document.getElementById('wiki-new-page').showModal()"
 							class="mt-3 text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5"
 						>+ New page</button>
 					}
@@ -91,6 +84,84 @@ templ WikiPage(data view.WikiPageData) {
 					}
 				</article>
 			</div>
+
+			if data.CanWrite {
+				@components.Dialog("wiki-new-page") {
+					@components.DialogHeader() {
+						@components.DialogTitle("wiki-new-page") {
+							New wiki page
+						}
+						@components.DialogDescription() {
+							Choose a page name. Use letters, numbers, hyphens, and underscores only.
+						}
+					}
+					<form
+						method="dialog"
+						onsubmit={ wikiNewPageSubmit(data.Owner, data.RepoName) }
+						class="p-5 space-y-4"
+					>
+						<div class="space-y-1.5">
+							<label for="wiki-new-page-name" class="block text-sm font-medium">Page name</label>
+							@components.Input(templ.Attributes{
+								"id":          "wiki-new-page-name",
+								"name":        "name",
+								"type":        "text",
+								"required":    "required",
+								"pattern":     "[A-Za-z0-9_-]{1,100}",
+								"placeholder": "Getting-Started",
+								"autofocus":   "autofocus",
+								"class":       "font-mono",
+							})
+							<p id="wiki-new-page-error" class="hidden text-[12px] text-destructive" role="alert"></p>
+						</div>
+					</form>
+					@components.DialogFooter() {
+						@components.DialogClose(templ.Attributes{
+							"class": "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 px-3 text-[13px]",
+						}) {
+							Cancel
+						}
+						@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{
+							"type":    "button",
+							"onclick": wikiNewPageGo(data.Owner, data.RepoName),
+						}) {
+							Create page
+						}
+					}
+				}
+			}
 		</div>
 	}
+}
+
+// wikiNewPageGo reads the input value, validates against the regex, and either
+// navigates to the editor URL or surfaces an inline error.
+script wikiNewPageGo(owner, repoName string) {
+	var input = document.getElementById('wiki-new-page-name');
+	var err = document.getElementById('wiki-new-page-error');
+	var name = (input.value || '').trim();
+	if (!/^[A-Za-z0-9_-]{1,100}$/.test(name)) {
+		err.textContent = 'Use letters, numbers, hyphens, and underscores (1–100 chars).';
+		err.classList.remove('hidden');
+		input.focus();
+		return;
+	}
+	window.location.href = '/' + owner + '/' + repoName + '/wiki/' + name + '/edit';
+}
+
+// wikiNewPageSubmit blocks the implicit Enter-key submit on the inline form
+// and routes through wikiNewPageGo so the same validation/redirect path runs.
+script wikiNewPageSubmit(owner, repoName string) {
+	event.preventDefault();
+	var input = document.getElementById('wiki-new-page-name');
+	var err = document.getElementById('wiki-new-page-error');
+	var name = (input.value || '').trim();
+	if (!/^[A-Za-z0-9_-]{1,100}$/.test(name)) {
+		err.textContent = 'Use letters, numbers, hyphens, and underscores (1–100 chars).';
+		err.classList.remove('hidden');
+		input.focus();
+		return false;
+	}
+	window.location.href = '/' + owner + '/' + repoName + '/wiki/' + name + '/edit';
+	return false;
 }
