@@ -11,50 +11,71 @@ import (
 templ Contributors(data view.ContributorsData) {
 	@layout.Base(data.BasePage, "Contributors · "+data.Owner+"/"+data.RepoName) {
 		<div class="space-y-6">
-			<div class="flex items-center gap-2 text-sm text-muted-foreground">
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-foreground hover:underline font-medium">{ data.Owner }/{ data.RepoName }</a>
-				<span aria-hidden="true">/</span>
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulse") } class="text-foreground hover:underline">Pulse</a>
-				<span aria-hidden="true">/</span>
-				<span class="font-medium text-foreground">Contributors</span>
-			</div>
-			<h1 class="text-2xl font-bold">Contributors</h1>
+
+			<section aria-labelledby="contrib-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulse") } class="hover:underline">Pulse</a>
+					<span aria-hidden="true">·</span>
+					Contributors
+				</p>
+				<h1 id="contrib-title" class="text-2xl font-semibold tracking-tight">Contributors</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">Aggregated by author email across all branches, sorted by total commits.</p>
+			</section>
+
 			if len(data.Contributors) > 0 {
-				<div class="rounded-md border border-border bg-card overflow-hidden">
-					<table class="w-full text-sm">
-						<thead class="bg-muted/40 border-b border-border">
-							<tr>
-								<th scope="col" class="text-left px-4 py-2 font-medium text-muted-foreground">Contributor</th>
-								<th scope="col" class="text-left px-4 py-2 font-medium text-muted-foreground hidden sm:table-cell">Email</th>
-								<th scope="col" class="text-right px-4 py-2 font-medium text-muted-foreground">Commits</th>
-								<th scope="col" class="text-right px-4 py-2 font-medium text-muted-foreground hidden sm:table-cell">Additions</th>
-								<th scope="col" class="text-right px-4 py-2 font-medium text-muted-foreground hidden sm:table-cell">Deletions</th>
-								<th scope="col" class="px-4 py-2 w-48 hidden md:table-cell"><span class="sr-only">Activity bar</span></th>
-							</tr>
-						</thead>
-						<tbody class="divide-y divide-border">
+				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="contrib-table">
+					<h2 id="contrib-table" class="sr-only">All contributors</h2>
+					@components.Table(nil) {
+						@components.TableHeader() {
+							@components.TableRow(false) {
+								@components.TableHead(templ.Attributes{"scope": "col"}) {
+									Contributor
+								}
+								@components.TableHead(templ.Attributes{"scope": "col", "class": "hidden sm:table-cell"}) {
+									Email
+								}
+								@components.TableHead(templ.Attributes{"scope": "col", "class": "text-right"}) {
+									Commits
+								}
+								@components.TableHead(templ.Attributes{"scope": "col", "class": "text-right hidden sm:table-cell"}) {
+									+ / –
+								}
+								@components.TableHead(templ.Attributes{"scope": "col", "class": "w-48 hidden md:table-cell"}) {
+									<span class="sr-only">Activity</span>
+								}
+							}
+						}
+						@components.TableBody() {
 							for _, c := range data.Contributors {
-								<tr class="hover:bg-muted/50">
-									<td class="px-4 py-2 font-medium text-foreground">
+								@components.TableRow(true) {
+									@components.TableRowHead(nil) {
 										<div class="flex items-center gap-2">
 											@components.Avatar(c.Name, components.AvatarSizeSM, c.Name)
-											<span>{ c.Name }</span>
+											<span class="text-[13px] font-medium">{ c.Name }</span>
 										</div>
-									</td>
-									<td class="px-4 py-2 text-muted-foreground hidden sm:table-cell text-xs">{ c.Email }</td>
-									<td class="px-4 py-2 text-right font-semibold text-foreground">{ strconv.Itoa(c.Commits) }</td>
-									<td class="px-4 py-2 text-right text-success hidden sm:table-cell">+{ strconv.Itoa(c.Additions) }</td>
-									<td class="px-4 py-2 text-right text-destructive hidden sm:table-cell">-{ strconv.Itoa(c.Deletions) }</td>
-									<td class="px-4 py-2 hidden md:table-cell">
-										<div class="bg-muted rounded-full h-2 w-full overflow-hidden" role="progressbar" aria-label={ c.Name + " commit activity" } aria-valuenow={ strconv.Itoa(c.Commits) } aria-valuemin="0" aria-valuemax={ strconv.Itoa(data.MaxCommits) }>
-											<div class="bg-success h-2 rounded-full" style={ "width: " + pct(c.Commits, data.MaxCommits) + "%" }></div>
+									}
+									@components.TableCell(templ.Attributes{"class": "hidden sm:table-cell font-mono text-[11px] text-muted-foreground"}) {
+										{ c.Email }
+									}
+									@components.TableCell(templ.Attributes{"class": "text-right font-semibold font-mono"}) {
+										{ strconv.Itoa(c.Commits) }
+									}
+									@components.TableCell(templ.Attributes{"class": "text-right hidden sm:table-cell font-mono text-[12px]"}) {
+										<span class="text-success">+{ strconv.Itoa(c.Additions) }</span>
+										<span class="text-destructive">−{ strconv.Itoa(c.Deletions) }</span>
+									}
+									@components.TableCell(templ.Attributes{"class": "hidden md:table-cell"}) {
+										<div class="border border-border rounded-full h-1.5 w-full overflow-hidden bg-muted" role="progressbar" aria-label={ c.Name + " commit activity" } aria-valuenow={ strconv.Itoa(c.Commits) } aria-valuemin="0" aria-valuemax={ strconv.Itoa(data.MaxCommits) }>
+											<div class="h-1.5 rounded-full bg-success" style={ "width: " + pct(c.Commits, data.MaxCommits) + "%" }></div>
 										</div>
-									</td>
-								</tr>
+									}
+								}
 							}
-						</tbody>
-					</table>
-				</div>
+						}
+					}
+				</section>
 			} else {
 				@components.EmptyState("No commits yet.")
 			}
