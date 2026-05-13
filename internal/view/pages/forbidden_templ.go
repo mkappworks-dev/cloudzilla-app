@@ -47,7 +47,7 @@ func Forbidden(base view.BasePage) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-md mx-auto mt-24 text-center\"><p class=\"text-7xl font-bold text-muted-foreground/40\">403</p><h1 class=\"mt-4 text-2xl font-semibold tracking-tight text-foreground\">Access denied</h1><p class=\"mt-2 text-sm text-muted-foreground\">You don't have permission to view this page.</p><div class=\"mt-6\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-md mx-auto mt-20 rounded-md border border-border bg-card overflow-hidden relative\"><div class=\"absolute inset-0 pointer-events-none opacity-40\" style=\"background-image: linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px); background-size: 56px 56px; mask-image: radial-gradient(ellipse at top, black 30%, transparent 70%);\" aria-hidden=\"true\"></div><div class=\"relative p-10 text-center\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider\">403 · Forbidden</p><p class=\"mt-4 font-mono text-[7rem] font-semibold leading-none tracking-tight text-muted-foreground/70\">403</p><h1 class=\"mt-2 text-xl font-semibold tracking-tight\">Access denied</h1><p class=\"mt-2 text-[13px] text-muted-foreground max-w-xs mx-auto\">You don't have permission to view this page. Ask the owner if you think this is a mistake.</p><div class=\"mt-5 flex items-center justify-center gap-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -73,7 +73,31 @@ func Forbidden(base view.BasePage) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></div>")
+			if base.CurrentUser == nil {
+				templ_7745c5c3_Var4 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+					if !templ_7745c5c3_IsBuffer {
+						defer func() {
+							templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+							if templ_7745c5c3_Err == nil {
+								templ_7745c5c3_Err = templ_7745c5c3_BufErr
+							}
+						}()
+					}
+					ctx = templ.InitializeContext(ctx)
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "Sign in")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					return nil
+				})
+				templ_7745c5c3_Err = components.LinkButton("/login", components.ButtonOutline, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var4), templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

@@ -7,57 +7,53 @@ import (
 )
 
 templ Register(data view.RegisterData) {
-	@layout.Base(data.BasePage, "Register") {
-		<div class="max-w-md mx-auto mt-12">
-			@components.Card(nil) {
-				@components.CardContent() {
-					<h1 class="text-2xl font-semibold tracking-tight mb-6">Create Account</h1>
-					if data.Error != "" {
-						<div class="mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert">
-							{ data.Error }
-						</div>
-					}
-					<form method="POST" action="/register" class="space-y-4">
-						<div class="space-y-1.5">
-							<label for="username" class="block text-sm font-medium">Username</label>
-							@components.Input(templ.Attributes{
-								"type":     "text",
-								"id":       "username",
-								"name":     "username",
-								"required": "required",
-								"value":    data.Username,
-							})
-						</div>
-						<div class="space-y-1.5">
-							<label for="email" class="block text-sm font-medium">Email</label>
-							@components.Input(templ.Attributes{
-								"type":     "email",
-								"id":       "email",
-								"name":     "email",
-								"required": "required",
-								"value":    data.Email,
-							})
-						</div>
-						<div class="space-y-1.5">
-							<label for="password" class="block text-sm font-medium">Password</label>
-							@components.Input(templ.Attributes{
-								"type":      "password",
-								"id":        "password",
-								"name":      "password",
-								"required":  "required",
-								"minlength": "8",
-							})
-						</div>
-						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {
-							Create Account
-						}
-					</form>
-					<p class="mt-6 text-center text-sm text-muted-foreground">
-						Already have an account?
-						<a href="/login" class="text-foreground hover:underline">Sign in</a>
-					</p>
-				}
+	@layout.Base(data.BasePage, "Create account") {
+		<div class="max-w-md mx-auto mt-12 rounded-md border border-border bg-card p-6">
+			@authCardHero("Cloudzilla", "Create your account", "")
+			if data.Error != "" {
+				<div class="mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert">
+					{ data.Error }
+				</div>
 			}
+			<form method="POST" action="/register" class="space-y-4">
+				<div class="space-y-1.5">
+					<label for="username" class="block text-sm font-medium">Username</label>
+					@components.Input(templ.Attributes{
+						"type":     "text",
+						"id":       "username",
+						"name":     "username",
+						"required": "required",
+						"value":    data.Username,
+					})
+				</div>
+				<div class="space-y-1.5">
+					<label for="email" class="block text-sm font-medium">Email</label>
+					@components.Input(templ.Attributes{
+						"type":     "email",
+						"id":       "email",
+						"name":     "email",
+						"required": "required",
+						"value":    data.Email,
+					})
+				</div>
+				<div class="space-y-1.5">
+					<label for="password" class="block text-sm font-medium">Password</label>
+					@components.Input(templ.Attributes{
+						"type":      "password",
+						"id":        "password",
+						"name":      "password",
+						"required":  "required",
+						"minlength": "8",
+					})
+				</div>
+				@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {
+					Create account
+				}
+			</form>
+			<p class="mt-5 text-center text-[12px] text-muted-foreground">
+				Already have an account?
+				<a href="/login" class="text-foreground hover:underline">Sign in</a>
+			</p>
 		</div>
 	}
 }

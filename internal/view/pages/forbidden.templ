@@ -8,14 +8,23 @@ import (
 
 templ Forbidden(base view.BasePage) {
 	@layout.Base(base, "Access denied") {
-		<div class="max-w-md mx-auto mt-24 text-center">
-			<p class="text-7xl font-bold text-muted-foreground/40">403</p>
-			<h1 class="mt-4 text-2xl font-semibold tracking-tight text-foreground">Access denied</h1>
-			<p class="mt-2 text-sm text-muted-foreground">You don't have permission to view this page.</p>
-			<div class="mt-6">
-				@components.LinkButton("/", components.ButtonDefault, components.ButtonSizeDefault, nil) {
-					Go home
-				}
+		<div class="max-w-md mx-auto mt-20 rounded-md border border-border bg-card overflow-hidden relative">
+			<div class="absolute inset-0 pointer-events-none opacity-40" style="background-image: linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px); background-size: 56px 56px; mask-image: radial-gradient(ellipse at top, black 30%, transparent 70%);" aria-hidden="true"></div>
+			<div class="relative p-10 text-center">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">403 · Forbidden</p>
+				<p class="mt-4 font-mono text-[7rem] font-semibold leading-none tracking-tight text-muted-foreground/70">403</p>
+				<h1 class="mt-2 text-xl font-semibold tracking-tight">Access denied</h1>
+				<p class="mt-2 text-[13px] text-muted-foreground max-w-xs mx-auto">You don't have permission to view this page. Ask the owner if you think this is a mistake.</p>
+				<div class="mt-5 flex items-center justify-center gap-2">
+					@components.LinkButton("/", components.ButtonDefault, components.ButtonSizeDefault, nil) {
+						Go home
+					}
+					if base.CurrentUser == nil {
+						@components.LinkButton("/login", components.ButtonOutline, components.ButtonSizeDefault, nil) {
+							Sign in
+						}
+					}
+				</div>
 			</div>
 		</div>
 	}

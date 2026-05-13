@@ -8,51 +8,44 @@ import (
 
 templ Setup(data view.SetupData) {
 	@layout.Base(data.BasePage, "Setup Cloudzilla") {
-		<div class="max-w-md mx-auto mt-16">
-			<div class="text-center mb-8">
-				<h1 class="text-3xl font-semibold tracking-tight text-foreground">☁ Cloudzilla Setup</h1>
-				<p class="text-muted-foreground mt-2">Create your superadmin account to get started.</p>
-			</div>
-			@components.Card(nil) {
-				@components.CardContent() {
-					if data.Error != "" {
-						<div class="mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert">{ data.Error }</div>
-					}
-					<form method="POST" action="/setup" class="space-y-4">
-						<div class="space-y-1.5">
-							<label for="setup-username" class="block text-sm font-medium">Username</label>
-							@components.Input(templ.Attributes{
-								"type":     "text",
-								"id":       "setup-username",
-								"name":     "username",
-								"required": "required",
-								"autofocus": "autofocus",
-							})
-						</div>
-						<div class="space-y-1.5">
-							<label for="setup-email" class="block text-sm font-medium">Email</label>
-							@components.Input(templ.Attributes{
-								"type":     "email",
-								"id":       "setup-email",
-								"name":     "email",
-								"required": "required",
-							})
-						</div>
-						<div class="space-y-1.5">
-							<label for="setup-password" class="block text-sm font-medium">Password</label>
-							@components.Input(templ.Attributes{
-								"type":     "password",
-								"id":       "setup-password",
-								"name":     "password",
-								"required": "required",
-							})
-						</div>
-						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {
-							Create Superadmin Account
-						}
-					</form>
-				}
+		<div class="max-w-md mx-auto mt-16 rounded-md border border-border bg-card p-6">
+			@authCardHero("First-run setup", "Create your superadmin account", "Cloudzilla needs one admin to bootstrap — this account is the only one that can complete the initial configuration.")
+			if data.Error != "" {
+				<div class="mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert">{ data.Error }</div>
 			}
+			<form method="POST" action="/setup" class="space-y-4">
+				<div class="space-y-1.5">
+					<label for="setup-username" class="block text-sm font-medium">Username</label>
+					@components.Input(templ.Attributes{
+						"type":      "text",
+						"id":        "setup-username",
+						"name":      "username",
+						"required":  "required",
+						"autofocus": "autofocus",
+					})
+				</div>
+				<div class="space-y-1.5">
+					<label for="setup-email" class="block text-sm font-medium">Email</label>
+					@components.Input(templ.Attributes{
+						"type":     "email",
+						"id":       "setup-email",
+						"name":     "email",
+						"required": "required",
+					})
+				</div>
+				<div class="space-y-1.5">
+					<label for="setup-password" class="block text-sm font-medium">Password</label>
+					@components.Input(templ.Attributes{
+						"type":     "password",
+						"id":       "setup-password",
+						"name":     "password",
+						"required": "required",
+					})
+				</div>
+				@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {
+					Create superadmin account
+				}
+			</form>
 		</div>
 	}
 }

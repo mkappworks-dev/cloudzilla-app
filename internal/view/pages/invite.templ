@@ -7,55 +7,48 @@ import (
 )
 
 templ Invite(data view.InviteData) {
-	@layout.Base(data.BasePage, "Accept Invitation") {
-		<div class="max-w-md mx-auto mt-16">
-			<div class="text-center mb-8">
-				<h1 class="text-3xl font-semibold tracking-tight text-foreground">☁ You&#39;ve been invited</h1>
-				<p class="text-muted-foreground mt-2">Create your account to get started.</p>
-			</div>
-			@components.Card(nil) {
-				@components.CardContent() {
-					if data.Error != "" {
-						<div class="mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert">{ data.Error }</div>
+	@layout.Base(data.BasePage, "Accept invitation") {
+		<div class="max-w-md mx-auto mt-16 rounded-md border border-border bg-card p-6">
+			@authCardHero("You've been invited", "Join Cloudzilla", "Finish setting up your account to start collaborating.")
+			if data.Error != "" {
+				<div class="mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert">{ data.Error }</div>
+			}
+			if data.Invitation != nil {
+				<form method="POST" class="space-y-4">
+					<div class="space-y-1.5">
+						<label for="invite-email" class="block text-sm font-medium">Email</label>
+						@components.Input(templ.Attributes{
+							"type":     "email",
+							"id":       "invite-email",
+							"name":     "email",
+							"value":    data.Invitation.Email,
+							"readonly": "readonly",
+							"class":    "bg-muted text-muted-foreground cursor-not-allowed",
+						})
+					</div>
+					<div class="space-y-1.5">
+						<label for="invite-username" class="block text-sm font-medium">Username</label>
+						@components.Input(templ.Attributes{
+							"type":      "text",
+							"id":        "invite-username",
+							"name":      "username",
+							"required":  "required",
+							"autofocus": "autofocus",
+						})
+					</div>
+					<div class="space-y-1.5">
+						<label for="invite-password" class="block text-sm font-medium">Password</label>
+						@components.Input(templ.Attributes{
+							"type":     "password",
+							"id":       "invite-password",
+							"name":     "password",
+							"required": "required",
+						})
+					</div>
+					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {
+						Create account
 					}
-					if data.Invitation != nil {
-						<form method="POST" class="space-y-4">
-							<div class="space-y-1.5">
-								<label for="invite-email" class="block text-sm font-medium">Email</label>
-								@components.Input(templ.Attributes{
-									"type":     "email",
-									"id":       "invite-email",
-									"name":     "email",
-									"value":    data.Invitation.Email,
-									"readonly": "readonly",
-									"class":    "bg-muted text-muted-foreground cursor-not-allowed",
-								})
-							</div>
-							<div class="space-y-1.5">
-								<label for="invite-username" class="block text-sm font-medium">Username</label>
-								@components.Input(templ.Attributes{
-									"type":      "text",
-									"id":        "invite-username",
-									"name":      "username",
-									"required":  "required",
-									"autofocus": "autofocus",
-								})
-							</div>
-							<div class="space-y-1.5">
-								<label for="invite-password" class="block text-sm font-medium">Password</label>
-								@components.Input(templ.Attributes{
-									"type":     "password",
-									"id":       "invite-password",
-									"name":     "password",
-									"required": "required",
-								})
-							</div>
-							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {
-								Create Account
-							}
-						</form>
-					}
-				}
+				</form>
 			}
 		</div>
 	}
