@@ -58,10 +58,13 @@ templ Gists(data view.GistsData) {
 												}
 											</span>
 										</div>
-										<div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-muted-foreground">
-											<span class="font-mono text-[11px]">{ g.ID }</span>
-											<span>by { g.OwnerName } · <time datetime={ g.CreatedAt.UTC().Format(time.RFC3339) }>{ g.CreatedAt.Format("Jan 2, 2006") }</time></span>
-										</div>
+										<p class="mt-1 text-[12px] text-muted-foreground truncate">
+											<span class="font-mono">{ g.ID }</span>
+											<span class="px-1.5 text-muted-foreground/60" aria-hidden="true">·</span>
+											by { g.OwnerName }
+											<span class="px-1.5 text-muted-foreground/60" aria-hidden="true">·</span>
+											<time datetime={ g.CreatedAt.UTC().Format(time.RFC3339) }>{ g.CreatedAt.Format("Jan 2, 2006") }</time>
+										</p>
 									</div>
 								</a>
 							</li>
