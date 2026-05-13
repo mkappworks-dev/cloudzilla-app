@@ -8,18 +8,34 @@ import (
 
 templ IssueNew(data view.IssueNewData) {
 	@layout.Base(data.BasePage, "New Issue · "+data.Owner+"/"+data.RepoName) {
-		<div class="max-w-2xl mx-auto space-y-6">
-			<div>
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues") } class="text-foreground hover:underline text-sm">&larr; Back to Issues</a>
-			</div>
-			<h1 class="text-2xl font-semibold tracking-tight">New Issue</h1>
+		<div class="max-w-3xl mx-auto space-y-6">
+
+			<section aria-labelledby="new-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues") } class="hover:underline">Issues</a>
+					<span aria-hidden="true">·</span>
+					New
+				</p>
+				<h1 id="new-title" class="text-2xl font-semibold tracking-tight">Open a new issue</h1>
+				if !data.ShowForm {
+					<p class="mt-1 text-[13px] text-muted-foreground">Pick a template to pre-fill the form, or start from a blank issue.</p>
+				}
+			</section>
+
 			if data.Error != "" {
-				<div class="px-4 py-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert">{ data.Error }</div>
+				@components.Alert(components.AlertDestructive) {
+					@components.AlertDescription() {
+						{ data.Error }
+					}
+				}
 			}
+
 			if data.ShowForm {
-				<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/new") } class="space-y-4 rounded-md border border-border bg-card p-6">
+				<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/new") } class="rounded-md border border-border bg-card p-6 space-y-5">
 					<div class="space-y-1.5">
-						<label class="block text-sm font-medium" for="title">Title</label>
+						<label for="title" class="block text-sm font-medium">Title</label>
 						@components.Input(templ.Attributes{
 							"id":          "title",
 							"name":        "title",
@@ -29,17 +45,21 @@ templ IssueNew(data view.IssueNewData) {
 							"placeholder": "Short summary of the issue",
 						})
 					</div>
+
 					<div class="space-y-1.5">
-						<label class="block text-sm font-medium" for="body">Description</label>
-						<textarea id="body" name="body" rows="12" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground resize-vertical font-mono">{ data.Selected }</textarea>
+						<label for="body" class="block text-sm font-medium">Description</label>
+						<textarea id="body" name="body" rows="12" class="flex min-h-[160px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical" placeholder="Describe the issue. Markdown supported.">{ data.Selected }</textarea>
+						<p class="text-[11px] text-muted-foreground">Markdown is supported. <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded">{ "@" }</kbd> mentions notify users; <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded">#</kbd> links issues/PRs.</p>
 					</div>
+
 					if data.CanWrite {
-						<div class="mt-3 flex items-center gap-2">
-							<input type="checkbox" id="visibility_private" name="visibility" value="private" class="rounded border-input"/>
-							<label for="visibility_private" class="text-sm text-foreground">Private issue (visible only to collaborators with write access)</label>
-						</div>
+						<label class="flex items-center gap-2 text-sm cursor-pointer">
+							@components.Checkbox(templ.Attributes{"id": "visibility_private", "name": "visibility", "value": "private"})
+							<span>Private issue <span class="text-muted-foreground">(visible only to collaborators with write access)</span></span>
+						</label>
 					}
-					<div class="flex items-center gap-3">
+
+					<div class="flex items-center gap-3 pt-2">
 						@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 							Submit new issue
 						}
@@ -47,17 +67,20 @@ templ IssueNew(data view.IssueNewData) {
 					</div>
 				</form>
 			} else {
-				<p class="text-muted-foreground text-sm">Choose a template or open a blank issue.</p>
-				<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-					for _, t := range data.Templates {
-						<a href={ templ.SafeURL("?template=" + t.Slug) } class="block rounded-md border border-border bg-card p-4 hover:border-foreground/40 hover:shadow-sm transition-all">
-							<div class="font-medium text-foreground">{ t.Name }</div>
+				<section aria-labelledby="templates">
+					<h2 id="templates" class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-3">Templates</h2>
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+						for _, t := range data.Templates {
+							<a href={ templ.SafeURL("?template=" + t.Slug) } class="rounded-md border border-border bg-card p-4 hover:bg-muted/50 transition">
+								<p class="text-[13px] font-medium">{ t.Name }</p>
+							</a>
+						}
+						<a href="?blank=1" class="rounded-md border border-border bg-card p-4 hover:bg-muted/50 transition">
+							<p class="text-[13px] font-medium text-muted-foreground">Blank issue</p>
+							<p class="mt-1 text-[12px] text-muted-foreground/60">Start from an empty body.</p>
 						</a>
-					}
-					<a href="?blank=1" class="block rounded-md border border-border bg-card p-4 hover:border-foreground/40 hover:shadow-sm transition-all">
-						<div class="font-medium text-muted-foreground">Blank issue</div>
-					</a>
-				</div>
+					</div>
+				</section>
 			}
 		</div>
 	}
