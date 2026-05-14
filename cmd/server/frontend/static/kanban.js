@@ -40,28 +40,15 @@ document.addEventListener('alpine:init', () => {
       const repoName = root.dataset.repoName;
       const projectID = root.dataset.projectId;
       const url = `/api/repos/${owner}/${repoName}/projects/${projectID}/cards/${cardID}`;
-      // Read csrf token from cookie — matches the existing inline pattern in
-      // project_detail.templ and the middleware in internal/middleware/csrf.go.
       const csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 
       try {
-        await new Promise((resolve, reject) => {
-          htmx.ajax('PATCH', url, {
-            source: root,
-            swap: 'none',
-            handler: (elt, info) => {
-              const xhr = info.xhr;
-              xhr.setRequestHeader('Content-Type', 'application/json');
-              if (csrf) xhr.setRequestHeader('X-CSRF-Token', csrf);
-              xhr.addEventListener('load', () => {
-                if (xhr.status >= 200 && xhr.status < 300) resolve();
-                else reject(new Error('HTTP ' + xhr.status));
-              });
-              xhr.addEventListener('error', () => reject(new Error('network')));
-              xhr.send(JSON.stringify({ column_id: Number(columnID), position }));
-            },
-          });
+        const r = await fetch(url, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+          body: JSON.stringify({ column_id: Number(columnID), position }),
         });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
       } catch (err) {
         // Server is the source of truth — revert by reloading.
         window.location.reload();
