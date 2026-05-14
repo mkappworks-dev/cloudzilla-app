@@ -52,8 +52,10 @@ func (h *Handler) PageDependencies(w http.ResponseWriter, r *http.Request) {
 		byManager[d.PackageMgr] = append(byManager[d.PackageMgr], d)
 	}
 
+	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
+
 	h.render(w, r, pages.Dependencies(view.DependenciesData{
-		BasePage:     basePage(r, h.Services),
+		BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,

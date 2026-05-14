@@ -27,8 +27,10 @@ func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
 
 	var userID *int64
 	canWrite := false
+	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 		userID = &claims.UserID
 	}
 	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
@@ -47,7 +49,7 @@ func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Milestones(view.MilestonesData{
-		BasePage:         basePage(r, h.Services),
+		BasePage:         withRepoSubnav(basePage(r, h.Services), owner, repoName, "issues", canManage),
 		Repo:             *repo,
 		Owner:            owner,
 		RepoName:         repoName,

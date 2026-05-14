@@ -33,6 +33,25 @@ type BasePage struct {
 	// UserOrgs is the list of organizations the current user owns.
 	// Empty if no user is signed in. Used by the layout's workspace switcher.
 	UserOrgs []model.Organization
+	// RepoSubnav, when non-nil, instructs the layout to render the repo-level
+	// tab bar inside <header>. Lives on BasePage so every repo-scoped route
+	// renders the same subnav without each page including it as page content.
+	RepoSubnav *RepoSubnavInfo
+}
+
+// RepoSubnavInfo carries the inputs the layout needs to render the 9-tab repo
+// subnav. Defined here (not in view/fragments) to avoid an import cycle —
+// fragments imports view, so view cannot reference fragments types.
+type RepoSubnavInfo struct {
+	OwnerName string
+	RepoName  string
+	// Active is one of: "code", "issues", "pull_requests", "actions",
+	// "discussions", "projects", "wiki", "releases", "settings".
+	Active string
+	// Counts is an optional per-tab badge count keyed by Active key.
+	Counts map[string]int
+	// CanManage gates the Settings tab.
+	CanManage bool
 }
 
 // HomeData holds template data for the home dashboard page.

@@ -10,94 +10,104 @@ import (
 
 templ ProjectDetail(data view.ProjectDetailData) {
 	@layout.Base(data.BasePage, data.Project.Name+" · "+data.Owner+"/"+data.RepoName) {
-		<div class="space-y-6" x-data="{ showAddCol: false }">
+		<div
+			class="space-y-6 pt-2"
+			data-owner={ data.Owner }
+			data-repo-name={ data.RepoName }
+			data-project-id={ strconv.FormatInt(data.Project.ID, 10) }
+			x-data="kanbanBoard"
+			@dragstart="onDragStart($event)"
+			@dragover="onDragOver($event)"
+			@drop="onDrop($event)"
+		>
 
-			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="project-title">
-				<div class="min-w-0">
-					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
-						<span aria-hidden="true">·</span>
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/projects") } class="hover:underline">Projects</a>
-						<span aria-hidden="true">·</span>
-						Board
-					</p>
-					<h1 id="project-title" class="text-2xl font-semibold tracking-tight">{ data.Project.Name }</h1>
-					if data.Project.Description != "" {
-						<p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">{ data.Project.Description }</p>
+			<div x-data="{ showAddCol: false }">
+				<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="project-title">
+					<div class="min-w-0">
+						<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+							<span aria-hidden="true">·</span>
+							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/projects") } class="hover:underline">Projects</a>
+							<span aria-hidden="true">·</span>
+							Board
+						</p>
+						<h1 id="project-title" class="text-2xl font-semibold tracking-tight">{ data.Project.Name }</h1>
+						if data.Project.Description != "" {
+							<p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">{ data.Project.Description }</p>
+						}
+					</div>
+					if data.CanWrite {
+						@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"x-on:click": "showAddCol = !showAddCol", "aria-expanded": "false", "x-bind:aria-expanded": "showAddCol.toString()"}) {
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+								<path d="M12 5v14M5 12h14"></path>
+							</svg>
+							Column
+						}
 					}
-				</div>
+				</section>
+
 				if data.CanWrite {
-					@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"x-on:click": "showAddCol = !showAddCol", "aria-expanded": "false", "x-bind:aria-expanded": "showAddCol.toString()"}) {
-						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
-							<path d="M12 5v14M5 12h14"></path>
-						</svg>
-						Column
-					}
+					<div x-show="showAddCol" x-cloak class="mt-4 flex flex-wrap gap-2 items-center">
+						<label for="new-col-name" class="sr-only">Column name</label>
+						@components.Input(templ.Attributes{"id": "new-col-name", "type": "text", "placeholder": "Column name"})
+						<button
+							type="button"
+							class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-8 px-3 text-[13px] bg-primary text-primary-foreground hover:bg-primary/90"
+							onclick={ addColumnJS(data.Owner, data.RepoName, data.Project.ID) }
+						>Add</button>
+						<button type="button" class="text-sm text-muted-foreground hover:text-foreground px-2" x-on:click="showAddCol = false">Cancel</button>
+					</div>
 				}
-			</section>
-
-			if data.CanWrite {
-				<div x-show="showAddCol" x-cloak class="flex flex-wrap gap-2 items-center">
-					<label for="new-col-name" class="sr-only">Column name</label>
-					@components.Input(templ.Attributes{"id": "new-col-name", "type": "text", "placeholder": "Column name"})
-					<button
-						type="button"
-						class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-8 px-3 text-[13px] bg-primary text-primary-foreground hover:bg-primary/90"
-						onclick={ addColumnJS(data.Owner, data.RepoName, data.Project.ID) }
-					>Add</button>
-					<button type="button" class="text-sm text-muted-foreground hover:text-foreground px-2" x-on:click="showAddCol = false">Cancel</button>
-				</div>
-			}
+			</div>
 
 			<div class="flex gap-4 overflow-x-auto pb-6">
 				for _, col := range data.Columns {
-					<section class="flex-none w-72 rounded-md border border-border bg-card overflow-hidden" data-column-id={ strconv.FormatInt(col.Column.ID, 10) } aria-labelledby={ "col-" + strconv.FormatInt(col.Column.ID, 10) }>
+					<section
+						class="flex-none w-72 rounded-md border border-border bg-card overflow-hidden"
+						data-column-id={ strconv.FormatInt(col.ID, 10) }
+						data-drop="kanban-column"
+						aria-labelledby={ "col-" + strconv.FormatInt(col.ID, 10) }
+					>
 						<header class="px-3 py-2.5 border-b border-border flex items-center justify-between">
-							<h2 id={ "col-" + strconv.FormatInt(col.Column.ID, 10) } class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-								{ col.Column.Name }
+							<h2 id={ "col-" + strconv.FormatInt(col.ID, 10) } class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+								{ col.Name }
 								<span class="ml-1 text-muted-foreground/60">{ strconv.Itoa(len(col.Cards)) }</span>
 							</h2>
 							if data.CanWrite {
 								<button
 									type="button"
-									aria-label={ "Delete column " + col.Column.Name }
-									onclick={ deleteColumnJS(data.Owner, data.RepoName, data.Project.ID, col.Column.ID) }
+									aria-label={ "Delete column " + col.Name }
+									onclick={ deleteColumnJS(data.Owner, data.RepoName, data.Project.ID, col.ID) }
 									class="text-muted-foreground hover:text-destructive text-xs px-1"
 								>✕</button>
 							}
 						</header>
-						<ul class="p-2 space-y-2 min-h-12">
+						<ul class="p-2 space-y-2 min-h-12" data-cards>
 							for _, card := range col.Cards {
-								<li class="rounded-md border border-border bg-muted/50 p-3">
-									if card.IssueID != nil {
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(card.IssueNumber)) } class="text-[13px] font-medium hover:underline block">{ card.IssueTitle }</a>
+								<li
+									class="rounded-md border border-border bg-muted/50 p-3 cursor-grab active:cursor-grabbing"
+									data-card-id={ strconv.FormatInt(card.ID, 10) }
+									data-drag="kanban-card"
+									draggable="true"
+								>
+									if card.Kind == "issue" {
+										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(card.Number)) } class="text-[13px] font-medium hover:underline block">{ card.Title }</a>
 										<div class="mt-1.5 flex items-center gap-2">
-											<span class="font-mono text-[11px] text-muted-foreground">#{ strconv.Itoa(card.IssueNumber) }</span>
-											@components.IssueStateBadge(card.IssueState)
+											<span class="font-mono text-[11px] text-muted-foreground">#{ strconv.Itoa(card.Number) }</span>
+											@components.IssueStateBadge(card.State)
 										</div>
-									} else if card.PullID != nil {
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(card.PullNumber)) } class="text-[13px] font-medium hover:underline block">{ card.PullTitle }</a>
+									} else if card.Kind == "pull" {
+										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(card.Number)) } class="text-[13px] font-medium hover:underline block">{ card.Title }</a>
 										<div class="mt-1.5 flex items-center gap-2">
-											<span class="font-mono text-[11px] text-muted-foreground">#{ strconv.Itoa(card.PullNumber) }</span>
-											@components.PullStateBadge(card.PullState)
+											<span class="font-mono text-[11px] text-muted-foreground">#{ strconv.Itoa(card.Number) }</span>
+											@components.PullStateBadge(card.State)
 										</div>
 									} else {
-										<p class="text-[13px]">{ card.Note }</p>
+										<p class="text-[13px]">{ card.Title }</p>
 										<p class="mt-1.5 font-mono text-[11px] text-muted-foreground">Note</p>
 									}
 									if data.CanWrite {
 										<div class="mt-2 flex items-center gap-2">
-											<label for={ "move-card-" + strconv.FormatInt(card.ID, 10) } class="sr-only">Move card</label>
-											<select
-												id={ "move-card-" + strconv.FormatInt(card.ID, 10) }
-												class="text-[11px] border border-border rounded px-1.5 py-0.5 text-muted-foreground bg-transparent"
-												onchange={ moveCardJS(data.Owner, data.RepoName, data.Project.ID, card.ID) }
-											>
-												<option value="">Move to…</option>
-												for _, destCol := range data.Columns {
-													<option value={ strconv.FormatInt(destCol.Column.ID, 10) }>{ destCol.Column.Name }</option>
-												}
-											</select>
 											<button
 												type="button"
 												onclick={ deleteCardJS(data.Owner, data.RepoName, data.Project.ID, card.ID) }
@@ -112,7 +122,7 @@ templ ProjectDetail(data view.ProjectDetailData) {
 							<button
 								type="button"
 								class="w-full text-left text-[12px] text-muted-foreground hover:text-foreground px-3 py-2 border-t border-border"
-								onclick={ addCardJS(data.Owner, data.RepoName, data.Project.ID, col.Column.ID) }
+								onclick={ addCardJS(data.Owner, data.RepoName, data.Project.ID, col.ID) }
 							>+ Add card</button>
 						}
 					</section>
@@ -122,6 +132,7 @@ templ ProjectDetail(data view.ProjectDetailData) {
 				}
 			</div>
 		</div>
+		<script src="/static/kanban.js" defer></script>
 	}
 }
 
@@ -141,18 +152,6 @@ script deleteColumnJS(owner, repoName string, projectID, columnID int64) {
 	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/columns/' + columnID, {method:'DELETE', headers: {'X-CSRF-Token': csrf}})
 		.then(function(r){ if(r.ok) window.location.reload(); });
-}
-
-script moveCardJS(owner, repoName string, projectID, cardID int64) {
-	var sel = event.target;
-	var colID = sel.value;
-	if (!colID) return;
-	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
-	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID + '/cards/' + cardID, {
-		method: 'PATCH',
-		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
-		body: JSON.stringify({column_id: parseInt(colID), position: 0})
-	}).then(function(r){ if(r.ok) window.location.reload(); });
 }
 
 script deleteCardJS(owner, repoName string, projectID, cardID int64) {

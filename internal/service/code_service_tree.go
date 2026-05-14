@@ -34,6 +34,7 @@ type BlobResult struct {
 	Path        string
 	Lines       []CodeLine
 	IsBinary    bool
+	Size        int64 // file size in bytes
 	Breadcrumbs []BreadcrumbPart
 	BlameURL    string
 }
@@ -124,6 +125,7 @@ func (s *CodeService) GetBlob(owner, repoName, ref, path string) (*BlobResult, e
 		Ref:         displayRef,
 		Path:        path,
 		IsBinary:    isBinary,
+		Size:        file.Size,
 		Breadcrumbs: buildBreadcrumbs(owner, repoName, displayRef, path, true),
 		BlameURL:    "/" + owner + "/" + repoName + "/blame/" + displayRef + "/" + path,
 	}

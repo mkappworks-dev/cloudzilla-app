@@ -30,9 +30,11 @@ func (h *Handler) PageProjects(w http.ResponseWriter, r *http.Request) {
 
 	var userID *int64
 	canWrite := false
+	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		userID = &claims.UserID
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
 		http.Error(w, "forbidden", http.StatusForbidden)
@@ -49,12 +51,13 @@ func (h *Handler) PageProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Projects(view.ProjectsData{
-		BasePage: basePage(r, h.Services),
-		Repo:     *repo,
-		Owner:    owner,
-		RepoName: repoName,
-		Projects: projects,
-		CanWrite: canWrite,
+		BasePage:  withRepoSubnav(basePage(r, h.Services), owner, repoName, "projects", canManage),
+		Repo:      *repo,
+		Owner:     owner,
+		RepoName:  repoName,
+		Projects:  projects,
+		CanWrite:  canWrite,
+		CanManage: canManage,
 	}))
 }
 
@@ -75,9 +78,11 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 
 	var userID *int64
 	canWrite := false
+	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		userID = &claims.UserID
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
 		http.Error(w, "forbidden", http.StatusForbidden)
@@ -94,23 +99,24 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	columns, err := h.Services.Project.ListColumnsWithCards(r.Context(), project.ID)
+	columns, err := h.Services.Project.ListColumnsWithCardsExpanded(r.Context(), project.ID)
 	if err != nil {
 		http.Error(w, "failed to load board", http.StatusInternalServerError)
 		return
 	}
 	if columns == nil {
-		columns = []service.ColumnWithCards{}
+		columns = []service.KanbanColumnView{}
 	}
 
 	h.render(w, r, pages.ProjectDetail(view.ProjectDetailData{
-		BasePage: basePage(r, h.Services),
-		Repo:     *repo,
-		Owner:    owner,
-		RepoName: repoName,
-		Project:  *project,
-		Columns:  columns,
-		CanWrite: canWrite,
+		BasePage:  withRepoSubnav(basePage(r, h.Services), owner, repoName, "projects", canManage),
+		Repo:      *repo,
+		Owner:     owner,
+		RepoName:  repoName,
+		Project:   *project,
+		Columns:   columns,
+		CanWrite:  canWrite,
+		CanManage: canManage,
 	}))
 }
 
@@ -286,7 +292,7 @@ func (h *Handler) MoveCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "column_id is required")
 		return
 	}
-	if err := h.Services.Project.MoveCard(r.Context(), projectID, cardID, req.ColumnID, claims.UserID); err != nil {
+	if err := h.Services.Project.MoveCard(r.Context(), projectID, cardID, req.ColumnID, int(req.Position), claims.UserID); err != nil {
 		writeProjectError(w, err)
 		return
 	}
@@ -323,6 +329,10 @@ func writeProjectError(w http.ResponseWriter, err error) {
 	}
 	if errors.Is(err, service.ErrForbidden) {
 		writeError(w, http.StatusForbidden, err.Error())
+		return
+	}
+	if errors.Is(err, service.ErrInvalidPosition) {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	slog.Error("operation failed", "error", err)

@@ -1,0 +1,41 @@
+package components
+
+import (
+	"strconv"
+	"time"
+)
+
+// BlameLine is the per-row view-model rendered by BlameRow.
+type BlameLine struct {
+	LineNumber  int
+	Code        string
+	AuthorName  string
+	ShortSHA    string
+	CommittedAt time.Time
+	CommitURL   string
+	// HunkStart is true for the first row in a run of consecutive lines from
+	// the same commit. Non-first rows render a single "·" placeholder instead
+	// of the full author/SHA/date metadata.
+	HunkStart bool
+}
+
+templ BlameRow(line BlameLine) {
+	<tr class="hover:bg-muted/50">
+		<td
+			class="w-60 px-3 py-1.5 align-top text-[11px] border-r border-border bg-card"
+			title={ line.AuthorName + " · " + line.ShortSHA + " · " + line.CommittedAt.UTC().Format(time.RFC3339) }
+		>
+			if line.HunkStart {
+				<a href={ templ.SafeURL(line.CommitURL) } class="font-mono font-medium hover:underline">{ line.ShortSHA }</a>
+				<div class="text-muted-foreground truncate max-w-[12rem]">{ line.AuthorName }</div>
+				<time class="text-muted-foreground block" datetime={ line.CommittedAt.UTC().Format(time.RFC3339) }>{ line.CommittedAt.Format("2006-01-02") }</time>
+			} else {
+				<span class="text-muted-foreground/40 select-none" aria-hidden="true">·</span>
+			}
+		</td>
+		<td class="select-none text-muted-foreground px-3 py-1.5 text-right align-top border-r border-border bg-muted/40">
+			<a id={ "L" + strconv.Itoa(line.LineNumber) } href={ templ.SafeURL("#L" + strconv.Itoa(line.LineNumber)) } class="hover:text-foreground">{ strconv.Itoa(line.LineNumber) }</a>
+		</td>
+		<td class="pl-4 pr-4 py-1.5 whitespace-pre">{ line.Code }</td>
+	</tr>
+}

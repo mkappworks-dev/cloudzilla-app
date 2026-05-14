@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -52,6 +53,12 @@ type CodeLine struct {
 // CodeService provides read and write operations over bare git repositories on disk.
 type CodeService struct {
 	cfg config.GitConfig
+	// treeCache memoizes ListEntriesWithLastCommit results.
+	// Key: "owner/repo:ref:dir"; Value: treeCacheEntry. TTL enforced at read time.
+	treeCache sync.Map
+	// treeCacheKeys is a best-effort insert counter that drives the
+	// treeCacheMaxKeys-bounded eviction sweep.
+	treeCacheKeys int64
 }
 
 // NewCodeService returns a CodeService configured to read repos from cfg.ReposRoot.
@@ -95,7 +102,11 @@ func resolveRef(repo *gogit.Repository, ref string) (*object.Commit, string, err
 		// Try raw SHA
 		hash := plumbing.NewHash(ref)
 		if commit, err := repo.CommitObject(hash); err == nil {
-			return commit, ref[:7], nil
+			displayRef := ref
+			if len(displayRef) > 7 {
+				displayRef = displayRef[:7]
+			}
+			return commit, displayRef, nil
 		}
 		return nil, "", fmt.Errorf("%w: %s", ErrRefNotFound, ref)
 	}
