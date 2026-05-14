@@ -19,8 +19,15 @@ import (
 func (s *CommitStatsService) BackfillRecentCommits(ctx context.Context, repos []model.Repository, code *CodeService, days int) error {
 	cutoff := time.Now().UTC().AddDate(0, 0, -days)
 	var ingested, skipped, failed int
+	cancelled := false
+	defer func() {
+		slog.Info("backfill: complete",
+			"ingested", ingested, "skipped", skipped, "failed", failed,
+			"total", len(repos), "cancelled", cancelled)
+	}()
 	for _, r := range repos {
 		if ctx.Err() != nil {
+			cancelled = true
 			return ctx.Err()
 		}
 		has, err := s.stats.HasRowsForRepoSince(ctx, r.ID, cutoff)
@@ -57,6 +64,5 @@ func (s *CommitStatsService) BackfillRecentCommits(ctx context.Context, repos []
 		}
 		ingested++
 	}
-	slog.Info("backfill: complete", "ingested", ingested, "skipped", skipped, "failed", failed, "total", len(repos))
 	return nil
 }

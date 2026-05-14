@@ -73,6 +73,10 @@ func (s *CommitStatsService) Ingest(ctx context.Context, repoID int64, samples [
 		}
 	}
 	if firstErr != nil {
+		// Structured counters so operators can filter on failure ratio; the
+		// wrapped error preserves the underlying cause for errors.Is callers.
+		slog.Warn("commit stats: bucket aggregate failure",
+			"repo_id", repoID, "failed", failed, "total", len(buckets))
 		return fmt.Errorf("commit stats: %d/%d buckets failed: %w", failed, len(buckets), firstErr)
 	}
 	return nil
