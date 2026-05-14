@@ -109,6 +109,12 @@ func (s *RepoService) List(ctx context.Context) ([]model.Repository, error) {
 	return s.repos.List(ctx)
 }
 
+// CountForUser returns the number of (non-soft-deleted) repos owned directly
+// by the user. Org-owned repos are not counted.
+func (s *RepoService) CountForUser(ctx context.Context, userID int64) (int, error) {
+	return s.repos.CountForUser(ctx, userID)
+}
+
 func (s *RepoService) GetByID(ctx context.Context, id int64) (*model.Repository, error) {
 	return s.repos.GetByID(ctx, id)
 }

@@ -261,3 +261,17 @@ func (s *PullStore) CountOpen(ctx context.Context, repoID int64) (int, error) {
 	).Scan(&n)
 	return n, err
 }
+
+// CountOpenAuthoredByOrAssignedTo returns the count of open PRs the user
+// either authored OR is assigned to. Used by the home page stat strip.
+func (s *PullStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(DISTINCT p.id)
+		 FROM pull_requests p
+		 LEFT JOIN pull_assignees a ON a.pull_id = p.id
+		 WHERE p.state = 'open' AND (p.author_id = $1 OR a.user_id = $1)`,
+		userID,
+	).Scan(&n)
+	return n, err
+}

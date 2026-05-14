@@ -1,10 +1,6 @@
 package components
 
-import (
-	"strconv"
-
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
-)
+import "strconv"
 
 // ProgressBar renders a green progress bar (h-1.5) with a closed/total label above it.
 templ ProgressBar(closedCount, totalCount int) {
@@ -13,7 +9,7 @@ templ ProgressBar(closedCount, totalCount int) {
 			<span>{ strconv.Itoa(closedCount) } / { strconv.Itoa(totalCount) } issues closed</span>
 		</div>
 		<div class="w-full bg-muted rounded-full h-1.5">
-			<div class="bg-success h-1.5 rounded-full" style={ "width: " + strconv.Itoa(view.Percent(closedCount, totalCount)) + "%" }></div>
+			<div class="bg-success h-1.5 rounded-full" style={ "width: " + strconv.Itoa(Percent(closedCount, totalCount)) + "%" }></div>
 		</div>
 	</div>
 }
@@ -23,7 +19,7 @@ templ ProgressBar(closedCount, totalCount int) {
 templ ProgressBarSmall(closedCount, totalCount int) {
 	<div class="mt-1">
 		<div class="w-full bg-muted rounded-full h-1">
-			<div class="bg-success h-1 rounded-full" style={ "width: " + strconv.Itoa(view.Percent(closedCount, totalCount)) + "%" }></div>
+			<div class="bg-success h-1 rounded-full" style={ "width: " + strconv.Itoa(Percent(closedCount, totalCount)) + "%" }></div>
 		</div>
 		<p class="text-xs text-muted-foreground mt-0.5">{ strconv.Itoa(closedCount) }/{ strconv.Itoa(totalCount) } closed</p>
 	</div>

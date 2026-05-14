@@ -558,6 +558,18 @@ func (s *RepoStore) PurgeExpired(ctx context.Context, before time.Time) ([]model
 	return repos, nil
 }
 
+// CountForUser returns the number of (non-soft-deleted) repositories
+// owned directly by the given user. Org-owned repos are not counted.
+func (s *RepoStore) CountForUser(ctx context.Context, userID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM repositories
+		 WHERE owner_id = $1 AND deleted_at IS NULL`,
+		userID,
+	).Scan(&n)
+	return n, err
+}
+
 func scanRepoRows(rows *sql.Rows) ([]model.Repository, error) {
 	var repos []model.Repository
 	for rows.Next() {

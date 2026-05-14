@@ -1,8 +1,12 @@
 package view
 
 import (
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 // RenderedComment wraps a model.Comment with its body pre-rendered as HTML.
@@ -32,11 +36,22 @@ type BasePage struct {
 }
 
 // Page data structs
-// HomeData holds template data for the home feed page.
+// HomeData holds template data for the home dashboard page.
+//
+// Phase 1 additions (Stats/Heatmap/Attention/Activity) power the
+// dashboard sections wired up in Task 11 of the UI overhaul. They are
+// only populated for authenticated viewers; signed-out users get a
+// degraded but still-functional page (stat strip + heatmap simply
+// don't render).
 type HomeData struct {
 	BasePage
 	Repos     []model.Repository
 	Templates []model.Repository
+	// Phase 1 additions:
+	Stats     []components.StatItem
+	Heatmap   map[time.Time]int
+	Attention []service.AttentionItem
+	Activity  []model.Event
 }
 
 // Feed page

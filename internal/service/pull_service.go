@@ -152,3 +152,9 @@ func (s *PullService) CountMergedSince(ctx context.Context, repoID int64, since 
 func (s *PullService) CountOpen(ctx context.Context, repoID int64) (int, error) {
 	return s.pulls.CountOpen(ctx, repoID)
 }
+
+// CountOpenAuthoredByOrAssignedTo returns the count of open PRs the user
+// authored or is assigned to, across all repos. Powers the home stat strip.
+func (s *PullService) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
+	return s.pulls.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+}

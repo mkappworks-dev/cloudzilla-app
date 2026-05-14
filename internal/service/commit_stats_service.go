@@ -73,6 +73,21 @@ func (s *CommitStatsService) Ingest(ctx context.Context, repoID int64, samples [
 	return nil
 }
 
+// CommitsForUserSince returns the total commit count for the user across
+// all repos over the past `days` days. Used by the home page stat strip.
+func (s *CommitStatsService) CommitsForUserSince(ctx context.Context, userID int64, days int) (int, error) {
+	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)
+	rows, err := s.stats.ListForUserSince(ctx, userID, since)
+	if err != nil {
+		return 0, err
+	}
+	total := 0
+	for _, r := range rows {
+		total += r.CommitCount
+	}
+	return total, nil
+}
+
 // LookbackForUser returns per-day commit counts for the user over the past
 // `days` days. The full window is materialized — days with zero commits
 // get an explicit zero entry — so the heatmap can render a regular grid.
