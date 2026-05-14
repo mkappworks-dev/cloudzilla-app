@@ -38,6 +38,7 @@
     --warning-foreground: 0 0% 98%;
 
     --border: 240 5.9% 88%;
+    --border-strong: 240 5.9% 70%;
     --input: 240 5.9% 88%;
     --ring: 222 88% 56%;
 
@@ -78,6 +79,7 @@
 
     /* HSL with alpha — gives the hairline-on-dark feel from the mockups */
     --border: 0 0% 100% / 0.10;
+    --border-strong: 0 0% 100% / 0.18;
     --input: 0 0% 100% / 0.10;
     --ring: 222 100% 71%;
   }
@@ -226,4 +228,32 @@
 /* Focus rings (input shadows) — retarget to the theme ring */
 .dark .focus\:ring-blue-500:focus,
 .dark .focus\:ring-indigo-500:focus { box-shadow: 0 0 0 2px hsl(var(--ring)); }
+
+@layer utilities {
+  .grid-bg {
+    background-image:
+      linear-gradient(hsl(var(--border)) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse at top, black 30%, transparent 70%);
+  }
+
+  .heatmap-cell-0 { background-color: hsl(var(--muted)); }
+  .heatmap-cell-1 { background-color: hsl(var(--success) / 0.25); }
+  .heatmap-cell-2 { background-color: hsl(var(--success) / 0.50); }
+  .heatmap-cell-3 { background-color: hsl(var(--success) / 0.75); }
+  .heatmap-cell-4 { background-color: hsl(var(--success)); }
+}
+
+@media (forced-colors: active) {
+  .grid-bg { display: none; }
+  .heatmap-cell-0,
+  .heatmap-cell-1,
+  .heatmap-cell-2,
+  .heatmap-cell-3,
+  .heatmap-cell-4 {
+    background-color: ButtonFace;
+    border: 1px solid ButtonText;
+  }
+}
 
