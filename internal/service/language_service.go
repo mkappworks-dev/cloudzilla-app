@@ -50,12 +50,20 @@ type LanguageService struct {
 	cache sync.Map // key="owner/repo:ref" → cacheEntry
 }
 
+// cacheEntry holds either a successful Composition result (when err is nil) or
+// a recent failure (when err != nil). Negative entries use a shorter TTL so
+// transient failures retry quickly while permanent failures (corrupt repo,
+// missing ref) don't repeatedly hammer the expensive tree walk.
 type cacheEntry struct {
 	comp     map[string]int64
+	err      error
 	cachedAt time.Time
 }
 
-const langCacheTTL = 10 * time.Minute
+const (
+	langCacheTTL         = 10 * time.Minute
+	langCacheNegativeTTL = 30 * time.Second
+)
 
 func NewLanguageService(code *CodeService) *LanguageService {
 	return &LanguageService{code: code}
@@ -65,8 +73,12 @@ func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref 
 	key := owner + "/" + repoName + ":" + ref
 	if v, ok := s.cache.Load(key); ok {
 		e := v.(cacheEntry)
-		if time.Since(e.cachedAt) < langCacheTTL {
-			return e.comp, nil
+		ttl := langCacheTTL
+		if e.err != nil {
+			ttl = langCacheNegativeTTL
+		}
+		if time.Since(e.cachedAt) < ttl {
+			return e.comp, e.err
 		}
 	}
 	comp := make(map[string]int64)
@@ -84,6 +96,7 @@ func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref 
 		return nil
 	})
 	if err != nil {
+		s.cache.Store(key, cacheEntry{err: err, cachedAt: time.Now()})
 		return nil, err
 	}
 	s.cache.Store(key, cacheEntry{comp: comp, cachedAt: time.Now()})
