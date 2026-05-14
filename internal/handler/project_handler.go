@@ -75,9 +75,11 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 
 	var userID *int64
 	canWrite := false
+	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		userID = &claims.UserID
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
 		http.Error(w, "forbidden", http.StatusForbidden)
@@ -94,23 +96,24 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	columns, err := h.Services.Project.ListColumnsWithCards(r.Context(), project.ID)
+	columns, err := h.Services.Project.ListColumnsWithCardsExpanded(r.Context(), project.ID)
 	if err != nil {
 		http.Error(w, "failed to load board", http.StatusInternalServerError)
 		return
 	}
 	if columns == nil {
-		columns = []service.ColumnWithCards{}
+		columns = []service.KanbanColumnView{}
 	}
 
 	h.render(w, r, pages.ProjectDetail(view.ProjectDetailData{
-		BasePage: basePage(r, h.Services),
-		Repo:     *repo,
-		Owner:    owner,
-		RepoName: repoName,
-		Project:  *project,
-		Columns:  columns,
-		CanWrite: canWrite,
+		BasePage:  basePage(r, h.Services),
+		Repo:      *repo,
+		Owner:     owner,
+		RepoName:  repoName,
+		Project:   *project,
+		Columns:   columns,
+		CanWrite:  canWrite,
+		CanManage: canManage,
 	}))
 }
 

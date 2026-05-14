@@ -146,12 +146,13 @@ type ProjectsData struct {
 // ProjectDetailData holds template data for the Kanban project board detail page.
 type ProjectDetailData struct {
 	BasePage
-	Repo     model.Repository
-	Owner    string
-	RepoName string
-	Project  model.Project
-	Columns  []service.ColumnWithCards
-	CanWrite bool
+	Repo      model.Repository
+	Owner     string
+	RepoName  string
+	Project   model.Project
+	Columns   []service.KanbanColumnView
+	CanWrite  bool
+	CanManage bool
 }
 
 // Wiki page view (read mode)
