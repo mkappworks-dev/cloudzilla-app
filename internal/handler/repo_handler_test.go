@@ -32,7 +32,7 @@ func newRepoHandler(db *sql.DB) *handler.Handler {
 		},
 	}
 	userSvc := service.NewUserService(store.NewUserStore(db), cfg.Auth)
-	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), config.GitConfig{})
+	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, config.GitConfig{})
 	svc := &service.Services{
 		User:        userSvc,
 		Repo:        repoSvc,

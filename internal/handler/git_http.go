@@ -14,7 +14,9 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/format/pktline"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
@@ -352,6 +354,32 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		go h.Services.Webhook.Dispatch(repo.ID, "push",
 			h.Services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String()))
 	}
+
+	// Aggregate commit counts into the heatmap (best-effort, fire-and-forget).
+	go func() {
+		var commits []*object.Commit
+		for _, cmd := range req.Commands {
+			if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
+				continue
+			}
+			if cmd.Action() == packp.Delete {
+				continue
+			}
+			iter, err := gitRepo.Log(&gogit.LogOptions{From: cmd.New})
+			if err != nil {
+				continue
+			}
+			_ = iter.ForEach(func(c *object.Commit) error {
+				if c.Hash == cmd.Old {
+					return storer.ErrStop
+				}
+				commits = append(commits, c)
+				return nil
+			})
+			iter.Close()
+		}
+		_ = h.Services.Repo.OnPostReceive(context.Background(), repo.ID, commits)
+	}()
 
 	// Re-index the repository for code search after each push.
 	go func() {

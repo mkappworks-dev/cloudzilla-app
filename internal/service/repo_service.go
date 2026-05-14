@@ -12,6 +12,7 @@ import (
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -37,15 +38,41 @@ func ValidateName(name string) error {
 
 // RepoService manages repository creation, access control, and git directory lifecycle.
 type RepoService struct {
-	repos *store.RepoStore
-	users *store.UserStore
-	orgs  *store.OrgStore
-	cfg   config.GitConfig
+	repos       *store.RepoStore
+	users       *store.UserStore
+	orgs        *store.OrgStore
+	commitStats *CommitStatsService
+	cfg         config.GitConfig
 }
 
 // NewRepoService creates a RepoService backed by the given stores and git config.
-func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, cfg config.GitConfig) *RepoService {
-	return &RepoService{repos: repos, users: users, orgs: orgs, cfg: cfg}
+func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, commitStats *CommitStatsService, cfg config.GitConfig) *RepoService {
+	return &RepoService{repos: repos, users: users, orgs: orgs, commitStats: commitStats, cfg: cfg}
+}
+
+// OnPostReceive is called by the HTTP and SSH git-receive-pack handlers
+// after a successful push. It aggregates commit-day counts into the heatmap.
+// It is best-effort: errors are logged and swallowed so a failed
+// aggregation does NOT roll back the push.
+func (s *RepoService) OnPostReceive(ctx context.Context, repoID int64, commits []*object.Commit) error {
+	if s.commitStats == nil {
+		return nil
+	}
+	samples := make([]CommitSample, 0, len(commits))
+	for _, c := range commits {
+		if c == nil {
+			continue
+		}
+		samples = append(samples, CommitSample{
+			AuthorEmail: c.Author.Email,
+			Time:        c.Author.When,
+		})
+	}
+	if err := s.commitStats.Ingest(ctx, repoID, samples); err != nil {
+		slog.Warn("commit stats ingest failed", "err", err, "repo_id", repoID)
+		return err
+	}
+	return nil
 }
 
 func (s *RepoService) Create(ctx context.Context, ownerUsername, name, description string, private bool) (*model.Repository, error) {

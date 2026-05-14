@@ -47,13 +47,15 @@ type Services struct {
 	Index            *IndexService
 	Explore          *ExploreService
 	Dependency       *DependencyService
+	CommitStats      *CommitStatsService
 }
 
 // New constructs and wires all services from the given stores and configuration.
 func New(stores *store.Stores, cfg *config.Config) *Services {
 	code := NewCodeService(cfg.Git)
 	index := NewIndexService(stores.CodeSearch, code)
-	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, cfg.Git)
+	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
+	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, commitStatsSvc, cfg.Git)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
 	userSvc := NewUserService(stores.User, cfg.Auth)
 	emailSvc := NewEmailService(cfg.SMTP)
@@ -99,5 +101,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Index:            index,
 		Explore:          NewExploreService(stores.Explore),
 		Dependency:       NewDependencyService(stores.Dependency, code),
+		CommitStats:      commitStatsSvc,
 	}
 }

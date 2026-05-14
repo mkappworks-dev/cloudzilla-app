@@ -14,7 +14,9 @@ import (
 	"github.com/gliderlabs/ssh"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	gossh "golang.org/x/crypto/ssh"
@@ -266,6 +268,32 @@ func (s *Server) sessionHandler(session ssh.Session) {
 			payload := s.services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String())
 			go s.services.Webhook.Dispatch(repo.ID, "push", payload)
 		}
+
+		// Aggregate commit counts into the heatmap (best-effort, fire-and-forget).
+		go func() {
+			var commits []*object.Commit
+			for _, cmd := range commands {
+				if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
+					continue
+				}
+				if cmd.Action() == packp.Delete {
+					continue
+				}
+				iter, err := gitRepo.Log(&gogit.LogOptions{From: cmd.New})
+				if err != nil {
+					continue
+				}
+				_ = iter.ForEach(func(c *object.Commit) error {
+					if c.Hash == cmd.Old {
+						return storer.ErrStop
+					}
+					commits = append(commits, c)
+					return nil
+				})
+				iter.Close()
+			}
+			_ = s.services.Repo.OnPostReceive(context.Background(), repo.ID, commits)
+		}()
 	}
 
 	session.Exit(0)
