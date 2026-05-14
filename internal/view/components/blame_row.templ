@@ -1,0 +1,34 @@
+package components
+
+import (
+	"strconv"
+	"time"
+)
+
+type BlameLine struct {
+	LineNumber  int
+	Code        string
+	AuthorName  string
+	ShortSHA    string
+	CommittedAt time.Time
+	CommitURL   string
+}
+
+templ BlameRow(line BlameLine) {
+	<tr class="hover:bg-accent group">
+		<td class="px-2 py-0.5 text-xs text-muted-foreground/70 font-mono w-32 truncate" title={ line.AuthorName + " · " + line.ShortSHA }>
+			<a href={ templ.SafeURL(line.CommitURL) } class="hover:text-foreground">{ line.AuthorName }</a>
+		</td>
+		<td class="px-2 py-0.5 text-xs text-muted-foreground/70 font-mono w-16">
+			<a href={ templ.SafeURL(line.CommitURL) } class="hover:text-foreground">{ line.ShortSHA }</a>
+		</td>
+		<td class="px-2 py-0.5 text-xs text-muted-foreground/70 font-mono w-12 text-right">
+			{ lineNumberDisplay(line.LineNumber) }
+		</td>
+		<td class="px-3 py-0.5 text-[13px] font-mono whitespace-pre">{ line.Code }</td>
+	</tr>
+}
+
+func lineNumberDisplay(n int) string {
+	return strconv.Itoa(n)
+}
