@@ -262,13 +262,17 @@ func (s *PullStore) CountOpen(ctx context.Context, repoID int64) (int, error) {
 	return n, err
 }
 
+// Soft-deleted repositories are excluded so the home dashboard stat tile
+// doesn't keep counting assignments in repos the user can no longer browse
+// (matches the visibility rule already applied to the commit-stats heatmap).
 func (s *PullStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,
 		`SELECT COUNT(DISTINCT p.id)
 		 FROM pull_requests p
+		 JOIN repositories r ON r.id = p.repo_id
 		 LEFT JOIN pull_assignees a ON a.pull_id = p.id
-		 WHERE p.state = 'open' AND (p.author_id = $1 OR a.user_id = $1)`,
+		 WHERE p.state = 'open' AND r.deleted_at IS NULL AND (p.author_id = $1 OR a.user_id = $1)`,
 		userID,
 	).Scan(&n)
 	return n, err
