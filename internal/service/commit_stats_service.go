@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -25,6 +26,8 @@ func NewCommitStatsService(stats *store.CommitStatsStore, users *store.UserStore
 }
 
 // Anonymous commits (no matching user email) are silently skipped.
+// Uses additive semantics (AddCount) so successive pushes within the same day
+// accumulate rather than overwriting earlier counts.
 func (s *CommitStatsService) Ingest(ctx context.Context, repoID int64, samples []CommitSample) error {
 	type key struct {
 		userID int64
@@ -57,10 +60,20 @@ func (s *CommitStatsService) Ingest(ctx context.Context, repoID int64, samples [
 		day := c.Time.UTC().Truncate(24 * time.Hour)
 		buckets[key{userID, day}]++
 	}
+	var firstErr error
+	failed := 0
 	for k, count := range buckets {
-		if err := s.stats.UpsertCount(ctx, repoID, k.userID, k.day, count); err != nil {
-			return err
+		if err := s.stats.AddCount(ctx, repoID, k.userID, k.day, count); err != nil {
+			failed++
+			if firstErr == nil {
+				firstErr = err
+			}
+			slog.Warn("commit stats: add count failed",
+				"repo_id", repoID, "user_id", k.userID, "day", k.day, "delta", count, "error", err)
 		}
+	}
+	if firstErr != nil {
+		return fmt.Errorf("commit stats: %d/%d buckets failed: %w", failed, len(buckets), firstErr)
 	}
 	return nil
 }

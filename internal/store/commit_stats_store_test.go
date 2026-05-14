@@ -114,3 +114,76 @@ func TestCommitStatsStore_UpsertAndListForUser(t *testing.T) {
 		t.Errorf("yesterday commit_count: want 5, got %d", yesterdayCount)
 	}
 }
+
+// AddCount must accumulate across calls so successive pushes on a single day
+// don't overwrite one another (the bug fixed alongside #8).
+func TestCommitStatsStore_AddCount_Additive(t *testing.T) {
+	db := openTestDBCommitStats(t)
+	defer db.Close()
+
+	ctx := context.Background()
+	suffix := fmt.Sprintf("addct_%d", os.Getpid())
+
+	var userID int64
+	if err := db.QueryRowContext(ctx,
+		`INSERT INTO users (username, email, password_hash, is_superadmin)
+		 VALUES ($1, $2, 'x', false) RETURNING id`,
+		suffix, suffix+"@test.invalid",
+	).Scan(&userID); err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+	var repoID int64
+	if err := db.QueryRowContext(ctx,
+		`INSERT INTO repositories (owner_id, owner_name, name, description, private, default_branch)
+		 VALUES ($1, $2, $3, '', false, 'main') RETURNING id`,
+		userID, suffix, "repo_"+suffix,
+	).Scan(&repoID); err != nil {
+		t.Fatalf("insert repo: %v", err)
+	}
+	t.Cleanup(func() {
+		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
+	})
+
+	s := store.NewCommitStatsStore(db)
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+
+	if err := s.AddCount(ctx, repoID, userID, today, 3); err != nil {
+		t.Fatalf("add 3: %v", err)
+	}
+	if err := s.AddCount(ctx, repoID, userID, today, 4); err != nil {
+		t.Fatalf("add 4: %v", err)
+	}
+	rows, err := s.ListForUserSince(ctx, userID, today)
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("want 1 row, got %d (%+v)", len(rows), rows)
+	}
+	if rows[0].CommitCount != 7 {
+		t.Errorf("AddCount must accumulate; want 7 (3+4), got %d", rows[0].CommitCount)
+	}
+
+	has, err := s.HasRowsForRepoSince(ctx, repoID, today)
+	if err != nil {
+		t.Fatalf("has rows: %v", err)
+	}
+	if !has {
+		t.Errorf("HasRowsForRepoSince must return true after AddCount")
+	}
+
+	// Soft-deleted repos must drop out of the user heatmap query so the
+	// contribution grid stops counting work in deleted repositories.
+	if _, err := db.ExecContext(ctx,
+		`UPDATE repositories SET deleted_at = NOW() WHERE id = $1`, repoID,
+	); err != nil {
+		t.Fatalf("soft-delete repo: %v", err)
+	}
+	rows, err = s.ListForUserSince(ctx, userID, today)
+	if err != nil {
+		t.Fatalf("list after soft-delete: %v", err)
+	}
+	if len(rows) != 0 {
+		t.Errorf("ListForUserSince must skip soft-deleted repos; want 0 rows, got %d (%+v)", len(rows), rows)
+	}
+}
