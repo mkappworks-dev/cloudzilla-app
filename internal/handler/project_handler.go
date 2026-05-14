@@ -286,7 +286,7 @@ func (h *Handler) MoveCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "column_id is required")
 		return
 	}
-	if err := h.Services.Project.MoveCard(r.Context(), projectID, cardID, req.ColumnID, claims.UserID); err != nil {
+	if err := h.Services.Project.MoveCard(r.Context(), projectID, cardID, req.ColumnID, int(req.Position), claims.UserID); err != nil {
 		writeProjectError(w, err)
 		return
 	}

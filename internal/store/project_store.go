@@ -187,16 +187,68 @@ func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64) ([
 	return cards, rows.Err()
 }
 
-// MoveCard moves a card to a new column, appending it at the end of that column.
-func (s *ProjectStore) MoveCard(ctx context.Context, cardID, newColumnID int64) error {
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE project_cards
-		 SET column_id = $1,
-		     position  = COALESCE((SELECT MAX(position)+1 FROM project_cards WHERE column_id = $1 AND id != $2), 0)
-		 WHERE id = $2`,
-		newColumnID, cardID,
-	)
-	return err
+// MoveCard moves a card to (newColumnID, newPosition), re-numbering siblings so
+// positions stay dense (0..N-1) within each affected column. The operation runs
+// in a transaction with FOR UPDATE on the source row.
+func (s *ProjectStore) MoveCard(ctx context.Context, cardID, newColumnID int64, newPosition int) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin move: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	var oldColumnID int64
+	var oldPosition int
+	if err := tx.QueryRowContext(ctx,
+		`SELECT column_id, position FROM project_cards WHERE id = $1 FOR UPDATE`,
+		cardID,
+	).Scan(&oldColumnID, &oldPosition); err != nil {
+		return fmt.Errorf("locate card %d: %w", cardID, err)
+	}
+
+	if oldColumnID == newColumnID {
+		switch {
+		case newPosition > oldPosition:
+			if _, err = tx.ExecContext(ctx,
+				`UPDATE project_cards SET position = position - 1
+				 WHERE column_id = $1 AND position > $2 AND position <= $3 AND id != $4`,
+				newColumnID, oldPosition, newPosition, cardID,
+			); err != nil {
+				return fmt.Errorf("reorder intra-column down: %w", err)
+			}
+		case newPosition < oldPosition:
+			if _, err = tx.ExecContext(ctx,
+				`UPDATE project_cards SET position = position + 1
+				 WHERE column_id = $1 AND position >= $2 AND position < $3 AND id != $4`,
+				newColumnID, newPosition, oldPosition, cardID,
+			); err != nil {
+				return fmt.Errorf("reorder intra-column up: %w", err)
+			}
+		}
+	} else {
+		if _, err = tx.ExecContext(ctx,
+			`UPDATE project_cards SET position = position - 1
+			 WHERE column_id = $1 AND position > $2`,
+			oldColumnID, oldPosition,
+		); err != nil {
+			return fmt.Errorf("close old column gap: %w", err)
+		}
+		if _, err = tx.ExecContext(ctx,
+			`UPDATE project_cards SET position = position + 1
+			 WHERE column_id = $1 AND position >= $2`,
+			newColumnID, newPosition,
+		); err != nil {
+			return fmt.Errorf("open new column slot: %w", err)
+		}
+	}
+
+	if _, err = tx.ExecContext(ctx,
+		`UPDATE project_cards SET column_id = $1, position = $2 WHERE id = $3`,
+		newColumnID, newPosition, cardID,
+	); err != nil {
+		return fmt.Errorf("place card: %w", err)
+	}
+	return tx.Commit()
 }
 
 func (s *ProjectStore) DeleteCard(ctx context.Context, id, projectID int64) error {

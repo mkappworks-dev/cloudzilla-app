@@ -138,7 +138,7 @@ func (s *ProjectService) CreateCard(ctx context.Context, projectID, columnID, us
 	return card, nil
 }
 
-func (s *ProjectService) MoveCard(ctx context.Context, projectID, cardID, newColumnID, userID int64) error {
+func (s *ProjectService) MoveCard(ctx context.Context, projectID, cardID, newColumnID int64, newPosition int, userID int64) error {
 	repo, err := s.repoForProject(ctx, projectID)
 	if err != nil {
 		return err
@@ -150,7 +150,10 @@ func (s *ProjectService) MoveCard(ctx context.Context, projectID, cardID, newCol
 	if err != nil || colProject.ID != projectID {
 		return ErrProjectNotFound
 	}
-	if err := s.projects.MoveCard(ctx, cardID, newColumnID); err != nil {
+	if newPosition < 0 {
+		return fmt.Errorf("invalid position %d", newPosition)
+	}
+	if err := s.projects.MoveCard(ctx, cardID, newColumnID, newPosition); err != nil {
 		return err
 	}
 	if err := s.projects.TouchProject(ctx, projectID); err != nil {
@@ -195,4 +198,74 @@ func (s *ProjectService) ListColumnsWithCards(ctx context.Context, projectID int
 type ColumnWithCards struct {
 	Column model.ProjectColumn
 	Cards  []model.ProjectCard
+}
+
+// KanbanCardView is the unified shape consumed by the project_detail kanban board.
+// Title resolves to issue title, PR title, or note (first line, ≤120 chars).
+// Number is the issue/PR number (0 for note-only cards).
+type KanbanCardView struct {
+	ID           int64
+	Title        string
+	Number       int
+	State        string // "open" | "closed" | "merged" | "" (note)
+	Kind         string // "issue" | "pull" | "note"
+	RepoFullName string
+	Position     int
+	ColumnID     int64
+}
+
+// KanbanColumnView groups KanbanCardView entries under their owning column.
+type KanbanColumnView struct {
+	ID    int64
+	Name  string
+	Cards []KanbanCardView
+}
+
+// ListColumnsWithCardsExpanded resolves columns + cards joined with the owning
+// repo's full name (owner/name) for display in the kanban board.
+func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, projectID int64) ([]KanbanColumnView, error) {
+	repo, err := s.repoForProject(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	fullName := repo.OwnerName + "/" + repo.Name
+
+	cols, err := s.ListColumnsWithCards(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]KanbanColumnView, len(cols))
+	for i, col := range cols {
+		cards := make([]KanbanCardView, len(col.Cards))
+		for j, c := range col.Cards {
+			cv := KanbanCardView{
+				ID:           c.ID,
+				ColumnID:     c.ColumnID,
+				Position:     c.Position,
+				RepoFullName: fullName,
+			}
+			switch {
+			case c.IssueID != nil:
+				cv.Kind = "issue"
+				cv.Title = c.IssueTitle
+				cv.Number = c.IssueNumber
+				cv.State = c.IssueState
+			case c.PullID != nil:
+				cv.Kind = "pull"
+				cv.Title = c.PullTitle
+				cv.Number = c.PullNumber
+				cv.State = c.PullState
+			default:
+				cv.Kind = "note"
+				t := firstLine(c.Note)
+				if len(t) > 120 {
+					t = t[:120]
+				}
+				cv.Title = t
+			}
+			cards[j] = cv
+		}
+		out[i] = KanbanColumnView{ID: col.Column.ID, Name: col.Column.Name, Cards: cards}
+	}
+	return out, nil
 }
