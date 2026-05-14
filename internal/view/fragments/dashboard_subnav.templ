@@ -1,0 +1,35 @@
+package fragments
+
+type DashboardSubnavData struct {
+	Username string
+	// Active: "overview", "repositories", "projects", "packages",
+	// "stars", "pulls", "issues", "activity"
+	Active string
+}
+
+templ DashboardSubnav(data DashboardSubnavData) {
+	<nav aria-label="Dashboard sections" class="border-b border-border">
+		<div class="max-w-[1400px] mx-auto px-6 flex items-center gap-1 overflow-x-auto">
+			@dashTab(data, "overview", "Overview", "/"+data.Username)
+			@dashTab(data, "repositories", "Repositories", "/"+data.Username+"?tab=repositories")
+			@dashTab(data, "projects", "Projects", "/"+data.Username+"?tab=projects")
+			@dashTab(data, "packages", "Packages", "/"+data.Username+"?tab=packages")
+			@dashTab(data, "stars", "Stars", "/stars")
+			@dashTab(data, "pulls", "Pulls", "/pulls")
+			@dashTab(data, "issues", "Issues", "/issues")
+			@dashTab(data, "activity", "Activity", "/activity")
+		</div>
+	</nav>
+}
+
+templ dashTab(data DashboardSubnavData, key, label, href string) {
+	if data.Active == key {
+		<a href={ templ.SafeURL(href) } aria-current="page" class="px-3 py-2 text-sm font-medium text-foreground border-b-2 border-foreground -mb-px">
+			{ label }
+		</a>
+	} else {
+		<a href={ templ.SafeURL(href) } class="px-3 py-2 text-sm text-muted-foreground hover:text-foreground border-b-2 border-transparent -mb-px">
+			{ label }
+		</a>
+	}
+}
