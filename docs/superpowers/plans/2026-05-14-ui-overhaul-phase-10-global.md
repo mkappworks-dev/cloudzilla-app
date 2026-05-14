@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Consolidate `settings.templ` + `security.templ` + `tokens.templ` + `notification_settings.templ` into a single anchor-scrolled account-settings page. Add new `/docs` and `/changelog` pages. Refine the auth pages (login/register/totp/oauth/invite/404/403) to use a shared `AuthCard` shell that supports six panel variants.
+**Goal:** Consolidate `settings.templ` + `security.templ` + `tokens.templ` + `notification_settings.templ` into a single anchor-scrolled account-settings page. Add new `/docs` and `/changelog` pages. Refine the auth pages (login/register/totp/oauth/invite/404/403) to use a shared `AuthCard` shell that supports six panel variants. Backfill two Phase 1 mockup sections deferred to this phase: the home keyboard-shortcuts reference sidebar and the PR detail notification-subscribe toggle.
 
 **Architecture:** No migrations. `DocsService` parses markdown from a curated `docs/public/` subtree via `embed.FS` at startup. `ChangelogService` parses `CHANGELOG.md` (release-please format) at startup. `AuthCard` is a children-based templ shell that adapts to six panel variants via an explicit `variant` field plus optional hero/icon slots.
 
@@ -947,9 +947,63 @@ git commit -m "feat(ui): add Docs and Changelog page templates"
 
 ---
 
-### Task 8: Verify and open PR
+### Task 8: Home page — Keyboard shortcuts sidebar
 
-- [ ] Tests + lint + templ regen + visual sweep across account-settings / docs / changelog / auth pages in both themes. silent-failure-hunter.
+Port the `Shortcuts` section from [mockups/home.html](../../../mockups/home.html) lines 591–618 into the home page right-rail aside. This was deferred from Phase 1.
+
+**Scope:** Display-only reference card. Wiring real hotkey handlers (`G I`, `G P`, `N R`, etc.) is out of scope — leave a `// TODO: wire shortcuts` note where the future Alpine/JS handler will attach.
+
+- [ ] **Step 1:** Add a `Shortcuts` view-model in `internal/handler/viewmodels.go` (slice of `{Label string; Keys []string}`) populated by a static helper — no service/store layer needed.
+
+- [ ] **Step 2:** Add a `homeShortcuts` templ component in `internal/view/pages/home.templ` rendering the `<section aria-labelledby="shortcuts-heading">` block from the mockup. Use `<kbd>` elements with the existing `elevated b border rounded` classes already used by the mockup.
+
+- [ ] **Step 3:** Insert the new component as the final child of the home page right-rail aside, below the existing Templates sidebar. Verify the Phase 1 "Needs attention" / "Recent activity" / "Templates" order is unchanged.
+
+- [ ] **Step 4:** Regenerate templ (`~/go/bin/templ generate`), run `go test ./...`, visual sweep in both themes.
+
+- [ ] **Step 5:** Commit.
+
+```bash
+git add internal/handler/viewmodels.go internal/view/pages/home.templ internal/view/pages/home_templ.go
+git commit -m "feat(ui): add keyboard shortcuts sidebar to home page"
+```
+
+---
+
+### Task 9: PR detail — Notifications subscribe toggle
+
+Port the `Notifications` section from [mockups/pr.html](../../../mockups/pr.html) lines 661–668 into the PR detail right-rail aside. This was deferred from Phase 1.
+
+**Scope:** UI toggle + HTMX endpoint that flips a subscription row. The notification dispatch system already exists ([docs/notifications.md](../../notifications.md)) — this task only adds explicit per-PR subscribe state.
+
+- [ ] **Step 1:** Migration. Add `pull_subscriptions(user_id BIGINT, pull_id BIGINT, PRIMARY KEY(user_id, pull_id), created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())` in `migrations/` (next sequential number).
+
+- [ ] **Step 2:** Store. Add `PullSubscriptionStore` with `IsSubscribed(ctx, userID, pullID) (bool, error)`, `Subscribe(ctx, ...)`, `Unsubscribe(ctx, ...)`. Wire into `Stores` struct.
+
+- [ ] **Step 3:** Service. Add `PullService.ToggleSubscription(ctx, userID, pullID) (subscribed bool, err error)`. Wire into `Services`.
+
+- [ ] **Step 4:** Handler. Add `POST /{owner}/{repo}/pulls/{number}/subscribe` returning a re-rendered button fragment. Use HTMX `hx-post` + `hx-swap="outerHTML"`.
+
+- [ ] **Step 5:** Templ. Add `pullSubscribeButton` fragment in `internal/view/fragments/` rendering the `<button aria-pressed="...">` from the mockup with conditional label ("Subscribed" / "Subscribe") and bell icon. Insert below the Linked Issues section in `pull_detail.templ`, above the Phase 2 `TODO` anchor.
+
+- [ ] **Step 6:** View-model. Extend `PullDetailViewModel` with `IsSubscribed bool`; populate in `page_handler.go`. Auto-subscribe the PR author and any reviewer when their record is first created (handled in service, not handler).
+
+- [ ] **Step 7:** Wire the dispatch path in `internal/service/notification_service.go` to short-circuit when no subscription row exists for the recipient (respecting the existing `actorID == authorID` rule).
+
+- [ ] **Step 8:** Regenerate templ, run migrations, `go test ./...`, visual sweep.
+
+- [ ] **Step 9:** Commit.
+
+```bash
+git add migrations/ internal/store/ internal/service/ internal/handler/ internal/view/ internal/router/router.go
+git commit -m "feat(pr): add per-PR notification subscribe toggle"
+```
+
+---
+
+### Task 10: Verify and open PR
+
+- [ ] Tests + lint + templ regen + visual sweep across account-settings / docs / changelog / auth pages / home (shortcuts) / PR detail (subscribe) in both themes. silent-failure-hunter.
 
 - [ ] **Open PR:**
 
@@ -961,6 +1015,8 @@ gh pr create --title "feat(ui): UI overhaul phase 10 — settings & global" --bo
 - New /changelog route parsed from CHANGELOG.md at startup.
 - Account settings consolidated into single sidebar-nav page (Profile / Security / SSH / PATs / Notifications / Danger).
 - Auth pages (login, register, totp, oauth, invite, 404, 403) refactored onto a shared AuthCard shell.
+- Home page: keyboard shortcuts reference sidebar (deferred from Phase 1).
+- PR detail: per-PR notification subscribe toggle wired to a new pull_subscriptions table (deferred from Phase 1).
 
 Spec: docs/superpowers/specs/2026-05-14-ui-overhaul-design.md
 Plan: docs/superpowers/plans/2026-05-14-ui-overhaul-phase-10-global.md
@@ -968,8 +1024,10 @@ Plan: docs/superpowers/plans/2026-05-14-ui-overhaul-phase-10-global.md
 ## Test plan
 - [x] `go test ./...` passes
 - [x] DocsService + ChangelogService unit tests pass
-- [x] Visual: settings / docs / changelog / auth pages in both themes
+- [x] PullSubscriptionStore + PullService.ToggleSubscription unit tests pass
+- [x] Visual: settings / docs / changelog / auth pages / home shortcuts sidebar / PR subscribe button in both themes
 - [x] Legacy /settings/security etc. redirect to /settings?section=...
+- [x] Subscribe toggle round-trips via HTMX and dispatch respects subscription rows
 - [x] silent-failure-hunter clean
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
@@ -994,3 +1052,7 @@ EOF
 - [ ] AuthCard uses Templ children (`{ children... }`), supports all four variants (Logo / Icon / Numeral / Plain), and ports the full mockup markup for 404/403 (eyebrow + giant numeral + dual buttons), not just a "Go home" link.
 - [ ] No orphan files: `security.templ`, `tokens.templ`, `notification_settings.templ` and their `_templ.go` siblings deleted.
 - [ ] `pages.Settings(...)` function name preserved; `pageNames` slice in `router.go` only adds "docs" and "changelog".
+- [ ] Home shortcuts sidebar is display-only — no hotkey JS wired up; `// TODO: wire shortcuts` comment marks the future attach point.
+- [ ] PR subscribe button is HTMX-driven (`hx-post` + `hx-swap="outerHTML"`), not a full page reload.
+- [ ] `pull_subscriptions` migration uses `BIGINT` ids, `TIMESTAMPTZ NOT NULL DEFAULT NOW()`, and composite PK — follows the PostgreSQL conventions in CLAUDE.md.
+- [ ] PR author + reviewers auto-subscribe; notification dispatch short-circuits when no subscription row exists (preserving the `actorID == authorID` rule).
