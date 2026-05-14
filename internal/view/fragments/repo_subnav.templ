@@ -1,0 +1,54 @@
+package fragments
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+)
+
+// RepoSubnavData holds the inputs the 9-tab repo subnav needs.
+type RepoSubnavData struct {
+	OwnerName string
+	Repo      *model.Repository
+	// Active is one of: "code", "issues", "pull_requests", "actions",
+	// "discussions", "projects", "wiki", "releases", "settings". Empty
+	// string means no tab highlighted.
+	Active string
+	// Counts is an optional per-tab count badge keyed by the tab key
+	// above. A zero or missing value renders no badge. May be nil.
+	Counts map[string]int
+}
+
+templ RepoSubnav(data RepoSubnavData) {
+	<nav aria-label="Repository sections" class="border-b border-border">
+		<div class="max-w-[1400px] mx-auto px-6 flex items-center gap-1 overflow-x-auto">
+			@repoSubnavTab(data, "code", "Code", "/"+data.OwnerName+"/"+data.Repo.Name)
+			@repoSubnavTab(data, "issues", "Issues", "/"+data.OwnerName+"/"+data.Repo.Name+"/issues")
+			@repoSubnavTab(data, "pull_requests", "Pull requests", "/"+data.OwnerName+"/"+data.Repo.Name+"/pulls")
+			@repoSubnavTab(data, "actions", "Actions", "/"+data.OwnerName+"/"+data.Repo.Name+"/actions")
+			@repoSubnavTab(data, "discussions", "Discussions", "/"+data.OwnerName+"/"+data.Repo.Name+"/discussions")
+			@repoSubnavTab(data, "projects", "Projects", "/"+data.OwnerName+"/"+data.Repo.Name+"/projects")
+			@repoSubnavTab(data, "wiki", "Wiki", "/"+data.OwnerName+"/"+data.Repo.Name+"/wiki")
+			@repoSubnavTab(data, "releases", "Releases", "/"+data.OwnerName+"/"+data.Repo.Name+"/releases")
+			@repoSubnavTab(data, "settings", "Settings", "/"+data.OwnerName+"/"+data.Repo.Name+"/settings")
+		</div>
+	</nav>
+}
+
+templ repoSubnavTab(data RepoSubnavData, key, label, href string) {
+	if data.Active == key {
+		<a href={ templ.SafeURL(href) } aria-current="page" class="px-3 py-2 text-sm font-medium text-foreground border-b-2 border-foreground -mb-px inline-flex items-center gap-1.5">
+			{ label }
+			if count, ok := data.Counts[key]; ok && count > 0 {
+				<span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5" aria-label={ strconv.Itoa(count) + " " + label }>{ strconv.Itoa(count) }</span>
+			}
+		</a>
+	} else {
+		<a href={ templ.SafeURL(href) } class="px-3 py-2 text-sm text-muted-foreground hover:text-foreground border-b-2 border-transparent -mb-px inline-flex items-center gap-1.5">
+			{ label }
+			if count, ok := data.Counts[key]; ok && count > 0 {
+				<span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5" aria-label={ strconv.Itoa(count) + " " + label }>{ strconv.Itoa(count) }</span>
+			}
+		</a>
+	}
+}
