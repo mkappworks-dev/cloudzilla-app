@@ -289,8 +289,18 @@ func attentionRepoURL(item service.AttentionItem) string {
 	return "/" + item.RepoName
 }
 
+// attentionItemURL routes to the canonical URL for the underlying issue/PR.
+// Each AttentionKind has its own canonical route; an unrecognised kind falls
+// back to the repo root so a future kind constant cannot ship 404 links.
 func attentionItemURL(item service.AttentionItem) string {
-	return "/" + item.RepoName + "/issues/" + strconv.Itoa(item.Number)
+	switch item.Kind {
+	case service.AttentionPRReviewRequested:
+		return "/" + item.RepoName + "/pulls/" + strconv.Itoa(item.Number)
+	case service.AttentionIssueAssigned, service.AttentionMention:
+		return "/" + item.RepoName + "/issues/" + strconv.Itoa(item.Number)
+	default:
+		return "/" + item.RepoName
+	}
 }
 
 // Lossy: event types without a clear TimelineEntryKind fall through to TimelineEntryComment.
@@ -301,7 +311,7 @@ func eventTimelineKind(eventType string) components.TimelineEntryKind {
 	case model.EventPRMerged:
 		return components.TimelineEntryMerged
 	case model.EventIssueOpened, model.EventPROpened:
-		return components.TimelineEntryReopened
+		return components.TimelineEntryOpened
 	default:
 		return components.TimelineEntryComment
 	}

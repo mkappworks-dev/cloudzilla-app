@@ -342,7 +342,7 @@ func timelineEntryVariant(k TimelineEntryKind) TimelineVariant {
 	switch k {
 	case TimelineEntryClosed:
 		return TimelineDestructive
-	case TimelineEntryReopened, TimelineEntryReviewed:
+	case TimelineEntryOpened, TimelineEntryReopened, TimelineEntryReviewed:
 		return TimelineSuccess
 	case TimelineEntryMerged:
 		return TimelineMerged
@@ -355,6 +355,8 @@ func timelineEntryVerb(k TimelineEntryKind) string {
 	switch k {
 	case TimelineEntryComment:
 		return "commented"
+	case TimelineEntryOpened:
+		return "opened this"
 	case TimelineEntryClosed:
 		return "closed this"
 	case TimelineEntryReopened:

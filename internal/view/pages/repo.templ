@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -343,9 +344,9 @@ func contributorInitial(c service.ContributorStat) string {
 	return "?"
 }
 
-// Uses display name verbatim; the user profile route will 404 gracefully if no match.
+// URL-escaped so names containing spaces or "/" (from commit trailers) don't produce broken links.
 func contributorSlug(c service.ContributorStat) string {
-	return contributorDisplayName(c)
+	return url.PathEscape(contributorDisplayName(c))
 }
 
 func contributorAriaLabel(c service.ContributorStat) string {
