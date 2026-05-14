@@ -96,6 +96,9 @@ func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref 
 		return nil
 	})
 	if err != nil {
+		// Negative entry eclipses any prior successful comp for the duration of
+		// langCacheNegativeTTL — intentional, so a freshly-broken ref retries
+		// quickly instead of serving stale data from before the breakage.
 		s.cache.Store(key, cacheEntry{err: err, cachedAt: time.Now()})
 		return nil, err
 	}

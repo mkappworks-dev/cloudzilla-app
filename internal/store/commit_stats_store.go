@@ -21,8 +21,11 @@ func NewCommitStatsStore(database *sql.DB) *CommitStatsStore {
 	return &CommitStatsStore{db: database}
 }
 
-// Replaces (does not add to) the count. Retries of the same backfill window
-// stay idempotent because each call carries the full per-day total.
+// UpsertCount replaces (does not add to) the count for a (repo, user, day)
+// bucket. Production code uses AddCount instead — UpsertCount only remains
+// as the primitive backing the legacy idempotency test in
+// TestCommitStatsStore_UpsertAndListForUser. New callers should prefer
+// AddCount; mixing the two on the same bucket produces wrong totals.
 func (s *CommitStatsStore) UpsertCount(ctx context.Context, repoID, userID int64, day time.Time, count int) error {
 	const q = `
 		INSERT INTO commit_day_counts (repo_id, user_id, day, commit_count, updated_at)
