@@ -331,6 +331,10 @@ func writeProjectError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusForbidden, err.Error())
 		return
 	}
+	if errors.Is(err, service.ErrInvalidPosition) {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	slog.Error("operation failed", "error", err)
 	writeError(w, http.StatusInternalServerError, "internal server error")
 }

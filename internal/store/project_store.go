@@ -3,11 +3,19 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
+
+// ErrInvalidPosition: MoveCard newPosition exceeds the destination's capacity. 400, not 500.
+var ErrInvalidPosition = errors.New("invalid card position")
+
+// ErrCardNotInProject: MoveCard source/destination doesn't belong to the claimed project.
+// Distinct sentinel so the service doesn't have to overload errors.Is(sql.ErrNoRows).
+var ErrCardNotInProject = errors.New("card not in project")
 
 // ProjectStore provides database operations for Kanban project boards, columns, and cards.
 type ProjectStore struct{ db *sql.DB }
@@ -187,11 +195,9 @@ func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64) ([
 	return cards, rows.Err()
 }
 
-// maxPositionInColumn returns the largest newPosition the caller may use for
-// a move into columnID. Same-column moves keep N total cards (valid 0..N-1);
-// cross-column moves grow the column to N+1 cards (valid 0..N). Excluding the
-// moving card from the count handles both cases uniformly: returned value =
-// (final card count in target) - 1, with -1 collapsed to 0 for empty targets.
+// maxPositionInColumn returns the largest valid newPosition for a move into
+// columnID. Excluding the moving card from the count makes same-column and
+// cross-column cases match: max = others, both branches.
 func (s *ProjectStore) maxPositionInColumn(ctx context.Context, tx *sql.Tx, columnID, cardID int64) (int, error) {
 	var others int
 	if err := tx.QueryRowContext(ctx,
@@ -200,17 +206,13 @@ func (s *ProjectStore) maxPositionInColumn(ctx context.Context, tx *sql.Tx, colu
 	).Scan(&others); err != nil {
 		return 0, fmt.Errorf("count target column %d: %w", columnID, err)
 	}
-	// Same column: final count = others + 1 (card stays), max = others.
-	// Cross column: final count = others + 1 (card arrives), max = others.
-	// Empty target with cross-column move: max = 0 (the single valid slot).
 	return others, nil
 }
 
-// MoveCard moves a card to (newColumnID, newPosition), re-numbering siblings so
-// positions stay dense (0..N-1) within each affected column. Both the source
-// card and the destination column must belong to projectID; otherwise the call
-// fails with sql.ErrNoRows (preventing cross-project tampering). The operation
-// runs in a transaction with FOR UPDATE on the source row.
+// MoveCard moves a card to (newColumnID, newPosition), keeping positions dense
+// (0..N-1) per column. Both source card and destination column must belong to
+// projectID — enforced in SQL so the guard survives a future caller skipping
+// the service authz. Returns ErrCardNotInProject or ErrInvalidPosition.
 func (s *ProjectStore) MoveCard(ctx context.Context, projectID, cardID, newColumnID int64, newPosition int) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -218,15 +220,30 @@ func (s *ProjectStore) MoveCard(ctx context.Context, projectID, cardID, newColum
 	}
 	defer tx.Rollback() //nolint:errcheck
 
+	var destExists bool
+	if err := tx.QueryRowContext(ctx,
+		`SELECT EXISTS(SELECT 1 FROM project_columns WHERE id = $1 AND project_id = $2)`,
+		newColumnID, projectID,
+	).Scan(&destExists); err != nil {
+		return fmt.Errorf("check destination column %d in project %d: %w", newColumnID, projectID, err)
+	}
+	if !destExists {
+		return fmt.Errorf("destination column %d not in project %d: %w", newColumnID, projectID, ErrCardNotInProject)
+	}
+
 	var oldColumnID int64
 	var oldPosition int
-	if err := tx.QueryRowContext(ctx,
+	err = tx.QueryRowContext(ctx,
 		`SELECT column_id, position FROM project_cards
 		 WHERE id = $1
 		   AND column_id IN (SELECT id FROM project_columns WHERE project_id = $2)
 		 FOR UPDATE`,
 		cardID, projectID,
-	).Scan(&oldColumnID, &oldPosition); err != nil {
+	).Scan(&oldColumnID, &oldPosition)
+	if errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("card %d not in project %d: %w", cardID, projectID, ErrCardNotInProject)
+	}
+	if err != nil {
 		return fmt.Errorf("locate card %d in project %d: %w", cardID, projectID, err)
 	}
 
@@ -235,7 +252,7 @@ func (s *ProjectStore) MoveCard(ctx context.Context, projectID, cardID, newColum
 		return err
 	}
 	if newPosition > upperBound {
-		return fmt.Errorf("position %d exceeds column size %d", newPosition, upperBound)
+		return fmt.Errorf("position %d exceeds column size %d: %w", newPosition, upperBound, ErrInvalidPosition)
 	}
 
 	if oldColumnID == newColumnID {

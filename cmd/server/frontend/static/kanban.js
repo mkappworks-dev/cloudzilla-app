@@ -29,11 +29,14 @@ document.addEventListener('alpine:init', () => {
       if (!col || !this.dragged) return;
       e.preventDefault();
 
-      const cardID = this.dragged.dataset.cardId;
+      // Capture the dragged element locally so a concurrent drag started
+      // during the awaited fetch doesn't get its state clobbered by finally.
+      const dragged = this.dragged;
+      const cardID = dragged.dataset.cardId;
       const columnID = col.dataset.columnId;
       const list = col.querySelector('[data-cards]') || col;
-      list.appendChild(this.dragged); // optimistic insert at end of column
-      const position = Array.from(list.querySelectorAll('[data-drag="kanban-card"]')).indexOf(this.dragged);
+      list.appendChild(dragged);
+      const position = Array.from(list.querySelectorAll('[data-drag="kanban-card"]')).indexOf(dragged);
 
       const root = this.$root;
       const owner = root.dataset.owner;
@@ -49,17 +52,19 @@ document.addEventListener('alpine:init', () => {
           body: JSON.stringify({ column_id: Number(columnID), position }),
         });
         if (!r.ok) {
-          const body = await r.text().catch(() => '');
+          const body = await r.text().catch((readErr) => {
+            console.warn('kanban: response body read failed', readErr);
+            return '';
+          });
           throw new Error('HTTP ' + r.status + (body ? ': ' + body.slice(0, 200) : ''));
         }
       } catch (err) {
         console.error('kanban move failed:', err);
         const msg = (err && err.message) ? err.message : 'unknown error';
-        // Server is the source of truth — surface the failure, then revert by reloading.
         window.alert('Could not move card (' + msg + '). Reloading.');
         window.location.reload();
       } finally {
-        this.dragged = null;
+        if (this.dragged === dragged) this.dragged = null;
       }
     },
   }));

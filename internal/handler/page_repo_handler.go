@@ -334,8 +334,6 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	if treeErr != nil && !errors.Is(treeErr, service.ErrEmptyRepo) && path != "" {
 		blobResult, blobErr := h.Services.Code.GetBlob(owner, repoName, ref, path)
 		if blobErr == nil {
-			// treeErr is the expected "not a tree" signal here; record at debug
-			// for forensics without spamming the warn channel.
 			slog.Debug("tree: fell back to blob render",
 				"owner", owner, "repo", repoName, "ref", ref, "path", path, "tree_err", treeErr)
 			parentPath := ""
@@ -396,7 +394,6 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 			}))
 			return
 		}
-		// Both tree and blob loads failed — preserve both for the 404 path.
 		slog.Warn("tree: blob fallback also failed",
 			"owner", owner, "repo", repoName, "ref", ref, "path", path,
 			"tree_err", treeErr, "blob_err", blobErr)
@@ -682,8 +679,7 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// buildSidebarTree fetches the root tree and expands the path leading to
-// currentPath so the sidebar shows an open, hierarchical IDE-style view.
+// buildSidebarTree returns the root tree with the path to currentPath expanded.
 func (h *Handler) buildSidebarTree(owner, repoName, ref, currentPath string) []components.TreeNode {
 	root, err := h.Services.Code.GetTree(owner, repoName, ref, "")
 	if err != nil {
@@ -698,8 +694,7 @@ func (h *Handler) buildSidebarTree(owner, repoName, ref, currentPath string) []c
 	return h.buildSidebarLevel(owner, repoName, ref, "", root.Entries, segs)
 }
 
-// buildSidebarLevel converts a slice of TreeEntry values into TreeNode values,
-// recursively expanding the directory that matches the next path segment.
+// buildSidebarLevel recursively expands the directory matching remainingPath[0].
 func (h *Handler) buildSidebarLevel(owner, repoName, ref, dirPath string, entries []service.TreeEntry, remainingPath []string) []components.TreeNode {
 	nodes := make([]components.TreeNode, 0, len(entries))
 	for _, e := range entries {

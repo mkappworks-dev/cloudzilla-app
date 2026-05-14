@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"sort"
 	"strings"
@@ -15,8 +16,7 @@ import (
 )
 
 // TreeEntryWithLastCommit is a directory listing entry enriched with the
-// most recent commit that touched it. Used by the tree page. Coexists with
-// the existing simple TreeEntry in code_service_tree.go.
+// most recent commit that touched it. Used by the tree page.
 type TreeEntryWithLastCommit struct {
 	Name       string
 	Path       string
@@ -37,8 +37,8 @@ type treeCacheEntry struct {
 
 const (
 	treeCacheTTL = 60 * time.Second
-	// treeCacheMaxKeys triggers an expired-entry sweep when the inserted-key
-	// count crosses this threshold. Caps cache memory under SHA enumeration.
+	// treeCacheMaxKeys: insert counter at which the eviction sweep fires.
+	// Caps cache memory under unbounded SHA enumeration.
 	treeCacheMaxKeys = 1024
 )
 
@@ -91,6 +91,10 @@ func (s *CodeService) ListEntriesWithLastCommit(ctx context.Context, owner, repo
 		}
 		last, err := s.lastCommitTouching(ctx, repo, commit, e.Path)
 		if err != nil {
+			// Cancellation must propagate; otherwise partial entries ship with empty LastCommit.
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return nil, err
+			}
 			slog.Warn("tree last-commit lookup failed",
 				"owner", owner,
 				"repo", repoName,
@@ -128,17 +132,20 @@ func (s *CodeService) ListEntriesWithLastCommit(ctx context.Context, owner, repo
 	return out, nil
 }
 
-// cacheTreeEntries stores entries under key. If the cache has grown past
-// treeCacheMaxKeys, a single sweep evicts entries whose cachedAt is older than
-// treeCacheTTL — bounding memory growth from unbounded SHA enumeration.
+// cacheTreeEntries stores entries and triggers an expired-entry sweep once
+// inserts cross treeCacheMaxKeys. Best-effort counter — sync.Map has no Len.
 func (s *CodeService) cacheTreeEntries(key string, entries []TreeEntryWithLastCommit) {
 	s.treeCache.Store(key, treeCacheEntry{entries: entries, cachedAt: time.Now()})
-	// Best-effort size estimate; sync.Map has no Len.
 	if atomic.AddInt64(&s.treeCacheKeys, 1) > treeCacheMaxKeys {
 		atomic.StoreInt64(&s.treeCacheKeys, 0)
 		now := time.Now()
 		s.treeCache.Range(func(k, v any) bool {
-			if e, ok := v.(treeCacheEntry); ok && now.Sub(e.cachedAt) >= treeCacheTTL {
+			e, ok := v.(treeCacheEntry)
+			if !ok {
+				slog.Warn("treeCache: unexpected value type during sweep", "key", k)
+				return true
+			}
+			if now.Sub(e.cachedAt) >= treeCacheTTL {
 				s.treeCache.Delete(k)
 			}
 			return true
@@ -146,9 +153,7 @@ func (s *CodeService) cacheTreeEntries(key string, entries []TreeEntryWithLastCo
 	}
 }
 
-// LastCommitForPath returns the most recent commit that touched `path`
-// (file or directory) reachable from `ref`. Used by the blob page to render
-// the latest-commit sub-header row for a single file.
+// LastCommitForPath returns the most recent commit that touched path reachable from ref.
 func (s *CodeService) LastCommitForPath(ctx context.Context, owner, repoName, ref, path string) (*object.Commit, error) {
 	if ref == "HEAD" {
 		ref = ""
@@ -167,10 +172,8 @@ func (s *CodeService) LastCommitForPath(ctx context.Context, owner, repoName, re
 	return s.lastCommitTouching(ctx, repo, commit, path)
 }
 
-// lastCommitTouching walks the history from headCommit and returns the most
-// recent commit whose tree changed `path`. Uses go-git's PathFilter to limit
-// iteration to commits that altered files at or under `path`. Aborts early
-// if ctx is cancelled.
+// lastCommitTouching returns the most recent commit whose tree changed path,
+// walked from headCommit via PathFilter. Aborts on ctx cancellation.
 func (s *CodeService) lastCommitTouching(ctx context.Context, repo *gogit.Repository, headCommit *object.Commit, path string) (*object.Commit, error) {
 	prefix := path
 	if prefix != "" {
@@ -211,8 +214,7 @@ func joinPath(dir, name string) string {
 	return dir + "/" + name
 }
 
-// FirstLine returns the first newline-terminated line of s (commit subject,
-// note title, etc). Shared by handler and service code.
+// FirstLine returns the subject line (first \n-terminated segment) of s.
 func FirstLine(s string) string {
 	if i := strings.IndexByte(s, '\n'); i >= 0 {
 		return s[:i]

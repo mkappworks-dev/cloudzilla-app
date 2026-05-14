@@ -1,11 +1,11 @@
 package store_test
 
-// Integration tests for ProjectStore.MoveCard reorder SQL.
-// All tests require TEST_DATABASE_DSN and skip otherwise.
+// MoveCard reorder + IDOR integration tests. Require TEST_DATABASE_DSN; skip otherwise.
 
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -275,35 +275,60 @@ func TestProjectStore_MoveCard_SamePosition_NoChange(t *testing.T) {
 	}
 }
 
-// TestProjectStore_MoveCard_CrossProject_Rejected verifies the IDOR guard:
-// a card from another project cannot be moved into this project's columns.
+// TestProjectStore_MoveCard_CrossProject_Rejected: attacker presents the
+// victim's cardID with their own projectID + column. Source-side IDOR guard.
 func TestProjectStore_MoveCard_CrossProject_Rejected(t *testing.T) {
 	db := openStoreDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
 	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
-	victimID, victimCols := seedProjectWithColumns(t, db, repoID, []string{"victim_todo"})
+	_, victimCols := seedProjectWithColumns(t, db, repoID, []string{"victim_todo"})
 	attackerID, attackerCols := seedProjectWithColumns(t, db, repoID, []string{"attacker_todo"})
 
 	s := store.NewProjectStore(db)
 	victimCard := seedCard(t, s, victimCols[0], "secret")
-	_ = victimID
 
-	// Attacker presents the victim's cardID but their own projectID + column.
 	err := s.MoveCard(context.Background(), attackerID, victimCard.ID, attackerCols[0], 0)
-	if err == nil {
-		t.Fatal("MoveCard: cross-project move succeeded; expected error")
+	if !errors.Is(err, store.ErrCardNotInProject) {
+		t.Fatalf("MoveCard: want ErrCardNotInProject, got %v", err)
 	}
 
-	// Victim card must remain in its original column at position 0.
 	got := readPositions(t, db, victimCols[0])
 	if len(got) != 1 || got[0].ID != victimCard.ID || got[0].Pos != 0 {
 		t.Errorf("victim column tampered: got %+v", got)
 	}
 }
 
-// TestProjectStore_MoveCard_PositionOutOfRange_Rejected verifies positions
-// beyond the column size are rejected (no sparse-gap corruption).
+// TestProjectStore_MoveCard_AttackerCardToVictimColumn_Rejected: attacker
+// uses their own cardID but targets a column in another project. Destination
+// IDOR guard (defense in depth — service-layer also checks this).
+func TestProjectStore_MoveCard_AttackerCardToVictimColumn_Rejected(t *testing.T) {
+	db := openStoreDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+	_, victimCols := seedProjectWithColumns(t, db, repoID, []string{"victim_todo"})
+	attackerID, attackerCols := seedProjectWithColumns(t, db, repoID, []string{"attacker_todo"})
+
+	s := store.NewProjectStore(db)
+	attackerCard := seedCard(t, s, attackerCols[0], "mine")
+	_ = seedCard(t, s, victimCols[0], "existing")
+
+	err := s.MoveCard(context.Background(), attackerID, attackerCard.ID, victimCols[0], 0)
+	if !errors.Is(err, store.ErrCardNotInProject) {
+		t.Fatalf("MoveCard: want ErrCardNotInProject, got %v", err)
+	}
+
+	// Victim column must be untouched.
+	if got := readPositions(t, db, victimCols[0]); len(got) != 1 || got[0].Pos != 0 {
+		t.Errorf("victim column tampered: got %+v", got)
+	}
+	// Attacker card must remain in its original column.
+	if got := readPositions(t, db, attackerCols[0]); len(got) != 1 || got[0].ID != attackerCard.ID {
+		t.Errorf("attacker card moved: got %+v", got)
+	}
+}
+
 func TestProjectStore_MoveCard_PositionOutOfRange_Rejected(t *testing.T) {
 	db := openStoreDB(t)
 	suffix := testutil.UniqueSuffix(t)
@@ -315,14 +340,11 @@ func TestProjectStore_MoveCard_PositionOutOfRange_Rejected(t *testing.T) {
 	a := seedCard(t, s, cols[0], "A")
 	_ = seedCard(t, s, cols[0], "B")
 	_ = seedCard(t, s, cols[1], "X")
-	// todo: 2 cards, doing: 1 card
 
-	// Cross-column to position 999 (doing has 1 card → max valid newPosition is 1).
-	if err := s.MoveCard(context.Background(), projectID, a.ID, cols[1], 999); err == nil {
-		t.Fatal("MoveCard: out-of-range position succeeded; expected error")
+	if err := s.MoveCard(context.Background(), projectID, a.ID, cols[1], 999); !errors.Is(err, store.ErrInvalidPosition) {
+		t.Fatalf("MoveCard cross-column: want ErrInvalidPosition, got %v", err)
 	}
-	// Same-column to position 999 (todo has 2 cards including A → max valid is 1).
-	if err := s.MoveCard(context.Background(), projectID, a.ID, cols[0], 999); err == nil {
-		t.Fatal("MoveCard: out-of-range same-column position succeeded; expected error")
+	if err := s.MoveCard(context.Background(), projectID, a.ID, cols[0], 999); !errors.Is(err, store.ErrInvalidPosition) {
+		t.Fatalf("MoveCard same-column: want ErrInvalidPosition, got %v", err)
 	}
 }

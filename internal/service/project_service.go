@@ -14,6 +14,9 @@ import (
 var ErrProjectNotFound = errors.New("project not found")
 var ErrForbidden = errors.New("forbidden")
 
+// ErrInvalidPosition re-exports the store sentinel so handlers map it to 400.
+var ErrInvalidPosition = store.ErrInvalidPosition
+
 // ProjectService manages Kanban project boards, columns, and cards.
 type ProjectService struct {
 	projects *store.ProjectStore
@@ -151,11 +154,10 @@ func (s *ProjectService) MoveCard(ctx context.Context, projectID, cardID, newCol
 		return ErrProjectNotFound
 	}
 	if newPosition < 0 {
-		return fmt.Errorf("invalid position %d", newPosition)
+		return fmt.Errorf("%w: %d", ErrInvalidPosition, newPosition)
 	}
 	if err := s.projects.MoveCard(ctx, projectID, cardID, newColumnID, newPosition); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			// Source card doesn't belong to projectID (or doesn't exist).
+		if errors.Is(err, store.ErrCardNotInProject) {
 			return ErrProjectNotFound
 		}
 		return err
