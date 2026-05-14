@@ -11,6 +11,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -85,6 +86,27 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		topics = []model.Topic{}
 	}
 
+	canManage := false
+	if currentUserID != 0 {
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, currentUserID)
+	}
+
+	// Phase 1 about-sidebar widgets.
+	var languages []components.LangBarItem
+	if percents, err := h.Services.Language.Percentages(r.Context(), owner, repoName, repo.DefaultBranch); err == nil {
+		languages = make([]components.LangBarItem, 0, len(percents))
+		for _, p := range percents {
+			languages = append(languages, components.LangBarItem{
+				Name:    p.Name,
+				Percent: p.Percent,
+				Color:   components.LangColor(p.Name),
+			})
+		}
+	}
+	topContribs, _ := h.Services.Repo.TopContributors(r.Context(), owner, repoName, 10)
+	releases, _ := h.Services.Release.RecentForRepo(r.Context(), owner, repoName, 5)
+	heatmap, _ := h.Services.CommitStats.LookbackForRepo(r.Context(), repo.ID, 90)
+
 	h.render(w, r, pages.Repo(view.RepoData{
 		BasePage:      basePage(r, h.Services),
 		Repo:          *repo,
@@ -93,6 +115,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		CloneHTTP:     cloneHTTP,
 		CloneSSH:      cloneSSH,
 		CanWrite:      canWrite,
+		CanManage:     canManage,
 		ReadmeHTML:    readmeHTML,
 		StarCount:     starCount,
 		IsStarred:     isStarred,
@@ -103,6 +126,10 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		LatestRelease: latestRelease,
 		Topics:        topics,
 		IsArchived:    repo.IsArchived,
+		Languages:     languages,
+		TopContribs:   topContribs,
+		Releases:      releases,
+		Heatmap:       heatmap,
 	}))
 }
 

@@ -28,6 +28,7 @@ func newIssueSvc(t *testing.T) (*service.IssueService, int64, string) {
 		store.NewUserStore(db),
 		store.NewOrgStore(db),
 		nil,
+		nil,
 		config.GitConfig{},
 	)
 	svc := service.NewIssueService(store.NewIssueStore(db), repoStore, repoSvc)
@@ -102,7 +103,7 @@ func TestIssueService_Create_UnknownRepo_Error(t *testing.T) {
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
 	repoStore := store.NewRepoStore(db)
-	repoSvc := service.NewRepoService(repoStore, store.NewUserStore(db), store.NewOrgStore(db), nil, config.GitConfig{})
+	repoSvc := service.NewRepoService(repoStore, store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{})
 	svc := service.NewIssueService(store.NewIssueStore(db), repoStore, repoSvc)
 
 	_, err := svc.Create(context.Background(), "nobody", "nonexistent", ownerID, "title", "body", "public")

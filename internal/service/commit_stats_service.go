@@ -88,6 +88,25 @@ func (s *CommitStatsService) CommitsForUserSince(ctx context.Context, userID int
 	return total, nil
 }
 
+// LookbackForRepo returns per-day commit counts (summed across users)
+// for the given repo over the past `days` days. Used by the repo About
+// sidebar mini heatmap.
+func (s *CommitStatsService) LookbackForRepo(ctx context.Context, repoID int64, days int) (map[time.Time]int, error) {
+	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)
+	rows, err := s.stats.ListForRepoSince(ctx, repoID, since)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[time.Time]int, days)
+	for i := 0; i < days; i++ {
+		out[since.AddDate(0, 0, i)] = 0
+	}
+	for _, r := range rows {
+		out[r.Day.UTC().Truncate(24*time.Hour)] = r.CommitCount
+	}
+	return out, nil
+}
+
 // LookbackForUser returns per-day commit counts for the user over the past
 // `days` days. The full window is materialized — days with zero commits
 // get an explicit zero entry — so the heatmap can render a regular grid.

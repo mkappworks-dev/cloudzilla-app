@@ -59,7 +59,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	index := NewIndexService(stores.CodeSearch, code)
 	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
 	attentionSvc := NewAttentionService(stores.Issue)
-	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, commitStatsSvc, cfg.Git)
+	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, commitStatsSvc, code, cfg.Git)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
 	userSvc := NewUserService(stores.User, cfg.Auth)
 	emailSvc := NewEmailService(cfg.SMTP)

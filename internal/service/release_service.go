@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -71,6 +72,30 @@ func (s *ReleaseService) ListByRepo(ctx context.Context, owner, repoName string)
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
 	return s.releases.ListByRepo(ctx, repo.ID)
+}
+
+// RecentForRepo returns up to `limit` releases for the given repo ordered
+// by published_at desc (falling back to created_at when PublishedAt is nil).
+// Used by the repo about sidebar.
+func (s *ReleaseService) RecentForRepo(ctx context.Context, owner, repoName string, limit int) ([]model.Release, error) {
+	all, err := s.ListByRepo(ctx, owner, repoName)
+	if err != nil {
+		return nil, err
+	}
+	sort.SliceStable(all, func(i, j int) bool {
+		return releaseSortTime(all[i]).After(releaseSortTime(all[j]))
+	})
+	if limit > 0 && len(all) > limit {
+		all = all[:limit]
+	}
+	return all, nil
+}
+
+func releaseSortTime(r model.Release) time.Time {
+	if r.PublishedAt != nil {
+		return *r.PublishedAt
+	}
+	return r.CreatedAt
 }
 
 func (s *ReleaseService) GetByTag(ctx context.Context, owner, repoName, tagName string) (*model.Release, error) {

@@ -32,7 +32,7 @@ func newPullHandler(db *sql.DB) *handler.Handler {
 		},
 	}
 	userSvc := service.NewUserService(store.NewUserStore(db), cfg.Auth)
-	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, config.GitConfig{})
+	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{})
 	emailSvc := service.NewEmailService(config.SMTPConfig{})
 	notifSvc := service.NewNotificationService(store.NewNotificationStore(db), store.NewWatchStore(db), emailSvc, userSvc)
 	svc := &service.Services{

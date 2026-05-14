@@ -42,12 +42,31 @@ type RepoService struct {
 	users       *store.UserStore
 	orgs        *store.OrgStore
 	commitStats *CommitStatsService
+	code        *CodeService
 	cfg         config.GitConfig
 }
 
 // NewRepoService creates a RepoService backed by the given stores and git config.
-func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, commitStats *CommitStatsService, cfg config.GitConfig) *RepoService {
-	return &RepoService{repos: repos, users: users, orgs: orgs, commitStats: commitStats, cfg: cfg}
+// The code service may be nil in tests that do not exercise contributor queries.
+func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, commitStats *CommitStatsService, code *CodeService, cfg config.GitConfig) *RepoService {
+	return &RepoService{repos: repos, users: users, orgs: orgs, commitStats: commitStats, code: code, cfg: cfg}
+}
+
+// TopContributors returns the top N contributors by commit count for the
+// given repo. Wraps CodeService.GetContributors so handlers don't reach
+// into CodeService directly.
+func (s *RepoService) TopContributors(ctx context.Context, owner, name string, limit int) ([]ContributorStat, error) {
+	if s.code == nil {
+		return nil, nil
+	}
+	all, err := s.code.GetContributors(owner, name)
+	if err != nil {
+		return nil, err
+	}
+	if limit > 0 && len(all) > limit {
+		all = all[:limit]
+	}
+	return all, nil
 }
 
 // OnPostReceive is called by the HTTP and SSH git-receive-pack handlers

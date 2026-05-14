@@ -23,7 +23,7 @@ func newPullSvc(t *testing.T) (*service.PullService, int64, string, string) {
 	ownerName := "testuser_" + suffix
 	repoName := "testrepo_" + suffix
 	testutil.SeedRepo(t, db, ownerID, ownerName, suffix)
-	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, config.GitConfig{})
+	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{})
 	svc := service.NewPullService(store.NewPullStore(db), store.NewRepoStore(db), repoSvc)
 	return svc, ownerID, ownerName, repoName
 }
@@ -67,7 +67,7 @@ func TestPullService_Create_UnknownRepo_Error(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
-	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, config.GitConfig{})
+	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{})
 	svc := service.NewPullService(store.NewPullStore(db), store.NewRepoStore(db), repoSvc)
 
 	_, err := svc.Create(context.Background(), "nobody", "nonexistent", ownerID,

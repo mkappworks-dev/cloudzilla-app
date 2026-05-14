@@ -1,8 +1,11 @@
 package view
 
 import (
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 // RepoData holds template data for the repository home page.
@@ -14,6 +17,7 @@ type RepoData struct {
 	CloneHTTP     string
 	CloneSSH      string
 	CanWrite      bool
+	CanManage     bool
 	ReadmeHTML    string
 	StarCount     int
 	IsStarred     bool
@@ -24,6 +28,11 @@ type RepoData struct {
 	LatestRelease *model.Release
 	Topics        []model.Topic
 	IsArchived    bool
+	// Phase 1 about-sidebar widgets.
+	Languages   []components.LangBarItem
+	TopContribs []service.ContributorStat
+	Releases    []model.Release
+	Heatmap     map[time.Time]int
 }
 
 // RepoNewData holds template data for the new repository form page.
