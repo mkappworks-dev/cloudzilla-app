@@ -1,0 +1,48 @@
+package components
+
+import "strconv"
+
+type KanbanCardData struct {
+	ID           int64
+	Title        string
+	IssueNumber  int
+	RepoFullName string
+	Position     int
+}
+
+type KanbanColumnData struct {
+	ID    int64
+	Title string
+	Cards []KanbanCardData
+}
+
+templ KanbanColumn(col KanbanColumnData) {
+	<section
+		class="w-72 flex-none bg-card border border-border rounded-md p-3 space-y-2"
+		data-column-id={ strconv.FormatInt(col.ID, 10) }
+		data-drop="kanban-column"
+		aria-label={ "Column: " + col.Title }
+	>
+		<header class="flex items-center justify-between text-[13px] text-muted-foreground">
+			<h3 class="font-medium text-foreground">{ col.Title }</h3>
+			<span class="font-mono">{ strconv.Itoa(len(col.Cards)) }</span>
+		</header>
+		<ul class="space-y-2" data-cards>
+			for _, card := range col.Cards {
+				@KanbanCard(card)
+			}
+		</ul>
+	</section>
+}
+
+templ KanbanCard(card KanbanCardData) {
+	<li
+		class="bg-background border border-border rounded p-2 text-sm cursor-grab active:cursor-grabbing hover:border-border-strong"
+		draggable="true"
+		data-card-id={ strconv.FormatInt(card.ID, 10) }
+		data-drag="kanban-card"
+	>
+		<p class="font-medium">{ card.Title }</p>
+		<p class="text-xs text-muted-foreground mt-1 font-mono">{ card.RepoFullName + " #" + strconv.Itoa(card.IssueNumber) }</p>
+	</li>
+}
