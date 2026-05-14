@@ -67,3 +67,70 @@ templ TimelineIcon(variant TimelineVariant) {
 		{ children... }
 	</span>
 }
+
+// TimelineEntryKind labels each row's event type. The icon variant and verb
+// are derived from this; the body is supplied as templ children.
+type TimelineEntryKind string
+
+const (
+	TimelineEntryComment  TimelineEntryKind = "comment"
+	TimelineEntryClosed   TimelineEntryKind = "closed"
+	TimelineEntryReopened TimelineEntryKind = "reopened"
+	TimelineEntryMerged   TimelineEntryKind = "merged"
+	TimelineEntryLabeled  TimelineEntryKind = "labeled"
+	TimelineEntryAssigned TimelineEntryKind = "assigned"
+	TimelineEntryReviewed TimelineEntryKind = "reviewed"
+)
+
+// TimelineEntry renders one row inside a Timeline: actor link + action verb
+// + timestamp, with optional rich children below (e.g. a comment card).
+templ TimelineEntry(kind TimelineEntryKind, actor string, when string) {
+	@TimelineItem() {
+		@TimelineIcon(timelineEntryVariant(kind)) {
+		}
+		<div class="flex-1 min-w-0">
+			<p class="text-sm">
+				<a href={ templ.SafeURL("/" + actor) } class="font-medium text-foreground hover:text-primary">{ actor }</a>
+				<span class="text-muted-foreground">{ " " + timelineEntryVerb(kind) + " " }</span>
+				<time class="text-muted-foreground text-xs">{ when }</time>
+			</p>
+			<div class="mt-1">
+				{ children... }
+			</div>
+		</div>
+	}
+}
+
+func timelineEntryVariant(k TimelineEntryKind) TimelineVariant {
+	switch k {
+	case TimelineEntryClosed:
+		return TimelineDestructive
+	case TimelineEntryReopened, TimelineEntryReviewed:
+		return TimelineSuccess
+	case TimelineEntryMerged:
+		return TimelineMerged
+	default:
+		return TimelineDefault
+	}
+}
+
+func timelineEntryVerb(k TimelineEntryKind) string {
+	switch k {
+	case TimelineEntryComment:
+		return "commented"
+	case TimelineEntryClosed:
+		return "closed this"
+	case TimelineEntryReopened:
+		return "reopened this"
+	case TimelineEntryMerged:
+		return "merged this"
+	case TimelineEntryLabeled:
+		return "added labels"
+	case TimelineEntryAssigned:
+		return "assigned"
+	case TimelineEntryReviewed:
+		return "reviewed"
+	default:
+		return ""
+	}
+}

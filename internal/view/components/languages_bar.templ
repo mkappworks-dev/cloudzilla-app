@@ -1,0 +1,81 @@
+package components
+
+import (
+	"fmt"
+	"strconv"
+)
+
+// LangBarItem is one segment of the language composition bar. Color is
+// an HSL string (e.g. "hsl(0 60% 50%)") OR a hex value; whichever the
+// caller passes is set as the inline background-color.
+type LangBarItem struct {
+	Name    string
+	Percent int
+	Color   string
+}
+
+templ LanguagesBar(items []LangBarItem) {
+	<div aria-label="Language composition" role="img">
+		<div class="flex h-2 rounded-full overflow-hidden border border-border">
+			for _, it := range items {
+				<div title={ fmt.Sprintf("%s — %d%%", it.Name, it.Percent) } style={ fmt.Sprintf("width: %d%%; background-color: %s;", it.Percent, it.Color) }></div>
+			}
+		</div>
+		<ul class="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
+			for _, it := range items {
+				<li class="flex items-center gap-1.5">
+					<span class="inline-block w-2 h-2 rounded-full" style={ "background-color: " + it.Color } aria-hidden="true"></span>
+					<span class="text-foreground">{ it.Name }</span>
+					<span>{ strconv.Itoa(it.Percent) + "%" }</span>
+				</li>
+			}
+		</ul>
+	</div>
+}
+
+// LangColor maps a language name to a stable display color. Mirrors the
+// GitHub palette for familiarity. Unknown languages get a neutral fallback.
+func LangColor(name string) string {
+	switch name {
+	case "Go":
+		return "#00ADD8"
+	case "JavaScript":
+		return "#F1E05A"
+	case "TypeScript":
+		return "#3178C6"
+	case "Python":
+		return "#3572A5"
+	case "Ruby":
+		return "#701516"
+	case "Rust":
+		return "#DEA584"
+	case "Java":
+		return "#B07219"
+	case "Kotlin":
+		return "#A97BFF"
+	case "Swift":
+		return "#FFAC45"
+	case "C":
+		return "#555555"
+	case "C++":
+		return "#F34B7D"
+	case "C#":
+		return "#178600"
+	case "PHP":
+		return "#4F5D95"
+	case "Shell":
+		return "#89E051"
+	case "HTML":
+		return "#E34C26"
+	case "CSS":
+		return "#563D7C"
+	case "Sass":
+		return "#A53B70"
+	case "Templ":
+		return "#66ADD0"
+	case "SQL":
+		return "#E38C00"
+	default:
+		return "#9CA3AF"
+	}
+}
