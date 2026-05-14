@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -52,6 +53,9 @@ type CodeLine struct {
 // CodeService provides read and write operations over bare git repositories on disk.
 type CodeService struct {
 	cfg config.GitConfig
+	// treeCache memoizes ListEntriesWithLastCommit results.
+	// Key: "owner/repo:ref:dir"; Value: treeCacheEntry. TTL enforced at read time.
+	treeCache sync.Map
 }
 
 // NewCodeService returns a CodeService configured to read repos from cfg.ReposRoot.
