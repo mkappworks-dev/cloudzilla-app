@@ -128,29 +128,70 @@ templ Repo(data view.RepoData) {
 
 				<!-- LEFT — Code / README / Explore -->
 				<div class="space-y-6 min-w-0">
-					<!-- Default branch + clone URLs -->
-					<div class="grid sm:grid-cols-[auto_1fr] gap-4 items-start">
-						<section aria-labelledby="branch-heading" class="space-y-2">
-							<h2 id="branch-heading" class="text-xs font-medium text-muted-foreground">Default branch</h2>
-							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Repo.DefaultBranch) } class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border hover:bg-accent text-sm font-mono">
-								<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="3" r="3"></circle><circle cx="12" cy="21" r="3"></circle><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path></svg>
-								{ data.Repo.DefaultBranch }
-							</a>
+					if len(data.Entries) > 0 {
+						<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="files-heading">
+							<h2 id="files-heading" class="sr-only">Files at { data.Repo.DefaultBranch }</h2>
+							if data.LatestCommit.SHA != "" {
+								<div class="px-4 py-2 border-b border-border flex items-center gap-3 text-[12px] bg-muted/40">
+									<a href={ templ.SafeURL(data.LatestCommit.AuthorURL) } class="font-medium hover:underline truncate">{ data.LatestCommit.Author }</a>
+									<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="text-muted-foreground hover:underline truncate flex-1 min-w-0">{ data.LatestCommit.Message }</a>
+									<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="font-mono text-muted-foreground hover:underline flex-shrink-0">{ data.LatestCommit.SHA }</a>
+									<span class="text-muted-foreground flex-shrink-0">
+										<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ data.LatestCommit.Timestamp.Format(time.RFC822) }</time>
+									</span>
+								</div>
+							}
+							<table class="w-full text-left">
+								<caption class="sr-only">Repository files at { data.Repo.DefaultBranch }, directories first</caption>
+								<colgroup>
+									<col style="width:28px"/>
+									<col/>
+									<col style="width:50%"/>
+								</colgroup>
+								<thead class="sr-only">
+									<tr>
+										<th scope="col">Type</th>
+										<th scope="col">Name</th>
+										<th scope="col">Last commit</th>
+									</tr>
+								</thead>
+								<tbody>
+									for _, entry := range data.Entries {
+										<tr class="border-b border-border hover:bg-muted/30">
+											<td class="px-4 py-2 w-8">
+												if entry.IsDir {
+													<svg style="color:#6ea8fe" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path></svg>
+												} else {
+													<svg class="text-muted-foreground" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+												}
+											</td>
+											<th scope="row" class="px-4 py-2 font-normal">
+												if entry.IsDir {
+													<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Repo.DefaultBranch + "/" + entry.Path) } class="text-[13px] hover:underline">{ entry.Name }</a>
+												} else {
+													<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/blob/" + data.Repo.DefaultBranch + "/" + entry.Path) } class="text-[13px] hover:underline">{ entry.Name }</a>
+												}
+											</th>
+											<td class="px-4 py-2 text-[12px] text-muted-foreground">
+												<div class="flex items-center justify-between gap-3">
+													<span class="truncate">{ entry.LastCommit.Message }</span>
+													if !entry.LastCommit.Timestamp.IsZero() {
+														<time datetime={ entry.LastCommit.Timestamp.Format(time.RFC3339) } class="flex-shrink-0 font-mono">{ entry.LastCommit.Timestamp.Format("02 Jan") }</time>
+													}
+												</div>
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
 						</section>
+					}
 
-						<section aria-labelledby="clone-heading" class="space-y-2">
-							<h2 id="clone-heading" class="text-xs font-medium text-muted-foreground">Clone this repository</h2>
-							<div class="grid sm:grid-cols-2 gap-3">
-								<div>
-									<label for="clone-https" class="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1">HTTPS</label>
-									<code id="clone-https" class="block bg-muted border border-border rounded-md px-3 py-2 text-xs font-mono truncate" title={ data.CloneHTTP }>{ data.CloneHTTP }</code>
-								</div>
-								<div>
-									<label for="clone-ssh" class="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1">SSH</label>
-									<code id="clone-ssh" class="block bg-muted border border-border rounded-md px-3 py-2 text-xs font-mono truncate" title={ data.CloneSSH }>{ data.CloneSSH }</code>
-								</div>
-							</div>
-						</section>
+					<!-- Clone row -->
+					<div class="flex flex-wrap items-center gap-3 text-[12px] text-muted-foreground">
+						<span class="font-medium text-foreground text-[13px]">Clone:</span>
+						<code class="font-mono bg-muted border border-border rounded px-2 py-1 text-[11px] truncate max-w-[260px]" title={ data.CloneHTTP }>{ data.CloneHTTP }</code>
+						<code class="font-mono bg-muted border border-border rounded px-2 py-1 text-[11px] truncate max-w-[260px]" title={ data.CloneSSH }>{ data.CloneSSH }</code>
 					</div>
 
 					<!-- README -->
@@ -165,25 +206,6 @@ templ Repo(data view.RepoData) {
 							</div>
 						</article>
 					}
-
-					<!-- Navigation grid -->
-					<section aria-labelledby="explore-heading">
-						<h2 id="explore-heading" class="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider font-mono">Explore</h2>
-						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-							@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/tree/"+data.Repo.DefaultBranch, "Browse Code", "Explore files and history") {
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-							}
-							@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/commits/"+data.Repo.DefaultBranch, "Commits", "Browse commit history") {
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="6" r="3"></circle><circle cx="12" cy="18" r="3"></circle><path d="M12 9v6"></path></svg>
-							}
-							@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/milestones", "Milestones", "Track progress with sprints") {
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"></path></svg>
-							}
-							@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/refs", "Branches & Tags", "Manage refs and create branches") {
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="6" cy="21" r="3"></circle><line x1="6" y1="6" x2="6" y2="18"></line><path d="M18 21V9a6 6 0 00-6-6"></path></svg>
-							}
-						</div>
-					</section>
 				</div>
 
 				<!-- RIGHT — About sidebar -->

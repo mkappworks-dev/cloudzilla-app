@@ -135,11 +135,12 @@ type DependenciesData struct {
 // ProjectsData holds template data for the project boards list page.
 type ProjectsData struct {
 	BasePage
-	Repo     model.Repository
-	Owner    string
-	RepoName string
-	Projects []model.Project
-	CanWrite bool
+	Repo      model.Repository
+	Owner     string
+	RepoName  string
+	Projects  []model.Project
+	CanWrite  bool
+	CanManage bool
 }
 
 // ProjectDetailData is the view model for the Kanban board page.

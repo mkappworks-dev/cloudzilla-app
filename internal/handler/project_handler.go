@@ -30,9 +30,11 @@ func (h *Handler) PageProjects(w http.ResponseWriter, r *http.Request) {
 
 	var userID *int64
 	canWrite := false
+	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		userID = &claims.UserID
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
 		http.Error(w, "forbidden", http.StatusForbidden)
@@ -49,12 +51,13 @@ func (h *Handler) PageProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Projects(view.ProjectsData{
-		BasePage: basePage(r, h.Services),
-		Repo:     *repo,
-		Owner:    owner,
-		RepoName: repoName,
-		Projects: projects,
-		CanWrite: canWrite,
+		BasePage:  basePage(r, h.Services),
+		Repo:      *repo,
+		Owner:     owner,
+		RepoName:  repoName,
+		Projects:  projects,
+		CanWrite:  canWrite,
+		CanManage: canManage,
 	}))
 }
 

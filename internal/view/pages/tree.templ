@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -52,89 +53,177 @@ templ Tree(data view.TreeData) {
 
 			<div class="grid grid-cols-[260px_1fr] gap-4">
 
-				<aside class="rounded-md border border-border bg-card sticky top-4 self-start max-h-screen overflow-hidden flex flex-col" aria-label="Repository file tree">
+				<aside
+					x-data="{ filter: '' }"
+					class="rounded-md border border-border bg-card sticky top-4 self-start max-h-[calc(100vh-5rem)] overflow-hidden flex flex-col"
+					aria-label="Repository file tree"
+				>
 					<header class="px-3 py-2 border-b border-border flex items-center gap-2 bg-muted/40 shrink-0">
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" focusable="false">
 							<path d="M3 6h18M3 12h18M3 18h18"></path>
 						</svg>
 						<span class="text-[12px] font-medium">Files</span>
+						<div class="ml-auto flex items-center gap-0.5">
+							<button
+								type="button"
+								x-on:click="filter = ''"
+								title="Clear filter"
+								aria-label="Clear filter"
+								class="h-6 w-6 grid place-items-center rounded hover:bg-muted text-muted-foreground"
+							>
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+									<path d="M19 9l-7 7-7-7"></path>
+								</svg>
+							</button>
+						</div>
 					</header>
-					<div class="overflow-y-auto flex-1">
-						@components.FileTreeSidebar(data.Sidebar, "")
+					<div class="px-2 py-1.5 border-b border-border shrink-0">
+						<input
+							x-model="filter"
+							type="search"
+							placeholder="Filter files…"
+							class="w-full h-7 px-2 text-[12px] bg-transparent border border-border rounded-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground/30"
+							aria-label="Filter files"
+						/>
+					</div>
+					<div class="overflow-y-auto flex-1 flex flex-col">
+						@components.FileTreeSidebar(data.Sidebar, data.ActiveFile)
 					</div>
 				</aside>
 
-				<section class="rounded-md border border-border bg-card overflow-hidden min-w-0" aria-labelledby="files-heading">
-					<h2 id="files-heading" class="sr-only">Files at { data.Ref }</h2>
-
-					if data.LatestCommit.SHA != "" {
-						<div class="px-4 py-2 border-b border-border flex items-center gap-3 text-[12px] bg-muted/40">
-							<a href={ templ.SafeURL(data.LatestCommit.AuthorURL) } class="font-medium hover:underline truncate">{ data.LatestCommit.Author }</a>
-							<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="text-muted-foreground hover:underline truncate flex-1 min-w-0">{ data.LatestCommit.Message }</a>
-							<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="font-mono text-muted-foreground hover:underline flex-shrink-0">{ data.LatestCommit.SHA }</a>
-							<span class="text-muted-foreground flex-shrink-0">
-								<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ data.LatestCommit.Timestamp.Format(time.RFC822) }</time>
-							</span>
-						</div>
-					}
-
-					if len(data.Entries) > 0 {
-						@components.Table(nil) {
-							@components.TableCaption(templ.Attributes{"class": "sr-only"}) {
-								Repository files at { data.Ref }, directories first
-							}
-							<colgroup>
-								<col style="width: 32px"/>
-								<col/>
-								<col style="width: 40%"/>
-							</colgroup>
-							<thead class="sr-only">
-								<tr>
-									<th scope="col">Type</th>
-									<th scope="col">Name</th>
-									<th scope="col">Last commit</th>
-								</tr>
-							</thead>
-							@components.TableBody() {
-								for _, entry := range data.Entries {
-									@components.TableRow(true) {
-										@components.TableCell(templ.Attributes{"class": "px-4 py-2.5 w-8"}) {
-											if entry.IsDir {
-												<svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-													<path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path>
-												</svg>
-											} else {
-												<svg class="text-muted-foreground" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
-													<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-													<polyline points="14 2 14 8 20 8"></polyline>
-												</svg>
-											}
+				if data.FileView != nil {
+					<section class="rounded-md border border-border bg-card overflow-hidden min-w-0" aria-labelledby="file-heading" x-data="{ copy(){ navigator.clipboard.writeText(this.$refs.code.innerText) } }">
+						<header class="px-4 py-2 border-b border-border bg-muted/50 flex items-center gap-3">
+							<svg class="text-muted-foreground shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+								<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+								<polyline points="14 2 14 8 20 8"></polyline>
+							</svg>
+							<h2 id="file-heading" class="text-[13px] font-medium truncate">{ data.FileView.FileName }</h2>
+							<div class="ml-auto flex items-center gap-1.5 shrink-0">
+								if !data.FileView.IsBinary {
+									@components.LinkButton(data.FileView.BlameURL, components.ButtonOutline, components.ButtonSizeSM, nil) {
+										Blame
+									}
+								}
+								@components.LinkButton(data.FileView.RawURL, components.ButtonOutline, components.ButtonSizeSM, nil) {
+									Raw
+								}
+								if !data.FileView.IsBinary {
+									<button type="button" aria-label="Copy file contents" title="Copy" @click="copy()" class="inline-flex items-center justify-center h-7 w-7 rounded-md border border-border bg-card hover:bg-muted text-muted-foreground">
+										<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+											<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+											<path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+										</svg>
+									</button>
+								}
+							</div>
+						</header>
+						if data.LatestCommit.SHA != "" {
+							<div class="px-4 py-2 border-b border-border flex items-center gap-3 text-[12px] bg-muted/40">
+								<a href={ templ.SafeURL(data.LatestCommit.AuthorURL) } class="font-medium hover:underline truncate">{ data.LatestCommit.Author }</a>
+								<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="text-muted-foreground hover:underline truncate flex-1 min-w-0">{ data.LatestCommit.Message }</a>
+								<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="font-mono text-muted-foreground hover:underline flex-shrink-0">{ data.LatestCommit.SHA }</a>
+								<span class="text-muted-foreground flex-shrink-0">
+									<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ data.LatestCommit.Timestamp.Format(time.RFC822) }</time>
+								</span>
+							</div>
+						}
+						if data.FileView.IsBinary {
+							<div class="px-4 py-12 text-center text-sm text-muted-foreground flex flex-col items-center gap-3">
+								<p>Binary file — not displayed.</p>
+								@components.LinkButton(data.FileView.RawURL, components.ButtonOutline, components.ButtonSizeSM, nil) {
+									Download Raw
+								}
+							</div>
+						} else {
+							<div class="overflow-x-auto bg-card" x-ref="code">
+								<table class="w-full font-mono text-[12.5px] leading-[1.6]">
+									<caption class="sr-only">Contents of { data.FileView.FileName }</caption>
+									<tbody>
+										for _, line := range data.FileView.Lines {
+											<tr id={ "L" + strconv.Itoa(line.Num) } class="target:bg-accent/30 hover:bg-muted/50">
+												<td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">
+													<a href={ templ.SafeURL("#L" + strconv.Itoa(line.Num)) } class="hover:text-foreground">{ strconv.Itoa(line.Num) }</a>
+												</td>
+												<td class="pl-4 pr-4 py-0 whitespace-pre">{ line.Text }</td>
+											</tr>
 										}
-										@components.TableRowHead(templ.Attributes{"class": "px-4 py-2.5"}) {
-											if entry.IsDir {
-												<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Ref + "/" + entry.Path) } class="text-[13px] font-medium hover:underline">{ entry.Name }</a>
-											} else {
-												<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/blob/" + data.Ref + "/" + entry.Path) } class="text-[13px] hover:underline">{ entry.Name }</a>
-											}
-										}
-										@components.TableCell(templ.Attributes{"class": "px-4 py-2.5 text-[12px] text-muted-foreground"}) {
-											<div class="flex items-center justify-between gap-3">
-												<span class="truncate">{ entry.LastCommit.Message }</span>
-												if !entry.LastCommit.Timestamp.IsZero() {
-													<time datetime={ entry.LastCommit.Timestamp.Format(time.RFC3339) } class="flex-shrink-0">{ entry.LastCommit.Timestamp.Format(time.RFC822) }</time>
+									</tbody>
+								</table>
+							</div>
+						}
+					</section>
+				} else {
+					<section class="rounded-md border border-border bg-card overflow-hidden min-w-0" aria-labelledby="files-heading">
+						<h2 id="files-heading" class="sr-only">Files at { data.Ref }</h2>
+						if data.LatestCommit.SHA != "" {
+							<div class="px-4 py-2 border-b border-border flex items-center gap-3 text-[12px] bg-muted/40">
+								<a href={ templ.SafeURL(data.LatestCommit.AuthorURL) } class="font-medium hover:underline truncate">{ data.LatestCommit.Author }</a>
+								<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="text-muted-foreground hover:underline truncate flex-1 min-w-0">{ data.LatestCommit.Message }</a>
+								<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="font-mono text-muted-foreground hover:underline flex-shrink-0">{ data.LatestCommit.SHA }</a>
+								<span class="text-muted-foreground flex-shrink-0">
+									<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ data.LatestCommit.Timestamp.Format(time.RFC822) }</time>
+								</span>
+							</div>
+						}
+						if len(data.Entries) > 0 {
+							@components.Table(nil) {
+								@components.TableCaption(templ.Attributes{"class": "sr-only"}) {
+									Repository files at { data.Ref }, directories first
+								}
+								<colgroup>
+									<col style="width: 32px"/>
+									<col/>
+									<col style="width: 40%"/>
+								</colgroup>
+								<thead class="sr-only">
+									<tr>
+										<th scope="col">Type</th>
+										<th scope="col">Name</th>
+										<th scope="col">Last commit</th>
+									</tr>
+								</thead>
+								@components.TableBody() {
+									for _, entry := range data.Entries {
+										@components.TableRow(true) {
+											@components.TableCell(templ.Attributes{"class": "px-4 py-2.5 w-8"}) {
+												if entry.IsDir {
+													<svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+														<path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path>
+													</svg>
+												} else {
+													<svg class="text-muted-foreground" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
+														<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+														<polyline points="14 2 14 8 20 8"></polyline>
+													</svg>
 												}
-											</div>
+											}
+											@components.TableRowHead(templ.Attributes{"class": "px-4 py-2.5"}) {
+												if entry.IsDir {
+													<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Ref + "/" + entry.Path) } class="text-[13px] font-medium hover:underline">{ entry.Name }</a>
+												} else {
+													<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Ref + "/" + entry.Path) } class="text-[13px] hover:underline">{ entry.Name }</a>
+												}
+											}
+											@components.TableCell(templ.Attributes{"class": "px-4 py-2.5 text-[12px] text-muted-foreground"}) {
+												<div class="flex items-center justify-between gap-3">
+													<span class="truncate">{ entry.LastCommit.Message }</span>
+													if !entry.LastCommit.Timestamp.IsZero() {
+														<time datetime={ entry.LastCommit.Timestamp.Format(time.RFC3339) } class="flex-shrink-0">{ entry.LastCommit.Timestamp.Format(time.RFC822) }</time>
+													}
+												</div>
+											}
 										}
 									}
 								}
 							}
+						} else {
+							<div class="px-4 py-12 text-center text-sm text-muted-foreground">
+								This directory is empty.
+							</div>
 						}
-					} else {
-						<div class="px-4 py-12 text-center text-sm text-muted-foreground">
-							This directory is empty.
-						</div>
-					}
-				</section>
+					</section>
+				}
 			</div>
 		</div>
 	}
