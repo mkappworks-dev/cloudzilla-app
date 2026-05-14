@@ -45,6 +45,7 @@ type Stores struct {
 	CodeSearch         *CodeSearchStore
 	Explore            *ExploreStore
 	Dependency         *DependencyStore
+	CommitStats        *CommitStatsStore
 }
 
 // New constructs and wires all stores from the given database connection.
@@ -89,5 +90,6 @@ func New(database *sql.DB) *Stores {
 		CodeSearch:         NewCodeSearchStore(database),
 		Explore:            NewExploreStore(database),
 		Dependency:         NewDependencyStore(database),
+		CommitStats:        NewCommitStatsStore(database),
 	}
 }
