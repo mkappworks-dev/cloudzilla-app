@@ -365,9 +365,6 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Aggregate commit counts into the heatmap (best-effort, fire-and-forget).
-	// Walk + ingest is encapsulated in RepoService.OnPostReceive; the goroutine
-	// only owns timeout + error logging.
 	commands := req.Commands
 	concurrency.Go("repo.on_post_receive", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -378,7 +375,6 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 
-	// Re-index the repository for code search after each push.
 	concurrency.Go("index.index_repo", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
@@ -388,7 +384,6 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 
-	// Re-parse dependency manifests for code graph after each push.
 	concurrency.Go("dependency.parse_and_store", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()

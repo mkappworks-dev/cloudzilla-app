@@ -1,6 +1,4 @@
-// Package concurrency holds tiny primitives for launching fire-and-forget
-// background work safely. It lives in `internal/` so handlers, SSH session
-// handling, and the cmd-server bootstrap can all share one implementation.
+// Package concurrency holds shared goroutine primitives so handler, ssh, and cmd-server can use one implementation.
 package concurrency
 
 import (
@@ -8,10 +6,7 @@ import (
 	"runtime/debug"
 )
 
-// Go runs fn in a new goroutine with panic recovery. A panic in a fire-and-forget
-// side-effect (webhook dispatch, post-receive ingestion, search indexing,
-// access-token/deploy-key last-used updates, startup backfill) must never tear
-// down the server process. `label` is a short identifier used in the panic log.
+// Go runs fn in a new goroutine with panic recovery; a panicking fire-and-forget side-effect must not kill the process.
 func Go(label string, fn func()) {
 	go func() {
 		defer func() {

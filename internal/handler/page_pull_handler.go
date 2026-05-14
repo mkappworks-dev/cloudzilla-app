@@ -250,9 +250,6 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Errors degrade visibly via the MergeabilityBox.Unavailable flag rather
-	// than silently rendering as "0 / 0 / no conflicts", which previously
-	// looked indistinguishable from a healthy "nothing to do" PR.
 	mergeabilityBox := components.MergeabilityBoxData{
 		PatchURL: fmt.Sprintf("/api/repos/%s/%s/pulls/%d", owner, repoName, pull.Number),
 	}

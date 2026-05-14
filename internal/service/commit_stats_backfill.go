@@ -8,14 +8,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-// BackfillRecentCommits walks the default branch of each repository for the
-// last `days` days and ingests per-day commit counts. Safe to re-run: repos
-// whose `commit_day_counts` table already has rows in the lookback window are
-// skipped, so additive live-push counts (including feature-branch work) are
-// not overwritten on subsequent server restarts.
-//
-// Per-repo errors are logged and swallowed; a final summary log line reports
-// the count of skipped/ingested/failed repos.
+// Skips repos that already have rows in the window so live-push (additive) counts aren't double-counted on subsequent runs.
 func (s *CommitStatsService) BackfillRecentCommits(ctx context.Context, repos []model.Repository, code *CodeService, days int) error {
 	cutoff := time.Now().UTC().AddDate(0, 0, -days)
 	var ingested, skipped, failed int

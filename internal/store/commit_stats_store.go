@@ -21,11 +21,7 @@ func NewCommitStatsStore(database *sql.DB) *CommitStatsStore {
 	return &CommitStatsStore{db: database}
 }
 
-// UpsertCount replaces (does not add to) the count for a (repo, user, day)
-// bucket. Production code uses AddCount instead — UpsertCount only remains
-// as the primitive backing the legacy idempotency test in
-// TestCommitStatsStore_UpsertAndListForUser. New callers should prefer
-// AddCount; mixing the two on the same bucket produces wrong totals.
+// Replace semantics. Test-only — production uses AddCount; mixing the two on one bucket produces wrong totals.
 func (s *CommitStatsStore) UpsertCount(ctx context.Context, repoID, userID int64, day time.Time, count int) error {
 	const q = `
 		INSERT INTO commit_day_counts (repo_id, user_id, day, commit_count, updated_at)
@@ -37,9 +33,7 @@ func (s *CommitStatsStore) UpsertCount(ctx context.Context, repoID, userID int64
 	return err
 }
 
-// AddCount increments the per-day count by delta, creating the row when it
-// does not yet exist. Used by the push path so successive pushes to a
-// single day accumulate rather than overwriting one another.
+// Additive on conflict so successive pushes to the same day accumulate.
 func (s *CommitStatsStore) AddCount(ctx context.Context, repoID, userID int64, day time.Time, delta int) error {
 	const q = `
 		INSERT INTO commit_day_counts (repo_id, user_id, day, commit_count, updated_at)
@@ -51,10 +45,7 @@ func (s *CommitStatsStore) AddCount(ctx context.Context, repoID, userID int64, d
 	return err
 }
 
-// HasRowsForRepoSince returns true when at least one commit_day_counts row
-// exists for the repo on or after `since`. Used by the startup backfill to
-// avoid re-walking history (and double-counting) on repos already populated
-// by a prior backfill or by live pushes.
+// Backfill uses this to skip repos already populated and avoid double-counting against AddCount.
 func (s *CommitStatsStore) HasRowsForRepoSince(ctx context.Context, repoID int64, since time.Time) (bool, error) {
 	const q = `SELECT 1 FROM commit_day_counts WHERE repo_id = $1 AND day >= $2 LIMIT 1`
 	var one int
@@ -68,8 +59,7 @@ func (s *CommitStatsStore) HasRowsForRepoSince(ctx context.Context, repoID int64
 	return true, nil
 }
 
-// Soft-deleted repos are excluded so a user's contribution heatmap stops
-// counting work in repos that have since been deleted by their owner.
+// Excludes soft-deleted repos so the heatmap stops counting work the user can no longer browse.
 func (s *CommitStatsStore) ListForUserSince(ctx context.Context, userID int64, since time.Time) ([]CommitDayCount, error) {
 	const q = `
 		SELECT c.repo_id, c.user_id, c.day, c.commit_count

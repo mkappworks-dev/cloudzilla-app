@@ -280,9 +280,6 @@ func (s *Server) sessionHandler(session ssh.Session) {
 			})
 		}
 
-		// Aggregate commit counts into the heatmap (best-effort, fire-and-forget).
-		// Walk + ingest is encapsulated in RepoService.OnPostReceive; the
-		// goroutine only owns timeout + error logging.
 		concurrency.Go("repo.on_post_receive", func() {
 			bg, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 			defer cancel()

@@ -12,15 +12,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// basePage assembles the shared chrome data for every authenticated page.
-// It is best-effort: each optional field (UnreadNotifCount, UserOrgs) degrades
-// to its zero value on backend failure so a single sub-service outage cannot
-// take the whole layout down. Failures are logged at Error level for observability.
-//
-// TODO(tech-debt, phase-1+): callers cannot distinguish "true zero" from
-// "degraded due to error". If a third optional field is added, change the
-// signature to (BasePage, error) — or add BasePage.DegradedReasons []string
-// surfaced via the layout — before that field lands.
+// Best-effort: each optional field degrades to zero value on failure rather than 500ing the whole layout.
 func basePage(r *http.Request, services *service.Services) BasePage {
 	allowLogin := services.SiteSetting.AllowLogin(r.Context())
 	allowRegistration := services.SiteSetting.AllowRegistration(r.Context())
@@ -45,7 +37,6 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 	return page
 }
 
-// Each dashboard fetch is best-effort: a sub-service failure degrades that section to its zero value rather than failing the whole page.
 func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	repos, err := h.Services.Repo.List(ctx)
@@ -69,9 +60,6 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 
 	if claims, ok := middleware.ClaimsFromContext(ctx); ok {
 		userID := claims.UserID
-		// Each stat tile degrades independently — a failed sub-service shows
-		// as zero, and the failure is logged at Warn so operators can spot a
-		// "brand-new account"-shaped page that is really a DB outage.
 		commitsLast7, err := h.Services.CommitStats.CommitsForUserSince(ctx, userID, 7)
 		if err != nil {
 			slog.Warn("home: commits-last-7 stat failed", "user_id", userID, "error", err)

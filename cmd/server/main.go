@@ -43,9 +43,7 @@ func main() {
 	stores := store.New(database)
 	services := service.New(stores, cfg)
 
-	// One-shot commit-stats backfill. Ingest is additive (AddCount) so re-runs
-	// could double-count; BackfillRecentCommits guards with HasRowsForRepoSince
-	// to short-circuit repos already populated by previous runs or live pushes.
+	// Re-run safety relies on BackfillRecentCommits' HasRowsForRepoSince guard against the additive AddCount.
 	concurrency.Go("commit_stats.backfill", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer cancel()

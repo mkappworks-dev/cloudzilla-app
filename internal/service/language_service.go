@@ -50,10 +50,7 @@ type LanguageService struct {
 	cache sync.Map // key="owner/repo:ref" → cacheEntry
 }
 
-// cacheEntry holds either a successful Composition result (when err is nil) or
-// a recent failure (when err != nil). Negative entries use a shorter TTL so
-// transient failures retry quickly while permanent failures (corrupt repo,
-// missing ref) don't repeatedly hammer the expensive tree walk.
+// Negative entries (err != nil) use the shorter TTL so a permanent failure can't hammer the tree walk on every refresh.
 type cacheEntry struct {
 	comp     map[string]int64
 	err      error
@@ -96,9 +93,7 @@ func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref 
 		return nil
 	})
 	if err != nil {
-		// Negative entry eclipses any prior successful comp for the duration of
-		// langCacheNegativeTTL — intentional, so a freshly-broken ref retries
-		// quickly instead of serving stale data from before the breakage.
+		// Eclipses any prior success; intentional so a broken ref doesn't serve pre-breakage data.
 		s.cache.Store(key, cacheEntry{err: err, cachedAt: time.Now()})
 		return nil, err
 	}

@@ -347,8 +347,7 @@ func (s *IssueStore) CountClosedSince(ctx context.Context, repoID int64, since t
 	return n, err
 }
 
-// Soft-deleted repositories are excluded so the home dashboard stat tile
-// doesn't keep counting assignments in repos the user can no longer browse.
+// Excludes soft-deleted repos so home-page counts match the heatmap's visibility rule.
 func (s *IssueStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,

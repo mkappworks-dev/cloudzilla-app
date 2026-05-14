@@ -289,9 +289,7 @@ func attentionRepoURL(item service.AttentionItem) string {
 	return "/" + item.RepoName
 }
 
-// attentionItemURL routes to the canonical URL for the underlying issue/PR.
-// Each AttentionKind has its own canonical route; an unrecognised kind falls
-// back to the repo root so a future kind constant cannot ship 404 links.
+// Unrecognised kinds fall back to the repo root so a new constant can't ship 404 links.
 func attentionItemURL(item service.AttentionItem) string {
 	switch item.Kind {
 	case service.AttentionPRReviewRequested:

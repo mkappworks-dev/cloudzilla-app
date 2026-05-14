@@ -5,15 +5,12 @@ import (
 	"strconv"
 )
 
-// PatchURL is the endpoint the three buttons hx-patch against (typically /api/repos/{owner}/{repo}/pulls/{number}).
 type MergeabilityBoxData struct {
+	// PatchURL is the hx-patch target for the merge buttons.
 	PatchURL string
-	// Unavailable signals that the handler could not compute mergeability (e.g.
-	// a ref no longer resolves after a force-push). Renders an explicit
-	// "unavailable" message instead of misleading zero values.
+	// Unavailable renders an explicit message instead of zero values when mergeability couldn't be computed.
 	Unavailable bool
-	// UpToDate means head equals base — no commits to merge. Distinct from
-	// Mergeable, which means "conflict-free with a non-empty diff".
+	// UpToDate distinguishes head == base from "conflict-free with a non-empty diff" (Mergeable).
 	UpToDate         bool
 	Mergeable        bool
 	Ahead            int

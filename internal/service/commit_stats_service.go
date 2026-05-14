@@ -25,9 +25,7 @@ func NewCommitStatsService(stats *store.CommitStatsStore, users *store.UserStore
 	return &CommitStatsService{stats: stats, users: users}
 }
 
-// Anonymous commits (no matching user email) are silently skipped.
-// Uses additive semantics (AddCount) so successive pushes within the same day
-// accumulate rather than overwriting earlier counts.
+// Uses AddCount (additive) so successive pushes within the same day accumulate. Commits whose author email matches no user are skipped.
 func (s *CommitStatsService) Ingest(ctx context.Context, repoID int64, samples []CommitSample) error {
 	type key struct {
 		userID int64
@@ -73,8 +71,6 @@ func (s *CommitStatsService) Ingest(ctx context.Context, repoID int64, samples [
 		}
 	}
 	if firstErr != nil {
-		// Structured counters so operators can filter on failure ratio; the
-		// wrapped error preserves the underlying cause for errors.Is callers.
 		slog.Warn("commit stats: bucket aggregate failure",
 			"repo_id", repoID, "failed", failed, "total", len(buckets))
 		return fmt.Errorf("commit stats: %d/%d buckets failed: %w", failed, len(buckets), firstErr)

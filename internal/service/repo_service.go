@@ -69,15 +69,7 @@ func (s *RepoService) TopContributors(ctx context.Context, owner, name string, l
 	return all, nil
 }
 
-// OnPostReceive walks each branch's new commits, dedupes commits that appear on
-// multiple updated branches (a single push that updates two branches sharing
-// new commits must not double-count), and ingests one sample per unique commit.
-//
-// Best-effort: per-branch walk errors are logged and the loop continues so
-// other branches still contribute. If every branch's walk fails and no samples
-// are collected, the function returns an aggregate error so the goroutine
-// boundary logs at Error level — otherwise a stuck repo would silently never
-// update the heatmap with only Warn-level breadcrumbs.
+// Dedupes commits shared across multiple updated branches; returns an aggregate error only when every walk fails so a stuck repo doesn't go silent.
 func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository, gitRepo *gogit.Repository, commands []*packp.Command) error {
 	if s.commitStats == nil || gitRepo == nil || repo == nil {
 		return nil

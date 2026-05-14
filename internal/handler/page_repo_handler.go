@@ -58,10 +58,6 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		currentUserID = claims.UserID
 	}
 
-	// README lookup tries the three common case variants. "Not found" is the
-	// common case and stays silent; any other error (corrupt object, ref
-	// missing, empty repo) is logged at Warn so an empty README block isn't
-	// mistaken for a repo without a README.
 	var readmeHTML string
 	for _, name := range []string{"README.md", "readme.md", "Readme.md"} {
 		raw, err := h.Services.Code.GetRawBlob(owner, repoName, repo.DefaultBranch, name)
@@ -76,9 +72,6 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 			"owner", owner, "repo", repoName, "candidate", name, "error", err)
 	}
 
-	// Each sidebar section uses a per-section err variable so a future edit
-	// can't accidentally let a stale `err` from an earlier section escape into
-	// a later check.
 	starCount, starErr := h.Services.Star.GetStarCount(r.Context(), repo.ID)
 	if starErr != nil {
 		slog.Warn("repo: star count failed", "owner", owner, "repo", repoName, "error", starErr)
@@ -120,10 +113,6 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, currentUserID)
 	}
 
-	// Phase 1 about-sidebar widgets. Each section degrades independently:
-	// a failed sub-service renders as empty for that widget only and the
-	// failure is logged at Warn so a corrupted git repo doesn't silently
-	// render as "no languages, no contributors, no releases".
 	var languages []components.LangBarItem
 	if percents, langErr := h.Services.Language.Percentages(r.Context(), owner, repoName, repo.DefaultBranch); langErr != nil {
 		slog.Warn("repo: language percentages failed", "owner", owner, "repo", repoName, "error", langErr)
