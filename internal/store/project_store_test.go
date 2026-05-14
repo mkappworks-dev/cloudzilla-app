@@ -89,7 +89,7 @@ func TestProjectStore_MoveCard_SameColumn_Down(t *testing.T) {
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
 	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
-	_, cols := seedProjectWithColumns(t, db, repoID, []string{"todo"})
+	projectID, cols := seedProjectWithColumns(t, db, repoID, []string{"todo"})
 
 	s := store.NewProjectStore(db)
 	a := seedCard(t, s, cols[0], "A")
@@ -99,7 +99,7 @@ func TestProjectStore_MoveCard_SameColumn_Down(t *testing.T) {
 	// Initial: [A=0, B=1, C=2, D=3]
 
 	// Move A from 0 to 2: expected order [B=0, C=1, A=2, D=3]
-	if err := s.MoveCard(context.Background(), a.ID, cols[0], 2); err != nil {
+	if err := s.MoveCard(context.Background(), projectID, a.ID, cols[0], 2); err != nil {
 		t.Fatalf("MoveCard: %v", err)
 	}
 	got := readPositions(t, db, cols[0])
@@ -123,7 +123,7 @@ func TestProjectStore_MoveCard_SameColumn_Up(t *testing.T) {
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
 	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
-	_, cols := seedProjectWithColumns(t, db, repoID, []string{"todo"})
+	projectID, cols := seedProjectWithColumns(t, db, repoID, []string{"todo"})
 
 	s := store.NewProjectStore(db)
 	a := seedCard(t, s, cols[0], "A")
@@ -133,7 +133,7 @@ func TestProjectStore_MoveCard_SameColumn_Up(t *testing.T) {
 	// Initial: [A=0, B=1, C=2, D=3]
 
 	// Move D from 3 to 1: expected order [A=0, D=1, B=2, C=3]
-	if err := s.MoveCard(context.Background(), d.ID, cols[0], 1); err != nil {
+	if err := s.MoveCard(context.Background(), projectID, d.ID, cols[0], 1); err != nil {
 		t.Fatalf("MoveCard: %v", err)
 	}
 	got := readPositions(t, db, cols[0])
@@ -157,7 +157,7 @@ func TestProjectStore_MoveCard_CrossColumn(t *testing.T) {
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
 	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
-	_, cols := seedProjectWithColumns(t, db, repoID, []string{"todo", "doing"})
+	projectID, cols := seedProjectWithColumns(t, db, repoID, []string{"todo", "doing"})
 
 	s := store.NewProjectStore(db)
 	a := seedCard(t, s, cols[0], "A")
@@ -170,7 +170,7 @@ func TestProjectStore_MoveCard_CrossColumn(t *testing.T) {
 
 	// Move B (todo:1) to doing position 1.
 	// Expected todo: [A=0, C=1], doing: [X=0, B=1, Y=2].
-	if err := s.MoveCard(context.Background(), b.ID, cols[1], 1); err != nil {
+	if err := s.MoveCard(context.Background(), projectID, b.ID, cols[1], 1); err != nil {
 		t.Fatalf("MoveCard: %v", err)
 	}
 	gotTodo := readPositions(t, db, cols[0])
@@ -203,7 +203,7 @@ func TestProjectStore_MoveCard_CrossColumn_AppendToEnd(t *testing.T) {
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
 	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
-	_, cols := seedProjectWithColumns(t, db, repoID, []string{"todo", "doing"})
+	projectID, cols := seedProjectWithColumns(t, db, repoID, []string{"todo", "doing"})
 
 	s := store.NewProjectStore(db)
 	c1 := seedCard(t, s, cols[0], "c1")
@@ -215,7 +215,7 @@ func TestProjectStore_MoveCard_CrossColumn_AppendToEnd(t *testing.T) {
 
 	// Move c1 from todo to doing at position 2 (= current length of doing).
 	// Expected todo: [c2=0], doing: [c3=0, c4=1, c1=2].
-	if err := s.MoveCard(context.Background(), c1.ID, cols[1], 2); err != nil {
+	if err := s.MoveCard(context.Background(), projectID, c1.ID, cols[1], 2); err != nil {
 		t.Fatalf("MoveCard: %v", err)
 	}
 	gotTodo := readPositions(t, db, cols[0])
@@ -253,14 +253,14 @@ func TestProjectStore_MoveCard_SamePosition_NoChange(t *testing.T) {
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
 	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
-	_, cols := seedProjectWithColumns(t, db, repoID, []string{"todo"})
+	projectID, cols := seedProjectWithColumns(t, db, repoID, []string{"todo"})
 
 	s := store.NewProjectStore(db)
 	a := seedCard(t, s, cols[0], "A")
 	b := seedCard(t, s, cols[0], "B")
 	c := seedCard(t, s, cols[0], "C")
 
-	if err := s.MoveCard(context.Background(), b.ID, cols[0], 1); err != nil {
+	if err := s.MoveCard(context.Background(), projectID, b.ID, cols[0], 1); err != nil {
 		t.Fatalf("MoveCard: %v", err)
 	}
 	got := readPositions(t, db, cols[0])
@@ -272,5 +272,57 @@ func TestProjectStore_MoveCard_SamePosition_NoChange(t *testing.T) {
 		if got[i] != w {
 			t.Errorf("row %d: want %+v got %+v", i, w, got[i])
 		}
+	}
+}
+
+// TestProjectStore_MoveCard_CrossProject_Rejected verifies the IDOR guard:
+// a card from another project cannot be moved into this project's columns.
+func TestProjectStore_MoveCard_CrossProject_Rejected(t *testing.T) {
+	db := openStoreDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+	victimID, victimCols := seedProjectWithColumns(t, db, repoID, []string{"victim_todo"})
+	attackerID, attackerCols := seedProjectWithColumns(t, db, repoID, []string{"attacker_todo"})
+
+	s := store.NewProjectStore(db)
+	victimCard := seedCard(t, s, victimCols[0], "secret")
+	_ = victimID
+
+	// Attacker presents the victim's cardID but their own projectID + column.
+	err := s.MoveCard(context.Background(), attackerID, victimCard.ID, attackerCols[0], 0)
+	if err == nil {
+		t.Fatal("MoveCard: cross-project move succeeded; expected error")
+	}
+
+	// Victim card must remain in its original column at position 0.
+	got := readPositions(t, db, victimCols[0])
+	if len(got) != 1 || got[0].ID != victimCard.ID || got[0].Pos != 0 {
+		t.Errorf("victim column tampered: got %+v", got)
+	}
+}
+
+// TestProjectStore_MoveCard_PositionOutOfRange_Rejected verifies positions
+// beyond the column size are rejected (no sparse-gap corruption).
+func TestProjectStore_MoveCard_PositionOutOfRange_Rejected(t *testing.T) {
+	db := openStoreDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+	projectID, cols := seedProjectWithColumns(t, db, repoID, []string{"todo", "doing"})
+
+	s := store.NewProjectStore(db)
+	a := seedCard(t, s, cols[0], "A")
+	_ = seedCard(t, s, cols[0], "B")
+	_ = seedCard(t, s, cols[1], "X")
+	// todo: 2 cards, doing: 1 card
+
+	// Cross-column to position 999 (doing has 1 card → max valid newPosition is 1).
+	if err := s.MoveCard(context.Background(), projectID, a.ID, cols[1], 999); err == nil {
+		t.Fatal("MoveCard: out-of-range position succeeded; expected error")
+	}
+	// Same-column to position 999 (todo has 2 cards including A → max valid is 1).
+	if err := s.MoveCard(context.Background(), projectID, a.ID, cols[0], 999); err == nil {
+		t.Fatal("MoveCard: out-of-range same-column position succeeded; expected error")
 	}
 }

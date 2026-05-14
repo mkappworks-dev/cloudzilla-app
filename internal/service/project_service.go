@@ -153,7 +153,11 @@ func (s *ProjectService) MoveCard(ctx context.Context, projectID, cardID, newCol
 	if newPosition < 0 {
 		return fmt.Errorf("invalid position %d", newPosition)
 	}
-	if err := s.projects.MoveCard(ctx, cardID, newColumnID, newPosition); err != nil {
+	if err := s.projects.MoveCard(ctx, projectID, cardID, newColumnID, newPosition); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// Source card doesn't belong to projectID (or doesn't exist).
+			return ErrProjectNotFound
+		}
 		return err
 	}
 	if err := s.projects.TouchProject(ctx, projectID); err != nil {
@@ -257,7 +261,7 @@ func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, proje
 				cv.State = c.PullState
 			default:
 				cv.Kind = "note"
-				t := firstLine(c.Note)
+				t := FirstLine(c.Note)
 				if r := []rune(t); len(r) > 120 {
 					t = string(r[:120])
 				}

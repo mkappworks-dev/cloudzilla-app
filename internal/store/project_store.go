@@ -187,10 +187,31 @@ func (s *ProjectStore) ListCardsByColumn(ctx context.Context, columnID int64) ([
 	return cards, rows.Err()
 }
 
+// maxPositionInColumn returns the largest newPosition the caller may use for
+// a move into columnID. Same-column moves keep N total cards (valid 0..N-1);
+// cross-column moves grow the column to N+1 cards (valid 0..N). Excluding the
+// moving card from the count handles both cases uniformly: returned value =
+// (final card count in target) - 1, with -1 collapsed to 0 for empty targets.
+func (s *ProjectStore) maxPositionInColumn(ctx context.Context, tx *sql.Tx, columnID, cardID int64) (int, error) {
+	var others int
+	if err := tx.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM project_cards WHERE column_id = $1 AND id != $2`,
+		columnID, cardID,
+	).Scan(&others); err != nil {
+		return 0, fmt.Errorf("count target column %d: %w", columnID, err)
+	}
+	// Same column: final count = others + 1 (card stays), max = others.
+	// Cross column: final count = others + 1 (card arrives), max = others.
+	// Empty target with cross-column move: max = 0 (the single valid slot).
+	return others, nil
+}
+
 // MoveCard moves a card to (newColumnID, newPosition), re-numbering siblings so
-// positions stay dense (0..N-1) within each affected column. The operation runs
-// in a transaction with FOR UPDATE on the source row.
-func (s *ProjectStore) MoveCard(ctx context.Context, cardID, newColumnID int64, newPosition int) error {
+// positions stay dense (0..N-1) within each affected column. Both the source
+// card and the destination column must belong to projectID; otherwise the call
+// fails with sql.ErrNoRows (preventing cross-project tampering). The operation
+// runs in a transaction with FOR UPDATE on the source row.
+func (s *ProjectStore) MoveCard(ctx context.Context, projectID, cardID, newColumnID int64, newPosition int) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin move: %w", err)
@@ -200,10 +221,21 @@ func (s *ProjectStore) MoveCard(ctx context.Context, cardID, newColumnID int64, 
 	var oldColumnID int64
 	var oldPosition int
 	if err := tx.QueryRowContext(ctx,
-		`SELECT column_id, position FROM project_cards WHERE id = $1 FOR UPDATE`,
-		cardID,
+		`SELECT column_id, position FROM project_cards
+		 WHERE id = $1
+		   AND column_id IN (SELECT id FROM project_columns WHERE project_id = $2)
+		 FOR UPDATE`,
+		cardID, projectID,
 	).Scan(&oldColumnID, &oldPosition); err != nil {
-		return fmt.Errorf("locate card %d: %w", cardID, err)
+		return fmt.Errorf("locate card %d in project %d: %w", cardID, projectID, err)
+	}
+
+	upperBound, err := s.maxPositionInColumn(ctx, tx, newColumnID, cardID)
+	if err != nil {
+		return err
+	}
+	if newPosition > upperBound {
+		return fmt.Errorf("position %d exceeds column size %d", newPosition, upperBound)
 	}
 
 	if oldColumnID == newColumnID {
