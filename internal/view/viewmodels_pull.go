@@ -3,6 +3,7 @@ package view
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 // PullsData holds template data for the pull request list page.
@@ -41,6 +42,8 @@ type PullDetailData struct {
 	AutoMergeStrategy string
 	// LineComments keyed by "path:line" (e.g. "src/main.go:42")
 	LineComments map[string][]RenderedLineComment
+	// Mergeability drives the PR sidebar MergeabilityBox (Phase 1 Task 10).
+	Mergeability components.MergeabilityBoxData
 }
 
 // PullNewData is used by the new-pull-request page.

@@ -337,6 +337,10 @@ templ PullDetail(data view.PullDetailData) {
 
 				<!-- Sidebar -->
 				<aside class="w-64 shrink-0 space-y-4" aria-label="Pull request metadata">
+					if data.Pull.State == model.PRStateOpen {
+						@components.MergeabilityBox(data.Mergeability)
+						<!-- TODO Phase 2: consolidate inline merge UI (in main column) with MergeabilityBox -->
+					}
 					<div class="rounded-md border border-border bg-card p-4">
 						@components.LabelSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Labels, data.AllLabels, data.CanWrite)
 					</div>

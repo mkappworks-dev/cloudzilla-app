@@ -11,6 +11,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -248,6 +249,30 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	// Phase 1 mergeability composite for the sidebar MergeabilityBox.
+	// CodeService.Mergeability captures git-level ahead/behind/conflicts;
+	// the two Counts methods layer branch-protection required-checks and
+	// required-reviews on top so the merge buttons only render when the
+	// merge is actually achievable. Errors degrade to zero values — the
+	// box still renders, just without that signal.
+	mg, _ := h.Services.Code.Mergeability(r.Context(), owner, repoName, pull.BaseBranch, pull.HeadBranch)
+	requiredChecks, passingChecks, _ := h.Services.CommitStatus.Counts(r.Context(), pull.ID)
+	requiredReviews, approvedReviews, _ := h.Services.PullReview.Counts(r.Context(), pull.ID)
+	mergeabilityBox := components.MergeabilityBoxData{
+		PatchURL:         fmt.Sprintf("/api/repos/%s/%s/pulls/%d", owner, repoName, pull.Number),
+		Mergeable:        !mg.HasConflicts && mg.Ahead > 0,
+		Ahead:            mg.Ahead,
+		Behind:           mg.Behind,
+		HasConflicts:     mg.HasConflicts,
+		RequiredChecks:   requiredChecks,
+		PassingChecks:    passingChecks,
+		RequiredReviews:  requiredReviews,
+		ApprovedReviews:  approvedReviews,
+		CanFastForward:   mg.Behind == 0 && !mg.HasConflicts,
+		CanThreeWayMerge: !mg.HasConflicts,
+		CanSquash:        !mg.HasConflicts,
+	}
+
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
 		BasePage:          basePage(r, h.Services),
 		Repo:              *repo,
@@ -269,5 +294,6 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		AutoMergeEnabled:  pull.AutoMergeEnabled,
 		AutoMergeStrategy: pull.AutoMergeStrategy,
 		LineComments:      lineComments,
+		Mergeability:      mergeabilityBox,
 	}))
 }

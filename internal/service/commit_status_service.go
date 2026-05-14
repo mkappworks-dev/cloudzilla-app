@@ -10,13 +10,21 @@ import (
 
 // CommitStatusService manages commit status checks from CI/CD integrations.
 type CommitStatusService struct {
-	statuses *store.CommitStatusStore
-	repos    *store.RepoStore
+	statuses    *store.CommitStatusStore
+	repos       *store.RepoStore
+	pulls       *store.PullStore
+	protections *store.BranchProtectionStore
+	code        *CodeService
 }
 
 // NewCommitStatusService creates a CommitStatusService backed by the given stores.
-func NewCommitStatusService(statuses *store.CommitStatusStore, repos *store.RepoStore) *CommitStatusService {
-	return &CommitStatusService{statuses: statuses, repos: repos}
+//
+// `pulls`, `protections`, and `code` are used by Counts to layer branch-protection
+// required-checks on top of the PR head SHA's statuses. They may be nil in test
+// fixtures that only exercise Upsert / List / GetCombined; Counts will then
+// return (0, 0, nil).
+func NewCommitStatusService(statuses *store.CommitStatusStore, repos *store.RepoStore, pulls *store.PullStore, protections *store.BranchProtectionStore, code *CodeService) *CommitStatusService {
+	return &CommitStatusService{statuses: statuses, repos: repos, pulls: pulls, protections: protections, code: code}
 }
 
 func (s *CommitStatusService) Upsert(ctx context.Context, owner, repoName, sha string, cs *model.CommitStatus) error {
@@ -54,4 +62,56 @@ func (s *CommitStatusService) GetCombined(ctx context.Context, owner, repoName, 
 		return "", nil, err
 	}
 	return combined, statuses, nil
+}
+
+// Counts returns the number of required status contexts (per the matching
+// branch protection rule for the PR's base branch) and how many of those
+// contexts have a passing ("success") status at the PR head SHA.
+//
+// Returns (0, 0, nil) when no protection rule matches or required deps
+// are unavailable — the caller treats that as "no required checks".
+func (s *CommitStatusService) Counts(ctx context.Context, pullID int64) (required int, passing int, err error) {
+	if s.pulls == nil || s.protections == nil || s.code == nil {
+		return 0, 0, nil
+	}
+	pr, err := s.pulls.GetByID(ctx, pullID)
+	if err != nil || pr == nil {
+		return 0, 0, err
+	}
+	repo, err := s.repos.GetByID(ctx, pr.RepoID)
+	if err != nil || repo == nil {
+		return 0, 0, err
+	}
+	rule, err := s.protections.MatchForBranch(ctx, pr.RepoID, pr.BaseBranch)
+	if err != nil {
+		return 0, 0, err
+	}
+	if rule == nil {
+		return 0, 0, nil
+	}
+	requiredContexts := []string(rule.RequireStatusChecks)
+	if len(requiredContexts) == 0 {
+		return 0, 0, nil
+	}
+	headCommit, _, err := s.code.ResolveRef(repo.OwnerName, repo.Name, pr.HeadBranch)
+	if err != nil || headCommit == nil {
+		return len(requiredContexts), 0, nil
+	}
+	statuses, err := s.statuses.ListBySHA(ctx, repo.ID, headCommit.Hash.String())
+	if err != nil {
+		return len(requiredContexts), 0, nil
+	}
+	passingByCtx := make(map[string]bool, len(statuses))
+	for _, st := range statuses {
+		if st.State == model.CommitStatusSuccess {
+			passingByCtx[st.Context] = true
+		}
+	}
+	pass := 0
+	for _, ctxName := range requiredContexts {
+		if passingByCtx[ctxName] {
+			pass++
+		}
+	}
+	return len(requiredContexts), pass, nil
 }
