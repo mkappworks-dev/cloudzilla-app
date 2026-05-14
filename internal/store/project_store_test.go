@@ -195,6 +195,57 @@ func TestProjectStore_MoveCard_CrossColumn(t *testing.T) {
 	}
 }
 
+// TestProjectStore_MoveCard_CrossColumn_AppendToEnd verifies moving a card to
+// a destination column at newPosition == len(dest) (the production path: the
+// kanban JS always appends to the end of the list).
+func TestProjectStore_MoveCard_CrossColumn_AppendToEnd(t *testing.T) {
+	db := openStoreDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+	_, cols := seedProjectWithColumns(t, db, repoID, []string{"todo", "doing"})
+
+	s := store.NewProjectStore(db)
+	c1 := seedCard(t, s, cols[0], "c1")
+	c2 := seedCard(t, s, cols[0], "c2")
+	c3 := seedCard(t, s, cols[1], "c3")
+	c4 := seedCard(t, s, cols[1], "c4")
+	// todo: [c1=0, c2=1]
+	// doing: [c3=0, c4=1]
+
+	// Move c1 from todo to doing at position 2 (= current length of doing).
+	// Expected todo: [c2=0], doing: [c3=0, c4=1, c1=2].
+	if err := s.MoveCard(context.Background(), c1.ID, cols[1], 2); err != nil {
+		t.Fatalf("MoveCard: %v", err)
+	}
+	gotTodo := readPositions(t, db, cols[0])
+	wantTodo := []struct {
+		ID  int64
+		Pos int
+	}{{c2.ID, 0}}
+	if len(gotTodo) != len(wantTodo) {
+		t.Fatalf("todo: want %d rows, got %d (%+v)", len(wantTodo), len(gotTodo), gotTodo)
+	}
+	for i, w := range wantTodo {
+		if gotTodo[i] != w {
+			t.Errorf("todo row %d: want %+v got %+v", i, w, gotTodo[i])
+		}
+	}
+	gotDoing := readPositions(t, db, cols[1])
+	wantDoing := []struct {
+		ID  int64
+		Pos int
+	}{{c3.ID, 0}, {c4.ID, 1}, {c1.ID, 2}}
+	if len(gotDoing) != len(wantDoing) {
+		t.Fatalf("doing: want %d rows, got %d (%+v)", len(wantDoing), len(gotDoing), gotDoing)
+	}
+	for i, w := range wantDoing {
+		if gotDoing[i] != w {
+			t.Errorf("doing row %d: want %+v got %+v", i, w, gotDoing[i])
+		}
+	}
+}
+
 // TestProjectStore_MoveCard_SamePosition_NoChange verifies moving a card to
 // its current position does not corrupt positions.
 func TestProjectStore_MoveCard_SamePosition_NoChange(t *testing.T) {

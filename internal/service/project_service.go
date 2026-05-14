@@ -258,8 +258,8 @@ func (s *ProjectService) ListColumnsWithCardsExpanded(ctx context.Context, proje
 			default:
 				cv.Kind = "note"
 				t := firstLine(c.Note)
-				if len(t) > 120 {
-					t = t[:120]
+				if r := []rune(t); len(r) > 120 {
+					t = string(r[:120])
 				}
 				cv.Title = t
 			}
