@@ -408,17 +408,48 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var canWrite, canManage bool
+	if userID != nil {
+		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, *userID)
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, *userID)
+	}
+
+	// Latest commit touching this specific file path. Best-effort: failures
+	// just leave the sub-header off.
+	var latestCommit view.TreeLatestCommit
+	if last, lcErr := h.Services.Code.LastCommitForPath(r.Context(), owner, repoName, result.Ref, result.Path); lcErr == nil && last != nil {
+		full := last.Hash.String()
+		short := full
+		if len(short) > 7 {
+			short = short[:7]
+		}
+		latestCommit = view.TreeLatestCommit{
+			SHA:       short,
+			Message:   firstCommitLine(last.Message),
+			Author:    last.Author.Name,
+			AuthorURL: "/" + last.Author.Name,
+			CommitURL: "/" + owner + "/" + repoName + "/commit/" + full,
+			Timestamp: last.Author.When,
+		}
+	}
+
 	h.render(w, r, pages.Blob(view.BlobData{
-		BasePage:    basePage(r, h.Services),
-		Repo:        *repo,
-		Owner:       owner,
-		RepoName:    repoName,
-		Ref:         result.Ref,
-		Path:        result.Path,
-		Breadcrumbs: result.Breadcrumbs,
-		Lines:       result.Lines,
-		IsBinary:    result.IsBinary,
-		BlameURL:    result.BlameURL,
+		BasePage:     basePage(r, h.Services),
+		Repo:         *repo,
+		Owner:        owner,
+		RepoName:     repoName,
+		Ref:          result.Ref,
+		Path:         result.Path,
+		Breadcrumbs:  result.Breadcrumbs,
+		Lines:        result.Lines,
+		IsBinary:     result.IsBinary,
+		Size:         result.Size,
+		BlameURL:     result.BlameURL,
+		RawURL:       "/" + owner + "/" + repoName + "/raw/" + result.Ref + "/" + result.Path,
+		EditURL:      "#",
+		CanWrite:     canWrite,
+		CanManage:    canManage,
+		LatestCommit: latestCommit,
 	}))
 }
 
@@ -534,15 +565,37 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	authors := make(map[string]struct{}, len(result.Lines))
+	for _, l := range result.Lines {
+		authors[l.Author] = struct{}{}
+	}
+
+	var canManage bool
+	if userID != nil {
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, *userID)
+	}
+
 	h.render(w, r, pages.Blame(view.BlameData{
-		BasePage:    basePage(r, h.Services),
-		Repo:        *repo,
-		Owner:       owner,
-		RepoName:    repoName,
-		Ref:         result.Ref,
-		Path:        result.Path,
-		Breadcrumbs: result.Breadcrumbs,
-		Lines:       result.Lines,
-		BlobURL:     result.BlobURL,
+		BasePage:     basePage(r, h.Services),
+		Repo:         *repo,
+		Owner:        owner,
+		RepoName:     repoName,
+		Ref:          result.Ref,
+		Path:         result.Path,
+		Breadcrumbs:  result.Breadcrumbs,
+		Lines:        result.Lines,
+		BlobURL:      result.BlobURL,
+		Contributors: len(authors),
+		CanManage:    canManage,
 	}))
+}
+
+// firstCommitLine returns the first line of a commit message (subject only).
+func firstCommitLine(s string) string {
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\n' {
+			return s[:i]
+		}
+	}
+	return s
 }

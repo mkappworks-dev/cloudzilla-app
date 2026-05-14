@@ -109,6 +109,27 @@ func (s *CodeService) ListEntriesWithLastCommit(ctx context.Context, owner, repo
 	return out, nil
 }
 
+// LastCommitForPath returns the most recent commit that touched `path`
+// (file or directory) reachable from `ref`. Used by the blob page to render
+// the latest-commit sub-header row for a single file.
+func (s *CodeService) LastCommitForPath(ctx context.Context, owner, repoName, ref, path string) (*object.Commit, error) {
+	if ref == "HEAD" {
+		ref = ""
+	}
+	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	if err != nil {
+		return nil, err
+	}
+	commit, _, err := resolveRef(repo, ref)
+	if err != nil {
+		return nil, err
+	}
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+	return s.lastCommitTouching(repo, commit, path)
+}
+
 // lastCommitTouching walks the history from headCommit and returns the most
 // recent commit whose tree changed `path`. Uses go-git's PathFilter to limit
 // iteration to commits that altered files at or under `path`.

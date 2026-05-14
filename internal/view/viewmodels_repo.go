@@ -173,28 +173,36 @@ type TreeLatestCommit struct {
 // BlobData holds template data for the file blob viewer page.
 type BlobData struct {
 	BasePage
-	Repo        model.Repository
-	Owner       string
-	RepoName    string
-	Ref         string
-	Path        string
-	Breadcrumbs []service.BreadcrumbPart
-	Lines       []service.CodeLine
-	IsBinary    bool
-	BlameURL    string
+	Repo         model.Repository
+	Owner        string
+	RepoName     string
+	Ref          string
+	Path         string
+	Breadcrumbs  []service.BreadcrumbPart
+	Lines        []service.CodeLine
+	IsBinary     bool
+	Size         int64
+	BlameURL     string
+	RawURL       string
+	EditURL      string
+	CanWrite     bool
+	CanManage    bool
+	LatestCommit TreeLatestCommit
 }
 
 // BlameData holds template data for the file blame page.
 type BlameData struct {
 	BasePage
-	Repo        model.Repository
-	Owner       string
-	RepoName    string
-	Ref         string
-	Path        string
-	Breadcrumbs []service.BreadcrumbPart
-	Lines       []service.BlameLine
-	BlobURL     string
+	Repo         model.Repository
+	Owner        string
+	RepoName     string
+	Ref          string
+	Path         string
+	Breadcrumbs  []service.BreadcrumbPart
+	Lines        []service.BlameLine
+	BlobURL      string
+	Contributors int
+	CanManage    bool
 }
 
 // CommitsData holds template data for the commit log page.

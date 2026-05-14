@@ -2,15 +2,23 @@ package pages
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ Blob(data view.BlobData) {
 	@layout.Base(data.BasePage, data.Path+" · "+data.Owner+"/"+data.RepoName) {
-		<div class="space-y-6">
+		@fragments.RepoSubnav(fragments.RepoSubnavData{
+			OwnerName: data.Owner,
+			RepoName:  data.RepoName,
+			Active:    "code",
+			CanManage: data.CanManage,
+		})
+		<div class="space-y-6 pt-6">
 
 			<section aria-labelledby="blob-title">
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Repository · File</p>
@@ -36,22 +44,24 @@ templ Blob(data view.BlobData) {
 						</svg>
 						<span class="font-medium">{ data.Ref }</span>
 					</span>
+					<span class="text-[12px] text-muted-foreground">·</span>
 					if !data.IsBinary {
-						<span class="text-[12px] text-muted-foreground">·</span>
-						<span class="font-mono text-[11px] text-muted-foreground">{ strconv.Itoa(len(data.Lines)) } lines</span>
+						<span class="font-mono text-[11px] text-muted-foreground">{ strconv.Itoa(len(data.Lines)) } lines · { humanBytes(data.Size) }</span>
+					} else {
+						<span class="font-mono text-[11px] text-muted-foreground">binary · { humanBytes(data.Size) }</span>
 					}
 				</div>
 			</section>
 
-			<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="blob-heading">
+			<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="blob-heading" x-data="{ copy(){ navigator.clipboard.writeText(this.$refs.code.innerText) } }">
 				<header class="px-4 py-2 border-b border-border bg-muted/50 flex items-center gap-3">
 					<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
 						<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
 						<polyline points="14 2 14 8 20 8"></polyline>
 					</svg>
 					<h2 id="blob-heading" class="text-[13px] font-medium">{ data.Path }</h2>
-					if !data.IsBinary {
-						<div class="ml-auto flex items-center gap-1.5">
+					<div class="ml-auto flex items-center gap-1.5">
+						if !data.IsBinary {
 							@components.LinkButton(data.BlameURL, components.ButtonOutline, components.ButtonSizeSM, nil) {
 								<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
 									<path d="M12 20h9"></path>
@@ -59,16 +69,61 @@ templ Blob(data view.BlobData) {
 								</svg>
 								Blame
 							}
-						</div>
-					}
+						}
+						@components.LinkButton(data.RawURL, components.ButtonOutline, components.ButtonSizeSM, nil) {
+							<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+								<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+								<path d="M7 10l5 5 5-5"></path>
+								<path d="M12 15V3"></path>
+							</svg>
+							Raw
+						}
+						if !data.IsBinary {
+							<button
+								type="button"
+								aria-label="Copy file contents"
+								title="Copy"
+								@click="copy()"
+								class="inline-flex items-center justify-center h-7 w-7 rounded-md border border-border bg-card hover:bg-muted text-muted-foreground"
+							>
+								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+									<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+									<path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+								</svg>
+							</button>
+						}
+						if data.CanWrite && !data.IsBinary {
+							@components.LinkButton(data.EditURL, components.ButtonOutline, components.ButtonSizeSM, nil) {
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+									<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
+									<path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+								</svg>
+								Edit
+							}
+						}
+					</div>
 				</header>
 
+				if data.LatestCommit.SHA != "" {
+					<div class="px-4 py-2 border-b border-border flex items-center gap-3 text-[12px] bg-muted/40">
+						<a href={ templ.SafeURL(data.LatestCommit.AuthorURL) } class="font-medium hover:underline truncate">{ data.LatestCommit.Author }</a>
+						<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="text-muted-foreground hover:underline truncate flex-1 min-w-0">{ data.LatestCommit.Message }</a>
+						<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="font-mono text-muted-foreground hover:underline flex-shrink-0">{ data.LatestCommit.SHA }</a>
+						<span class="text-muted-foreground flex-shrink-0">
+							<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ data.LatestCommit.Timestamp.Format(time.RFC822) }</time>
+						</span>
+					</div>
+				}
+
 				if data.IsBinary {
-					<div class="px-4 py-12 text-center text-sm text-muted-foreground">
-						Binary file not shown.
+					<div class="px-4 py-12 text-center text-sm text-muted-foreground flex flex-col items-center gap-3">
+						<p>Binary file — not displayed.</p>
+						@components.LinkButton(data.RawURL, components.ButtonOutline, components.ButtonSizeSM, nil) {
+							Download Raw
+						}
 					</div>
 				} else {
-					<div class="overflow-x-auto bg-card">
+					<div class="overflow-x-auto bg-card" x-ref="code">
 						<table class="w-full font-mono text-[12.5px] leading-[1.6]">
 							<caption class="sr-only">Contents of { data.Path }</caption>
 							<tbody>
@@ -85,6 +140,27 @@ templ Blob(data view.BlobData) {
 					</div>
 				}
 			</section>
+
+			<p class="mt-4 text-[12px] text-muted-foreground">
+				Permalink anchors: click any line number to deep-link (e.g.
+				<a class="font-mono text-foreground hover:underline" href="#L11">#L11</a>).
+			</p>
 		</div>
+	}
+}
+
+// humanBytes renders a byte count as a short human-readable string (B/KB/MB).
+func humanBytes(n int64) string {
+	const (
+		kb = 1024
+		mb = 1024 * 1024
+	)
+	switch {
+	case n < kb:
+		return strconv.FormatInt(n, 10) + " B"
+	case n < mb:
+		return strconv.FormatFloat(float64(n)/float64(kb), 'f', 1, 64) + " KB"
+	default:
+		return strconv.FormatFloat(float64(n)/float64(mb), 'f', 1, 64) + " MB"
 	}
 }
