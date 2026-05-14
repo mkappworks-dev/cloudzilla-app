@@ -74,8 +74,12 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		allPullMilestones = []model.Milestone{}
 	}
 
+	canManage := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	}
 	h.render(w, r, pages.Pulls(view.PullsData{
-		BasePage:      basePage(r, h.Services),
+		BasePage:      withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage),
 		Repo:          *repo,
 		Pulls:         pulls,
 		Owner:         owner,
@@ -104,8 +108,12 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		branches = refs.Branches
 	}
 
+	canManage := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	}
 	h.render(w, r, pages.PullNew(view.PullNewData{
-		BasePage:     basePage(r, h.Services),
+		BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,
@@ -145,9 +153,10 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	headBranch := r.FormValue("head_branch")
 	baseBranch := r.FormValue("base_branch")
 
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	renderErr := func(msg string) {
 		h.render(w, r, pages.PullNew(view.PullNewData{
-			BasePage:     basePage(r, h.Services),
+			BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage),
 			Repo:         *repo,
 			Owner:        owner,
 			RepoName:     repoName,
@@ -216,8 +225,10 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canWrite2 := false
+	canManage2 := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canWrite2 = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		canManage2 = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 
 	var headStatuses []model.CommitStatus
@@ -284,7 +295,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
-		BasePage:          basePage(r, h.Services),
+		BasePage:          withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage2),
 		Repo:              *repo,
 		Pull:              *pull,
 		Owner:             owner,

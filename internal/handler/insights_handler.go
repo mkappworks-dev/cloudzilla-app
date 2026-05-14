@@ -56,8 +56,10 @@ func (h *Handler) PagePulse(w http.ResponseWriter, r *http.Request) {
 		contributors = contributors[:10]
 	}
 
+	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
+
 	h.render(w, r, pages.Pulse(view.PulseData{
-		BasePage:      basePage(r, h.Services),
+		BasePage:      withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
 		Repo:          *repo,
 		Owner:         owner,
 		RepoName:      repoName,
@@ -108,8 +110,10 @@ func (h *Handler) PageContributors(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
+
 	h.render(w, r, pages.Contributors(view.ContributorsData{
-		BasePage:     basePage(r, h.Services),
+		BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,

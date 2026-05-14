@@ -51,7 +51,7 @@ func (h *Handler) PageProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Projects(view.ProjectsData{
-		BasePage:  basePage(r, h.Services),
+		BasePage:  withRepoSubnav(basePage(r, h.Services), owner, repoName, "projects", canManage),
 		Repo:      *repo,
 		Owner:     owner,
 		RepoName:  repoName,
@@ -109,7 +109,7 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.ProjectDetail(view.ProjectDetailData{
-		BasePage:  basePage(r, h.Services),
+		BasePage:  withRepoSubnav(basePage(r, h.Services), owner, repoName, "projects", canManage),
 		Repo:      *repo,
 		Owner:     owner,
 		RepoName:  repoName,

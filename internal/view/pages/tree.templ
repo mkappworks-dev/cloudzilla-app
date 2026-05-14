@@ -6,19 +6,12 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ Tree(data view.TreeData) {
 	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" · "+data.Ref) {
-		@fragments.RepoSubnav(fragments.RepoSubnavData{
-			OwnerName: data.Owner,
-			RepoName:  data.RepoName,
-			Active:    "code",
-			CanManage: data.CanManage,
-		})
-		<div class="space-y-6 pt-6">
+		<div class="space-y-6 pt-2">
 
 			<section aria-labelledby="tree-title">
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Repository · Tree</p>

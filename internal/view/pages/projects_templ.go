@@ -13,7 +13,6 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -50,23 +49,14 @@ func Projects(data view.ProjectsData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = fragments.RepoSubnav(fragments.RepoSubnavData{
-				OwnerName: data.Owner,
-				RepoName:  data.RepoName,
-				Active:    "projects",
-				CanManage: data.CanManage,
-			}).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, " <div class=\"space-y-6 pt-6\"><section aria-labelledby=\"projects-title\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2\">Repository · Projects</p><div class=\"flex items-start justify-between gap-4\"><h1 id=\"projects-title\" class=\"text-xl tracking-tight font-medium\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"space-y-6 pt-2\"><section aria-labelledby=\"projects-title\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2\">Repository · Projects</p><div class=\"flex items-start justify-between gap-4\"><h1 id=\"projects-title\" class=\"text-xl tracking-tight font-medium\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 templ.SafeURL
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/projects.templ`, Line: 25, Col: 69}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/projects.templ`, Line: 18, Col: 69}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -79,7 +69,7 @@ func Projects(data view.ProjectsData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.RepoName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/projects.templ`, Line: 25, Col: 133}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/projects.templ`, Line: 18, Col: 133}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -135,7 +125,7 @@ func Projects(data view.ProjectsData) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue("fetch('/api/repos/" + data.Owner + "/" + data.RepoName + "/projects',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':(document.cookie.match(/csrf_token=([^;]+)/)||[])[1]||''},body:JSON.stringify({name:projName,description:projDesc})}).then(r=>r.ok&&window.location.reload())")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/projects.templ`, Line: 50, Col: 329}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/projects.templ`, Line: 43, Col: 329}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 				if templ_7745c5c3_Err != nil {
@@ -252,7 +242,7 @@ func Projects(data view.ProjectsData) templ.Component {
 					var templ_7745c5c3_Var9 templ.SafeURL
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(p.ID, 10)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/projects.templ`, Line: 98, Col: 116}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/projects.templ`, Line: 91, Col: 116}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -265,7 +255,7 @@ func Projects(data view.ProjectsData) templ.Component {
 					var templ_7745c5c3_Var10 string
 					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(p.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/projects.templ`, Line: 98, Col: 179}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/projects.templ`, Line: 91, Col: 179}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 					if templ_7745c5c3_Err != nil {
@@ -283,7 +273,7 @@ func Projects(data view.ProjectsData) templ.Component {
 						var templ_7745c5c3_Var11 string
 						templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(p.Description)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/projects.templ`, Line: 100, Col: 76}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/projects.templ`, Line: 93, Col: 76}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 						if templ_7745c5c3_Err != nil {

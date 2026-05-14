@@ -25,8 +25,10 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var callerID *int64
+	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		callerID = &claims.UserID
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 	issues, err := h.Services.Issue.List(r.Context(), owner, repoName, callerID)
 	if err != nil {
@@ -52,7 +54,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Issues(view.IssuesData{
-		BasePage:      basePage(r, h.Services),
+		BasePage:      withRepoSubnav(basePage(r, h.Services), owner, repoName, "issues", canManage),
 		Repo:          *repo,
 		Issues:        issues,
 		PinnedIssues:  pinnedIssues,
@@ -125,7 +127,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.IssueDetail(view.IssueDetailData{
-		BasePage:      basePage(r, h.Services),
+		BasePage:      withRepoSubnav(basePage(r, h.Services), owner, repoName, "issues", canManage),
 		Repo:          *repo,
 		Issue:         *issue,
 		Comments:      rendered,
@@ -167,11 +169,13 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 	showForm := blank || selected != "" || len(templates) == 0
 
 	canWrite := false
+	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 	h.render(w, r, pages.IssueNew(view.IssueNewData{
-		BasePage:  basePage(r, h.Services),
+		BasePage:  withRepoSubnav(basePage(r, h.Services), owner, repoName, "issues", canManage),
 		Repo:      *repo,
 		Owner:     owner,
 		RepoName:  repoName,
@@ -205,9 +209,10 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	renderErr := func(msg string) {
 		h.render(w, r, pages.IssueNew(view.IssueNewData{
-			BasePage: basePage(r, h.Services),
+			BasePage: withRepoSubnav(basePage(r, h.Services), owner, repoName, "issues", canManage),
 			Repo:     *repo,
 			Owner:    owner,
 			RepoName: repoName,

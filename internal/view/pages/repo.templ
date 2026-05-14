@@ -10,19 +10,12 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ Repo(data view.RepoData) {
 	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName) {
-		@fragments.RepoSubnav(fragments.RepoSubnavData{
-			OwnerName: data.Owner,
-			RepoName:  data.RepoName,
-			Active:    "code",
-			CanManage: data.CanManage,
-		})
-		<div class="space-y-6 pt-6">
+		<div class="space-y-6 pt-2">
 
 			if data.IsArchived {
 				<div role="status" class="flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm">

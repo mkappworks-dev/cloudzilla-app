@@ -37,6 +37,18 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 	return page
 }
 
+// withRepoSubnav attaches the repo subnav so layout.Base renders it inside
+// <header>. Use from any handler serving a repo-scoped route.
+func withRepoSubnav(base BasePage, owner, repoName, active string, canManage bool) BasePage {
+	base.RepoSubnav = &view.RepoSubnavInfo{
+		OwnerName: owner,
+		RepoName:  repoName,
+		Active:    active,
+		CanManage: canManage,
+	}
+	return base
+}
+
 func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	repos, err := h.Services.Repo.List(ctx)

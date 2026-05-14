@@ -27,8 +27,10 @@ func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
 
 	var userID *int64
 	canWrite := false
+	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 		userID = &claims.UserID
 	}
 	_ = userID
@@ -44,7 +46,7 @@ func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Releases(view.ReleasesData{
-		BasePage: basePage(r, h.Services),
+		BasePage: withRepoSubnav(basePage(r, h.Services), owner, repoName, "releases", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
@@ -66,8 +68,10 @@ func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 
 	var userID *int64
 	canWrite := false
+	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 		userID = &claims.UserID
 	}
 
@@ -83,7 +87,7 @@ func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.ReleaseDetail(view.ReleaseDetailData{
-		BasePage: basePage(r, h.Services),
+		BasePage: withRepoSubnav(basePage(r, h.Services), owner, repoName, "releases", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,

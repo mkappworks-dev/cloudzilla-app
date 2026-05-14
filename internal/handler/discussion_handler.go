@@ -52,9 +52,10 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
+	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Discussions(view.DiscussionsData{
-		BasePage:         basePage(r, h.Services),
+		BasePage:         withRepoSubnav(basePage(r, h.Services), owner, repoName, "discussions", canManage),
 		Repo:             *repo,
 		Owner:            owner,
 		RepoName:         repoName,
@@ -119,9 +120,10 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
+	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.DiscussionDetail(view.DiscussionDetailData{
-		BasePage:   basePage(r, h.Services),
+		BasePage:   withRepoSubnav(basePage(r, h.Services), owner, repoName, "discussions", canManage),
 		Repo:       *repo,
 		Owner:      owner,
 		RepoName:   repoName,

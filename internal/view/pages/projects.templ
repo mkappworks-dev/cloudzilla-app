@@ -5,19 +5,12 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ Projects(data view.ProjectsData) {
 	@layout.Base(data.BasePage, "Projects · "+data.Owner+"/"+data.RepoName) {
-		@fragments.RepoSubnav(fragments.RepoSubnavData{
-			OwnerName: data.Owner,
-			RepoName:  data.RepoName,
-			Active:    "projects",
-			CanManage: data.CanManage,
-		})
-		<div class="space-y-6 pt-6">
+		<div class="space-y-6 pt-2">
 			<section aria-labelledby="projects-title">
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Repository · Projects</p>
 				<div class="flex items-start justify-between gap-4">
