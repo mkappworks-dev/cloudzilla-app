@@ -146,14 +146,28 @@ type TagsFragData struct {
 // TreeData holds template data for the repository tree browser page.
 type TreeData struct {
 	BasePage
-	Repo        model.Repository
-	Owner       string
-	RepoName    string
-	Ref         string
-	Path        string
-	Breadcrumbs []service.BreadcrumbPart
-	Entries     []service.TreeEntry
-	RefsURL     string
+	Repo         model.Repository
+	Owner        string
+	RepoName     string
+	Ref          string
+	Path         string
+	Breadcrumbs  []service.BreadcrumbPart
+	Entries      []service.TreeEntryWithLastCommit
+	RefsURL      string
+	CanManage    bool
+	Sidebar      []components.TreeNode
+	LatestCommit TreeLatestCommit
+}
+
+// TreeLatestCommit summarises the most recent commit touching anything in
+// the current directory. Rendered as a sub-header row above the file listing.
+type TreeLatestCommit struct {
+	SHA       string // short SHA
+	Message   string // first line of commit message
+	Author    string
+	AuthorURL string
+	CommitURL string
+	Timestamp time.Time
 }
 
 // BlobData holds template data for the file blob viewer page.

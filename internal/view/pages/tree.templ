@@ -1,14 +1,23 @@
 package pages
 
 import (
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ Tree(data view.TreeData) {
 	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" · "+data.Ref) {
-		<div class="space-y-6">
+		@fragments.RepoSubnav(fragments.RepoSubnavData{
+			OwnerName: data.Owner,
+			RepoName:  data.RepoName,
+			Active:    "code",
+			CanManage: data.CanManage,
+		})
+		<div class="space-y-6 pt-6">
 
 			<section aria-labelledby="tree-title">
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Repository · Tree</p>
@@ -41,55 +50,92 @@ templ Tree(data view.TreeData) {
 				</div>
 			</section>
 
-			<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="files-heading">
-				<h2 id="files-heading" class="sr-only">Files at { data.Ref }</h2>
-				if len(data.Entries) > 0 {
-					@components.Table(nil) {
-						@components.TableCaption(templ.Attributes{"class": "sr-only"}) {
-							Repository files at { data.Ref }, directories first
-						}
-						<colgroup>
-							<col style="width: 32px"/>
-							<col/>
-						</colgroup>
-						<thead class="sr-only">
-							<tr>
-								<th scope="col">Type</th>
-								<th scope="col">Name</th>
-							</tr>
-						</thead>
-						@components.TableBody() {
-							for _, entry := range data.Entries {
-								@components.TableRow(true) {
-									@components.TableCell(templ.Attributes{"class": "px-4 py-2.5 w-8"}) {
-										if entry.IsDir {
-											<svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
-												<path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path>
-											</svg>
-										} else {
-											<svg class="text-muted-foreground" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
-												<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-												<polyline points="14 2 14 8 20 8"></polyline>
-											</svg>
+			<div class="grid grid-cols-[260px_1fr] gap-4">
+
+				<aside class="rounded-md border border-border bg-card sticky top-4 self-start max-h-screen overflow-hidden flex flex-col" aria-label="Repository file tree">
+					<header class="px-3 py-2 border-b border-border flex items-center gap-2 bg-muted/40 shrink-0">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" focusable="false">
+							<path d="M3 6h18M3 12h18M3 18h18"></path>
+						</svg>
+						<span class="text-[12px] font-medium">Files</span>
+					</header>
+					<div class="overflow-y-auto flex-1">
+						@components.FileTreeSidebar(data.Sidebar, "")
+					</div>
+				</aside>
+
+				<section class="rounded-md border border-border bg-card overflow-hidden min-w-0" aria-labelledby="files-heading">
+					<h2 id="files-heading" class="sr-only">Files at { data.Ref }</h2>
+
+					if data.LatestCommit.SHA != "" {
+						<div class="px-4 py-2 border-b border-border flex items-center gap-3 text-[12px] bg-muted/40">
+							<a href={ templ.SafeURL(data.LatestCommit.AuthorURL) } class="font-medium hover:underline truncate">{ data.LatestCommit.Author }</a>
+							<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="text-muted-foreground hover:underline truncate flex-1 min-w-0">{ data.LatestCommit.Message }</a>
+							<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="font-mono text-muted-foreground hover:underline flex-shrink-0">{ data.LatestCommit.SHA }</a>
+							<span class="text-muted-foreground flex-shrink-0">
+								<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ data.LatestCommit.Timestamp.Format(time.RFC822) }</time>
+							</span>
+						</div>
+					}
+
+					if len(data.Entries) > 0 {
+						@components.Table(nil) {
+							@components.TableCaption(templ.Attributes{"class": "sr-only"}) {
+								Repository files at { data.Ref }, directories first
+							}
+							<colgroup>
+								<col style="width: 32px"/>
+								<col/>
+								<col style="width: 40%"/>
+							</colgroup>
+							<thead class="sr-only">
+								<tr>
+									<th scope="col">Type</th>
+									<th scope="col">Name</th>
+									<th scope="col">Last commit</th>
+								</tr>
+							</thead>
+							@components.TableBody() {
+								for _, entry := range data.Entries {
+									@components.TableRow(true) {
+										@components.TableCell(templ.Attributes{"class": "px-4 py-2.5 w-8"}) {
+											if entry.IsDir {
+												<svg style="color: #6ea8fe;" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+													<path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"></path>
+												</svg>
+											} else {
+												<svg class="text-muted-foreground" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
+													<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+													<polyline points="14 2 14 8 20 8"></polyline>
+												</svg>
+											}
 										}
-									}
-									@components.TableRowHead(templ.Attributes{"class": "px-4 py-2.5"}) {
-										if entry.IsDir {
-											<a href={ templ.SafeURL(entry.URL) } class="text-[13px] font-medium hover:underline">{ entry.Name }</a>
-										} else {
-											<a href={ templ.SafeURL(entry.URL) } class="text-[13px] hover:underline">{ entry.Name }</a>
+										@components.TableRowHead(templ.Attributes{"class": "px-4 py-2.5"}) {
+											if entry.IsDir {
+												<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Ref + "/" + entry.Path) } class="text-[13px] font-medium hover:underline">{ entry.Name }</a>
+											} else {
+												<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/blob/" + data.Ref + "/" + entry.Path) } class="text-[13px] hover:underline">{ entry.Name }</a>
+											}
+										}
+										@components.TableCell(templ.Attributes{"class": "px-4 py-2.5 text-[12px] text-muted-foreground"}) {
+											<div class="flex items-center justify-between gap-3">
+												<span class="truncate">{ entry.LastCommit.Message }</span>
+												if !entry.LastCommit.Timestamp.IsZero() {
+													<time datetime={ entry.LastCommit.Timestamp.Format(time.RFC3339) } class="flex-shrink-0">{ entry.LastCommit.Timestamp.Format(time.RFC822) }</time>
+												}
+											</div>
 										}
 									}
 								}
 							}
 						}
+					} else {
+						<div class="px-4 py-12 text-center text-sm text-muted-foreground">
+							This directory is empty.
+						</div>
 					}
-				} else {
-					<div class="px-4 py-12 text-center text-sm text-muted-foreground">
-						This directory is empty.
-					</div>
-				}
-			</section>
+				</section>
+			</div>
 		</div>
 	}
 }

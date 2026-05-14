@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"sort"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -293,22 +294,89 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// GetTree resolves the ref and produces breadcrumbs; we drop its Entries
+	// and re-fetch them enriched with last-commit metadata below.
 	result, err := h.Services.Code.GetTree(owner, repoName, ref, path)
 	if err != nil {
-		h.NotFound(w, r)
-		return
+		if errors.Is(err, service.ErrEmptyRepo) {
+			result = &service.TreeResult{Ref: ref, Path: path}
+		} else {
+			h.NotFound(w, r)
+			return
+		}
 	}
 
+	entries, err := h.Services.Code.ListEntriesWithLastCommit(r.Context(), owner, repoName, result.Ref, result.Path)
+	if err != nil {
+		if errors.Is(err, service.ErrEmptyRepo) {
+			entries = nil
+		} else {
+			h.NotFound(w, r)
+			return
+		}
+	}
+
+	// Sort directories first, then files; both alphabetically — preserves
+	// the ordering GetTree used to provide.
+	sort.SliceStable(entries, func(i, j int) bool {
+		if entries[i].IsDir != entries[j].IsDir {
+			return entries[i].IsDir
+		}
+		return entries[i].Name < entries[j].Name
+	})
+
+	// Latest commit summary across entries in the current dir.
+	var newest service.TreeEntryWithLastCommit
+	for _, e := range entries {
+		if e.LastCommit.Timestamp.After(newest.LastCommit.Timestamp) {
+			newest = e
+		}
+	}
+	var latestCommit view.TreeLatestCommit
+	if newest.LastCommit.SHA != "" {
+		short := newest.LastCommit.SHA
+		if len(short) > 7 {
+			short = short[:7]
+		}
+		latestCommit = view.TreeLatestCommit{
+			SHA:       short,
+			Message:   newest.LastCommit.Message,
+			Author:    newest.LastCommit.Author,
+			AuthorURL: "/" + newest.LastCommit.Author,
+			CommitURL: "/" + owner + "/" + repoName + "/commit/" + newest.LastCommit.SHA,
+			Timestamp: newest.LastCommit.Timestamp,
+		}
+	}
+
+	// IDE-style sidebar nodes for the current directory.
+	sidebar := make([]components.TreeNode, 0, len(entries))
+	for _, e := range entries {
+		href := "/" + owner + "/" + repoName + "/blob/" + result.Ref + "/" + e.Path
+		if e.IsDir {
+			href = "/" + owner + "/" + repoName + "/tree/" + result.Ref + "/" + e.Path
+		}
+		sidebar = append(sidebar, components.TreeNode{
+			Name:  e.Name,
+			IsDir: e.IsDir,
+			Href:  href,
+		})
+	}
+
+	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
+
 	h.render(w, r, pages.Tree(view.TreeData{
-		BasePage:    basePage(r, h.Services),
-		Repo:        *repo,
-		Owner:       owner,
-		RepoName:    repoName,
-		Ref:         result.Ref,
-		Path:        result.Path,
-		Breadcrumbs: result.Breadcrumbs,
-		Entries:     result.Entries,
-		RefsURL:     "/" + owner + "/" + repoName + "/refs",
+		BasePage:     basePage(r, h.Services),
+		Repo:         *repo,
+		Owner:        owner,
+		RepoName:     repoName,
+		Ref:          result.Ref,
+		Path:         result.Path,
+		Breadcrumbs:  result.Breadcrumbs,
+		Entries:      entries,
+		RefsURL:      "/" + owner + "/" + repoName + "/refs",
+		CanManage:    canManage,
+		Sidebar:      sidebar,
+		LatestCommit: latestCommit,
 	}))
 }
 
