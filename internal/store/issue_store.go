@@ -346,3 +346,47 @@ func (s *IssueStore) CountClosedSince(ctx context.Context, repoID int64, since t
 	).Scan(&n)
 	return n, err
 }
+
+// IssueListItem is a display-ready issue projection for cross-repo lists
+// like the home page attention list. It includes the repo's full name so
+// callers do not have to make extra round trips for repo metadata.
+type IssueListItem struct {
+	ID           int64
+	Number       int
+	Title        string
+	AuthorID     int64
+	RepoFullName string // "<owner_username>/<repo_name>"
+	UpdatedAt    time.Time
+}
+
+// ListOpenAssignedToUser returns up to 50 open issues assigned to the
+// given user, joined with the repo's full name for display. Sorted by
+// updated_at descending. Used by the home page attention list.
+func (s *IssueStore) ListOpenAssignedToUser(ctx context.Context, userID int64) ([]IssueListItem, error) {
+	const q = `
+		SELECT i.id, i.number, i.title, i.author_id,
+		       u.username || '/' || r.name AS repo_full_name,
+		       i.updated_at
+		FROM issues i
+		JOIN issue_assignees a ON a.issue_id = i.id
+		JOIN repositories r    ON r.id = i.repo_id
+		JOIN users u           ON u.id = r.owner_id
+		WHERE a.user_id = $1 AND i.state = 'open'
+		ORDER BY i.updated_at DESC
+		LIMIT 50
+	`
+	rows, err := s.db.QueryContext(ctx, q, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []IssueListItem
+	for rows.Next() {
+		var it IssueListItem
+		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, it)
+	}
+	return out, rows.Err()
+}
