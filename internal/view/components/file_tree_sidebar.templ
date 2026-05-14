@@ -1,0 +1,37 @@
+package components
+
+type TreeNode struct {
+	Name  string
+	IsDir bool
+	Href  string
+}
+
+templ FileTreeSidebar(nodes []TreeNode, activeName string) {
+	<nav aria-label="File tree" class="w-64 flex-none border-r border-border overflow-y-auto">
+		<ul class="py-2">
+			for _, n := range nodes {
+				<li>
+					if n.Name == activeName {
+						<a href={ templ.SafeURL(n.Href) } aria-current="page" class="flex items-center gap-2 px-3 py-1 text-sm bg-accent text-foreground">
+							@treeNodeIcon(n.IsDir)
+							{ n.Name }
+						</a>
+					} else {
+						<a href={ templ.SafeURL(n.Href) } class="flex items-center gap-2 px-3 py-1 text-sm text-muted-foreground hover:text-foreground hover:bg-accent">
+							@treeNodeIcon(n.IsDir)
+							{ n.Name }
+						</a>
+					}
+				</li>
+			}
+		</ul>
+	</nav>
+}
+
+templ treeNodeIcon(isDir bool) {
+	if isDir {
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-none" aria-hidden="true"><path d="M3 5a2 2 0 012-2h4l2 2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5z"/></svg>
+	} else {
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-none" aria-hidden="true"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg>
+	}
+}
