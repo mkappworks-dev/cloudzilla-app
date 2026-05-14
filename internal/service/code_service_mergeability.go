@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -33,8 +34,7 @@ func (s *CodeService) Mergeability(ctx context.Context, owner, repoName, base, h
 	}
 	mb, err := findMergeBase(repo, baseCommit, headCommit)
 	if err != nil {
-		// findMergeBase returns errors.New("no common ancestor") literally.
-		if err.Error() == "no common ancestor" {
+		if errors.Is(err, ErrNoCommonAncestor) {
 			return Mergeability{BaseRef: base, HeadRef: head, HasConflicts: true}, nil
 		}
 		return Mergeability{}, err

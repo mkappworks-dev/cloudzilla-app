@@ -14,6 +14,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
+// ErrNoCommonAncestor is returned by findMergeBase when two commits share no
+// merge base. Exported so callers can match with errors.Is rather than
+// string-comparing the message.
+var ErrNoCommonAncestor = errors.New("no common ancestor")
+
 // PRDiffResult holds the diff between two branches and merge capability flags.
 type PRDiffResult struct {
 	Files            []FileDiff
@@ -192,7 +197,7 @@ func findMergeBase(repo *gogit.Repository, a, b *object.Commit) (*object.Commit,
 		return nil
 	})
 	if base == nil {
-		return nil, errors.New("no common ancestor")
+		return nil, ErrNoCommonAncestor
 	}
 	return base, nil
 }
