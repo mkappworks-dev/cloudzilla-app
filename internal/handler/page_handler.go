@@ -69,23 +69,44 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 
 	if claims, ok := middleware.ClaimsFromContext(ctx); ok {
 		userID := claims.UserID
-		commitsLast7, _ := h.Services.CommitStats.CommitsForUserSince(ctx, userID, 7)
-		countRepos, _ := h.Services.Repo.CountForUser(ctx, userID)
-		countOpenPulls, _ := h.Services.Pull.CountOpenAuthoredByOrAssignedTo(ctx, userID)
-		countOpenIssues, _ := h.Services.Issue.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+		// Each stat tile degrades independently — a failed sub-service shows
+		// as zero, and the failure is logged at Warn so operators can spot a
+		// "brand-new account"-shaped page that is really a DB outage.
+		commitsLast7, err := h.Services.CommitStats.CommitsForUserSince(ctx, userID, 7)
+		if err != nil {
+			slog.Warn("home: commits-last-7 stat failed", "user_id", userID, "error", err)
+		}
+		countRepos, err := h.Services.Repo.CountForUser(ctx, userID)
+		if err != nil {
+			slog.Warn("home: repo count stat failed", "user_id", userID, "error", err)
+		}
+		countOpenPulls, err := h.Services.Pull.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+		if err != nil {
+			slog.Warn("home: open-pulls count stat failed", "user_id", userID, "error", err)
+		}
+		countOpenIssues, err := h.Services.Issue.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+		if err != nil {
+			slog.Warn("home: open-issues count stat failed", "user_id", userID, "error", err)
+		}
 		data.Stats = []components.StatItem{
 			{Label: "Repositories", Value: countRepos},
 			{Label: "Pull requests", Value: countOpenPulls, Subtitle: "open"},
 			{Label: "Issues", Value: countOpenIssues, Subtitle: "open"},
 			{Label: "Commits", Value: commitsLast7, Subtitle: "last 7 days"},
 		}
-		if heat, err := h.Services.CommitStats.LookbackForUser(ctx, userID, 365); err == nil {
+		if heat, err := h.Services.CommitStats.LookbackForUser(ctx, userID, 365); err != nil {
+			slog.Warn("home: heatmap lookback failed", "user_id", userID, "error", err)
+		} else {
 			data.Heatmap = heat
 		}
-		if att, err := h.Services.Attention.ForUser(ctx, userID); err == nil {
+		if att, err := h.Services.Attention.ForUser(ctx, userID); err != nil {
+			slog.Warn("home: attention list failed", "user_id", userID, "error", err)
+		} else {
 			data.Attention = att
 		}
-		if feed, err := h.Services.Event.Feed(ctx, int(userID), 1, 10); err == nil {
+		if feed, err := h.Services.Event.Feed(ctx, int(userID), 1, 10); err != nil {
+			slog.Warn("home: activity feed failed", "user_id", userID, "error", err)
+		} else {
 			data.Activity = feed
 		}
 	}

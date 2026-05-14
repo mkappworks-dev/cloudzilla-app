@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"strconv"
@@ -63,10 +64,16 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	starCount, _ := h.Services.Star.GetStarCount(r.Context(), repo.ID)
+	starCount, err := h.Services.Star.GetStarCount(r.Context(), repo.ID)
+	if err != nil {
+		slog.Warn("repo: star count failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	isStarred := false
 	if currentUserID != 0 {
-		isStarred, _ = h.Services.Star.IsStarred(r.Context(), repo.ID, currentUserID)
+		isStarred, err = h.Services.Star.IsStarred(r.Context(), repo.ID, currentUserID)
+		if err != nil {
+			slog.Warn("repo: is-starred lookup failed", "owner", owner, "repo", repoName, "user_id", currentUserID, "error", err)
+		}
 	}
 
 	forkOfPath := ""
@@ -74,14 +81,20 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		forkOfPath = repo.ForkOfOwner + "/" + repo.ForkOfName
 	}
 
-	latestRelease, _ := h.Services.Release.GetLatest(r.Context(), owner, repoName)
+	latestRelease, err := h.Services.Release.GetLatest(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("repo: latest release lookup failed", "owner", owner, "repo", repoName, "error", err)
+	}
 
 	watchLevel := ""
 	if currentUserID != 0 {
 		watchLevel = h.Services.Watch.GetLevel(r.Context(), currentUserID, repo.ID)
 	}
 
-	topics, _ := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
+	topics, err := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
+	if err != nil {
+		slog.Warn("repo: topics list failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	if topics == nil {
 		topics = []model.Topic{}
 	}
@@ -91,8 +104,14 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, currentUserID)
 	}
 
+	// Phase 1 about-sidebar widgets. Each section degrades independently:
+	// a failed sub-service renders as empty for that widget only and the
+	// failure is logged at Warn so a corrupted git repo doesn't silently
+	// render as "no languages, no contributors, no releases".
 	var languages []components.LangBarItem
-	if percents, err := h.Services.Language.Percentages(r.Context(), owner, repoName, repo.DefaultBranch); err == nil {
+	if percents, err := h.Services.Language.Percentages(r.Context(), owner, repoName, repo.DefaultBranch); err != nil {
+		slog.Warn("repo: language percentages failed", "owner", owner, "repo", repoName, "error", err)
+	} else {
 		languages = make([]components.LangBarItem, 0, len(percents))
 		for _, p := range percents {
 			languages = append(languages, components.LangBarItem{
@@ -102,9 +121,18 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
-	topContribs, _ := h.Services.Repo.TopContributors(r.Context(), owner, repoName, 10)
-	releases, _ := h.Services.Release.RecentForRepo(r.Context(), owner, repoName, 5)
-	heatmap, _ := h.Services.CommitStats.LookbackForRepo(r.Context(), repo.ID, 90)
+	topContribs, err := h.Services.Repo.TopContributors(r.Context(), owner, repoName, 10)
+	if err != nil {
+		slog.Warn("repo: top contributors failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	releases, err := h.Services.Release.RecentForRepo(r.Context(), owner, repoName, 5)
+	if err != nil {
+		slog.Warn("repo: recent releases failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	heatmap, err := h.Services.CommitStats.LookbackForRepo(r.Context(), repo.ID, 90)
+	if err != nil {
+		slog.Warn("repo: heatmap lookback failed", "owner", owner, "repo", repoName, "error", err)
+	}
 
 	h.render(w, r, pages.Repo(view.RepoData{
 		BasePage:      basePage(r, h.Services),
