@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/db"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -41,6 +42,22 @@ func main() {
 
 	stores := store.New(database)
 	services := service.New(stores, cfg)
+
+	// Re-run safety relies on BackfillRecentCommits' HasRowsForRepoSince guard against the additive AddCount.
+	concurrency.Go("commit_stats.backfill", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+		defer cancel()
+		repos, err := stores.Repo.ListAll(ctx)
+		if err != nil {
+			slog.Warn("commit-stats backfill: list repos failed", "error", err)
+			return
+		}
+		slog.Info("commit-stats backfill starting", "repos", len(repos))
+		if err := services.CommitStats.BackfillRecentCommits(ctx, repos, services.Code, 365); err != nil {
+			slog.Warn("commit-stats backfill failed", "error", err)
+			return
+		}
+	})
 
 	r := router.New(services, cfg, frontendFS)
 

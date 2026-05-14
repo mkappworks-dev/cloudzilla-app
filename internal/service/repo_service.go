@@ -9,9 +9,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -37,15 +42,90 @@ func ValidateName(name string) error {
 
 // RepoService manages repository creation, access control, and git directory lifecycle.
 type RepoService struct {
-	repos *store.RepoStore
-	users *store.UserStore
-	orgs  *store.OrgStore
-	cfg   config.GitConfig
+	repos       *store.RepoStore
+	users       *store.UserStore
+	orgs        *store.OrgStore
+	commitStats *CommitStatsService
+	code        *CodeService
+	cfg         config.GitConfig
 }
 
-// NewRepoService creates a RepoService backed by the given stores and git config.
-func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, cfg config.GitConfig) *RepoService {
-	return &RepoService{repos: repos, users: users, orgs: orgs, cfg: cfg}
+// The code service may be nil in tests that do not exercise contributor queries.
+func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, commitStats *CommitStatsService, code *CodeService, cfg config.GitConfig) *RepoService {
+	return &RepoService{repos: repos, users: users, orgs: orgs, commitStats: commitStats, code: code, cfg: cfg}
+}
+
+func (s *RepoService) TopContributors(ctx context.Context, owner, name string, limit int) ([]ContributorStat, error) {
+	if s.code == nil {
+		return nil, nil
+	}
+	all, err := s.code.GetContributors(owner, name)
+	if err != nil {
+		return nil, err
+	}
+	if limit > 0 && len(all) > limit {
+		all = all[:limit]
+	}
+	return all, nil
+}
+
+// Dedupes commits shared across multiple updated branches; returns an aggregate error only when every walk fails so a stuck repo doesn't go silent.
+func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository, gitRepo *gogit.Repository, commands []*packp.Command) error {
+	if s.commitStats == nil || gitRepo == nil || repo == nil {
+		return nil
+	}
+	seen := make(map[plumbing.Hash]struct{})
+	var samples []CommitSample
+	var walkAttempts, walkFailures int
+	for _, cmd := range commands {
+		if cmd == nil {
+			continue
+		}
+		if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
+			continue
+		}
+		if cmd.Action() == packp.Delete {
+			continue
+		}
+		walkAttempts++
+		iter, err := gitRepo.Log(&gogit.LogOptions{From: cmd.New})
+		if err != nil {
+			walkFailures++
+			slog.Warn("post-receive: log iter failed",
+				"repo_id", repo.ID, "ref", cmd.Name.String(), "new", cmd.New.String(), "error", err)
+			continue
+		}
+		walkErr := iter.ForEach(func(c *object.Commit) error {
+			if c.Hash == cmd.Old {
+				return storer.ErrStop
+			}
+			if _, dup := seen[c.Hash]; dup {
+				return nil
+			}
+			seen[c.Hash] = struct{}{}
+			samples = append(samples, CommitSample{
+				AuthorEmail: c.Author.Email,
+				Time:        c.Author.When,
+			})
+			return nil
+		})
+		iter.Close()
+		if walkErr != nil {
+			walkFailures++
+			slog.Warn("post-receive: commit walk failed",
+				"repo_id", repo.ID, "ref", cmd.Name.String(), "new", cmd.New.String(), "error", walkErr)
+		}
+	}
+	if walkAttempts > 0 && walkFailures == walkAttempts {
+		return fmt.Errorf("commit stats: all %d branch walks failed (repo_id=%d)", walkAttempts, repo.ID)
+	}
+	if len(samples) == 0 {
+		return nil
+	}
+	if err := s.commitStats.Ingest(ctx, repo.ID, samples); err != nil {
+		return fmt.Errorf("commit stats ingest (repo_id=%d, samples=%d): %w", repo.ID, len(samples), err)
+	}
+	return nil
 }
 
 func (s *RepoService) Create(ctx context.Context, ownerUsername, name, description string, private bool) (*model.Repository, error) {
@@ -80,6 +160,10 @@ func (s *RepoService) Create(ctx context.Context, ownerUsername, name, descripti
 
 func (s *RepoService) List(ctx context.Context) ([]model.Repository, error) {
 	return s.repos.List(ctx)
+}
+
+func (s *RepoService) CountForUser(ctx context.Context, userID int64) (int, error) {
+	return s.repos.CountForUser(ctx, userID)
 }
 
 func (s *RepoService) GetByID(ctx context.Context, id int64) (*model.Repository, error) {

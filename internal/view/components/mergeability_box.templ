@@ -1,0 +1,119 @@
+package components
+
+import (
+	"fmt"
+	"strconv"
+)
+
+type MergeabilityBoxData struct {
+	// PatchURL is the hx-patch target for the merge buttons.
+	PatchURL string
+	// Unavailable renders an explicit message instead of zero values when mergeability couldn't be computed.
+	Unavailable bool
+	// UpToDate distinguishes head == base from "conflict-free with a non-empty diff" (Mergeable).
+	UpToDate         bool
+	Mergeable        bool
+	Ahead            int
+	Behind           int
+	HasConflicts     bool
+	RequiredChecks   int
+	PassingChecks    int
+	RequiredReviews  int
+	ApprovedReviews  int
+	CanFastForward   bool
+	CanThreeWayMerge bool
+	CanSquash        bool
+}
+
+templ MergeabilityBox(d MergeabilityBoxData) {
+	<section aria-label="Mergeability" class="rounded-md border border-border bg-card p-4 space-y-3">
+		if d.Unavailable {
+			<p class="text-sm font-medium text-muted-foreground">Merge status unavailable. Refresh to try again.</p>
+		} else if d.HasConflicts {
+			<p class="text-sm font-medium text-destructive">This branch has conflicts that must be resolved.</p>
+		} else if d.UpToDate {
+			<p class="text-sm font-medium text-muted-foreground">This branch is up to date with the base — nothing to merge.</p>
+		} else if d.Mergeable {
+			<p class="text-sm font-medium text-success">This branch has no conflicts with the base branch.</p>
+		} else {
+			<p class="text-sm font-medium text-warning">Checking mergeability…</p>
+		}
+		if !d.Unavailable {
+			<ul class="text-xs text-muted-foreground space-y-1">
+				<li>{ aheadBehindDescription(d.Ahead, d.Behind) }</li>
+				if d.RequiredChecks > 0 {
+					<li>{ checksDescription(d.PassingChecks, d.RequiredChecks) }</li>
+				}
+				if d.RequiredReviews > 0 {
+					<li>{ reviewsDescription(d.ApprovedReviews, d.RequiredReviews) }</li>
+				}
+			</ul>
+		}
+		if !d.Unavailable && !d.HasConflicts && d.Mergeable {
+			<div class="flex flex-wrap gap-2 pt-2">
+				if d.CanFastForward {
+					<button type="button"
+						hx-patch={ d.PatchURL }
+						hx-vals={ `{"state":"merged","merge_strategy":"ff"}` }
+						hx-swap="outerHTML"
+						hx-target="closest section"
+						class="h-8 px-3 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
+						Fast-forward
+					</button>
+				}
+				if d.CanThreeWayMerge {
+					<button type="button"
+						hx-patch={ d.PatchURL }
+						hx-vals={ `{"state":"merged","merge_strategy":"merge"}` }
+						hx-swap="outerHTML"
+						hx-target="closest section"
+						class="h-8 px-3 text-sm font-medium bg-secondary text-secondary-foreground rounded-md hover:bg-accent">
+						Merge
+					</button>
+				}
+				if d.CanSquash {
+					<button type="button"
+						hx-patch={ d.PatchURL }
+						hx-vals={ `{"state":"merged","merge_strategy":"squash"}` }
+						hx-swap="outerHTML"
+						hx-target="closest section"
+						class="h-8 px-3 text-sm font-medium bg-secondary text-secondary-foreground rounded-md hover:bg-accent">
+						Squash &amp; merge
+					</button>
+				}
+			</div>
+		}
+	</section>
+}
+
+func aheadBehindDescription(ahead, behind int) string {
+	return fmt.Sprintf("%s ahead, %s behind", pluralCommits(ahead), strconv.Itoa(behind))
+}
+
+func pluralCommits(n int) string {
+	if n == 1 {
+		return "1 commit"
+	}
+	return strconv.Itoa(n) + " commits"
+}
+
+func checksDescription(passing, required int) string {
+	if passing >= required {
+		return fmt.Sprintf("All %s passing", pluralChecks(required, "required check"))
+	}
+	return fmt.Sprintf("%d of %s passing", passing, pluralChecks(required, "required check"))
+}
+
+func reviewsDescription(approved, required int) string {
+	if approved >= required {
+		return fmt.Sprintf("All %s approved", pluralChecks(required, "required review"))
+	}
+	return fmt.Sprintf("%d of %s approved", approved, pluralChecks(required, "required review"))
+}
+
+func pluralChecks(n int, noun string) string {
+	if n == 1 {
+		return "1 " + noun
+	}
+	return strconv.Itoa(n) + " " + noun + "s"
+}

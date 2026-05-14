@@ -1,16 +1,28 @@
 package pages
 
 import (
+	"net/url"
 	"strconv"
+	"strings"
+	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ Repo(data view.RepoData) {
 	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName) {
-		<div class="space-y-6">
+		@fragments.RepoSubnav(fragments.RepoSubnavData{
+			OwnerName: data.Owner,
+			RepoName:  data.RepoName,
+			Active:    "code",
+			CanManage: data.CanManage,
+		})
+		<div class="space-y-6 pt-6">
 
 			if data.IsArchived {
 				<div role="status" class="flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
@@ -45,30 +57,12 @@ templ Repo(data view.RepoData) {
 						}
 					</h1>
 
-					if data.Repo.Description != "" {
-						<p class="text-[13px] text-muted-foreground max-w-2xl">{ data.Repo.Description }</p>
-					}
-
 					if data.IsFork {
 						<p class="text-xs text-muted-foreground mt-2">
 							Forked from
 							<a href={ templ.SafeURL("/" + data.ForkOfPath) } class="hover:underline text-foreground font-mono">{ data.ForkOfPath }</a>
 						</p>
 					}
-
-					<!-- Topics: SSR initial render, HTMX swaps in fresh list -->
-					<div
-						id="repo-topics"
-						hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/topics" }
-						hx-trigger="load"
-						hx-swap="outerHTML"
-						class="mt-2 flex flex-wrap gap-1.5"
-						aria-label="Topics"
-					>
-						for _, t := range data.Topics {
-							<a href={ templ.SafeURL("/topic/" + t.Name) } class="text-[11px] px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground">{ t.Name }</a>
-						}
-					</div>
 				</div>
 
 				<!-- Action group: Watch / Star / Fork (each: button + count) -->
@@ -129,87 +123,188 @@ templ Repo(data view.RepoData) {
 				</div>
 			</section>
 
-			<!-- Default branch info + clone URLs side-by-side -->
-			<div class="grid lg:grid-cols-[1fr_2fr] gap-6">
-				<section aria-labelledby="branch-heading" class="space-y-2">
-					<h2 id="branch-heading" class="text-xs font-medium text-muted-foreground">Default branch</h2>
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Repo.DefaultBranch) } class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border hover:bg-accent text-sm font-mono">
-						<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="3" r="3"></circle><circle cx="12" cy="21" r="3"></circle><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path></svg>
-						{ data.Repo.DefaultBranch }
-					</a>
-				</section>
+			<!-- Two-column layout: code/README on left, About sidebar on right -->
+			<div class="grid lg:grid-cols-[1fr_320px] gap-8">
 
-				<section aria-labelledby="clone-heading" class="space-y-2">
-					<h2 id="clone-heading" class="text-xs font-medium text-muted-foreground">Clone this repository</h2>
-					<div class="grid sm:grid-cols-2 gap-3">
-						<div>
-							<label for="clone-https" class="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1">HTTPS</label>
-							<code id="clone-https" class="block bg-muted border border-border rounded-md px-3 py-2 text-xs font-mono truncate" title={ data.CloneHTTP }>{ data.CloneHTTP }</code>
-						</div>
-						<div>
-							<label for="clone-ssh" class="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1">SSH</label>
-							<code id="clone-ssh" class="block bg-muted border border-border rounded-md px-3 py-2 text-xs font-mono truncate" title={ data.CloneSSH }>{ data.CloneSSH }</code>
-						</div>
+				<!-- LEFT — Code / README / Explore -->
+				<div class="space-y-6 min-w-0">
+					<!-- Default branch + clone URLs -->
+					<div class="grid sm:grid-cols-[auto_1fr] gap-4 items-start">
+						<section aria-labelledby="branch-heading" class="space-y-2">
+							<h2 id="branch-heading" class="text-xs font-medium text-muted-foreground">Default branch</h2>
+							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Repo.DefaultBranch) } class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border hover:bg-accent text-sm font-mono">
+								<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="3" r="3"></circle><circle cx="12" cy="21" r="3"></circle><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path></svg>
+								{ data.Repo.DefaultBranch }
+							</a>
+						</section>
+
+						<section aria-labelledby="clone-heading" class="space-y-2">
+							<h2 id="clone-heading" class="text-xs font-medium text-muted-foreground">Clone this repository</h2>
+							<div class="grid sm:grid-cols-2 gap-3">
+								<div>
+									<label for="clone-https" class="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1">HTTPS</label>
+									<code id="clone-https" class="block bg-muted border border-border rounded-md px-3 py-2 text-xs font-mono truncate" title={ data.CloneHTTP }>{ data.CloneHTTP }</code>
+								</div>
+								<div>
+									<label for="clone-ssh" class="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-1">SSH</label>
+									<code id="clone-ssh" class="block bg-muted border border-border rounded-md px-3 py-2 text-xs font-mono truncate" title={ data.CloneSSH }>{ data.CloneSSH }</code>
+								</div>
+							</div>
+						</section>
 					</div>
-				</section>
-			</div>
 
-			<!-- README -->
-			if data.ReadmeHTML != "" {
-				<article class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="readme-heading">
-					<header class="px-5 py-3 border-b border-border bg-muted flex items-center gap-2">
-						<svg class="text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-						<h2 id="readme-heading" class="text-[13px] font-medium">README</h2>
-					</header>
-					<div class="prose prose-sm max-w-none dark:prose-invert px-7 py-6">
-						@templ.Raw(data.ReadmeHTML)
-					</div>
-				</article>
-			}
+					<!-- README -->
+					if data.ReadmeHTML != "" {
+						<article class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="readme-heading">
+							<header class="px-5 py-3 border-b border-border bg-muted flex items-center gap-2">
+								<svg class="text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+								<h2 id="readme-heading" class="text-[13px] font-medium">README</h2>
+							</header>
+							<div class="prose prose-sm max-w-none dark:prose-invert px-7 py-6">
+								@templ.Raw(data.ReadmeHTML)
+							</div>
+						</article>
+					}
 
-			<!-- Navigation grid -->
-			<section aria-labelledby="explore-heading">
-				<h2 id="explore-heading" class="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider font-mono">Explore</h2>
-				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-					@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/issues", "Issues", "Track and discuss problems") {
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
-					}
-					@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/pulls", "Pull Requests", "Review and merge changes") {
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6v-2"></path></svg>
-					}
-					@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/tree/"+data.Repo.DefaultBranch, "Browse Code", "Explore files and history") {
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-					}
-					@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/commits/"+data.Repo.DefaultBranch, "Commits", "Browse commit history") {
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="6" r="3"></circle><circle cx="12" cy="18" r="3"></circle><path d="M12 9v6"></path></svg>
-					}
-					@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/milestones", "Milestones", "Track progress with sprints") {
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"></path></svg>
-					}
-					if data.LatestRelease != nil {
-						@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/releases", "Releases", "Latest: "+data.LatestRelease.TagName) {
-							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-						}
-					} else {
-						@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/releases", "Releases", "No releases yet") {
-							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-						}
-					}
-					@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/refs", "Branches & Tags", "Manage refs and create branches") {
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="6" cy="21" r="3"></circle><line x1="6" y1="6" x2="6" y2="18"></line><path d="M18 21V9a6 6 0 00-6-6"></path></svg>
-					}
-					if data.CanWrite {
-						@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/settings", "Settings", "Manage webhooks and repo settings") {
-							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
-						}
-					}
+					<!-- Navigation grid -->
+					<section aria-labelledby="explore-heading">
+						<h2 id="explore-heading" class="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider font-mono">Explore</h2>
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+							@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/tree/"+data.Repo.DefaultBranch, "Browse Code", "Explore files and history") {
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+							}
+							@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/commits/"+data.Repo.DefaultBranch, "Commits", "Browse commit history") {
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="6" r="3"></circle><circle cx="12" cy="18" r="3"></circle><path d="M12 9v6"></path></svg>
+							}
+							@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/milestones", "Milestones", "Track progress with sprints") {
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"></path></svg>
+							}
+							@repoNavCard("/"+data.Owner+"/"+data.RepoName+"/refs", "Branches & Tags", "Manage refs and create branches") {
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="6" cy="21" r="3"></circle><line x1="6" y1="6" x2="6" y2="18"></line><path d="M18 21V9a6 6 0 00-6-6"></path></svg>
+							}
+						</div>
+					</section>
 				</div>
-			</section>
+
+				<!-- RIGHT — About sidebar -->
+				<aside class="space-y-8 min-w-0" aria-label="About this repository">
+					<!-- About / description / topics -->
+					<section aria-labelledby="about-heading">
+						<h2 id="about-heading" class="text-[13px] font-medium mb-3">About</h2>
+						if data.Repo.Description != "" {
+							<p class="text-[13px] text-muted-foreground mb-4 leading-relaxed">{ data.Repo.Description }</p>
+						} else {
+							<p class="text-[13px] text-muted-foreground/70 italic mb-4">No description provided.</p>
+						}
+
+						<!-- Topics: SSR initial render, HTMX swaps in fresh list -->
+						<div
+							id="repo-topics"
+							hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/topics" }
+							hx-trigger="load"
+							hx-swap="outerHTML"
+							class="flex flex-wrap gap-1.5"
+							aria-label="Topics"
+						>
+							for _, t := range data.Topics {
+								<a href={ templ.SafeURL("/topic/" + t.Name) } class="text-[11px] px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground">{ t.Name }</a>
+							}
+						</div>
+					</section>
+
+					<!-- Languages -->
+					if len(data.Languages) > 0 {
+						<section aria-labelledby="lang-heading">
+							<h2 id="lang-heading" class="text-[13px] font-medium mb-3">Languages</h2>
+							@components.LanguagesBar(data.Languages)
+						</section>
+					}
+
+					<!-- Releases -->
+					if len(data.Releases) > 0 {
+						<section aria-labelledby="releases-heading">
+							<h2 id="releases-heading" class="text-[13px] font-medium mb-3 flex items-center justify-between">
+								<span>
+									Releases
+									<span class="font-mono text-muted-foreground/70 ml-0.5 text-[11px]" aria-label={ strconv.Itoa(len(data.Releases)) + " releases" }>{ strconv.Itoa(len(data.Releases)) }</span>
+								</span>
+								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases") } class="text-[12px] text-muted-foreground hover:text-foreground">All</a>
+							</h2>
+							<ul class="space-y-3">
+								for i, rel := range data.Releases {
+									<li>
+										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases/tag/" + rel.TagName) } class="block group">
+											<p class="text-[13px] font-medium flex items-center gap-2">
+												<span class="truncate">
+													if rel.Name != "" {
+														{ rel.Name }
+													} else {
+														{ rel.TagName }
+													}
+												</span>
+												if i == 0 && !rel.IsDraft && !rel.IsPrerelease {
+													<span class="text-[10px] px-1.5 py-0.5 rounded border border-success/30 bg-success/10 text-success font-mono">Latest</span>
+												}
+												if rel.IsPrerelease {
+													<span class="text-[10px] px-1.5 py-0.5 rounded border border-warning/30 bg-warning/10 text-warning font-mono">Pre-release</span>
+												}
+												if rel.IsDraft {
+													<span class="text-[10px] px-1.5 py-0.5 rounded border border-border bg-muted text-muted-foreground font-mono">Draft</span>
+												}
+											</p>
+											<p class="text-[12px] text-muted-foreground mt-0.5 font-mono">{ rel.TagName }</p>
+											<p class="text-[11px] text-muted-foreground/80 mt-0.5">
+												Released
+												<time datetime={ releaseDisplayTime(rel).UTC().Format(time.RFC3339) }>{ formatRelative(releaseDisplayTime(rel)) }</time>
+											</p>
+										</a>
+									</li>
+								}
+							</ul>
+						</section>
+					}
+
+					<!-- Contributors -->
+					if len(data.TopContribs) > 0 {
+						<section aria-labelledby="contrib-heading">
+							<h2 id="contrib-heading" class="text-[13px] font-medium mb-3 flex items-center justify-between">
+								<span>
+									Contributors
+									<span class="font-mono text-muted-foreground/70 ml-0.5 text-[11px]" aria-label={ strconv.Itoa(len(data.TopContribs)) + " contributors" }>{ strconv.Itoa(len(data.TopContribs)) }</span>
+								</span>
+								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/contributors") } class="text-[12px] text-muted-foreground hover:text-foreground">All</a>
+							</h2>
+							<ul class="flex flex-wrap gap-1.5">
+								for _, c := range data.TopContribs {
+									<li>
+										<a
+											href={ templ.SafeURL("/" + contributorSlug(c)) }
+											class="bg-muted border border-border h-8 w-8 rounded-full grid place-items-center text-[11px] font-medium hover:border-border-strong"
+											aria-label={ contributorAriaLabel(c) }
+											title={ contributorTooltip(c) }
+										>{ contributorInitial(c) }</a>
+									</li>
+								}
+							</ul>
+						</section>
+					}
+
+					<!-- Mini heatmap (90 days = 13 weeks) -->
+					if len(data.Heatmap) > 0 {
+						<section aria-labelledby="activity-heading">
+							<h2 id="activity-heading" class="text-[13px] font-medium mb-3">Activity</h2>
+							<div class="overflow-x-auto">
+								@components.Heatmap(data.Heatmap, time.Now(), 13)
+							</div>
+							<p class="text-[11px] text-muted-foreground/80 mt-2">Past 90 days of commit activity</p>
+						</section>
+					}
+				</aside>
+			</div>
 		</div>
 	}
 }
 
-// repoNavCard renders a single card link in the explore grid: icon + title + caption.
 templ repoNavCard(href, title, caption string) {
 	<a href={ templ.SafeURL(href) } class="block rounded-md border border-border bg-card p-4 hover:border-foreground/30 transition-colors group">
 		<div class="flex items-center gap-2 text-muted-foreground group-hover:text-foreground mb-1">
@@ -218,4 +313,46 @@ templ repoNavCard(href, title, caption string) {
 		</div>
 		<p class="text-xs text-muted-foreground">{ caption }</p>
 	</a>
+}
+
+func releaseDisplayTime(r model.Release) time.Time {
+	if r.PublishedAt != nil {
+		return *r.PublishedAt
+	}
+	return r.CreatedAt
+}
+
+// Falls back to email local-part, then "anonymous".
+func contributorDisplayName(c service.ContributorStat) string {
+	if name := strings.TrimSpace(c.Name); name != "" {
+		return name
+	}
+	if email := strings.TrimSpace(c.Email); email != "" {
+		if i := strings.IndexByte(email, '@'); i > 0 {
+			return email[:i]
+		}
+		return email
+	}
+	return "anonymous"
+}
+
+func contributorInitial(c service.ContributorStat) string {
+	name := contributorDisplayName(c)
+	for _, r := range name {
+		return strings.ToUpper(string(r))
+	}
+	return "?"
+}
+
+// URL-escaped so names containing spaces or "/" (from commit trailers) don't produce broken links.
+func contributorSlug(c service.ContributorStat) string {
+	return url.PathEscape(contributorDisplayName(c))
+}
+
+func contributorAriaLabel(c service.ContributorStat) string {
+	return contributorDisplayName(c) + ", " + strconv.Itoa(c.Commits) + " commits"
+}
+
+func contributorTooltip(c service.ContributorStat) string {
+	return contributorDisplayName(c) + " — " + strconv.Itoa(c.Commits) + " commits"
 }

@@ -8,18 +8,11 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// basePage assembles the shared chrome data for every authenticated page.
-// It is best-effort: each optional field (UnreadNotifCount, UserOrgs) degrades
-// to its zero value on backend failure so a single sub-service outage cannot
-// take the whole layout down. Failures are logged at Error level for observability.
-//
-// TODO(tech-debt, phase-1+): callers cannot distinguish "true zero" from
-// "degraded due to error". If a third optional field is added, change the
-// signature to (BasePage, error) — or add BasePage.DegradedReasons []string
-// surfaced via the layout — before that field lands.
+// Best-effort: each optional field degrades to zero value on failure rather than 500ing the whole layout.
 func basePage(r *http.Request, services *service.Services) BasePage {
 	allowLogin := services.SiteSetting.AllowLogin(r.Context())
 	allowRegistration := services.SiteSetting.AllowRegistration(r.Context())
@@ -44,13 +37,9 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 	return page
 }
 
-// PageHome renders the home feed page.
 func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
-	if _, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		http.Redirect(w, r, "/feed", http.StatusSeeOther)
-		return
-	}
-	repos, err := h.Services.Repo.List(r.Context())
+	ctx := r.Context()
+	repos, err := h.Services.Repo.List(ctx)
 	if err != nil {
 		http.Error(w, "failed to list repos", http.StatusInternalServerError)
 		return
@@ -58,9 +47,57 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 	if repos == nil {
 		repos = []model.Repository{}
 	}
-	templates, _ := h.Services.Repo.ListTemplates(r.Context())
+	templates, _ := h.Services.Repo.ListTemplates(ctx)
 	if templates == nil {
 		templates = []model.Repository{}
 	}
-	h.render(w, r, pages.Home(view.HomeData{BasePage: basePage(r, h.Services), Repos: repos, Templates: templates}))
+
+	data := view.HomeData{
+		BasePage:  basePage(r, h.Services),
+		Repos:     repos,
+		Templates: templates,
+	}
+
+	if claims, ok := middleware.ClaimsFromContext(ctx); ok {
+		userID := claims.UserID
+		commitsLast7, err := h.Services.CommitStats.CommitsForUserSince(ctx, userID, 7)
+		if err != nil {
+			slog.Warn("home: commits-last-7 stat failed", "user_id", userID, "error", err)
+		}
+		countRepos, err := h.Services.Repo.CountForUser(ctx, userID)
+		if err != nil {
+			slog.Warn("home: repo count stat failed", "user_id", userID, "error", err)
+		}
+		countOpenPulls, err := h.Services.Pull.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+		if err != nil {
+			slog.Warn("home: open-pulls count stat failed", "user_id", userID, "error", err)
+		}
+		countOpenIssues, err := h.Services.Issue.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+		if err != nil {
+			slog.Warn("home: open-issues count stat failed", "user_id", userID, "error", err)
+		}
+		data.Stats = []components.StatItem{
+			{Label: "Repositories", Value: countRepos},
+			{Label: "Pull requests", Value: countOpenPulls, Subtitle: "open"},
+			{Label: "Issues", Value: countOpenIssues, Subtitle: "open"},
+			{Label: "Commits", Value: commitsLast7, Subtitle: "last 7 days"},
+		}
+		if heat, err := h.Services.CommitStats.LookbackForUser(ctx, userID, 365); err != nil {
+			slog.Warn("home: heatmap lookback failed", "user_id", userID, "error", err)
+		} else {
+			data.Heatmap = heat
+		}
+		if att, err := h.Services.Attention.ForUser(ctx, userID); err != nil {
+			slog.Warn("home: attention list failed", "user_id", userID, "error", err)
+		} else {
+			data.Attention = att
+		}
+		if feed, err := h.Services.Event.Feed(ctx, int(userID), 1, 10); err != nil {
+			slog.Warn("home: activity feed failed", "user_id", userID, "error", err)
+		} else {
+			data.Activity = feed
+		}
+	}
+
+	h.render(w, r, pages.Home(data))
 }

@@ -1,8 +1,12 @@
 package view
 
 import (
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 // RenderedComment wraps a model.Comment with its body pre-rendered as HTML.
@@ -31,12 +35,16 @@ type BasePage struct {
 	UserOrgs []model.Organization
 }
 
-// Page data structs
-// HomeData holds template data for the home feed page.
+// HomeData holds template data for the home dashboard page.
+// Stats/Heatmap/Attention/Activity are only populated for authenticated viewers.
 type HomeData struct {
 	BasePage
 	Repos     []model.Repository
 	Templates []model.Repository
+	Stats     []components.StatItem
+	Heatmap   map[time.Time]int
+	Attention []service.AttentionItem
+	Activity  []model.Event
 }
 
 // Feed page

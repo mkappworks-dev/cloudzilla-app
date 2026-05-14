@@ -240,6 +240,8 @@ func newPermSvc(_ interface{}) *service.RepoService {
 		store.NewRepoStore(db),
 		store.NewUserStore(db),
 		store.NewOrgStore(db),
+		nil,
+		nil,
 		config.GitConfig{},
 	)
 }
@@ -250,6 +252,8 @@ func newPermSvcDB(db *sql.DB) *service.RepoService {
 		store.NewRepoStore(db),
 		store.NewUserStore(db),
 		store.NewOrgStore(db),
+		nil,
+		nil,
 		config.GitConfig{},
 	)
 }

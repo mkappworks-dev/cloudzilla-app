@@ -14,7 +14,9 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
-// PRDiffResult holds the diff between two branches and merge capability flags.
+// Exported so callers can use errors.Is rather than message comparison.
+var ErrNoCommonAncestor = errors.New("no common ancestor")
+
 type PRDiffResult struct {
 	Files            []FileDiff
 	TotalAdded       int
@@ -192,7 +194,7 @@ func findMergeBase(repo *gogit.Repository, a, b *object.Commit) (*object.Commit,
 		return nil
 	})
 	if base == nil {
-		return nil, errors.New("no common ancestor")
+		return nil, ErrNoCommonAncestor
 	}
 	return base, nil
 }

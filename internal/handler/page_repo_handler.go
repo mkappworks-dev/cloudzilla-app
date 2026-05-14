@@ -1,16 +1,21 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -60,12 +65,24 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 			readmeHTML = markdown.Render(string(raw))
 			break
 		}
+		if errors.Is(err, object.ErrFileNotFound) || errors.Is(err, service.ErrEmptyRepo) {
+			continue
+		}
+		slog.Warn("repo: README lookup failed",
+			"owner", owner, "repo", repoName, "candidate", name, "error", err)
 	}
 
-	starCount, _ := h.Services.Star.GetStarCount(r.Context(), repo.ID)
+	starCount, starErr := h.Services.Star.GetStarCount(r.Context(), repo.ID)
+	if starErr != nil {
+		slog.Warn("repo: star count failed", "owner", owner, "repo", repoName, "error", starErr)
+	}
 	isStarred := false
 	if currentUserID != 0 {
-		isStarred, _ = h.Services.Star.IsStarred(r.Context(), repo.ID, currentUserID)
+		var isStarredErr error
+		isStarred, isStarredErr = h.Services.Star.IsStarred(r.Context(), repo.ID, currentUserID)
+		if isStarredErr != nil {
+			slog.Warn("repo: is-starred lookup failed", "owner", owner, "repo", repoName, "user_id", currentUserID, "error", isStarredErr)
+		}
 	}
 
 	forkOfPath := ""
@@ -73,16 +90,53 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		forkOfPath = repo.ForkOfOwner + "/" + repo.ForkOfName
 	}
 
-	latestRelease, _ := h.Services.Release.GetLatest(r.Context(), owner, repoName)
+	latestRelease, releaseErr := h.Services.Release.GetLatest(r.Context(), owner, repoName)
+	if releaseErr != nil {
+		slog.Warn("repo: latest release lookup failed", "owner", owner, "repo", repoName, "error", releaseErr)
+	}
 
 	watchLevel := ""
 	if currentUserID != 0 {
 		watchLevel = h.Services.Watch.GetLevel(r.Context(), currentUserID, repo.ID)
 	}
 
-	topics, _ := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
+	topics, topicsErr := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
+	if topicsErr != nil {
+		slog.Warn("repo: topics list failed", "owner", owner, "repo", repoName, "error", topicsErr)
+	}
 	if topics == nil {
 		topics = []model.Topic{}
+	}
+
+	canManage := false
+	if currentUserID != 0 {
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, currentUserID)
+	}
+
+	var languages []components.LangBarItem
+	if percents, langErr := h.Services.Language.Percentages(r.Context(), owner, repoName, repo.DefaultBranch); langErr != nil {
+		slog.Warn("repo: language percentages failed", "owner", owner, "repo", repoName, "error", langErr)
+	} else {
+		languages = make([]components.LangBarItem, 0, len(percents))
+		for _, p := range percents {
+			languages = append(languages, components.LangBarItem{
+				Name:    p.Name,
+				Percent: p.Percent,
+				Color:   components.LangColor(p.Name),
+			})
+		}
+	}
+	topContribs, contribErr := h.Services.Repo.TopContributors(r.Context(), owner, repoName, 10)
+	if contribErr != nil {
+		slog.Warn("repo: top contributors failed", "owner", owner, "repo", repoName, "error", contribErr)
+	}
+	releases, recentReleasesErr := h.Services.Release.RecentForRepo(r.Context(), owner, repoName, 5)
+	if recentReleasesErr != nil {
+		slog.Warn("repo: recent releases failed", "owner", owner, "repo", repoName, "error", recentReleasesErr)
+	}
+	heatmap, heatmapErr := h.Services.CommitStats.LookbackForRepo(r.Context(), repo.ID, 90)
+	if heatmapErr != nil {
+		slog.Warn("repo: heatmap lookback failed", "owner", owner, "repo", repoName, "error", heatmapErr)
 	}
 
 	h.render(w, r, pages.Repo(view.RepoData{
@@ -93,6 +147,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		CloneHTTP:     cloneHTTP,
 		CloneSSH:      cloneSSH,
 		CanWrite:      canWrite,
+		CanManage:     canManage,
 		ReadmeHTML:    readmeHTML,
 		StarCount:     starCount,
 		IsStarred:     isStarred,
@@ -103,6 +158,10 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		LatestRelease: latestRelease,
 		Topics:        topics,
 		IsArchived:    repo.IsArchived,
+		Languages:     languages,
+		TopContribs:   topContribs,
+		Releases:      releases,
+		Heatmap:       heatmap,
 	}))
 }
 

@@ -47,13 +47,19 @@ type Services struct {
 	Index            *IndexService
 	Explore          *ExploreService
 	Dependency       *DependencyService
+	CommitStats      *CommitStatsService
+	Attention        *AttentionService
+	Language         *LanguageService
 }
 
 // New constructs and wires all services from the given stores and configuration.
 func New(stores *store.Stores, cfg *config.Config) *Services {
 	code := NewCodeService(cfg.Git)
+	languageSvc := NewLanguageService(code)
 	index := NewIndexService(stores.CodeSearch, code)
-	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, cfg.Git)
+	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
+	attentionSvc := NewAttentionService(stores.Issue)
+	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, commitStatsSvc, code, cfg.Git)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
 	userSvc := NewUserService(stores.User, cfg.Auth)
 	emailSvc := NewEmailService(cfg.SMTP)
@@ -75,9 +81,9 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Assignee:         NewAssigneeService(stores.Assignee, stores.Repo, stores.Issue, stores.Pull, stores.User),
 		Star:             NewStarService(stores.Star, stores.Repo, stores.User),
 		Release:          NewReleaseService(stores.Release, stores.Repo, code),
-		CommitStatus:     NewCommitStatusService(stores.CommitStatus, stores.Repo),
+		CommitStatus:     NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code),
 		Milestone:        NewMilestoneService(stores.Milestone, stores.Repo),
-		PullReview:       NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo),
+		PullReview:       NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo, stores.BranchProtection),
 		PullLineComment:  NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
 		Search:           NewSearchService(stores.Search),
 		AccessToken:      NewAccessTokenService(stores.AccessToken, stores.User),
@@ -99,5 +105,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Index:            index,
 		Explore:          NewExploreService(stores.Explore),
 		Dependency:       NewDependencyService(stores.Dependency, code),
+		CommitStats:      commitStatsSvc,
+		Attention:        attentionSvc,
+		Language:         languageSvc,
 	}
 }

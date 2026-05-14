@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	gogit "github.com/go-git/go-git/v5"
@@ -17,6 +18,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
@@ -41,7 +43,14 @@ func (h *Handler) resolveGitUser(r *http.Request) *gitUser {
 	if ok && strings.HasPrefix(password, "czp_") {
 		token, user, err := h.Services.AccessToken.Validate(r.Context(), password)
 		if err == nil {
-			go h.Services.AccessToken.UpdateLastUsed(context.Background(), token.ID)
+			tokenID := token.ID
+			concurrency.Go("access_token.update_last_used", func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				if err := h.Services.AccessToken.UpdateLastUsed(ctx, tokenID); err != nil {
+					slog.Warn("access token last_used update failed", "token_id", tokenID, "error", err)
+				}
+			})
 			return &gitUser{ID: user.ID, Username: user.Username}
 		}
 	}
@@ -349,18 +358,36 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
-		go h.Services.Webhook.Dispatch(repo.ID, "push",
-			h.Services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String()))
+		payload := h.Services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String())
+		repoID := repo.ID
+		concurrency.Go("webhook.dispatch.push", func() {
+			h.Services.Webhook.Dispatch(repoID, "push", payload)
+		})
 	}
 
-	// Re-index the repository for code search after each push.
-	go func() {
-		_ = h.Services.Index.IndexRepo(context.Background(), repo)
-	}()
+	commands := req.Commands
+	concurrency.Go("repo.on_post_receive", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+		if err := h.Services.Repo.OnPostReceive(ctx, repo, gitRepo, commands); err != nil {
+			slog.Error("post-receive: commit stats ingest failed",
+				"repo_id", repo.ID, "owner", repo.OwnerName, "repo", repo.Name, "error", err)
+		}
+	})
 
-	// Re-parse dependency manifests for code graph after each push.
-	go func() {
-		if err := h.Services.Dependency.ParseAndStore(context.Background(), repo); err != nil {
+	concurrency.Go("index.index_repo", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+		if err := h.Services.Index.IndexRepo(ctx, repo); err != nil {
+			slog.Error("index: failed to re-index repo",
+				"repo_id", repo.ID, "owner", repo.OwnerName, "repo", repo.Name, "error", err)
+		}
+	})
+
+	concurrency.Go("dependency.parse_and_store", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+		if err := h.Services.Dependency.ParseAndStore(ctx, repo); err != nil {
 			slog.Error("dependency: failed to parse and store manifests",
 				"repo_id", repo.ID,
 				"owner", repo.OwnerName,
@@ -368,7 +395,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 				"error", err,
 			)
 		}
-	}()
+	})
 }
 
 // isForcePushHTTP returns true when the push is non-fast-forward (old commit is not an ancestor of new).

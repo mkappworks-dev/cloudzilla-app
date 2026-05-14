@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -248,6 +250,39 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	mergeabilityBox := components.MergeabilityBoxData{
+		PatchURL: fmt.Sprintf("/api/repos/%s/%s/pulls/%d", owner, repoName, pull.Number),
+	}
+	mg, mgErr := h.Services.Code.Mergeability(r.Context(), owner, repoName, pull.BaseBranch, pull.HeadBranch)
+	if mgErr != nil {
+		slog.Warn("pull detail: mergeability failed; rendering as unavailable",
+			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", mgErr)
+		mergeabilityBox.Unavailable = true
+	} else {
+		mergeabilityBox.Ahead = mg.Ahead
+		mergeabilityBox.Behind = mg.Behind
+		mergeabilityBox.HasConflicts = mg.HasConflicts
+		mergeabilityBox.UpToDate = !mg.HasConflicts && mg.Ahead == 0
+		mergeabilityBox.Mergeable = !mg.HasConflicts && mg.Ahead > 0
+		mergeabilityBox.CanFastForward = !mg.HasConflicts && mg.Ahead > 0 && mg.Behind == 0
+		mergeabilityBox.CanThreeWayMerge = !mg.HasConflicts && mg.Ahead > 0
+		mergeabilityBox.CanSquash = !mg.HasConflicts && mg.Ahead > 0
+	}
+	if requiredChecks, passingChecks, err := h.Services.CommitStatus.Counts(r.Context(), pull.ID); err != nil {
+		slog.Warn("pull detail: commit status counts failed; hiding checks signal",
+			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)
+	} else {
+		mergeabilityBox.RequiredChecks = requiredChecks
+		mergeabilityBox.PassingChecks = passingChecks
+	}
+	if requiredReviews, approvedReviews, err := h.Services.PullReview.Counts(r.Context(), pull.ID); err != nil {
+		slog.Warn("pull detail: review counts failed; hiding reviews signal",
+			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)
+	} else {
+		mergeabilityBox.RequiredReviews = requiredReviews
+		mergeabilityBox.ApprovedReviews = approvedReviews
+	}
+
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
 		BasePage:          basePage(r, h.Services),
 		Repo:              *repo,
@@ -269,5 +304,6 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		AutoMergeEnabled:  pull.AutoMergeEnabled,
 		AutoMergeStrategy: pull.AutoMergeStrategy,
 		LineComments:      lineComments,
+		Mergeability:      mergeabilityBox,
 	}))
 }

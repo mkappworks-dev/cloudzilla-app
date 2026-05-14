@@ -7,9 +7,11 @@ import (
 	"crypto/rand"
 	"encoding/pem"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gliderlabs/ssh"
 	gogit "github.com/go-git/go-git/v5"
@@ -18,6 +20,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	gossh "golang.org/x/crypto/ssh"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -111,7 +114,14 @@ func (s *Server) publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	// 2. Try deploy key
 	dk, err := s.services.DeployKey.AuthenticatePublicKey(ctx, gosshKey)
 	if err == nil {
-		go s.services.DeployKey.UpdateLastUsed(context.Background(), dk.ID)
+		keyID := dk.ID
+		concurrency.Go("deploy_key.update_last_used", func() {
+			bg, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := s.services.DeployKey.UpdateLastUsed(bg, keyID); err != nil {
+				slog.Warn("deploy key last_used update failed", "key_id", keyID, "error", err)
+			}
+		})
 		ctx.SetValue("cloudzilla_deploy_key", dk)
 		return true
 	}
@@ -264,8 +274,20 @@ func (s *Server) sessionHandler(session ssh.Session) {
 			}
 			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
 			payload := s.services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String())
-			go s.services.Webhook.Dispatch(repo.ID, "push", payload)
+			repoID := repo.ID
+			concurrency.Go("webhook.dispatch.push", func() {
+				s.services.Webhook.Dispatch(repoID, "push", payload)
+			})
 		}
+
+		concurrency.Go("repo.on_post_receive", func() {
+			bg, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+			if err := s.services.Repo.OnPostReceive(bg, repo, gitRepo, commands); err != nil {
+				slog.Error("post-receive: commit stats ingest failed",
+					"repo_id", repo.ID, "owner", repo.OwnerName, "repo", repo.Name, "error", err)
+			}
+		})
 	}
 
 	session.Exit(0)

@@ -346,3 +346,55 @@ func (s *IssueStore) CountClosedSince(ctx context.Context, repoID int64, since t
 	).Scan(&n)
 	return n, err
 }
+
+// Excludes soft-deleted repos so home-page counts match the heatmap's visibility rule.
+func (s *IssueStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(DISTINCT i.id)
+		 FROM issues i
+		 JOIN repositories r ON r.id = i.repo_id
+		 LEFT JOIN issue_assignees a ON a.issue_id = i.id
+		 WHERE i.state = 'open' AND r.deleted_at IS NULL AND (i.author_id = $1 OR a.user_id = $1)`,
+		userID,
+	).Scan(&n)
+	return n, err
+}
+
+type IssueListItem struct {
+	ID           int64
+	Number       int
+	Title        string
+	AuthorID     int64
+	RepoFullName string // "<owner_username>/<repo_name>"
+	UpdatedAt    time.Time
+}
+
+func (s *IssueStore) ListOpenAssignedToUser(ctx context.Context, userID int64) ([]IssueListItem, error) {
+	const q = `
+		SELECT i.id, i.number, i.title, i.author_id,
+		       u.username || '/' || r.name AS repo_full_name,
+		       i.updated_at
+		FROM issues i
+		JOIN issue_assignees a ON a.issue_id = i.id
+		JOIN repositories r    ON r.id = i.repo_id
+		JOIN users u           ON u.id = r.owner_id
+		WHERE a.user_id = $1 AND i.state = 'open' AND r.deleted_at IS NULL
+		ORDER BY i.updated_at DESC
+		LIMIT 50
+	`
+	rows, err := s.db.QueryContext(ctx, q, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []IssueListItem
+	for rows.Next() {
+		var it IssueListItem
+		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, it)
+	}
+	return out, rows.Err()
+}

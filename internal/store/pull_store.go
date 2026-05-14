@@ -261,3 +261,17 @@ func (s *PullStore) CountOpen(ctx context.Context, repoID int64) (int, error) {
 	).Scan(&n)
 	return n, err
 }
+
+// Excludes soft-deleted repos so home-page counts match the heatmap's visibility rule.
+func (s *PullStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(DISTINCT p.id)
+		 FROM pull_requests p
+		 JOIN repositories r ON r.id = p.repo_id
+		 LEFT JOIN pull_assignees a ON a.pull_id = p.id
+		 WHERE p.state = 'open' AND r.deleted_at IS NULL AND (p.author_id = $1 OR a.user_id = $1)`,
+		userID,
+	).Scan(&n)
+	return n, err
+}
