@@ -48,9 +48,15 @@ document.addEventListener('alpine:init', () => {
           headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
           body: JSON.stringify({ column_id: Number(columnID), position }),
         });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
+        if (!r.ok) {
+          const body = await r.text().catch(() => '');
+          throw new Error('HTTP ' + r.status + (body ? ': ' + body.slice(0, 200) : ''));
+        }
       } catch (err) {
-        // Server is the source of truth — revert by reloading.
+        console.error('kanban move failed:', err);
+        const msg = (err && err.message) ? err.message : 'unknown error';
+        // Server is the source of truth — surface the failure, then revert by reloading.
+        window.alert('Could not move card (' + msg + '). Reloading.');
         window.location.reload();
       } finally {
         this.dragged = null;

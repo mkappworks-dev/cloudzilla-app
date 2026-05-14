@@ -786,7 +786,7 @@ func Tree(data view.TreeData) templ.Component {
 												return templ_7745c5c3_Err
 											}
 											var templ_7745c5c3_Var45 templ.SafeURL
-											templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Ref + "/" + entry.Path))
+											templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/blob/" + data.Ref + "/" + entry.Path))
 											if templ_7745c5c3_Err != nil {
 												return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/tree.templ`, Line: 198, Col: 117}
 											}

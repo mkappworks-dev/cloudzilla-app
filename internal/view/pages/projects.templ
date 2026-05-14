@@ -40,7 +40,9 @@ templ Projects(data view.ProjectsData) {
 					<h2 class="text-sm font-semibold mb-3">Create a new project board</h2>
 					<form
 						x-data="{ projName: '', projDesc: '' }"
-						x-on:submit.prevent={ "fetch('/api/repos/" + data.Owner + "/" + data.RepoName + "/projects',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':(document.cookie.match(/csrf_token=([^;]+)/)||[])[1]||''},body:JSON.stringify({name:projName,description:projDesc})}).then(r=>r.ok&&window.location.reload())" }
+						data-owner={ data.Owner }
+						data-repo-name={ data.RepoName }
+						x-on:submit.prevent="(function(f){ const csrf=(document.cookie.match(/csrf_token=([^;]+)/)||[])[1]||''; fetch('/api/repos/'+f.dataset.owner+'/'+f.dataset.repoName+'/projects',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({name:projName,description:projDesc})}).then(r=>r.ok&&window.location.reload()) })($el)"
 						class="space-y-3"
 					>
 						<div>

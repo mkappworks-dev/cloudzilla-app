@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"log/slog"
+	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
@@ -33,7 +35,12 @@ type treeCacheEntry struct {
 	cachedAt time.Time
 }
 
-const treeCacheTTL = 60 * time.Second
+const (
+	treeCacheTTL = 60 * time.Second
+	// treeCacheMaxKeys triggers an expired-entry sweep when the inserted-key
+	// count crosses this threshold. Caps cache memory under SHA enumeration.
+	treeCacheMaxKeys = 1024
+)
 
 // ListEntriesWithLastCommit returns the entries at `dir` enriched with the
 // most recent commit that touched each entry. Results are cached per
@@ -82,7 +89,7 @@ func (s *CodeService) ListEntriesWithLastCommit(ctx context.Context, owner, repo
 			Path:  joinPath(dir, entry.Name),
 			IsDir: entry.Mode == filemode.Dir || entry.Mode == filemode.Submodule,
 		}
-		last, err := s.lastCommitTouching(repo, commit, e.Path)
+		last, err := s.lastCommitTouching(ctx, repo, commit, e.Path)
 		if err != nil {
 			slog.Warn("tree last-commit lookup failed",
 				"owner", owner,
@@ -93,20 +100,50 @@ func (s *CodeService) ListEntriesWithLastCommit(ctx context.Context, owner, repo
 			)
 		} else if last != nil {
 			e.LastCommit.SHA = last.Hash.String()
-			e.LastCommit.Message = firstLine(last.Message)
+			e.LastCommit.Message = FirstLine(last.Message)
 			e.LastCommit.Author = last.Author.Name
 			e.LastCommit.Timestamp = last.Author.When
 		}
 		if !e.IsDir {
-			if blob, err := repo.BlobObject(entry.Hash); err == nil {
+			blob, err := repo.BlobObject(entry.Hash)
+			if err != nil {
+				slog.Warn("tree blob size lookup failed",
+					"owner", owner, "repo", repoName, "ref", ref, "path", e.Path,
+					"hash", entry.Hash.String(), "error", err)
+			} else {
 				e.Size = blob.Size
 			}
 		}
 		out = append(out, e)
 	}
 
-	s.treeCache.Store(key, treeCacheEntry{entries: out, cachedAt: time.Now()})
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].IsDir != out[j].IsDir {
+			return out[i].IsDir
+		}
+		return out[i].Name < out[j].Name
+	})
+
+	s.cacheTreeEntries(key, out)
 	return out, nil
+}
+
+// cacheTreeEntries stores entries under key. If the cache has grown past
+// treeCacheMaxKeys, a single sweep evicts entries whose cachedAt is older than
+// treeCacheTTL — bounding memory growth from unbounded SHA enumeration.
+func (s *CodeService) cacheTreeEntries(key string, entries []TreeEntryWithLastCommit) {
+	s.treeCache.Store(key, treeCacheEntry{entries: entries, cachedAt: time.Now()})
+	// Best-effort size estimate; sync.Map has no Len.
+	if atomic.AddInt64(&s.treeCacheKeys, 1) > treeCacheMaxKeys {
+		atomic.StoreInt64(&s.treeCacheKeys, 0)
+		now := time.Now()
+		s.treeCache.Range(func(k, v any) bool {
+			if e, ok := v.(treeCacheEntry); ok && now.Sub(e.cachedAt) >= treeCacheTTL {
+				s.treeCache.Delete(k)
+			}
+			return true
+		})
+	}
 }
 
 // LastCommitForPath returns the most recent commit that touched `path`
@@ -127,13 +164,14 @@ func (s *CodeService) LastCommitForPath(ctx context.Context, owner, repoName, re
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-	return s.lastCommitTouching(repo, commit, path)
+	return s.lastCommitTouching(ctx, repo, commit, path)
 }
 
 // lastCommitTouching walks the history from headCommit and returns the most
 // recent commit whose tree changed `path`. Uses go-git's PathFilter to limit
-// iteration to commits that altered files at or under `path`.
-func (s *CodeService) lastCommitTouching(repo *gogit.Repository, headCommit *object.Commit, path string) (*object.Commit, error) {
+// iteration to commits that altered files at or under `path`. Aborts early
+// if ctx is cancelled.
+func (s *CodeService) lastCommitTouching(ctx context.Context, repo *gogit.Repository, headCommit *object.Commit, path string) (*object.Commit, error) {
 	prefix := path
 	if prefix != "" {
 		prefix = prefix + "/"
@@ -154,6 +192,9 @@ func (s *CodeService) lastCommitTouching(repo *gogit.Repository, headCommit *obj
 
 	var found *object.Commit
 	err = iter.ForEach(func(c *object.Commit) error {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		found = c
 		return storer.ErrStop
 	})
@@ -170,7 +211,9 @@ func joinPath(dir, name string) string {
 	return dir + "/" + name
 }
 
-func firstLine(s string) string {
+// FirstLine returns the first newline-terminated line of s (commit subject,
+// note title, etc). Shared by handler and service code.
+func FirstLine(s string) string {
 	if i := strings.IndexByte(s, '\n'); i >= 0 {
 		return s[:i]
 	}

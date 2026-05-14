@@ -195,7 +195,7 @@ templ Tree(data view.TreeData) {
 												if entry.IsDir {
 													<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Ref + "/" + entry.Path) } class="text-[13px] font-medium hover:underline">{ entry.Name }</a>
 												} else {
-													<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + data.Ref + "/" + entry.Path) } class="text-[13px] hover:underline">{ entry.Name }</a>
+													<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/blob/" + data.Ref + "/" + entry.Path) } class="text-[13px] hover:underline">{ entry.Name }</a>
 												}
 											}
 											@components.TableCell(templ.Attributes{"class": "px-4 py-2.5 text-[12px] text-muted-foreground"}) {
