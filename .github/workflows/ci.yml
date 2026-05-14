@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test
@@ -36,7 +39,7 @@ jobs:
       - name: Download Mermaid
         run: |
           mkdir -p cmd/server/frontend/static
-          curl -sL https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js \
+          curl -sLf https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js \
             -o cmd/server/frontend/static/mermaid.min.js
 
       - name: Generate templ
@@ -82,7 +85,7 @@ jobs:
       - name: Download Mermaid
         run: |
           mkdir -p cmd/server/frontend/static
-          curl -sL https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js \
+          curl -sLf https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js \
             -o cmd/server/frontend/static/mermaid.min.js
 
       - name: Generate templ

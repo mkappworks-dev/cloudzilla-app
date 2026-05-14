@@ -49,7 +49,7 @@ jobs:
           cache: true
 
       - name: Install templ
-        run: go install github.com/a-h/templ/cmd/templ@latest
+        run: go install github.com/a-h/templ/cmd/templ@v0.3.1020
 
       - name: Download Tailwind CLI
         run: |
@@ -60,13 +60,13 @@ jobs:
       - name: Download Mermaid
         run: |
           mkdir -p cmd/server/frontend/static
-          curl -sL https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js \
+          curl -sLf https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js \
             -o cmd/server/frontend/static/mermaid.min.js
 
       - name: Download HTMX
         run: |
           mkdir -p cmd/server/frontend
-          curl -sL https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js \
+          curl -sLf https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js \
             -o cmd/server/frontend/htmx.min.js
 
       - name: Generate templ
