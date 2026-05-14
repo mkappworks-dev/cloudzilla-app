@@ -8,16 +8,12 @@ package fragments
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import (
-	"strconv"
-
-	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
-)
+import "strconv"
 
 // RepoSubnavData holds the inputs the 9-tab repo subnav needs.
 type RepoSubnavData struct {
 	OwnerName string
-	Repo      *model.Repository
+	RepoName  string
 	// Active is one of: "code", "issues", "pull_requests", "actions",
 	// "discussions", "projects", "wiki", "releases", "settings". Empty
 	// string means no tab highlighted.
@@ -25,6 +21,12 @@ type RepoSubnavData struct {
 	// Counts is an optional per-tab count badge keyed by the tab key
 	// above. A zero or missing value renders no badge. May be nil.
 	Counts map[string]int
+	// CanManage gates the Settings tab. Callers should populate from
+	// RepoService.CanManage. Server-side authz on /settings is still the
+	// real check; this just stops advertising the route to viewers who
+	// cannot use it. Actions tab is intentionally not gated — read-only
+	// viewers of public repos can see workflow runs, matching GitHub.
+	CanManage bool
 }
 
 func RepoSubnav(data RepoSubnavData) templ.Component {
@@ -52,41 +54,43 @@ func RepoSubnav(data RepoSubnavData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = repoSubnavTab(data, "code", "Code", "/"+data.OwnerName+"/"+data.Repo.Name).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = repoSubnavTab(data, "code", "Code", "/"+data.OwnerName+"/"+data.RepoName).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = repoSubnavTab(data, "issues", "Issues", "/"+data.OwnerName+"/"+data.Repo.Name+"/issues").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = repoSubnavTab(data, "issues", "Issues", "/"+data.OwnerName+"/"+data.RepoName+"/issues").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = repoSubnavTab(data, "pull_requests", "Pull requests", "/"+data.OwnerName+"/"+data.Repo.Name+"/pulls").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = repoSubnavTab(data, "pull_requests", "Pull requests", "/"+data.OwnerName+"/"+data.RepoName+"/pulls").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = repoSubnavTab(data, "actions", "Actions", "/"+data.OwnerName+"/"+data.Repo.Name+"/actions").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = repoSubnavTab(data, "actions", "Actions", "/"+data.OwnerName+"/"+data.RepoName+"/actions").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = repoSubnavTab(data, "discussions", "Discussions", "/"+data.OwnerName+"/"+data.Repo.Name+"/discussions").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = repoSubnavTab(data, "discussions", "Discussions", "/"+data.OwnerName+"/"+data.RepoName+"/discussions").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = repoSubnavTab(data, "projects", "Projects", "/"+data.OwnerName+"/"+data.Repo.Name+"/projects").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = repoSubnavTab(data, "projects", "Projects", "/"+data.OwnerName+"/"+data.RepoName+"/projects").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = repoSubnavTab(data, "wiki", "Wiki", "/"+data.OwnerName+"/"+data.Repo.Name+"/wiki").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = repoSubnavTab(data, "wiki", "Wiki", "/"+data.OwnerName+"/"+data.RepoName+"/wiki").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = repoSubnavTab(data, "releases", "Releases", "/"+data.OwnerName+"/"+data.Repo.Name+"/releases").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = repoSubnavTab(data, "releases", "Releases", "/"+data.OwnerName+"/"+data.RepoName+"/releases").Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = repoSubnavTab(data, "settings", "Settings", "/"+data.OwnerName+"/"+data.Repo.Name+"/settings").Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
+		if data.CanManage {
+			templ_7745c5c3_Err = repoSubnavTab(data, "settings", "Settings", "/"+data.OwnerName+"/"+data.RepoName+"/settings").Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 		}
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></nav>")
 		if templ_7745c5c3_Err != nil {
@@ -125,7 +129,7 @@ func repoSubnavTab(data RepoSubnavData, key, label, href string) templ.Component
 			var templ_7745c5c3_Var3 templ.SafeURL
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 40, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 44, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -138,7 +142,7 @@ func repoSubnavTab(data RepoSubnavData, key, label, href string) templ.Component
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 41, Col: 10}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 45, Col: 10}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -156,7 +160,7 @@ func repoSubnavTab(data RepoSubnavData, key, label, href string) templ.Component
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(count) + " " + label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 43, Col: 118}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 47, Col: 118}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 				if templ_7745c5c3_Err != nil {
@@ -169,7 +173,7 @@ func repoSubnavTab(data RepoSubnavData, key, label, href string) templ.Component
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(count))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 43, Col: 142}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 47, Col: 142}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -192,7 +196,7 @@ func repoSubnavTab(data RepoSubnavData, key, label, href string) templ.Component
 			var templ_7745c5c3_Var7 templ.SafeURL
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 47, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 51, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -205,7 +209,7 @@ func repoSubnavTab(data RepoSubnavData, key, label, href string) templ.Component
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 48, Col: 10}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 52, Col: 10}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -223,7 +227,7 @@ func repoSubnavTab(data RepoSubnavData, key, label, href string) templ.Component
 				var templ_7745c5c3_Var9 string
 				templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(count) + " " + label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 50, Col: 118}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 54, Col: 118}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 				if templ_7745c5c3_Err != nil {
@@ -236,7 +240,7 @@ func repoSubnavTab(data RepoSubnavData, key, label, href string) templ.Component
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(count))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 50, Col: 142}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_subnav.templ`, Line: 54, Col: 142}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {

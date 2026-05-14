@@ -51,7 +51,7 @@ templ Base(base view.BasePage, title string) {
 						@components.DropdownMenu() {
 							@components.DropdownMenuTrigger(templ.Attributes{
 								"class":      "flex items-center gap-2 -ml-1 px-2 h-7 rounded-md hover:bg-accent text-sm font-medium",
-								"aria-label": "Switch account or organization, current: " + base.CurrentUser.Username,
+								"aria-label": "Switch account or owned organization, current: " + base.CurrentUser.Username,
 							}) {
 								<span class="inline-grid place-items-center h-5 w-5 rounded bg-accent text-[10px] font-medium" aria-hidden="true">
 									if len(base.CurrentUser.Username) > 0 {
@@ -63,14 +63,20 @@ templ Base(base view.BasePage, title string) {
 							}
 							@components.DropdownMenuContent(components.DropdownAlignStart) {
 								@components.DropdownMenuLabel() {
-									{ "Switch to" }
+									{ "Account" }
 								}
 								@components.DropdownMenuLink("/"+base.CurrentUser.Username, nil) {
 									{ base.CurrentUser.Username + " (personal)" }
 								}
-								for _, org := range base.UserOrgs {
-									@components.DropdownMenuLink("/"+org.Name, nil) {
-										{ org.Name }
+								if len(base.UserOrgs) > 0 {
+									@components.DropdownMenuSeparator()
+									@components.DropdownMenuLabel() {
+										{ "Owned organizations" }
+									}
+									for _, org := range base.UserOrgs {
+										@components.DropdownMenuLink("/"+org.Name, nil) {
+											{ org.Name }
+										}
 									}
 								}
 								@components.DropdownMenuSeparator()
