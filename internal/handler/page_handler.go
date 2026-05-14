@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
@@ -18,7 +19,15 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 		return BasePage{AllowLogin: allowLogin, AllowRegistration: allowRegistration}
 	}
 	count, _ := services.Notification.CountUnread(r.Context(), claims.UserID)
-	return BasePage{CurrentUser: &claims, UnreadNotifCount: count, AllowLogin: allowLogin, AllowRegistration: allowRegistration}
+	page := BasePage{CurrentUser: &claims, UnreadNotifCount: count, AllowLogin: allowLogin, AllowRegistration: allowRegistration}
+	orgs, err := services.Org.ListOwnedByUser(r.Context(), claims.UserID)
+	if err != nil {
+		// Workspace switcher just falls back to showing "Personal" only.
+		slog.Warn("listing user orgs for workspace switcher failed", "error", err, "user_id", claims.UserID)
+	} else {
+		page.UserOrgs = orgs
+	}
+	return page
 }
 
 // PageHome renders the home feed page.

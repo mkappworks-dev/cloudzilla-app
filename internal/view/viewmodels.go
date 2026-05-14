@@ -26,6 +26,9 @@ type BasePage struct {
 	UnreadNotifCount  int
 	AllowLogin        bool
 	AllowRegistration bool
+	// UserOrgs is the list of organizations the current user owns.
+	// Empty if no user is signed in. Used by the layout's workspace switcher.
+	UserOrgs []model.Organization
 }
 
 // Page data structs
