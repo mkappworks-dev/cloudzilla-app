@@ -49,11 +49,13 @@ type Services struct {
 	Dependency       *DependencyService
 	CommitStats      *CommitStatsService
 	Attention        *AttentionService
+	Language         *LanguageService
 }
 
 // New constructs and wires all services from the given stores and configuration.
 func New(stores *store.Stores, cfg *config.Config) *Services {
 	code := NewCodeService(cfg.Git)
+	languageSvc := NewLanguageService(code)
 	index := NewIndexService(stores.CodeSearch, code)
 	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
 	attentionSvc := NewAttentionService(stores.Issue)
@@ -105,5 +107,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Dependency:       NewDependencyService(stores.Dependency, code),
 		CommitStats:      commitStatsSvc,
 		Attention:        attentionSvc,
+		Language:         languageSvc,
 	}
 }
