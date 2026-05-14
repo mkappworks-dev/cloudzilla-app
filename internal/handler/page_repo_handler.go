@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -8,9 +9,11 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -55,6 +58,10 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		currentUserID = claims.UserID
 	}
 
+	// README lookup tries the three common case variants. "Not found" is the
+	// common case and stays silent; any other error (corrupt object, ref
+	// missing, empty repo) is logged at Warn so an empty README block isn't
+	// mistaken for a repo without a README.
 	var readmeHTML string
 	for _, name := range []string{"README.md", "readme.md", "Readme.md"} {
 		raw, err := h.Services.Code.GetRawBlob(owner, repoName, repo.DefaultBranch, name)
@@ -62,17 +69,26 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 			readmeHTML = markdown.Render(string(raw))
 			break
 		}
+		if errors.Is(err, object.ErrFileNotFound) || errors.Is(err, service.ErrEmptyRepo) {
+			continue
+		}
+		slog.Warn("repo: README lookup failed",
+			"owner", owner, "repo", repoName, "candidate", name, "error", err)
 	}
 
-	starCount, err := h.Services.Star.GetStarCount(r.Context(), repo.ID)
-	if err != nil {
-		slog.Warn("repo: star count failed", "owner", owner, "repo", repoName, "error", err)
+	// Each sidebar section uses a per-section err variable so a future edit
+	// can't accidentally let a stale `err` from an earlier section escape into
+	// a later check.
+	starCount, starErr := h.Services.Star.GetStarCount(r.Context(), repo.ID)
+	if starErr != nil {
+		slog.Warn("repo: star count failed", "owner", owner, "repo", repoName, "error", starErr)
 	}
 	isStarred := false
 	if currentUserID != 0 {
-		isStarred, err = h.Services.Star.IsStarred(r.Context(), repo.ID, currentUserID)
-		if err != nil {
-			slog.Warn("repo: is-starred lookup failed", "owner", owner, "repo", repoName, "user_id", currentUserID, "error", err)
+		var isStarredErr error
+		isStarred, isStarredErr = h.Services.Star.IsStarred(r.Context(), repo.ID, currentUserID)
+		if isStarredErr != nil {
+			slog.Warn("repo: is-starred lookup failed", "owner", owner, "repo", repoName, "user_id", currentUserID, "error", isStarredErr)
 		}
 	}
 
@@ -81,9 +97,9 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		forkOfPath = repo.ForkOfOwner + "/" + repo.ForkOfName
 	}
 
-	latestRelease, err := h.Services.Release.GetLatest(r.Context(), owner, repoName)
-	if err != nil {
-		slog.Warn("repo: latest release lookup failed", "owner", owner, "repo", repoName, "error", err)
+	latestRelease, releaseErr := h.Services.Release.GetLatest(r.Context(), owner, repoName)
+	if releaseErr != nil {
+		slog.Warn("repo: latest release lookup failed", "owner", owner, "repo", repoName, "error", releaseErr)
 	}
 
 	watchLevel := ""
@@ -91,9 +107,9 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		watchLevel = h.Services.Watch.GetLevel(r.Context(), currentUserID, repo.ID)
 	}
 
-	topics, err := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
-	if err != nil {
-		slog.Warn("repo: topics list failed", "owner", owner, "repo", repoName, "error", err)
+	topics, topicsErr := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
+	if topicsErr != nil {
+		slog.Warn("repo: topics list failed", "owner", owner, "repo", repoName, "error", topicsErr)
 	}
 	if topics == nil {
 		topics = []model.Topic{}
@@ -109,8 +125,8 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 	// failure is logged at Warn so a corrupted git repo doesn't silently
 	// render as "no languages, no contributors, no releases".
 	var languages []components.LangBarItem
-	if percents, err := h.Services.Language.Percentages(r.Context(), owner, repoName, repo.DefaultBranch); err != nil {
-		slog.Warn("repo: language percentages failed", "owner", owner, "repo", repoName, "error", err)
+	if percents, langErr := h.Services.Language.Percentages(r.Context(), owner, repoName, repo.DefaultBranch); langErr != nil {
+		slog.Warn("repo: language percentages failed", "owner", owner, "repo", repoName, "error", langErr)
 	} else {
 		languages = make([]components.LangBarItem, 0, len(percents))
 		for _, p := range percents {
@@ -121,17 +137,17 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
-	topContribs, err := h.Services.Repo.TopContributors(r.Context(), owner, repoName, 10)
-	if err != nil {
-		slog.Warn("repo: top contributors failed", "owner", owner, "repo", repoName, "error", err)
+	topContribs, contribErr := h.Services.Repo.TopContributors(r.Context(), owner, repoName, 10)
+	if contribErr != nil {
+		slog.Warn("repo: top contributors failed", "owner", owner, "repo", repoName, "error", contribErr)
 	}
-	releases, err := h.Services.Release.RecentForRepo(r.Context(), owner, repoName, 5)
-	if err != nil {
-		slog.Warn("repo: recent releases failed", "owner", owner, "repo", repoName, "error", err)
+	releases, recentReleasesErr := h.Services.Release.RecentForRepo(r.Context(), owner, repoName, 5)
+	if recentReleasesErr != nil {
+		slog.Warn("repo: recent releases failed", "owner", owner, "repo", repoName, "error", recentReleasesErr)
 	}
-	heatmap, err := h.Services.CommitStats.LookbackForRepo(r.Context(), repo.ID, 90)
-	if err != nil {
-		slog.Warn("repo: heatmap lookback failed", "owner", owner, "repo", repoName, "error", err)
+	heatmap, heatmapErr := h.Services.CommitStats.LookbackForRepo(r.Context(), repo.ID, 90)
+	if heatmapErr != nil {
+		slog.Warn("repo: heatmap lookback failed", "owner", owner, "repo", repoName, "error", heatmapErr)
 	}
 
 	h.render(w, r, pages.Repo(view.RepoData{
