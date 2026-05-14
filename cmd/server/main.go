@@ -42,6 +42,25 @@ func main() {
 	stores := store.New(database)
 	services := service.New(stores, cfg)
 
+	// Commit-stats backfill: one-shot, runs in background so we don't block startup.
+	// Walks each non-deleted repo's default branch over the last 365 days and
+	// re-ingests commit metadata. UpsertCount is idempotent so re-runs are safe.
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+		defer cancel()
+		repos, err := stores.Repo.ListAll(ctx)
+		if err != nil {
+			slog.Warn("commit-stats backfill: list repos failed", "error", err)
+			return
+		}
+		slog.Info("commit-stats backfill starting", "repos", len(repos))
+		if err := services.CommitStats.BackfillRecentCommits(ctx, repos, services.Code, 365); err != nil {
+			slog.Warn("commit-stats backfill failed", "error", err)
+			return
+		}
+		slog.Info("commit-stats backfill complete")
+	}()
+
 	r := router.New(services, cfg, frontendFS)
 
 	go runEmailDigest(context.Background(), services)

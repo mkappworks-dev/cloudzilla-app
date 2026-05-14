@@ -103,6 +103,21 @@ func (s *RepoStore) List(ctx context.Context) ([]model.Repository, error) {
 	return scanRepoRows(rows)
 }
 
+// ListAll returns every non-soft-deleted repository, ordered by ID for stable
+// iteration in background jobs (e.g. commit-stats backfill). It mirrors List
+// except for the ordering and applies no per-user / per-org filtering.
+func (s *RepoStore) ListAll(ctx context.Context) ([]model.Repository, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
+		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template
+		 FROM repositories WHERE deleted_at IS NULL ORDER BY id ASC`)
+	if err != nil {
+		return nil, fmt.Errorf("repo list all: %w", err)
+	}
+	defer rows.Close()
+	return scanRepoRows(rows)
+}
+
 func (s *RepoStore) GetByOwnerAndName(ctx context.Context, ownerName, name string) (*model.Repository, error) {
 	return s.GetByOwnerName(ctx, ownerName, name)
 }
