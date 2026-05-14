@@ -301,6 +301,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, service.ErrEmptyRepo) {
 			result = &service.TreeResult{Ref: ref, Path: path}
 		} else {
+			slog.Warn("tree: GetTree failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
 			h.NotFound(w, r)
 			return
 		}
@@ -311,6 +312,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, service.ErrEmptyRepo) {
 			entries = nil
 		} else {
+			slog.Warn("tree: ListEntriesWithLastCommit failed", "owner", owner, "repo", repoName, "ref", result.Ref, "path", result.Path, "error", err)
 			h.NotFound(w, r)
 			return
 		}
@@ -417,7 +419,11 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 	// Latest commit touching this specific file path. Best-effort: failures
 	// just leave the sub-header off.
 	var latestCommit view.TreeLatestCommit
-	if last, lcErr := h.Services.Code.LastCommitForPath(r.Context(), owner, repoName, result.Ref, result.Path); lcErr == nil && last != nil {
+	last, lcErr := h.Services.Code.LastCommitForPath(r.Context(), owner, repoName, result.Ref, result.Path)
+	if lcErr != nil {
+		slog.Warn("blob: LastCommitForPath failed", "owner", owner, "repo", repoName, "ref", result.Ref, "path", result.Path, "error", lcErr)
+	}
+	if lcErr == nil && last != nil {
 		full := last.Hash.String()
 		short := full
 		if len(short) > 7 {
