@@ -13,6 +13,7 @@ import (
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/storer"
@@ -68,12 +69,22 @@ func (s *RepoService) TopContributors(ctx context.Context, owner, name string, l
 	return all, nil
 }
 
-// Best-effort: errors are logged and returned (caller logs at the goroutine boundary); the push is not rolled back.
+// OnPostReceive walks each branch's new commits, dedupes commits that appear on
+// multiple updated branches (a single push that updates two branches sharing
+// new commits must not double-count), and ingests one sample per unique commit.
+//
+// Best-effort: per-branch walk errors are logged and the loop continues so
+// other branches still contribute. If every branch's walk fails and no samples
+// are collected, the function returns an aggregate error so the goroutine
+// boundary logs at Error level — otherwise a stuck repo would silently never
+// update the heatmap with only Warn-level breadcrumbs.
 func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository, gitRepo *gogit.Repository, commands []*packp.Command) error {
 	if s.commitStats == nil || gitRepo == nil || repo == nil {
 		return nil
 	}
+	seen := make(map[plumbing.Hash]struct{})
 	var samples []CommitSample
+	var walkAttempts, walkFailures int
 	for _, cmd := range commands {
 		if cmd == nil {
 			continue
@@ -84,8 +95,10 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 		if cmd.Action() == packp.Delete {
 			continue
 		}
+		walkAttempts++
 		iter, err := gitRepo.Log(&gogit.LogOptions{From: cmd.New})
 		if err != nil {
+			walkFailures++
 			slog.Warn("post-receive: log iter failed",
 				"repo_id", repo.ID, "ref", cmd.Name.String(), "new", cmd.New.String(), "error", err)
 			continue
@@ -94,6 +107,10 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 			if c.Hash == cmd.Old {
 				return storer.ErrStop
 			}
+			if _, dup := seen[c.Hash]; dup {
+				return nil
+			}
+			seen[c.Hash] = struct{}{}
 			samples = append(samples, CommitSample{
 				AuthorEmail: c.Author.Email,
 				Time:        c.Author.When,
@@ -102,9 +119,13 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 		})
 		iter.Close()
 		if walkErr != nil {
+			walkFailures++
 			slog.Warn("post-receive: commit walk failed",
 				"repo_id", repo.ID, "ref", cmd.Name.String(), "new", cmd.New.String(), "error", walkErr)
 		}
+	}
+	if walkAttempts > 0 && walkFailures == walkAttempts {
+		return fmt.Errorf("commit stats: all %d branch walks failed (repo_id=%d)", walkAttempts, repo.ID)
 	}
 	if len(samples) == 0 {
 		return nil
