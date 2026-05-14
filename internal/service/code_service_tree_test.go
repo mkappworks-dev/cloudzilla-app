@@ -49,7 +49,7 @@ func newTestRepoWithFileCommits(t *testing.T, owner, name string, commits []comm
 		t.Fatalf("worktree: %v", err)
 	}
 
-	for i, c := range commits {
+	for _, c := range commits {
 		for relPath, body := range c.files {
 			abs := filepath.Join(workDir, relPath)
 			if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
@@ -67,7 +67,6 @@ func newTestRepoWithFileCommits(t *testing.T, owner, name string, commits []comm
 		if msg == "" {
 			msg = "commit " + filepath.Base(name) + "-" + time.Now().Format(time.RFC3339Nano)
 		}
-		_ = i
 		if _, err := wt.Commit(msg, &gogit.CommitOptions{Author: sig, Committer: sig}); err != nil {
 			t.Fatalf("commit: %v", err)
 		}
@@ -207,17 +206,48 @@ func TestListEntriesWithLastCommit_Cached(t *testing.T) {
 	if err != nil {
 		t.Fatalf("first call: %v", err)
 	}
+	if len(first) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(first))
+	}
+
+	// Mutate the underlying repo by pushing a new commit that adds a second
+	// file. If the cache fires, the next call must still return the stale
+	// (one-entry) listing — proving a real cache hit, not just a recompute
+	// returning the same answer.
+	bareDir := svc.repoPath("bob", "demo")
+	cloneDir := t.TempDir()
+	clone, err := gogit.PlainClone(cloneDir, false, &gogit.CloneOptions{URL: bareDir})
+	if err != nil {
+		t.Fatalf("clone bare: %v", err)
+	}
+	cwt, err := clone.Worktree()
+	if err != nil {
+		t.Fatalf("clone worktree: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(cloneDir, "b.txt"), []byte("b\n"), 0o644); err != nil {
+		t.Fatalf("write b.txt: %v", err)
+	}
+	if _, err := cwt.Add("b.txt"); err != nil {
+		t.Fatalf("add b.txt: %v", err)
+	}
+	sig := &gitobj.Signature{Name: "Tester", Email: "tester@example.com", When: now}
+	if _, err := cwt.Commit("add b", &gogit.CommitOptions{Author: sig, Committer: sig}); err != nil {
+		t.Fatalf("commit b: %v", err)
+	}
+	if err := clone.Push(&gogit.PushOptions{
+		RefSpecs: []gitconfig.RefSpec{"refs/heads/master:refs/heads/master"},
+	}); err != nil {
+		t.Fatalf("push b: %v", err)
+	}
+
 	second, err := svc.ListEntriesWithLastCommit(context.Background(), "bob", "demo", "", "")
 	if err != nil {
 		t.Fatalf("second call (cache path): %v", err)
 	}
-	if len(first) != len(second) {
-		t.Fatalf("length mismatch: first=%d second=%d", len(first), len(second))
+	if len(second) != len(first) {
+		t.Fatalf("cache miss: expected stale len=%d, got %d (new commit visible — cache did not fire)", len(first), len(second))
 	}
-	if len(first) != 1 {
-		t.Fatalf("expected 1 entry, got %d", len(first))
-	}
-	if first[0].Name != second[0].Name || first[0].LastCommit.SHA != second[0].LastCommit.SHA {
+	if second[0].Name != first[0].Name || second[0].LastCommit.SHA != first[0].LastCommit.SHA {
 		t.Errorf("cache returned different data: %+v vs %+v", first[0], second[0])
 	}
 }

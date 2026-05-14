@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"log/slog"
+	"strings"
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
@@ -80,7 +82,16 @@ func (s *CodeService) ListEntriesWithLastCommit(ctx context.Context, owner, repo
 			Path:  joinPath(dir, entry.Name),
 			IsDir: entry.Mode == filemode.Dir || entry.Mode == filemode.Submodule,
 		}
-		if last, err := s.lastCommitTouching(repo, commit, e.Path); err == nil && last != nil {
+		last, err := s.lastCommitTouching(repo, commit, e.Path)
+		if err != nil {
+			slog.Warn("tree last-commit lookup failed",
+				"owner", owner,
+				"repo", repoName,
+				"ref", ref,
+				"path", e.Path,
+				"error", err,
+			)
+		} else if last != nil {
 			e.LastCommit.SHA = last.Hash.String()
 			e.LastCommit.Message = firstLine(last.Message)
 			e.LastCommit.Author = last.Author.Name
@@ -112,7 +123,7 @@ func (s *CodeService) lastCommitTouching(repo *gogit.Repository, headCommit *obj
 			if p == path {
 				return true
 			}
-			return prefix != "" && len(p) > len(prefix) && p[:len(prefix)] == prefix
+			return prefix != "" && strings.HasPrefix(p, prefix)
 		},
 	})
 	if err != nil {
@@ -139,10 +150,8 @@ func joinPath(dir, name string) string {
 }
 
 func firstLine(s string) string {
-	for i := 0; i < len(s); i++ {
-		if s[i] == '\n' {
-			return s[:i]
-		}
+	if i := strings.IndexByte(s, '\n'); i >= 0 {
+		return s[:i]
 	}
 	return s
 }
