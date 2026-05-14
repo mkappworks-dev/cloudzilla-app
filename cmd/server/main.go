@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/db"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -42,8 +43,10 @@ func main() {
 	stores := store.New(database)
 	services := service.New(stores, cfg)
 
-	// One-shot commit-stats backfill; UpsertCount is idempotent so re-runs are safe.
-	go func() {
+	// One-shot commit-stats backfill. Ingest is additive (AddCount) so re-runs
+	// could double-count; BackfillRecentCommits guards with HasRowsForRepoSince
+	// to short-circuit repos already populated by previous runs or live pushes.
+	concurrency.Go("commit_stats.backfill", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer cancel()
 		repos, err := stores.Repo.ListAll(ctx)
@@ -56,8 +59,7 @@ func main() {
 			slog.Warn("commit-stats backfill failed", "error", err)
 			return
 		}
-		slog.Info("commit-stats backfill complete")
-	}()
+	})
 
 	r := router.New(services, cfg, frontendFS)
 

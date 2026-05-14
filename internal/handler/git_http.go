@@ -18,6 +18,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
@@ -43,7 +44,7 @@ func (h *Handler) resolveGitUser(r *http.Request) *gitUser {
 		token, user, err := h.Services.AccessToken.Validate(r.Context(), password)
 		if err == nil {
 			tokenID := token.ID
-			safeGo("access_token.update_last_used", func() {
+			concurrency.Go("access_token.update_last_used", func() {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 				if err := h.Services.AccessToken.UpdateLastUsed(ctx, tokenID); err != nil {
@@ -359,7 +360,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
 		payload := h.Services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String())
 		repoID := repo.ID
-		safeGo("webhook.dispatch.push", func() {
+		concurrency.Go("webhook.dispatch.push", func() {
 			h.Services.Webhook.Dispatch(repoID, "push", payload)
 		})
 	}
@@ -368,7 +369,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	// Walk + ingest is encapsulated in RepoService.OnPostReceive; the goroutine
 	// only owns timeout + error logging.
 	commands := req.Commands
-	safeGo("repo.on_post_receive", func() {
+	concurrency.Go("repo.on_post_receive", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 		if err := h.Services.Repo.OnPostReceive(ctx, repo, gitRepo, commands); err != nil {
@@ -378,7 +379,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// Re-index the repository for code search after each push.
-	safeGo("index.index_repo", func() {
+	concurrency.Go("index.index_repo", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 		if err := h.Services.Index.IndexRepo(ctx, repo); err != nil {
@@ -388,7 +389,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// Re-parse dependency manifests for code graph after each push.
-	safeGo("dependency.parse_and_store", func() {
+	concurrency.Go("dependency.parse_and_store", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 		if err := h.Services.Dependency.ParseAndStore(ctx, repo); err != nil {

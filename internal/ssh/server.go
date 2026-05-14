@@ -20,6 +20,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	gossh "golang.org/x/crypto/ssh"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -114,7 +115,7 @@ func (s *Server) publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	dk, err := s.services.DeployKey.AuthenticatePublicKey(ctx, gosshKey)
 	if err == nil {
 		keyID := dk.ID
-		safeGo("deploy_key.update_last_used", func() {
+		concurrency.Go("deploy_key.update_last_used", func() {
 			bg, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			if err := s.services.DeployKey.UpdateLastUsed(bg, keyID); err != nil {
@@ -274,7 +275,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
 			payload := s.services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String())
 			repoID := repo.ID
-			safeGo("webhook.dispatch.push", func() {
+			concurrency.Go("webhook.dispatch.push", func() {
 				s.services.Webhook.Dispatch(repoID, "push", payload)
 			})
 		}
@@ -282,7 +283,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		// Aggregate commit counts into the heatmap (best-effort, fire-and-forget).
 		// Walk + ingest is encapsulated in RepoService.OnPostReceive; the
 		// goroutine only owns timeout + error logging.
-		safeGo("repo.on_post_receive", func() {
+		concurrency.Go("repo.on_post_receive", func() {
 			bg, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 			defer cancel()
 			if err := s.services.Repo.OnPostReceive(bg, repo, gitRepo, commands); err != nil {
