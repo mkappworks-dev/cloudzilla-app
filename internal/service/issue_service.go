@@ -186,8 +186,6 @@ func (s *IssueService) CountClosedSince(ctx context.Context, repoID int64, since
 	return s.issues.CountClosedSince(ctx, repoID, since)
 }
 
-// CountOpenAuthoredByOrAssignedTo returns the count of open issues the user
-// authored or is assigned to, across all repos. Powers the home stat strip.
 func (s *IssueService) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
 	return s.issues.CountOpenAuthoredByOrAssignedTo(ctx, userID)
 }

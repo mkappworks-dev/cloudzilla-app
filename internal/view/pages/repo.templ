@@ -304,7 +304,6 @@ templ Repo(data view.RepoData) {
 	}
 }
 
-// repoNavCard renders a single card link in the explore grid: icon + title + caption.
 templ repoNavCard(href, title, caption string) {
 	<a href={ templ.SafeURL(href) } class="block rounded-md border border-border bg-card p-4 hover:border-foreground/30 transition-colors group">
 		<div class="flex items-center gap-2 text-muted-foreground group-hover:text-foreground mb-1">
@@ -315,7 +314,6 @@ templ repoNavCard(href, title, caption string) {
 	</a>
 }
 
-// releaseDisplayTime returns PublishedAt when set, otherwise CreatedAt.
 func releaseDisplayTime(r model.Release) time.Time {
 	if r.PublishedAt != nil {
 		return *r.PublishedAt
@@ -323,8 +321,7 @@ func releaseDisplayTime(r model.Release) time.Time {
 	return r.CreatedAt
 }
 
-// contributorDisplayName returns a non-empty label for a contributor: name if
-// present, falling back to the local part of the email, else "anonymous".
+// Falls back to email local-part, then "anonymous".
 func contributorDisplayName(c service.ContributorStat) string {
 	if name := strings.TrimSpace(c.Name); name != "" {
 		return name
@@ -338,8 +335,6 @@ func contributorDisplayName(c service.ContributorStat) string {
 	return "anonymous"
 }
 
-// contributorInitial returns the uppercase first rune of the contributor's
-// display name (single letter avatar fallback).
 func contributorInitial(c service.ContributorStat) string {
 	name := contributorDisplayName(c)
 	for _, r := range name {
@@ -348,19 +343,15 @@ func contributorInitial(c service.ContributorStat) string {
 	return "?"
 }
 
-// contributorSlug returns a URL-safe path segment for the contributor's
-// profile. Uses the display name verbatim; the user profile route will 404
-// gracefully if no matching user exists.
+// Uses display name verbatim; the user profile route will 404 gracefully if no match.
 func contributorSlug(c service.ContributorStat) string {
 	return contributorDisplayName(c)
 }
 
-// contributorAriaLabel renders an accessible label like "Alice — 42 commits".
 func contributorAriaLabel(c service.ContributorStat) string {
 	return contributorDisplayName(c) + ", " + strconv.Itoa(c.Commits) + " commits"
 }
 
-// contributorTooltip mirrors the aria-label for sighted users.
 func contributorTooltip(c service.ContributorStat) string {
 	return contributorDisplayName(c) + " — " + strconv.Itoa(c.Commits) + " commits"
 }

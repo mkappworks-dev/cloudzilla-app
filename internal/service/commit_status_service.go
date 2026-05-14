@@ -17,12 +17,7 @@ type CommitStatusService struct {
 	code        *CodeService
 }
 
-// NewCommitStatusService creates a CommitStatusService backed by the given stores.
-//
-// `pulls`, `protections`, and `code` are used by Counts to layer branch-protection
-// required-checks on top of the PR head SHA's statuses. They may be nil in test
-// fixtures that only exercise Upsert / List / GetCombined; Counts will then
-// return (0, 0, nil).
+// `pulls`, `protections`, and `code` may be nil in test fixtures; Counts will then return (0, 0, nil).
 func NewCommitStatusService(statuses *store.CommitStatusStore, repos *store.RepoStore, pulls *store.PullStore, protections *store.BranchProtectionStore, code *CodeService) *CommitStatusService {
 	return &CommitStatusService{statuses: statuses, repos: repos, pulls: pulls, protections: protections, code: code}
 }
@@ -64,12 +59,7 @@ func (s *CommitStatusService) GetCombined(ctx context.Context, owner, repoName, 
 	return combined, statuses, nil
 }
 
-// Counts returns the number of required status contexts (per the matching
-// branch protection rule for the PR's base branch) and how many of those
-// contexts have a passing ("success") status at the PR head SHA.
-//
-// Returns (0, 0, nil) when no protection rule matches or required deps
-// are unavailable — the caller treats that as "no required checks".
+// Returns (0, 0, nil) when no protection rule matches or required deps are unavailable.
 func (s *CommitStatusService) Counts(ctx context.Context, pullID int64) (required int, passing int, err error) {
 	if s.pulls == nil || s.protections == nil || s.code == nil {
 		return 0, 0, nil
@@ -94,12 +84,15 @@ func (s *CommitStatusService) Counts(ctx context.Context, pullID int64) (require
 		return 0, 0, nil
 	}
 	headCommit, _, err := s.code.ResolveRef(repo.OwnerName, repo.Name, pr.HeadBranch)
-	if err != nil || headCommit == nil {
-		return len(requiredContexts), 0, nil
+	if err != nil {
+		return len(requiredContexts), 0, fmt.Errorf("resolve head ref %q: %w", pr.HeadBranch, err)
+	}
+	if headCommit == nil {
+		return len(requiredContexts), 0, fmt.Errorf("resolve head ref %q: head commit not found", pr.HeadBranch)
 	}
 	statuses, err := s.statuses.ListBySHA(ctx, repo.ID, headCommit.Hash.String())
 	if err != nil {
-		return len(requiredContexts), 0, nil
+		return len(requiredContexts), 0, fmt.Errorf("list statuses for head %s: %w", headCommit.Hash.String(), err)
 	}
 	passingByCtx := make(map[string]bool, len(statuses))
 	for _, st := range statuses {

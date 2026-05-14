@@ -9,10 +9,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -46,15 +49,11 @@ type RepoService struct {
 	cfg         config.GitConfig
 }
 
-// NewRepoService creates a RepoService backed by the given stores and git config.
 // The code service may be nil in tests that do not exercise contributor queries.
 func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, commitStats *CommitStatsService, code *CodeService, cfg config.GitConfig) *RepoService {
 	return &RepoService{repos: repos, users: users, orgs: orgs, commitStats: commitStats, code: code, cfg: cfg}
 }
 
-// TopContributors returns the top N contributors by commit count for the
-// given repo. Wraps CodeService.GetContributors so handlers don't reach
-// into CodeService directly.
 func (s *RepoService) TopContributors(ctx context.Context, owner, name string, limit int) ([]ContributorStat, error) {
 	if s.code == nil {
 		return nil, nil
@@ -69,27 +68,49 @@ func (s *RepoService) TopContributors(ctx context.Context, owner, name string, l
 	return all, nil
 }
 
-// OnPostReceive is called by the HTTP and SSH git-receive-pack handlers
-// after a successful push. It aggregates commit-day counts into the heatmap.
-// It is best-effort: errors are logged and swallowed so a failed
-// aggregation does NOT roll back the push.
-func (s *RepoService) OnPostReceive(ctx context.Context, repoID int64, commits []*object.Commit) error {
-	if s.commitStats == nil {
+// Best-effort: errors are logged and returned (caller logs at the goroutine boundary); the push is not rolled back.
+func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository, gitRepo *gogit.Repository, commands []*packp.Command) error {
+	if s.commitStats == nil || gitRepo == nil || repo == nil {
 		return nil
 	}
-	samples := make([]CommitSample, 0, len(commits))
-	for _, c := range commits {
-		if c == nil {
+	var samples []CommitSample
+	for _, cmd := range commands {
+		if cmd == nil {
 			continue
 		}
-		samples = append(samples, CommitSample{
-			AuthorEmail: c.Author.Email,
-			Time:        c.Author.When,
+		if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
+			continue
+		}
+		if cmd.Action() == packp.Delete {
+			continue
+		}
+		iter, err := gitRepo.Log(&gogit.LogOptions{From: cmd.New})
+		if err != nil {
+			slog.Warn("post-receive: log iter failed",
+				"repo_id", repo.ID, "ref", cmd.Name.String(), "new", cmd.New.String(), "error", err)
+			continue
+		}
+		walkErr := iter.ForEach(func(c *object.Commit) error {
+			if c.Hash == cmd.Old {
+				return storer.ErrStop
+			}
+			samples = append(samples, CommitSample{
+				AuthorEmail: c.Author.Email,
+				Time:        c.Author.When,
+			})
+			return nil
 		})
+		iter.Close()
+		if walkErr != nil {
+			slog.Warn("post-receive: commit walk failed",
+				"repo_id", repo.ID, "ref", cmd.Name.String(), "new", cmd.New.String(), "error", walkErr)
+		}
 	}
-	if err := s.commitStats.Ingest(ctx, repoID, samples); err != nil {
-		slog.Warn("commit stats ingest failed", "err", err, "repo_id", repoID)
-		return err
+	if len(samples) == 0 {
+		return nil
+	}
+	if err := s.commitStats.Ingest(ctx, repo.ID, samples); err != nil {
+		return fmt.Errorf("commit stats ingest (repo_id=%d, samples=%d): %w", repo.ID, len(samples), err)
 	}
 	return nil
 }
@@ -128,8 +149,6 @@ func (s *RepoService) List(ctx context.Context) ([]model.Repository, error) {
 	return s.repos.List(ctx)
 }
 
-// CountForUser returns the number of (non-soft-deleted) repos owned directly
-// by the user. Org-owned repos are not counted.
 func (s *RepoService) CountForUser(ctx context.Context, userID int64) (int, error) {
 	return s.repos.CountForUser(ctx, userID)
 }

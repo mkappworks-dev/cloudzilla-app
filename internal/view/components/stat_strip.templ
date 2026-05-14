@@ -2,15 +2,12 @@ package components
 
 import "strconv"
 
-// StatItem is one cell in the home page stat strip.
 type StatItem struct {
-	Label    string // e.g. "Repositories"
+	Label    string
 	Value    int
-	Subtitle string // e.g. "open"; rendered below the value if non-empty
+	Subtitle string // rendered below the value if non-empty
 }
 
-// StatStrip renders 2- or 4-up label/value cards on the home dashboard.
-// Layout collapses to 2 columns under the md breakpoint.
 templ StatStrip(items []StatItem) {
 	<dl class="grid grid-cols-2 md:grid-cols-4 gap-3">
 		for _, it := range items {

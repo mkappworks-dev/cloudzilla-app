@@ -68,12 +68,11 @@ templ TimelineIcon(variant TimelineVariant) {
 	</span>
 }
 
-// TimelineEntryKind labels each row's event type. The icon variant and verb
-// are derived from this; the body is supplied as templ children.
 type TimelineEntryKind string
 
 const (
 	TimelineEntryComment  TimelineEntryKind = "comment"
+	TimelineEntryOpened   TimelineEntryKind = "opened"
 	TimelineEntryClosed   TimelineEntryKind = "closed"
 	TimelineEntryReopened TimelineEntryKind = "reopened"
 	TimelineEntryMerged   TimelineEntryKind = "merged"
@@ -82,8 +81,6 @@ const (
 	TimelineEntryReviewed TimelineEntryKind = "reviewed"
 )
 
-// TimelineEntry renders one row inside a Timeline: actor link + action verb
-// + timestamp, with optional rich children below (e.g. a comment card).
 templ TimelineEntry(kind TimelineEntryKind, actor string, when string) {
 	@TimelineItem() {
 		@TimelineIcon(timelineEntryVariant(kind)) {
@@ -105,7 +102,7 @@ func timelineEntryVariant(k TimelineEntryKind) TimelineVariant {
 	switch k {
 	case TimelineEntryClosed:
 		return TimelineDestructive
-	case TimelineEntryReopened, TimelineEntryReviewed:
+	case TimelineEntryOpened, TimelineEntryReopened, TimelineEntryReviewed:
 		return TimelineSuccess
 	case TimelineEntryMerged:
 		return TimelineMerged
@@ -118,6 +115,8 @@ func timelineEntryVerb(k TimelineEntryKind) string {
 	switch k {
 	case TimelineEntryComment:
 		return "commented"
+	case TimelineEntryOpened:
+		return "opened this"
 	case TimelineEntryClosed:
 		return "closed this"
 	case TimelineEntryReopened:

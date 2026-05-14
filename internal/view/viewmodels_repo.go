@@ -28,7 +28,6 @@ type RepoData struct {
 	LatestRelease *model.Release
 	Topics        []model.Topic
 	IsArchived    bool
-	// Phase 1 about-sidebar widgets.
 	Languages   []components.LangBarItem
 	TopContribs []service.ContributorStat
 	Releases    []model.Release

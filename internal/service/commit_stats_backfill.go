@@ -8,13 +8,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-// BackfillRecentCommits walks each repo's default branch over the last `days`
-// days and re-ingests commits into commit_day_counts. It is safe to re-run
-// because CommitStatsStore.UpsertCount is idempotent on (repo, user, day).
-//
-// Errors on a single repo are logged and swallowed so one bad repo does not
-// halt the whole backfill. The walk honors ctx.Err() so a deadline cancels
-// the job cleanly.
+// Safe to re-run: UpsertCount is idempotent on (repo, user, day). Per-repo errors are logged and swallowed.
 func (s *CommitStatsService) BackfillRecentCommits(ctx context.Context, repos []model.Repository, code *CodeService, days int) error {
 	cutoff := time.Now().UTC().AddDate(0, 0, -days)
 	for _, r := range repos {

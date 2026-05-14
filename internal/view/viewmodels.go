@@ -35,19 +35,12 @@ type BasePage struct {
 	UserOrgs []model.Organization
 }
 
-// Page data structs
 // HomeData holds template data for the home dashboard page.
-//
-// Phase 1 additions (Stats/Heatmap/Attention/Activity) power the
-// dashboard sections wired up in Task 11 of the UI overhaul. They are
-// only populated for authenticated viewers; signed-out users get a
-// degraded but still-functional page (stat strip + heatmap simply
-// don't render).
+// Stats/Heatmap/Attention/Activity are only populated for authenticated viewers.
 type HomeData struct {
 	BasePage
 	Repos     []model.Repository
 	Templates []model.Repository
-	// Phase 1 additions:
 	Stats     []components.StatItem
 	Heatmap   map[time.Time]int
 	Attention []service.AttentionItem

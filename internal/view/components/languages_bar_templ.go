@@ -13,9 +13,7 @@ import (
 	"strconv"
 )
 
-// LangBarItem is one segment of the language composition bar. Color is
-// an HSL string (e.g. "hsl(0 60% 50%)") OR a hex value; whichever the
-// caller passes is set as the inline background-color.
+// Color may be an HSL string or hex; whichever the caller passes is set as inline background-color.
 type LangBarItem struct {
 	Name    string
 	Percent int
@@ -55,7 +53,7 @@ func LanguagesBar(items []LangBarItem) templ.Component {
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(fmt.Sprintf("%s — %d%%", it.Name, it.Percent))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/languages_bar.templ`, Line: 21, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/languages_bar.templ`, Line: 19, Col: 64}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 			if templ_7745c5c3_Err != nil {
@@ -68,7 +66,7 @@ func LanguagesBar(items []LangBarItem) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("width: %d%%; background-color: %s;", it.Percent, it.Color))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/languages_bar.templ`, Line: 21, Col: 146}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/languages_bar.templ`, Line: 19, Col: 146}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -91,7 +89,7 @@ func LanguagesBar(items []LangBarItem) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("background-color: " + it.Color)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/languages_bar.templ`, Line: 27, Col: 92}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/languages_bar.templ`, Line: 25, Col: 92}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -104,7 +102,7 @@ func LanguagesBar(items []LangBarItem) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(it.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/languages_bar.templ`, Line: 28, Col: 44}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/languages_bar.templ`, Line: 26, Col: 44}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -117,7 +115,7 @@ func LanguagesBar(items []LangBarItem) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(it.Percent) + "%")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/languages_bar.templ`, Line: 29, Col: 43}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/languages_bar.templ`, Line: 27, Col: 43}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -136,8 +134,6 @@ func LanguagesBar(items []LangBarItem) templ.Component {
 	})
 }
 
-// LangColor maps a language name to a stable display color. Mirrors the
-// GitHub palette for familiarity. Unknown languages get a neutral fallback.
 func LangColor(name string) string {
 	switch name {
 	case "Go":

@@ -10,29 +10,21 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
-// CommitSample is one commit's contribution data for stats ingestion.
-// AuthorEmail is matched against UserStore.GetByEmail to attribute the
-// commit to a user; samples with no matching user are silently skipped.
 type CommitSample struct {
 	AuthorEmail string
 	Time        time.Time
 }
 
-// CommitStatsService aggregates per-(user, day) commit counts that back
-// the contribution heatmap.
 type CommitStatsService struct {
 	stats *store.CommitStatsStore
 	users *store.UserStore
 }
 
-// NewCommitStatsService creates a CommitStatsService backed by the given stores.
 func NewCommitStatsService(stats *store.CommitStatsStore, users *store.UserStore) *CommitStatsService {
 	return &CommitStatsService{stats: stats, users: users}
 }
 
-// Ingest aggregates the given commit samples by (matched user, day) and
-// upserts each bucket. Anonymous commits (no matching user email) are
-// silently skipped — they do not contribute to any user's heatmap.
+// Anonymous commits (no matching user email) are silently skipped.
 func (s *CommitStatsService) Ingest(ctx context.Context, repoID int64, samples []CommitSample) error {
 	type key struct {
 		userID int64
@@ -73,8 +65,6 @@ func (s *CommitStatsService) Ingest(ctx context.Context, repoID int64, samples [
 	return nil
 }
 
-// CommitsForUserSince returns the total commit count for the user across
-// all repos over the past `days` days. Used by the home page stat strip.
 func (s *CommitStatsService) CommitsForUserSince(ctx context.Context, userID int64, days int) (int, error) {
 	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)
 	rows, err := s.stats.ListForUserSince(ctx, userID, since)
@@ -88,9 +78,7 @@ func (s *CommitStatsService) CommitsForUserSince(ctx context.Context, userID int
 	return total, nil
 }
 
-// LookbackForRepo returns per-day commit counts (summed across users)
-// for the given repo over the past `days` days. Used by the repo About
-// sidebar mini heatmap.
+// Materializes the full window with explicit zero entries so the heatmap can render a regular grid.
 func (s *CommitStatsService) LookbackForRepo(ctx context.Context, repoID int64, days int) (map[time.Time]int, error) {
 	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)
 	rows, err := s.stats.ListForRepoSince(ctx, repoID, since)
@@ -107,9 +95,7 @@ func (s *CommitStatsService) LookbackForRepo(ctx context.Context, repoID int64, 
 	return out, nil
 }
 
-// LookbackForUser returns per-day commit counts for the user over the past
-// `days` days. The full window is materialized — days with zero commits
-// get an explicit zero entry — so the heatmap can render a regular grid.
+// Materializes the full window with explicit zero entries so the heatmap can render a regular grid.
 func (s *CommitStatsService) LookbackForUser(ctx context.Context, userID int64, days int) (map[time.Time]int, error) {
 	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)
 	rows, err := s.stats.ListForUserSince(ctx, userID, since)

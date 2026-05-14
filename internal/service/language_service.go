@@ -9,9 +9,7 @@ import (
 	"time"
 )
 
-// extToLang maps a file extension (lowercase, with leading dot) to its
-// canonical language label. README/Markdown/configs/lockfiles are
-// intentionally excluded — composition is about *code*.
+// README/Markdown/configs/lockfiles are intentionally excluded — composition is about *code*.
 var extToLang = map[string]string{
 	".go":    "Go",
 	".js":    "JavaScript",
@@ -38,7 +36,6 @@ var extToLang = map[string]string{
 	".sql":   "SQL",
 }
 
-// excludedDirs are skipped during the scan (vendored, build output, VCS).
 var excludedDirs = map[string]bool{
 	"node_modules": true,
 	"vendor":       true,
@@ -48,9 +45,6 @@ var excludedDirs = map[string]bool{
 	"target":       true,
 }
 
-// LanguageService computes per-repo language composition by walking the
-// repo tree at a given ref and bucketing files by extension. Results are
-// cached for 10 minutes per (owner/repo, ref).
 type LanguageService struct {
 	code  *CodeService
 	cache sync.Map // key="owner/repo:ref" → cacheEntry
@@ -63,14 +57,10 @@ type cacheEntry struct {
 
 const langCacheTTL = 10 * time.Minute
 
-// NewLanguageService returns a LanguageService that reads tree data via
-// the given CodeService.
 func NewLanguageService(code *CodeService) *LanguageService {
 	return &LanguageService{code: code}
 }
 
-// Composition returns bytes-per-language for the repo at the given ref.
-// Cached for 10 minutes per (owner/repo, ref).
 func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref string) (map[string]int64, error) {
 	key := owner + "/" + repoName + ":" + ref
 	if v, ok := s.cache.Load(key); ok {
@@ -100,15 +90,13 @@ func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref 
 	return comp, nil
 }
 
-// LangPercent is one row of the normalized language composition: name +
-// integer percent (sums to ≤ 100; rounding may drop a percentage point).
+// Percent is an integer; sum may be ≤ 100 due to rounding.
 type LangPercent struct {
 	Name    string
 	Percent int
 }
 
-// Percentages returns Composition normalized to integer percentages,
-// sorted descending. Languages contributing less than 1% are dropped.
+// Drops languages contributing less than 1%.
 func (s *LanguageService) Percentages(ctx context.Context, owner, repoName, ref string) ([]LangPercent, error) {
 	comp, err := s.Composition(ctx, owner, repoName, ref)
 	if err != nil {

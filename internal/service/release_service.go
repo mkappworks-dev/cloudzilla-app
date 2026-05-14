@@ -74,9 +74,7 @@ func (s *ReleaseService) ListByRepo(ctx context.Context, owner, repoName string)
 	return s.releases.ListByRepo(ctx, repo.ID)
 }
 
-// RecentForRepo returns up to `limit` releases for the given repo ordered
-// by published_at desc (falling back to created_at when PublishedAt is nil).
-// Used by the repo about sidebar.
+// Falls back to created_at when PublishedAt is nil.
 func (s *ReleaseService) RecentForRepo(ctx context.Context, owner, repoName string, limit int) ([]model.Release, error) {
 	all, err := s.ListByRepo(ctx, owner, repoName)
 	if err != nil {

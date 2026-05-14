@@ -5,11 +5,7 @@ import (
 	"time"
 )
 
-// Heatmap renders a contribution calendar: `weeks` columns of 7 rows.
-// `counts` is day → commit-count. Missing days render as zero. `today`
-// is the rightmost (latest) day; older weeks scroll off the left.
-//
-// Cells use the heatmap-cell-{0..4} utilities defined in tailwind/input.css.
+// `counts` is day → commit-count. Missing days render as zero. `today` is the rightmost (latest) day.
 templ Heatmap(counts map[time.Time]int, today time.Time, weeks int) {
 	<div role="img" aria-label={ heatmapAriaLabel(counts, weeks) } class="inline-grid grid-flow-col gap-[2px]" style="grid-template-rows: repeat(7, 11px); grid-auto-columns: 11px;">
 		for _, day := range heatmapDays(today, weeks) {
@@ -18,10 +14,7 @@ templ Heatmap(counts map[time.Time]int, today time.Time, weeks int) {
 	</div>
 }
 
-// heatmapDays returns weeks*7 day-timestamps ending at today (UTC midnight).
-// The grid's left edge is the Sunday `weeks-1` weeks before today; days are
-// ordered left-to-right by week, top-to-bottom by weekday (Sun..Sat).
-// Templ writes cells in iteration order; CSS grid flow handles layout.
+// Grid left edge snaps back to Sunday so columns are full weeks.
 func heatmapDays(today time.Time, weeks int) []time.Time {
 	today = today.UTC().Truncate(24 * time.Hour)
 	start := today.AddDate(0, 0, -7*(weeks-1))

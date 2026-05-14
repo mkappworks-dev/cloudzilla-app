@@ -347,8 +347,6 @@ func (s *IssueStore) CountClosedSince(ctx context.Context, repoID int64, since t
 	return n, err
 }
 
-// CountOpenAuthoredByOrAssignedTo returns the count of open issues the
-// user either authored OR is assigned to.
 func (s *IssueStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,
@@ -361,9 +359,6 @@ func (s *IssueStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID
 	return n, err
 }
 
-// IssueListItem is a display-ready issue projection for cross-repo lists
-// like the home page attention list. It includes the repo's full name so
-// callers do not have to make extra round trips for repo metadata.
 type IssueListItem struct {
 	ID           int64
 	Number       int
@@ -373,9 +368,6 @@ type IssueListItem struct {
 	UpdatedAt    time.Time
 }
 
-// ListOpenAssignedToUser returns up to 50 open issues assigned to the
-// given user, joined with the repo's full name for display. Sorted by
-// updated_at descending. Used by the home page attention list.
 func (s *IssueStore) ListOpenAssignedToUser(ctx context.Context, userID int64) ([]IssueListItem, error) {
 	const q = `
 		SELECT i.id, i.number, i.title, i.author_id,

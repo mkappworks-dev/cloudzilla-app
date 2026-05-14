@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-// CommitDayCount is one row of commit_day_counts. RepoID is informational;
-// ListForRepoSince zeroes UserID because the SUM aggregates across users.
 type CommitDayCount struct {
 	RepoID      int64
 	UserID      int64
@@ -15,19 +13,15 @@ type CommitDayCount struct {
 	CommitCount int
 }
 
-// CommitStatsStore provides database operations for the
-// commit_day_counts aggregate table that backs the contribution heatmap.
 type CommitStatsStore struct {
 	db *sql.DB
 }
 
-// NewCommitStatsStore creates a CommitStatsStore backed by the given database.
 func NewCommitStatsStore(database *sql.DB) *CommitStatsStore {
 	return &CommitStatsStore{db: database}
 }
 
-// UpsertCount replaces (does not add to) the commit count for the
-// (repo, user, day) tuple. Idempotent for retry of the same push.
+// Replaces (does not add to) the count, so retries of the same push are idempotent.
 func (s *CommitStatsStore) UpsertCount(ctx context.Context, repoID, userID int64, day time.Time, count int) error {
 	const q = `
 		INSERT INTO commit_day_counts (repo_id, user_id, day, commit_count, updated_at)
@@ -39,8 +33,6 @@ func (s *CommitStatsStore) UpsertCount(ctx context.Context, repoID, userID int64
 	return err
 }
 
-// ListForUserSince returns per-day commit counts for the user across all
-// their repos since `since` (inclusive), ordered by day ascending.
 func (s *CommitStatsStore) ListForUserSince(ctx context.Context, userID int64, since time.Time) ([]CommitDayCount, error) {
 	const q = `
 		SELECT repo_id, user_id, day, commit_count
@@ -64,8 +56,7 @@ func (s *CommitStatsStore) ListForUserSince(ctx context.Context, userID int64, s
 	return out, rows.Err()
 }
 
-// ListForRepoSince returns per-day commit counts (summed across users) for
-// one repo. UserID in the returned rows is zero because the SUM crosses users.
+// UserID in returned rows is zero — the SUM aggregates across users.
 func (s *CommitStatsStore) ListForRepoSince(ctx context.Context, repoID int64, since time.Time) ([]CommitDayCount, error) {
 	const q = `
 		SELECT day, SUM(commit_count)::int AS commit_count

@@ -9,8 +9,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
-// LogSinceCommit is one commit returned from LogSince, flattened so callers
-// (e.g. background jobs) don't need to depend on go-git types directly.
 type LogSinceCommit struct {
 	SHA         string
 	AuthorEmail string
@@ -18,18 +16,13 @@ type LogSinceCommit struct {
 	Time        time.Time
 }
 
-// LogSince returns every commit reachable from ref whose author time is at
-// or after cutoff. When ref is empty, HEAD is used. The walk short-circuits
-// (returns storer.ErrStop) as soon as a commit older than cutoff is seen,
-// so very-old history is not traversed. The walk also honors ctx.Err() so
-// callers can bound the walk with a deadline.
+// Short-circuits as soon as a commit older than cutoff is seen.
 func (s *CodeService) LogSince(ctx context.Context, owner, repoName, ref string, cutoff time.Time) ([]LogSinceCommit, error) {
 	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
 	if err != nil {
 		return nil, err
 	}
-	// resolveRef treats "" as HEAD; the literal string "HEAD" would be tried
-	// as a branch/tag/SHA and fail. Normalize both to the empty-ref path.
+	// resolveRef treats "" as HEAD; the literal string "HEAD" would be tried as a branch/tag/SHA and fail.
 	if ref == "HEAD" {
 		ref = ""
 	}

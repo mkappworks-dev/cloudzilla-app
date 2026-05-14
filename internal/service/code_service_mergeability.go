@@ -8,10 +8,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
-// Mergeability is the composite mergeability summary used by the PR
-// detail page sidebar. It only captures the raw git-level merge-base +
-// tree-merge state; branch protection / required checks / required
-// reviews are layered on top by the PR handler.
+// Captures raw git-level state only; branch protection / required checks / reviews are layered on top by the PR handler.
 type Mergeability struct {
 	BaseRef      string
 	HeadRef      string
@@ -21,9 +18,6 @@ type Mergeability struct {
 	MergeBase    string // SHA, empty if no common ancestor
 }
 
-// Mergeability computes the merge-readiness composite for (base, head).
-// Reuses the merge helpers in code_service_merge.go: resolveRef,
-// findMergeBase, mergeTreesNoConflict. No new helpers are introduced.
 func (s *CodeService) Mergeability(ctx context.Context, owner, repoName, base, head string) (Mergeability, error) {
 	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
 	if err != nil {
@@ -67,12 +61,8 @@ func (s *CodeService) Mergeability(ctx context.Context, owner, repoName, base, h
 	}, nil
 }
 
-// countCommitsBetween counts commits reachable from `to` but not from
-// `from` (exclusive of `from`). Walks `to`'s history, stopping when it
-// hits the `from` commit. Returns 0 if from == to.
-//
-// go-git's iter.ForEach swallows storer.ErrStop and returns nil, mirroring
-// the pattern in code_service_log.go (LogSince).
+// Counts commits reachable from `to` but not from `from` (exclusive of `from`).
+// go-git's iter.ForEach swallows storer.ErrStop and returns nil.
 func countCommitsBetween(repo *gogit.Repository, from, to *object.Commit) (int, error) {
 	if from.Hash == to.Hash {
 		return 0, nil

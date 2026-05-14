@@ -45,14 +45,7 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 	return page
 }
 
-// PageHome renders the home dashboard page.
-//
-// Phase 1 UI overhaul: the dashboard sections (stat strip, contribution
-// heatmap, attention list, activity feed) are populated for signed-in
-// users. Each optional fetch is best-effort — a single sub-service
-// outage degrades that section's data to its zero value rather than
-// failing the whole page. Signed-out viewers see the static repo list
-// only.
+// Each dashboard fetch is best-effort: a sub-service failure degrades that section to its zero value rather than failing the whole page.
 func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	repos, err := h.Services.Repo.List(ctx)

@@ -5,11 +5,16 @@ import (
 	"strconv"
 )
 
-// MergeabilityBoxData holds everything the PR sidebar merge box needs.
-// PatchURL is the endpoint the three buttons hx-patch against — built
-// by the PR handler as fmt.Sprintf("/api/repos/%s/%s/pulls/%d", owner, repo, number).
+// PatchURL is the endpoint the three buttons hx-patch against (typically /api/repos/{owner}/{repo}/pulls/{number}).
 type MergeabilityBoxData struct {
-	PatchURL         string
+	PatchURL string
+	// Unavailable signals that the handler could not compute mergeability (e.g.
+	// a ref no longer resolves after a force-push). Renders an explicit
+	// "unavailable" message instead of misleading zero values.
+	Unavailable bool
+	// UpToDate means head equals base — no commits to merge. Distinct from
+	// Mergeable, which means "conflict-free with a non-empty diff".
+	UpToDate         bool
 	Mergeable        bool
 	Ahead            int
 	Behind           int
@@ -25,23 +30,29 @@ type MergeabilityBoxData struct {
 
 templ MergeabilityBox(d MergeabilityBoxData) {
 	<section aria-label="Mergeability" class="rounded-md border border-border bg-card p-4 space-y-3">
-		if d.HasConflicts {
+		if d.Unavailable {
+			<p class="text-sm font-medium text-muted-foreground">Merge status unavailable. Refresh to try again.</p>
+		} else if d.HasConflicts {
 			<p class="text-sm font-medium text-destructive">This branch has conflicts that must be resolved.</p>
+		} else if d.UpToDate {
+			<p class="text-sm font-medium text-muted-foreground">This branch is up to date with the base — nothing to merge.</p>
 		} else if d.Mergeable {
 			<p class="text-sm font-medium text-success">This branch has no conflicts with the base branch.</p>
 		} else {
 			<p class="text-sm font-medium text-warning">Checking mergeability…</p>
 		}
-		<ul class="text-xs text-muted-foreground space-y-1">
-			<li>{ aheadBehindDescription(d.Ahead, d.Behind) }</li>
-			if d.RequiredChecks > 0 {
-				<li>{ checksDescription(d.PassingChecks, d.RequiredChecks) }</li>
-			}
-			if d.RequiredReviews > 0 {
-				<li>{ reviewsDescription(d.ApprovedReviews, d.RequiredReviews) }</li>
-			}
-		</ul>
-		if !d.HasConflicts && d.Mergeable {
+		if !d.Unavailable {
+			<ul class="text-xs text-muted-foreground space-y-1">
+				<li>{ aheadBehindDescription(d.Ahead, d.Behind) }</li>
+				if d.RequiredChecks > 0 {
+					<li>{ checksDescription(d.PassingChecks, d.RequiredChecks) }</li>
+				}
+				if d.RequiredReviews > 0 {
+					<li>{ reviewsDescription(d.ApprovedReviews, d.RequiredReviews) }</li>
+				}
+			</ul>
+		}
+		if !d.Unavailable && !d.HasConflicts && d.Mergeable {
 			<div class="flex flex-wrap gap-2 pt-2">
 				if d.CanFastForward {
 					<button type="button"

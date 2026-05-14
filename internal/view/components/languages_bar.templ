@@ -5,9 +5,7 @@ import (
 	"strconv"
 )
 
-// LangBarItem is one segment of the language composition bar. Color is
-// an HSL string (e.g. "hsl(0 60% 50%)") OR a hex value; whichever the
-// caller passes is set as the inline background-color.
+// Color may be an HSL string or hex; whichever the caller passes is set as inline background-color.
 type LangBarItem struct {
 	Name    string
 	Percent int
@@ -33,8 +31,6 @@ templ LanguagesBar(items []LangBarItem) {
 	</div>
 }
 
-// LangColor maps a language name to a stable display color. Mirrors the
-// GitHub palette for familiarity. Unknown languages get a neutral fallback.
 func LangColor(name string) string {
 	switch name {
 	case "Go":

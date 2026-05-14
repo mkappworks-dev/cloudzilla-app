@@ -200,12 +200,11 @@ func TimelineIcon(variant TimelineVariant) templ.Component {
 	})
 }
 
-// TimelineEntryKind labels each row's event type. The icon variant and verb
-// are derived from this; the body is supplied as templ children.
 type TimelineEntryKind string
 
 const (
 	TimelineEntryComment  TimelineEntryKind = "comment"
+	TimelineEntryOpened   TimelineEntryKind = "opened"
 	TimelineEntryClosed   TimelineEntryKind = "closed"
 	TimelineEntryReopened TimelineEntryKind = "reopened"
 	TimelineEntryMerged   TimelineEntryKind = "merged"
@@ -214,8 +213,6 @@ const (
 	TimelineEntryReviewed TimelineEntryKind = "reviewed"
 )
 
-// TimelineEntry renders one row inside a Timeline: actor link + action verb
-// + timestamp, with optional rich children below (e.g. a comment card).
 func TimelineEntry(kind TimelineEntryKind, actor string, when string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -274,7 +271,7 @@ func TimelineEntry(kind TimelineEntryKind, actor string, when string) templ.Comp
 			var templ_7745c5c3_Var10 templ.SafeURL
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + actor))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/timeline.templ`, Line: 93, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/timeline.templ`, Line: 90, Col: 40}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -287,7 +284,7 @@ func TimelineEntry(kind TimelineEntryKind, actor string, when string) templ.Comp
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(actor)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/timeline.templ`, Line: 93, Col: 105}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/timeline.templ`, Line: 90, Col: 105}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -300,7 +297,7 @@ func TimelineEntry(kind TimelineEntryKind, actor string, when string) templ.Comp
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(" " + timelineEntryVerb(kind) + " ")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/timeline.templ`, Line: 94, Col: 77}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/timeline.templ`, Line: 91, Col: 77}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -313,7 +310,7 @@ func TimelineEntry(kind TimelineEntryKind, actor string, when string) templ.Comp
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(when)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/timeline.templ`, Line: 95, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/timeline.templ`, Line: 92, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {

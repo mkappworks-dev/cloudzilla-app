@@ -103,9 +103,7 @@ func (s *RepoStore) List(ctx context.Context) ([]model.Repository, error) {
 	return scanRepoRows(rows)
 }
 
-// ListAll returns every non-soft-deleted repository, ordered by ID for stable
-// iteration in background jobs (e.g. commit-stats backfill). It mirrors List
-// except for the ordering and applies no per-user / per-org filtering.
+// Ordered by ID for stable iteration in background jobs; no per-user / per-org filtering.
 func (s *RepoStore) ListAll(ctx context.Context) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
@@ -558,8 +556,7 @@ func (s *RepoStore) PurgeExpired(ctx context.Context, before time.Time) ([]model
 	return repos, nil
 }
 
-// CountForUser returns the number of (non-soft-deleted) repositories
-// owned directly by the given user. Org-owned repos are not counted.
+// Org-owned repos are not counted.
 func (s *RepoStore) CountForUser(ctx context.Context, userID int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,

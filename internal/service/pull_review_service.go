@@ -16,11 +16,7 @@ type PullReviewService struct {
 	protections *store.BranchProtectionStore
 }
 
-// NewPullReviewService creates a PullReviewService backed by the given stores.
-//
-// `protections` is used by Counts to look up the required review count for
-// the PR's base branch. It may be nil in test fixtures that only exercise
-// SubmitReview / CanMerge / ListByPull; Counts will then return (0, 0, nil).
+// `protections` may be nil in test fixtures; Counts will then return (0, 0, nil).
 func NewPullReviewService(reviews *store.PullReviewStore, pulls *store.PullStore, repos *store.RepoStore, protections *store.BranchProtectionStore) *PullReviewService {
 	return &PullReviewService{reviews: reviews, pulls: pulls, repos: repos, protections: protections}
 }
@@ -74,12 +70,7 @@ func (s *PullReviewService) ListByPull(ctx context.Context, owner, repoName stri
 	return s.reviews.ListByPull(ctx, pr.ID)
 }
 
-// Counts returns the number of approvals required by the branch protection
-// rule that matches the PR's base branch, and how many distinct reviewers
-// have submitted an "approved" review on the PR.
-//
-// Returns (0, 0, nil) when no protection rule matches or required deps
-// are unavailable — the caller treats that as "no required reviews".
+// Returns (0, 0, nil) when no protection rule matches or required deps are unavailable.
 func (s *PullReviewService) Counts(ctx context.Context, pullID int64) (required int, approved int, err error) {
 	if s.pulls == nil {
 		return 0, 0, nil
@@ -102,7 +93,7 @@ func (s *PullReviewService) Counts(ctx context.Context, pullID int64) (required 
 	}
 	reviews, err := s.reviews.ListByPull(ctx, pullID)
 	if err != nil {
-		return required, 0, nil
+		return required, 0, fmt.Errorf("list reviews for pull %d: %w", pullID, err)
 	}
 	approvers := make(map[int64]bool)
 	for _, rev := range reviews {

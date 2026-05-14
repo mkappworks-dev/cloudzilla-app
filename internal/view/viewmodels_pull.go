@@ -42,7 +42,6 @@ type PullDetailData struct {
 	AutoMergeStrategy string
 	// LineComments keyed by "path:line" (e.g. "src/main.go:42")
 	LineComments map[string][]RenderedLineComment
-	// Mergeability drives the PR sidebar MergeabilityBox (Phase 1 Task 10).
 	Mergeability components.MergeabilityBoxData
 }
 

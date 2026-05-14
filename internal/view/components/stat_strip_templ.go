@@ -10,15 +10,12 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "strconv"
 
-// StatItem is one cell in the home page stat strip.
 type StatItem struct {
-	Label    string // e.g. "Repositories"
+	Label    string
 	Value    int
-	Subtitle string // e.g. "open"; rendered below the value if non-empty
+	Subtitle string // rendered below the value if non-empty
 }
 
-// StatStrip renders 2- or 4-up label/value cards on the home dashboard.
-// Layout collapses to 2 columns under the md breakpoint.
 func StatStrip(items []StatItem) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -52,7 +49,7 @@ func StatStrip(items []StatItem) templ.Component {
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(it.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/stat_strip.templ`, Line: 18, Col: 95}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/stat_strip.templ`, Line: 15, Col: 95}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -65,7 +62,7 @@ func StatStrip(items []StatItem) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(it.Value))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/stat_strip.templ`, Line: 19, Col: 83}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/stat_strip.templ`, Line: 16, Col: 83}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -83,7 +80,7 @@ func StatStrip(items []StatItem) templ.Component {
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(it.Subtitle)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/stat_strip.templ`, Line: 21, Col: 63}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/stat_strip.templ`, Line: 18, Col: 63}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {

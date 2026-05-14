@@ -42,9 +42,7 @@ func main() {
 	stores := store.New(database)
 	services := service.New(stores, cfg)
 
-	// Commit-stats backfill: one-shot, runs in background so we don't block startup.
-	// Walks each non-deleted repo's default branch over the last 365 days and
-	// re-ingests commit metadata. UpsertCount is idempotent so re-runs are safe.
+	// One-shot commit-stats backfill; UpsertCount is idempotent so re-runs are safe.
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer cancel()

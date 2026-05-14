@@ -13,11 +13,7 @@ import (
 	"time"
 )
 
-// Heatmap renders a contribution calendar: `weeks` columns of 7 rows.
-// `counts` is day → commit-count. Missing days render as zero. `today`
-// is the rightmost (latest) day; older weeks scroll off the left.
-//
-// Cells use the heatmap-cell-{0..4} utilities defined in tailwind/input.css.
+// `counts` is day → commit-count. Missing days render as zero. `today` is the rightmost (latest) day.
 func Heatmap(counts map[time.Time]int, today time.Time, weeks int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -46,7 +42,7 @@ func Heatmap(counts map[time.Time]int, today time.Time, weeks int) templ.Compone
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(heatmapAriaLabel(counts, weeks))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 14, Col: 61}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 10, Col: 61}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
@@ -82,7 +78,7 @@ func Heatmap(counts map[time.Time]int, today time.Time, weeks int) templ.Compone
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(heatmapTitle(day, counts[day]))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 16, Col: 105}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 12, Col: 105}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 			if templ_7745c5c3_Err != nil {
@@ -101,10 +97,7 @@ func Heatmap(counts map[time.Time]int, today time.Time, weeks int) templ.Compone
 	})
 }
 
-// heatmapDays returns weeks*7 day-timestamps ending at today (UTC midnight).
-// The grid's left edge is the Sunday `weeks-1` weeks before today; days are
-// ordered left-to-right by week, top-to-bottom by weekday (Sun..Sat).
-// Templ writes cells in iteration order; CSS grid flow handles layout.
+// Grid left edge snaps back to Sunday so columns are full weeks.
 func heatmapDays(today time.Time, weeks int) []time.Time {
 	today = today.UTC().Truncate(24 * time.Hour)
 	start := today.AddDate(0, 0, -7*(weeks-1))

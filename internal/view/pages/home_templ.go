@@ -1026,8 +1026,6 @@ func Home(data view.HomeData) templ.Component {
 	})
 }
 
-// repoIcon renders a small visibility icon for a repo row.
-// `role="img"` + <title> announces "Public/Private repository" to screen readers.
 func repoIcon(private bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -1064,10 +1062,6 @@ func repoIcon(private bool) templ.Component {
 	})
 }
 
-// attentionKindIcon renders a small SVG for an attention list row.
-// Phase 1 only emits AttentionIssueAssigned, but the switch is here so
-// later phases can add review-requested and mention rows without
-// reworking the template structure.
 func attentionKindIcon(kind service.AttentionKind) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -1105,9 +1099,7 @@ func attentionKindIcon(kind service.AttentionKind) templ.Component {
 	})
 }
 
-// formatRelative renders a coarse "5 minutes ago" / "2 hours ago" /
-// "3 days ago" string. Buckets are deliberately rough — anything beyond
-// a week falls back to an absolute date.
+// Anything beyond a week falls back to an absolute date.
 func formatRelative(t time.Time) string {
 	d := time.Since(t)
 	switch {
@@ -1136,26 +1128,15 @@ func formatRelative(t time.Time) string {
 	}
 }
 
-// attentionRepoURL returns the canonical URL for the repository
-// hosting an attention item (e.g. "/alice/cloudzilla").
 func attentionRepoURL(item service.AttentionItem) string {
 	return "/" + item.RepoName
 }
 
-// attentionItemURL returns the canonical URL for the underlying
-// issue/PR of an attention item. Phase 1 only emits issue rows.
 func attentionItemURL(item service.AttentionItem) string {
 	return "/" + item.RepoName + "/issues/" + strconv.Itoa(item.Number)
 }
 
-// eventTimelineKind maps a model.Event.EventType string onto a
-// TimelineEntryKind for icon/variant selection.
-//
-// This is intentionally lossy — many event types (push, fork, star,
-// release_published, member_added, …) do not map cleanly to a
-// TimelineEntryKind. They fall through to TimelineEntryComment so the
-// row still renders. A follow-up phase will refine the mapping (likely
-// by extending the kind enum rather than expanding this switch).
+// Lossy: event types without a clear TimelineEntryKind fall through to TimelineEntryComment.
 func eventTimelineKind(eventType string) components.TimelineEntryKind {
 	switch eventType {
 	case model.EventIssueClosed, model.EventPRClosed:
@@ -1169,8 +1150,6 @@ func eventTimelineKind(eventType string) components.TimelineEntryKind {
 	}
 }
 
-// eventTimelineDetail renders the short repo/scope hint shown below
-// the actor + verb line in the activity sidebar (e.g. "cloudzilla").
 func eventTimelineDetail(ev model.Event) string {
 	if ev.RepoName == "" {
 		return ""

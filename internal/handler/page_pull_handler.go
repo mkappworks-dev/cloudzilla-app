@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -249,28 +250,40 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Phase 1 mergeability composite for the sidebar MergeabilityBox.
-	// CodeService.Mergeability captures git-level ahead/behind/conflicts;
-	// the two Counts methods layer branch-protection required-checks and
-	// required-reviews on top so the merge buttons only render when the
-	// merge is actually achievable. Errors degrade to zero values — the
-	// box still renders, just without that signal.
-	mg, _ := h.Services.Code.Mergeability(r.Context(), owner, repoName, pull.BaseBranch, pull.HeadBranch)
-	requiredChecks, passingChecks, _ := h.Services.CommitStatus.Counts(r.Context(), pull.ID)
-	requiredReviews, approvedReviews, _ := h.Services.PullReview.Counts(r.Context(), pull.ID)
+	// Errors degrade visibly via the MergeabilityBox.Unavailable flag rather
+	// than silently rendering as "0 / 0 / no conflicts", which previously
+	// looked indistinguishable from a healthy "nothing to do" PR.
 	mergeabilityBox := components.MergeabilityBoxData{
-		PatchURL:         fmt.Sprintf("/api/repos/%s/%s/pulls/%d", owner, repoName, pull.Number),
-		Mergeable:        !mg.HasConflicts && mg.Ahead > 0,
-		Ahead:            mg.Ahead,
-		Behind:           mg.Behind,
-		HasConflicts:     mg.HasConflicts,
-		RequiredChecks:   requiredChecks,
-		PassingChecks:    passingChecks,
-		RequiredReviews:  requiredReviews,
-		ApprovedReviews:  approvedReviews,
-		CanFastForward:   mg.Behind == 0 && !mg.HasConflicts,
-		CanThreeWayMerge: !mg.HasConflicts,
-		CanSquash:        !mg.HasConflicts,
+		PatchURL: fmt.Sprintf("/api/repos/%s/%s/pulls/%d", owner, repoName, pull.Number),
+	}
+	mg, mgErr := h.Services.Code.Mergeability(r.Context(), owner, repoName, pull.BaseBranch, pull.HeadBranch)
+	if mgErr != nil {
+		slog.Warn("pull detail: mergeability failed; rendering as unavailable",
+			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", mgErr)
+		mergeabilityBox.Unavailable = true
+	} else {
+		mergeabilityBox.Ahead = mg.Ahead
+		mergeabilityBox.Behind = mg.Behind
+		mergeabilityBox.HasConflicts = mg.HasConflicts
+		mergeabilityBox.UpToDate = !mg.HasConflicts && mg.Ahead == 0
+		mergeabilityBox.Mergeable = !mg.HasConflicts && mg.Ahead > 0
+		mergeabilityBox.CanFastForward = !mg.HasConflicts && mg.Ahead > 0 && mg.Behind == 0
+		mergeabilityBox.CanThreeWayMerge = !mg.HasConflicts && mg.Ahead > 0
+		mergeabilityBox.CanSquash = !mg.HasConflicts && mg.Ahead > 0
+	}
+	if requiredChecks, passingChecks, err := h.Services.CommitStatus.Counts(r.Context(), pull.ID); err != nil {
+		slog.Warn("pull detail: commit status counts failed; hiding checks signal",
+			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)
+	} else {
+		mergeabilityBox.RequiredChecks = requiredChecks
+		mergeabilityBox.PassingChecks = passingChecks
+	}
+	if requiredReviews, approvedReviews, err := h.Services.PullReview.Counts(r.Context(), pull.ID); err != nil {
+		slog.Warn("pull detail: review counts failed; hiding reviews signal",
+			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)
+	} else {
+		mergeabilityBox.RequiredReviews = requiredReviews
+		mergeabilityBox.ApprovedReviews = approvedReviews
 	}
 
 	h.render(w, r, pages.PullDetail(view.PullDetailData{

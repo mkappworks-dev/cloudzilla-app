@@ -7,16 +7,16 @@ import (
 	"crypto/rand"
 	"encoding/pem"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gliderlabs/ssh"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
-	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	gossh "golang.org/x/crypto/ssh"
@@ -113,7 +113,14 @@ func (s *Server) publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	// 2. Try deploy key
 	dk, err := s.services.DeployKey.AuthenticatePublicKey(ctx, gosshKey)
 	if err == nil {
-		go s.services.DeployKey.UpdateLastUsed(context.Background(), dk.ID)
+		keyID := dk.ID
+		safeGo("deploy_key.update_last_used", func() {
+			bg, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := s.services.DeployKey.UpdateLastUsed(bg, keyID); err != nil {
+				slog.Warn("deploy key last_used update failed", "key_id", keyID, "error", err)
+			}
+		})
 		ctx.SetValue("cloudzilla_deploy_key", dk)
 		return true
 	}
@@ -266,34 +273,23 @@ func (s *Server) sessionHandler(session ssh.Session) {
 			}
 			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
 			payload := s.services.Webhook.PushPayload(*repo, pusherName, branch, cmd.New.String())
-			go s.services.Webhook.Dispatch(repo.ID, "push", payload)
+			repoID := repo.ID
+			safeGo("webhook.dispatch.push", func() {
+				s.services.Webhook.Dispatch(repoID, "push", payload)
+			})
 		}
 
 		// Aggregate commit counts into the heatmap (best-effort, fire-and-forget).
-		go func() {
-			var commits []*object.Commit
-			for _, cmd := range commands {
-				if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
-					continue
-				}
-				if cmd.Action() == packp.Delete {
-					continue
-				}
-				iter, err := gitRepo.Log(&gogit.LogOptions{From: cmd.New})
-				if err != nil {
-					continue
-				}
-				_ = iter.ForEach(func(c *object.Commit) error {
-					if c.Hash == cmd.Old {
-						return storer.ErrStop
-					}
-					commits = append(commits, c)
-					return nil
-				})
-				iter.Close()
+		// Walk + ingest is encapsulated in RepoService.OnPostReceive; the
+		// goroutine only owns timeout + error logging.
+		safeGo("repo.on_post_receive", func() {
+			bg, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+			if err := s.services.Repo.OnPostReceive(bg, repo, gitRepo, commands); err != nil {
+				slog.Error("post-receive: commit stats ingest failed",
+					"repo_id", repo.ID, "owner", repo.OwnerName, "repo", repo.Name, "error", err)
 			}
-			_ = s.services.Repo.OnPostReceive(context.Background(), repo.ID, commits)
-		}()
+		})
 	}
 
 	session.Exit(0)

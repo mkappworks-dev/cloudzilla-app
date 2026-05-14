@@ -91,7 +91,6 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, currentUserID)
 	}
 
-	// Phase 1 about-sidebar widgets.
 	var languages []components.LangBarItem
 	if percents, err := h.Services.Language.Percentages(r.Context(), owner, repoName, repo.DefaultBranch); err == nil {
 		languages = make([]components.LangBarItem, 0, len(percents))
