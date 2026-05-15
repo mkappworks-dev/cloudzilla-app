@@ -12,12 +12,14 @@ import (
 templ RepoSettings(data view.RepoSettingsData) {
 	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" — Settings") {
 		<div class="space-y-6">
-			<div class="flex justify-between items-center">
-				<h1 class="text-2xl font-semibold tracking-tight">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-foreground hover:underline">{ data.Owner }/{ data.RepoName }</a>
-					<span class="text-muted-foreground"> / Settings</span>
-				</h1>
-			</div>
+			<section aria-labelledby="settings-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					Settings
+				</p>
+				<h1 id="settings-title" class="text-2xl font-semibold tracking-tight">Repository settings</h1>
+			</section>
 			<!-- Collaborators section -->
 			@components.Card(nil) {
 				@components.CardHeader() {

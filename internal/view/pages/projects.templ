@@ -10,7 +10,7 @@ import (
 
 templ Projects(data view.ProjectsData) {
 	@layout.Base(data.BasePage, "Projects · "+data.Owner+"/"+data.RepoName) {
-		<div class="space-y-6 pt-2">
+		<div class="space-y-6">
 			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="projects-title">
 				<div class="min-w-0">
 					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
