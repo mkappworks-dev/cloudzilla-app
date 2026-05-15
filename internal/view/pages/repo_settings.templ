@@ -54,7 +54,11 @@ templ RepoSettings(data view.RepoSettingsData) {
 						if data.IsOwner {
 							@settingsNavLink("#template", "Template")
 							<p class="font-mono text-[10px] text-destructive uppercase tracking-wider mt-4 mb-1 px-2.5">Danger zone</p>
-							@settingsNavLinkDanger("#danger", "Danger zone")
+							@settingsNavLinkDanger("#archive", "Archive")
+							if data.CanTransfer {
+								@settingsNavLinkDanger("#transfer", "Transfer Ownership")
+							}
+							@settingsNavLinkDanger("#delete", "Delete repository")
 						}
 					</nav>
 				</aside>
@@ -593,45 +597,45 @@ templ RepoSettings(data view.RepoSettingsData) {
 								</div>
 							}
 						}
-						<div id="danger" class="scroll-mt-6"></div>
+						<div id="archive" class="scroll-mt-6"></div>
 						<!-- Archive / Unarchive section (owner-only) -->
 						@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
 							@components.CardHeader() {
-								<h2 class="text-base font-semibold tracking-tight text-destructive">Danger Zone</h2>
+								if data.Repo.IsArchived {
+									<h2 class="text-base font-semibold tracking-tight text-destructive">Unarchive this repository</h2>
+									@components.CardDescription() {
+										Restore push access and return the repository to active views.
+									}
+								} else {
+									<h2 class="text-base font-semibold tracking-tight text-destructive">Archive this repository</h2>
+									@components.CardDescription() {
+										Make the repository read-only and hide it from active views. You can unarchive it later.
+									}
+								}
 							}
 							@components.CardContent() {
-								<div class="flex items-center justify-between">
-									<div>
-										if data.Repo.IsArchived {
-											<p class="text-sm font-medium text-foreground">Unarchive this repository</p>
-											<p class="text-xs text-muted-foreground mt-0.5">Restore push access.</p>
-										} else {
-											<p class="text-sm font-medium text-foreground">Archive this repository</p>
-											<p class="text-xs text-muted-foreground mt-0.5">Make the repository read-only and hide it from active views.</p>
-										}
-									</div>
-									if data.Repo.IsArchived {
-										@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{
-											"hx-post":   "/api/repos/" + data.Owner + "/" + data.RepoName + "/unarchive",
-											"hx-target": "body",
-											"type":      "button",
-										}) {
-											Unarchive
-										}
-									} else {
-										@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{
-											"hx-post":   "/api/repos/" + data.Owner + "/" + data.RepoName + "/archive",
-											"hx-target": "body",
-											"type":      "button",
-											"class":     "bg-warning text-warning-foreground hover:bg-warning/90",
-										}) {
-											Archive
-										}
+								if data.Repo.IsArchived {
+									@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{
+										"hx-post":   "/api/repos/" + data.Owner + "/" + data.RepoName + "/unarchive",
+										"hx-target": "body",
+										"type":      "button",
+									}) {
+										Unarchive
 									}
-								</div>
+								} else {
+									@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{
+										"hx-post":   "/api/repos/" + data.Owner + "/" + data.RepoName + "/archive",
+										"hx-target": "body",
+										"type":      "button",
+										"class":     "bg-warning text-warning-foreground hover:bg-warning/90",
+									}) {
+										Archive
+									}
+								}
 							}
 						}
 						if data.CanTransfer {
+							<div id="transfer" class="scroll-mt-6"></div>
 							@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
 								@components.CardHeader() {
 									<h2 class="text-base font-semibold tracking-tight text-destructive">Transfer Ownership</h2>
@@ -659,6 +663,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 						}
+						<div id="delete" class="scroll-mt-6"></div>
 						<!-- Delete repository (owner-only) -->
 						@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
 							@components.CardHeader() {
