@@ -318,6 +318,7 @@ templ Repo(data view.RepoData) {
 				<section aria-labelledby="insights-heading">
 					<h2 id="insights-heading" class="text-[13px] font-medium mb-2">Insights</h2>
 					<ul class="space-y-1 text-[12px]">
+						<li><a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commits") } class="text-muted-foreground hover:text-foreground">Commits</a></li>
 						<li><a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulse") } class="text-muted-foreground hover:text-foreground">Pulse</a></li>
 						<li><a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/graphs/contributors") } class="text-muted-foreground hover:text-foreground">Contributors</a></li>
 						<li><a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/network/dependencies") } class="text-muted-foreground hover:text-foreground">Dependencies</a></li>

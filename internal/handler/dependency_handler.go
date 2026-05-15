@@ -45,6 +45,15 @@ func (h *Handler) PageDependencies(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load dependencies", http.StatusInternalServerError)
 		return
 	}
+	// Lazy-parse on first visit so repos pushed before ParseAndStore was wired
+	// into the post-receive hook still show their manifests.
+	if len(deps) == 0 {
+		if parseErr := h.Services.Dependency.ParseAndStore(r.Context(), repo); parseErr == nil {
+			if deps, err = h.Services.Dependency.ListByRepo(r.Context(), repo.ID); err != nil {
+				deps = nil
+			}
+		}
+	}
 
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 

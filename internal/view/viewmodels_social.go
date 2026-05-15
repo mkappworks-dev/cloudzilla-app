@@ -196,7 +196,7 @@ type PulseData struct {
 	CommitsLast30 []int // 5 weekly buckets, oldest→newest
 	IssuesLast30  []int
 	PullsLast30   []int
-	Contributors  []service.ContributorStat
+	Contributors  []service.ContributorWithTimeline
 }
 
 // ContributorsData holds template data for the contributors graph page.

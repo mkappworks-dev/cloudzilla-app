@@ -81,9 +81,8 @@ templ Pulse(data view.PulseData) {
 					<ul class="divide-y divide-border">
 						for _, c := range data.Contributors {
 							<li class="flex items-center gap-3 px-4 py-2.5">
-								@components.Avatar(c.Name, components.AvatarSizeSM, c.Name)
-								<span class="flex-1 font-medium text-[13px] truncate">{ c.Name }</span>
-								<span class="text-[12px] text-muted-foreground truncate hidden sm:inline">{ c.Email }</span>
+								@components.Avatar(c.Username, components.AvatarSizeSM, c.Username)
+								<span class="flex-1 font-medium text-[13px] truncate">{ c.Username }</span>
 								<span class="font-mono text-[12px] font-semibold w-24 text-right">{ strconv.Itoa(c.Commits) } commits</span>
 							</li>
 						}

@@ -46,7 +46,7 @@ func (h *Handler) PagePulse(w http.ResponseWriter, r *http.Request) {
 		recentCommits += n
 	}
 
-	contributors, _ := h.Services.Code.GetContributors(owner, repoName)
+	contributors, _ := h.Services.ContributorStats.ForRepo(r.Context(), repo.ID)
 	if len(contributors) > 10 {
 		contributors = contributors[:10]
 	}
