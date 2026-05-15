@@ -24,10 +24,14 @@ func activeTabLabel(out string) string {
 
 func TestRepoSubnav_RendersAllTabsWithHrefs(t *testing.T) {
 	data := RepoSubnavData{
-		OwnerName: "alice",
-		RepoName:  "demo",
-		Active:    "code",
-		CanManage: true,
+		OwnerName:        "alice",
+		RepoName:         "demo",
+		Active:           "code",
+		CanManage:        true,
+		AllowIssues:      true,
+		AllowDiscussions: true,
+		AllowProjects:    true,
+		AllowWiki:        true,
 	}
 	var buf bytes.Buffer
 	if err := RepoSubnav(data).Render(context.Background(), &buf); err != nil {
@@ -79,9 +83,13 @@ func TestRepoSubnav_MarksOnlyActiveTab(t *testing.T) {
 
 func TestRepoSubnav_RendersCountBadges(t *testing.T) {
 	data := RepoSubnavData{
-		OwnerName: "alice",
-		RepoName:  "demo",
-		Active:    "code",
+		OwnerName:        "alice",
+		RepoName:         "demo",
+		Active:           "code",
+		AllowIssues:      true,
+		AllowDiscussions: true,
+		AllowProjects:    true,
+		AllowWiki:        true,
 		Counts: map[string]int{
 			"issues":        23,
 			"pull_requests": 12,
