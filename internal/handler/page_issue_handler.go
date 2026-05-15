@@ -321,15 +321,17 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	templates, _ := h.Services.Code.GetIssueTemplates(owner, repoName, repo.DefaultBranch)
 	renderErr := func(msg string) {
 		h.render(w, r, pages.IssueNew(view.IssueNewData{
-			BasePage: withRepoSubnav(basePage(r, h.Services), owner, repoName, "issues", canManage),
-			Repo:     *repo,
-			Owner:    owner,
-			RepoName: repoName,
-			Selected: body,
-			ShowForm: true,
-			Error:    msg,
+			BasePage:  withRepoSubnav(basePage(r, h.Services), owner, repoName, "issues", canManage),
+			Repo:      *repo,
+			Owner:     owner,
+			RepoName:  repoName,
+			Templates: templates,
+			Selected:  body,
+			ShowForm:  true,
+			Error:     msg,
 		}))
 	}
 

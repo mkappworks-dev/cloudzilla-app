@@ -48,8 +48,6 @@ type IssueDetailData struct {
 	CanManage     bool
 }
 
-// IssueNewData is used by the new-issue page (template chooser + form).
-// IssueNewData holds template data for the new issue form page.
 type IssueNewData struct {
 	BasePage
 	Repo      model.Repository
