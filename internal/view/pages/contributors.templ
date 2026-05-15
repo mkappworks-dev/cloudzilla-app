@@ -9,22 +9,15 @@ import (
 )
 
 templ Contributors(data view.ContributorsData) {
-	@layout.Base(data.BasePage, "Contributors · "+data.Owner+"/"+data.RepoName) {
+	@layout.Base(data.BasePage, "Contributors · "+data.Repo.OwnerName+"/"+data.Repo.Name) {
 		<div class="space-y-6">
 
 			<section aria-labelledby="contrib-title">
-				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
-					<span aria-hidden="true">·</span>
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulse") } class="hover:underline">Pulse</a>
-					<span aria-hidden="true">·</span>
-					Contributors
-				</p>
 				<h1 id="contrib-title" class="text-2xl font-semibold tracking-tight">Contributors</h1>
-				<p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">Aggregated by author email across all branches, sorted by total commits.</p>
+				<p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">Aggregated by author across all branches, sorted by total commits.</p>
 			</section>
 
-			if len(data.Contributors) > 0 {
+			if len(data.Rows) > 0 {
 				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="contrib-table">
 					<h2 id="contrib-table" class="sr-only">All contributors</h2>
 					@components.Table(nil) {
@@ -33,43 +26,35 @@ templ Contributors(data view.ContributorsData) {
 								@components.TableHead(templ.Attributes{"scope": "col"}) {
 									Contributor
 								}
-								@components.TableHead(templ.Attributes{"scope": "col", "class": "hidden sm:table-cell"}) {
-									Email
-								}
 								@components.TableHead(templ.Attributes{"scope": "col", "class": "text-right"}) {
 									Commits
 								}
 								@components.TableHead(templ.Attributes{"scope": "col", "class": "text-right hidden sm:table-cell"}) {
 									+ / –
 								}
-								@components.TableHead(templ.Attributes{"scope": "col", "class": "w-48 hidden md:table-cell"}) {
+								@components.TableHead(templ.Attributes{"scope": "col", "class": "hidden md:table-cell"}) {
 									<span class="sr-only">Activity</span>
 								}
 							}
 						}
 						@components.TableBody() {
-							for _, c := range data.Contributors {
+							for _, row := range data.Rows {
 								@components.TableRow(true) {
 									@components.TableRowHead(nil) {
 										<div class="flex items-center gap-2">
-											@components.Avatar(c.Name, components.AvatarSizeSM, c.Name)
-											<span class="text-[13px] font-medium">{ c.Name }</span>
+											@components.Avatar(row.Username, components.AvatarSizeSM, row.Username)
+											<span class="text-[13px] font-medium">{ row.Username }</span>
 										</div>
-									}
-									@components.TableCell(templ.Attributes{"class": "hidden sm:table-cell font-mono text-[11px] text-muted-foreground"}) {
-										{ c.Email }
 									}
 									@components.TableCell(templ.Attributes{"class": "text-right font-semibold font-mono"}) {
-										{ strconv.Itoa(c.Commits) }
+										{ strconv.Itoa(row.Commits) }
 									}
 									@components.TableCell(templ.Attributes{"class": "text-right hidden sm:table-cell font-mono text-[12px]"}) {
-										<span class="text-success">+{ strconv.Itoa(c.Additions) }</span>
-										<span class="text-destructive">−{ strconv.Itoa(c.Deletions) }</span>
+										<span class="text-success">+{ strconv.Itoa(row.Additions) }</span>
+										<span class="text-destructive">−{ strconv.Itoa(row.Deletions) }</span>
 									}
-									@components.TableCell(templ.Attributes{"class": "hidden md:table-cell"}) {
-										<div class="border border-border rounded-full h-1.5 w-full overflow-hidden bg-muted" role="progressbar" aria-label={ c.Name + " commit activity" } aria-valuenow={ strconv.Itoa(c.Commits) } aria-valuemin="0" aria-valuemax={ strconv.Itoa(data.MaxCommits) }>
-											<div class="h-1.5 rounded-full bg-success" style={ "width: " + pct(c.Commits, data.MaxCommits) + "%" }></div>
-										</div>
+									@components.TableCell(templ.Attributes{"class": "hidden md:table-cell text-muted-foreground"}) {
+										@components.Sparkline(row.Timeline, 80, 24)
 									}
 								}
 							}

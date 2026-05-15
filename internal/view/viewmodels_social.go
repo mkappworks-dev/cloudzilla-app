@@ -199,13 +199,9 @@ type PulseData struct {
 	Contributors  []service.ContributorStat
 }
 
-// ContributorsData is used by the /{owner}/{repo}/graphs/contributors page.
 // ContributorsData holds template data for the contributors graph page.
 type ContributorsData struct {
 	BasePage
-	Repo         model.Repository
-	Owner        string
-	RepoName     string
-	Contributors []service.ContributorStat
-	MaxCommits   int
+	Repo *model.Repository
+	Rows []service.ContributorWithTimeline
 }

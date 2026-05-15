@@ -1,13 +1,11 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -93,31 +91,13 @@ func (h *Handler) PageContributors(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contributors, err := h.Services.Code.GetContributors(owner, repoName)
-	if err != nil {
-		if errors.Is(err, service.ErrEmptyRepo) {
-			contributors = []service.ContributorStat{}
-		} else {
-			http.Error(w, "failed to load contributors", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	maxCommits := 0
-	for _, c := range contributors {
-		if c.Commits > maxCommits {
-			maxCommits = c.Commits
-		}
-	}
+	rows, _ := h.Services.ContributorStats.ForRepo(r.Context(), repo.ID)
 
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Contributors(view.ContributorsData{
-		BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
-		Repo:         *repo,
-		Owner:        owner,
-		RepoName:     repoName,
-		Contributors: contributors,
-		MaxCommits:   maxCommits,
+		BasePage: withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
+		Repo:     repo,
+		Rows:     rows,
 	}))
 }
