@@ -16,7 +16,7 @@ templ IssueDetail(data view.IssueDetailData) {
 
 			<section aria-labelledby="issue-heading">
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.Owner + "/" + data.RepoName }</a>
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
 					<span aria-hidden="true">·</span>
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues") } class="hover:underline">Issues</a>
 				</p>
