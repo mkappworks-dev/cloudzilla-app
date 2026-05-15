@@ -11,14 +11,79 @@ import (
 
 // PullService manages pull request creation, state transitions, and merge operations.
 type PullService struct {
-	pulls   *store.PullStore
-	repos   *store.RepoStore
-	repoSvc *RepoService
+	pulls         *store.PullStore
+	repos         *store.RepoStore
+	repoSvc       *RepoService
+	code          *CodeService
+	commitStatus  *CommitStatusService
+	reviewStore   *store.PullReviewStore
+	labelStore    *store.LabelStore
+	assigneeStore *store.AssigneeStore
 }
 
 // NewPullService creates a PullService backed by the given stores.
 func NewPullService(pulls *store.PullStore, repos *store.RepoStore, repoSvc *RepoService) *PullService {
 	return &PullService{pulls: pulls, repos: repos, repoSvc: repoSvc}
+}
+
+func (s *PullService) WithCIDeps(code *CodeService, commitStatus *CommitStatusService, reviews *store.PullReviewStore, labels *store.LabelStore, assignees *store.AssigneeStore) *PullService {
+	s.code = code
+	s.commitStatus = commitStatus
+	s.reviewStore = reviews
+	s.labelStore = labels
+	s.assigneeStore = assignees
+	return s
+}
+
+type PullListRow struct {
+	model.PullRequest
+	HeadSHA       string
+	CIStatus      string
+	Reviewers     []model.PullReview
+	LabelChips    []model.Label
+	AssigneeChips []model.User
+}
+
+func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName string, state model.PRState, offset, limit int) ([]PullListRow, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	pulls, err := s.pulls.ListByState(ctx, repo.ID, state, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]PullListRow, 0, len(pulls))
+	for _, p := range pulls {
+		row := PullListRow{PullRequest: p}
+		if s.code != nil {
+			if commit, _, err := s.code.ResolveRef(owner, repoName, p.HeadBranch); err == nil {
+				row.HeadSHA = commit.Hash.String()
+				if s.commitStatus != nil {
+					if combined, _, err := s.commitStatus.GetCombined(ctx, owner, repoName, row.HeadSHA); err == nil {
+						row.CIStatus = string(combined)
+					}
+				}
+			}
+		}
+		if s.reviewStore != nil {
+			if rev, err := s.reviewStore.ListByPull(ctx, p.ID); err == nil {
+				row.Reviewers = rev
+			}
+		}
+		if s.labelStore != nil {
+			if labs, err := s.labelStore.ListByPull(ctx, p.ID); err == nil {
+				row.LabelChips = labs
+			}
+		}
+		if s.assigneeStore != nil {
+			if asg, err := s.assigneeStore.ListByPull(ctx, p.ID); err == nil {
+				row.AssigneeChips = asg
+			}
+		}
+		out = append(out, row)
+	}
+	return out, nil
 }
 
 // ErrPullForbidden is returned when an author lacks read access to the target repo.
