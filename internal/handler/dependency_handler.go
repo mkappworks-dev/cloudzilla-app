@@ -5,11 +5,13 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"sort"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -62,4 +64,38 @@ func (h *Handler) PageDependencies(w http.ResponseWriter, r *http.Request) {
 		Dependencies: deps,
 		ByManager:    byManager,
 	}))
+}
+
+func groupDependencies(deps []model.RepoDependency) []components.DependencyGroupData {
+	byMgr := map[string][]components.DependencyRow{}
+	for _, d := range deps {
+		byMgr[d.PackageMgr] = append(byMgr[d.PackageMgr], components.DependencyRow{
+			Package: d.Package, Version: d.Version, IsDev: d.IsDev,
+		})
+	}
+	out := make([]components.DependencyGroupData, 0, len(byMgr))
+	for mgr, rows := range byMgr {
+		out = append(out, components.DependencyGroupData{
+			PackageMgr: mgr,
+			Label:      manifestLabel(mgr),
+			Rows:       rows,
+		})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].PackageMgr < out[j].PackageMgr })
+	return out
+}
+
+func manifestLabel(mgr string) string {
+	switch mgr {
+	case "go":
+		return "go.mod"
+	case "npm":
+		return "package.json"
+	case "pip":
+		return "requirements.txt"
+	case "cargo":
+		return "Cargo.toml"
+	default:
+		return mgr
+	}
 }

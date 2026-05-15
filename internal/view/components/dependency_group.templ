@@ -1,0 +1,45 @@
+package components
+
+// DependencyGroupData renders one manifest table.
+// PackageMgr is the raw key from model.RepoDependency.PackageMgr ("go",
+// "npm", "pip", "cargo"); Label is the human filename ("go.mod", ...).
+type DependencyGroupData struct {
+	PackageMgr string
+	Label      string
+	Rows       []DependencyRow
+}
+
+type DependencyRow struct {
+	Package string
+	Version string
+	IsDev   bool
+}
+
+templ DependencyGroup(d DependencyGroupData) {
+	<section class="rounded-md border border-border bg-card" aria-labelledby={ "dep-" + d.PackageMgr }>
+		<header class="px-4 py-3 border-b border-border flex items-center justify-between">
+			<h3 id={ "dep-" + d.PackageMgr } class="font-medium text-sm">{ d.Label }</h3>
+			<span class="text-xs text-muted-foreground font-mono">{ d.PackageMgr }</span>
+		</header>
+		<table class="w-full text-sm">
+			<thead class="sr-only">
+				<tr><th>Package</th><th>Version</th><th>Type</th></tr>
+			</thead>
+			<tbody class="divide-y divide-border">
+				for _, r := range d.Rows {
+					<tr class="hover:bg-muted/40">
+						<td class="px-4 py-2 font-mono truncate">{ r.Package }</td>
+						<td class="px-4 py-2 text-xs text-muted-foreground font-mono">{ r.Version }</td>
+						<td class="px-4 py-2">
+							if r.IsDev {
+								<span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium pill-dev">dev</span>
+							} else {
+								<span class="inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium pill-prod">prod</span>
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</section>
+}
