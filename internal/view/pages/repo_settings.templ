@@ -38,7 +38,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 			</section>
 			<div class="grid grid-cols-12 gap-8">
 				<aside class="col-span-12 lg:col-span-3" aria-label="Settings sections">
-					<nav class="lg:sticky lg:top-4 flex flex-col gap-0.5 text-[13px]">
+					<nav id="settings-nav" class="lg:sticky lg:top-4 flex flex-col gap-0.5 text-[13px]">
 						@settingsNavLink("#general", "General")
 						@settingsNavLink("#access", "Access")
 						@settingsNavLink("#collaborators", "Collaborators")
@@ -677,6 +677,33 @@ templ RepoSettings(data view.RepoSettingsData) {
 					}
 				</div>
 			</div>
+			<script>
+				(function () {
+					var nav = document.getElementById('settings-nav');
+					if (!nav) return;
+					var links = Array.prototype.slice.call(nav.querySelectorAll('a[href^="#"]'));
+					var targets = links
+						.map(function (l) { return { link: l, el: document.getElementById(l.getAttribute('href').slice(1)) }; })
+						.filter(function (t) { return t.el; });
+					if (!targets.length) return;
+					function update() {
+						var active = targets[0];
+						for (var i = 0; i < targets.length; i++) {
+							if (targets[i].el.getBoundingClientRect().top <= 120) active = targets[i];
+						}
+						links.forEach(function (l) {
+							var on = l === active.link;
+							l.classList.toggle('bg-muted', on);
+							l.classList.toggle('text-foreground', on);
+							l.classList.toggle('font-medium', on);
+							l.classList.toggle('text-muted-foreground', !on);
+						});
+					}
+					update();
+					window.addEventListener('scroll', update, { passive: true });
+					window.addEventListener('resize', update, { passive: true });
+				})();
+			</script>
 		</div>
 	}
 }

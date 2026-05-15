@@ -12,7 +12,7 @@ import (
 type RepoSubnavData = view.RepoSubnavInfo
 
 templ RepoSubnav(data RepoSubnavData) {
-	<nav aria-label="Repository sections" class="max-w-[1400px] mx-auto px-6 -mb-px flex items-center gap-1 text-sm overflow-x-auto">
+	<nav aria-label="Repository sections" class="max-w-[1400px] mx-auto px-6 -mb-px flex items-center gap-1 text-sm overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 		@repoSubnavTab(data, "code", "Code", "/"+data.OwnerName+"/"+data.RepoName, "") {
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
 		}
