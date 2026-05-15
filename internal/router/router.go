@@ -132,6 +132,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/projects/{id}", h.PageProjectDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/discussions", h.PageDiscussions)
 	r.With(optAuthMW).Get("/{owner}/{repo}/discussions/{number}", h.PageDiscussionDetail)
+	r.With(optAuthMW).Get("/{owner}/{repo}/actions", h.PageActions)
 
 	// OAuth routes
 	r.Get("/auth/google", h.GoogleOAuthBegin)

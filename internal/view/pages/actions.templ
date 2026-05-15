@@ -1,0 +1,45 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ Actions(data view.ActionsData) {
+	@layout.Base(data.BasePage, "Actions · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-6">
+
+			<section aria-labelledby="actions-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					Actions
+				</p>
+				<h1 id="actions-title" class="text-2xl font-semibold tracking-tight">Actions</h1>
+			</section>
+
+			@components.EmptyState("Actions are coming soon.")
+
+			<div class="space-y-2 opacity-40 pointer-events-none" aria-hidden="true">
+				<div class="rounded-md border border-border bg-card px-4 py-3 flex items-center gap-4">
+					<div class="w-3 h-3 rounded-full bg-success shrink-0"></div>
+					<div class="min-w-0 flex-1">
+						<p class="text-[13px] font-medium font-mono">CI · Go test</p>
+						<p class="text-[11px] text-muted-foreground font-mono">build · main · 2m 14s</p>
+					</div>
+					<span class="text-[11px] text-muted-foreground font-mono shrink-0">just now</span>
+				</div>
+				<div class="rounded-md border border-border bg-card px-4 py-3 flex items-center gap-4">
+					<div class="w-3 h-3 rounded-full bg-success shrink-0"></div>
+					<div class="min-w-0 flex-1">
+						<p class="text-[13px] font-medium font-mono">CI · Go test</p>
+						<p class="text-[11px] text-muted-foreground font-mono">build · main · 1m 58s</p>
+					</div>
+					<span class="text-[11px] text-muted-foreground font-mono shrink-0">2 days ago</span>
+				</div>
+			</div>
+
+		</div>
+	}
+}

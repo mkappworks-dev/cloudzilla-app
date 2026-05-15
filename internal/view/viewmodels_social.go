@@ -176,3 +176,10 @@ type ContributorsData struct {
 	Repo *model.Repository
 	Rows []service.ContributorWithTimeline
 }
+
+type ActionsData struct {
+	BasePage
+	Repo      model.Repository
+	Owner     string
+	RepoName  string
+}
