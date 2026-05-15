@@ -308,6 +308,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.With(authMW).Post("/{owner}/{repo}/archive", h.ArchiveRepo)
 		r.With(authMW).Post("/{owner}/{repo}/unarchive", h.UnarchiveRepo)
 
+		// Delete
+		r.With(authMW).Post("/{owner}/{repo}/delete", h.DeleteRepo)
+
 		// Template
 		r.With(authMW).Patch("/{owner}/{repo}/template", h.SetRepoTemplate)
 

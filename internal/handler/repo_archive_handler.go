@@ -59,6 +59,30 @@ func (h *Handler) UnarchiveRepo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if err := h.Services.Repo.Delete(r.Context(), repo.ID, claims.UserID); err != nil {
+		if strings.HasPrefix(err.Error(), "forbidden:") {
+			writeError(w, http.StatusForbidden, "only the repo owner can delete this repository")
+		} else {
+			writeError(w, http.StatusInternalServerError, "failed to delete repository")
+		}
+		return
+	}
+	http.Redirect(w, r, "/"+owner, http.StatusSeeOther)
+}
+
 func (h *Handler) SetRepoTemplate(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")

@@ -58,9 +58,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 					<section id="general" class="scroll-mt-6">
 						@components.Card(nil) {
 							@components.CardHeader() {
-								@components.CardTitle(2) {
-									General
-								}
+								<h2 class="text-base font-semibold tracking-tight">General</h2>
 								@components.CardDescription() {
 									Basic information visible across the repository.
 								}
@@ -97,9 +95,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 					<section id="access" class="scroll-mt-6">
 						@components.Card(nil) {
 							@components.CardHeader() {
-								@components.CardTitle(2) {
-									Access
-								}
+								<h2 class="text-base font-semibold tracking-tight">Access</h2>
 								@components.CardDescription() {
 									Control which features are enabled for this repository.
 								}
@@ -144,9 +140,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 					<!-- Collaborators section -->
 					@components.Card(nil) {
 						@components.CardHeader() {
-							@components.CardTitle(2) {
-								Collaborators
-							}
+							<h2 class="text-base font-semibold tracking-tight">Collaborators</h2>
 							@components.CardDescription() {
 								People with access to this repository.
 							}
@@ -204,9 +198,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 					if data.CanTransfer {
 						@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
 							@components.CardHeader() {
-								@components.CardTitle(2) {
-									<span class="text-destructive">Transfer Ownership</span>
-								}
+								<h2 class="text-base font-semibold tracking-tight text-destructive">Transfer Ownership</h2>
 								@components.CardDescription() {
 									Transfer this repository to another user. You will lose owner access.
 								}
@@ -235,9 +227,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 					<!-- Deploy Keys section -->
 					@components.Card(nil) {
 						@components.CardHeader() {
-							@components.CardTitle(2) {
-								Deploy Keys
-							}
+							<h2 class="text-base font-semibold tracking-tight">Deploy Keys</h2>
 							@components.CardDescription() {
 								SSH keys that grant CI/CD pipelines access to this repository.
 							}
@@ -342,9 +332,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 					<!-- Labels section -->
 					@components.Card(nil) {
 						@components.CardHeader() {
-							@components.CardTitle(2) {
-								Labels
-							}
+							<h2 class="text-base font-semibold tracking-tight">Labels</h2>
 							@components.CardDescription() {
 								Categorize issues and pull requests.
 							}
@@ -416,9 +404,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 					<!-- Branch Protection section -->
 					@components.Card(nil) {
 						@components.CardHeader() {
-							@components.CardTitle(2) {
-								Branch Protection
-							}
+							<h2 class="text-base font-semibold tracking-tight">Branch Protection</h2>
 							@components.CardDescription() {
 								Protect branches by requiring reviews, status checks, or blocking force pushes.
 							}
@@ -536,9 +522,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 					<!-- Webhooks section -->
 					@components.Card(nil) {
 						@components.CardHeader() {
-							@components.CardTitle(2) {
-								Webhooks
-							}
+							<h2 class="text-base font-semibold tracking-tight">Webhooks</h2>
 							@components.CardDescription() {
 								Send HTTP requests to external services when events occur in this repository.
 							}
@@ -616,9 +600,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 						<!-- Archive / Unarchive section (owner-only) -->
 						@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
 							@components.CardHeader() {
-								@components.CardTitle(2) {
-									<span class="text-destructive">Danger Zone</span>
-								}
+								<h2 class="text-base font-semibold tracking-tight text-destructive">Danger Zone</h2>
 							}
 							@components.CardContent() {
 								<div class="flex items-center justify-between">
@@ -652,13 +634,27 @@ templ RepoSettings(data view.RepoSettingsData) {
 								</div>
 							}
 						}
+						<!-- Delete repository (owner-only) -->
+						@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
+							@components.CardHeader() {
+								<h2 class="text-base font-semibold tracking-tight text-destructive">Delete this repository</h2>
+								@components.CardDescription() {
+									Permanently remove this repository and all its data. This cannot be undone.
+								}
+							}
+							@components.CardContent() {
+								<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/delete") } onsubmit="return confirm('Permanently delete this repository and all its data? This cannot be undone.')">
+									@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+										Delete repository
+									}
+								</form>
+							}
+						}
 						<div id="template" class="scroll-mt-6"></div>
 						<!-- Template repository section -->
 						@components.Card(nil) {
 							@components.CardHeader() {
-								@components.CardTitle(2) {
-									Template Repository
-								}
+								<h2 class="text-base font-semibold tracking-tight">Template Repository</h2>
 							}
 							@components.CardContent() {
 								<div class="flex items-center justify-between">
