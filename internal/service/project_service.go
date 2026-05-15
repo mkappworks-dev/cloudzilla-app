@@ -28,12 +28,74 @@ func NewProjectService(projects *store.ProjectStore, repos *RepoService) *Projec
 	return &ProjectService{projects: projects, repos: repos}
 }
 
-func (s *ProjectService) ListByRepo(ctx context.Context, owner, repoName string) ([]model.Project, error) {
+// ProjectListView is a project board plus card stats for the list page.
+type ProjectListView struct {
+	model.Project
+	CardCount   int
+	LinkedCount int
+	DoneCount   int
+}
+
+// IsClosed reports whether the board has been closed.
+func (v ProjectListView) IsClosed() bool { return v.ClosedAt != nil }
+
+// Progress is the percentage of linked cards that are done. It is 0 when the
+// board has no issue/PR-linked cards, in which case the bar is hidden.
+func (v ProjectListView) Progress() int {
+	if v.LinkedCount == 0 {
+		return 0
+	}
+	return v.DoneCount * 100 / v.LinkedCount
+}
+
+// ProjectList is a repo's project boards plus the open/closed tab counts.
+type ProjectList struct {
+	Projects    []ProjectListView
+	OpenCount   int
+	ClosedCount int
+}
+
+// ListByRepoWithStats returns a repo's project boards filtered by status
+// ("open"/"closed"/"" for all) and a case-insensitive name query, with card
+// stats per board and the open/closed tab counts.
+func (s *ProjectService) ListByRepoWithStats(ctx context.Context, owner, repoName, status, query string) (*ProjectList, error) {
 	repo, err := s.repos.Get(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
-	return s.projects.ListByRepo(ctx, repo.ID)
+	rows, err := s.projects.ListByRepoWithStats(ctx, repo.ID, query, status)
+	if err != nil {
+		return nil, err
+	}
+	open, closed, err := s.projects.CountByStatus(ctx, repo.ID, query)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ProjectListView, len(rows))
+	for i, r := range rows {
+		out[i] = ProjectListView{
+			Project:     r.Project,
+			CardCount:   r.CardCount,
+			LinkedCount: r.LinkedCount,
+			DoneCount:   r.DoneCount,
+		}
+	}
+	return &ProjectList{Projects: out, OpenCount: open, ClosedCount: closed}, nil
+}
+
+// SetProjectClosed closes or reopens a board. Requires write access.
+func (s *ProjectService) SetProjectClosed(ctx context.Context, projectID, userID int64, closed bool) (*model.Project, error) {
+	repo, err := s.repoForProject(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if !s.repos.CanWrite(ctx, repo, userID) {
+		return nil, ErrForbidden
+	}
+	if err := s.projects.SetProjectClosed(ctx, projectID, closed); err != nil {
+		return nil, err
+	}
+	return s.GetProject(ctx, projectID)
 }
 
 func (s *ProjectService) GetProject(ctx context.Context, id int64) (*model.Project, error) {

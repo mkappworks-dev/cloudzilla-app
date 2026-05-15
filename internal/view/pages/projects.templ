@@ -8,6 +8,14 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
+// projectItemLabel renders a card count as "1 item" / "N items".
+func projectItemLabel(n int) string {
+	if n == 1 {
+		return "1 item"
+	}
+	return strconv.Itoa(n) + " items"
+}
+
 templ Projects(data view.ProjectsData) {
 	@layout.Base(data.BasePage, "Projects · "+data.Owner+"/"+data.RepoName) {
 		<div class="space-y-6">
@@ -82,7 +90,7 @@ templ Projects(data view.ProjectsData) {
 					</form>
 				</div>
 			}
-			if len(data.Projects) == 0 {
+			if data.OpenCount + data.ClosedCount == 0 && data.SearchQuery == "" {
 				<div class="rounded-md border border-border bg-card px-4 py-12 text-center">
 					<p class="text-sm text-muted-foreground mb-3">No project boards yet.</p>
 					if data.CanWrite {
@@ -90,37 +98,88 @@ templ Projects(data view.ProjectsData) {
 					}
 				</div>
 			} else {
-				<section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Project boards">
-					<ul class="divide-y divide-border">
-						for _, p := range data.Projects {
-							<li class="flex items-start gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0 mt-0.5" aria-hidden="true" focusable="false">
-									<rect x="3" y="3" width="7" height="9" rx="1"></rect>
-									<rect x="14" y="3" width="7" height="5" rx="1"></rect>
-									<rect x="14" y="12" width="7" height="9" rx="1"></rect>
-									<rect x="3" y="16" width="7" height="5" rx="1"></rect>
-								</svg>
-								<div class="min-w-0 flex-1">
-									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(p.ID, 10)) } class="text-[14px] font-medium text-foreground hover:underline">{ p.Name }</a>
-									if p.Description != "" {
-										<p class="mt-0.5 text-[12px] text-muted-foreground">{ p.Description }</p>
-									}
-									<p class="mt-1.5 font-mono text-[11px] text-muted-foreground">Updated { formatRelative(p.UpdatedAt) }</p>
-								</div>
-								if data.CanWrite {
-									@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-										"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(p.ID, 10),
-										"hx-confirm":          "Delete this project board and all its columns and cards?",
-										"hx-on:after-request": "window.location.reload()",
-										"type":                "button",
-									}) {
-										Delete
-									}
-								}
-							</li>
+				<form method="GET" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/projects") }>
+					<input type="hidden" name="state" value={ data.StateFilter }/>
+					<nav class="flex items-center gap-1 border-b border-border text-sm" aria-label="Project filters">
+						@components.TabLink("/"+data.Owner+"/"+data.RepoName+"/projects?state=open", data.StateFilter == "open") {
+							Open
+							<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label={ strconv.Itoa(data.OpenCount) + " open" }>{ strconv.Itoa(data.OpenCount) }</span>
 						}
-					</ul>
-				</section>
+						@components.TabLink("/"+data.Owner+"/"+data.RepoName+"/projects?state=closed", data.StateFilter == "closed") {
+							Closed
+							<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label={ strconv.Itoa(data.ClosedCount) + " closed" }>{ strconv.Itoa(data.ClosedCount) }</span>
+						}
+						<div class="ml-auto flex items-center gap-1.5 pb-1.5">
+							<label for="filter-search" class="sr-only">Search projects</label>
+							<div class="relative">
+								<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+									<circle cx="11" cy="11" r="7"></circle>
+									<path d="M21 21l-4.3-4.3"></path>
+								</svg>
+								<input id="filter-search" type="search" name="q" value={ data.SearchQuery } placeholder="Filter projects" class="w-56 h-8 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"/>
+							</div>
+						</div>
+					</nav>
+				</form>
+				if len(data.Items) == 0 {
+					<div class="rounded-md border border-border bg-card px-4 py-12 text-center">
+						<p class="text-sm text-muted-foreground">No { data.StateFilter } projects match.</p>
+					</div>
+				} else {
+					<section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Project boards">
+						<ul class="divide-y divide-border">
+							for _, p := range data.Items {
+								<li class="flex items-start gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors">
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0 mt-0.5" aria-hidden="true" focusable="false">
+										<rect x="3" y="3" width="7" height="9" rx="1"></rect>
+										<rect x="14" y="3" width="7" height="5" rx="1"></rect>
+										<rect x="14" y="12" width="7" height="9" rx="1"></rect>
+										<rect x="3" y="16" width="7" height="5" rx="1"></rect>
+									</svg>
+									<div class="min-w-0 flex-1">
+										<div class="flex items-center gap-2">
+											<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(p.ID, 10)) } class="text-[14px] font-medium text-foreground hover:underline">{ p.Name }</a>
+											if p.IsClosed() {
+												@components.Badge(components.BadgeDraft) {
+													closed
+												}
+											} else {
+												@components.Badge(components.BadgeSuccess) {
+													open
+												}
+											}
+										</div>
+										if p.Description != "" {
+											<p class="mt-0.5 text-[12px] text-muted-foreground">{ p.Description }</p>
+										}
+										<p class="mt-1.5 font-mono text-[11px] text-muted-foreground">{ projectItemLabel(p.CardCount) } · Updated { formatRelative(p.UpdatedAt) }</p>
+									</div>
+									if p.LinkedCount > 0 {
+										<div class="hidden sm:block w-40 shrink-0 pt-0.5" role="progressbar" aria-valuenow={ strconv.Itoa(p.Progress()) } aria-valuemin="0" aria-valuemax="100" aria-label={ "Progress: " + strconv.Itoa(p.Progress()) + "%" }>
+											<div class="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+												<span>Progress</span>
+												<span class="font-mono">{ strconv.Itoa(p.Progress()) }%</span>
+											</div>
+											<div class="w-full bg-muted h-1.5 rounded-full overflow-hidden">
+												<div class="bg-success h-full" style={ "width: " + strconv.Itoa(p.Progress()) + "%" }></div>
+											</div>
+										</div>
+									}
+									if data.CanWrite {
+										@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
+											"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(p.ID, 10),
+											"hx-confirm":          "Delete this project board and all its columns and cards?",
+											"hx-on:after-request": "window.location.reload()",
+											"type":                "button",
+										}) {
+											Delete
+										}
+									}
+								</li>
+							}
+						</ul>
+					</section>
+				}
 			}
 		</div>
 	}

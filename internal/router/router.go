@@ -336,6 +336,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		// Projects
 		r.Route("/{owner}/{repo}/projects", func(r chi.Router) {
 			r.With(authMW).Post("/", h.CreateProject)
+			r.With(authMW).Patch("/{id}", h.UpdateProject)
 			r.With(authMW).Delete("/{id}", h.DeleteProject)
 			r.With(authMW).Post("/{id}/columns", h.CreateColumn)
 			r.With(authMW).Delete("/{id}/columns/{colID}", h.DeleteColumn)

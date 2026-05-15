@@ -3,13 +3,15 @@ package model
 import "time"
 
 // Project represents a Kanban project board associated with a repository.
+// ClosedAt is nil while the board is open.
 type Project struct {
-	ID          int64     `db:"id"          json:"id"`
-	RepoID      int64     `db:"repo_id"     json:"repo_id"`
-	Name        string    `db:"name"        json:"name"`
-	Description string    `db:"description" json:"description"`
-	CreatedAt   time.Time `db:"created_at"  json:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at"  json:"updated_at"`
+	ID          int64      `db:"id"          json:"id"`
+	RepoID      int64      `db:"repo_id"     json:"repo_id"`
+	Name        string     `db:"name"        json:"name"`
+	Description string     `db:"description" json:"description"`
+	CreatedAt   time.Time  `db:"created_at"  json:"created_at"`
+	UpdatedAt   time.Time  `db:"updated_at"  json:"updated_at"`
+	ClosedAt    *time.Time `db:"closed_at"   json:"closed_at,omitempty"`
 }
 
 // ProjectColumn represents a column (e.g. To Do, In Progress) within a project board.

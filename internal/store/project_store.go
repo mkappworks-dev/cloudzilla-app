@@ -34,34 +34,90 @@ func (s *ProjectStore) CreateProject(ctx context.Context, p *model.Project) erro
 	).Scan(&p.ID, &p.CreatedAt, &p.UpdatedAt)
 }
 
-func (s *ProjectStore) ListByRepo(ctx context.Context, repoID int64) ([]model.Project, error) {
+// ProjectWithCounts is a project board plus aggregate card counts, used by the
+// project list view to render the item count and progress bar.
+type ProjectWithCounts struct {
+	model.Project
+	CardCount   int // all cards (issues, PRs, notes)
+	LinkedCount int // cards linked to an issue or PR
+	DoneCount   int // linked cards whose issue is closed or PR merged/closed
+}
+
+// ListByRepoWithStats lists a repo's project boards with per-board card counts.
+// query filters by name (case-insensitive substring; empty = no filter).
+// status is "open", "closed", or "" for all.
+func (s *ProjectStore) ListByRepoWithStats(ctx context.Context, repoID int64, query, status string) ([]ProjectWithCounts, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, repo_id, name, description, created_at, updated_at
-		 FROM projects WHERE repo_id = $1 ORDER BY created_at ASC`,
-		repoID,
+		`SELECT p.id, p.repo_id, p.name, p.description, p.created_at, p.updated_at, p.closed_at,
+		        COUNT(c.id) AS card_count,
+		        COUNT(c.id) FILTER (WHERE c.issue_id IS NOT NULL OR c.pull_id IS NOT NULL) AS linked_count,
+		        COUNT(c.id) FILTER (WHERE i.state = 'closed' OR pr.state IN ('merged', 'closed')) AS done_count
+		 FROM projects p
+		 LEFT JOIN project_columns col ON col.project_id = p.id
+		 LEFT JOIN project_cards   c   ON c.column_id = col.id
+		 LEFT JOIN issues          i   ON i.id = c.issue_id
+		 LEFT JOIN pull_requests   pr  ON pr.id = c.pull_id
+		 WHERE p.repo_id = $1
+		   AND ($2 = '' OR p.name ILIKE '%' || $2 || '%')
+		   AND (CASE
+		            WHEN $3 = 'open'   THEN p.closed_at IS NULL
+		            WHEN $3 = 'closed' THEN p.closed_at IS NOT NULL
+		            ELSE TRUE
+		        END)
+		 GROUP BY p.id
+		 ORDER BY p.created_at ASC`,
+		repoID, query, status,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("project list: %w", err)
+		return nil, fmt.Errorf("project list with stats: %w", err)
 	}
 	defer rows.Close()
-	var projects []model.Project
+	var out []ProjectWithCounts
 	for rows.Next() {
-		var p model.Project
-		if err := rows.Scan(&p.ID, &p.RepoID, &p.Name, &p.Description, &p.CreatedAt, &p.UpdatedAt); err != nil {
+		var p ProjectWithCounts
+		if err := rows.Scan(
+			&p.ID, &p.RepoID, &p.Name, &p.Description, &p.CreatedAt, &p.UpdatedAt, &p.ClosedAt,
+			&p.CardCount, &p.LinkedCount, &p.DoneCount,
+		); err != nil {
 			return nil, err
 		}
-		projects = append(projects, p)
+		out = append(out, p)
 	}
-	return projects, rows.Err()
+	return out, rows.Err()
+}
+
+// CountByStatus returns (open, closed) project counts for a repo, honoring the
+// same name filter as ListByRepoWithStats so the list tab badges stay in sync.
+func (s *ProjectStore) CountByStatus(ctx context.Context, repoID int64, query string) (open, closed int, err error) {
+	err = s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FILTER (WHERE closed_at IS NULL),
+		        COUNT(*) FILTER (WHERE closed_at IS NOT NULL)
+		 FROM projects
+		 WHERE repo_id = $1 AND ($2 = '' OR name ILIKE '%' || $2 || '%')`,
+		repoID, query,
+	).Scan(&open, &closed)
+	if err != nil {
+		return 0, 0, fmt.Errorf("project count by status: %w", err)
+	}
+	return open, closed, nil
+}
+
+// SetProjectClosed closes (closed_at = NOW()) or reopens (closed_at = NULL) a board.
+func (s *ProjectStore) SetProjectClosed(ctx context.Context, id int64, closed bool) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE projects SET closed_at = CASE WHEN $2 THEN NOW() ELSE NULL END WHERE id = $1`,
+		id, closed,
+	)
+	return err
 }
 
 func (s *ProjectStore) GetProject(ctx context.Context, id int64) (*model.Project, error) {
 	var p model.Project
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, repo_id, name, description, created_at, updated_at
+		`SELECT id, repo_id, name, description, created_at, updated_at, closed_at
 		 FROM projects WHERE id = $1`,
 		id,
-	).Scan(&p.ID, &p.RepoID, &p.Name, &p.Description, &p.CreatedAt, &p.UpdatedAt)
+	).Scan(&p.ID, &p.RepoID, &p.Name, &p.Description, &p.CreatedAt, &p.UpdatedAt, &p.ClosedAt)
 	if err != nil {
 		return nil, fmt.Errorf("project get: %w", err)
 	}
@@ -332,12 +388,12 @@ func (s *ProjectStore) TouchProject(ctx context.Context, projectID int64) error 
 func (s *ProjectStore) GetProjectByColumnID(ctx context.Context, columnID int64) (*model.Project, error) {
 	var p model.Project
 	err := s.db.QueryRowContext(ctx,
-		`SELECT p.id, p.repo_id, p.name, p.description, p.created_at, p.updated_at
+		`SELECT p.id, p.repo_id, p.name, p.description, p.created_at, p.updated_at, p.closed_at
 		 FROM projects p
 		 JOIN project_columns c ON c.project_id = p.id
 		 WHERE c.id = $1`,
 		columnID,
-	).Scan(&p.ID, &p.RepoID, &p.Name, &p.Description, &p.CreatedAt, &p.UpdatedAt)
+	).Scan(&p.ID, &p.RepoID, &p.Name, &p.Description, &p.CreatedAt, &p.UpdatedAt, &p.ClosedAt)
 	if err != nil {
 		return nil, fmt.Errorf("project by column: %w", err)
 	}
