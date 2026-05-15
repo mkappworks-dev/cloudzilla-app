@@ -315,8 +315,16 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// go-git rejects empty command lists; treat as up-to-date.
+	if len(req.Commands) == 0 {
+		w.Header().Set("Content-Type", "application/x-git-receive-pack-result")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	status, err := sess.ReceivePack(r.Context(), req)
 	if err != nil {
+		slog.Error("git-http: receive-pack failed", "owner", owner, "repo", repoName, "error", err)
 		http.Error(w, "receive-pack failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}

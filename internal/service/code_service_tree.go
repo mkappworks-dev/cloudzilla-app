@@ -146,8 +146,13 @@ func (s *CodeService) GetBlob(owner, repoName, ref, path string) (*BlobResult, e
 	return result, nil
 }
 
-// GetRawBlob returns the raw byte content of a non-binary file.
+var ErrBlobTooLarge = errors.New("blob exceeds size limit")
+
 func (s *CodeService) GetRawBlob(owner, repoName, ref, path string) ([]byte, error) {
+	return s.GetRawBlobBounded(owner, repoName, ref, path, 0)
+}
+
+func (s *CodeService) GetRawBlobBounded(owner, repoName, ref, path string, maxBytes int64) ([]byte, error) {
 	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
 	if err != nil {
 		return nil, err
@@ -159,6 +164,9 @@ func (s *CodeService) GetRawBlob(owner, repoName, ref, path string) ([]byte, err
 	f, err := commit.File(path)
 	if err != nil {
 		return nil, err
+	}
+	if maxBytes > 0 && f.Size > maxBytes {
+		return nil, ErrBlobTooLarge
 	}
 	isBinary, _ := f.IsBinary()
 	if isBinary {

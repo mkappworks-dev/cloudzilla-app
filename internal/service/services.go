@@ -48,6 +48,7 @@ type Services struct {
 	Explore          *ExploreService
 	Dependency       *DependencyService
 	CommitStats      *CommitStatsService
+	ContributorStats *ContributorStatsService
 	Attention        *AttentionService
 	Language         *LanguageService
 }
@@ -58,8 +59,9 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	languageSvc := NewLanguageService(code)
 	index := NewIndexService(stores.CodeSearch, code)
 	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
+	contributorStatsSvc := NewContributorStatsService(stores.ContributorStats, stores.User)
 	attentionSvc := NewAttentionService(stores.Issue)
-	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, commitStatsSvc, code, cfg.Git)
+	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, commitStatsSvc, contributorStatsSvc, code, cfg.Git)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
 	userSvc := NewUserService(stores.User, cfg.Auth)
 	emailSvc := NewEmailService(cfg.SMTP)
@@ -106,6 +108,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Explore:          NewExploreService(stores.Explore),
 		Dependency:       NewDependencyService(stores.Dependency, code),
 		CommitStats:      commitStatsSvc,
+		ContributorStats: contributorStatsSvc,
 		Attention:        attentionSvc,
 		Language:         languageSvc,
 	}

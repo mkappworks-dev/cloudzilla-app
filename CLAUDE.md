@@ -47,6 +47,14 @@ go test ./...           # Run Go tests
 
 ## Code Conventions
 
+### Comments
+
+- Default to **no comment**. Add one only when the *why* is non-obvious: a hidden constraint, a subtle invariant, a workaround for a specific bug, or behavior that would surprise a reader.
+- Do **not** narrate *what* the code does — names and types already do that.
+- Do **not** reference the current task, PR, or recent commit ("added for X flow", "see issue #123"). Those belong in the commit message.
+- Single-line `// ...` is the default; multi-line block comments and multi-paragraph docstrings are usually a sign the comment is over-explaining.
+- When editing existing code, prefer **deleting** stale or explanatory comments over preserving them.
+
 ### Go Handlers
 
 - **Page handlers** fetch data and call `h.render(page, data)` to render full pages

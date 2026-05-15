@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -42,17 +44,18 @@ func ValidateName(name string) error {
 
 // RepoService manages repository creation, access control, and git directory lifecycle.
 type RepoService struct {
-	repos       *store.RepoStore
-	users       *store.UserStore
-	orgs        *store.OrgStore
-	commitStats *CommitStatsService
-	code        *CodeService
-	cfg         config.GitConfig
+	repos            *store.RepoStore
+	users            *store.UserStore
+	orgs             *store.OrgStore
+	commitStats      *CommitStatsService
+	contributorStats *ContributorStatsService
+	code             *CodeService
+	cfg              config.GitConfig
 }
 
 // The code service may be nil in tests that do not exercise contributor queries.
-func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, commitStats *CommitStatsService, code *CodeService, cfg config.GitConfig) *RepoService {
-	return &RepoService{repos: repos, users: users, orgs: orgs, commitStats: commitStats, code: code, cfg: cfg}
+func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, commitStats *CommitStatsService, contributorStats *ContributorStatsService, code *CodeService, cfg config.GitConfig) *RepoService {
+	return &RepoService{repos: repos, users: users, orgs: orgs, commitStats: commitStats, contributorStats: contributorStats, code: code, cfg: cfg}
 }
 
 func (s *RepoService) TopContributors(ctx context.Context, owner, name string, limit int) ([]ContributorStat, error) {
@@ -69,13 +72,19 @@ func (s *RepoService) TopContributors(ctx context.Context, owner, name string, l
 	return all, nil
 }
 
+type postReceiveCommit struct {
+	AuthorEmail string
+	AuthorTime  time.Time
+	SHA         string
+}
+
 // Dedupes commits shared across multiple updated branches; returns an aggregate error only when every walk fails so a stuck repo doesn't go silent.
 func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository, gitRepo *gogit.Repository, commands []*packp.Command) error {
 	if s.commitStats == nil || gitRepo == nil || repo == nil {
 		return nil
 	}
 	seen := make(map[plumbing.Hash]struct{})
-	var samples []CommitSample
+	var commits []postReceiveCommit
 	var walkAttempts, walkFailures int
 	for _, cmd := range commands {
 		if cmd == nil {
@@ -103,9 +112,10 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 				return nil
 			}
 			seen[c.Hash] = struct{}{}
-			samples = append(samples, CommitSample{
+			commits = append(commits, postReceiveCommit{
 				AuthorEmail: c.Author.Email,
-				Time:        c.Author.When,
+				AuthorTime:  c.Author.When,
+				SHA:         c.Hash.String(),
 			})
 			return nil
 		})
@@ -119,11 +129,44 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 	if walkAttempts > 0 && walkFailures == walkAttempts {
 		return fmt.Errorf("commit stats: all %d branch walks failed (repo_id=%d)", walkAttempts, repo.ID)
 	}
-	if len(samples) == 0 {
+	if len(commits) == 0 {
 		return nil
+	}
+
+	samples := make([]CommitSample, len(commits))
+	for i, c := range commits {
+		samples[i] = CommitSample{AuthorEmail: c.AuthorEmail, Time: c.AuthorTime}
 	}
 	if err := s.commitStats.Ingest(ctx, repo.ID, samples); err != nil {
 		return fmt.Errorf("commit stats ingest (repo_id=%d, samples=%d): %w", repo.ID, len(samples), err)
+	}
+
+	if s.contributorStats != nil && s.code != nil && repo.OwnerName != "" {
+		for _, c := range commits {
+			user, err := s.users.GetByEmail(ctx, c.AuthorEmail)
+			if errors.Is(err, sql.ErrNoRows) {
+				continue
+			}
+			if err != nil {
+				slog.Warn("post-receive: contributor lookup by email failed",
+					"repo_id", repo.ID, "sha", c.SHA, "email", c.AuthorEmail, "error", err)
+				continue
+			}
+			if user == nil {
+				continue
+			}
+			detail, err := s.code.GetCommit(repo.OwnerName, repo.Name, c.SHA)
+			if err != nil {
+				slog.Warn("post-receive: load commit detail for contributor stats failed",
+					"repo_id", repo.ID, "sha", c.SHA, "error", err)
+				continue
+			}
+			if err := s.contributorStats.IngestCommit(ctx, repo.ID, user.ID, c.AuthorTime,
+				detail.TotalAdded, detail.TotalDeleted); err != nil {
+				slog.Warn("post-receive: contributor stats ingest failed",
+					"repo_id", repo.ID, "sha", c.SHA, "user_id", user.ID, "error", err)
+			}
+		}
 	}
 	return nil
 }

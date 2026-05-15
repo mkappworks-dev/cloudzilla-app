@@ -8,11 +8,24 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
-// statCard renders one cell of the pulse stat strip.
-templ statCard(label, value, accentClass string) {
-	<div class="rounded-md border border-border bg-card p-4">
+templ pulseStatCard(label, opened, openedLabel, closed, closedLabel string, chart []int, accentOpen, accentClosed string) {
+	<div class="rounded-md border border-border bg-card p-4 flex flex-col gap-3">
 		<p class="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">{ label }</p>
-		<p class={ "mt-2 text-3xl font-semibold tabular-nums", accentClass }>{ value }</p>
+		<div class="flex items-end justify-between gap-4">
+			<div class="space-y-1">
+				<div class="flex items-baseline gap-2">
+					<span class={ "text-2xl font-semibold tabular-nums", accentOpen }>{ opened }</span>
+					<span class="text-[11px] text-muted-foreground">{ openedLabel }</span>
+				</div>
+				<div class="flex items-baseline gap-2">
+					<span class={ "text-2xl font-semibold tabular-nums", accentClosed }>{ closed }</span>
+					<span class="text-[11px] text-muted-foreground">{ closedLabel }</span>
+				</div>
+			</div>
+			<div class="text-muted-foreground/50 shrink-0">
+				@components.MiniChart(chart, 80, 32)
+			</div>
+		</div>
 	</div>
 }
 
@@ -34,12 +47,28 @@ templ Pulse(data view.PulseData) {
 
 			<section aria-labelledby="stats-heading">
 				<h2 id="stats-heading" class="sr-only">Activity counts</h2>
-				<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-					@statCard("New issues", strconv.Itoa(data.NewIssues), "text-success")
-					@statCard("Closed issues", strconv.Itoa(data.ClosedIssues), "text-destructive")
-					@statCard("New PRs", strconv.Itoa(data.NewPRs), "")
-					@statCard("Merged PRs", strconv.Itoa(data.MergedPRs), "text-[hsl(270_70%_70%)]")
-					@statCard("Commits", strconv.Itoa(data.RecentCommits), "")
+				<div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+					@pulseStatCard(
+						"Issues",
+						strconv.Itoa(data.IssuesOpened), "opened",
+						strconv.Itoa(data.IssuesClosed), "closed",
+						data.IssuesLast30,
+						"text-success", "text-destructive",
+					)
+					@pulseStatCard(
+						"Pull requests",
+						strconv.Itoa(data.PullsOpened), "opened",
+						strconv.Itoa(data.PullsMerged), "merged",
+						data.PullsLast30,
+						"", "text-[hsl(270_70%_70%)]",
+					)
+					@pulseStatCard(
+						"Commits",
+						strconv.Itoa(data.RecentCommits), "total",
+						"", "",
+						data.CommitsLast30,
+						"", "",
+					)
 				</div>
 			</section>
 
@@ -52,9 +81,8 @@ templ Pulse(data view.PulseData) {
 					<ul class="divide-y divide-border">
 						for _, c := range data.Contributors {
 							<li class="flex items-center gap-3 px-4 py-2.5">
-								@components.Avatar(c.Name, components.AvatarSizeSM, c.Name)
-								<span class="flex-1 font-medium text-[13px] truncate">{ c.Name }</span>
-								<span class="text-[12px] text-muted-foreground truncate hidden sm:inline">{ c.Email }</span>
+								@components.Avatar(c.Username, components.AvatarSizeSM, c.Username)
+								<span class="flex-1 font-medium text-[13px] truncate">{ c.Username }</span>
 								<span class="font-mono text-[12px] font-semibold w-24 text-right">{ strconv.Itoa(c.Commits) } commits</span>
 							</li>
 						}

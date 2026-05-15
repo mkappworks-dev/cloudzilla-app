@@ -347,6 +347,38 @@ func (s *IssueStore) CountClosedSince(ctx context.Context, repoID int64, since t
 	return n, err
 }
 
+func (s *IssueStore) WeeklyCreated(ctx context.Context, repoID int64, weeks int) ([]int, error) {
+	weeks = clampWeeks(weeks)
+	const q = `
+		WITH w AS (
+			SELECT generate_series(
+				date_trunc('week', (NOW() AT TIME ZONE 'UTC') - ($2::int - 1) * interval '1 week'),
+				date_trunc('week', (NOW() AT TIME ZONE 'UTC')),
+				interval '1 week'
+			) AS ws
+		)
+		SELECT COALESCE(COUNT(i.id), 0)::int
+		FROM w
+		LEFT JOIN issues i ON date_trunc('week', i.created_at AT TIME ZONE 'UTC') = w.ws AND i.repo_id = $1
+		GROUP BY w.ws
+		ORDER BY w.ws ASC
+	`
+	rows, err := s.db.QueryContext(ctx, q, repoID, weeks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []int
+	for rows.Next() {
+		var n int
+		if err := rows.Scan(&n); err != nil {
+			return nil, err
+		}
+		out = append(out, n)
+	}
+	return out, rows.Err()
+}
+
 // Excludes soft-deleted repos so home-page counts match the heatmap's visibility rule.
 func (s *IssueStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
 	var n int

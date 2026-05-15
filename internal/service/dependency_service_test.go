@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -44,9 +45,12 @@ func TestParsePackageJSON(t *testing.T) {
     "jest": "^29.0.0"
   }
 }`
-	got := parsePackageJSON(input)
+	got, err := parsePackageJSONSafe(input)
+	if err != nil {
+		t.Fatalf("parsePackageJSONSafe: unexpected error: %v", err)
+	}
 	if len(got) != 3 {
-		t.Fatalf("parsePackageJSON: got %d deps, want 3\ngot: %+v", len(got), got)
+		t.Fatalf("parsePackageJSONSafe: got %d deps, want 3\ngot: %+v", len(got), got)
 	}
 	devCount := 0
 	for _, d := range got {
@@ -84,6 +88,231 @@ pytest~=7.4.0
 	}
 	if got[2].Package != "numpy" || got[2].Version != "" {
 		t.Errorf("numpy should have empty version: %+v", got[2])
+	}
+}
+
+func TestParsePyprojectTomlPEP621(t *testing.T) {
+	input := `[project]
+name = "myapp"
+version = "0.1.0"
+dependencies = [
+    "requests>=2.31.0",
+    "click[colors]<9,>=8",
+    "httpx==0.27.0; python_version >= '3.8'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==7.4.0", "ruff"]
+docs = ["mkdocs"]
+`
+	got, err := parsePyprojectToml(input)
+	if err != nil {
+		t.Fatalf("parsePyprojectToml: unexpected error: %v", err)
+	}
+	byPkg := map[string]model.RepoDependency{}
+	for _, d := range got {
+		if d.PackageMgr != "pip" {
+			t.Errorf("PackageMgr should be pip, got %q for %s", d.PackageMgr, d.Package)
+		}
+		byPkg[d.Package] = d
+	}
+	want := []model.RepoDependency{
+		{Package: "requests", Version: "2.31.0", IsDev: false},
+		{Package: "click", Version: "9", IsDev: false},
+		{Package: "httpx", Version: "0.27.0", IsDev: false},
+		{Package: "pytest", Version: "7.4.0", IsDev: true},
+		{Package: "ruff", Version: "", IsDev: true},
+		{Package: "mkdocs", Version: "", IsDev: false},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("parsePyprojectToml: got %d deps, want %d\ngot: %+v", len(got), len(want), got)
+	}
+	for _, w := range want {
+		d, ok := byPkg[w.Package]
+		if !ok {
+			t.Errorf("missing dep %s", w.Package)
+			continue
+		}
+		if d.Version != w.Version || d.IsDev != w.IsDev {
+			t.Errorf("dep %s: got %+v, want %+v", w.Package, d, w)
+		}
+	}
+}
+
+func TestParsePyprojectTomlPoetry(t *testing.T) {
+	input := `[tool.poetry]
+name = "myapp"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2.31"
+django = { version = "5.0.1", extras = ["bcrypt"] }
+
+[tool.poetry.dev-dependencies]
+pytest = "7.4.0"
+
+[tool.poetry.group.lint.dependencies]
+ruff = "^0.5.0"
+`
+	got, err := parsePyprojectToml(input)
+	if err != nil {
+		t.Fatalf("parsePyprojectToml(poetry): unexpected error: %v", err)
+	}
+	if len(got) != 4 {
+		t.Fatalf("parsePyprojectToml(poetry): got %d deps, want 4\ngot: %+v", len(got), got)
+	}
+	byPkg := map[string]model.RepoDependency{}
+	for _, d := range got {
+		byPkg[d.Package] = d
+	}
+	if d, ok := byPkg["python"]; ok {
+		t.Errorf("python should be skipped, got %+v", d)
+	}
+	if d := byPkg["requests"]; d.Version != "2.31" || d.IsDev {
+		t.Errorf("requests: got %+v", d)
+	}
+	if d := byPkg["django"]; d.Version != "5.0.1" || d.IsDev {
+		t.Errorf("django: got %+v", d)
+	}
+	if d := byPkg["pytest"]; d.Version != "7.4.0" || !d.IsDev {
+		t.Errorf("pytest should be dev: got %+v", d)
+	}
+	if d := byPkg["ruff"]; d.Version != "0.5.0" || !d.IsDev {
+		t.Errorf("ruff (lint group) should be dev: got %+v", d)
+	}
+}
+
+func TestParsePipfile(t *testing.T) {
+	input := `[[source]]
+url = "https://pypi.org/simple"
+
+[packages]
+requests = "*"
+flask = "==2.3.0"
+django = { version = "5.0.1", extras = ["bcrypt"] }
+
+[dev-packages]
+pytest = "==7.4.0"
+
+[requires]
+python_version = "3"
+`
+	got, err := parsePipfile(input)
+	if err != nil {
+		t.Fatalf("parsePipfile: unexpected error: %v", err)
+	}
+	if len(got) != 4 {
+		t.Fatalf("parsePipfile: got %d deps, want 4\ngot: %+v", len(got), got)
+	}
+	byPkg := map[string]model.RepoDependency{}
+	for _, d := range got {
+		if d.PackageMgr != "pip" {
+			t.Errorf("PackageMgr should be pip, got %q", d.PackageMgr)
+		}
+		byPkg[d.Package] = d
+	}
+	if d := byPkg["requests"]; d.Version != "" || d.IsDev {
+		t.Errorf("requests (wildcard): got %+v, want version='' IsDev=false", d)
+	}
+	if d := byPkg["flask"]; d.Version != "2.3.0" || d.IsDev {
+		t.Errorf("flask: got %+v", d)
+	}
+	if d := byPkg["django"]; d.Version != "5.0.1" || d.IsDev {
+		t.Errorf("django: got %+v", d)
+	}
+	if d := byPkg["pytest"]; d.Version != "7.4.0" || !d.IsDev {
+		t.Errorf("pytest should be dev: got %+v", d)
+	}
+	if _, ok := byPkg["python_version"]; ok {
+		t.Errorf("python_version from [requires] should not be picked up")
+	}
+}
+
+func TestParsePyprojectTomlMalformed(t *testing.T) {
+	cases := map[string]string{
+		"unterminated array": `[project]
+dependencies = [
+    "requests>=2.0",
+
+[tool.poetry.dependencies]
+django = "5.0"
+`,
+		"unterminated quote": `[project]
+dependencies = ["requests>=2.0, "click<9", "httpx==1.0"]
+`,
+	}
+	for name, input := range cases {
+		t.Run(name, func(t *testing.T) {
+			if _, err := parsePyprojectToml(input); !errors.Is(err, ErrMalformedManifest) {
+				t.Errorf("expected ErrMalformedManifest, got %v", err)
+			}
+		})
+	}
+}
+
+func TestParsePyprojectTomlCommentWithBracket(t *testing.T) {
+	input := `[project]
+dependencies = [
+    "requests>=2.0", # ends in ]
+    "httpx==1.0",
+]
+`
+	got, err := parsePyprojectToml(input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("want 2 deps, got %d: %+v", len(got), got)
+	}
+}
+
+func TestParsePyprojectTomlDependenciesExtraNotMatched(t *testing.T) {
+	input := `[project]
+dependencies-extra = ["should-not-appear"]
+`
+	got, err := parsePyprojectToml(input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("want 0 deps from dependencies-extra, got: %+v", got)
+	}
+}
+
+func TestParsePipfileMultilineInlineTable(t *testing.T) {
+	input := `[packages]
+django = {
+  version = "5.0.1",
+  extras = ["bcrypt"]
+}
+flask = "==2.3.0"
+`
+	got, err := parsePipfile(input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	byPkg := map[string]model.RepoDependency{}
+	for _, d := range got {
+		byPkg[d.Package] = d
+	}
+	if _, ok := byPkg["version"]; ok {
+		t.Errorf("'version' should not be emitted as a dep from inline-table body")
+	}
+	if _, ok := byPkg["extras"]; ok {
+		t.Errorf("'extras' should not be emitted as a dep from inline-table body")
+	}
+	if d, ok := byPkg["flask"]; !ok || d.Version != "2.3.0" {
+		t.Errorf("flask not parsed correctly after inline table: %+v", d)
+	}
+}
+
+func TestParsePipfileUnterminatedInlineTable(t *testing.T) {
+	input := `[packages]
+django = {
+  version = "5.0.1"
+`
+	if _, err := parsePipfile(input); !errors.Is(err, ErrMalformedManifest) {
+		t.Errorf("expected ErrMalformedManifest, got %v", err)
 	}
 }
 

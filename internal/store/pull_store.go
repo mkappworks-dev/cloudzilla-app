@@ -253,6 +253,38 @@ func (s *PullStore) CountMergedSince(ctx context.Context, repoID int64, since ti
 	return n, err
 }
 
+func (s *PullStore) WeeklyCreated(ctx context.Context, repoID int64, weeks int) ([]int, error) {
+	weeks = clampWeeks(weeks)
+	const q = `
+		WITH w AS (
+			SELECT generate_series(
+				date_trunc('week', (NOW() AT TIME ZONE 'UTC') - ($2::int - 1) * interval '1 week'),
+				date_trunc('week', (NOW() AT TIME ZONE 'UTC')),
+				interval '1 week'
+			) AS ws
+		)
+		SELECT COALESCE(COUNT(p.id), 0)::int
+		FROM w
+		LEFT JOIN pull_requests p ON date_trunc('week', p.created_at AT TIME ZONE 'UTC') = w.ws AND p.repo_id = $1
+		GROUP BY w.ws
+		ORDER BY w.ws ASC
+	`
+	rows, err := s.db.QueryContext(ctx, q, repoID, weeks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []int
+	for rows.Next() {
+		var n int
+		if err := rows.Scan(&n); err != nil {
+			return nil, err
+		}
+		out = append(out, n)
+	}
+	return out, rows.Err()
+}
+
 func (s *PullStore) CountOpen(ctx context.Context, repoID int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,

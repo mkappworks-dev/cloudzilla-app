@@ -1,0 +1,45 @@
+package components
+
+import (
+	"fmt"
+	"strings"
+)
+
+templ Sparkline(values []int, width, height int) {
+	if len(values) == 0 {
+		<span class="text-xs text-muted-foreground/70">—</span>
+	} else {
+		<svg width={ sparkW(width) } height={ sparkH(height) } viewBox={ sparkViewBox(width, height) } aria-hidden="true">
+			<polyline fill="none" stroke="currentColor" stroke-width="1.5" points={ sparkPoints(values, sparkWInt(width), sparkHInt(height)) }/>
+		</svg>
+	}
+}
+
+func sparkWInt(w int) int { if w == 0 { return 80 }; return w }
+func sparkHInt(h int) int { if h == 0 { return 16 }; return h }
+func sparkW(w int) string  { return fmt.Sprintf("%d", sparkWInt(w)) }
+func sparkH(h int) string  { return fmt.Sprintf("%d", sparkHInt(h)) }
+func sparkViewBox(w, h int) string {
+	return fmt.Sprintf("0 0 %d %d", sparkWInt(w), sparkHInt(h))
+}
+
+func sparkPoints(values []int, w, h int) string {
+	max := 1
+	for _, v := range values {
+		if v > max {
+			max = v
+		}
+	}
+	n := len(values)
+	if n == 1 {
+		return fmt.Sprintf("0,%d %d,%d", h/2, w, h/2)
+	}
+	step := float64(w) / float64(n-1)
+	var b strings.Builder
+	for i, v := range values {
+		x := float64(i) * step
+		y := float64(h) - (float64(v)/float64(max))*float64(h)
+		fmt.Fprintf(&b, "%.1f,%.1f ", x, y)
+	}
+	return strings.TrimSpace(b.String())
+}

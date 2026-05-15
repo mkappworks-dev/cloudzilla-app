@@ -46,7 +46,7 @@ func newIssueHandler(db *sql.DB) *handler.Handler {
 		AuditLog:     store.NewAuditLogStore(db),
 	}
 	userSvc := service.NewUserService(stores.User, cfg.Auth)
-	repoSvc := service.NewRepoService(stores.Repo, stores.User, stores.Org, nil, nil, config.GitConfig{})
+	repoSvc := service.NewRepoService(stores.Repo, stores.User, stores.Org, nil, nil, nil, config.GitConfig{})
 	emailSvc := service.NewEmailService(config.SMTPConfig{})
 	svc := &service.Services{
 		User:         userSvc,

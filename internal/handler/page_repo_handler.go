@@ -538,6 +538,17 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+func (h *Handler) PageCommitsRedirect(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+	http.Redirect(w, r, "/"+owner+"/"+repoName+"/commits/"+repo.DefaultBranch, http.StatusFound)
+}
+
 // PageCommits renders the paginated commit log for a ref.
 func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
@@ -566,8 +577,18 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 
 	log, err := h.Services.Code.GetCommits(owner, repoName, ref, page, 30)
 	if err != nil {
-		h.NotFound(w, r)
-		return
+		switch {
+		case errors.Is(err, service.ErrEmptyRepo):
+			log = &service.CommitLog{Ref: ref, Page: page}
+		case errors.Is(err, service.ErrRefNotFound):
+			h.NotFound(w, r)
+			return
+		default:
+			slog.Error("PageCommits: GetCommits failed",
+				"owner", owner, "repo", repoName, "ref", ref, "page", page, "error", err)
+			http.Error(w, "failed to load commits", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
