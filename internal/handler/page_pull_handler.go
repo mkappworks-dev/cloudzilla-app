@@ -120,7 +120,7 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 	h.render(w, r, pages.Pulls(view.PullsData{
-		BasePage:    withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage),
+		BasePage:    withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
 		Repo:        *repo,
 		Owner:       owner,
 		RepoName:    repoName,
@@ -168,7 +168,7 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 	collaborators, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
 
 	h.render(w, r, pages.PullNew(view.PullNewData{
-		BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage),
+		BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,
@@ -230,7 +230,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 
 	renderErr := func(msg string) {
 		h.render(w, r, pages.PullNew(view.PullNewData{
-			BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage),
+			BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
 			Repo:         *repo,
 			Owner:        owner,
 			RepoName:     repoName,
@@ -394,7 +394,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
-		BasePage:          withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage2),
+		BasePage:          withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage2),
 		Repo:              *repo,
 		Pull:              *pull,
 		Owner:             owner,

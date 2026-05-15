@@ -24,6 +24,10 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "repo not found", http.StatusNotFound)
 		return
 	}
+	if !repo.AllowDiscussions {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
 
 	var userID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
@@ -104,7 +108,7 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Discussions(view.DiscussionsData{
-		BasePage:         withRepoSubnav(basePage(r, h.Services), owner, repoName, "discussions", canManage),
+		BasePage:         withRepoSubnav(basePage(r, h.Services), repo, "discussions", canManage),
 		Repo:             *repo,
 		Owner:            owner,
 		RepoName:         repoName,
@@ -178,7 +182,7 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.DiscussionDetail(view.DiscussionDetailData{
-		BasePage:   withRepoSubnav(basePage(r, h.Services), owner, repoName, "discussions", canManage),
+		BasePage:   withRepoSubnav(basePage(r, h.Services), repo, "discussions", canManage),
 		Repo:       *repo,
 		Owner:      owner,
 		RepoName:   repoName,

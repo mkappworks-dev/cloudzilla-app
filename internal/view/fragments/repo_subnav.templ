@@ -16,8 +16,10 @@ templ RepoSubnav(data RepoSubnavData) {
 		@repoSubnavTab(data, "code", "Code", "/"+data.OwnerName+"/"+data.RepoName, "") {
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
 		}
-		@repoSubnavTab(data, "issues", "Issues", "/"+data.OwnerName+"/"+data.RepoName+"/issues", "") {
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+		if data.AllowIssues {
+			@repoSubnavTab(data, "issues", "Issues", "/"+data.OwnerName+"/"+data.RepoName+"/issues", "") {
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+			}
 		}
 		@repoSubnavTab(data, "pull_requests", "Pull requests", "/"+data.OwnerName+"/"+data.RepoName+"/pulls", "") {
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6v-2"></path></svg>
@@ -25,14 +27,20 @@ templ RepoSubnav(data RepoSubnavData) {
 		@repoSubnavTab(data, "actions", "Actions", "/"+data.OwnerName+"/"+data.RepoName+"/actions", "") {
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
 		}
-		@repoSubnavTab(data, "discussions", "Discussions", "/"+data.OwnerName+"/"+data.RepoName+"/discussions", "") {
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
+		if data.AllowDiscussions {
+			@repoSubnavTab(data, "discussions", "Discussions", "/"+data.OwnerName+"/"+data.RepoName+"/discussions", "") {
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
+			}
 		}
-		@repoSubnavTab(data, "projects", "Projects", "/"+data.OwnerName+"/"+data.RepoName+"/projects", "") {
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
+		if data.AllowProjects {
+			@repoSubnavTab(data, "projects", "Projects", "/"+data.OwnerName+"/"+data.RepoName+"/projects", "") {
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
+			}
 		}
-		@repoSubnavTab(data, "wiki", "Wiki", "/"+data.OwnerName+"/"+data.RepoName+"/wiki", "") {
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg>
+		if data.AllowWiki {
+			@repoSubnavTab(data, "wiki", "Wiki", "/"+data.OwnerName+"/"+data.RepoName+"/wiki", "") {
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg>
+			}
 		}
 		@repoSubnavTab(data, "releases", "Releases", "/"+data.OwnerName+"/"+data.RepoName+"/releases", "") {
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>

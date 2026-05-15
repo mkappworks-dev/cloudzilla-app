@@ -46,7 +46,7 @@ func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Releases(view.ReleasesData{
-		BasePage: withRepoSubnav(basePage(r, h.Services), owner, repoName, "releases", canManage),
+		BasePage: withRepoSubnav(basePage(r, h.Services), repo, "releases", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
@@ -87,7 +87,7 @@ func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.ReleaseDetail(view.ReleaseDetailData{
-		BasePage: withRepoSubnav(basePage(r, h.Services), owner, repoName, "releases", canManage),
+		BasePage: withRepoSubnav(basePage(r, h.Services), repo, "releases", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,

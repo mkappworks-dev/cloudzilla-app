@@ -34,6 +34,11 @@ type RepoSubnavInfo struct {
 	Active    string
 	Counts    map[string]int
 	CanManage bool
+	// Feature toggles — when false the corresponding tab is hidden.
+	AllowIssues      bool
+	AllowDiscussions bool
+	AllowProjects    bool
+	AllowWiki        bool
 }
 
 type HomeData struct {

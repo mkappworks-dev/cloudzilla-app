@@ -26,6 +26,10 @@ func (h *Handler) PageProjects(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "repo not found", http.StatusNotFound)
 		return
 	}
+	if !repo.AllowProjects {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
 
 	var userID *int64
 	canWrite := false
@@ -53,7 +57,7 @@ func (h *Handler) PageProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Projects(view.ProjectsData{
-		BasePage:    withRepoSubnav(basePage(r, h.Services), owner, repoName, "projects", canManage),
+		BasePage:    withRepoSubnav(basePage(r, h.Services), repo, "projects", canManage),
 		Repo:        *repo,
 		Owner:       owner,
 		RepoName:    repoName,
@@ -115,7 +119,7 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.ProjectDetail(view.ProjectDetailData{
-		BasePage:  withRepoSubnav(basePage(r, h.Services), owner, repoName, "projects", canManage),
+		BasePage:  withRepoSubnav(basePage(r, h.Services), repo, "projects", canManage),
 		Repo:      *repo,
 		Owner:     owner,
 		RepoName:  repoName,

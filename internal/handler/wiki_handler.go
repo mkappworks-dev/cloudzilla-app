@@ -39,6 +39,10 @@ func (h *Handler) PageWikiPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
+	if !repo.AllowWiki {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
 
 	// Gate private repos: check read permission before serving any wiki content.
 	var uid *int64
@@ -69,7 +73,7 @@ func (h *Handler) PageWikiPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.WikiPage(view.WikiPageData{
-		BasePage:    withRepoSubnav(basePage(r, h.Services), owner, repoName, "wiki", canManage),
+		BasePage:    withRepoSubnav(basePage(r, h.Services), repo, "wiki", canManage),
 		Repo:        *repo,
 		Owner:       owner,
 		RepoName:    repoName,
@@ -123,7 +127,7 @@ func (h *Handler) PageWikiEdit(w http.ResponseWriter, r *http.Request) {
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	h.render(w, r, pages.WikiEdit(view.WikiEditData{
-		BasePage: withRepoSubnav(basePage(r, h.Services), owner, repoName, "wiki", canManage),
+		BasePage: withRepoSubnav(basePage(r, h.Services), repo, "wiki", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
