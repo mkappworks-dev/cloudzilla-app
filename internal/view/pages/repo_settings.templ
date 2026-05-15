@@ -14,6 +14,11 @@ templ settingsNavLink(href, label string) {
 	<a href={ templ.SafeURL(href) } class="block px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">{ label }</a>
 }
 
+// settingsNavLinkDanger is the red-tinted sidebar entry for Danger zone items.
+templ settingsNavLinkDanger(href, label string) {
+	<a href={ templ.SafeURL(href) } class="block px-2.5 py-1.5 rounded-md !text-destructive hover:bg-destructive/10 transition-colors">{ label }</a>
+}
+
 // settingsToggle renders a labelled checkbox row for a repo feature flag.
 templ settingsToggle(name, label, desc string, on bool) {
 	<label class="flex items-start justify-between gap-4 py-3 border-b border-border last:border-b-0 cursor-pointer">
@@ -47,9 +52,9 @@ templ RepoSettings(data view.RepoSettingsData) {
 						@settingsNavLink("#branches", "Branch protection")
 						@settingsNavLink("#webhooks", "Webhooks")
 						if data.IsOwner {
-							<p class="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mt-4 mb-1 px-2.5">Danger zone</p>
-							@settingsNavLink("#danger", "Danger zone")
 							@settingsNavLink("#template", "Template")
+							<p class="font-mono text-[10px] text-destructive uppercase tracking-wider mt-4 mb-1 px-2.5">Danger zone</p>
+							@settingsNavLinkDanger("#danger", "Danger zone")
 						}
 					</nav>
 				</aside>
@@ -568,6 +573,26 @@ templ RepoSettings(data view.RepoSettingsData) {
 						}
 					}
 					if data.IsOwner {
+						<div id="template" class="scroll-mt-6"></div>
+						<!-- Template repository section -->
+						@components.Card(nil) {
+							@components.CardHeader() {
+								<h2 class="text-base font-semibold tracking-tight">Template Repository</h2>
+							}
+							@components.CardContent() {
+								<div class="flex items-center justify-between">
+									<div>
+										<p class="text-sm font-medium text-foreground">Template repository</p>
+										<p class="text-xs text-muted-foreground mt-0.5">Allow other users to create new repositories with the same directory structure and files.</p>
+									</div>
+									if data.Repo.IsTemplate {
+										<input type="checkbox" aria-label="Template repository" checked hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/template" } hx-vals='{"is_template": "false"}' hx-trigger="change" class="rounded border-input accent-foreground h-4 w-4"/>
+									} else {
+										<input type="checkbox" aria-label="Template repository" hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/template" } hx-vals='{"is_template": "true"}' hx-trigger="change" class="rounded border-input accent-foreground h-4 w-4"/>
+									}
+								</div>
+							}
+						}
 						<div id="danger" class="scroll-mt-6"></div>
 						<!-- Archive / Unarchive section (owner-only) -->
 						@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
@@ -648,26 +673,6 @@ templ RepoSettings(data view.RepoSettingsData) {
 										Delete repository
 									}
 								</form>
-							}
-						}
-						<div id="template" class="scroll-mt-6"></div>
-						<!-- Template repository section -->
-						@components.Card(nil) {
-							@components.CardHeader() {
-								<h2 class="text-base font-semibold tracking-tight">Template Repository</h2>
-							}
-							@components.CardContent() {
-								<div class="flex items-center justify-between">
-									<div>
-										<p class="text-sm font-medium text-foreground">Template repository</p>
-										<p class="text-xs text-muted-foreground mt-0.5">Allow other users to create new repositories with the same directory structure and files.</p>
-									</div>
-									if data.Repo.IsTemplate {
-										<input type="checkbox" aria-label="Template repository" checked hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/template" } hx-vals='{"is_template": "false"}' hx-trigger="change" class="rounded border-input accent-foreground h-4 w-4"/>
-									} else {
-										<input type="checkbox" aria-label="Template repository" hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/template" } hx-vals='{"is_template": "true"}' hx-trigger="change" class="rounded border-input accent-foreground h-4 w-4"/>
-									}
-								</div>
 							}
 						}
 					}
