@@ -287,7 +287,7 @@ templ Repo(data view.RepoData) {
 									Contributors
 									<span class="font-mono text-muted-foreground/70 ml-0.5 text-[11px]" aria-label={ strconv.Itoa(len(data.TopContribs)) + " contributors" }>{ strconv.Itoa(len(data.TopContribs)) }</span>
 								</span>
-								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/contributors") } class="text-[12px] text-muted-foreground hover:text-foreground">All</a>
+								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/graphs/contributors") } class="text-[12px] text-muted-foreground hover:text-foreground">All</a>
 							</h2>
 							<ul class="flex flex-wrap gap-1.5">
 								for _, c := range data.TopContribs {
@@ -314,10 +314,19 @@ templ Repo(data view.RepoData) {
 							<p class="text-[11px] text-muted-foreground/80 mt-2">Past 90 days of commit activity</p>
 						</section>
 					}
-				</aside>
-			</div>
+				<!-- Insights links -->
+				<section aria-labelledby="insights-heading">
+					<h2 id="insights-heading" class="text-[13px] font-medium mb-2">Insights</h2>
+					<ul class="space-y-1 text-[12px]">
+						<li><a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulse") } class="text-muted-foreground hover:text-foreground">Pulse</a></li>
+						<li><a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/graphs/contributors") } class="text-muted-foreground hover:text-foreground">Contributors</a></li>
+						<li><a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/network/dependencies") } class="text-muted-foreground hover:text-foreground">Dependencies</a></li>
+					</ul>
+				</section>
+			</aside>
 		</div>
-	}
+	</div>
+}
 }
 
 templ repoNavCard(href, title, caption string) {

@@ -114,6 +114,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}/*", h.PageTree)
 	r.With(optAuthMW).Get("/{owner}/{repo}/blob/{ref}/*", h.PageBlob)
 	r.With(optAuthMW).Get("/{owner}/{repo}/blame/{ref}/*", h.PageBlame)
+	r.With(optAuthMW).Get("/{owner}/{repo}/commits", h.PageCommitsRedirect)
 	r.With(optAuthMW).Get("/{owner}/{repo}/commits/{ref}", h.PageCommits)
 	r.With(optAuthMW).Get("/{owner}/{repo}/commits/{ref}/*", h.PageCommits)
 	r.With(optAuthMW).Get("/{owner}/{repo}/commit/{sha}", h.PageCommit)

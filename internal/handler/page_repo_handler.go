@@ -538,6 +538,18 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PageCommitsRedirect redirects bare /commits to the default branch.
+func (h *Handler) PageCommitsRedirect(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+	http.Redirect(w, r, "/"+owner+"/"+repoName+"/commits/"+repo.DefaultBranch, http.StatusFound)
+}
+
 // PageCommits renders the paginated commit log for a ref.
 func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
