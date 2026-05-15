@@ -195,34 +195,6 @@ templ RepoSettings(data view.RepoSettingsData) {
 							</div>
 						}
 					}
-					if data.CanTransfer {
-						@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
-							@components.CardHeader() {
-								<h2 class="text-base font-semibold tracking-tight text-destructive">Transfer Ownership</h2>
-								@components.CardDescription() {
-									Transfer this repository to another user. You will lose owner access.
-								}
-							}
-							@components.CardContent() {
-								<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer") } onsubmit="return confirm('Transfer this repository? This cannot be undone.')">
-									<div class="flex gap-3">
-										<label for="transfer-new-owner" class="sr-only">New owner username</label>
-										@components.Input(templ.Attributes{
-											"id":          "transfer-new-owner",
-											"type":        "text",
-											"name":        "new_owner",
-											"placeholder": "New owner username",
-											"required":    "required",
-											"class":       "flex-1",
-										})
-										@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-											Transfer
-										}
-									</div>
-								</form>
-							}
-						}
-					}
 					<div id="deploy-keys" class="scroll-mt-6"></div>
 					<!-- Deploy Keys section -->
 					@components.Card(nil) {
@@ -632,6 +604,34 @@ templ RepoSettings(data view.RepoSettingsData) {
 										}
 									}
 								</div>
+							}
+						}
+						if data.CanTransfer {
+							@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
+								@components.CardHeader() {
+									<h2 class="text-base font-semibold tracking-tight text-destructive">Transfer Ownership</h2>
+									@components.CardDescription() {
+										Transfer this repository to another user. You will lose owner access.
+									}
+								}
+								@components.CardContent() {
+									<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer") } onsubmit="return confirm('Transfer this repository? This cannot be undone.')">
+										<div class="flex gap-3">
+											<label for="transfer-new-owner" class="sr-only">New owner username</label>
+											@components.Input(templ.Attributes{
+												"id":          "transfer-new-owner",
+												"type":        "text",
+												"name":        "new_owner",
+												"placeholder": "New owner username",
+												"required":    "required",
+												"class":       "flex-1",
+											})
+											@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+												Transfer
+											}
+										</div>
+									</form>
+								}
 							}
 						}
 						<!-- Delete repository (owner-only) -->
