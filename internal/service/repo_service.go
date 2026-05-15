@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -141,16 +143,29 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 
 	if s.contributorStats != nil && s.code != nil && repo.OwnerName != "" {
 		for _, c := range commits {
-			user, _ := s.users.GetByEmail(ctx, c.AuthorEmail)
+			user, err := s.users.GetByEmail(ctx, c.AuthorEmail)
+			if errors.Is(err, sql.ErrNoRows) {
+				continue
+			}
+			if err != nil {
+				slog.Warn("post-receive: contributor lookup by email failed",
+					"repo_id", repo.ID, "sha", c.SHA, "email", c.AuthorEmail, "error", err)
+				continue
+			}
 			if user == nil {
 				continue
 			}
 			detail, err := s.code.GetCommit(repo.OwnerName, repo.Name, c.SHA)
 			if err != nil {
+				slog.Warn("post-receive: load commit detail for contributor stats failed",
+					"repo_id", repo.ID, "sha", c.SHA, "error", err)
 				continue
 			}
-			_ = s.contributorStats.IngestCommit(ctx, repo.ID, user.ID, c.AuthorTime,
-				detail.TotalAdded, detail.TotalDeleted)
+			if err := s.contributorStats.IngestCommit(ctx, repo.ID, user.ID, c.AuthorTime,
+				detail.TotalAdded, detail.TotalDeleted); err != nil {
+				slog.Warn("post-receive: contributor stats ingest failed",
+					"repo_id", repo.ID, "sha", c.SHA, "user_id", user.ID, "error", err)
+			}
 		}
 	}
 	return nil

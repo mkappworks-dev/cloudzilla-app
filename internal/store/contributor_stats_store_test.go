@@ -40,11 +40,10 @@ func TestContributorStatsStore_UpsertAndList(t *testing.T) {
 		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
 	})
 
-	week := time.Date(2026, 5, 11, 0, 0, 0, 0, time.UTC) // Monday
+	week := time.Date(2026, 5, 11, 0, 0, 0, 0, time.UTC)
 	if err := s.UpsertStats(ctx, repoID, userID, week, 3, 100, 20); err != nil {
 		t.Fatalf("upsert: %v", err)
 	}
-	// Idempotent re-upsert with new values — must replace, not accumulate.
 	if err := s.UpsertStats(ctx, repoID, userID, week, 5, 150, 30); err != nil {
 		t.Fatalf("upsert: %v", err)
 	}

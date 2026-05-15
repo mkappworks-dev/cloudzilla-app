@@ -1,8 +1,3 @@
--- 055_create_contributor_week_stats.sql
--- Per-(repo, user, week) commit/lines aggregate. Backs the per-repo
--- contributors page. Week is the Monday-of-week date (UTC).
--- Populated on each push via RepoService.PostReceive hook.
-
 CREATE TABLE IF NOT EXISTS contributor_week_stats (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     repo_id BIGINT NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,

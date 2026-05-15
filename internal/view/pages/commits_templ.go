@@ -295,7 +295,6 @@ func Commits(data view.CommitsData) templ.Component {
 	})
 }
 
-// commitSubject returns the first line of a commit message.
 func commitSubject(msg string) string {
 	for i, ch := range msg {
 		if ch == '\n' {

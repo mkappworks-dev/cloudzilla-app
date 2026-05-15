@@ -538,7 +538,6 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// PageCommitsRedirect redirects bare /commits to the default branch.
 func (h *Handler) PageCommitsRedirect(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")

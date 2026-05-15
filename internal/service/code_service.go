@@ -108,8 +108,6 @@ func resolveRef(repo *gogit.Repository, ref string) (*object.Commit, string, err
 			}
 			return commit, displayRef, nil
 		}
-		// Only treat a missing HEAD ref as "empty repo"; any other error
-		// (I/O, corrupted HEAD, packed-refs parse failure) must surface.
 		if _, headErr := repo.Head(); headErr != nil {
 			if errors.Is(headErr, plumbing.ErrReferenceNotFound) {
 				return nil, "", ErrEmptyRepo

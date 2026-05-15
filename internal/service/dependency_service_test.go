@@ -45,9 +45,12 @@ func TestParsePackageJSON(t *testing.T) {
     "jest": "^29.0.0"
   }
 }`
-	got := parsePackageJSON(input)
+	got, err := parsePackageJSONSafe(input)
+	if err != nil {
+		t.Fatalf("parsePackageJSONSafe: unexpected error: %v", err)
+	}
 	if len(got) != 3 {
-		t.Fatalf("parsePackageJSON: got %d deps, want 3\ngot: %+v", len(got), got)
+		t.Fatalf("parsePackageJSONSafe: got %d deps, want 3\ngot: %+v", len(got), got)
 	}
 	devCount := 0
 	for _, d := range got {
@@ -248,7 +251,6 @@ dependencies = ["requests>=2.0, "click<9", "httpx==1.0"]
 }
 
 func TestParsePyprojectTomlCommentWithBracket(t *testing.T) {
-	// A `]` inside a comment must not terminate the array early.
 	input := `[project]
 dependencies = [
     "requests>=2.0", # ends in ]
@@ -265,7 +267,6 @@ dependencies = [
 }
 
 func TestParsePyprojectTomlDependenciesExtraNotMatched(t *testing.T) {
-	// `dependencies-extra` must not be matched as the `dependencies` key.
 	input := `[project]
 dependencies-extra = ["should-not-appear"]
 `
@@ -279,8 +280,6 @@ dependencies-extra = ["should-not-appear"]
 }
 
 func TestParsePipfileMultilineInlineTable(t *testing.T) {
-	// A multi-line inline table must not emit a spurious `version` dep
-	// and must not be reported as malformed.
 	input := `[packages]
 django = {
   version = "5.0.1",

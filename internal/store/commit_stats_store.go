@@ -85,17 +85,18 @@ func (s *CommitStatsStore) ListForUserSince(ctx context.Context, userID int64, s
 }
 
 func (s *CommitStatsStore) WeeklyForRepo(ctx context.Context, repoID int64, weeks int) ([]int, error) {
+	weeks = clampWeeks(weeks)
 	const q = `
 		WITH w AS (
 			SELECT generate_series(
-				date_trunc('week', NOW() - ($2::int - 1) * interval '1 week'),
-				date_trunc('week', NOW()),
+				date_trunc('week', (NOW() AT TIME ZONE 'UTC') - ($2::int - 1) * interval '1 week'),
+				date_trunc('week', (NOW() AT TIME ZONE 'UTC')),
 				interval '1 week'
 			) AS ws
 		)
 		SELECT COALESCE(SUM(c.commit_count), 0)::int
 		FROM w
-		LEFT JOIN commit_day_counts c ON date_trunc('week', c.day) = w.ws AND c.repo_id = $1
+		LEFT JOIN commit_day_counts c ON date_trunc('week', c.day AT TIME ZONE 'UTC') = w.ws AND c.repo_id = $1
 		GROUP BY w.ws
 		ORDER BY w.ws ASC
 	`

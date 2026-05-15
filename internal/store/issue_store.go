@@ -348,17 +348,18 @@ func (s *IssueStore) CountClosedSince(ctx context.Context, repoID int64, since t
 }
 
 func (s *IssueStore) WeeklyCreated(ctx context.Context, repoID int64, weeks int) ([]int, error) {
+	weeks = clampWeeks(weeks)
 	const q = `
 		WITH w AS (
 			SELECT generate_series(
-				date_trunc('week', NOW() - ($2::int - 1) * interval '1 week'),
-				date_trunc('week', NOW()),
+				date_trunc('week', (NOW() AT TIME ZONE 'UTC') - ($2::int - 1) * interval '1 week'),
+				date_trunc('week', (NOW() AT TIME ZONE 'UTC')),
 				interval '1 week'
 			) AS ws
 		)
 		SELECT COALESCE(COUNT(i.id), 0)::int
 		FROM w
-		LEFT JOIN issues i ON date_trunc('week', i.created_at) = w.ws AND i.repo_id = $1
+		LEFT JOIN issues i ON date_trunc('week', i.created_at AT TIME ZONE 'UTC') = w.ws AND i.repo_id = $1
 		GROUP BY w.ws
 		ORDER BY w.ws ASC
 	`

@@ -14,26 +14,17 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
-// DependencyService parses and stores dependency manifests for the dependency graph.
 type DependencyService struct {
 	dep  *store.DependencyStore
 	code *CodeService
 }
 
-// NewDependencyService creates a DependencyService backed by the given store and code service.
 func NewDependencyService(dep *store.DependencyStore, code *CodeService) *DependencyService {
 	return &DependencyService{dep: dep, code: code}
 }
 
-// maxManifestSize caps the size of a manifest blob we will load and parse from
-// a pushed repo. Anything larger is treated as adversarial/garbage input and
-// skipped to prevent OOM on the request path.
 const maxManifestSize int64 = 1 << 20 // 1 MiB
 
-// ParseAndStore reads known manifest files from the repo's default branch,
-// parses them, and replaces the stored dependency list. A parser error or
-// oversized manifest skips just that file; any non-trivial infrastructure
-// failure aborts the replace to avoid wiping good data on a transient blip.
 func (s *DependencyService) ParseAndStore(ctx context.Context, repo *model.Repository) error {
 	type manifest struct {
 		path   string
@@ -55,7 +46,6 @@ func (s *DependencyService) ParseAndStore(ctx context.Context, repo *model.Repos
 		if err != nil {
 			switch {
 			case errors.Is(err, ErrEmptyRepo), errors.Is(err, ErrRefNotFound), errors.Is(err, object.ErrFileNotFound):
-				// manifest absent for this repo — ignore quietly
 			case errors.Is(err, ErrBlobTooLarge):
 				slog.Warn("dependency: manifest exceeds size limit; skipping",
 					"repo_id", repo.ID, "owner", repo.OwnerName, "repo", repo.Name,
@@ -78,8 +68,6 @@ func (s *DependencyService) ParseAndStore(ctx context.Context, repo *model.Repos
 		all = append(all, parsed...)
 	}
 
-	// If infrastructure errors prevented all reads, skip the replace to avoid
-	// wiping the stored dependency graph due to a transient failure.
 	if infraErr && len(all) == 0 {
 		return errors.New("dependency: manifest reads failed due to infrastructure errors; skipping replace")
 	}
@@ -87,28 +75,42 @@ func (s *DependencyService) ParseAndStore(ctx context.Context, repo *model.Repos
 	return s.dep.Replace(ctx, repo.ID, all)
 }
 
-// Adapters keep the pre-existing parsers (which can't fail by construction)
-// usable with the new (deps, error) parser signature.
-func parseGoModSafe(c string) ([]model.RepoDependency, error)         { return parseGoMod(c), nil }
-func parsePackageJSONSafe(c string) ([]model.RepoDependency, error)   { return parsePackageJSON(c), nil }
+func parseGoModSafe(c string) ([]model.RepoDependency, error) { return parseGoMod(c), nil }
+func parsePackageJSONSafe(c string) ([]model.RepoDependency, error) {
+	var pkg struct {
+		Dependencies    map[string]string `json:"dependencies"`
+		DevDependencies map[string]string `json:"devDependencies"`
+	}
+	if err := json.Unmarshal([]byte(c), &pkg); err != nil {
+		return nil, fmt.Errorf("%w: package.json: %v", ErrMalformedManifest, err)
+	}
+	var deps []model.RepoDependency
+	for name, ver := range pkg.Dependencies {
+		deps = append(deps, model.RepoDependency{
+			PackageMgr: "npm", Package: name,
+			Version: strings.TrimLeft(ver, "^~>="), IsDev: false,
+		})
+	}
+	for name, ver := range pkg.DevDependencies {
+		deps = append(deps, model.RepoDependency{
+			PackageMgr: "npm", Package: name,
+			Version: strings.TrimLeft(ver, "^~>="), IsDev: true,
+		})
+	}
+	return deps, nil
+}
 func parseRequirementsTxtSafe(c string) ([]model.RepoDependency, error) {
 	return parseRequirementsTxt(c), nil
 }
 func parseCargoTomlSafe(c string) ([]model.RepoDependency, error) { return parseCargoToml(c), nil }
 
-// ListByRepo returns all stored dependencies for a repo.
 func (s *DependencyService) ListByRepo(ctx context.Context, repoID int64) ([]model.RepoDependency, error) {
 	return s.dep.ListByRepo(ctx, repoID)
 }
 
-// ---------------------------------------------------------------------------
-// Parsers
-// ---------------------------------------------------------------------------
-
 var goRequireLineRe = regexp.MustCompile(`^\s+(\S+)\s+(\S+)`)
 var goRequireSingleRe = regexp.MustCompile(`^require\s+(\S+)\s+(\S+)`)
 
-// parseGoMod extracts dependencies from a go.mod file content.
 func parseGoMod(content string) []model.RepoDependency {
 	var deps []model.RepoDependency
 	inRequireBlock := false
@@ -138,7 +140,6 @@ func parseGoMod(content string) []model.RepoDependency {
 			continue
 		}
 
-		// Single-line require outside a block
 		m := goRequireSingleRe.FindStringSubmatch(trimmed)
 		if m != nil {
 			deps = append(deps, model.RepoDependency{
@@ -152,37 +153,6 @@ func parseGoMod(content string) []model.RepoDependency {
 	return deps
 }
 
-// parsePackageJSON extracts npm dependencies from a package.json file content.
-func parsePackageJSON(content string) []model.RepoDependency {
-	var pkg struct {
-		Dependencies    map[string]string `json:"dependencies"`
-		DevDependencies map[string]string `json:"devDependencies"`
-	}
-	if err := json.Unmarshal([]byte(content), &pkg); err != nil {
-		slog.Warn("dependency: failed to parse package.json", "error", err)
-		return nil
-	}
-	var deps []model.RepoDependency
-	for name, ver := range pkg.Dependencies {
-		deps = append(deps, model.RepoDependency{
-			PackageMgr: "npm",
-			Package:    name,
-			Version:    strings.TrimLeft(ver, "^~>="),
-			IsDev:      false,
-		})
-	}
-	for name, ver := range pkg.DevDependencies {
-		deps = append(deps, model.RepoDependency{
-			PackageMgr: "npm",
-			Package:    name,
-			Version:    strings.TrimLeft(ver, "^~>="),
-			IsDev:      true,
-		})
-	}
-	return deps
-}
-
-// parseRequirementsTxt extracts pip dependencies from a requirements.txt file content.
 func parseRequirementsTxt(content string) []model.RepoDependency {
 	var deps []model.RepoDependency
 	operators := []string{"==", ">=", "<=", "~=", "!=", ">", "<"}
@@ -192,11 +162,9 @@ func parseRequirementsTxt(content string) []model.RepoDependency {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		// Strip inline comments
 		if idx := strings.Index(line, " #"); idx != -1 {
 			line = strings.TrimSpace(line[:idx])
 		}
-		// Skip pip flags (-r, -c, -e, --find-links, etc.) and URL-based requirements
 		if strings.HasPrefix(line, "-") || strings.Contains(line, "://") {
 			continue
 		}
@@ -206,7 +174,6 @@ func parseRequirementsTxt(content string) []model.RepoDependency {
 			if idx := strings.Index(line, op); idx != -1 {
 				pkg = strings.TrimSpace(line[:idx])
 				ver = strings.TrimSpace(line[idx+len(op):])
-				// Strip any further constraint (e.g. ",<3.0")
 				if comma := strings.Index(ver, ","); comma != -1 {
 					ver = ver[:comma]
 				}
@@ -229,15 +196,8 @@ func parseRequirementsTxt(content string) []model.RepoDependency {
 var poetryRhsVersionRe = regexp.MustCompile(`version\s*=\s*"([^"]+)"`)
 var pyAssignRe = regexp.MustCompile(`^\s*([A-Za-z0-9_.\-]+)\s*=\s*(.+)$`)
 
-// ErrMalformedManifest is returned by manifest parsers when the input is
-// structurally invalid (e.g. unterminated TOML array). Callers should skip
-// the file rather than overwriting good data with partial results.
 var ErrMalformedManifest = errors.New("malformed manifest")
 
-// parsePyprojectToml extracts pip dependencies from a pyproject.toml file.
-// Supports PEP 621 ([project] dependencies and [project.optional-dependencies])
-// and Poetry ([tool.poetry.dependencies], [tool.poetry.dev-dependencies], and
-// [tool.poetry.group.<name>.dependencies]).
 func parsePyprojectToml(content string) ([]model.RepoDependency, error) {
 	var deps []model.RepoDependency
 
@@ -271,9 +231,6 @@ func parsePyprojectToml(content string) ([]model.RepoDependency, error) {
 		trimmed := stripTomlComment(line)
 
 		if inArray {
-			// A TOML section header while still inside an array means the array
-			// was never closed — treat as malformed rather than swallowing the
-			// header as array content.
 			if strings.HasPrefix(trimmed, "[") && strings.HasSuffix(trimmed, "]") && !strings.ContainsAny(trimmed, "\"'") {
 				return nil, fmt.Errorf("%w: unterminated dependencies array before %s", ErrMalformedManifest, trimmed)
 			}
@@ -351,8 +308,6 @@ func parsePyprojectToml(content string) ([]model.RepoDependency, error) {
 	return deps, nil
 }
 
-// stripTomlComment trims whitespace, then drops a trailing `# ...` comment if
-// the `#` lies outside any quoted string.
 func stripTomlComment(line string) string {
 	line = strings.TrimSpace(line)
 	quote := byte(0)
@@ -375,9 +330,6 @@ func stripTomlComment(line string) string {
 	return line
 }
 
-// stripExactAssign is like stripAssign but requires the key to be followed by
-// whitespace or `=`, preventing `dependencies-extra = ...` from matching the
-// `dependencies` key.
 func stripExactAssign(trimmed, key string) (string, bool) {
 	if !strings.HasPrefix(trimmed, key) {
 		return "", false
@@ -396,11 +348,6 @@ func stripExactAssign(trimmed, key string) (string, bool) {
 	return strings.TrimSpace(rest[1:]), true
 }
 
-// parsePipfile extracts pip dependencies from a Pipfile.
-// Reads [packages] (runtime) and [dev-packages] (dev). The Pipfile wildcard
-// "*" is normalized to an empty version string. Multi-line inline tables
-// (`pkg = {\n  version = "...",\n}`) are detected and skipped without
-// emitting a spurious dep named `version`.
 func parsePipfile(content string) ([]model.RepoDependency, error) {
 	var deps []model.RepoDependency
 	section := ""
@@ -456,8 +403,6 @@ func parsePipfile(content string) ([]model.RepoDependency, error) {
 	return deps, nil
 }
 
-// stripAssign returns the right-hand side of `key = ...` if `trimmed` starts
-// with `key` followed by `=`. Used to detect lines like `dependencies = [...]`.
 func stripAssign(trimmed, key string) (string, bool) {
 	if !strings.HasPrefix(trimmed, key) {
 		return "", false
@@ -469,10 +414,6 @@ func stripAssign(trimmed, key string) (string, bool) {
 	return strings.TrimSpace(rest[1:]), true
 }
 
-// findArrayEnd returns the index of the first `]` that lies outside any
-// quoted string in s, or -1 if none is present. Used to detect the close of
-// a multiline TOML array without misfiring on `]` inside a quoted PEP 508
-// specifier such as "click[colors]".
 func findArrayEnd(s string) int {
 	quote := byte(0)
 	for i := 0; i < len(s); i++ {
@@ -493,8 +434,6 @@ func findArrayEnd(s string) int {
 	return -1
 }
 
-// splitTomlArrayEntries splits the inside of a TOML array on commas that lie
-// outside of quoted strings, then invokes addFn on each entry.
 func splitTomlArrayEntries(s string, isDev bool, addFn func(string, bool)) {
 	var cur strings.Builder
 	quote := byte(0)
@@ -526,8 +465,6 @@ func splitTomlArrayEntries(s string, isDev bool, addFn func(string, bool)) {
 	}
 }
 
-// splitPep508 extracts the package name and version from a PEP 508 dependency
-// specifier such as `requests>=2.0,<3.0; python_version>="3.7"`.
 func splitPep508(spec string) (pkg, ver string) {
 	if idx := strings.Index(spec, ";"); idx != -1 {
 		spec = strings.TrimSpace(spec[:idx])
@@ -567,9 +504,6 @@ func splitPep508(spec string) (pkg, ver string) {
 	return
 }
 
-// parsePoetryAssign turns a single Poetry dependency assignment line into a
-// RepoDependency. Returns ok=false for the special `python = "..."` runtime
-// constraint or unparseable lines.
 func parsePoetryAssign(line string, isDev bool) (model.RepoDependency, bool) {
 	m := pyAssignRe.FindStringSubmatch(line)
 	if m == nil {
@@ -586,9 +520,6 @@ func parsePoetryAssign(line string, isDev bool) (model.RepoDependency, bool) {
 	}, true
 }
 
-// poetryRhsVersion extracts a clean version string from the right-hand side of
-// a Poetry/Pipfile dependency line. Handles `"x.y"` and `{ version = "x.y", ... }`,
-// and strips Poetry's range operators (^, ~, >=, etc.).
 func poetryRhsVersion(rhs string) string {
 	rhs = strings.TrimSpace(rhs)
 	if idx := strings.Index(rhs, "#"); idx != -1 {
@@ -616,7 +547,6 @@ func isDevGroup(name string) bool {
 	return false
 }
 
-// parseCargoToml extracts Rust crate dependencies from a Cargo.toml file content.
 func parseCargoToml(content string) []model.RepoDependency {
 	var deps []model.RepoDependency
 	inDeps := false
@@ -639,7 +569,6 @@ func parseCargoToml(content string) []model.RepoDependency {
 			inDeps = false
 			continue
 		}
-		// Any other [section] header ends the dep blocks
 		if strings.HasPrefix(trimmed, "[") {
 			if trimmed != "[dependencies]" && trimmed != "[dev-dependencies]" {
 				inDeps = false
@@ -657,7 +586,6 @@ func parseCargoToml(content string) []model.RepoDependency {
 
 		isDev := inDevDeps
 
-		// Simple: name = "version"
 		if m := simpleVerRe.FindStringSubmatch(line); m != nil {
 			deps = append(deps, model.RepoDependency{
 				PackageMgr: "cargo",
@@ -668,7 +596,6 @@ func parseCargoToml(content string) []model.RepoDependency {
 			continue
 		}
 
-		// Table: name = { version = "...", ... }
 		if m := tableVerRe.FindStringSubmatch(line); m != nil {
 			name := m[1]
 			ver := ""

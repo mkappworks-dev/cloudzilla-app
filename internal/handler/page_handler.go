@@ -74,6 +74,16 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		} else {
 			data.Repos = ownRepos
 		}
+	} else {
+		publicRepos, err := h.Services.Repo.List(ctx)
+		if err != nil {
+			slog.Warn("home: anonymous public-repo list failed", "error", err)
+		} else {
+			data.Repos = publicRepos
+		}
+	}
+	if claims, ok := middleware.ClaimsFromContext(ctx); ok {
+		userID := claims.UserID
 		commitsLast7, err := h.Services.CommitStats.CommitsForUserSince(ctx, userID, 7)
 		if err != nil {
 			slog.Warn("home: commits-last-7 stat failed", "user_id", userID, "error", err)

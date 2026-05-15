@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// PagePulse renders /{owner}/{repo}/pulse — 30-day activity summary.
 func (h *Handler) PagePulse(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -32,21 +32,45 @@ func (h *Handler) PagePulse(w http.ResponseWriter, r *http.Request) {
 
 	since := time.Now().Add(-30 * 24 * time.Hour)
 
-	issuesOpened, _ := h.Services.Issue.CountCreatedSince(r.Context(), repo.ID, since)
-	issuesClosed, _ := h.Services.Issue.CountClosedSince(r.Context(), repo.ID, since)
-	pullsOpened, _ := h.Services.Pull.CountCreatedSince(r.Context(), repo.ID, since)
-	pullsMerged, _ := h.Services.Pull.CountMergedSince(r.Context(), repo.ID, since)
+	issuesOpened, err := h.Services.Issue.CountCreatedSince(r.Context(), repo.ID, since)
+	if err != nil {
+		slog.Warn("pulse: count issues created failed", "repo_id", repo.ID, "error", err)
+	}
+	issuesClosed, err := h.Services.Issue.CountClosedSince(r.Context(), repo.ID, since)
+	if err != nil {
+		slog.Warn("pulse: count issues closed failed", "repo_id", repo.ID, "error", err)
+	}
+	pullsOpened, err := h.Services.Pull.CountCreatedSince(r.Context(), repo.ID, since)
+	if err != nil {
+		slog.Warn("pulse: count pulls created failed", "repo_id", repo.ID, "error", err)
+	}
+	pullsMerged, err := h.Services.Pull.CountMergedSince(r.Context(), repo.ID, since)
+	if err != nil {
+		slog.Warn("pulse: count pulls merged failed", "repo_id", repo.ID, "error", err)
+	}
 
-	commitsLast30, _ := h.Services.CommitStats.WeeklyForRepo(r.Context(), repo.ID, 5)
-	issuesLast30, _ := h.Services.Issue.WeeklyCreated(r.Context(), repo.ID, 5)
-	pullsLast30, _ := h.Services.Pull.WeeklyCreated(r.Context(), repo.ID, 5)
+	commitsLast30, err := h.Services.CommitStats.WeeklyForRepo(r.Context(), repo.ID, 5)
+	if err != nil {
+		slog.Warn("pulse: weekly commits failed", "repo_id", repo.ID, "error", err)
+	}
+	issuesLast30, err := h.Services.Issue.WeeklyCreated(r.Context(), repo.ID, 5)
+	if err != nil {
+		slog.Warn("pulse: weekly issues failed", "repo_id", repo.ID, "error", err)
+	}
+	pullsLast30, err := h.Services.Pull.WeeklyCreated(r.Context(), repo.ID, 5)
+	if err != nil {
+		slog.Warn("pulse: weekly pulls failed", "repo_id", repo.ID, "error", err)
+	}
 
 	recentCommits := 0
 	for _, n := range commitsLast30 {
 		recentCommits += n
 	}
 
-	contributors, _ := h.Services.ContributorStats.ForRepo(r.Context(), repo.ID)
+	contributors, err := h.Services.ContributorStats.ForRepo(r.Context(), repo.ID)
+	if err != nil {
+		slog.Warn("pulse: contributor stats failed", "repo_id", repo.ID, "error", err)
+	}
 	if len(contributors) > 10 {
 		contributors = contributors[:10]
 	}
@@ -70,7 +94,6 @@ func (h *Handler) PagePulse(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// PageContributors renders /{owner}/{repo}/graphs/contributors — full contributor table.
 func (h *Handler) PageContributors(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -90,7 +113,12 @@ func (h *Handler) PageContributors(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, _ := h.Services.ContributorStats.ForRepo(r.Context(), repo.ID)
+	rows, err := h.Services.ContributorStats.ForRepo(r.Context(), repo.ID)
+	if err != nil {
+		slog.Error("contributors: load failed", "repo_id", repo.ID, "error", err)
+		http.Error(w, "failed to load contributors", http.StatusInternalServerError)
+		return
+	}
 
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 

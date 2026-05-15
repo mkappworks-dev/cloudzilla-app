@@ -21,7 +21,7 @@ type ContributorWithTimeline struct {
 	Commits   int
 	Additions int
 	Deletions int
-	Timeline  []int // weekly commit counts oldest→newest
+	Timeline  []int
 }
 
 func (s *ContributorStatsService) ForRepo(ctx context.Context, repoID int64) ([]ContributorWithTimeline, error) {
@@ -70,7 +70,6 @@ func (s *ContributorStatsService) ForRepo(ctx context.Context, repoID int64) ([]
 			Timeline:  tl,
 		})
 	}
-	// Sort by commit count descending (insertion sort — contributor lists are short).
 	for i := 1; i < len(out); i++ {
 		for j := i; j > 0 && out[j-1].Commits < out[j].Commits; j-- {
 			out[j-1], out[j] = out[j], out[j-1]
@@ -79,14 +78,6 @@ func (s *ContributorStatsService) ForRepo(ctx context.Context, repoID int64) ([]
 	return out, nil
 }
 
-// IngestCommit adds one commit's diff stats to the per-week aggregate for (repoID, userID).
-// It reads the current bucket first so successive calls within the same week accumulate correctly.
 func (s *ContributorStatsService) IngestCommit(ctx context.Context, repoID, userID int64, when time.Time, additions, deletions int) error {
-	week := store.MondayUTC(when)
-	existing, err := s.stats.GetOne(ctx, repoID, userID, week)
-	if err != nil {
-		return err
-	}
-	return s.stats.UpsertStats(ctx, repoID, userID, week,
-		existing.Commits+1, existing.Additions+additions, existing.Deletions+deletions)
+	return s.stats.AddDelta(ctx, repoID, userID, store.MondayUTC(when), 1, additions, deletions)
 }

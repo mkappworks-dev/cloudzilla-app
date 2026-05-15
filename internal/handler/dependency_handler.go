@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"sort"
+	"sync"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
@@ -14,6 +16,24 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
+
+// In-process cache of last lazy-parse times per repo to keep an empty
+// dependency set from triggering a full manifest tree-walk on every page view.
+var (
+	depLazyParseTTL  = time.Hour
+	depLazyParsedMu  sync.Mutex
+	depLazyParsedAt  = map[int64]time.Time{}
+)
+
+func shouldLazyParseDeps(repoID int64) bool {
+	depLazyParsedMu.Lock()
+	defer depLazyParsedMu.Unlock()
+	if last, ok := depLazyParsedAt[repoID]; ok && time.Since(last) < depLazyParseTTL {
+		return false
+	}
+	depLazyParsedAt[repoID] = time.Now()
+	return true
+}
 
 func (h *Handler) PageDependencies(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
@@ -45,12 +65,15 @@ func (h *Handler) PageDependencies(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load dependencies", http.StatusInternalServerError)
 		return
 	}
-	// Lazy-parse on first visit so repos pushed before ParseAndStore was wired
-	// into the post-receive hook still show their manifests.
-	if len(deps) == 0 {
-		if parseErr := h.Services.Dependency.ParseAndStore(r.Context(), repo); parseErr == nil {
-			if deps, err = h.Services.Dependency.ListByRepo(r.Context(), repo.ID); err != nil {
-				deps = nil
+	if len(deps) == 0 && shouldLazyParseDeps(repo.ID) {
+		if parseErr := h.Services.Dependency.ParseAndStore(r.Context(), repo); parseErr != nil {
+			slog.Warn("dependency: lazy parse failed", "repo_id", repo.ID, "error", parseErr)
+		} else {
+			refreshed, listErr := h.Services.Dependency.ListByRepo(r.Context(), repo.ID)
+			if listErr != nil {
+				slog.Warn("dependency: lazy re-list failed", "repo_id", repo.ID, "error", listErr)
+			} else {
+				deps = refreshed
 			}
 		}
 	}
@@ -92,7 +115,6 @@ func manifestLabel(mgr string) string {
 	case "npm":
 		return "package.json"
 	case "pip":
-		// pip aggregates requirements.txt, pyproject.toml, and Pipfile.
 		return "Python"
 	case "cargo":
 		return "Cargo.toml"
