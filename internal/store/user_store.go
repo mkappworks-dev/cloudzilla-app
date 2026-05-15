@@ -304,12 +304,60 @@ func (s *UserStore) ListUsersForDigest(ctx context.Context, digestMode string) (
 		return nil, fmt.Errorf("list users for digest: %w", err)
 	}
 	defer rows.Close()
+	return scanFullUsers(rows)
+}
+
+// Returns only the rows that exist; ordering is undefined.
+func (s *UserStore) GetManyByUsernames(ctx context.Context, usernames []string) ([]model.User, error) {
+	if len(usernames) == 0 {
+		return nil, nil
+	}
+	placeholders := make([]string, len(usernames))
+	args := make([]any, len(usernames))
+	for i, u := range usernames {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = u
+	}
+	q := `SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
+	             is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
+	      FROM users WHERE username IN (` + strings.Join(placeholders, ",") + `)`
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("user get many by usernames: %w", err)
+	}
+	defer rows.Close()
+	return scanFullUsers(rows)
+}
+
+// Returns only the rows that exist; ordering is undefined.
+func (s *UserStore) GetManyByIDs(ctx context.Context, ids []int64) ([]model.User, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	placeholders := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	q := `SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
+	             is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
+	      FROM users WHERE id IN (` + strings.Join(placeholders, ",") + `)`
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("user get many by ids: %w", err)
+	}
+	defer rows.Close()
+	return scanFullUsers(rows)
+}
+
+func scanFullUsers(rows *sql.Rows) ([]model.User, error) {
 	var users []model.User
 	for rows.Next() {
 		var u model.User
 		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
-			&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited, &u.CreatedAt, &u.UpdatedAt,
-			&u.EmailNotifications, &u.EmailDigest); err != nil {
+			&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
+			&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest); err != nil {
 			return nil, err
 		}
 		users = append(users, u)

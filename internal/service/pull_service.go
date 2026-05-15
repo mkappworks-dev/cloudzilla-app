@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -19,6 +20,8 @@ type PullService struct {
 	reviewStore   *store.PullReviewStore
 	labelStore    *store.LabelStore
 	assigneeStore *store.AssigneeStore
+	contribStats  *store.ContributorStatsStore
+	userStore     *store.UserStore
 }
 
 // NewPullService creates a PullService backed by the given stores.
@@ -224,4 +227,75 @@ func (s *PullService) CountOpen(ctx context.Context, repoID int64) (int, error) 
 
 func (s *PullService) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
 	return s.pulls.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+}
+
+func (s *PullService) WithReviewerDeps(contribStats *store.ContributorStatsStore, userStore *store.UserStore) *PullService {
+	s.contribStats = contribStats
+	s.userStore = userStore
+	return s
+}
+
+// SuggestReviewers returns up to limit candidate reviewers for a PR between base and head.
+// Preference order: (1) CODEOWNERS matches on the repo's default branch; (2) top contributors by commit count.
+func (s *PullService) SuggestReviewers(ctx context.Context, owner, repoName, base, head string, limit int) ([]model.User, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.code != nil {
+		// Missing CODEOWNERS is normal; error is intentionally ignored and the contributor fallback is used.
+		rules, _ := s.code.GetCodeOwners(owner, repoName, repo.DefaultBranch)
+		if len(rules) > 0 {
+			diff, _ := s.code.GetPullDiff(owner, repoName, base, head)
+			if diff != nil {
+				changed := make([]string, 0, len(diff.Files))
+				for _, f := range diff.Files {
+					if f.NewPath != "" {
+						changed = append(changed, f.NewPath)
+					} else {
+						changed = append(changed, f.OldPath)
+					}
+				}
+				owners := s.code.MatchCodeOwners(rules, changed)
+				if len(owners) > 0 && s.userStore != nil {
+					if users, err := s.userStore.GetManyByUsernames(ctx, owners); err == nil && len(users) > 0 {
+						if limit > 0 && len(users) > limit {
+							users = users[:limit]
+						}
+						return users, nil
+					}
+				}
+			}
+		}
+	}
+
+	if s.contribStats == nil || s.userStore == nil {
+		return nil, nil
+	}
+	rows, err := s.contribStats.ListForRepo(ctx, repo.ID)
+	if err != nil || len(rows) == 0 {
+		return nil, nil
+	}
+	counts := map[int64]int{}
+	for _, r := range rows {
+		counts[r.UserID] += r.Commits
+	}
+	type pair struct {
+		id int64
+		n  int
+	}
+	pairs := make([]pair, 0, len(counts))
+	for id, n := range counts {
+		pairs = append(pairs, pair{id, n})
+	}
+	sort.Slice(pairs, func(i, j int) bool { return pairs[i].n > pairs[j].n })
+	if limit > 0 && len(pairs) > limit {
+		pairs = pairs[:limit]
+	}
+	ids := make([]int64, len(pairs))
+	for i, p := range pairs {
+		ids[i] = p.id
+	}
+	return s.userStore.GetManyByIDs(ctx, ids)
 }

@@ -69,7 +69,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee,
-	)
+	).WithReviewerDeps(stores.ContributorStats, stores.User)
 	return &Services{
 		User:             userSvc,
 		Repo:             repoSvc,
