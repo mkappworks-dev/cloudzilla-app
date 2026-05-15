@@ -99,6 +99,7 @@ templ PullNew(data view.PullNewData) {
 						</div>
 
 						<aside class="space-y-5">
+							@components.ReviewerPicker(data.Reviewer)
 							if len(data.AllLabels) > 0 {
 								<fieldset class="space-y-2">
 									<legend class="text-sm font-medium">Labels</legend>

@@ -1,6 +1,5 @@
 package service_test
 
-// Integration tests for PullReviewService.RequestReviewers.
 // Requires TEST_DATABASE_DSN and skips otherwise.
 
 import (

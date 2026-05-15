@@ -59,6 +59,9 @@ func (s *PullReviewService) CanMerge(ctx context.Context, pullID int64) (bool, s
 }
 
 func (s *PullReviewService) RequestReviewers(ctx context.Context, owner, repoName string, pullNumber int, reviewers []model.User) error {
+	if len(reviewers) == 0 {
+		return nil
+	}
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return fmt.Errorf("repo not found: %w", err)

@@ -158,6 +158,12 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 
 	allLabels, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
 
+	var suggested []model.User
+	if head != "" {
+		suggested, _ = h.Services.Pull.SuggestReviewers(r.Context(), owner, repoName, base, head, 5)
+	}
+	collaborators, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
+
 	h.render(w, r, pages.PullNew(view.PullNewData{
 		BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage),
 		Repo:         *repo,
@@ -168,6 +174,10 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		Base:         base,
 		Head:         head,
 		AllLabels:    allLabels,
+		Reviewer: components.ReviewerPickerData{
+			Suggested: toReviewerOptions(suggested, nil),
+			All:       collaboratorsToReviewerOptions(collaborators, nil),
+		},
 	}))
 }
 
@@ -204,6 +214,17 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	allLabels, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+
+	errCollaborators, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
+	var errSuggested []model.User
+	if headBranch != "" {
+		errSuggested, _ = h.Services.Pull.SuggestReviewers(r.Context(), owner, repoName, baseBranch, headBranch, 5)
+	}
+	selectedReviewers := make(map[string]bool, len(r.Form["reviewers"]))
+	for _, u := range r.Form["reviewers"] {
+		selectedReviewers[u] = true
+	}
+
 	renderErr := func(msg string) {
 		h.render(w, r, pages.PullNew(view.PullNewData{
 			BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage),
@@ -216,6 +237,10 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 			Head:         headBranch,
 			AllLabels:    allLabels,
 			Error:        msg,
+			Reviewer: components.ReviewerPickerData{
+				Suggested: toReviewerOptions(errSuggested, selectedReviewers),
+				All:       collaboratorsToReviewerOptions(errCollaborators, selectedReviewers),
+			},
 		}))
 	}
 
@@ -234,6 +259,16 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 		if id, err := strconv.ParseInt(raw, 10, 64); err == nil {
 			if aerr := h.Services.Label.AddToPull(r.Context(), owner, repoName, pr.Number, id); aerr != nil {
 				slog.Warn("new PR: attach label failed", "label_id", id, "error", aerr)
+			}
+		}
+	}
+
+	if usernames := r.Form["reviewers"]; len(usernames) > 0 {
+		if reviewers, rerr := h.Services.User.GetManyByUsernames(r.Context(), usernames); rerr != nil {
+			slog.Warn("new PR: resolve reviewer usernames failed", "error", rerr)
+		} else if len(reviewers) > 0 {
+			if rerr := h.Services.PullReview.RequestReviewers(r.Context(), owner, repoName, pr.Number, reviewers); rerr != nil {
+				slog.Warn("new PR: request reviewers failed", "error", rerr)
 			}
 		}
 	}
@@ -406,18 +441,18 @@ func firstNonEmpty(vals ...string) string {
 	return ""
 }
 
-func toReviewerOptions(users []model.User) []components.ReviewerOption {
+func toReviewerOptions(users []model.User, selected map[string]bool) []components.ReviewerOption {
 	opts := make([]components.ReviewerOption, 0, len(users))
 	for _, u := range users {
-		opts = append(opts, components.ReviewerOption{Username: u.Username, Reason: "suggested"})
+		opts = append(opts, components.ReviewerOption{Username: u.Username, Selected: selected[u.Username]})
 	}
 	return opts
 }
 
-func collaboratorsToReviewerOptions(perms []model.Permission) []components.ReviewerOption {
+func collaboratorsToReviewerOptions(perms []model.Permission, selected map[string]bool) []components.ReviewerOption {
 	opts := make([]components.ReviewerOption, 0, len(perms))
 	for _, p := range perms {
-		opts = append(opts, components.ReviewerOption{Username: p.Username})
+		opts = append(opts, components.ReviewerOption{Username: p.Username, Selected: selected[p.Username]})
 	}
 	return opts
 }

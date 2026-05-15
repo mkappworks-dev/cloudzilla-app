@@ -56,6 +56,7 @@ type PullNewData struct {
 	Base         string
 	Head         string
 	AllLabels    []model.Label
+	Reviewer     components.ReviewerPickerData
 	Error        string
 }
 

@@ -137,6 +137,11 @@ func (s *UserService) GetByID(ctx context.Context, id int64) (*model.User, error
 	return s.store.GetByID(ctx, id)
 }
 
+// Missing usernames are silently omitted; result order is undefined.
+func (s *UserService) GetManyByUsernames(ctx context.Context, usernames []string) ([]model.User, error) {
+	return s.store.GetManyByUsernames(ctx, usernames)
+}
+
 // UpdateEmailPrefs saves the user's email notification preferences.
 func (s *UserService) UpdateEmailPrefs(ctx context.Context, userID int64, emailNotifications bool, emailDigest string) error {
 	return s.store.UpdateEmailPrefs(ctx, userID, emailNotifications, emailDigest)
