@@ -14,9 +14,11 @@ templ PullDetail(data view.PullDetailData) {
 	@layout.Base(data.BasePage, data.Pull.Title+" · PR #"+strconv.Itoa(data.Pull.Number)+" · "+data.Owner+"/"+data.RepoName) {
 		<div class="space-y-6">
 			<div>
-				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
-					<span aria-hidden="true">←</span> Back to pull requests
-				</a>
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="hover:underline">Pull requests</a>
+				</p>
 			</div>
 
 			<div class="flex gap-6">
