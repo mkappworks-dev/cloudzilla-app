@@ -184,18 +184,19 @@ type WikiEditData struct {
 }
 
 // PulseData is used by the /{owner}/{repo}/pulse page.
-// PulseData holds template data for the repository pulse/insights page.
 type PulseData struct {
 	BasePage
 	Repo          model.Repository
 	Owner         string
 	RepoName      string
-	NewIssues     int
-	ClosedIssues  int
-	NewPRs        int
-	MergedPRs     int
-	OpenPRs       int
+	IssuesOpened  int
+	IssuesClosed  int
+	PullsOpened   int
+	PullsMerged   int
 	RecentCommits int
+	CommitsLast30 []int // 5 weekly buckets, oldest→newest
+	IssuesLast30  []int
+	PullsLast30   []int
 	Contributors  []service.ContributorStat
 }
 

@@ -149,6 +149,10 @@ func (s *PullService) CountMergedSince(ctx context.Context, repoID int64, since 
 	return s.pulls.CountMergedSince(ctx, repoID, since)
 }
 
+func (s *PullService) WeeklyCreated(ctx context.Context, repoID int64, weeks int) ([]int, error) {
+	return s.pulls.WeeklyCreated(ctx, repoID, weeks)
+}
+
 func (s *PullService) CountOpen(ctx context.Context, repoID int64) (int, error) {
 	return s.pulls.CountOpen(ctx, repoID)
 }

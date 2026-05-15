@@ -84,6 +84,37 @@ func (s *CommitStatsStore) ListForUserSince(ctx context.Context, userID int64, s
 	return out, rows.Err()
 }
 
+func (s *CommitStatsStore) WeeklyForRepo(ctx context.Context, repoID int64, weeks int) ([]int, error) {
+	const q = `
+		WITH w AS (
+			SELECT generate_series(
+				date_trunc('week', NOW() - ($2::int - 1) * interval '1 week'),
+				date_trunc('week', NOW()),
+				interval '1 week'
+			) AS ws
+		)
+		SELECT COALESCE(SUM(c.commit_count), 0)::int
+		FROM w
+		LEFT JOIN commit_day_counts c ON date_trunc('week', c.day) = w.ws AND c.repo_id = $1
+		GROUP BY w.ws
+		ORDER BY w.ws ASC
+	`
+	rows, err := s.db.QueryContext(ctx, q, repoID, weeks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []int
+	for rows.Next() {
+		var n int
+		if err := rows.Scan(&n); err != nil {
+			return nil, err
+		}
+		out = append(out, n)
+	}
+	return out, rows.Err()
+}
+
 // UserID in returned rows is zero — the SUM aggregates across users.
 func (s *CommitStatsStore) ListForRepoSince(ctx context.Context, repoID int64, since time.Time) ([]CommitDayCount, error) {
 	const q = `

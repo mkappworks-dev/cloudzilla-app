@@ -91,6 +91,10 @@ func (s *CommitStatsService) CommitsForUserSince(ctx context.Context, userID int
 	return total, nil
 }
 
+func (s *CommitStatsService) WeeklyForRepo(ctx context.Context, repoID int64, weeks int) ([]int, error) {
+	return s.stats.WeeklyForRepo(ctx, repoID, weeks)
+}
+
 // Materializes the full window with explicit zero entries so the heatmap can render a regular grid.
 func (s *CommitStatsService) LookbackForRepo(ctx context.Context, repoID int64, days int) (map[time.Time]int, error) {
 	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)

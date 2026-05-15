@@ -32,21 +32,18 @@ func (h *Handler) PagePulse(w http.ResponseWriter, r *http.Request) {
 
 	since := time.Now().Add(-30 * 24 * time.Hour)
 
-	newIssues, _ := h.Services.Issue.CountCreatedSince(r.Context(), repo.ID, since)
-	closedIssues, _ := h.Services.Issue.CountClosedSince(r.Context(), repo.ID, since)
-	newPRs, _ := h.Services.Pull.CountCreatedSince(r.Context(), repo.ID, since)
-	mergedPRs, _ := h.Services.Pull.CountMergedSince(r.Context(), repo.ID, since)
-	openPRs, _ := h.Services.Pull.CountOpen(r.Context(), repo.ID)
+	issuesOpened, _ := h.Services.Issue.CountCreatedSince(r.Context(), repo.ID, since)
+	issuesClosed, _ := h.Services.Issue.CountClosedSince(r.Context(), repo.ID, since)
+	pullsOpened, _ := h.Services.Pull.CountCreatedSince(r.Context(), repo.ID, since)
+	pullsMerged, _ := h.Services.Pull.CountMergedSince(r.Context(), repo.ID, since)
 
-	weeks, _ := h.Services.Code.GetCommitActivity(owner, repoName)
+	commitsLast30, _ := h.Services.CommitStats.WeeklyForRepo(r.Context(), repo.ID, 5)
+	issuesLast30, _ := h.Services.Issue.WeeklyCreated(r.Context(), repo.ID, 5)
+	pullsLast30, _ := h.Services.Pull.WeeklyCreated(r.Context(), repo.ID, 5)
+
 	recentCommits := 0
-	// sum last 5 weeks (covers ~30 days plus rounding)
-	start := 0
-	if len(weeks) > 5 {
-		start = len(weeks) - 5
-	}
-	for _, wa := range weeks[start:] {
-		recentCommits += wa.Total
+	for _, n := range commitsLast30 {
+		recentCommits += n
 	}
 
 	contributors, _ := h.Services.Code.GetContributors(owner, repoName)
@@ -61,12 +58,14 @@ func (h *Handler) PagePulse(w http.ResponseWriter, r *http.Request) {
 		Repo:          *repo,
 		Owner:         owner,
 		RepoName:      repoName,
-		NewIssues:     newIssues,
-		ClosedIssues:  closedIssues,
-		NewPRs:        newPRs,
-		MergedPRs:     mergedPRs,
-		OpenPRs:       openPRs,
+		IssuesOpened:  issuesOpened,
+		IssuesClosed:  issuesClosed,
+		PullsOpened:   pullsOpened,
+		PullsMerged:   pullsMerged,
 		RecentCommits: recentCommits,
+		CommitsLast30: commitsLast30,
+		IssuesLast30:  issuesLast30,
+		PullsLast30:   pullsLast30,
 		Contributors:  contributors,
 	}))
 }
