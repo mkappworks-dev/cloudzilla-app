@@ -16,6 +16,17 @@ type IssuesData struct {
 	IssueLabels     map[int64][]model.Label
 	AllMilestones   []model.Milestone
 	ActiveMilestone *model.Milestone
+
+	StateFilter     string
+	SearchQuery     string
+	LabelFilter     string
+	MilestoneFilter string
+	Sort            string
+
+	Labels []model.Label
+
+	OpenCount   int
+	ClosedCount int
 }
 
 // IssueDetailData holds template data for the issue detail page.
