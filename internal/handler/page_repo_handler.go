@@ -294,6 +294,63 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// UpdateRepoGeneral handles the settings page's General-section form:
+// description, website, and default branch.
+func (h *Handler) UpdateRepoGeneral(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if err := h.Services.Repo.UpdateGeneral(r.Context(), repo.ID, claims.UserID,
+		r.FormValue("description"), r.FormValue("website"), r.FormValue("default_branch")); err != nil {
+		http.Error(w, "failed to update settings", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/"+owner+"/"+repoName+"/settings", http.StatusSeeOther)
+}
+
+// UpdateRepoFeatures handles the settings page's Access-section feature
+// toggles: allow Issues / Discussions / Projects / Wiki.
+func (h *Handler) UpdateRepoFeatures(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if err := h.Services.Repo.UpdateFeatureToggles(r.Context(), repo.ID, claims.UserID,
+		r.FormValue("allow_issues") == "on",
+		r.FormValue("allow_discussions") == "on",
+		r.FormValue("allow_projects") == "on",
+		r.FormValue("allow_wiki") == "on"); err != nil {
+		http.Error(w, "failed to update settings", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/"+owner+"/"+repoName+"/settings", http.StatusSeeOther)
+}
+
 // PageRefs renders the branches and tags overview page.
 func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")

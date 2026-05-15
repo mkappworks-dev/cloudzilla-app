@@ -502,6 +502,37 @@ func (s *RepoService) UpdateMeta(ctx context.Context, repoID, userID int64, desc
 	return s.repos.UpdateMeta(ctx, repoID, strings.TrimSpace(description), strings.TrimSpace(website), strings.TrimSpace(license))
 }
 
+// UpdateGeneral updates the description, website, and default branch from the
+// settings page's General section. Requires manage permission. An empty
+// defaultBranch leaves the current one unchanged.
+func (s *RepoService) UpdateGeneral(ctx context.Context, repoID, userID int64, description, website, defaultBranch string) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	if !s.CanManage(ctx, repo, userID) {
+		return errors.New("permission denied")
+	}
+	branch := strings.TrimSpace(defaultBranch)
+	if branch == "" {
+		branch = repo.DefaultBranch
+	}
+	return s.repos.UpdateGeneral(ctx, repoID, strings.TrimSpace(description), strings.TrimSpace(website), branch)
+}
+
+// UpdateFeatureToggles updates the Issues/Discussions/Projects/Wiki feature
+// flags from the settings page's Access section. Requires manage permission.
+func (s *RepoService) UpdateFeatureToggles(ctx context.Context, repoID, userID int64, issues, discussions, projects, wiki bool) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	if !s.CanManage(ctx, repo, userID) {
+		return errors.New("permission denied")
+	}
+	return s.repos.UpdateFeatureToggles(ctx, repoID, issues, discussions, projects, wiki)
+}
+
 func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, newOwnerID int64, newOwnerUsername, newName, description string) (*model.Repository, error) {
 	tmpl, err := s.repos.GetByID(ctx, templateRepoID)
 	if err != nil {

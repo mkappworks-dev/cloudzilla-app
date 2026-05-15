@@ -12,6 +12,10 @@ type Repository struct {
 	Description   string     `db:"description"    json:"description"`
 	Website       string     `db:"website"        json:"website,omitempty"`
 	License       string     `db:"license"        json:"license,omitempty"`
+	AllowIssues      bool    `db:"allow_issues"      json:"allow_issues"`
+	AllowDiscussions bool    `db:"allow_discussions" json:"allow_discussions"`
+	AllowProjects    bool    `db:"allow_projects"    json:"allow_projects"`
+	AllowWiki        bool    `db:"allow_wiki"        json:"allow_wiki"`
 	Private       bool       `db:"private"        json:"private"`
 	DefaultBranch string     `db:"default_branch" json:"default_branch"`
 	CreatedAt     time.Time  `db:"created_at"     json:"created_at"`
