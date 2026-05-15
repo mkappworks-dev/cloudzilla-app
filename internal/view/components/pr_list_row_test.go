@@ -36,7 +36,7 @@ func TestPRListRow_RendersHrefAndMeta(t *testing.T) {
 
 func TestPRListRow_StateIconAriaLabel(t *testing.T) {
 	cases := []struct {
-		state   string
+		state    string
 		wantAria string
 	}{
 		{"open", `aria-label="open"`},
