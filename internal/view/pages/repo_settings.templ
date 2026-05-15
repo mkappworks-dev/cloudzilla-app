@@ -243,9 +243,11 @@ templ RepoSettings(data view.RepoSettingsData) {
 											<input type="checkbox" name="read_only" value="true" checked class="rounded border-input accent-foreground"/>
 											Read-only (uncheck to allow push access)
 										</label>
-										@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-											Add Deploy Key
-										}
+										<div class="flex justify-end">
+											@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+												Add Deploy Key
+											}
+										</div>
 									</form>
 								</section>
 							}
@@ -428,9 +430,11 @@ templ RepoSettings(data view.RepoSettingsData) {
 											<input type="checkbox" name="block_force_push" value="true" checked class="rounded border-input accent-foreground"/>
 											Block force pushes
 										</label>
-										@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-											Add Rule
-										}
+										<div class="flex justify-end">
+											@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+												Add Rule
+											}
+										</div>
 									</form>
 								</section>
 							}
@@ -540,9 +544,11 @@ templ RepoSettings(data view.RepoSettingsData) {
 											"value": "push,issues,pull_request",
 										})
 									</div>
-									@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-										Add Webhook
-									}
+									<div class="flex justify-end">
+										@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+											Add Webhook
+										}
+									</div>
 								</form>
 							</section>
 							<div id="webhooks-list" class="space-y-2">
@@ -614,24 +620,25 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								if data.Repo.IsArchived {
-									@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{
-										"hx-post":   "/api/repos/" + data.Owner + "/" + data.RepoName + "/unarchive",
-										"hx-target": "body",
-										"type":      "button",
-									}) {
-										Unarchive
+								<div class="flex justify-end">
+									if data.Repo.IsArchived {
+										@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{
+											"hx-post":   "/api/repos/" + data.Owner + "/" + data.RepoName + "/unarchive",
+											"hx-target": "body",
+											"type":      "button",
+										}) {
+											Unarchive
+										}
+									} else {
+										@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
+											"hx-post":   "/api/repos/" + data.Owner + "/" + data.RepoName + "/archive",
+											"hx-target": "body",
+											"type":      "button",
+										}) {
+											Archive
+										}
 									}
-								} else {
-									@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{
-										"hx-post":   "/api/repos/" + data.Owner + "/" + data.RepoName + "/archive",
-										"hx-target": "body",
-										"type":      "button",
-										"class":     "bg-warning text-warning-foreground hover:bg-warning/90",
-									}) {
-										Archive
-									}
-								}
+								</div>
 							}
 						}
 						if data.CanTransfer {
@@ -673,7 +680,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/delete") } onsubmit="return confirm('Permanently delete this repository and all its data? This cannot be undone.')">
+								<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/delete") } onsubmit="return confirm('Permanently delete this repository and all its data? This cannot be undone.')" class="flex justify-end">
 									@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 										Delete repository
 									}
