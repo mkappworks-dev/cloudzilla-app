@@ -2,7 +2,6 @@ package pages
 
 import (
 	"strconv"
-	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -32,29 +31,58 @@ templ Commits(data view.CommitsData) {
 				</div>
 			</section>
 
-			<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="commit-list">
-				<h2 id="commit-list" class="sr-only">Commits on { data.Log.Ref }</h2>
-				if len(data.Log.Commits) > 0 {
-					<ol class="divide-y divide-border">
-						for _, c := range data.Log.Commits {
-							<li class="flex items-center gap-4 px-4 py-3 hover:bg-muted/50">
-								@components.Avatar(c.Author, components.AvatarSizeDefault, "")
+			if len(data.Log.Commits) > 0 {
+				<div class="space-y-4" aria-label="Commit history grouped by date">
+					{{ lastDay := "" }}
+					for _, c := range data.Log.Commits {
+						{{ day := c.AuthorTime.Format("2006-01-02") }}
+						if day != lastDay {
+							{{ lastDay = day }}
+							<div class="flex items-center gap-3">
+								<time
+									datetime={ c.AuthorTime.UTC().Format("2006-01-02") }
+									class="text-[12px] font-semibold text-muted-foreground whitespace-nowrap"
+								>Commits on { c.AuthorTime.Format("Jan 2, 2006") }</time>
+								<div class="flex-1 border-t border-border" aria-hidden="true"></div>
+							</div>
+						}
+						<div class="rounded-md border border-border bg-card">
+							<div class="flex items-start gap-3 px-4 py-3">
+								@components.Avatar(c.Author, components.AvatarSizeSM, c.Author)
 								<div class="min-w-0 flex-1">
-									<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commit/"+c.FullHash) } class="text-[13px] font-medium hover:underline truncate block">{ c.Message }</a>
+									<a
+										href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commit/" + c.FullHash) }
+										class="text-[13px] font-medium hover:underline line-clamp-2 block"
+									>{ commitSubject(c.Message) }</a>
 									<p class="mt-0.5 text-[12px] text-muted-foreground">
 										{ c.Author }
-										<span aria-hidden="true">·</span>
-										<time datetime={ c.AuthorTime.UTC().Format(time.RFC3339) }>{ c.AuthorTime.Format("2006-01-02") }</time>
 									</p>
 								</div>
-								<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commit/"+c.FullHash) } class="font-mono text-[12px] text-muted-foreground hover:text-foreground hover:underline shrink-0">{ c.Hash }</a>
-							</li>
-						}
-					</ol>
-				} else {
-					<div class="px-4 py-12 text-center text-sm text-muted-foreground">No commits yet.</div>
-				}
-			</section>
+								<div class="flex items-center gap-2 shrink-0 mt-0.5">
+									<a
+										href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commit/" + c.FullHash) }
+										class="font-mono text-[12px] text-muted-foreground hover:text-foreground hover:underline"
+										title={ c.FullHash }
+									>{ c.FullHash[:7] }</a>
+									<a
+										href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + c.FullHash) }
+										class="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground border border-border rounded px-1.5 py-0.5 hover:bg-muted/50"
+										title="Browse repository at this point in history"
+									>
+										<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+											<path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+											<polyline points="9 22 9 12 15 12 15 22"></polyline>
+										</svg>
+										Browse files
+									</a>
+								</div>
+							</div>
+						</div>
+					}
+				</div>
+			} else {
+				<div class="rounded-md border border-border bg-card px-4 py-12 text-center text-sm text-muted-foreground">No commits yet.</div>
+			}
 
 			{{ newerURL := "" }}
 			if data.Log.PrevPage > 0 {
@@ -67,4 +95,14 @@ templ Commits(data view.CommitsData) {
 			@components.PaginationLabeled(newerURL, olderURL)
 		</div>
 	}
+}
+
+// commitSubject returns the first line of a commit message.
+func commitSubject(msg string) string {
+	for i, ch := range msg {
+		if ch == '\n' {
+			return msg[:i]
+		}
+	}
+	return msg
 }
