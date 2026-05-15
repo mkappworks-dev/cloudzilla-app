@@ -71,3 +71,12 @@ func (s *PullReviewStore) HasChangesRequested(ctx context.Context, pullID int64)
 	).Scan(&exists)
 	return exists, err
 }
+
+func (s *PullReviewStore) RequestReview(ctx context.Context, pullID, repoID, reviewerID int64, reviewerName string) error {
+	const q = `
+INSERT INTO pull_reviews (pull_id, repo_id, author_id, author_name, state, body)
+VALUES ($1, $2, $3, $4, 'pending', '')
+ON CONFLICT (pull_id, author_id) DO NOTHING`
+	_, err := s.db.ExecContext(ctx, q, pullID, repoID, reviewerID, reviewerName)
+	return err
+}

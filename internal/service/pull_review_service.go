@@ -58,6 +58,23 @@ func (s *PullReviewService) CanMerge(ctx context.Context, pullID int64) (bool, s
 	return true, "", nil
 }
 
+func (s *PullReviewService) RequestReviewers(ctx context.Context, owner, repoName string, pullNumber int, reviewers []model.User) error {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	pr, err := s.pulls.GetByNumber(ctx, repo.ID, pullNumber)
+	if err != nil {
+		return fmt.Errorf("pull request not found: %w", err)
+	}
+	for _, u := range reviewers {
+		if err := s.reviews.RequestReview(ctx, pr.ID, repo.ID, u.ID, u.Username); err != nil {
+			return fmt.Errorf("request review for user %d: %w", u.ID, err)
+		}
+	}
+	return nil
+}
+
 func (s *PullReviewService) ListByPull(ctx context.Context, owner, repoName string, pullNumber int) ([]model.PullReview, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
