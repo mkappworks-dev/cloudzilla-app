@@ -1,11 +1,19 @@
 package fragments
 
-import "github.com/mkappworks-dev/cloudzilla-app/internal/view"
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
 
 templ Comment(data view.CommentFragData) {
-	<div class="bg-background border border-border rounded-lg p-4">
-		<div class="font-semibold text-sm text-foreground">{ data.Comment.AuthorName }</div>
-		<div class="text-xs text-muted-foreground mb-2">{ data.Comment.CreatedAt.Format("Jan 2, 2006 at 3:04 PM") }</div>
-		<div class="prose prose-sm max-w-none text-foreground">@templ.Raw(data.Comment.BodyHTML)</div>
-	</div>
+	@components.TimelineEntry(components.TimelineEntryComment, data.Comment.AuthorName, data.Comment.CreatedAt.Format("Jan 2, 2006 at 3:04 PM")) {
+		<div class="rounded-md border border-border bg-card overflow-hidden">
+			<header class="px-4 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-xs text-muted-foreground">
+				<time>{ data.Comment.CreatedAt.Format("Jan 2, 2006 at 3:04 PM") }</time>
+			</header>
+			<div class="px-4 py-3">
+				@templ.Raw(data.Comment.BodyHTML)
+			</div>
+		</div>
+	}
 }

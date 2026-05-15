@@ -20,14 +20,15 @@ func pinLimitGuard(pinnedCount int) string {
 
 // IssueService manages issue lifecycle including creation, state transitions, and visibility.
 type IssueService struct {
-	issues   *store.IssueStore
-	repos    *store.RepoStore
-	repoSvc  *RepoService
+	issues  *store.IssueStore
+	repos   *store.RepoStore
+	pulls   *store.PullStore
+	repoSvc *RepoService
 }
 
 // NewIssueService creates an IssueService backed by the given stores.
-func NewIssueService(issues *store.IssueStore, repos *store.RepoStore, repoSvc *RepoService) *IssueService {
-	return &IssueService{issues: issues, repos: repos, repoSvc: repoSvc}
+func NewIssueService(issues *store.IssueStore, repos *store.RepoStore, pulls *store.PullStore, repoSvc *RepoService) *IssueService {
+	return &IssueService{issues: issues, repos: repos, pulls: pulls, repoSvc: repoSvc}
 }
 
 func (s *IssueService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, visibility string) (*model.Issue, error) {
@@ -192,4 +193,12 @@ func (s *IssueService) WeeklyCreated(ctx context.Context, repoID int64, weeks in
 
 func (s *IssueService) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
 	return s.issues.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+}
+
+func (s *IssueService) LinkedPRs(ctx context.Context, owner, repoName string, issueNumber int) ([]model.PullRequest, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	return s.pulls.ListLinkedToIssue(ctx, repo.ID, issueNumber)
 }

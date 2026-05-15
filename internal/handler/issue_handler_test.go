@@ -51,7 +51,7 @@ func newIssueHandler(db *sql.DB) *handler.Handler {
 	svc := &service.Services{
 		User:         userSvc,
 		Repo:         repoSvc,
-		Issue:        service.NewIssueService(stores.Issue, stores.Repo, repoSvc),
+		Issue:        service.NewIssueService(stores.Issue, stores.Repo, store.NewPullStore(db), repoSvc),
 		Webhook:      service.NewWebhookService(stores.Webhook),
 		Notification: service.NewNotificationService(stores.Notification, stores.Watch, emailSvc, userSvc),
 		Event:        service.NewEventService(stores.Event, stores.User, stores.Repo),

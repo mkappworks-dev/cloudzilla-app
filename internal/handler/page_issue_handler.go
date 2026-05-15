@@ -231,6 +231,11 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		allIssueMilestones = []model.Milestone{}
 	}
 
+	linkedPRs, _ := h.Services.Issue.LinkedPRs(r.Context(), owner, repoName, issue.Number)
+	if linkedPRs == nil {
+		linkedPRs = []model.PullRequest{}
+	}
+
 	h.render(w, r, pages.IssueDetail(view.IssueDetailData{
 		BasePage:      withRepoSubnav(basePage(r, h.Services), owner, repoName, "issues", canManage),
 		Repo:          *repo,
@@ -244,6 +249,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		AllLabels:     allLabels,
 		Milestone:     issueMilestone,
 		AllMilestones: allIssueMilestones,
+		LinkedPRs:     linkedPRs,
 		CanWrite:      canWrite,
 		CanManage:     canManage,
 	}))

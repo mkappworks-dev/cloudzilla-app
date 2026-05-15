@@ -199,3 +199,45 @@ func TestPullStore_ListOpen_ReturnsOpenPRs(t *testing.T) {
 		t.Error("ListOpen must include the open PR we created")
 	}
 }
+
+// TestPullStore_ListLinkedToIssue_ReturnsMatchingPRs verifies that ListLinkedToIssue
+// returns only PRs whose title or body mentions the issue number (e.g. "#3"),
+// and excludes PRs that do not mention it.
+func TestPullStore_ListLinkedToIssue_ReturnsMatchingPRs(t *testing.T) {
+	ps, repoID, ownerID := seedPullDeps(t)
+	ctx := context.Background()
+
+	mentioningTitle := &model.PullRequest{
+		RepoID: repoID, AuthorID: ownerID,
+		Title: "Fix #3 crash on startup", Body: "no ref here",
+		HeadBranch: "fix-3", BaseBranch: "main", State: model.PRStateOpen,
+	}
+	mentioningBody := &model.PullRequest{
+		RepoID: repoID, AuthorID: ownerID,
+		Title: "Unrelated work", Body: "Closes #3 by rewriting the init path.",
+		HeadBranch: "unrelated", BaseBranch: "main", State: model.PRStateOpen,
+	}
+	unrelated := &model.PullRequest{
+		RepoID: repoID, AuthorID: ownerID,
+		Title: "Update README", Body: "No issue refs.",
+		HeadBranch: "readme", BaseBranch: "main", State: model.PRStateOpen,
+	}
+	for _, pr := range []*model.PullRequest{mentioningTitle, mentioningBody, unrelated} {
+		if err := ps.Create(ctx, pr); err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+	}
+
+	linked, err := ps.ListLinkedToIssue(ctx, repoID, 3)
+	if err != nil {
+		t.Fatalf("ListLinkedToIssue: %v", err)
+	}
+	if len(linked) != 2 {
+		t.Errorf("want 2 linked PRs, got %d", len(linked))
+	}
+	for _, pr := range linked {
+		if pr.ID == unrelated.ID {
+			t.Error("unrelated PR must not appear in linked results")
+		}
+	}
+}

@@ -324,3 +324,22 @@ func (s *PullStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID 
 	).Scan(&n)
 	return n, err
 }
+
+func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNumber int) ([]model.PullRequest, error) {
+	pattern := fmt.Sprintf("%%#%d%%", issueNumber)
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
+		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
+		        auto_merge_enabled, auto_merge_strategy
+		 FROM pull_requests
+		 WHERE repo_id = $1
+		   AND (title ILIKE $2 OR body ILIKE $2)
+		 ORDER BY number DESC`,
+		repoID, pattern,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("pr linked to issue: %w", err)
+	}
+	defer rows.Close()
+	return scanPullRows(rows)
+}

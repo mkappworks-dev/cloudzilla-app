@@ -43,6 +43,7 @@ type IssueDetailData struct {
 	AllLabels     []model.Label
 	Milestone     *model.Milestone
 	AllMilestones []model.Milestone
+	LinkedPRs     []model.PullRequest
 	CanWrite      bool
 	CanManage     bool
 }
