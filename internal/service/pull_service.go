@@ -274,7 +274,10 @@ func (s *PullService) SuggestReviewers(ctx context.Context, owner, repoName, bas
 		return nil, nil
 	}
 	rows, err := s.contribStats.ListForRepo(ctx, repo.ID)
-	if err != nil || len(rows) == 0 {
+	if err != nil {
+		return nil, fmt.Errorf("contributor stats lookup: %w", err)
+	}
+	if len(rows) == 0 {
 		return nil, nil
 	}
 	counts := map[int64]int{}

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strconv"
@@ -231,7 +232,10 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		allIssueMilestones = []model.Milestone{}
 	}
 
-	linkedPRs, _ := h.Services.Issue.LinkedPRs(r.Context(), owner, repoName, issue.Number)
+	linkedPRs, err := h.Services.Issue.LinkedPRs(r.Context(), owner, repoName, issue.Number)
+	if err != nil {
+		slog.Warn("issue detail: linked PRs lookup failed", "owner", owner, "repo", repoName, "issue", issue.Number, "error", err)
+	}
 	if linkedPRs == nil {
 		linkedPRs = []model.PullRequest{}
 	}

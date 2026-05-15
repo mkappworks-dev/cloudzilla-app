@@ -67,7 +67,10 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 	}
 
 	serviceRows, err := h.Services.Pull.ListWithCIStatus(r.Context(), owner, repoName, prState, 0, 0)
-	if err != nil || serviceRows == nil {
+	if err != nil {
+		slog.Error("pulls: list with CI status failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	if serviceRows == nil {
 		serviceRows = []service.PullListRow{}
 	}
 

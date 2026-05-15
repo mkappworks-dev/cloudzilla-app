@@ -330,14 +330,14 @@ func (s *PullStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID 
 }
 
 func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNumber int) ([]model.PullRequest, error) {
-	pattern := fmt.Sprintf("%%#%d%%", issueNumber)
+	pattern := fmt.Sprintf(`(^|[^0-9])#%d([^0-9]|$)`, issueNumber)
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
 		        auto_merge_enabled, auto_merge_strategy
 		 FROM pull_requests
 		 WHERE repo_id = $1
-		   AND (title ILIKE $2 OR body ILIKE $2)
+		   AND (title ~ $2 OR body ~ $2)
 		 ORDER BY number DESC`,
 		repoID, pattern,
 	)
