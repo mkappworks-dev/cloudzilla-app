@@ -64,6 +64,10 @@ type HomeData struct {
 	Heatmap   map[time.Time]int
 	Attention []service.AttentionItem
 	Activity  []model.Event
+	// LoadWarnings surfaces partial-failure messages (e.g. "couldn't load your
+	// repos") so the user sees a banner instead of mistaking an outage for an
+	// empty account. Populated by the handler; rendered above the repo list.
+	LoadWarnings []string
 }
 
 // Feed page

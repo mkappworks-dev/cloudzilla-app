@@ -34,6 +34,18 @@ templ Home(data view.HomeData) {
 				}
 			</div>
 
+			if len(data.LoadWarnings) > 0 {
+				<section aria-label="Page load warnings" class="space-y-2">
+					for _, msg := range data.LoadWarnings {
+						@components.Alert(components.AlertWarning) {
+							@components.AlertDescription() {
+								{ msg }
+							}
+						}
+					}
+				</section>
+			}
+
 			if len(data.Stats) > 0 {
 				<section aria-labelledby="stats-heading">
 					<h2 id="stats-heading" class="sr-only">Workspace statistics</h2>

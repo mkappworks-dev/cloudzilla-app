@@ -108,11 +108,13 @@ func resolveRef(repo *gogit.Repository, ref string) (*object.Commit, string, err
 			}
 			return commit, displayRef, nil
 		}
-		// Distinguish "ref missing" from "repo has no commits": an unresolvable
-		// ref on a repo without HEAD means the repo is empty, not that the
-		// caller asked for a bad ref.
+		// Only treat a missing HEAD ref as "empty repo"; any other error
+		// (I/O, corrupted HEAD, packed-refs parse failure) must surface.
 		if _, headErr := repo.Head(); headErr != nil {
-			return nil, "", ErrEmptyRepo
+			if errors.Is(headErr, plumbing.ErrReferenceNotFound) {
+				return nil, "", ErrEmptyRepo
+			}
+			return nil, "", fmt.Errorf("resolve HEAD: %w", headErr)
 		}
 		return nil, "", fmt.Errorf("%w: %s", ErrRefNotFound, ref)
 	}
@@ -120,11 +122,17 @@ func resolveRef(repo *gogit.Repository, ref string) (*object.Commit, string, err
 	// Fall back to HEAD
 	head, err := repo.Head()
 	if err != nil {
-		return nil, "", ErrEmptyRepo
+		if errors.Is(err, plumbing.ErrReferenceNotFound) {
+			return nil, "", ErrEmptyRepo
+		}
+		return nil, "", fmt.Errorf("resolve HEAD: %w", err)
 	}
 	commit, err := repo.CommitObject(head.Hash())
 	if err != nil {
-		return nil, "", ErrEmptyRepo
+		if errors.Is(err, plumbing.ErrObjectNotFound) {
+			return nil, "", ErrEmptyRepo
+		}
+		return nil, "", fmt.Errorf("load HEAD commit %s: %w", head.Hash(), err)
 	}
 	displayRef := head.Name().Short()
 	return commit, displayRef, nil

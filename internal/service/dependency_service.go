@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"regexp"
 	"strings"
@@ -24,40 +25,56 @@ func NewDependencyService(dep *store.DependencyStore, code *CodeService) *Depend
 	return &DependencyService{dep: dep, code: code}
 }
 
+// maxManifestSize caps the size of a manifest blob we will load and parse from
+// a pushed repo. Anything larger is treated as adversarial/garbage input and
+// skipped to prevent OOM on the request path.
+const maxManifestSize int64 = 1 << 20 // 1 MiB
+
 // ParseAndStore reads known manifest files from the repo's default branch,
-// parses them, and replaces the stored dependency list.
+// parses them, and replaces the stored dependency list. A parser error or
+// oversized manifest skips just that file; any non-trivial infrastructure
+// failure aborts the replace to avoid wiping good data on a transient blip.
 func (s *DependencyService) ParseAndStore(ctx context.Context, repo *model.Repository) error {
 	type manifest struct {
 		path   string
-		parser func(string) []model.RepoDependency
+		parser func(string) ([]model.RepoDependency, error)
 	}
 	manifests := []manifest{
-		{"go.mod", parseGoMod},
-		{"package.json", parsePackageJSON},
-		{"requirements.txt", parseRequirementsTxt},
+		{"go.mod", parseGoModSafe},
+		{"package.json", parsePackageJSONSafe},
+		{"requirements.txt", parseRequirementsTxtSafe},
 		{"pyproject.toml", parsePyprojectToml},
 		{"Pipfile", parsePipfile},
-		{"Cargo.toml", parseCargoToml},
+		{"Cargo.toml", parseCargoTomlSafe},
 	}
 
 	var all []model.RepoDependency
 	infraErr := false
 	for _, m := range manifests {
-		raw, err := s.code.GetRawBlob(repo.OwnerName, repo.Name, repo.DefaultBranch, m.path)
+		raw, err := s.code.GetRawBlobBounded(repo.OwnerName, repo.Name, repo.DefaultBranch, m.path, maxManifestSize)
 		if err != nil {
-			if !errors.Is(err, ErrEmptyRepo) && !errors.Is(err, ErrRefNotFound) && !errors.Is(err, object.ErrFileNotFound) {
+			switch {
+			case errors.Is(err, ErrEmptyRepo), errors.Is(err, ErrRefNotFound), errors.Is(err, object.ErrFileNotFound):
+				// manifest absent for this repo — ignore quietly
+			case errors.Is(err, ErrBlobTooLarge):
+				slog.Warn("dependency: manifest exceeds size limit; skipping",
+					"repo_id", repo.ID, "owner", repo.OwnerName, "repo", repo.Name,
+					"manifest", m.path, "limit_bytes", maxManifestSize)
+			default:
 				slog.Warn("dependency: unexpected error reading manifest",
-					"repo_id", repo.ID,
-					"owner", repo.OwnerName,
-					"repo", repo.Name,
-					"manifest", m.path,
-					"error", err,
-				)
+					"repo_id", repo.ID, "owner", repo.OwnerName, "repo", repo.Name,
+					"manifest", m.path, "error", err)
 				infraErr = true
 			}
 			continue
 		}
-		parsed := m.parser(string(raw))
+		parsed, perr := m.parser(string(raw))
+		if perr != nil {
+			slog.Warn("dependency: manifest parse failed; skipping",
+				"repo_id", repo.ID, "owner", repo.OwnerName, "repo", repo.Name,
+				"manifest", m.path, "error", perr)
+			continue
+		}
 		all = append(all, parsed...)
 	}
 
@@ -69,6 +86,15 @@ func (s *DependencyService) ParseAndStore(ctx context.Context, repo *model.Repos
 
 	return s.dep.Replace(ctx, repo.ID, all)
 }
+
+// Adapters keep the pre-existing parsers (which can't fail by construction)
+// usable with the new (deps, error) parser signature.
+func parseGoModSafe(c string) ([]model.RepoDependency, error)         { return parseGoMod(c), nil }
+func parsePackageJSONSafe(c string) ([]model.RepoDependency, error)   { return parsePackageJSON(c), nil }
+func parseRequirementsTxtSafe(c string) ([]model.RepoDependency, error) {
+	return parseRequirementsTxt(c), nil
+}
+func parseCargoTomlSafe(c string) ([]model.RepoDependency, error) { return parseCargoToml(c), nil }
 
 // ListByRepo returns all stored dependencies for a repo.
 func (s *DependencyService) ListByRepo(ctx context.Context, repoID int64) ([]model.RepoDependency, error) {
@@ -203,11 +229,16 @@ func parseRequirementsTxt(content string) []model.RepoDependency {
 var poetryRhsVersionRe = regexp.MustCompile(`version\s*=\s*"([^"]+)"`)
 var pyAssignRe = regexp.MustCompile(`^\s*([A-Za-z0-9_.\-]+)\s*=\s*(.+)$`)
 
+// ErrMalformedManifest is returned by manifest parsers when the input is
+// structurally invalid (e.g. unterminated TOML array). Callers should skip
+// the file rather than overwriting good data with partial results.
+var ErrMalformedManifest = errors.New("malformed manifest")
+
 // parsePyprojectToml extracts pip dependencies from a pyproject.toml file.
 // Supports PEP 621 ([project] dependencies and [project.optional-dependencies])
 // and Poetry ([tool.poetry.dependencies], [tool.poetry.dev-dependencies], and
 // [tool.poetry.group.<name>.dependencies]).
-func parsePyprojectToml(content string) []model.RepoDependency {
+func parsePyprojectToml(content string) ([]model.RepoDependency, error) {
 	var deps []model.RepoDependency
 
 	section := ""
@@ -237,9 +268,15 @@ func parsePyprojectToml(content string) []model.RepoDependency {
 	}
 
 	for _, line := range strings.Split(content, "\n") {
-		trimmed := strings.TrimSpace(line)
+		trimmed := stripTomlComment(line)
 
 		if inArray {
+			// A TOML section header while still inside an array means the array
+			// was never closed — treat as malformed rather than swallowing the
+			// header as array content.
+			if strings.HasPrefix(trimmed, "[") && strings.HasSuffix(trimmed, "]") && !strings.ContainsAny(trimmed, "\"'") {
+				return nil, fmt.Errorf("%w: unterminated dependencies array before %s", ErrMalformedManifest, trimmed)
+			}
 			if idx := findArrayEnd(trimmed); idx != -1 {
 				splitTomlArrayEntries(trimmed[:idx], arrIsDev, addPep508)
 				inArray = false
@@ -254,13 +291,13 @@ func parsePyprojectToml(content string) []model.RepoDependency {
 			section = trimmed
 			continue
 		}
-		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+		if trimmed == "" {
 			continue
 		}
 
 		switch {
 		case section == "[project]":
-			rest, ok := stripAssign(trimmed, "dependencies")
+			rest, ok := stripExactAssign(trimmed, "dependencies")
 			if !ok {
 				continue
 			}
@@ -282,7 +319,7 @@ func parsePyprojectToml(content string) []model.RepoDependency {
 			}
 			group := strings.TrimSpace(trimmed[:eq])
 			rest := strings.TrimSpace(trimmed[eq+1:])
-			if !strings.HasPrefix(rest, "[") {
+			if group == "" || !strings.HasPrefix(rest, "[") {
 				continue
 			}
 			rest = rest[1:]
@@ -308,19 +345,73 @@ func parsePyprojectToml(content string) []model.RepoDependency {
 			}
 		}
 	}
-	return deps
+	if inArray {
+		return nil, fmt.Errorf("%w: unterminated dependencies array", ErrMalformedManifest)
+	}
+	return deps, nil
+}
+
+// stripTomlComment trims whitespace, then drops a trailing `# ...` comment if
+// the `#` lies outside any quoted string.
+func stripTomlComment(line string) string {
+	line = strings.TrimSpace(line)
+	quote := byte(0)
+	for i := 0; i < len(line); i++ {
+		c := line[i]
+		if quote != 0 {
+			if c == quote {
+				quote = 0
+			}
+			continue
+		}
+		if c == '"' || c == '\'' {
+			quote = c
+			continue
+		}
+		if c == '#' {
+			return strings.TrimSpace(line[:i])
+		}
+	}
+	return line
+}
+
+// stripExactAssign is like stripAssign but requires the key to be followed by
+// whitespace or `=`, preventing `dependencies-extra = ...` from matching the
+// `dependencies` key.
+func stripExactAssign(trimmed, key string) (string, bool) {
+	if !strings.HasPrefix(trimmed, key) {
+		return "", false
+	}
+	rest := trimmed[len(key):]
+	if rest == "" {
+		return "", false
+	}
+	if c := rest[0]; c != ' ' && c != '\t' && c != '=' {
+		return "", false
+	}
+	rest = strings.TrimSpace(rest)
+	if !strings.HasPrefix(rest, "=") {
+		return "", false
+	}
+	return strings.TrimSpace(rest[1:]), true
 }
 
 // parsePipfile extracts pip dependencies from a Pipfile.
 // Reads [packages] (runtime) and [dev-packages] (dev). The Pipfile wildcard
-// "*" is normalized to an empty version string.
-func parsePipfile(content string) []model.RepoDependency {
+// "*" is normalized to an empty version string. Multi-line inline tables
+// (`pkg = {\n  version = "...",\n}`) are detected and skipped without
+// emitting a spurious dep named `version`.
+func parsePipfile(content string) ([]model.RepoDependency, error) {
 	var deps []model.RepoDependency
 	section := ""
+	inInlineTable := false
 
 	for _, line := range strings.Split(content, "\n") {
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, "[") && strings.HasSuffix(trimmed, "]") {
+			if inInlineTable {
+				return nil, fmt.Errorf("%w: unterminated inline table before %s", ErrMalformedManifest, trimmed)
+			}
 			section = trimmed
 			continue
 		}
@@ -330,8 +421,22 @@ func parsePipfile(content string) []model.RepoDependency {
 		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
 		}
+		if inInlineTable {
+			if strings.HasSuffix(trimmed, "}") {
+				inInlineTable = false
+			}
+			continue
+		}
 		m := pyAssignRe.FindStringSubmatch(line)
 		if m == nil {
+			continue
+		}
+		rhs := strings.TrimSpace(m[2])
+		if idx := strings.Index(rhs, "#"); idx != -1 {
+			rhs = strings.TrimSpace(rhs[:idx])
+		}
+		if strings.HasPrefix(rhs, "{") && !strings.HasSuffix(rhs, "}") {
+			inInlineTable = true
 			continue
 		}
 		ver := poetryRhsVersion(m[2])
@@ -345,7 +450,10 @@ func parsePipfile(content string) []model.RepoDependency {
 			IsDev:      section == "[dev-packages]",
 		})
 	}
-	return deps
+	if inInlineTable {
+		return nil, fmt.Errorf("%w: unterminated inline table at EOF", ErrMalformedManifest)
+	}
+	return deps, nil
 }
 
 // stripAssign returns the right-hand side of `key = ...` if `trimmed` starts

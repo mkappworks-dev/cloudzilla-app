@@ -578,10 +578,16 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 
 	log, err := h.Services.Code.GetCommits(owner, repoName, ref, page, 30)
 	if err != nil {
-		if errors.Is(err, service.ErrEmptyRepo) {
+		switch {
+		case errors.Is(err, service.ErrEmptyRepo):
 			log = &service.CommitLog{Ref: ref, Page: page}
-		} else {
+		case errors.Is(err, service.ErrRefNotFound):
 			h.NotFound(w, r)
+			return
+		default:
+			slog.Error("PageCommits: GetCommits failed",
+				"owner", owner, "repo", repoName, "ref", ref, "page", page, "error", err)
+			http.Error(w, "failed to load commits", http.StatusInternalServerError)
 			return
 		}
 	}

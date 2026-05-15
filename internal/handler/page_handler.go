@@ -68,7 +68,9 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		viewerID := userID
 		ownRepos, err := h.Services.Repo.ListByOwnerVisibleTo(ctx, claims.Username, &viewerID)
 		if err != nil {
-			slog.Warn("home: own-repo list failed", "user_id", userID, "error", err)
+			slog.Error("home: own-repo list failed", "user_id", userID, "error", err)
+			data.LoadWarnings = append(data.LoadWarnings,
+				"We couldn't load your repositories right now. Refresh to try again.")
 		} else {
 			data.Repos = ownRepos
 		}
