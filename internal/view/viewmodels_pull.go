@@ -9,14 +9,15 @@ import (
 // PullsData holds template data for the pull request list page.
 type PullsData struct {
 	BasePage
-	Repo            model.Repository
-	Pulls           []model.PullRequest
-	Owner           string
-	RepoName        string
-	PullLabels      map[int64][]model.Label
-	AllMilestones   []model.Milestone
-	ActiveMilestone *model.Milestone
-	StateFilter     string
+	Repo        model.Repository
+	Owner       string
+	RepoName    string
+	StateFilter string
+	OpenCount   int
+	DraftCount  int
+	MergedCount int
+	ClosedCount int
+	Rows        []components.PRListRowData
 }
 
 // PullDetailData holds template data for the pull request detail page.
@@ -45,8 +46,6 @@ type PullDetailData struct {
 	Mergeability components.MergeabilityBoxData
 }
 
-// PullNewData is used by the new-pull-request page.
-// PullNewData holds template data for the new pull request form page.
 type PullNewData struct {
 	BasePage
 	Repo         model.Repository

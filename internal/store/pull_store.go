@@ -158,6 +158,10 @@ func (s *PullStore) SetAutoMerge(ctx context.Context, id int64, enabled bool, st
 }
 
 func (s *PullStore) ListByState(ctx context.Context, repoID int64, state model.PRState, offset, limit int) ([]model.PullRequest, error) {
+	var limitParam sql.NullInt64
+	if limit > 0 {
+		limitParam = sql.NullInt64{Int64: int64(limit), Valid: true}
+	}
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
@@ -165,7 +169,7 @@ func (s *PullStore) ListByState(ctx context.Context, repoID int64, state model.P
 		 FROM pull_requests
 		 WHERE repo_id = $1 AND ($2 = '' OR state = $2)
 		 ORDER BY number DESC LIMIT $3 OFFSET $4`,
-		repoID, string(state), limit, offset,
+		repoID, string(state), limitParam, offset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("pr list by state: %w", err)
