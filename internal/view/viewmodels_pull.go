@@ -53,6 +53,9 @@ type PullNewData struct {
 	RepoName     string
 	TemplateBody string
 	Branches     []service.BranchInfo
+	Base         string
+	Head         string
+	AllLabels    []model.Label
 	Error        string
 }
 

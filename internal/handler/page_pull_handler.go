@@ -148,10 +148,16 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		branches = refs.Branches
 	}
 
+	base := firstNonEmpty(r.URL.Query().Get("base"), repo.DefaultBranch)
+	head := r.URL.Query().Get("head")
+
 	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
+
+	allLabels, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+
 	h.render(w, r, pages.PullNew(view.PullNewData{
 		BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage),
 		Repo:         *repo,
@@ -159,6 +165,9 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		RepoName:     repoName,
 		TemplateBody: templateBody,
 		Branches:     branches,
+		Base:         base,
+		Head:         head,
+		AllLabels:    allLabels,
 	}))
 }
 
@@ -194,6 +203,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	baseBranch := r.FormValue("base_branch")
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	allLabels, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
 	renderErr := func(msg string) {
 		h.render(w, r, pages.PullNew(view.PullNewData{
 			BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage),
@@ -202,6 +212,9 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 			RepoName:     repoName,
 			TemplateBody: body,
 			Branches:     branches,
+			Base:         baseBranch,
+			Head:         headBranch,
+			AllLabels:    allLabels,
 			Error:        msg,
 		}))
 	}
@@ -215,6 +228,14 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		renderErr("Failed to create pull request: " + err.Error())
 		return
+	}
+
+	for _, raw := range r.Form["labels"] {
+		if id, err := strconv.ParseInt(raw, 10, 64); err == nil {
+			if aerr := h.Services.Label.AddToPull(r.Context(), owner, repoName, pr.Number, id); aerr != nil {
+				slog.Warn("new PR: attach label failed", "label_id", id, "error", aerr)
+			}
+		}
 	}
 
 	go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload("opened", *repo, *pr))
@@ -374,6 +395,31 @@ func pullInitials(name string) string {
 	a, _ := utf8.DecodeRuneInString(parts[0])
 	b, _ := utf8.DecodeRuneInString(parts[len(parts)-1])
 	return strings.ToUpper(string(a) + string(b))
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+func toReviewerOptions(users []model.User) []components.ReviewerOption {
+	opts := make([]components.ReviewerOption, 0, len(users))
+	for _, u := range users {
+		opts = append(opts, components.ReviewerOption{Username: u.Username, Reason: "suggested"})
+	}
+	return opts
+}
+
+func collaboratorsToReviewerOptions(perms []model.Permission) []components.ReviewerOption {
+	opts := make([]components.ReviewerOption, 0, len(perms))
+	for _, p := range perms {
+		opts = append(opts, components.ReviewerOption{Username: p.Username})
+	}
+	return opts
 }
 
 func pullFormatRelative(t time.Time) string {

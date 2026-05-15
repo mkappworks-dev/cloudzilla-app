@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"fmt"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -8,7 +10,7 @@ import (
 
 templ PullNew(data view.PullNewData) {
 	@layout.Base(data.BasePage, "New Pull Request · "+data.Owner+"/"+data.RepoName) {
-		<div class="max-w-3xl mx-auto space-y-6">
+		<div class="space-y-6">
 
 			<section aria-labelledby="new-title">
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
@@ -33,58 +35,90 @@ templ PullNew(data view.PullNewData) {
 			if len(data.Branches) == 0 {
 				@components.EmptyState("This repository has no branches yet. Push at least one commit to create a pull request.")
 			} else {
-				<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/new") } class="rounded-md border border-border bg-card p-6 space-y-5">
+				<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/new") } class="space-y-5">
 
-					<fieldset class="rounded-md border border-border p-4">
+					<fieldset class="rounded-md border border-border bg-card p-4">
 						<legend class="px-2 font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Compare</legend>
 						<div class="flex flex-wrap items-end gap-3">
 							<div class="flex-1 min-w-[10rem] space-y-1.5">
 								<label for="head_branch" class="block text-[12px] font-medium text-muted-foreground">
 									Head branch <span class="text-muted-foreground/70">(yours)</span>
 								</label>
-								<select id="head_branch" name="head_branch" required class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm font-mono shadow-sm">
-									for _, b := range data.Branches {
-										<option value={ b.Name }>{ b.Name }</option>
-									}
-								</select>
+								<div class="relative">
+									<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="3" r="3"/><circle cx="12" cy="21" r="3"/><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"/></svg>
+									<select id="head_branch" name="head_branch" required class="h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-3 text-sm font-mono shadow-sm">
+										for _, b := range data.Branches {
+											<option value={ b.Name } selected?={ data.Head != "" && b.Name == data.Head }>{ b.Name }</option>
+										}
+									</select>
+								</div>
 							</div>
 							<span class="text-muted-foreground pb-2" aria-hidden="true">→</span>
 							<div class="flex-1 min-w-[10rem] space-y-1.5">
 								<label for="base_branch" class="block text-[12px] font-medium text-muted-foreground">
 									Base branch <span class="text-muted-foreground/70">(target)</span>
 								</label>
-								<select id="base_branch" name="base_branch" required class="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm font-mono shadow-sm">
-									for _, b := range data.Branches {
-										<option value={ b.Name } selected?={ b.IsDefault }>{ b.Name }</option>
-									}
-								</select>
+								<div class="relative">
+									<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="3" r="3"/><circle cx="12" cy="21" r="3"/><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"/></svg>
+									<select id="base_branch" name="base_branch" required class="h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-3 text-sm font-mono shadow-sm">
+										for _, b := range data.Branches {
+											<option value={ b.Name } selected?={ b.Name == data.Base }>{ b.Name }</option>
+										}
+									</select>
+								</div>
 							</div>
 						</div>
 					</fieldset>
 
-					<div class="space-y-1.5">
-						<label for="title" class="block text-sm font-medium">Title</label>
-						@components.Input(templ.Attributes{
-							"id":          "title",
-							"name":        "title",
-							"type":        "text",
-							"required":    "required",
-							"autofocus":   "autofocus",
-							"placeholder": "Summary of changes",
-						})
+					<div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+
+						<div class="space-y-5 min-w-0">
+							<div class="space-y-1.5">
+								<label for="title" class="block text-sm font-medium">Title</label>
+								@components.Input(templ.Attributes{
+									"id":          "title",
+									"name":        "title",
+									"type":        "text",
+									"required":    "required",
+									"autofocus":   "autofocus",
+									"placeholder": "Summary of changes",
+								})
+							</div>
+
+							<div class="space-y-1.5">
+								<label for="body" class="block text-sm font-medium">Description</label>
+								<textarea id="body" name="body" rows="12" class="flex min-h-[200px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical" placeholder="What does this change, and why? Reference any related issues with #number.">{ data.TemplateBody }</textarea>
+							</div>
+
+							<div class="flex items-center gap-3 pt-2">
+								@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+									Create pull request
+								}
+								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="text-sm text-muted-foreground hover:underline ml-auto">Cancel</a>
+							</div>
+						</div>
+
+						<aside class="space-y-5">
+							if len(data.AllLabels) > 0 {
+								<fieldset class="space-y-2">
+									<legend class="text-sm font-medium">Labels</legend>
+									<ul class="space-y-1">
+										for _, l := range data.AllLabels {
+											<li>
+												<label class="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded text-sm cursor-pointer">
+													<input type="checkbox" name="labels" value={ fmt.Sprintf("%d", l.ID) } class="h-4 w-4 rounded border-border"/>
+													<span class="inline-block h-3 w-3 rounded-full shrink-0" style={ "background-color: " + l.Color }></span>
+													<span class="flex-1 truncate">{ l.Name }</span>
+												</label>
+											</li>
+										}
+									</ul>
+								</fieldset>
+							}
+						</aside>
+
 					</div>
 
-					<div class="space-y-1.5">
-						<label for="body" class="block text-sm font-medium">Description</label>
-						<textarea id="body" name="body" rows="12" class="flex min-h-[200px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical" placeholder="What does this change, and why? Reference any related issues with #number.">{ data.TemplateBody }</textarea>
-					</div>
-
-					<div class="flex items-center gap-3 pt-2">
-						@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-							Create pull request
-						}
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="text-sm text-muted-foreground hover:underline ml-auto">Cancel</a>
-					</div>
 				</form>
 			}
 		</div>
