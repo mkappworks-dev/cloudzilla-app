@@ -489,6 +489,19 @@ func (s *RepoService) SetTemplate(ctx context.Context, repoID, userID int64, isT
 	return s.repos.SetTemplate(ctx, repoID, isTemplate)
 }
 
+// UpdateMeta updates the user-editable repository metadata (description,
+// website, license). Requires manage permission on the repo.
+func (s *RepoService) UpdateMeta(ctx context.Context, repoID, userID int64, description, website, license string) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	if !s.CanManage(ctx, repo, userID) {
+		return errors.New("permission denied")
+	}
+	return s.repos.UpdateMeta(ctx, repoID, strings.TrimSpace(description), strings.TrimSpace(website), strings.TrimSpace(license))
+}
+
 func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, newOwnerID int64, newOwnerUsername, newName, description string) (*model.Repository, error) {
 	tmpl, err := s.repos.GetByID(ctx, templateRepoID)
 	if err != nil {

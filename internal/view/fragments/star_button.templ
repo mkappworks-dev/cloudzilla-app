@@ -7,34 +7,39 @@ import (
 )
 
 templ StarButton(data view.StarButtonData) {
-	<div id="star-button" class="flex items-center gap-1">
+	<div id="star-button" class="flex border border-border rounded-md overflow-hidden">
 		if data.LoggedIn {
 			if data.IsStarred {
 				<button
 					hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/star" }
 					hx-target="#star-button"
 					hx-swap="outerHTML"
-					class="inline-flex items-center gap-1 px-3 py-1.5 border border-warning/40 bg-warning/10 text-warning rounded text-sm font-medium hover:bg-warning/10 transition-colors"
+					type="button"
+					aria-pressed="true"
+					class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 bg-warning/10 text-warning hover:bg-warning/15"
 				>
-					&#9733; Starred
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+					Starred
 				</button>
 			} else {
 				<button
 					hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/star" }
 					hx-target="#star-button"
 					hx-swap="outerHTML"
-					class="inline-flex items-center gap-1 px-3 py-1.5 border border-border bg-background text-foreground rounded text-sm font-medium hover:bg-muted/40 transition-colors"
+					type="button"
+					aria-pressed="false"
+					class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 hover:bg-accent"
 				>
-					&#9734; Star
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+					Star
 				</button>
 			}
 		} else {
-			<a href="/login" class="inline-flex items-center gap-1 px-3 py-1.5 border border-border bg-background text-foreground rounded text-sm font-medium hover:bg-muted/40 transition-colors">
-				&#9734; Star
+			<a href="/login" class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 hover:bg-accent">
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+				Star
 			</a>
 		}
-		<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/stargazers") } class="px-2 py-1.5 border border-border bg-background text-foreground rounded text-sm hover:bg-muted/40 transition-colors">
-			{ strconv.Itoa(data.Count) }
-		</a>
+		<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/stargazers") } class="h-8 inline-flex items-center px-3 text-[13px] font-mono border-l border-border hover:bg-accent" aria-label={ "View " + strconv.Itoa(data.Count) + " stargazers" }>{ strconv.Itoa(data.Count) }</a>
 	</div>
 }

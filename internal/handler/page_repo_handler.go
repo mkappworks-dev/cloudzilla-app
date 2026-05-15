@@ -59,11 +59,12 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		currentUserID = claims.UserID
 	}
 
-	var readmeHTML string
+	var readmeHTML, readmeName string
 	for _, name := range []string{"README.md", "readme.md", "Readme.md"} {
 		raw, err := h.Services.Code.GetRawBlob(owner, repoName, repo.DefaultBranch, name)
 		if err == nil {
 			readmeHTML = markdown.Render(string(raw))
+			readmeName = name
 			break
 		}
 		if errors.Is(err, object.ErrFileNotFound) || errors.Is(err, service.ErrEmptyRepo) {
@@ -168,6 +169,29 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("repo: entries lookup failed", "owner", owner, "repo", repoName, "error", lcErr)
 	}
 
+	var branches []service.BranchInfo
+	var tags []service.TagInfo
+	if refs, refsErr := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch); refsErr != nil {
+		slog.Warn("repo: list refs failed", "owner", owner, "repo", repoName, "error", refsErr)
+	} else {
+		branches = refs.Branches
+		tags = refs.Tags
+	}
+
+	commitCount := 0
+	if n, ccErr := h.Services.Code.CommitCount(owner, repoName, repo.DefaultBranch); ccErr != nil {
+		slog.Warn("repo: commit count failed", "owner", owner, "repo", repoName, "error", ccErr)
+	} else {
+		commitCount = n
+	}
+
+	var allFiles []string
+	if files, afErr := h.Services.Code.ListAllFiles(owner, repoName, repo.DefaultBranch); afErr != nil {
+		slog.Warn("repo: list all files failed", "owner", owner, "repo", repoName, "error", afErr)
+	} else {
+		allFiles = files
+	}
+
 	h.render(w, r, pages.Repo(view.RepoData{
 		BasePage:      withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
 		Repo:          *repo,
@@ -193,6 +217,13 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		Heatmap:       heatmap,
 		Entries:       repoEntries,
 		LatestCommit:  repoLatestCommit,
+		ReadmeName:    readmeName,
+		Branches:      branches,
+		Tags:          tags,
+		BranchCount:   len(branches),
+		TagCount:      len(tags),
+		CommitCount:   commitCount,
+		AllFiles:      allFiles,
 	}))
 }
 

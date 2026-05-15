@@ -128,5 +128,6 @@ func (h *Handler) renderWatchButtonFragment(w http.ResponseWriter, r *http.Reque
 		RepoID:   repoID,
 		Level:    level,
 		LoggedIn: loggedIn,
+		Count:    h.Services.Watch.CountWatchers(r.Context(), repoID),
 	}))
 }
