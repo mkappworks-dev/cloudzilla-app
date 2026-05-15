@@ -1,0 +1,46 @@
+package components
+
+import "fmt"
+
+templ MiniChart(values []int, width, height int) {
+	if len(values) == 0 {
+		<span class="text-xs text-muted-foreground/70">no data</span>
+	} else {
+		<svg width={ miniW(width) } height={ miniH(height) } viewBox={ miniViewBox(width, height) } aria-hidden="true">
+			for _, bar := range miniBars(values, miniWInt(width), miniHInt(height)) {
+				<rect x={ fmt.Sprintf("%.1f", bar.X) } y={ fmt.Sprintf("%.1f", bar.Y) } width={ fmt.Sprintf("%.1f", bar.W) } height={ fmt.Sprintf("%.1f", bar.H) } fill="currentColor"/>
+			}
+		</svg>
+	}
+}
+
+func miniWInt(w int) int { if w == 0 { return 120 }; return w }
+func miniHInt(h int) int { if h == 0 { return 32 }; return h }
+func miniW(w int) string  { return fmt.Sprintf("%d", miniWInt(w)) }
+func miniH(h int) string  { return fmt.Sprintf("%d", miniHInt(h)) }
+func miniViewBox(w, h int) string {
+	return fmt.Sprintf("0 0 %d %d", miniWInt(w), miniHInt(h))
+}
+
+type miniBar struct{ X, Y, W, H float64 }
+
+func miniBars(values []int, w, h int) []miniBar {
+	max := 1
+	for _, v := range values {
+		if v > max {
+			max = v
+		}
+	}
+	n := len(values)
+	bw := float64(w) / float64(n)
+	gap := 1.0
+	out := make([]miniBar, 0, n)
+	for i, v := range values {
+		bh := float64(v) / float64(max) * float64(h)
+		out = append(out, miniBar{
+			X: float64(i) * bw, Y: float64(h) - bh,
+			W: bw - gap, H: bh,
+		})
+	}
+	return out
+}
