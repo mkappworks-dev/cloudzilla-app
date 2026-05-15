@@ -41,12 +41,61 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	stateFilter := r.URL.Query().Get("state")
+	switch stateFilter {
+	case "answered", "closed":
+		// valid
+	default:
+		stateFilter = "open"
+	}
+
 	categories, _ := h.Services.Discussion.ListCategories(r.Context(), repo.ID)
 	if categories == nil {
 		categories = []model.DiscussionCategory{}
 	}
 
-	discussions, _ := h.Services.Discussion.List(r.Context(), owner, repoName, activeCategoryID)
+	// Unfiltered list for counts; category-filtered list for display rows.
+	unfiltered, _ := h.Services.Discussion.List(r.Context(), owner, repoName, 0)
+	if unfiltered == nil {
+		unfiltered = []model.Discussion{}
+	}
+
+	var openCount, answeredCount, closedCount int
+	categoryCounts := make(map[int64]int)
+	for _, d := range unfiltered {
+		categoryCounts[d.CategoryID]++
+		switch {
+		case d.IsAnswered:
+			answeredCount++
+		case d.IsLocked:
+			closedCount++
+		default:
+			openCount++
+		}
+	}
+
+	categoryFiltered, _ := h.Services.Discussion.List(r.Context(), owner, repoName, activeCategoryID)
+	if categoryFiltered == nil {
+		categoryFiltered = []model.Discussion{}
+	}
+
+	var discussions []model.Discussion
+	for _, d := range categoryFiltered {
+		switch stateFilter {
+		case "answered":
+			if d.IsAnswered {
+				discussions = append(discussions, d)
+			}
+		case "closed":
+			if d.IsLocked && !d.IsAnswered {
+				discussions = append(discussions, d)
+			}
+		default:
+			if !d.IsAnswered && !d.IsLocked {
+				discussions = append(discussions, d)
+			}
+		}
+	}
 	if discussions == nil {
 		discussions = []model.Discussion{}
 	}
@@ -62,6 +111,12 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 		Categories:       categories,
 		Discussions:      discussions,
 		ActiveCategoryID: activeCategoryID,
+		CategoryCounts:   categoryCounts,
+		TotalCount:       len(unfiltered),
+		StateFilter:      stateFilter,
+		OpenCount:        openCount,
+		AnsweredCount:    answeredCount,
+		ClosedCount:      closedCount,
 		CanWrite:         canWrite,
 	}))
 }

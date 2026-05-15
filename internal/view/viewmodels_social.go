@@ -13,13 +13,19 @@ type RenderedDiscussionReply struct {
 
 type DiscussionsData struct {
 	BasePage
-	Repo             model.Repository
-	Owner            string
-	RepoName         string
-	Categories       []model.DiscussionCategory
-	Discussions      []model.Discussion
-	ActiveCategoryID int64
-	CanWrite         bool
+	Repo              model.Repository
+	Owner             string
+	RepoName          string
+	Categories        []model.DiscussionCategory
+	Discussions       []model.Discussion
+	ActiveCategoryID  int64
+	CategoryCounts    map[int64]int
+	TotalCount        int
+	StateFilter       string
+	OpenCount         int
+	AnsweredCount     int
+	ClosedCount       int
+	CanWrite          bool
 }
 
 type DiscussionDetailData struct {
