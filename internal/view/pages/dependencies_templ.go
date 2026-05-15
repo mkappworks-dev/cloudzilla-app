@@ -52,7 +52,7 @@ func Dependencies(data view.DependenciesData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if len(data.Groups) == 0 {
-				templ_7745c5c3_Err = components.EmptyState("No dependency manifests detected at the default branch.").Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = components.EmptyState("No dependencies found. Cloudzilla scans the default branch root for: go.mod, package.json, requirements.txt, pyproject.toml, Pipfile, Cargo.toml.").Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

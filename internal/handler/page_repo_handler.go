@@ -578,8 +578,12 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 
 	log, err := h.Services.Code.GetCommits(owner, repoName, ref, page, 30)
 	if err != nil {
-		h.NotFound(w, r)
-		return
+		if errors.Is(err, service.ErrEmptyRepo) {
+			log = &service.CommitLog{Ref: ref, Page: page}
+		} else {
+			h.NotFound(w, r)
+			return
+		}
 	}
 
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)

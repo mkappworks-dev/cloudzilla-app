@@ -92,7 +92,8 @@ func manifestLabel(mgr string) string {
 	case "npm":
 		return "package.json"
 	case "pip":
-		return "requirements.txt"
+		// pip aggregates requirements.txt, pyproject.toml, and Pipfile.
+		return "Python"
 	case "cargo":
 		return "Cargo.toml"
 	default:

@@ -10,7 +10,7 @@ templ Dependencies(data view.DependenciesData) {
 	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" — Dependencies") {
 		<div class="space-y-4">
 			if len(data.Groups) == 0 {
-				@components.EmptyState("No dependency manifests detected at the default branch.")
+				@components.EmptyState("No dependencies found. Cloudzilla scans the default branch root for: go.mod, package.json, requirements.txt, pyproject.toml, Pipfile, Cargo.toml.")
 			} else {
 				for _, g := range data.Groups {
 					@components.DependencyGroup(g)

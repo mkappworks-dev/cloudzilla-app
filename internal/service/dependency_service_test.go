@@ -87,6 +87,134 @@ pytest~=7.4.0
 	}
 }
 
+func TestParsePyprojectTomlPEP621(t *testing.T) {
+	input := `[project]
+name = "myapp"
+version = "0.1.0"
+dependencies = [
+    "requests>=2.31.0",
+    "click[colors]<9,>=8",
+    "httpx==0.27.0; python_version >= '3.8'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==7.4.0", "ruff"]
+docs = ["mkdocs"]
+`
+	got := parsePyprojectToml(input)
+	byPkg := map[string]model.RepoDependency{}
+	for _, d := range got {
+		if d.PackageMgr != "pip" {
+			t.Errorf("PackageMgr should be pip, got %q for %s", d.PackageMgr, d.Package)
+		}
+		byPkg[d.Package] = d
+	}
+	want := []model.RepoDependency{
+		{Package: "requests", Version: "2.31.0", IsDev: false},
+		{Package: "click", Version: "9", IsDev: false},
+		{Package: "httpx", Version: "0.27.0", IsDev: false},
+		{Package: "pytest", Version: "7.4.0", IsDev: true},
+		{Package: "ruff", Version: "", IsDev: true},
+		{Package: "mkdocs", Version: "", IsDev: false},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("parsePyprojectToml: got %d deps, want %d\ngot: %+v", len(got), len(want), got)
+	}
+	for _, w := range want {
+		d, ok := byPkg[w.Package]
+		if !ok {
+			t.Errorf("missing dep %s", w.Package)
+			continue
+		}
+		if d.Version != w.Version || d.IsDev != w.IsDev {
+			t.Errorf("dep %s: got %+v, want %+v", w.Package, d, w)
+		}
+	}
+}
+
+func TestParsePyprojectTomlPoetry(t *testing.T) {
+	input := `[tool.poetry]
+name = "myapp"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2.31"
+django = { version = "5.0.1", extras = ["bcrypt"] }
+
+[tool.poetry.dev-dependencies]
+pytest = "7.4.0"
+
+[tool.poetry.group.lint.dependencies]
+ruff = "^0.5.0"
+`
+	got := parsePyprojectToml(input)
+	if len(got) != 4 {
+		t.Fatalf("parsePyprojectToml(poetry): got %d deps, want 4\ngot: %+v", len(got), got)
+	}
+	byPkg := map[string]model.RepoDependency{}
+	for _, d := range got {
+		byPkg[d.Package] = d
+	}
+	if d, ok := byPkg["python"]; ok {
+		t.Errorf("python should be skipped, got %+v", d)
+	}
+	if d := byPkg["requests"]; d.Version != "2.31" || d.IsDev {
+		t.Errorf("requests: got %+v", d)
+	}
+	if d := byPkg["django"]; d.Version != "5.0.1" || d.IsDev {
+		t.Errorf("django: got %+v", d)
+	}
+	if d := byPkg["pytest"]; d.Version != "7.4.0" || !d.IsDev {
+		t.Errorf("pytest should be dev: got %+v", d)
+	}
+	if d := byPkg["ruff"]; d.Version != "0.5.0" || !d.IsDev {
+		t.Errorf("ruff (lint group) should be dev: got %+v", d)
+	}
+}
+
+func TestParsePipfile(t *testing.T) {
+	input := `[[source]]
+url = "https://pypi.org/simple"
+
+[packages]
+requests = "*"
+flask = "==2.3.0"
+django = { version = "5.0.1", extras = ["bcrypt"] }
+
+[dev-packages]
+pytest = "==7.4.0"
+
+[requires]
+python_version = "3"
+`
+	got := parsePipfile(input)
+	if len(got) != 4 {
+		t.Fatalf("parsePipfile: got %d deps, want 4\ngot: %+v", len(got), got)
+	}
+	byPkg := map[string]model.RepoDependency{}
+	for _, d := range got {
+		if d.PackageMgr != "pip" {
+			t.Errorf("PackageMgr should be pip, got %q", d.PackageMgr)
+		}
+		byPkg[d.Package] = d
+	}
+	if d := byPkg["requests"]; d.Version != "" || d.IsDev {
+		t.Errorf("requests (wildcard): got %+v, want version='' IsDev=false", d)
+	}
+	if d := byPkg["flask"]; d.Version != "2.3.0" || d.IsDev {
+		t.Errorf("flask: got %+v", d)
+	}
+	if d := byPkg["django"]; d.Version != "5.0.1" || d.IsDev {
+		t.Errorf("django: got %+v", d)
+	}
+	if d := byPkg["pytest"]; d.Version != "7.4.0" || !d.IsDev {
+		t.Errorf("pytest should be dev: got %+v", d)
+	}
+	if _, ok := byPkg["python_version"]; ok {
+		t.Errorf("python_version from [requires] should not be picked up")
+	}
+}
+
 func TestParseCargoToml(t *testing.T) {
 	input := `[package]
 name = "myapp"

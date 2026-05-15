@@ -108,6 +108,12 @@ func resolveRef(repo *gogit.Repository, ref string) (*object.Commit, string, err
 			}
 			return commit, displayRef, nil
 		}
+		// Distinguish "ref missing" from "repo has no commits": an unresolvable
+		// ref on a repo without HEAD means the repo is empty, not that the
+		// caller asked for a bad ref.
+		if _, headErr := repo.Head(); headErr != nil {
+			return nil, "", ErrEmptyRepo
+		}
 		return nil, "", fmt.Errorf("%w: %s", ErrRefNotFound, ref)
 	}
 

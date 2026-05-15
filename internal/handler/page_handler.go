@@ -51,19 +51,12 @@ func withRepoSubnav(base BasePage, owner, repoName, active string, canManage boo
 
 func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	repos, err := h.Services.Repo.List(ctx)
-	if err != nil {
-		http.Error(w, "failed to list repos", http.StatusInternalServerError)
-		return
-	}
-	if repos == nil {
-		repos = []model.Repository{}
-	}
 	templates, _ := h.Services.Repo.ListTemplates(ctx)
 	if templates == nil {
 		templates = []model.Repository{}
 	}
 
+	repos := []model.Repository{}
 	data := view.HomeData{
 		BasePage:  basePage(r, h.Services),
 		Repos:     repos,
@@ -72,6 +65,13 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 
 	if claims, ok := middleware.ClaimsFromContext(ctx); ok {
 		userID := claims.UserID
+		viewerID := userID
+		ownRepos, err := h.Services.Repo.ListByOwnerVisibleTo(ctx, claims.Username, &viewerID)
+		if err != nil {
+			slog.Warn("home: own-repo list failed", "user_id", userID, "error", err)
+		} else {
+			data.Repos = ownRepos
+		}
 		commitsLast7, err := h.Services.CommitStats.CommitsForUserSince(ctx, userID, 7)
 		if err != nil {
 			slog.Warn("home: commits-last-7 stat failed", "user_id", userID, "error", err)
