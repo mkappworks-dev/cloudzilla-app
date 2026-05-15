@@ -1,0 +1,91 @@
+package components
+
+import (
+	"fmt"
+	"regexp"
+	"strings"
+)
+
+type PRListRowData struct {
+	OwnerName, RepoName string
+	Number              int
+	Title               string
+	Author              string
+	State               string // "open", "draft", "merged", "closed"
+	CIStatus            string
+	LabelChips          []LabelChip
+	ReviewerAvatars     []string // initials
+	OpenedAt            string   // pre-formatted relative
+}
+
+type LabelChip struct {
+	Name  string
+	Color string // hex
+}
+
+templ PRListRow(d PRListRowData) {
+	<li class="border-b border-border last:border-0">
+		<a href={ templ.SafeURL(fmt.Sprintf("/%s/%s/pulls/%d", d.OwnerName, d.RepoName, d.Number)) }
+		   class="flex items-center gap-3 px-4 py-3 hover:bg-accent">
+			@prStateIcon(d.State)
+			<div class="flex-1 min-w-0">
+				<p class="font-medium text-sm truncate">{ d.Title }</p>
+				<p class="text-xs text-muted-foreground mt-0.5">
+					{ fmt.Sprintf("#%d opened %s by %s", d.Number, d.OpenedAt, d.Author) }
+				</p>
+				if len(d.LabelChips) > 0 {
+					<ul class="flex flex-wrap gap-1 mt-1">
+						for _, lab := range d.LabelChips {
+							<li class="text-[10px] px-1.5 py-0.5 rounded font-medium" style={ labelChipStyle(lab.Color) }>{ lab.Name }</li>
+						}
+					</ul>
+				}
+			</div>
+			@prCIBadge(d.CIStatus)
+			<div class="flex -space-x-1.5">
+				for _, r := range d.ReviewerAvatars {
+					<span class="h-5 w-5 rounded-full bg-muted border border-background grid place-items-center text-[10px] font-medium">{ r }</span>
+				}
+			</div>
+		</a>
+	</li>
+}
+
+templ prStateIcon(state string) {
+	switch state {
+	case "merged":
+		<svg width="14" height="14" viewBox="0 0 24 24" class="text-primary flex-none" aria-label="merged" fill="currentColor"><circle cx="12" cy="12" r="3"/><path d="M14 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+	case "draft":
+		<svg width="14" height="14" viewBox="0 0 24 24" class="text-muted-foreground flex-none" aria-label="draft" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>
+	case "closed":
+		<svg width="14" height="14" viewBox="0 0 24 24" class="text-destructive flex-none" aria-label="closed" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+	default:
+		<svg width="14" height="14" viewBox="0 0 24 24" class="text-success flex-none" aria-label="open" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 9V3"/></svg>
+	}
+}
+
+templ prCIBadge(state string) {
+	switch state {
+	case "success":
+		<span class="text-success" title="CI passing" aria-label="CI passing">✓</span>
+	case "failure", "error":
+		<span class="text-destructive" title="CI failing" aria-label="CI failing">✗</span>
+	case "pending":
+		<span class="text-warning" title="CI pending" aria-label="CI pending">●</span>
+	}
+}
+
+var hexColorRe = regexp.MustCompile(`^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)
+
+func labelChipStyle(hex string) string {
+	if !hexColorRe.MatchString(hex) {
+		return "color: inherit"
+	}
+	full6 := hex
+	if len(hex) == 4 {
+		// expand 3-digit #rgb → #rrggbb
+		r, g, b := string(hex[1]), string(hex[2]), string(hex[3])
+		full6 = "#" + strings.Repeat(r, 2) + strings.Repeat(g, 2) + strings.Repeat(b, 2)
+	}
+	return "background-color: " + full6 + "26; color: " + full6
+}

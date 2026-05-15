@@ -1,0 +1,36 @@
+package components
+
+import "strconv"
+
+type BulkActionsBarData struct {
+	SelectedCount int
+	Actions       []BulkAction
+}
+
+type BulkAction struct {
+	Label string
+	Href  string
+	Kind  string // "primary", "destructive", or default
+}
+
+templ BulkActionsBar(d BulkActionsBarData) {
+	if d.SelectedCount > 0 {
+		<div role="region" aria-label="Bulk actions" class="flex items-center gap-2 px-3 py-2 bg-accent rounded-md text-sm">
+			<span class="font-medium text-foreground">{ strconv.Itoa(d.SelectedCount) + " selected" }</span>
+			for _, a := range d.Actions {
+				<a href={ templ.SafeURL(a.Href) } class={ bulkActionClass(a.Kind) }>{ a.Label }</a>
+			}
+		</div>
+	}
+}
+
+func bulkActionClass(kind string) string {
+	switch kind {
+	case "destructive":
+		return "ml-auto h-7 px-2.5 text-sm text-destructive hover:bg-destructive/10 rounded"
+	case "primary":
+		return "h-7 px-2.5 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90"
+	default:
+		return "h-7 px-2.5 text-sm text-muted-foreground hover:text-foreground rounded"
+	}
+}
