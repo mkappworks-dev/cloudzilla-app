@@ -3,6 +3,7 @@ package view
 import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 // RenderedDiscussionReply wraps a DiscussionReply with its body pre-rendered as HTML.
@@ -121,14 +122,12 @@ type ExploreData struct {
 }
 
 // DependenciesData is the view model for the /{owner}/{repo}/network/dependencies page.
-// DependenciesData holds template data for the dependency graph page.
 type DependenciesData struct {
 	BasePage
-	Repo         model.Repository
-	Owner        string
-	RepoName     string
-	Dependencies []model.RepoDependency
-	ByManager    map[string][]model.RepoDependency
+	Repo     model.Repository
+	Owner    string
+	RepoName string
+	Groups   []components.DependencyGroupData
 }
 
 // ProjectsData is the view model for the projects list page.

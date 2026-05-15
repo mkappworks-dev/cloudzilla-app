@@ -45,24 +45,15 @@ func (h *Handler) PageDependencies(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load dependencies", http.StatusInternalServerError)
 		return
 	}
-	if deps == nil {
-		deps = []model.RepoDependency{}
-	}
-
-	byManager := make(map[string][]model.RepoDependency)
-	for _, d := range deps {
-		byManager[d.PackageMgr] = append(byManager[d.PackageMgr], d)
-	}
 
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Dependencies(view.DependenciesData{
-		BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
-		Repo:         *repo,
-		Owner:        owner,
-		RepoName:     repoName,
-		Dependencies: deps,
-		ByManager:    byManager,
+		BasePage: withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
+		Repo:     *repo,
+		Owner:    owner,
+		RepoName: repoName,
+		Groups:   groupDependencies(deps),
 	}))
 }
 
