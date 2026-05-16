@@ -1,0 +1,118 @@
+package components
+
+import (
+	"fmt"
+	"sort"
+	"strings"
+)
+
+type DiffFileTreeItem struct {
+	Path    string
+	Anchor  string
+	Added   int
+	Deleted int
+}
+
+type diffTreeNode struct {
+	Name     string
+	FullPath string
+	IsDir    bool
+	Item     *DiffFileTreeItem
+	Children map[string]*diffTreeNode
+}
+
+func (n *diffTreeNode) findDir(name string) *diffTreeNode {
+	if n == nil || n.Children == nil {
+		return nil
+	}
+	c := n.Children[name]
+	if c == nil || !c.IsDir {
+		return nil
+	}
+	return c
+}
+
+func buildDiffTree(items []DiffFileTreeItem) *diffTreeNode {
+	root := &diffTreeNode{IsDir: true, Children: map[string]*diffTreeNode{}}
+	for i := range items {
+		it := items[i]
+		parts := strings.Split(it.Path, "/")
+		cur := root
+		for j, p := range parts {
+			isLeaf := j == len(parts)-1
+			child, ok := cur.Children[p]
+			if !ok {
+				child = &diffTreeNode{
+					Name:     p,
+					FullPath: strings.Join(parts[:j+1], "/"),
+					IsDir:    !isLeaf,
+					Children: map[string]*diffTreeNode{},
+				}
+				cur.Children[p] = child
+			}
+			if isLeaf {
+				child.Item = &it
+			}
+			cur = child
+		}
+	}
+	return root
+}
+
+// sortedChildren returns children dirs-first, then files, each alpha-sorted.
+func sortedChildren(n *diffTreeNode) []*diffTreeNode {
+	out := make([]*diffTreeNode, 0, len(n.Children))
+	for _, c := range n.Children {
+		out = append(out, c)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].IsDir != out[j].IsDir {
+			return out[i].IsDir // dirs first
+		}
+		return out[i].Name < out[j].Name
+	})
+	return out
+}
+
+templ DiffFileTree(items []DiffFileTreeItem) {
+	{{ root := buildDiffTree(items) }}
+	<nav aria-label="Files changed" class="w-72 flex-none border-r border-border overflow-y-auto">
+		<ul class="py-2 text-sm">
+			@diffTreeChildren(root, 0)
+		</ul>
+	</nav>
+}
+
+templ diffTreeChildren(node *diffTreeNode, depth int) {
+	for _, c := range sortedChildren(node) {
+		if c.IsDir {
+			<li x-data={ "{ open: true }" }>
+				<button
+					type="button"
+					x-on:click="open = !open"
+					:aria-expanded="open"
+					class="w-full flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded"
+				>
+					<svg x-show="open" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+					<svg x-show="!open" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 6 15 12 9 18"></polyline></svg>
+					<span class="font-mono truncate flex-1 text-left" style={ fmt.Sprintf("padding-left:%dpx", depth*8) }>{ c.Name }</span>
+				</button>
+				<ul x-show="open" class="ml-2">
+					@diffTreeChildren(c, depth+1)
+				</ul>
+			</li>
+		} else if c.Item != nil {
+			<li>
+				<a href={ templ.SafeURL("#" + c.Item.Anchor) } class="flex items-center gap-2 px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded">
+					<span class="font-mono truncate flex-1" style={ fmt.Sprintf("padding-left:%dpx", depth*8) }>{ c.Name }</span>
+					if c.Item.Added > 0 {
+						<span class="text-success text-xs">{ fmt.Sprintf("+%d", c.Item.Added) }</span>
+					}
+					if c.Item.Deleted > 0 {
+						<span class="text-destructive text-xs">{ fmt.Sprintf("-%d", c.Item.Deleted) }</span>
+					}
+				</a>
+			</li>
+		}
+	}
+}
