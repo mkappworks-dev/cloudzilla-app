@@ -23,7 +23,6 @@ type DiffFileTreeItem struct {
 
 type diffTreeNode struct {
 	Name     string
-	FullPath string
 	IsDir    bool
 	Item     *DiffFileTreeItem
 	Children map[string]*diffTreeNode
@@ -52,7 +51,6 @@ func buildDiffTree(items []DiffFileTreeItem) *diffTreeNode {
 			if !ok {
 				child = &diffTreeNode{
 					Name:     p,
-					FullPath: strings.Join(parts[:j+1], "/"),
 					IsDir:    !isLeaf,
 					Children: map[string]*diffTreeNode{},
 				}
@@ -67,7 +65,6 @@ func buildDiffTree(items []DiffFileTreeItem) *diffTreeNode {
 	return root
 }
 
-// sortedChildren returns children dirs-first, then files, each alpha-sorted.
 func sortedChildren(n *diffTreeNode) []*diffTreeNode {
 	out := make([]*diffTreeNode, 0, len(n.Children))
 	for _, c := range n.Children {
@@ -104,7 +101,7 @@ func DiffFileTree(items []DiffFileTreeItem) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		root := buildDiffTree(items)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav aria-label=\"Files changed\" class=\"w-72 flex-none border-r border-border overflow-y-auto\"><ul class=\"py-2 text-sm\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav aria-label=\"Files changed\" class=\"w-72 flex-none border-r border-border overflow-y-auto\"><ul class=\"py-2 text-sm\" role=\"tree\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -143,46 +140,46 @@ func diffTreeChildren(node *diffTreeNode, depth int) templ.Component {
 		ctx = templ.ClearChildren(ctx)
 		for _, c := range sortedChildren(node) {
 			if c.IsDir {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<li x-data=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<li role=\"treeitem\" aria-expanded=\"true\" x-data=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ open: true }")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 89, Col: 32}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 86, Col: 69}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><button type=\"button\" x-on:click=\"open = !open\" :aria-expanded=\"open\" class=\"w-full flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded\"><svg x-show=\"open\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><polyline points=\"6 9 12 15 18 9\"></polyline></svg> <svg x-show=\"!open\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><polyline points=\"9 6 15 12 9 18\"></polyline></svg> <span class=\"font-mono truncate flex-1 text-left\" style=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><button type=\"button\" x-on:click=\"open = !open\" class=\"w-full flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded\" style=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("padding-left:%dpx", depth*8))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 98, Col: 104}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 91, Col: 54}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\"><svg class=\"transition-transform shrink-0\" :class=\"open ? 'rotate-90' : ''\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M9 6l6 6-6 6\"></path></svg> <span class=\"font-mono truncate flex-1 text-left\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(c.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 98, Col: 115}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 96, Col: 63}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</span></button><ul x-show=\"open\" class=\"ml-2\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</span></button><ul x-show=\"open\" role=\"group\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -195,40 +192,40 @@ func diffTreeChildren(node *diffTreeNode, depth int) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			} else if c.Item != nil {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<li><a href=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<li role=\"treeitem\"><a href=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var6 templ.SafeURL
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("#" + c.Item.Anchor))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 106, Col: 48}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 105, Col: 46}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" class=\"flex items-center gap-2 px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded\"><span class=\"font-mono truncate flex-1\" style=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" class=\"flex items-center gap-2 px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded\" style=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("padding-left:%dpx", depth*8))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 107, Col: 94}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 107, Col: 54}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\"><span class=\"font-mono truncate flex-1\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(c.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 107, Col: 105}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 109, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -246,7 +243,7 @@ func diffTreeChildren(node *diffTreeNode, depth int) templ.Component {
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("+%d", c.Item.Added))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 109, Col: 75}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 111, Col: 75}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {
@@ -265,7 +262,7 @@ func diffTreeChildren(node *diffTreeNode, depth int) templ.Component {
 					var templ_7745c5c3_Var10 string
 					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("-%d", c.Item.Deleted))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 112, Col: 81}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/diff_file_tree.templ`, Line: 114, Col: 81}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 					if templ_7745c5c3_Err != nil {

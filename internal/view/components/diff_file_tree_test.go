@@ -27,9 +27,12 @@ func TestDiffFileTree_BuildsTreeAndRendersStats(t *testing.T) {
 		t.Fatalf("render: %v", err)
 	}
 	out := buf.String()
-	for _, s := range []string{"main.go", "util.go", "pulls.templ", "internal", "+12", "-8", "+58"} {
+	for _, s := range []string{"main.go", "util.go", "pulls.templ", "internal", "+12", "-3", "-8", "+58", "-4"} {
 		if !strings.Contains(out, s) {
 			t.Errorf("missing %q", s)
 		}
+	}
+	if strings.Contains(out, "+0") {
+		t.Errorf("unexpected +0 in output (zero additions should be suppressed)")
 	}
 }
