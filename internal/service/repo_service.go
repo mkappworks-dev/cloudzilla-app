@@ -440,18 +440,18 @@ func copyFile(src, dst string, mode os.FileMode) error {
 	return err
 }
 
-// archiveGuard returns an error if the caller is not an owner.
+// archiveGuard returns ErrForbidden if the caller is not an owner.
 func archiveGuard(isOwner bool) error {
 	if !isOwner {
-		return fmt.Errorf("forbidden: only the repo owner or org owner can archive a repo")
+		return fmt.Errorf("only the repo owner or org owner can archive a repo: %w", ErrForbidden)
 	}
 	return nil
 }
 
-// templateGuard returns an error if the caller is not an owner.
+// templateGuard returns ErrForbidden if the caller is not an owner.
 func templateGuard(isOwner bool) error {
 	if !isOwner {
-		return fmt.Errorf("forbidden: only the repo owner or org owner can change template status")
+		return fmt.Errorf("only the repo owner or org owner can change template status: %w", ErrForbidden)
 	}
 	return nil
 }
@@ -497,7 +497,7 @@ func (s *RepoService) UpdateMeta(ctx context.Context, repoID, userID int64, desc
 		return fmt.Errorf("repo not found: %w", err)
 	}
 	if !s.CanManage(ctx, repo, userID) {
-		return errors.New("permission denied")
+		return fmt.Errorf("manage permission required: %w", ErrForbidden)
 	}
 	return s.repos.UpdateMeta(ctx, repoID, strings.TrimSpace(description), strings.TrimSpace(website), strings.TrimSpace(license))
 }
@@ -511,7 +511,7 @@ func (s *RepoService) UpdateGeneral(ctx context.Context, repoID, userID int64, d
 		return fmt.Errorf("repo not found: %w", err)
 	}
 	if !s.CanManage(ctx, repo, userID) {
-		return errors.New("permission denied")
+		return fmt.Errorf("manage permission required: %w", ErrForbidden)
 	}
 	branch := strings.TrimSpace(defaultBranch)
 	if branch == "" {
@@ -528,7 +528,7 @@ func (s *RepoService) UpdateFeatureToggles(ctx context.Context, repoID, userID i
 		return fmt.Errorf("repo not found: %w", err)
 	}
 	if !s.CanManage(ctx, repo, userID) {
-		return errors.New("permission denied")
+		return fmt.Errorf("manage permission required: %w", ErrForbidden)
 	}
 	return s.repos.UpdateFeatureToggles(ctx, repoID, issues, discussions, projects, wiki)
 }
@@ -588,10 +588,10 @@ func (s *RepoService) ListTemplates(ctx context.Context) ([]model.Repository, er
 	return s.repos.ListTemplates(ctx)
 }
 
-// deleteGuard returns an error if the caller is not an owner.
+// deleteGuard returns ErrForbidden if the caller is not an owner.
 func deleteGuard(isOwner bool) error {
 	if !isOwner {
-		return fmt.Errorf("forbidden: only the repo owner or org owner can delete a repo")
+		return fmt.Errorf("only the repo owner or org owner can delete a repo: %w", ErrForbidden)
 	}
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -52,6 +53,46 @@ FROM pull_reviews WHERE pull_id=$1 ORDER BY created_at ASC`
 		reviews = append(reviews, r)
 	}
 	return reviews, rows.Err()
+}
+
+// ListByPullIDs batch-fetches reviews for multiple PRs. Returns a map of pullID → reviews.
+func (s *PullReviewStore) ListByPullIDs(ctx context.Context, pullIDs []int64) (map[int64][]model.PullReview, error) {
+	if len(pullIDs) == 0 {
+		return map[int64][]model.PullReview{}, nil
+	}
+	placeholders := make([]string, len(pullIDs))
+	args := make([]any, len(pullIDs))
+	for i, id := range pullIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	q := fmt.Sprintf(
+		`SELECT id, pull_id, repo_id, author_id, author_name, state, body, submitted_at, created_at, updated_at
+		 FROM pull_reviews WHERE pull_id IN (%s) ORDER BY created_at ASC`,
+		strings.Join(placeholders, ","),
+	)
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("pull reviews list by ids: %w", err)
+	}
+	defer rows.Close()
+	result := make(map[int64][]model.PullReview)
+	for rows.Next() {
+		var r model.PullReview
+		var submittedAt sql.NullTime
+		if err := rows.Scan(
+			&r.ID, &r.PullID, &r.RepoID, &r.AuthorID, &r.AuthorName,
+			&r.State, &r.Body, &submittedAt, &r.CreatedAt, &r.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		if submittedAt.Valid {
+			t := submittedAt.Time
+			r.SubmittedAt = &t
+		}
+		result[r.PullID] = append(result[r.PullID], r)
+	}
+	return result, rows.Err()
 }
 
 func (s *PullReviewStore) CountApprovals(ctx context.Context, pullID int64) (int, error) {

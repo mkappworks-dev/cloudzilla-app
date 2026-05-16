@@ -85,6 +85,10 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "repo not found", http.StatusNotFound)
 		return
 	}
+	if !repo.AllowProjects {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
 
 	var userID *int64
 	canWrite := false
@@ -145,6 +149,16 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !repo.AllowProjects {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
 
 	var req createProjectRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

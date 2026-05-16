@@ -315,6 +315,11 @@ func (h *Handler) UpdateRepoGeneral(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.Services.Repo.UpdateGeneral(r.Context(), repo.ID, claims.UserID,
 		r.FormValue("description"), r.FormValue("website"), r.FormValue("default_branch")); err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
+			return
+		}
+		slog.Error("settings: update general failed", "owner", owner, "repo", repoName, "error", err)
 		http.Error(w, "failed to update settings", http.StatusInternalServerError)
 		return
 	}
@@ -345,6 +350,11 @@ func (h *Handler) UpdateRepoFeatures(w http.ResponseWriter, r *http.Request) {
 		r.FormValue("allow_discussions") == "on",
 		r.FormValue("allow_projects") == "on",
 		r.FormValue("allow_wiki") == "on"); err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
+			return
+		}
+		slog.Error("settings: update feature toggles failed", "owner", owner, "repo", repoName, "error", err)
 		http.Error(w, "failed to update settings", http.StatusInternalServerError)
 		return
 	}

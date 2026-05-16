@@ -1,12 +1,13 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 func (h *Handler) ArchiveRepo(w http.ResponseWriter, r *http.Request) {
@@ -23,7 +24,7 @@ func (h *Handler) ArchiveRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Repo.Archive(r.Context(), repo.ID, claims.UserID); err != nil {
-		if strings.HasPrefix(err.Error(), "forbidden:") {
+		if errors.Is(err, service.ErrForbidden) {
 			writeError(w, http.StatusForbidden, "only the repo owner can archive this repository")
 		} else {
 			writeError(w, http.StatusInternalServerError, "failed to archive repository")
@@ -48,7 +49,7 @@ func (h *Handler) UnarchiveRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Repo.Unarchive(r.Context(), repo.ID, claims.UserID); err != nil {
-		if strings.HasPrefix(err.Error(), "forbidden:") {
+		if errors.Is(err, service.ErrForbidden) {
 			writeError(w, http.StatusForbidden, "only the repo owner can unarchive this repository")
 		} else {
 			writeError(w, http.StatusInternalServerError, "failed to unarchive repository")
@@ -73,7 +74,7 @@ func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Repo.Delete(r.Context(), repo.ID, claims.UserID); err != nil {
-		if strings.HasPrefix(err.Error(), "forbidden:") {
+		if errors.Is(err, service.ErrForbidden) {
 			writeError(w, http.StatusForbidden, "only the repo owner can delete this repository")
 		} else {
 			writeError(w, http.StatusInternalServerError, "failed to delete repository")
@@ -102,7 +103,7 @@ func (h *Handler) SetRepoTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 	isTemplate := r.FormValue("is_template") == "true" || r.FormValue("is_template") == "on"
 	if err := h.Services.Repo.SetTemplate(r.Context(), repo.ID, claims.UserID, isTemplate); err != nil {
-		if strings.HasPrefix(err.Error(), "forbidden:") {
+		if errors.Is(err, service.ErrForbidden) {
 			writeError(w, http.StatusForbidden, "only the repo owner can change template status")
 		} else {
 			writeError(w, http.StatusInternalServerError, "failed to update template status")

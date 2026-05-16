@@ -330,14 +330,16 @@ func (s *PullStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID 
 }
 
 func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNumber int) ([]model.PullRequest, error) {
-	pattern := fmt.Sprintf(`(^|[^0-9])#%d([^0-9]|$)`, issueNumber)
+	// Match GitHub-style closing keywords ("closes #N", "fixes #N", "resolves #N")
+	// so prose mentions like "see #N for context" do not register as linked PRs.
+	pattern := fmt.Sprintf(`\y(close[sd]?|fix(es|ed)?|resolve[sd]?)\y:?[[:space:]]+#%d(\D|$)`, issueNumber)
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
 		        auto_merge_enabled, auto_merge_strategy
 		 FROM pull_requests
 		 WHERE repo_id = $1
-		   AND (title ~ $2 OR body ~ $2)
+		   AND (title ~* $2 OR body ~* $2)
 		 ORDER BY number DESC`,
 		repoID, pattern,
 	)

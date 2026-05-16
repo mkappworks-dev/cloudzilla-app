@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -38,9 +40,10 @@ func (h *Handler) UpdateRepo(w http.ResponseWriter, r *http.Request) {
 	err = h.Services.Repo.UpdateMeta(r.Context(), repo.ID, claims.UserID,
 		r.FormValue("description"), r.FormValue("website"), r.FormValue("license"))
 	if err != nil {
-		if strings.Contains(err.Error(), "permission") {
+		if errors.Is(err, service.ErrForbidden) {
 			writeError(w, http.StatusForbidden, "you do not have permission to edit this repository")
 		} else {
+			slog.Error("repo: update meta failed", "owner", owner, "repo", repoName, "error", err)
 			writeError(w, http.StatusInternalServerError, "failed to update repository")
 		}
 		return
@@ -144,6 +147,7 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := strings.TrimSpace(r.FormValue("path"))
+	dir := strings.Trim(r.FormValue("dir"), "/")
 	content := []byte(r.FormValue("content"))
 	message := strings.TrimSpace(r.FormValue("message"))
 
@@ -156,8 +160,13 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		content = data
+		// A blank path falls back to the upload's own name, placed in the
+		// directory the New file page was opened from.
 		if path == "" {
 			path = header.Filename
+			if dir != "" {
+				path = dir + "/" + path
+			}
 		}
 	}
 	if path == "" {

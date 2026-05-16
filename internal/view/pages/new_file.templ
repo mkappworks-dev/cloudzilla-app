@@ -27,6 +27,7 @@ templ NewFile(data view.NewFileData) {
 				enctype="multipart/form-data"
 				class="space-y-5"
 			>
+				<input type="hidden" name="dir" value={ data.Dir }/>
 				<div class="rounded-md border border-border bg-card p-5 space-y-4">
 					<div>
 						<label for="nf-path" class="block text-[12px] font-medium mb-1.5">File path</label>

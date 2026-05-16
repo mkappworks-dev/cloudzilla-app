@@ -1,3 +1,3 @@
-ALTER TABLE projects ADD COLUMN closed_at TIMESTAMPTZ;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ;
 
-CREATE INDEX idx_projects_repo_status ON projects (repo_id, closed_at);
+CREATE INDEX IF NOT EXISTS idx_projects_repo_status ON projects (repo_id, closed_at);

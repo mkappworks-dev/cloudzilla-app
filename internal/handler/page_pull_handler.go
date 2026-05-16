@@ -31,7 +31,12 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 	}
 
 	allPulls, err := h.Services.Pull.List(r.Context(), owner, repoName)
-	if err != nil || allPulls == nil {
+	if err != nil {
+		slog.Error("pulls: list failed", "owner", owner, "repo", repoName, "error", err)
+		http.Error(w, "failed to load pull requests", http.StatusInternalServerError)
+		return
+	}
+	if allPulls == nil {
 		allPulls = []model.PullRequest{}
 	}
 
@@ -159,13 +164,21 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 
-	allLabels, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	allLabels, err := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("new PR: label list failed", "owner", owner, "repo", repoName, "error", err)
+	}
 
 	var suggested []model.User
 	if head != "" {
-		suggested, _ = h.Services.Pull.SuggestReviewers(r.Context(), owner, repoName, base, head, 5)
+		if suggested, err = h.Services.Pull.SuggestReviewers(r.Context(), owner, repoName, base, head, 5); err != nil {
+			slog.Warn("new PR: suggest reviewers failed", "owner", owner, "repo", repoName, "error", err)
+		}
 	}
-	collaborators, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
+	collaborators, err := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
+	if err != nil {
+		slog.Warn("new PR: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
+	}
 
 	h.render(w, r, pages.PullNew(view.PullNewData{
 		BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
@@ -216,12 +229,20 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	baseBranch := r.FormValue("base_branch")
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
-	allLabels, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	allLabels, err := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("new PR: label list failed", "owner", owner, "repo", repoName, "error", err)
+	}
 
-	errCollaborators, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
+	errCollaborators, err := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
+	if err != nil {
+		slog.Warn("new PR: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	var errSuggested []model.User
 	if headBranch != "" {
-		errSuggested, _ = h.Services.Pull.SuggestReviewers(r.Context(), owner, repoName, baseBranch, headBranch, 5)
+		if errSuggested, err = h.Services.Pull.SuggestReviewers(r.Context(), owner, repoName, baseBranch, headBranch, 5); err != nil {
+			slog.Warn("new PR: suggest reviewers failed", "owner", owner, "repo", repoName, "error", err)
+		}
 	}
 	selectedReviewers := make(map[string]bool, len(r.Form["reviewers"]))
 	for _, u := range r.Form["reviewers"] {
@@ -269,9 +290,19 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	if usernames := r.Form["reviewers"]; len(usernames) > 0 {
 		if reviewers, rerr := h.Services.User.GetManyByUsernames(r.Context(), usernames); rerr != nil {
 			slog.Warn("new PR: resolve reviewer usernames failed", "error", rerr)
-		} else if len(reviewers) > 0 {
-			if rerr := h.Services.PullReview.RequestReviewers(r.Context(), owner, repoName, pr.Number, reviewers); rerr != nil {
-				slog.Warn("new PR: request reviewers failed", "error", rerr)
+		} else {
+			// Only request reviews from users who can actually read the repo,
+			// so a crafted POST cannot pull arbitrary accounts into the PR.
+			eligible := reviewers[:0]
+			for _, u := range reviewers {
+				if h.Services.Repo.CanRead(r.Context(), repo, &u.ID) {
+					eligible = append(eligible, u)
+				}
+			}
+			if len(eligible) > 0 {
+				if rerr := h.Services.PullReview.RequestReviewers(r.Context(), owner, repoName, pr.Number, eligible); rerr != nil {
+					slog.Warn("new PR: request reviewers failed", "error", rerr)
+				}
 			}
 		}
 	}

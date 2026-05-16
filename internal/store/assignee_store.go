@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -72,6 +73,40 @@ func (s *AssigneeStore) ListByPull(ctx context.Context, pullID int64) ([]model.U
 	}
 	defer rows.Close()
 	return scanUsers(rows)
+}
+
+// ListByPullIDs batch-fetches assignees for multiple PRs. Returns a map of pullID → users.
+func (s *AssigneeStore) ListByPullIDs(ctx context.Context, pullIDs []int64) (map[int64][]model.User, error) {
+	if len(pullIDs) == 0 {
+		return map[int64][]model.User{}, nil
+	}
+	placeholders := make([]string, len(pullIDs))
+	args := make([]any, len(pullIDs))
+	for i, id := range pullIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	q := fmt.Sprintf(
+		`SELECT pa.pull_id, u.id, u.username, u.email, u.bio, u.avatar_url, u.is_superadmin, u.is_invited, u.created_at, u.updated_at
+		 FROM users u JOIN pull_assignees pa ON u.id = pa.user_id
+		 WHERE pa.pull_id IN (%s) ORDER BY u.username`,
+		strings.Join(placeholders, ","),
+	)
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("assignee list by pull ids: %w", err)
+	}
+	defer rows.Close()
+	result := make(map[int64][]model.User)
+	for rows.Next() {
+		var pullID int64
+		var u model.User
+		if err := rows.Scan(&pullID, &u.ID, &u.Username, &u.Email, &u.Bio, &u.AvatarURL, &u.IsSuperadmin, &u.IsInvited, &u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, err
+		}
+		result[pullID] = append(result[pullID], u)
+	}
+	return result, rows.Err()
 }
 
 func scanUsers(rows *sql.Rows) ([]model.User, error) {

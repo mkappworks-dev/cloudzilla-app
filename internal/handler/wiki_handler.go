@@ -102,6 +102,10 @@ func (h *Handler) PageWikiEdit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
+	if !repo.AllowWiki {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
 
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -160,6 +164,10 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusNotFound, "repo not found")
 		return
 	}
+	if !repo.AllowWiki {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
 		writeError(w, http.StatusForbidden, "forbidden")
 		return
@@ -212,6 +220,10 @@ func (h *Handler) DeleteWikiPage(w http.ResponseWriter, r *http.Request) {
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !repo.AllowWiki {
+		writeError(w, http.StatusNotFound, "not found")
 		return
 	}
 	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {

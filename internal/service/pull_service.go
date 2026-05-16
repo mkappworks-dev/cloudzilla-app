@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sort"
 	"time"
 
@@ -56,9 +57,41 @@ func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName stri
 	if err != nil {
 		return nil, err
 	}
+
+	pullIDs := make([]int64, len(pulls))
+	for i, p := range pulls {
+		pullIDs[i] = p.ID
+	}
+
+	// Batch the per-PR sidebar lookups so the list page issues a constant
+	// number of queries rather than one set per row.
+	var reviewsByPull map[int64][]model.PullReview
+	if s.reviewStore != nil {
+		if reviewsByPull, err = s.reviewStore.ListByPullIDs(ctx, pullIDs); err != nil {
+			return nil, fmt.Errorf("list reviews: %w", err)
+		}
+	}
+	var labelsByPull map[int64][]model.Label
+	if s.labelStore != nil {
+		if labelsByPull, err = s.labelStore.ListByPullIDs(ctx, pullIDs); err != nil {
+			return nil, fmt.Errorf("list labels: %w", err)
+		}
+	}
+	var assigneesByPull map[int64][]model.User
+	if s.assigneeStore != nil {
+		if assigneesByPull, err = s.assigneeStore.ListByPullIDs(ctx, pullIDs); err != nil {
+			return nil, fmt.Errorf("list assignees: %w", err)
+		}
+	}
+
 	out := make([]PullListRow, 0, len(pulls))
 	for _, p := range pulls {
-		row := PullListRow{PullRequest: p}
+		row := PullListRow{
+			PullRequest:   p,
+			Reviewers:     reviewsByPull[p.ID],
+			LabelChips:    labelsByPull[p.ID],
+			AssigneeChips: assigneesByPull[p.ID],
+		}
 		if s.code != nil {
 			if commit, _, err := s.code.ResolveRef(owner, repoName, p.HeadBranch); err == nil {
 				row.HeadSHA = commit.Hash.String()
@@ -67,21 +100,6 @@ func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName stri
 						row.CIStatus = string(combined)
 					}
 				}
-			}
-		}
-		if s.reviewStore != nil {
-			if rev, err := s.reviewStore.ListByPull(ctx, p.ID); err == nil {
-				row.Reviewers = rev
-			}
-		}
-		if s.labelStore != nil {
-			if labs, err := s.labelStore.ListByPull(ctx, p.ID); err == nil {
-				row.LabelChips = labs
-			}
-		}
-		if s.assigneeStore != nil {
-			if asg, err := s.assigneeStore.ListByPull(ctx, p.ID); err == nil {
-				row.AssigneeChips = asg
 			}
 		}
 		out = append(out, row)
@@ -247,7 +265,10 @@ func (s *PullService) SuggestReviewers(ctx context.Context, owner, repoName, bas
 		// Missing CODEOWNERS is normal; error is intentionally ignored and the contributor fallback is used.
 		rules, _ := s.code.GetCodeOwners(owner, repoName, repo.DefaultBranch)
 		if len(rules) > 0 {
-			diff, _ := s.code.GetPullDiff(owner, repoName, base, head)
+			diff, diffErr := s.code.GetPullDiff(owner, repoName, base, head)
+			if diffErr != nil {
+				slog.Warn("suggest reviewers: pull diff lookup failed", "owner", owner, "repo", repoName, "error", diffErr)
+			}
 			if diff != nil {
 				changed := make([]string, 0, len(diff.Files))
 				for _, f := range diff.Files {
@@ -259,7 +280,11 @@ func (s *PullService) SuggestReviewers(ctx context.Context, owner, repoName, bas
 				}
 				owners := s.code.MatchCodeOwners(rules, changed)
 				if len(owners) > 0 && s.userStore != nil {
-					if users, err := s.userStore.GetManyByUsernames(ctx, owners); err == nil && len(users) > 0 {
+					users, usersErr := s.userStore.GetManyByUsernames(ctx, owners)
+					if usersErr != nil {
+						slog.Warn("suggest reviewers: resolve CODEOWNERS usernames failed", "owner", owner, "repo", repoName, "error", usersErr)
+					}
+					if usersErr == nil && len(users) > 0 {
 						if limit > 0 && len(users) > limit {
 							users = users[:limit]
 						}

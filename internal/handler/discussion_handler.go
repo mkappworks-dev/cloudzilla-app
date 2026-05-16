@@ -53,13 +53,19 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 		stateFilter = "open"
 	}
 
-	categories, _ := h.Services.Discussion.ListCategories(r.Context(), repo.ID)
+	categories, err := h.Services.Discussion.ListCategories(r.Context(), repo.ID)
+	if err != nil {
+		slog.Warn("discussions: category list failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	if categories == nil {
 		categories = []model.DiscussionCategory{}
 	}
 
 	// Unfiltered list for counts; category-filtered list for display rows.
-	unfiltered, _ := h.Services.Discussion.List(r.Context(), owner, repoName, 0)
+	unfiltered, err := h.Services.Discussion.List(r.Context(), owner, repoName, 0)
+	if err != nil {
+		slog.Warn("discussions: list failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	if unfiltered == nil {
 		unfiltered = []model.Discussion{}
 	}
@@ -78,7 +84,10 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	categoryFiltered, _ := h.Services.Discussion.List(r.Context(), owner, repoName, activeCategoryID)
+	categoryFiltered, err := h.Services.Discussion.List(r.Context(), owner, repoName, activeCategoryID)
+	if err != nil {
+		slog.Warn("discussions: category-filtered list failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	if categoryFiltered == nil {
 		categoryFiltered = []model.Discussion{}
 	}
@@ -139,6 +148,10 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
 		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+	if !repo.AllowDiscussions {
+		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 
@@ -207,6 +220,10 @@ func (h *Handler) CreateDiscussion(w http.ResponseWriter, r *http.Request) {
 	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !authRepo.AllowDiscussions {
+		writeError(w, http.StatusNotFound, "not found")
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {

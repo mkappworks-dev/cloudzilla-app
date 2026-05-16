@@ -263,9 +263,11 @@ func (s *CodeService) CommitCount(owner, repoName, ref string) (int, error) {
 	}
 	defer iter.Close()
 	count := 0
-	err = iter.ForEach(func(*object.Commit) error {
+	if err = iter.ForEach(func(*object.Commit) error {
 		count++
 		return nil
-	})
-	return count, err
+	}); err != nil {
+		return 0, err
+	}
+	return count, nil
 }

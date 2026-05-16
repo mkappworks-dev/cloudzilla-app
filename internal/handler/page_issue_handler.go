@@ -52,7 +52,9 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 
 	allIssues, err := h.Services.Issue.List(r.Context(), owner, repoName, callerID)
 	if err != nil {
-		allIssues = []model.Issue{}
+		slog.Error("issues: list failed", "owner", owner, "repo", repoName, "error", err)
+		http.Error(w, "failed to load issues", http.StatusInternalServerError)
+		return
 	}
 	if allIssues == nil {
 		allIssues = []model.Issue{}
@@ -78,7 +80,10 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		issues = []model.Issue{}
 	}
 
-	issueLabels, _ := h.Services.Label.BatchForIssues(r.Context(), issues)
+	issueLabels, err := h.Services.Label.BatchForIssues(r.Context(), issues)
+	if err != nil {
+		slog.Warn("issues: label batch failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	if issueLabels == nil {
 		issueLabels = map[int64][]model.Label{}
 	}
@@ -135,22 +140,34 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Second pass: the label map must cover only the post-filter slice.
-	issueLabels, _ = h.Services.Label.BatchForIssues(r.Context(), issues)
+	issueLabels, err = h.Services.Label.BatchForIssues(r.Context(), issues)
+	if err != nil {
+		slog.Warn("issues: label batch failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	if issueLabels == nil {
 		issueLabels = map[int64][]model.Label{}
 	}
 
-	allMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	allMilestones, err := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("issues: milestone list failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	if allMilestones == nil {
 		allMilestones = []model.Milestone{}
 	}
 
-	allLabels, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	allLabels, err := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("issues: label list failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	if allLabels == nil {
 		allLabels = []model.Label{}
 	}
 
-	pinnedIssues, _ := h.Services.Issue.ListPinned(r.Context(), owner, repoName)
+	pinnedIssues, err := h.Services.Issue.ListPinned(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("issues: pinned list failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	if pinnedIssues == nil {
 		pinnedIssues = []model.Issue{}
 	}
@@ -187,6 +204,10 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+	if !repo.AllowIssues {
 		h.NotFound(w, r)
 		return
 	}
@@ -273,6 +294,10 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
+	if !repo.AllowIssues {
+		h.NotFound(w, r)
+		return
+	}
 
 	templates, _ := h.Services.Code.GetIssueTemplates(owner, repoName, repo.DefaultBranch)
 
@@ -324,6 +349,10 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+	if !repo.AllowIssues {
 		h.NotFound(w, r)
 		return
 	}
