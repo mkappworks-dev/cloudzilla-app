@@ -7,17 +7,15 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
-// CommitDayGroup groups commits that share the same calendar day.
 type CommitDayGroup struct {
 	Date    time.Time
 	Commits []service.CommitSummary
 }
 
-// commitDays groups commits by calendar day of AuthorTime, preserving order.
 func commitDays(commits []service.CommitSummary) []CommitDayGroup {
 	var groups []CommitDayGroup
 	for _, c := range commits {
-		day := c.AuthorTime.Truncate(24 * time.Hour)
+		day := c.AuthorTime.UTC().Truncate(24 * time.Hour)
 		if len(groups) > 0 && groups[len(groups)-1].Date.Equal(day) {
 			groups[len(groups)-1].Commits = append(groups[len(groups)-1].Commits, c)
 		} else {

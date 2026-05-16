@@ -482,13 +482,16 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 
 	commits, err := h.Services.Code.PullCommits(owner, repoName, pull.BaseBranch, pull.HeadBranch)
 	if err != nil {
-		slog.Warn("pull commits: git walk failed", "owner", owner, "repo", repoName, "pr", number, "error", err)
+		slog.Warn("pull commits: git walk failed", "owner", owner, "repo", repoName, "pull_number", number, "error", err)
 		commits = nil
 	}
 
 	var authorUsername string
 	if author, err := h.Services.User.GetByID(r.Context(), pull.AuthorID); err == nil {
 		authorUsername = author.Username
+	} else {
+		slog.Warn("pull commits: author lookup failed; falling back to name",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
 	}
 
 	canManage := false

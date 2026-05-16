@@ -1,8 +1,6 @@
 package service
 
 import (
-	"strings"
-
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -46,23 +44,7 @@ func (s *CodeService) PullCommits(owner, repoName, base, head string) ([]CommitS
 		if excluded[c.Hash] {
 			return nil
 		}
-		hash := c.Hash.String()
-		shortHash := hash
-		if len(hash) > 7 {
-			shortHash = hash[:7]
-		}
-		msg := strings.TrimSpace(c.Message)
-		firstLine := msg
-		if idx := strings.Index(msg, "\n"); idx >= 0 {
-			firstLine = strings.TrimSpace(msg[:idx])
-		}
-		out = append(out, CommitSummary{
-			Hash:       shortHash,
-			FullHash:   hash,
-			Message:    firstLine,
-			Author:     c.Author.Name,
-			AuthorTime: c.Author.When,
-		})
+		out = append(out, summarizeCommit(c))
 		return nil
 	})
 	return out, err

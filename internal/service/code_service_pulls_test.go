@@ -16,21 +16,6 @@ func TestPullCommits_Linear(t *testing.T) {
 	}
 	svc := newTestRepoWithCommits(t, "alice", "linear", times)
 
-	// base = commit 1 (index 1), head = commit 3 (index 3, HEAD)
-	// PullCommits("master"→HEAD, "master"→HEAD) would yield 0 results; instead
-	// use SHAs. Resolve via ResolveRef.
-	baseCommit, _, err := svc.ResolveRef("alice", "linear", "master")
-	if err != nil {
-		t.Fatalf("ResolveRef: %v", err)
-	}
-	// HEAD is the last commit (index 3). base = commit 0 (index 0), so
-	// base is the initial commit and head is HEAD, giving us 3 commits.
-	// To get commits only on head not on base we need base to be a real
-	// branch. Use the full hash of the initial commit as "base".
-	// newTestRepoWithCommits pushes all commits onto "master"; HEAD is index 3.
-	// We need the SHA of an earlier commit to use as base.
-	_ = baseCommit // not used directly below; we use SHA strings
-
 	// Get all commits on master to extract individual SHAs.
 	log, err := svc.GetCommits("alice", "linear", "master", 1, 10)
 	if err != nil {
