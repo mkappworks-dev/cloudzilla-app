@@ -55,7 +55,7 @@ templ pullDetailBody(data view.PullDetailData) {
 
 			<!-- PR description (first comment) -->
 			<article id="pr-description" class="rounded-md border border-border bg-card overflow-hidden mb-6" aria-label="Pull request description">
-				<header class="px-4 py-2.5 border-b border-border bg-primary/5 flex items-center gap-2 flex-wrap">
+				<header class="px-4 py-2.5 border-b border-border bg-blue-500/10 flex items-center gap-2 flex-wrap">
 					@components.Avatar(prAuthor(data), components.AvatarSizeSM, prAuthor(data))
 					<a href={ templ.SafeURL("/" + prAuthor(data)) } class="text-[13px] font-medium hover:underline">{ "@" + prAuthor(data) }</a>
 					<span class="text-[12px] text-muted-foreground">
@@ -71,17 +71,18 @@ templ pullDetailBody(data view.PullDetailData) {
 					}
 				</header>
 				<div class="px-5 py-4">
-					<div id="desc-rendered">
+					<div id="desc-rendered" class="prose prose-sm dark:prose-invert max-w-none">
 						if data.BodyHTML != "" {
-							@components.MarkdownBody(data.BodyHTML)
+							@templ.Raw(data.BodyHTML)
 						} else {
 							<p class="text-sm text-muted-foreground italic">No description provided.</p>
 						}
 					</div>
 					if data.CanWrite {
 						<form id="desc-editor" class="hidden" hx-patch={ apiBase } hx-swap="none" hx-on--after-request="if(event.detail.successful) location.reload()">
-							<label for="desc-body" class="sr-only">Edit description</label>
-							<textarea id="desc-body" name="body" rows="14" class="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm font-mono leading-relaxed focus:outline-none focus:ring-1 focus-visible:outline-ring">{ data.Pull.Body }</textarea>
+							<div class="rounded-md border border-border overflow-hidden">
+								@components.MarkdownEditor("desc-body", "body", data.Pull.Body, "Edit the description…", 14)
+							</div>
 							<div class="flex justify-end gap-2 mt-2">
 								<button type="button" id="desc-cancel" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent">Cancel</button>
 								<button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Save</button>
@@ -140,8 +141,7 @@ templ pullDetailBody(data view.PullDetailData) {
 							@components.Avatar(data.BasePage.CurrentUser.Username, components.AvatarSizeSM, data.BasePage.CurrentUser.Username)
 							<span class="text-[13px] font-medium">Add a comment</span>
 						</header>
-						<label for="pr-comment-body" class="sr-only">Write a comment</label>
-						<textarea id="pr-comment-body" name="body" rows="5" required placeholder="Leave a comment — Markdown supported" class="w-full p-4 text-[13px] bg-transparent resize-y focus:outline-none placeholder:text-muted-foreground"></textarea>
+						@components.MarkdownEditor("pr-comment-body", "body", "", "Leave a comment — Markdown supported", 5)
 						<div class="px-3 py-2 border-t border-border bg-muted/40 flex items-center gap-2">
 							<p class="text-[11px] text-muted-foreground font-mono flex-1">Markdown supported · drop files to attach</p>
 							if data.CanWrite && data.Pull.State == model.PRStateOpen {

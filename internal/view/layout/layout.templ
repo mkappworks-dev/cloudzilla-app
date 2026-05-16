@@ -290,6 +290,40 @@ templ Base(base view.BasePage, title string) {
 					syncThemeUI();
 				})();
 			</script>
+			<script>
+				// Markdown editor: Write/Preview tab toggle + formatting toolbar.
+				(function() {
+					function setMode(ed, mode) {
+						ed.querySelectorAll('[data-md-tab]').forEach(function(t) {
+							var on = t.dataset.mdTab === mode;
+							t.classList.toggle('bg-background', on);
+							t.classList.toggle('text-foreground', on);
+							t.classList.toggle('shadow-sm', on);
+							t.classList.toggle('text-muted-foreground', !on);
+							t.setAttribute('aria-selected', on ? 'true' : 'false');
+						});
+						ed.querySelector('[data-md-pane="write"]').classList.toggle('hidden', mode !== 'write');
+						ed.querySelector('[data-md-pane="preview"]').classList.toggle('hidden', mode !== 'preview');
+					}
+					function wrap(ta, action) {
+						var s = ta.selectionStart, e = ta.selectionEnd, sel = ta.value.slice(s, e);
+						var pairs = { bold: ['**', '**'], italic: ['_', '_'], code: ['`', '`'] };
+						var out = action === 'link' ? '[' + (sel || 'text') + '](url)'
+							: (pairs[action] || ['', ''])[0] + (sel || 'text') + (pairs[action] || ['', ''])[1];
+						ta.setRangeText(out, s, e, 'end');
+						ta.focus();
+					}
+					document.addEventListener('click', function(e) {
+						var tab = e.target.closest('[data-md-tab]');
+						if (tab) { setMode(tab.closest('[data-md-editor]'), tab.dataset.mdTab); return; }
+						var act = e.target.closest('[data-md-action]');
+						if (act) {
+							var ta = act.closest('[data-md-editor]').querySelector('textarea');
+							if (ta) wrap(ta, act.dataset.mdAction);
+						}
+					});
+				})();
+			</script>
 			<script src="/htmx.min.js" defer></script>
 			<script src="/alpine.min.js" defer></script>
 			<script src="/static/mermaid.min.js"></script>

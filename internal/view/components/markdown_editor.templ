@@ -1,0 +1,58 @@
+package components
+
+import "strconv"
+
+// MarkdownEditor renders a textarea with Write/Preview tabs and a formatting
+// toolbar. The Preview tab posts the content to /api/markdown/preview; tab
+// switching and the toolbar are wired by the global script in the base layout.
+templ MarkdownEditor(id, name, content, placeholder string, rows int) {
+	<div class="md-editor" data-md-editor>
+		<div class="flex items-center gap-2 border-b border-border px-2 py-1.5 bg-muted/30">
+			<div role="tablist" aria-label="Editor mode" class="flex gap-1">
+				<button type="button" role="tab" data-md-tab="write" aria-selected="true" class="px-2.5 py-1 text-[12.5px] rounded-md bg-background text-foreground shadow-sm">Write</button>
+				<button
+					type="button"
+					role="tab"
+					data-md-tab="preview"
+					aria-selected="false"
+					hx-post="/api/markdown/preview"
+					hx-include={ "#" + id }
+					hx-target={ "#" + id + "-preview" }
+					hx-swap="innerHTML"
+					class="px-2.5 py-1 text-[12.5px] rounded-md text-muted-foreground hover:text-foreground"
+				>Preview</button>
+			</div>
+			<div class="ml-auto flex items-center gap-0.5 text-muted-foreground" aria-label="Formatting">
+				@mdToolbarButton("bold", "Bold") {
+					<path d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6zM6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"></path>
+				}
+				@mdToolbarButton("italic", "Italic") {
+					<line x1="19" y1="4" x2="10" y2="4"></line>
+					<line x1="14" y1="20" x2="5" y2="20"></line>
+					<line x1="15" y1="4" x2="9" y2="20"></line>
+				}
+				@mdToolbarButton("code", "Code") {
+					<polyline points="16 18 22 12 16 6"></polyline>
+					<polyline points="8 6 2 12 8 18"></polyline>
+				}
+				@mdToolbarButton("link", "Insert link") {
+					<path d="M10 13a5 5 0 007.07 0l3-3a5 5 0 00-7.07-7.07l-1 1"></path>
+					<path d="M14 11a5 5 0 00-7.07 0l-3 3a5 5 0 007.07 7.07l1-1"></path>
+				}
+			</div>
+		</div>
+		<div data-md-pane="write">
+			<label for={ id } class="sr-only">{ placeholder }</label>
+			<textarea id={ id } name={ name } rows={ strconv.Itoa(rows) } placeholder={ placeholder } class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-y focus:outline-none placeholder:text-muted-foreground">{ content }</textarea>
+		</div>
+		<div id={ id + "-preview" } data-md-pane="preview" class="hidden px-4 py-3 prose prose-sm max-w-none min-h-[6rem]"></div>
+	</div>
+}
+
+templ mdToolbarButton(action, label string) {
+	<button type="button" data-md-action={ action } aria-label={ label } class="h-7 w-7 grid place-items-center rounded hover:bg-accent hover:text-foreground">
+		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+			{ children... }
+		</svg>
+	</button>
+}

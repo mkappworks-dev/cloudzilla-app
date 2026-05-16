@@ -6,14 +6,24 @@ import (
 )
 
 templ Comment(data view.CommentFragData) {
-	@components.TimelineEntry(components.TimelineEntryComment, data.Comment.AuthorName, data.Comment.CreatedAt.Format("Jan 2, 2006 at 3:04 PM")) {
-		<div class="rounded-md border border-border bg-card overflow-hidden">
-			<header class="px-4 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-xs text-muted-foreground">
-				<time>{ data.Comment.CreatedAt.Format("Jan 2, 2006 at 3:04 PM") }</time>
-			</header>
-			<div class="px-4 py-3">
-				@templ.Raw(data.Comment.BodyHTML)
-			</div>
+	@components.TimelineItem() {
+		@components.TimelineIcon(components.TimelineDefault) {
+			<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
+		}
+		<div class="flex-1 min-w-0">
+			<article class="rounded-md border border-border bg-card overflow-hidden">
+				<header class="px-4 py-2.5 border-b border-border bg-muted/40 flex items-center gap-2">
+					@components.Avatar(data.Comment.AuthorName, components.AvatarSizeSM, data.Comment.AuthorName)
+					<a href={ templ.SafeURL("/" + data.Comment.AuthorName) } class="text-[13px] font-medium hover:underline">{ data.Comment.AuthorName }</a>
+					<span class="text-[12px] text-muted-foreground">
+						commented
+						<time datetime={ data.Comment.CreatedAt.UTC().Format("2006-01-02T15:04:05Z") }>{ data.Comment.CreatedAt.Format("Jan 2, 2006") }</time>
+					</span>
+				</header>
+				<div class="px-4 py-3 prose prose-sm dark:prose-invert max-w-none">
+					@templ.Raw(data.Comment.BodyHTML)
+				</div>
+			</article>
 		</div>
 	}
 }
