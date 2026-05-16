@@ -14,11 +14,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// CommitFile writes content to filePath on the given branch as a new commit,
-// preserving every other file in the tree. The branch is created when it does
-// not yet exist (e.g. the first commit in an empty repo). filePath is
-// repo-root-relative and may contain directory segments, which are created as
-// needed.
+// CommitFile commits content to filePath on branch, creating the branch if it
+// does not yet exist (e.g. the first commit in an empty repo).
 func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, content []byte, authorName, authorEmail, message string) error {
 	filePath = strings.Trim(strings.ReplaceAll(filePath, "\\", "/"), "/")
 	if filePath == "" {
@@ -95,7 +92,6 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 	return nil
 }
 
-// writeBlob stores content as a git blob and returns its hash.
 func writeBlob(repo *gogit.Repository, content []byte) (plumbing.Hash, error) {
 	obj := repo.Storer.NewEncodedObject()
 	obj.SetType(plumbing.BlobObject)
@@ -113,9 +109,8 @@ func writeBlob(repo *gogit.Repository, content []byte) (plumbing.Hash, error) {
 	return repo.Storer.SetEncodedObject(obj)
 }
 
-// insertBlobIntoTree rebuilds the tree chain so that segments (the last of
-// which is the file name) resolves to blobHash, returning the new root tree
-// hash. A nil base means an empty starting tree.
+// insertBlobIntoTree rebuilds the tree chain so segments resolve to blobHash,
+// returning the new root tree hash. A nil base starts from an empty tree.
 func insertBlobIntoTree(repo *gogit.Repository, base *object.Tree, segments []string, blobHash plumbing.Hash) (plumbing.Hash, error) {
 	name := segments[0]
 	entries := []object.TreeEntry{}
@@ -152,8 +147,8 @@ func insertBlobIntoTree(repo *gogit.Repository, base *object.Tree, segments []st
 	return repo.Storer.SetEncodedObject(obj)
 }
 
-// ArchiveZip streams a zip archive of the repository tree at ref into w. Every
-// file is prefixed with "<repo>-<ref>/" so the archive expands into one folder.
+// ArchiveZip streams a zip of the repo tree at ref into w. Files are prefixed
+// "<repo>-<ref>/" so the archive expands into a single folder.
 func (s *CodeService) ArchiveZip(owner, repoName, ref string, w io.Writer) error {
 	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
 	if err != nil {
@@ -207,9 +202,8 @@ func (s *CodeService) ArchiveZip(owner, repoName, ref string, w io.Writer) error
 // maxFileList caps the recursive file listing fed to the "Go to file" finder.
 const maxFileList = 2000
 
-// ListAllFiles returns every file path in the tree at ref, recursively. The
-// result is capped at maxFileList entries so the finder stays responsive on
-// very large repositories.
+// ListAllFiles returns every file path in the tree at ref, capped at
+// maxFileList so the "Go to file" finder stays responsive on large repos.
 func (s *CodeService) ListAllFiles(owner, repoName, ref string) ([]string, error) {
 	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
 	if err != nil {
@@ -246,8 +240,8 @@ func (s *CodeService) ListAllFiles(owner, repoName, ref string) ([]string, error
 	return files, nil
 }
 
-// CommitCount returns the number of commits reachable from ref. It walks the
-// full history, so callers should treat it as best-effort on large repos.
+// CommitCount returns the commit count reachable from ref. It walks the full
+// history — treat as best-effort on large repos.
 func (s *CodeService) CommitCount(owner, repoName, ref string) (int, error) {
 	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
 	if err != nil {

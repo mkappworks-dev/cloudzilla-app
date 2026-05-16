@@ -32,9 +32,8 @@ type Repository struct {
 	DeletedBy        *int64     `db:"deleted_by"     json:"deleted_by,omitempty"`
 }
 
-// RepositoryWithStats augments a Repository with aggregated star and fork counts
-// for display on explore/trending pages.
-// RepositoryWithStats extends Repository with aggregated issue, PR, and star counts.
+// RepositoryWithStats augments a Repository with an aggregated star count for
+// display on explore/trending pages.
 type RepositoryWithStats struct {
 	Repository
 	StarCount int `db:"star_count"`

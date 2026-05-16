@@ -162,7 +162,6 @@ func (s *RepoStore) GetPermission(ctx context.Context, repoID, userID int64) (st
 	return role, nil
 }
 
-// UpdateGeneral updates the description, website, and default branch.
 func (s *RepoStore) UpdateGeneral(ctx context.Context, repoID int64, description, website, defaultBranch string) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE repositories SET description = $1, website = $2, default_branch = $3, updated_at = $4 WHERE id = $5`,
@@ -174,7 +173,6 @@ func (s *RepoStore) UpdateGeneral(ctx context.Context, repoID int64, description
 	return nil
 }
 
-// UpdateFeatureToggles updates the allow_issues/discussions/projects/wiki flags.
 func (s *RepoStore) UpdateFeatureToggles(ctx context.Context, repoID int64, issues, discussions, projects, wiki bool) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE repositories SET allow_issues = $1, allow_discussions = $2, allow_projects = $3, allow_wiki = $4, updated_at = $5 WHERE id = $6`,
@@ -371,7 +369,6 @@ func (s *RepoStore) SetTemplate(ctx context.Context, repoID int64, isTemplate bo
 	return nil
 }
 
-// UpdateMeta updates the user-editable repository metadata fields.
 func (s *RepoStore) UpdateMeta(ctx context.Context, repoID int64, description, website, license string) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE repositories SET description = $1, website = $2, license = $3, updated_at = $4 WHERE id = $5`,

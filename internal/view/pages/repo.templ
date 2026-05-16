@@ -128,7 +128,6 @@ templ Repo(data view.RepoData) {
 				>
 					<!-- Branch + actions row -->
 					<div class="flex flex-wrap items-center gap-2">
-						<!-- Branch / tag selector -->
 						<div class="relative" x-data="{ open: false, bq: '' }" x-on:keydown.escape.window="open = false">
 							<button
 								type="button"
@@ -197,7 +196,6 @@ templ Repo(data view.RepoData) {
 						</span>
 
 						<div class="ml-auto flex items-center gap-1.5">
-							<!-- Go to file -->
 							<div class="relative">
 								<label for="file-finder" class="sr-only">Go to file</label>
 								<input
@@ -212,7 +210,6 @@ templ Repo(data view.RepoData) {
 							</div>
 
 							if data.CanWrite && !data.IsArchived {
-								<!-- Add file -->
 								<div class="relative" x-data="{ open: false }" x-on:keydown.escape.window="open = false">
 									<button
 										type="button"
@@ -246,7 +243,6 @@ templ Repo(data view.RepoData) {
 								</div>
 							}
 
-							<!-- Clone -->
 							<div
 								class="relative"
 								x-data={ "{ open: false, proto: 'https', copied: false, urls: { https: '" + data.CloneHTTP + "', ssh: '" + data.CloneSSH + "' } }" }

@@ -75,7 +75,6 @@ func (s *AssigneeStore) ListByPull(ctx context.Context, pullID int64) ([]model.U
 	return scanUsers(rows)
 }
 
-// ListByPullIDs batch-fetches assignees for multiple PRs. Returns a map of pullID → users.
 func (s *AssigneeStore) ListByPullIDs(ctx context.Context, pullIDs []int64) (map[int64][]model.User, error) {
 	if len(pullIDs) == 0 {
 		return map[int64][]model.User{}, nil

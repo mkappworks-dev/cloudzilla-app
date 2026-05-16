@@ -502,9 +502,8 @@ func (s *RepoService) UpdateMeta(ctx context.Context, repoID, userID int64, desc
 	return s.repos.UpdateMeta(ctx, repoID, strings.TrimSpace(description), strings.TrimSpace(website), strings.TrimSpace(license))
 }
 
-// UpdateGeneral updates the description, website, and default branch from the
-// settings page's General section. Requires manage permission. An empty
-// defaultBranch leaves the current one unchanged.
+// UpdateGeneral updates the description, website, and default branch. Requires
+// manage permission; an empty defaultBranch leaves the current one unchanged.
 func (s *RepoService) UpdateGeneral(ctx context.Context, repoID, userID int64, description, website, defaultBranch string) error {
 	repo, err := s.repos.GetByID(ctx, repoID)
 	if err != nil {
@@ -521,7 +520,7 @@ func (s *RepoService) UpdateGeneral(ctx context.Context, repoID, userID int64, d
 }
 
 // UpdateFeatureToggles updates the Issues/Discussions/Projects/Wiki feature
-// flags from the settings page's Access section. Requires manage permission.
+// flags. Requires manage permission.
 func (s *RepoService) UpdateFeatureToggles(ctx context.Context, repoID, userID int64, issues, discussions, projects, wiki bool) error {
 	repo, err := s.repos.GetByID(ctx, repoID)
 	if err != nil {

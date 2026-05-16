@@ -55,7 +55,6 @@ FROM pull_reviews WHERE pull_id=$1 ORDER BY created_at ASC`
 	return reviews, rows.Err()
 }
 
-// ListByPullIDs batch-fetches reviews for multiple PRs. Returns a map of pullID → reviews.
 func (s *PullReviewStore) ListByPullIDs(ctx context.Context, pullIDs []int64) (map[int64][]model.PullReview, error) {
 	if len(pullIDs) == 0 {
 		return map[int64][]model.PullReview{}, nil

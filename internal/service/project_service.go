@@ -36,7 +36,6 @@ type ProjectListView struct {
 	DoneCount   int
 }
 
-// IsClosed reports whether the board has been closed.
 func (v ProjectListView) IsClosed() bool { return v.ClosedAt != nil }
 
 // Progress is the percentage of linked cards that are done. It is 0 when the
@@ -262,7 +261,6 @@ func (s *ProjectService) ListColumnsWithCards(ctx context.Context, projectID int
 }
 
 // ColumnWithCards pairs a ProjectColumn with its loaded cards.
-// ColumnWithCards holds a Kanban column together with its ordered cards.
 type ColumnWithCards struct {
 	Column model.ProjectColumn
 	Cards  []model.ProjectCard

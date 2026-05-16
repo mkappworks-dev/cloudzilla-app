@@ -102,7 +102,7 @@ func (s *ProjectStore) CountByStatus(ctx context.Context, repoID int64, query st
 	return open, closed, nil
 }
 
-// SetProjectClosed closes (closed_at = NOW()) or reopens (closed_at = NULL) a board.
+// SetProjectClosed closes or reopens a board.
 func (s *ProjectStore) SetProjectClosed(ctx context.Context, id int64, closed bool) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE projects SET closed_at = CASE WHEN $2 THEN NOW() ELSE NULL END WHERE id = $1`,

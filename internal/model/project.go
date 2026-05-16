@@ -26,7 +26,6 @@ type ProjectColumn struct {
 // ProjectCard is a card in a column. IssueID / PullID / Note are mutually
 // exclusive per the DB CHECK constraint. IssueTitle, IssueState, PullTitle,
 // and PullState are populated via JOIN when listing cards.
-// ProjectCard represents a card within a project column, optionally linked to an issue or PR.
 type ProjectCard struct {
 	ID        int64     `db:"id"          json:"id"`
 	ColumnID  int64     `db:"column_id"   json:"column_id"`
