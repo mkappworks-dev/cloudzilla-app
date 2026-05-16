@@ -1,0 +1,40 @@
+package components
+
+type CheckRow struct {
+	Context     string
+	State       string // "success", "failure", "pending", "error"
+	Description string
+	URL         string
+}
+
+templ ChecksList(rows []CheckRow) {
+	<ul class="rounded-md border border-border bg-card divide-y divide-border">
+		for _, r := range rows {
+			<li class="flex items-center gap-3 px-4 py-3 text-sm">
+				@checkStatusIcon(r.State)
+				<div class="flex-1 min-w-0">
+					<p class="font-medium font-mono">{ r.Context }</p>
+					if r.Description != "" {
+						<p class="text-xs text-muted-foreground mt-0.5">{ r.Description }</p>
+					}
+				</div>
+				if r.URL != "" {
+					<a href={ templ.SafeURL(r.URL) } class="text-xs text-primary hover:underline">Details</a>
+				}
+			</li>
+		}
+	</ul>
+}
+
+templ checkStatusIcon(state string) {
+	switch state {
+	case "success":
+		<span class="text-success">✓</span>
+	case "failure", "error":
+		<span class="text-destructive">✗</span>
+	case "pending":
+		<span class="text-warning">●</span>
+	default:
+		<span class="text-muted-foreground">—</span>
+	}
+}
