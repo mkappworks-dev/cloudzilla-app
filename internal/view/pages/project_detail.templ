@@ -3,6 +3,7 @@ package pages
 import (
 	"strconv"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -120,7 +121,7 @@ templ ProjectDetail(data view.ProjectDetailData) {
 										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(card.Number)) } class="text-[13px] font-medium hover:underline block">{ card.Title }</a>
 										<div class="mt-1.5 flex items-center gap-2">
 											<span class="font-mono text-[11px] text-muted-foreground">#{ strconv.Itoa(card.Number) }</span>
-											@components.PullStateBadge(card.State)
+											@components.PullStateBadge(model.PRState(card.State), false)
 										</div>
 									} else {
 										<p class="text-[13px]">{ card.Title }</p>

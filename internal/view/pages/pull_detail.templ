@@ -51,7 +51,7 @@ templ PullDetail(data view.PullDetailData) {
 										<span class="font-mono text-xs px-1.5 py-0.5 bg-muted border border-border rounded">{ data.Pull.BaseBranch }</span>
 									</p>
 								</div>
-								@pullStateBadge(string(data.Pull.State))
+								@components.PullStateBadge(data.Pull.State, data.Pull.IsDraft)
 							</div>
 
 							<!-- Draft warning -->
@@ -420,23 +420,6 @@ templ PullDetail(data view.PullDetailData) {
 	}
 }
 
-// pullStateBadge renders the open/merged/closed status with the right Badge variant.
-templ pullStateBadge(state string) {
-	switch state {
-	case "open":
-		@components.Badge(components.BadgeSuccess) {
-			Open
-		}
-	case "merged":
-		@components.Badge(components.BadgeMerged) {
-			Merged
-		}
-	default:
-		@components.Badge(components.BadgeDestructive) {
-			Closed
-		}
-	}
-}
 
 // reviewStateBadge renders the review state with the right Badge variant + label.
 templ reviewStateBadge(state string) {

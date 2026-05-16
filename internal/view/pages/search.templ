@@ -111,7 +111,7 @@ templ Search(data view.SearchData) {
 							for _, pr := range data.Results.Pulls {
 								<div class="px-6 py-4 flex items-start gap-3">
 									<span class="shrink-0 mt-0.5">
-										@components.PullStateBadge(string(pr.State))
+										@components.PullStateBadge(pr.State, false)
 									</span>
 									<div class="min-w-0">
 										<span class="text-foreground font-medium">{ pr.Title }</span>
