@@ -1,4 +1,4 @@
-package components_test
+package components
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 func TestPullStateBadge_Variants(t *testing.T) {
@@ -23,7 +22,9 @@ func TestPullStateBadge_Variants(t *testing.T) {
 	}
 	for _, tc := range cases {
 		var buf bytes.Buffer
-		components.PullStateBadge(tc.state, tc.isDraft).Render(context.Background(), &buf)
+		if err := PullStateBadge(tc.state, tc.isDraft).Render(context.Background(), &buf); err != nil {
+			t.Fatalf("render: %v", err)
+		}
 		if !strings.Contains(buf.String(), tc.wantText) {
 			t.Errorf("state=%v draft=%v: missing %q in %s", tc.state, tc.isDraft, tc.wantText, buf.String())
 		}
