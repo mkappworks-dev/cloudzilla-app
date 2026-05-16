@@ -47,7 +47,6 @@ type PullDetailData struct {
 	Mergeability components.MergeabilityBoxData
 }
 
-// PullCommitsData holds template data for the PR commits sub-view.
 type PullCommitsData struct {
 	BasePage
 	OwnerName      string
@@ -57,7 +56,6 @@ type PullCommitsData struct {
 	Commits        []service.CommitSummary
 }
 
-// PullChecksData holds template data for the PR checks sub-view.
 type PullChecksData struct {
 	BasePage
 	OwnerName      string

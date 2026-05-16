@@ -458,7 +458,6 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// PagePullCommits renders the commits sub-view for a pull request.
 func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -509,7 +508,6 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// PagePullChecks renders the CI/status checks sub-view for a pull request.
 func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -532,17 +530,19 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var rows []components.CheckRow
-	if headCommit, _, rerr := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); rerr == nil {
-		if statuses, serr := h.Services.CommitStatus.List(r.Context(), owner, repoName, headCommit.Hash.String()); serr == nil {
-			rows = make([]components.CheckRow, 0, len(statuses))
-			for _, s := range statuses {
-				rows = append(rows, components.CheckRow{
-					Context:     s.Context,
-					State:       string(s.State),
-					Description: s.Description,
-					URL:         s.TargetURL,
-				})
-			}
+	if headCommit, _, rerr := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); rerr != nil {
+		slog.Warn("pull checks: ref resolution failed", "owner", owner, "repo", repoName, "pull_number", number, "error", rerr)
+	} else if statuses, serr := h.Services.CommitStatus.List(r.Context(), owner, repoName, headCommit.Hash.String()); serr != nil {
+		slog.Warn("pull checks: status list failed", "owner", owner, "repo", repoName, "pull_number", number, "error", serr)
+	} else {
+		rows = make([]components.CheckRow, 0, len(statuses))
+		for _, s := range statuses {
+			rows = append(rows, components.CheckRow{
+				Context:     s.Context,
+				State:       string(s.State),
+				Description: s.Description,
+				URL:         s.TargetURL,
+			})
 		}
 	}
 
