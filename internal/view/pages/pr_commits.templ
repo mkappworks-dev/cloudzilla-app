@@ -1,0 +1,47 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ PullCommits(data view.PullCommitsData) {
+	@layout.Base(data.BasePage, "Commits · "+data.Pull.Title+" · PR #"+strconv.Itoa(data.Pull.Number)+" · "+data.OwnerName+"/"+data.Repo.Name) {
+		@fragments.PullChrome(fragments.PullChromeData{
+			OwnerName:      data.OwnerName,
+			Repo:           data.Repo,
+			Pull:           data.Pull,
+			AuthorUsername: data.AuthorUsername,
+			Active:         "commits",
+		}, pullCommitsBody(data))
+	}
+}
+
+templ pullCommitsBody(data view.PullCommitsData) {
+	<div class="mt-4">
+		if len(data.Commits) == 0 {
+			@components.EmptyState("No commits between base and head.")
+		} else {
+			<div class="space-y-4">
+				for _, day := range commitDays(data.Commits) {
+					<div>
+						<h3 class="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-2">{ day.Date.Format("Mon, Jan 2 2006") }</h3>
+						<ul class="rounded-md border border-border bg-card divide-y divide-border">
+							for _, c := range day.Commits {
+								<li class="flex items-center gap-3 px-3 py-2">
+									<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name + "/commit/" + c.FullHash) } class="font-mono text-xs text-muted-foreground hover:text-foreground hover:underline shrink-0">{ c.Hash }</a>
+									<p class="flex-1 text-sm truncate">{ c.Message }</p>
+									<span class="text-xs text-muted-foreground shrink-0">{ c.Author }</span>
+								</li>
+							}
+						</ul>
+					</div>
+				}
+			</div>
+		}
+	</div>
+}

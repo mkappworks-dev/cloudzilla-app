@@ -47,6 +47,16 @@ type PullDetailData struct {
 	Mergeability components.MergeabilityBoxData
 }
 
+// PullCommitsData holds template data for the PR commits sub-view.
+type PullCommitsData struct {
+	BasePage
+	OwnerName      string
+	Repo           *model.Repository
+	Pull           *model.PullRequest
+	AuthorUsername string
+	Commits        []service.CommitSummary
+}
+
 type PullNewData struct {
 	BasePage
 	Repo         model.Repository

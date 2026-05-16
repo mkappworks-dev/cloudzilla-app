@@ -458,6 +458,54 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PagePullCommits renders the commits sub-view for a pull request.
+func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		http.Error(w, "invalid pull number", http.StatusBadRequest)
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	commits, err := h.Services.Code.PullCommits(owner, repoName, pull.BaseBranch, pull.HeadBranch)
+	if err != nil {
+		slog.Warn("pull commits: git walk failed", "owner", owner, "repo", repoName, "pr", number, "error", err)
+		commits = nil
+	}
+
+	var authorUsername string
+	if author, err := h.Services.User.GetByID(r.Context(), pull.AuthorID); err == nil {
+		authorUsername = author.Username
+	}
+
+	canManage := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	}
+
+	h.render(w, r, pages.PullCommits(view.PullCommitsData{
+		BasePage:       withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+		OwnerName:      owner,
+		Repo:           repo,
+		Pull:           pull,
+		AuthorUsername: authorUsername,
+		Commits:        commits,
+	}))
+}
+
 func pullInitials(name string) string {
 	parts := strings.Fields(name)
 	if len(parts) == 0 {
