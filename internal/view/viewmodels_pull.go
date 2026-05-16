@@ -20,6 +20,13 @@ type PullsData struct {
 	Rows        []components.PRListRowData
 }
 
+// LinkedIssue is an issue referenced from a pull request body.
+type LinkedIssue struct {
+	Number int
+	Title  string
+	State  string
+}
+
 // PullDetailData holds template data for the pull request detail page.
 type PullDetailData struct {
 	BasePage
@@ -40,6 +47,7 @@ type PullDetailData struct {
 	Reviews           []model.PullReview
 	Comments          []RenderedComment
 	Participants      []string
+	LinkedIssues      []LinkedIssue
 	CommitsCount      int
 	CanMerge          bool
 	MergeBlockReason  string

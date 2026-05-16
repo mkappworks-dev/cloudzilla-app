@@ -240,6 +240,22 @@ templ pullDetailBody(data view.PullDetailData) {
 				</div>
 			</section>
 
+			if len(data.LinkedIssues) > 0 {
+				<section class="border-t border-border pt-5">
+					<h3 class="text-[12px] font-medium text-muted-foreground mb-2">Linked issues</h3>
+					<ul class="space-y-1.5 text-[13px]">
+						for _, li := range data.LinkedIssues {
+							<li class="flex items-center gap-2">
+								@linkedIssueIcon(li.State)
+								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(li.Number)) } class="hover:underline truncate">
+									<span class="font-mono text-muted-foreground">#{ strconv.Itoa(li.Number) }</span>
+									{ " " }{ li.Title }
+								</a>
+							</li>
+						}
+					</ul>
+				</section>
+			}
 			if len(data.Participants) > 0 {
 				<section class="border-t border-border pt-5">
 					<h3 class="text-[12px] font-medium text-muted-foreground mb-2">{ strconv.Itoa(len(data.Participants)) } { participantsNoun(len(data.Participants)) }</h3>
@@ -301,6 +317,14 @@ templ reviewStateBadge(state string) {
 		@components.Badge(components.BadgeSecondary) {
 			Commented
 		}
+	}
+}
+
+templ linkedIssueIcon(state string) {
+	if state == "closed" {
+		<svg class="shrink-0 text-[hsl(270_70%_70%)]" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="Closed" role="img"><circle cx="12" cy="12" r="9"></circle><polyline points="9 12 11 14 15 10"></polyline></svg>
+	} else {
+		<svg class="shrink-0 text-success" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="Open" role="img"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
 	}
 }
 

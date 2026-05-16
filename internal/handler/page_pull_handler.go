@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -359,9 +361,12 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 
 	canWrite2 := false
 	canManage2 := false
+	var callerID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canWrite2 = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		canManage2 = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+		id := claims.UserID
+		callerID = &id
 	}
 
 	var headStatuses []model.CommitStatus
@@ -465,6 +470,8 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		addParticipant(rv.AuthorName)
 	}
 
+	linkedIssues := h.resolvePullLinkedIssues(r.Context(), owner, repoName, pull.Body, callerID)
+
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
 		BasePage:          withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage2),
 		Repo:              *repo,
@@ -484,6 +491,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		Reviews:           reviews,
 		Comments:          comments,
 		Participants:      participants,
+		LinkedIssues:      linkedIssues,
 		CommitsCount:      mergeabilityBox.Ahead,
 		CanMerge:          canMerge,
 		MergeBlockReason:  mergeBlockReason,
@@ -703,6 +711,35 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		LineComments:   lineComments,
 		LoadError:      loadErrFiles,
 	}))
+}
+
+var pullIssueRefRe = regexp.MustCompile(`#(\d+)`)
+
+// resolvePullLinkedIssues extracts #N issue references from a PR body and
+// returns the ones that resolve to real issues — deduped, capped at 10.
+func (h *Handler) resolvePullLinkedIssues(ctx context.Context, owner, repoName, body string, callerID *int64) []view.LinkedIssue {
+	matches := pullIssueRefRe.FindAllStringSubmatch(body, -1)
+	if len(matches) == 0 {
+		return nil
+	}
+	seen := map[int]bool{}
+	var out []view.LinkedIssue
+	for _, m := range matches {
+		n, err := strconv.Atoi(m[1])
+		if err != nil || seen[n] {
+			continue
+		}
+		seen[n] = true
+		issue, err := h.Services.Issue.Get(ctx, owner, repoName, n, callerID)
+		if err != nil {
+			continue
+		}
+		out = append(out, view.LinkedIssue{Number: issue.Number, Title: issue.Title, State: string(issue.State)})
+		if len(out) >= 10 {
+			break
+		}
+	}
+	return out
 }
 
 func pullInitials(name string) string {

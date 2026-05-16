@@ -85,15 +85,17 @@ templ AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assig
 				<span class="text-xs text-muted-foreground">No one assigned</span>
 			} else {
 				for _, a := range assignees {
-					<div class="flex items-center justify-between">
-						<span class="text-xs font-medium text-foreground">{ a.Username }</span>
+					<div class="flex items-center gap-2 text-[13px]">
+						@Avatar(a.Username, AvatarSizeSM, a.Username)
+						<a href={ templ.SafeURL("/" + a.Username) } class="font-medium hover:underline truncate flex-1">{ a.Username }</a>
 						if canWrite {
 							<button
 								hx-delete={ "/api/repos/" + owner + "/" + repoName + "/" + kind + "/" + strconv.Itoa(itemNumber) + "/assignees?username=" + a.Username }
 								hx-target={ "#" + divID }
 								hx-swap="outerHTML"
-								class="text-xs text-destructive hover:text-destructive/80 ml-2"
+								class="text-muted-foreground/60 hover:text-destructive shrink-0"
 								title="Remove assignee"
+								aria-label={ "Remove " + a.Username }
 							>&times;</button>
 						}
 					</div>
