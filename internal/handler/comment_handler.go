@@ -122,6 +122,74 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, comment)
 }
 
+func (h *Handler) CreatePullComment(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	pullNumber, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull request number")
+		return
+	}
+
+	var body string
+	if r.Header.Get("HX-Request") == "true" {
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form")
+			return
+		}
+		body = r.FormValue("body")
+	} else {
+		var req createCommentRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		body = req.Body
+	}
+
+	if strings.TrimSpace(body) == "" {
+		writeError(w, http.StatusBadRequest, "body required")
+		return
+	}
+
+	repo, repoErr := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if repoErr != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load repository")
+		return
+	}
+
+	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, pullNumber)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "pull request not found")
+		return
+	}
+
+	comment, err := h.Services.Comment.CreateForPull(r.Context(), *repo, pull.ID, pull.Number, claims.UserID, claims.Username, body)
+	if err != nil {
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	go func() {
+		h.Services.Notification.NotifyPRComment(r.Context(), *repo, *pull, claims.UserID, claims.Username)
+	}()
+
+	if r.Header.Get("HX-Request") == "true" {
+		h.render(w, r, fragments.Comment(view.CommentFragData{
+			Comment: view.RenderedComment{Comment: *comment, BodyHTML: renderMentionsHTML(markdown.Render(comment.Body))},
+		}))
+		return
+	}
+	writeJSON(w, http.StatusCreated, comment)
+}
+
 func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {

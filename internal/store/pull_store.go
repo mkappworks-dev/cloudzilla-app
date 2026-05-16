@@ -144,6 +144,22 @@ func (s *PullStore) SetDraft(ctx context.Context, id int64, isDraft bool) error 
 	return err
 }
 
+func (s *PullStore) UpdateTitle(ctx context.Context, id int64, title string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE pull_requests SET title = $1, updated_at = NOW() WHERE id = $2`,
+		title, id,
+	)
+	return err
+}
+
+func (s *PullStore) UpdateBody(ctx context.Context, id int64, body string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE pull_requests SET body = $1, updated_at = NOW() WHERE id = $2`,
+		body, id,
+	)
+	return err
+}
+
 func (s *PullStore) SetAutoMerge(ctx context.Context, id int64, enabled bool, strategy string) error {
 	var strat sql.NullString
 	if strategy != "" {

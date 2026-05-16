@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
@@ -26,11 +27,13 @@ type createPRRequest struct {
 }
 
 type updatePRRequest struct {
-	State             string `json:"state"`
-	MergeStrategy     string `json:"merge_strategy"`     // "ff" | "merge" | "squash"
-	IsDraft           *bool  `json:"is_draft"`
-	AutoMerge         string `json:"auto_merge"`          // "enable" | "disable"
-	AutoMergeStrategy string `json:"auto_merge_strategy"` // "ff" | "merge" | "squash"
+	State             string  `json:"state"`
+	Title             string  `json:"title"`
+	Body              *string `json:"body"`
+	MergeStrategy     string  `json:"merge_strategy"` // "ff" | "merge" | "squash"
+	IsDraft           *bool   `json:"is_draft"`
+	AutoMerge         string  `json:"auto_merge"`          // "enable" | "disable"
+	AutoMergeStrategy string  `json:"auto_merge_strategy"` // "ff" | "merge" | "squash"
 }
 
 func (h *Handler) ListPulls(w http.ResponseWriter, r *http.Request) {
@@ -139,7 +142,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var state, mergeStrategy, isDraftStr, autoMergeAction, autoMergeStrategy string
+	var state, prTitle, mergeStrategy, isDraftStr, autoMergeAction, autoMergeStrategy string
 	var req *updatePRRequest
 	if r.Header.Get("HX-Request") == "true" {
 		if err := r.ParseForm(); err != nil {
@@ -147,6 +150,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		state = r.FormValue("state")
+		prTitle = r.FormValue("title")
 		mergeStrategy = r.FormValue("merge_strategy")
 		isDraftStr = r.FormValue("is_draft")
 		autoMergeAction = r.FormValue("auto_merge")
@@ -159,6 +163,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		}
 		req = &decoded
 		state = req.State
+		prTitle = req.Title
 		mergeStrategy = req.MergeStrategy
 		autoMergeAction = req.AutoMerge
 		autoMergeStrategy = req.AutoMergeStrategy
@@ -173,6 +178,40 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Handle title rename
+	if prTitle = strings.TrimSpace(prTitle); prTitle != "" {
+		pr, err := h.Services.Pull.UpdateTitle(r.Context(), owner, repoName, number, prTitle)
+		if err != nil {
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			return
+		}
+		if r.Header.Get("HX-Request") == "true" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		writeJSON(w, http.StatusOK, pr)
+		return
+	}
+
+	// Handle description edit — body may legitimately be empty, so detect by field presence.
+	if (r.Header.Get("HX-Request") == "true" && r.PostForm.Has("body")) || (req != nil && req.Body != nil) {
+		newBody := r.FormValue("body")
+		if req != nil && req.Body != nil {
+			newBody = *req.Body
+		}
+		pr, err := h.Services.Pull.UpdateBody(r.Context(), owner, repoName, number, newBody)
+		if err != nil {
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			return
+		}
+		if r.Header.Get("HX-Request") == "true" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		writeJSON(w, http.StatusOK, pr)
+		return
+	}
+
 	// Handle is_draft toggle
 	if isDraftStr != "" || (req != nil && req.IsDraft != nil) {
 		newDraft := isDraftStr == "true" || (req != nil && req.IsDraft != nil && *req.IsDraft)
@@ -183,7 +222,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 		if err != nil {
 			slog.Error("operation failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 		if r.Header.Get("HX-Request") == "true" {
@@ -220,7 +259,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 		if err != nil {
 			slog.Error("operation failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 		if r.Header.Get("HX-Request") == "true" {

@@ -38,6 +38,9 @@ type PullDetailData struct {
 	CanWrite          bool
 	HeadStatuses      []model.CommitStatus
 	Reviews           []model.PullReview
+	Comments          []RenderedComment
+	Participants      []string
+	CommitsCount      int
 	CanMerge          bool
 	MergeBlockReason  string
 	AutoMergeEnabled  bool
@@ -54,6 +57,7 @@ type PullCommitsData struct {
 	Pull           *model.PullRequest
 	AuthorUsername string
 	Commits        []service.CommitSummary
+	CanWrite       bool
 	LoadError      bool
 }
 
@@ -64,6 +68,8 @@ type PullChecksData struct {
 	Pull           *model.PullRequest
 	AuthorUsername string
 	Rows           []components.CheckRow
+	HeadSHA        string
+	CanWrite       bool
 	LoadError      bool
 }
 
@@ -75,7 +81,10 @@ type PullFilesData struct {
 	AuthorUsername string
 	Tree           []components.DiffFileTreeItem
 	Diff           *service.PRDiffResult
-	LoadError      bool
+	CanWrite       bool
+	// LineComments keyed by "path:line" (e.g. "src/main.go:42").
+	LineComments map[string][]RenderedLineComment
+	LoadError    bool
 }
 
 type PullNewData struct {

@@ -384,6 +384,19 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	canMerge, mergeBlockReason, _ := h.Services.PullReview.CanMerge(r.Context(), pull.ID)
 
+	rawComments, err := h.Services.Comment.ListByPull(r.Context(), pull.ID)
+	if err != nil {
+		slog.Warn("pull detail: comment list failed; rendering without conversation",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+	}
+	comments := make([]view.RenderedComment, 0, len(rawComments))
+	for _, c := range rawComments {
+		comments = append(comments, view.RenderedComment{
+			Comment:  c,
+			BodyHTML: renderMentionsHTML(markdown.Render(c.Body)),
+		})
+	}
+
 	rawLineComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
 	lineComments := map[string][]RenderedLineComment{}
 	for _, c := range rawLineComments {
@@ -395,7 +408,8 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mergeabilityBox := components.MergeabilityBoxData{
-		PatchURL: fmt.Sprintf("/api/repos/%s/%s/pulls/%d", owner, repoName, pull.Number),
+		PatchURL:   fmt.Sprintf("/api/repos/%s/%s/pulls/%d", owner, repoName, pull.Number),
+		BaseBranch: pull.BaseBranch,
 	}
 	mg, mgErr := h.Services.Code.Mergeability(r.Context(), owner, repoName, pull.BaseBranch, pull.HeadBranch)
 	if mgErr != nil {
@@ -435,6 +449,22 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)
 	}
 
+	seenParticipant := map[string]bool{}
+	participants := make([]string, 0, len(comments)+len(reviews)+1)
+	addParticipant := func(name string) {
+		if name != "" && !seenParticipant[name] {
+			seenParticipant[name] = true
+			participants = append(participants, name)
+		}
+	}
+	addParticipant(firstNonEmpty(authorUsername, pull.AuthorName))
+	for _, c := range rawComments {
+		addParticipant(c.AuthorName)
+	}
+	for _, rv := range reviews {
+		addParticipant(rv.AuthorName)
+	}
+
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
 		BasePage:          withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage2),
 		Repo:              *repo,
@@ -452,6 +482,9 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		CanWrite:          canWrite2,
 		HeadStatuses:      headStatuses,
 		Reviews:           reviews,
+		Comments:          comments,
+		Participants:      participants,
+		CommitsCount:      mergeabilityBox.Ahead,
 		CanMerge:          canMerge,
 		MergeBlockReason:  mergeBlockReason,
 		AutoMergeEnabled:  pull.AutoMergeEnabled,
@@ -499,8 +532,10 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canManage := false
+	canWrite := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
 	h.render(w, r, pages.PullCommits(view.PullCommitsData{
@@ -510,6 +545,7 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 		Pull:           pull,
 		AuthorUsername: authorUsername,
 		Commits:        commits,
+		CanWrite:       canWrite,
 		LoadError:      loadErrCommits,
 	}))
 }
@@ -537,21 +573,27 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 
 	var rows []components.CheckRow
 	var loadErrChecks bool
-	if headCommit, _, rerr := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); rerr != nil {
+	var headSHA string
+	headCommit, _, rerr := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch)
+	if rerr != nil {
 		slog.Warn("pull checks: ref resolution failed", "owner", owner, "repo", repoName, "pull_number", number, "error", rerr)
 		loadErrChecks = true
-	} else if statuses, serr := h.Services.CommitStatus.List(r.Context(), owner, repoName, headCommit.Hash.String()); serr != nil {
-		slog.Warn("pull checks: status list failed", "owner", owner, "repo", repoName, "pull_number", number, "error", serr)
-		loadErrChecks = true
 	} else {
-		rows = make([]components.CheckRow, 0, len(statuses))
-		for _, s := range statuses {
-			rows = append(rows, components.CheckRow{
-				Context:     s.Context,
-				State:       string(s.State),
-				Description: s.Description,
-				URL:         s.TargetURL,
-			})
+		headSHA = headCommit.Hash.String()
+		statuses, serr := h.Services.CommitStatus.List(r.Context(), owner, repoName, headSHA)
+		if serr != nil {
+			slog.Warn("pull checks: status list failed", "owner", owner, "repo", repoName, "pull_number", number, "error", serr)
+			loadErrChecks = true
+		} else {
+			rows = make([]components.CheckRow, 0, len(statuses))
+			for _, s := range statuses {
+				rows = append(rows, components.CheckRow{
+					Context:     s.Context,
+					State:       string(s.State),
+					Description: s.Description,
+					URL:         s.TargetURL,
+				})
+			}
 		}
 	}
 
@@ -564,8 +606,10 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canManage := false
+	canWrite := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
 	h.render(w, r, pages.PullChecks(view.PullChecksData{
@@ -575,6 +619,8 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 		Pull:           pull,
 		AuthorUsername: authorUsername,
 		Rows:           rows,
+		HeadSHA:        headSHA,
+		CanWrite:       canWrite,
 		LoadError:      loadErrChecks,
 	}))
 }
@@ -620,6 +666,16 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	rawLineComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
+	lineComments := map[string][]RenderedLineComment{}
+	for _, c := range rawLineComments {
+		key := fmt.Sprintf("%s:%d", c.Path, c.Line)
+		lineComments[key] = append(lineComments[key], RenderedLineComment{
+			PullLineComment: c,
+			BodyHTML:        markdown.Render(c.Body),
+		})
+	}
+
 	var authorUsername string
 	if author, err := h.Services.User.GetByID(r.Context(), pull.AuthorID); err == nil {
 		authorUsername = author.Username
@@ -629,8 +685,10 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canManage := false
+	canWrite := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
 	h.render(w, r, pages.PullFiles(view.PullFilesData{
@@ -641,6 +699,8 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		AuthorUsername: authorUsername,
 		Tree:           tree,
 		Diff:           diff,
+		CanWrite:       canWrite,
+		LineComments:   lineComments,
 		LoadError:      loadErrFiles,
 	}))
 }

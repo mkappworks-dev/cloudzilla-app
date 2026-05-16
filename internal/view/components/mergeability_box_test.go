@@ -30,7 +30,7 @@ func TestMergeabilityBox_ConflictsHidesButtons(t *testing.T) {
 	if strings.Contains(out, "Squash") {
 		t.Errorf("expected no Squash button when HasConflicts")
 	}
-	if !strings.Contains(out, "conflicts that must be resolved") {
+	if !strings.Contains(out, "This branch has conflicts") {
 		t.Errorf("expected conflict status text, got: %s", out)
 	}
 }
@@ -49,9 +49,13 @@ func TestMergeabilityBox_RendersMergeStrategies(t *testing.T) {
 		t.Fatalf("render: %v", err)
 	}
 	out := buf.String()
+	// Three merge-strategy buttons plus the Close button all patch PatchURL.
 	patchCount := strings.Count(out, `hx-patch="/api/repos/owner/repo/pulls/1"`)
-	if patchCount != 3 {
-		t.Errorf("expected 3 hx-patch attrs to PatchURL, got %d. out: %s", patchCount, out)
+	if patchCount != 4 {
+		t.Errorf("expected 4 hx-patch attrs to PatchURL, got %d. out: %s", patchCount, out)
+	}
+	if strategyCount := strings.Count(out, "merge_strategy"); strategyCount != 3 {
+		t.Errorf("expected 3 merge-strategy buttons, got %d. out: %s", strategyCount, out)
 	}
 	for _, strat := range []string{`merge_strategy&#34;:&#34;ff`, `merge_strategy&#34;:&#34;merge`, `merge_strategy&#34;:&#34;squash`} {
 		if !strings.Contains(out, strat) {
@@ -91,9 +95,9 @@ func TestAheadBehindDescription_Pluralizes(t *testing.T) {
 		ahead, behind int
 		want          string
 	}{
-		{0, 0, "0 commits ahead, 0 behind"},
-		{1, 1, "1 commit ahead, 1 behind"},
-		{3, 5, "3 commits ahead, 5 behind"},
+		{0, 0, "0 commits ahead, 0 behind the base branch"},
+		{1, 1, "1 commit ahead, 1 behind the base branch"},
+		{3, 5, "3 commits ahead, 5 behind the base branch"},
 	}
 	for _, tc := range cases {
 		if got := aheadBehindDescription(tc.ahead, tc.behind); got != tc.want {

@@ -1,9 +1,10 @@
 package pages
 
 import (
-	"fmt"
 	"strconv"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
@@ -18,40 +19,175 @@ templ PullFiles(data view.PullFilesData) {
 			Pull:           data.Pull,
 			AuthorUsername: data.AuthorUsername,
 			Active:         "files",
+			CanWrite:       data.CanWrite,
+			FilesCount:     prFilesCount(data.Diff),
+			Added:          prDiffAdded(data.Diff),
+			Deleted:        prDiffDeleted(data.Diff),
 		}, pullFilesBody(data))
 	}
 }
 
 templ pullFilesBody(data view.PullFilesData) {
-	<div class="mt-4 flex gap-4">
-		if data.LoadError {
-			@components.EmptyState("The diff couldn't be loaded.")
-		} else if data.Diff == nil || len(data.Diff.Files) == 0 {
-			@components.EmptyState("No changes.")
-		} else {
-			@components.DiffFileTree(data.Tree)
-			<main class="flex-1 min-w-0 space-y-4">
+	if data.LoadError {
+		@components.EmptyState("The diff couldn't be loaded.")
+	} else if data.Diff == nil || len(data.Diff.Files) == 0 {
+		@components.EmptyState("No changes.")
+	} else {
+		<section class="mb-4 flex items-center gap-2 text-[12.5px] text-muted-foreground" aria-label="Diff summary">
+			<span><strong class="text-foreground">{ strconv.Itoa(len(data.Diff.Files)) }</strong> changed { filesNoun(len(data.Diff.Files)) }</span>
+			<span aria-hidden="true" class="opacity-50">·</span>
+			<span class="font-mono text-success">+{ strconv.Itoa(data.Diff.TotalAdded) }</span>
+			<span class="font-mono text-destructive">−{ strconv.Itoa(data.Diff.TotalDeleted) }</span>
+			<button type="button" id="diff-collapse-all" data-state="expanded" class="ml-auto h-8 px-3 rounded-md border border-border hover:bg-accent text-[12.5px]">Collapse all</button>
+		</section>
+		<div class="grid lg:grid-cols-[260px_1fr] gap-4">
+			<aside class="border border-border rounded-md bg-card p-3 lg:sticky lg:top-4 self-start max-h-[80vh] overflow-auto" aria-label="Files in this pull request">
+				<p class="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2 px-1">Changed files</p>
+				<ul class="text-[12.5px] space-y-0.5">
+					for _, item := range data.Tree {
+						<li>
+							<a href={ templ.SafeURL("#" + item.Anchor) } class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 opacity-70" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+								<span class="truncate flex-1 font-mono">{ item.Path }</span>
+								if item.Added > 0 {
+									<span class="font-mono text-[10px] text-success">+{ strconv.Itoa(item.Added) }</span>
+								}
+								if item.Deleted > 0 {
+									<span class="font-mono text-[10px] text-destructive">−{ strconv.Itoa(item.Deleted) }</span>
+								}
+							</a>
+						</li>
+					}
+				</ul>
+			</aside>
+			<div class="space-y-6 min-w-0">
 				for i, f := range data.Diff.Files {
-					<section id={ fmt.Sprintf("diff-%d", i) } class="rounded-md border border-border bg-card">
-						<header class="px-4 py-2 border-b border-border flex items-center gap-3 text-sm">
-							<span class="font-mono truncate flex-1">{ f.DisplayPath() }</span>
+					<section id={ "diff-" + strconv.Itoa(i) } class="diff-file border border-border rounded-md overflow-hidden scroll-mt-6">
+						<header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none">
+							<svg class="diff-file-caret shrink-0 text-muted-foreground transition-transform" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+							<span class="font-mono font-medium truncate">{ f.DisplayPath() }</span>
 							if !f.IsBinary {
-								if f.Added > 0 {
-									<span class="text-success">{ fmt.Sprintf("+%d", f.Added) }</span>
-								}
-								if f.Deleted > 0 {
-									<span class="text-destructive">{ fmt.Sprintf("-%d", f.Deleted) }</span>
-								}
+								<span class="ml-auto font-mono text-[11px] shrink-0">
+									if f.Added > 0 {
+										<span class="text-success">+{ strconv.Itoa(f.Added) }</span>
+									}
+									if f.Deleted > 0 {
+										<span class="text-destructive ml-1">−{ strconv.Itoa(f.Deleted) }</span>
+									}
+								</span>
 							}
+							<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name + "/blob/" + data.Pull.HeadBranch + "/" + f.DisplayPath()) } class={ templ.KV("ml-auto", f.IsBinary), "text-[12px] text-muted-foreground hover:text-foreground shrink-0" }>View file →</a>
 						</header>
-						if f.IsBinary {
-							<p class="px-4 py-3 text-sm text-muted-foreground">Binary file not shown.</p>
-						} else {
-							@components.DiffHunkTable(f.Hunks)
-						}
+						<div class="diff-file-body">
+							if f.IsBinary {
+								<p class="px-4 py-3 text-sm text-muted-foreground">Binary file not shown.</p>
+							} else {
+								@prFileDiff(data, f)
+							}
+						</div>
 					</section>
 				}
-			</main>
-		}
+			</div>
+		</div>
+		<script>
+			(function () {
+				function setCollapsed(section, collapsed) {
+					var body = section.querySelector('.diff-file-body');
+					var caret = section.querySelector('.diff-file-caret');
+					if (body) body.classList.toggle('hidden', collapsed);
+					if (caret) caret.style.transform = collapsed ? 'rotate(-90deg)' : '';
+				}
+				document.querySelectorAll('.diff-file-header').forEach(function (h) {
+					h.addEventListener('click', function (e) {
+						if (e.target.closest('a')) return;
+						var s = h.closest('.diff-file');
+						var collapsed = s.querySelector('.diff-file-body').classList.contains('hidden');
+						setCollapsed(s, !collapsed);
+					});
+				});
+				var btn = document.getElementById('diff-collapse-all');
+				if (btn) {
+					btn.addEventListener('click', function () {
+						var collapse = btn.dataset.state !== 'collapsed';
+						document.querySelectorAll('.diff-file').forEach(function (s) { setCollapsed(s, collapse); });
+						btn.dataset.state = collapse ? 'collapsed' : 'expanded';
+						btn.textContent = collapse ? 'Expand all' : 'Collapse all';
+					});
+				}
+			})();
+		</script>
+	}
+}
+
+// prFileDiff renders one file's unified diff as a 2-column table so the
+// fragments.LineComments rows (which span colspan="2") slot in cleanly.
+templ prFileDiff(data view.PullFilesData, f service.FileDiff) {
+	{{ filePath := f.DisplayPath() }}
+	{{ commentable := data.CanWrite && data.Pull.State == model.PRStateOpen }}
+	<div class="overflow-x-auto">
+		<table class="w-full border-collapse text-xs font-mono">
+			<tbody>
+				for _, hunk := range f.Hunks {
+					<tr><td colspan="2" class="bg-primary/5 text-muted-foreground px-4 py-1 select-none border-y border-border">{ hunk.Header }</td></tr>
+					for _, line := range hunk.Lines {
+						{{ lineNum := prDiffLineNum(line) }}
+						<tr class={ templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del") }>
+							<td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">
+								{ strconv.Itoa(lineNum) }
+								if commentable && line.Type != "del" {
+									<button type="button" hx-get={ prLineCommentFormURL(data, filePath, lineNum) } hx-target={ "#lc-form-" + filePath + "-" + strconv.Itoa(lineNum) } hx-swap="innerHTML" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button>
+								}
+							</td>
+							<td class={ "pl-3 pr-4 py-0.5 whitespace-pre", templ.KV("text-success", line.Type == "add"), templ.KV("text-destructive", line.Type == "del"), templ.KV("text-foreground/85", line.Type != "add" && line.Type != "del") }>
+								if line.Type == "add" {
+									+{ line.Content }
+								} else if line.Type == "del" {
+									-{ line.Content }
+								} else {
+									{ " " }{ line.Content }
+								}
+							</td>
+						</tr>
+						if line.Type != "del" {
+							{{ key := filePath + ":" + strconv.Itoa(lineNum) }}
+							if cs, ok := data.LineComments[key]; ok && len(cs) > 0 {
+								@fragments.LineComments(view.LineCommentsFragData{
+									Owner:      data.OwnerName,
+									RepoName:   data.Repo.Name,
+									PullNumber: data.Pull.Number,
+									Path:       filePath,
+									Line:       lineNum,
+									Comments:   cs,
+									CanWrite:   data.CanWrite,
+								})
+							} else {
+								<tr id={ "lc-" + filePath + "-" + strconv.Itoa(lineNum) }>
+									<td colspan="2" class="p-0"><div id={ "lc-form-" + filePath + "-" + strconv.Itoa(lineNum) }></div></td>
+								</tr>
+							}
+						}
+					}
+				}
+			</tbody>
+		</table>
 	</div>
+}
+
+func prDiffLineNum(line service.DiffLine) int {
+	if line.Type == "add" {
+		return line.NewNum
+	}
+	return line.OldNum
+}
+
+func prLineCommentFormURL(data view.PullFilesData, path string, line int) string {
+	return "/api/repos/" + data.OwnerName + "/" + data.Repo.Name + "/pulls/" +
+		strconv.Itoa(data.Pull.Number) + "/line_comments/form?path=" + path + "&line=" + strconv.Itoa(line)
+}
+
+func filesNoun(n int) string {
+	if n == 1 {
+		return "file"
+	}
+	return "files"
 }

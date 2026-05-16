@@ -25,7 +25,7 @@ templ LabelSidebar(owner, repoName string, itemNumber int, kind string, labels [
 	{{ prefix := idPrefix(kind) }}
 	{{ divID := prefix + "-labels" }}
 	<div id={ divID } class="space-y-2">
-		<h3 class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Labels</h3>
+		<h3 class="text-[12px] font-medium text-muted-foreground">Labels</h3>
 		<div class="flex flex-wrap gap-1">
 			if len(labels) == 0 {
 				<span class="text-xs text-muted-foreground">None yet</span>
@@ -79,7 +79,7 @@ templ AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assig
 	{{ prefix := idPrefix(kind) }}
 	{{ divID := prefix + "-assignees" }}
 	<div id={ divID } class="space-y-2">
-		<h3 class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Assignees</h3>
+		<h3 class="text-[12px] font-medium text-muted-foreground">Assignees</h3>
 		<div class="space-y-1">
 			if len(assignees) == 0 {
 				<span class="text-xs text-muted-foreground">No one assigned</span>

@@ -6,8 +6,10 @@ import (
 )
 
 type MergeabilityBoxData struct {
-	// PatchURL is the hx-patch target for the merge buttons.
+	// PatchURL is the hx-patch target for the merge / close buttons.
 	PatchURL string
+	// BaseBranch names the merge target in the conflict line.
+	BaseBranch string
 	// Unavailable renders an explicit message instead of zero values when mergeability couldn't be computed.
 	Unavailable bool
 	// UpToDate distinguishes head == base from "conflict-free with a non-empty diff" (Mergeable).
@@ -25,69 +27,188 @@ type MergeabilityBoxData struct {
 	CanSquash        bool
 }
 
+type mergeState int
+
+const (
+	mergeUnavailable mergeState = iota
+	mergeConflicts
+	mergeUpToDate
+	mergeReady
+	mergeChecking
+)
+
+func mergeStateOf(d MergeabilityBoxData) mergeState {
+	switch {
+	case d.Unavailable:
+		return mergeUnavailable
+	case d.HasConflicts:
+		return mergeConflicts
+	case d.UpToDate:
+		return mergeUpToDate
+	case d.Mergeable:
+		return mergeReady
+	default:
+		return mergeChecking
+	}
+}
+
 templ MergeabilityBox(d MergeabilityBoxData) {
-	<section aria-label="Mergeability" class="rounded-md border border-border bg-card p-4 space-y-3">
-		if d.Unavailable {
-			<p class="text-sm font-medium text-muted-foreground">Merge status unavailable. Refresh to try again.</p>
-		} else if d.HasConflicts {
-			<p class="text-sm font-medium text-destructive">This branch has conflicts that must be resolved.</p>
-		} else if d.UpToDate {
-			<p class="text-sm font-medium text-muted-foreground">This branch is up to date with the base — nothing to merge.</p>
-		} else if d.Mergeable {
-			<p class="text-sm font-medium text-success">This branch has no conflicts with the base branch.</p>
-		} else {
-			<p class="text-sm font-medium text-warning">Checking mergeability…</p>
-		}
+	{{ st := mergeStateOf(d) }}
+	<section aria-label="Mergeability" class="border border-border rounded-md overflow-hidden">
+		<header class={ "px-5 py-4 border-b border-border flex items-center gap-3", mergeHeaderClass(st) }>
+			<span class={ "h-8 w-8 rounded-full grid place-items-center shrink-0", mergeIconClass(st) }>
+				@mergeStateIcon(st)
+			</span>
+			<div class="min-w-0">
+				<h3 class={ "text-[14px] font-semibold", mergeTitleClass(st) }>{ mergeTitle(st) }</h3>
+				<p class="text-[12px] text-muted-foreground mt-0.5">{ mergeSubtitle(d, st) }</p>
+			</div>
+		</header>
 		if !d.Unavailable {
-			<ul class="text-xs text-muted-foreground space-y-1">
-				<li>{ aheadBehindDescription(d.Ahead, d.Behind) }</li>
+			<ul class="divide-y divide-border text-[13px]">
+				<li class="px-5 py-3 flex items-center gap-3">
+					@mergeRowIcon(true)
+					<span class="flex-1">{ aheadBehindDescription(d.Ahead, d.Behind) }</span>
+				</li>
 				if d.RequiredChecks > 0 {
-					<li>{ checksDescription(d.PassingChecks, d.RequiredChecks) }</li>
+					<li class="px-5 py-3 flex items-center gap-3">
+						@mergeRowIcon(d.PassingChecks >= d.RequiredChecks)
+						<span class="flex-1">{ checksDescription(d.PassingChecks, d.RequiredChecks) }</span>
+					</li>
 				}
 				if d.RequiredReviews > 0 {
-					<li>{ reviewsDescription(d.ApprovedReviews, d.RequiredReviews) }</li>
+					<li class="px-5 py-3 flex items-center gap-3">
+						@mergeRowIcon(d.ApprovedReviews >= d.RequiredReviews)
+						<span class="flex-1">{ reviewsDescription(d.ApprovedReviews, d.RequiredReviews) }</span>
+					</li>
 				}
+				<li class="px-5 py-3 flex items-center gap-3">
+					@mergeRowIcon(!d.HasConflicts)
+					if d.HasConflicts {
+						<span class="flex-1">This branch has conflicts with <span class="font-mono">{ mergeBase(d) }</span></span>
+					} else {
+						<span class="flex-1">This branch has no conflicts with <span class="font-mono">{ mergeBase(d) }</span></span>
+					}
+				</li>
 			</ul>
 		}
-		if !d.Unavailable && !d.HasConflicts && d.Mergeable {
-			<div class="flex flex-wrap gap-2 pt-2">
-				if d.CanFastForward {
-					<button type="button"
-						hx-patch={ d.PatchURL }
-						hx-vals={ `{"state":"merged","merge_strategy":"ff"}` }
-						hx-swap="outerHTML"
-						hx-target="closest section"
-						class="h-8 px-3 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
-						Fast-forward
+		<footer class="px-5 py-4 border-t border-border flex flex-wrap items-center gap-2">
+			if d.Mergeable && !d.HasConflicts {
+				if d.CanSquash {
+					<button type="button" hx-patch={ d.PatchURL } hx-vals={ `{"state":"merged","merge_strategy":"squash"}` } hx-target="closest section" hx-swap="outerHTML" class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground rounded-md hover:opacity-90 inline-flex items-center gap-1.5">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6V8"></path></svg>
+						Squash and merge
 					</button>
 				}
 				if d.CanThreeWayMerge {
-					<button type="button"
-						hx-patch={ d.PatchURL }
-						hx-vals={ `{"state":"merged","merge_strategy":"merge"}` }
-						hx-swap="outerHTML"
-						hx-target="closest section"
-						class="h-8 px-3 text-sm font-medium bg-secondary text-secondary-foreground rounded-md hover:bg-accent">
-						Merge
-					</button>
+					<button type="button" hx-patch={ d.PatchURL } hx-vals={ `{"state":"merged","merge_strategy":"merge"}` } hx-target="closest section" hx-swap="outerHTML" class="h-9 px-3 text-[13px] border border-border rounded-md hover:bg-accent">Create merge commit</button>
 				}
-				if d.CanSquash {
-					<button type="button"
-						hx-patch={ d.PatchURL }
-						hx-vals={ `{"state":"merged","merge_strategy":"squash"}` }
-						hx-swap="outerHTML"
-						hx-target="closest section"
-						class="h-8 px-3 text-sm font-medium bg-secondary text-secondary-foreground rounded-md hover:bg-accent">
-						Squash &amp; merge
-					</button>
+				if d.CanFastForward {
+					<button type="button" hx-patch={ d.PatchURL } hx-vals={ `{"state":"merged","merge_strategy":"ff"}` } hx-target="closest section" hx-swap="outerHTML" class="h-9 px-3 text-[13px] border border-border rounded-md hover:bg-accent">Fast-forward</button>
 				}
-			</div>
-		}
+			}
+			<button type="button" hx-patch={ d.PatchURL } hx-vals={ `{"state":"closed"}` } hx-target="closest section" hx-swap="outerHTML" class="ml-auto h-9 px-3 text-[13px] text-muted-foreground hover:text-foreground">Close pull request</button>
+		</footer>
 	</section>
 }
 
+templ mergeStateIcon(st mergeState) {
+	switch st {
+	case mergeReady:
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+	case mergeConflicts:
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+	default:
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+	}
+}
+
+templ mergeRowIcon(ok bool) {
+	if ok {
+		<svg class="text-success shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+	} else {
+		<svg class="text-warning shrink-0" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+	}
+}
+
+func mergeBase(d MergeabilityBoxData) string {
+	if d.BaseBranch == "" {
+		return "the base branch"
+	}
+	return d.BaseBranch
+}
+
+func mergeHeaderClass(st mergeState) string {
+	switch st {
+	case mergeReady:
+		return "bg-success/10"
+	case mergeConflicts:
+		return "bg-destructive/10"
+	case mergeChecking:
+		return "bg-warning/10"
+	default:
+		return "bg-muted/40"
+	}
+}
+
+func mergeIconClass(st mergeState) string {
+	switch st {
+	case mergeReady:
+		return "bg-success text-success-foreground"
+	case mergeConflicts:
+		return "bg-destructive text-destructive-foreground"
+	case mergeChecking:
+		return "bg-warning text-warning-foreground"
+	default:
+		return "bg-muted text-muted-foreground"
+	}
+}
+
+func mergeTitleClass(st mergeState) string {
+	switch st {
+	case mergeReady:
+		return "text-success"
+	case mergeConflicts:
+		return "text-destructive"
+	case mergeChecking:
+		return "text-warning"
+	default:
+		return "text-muted-foreground"
+	}
+}
+
+func mergeTitle(st mergeState) string {
+	switch st {
+	case mergeReady:
+		return "Ready to merge"
+	case mergeConflicts:
+		return "Merge conflicts"
+	case mergeUpToDate:
+		return "Nothing to merge"
+	case mergeChecking:
+		return "Checking mergeability…"
+	default:
+		return "Merge status unavailable"
+	}
+}
+
+func mergeSubtitle(d MergeabilityBoxData, st mergeState) string {
+	switch st {
+	case mergeReady:
+		return "All checks have passed and reviewers have approved."
+	case mergeConflicts:
+		return "Resolve the conflicts on the head branch before this can merge."
+	case mergeUpToDate:
+		return "This branch is already up to date with the base."
+	case mergeChecking:
+		return "Mergeability is still being computed — refresh in a moment."
+	default:
+		return "Refresh the page to try computing merge status again."
+	}
+}
+
 func aheadBehindDescription(ahead, behind int) string {
-	return fmt.Sprintf("%s ahead, %s behind", pluralCommits(ahead), strconv.Itoa(behind))
+	return fmt.Sprintf("%s ahead, %s behind the base branch", pluralCommits(ahead), strconv.Itoa(behind))
 }
 
 func pluralCommits(n int) string {
@@ -99,9 +220,9 @@ func pluralCommits(n int) string {
 
 func checksDescription(passing, required int) string {
 	if passing >= required {
-		return fmt.Sprintf("All %s passing", pluralChecks(required, "required check"))
+		return fmt.Sprintf("All %s passed", pluralChecks(required, "required check"))
 	}
-	return fmt.Sprintf("%d of %s passing", passing, pluralChecks(required, "required check"))
+	return fmt.Sprintf("%d of %s passed", passing, pluralChecks(required, "required check"))
 }
 
 func reviewsDescription(approved, required int) string {

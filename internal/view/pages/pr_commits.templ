@@ -2,6 +2,8 @@ package pages
 
 import (
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -17,33 +19,97 @@ templ PullCommits(data view.PullCommitsData) {
 			Pull:           data.Pull,
 			AuthorUsername: data.AuthorUsername,
 			Active:         "commits",
+			CanWrite:       data.CanWrite,
+			CommitsCount:   len(data.Commits),
 		}, pullCommitsBody(data))
 	}
 }
 
 templ pullCommitsBody(data view.PullCommitsData) {
-	<div class="mt-4">
-		if data.LoadError {
-			@components.EmptyState("Commits couldn't be loaded.")
-		} else if len(data.Commits) == 0 {
-			@components.EmptyState("No commits between base and head.")
-		} else {
-			<div class="space-y-4">
-				for _, day := range commitDays(data.Commits) {
-					<div>
-						<h3 class="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-2">{ day.Date.Format("Mon, Jan 2 2006") }</h3>
-						<ul class="rounded-md border border-border bg-card divide-y divide-border">
-							for _, c := range day.Commits {
-								<li class="flex items-center gap-3 px-3 py-2">
-									<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name + "/commit/" + c.FullHash) } class="font-mono text-xs text-muted-foreground hover:text-foreground hover:underline shrink-0">{ c.Hash }</a>
-									<p class="flex-1 text-sm truncate">{ c.Message }</p>
-									<span class="text-xs text-muted-foreground shrink-0">{ c.Author }</span>
-								</li>
-							}
-						</ul>
-					</div>
-				}
-			</div>
+	if data.LoadError {
+		@components.EmptyState("Commits couldn't be loaded.")
+	} else if len(data.Commits) == 0 {
+		@components.EmptyState("No commits between base and head.")
+	} else {
+		{{ repoBase := "/" + data.OwnerName + "/" + data.Repo.Name }}
+		<section class="mb-6">
+			<p class="text-[12.5px] text-muted-foreground">
+				{ strconv.Itoa(len(data.Commits)) } { commitsNoun(len(data.Commits)) } in this pull request, branching from
+				<a href={ templ.SafeURL(repoBase + "/commits/" + data.Pull.BaseBranch) } class="text-primary hover:underline font-mono">{ data.Pull.BaseBranch }</a>.
+			</p>
+		</section>
+		<section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Commits in this pull request">
+			for i, day := range commitDays(data.Commits) {
+				<p class={ "px-4 py-2 border-b border-border bg-muted/40 text-[11.5px] font-mono text-muted-foreground uppercase tracking-wider", templ.KV("border-t", i > 0) }>
+					Commits on { day.Date.Format("Jan 2, 2006") }
+				</p>
+				<ol class="divide-y divide-border">
+					for _, c := range day.Commits {
+						<li class="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
+							@components.Avatar(c.Author, components.AvatarSizeSM, c.Author)
+							<div class="min-w-0 flex-1">
+								<a href={ templ.SafeURL(repoBase + "/commit/" + c.FullHash) } class="block text-[13.5px] font-medium hover:underline truncate">{ firstLine(c.Message) }</a>
+								<p class="text-[12px] text-muted-foreground mt-0.5">
+									<span class="font-medium">{ c.Author }</span>
+									committed
+									<time datetime={ c.AuthorTime.UTC().Format(time.RFC3339) }>{ relativeTime(c.AuthorTime) }</time>
+								</p>
+							</div>
+							<a href={ templ.SafeURL(repoBase + "/commit/" + c.FullHash) } class="text-[11.5px] font-mono text-muted-foreground hover:underline shrink-0">{ c.Hash }</a>
+							<button type="button" onclick={ copySha(c.FullHash) } class="h-7 w-7 rounded-md hover:bg-accent grid place-items-center text-muted-foreground" aria-label="Copy commit SHA">
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+							</button>
+							<a href={ templ.SafeURL(repoBase + "/tree/" + c.FullHash) } class="h-7 w-7 rounded-md hover:bg-accent grid place-items-center text-muted-foreground" aria-label="Browse files at this commit">
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+							</a>
+						</li>
+					}
+				</ol>
+			}
+		</section>
+	}
+}
+
+script copySha(sha string) {
+	navigator.clipboard.writeText(sha)
+}
+
+func firstLine(msg string) string {
+	if i := strings.IndexByte(msg, '\n'); i >= 0 {
+		return strings.TrimSpace(msg[:i])
+	}
+	return strings.TrimSpace(msg)
+}
+
+func commitsNoun(n int) string {
+	if n == 1 {
+		return "commit"
+	}
+	return "commits"
+}
+
+func relativeTime(t time.Time) string {
+	d := time.Since(t)
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		m := int(d / time.Minute)
+		if m == 1 {
+			return "1 minute ago"
 		}
-	</div>
+		return strconv.Itoa(m) + " minutes ago"
+	case d < 24*time.Hour:
+		h := int(d / time.Hour)
+		if h == 1 {
+			return "1 hour ago"
+		}
+		return strconv.Itoa(h) + " hours ago"
+	case d < 48*time.Hour:
+		return "yesterday"
+	case d < 7*24*time.Hour:
+		return strconv.Itoa(int(d/(24*time.Hour))) + " days ago"
+	default:
+		return t.Format("Jan 2, 2006")
+	}
 }

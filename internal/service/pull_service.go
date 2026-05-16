@@ -245,6 +245,39 @@ func (s *PullService) SetState(ctx context.Context, owner, repoName string, numb
 	return s.Get(ctx, owner, repoName, number)
 }
 
+// UpdateTitle renames an open or closed pull request. title must be pre-trimmed.
+func (s *PullService) UpdateTitle(ctx context.Context, owner, repoName string, number int, title string) (*model.PullRequest, error) {
+	pr, err := s.Get(ctx, owner, repoName, number)
+	if err != nil {
+		return nil, err
+	}
+	if pr.State == model.PRStateMerged {
+		return nil, fmt.Errorf("merged PRs cannot be updated")
+	}
+	if title == "" {
+		return nil, fmt.Errorf("title cannot be empty")
+	}
+	if err := s.pulls.UpdateTitle(ctx, pr.ID, title); err != nil {
+		return nil, err
+	}
+	return s.Get(ctx, owner, repoName, number)
+}
+
+// UpdateBody edits the description of an open or closed pull request.
+func (s *PullService) UpdateBody(ctx context.Context, owner, repoName string, number int, body string) (*model.PullRequest, error) {
+	pr, err := s.Get(ctx, owner, repoName, number)
+	if err != nil {
+		return nil, err
+	}
+	if pr.State == model.PRStateMerged {
+		return nil, fmt.Errorf("merged PRs cannot be updated")
+	}
+	if err := s.pulls.UpdateBody(ctx, pr.ID, body); err != nil {
+		return nil, err
+	}
+	return s.Get(ctx, owner, repoName, number)
+}
+
 func (s *PullService) CountCreatedSince(ctx context.Context, repoID int64, since time.Time) (int, error) {
 	return s.pulls.CountCreatedSince(ctx, repoID, since)
 }

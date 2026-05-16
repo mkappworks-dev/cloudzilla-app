@@ -1,69 +1,210 @@
 package fragments
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
-// AuthorUsername is pre-resolved by the handler; empty string falls back to Pull.AuthorName.
+// PullChromeData drives the shared PR header and tab bar. AuthorUsername is
+// pre-resolved by the handler; empty falls back to Pull.AuthorName. Count
+// fields drive the tab badges — a zero count hides its badge.
 type PullChromeData struct {
 	OwnerName      string
 	Repo           *model.Repository
 	Pull           *model.PullRequest
 	AuthorUsername string
 	Active         string // "conversation", "commits", "checks", "files"
+	CanWrite       bool
+	ConvCount      int
+	CommitsCount   int
+	ChecksTotal    int
+	ChecksPassed   int
+	FilesCount     int
+	Added          int
+	Deleted        int
 }
 
 templ PullChrome(data PullChromeData, children templ.Component) {
-	<div class="space-y-6">
-		<div>
+	{{ base := "/" + data.OwnerName + "/" + data.Repo.Name }}
+	{{ pullPath := base + "/pulls/" + strconv.Itoa(data.Pull.Number) }}
+	<div>
+		<section class="mb-3 border-b border-border pb-3" aria-labelledby="pull-title">
 			<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
-				<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name) } class="hover:underline">{ data.Repo.Name }</a>
+				<a href={ templ.SafeURL(base) } class="hover:underline">{ data.Repo.Name }</a>
 				<span aria-hidden="true">·</span>
-				<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name + "/pulls") } class="hover:underline">Pull requests</a>
+				<a href={ templ.SafeURL(base + "/pulls") } class="hover:underline">Pull requests</a>
+				<span aria-hidden="true">·</span>
+				<span aria-current="page">#{ strconv.Itoa(data.Pull.Number) }</span>
 			</p>
-			<div class="flex justify-between items-start gap-4 mb-3">
-				<div class="flex-1 min-w-0">
-					<h1 id="pull-title" class="text-2xl font-semibold tracking-tight flex items-center gap-2 flex-wrap">
-						{ data.Pull.Title }
-						<span class="text-muted-foreground font-normal">#{ strconv.Itoa(data.Pull.Number) }</span>
-					</h1>
-					<p class="text-sm text-muted-foreground mt-2">
-						if data.AuthorUsername != "" {
-							by <a href={ templ.SafeURL("/" + data.AuthorUsername) } class="hover:underline text-foreground">{ data.AuthorUsername }</a>
-						} else {
-							by <a href={ templ.SafeURL("/" + data.Pull.AuthorName) } class="hover:underline text-foreground">{ data.Pull.AuthorName }</a>
+			<div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+				<h1 id="pull-title" class="text-2xl tracking-tight font-medium min-w-0">
+					<span id="pr-title-text">{ data.Pull.Title }</span>
+					<span class="text-muted-foreground font-normal" aria-label={ "Pull request number " + strconv.Itoa(data.Pull.Number) }>#{ strconv.Itoa(data.Pull.Number) }</span>
+				</h1>
+				<div class="flex items-center gap-1.5 shrink-0">
+					if data.CanWrite {
+						<button type="button" id="edit-pr-btn" data-pr-patch={ "/api/repos" + pullPath } class="h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent">Edit</button>
+					}
+					@components.DropdownMenu() {
+						@components.DropdownMenuTrigger(templ.Attributes{
+							"class": "h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent inline-flex items-center gap-1.5",
+						}) {
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+							Code
+							<svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
 						}
-						<span aria-hidden="true">·</span>
-						<time datetime={ data.Pull.CreatedAt.UTC().Format("2006-01-02T15:04:05Z") }>{ data.Pull.CreatedAt.Format("Jan 2, 2006") }</time>
-						<span aria-hidden="true">·</span>
-						<span class="font-mono text-xs px-1.5 py-0.5 bg-muted border border-border rounded">{ data.Pull.HeadBranch }</span>
-						<span aria-hidden="true">→</span>
-						<span class="font-mono text-xs px-1.5 py-0.5 bg-muted border border-border rounded">{ data.Pull.BaseBranch }</span>
-					</p>
+						@components.DropdownMenuContent(components.DropdownAlignEnd) {
+							@components.DropdownMenuLabel() {
+								{ "Check out — " + data.Pull.HeadBranch }
+							}
+							<pre class="font-mono text-[11px] text-muted-foreground m-1 p-2 rounded border border-border bg-muted overflow-x-auto whitespace-pre">git fetch origin
+git checkout { data.Pull.HeadBranch }</pre>
+							@components.DropdownMenuSeparator()
+							@components.DropdownMenuLink(base+"/tree/"+data.Pull.HeadBranch, nil) {
+								{ "Browse branch code" }
+							}
+						}
+					}
 				</div>
-				@components.PullStateBadge(data.Pull.State, data.Pull.IsDraft)
 			</div>
-			<nav aria-label="Pull request sections" class="border-b border-border">
-				<div class="flex gap-1 -mb-px">
-					@pullChromeTab(data, "conversation", "Conversation", fmt.Sprintf("/%s/%s/pulls/%d", data.OwnerName, data.Repo.Name, data.Pull.Number))
-					@pullChromeTab(data, "commits", "Commits", fmt.Sprintf("/%s/%s/pulls/%d/commits", data.OwnerName, data.Repo.Name, data.Pull.Number))
-					@pullChromeTab(data, "checks", "Checks", fmt.Sprintf("/%s/%s/pulls/%d/checks", data.OwnerName, data.Repo.Name, data.Pull.Number))
-					@pullChromeTab(data, "files", "Files changed", fmt.Sprintf("/%s/%s/pulls/%d/files", data.OwnerName, data.Repo.Name, data.Pull.Number))
-				</div>
-			</nav>
-		</div>
+			<div class="flex flex-wrap items-center gap-3">
+				@components.PullStateBadge(data.Pull.State, data.Pull.IsDraft)
+				<p class="text-[13px] text-muted-foreground">
+					<a href={ templ.SafeURL("/" + chromeAuthor(data)) } class="text-primary hover:underline">{ "@" + chromeAuthor(data) }</a>
+					{ " " + chromeMergeVerb(data.Pull.State) + " " }
+					<strong class="text-foreground font-medium">{ commitsPhrase(data.CommitsCount) }</strong>
+					{ " into " }
+					<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded text-[12px]">{ data.Pull.BaseBranch }</span>
+					{ " from " }
+					<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded text-[12px]">{ data.Pull.HeadBranch }</span>
+				</p>
+			</div>
+		</section>
+		<nav class="border-b border-border mb-6 flex items-center gap-1 text-sm overflow-x-auto" aria-label="Pull request views">
+			<a href={ templ.SafeURL(pullPath) } class={ chromeTabClass(data.Active == "conversation") } { chromeTabCurrent(data.Active == "conversation")... }>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
+				Conversation
+				if data.ConvCount > 0 {
+					<span class="font-mono text-[11px] text-muted-foreground">{ strconv.Itoa(data.ConvCount) }</span>
+				}
+			</a>
+			<a href={ templ.SafeURL(pullPath + "/commits") } class={ chromeTabClass(data.Active == "commits") } { chromeTabCurrent(data.Active == "commits")... }>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="6" r="3"></circle><circle cx="12" cy="18" r="3"></circle><path d="M12 9v6"></path></svg>
+				Commits
+				if data.CommitsCount > 0 {
+					<span class="font-mono text-[11px] text-muted-foreground">{ strconv.Itoa(data.CommitsCount) }</span>
+				}
+			</a>
+			<a href={ templ.SafeURL(pullPath + "/checks") } class={ chromeTabClass(data.Active == "checks") } { chromeTabCurrent(data.Active == "checks")... }>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="18" cy="18" r="3"></circle><path d="M9 12h6M15 6L9 10M15 18l-6-4"></path></svg>
+				Checks
+				if data.ChecksTotal > 0 {
+					if data.ChecksPassed >= data.ChecksTotal {
+						<span class="inline-flex items-center gap-1 h-[18px] px-1.5 rounded-full text-[10px] font-medium bg-success/15 text-success">✓ { strconv.Itoa(data.ChecksTotal) }</span>
+					} else {
+						<span class="font-mono text-[11px] text-muted-foreground">{ strconv.Itoa(data.ChecksPassed) }/{ strconv.Itoa(data.ChecksTotal) }</span>
+					}
+				}
+			</a>
+			<a href={ templ.SafeURL(pullPath + "/files") } class={ chromeTabClass(data.Active == "files") } { chromeTabCurrent(data.Active == "files")... }>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+				Files changed
+				if data.FilesCount > 0 {
+					<span class="font-mono text-[11px] text-muted-foreground">{ strconv.Itoa(data.FilesCount) }</span>
+				}
+				if data.Added > 0 {
+					<span class="font-mono text-[10px] font-medium text-success">+{ strconv.Itoa(data.Added) }</span>
+				}
+				if data.Deleted > 0 {
+					<span class="font-mono text-[10px] font-medium text-destructive">−{ strconv.Itoa(data.Deleted) }</span>
+				}
+			</a>
+		</nav>
 		@children
 	</div>
+	if data.CanWrite {
+		<script>
+			(function () {
+				var btn = document.getElementById('edit-pr-btn');
+				var txt = document.getElementById('pr-title-text');
+				if (!btn || !txt) return;
+				var original = txt.textContent;
+				btn.addEventListener('click', function () {
+					if (txt.isContentEditable) {
+						var next = txt.textContent.trim();
+						txt.contentEditable = 'false';
+						txt.classList.remove('rounded', 'bg-muted', 'px-1', 'outline', 'outline-1', 'outline-border');
+						btn.textContent = 'Edit';
+						if (next === '' || next === original) {
+							txt.textContent = original;
+							return;
+						}
+						var token = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+						fetch(btn.dataset.prPatch, {
+							method: 'PATCH',
+							headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'HX-Request': 'true', 'X-CSRF-Token': token },
+							body: 'title=' + encodeURIComponent(next),
+						}).then(function (r) {
+							if (r.ok) {
+								original = next;
+								document.title = document.title.replace(/^[^·]+/, next + ' ');
+							} else {
+								txt.textContent = original;
+								alert('Could not save the title.');
+							}
+						}).catch(function () {
+							txt.textContent = original;
+							alert('Could not save the title.');
+						});
+					} else {
+						txt.contentEditable = 'true';
+						txt.classList.add('rounded', 'bg-muted', 'px-1', 'outline', 'outline-1', 'outline-border');
+						btn.textContent = 'Save';
+						txt.focus();
+					}
+				});
+			})();
+		</script>
+	}
 }
 
-templ pullChromeTab(data PullChromeData, key, label, href string) {
-	if data.Active == key {
-		<a href={ templ.SafeURL(href) } aria-current="page" class="px-3 py-2 text-sm font-medium text-foreground border-b-2 border-foreground">{ label }</a>
-	} else {
-		<a href={ templ.SafeURL(href) } class="px-3 py-2 text-sm text-muted-foreground hover:text-foreground border-b-2 border-transparent">{ label }</a>
+func chromeAuthor(d PullChromeData) string {
+	if d.AuthorUsername != "" {
+		return d.AuthorUsername
 	}
+	return d.Pull.AuthorName
+}
+
+func chromeMergeVerb(state model.PRState) string {
+	switch state {
+	case model.PRStateMerged:
+		return "merged"
+	case model.PRStateClosed:
+		return "wanted to merge"
+	default:
+		return "wants to merge"
+	}
+}
+
+func commitsPhrase(n int) string {
+	if n == 1 {
+		return "1 commit"
+	}
+	return strconv.Itoa(n) + " commits"
+}
+
+func chromeTabClass(active bool) string {
+	if active {
+		return "px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-2 whitespace-nowrap"
+	}
+	return "px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-2 whitespace-nowrap"
+}
+
+func chromeTabCurrent(active bool) templ.Attributes {
+	if active {
+		return templ.Attributes{"aria-current": "page"}
+	}
+	return templ.Attributes{}
 }
