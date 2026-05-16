@@ -8,8 +8,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
-// PullChromeData carries everything the chrome needs. AuthorUsername is
-// pre-resolved by the handler; empty string falls back to Pull.AuthorName.
+// AuthorUsername is pre-resolved by the handler; empty string falls back to Pull.AuthorName.
 type PullChromeData struct {
 	OwnerName      string
 	Repo           *model.Repository
@@ -28,7 +27,7 @@ templ PullChrome(data PullChromeData, children templ.Component) {
 			</p>
 			<div class="flex justify-between items-start gap-4 mb-3">
 				<div class="flex-1 min-w-0">
-					<h1 class="text-2xl font-semibold tracking-tight flex items-center gap-2 flex-wrap">
+					<h1 id="pull-title" class="text-2xl font-semibold tracking-tight flex items-center gap-2 flex-wrap">
 						{ data.Pull.Title }
 						<span class="text-muted-foreground font-normal">#{ strconv.Itoa(data.Pull.Number) }</span>
 					</h1>

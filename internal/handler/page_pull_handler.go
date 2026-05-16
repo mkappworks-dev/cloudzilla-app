@@ -427,6 +427,9 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	var authorUsername string
 	if author, err := h.Services.User.GetByID(r.Context(), pull.AuthorID); err == nil {
 		authorUsername = author.Username
+	} else {
+		slog.Warn("pull detail: author lookup failed; falling back to name",
+			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)
 	}
 
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
