@@ -10,7 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 type CheckRow struct {
 	Context     string
-	State       string // "success", "failure", "pending", "error"
+	State       string
 	Description string
 	URL         string
 }
