@@ -7,23 +7,24 @@ import (
 )
 
 templ ForkButton(data view.ForkButtonData) {
-	<div id="fork-button" class="flex items-center gap-1">
+	<div id="fork-button" class="flex border border-border rounded-md overflow-hidden">
 		if data.BasePage.CurrentUser != nil {
 			<button
 				hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/fork" }
 				hx-target="#fork-button"
 				hx-swap="outerHTML"
-				class="inline-flex items-center gap-1 px-3 py-1.5 border border-border bg-background text-foreground rounded text-sm font-medium hover:bg-muted/40 transition-colors"
+				type="button"
+				class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 hover:bg-accent"
 			>
-				&#x2442; Fork
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="21" r="3"></circle><path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"></path></svg>
+				Fork
 			</button>
 		} else {
-			<a href="/login" class="inline-flex items-center gap-1 px-3 py-1.5 border border-border bg-background text-foreground rounded text-sm font-medium hover:bg-muted/40 transition-colors">
-				&#x2442; Fork
+			<a href="/login" class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 hover:bg-accent">
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="21" r="3"></circle><path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"></path></svg>
+				Fork
 			</a>
 		}
-		<span class="px-2 py-1.5 border border-border bg-background text-foreground rounded text-sm">
-			{ strconv.Itoa(data.ForkCount) }
-		</span>
+		<span class="h-8 inline-flex items-center px-3 text-[13px] font-mono border-l border-border text-muted-foreground">{ strconv.Itoa(data.ForkCount) }</span>
 	</div>
 }

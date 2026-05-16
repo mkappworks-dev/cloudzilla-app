@@ -54,3 +54,14 @@ func (s *WatchService) GetLevel(ctx context.Context, userID, repoID int64) strin
 	}
 	return w.Level
 }
+
+// CountWatchers returns how many users watch repoID, excluding those who set
+// their level to "ignoring". DB errors are logged and reported as zero.
+func (s *WatchService) CountWatchers(ctx context.Context, repoID int64) int {
+	ids, err := s.watches.ListWatchersByRepo(ctx, repoID, "")
+	if err != nil {
+		slog.Error("WatchService.CountWatchers: DB error", "repo_id", repoID, "error", err)
+		return 0
+	}
+	return len(ids)
+}

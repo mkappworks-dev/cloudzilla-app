@@ -2,8 +2,11 @@ package handler
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
@@ -23,6 +26,10 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
+	if !repo.AllowIssues {
+		h.NotFound(w, r)
+		return
+	}
 
 	var callerID *int64
 	canManage := false
@@ -30,38 +37,158 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		callerID = &claims.UserID
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
-	issues, err := h.Services.Issue.List(r.Context(), owner, repoName, callerID)
+
+	stateFilter := r.URL.Query().Get("state")
+	if stateFilter != "closed" {
+		stateFilter = "open"
+	}
+	searchQuery := r.URL.Query().Get("q")
+	labelFilter := r.URL.Query().Get("label")
+	milestoneFilter := r.URL.Query().Get("milestone")
+	sortOrder := r.URL.Query().Get("sort")
+	if sortOrder == "" {
+		sortOrder = "newest"
+	}
+
+	allIssues, err := h.Services.Issue.List(r.Context(), owner, repoName, callerID)
 	if err != nil {
-		issues = []model.Issue{}
+		slog.Error("issues: list failed", "owner", owner, "repo", repoName, "error", err)
+		http.Error(w, "failed to load issues", http.StatusInternalServerError)
+		return
+	}
+	if allIssues == nil {
+		allIssues = []model.Issue{}
+	}
+
+	openCount := 0
+	closedCount := 0
+	for _, iss := range allIssues {
+		if string(iss.State) == "open" {
+			openCount++
+		} else {
+			closedCount++
+		}
+	}
+
+	var issues []model.Issue
+	for _, iss := range allIssues {
+		if string(iss.State) == stateFilter {
+			issues = append(issues, iss)
+		}
 	}
 	if issues == nil {
 		issues = []model.Issue{}
 	}
 
-	issueLabels, _ := h.Services.Label.BatchForIssues(r.Context(), issues)
+	issueLabels, err := h.Services.Label.BatchForIssues(r.Context(), issues)
+	if err != nil {
+		slog.Warn("issues: label batch failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	if issueLabels == nil {
 		issueLabels = map[int64][]model.Label{}
 	}
 
-	allMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	if searchQuery != "" {
+		q := strings.ToLower(searchQuery)
+		filtered := issues[:0]
+		for _, iss := range issues {
+			if strings.Contains(strings.ToLower(iss.Title), q) {
+				filtered = append(filtered, iss)
+			}
+		}
+		issues = filtered
+	}
+
+	if labelFilter != "" {
+		filtered := issues[:0]
+		for _, iss := range issues {
+			for _, l := range issueLabels[iss.ID] {
+				if l.Name == labelFilter {
+					filtered = append(filtered, iss)
+					break
+				}
+			}
+		}
+		issues = filtered
+	}
+
+	if milestoneFilter != "" {
+		if milestoneID, convErr := strconv.ParseInt(milestoneFilter, 10, 64); convErr == nil {
+			filtered := issues[:0]
+			for _, iss := range issues {
+				if iss.MilestoneID != nil && *iss.MilestoneID == milestoneID {
+					filtered = append(filtered, iss)
+				}
+			}
+			issues = filtered
+		}
+	}
+
+	switch sortOrder {
+	case "oldest":
+		sort.SliceStable(issues, func(i, j int) bool {
+			return issues[i].CreatedAt.Before(issues[j].CreatedAt)
+		})
+	case "recently-updated":
+		sort.SliceStable(issues, func(i, j int) bool {
+			return issues[i].UpdatedAt.After(issues[j].UpdatedAt)
+		})
+	default:
+		sort.SliceStable(issues, func(i, j int) bool {
+			return issues[i].CreatedAt.After(issues[j].CreatedAt)
+		})
+	}
+
+	// Second pass: the label map must cover only the post-filter slice.
+	issueLabels, err = h.Services.Label.BatchForIssues(r.Context(), issues)
+	if err != nil {
+		slog.Warn("issues: label batch failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	if issueLabels == nil {
+		issueLabels = map[int64][]model.Label{}
+	}
+
+	allMilestones, err := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("issues: milestone list failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	if allMilestones == nil {
 		allMilestones = []model.Milestone{}
 	}
 
-	pinnedIssues, _ := h.Services.Issue.ListPinned(r.Context(), owner, repoName)
+	allLabels, err := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("issues: label list failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	if allLabels == nil {
+		allLabels = []model.Label{}
+	}
+
+	pinnedIssues, err := h.Services.Issue.ListPinned(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("issues: pinned list failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	if pinnedIssues == nil {
 		pinnedIssues = []model.Issue{}
 	}
 
 	h.render(w, r, pages.Issues(view.IssuesData{
-		BasePage:      withRepoSubnav(basePage(r, h.Services), owner, repoName, "issues", canManage),
-		Repo:          *repo,
-		Issues:        issues,
-		PinnedIssues:  pinnedIssues,
-		Owner:         owner,
-		RepoName:      repoName,
-		IssueLabels:   issueLabels,
-		AllMilestones: allMilestones,
+		BasePage:        withRepoSubnav(basePage(r, h.Services), repo, "issues", canManage),
+		Repo:            *repo,
+		Issues:          issues,
+		PinnedIssues:    pinnedIssues,
+		Owner:           owner,
+		RepoName:        repoName,
+		IssueLabels:     issueLabels,
+		AllMilestones:   allMilestones,
+		StateFilter:     stateFilter,
+		SearchQuery:     searchQuery,
+		LabelFilter:     labelFilter,
+		MilestoneFilter: milestoneFilter,
+		Sort:            sortOrder,
+		Labels:          allLabels,
+		OpenCount:       openCount,
+		ClosedCount:     closedCount,
 	}))
 }
 
@@ -77,6 +204,10 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+	if !repo.AllowIssues {
 		h.NotFound(w, r)
 		return
 	}
@@ -126,8 +257,16 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		allIssueMilestones = []model.Milestone{}
 	}
 
+	linkedPRs, err := h.Services.Issue.LinkedPRs(r.Context(), owner, repoName, issue.Number)
+	if err != nil {
+		slog.Warn("issue detail: linked PRs lookup failed", "owner", owner, "repo", repoName, "issue", issue.Number, "error", err)
+	}
+	if linkedPRs == nil {
+		linkedPRs = []model.PullRequest{}
+	}
+
 	h.render(w, r, pages.IssueDetail(view.IssueDetailData{
-		BasePage:      withRepoSubnav(basePage(r, h.Services), owner, repoName, "issues", canManage),
+		BasePage:      withRepoSubnav(basePage(r, h.Services), repo, "issues", canManage),
 		Repo:          *repo,
 		Issue:         *issue,
 		Comments:      rendered,
@@ -139,6 +278,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		AllLabels:     allLabels,
 		Milestone:     issueMilestone,
 		AllMilestones: allIssueMilestones,
+		LinkedPRs:     linkedPRs,
 		CanWrite:      canWrite,
 		CanManage:     canManage,
 	}))
@@ -151,6 +291,10 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+	if !repo.AllowIssues {
 		h.NotFound(w, r)
 		return
 	}
@@ -175,7 +319,7 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 	h.render(w, r, pages.IssueNew(view.IssueNewData{
-		BasePage:  withRepoSubnav(basePage(r, h.Services), owner, repoName, "issues", canManage),
+		BasePage:  withRepoSubnav(basePage(r, h.Services), repo, "issues", canManage),
 		Repo:      *repo,
 		Owner:     owner,
 		RepoName:  repoName,
@@ -208,17 +352,23 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
+	if !repo.AllowIssues {
+		h.NotFound(w, r)
+		return
+	}
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	templates, _ := h.Services.Code.GetIssueTemplates(owner, repoName, repo.DefaultBranch)
 	renderErr := func(msg string) {
 		h.render(w, r, pages.IssueNew(view.IssueNewData{
-			BasePage: withRepoSubnav(basePage(r, h.Services), owner, repoName, "issues", canManage),
-			Repo:     *repo,
-			Owner:    owner,
-			RepoName: repoName,
-			Selected: body,
-			ShowForm: true,
-			Error:    msg,
+			BasePage:  withRepoSubnav(basePage(r, h.Services), repo, "issues", canManage),
+			Repo:      *repo,
+			Owner:     owner,
+			RepoName:  repoName,
+			Templates: templates,
+			Selected:  body,
+			ShowForm:  true,
+			Error:     msg,
 		}))
 	}
 

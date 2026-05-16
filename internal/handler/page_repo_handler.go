@@ -59,11 +59,12 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		currentUserID = claims.UserID
 	}
 
-	var readmeHTML string
+	var readmeHTML, readmeName string
 	for _, name := range []string{"README.md", "readme.md", "Readme.md"} {
 		raw, err := h.Services.Code.GetRawBlob(owner, repoName, repo.DefaultBranch, name)
 		if err == nil {
 			readmeHTML = markdown.Render(string(raw))
+			readmeName = name
 			break
 		}
 		if errors.Is(err, object.ErrFileNotFound) || errors.Is(err, service.ErrEmptyRepo) {
@@ -168,8 +169,31 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("repo: entries lookup failed", "owner", owner, "repo", repoName, "error", lcErr)
 	}
 
+	var branches []service.BranchInfo
+	var tags []service.TagInfo
+	if refs, refsErr := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch); refsErr != nil {
+		slog.Warn("repo: list refs failed", "owner", owner, "repo", repoName, "error", refsErr)
+	} else {
+		branches = refs.Branches
+		tags = refs.Tags
+	}
+
+	commitCount := 0
+	if n, ccErr := h.Services.Code.CommitCount(owner, repoName, repo.DefaultBranch); ccErr != nil {
+		slog.Warn("repo: commit count failed", "owner", owner, "repo", repoName, "error", ccErr)
+	} else {
+		commitCount = n
+	}
+
+	var allFiles []string
+	if files, afErr := h.Services.Code.ListAllFiles(owner, repoName, repo.DefaultBranch); afErr != nil {
+		slog.Warn("repo: list all files failed", "owner", owner, "repo", repoName, "error", afErr)
+	} else {
+		allFiles = files
+	}
+
 	h.render(w, r, pages.Repo(view.RepoData{
-		BasePage:      withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
+		BasePage:      withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
 		Repo:          *repo,
 		Owner:         owner,
 		RepoName:      repoName,
@@ -193,6 +217,13 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		Heatmap:       heatmap,
 		Entries:       repoEntries,
 		LatestCommit:  repoLatestCommit,
+		ReadmeName:    readmeName,
+		Branches:      branches,
+		Tags:          tags,
+		BranchCount:   len(branches),
+		TagCount:      len(tags),
+		CommitCount:   commitCount,
+		AllFiles:      allFiles,
 	}))
 }
 
@@ -248,7 +279,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 	canTransfer := isOwner && repo.OrgID == 0
 
 	h.render(w, r, pages.RepoSettings(view.RepoSettingsData{
-		BasePage:          withRepoSubnav(basePage(r, h.Services), owner, repoName, "settings", canManage),
+		BasePage:          withRepoSubnav(basePage(r, h.Services), repo, "settings", canManage),
 		Repo:              *repo,
 		Owner:             owner,
 		RepoName:          repoName,
@@ -261,6 +292,73 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		IsOwner:           isOwner,
 		CanTransfer:       canTransfer,
 	}))
+}
+
+// UpdateRepoGeneral handles the settings page's General-section form:
+// description, website, and default branch.
+func (h *Handler) UpdateRepoGeneral(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if err := h.Services.Repo.UpdateGeneral(r.Context(), repo.ID, claims.UserID,
+		r.FormValue("description"), r.FormValue("website"), r.FormValue("default_branch")); err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
+			return
+		}
+		slog.Error("settings: update general failed", "owner", owner, "repo", repoName, "error", err)
+		http.Error(w, "failed to update settings", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/"+owner+"/"+repoName+"/settings", http.StatusSeeOther)
+}
+
+// UpdateRepoFeatures handles the settings page's Access-section feature
+// toggles: allow Issues / Discussions / Projects / Wiki.
+func (h *Handler) UpdateRepoFeatures(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if err := h.Services.Repo.UpdateFeatureToggles(r.Context(), repo.ID, claims.UserID,
+		r.FormValue("allow_issues") == "on",
+		r.FormValue("allow_discussions") == "on",
+		r.FormValue("allow_projects") == "on",
+		r.FormValue("allow_wiki") == "on"); err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
+			return
+		}
+		slog.Error("settings: update feature toggles failed", "owner", owner, "repo", repoName, "error", err)
+		http.Error(w, "failed to update settings", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/"+owner+"/"+repoName+"/settings", http.StatusSeeOther)
 }
 
 // PageRefs renders the branches and tags overview page.
@@ -293,7 +391,7 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Refs(view.RefsData{
-		BasePage: withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
+		BasePage: withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
@@ -369,7 +467,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 			}
 
 			h.render(w, r, pages.Tree(view.TreeData{
-				BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
+				BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
 				Repo:         *repo,
 				Owner:        owner,
 				RepoName:     repoName,
@@ -446,7 +544,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Tree(view.TreeData{
-		BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
+		BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,
@@ -519,7 +617,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Blob(view.BlobData{
-		BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
+		BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,
@@ -594,7 +692,7 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Commits(view.CommitsData{
-		BasePage: withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
+		BasePage: withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
@@ -638,7 +736,7 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Commit(view.CommitData{
-		BasePage: withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
+		BasePage: withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
@@ -686,7 +784,7 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Blame(view.BlameData{
-		BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "code", canManage),
+		BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,

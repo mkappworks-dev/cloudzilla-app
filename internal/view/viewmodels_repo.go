@@ -28,12 +28,28 @@ type RepoData struct {
 	LatestRelease *model.Release
 	Topics        []model.Topic
 	IsArchived    bool
-	Languages   []components.LangBarItem
-	TopContribs []service.ContributorStat
-	Releases    []model.Release
-	Heatmap     map[time.Time]int
-	Entries      []service.TreeEntryWithLastCommit
-	LatestCommit TreeLatestCommit
+	Languages     []components.LangBarItem
+	TopContribs   []service.ContributorStat
+	Releases      []model.Release
+	Heatmap       map[time.Time]int
+	Entries       []service.TreeEntryWithLastCommit
+	LatestCommit  TreeLatestCommit
+	ReadmeName    string
+	Branches      []service.BranchInfo
+	Tags          []service.TagInfo
+	BranchCount   int
+	TagCount      int
+	CommitCount   int
+	AllFiles      []string
+}
+
+// NewFileData holds template data for the create-file / upload page.
+type NewFileData struct {
+	BasePage
+	Owner    string
+	RepoName string
+	Ref      string
+	Dir      string // optional subdirectory the file lands in
 }
 
 // RepoNewData holds template data for the new repository form page.
@@ -61,7 +77,7 @@ type ReleaseDetailData struct {
 	Owner    string
 	RepoName string
 	Release  model.Release
-	BodyHTML  string
+	BodyHTML string
 	CanWrite bool
 }
 
@@ -289,6 +305,7 @@ type WatchButtonData struct {
 	RepoID   int64
 	Level    string
 	LoggedIn bool
+	Count    int
 }
 
 // RepoTopicsFragData is the view model for the repo-topics HTMX fragment.

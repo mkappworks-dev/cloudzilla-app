@@ -29,20 +29,40 @@ templ ProjectDetail(data view.ProjectDetailData) {
 							<span aria-hidden="true">·</span>
 							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/projects") } class="hover:underline">Projects</a>
 							<span aria-hidden="true">·</span>
-							Board
+							{ data.Project.Name }
 						</p>
-						<h1 id="project-title" class="text-2xl font-semibold tracking-tight">{ data.Project.Name }</h1>
+						<div class="flex items-center gap-2">
+							<h1 id="project-title" class="text-2xl font-semibold tracking-tight">{ data.Project.Name }</h1>
+							if data.Project.ClosedAt != nil {
+								@components.Badge(components.BadgeDraft) {
+									Closed
+								}
+							}
+						</div>
 						if data.Project.Description != "" {
 							<p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">{ data.Project.Description }</p>
 						}
 					</div>
 					if data.CanWrite {
-						@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"x-on:click": "showAddCol = !showAddCol", "aria-expanded": "false", "x-bind:aria-expanded": "showAddCol.toString()"}) {
-							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
-								<path d="M12 5v14M5 12h14"></path>
-							</svg>
-							Column
-						}
+						<div class="flex items-center gap-2">
+							<button
+								type="button"
+								class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4 text-sm"
+								onclick={ setProjectClosedJS(data.Owner, data.RepoName, data.Project.ID, data.Project.ClosedAt == nil) }
+							>
+								if data.Project.ClosedAt != nil {
+									Reopen
+								} else {
+									Close project
+								}
+							</button>
+							@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"x-on:click": "showAddCol = !showAddCol", "aria-expanded": "false", "x-bind:aria-expanded": "showAddCol.toString()"}) {
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+									<path d="M12 5v14M5 12h14"></path>
+								</svg>
+								Column
+							}
+						</div>
 					}
 				</section>
 
@@ -134,6 +154,15 @@ templ ProjectDetail(data view.ProjectDetailData) {
 		</div>
 		<script src="/static/kanban.js" defer></script>
 	}
+}
+
+script setProjectClosedJS(owner, repoName string, projectID int64, closed bool) {
+	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+	fetch('/api/repos/' + owner + '/' + repoName + '/projects/' + projectID, {
+		method: 'PATCH',
+		headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+		body: JSON.stringify({closed: closed})
+	}).then(function(r){ if(r.ok) window.location.reload(); });
 }
 
 script addColumnJS(owner, repoName string, projectID int64) {

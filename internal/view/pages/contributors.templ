@@ -13,6 +13,11 @@ templ Contributors(data view.ContributorsData) {
 		<div class="space-y-6">
 
 			<section aria-labelledby="contrib-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Repo.OwnerName + "/" + data.Repo.Name) } class="hover:underline">{ data.Repo.Name }</a>
+					<span aria-hidden="true">·</span>
+					Contributors
+				</p>
 				<h1 id="contrib-title" class="text-2xl font-semibold tracking-tight">Contributors</h1>
 				<p class="mt-1 text-[13px] text-muted-foreground max-w-2xl">Aggregated by author across all branches, sorted by total commits.</p>
 			</section>

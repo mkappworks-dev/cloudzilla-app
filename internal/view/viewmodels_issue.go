@@ -16,6 +16,17 @@ type IssuesData struct {
 	IssueLabels     map[int64][]model.Label
 	AllMilestones   []model.Milestone
 	ActiveMilestone *model.Milestone
+
+	StateFilter     string
+	SearchQuery     string
+	LabelFilter     string
+	MilestoneFilter string
+	Sort            string
+
+	Labels []model.Label
+
+	OpenCount   int
+	ClosedCount int
 }
 
 // IssueDetailData holds template data for the issue detail page.
@@ -32,12 +43,11 @@ type IssueDetailData struct {
 	AllLabels     []model.Label
 	Milestone     *model.Milestone
 	AllMilestones []model.Milestone
+	LinkedPRs     []model.PullRequest
 	CanWrite      bool
 	CanManage     bool
 }
 
-// IssueNewData is used by the new-issue page (template chooser + form).
-// IssueNewData holds template data for the new issue form page.
 type IssueNewData struct {
 	BasePage
 	Repo      model.Repository

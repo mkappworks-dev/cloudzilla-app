@@ -348,3 +348,198 @@ func TestProjectStore_MoveCard_PositionOutOfRange_Rejected(t *testing.T) {
 		t.Fatalf("MoveCard same-column: want ErrInvalidPosition, got %v", err)
 	}
 }
+
+// seedNamedProject inserts a project with a specific name and returns its ID.
+func seedNamedProject(t *testing.T, db *sql.DB, repoID int64, name string) int64 {
+	t.Helper()
+	var id int64
+	if err := db.QueryRowContext(context.Background(),
+		`INSERT INTO projects (repo_id, name, description) VALUES ($1, $2, '') RETURNING id`,
+		repoID, name,
+	).Scan(&id); err != nil {
+		t.Fatalf("seed project %q: %v", name, err)
+	}
+	t.Cleanup(func() { db.ExecContext(context.Background(), `DELETE FROM projects WHERE id = $1`, id) })
+	return id
+}
+
+// seedIssueRow inserts an issue and returns its ID.
+func seedIssueRow(t *testing.T, db *sql.DB, repoID, authorID int64, number int, state string) int64 {
+	t.Helper()
+	var id int64
+	if err := db.QueryRowContext(context.Background(),
+		`INSERT INTO issues (repo_id, number, author_id, title, state) VALUES ($1, $2, $3, 'issue', $4) RETURNING id`,
+		repoID, number, authorID, state,
+	).Scan(&id); err != nil {
+		t.Fatalf("seed issue: %v", err)
+	}
+	t.Cleanup(func() { db.ExecContext(context.Background(), `DELETE FROM issues WHERE id = $1`, id) })
+	return id
+}
+
+// seedPullRow inserts a pull request and returns its ID.
+func seedPullRow(t *testing.T, db *sql.DB, repoID, authorID int64, number int, state string) int64 {
+	t.Helper()
+	var id int64
+	if err := db.QueryRowContext(context.Background(),
+		`INSERT INTO pull_requests (repo_id, number, author_id, title, state, head_branch)
+		 VALUES ($1, $2, $3, 'pr', $4, 'feature') RETURNING id`,
+		repoID, number, authorID, state,
+	).Scan(&id); err != nil {
+		t.Fatalf("seed pull: %v", err)
+	}
+	t.Cleanup(func() { db.ExecContext(context.Background(), `DELETE FROM pull_requests WHERE id = $1`, id) })
+	return id
+}
+
+// seedLinkedCard inserts a card linked to an issue or PR (one of issueID/pullID set).
+func seedLinkedCard(t *testing.T, s *store.ProjectStore, columnID int64, issueID, pullID *int64) {
+	t.Helper()
+	if err := s.CreateCard(context.Background(), &model.ProjectCard{ColumnID: columnID, IssueID: issueID, PullID: pullID}); err != nil {
+		t.Fatalf("seed linked card: %v", err)
+	}
+}
+
+// TestProjectStore_ListByRepoWithStats_Counts verifies the aggregate counts:
+// every card counts toward CardCount, only issue/PR cards toward LinkedCount,
+// and only resolved (closed issue / merged or closed PR) ones toward DoneCount.
+func TestProjectStore_ListByRepoWithStats_Counts(t *testing.T) {
+	db := openStoreDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+	projectID, cols := seedProjectWithColumns(t, db, repoID, []string{"todo", "done"})
+
+	s := store.NewProjectStore(db)
+	seedCard(t, s, cols[0], "a free-form note")
+	openIssue := seedIssueRow(t, db, repoID, ownerID, 1, "open")
+	closedIssue := seedIssueRow(t, db, repoID, ownerID, 2, "closed")
+	mergedPull := seedPullRow(t, db, repoID, ownerID, 3, "merged")
+	closedPull := seedPullRow(t, db, repoID, ownerID, 4, "closed")
+	seedLinkedCard(t, s, cols[0], &openIssue, nil)
+	seedLinkedCard(t, s, cols[1], &closedIssue, nil)
+	seedLinkedCard(t, s, cols[1], nil, &mergedPull)
+	seedLinkedCard(t, s, cols[1], nil, &closedPull)
+
+	rows, err := s.ListByRepoWithStats(context.Background(), repoID, "", "")
+	if err != nil {
+		t.Fatalf("ListByRepoWithStats: %v", err)
+	}
+	var got *store.ProjectWithCounts
+	for i := range rows {
+		if rows[i].ID == projectID {
+			got = &rows[i]
+		}
+	}
+	if got == nil {
+		t.Fatalf("project %d not in results", projectID)
+	}
+	if got.CardCount != 5 {
+		t.Errorf("CardCount = %d, want 5", got.CardCount)
+	}
+	if got.LinkedCount != 4 {
+		t.Errorf("LinkedCount = %d, want 4", got.LinkedCount)
+	}
+	if got.DoneCount != 3 {
+		t.Errorf("DoneCount = %d, want 3 (closed issue + merged PR + closed PR)", got.DoneCount)
+	}
+}
+
+// TestProjectStore_SetProjectClosed_AndStatusFilter verifies close/reopen and
+// that the status filter and CountByStatus track closed_at.
+func TestProjectStore_SetProjectClosed_AndStatusFilter(t *testing.T) {
+	db := openStoreDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+	projectID, _ := seedProjectWithColumns(t, db, repoID, []string{"todo"})
+
+	s := store.NewProjectStore(db)
+	ctx := context.Background()
+
+	hasProject := func(status string) bool {
+		rows, err := s.ListByRepoWithStats(ctx, repoID, "", status)
+		if err != nil {
+			t.Fatalf("ListByRepoWithStats(%q): %v", status, err)
+		}
+		for _, r := range rows {
+			if r.ID == projectID {
+				return true
+			}
+		}
+		return false
+	}
+
+	if !hasProject("open") {
+		t.Error("new project should appear under the open filter")
+	}
+	if hasProject("closed") {
+		t.Error("new project should not appear under the closed filter")
+	}
+
+	if err := s.SetProjectClosed(ctx, projectID, true); err != nil {
+		t.Fatalf("SetProjectClosed(true): %v", err)
+	}
+	if hasProject("open") {
+		t.Error("closed project should not appear under the open filter")
+	}
+	if !hasProject("closed") {
+		t.Error("closed project should appear under the closed filter")
+	}
+
+	open, closed, err := s.CountByStatus(ctx, repoID, "")
+	if err != nil {
+		t.Fatalf("CountByStatus: %v", err)
+	}
+	if open != 0 || closed != 1 {
+		t.Errorf("CountByStatus = (open %d, closed %d), want (0, 1)", open, closed)
+	}
+
+	if err := s.SetProjectClosed(ctx, projectID, false); err != nil {
+		t.Fatalf("SetProjectClosed(false): %v", err)
+	}
+	p, err := s.GetProject(ctx, projectID)
+	if err != nil {
+		t.Fatalf("GetProject: %v", err)
+	}
+	if p.ClosedAt != nil {
+		t.Errorf("reopened project ClosedAt = %v, want nil", p.ClosedAt)
+	}
+}
+
+// TestProjectStore_ListByRepoWithStats_SearchFilter verifies the name filter is
+// a case-insensitive substring match.
+func TestProjectStore_ListByRepoWithStats_SearchFilter(t *testing.T) {
+	db := openStoreDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+
+	seedNamedProject(t, db, repoID, "Alpha Board")
+	seedNamedProject(t, db, repoID, "Beta Board")
+
+	s := store.NewProjectStore(db)
+	ctx := context.Background()
+
+	names := func(query string) []string {
+		rows, err := s.ListByRepoWithStats(ctx, repoID, query, "")
+		if err != nil {
+			t.Fatalf("ListByRepoWithStats(%q): %v", query, err)
+		}
+		var out []string
+		for _, r := range rows {
+			out = append(out, r.Name)
+		}
+		return out
+	}
+
+	if got := names("alpha"); len(got) != 1 || got[0] != "Alpha Board" {
+		t.Errorf("search %q = %v, want [Alpha Board]", "alpha", got)
+	}
+	if got := names("BOARD"); len(got) != 2 {
+		t.Errorf("case-insensitive search %q = %v, want 2 results", "BOARD", got)
+	}
+	if got := names("nomatch"); len(got) != 0 {
+		t.Errorf("search %q = %v, want no results", "nomatch", got)
+	}
+}

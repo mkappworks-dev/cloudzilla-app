@@ -1,0 +1,95 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ NewFile(data view.NewFileData) {
+	@layout.Base(data.BasePage, "New file · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-6 max-w-3xl">
+			<section aria-labelledby="newfile-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					New file
+				</p>
+				<h1 id="newfile-title" class="text-xl tracking-tight font-medium">Add a file</h1>
+				<p class="text-[13px] text-muted-foreground mt-1">
+					Committing to
+					<span class="font-mono text-foreground">{ data.Ref }</span>
+				</p>
+			</section>
+
+			<form
+				method="POST"
+				action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/new/" + data.Ref) }
+				enctype="multipart/form-data"
+				class="space-y-5"
+			>
+				<input type="hidden" name="dir" value={ data.Dir }/>
+				<div class="rounded-md border border-border bg-card p-5 space-y-4">
+					<div>
+						<label for="nf-path" class="block text-[12px] font-medium mb-1.5">File path</label>
+						<input
+							id="nf-path"
+							name="path"
+							type="text"
+							value={ newFilePathPrefix(data.Dir) }
+							placeholder="path/to/file.md"
+							required
+							class="w-full h-9 px-3 text-[13px] font-mono bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+						/>
+						<p class="text-[11px] text-muted-foreground mt-1">Directories in the path are created automatically.</p>
+					</div>
+					<div>
+						<label for="nf-content" class="block text-[12px] font-medium mb-1.5">Contents</label>
+						<textarea
+							id="nf-content"
+							name="content"
+							rows="16"
+							placeholder="Type the file contents here…"
+							class="w-full px-3 py-2 text-[13px] font-mono bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+						></textarea>
+					</div>
+				</div>
+
+				<div id="upload" class="rounded-md border border-border bg-card p-5">
+					<label for="nf-file" class="block text-[12px] font-medium mb-1.5">…or upload a file</label>
+					<input
+						id="nf-file"
+						name="file"
+						type="file"
+						class="block w-full text-[13px] text-muted-foreground file:mr-3 file:h-8 file:px-3 file:text-[13px] file:border file:border-border file:rounded-md file:bg-muted file:text-foreground hover:file:bg-accent"
+					/>
+					<p class="text-[11px] text-muted-foreground mt-1">An uploaded file replaces the typed contents. Leave the path blank to keep the uploaded file's name.</p>
+				</div>
+
+				<div class="rounded-md border border-border bg-card p-5">
+					<label for="nf-message" class="block text-[12px] font-medium mb-1.5">Commit message</label>
+					<input
+						id="nf-message"
+						name="message"
+						type="text"
+						placeholder="Add new file"
+						class="w-full h-9 px-3 text-[13px] bg-background border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+					/>
+				</div>
+
+				<div class="flex items-center justify-end gap-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="h-9 px-3 inline-flex items-center text-[13px] border border-border rounded-md hover:bg-accent">Cancel</a>
+					<button type="submit" class="h-9 px-4 inline-flex items-center text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium">Commit file</button>
+				</div>
+			</form>
+		</div>
+	}
+}
+
+// newFilePathPrefix prefills the path field with the directory the user came
+// from, so the file lands in the right place.
+func newFilePathPrefix(dir string) string {
+	if dir == "" {
+		return ""
+	}
+	return dir + "/"
+}

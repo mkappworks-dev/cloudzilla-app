@@ -440,18 +440,18 @@ func copyFile(src, dst string, mode os.FileMode) error {
 	return err
 }
 
-// archiveGuard returns an error if the caller is not an owner.
+// archiveGuard returns ErrForbidden if the caller is not an owner.
 func archiveGuard(isOwner bool) error {
 	if !isOwner {
-		return fmt.Errorf("forbidden: only the repo owner or org owner can archive a repo")
+		return fmt.Errorf("only the repo owner or org owner can archive a repo: %w", ErrForbidden)
 	}
 	return nil
 }
 
-// templateGuard returns an error if the caller is not an owner.
+// templateGuard returns ErrForbidden if the caller is not an owner.
 func templateGuard(isOwner bool) error {
 	if !isOwner {
-		return fmt.Errorf("forbidden: only the repo owner or org owner can change template status")
+		return fmt.Errorf("only the repo owner or org owner can change template status: %w", ErrForbidden)
 	}
 	return nil
 }
@@ -487,6 +487,49 @@ func (s *RepoService) SetTemplate(ctx context.Context, repoID, userID int64, isT
 		return err
 	}
 	return s.repos.SetTemplate(ctx, repoID, isTemplate)
+}
+
+// UpdateMeta updates the user-editable repository metadata (description,
+// website, license). Requires manage permission on the repo.
+func (s *RepoService) UpdateMeta(ctx context.Context, repoID, userID int64, description, website, license string) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	if !s.CanManage(ctx, repo, userID) {
+		return fmt.Errorf("manage permission required: %w", ErrForbidden)
+	}
+	return s.repos.UpdateMeta(ctx, repoID, strings.TrimSpace(description), strings.TrimSpace(website), strings.TrimSpace(license))
+}
+
+// UpdateGeneral updates the description, website, and default branch. Requires
+// manage permission; an empty defaultBranch leaves the current one unchanged.
+func (s *RepoService) UpdateGeneral(ctx context.Context, repoID, userID int64, description, website, defaultBranch string) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	if !s.CanManage(ctx, repo, userID) {
+		return fmt.Errorf("manage permission required: %w", ErrForbidden)
+	}
+	branch := strings.TrimSpace(defaultBranch)
+	if branch == "" {
+		branch = repo.DefaultBranch
+	}
+	return s.repos.UpdateGeneral(ctx, repoID, strings.TrimSpace(description), strings.TrimSpace(website), branch)
+}
+
+// UpdateFeatureToggles updates the Issues/Discussions/Projects/Wiki feature
+// flags. Requires manage permission.
+func (s *RepoService) UpdateFeatureToggles(ctx context.Context, repoID, userID int64, issues, discussions, projects, wiki bool) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	if !s.CanManage(ctx, repo, userID) {
+		return fmt.Errorf("manage permission required: %w", ErrForbidden)
+	}
+	return s.repos.UpdateFeatureToggles(ctx, repoID, issues, discussions, projects, wiki)
 }
 
 func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, newOwnerID int64, newOwnerUsername, newName, description string) (*model.Repository, error) {
@@ -544,10 +587,10 @@ func (s *RepoService) ListTemplates(ctx context.Context) ([]model.Repository, er
 	return s.repos.ListTemplates(ctx)
 }
 
-// deleteGuard returns an error if the caller is not an owner.
+// deleteGuard returns ErrForbidden if the caller is not an owner.
 func deleteGuard(isOwner bool) error {
 	if !isOwner {
-		return fmt.Errorf("forbidden: only the repo owner or org owner can delete a repo")
+		return fmt.Errorf("only the repo owner or org owner can delete a repo: %w", ErrForbidden)
 	}
 	return nil
 }

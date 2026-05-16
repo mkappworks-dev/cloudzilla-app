@@ -137,6 +137,11 @@ func (s *UserService) GetByID(ctx context.Context, id int64) (*model.User, error
 	return s.store.GetByID(ctx, id)
 }
 
+// Missing usernames are silently omitted; result order is undefined.
+func (s *UserService) GetManyByUsernames(ctx context.Context, usernames []string) ([]model.User, error) {
+	return s.store.GetManyByUsernames(ctx, usernames)
+}
+
 // UpdateEmailPrefs saves the user's email notification preferences.
 func (s *UserService) UpdateEmailPrefs(ctx context.Context, userID int64, emailNotifications bool, emailDigest string) error {
 	return s.store.UpdateEmailPrefs(ctx, userID, emailNotifications, emailDigest)
@@ -159,10 +164,10 @@ func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (s
 
 func (s *UserService) generateJWT(u *model.User) (string, error) {
 	claims := jwt.MapClaims{
-		"sub":          u.ID,
-		"username":     u.Username,
+		"sub":           u.ID,
+		"username":      u.Username,
 		"is_superadmin": u.IsSuperadmin,
-		"exp":          time.Now().Add(s.cfg.JWTExpiry).Unix(),
+		"exp":           time.Now().Add(s.cfg.JWTExpiry).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.cfg.JWTSecret))

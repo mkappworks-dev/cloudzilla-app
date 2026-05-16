@@ -24,6 +24,10 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "repo not found", http.StatusNotFound)
 		return
 	}
+	if !repo.AllowDiscussions {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
 
 	var userID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
@@ -41,12 +45,70 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	categories, _ := h.Services.Discussion.ListCategories(r.Context(), repo.ID)
+	stateFilter := r.URL.Query().Get("state")
+	switch stateFilter {
+	case "answered", "closed":
+		// valid
+	default:
+		stateFilter = "open"
+	}
+
+	categories, err := h.Services.Discussion.ListCategories(r.Context(), repo.ID)
+	if err != nil {
+		slog.Warn("discussions: category list failed", "owner", owner, "repo", repoName, "error", err)
+	}
 	if categories == nil {
 		categories = []model.DiscussionCategory{}
 	}
 
-	discussions, _ := h.Services.Discussion.List(r.Context(), owner, repoName, activeCategoryID)
+	// Unfiltered list for counts; category-filtered list for display rows.
+	unfiltered, err := h.Services.Discussion.List(r.Context(), owner, repoName, 0)
+	if err != nil {
+		slog.Warn("discussions: list failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	if unfiltered == nil {
+		unfiltered = []model.Discussion{}
+	}
+
+	var openCount, answeredCount, closedCount int
+	categoryCounts := make(map[int64]int)
+	for _, d := range unfiltered {
+		categoryCounts[d.CategoryID]++
+		switch {
+		case d.IsAnswered:
+			answeredCount++
+		case d.IsLocked:
+			closedCount++
+		default:
+			openCount++
+		}
+	}
+
+	categoryFiltered, err := h.Services.Discussion.List(r.Context(), owner, repoName, activeCategoryID)
+	if err != nil {
+		slog.Warn("discussions: category-filtered list failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	if categoryFiltered == nil {
+		categoryFiltered = []model.Discussion{}
+	}
+
+	var discussions []model.Discussion
+	for _, d := range categoryFiltered {
+		switch stateFilter {
+		case "answered":
+			if d.IsAnswered {
+				discussions = append(discussions, d)
+			}
+		case "closed":
+			if d.IsLocked && !d.IsAnswered {
+				discussions = append(discussions, d)
+			}
+		default:
+			if !d.IsAnswered && !d.IsLocked {
+				discussions = append(discussions, d)
+			}
+		}
+	}
 	if discussions == nil {
 		discussions = []model.Discussion{}
 	}
@@ -55,13 +117,19 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Discussions(view.DiscussionsData{
-		BasePage:         withRepoSubnav(basePage(r, h.Services), owner, repoName, "discussions", canManage),
+		BasePage:         withRepoSubnav(basePage(r, h.Services), repo, "discussions", canManage),
 		Repo:             *repo,
 		Owner:            owner,
 		RepoName:         repoName,
 		Categories:       categories,
 		Discussions:      discussions,
 		ActiveCategoryID: activeCategoryID,
+		CategoryCounts:   categoryCounts,
+		TotalCount:       len(unfiltered),
+		StateFilter:      stateFilter,
+		OpenCount:        openCount,
+		AnsweredCount:    answeredCount,
+		ClosedCount:      closedCount,
 		CanWrite:         canWrite,
 	}))
 }
@@ -80,6 +148,10 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
 		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+	if !repo.AllowDiscussions {
+		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 
@@ -123,7 +195,7 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.DiscussionDetail(view.DiscussionDetailData{
-		BasePage:   withRepoSubnav(basePage(r, h.Services), owner, repoName, "discussions", canManage),
+		BasePage:   withRepoSubnav(basePage(r, h.Services), repo, "discussions", canManage),
 		Repo:       *repo,
 		Owner:      owner,
 		RepoName:   repoName,
@@ -148,6 +220,10 @@ func (h *Handler) CreateDiscussion(w http.ResponseWriter, r *http.Request) {
 	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !authRepo.AllowDiscussions {
+		writeError(w, http.StatusNotFound, "not found")
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {

@@ -8,7 +8,15 @@ import (
 
 templ Dependencies(data view.DependenciesData) {
 	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" — Dependencies") {
-		<div class="space-y-4">
+		<div class="space-y-6">
+			<section aria-labelledby="deps-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					Dependencies
+				</p>
+				<h1 id="deps-title" class="text-2xl font-semibold tracking-tight">Dependencies</h1>
+			</section>
 			if len(data.Groups) == 0 {
 				@components.EmptyState("No dependencies found. Cloudzilla scans the default branch root for: go.mod, package.json, requirements.txt, pyproject.toml, Pipfile, Cargo.toml.")
 			} else {

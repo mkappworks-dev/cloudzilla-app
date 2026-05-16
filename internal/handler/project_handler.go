@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -27,6 +26,10 @@ func (h *Handler) PageProjects(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "repo not found", http.StatusNotFound)
 		return
 	}
+	if !repo.AllowProjects {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
 
 	var userID *int64
 	canWrite := false
@@ -41,23 +44,30 @@ func (h *Handler) PageProjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projects, err := h.Services.Project.ListByRepo(r.Context(), owner, repoName)
+	state := r.URL.Query().Get("state")
+	if state != "closed" {
+		state = "open"
+	}
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+
+	list, err := h.Services.Project.ListByRepoWithStats(r.Context(), owner, repoName, state, query)
 	if err != nil {
 		http.Error(w, "failed to load projects", http.StatusInternalServerError)
 		return
 	}
-	if projects == nil {
-		projects = []model.Project{}
-	}
 
 	h.render(w, r, pages.Projects(view.ProjectsData{
-		BasePage:  withRepoSubnav(basePage(r, h.Services), owner, repoName, "projects", canManage),
-		Repo:      *repo,
-		Owner:     owner,
-		RepoName:  repoName,
-		Projects:  projects,
-		CanWrite:  canWrite,
-		CanManage: canManage,
+		BasePage:    withRepoSubnav(basePage(r, h.Services), repo, "projects", canManage),
+		Repo:        *repo,
+		Owner:       owner,
+		RepoName:    repoName,
+		Items:       list.Projects,
+		StateFilter: state,
+		SearchQuery: query,
+		OpenCount:   list.OpenCount,
+		ClosedCount: list.ClosedCount,
+		CanWrite:    canWrite,
+		CanManage:   canManage,
 	}))
 }
 
@@ -73,6 +83,10 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
 		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+	if !repo.AllowProjects {
+		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 
@@ -109,7 +123,7 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.ProjectDetail(view.ProjectDetailData{
-		BasePage:  withRepoSubnav(basePage(r, h.Services), owner, repoName, "projects", canManage),
+		BasePage:  withRepoSubnav(basePage(r, h.Services), repo, "projects", canManage),
 		Repo:      *repo,
 		Owner:     owner,
 		RepoName:  repoName,
@@ -135,6 +149,16 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !repo.AllowProjects {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
 
 	var req createProjectRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -170,6 +194,34 @@ func (h *Handler) DeleteProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type updateProjectRequest struct {
+	Closed bool `json:"closed"`
+}
+
+func (h *Handler) UpdateProject(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid project id")
+		return
+	}
+	var req updateProjectRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	project, err := h.Services.Project.SetProjectClosed(r.Context(), projectID, claims.UserID, req.Closed)
+	if err != nil {
+		writeProjectError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, project)
 }
 
 type createColumnRequest struct {

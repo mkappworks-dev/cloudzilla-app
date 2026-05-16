@@ -14,6 +14,17 @@ templ Heatmap(counts map[time.Time]int, today time.Time, weeks int) {
 	</div>
 }
 
+// HeatmapLarge renders the same data as Heatmap but with flexible cells that
+// stretch to fill the container width at a fixed height — used inside the repo
+// sidebar's bordered Activity card.
+templ HeatmapLarge(counts map[time.Time]int, today time.Time, weeks int) {
+	<div role="img" aria-label={ heatmapAriaLabel(counts, weeks) } class="grid w-full grid-flow-col gap-[3px]" style="grid-template-rows: repeat(7, 1fr); grid-auto-columns: minmax(0, 1fr); height: 150px;">
+		for _, day := range heatmapDays(today, weeks) {
+			<div class={ "rounded-[2px] " + heatmapCellClass(counts[day]) } title={ heatmapTitle(day, counts[day]) }></div>
+		}
+	</div>
+}
+
 // Grid left edge snaps back to Sunday so columns are full weeks.
 func heatmapDays(today time.Time, weeks int) []time.Time {
 	today = today.UTC().Truncate(24 * time.Hour)

@@ -2,11 +2,19 @@ package pages
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
+
+func labelsPlaceholder(n int) string {
+	if n > 0 {
+		return "Labels " + strconv.Itoa(n)
+	}
+	return "Labels"
+}
 
 templ Issues(data view.IssuesData) {
 	@layout.Base(data.BasePage, "Issues · "+data.Owner+"/"+data.RepoName) {
@@ -29,6 +37,77 @@ templ Issues(data view.IssuesData) {
 				}
 			</section>
 
+			<form method="GET" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues") }>
+				<nav class="flex items-center gap-1 border-b border-border text-sm" aria-label="Issue filters">
+					@components.TabLink("/"+data.Owner+"/"+data.RepoName+"/issues?state=open", data.StateFilter == "open") {
+						Open
+						<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label={ strconv.Itoa(data.OpenCount) + " open" }>{ strconv.Itoa(data.OpenCount) }</span>
+					}
+					@components.TabLink("/"+data.Owner+"/"+data.RepoName+"/issues?state=closed", data.StateFilter == "closed") {
+						Closed
+						<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label={ strconv.Itoa(data.ClosedCount) + " closed" }>{ strconv.Itoa(data.ClosedCount) }</span>
+					}
+					<div class="ml-auto flex items-center gap-1.5 pb-1.5">
+						<label for="filter-search" class="sr-only">Search issues</label>
+						<div class="relative">
+							<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+								<circle cx="11" cy="11" r="7"></circle>
+								<path d="M21 21l-4.3-4.3"></path>
+							</svg>
+							<input id="filter-search" type="search" name="q" value={ data.SearchQuery } placeholder="Filter is:open" class="w-56 h-8 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"/>
+						</div>
+						<div class="relative">
+							<select name="label" aria-label="Filter by label" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring appearance-none">
+								<option value="">{ labelsPlaceholder(len(data.Labels)) }</option>
+								for _, l := range data.Labels {
+									if data.LabelFilter == l.Name {
+										<option value={ l.Name } selected>{ l.Name }</option>
+									} else {
+										<option value={ l.Name }>{ l.Name }</option>
+									}
+								}
+							</select>
+							<svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+						</div>
+						<div class="relative">
+							<select name="milestone" aria-label="Filter by milestone" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring appearance-none">
+								<option value="">Milestones</option>
+								for _, m := range data.AllMilestones {
+									if data.MilestoneFilter == strconv.FormatInt(m.ID, 10) {
+										<option value={ strconv.FormatInt(m.ID, 10) } selected>{ m.Title }</option>
+									} else {
+										<option value={ strconv.FormatInt(m.ID, 10) }>{ m.Title }</option>
+									}
+								}
+							</select>
+							<svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+						</div>
+						<div class="relative">
+							<select name="sort" aria-label="Sort issues" class="h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring appearance-none">
+								if data.Sort == "newest" {
+									<option value="newest" selected>Newest</option>
+								} else {
+									<option value="newest">Newest</option>
+								}
+								if data.Sort == "oldest" {
+									<option value="oldest" selected>Oldest</option>
+								} else {
+									<option value="oldest">Oldest</option>
+								}
+								if data.Sort == "recently-updated" {
+									<option value="recently-updated" selected>Recently updated</option>
+								} else {
+									<option value="recently-updated">Recently updated</option>
+								}
+							</select>
+							<svg class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
+						</div>
+						<button type="submit" class="h-8 px-3 text-[13px] bg-accent text-accent-foreground border border-border rounded-md hover:bg-accent/80">Apply</button>
+					</div>
+				</nav>
+				<input type="hidden" name="state" value={ data.StateFilter }/>
+			</form>
+
 			if len(data.PinnedIssues) > 0 {
 				<section aria-labelledby="pinned-heading">
 					<h2 id="pinned-heading" class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
@@ -37,7 +116,7 @@ templ Issues(data view.IssuesData) {
 					</h2>
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 						for _, pinned := range data.PinnedIssues {
-							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(pinned.Number)) } class="block rounded-md border border-warning/40 bg-warning/10 p-4 hover:border-warning/60 transition">
+							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(pinned.Number)) } class="block rounded-md border border-border bg-card p-4 hover:bg-accent/40 transition">
 								<div class="flex items-start gap-2">
 									<svg class="w-4 h-4 text-warning shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
 										<path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.32L10 13.27l-4.77 2.51.91-5.32L2.27 6.62l5.34-.78L10 1z"></path>
@@ -55,7 +134,7 @@ templ Issues(data view.IssuesData) {
 
 			if len(data.Issues) > 0 {
 				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="issue-list">
-					<h2 id="issue-list" class="sr-only">Issues</h2>
+					<h2 id="issue-list" class="sr-only">{ data.StateFilter } issues</h2>
 					<ol class="divide-y divide-border">
 						for _, issue := range data.Issues {
 							<li>
@@ -82,6 +161,8 @@ templ Issues(data view.IssuesData) {
 											<span class="font-mono">#{ strconv.Itoa(issue.Number) }</span>
 											<span aria-hidden="true">·</span>
 											<span>opened by { issue.AuthorName }</span>
+											<span aria-hidden="true">·</span>
+											<time datetime={ issue.CreatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(issue.CreatedAt) }</time>
 											if labels, ok := data.IssueLabels[issue.ID]; ok && len(labels) > 0 {
 												<span class="ml-2 inline-flex flex-wrap gap-1" aria-label="Labels">
 													for _, l := range labels {
@@ -100,8 +181,13 @@ templ Issues(data view.IssuesData) {
 					</ol>
 				</section>
 			} else {
-				@components.EmptyState("No issues yet.")
+				@components.EmptyState("No " + data.StateFilter + " issues.")
 			}
+
+			<p class="text-[12px] text-muted-foreground">
+				Filter syntax: <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded">is:open</code>, <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded">label:bug</code>, <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded">milestone:v0.3</code>, <code class="font-mono px-1 py-0.5 bg-accent border border-border rounded">author:daisy</code>.
+			</p>
+
 		</div>
 	}
 }

@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"sort"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -11,14 +13,98 @@ import (
 
 // PullService manages pull request creation, state transitions, and merge operations.
 type PullService struct {
-	pulls   *store.PullStore
-	repos   *store.RepoStore
-	repoSvc *RepoService
+	pulls         *store.PullStore
+	repos         *store.RepoStore
+	repoSvc       *RepoService
+	code          *CodeService
+	commitStatus  *CommitStatusService
+	reviewStore   *store.PullReviewStore
+	labelStore    *store.LabelStore
+	assigneeStore *store.AssigneeStore
+	contribStats  *store.ContributorStatsStore
+	userStore     *store.UserStore
 }
 
 // NewPullService creates a PullService backed by the given stores.
 func NewPullService(pulls *store.PullStore, repos *store.RepoStore, repoSvc *RepoService) *PullService {
 	return &PullService{pulls: pulls, repos: repos, repoSvc: repoSvc}
+}
+
+func (s *PullService) WithCIDeps(code *CodeService, commitStatus *CommitStatusService, reviews *store.PullReviewStore, labels *store.LabelStore, assignees *store.AssigneeStore) *PullService {
+	s.code = code
+	s.commitStatus = commitStatus
+	s.reviewStore = reviews
+	s.labelStore = labels
+	s.assigneeStore = assignees
+	return s
+}
+
+type PullListRow struct {
+	model.PullRequest
+	HeadSHA       string
+	CIStatus      string
+	Reviewers     []model.PullReview
+	LabelChips    []model.Label
+	AssigneeChips []model.User
+}
+
+func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName string, state model.PRState, offset, limit int) ([]PullListRow, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	pulls, err := s.pulls.ListByState(ctx, repo.ID, state, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	pullIDs := make([]int64, len(pulls))
+	for i, p := range pulls {
+		pullIDs[i] = p.ID
+	}
+
+	// Batch the per-PR sidebar lookups so the list page issues a constant
+	// number of queries rather than one set per row.
+	var reviewsByPull map[int64][]model.PullReview
+	if s.reviewStore != nil {
+		if reviewsByPull, err = s.reviewStore.ListByPullIDs(ctx, pullIDs); err != nil {
+			return nil, fmt.Errorf("list reviews: %w", err)
+		}
+	}
+	var labelsByPull map[int64][]model.Label
+	if s.labelStore != nil {
+		if labelsByPull, err = s.labelStore.ListByPullIDs(ctx, pullIDs); err != nil {
+			return nil, fmt.Errorf("list labels: %w", err)
+		}
+	}
+	var assigneesByPull map[int64][]model.User
+	if s.assigneeStore != nil {
+		if assigneesByPull, err = s.assigneeStore.ListByPullIDs(ctx, pullIDs); err != nil {
+			return nil, fmt.Errorf("list assignees: %w", err)
+		}
+	}
+
+	out := make([]PullListRow, 0, len(pulls))
+	for _, p := range pulls {
+		row := PullListRow{
+			PullRequest:   p,
+			Reviewers:     reviewsByPull[p.ID],
+			LabelChips:    labelsByPull[p.ID],
+			AssigneeChips: assigneesByPull[p.ID],
+		}
+		if s.code != nil {
+			if commit, _, err := s.code.ResolveRef(owner, repoName, p.HeadBranch); err == nil {
+				row.HeadSHA = commit.Hash.String()
+				if s.commitStatus != nil {
+					if combined, _, err := s.commitStatus.GetCombined(ctx, owner, repoName, row.HeadSHA); err == nil {
+						row.CIStatus = string(combined)
+					}
+				}
+			}
+		}
+		out = append(out, row)
+	}
+	return out, nil
 }
 
 // ErrPullForbidden is returned when an author lacks read access to the target repo.
@@ -159,4 +245,85 @@ func (s *PullService) CountOpen(ctx context.Context, repoID int64) (int, error) 
 
 func (s *PullService) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
 	return s.pulls.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+}
+
+func (s *PullService) WithReviewerDeps(contribStats *store.ContributorStatsStore, userStore *store.UserStore) *PullService {
+	s.contribStats = contribStats
+	s.userStore = userStore
+	return s
+}
+
+// SuggestReviewers returns up to limit candidate reviewers for a PR between base and head.
+// Preference order: (1) CODEOWNERS matches on the repo's default branch; (2) top contributors by commit count.
+func (s *PullService) SuggestReviewers(ctx context.Context, owner, repoName, base, head string, limit int) ([]model.User, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.code != nil {
+		// Missing CODEOWNERS is normal; error is intentionally ignored and the contributor fallback is used.
+		rules, _ := s.code.GetCodeOwners(owner, repoName, repo.DefaultBranch)
+		if len(rules) > 0 {
+			diff, diffErr := s.code.GetPullDiff(owner, repoName, base, head)
+			if diffErr != nil {
+				slog.Warn("suggest reviewers: pull diff lookup failed", "owner", owner, "repo", repoName, "error", diffErr)
+			}
+			if diff != nil {
+				changed := make([]string, 0, len(diff.Files))
+				for _, f := range diff.Files {
+					if f.NewPath != "" {
+						changed = append(changed, f.NewPath)
+					} else {
+						changed = append(changed, f.OldPath)
+					}
+				}
+				owners := s.code.MatchCodeOwners(rules, changed)
+				if len(owners) > 0 && s.userStore != nil {
+					users, usersErr := s.userStore.GetManyByUsernames(ctx, owners)
+					if usersErr != nil {
+						slog.Warn("suggest reviewers: resolve CODEOWNERS usernames failed", "owner", owner, "repo", repoName, "error", usersErr)
+					}
+					if usersErr == nil && len(users) > 0 {
+						if limit > 0 && len(users) > limit {
+							users = users[:limit]
+						}
+						return users, nil
+					}
+				}
+			}
+		}
+	}
+
+	if s.contribStats == nil || s.userStore == nil {
+		return nil, nil
+	}
+	rows, err := s.contribStats.ListForRepo(ctx, repo.ID)
+	if err != nil {
+		return nil, fmt.Errorf("contributor stats lookup: %w", err)
+	}
+	if len(rows) == 0 {
+		return nil, nil
+	}
+	counts := map[int64]int{}
+	for _, r := range rows {
+		counts[r.UserID] += r.Commits
+	}
+	type pair struct {
+		id int64
+		n  int
+	}
+	pairs := make([]pair, 0, len(counts))
+	for id, n := range counts {
+		pairs = append(pairs, pair{id, n})
+	}
+	sort.Slice(pairs, func(i, j int) bool { return pairs[i].n > pairs[j].n })
+	if limit > 0 && len(pairs) > limit {
+		pairs = pairs[:limit]
+	}
+	ids := make([]int64, len(pairs))
+	for i, p := range pairs {
+		ids[i] = p.id
+	}
+	return s.userStore.GetManyByIDs(ctx, ids)
 }

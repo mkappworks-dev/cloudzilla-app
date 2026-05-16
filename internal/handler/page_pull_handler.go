@@ -5,6 +5,9 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
@@ -16,7 +19,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// PagePulls renders the paginated pull request list for a repository.
+// PagePulls renders the pull request list for a repository.
 func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -29,49 +32,92 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 
 	allPulls, err := h.Services.Pull.List(r.Context(), owner, repoName)
 	if err != nil {
-		allPulls = []model.PullRequest{}
+		slog.Error("pulls: list failed", "owner", owner, "repo", repoName, "error", err)
+		http.Error(w, "failed to load pull requests", http.StatusInternalServerError)
+		return
 	}
 	if allPulls == nil {
 		allPulls = []model.PullRequest{}
+	}
+
+	var openCount, draftCount, mergedCount, closedCount int
+	for _, p := range allPulls {
+		switch {
+		case p.State == model.PRStateOpen && !p.IsDraft:
+			openCount++
+		case p.State == model.PRStateOpen && p.IsDraft:
+			draftCount++
+		case p.State == model.PRStateMerged:
+			mergedCount++
+		case p.State == model.PRStateClosed:
+			closedCount++
+		}
 	}
 
 	stateFilter := r.URL.Query().Get("state")
 	if stateFilter == "" {
 		stateFilter = "open"
 	}
-	var pulls []model.PullRequest
-	for _, p := range allPulls {
-		switch stateFilter {
-		case "draft":
-			if p.IsDraft && p.State == model.PRStateOpen {
-				pulls = append(pulls, p)
-			}
-		case "closed":
-			if p.State == model.PRStateClosed {
-				pulls = append(pulls, p)
-			}
-		case "merged":
-			if p.State == model.PRStateMerged {
-				pulls = append(pulls, p)
-			}
-		default: // "open"
-			if p.State == model.PRStateOpen && !p.IsDraft {
-				pulls = append(pulls, p)
+
+	var prState model.PRState
+	switch stateFilter {
+	case "draft":
+		prState = model.PRStateOpen
+	case "merged":
+		prState = model.PRStateMerged
+	case "closed":
+		prState = model.PRStateClosed
+	default:
+		prState = model.PRStateOpen
+	}
+
+	serviceRows, err := h.Services.Pull.ListWithCIStatus(r.Context(), owner, repoName, prState, 0, 0)
+	if err != nil {
+		slog.Error("pulls: list with CI status failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	if serviceRows == nil {
+		serviceRows = []service.PullListRow{}
+	}
+
+	rows := make([]components.PRListRowData, 0, len(serviceRows))
+	for _, sr := range serviceRows {
+		if stateFilter == "draft" && !sr.IsDraft {
+			continue
+		}
+		if stateFilter == "open" && sr.IsDraft {
+			continue
+		}
+
+		rowState := string(sr.State)
+		if sr.IsDraft && sr.State == model.PRStateOpen {
+			rowState = "draft"
+		}
+
+		labelChips := make([]components.LabelChip, 0, len(sr.LabelChips))
+		for _, l := range sr.LabelChips {
+			labelChips = append(labelChips, components.LabelChip{Name: l.Name, Color: l.Color})
+		}
+
+		reviewerAvatars := make([]string, 0, len(sr.Reviewers))
+		for _, rv := range sr.Reviewers {
+			if rv.AuthorName != "" {
+				initials := pullInitials(rv.AuthorName)
+				reviewerAvatars = append(reviewerAvatars, initials)
 			}
 		}
-	}
-	if pulls == nil {
-		pulls = []model.PullRequest{}
-	}
 
-	pullLabels, _ := h.Services.Label.BatchForPulls(r.Context(), pulls)
-	if pullLabels == nil {
-		pullLabels = map[int64][]model.Label{}
-	}
-
-	allPullMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
-	if allPullMilestones == nil {
-		allPullMilestones = []model.Milestone{}
+		rows = append(rows, components.PRListRowData{
+			OwnerName:       owner,
+			RepoName:        repoName,
+			Number:          sr.Number,
+			Title:           sr.Title,
+			Author:          sr.AuthorName,
+			State:           rowState,
+			CIStatus:        sr.CIStatus,
+			LabelChips:      labelChips,
+			ReviewerAvatars: reviewerAvatars,
+			OpenedAt:        pullFormatRelative(sr.CreatedAt),
+		})
 	}
 
 	canManage := false
@@ -79,14 +125,16 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 	h.render(w, r, pages.Pulls(view.PullsData{
-		BasePage:      withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage),
-		Repo:          *repo,
-		Pulls:         pulls,
-		Owner:         owner,
-		RepoName:      repoName,
-		PullLabels:    pullLabels,
-		AllMilestones: allPullMilestones,
-		StateFilter:   stateFilter,
+		BasePage:    withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+		Repo:        *repo,
+		Owner:       owner,
+		RepoName:    repoName,
+		StateFilter: stateFilter,
+		OpenCount:   openCount,
+		DraftCount:  draftCount,
+		MergedCount: mergedCount,
+		ClosedCount: closedCount,
+		Rows:        rows,
 	}))
 }
 
@@ -108,17 +156,44 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		branches = refs.Branches
 	}
 
+	base := firstNonEmpty(r.URL.Query().Get("base"), repo.DefaultBranch)
+	head := r.URL.Query().Get("head")
+
 	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
+
+	allLabels, err := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("new PR: label list failed", "owner", owner, "repo", repoName, "error", err)
+	}
+
+	var suggested []model.User
+	if head != "" {
+		if suggested, err = h.Services.Pull.SuggestReviewers(r.Context(), owner, repoName, base, head, 5); err != nil {
+			slog.Warn("new PR: suggest reviewers failed", "owner", owner, "repo", repoName, "error", err)
+		}
+	}
+	collaborators, err := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
+	if err != nil {
+		slog.Warn("new PR: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
+	}
+
 	h.render(w, r, pages.PullNew(view.PullNewData{
-		BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage),
+		BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,
 		TemplateBody: templateBody,
 		Branches:     branches,
+		Base:         base,
+		Head:         head,
+		AllLabels:    allLabels,
+		Reviewer: components.ReviewerPickerData{
+			Suggested: toReviewerOptions(suggested, nil),
+			All:       collaboratorsToReviewerOptions(collaborators, nil),
+		},
 	}))
 }
 
@@ -154,15 +229,42 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	baseBranch := r.FormValue("base_branch")
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	allLabels, err := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("new PR: label list failed", "owner", owner, "repo", repoName, "error", err)
+	}
+
+	errCollaborators, err := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
+	if err != nil {
+		slog.Warn("new PR: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	var errSuggested []model.User
+	if headBranch != "" {
+		if errSuggested, err = h.Services.Pull.SuggestReviewers(r.Context(), owner, repoName, baseBranch, headBranch, 5); err != nil {
+			slog.Warn("new PR: suggest reviewers failed", "owner", owner, "repo", repoName, "error", err)
+		}
+	}
+	selectedReviewers := make(map[string]bool, len(r.Form["reviewers"]))
+	for _, u := range r.Form["reviewers"] {
+		selectedReviewers[u] = true
+	}
+
 	renderErr := func(msg string) {
 		h.render(w, r, pages.PullNew(view.PullNewData{
-			BasePage:     withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage),
+			BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
 			Repo:         *repo,
 			Owner:        owner,
 			RepoName:     repoName,
 			TemplateBody: body,
 			Branches:     branches,
+			Base:         baseBranch,
+			Head:         headBranch,
+			AllLabels:    allLabels,
 			Error:        msg,
+			Reviewer: components.ReviewerPickerData{
+				Suggested: toReviewerOptions(errSuggested, selectedReviewers),
+				All:       collaboratorsToReviewerOptions(errCollaborators, selectedReviewers),
+			},
 		}))
 	}
 
@@ -175,6 +277,34 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		renderErr("Failed to create pull request: " + err.Error())
 		return
+	}
+
+	for _, raw := range r.Form["labels"] {
+		if id, err := strconv.ParseInt(raw, 10, 64); err == nil {
+			if aerr := h.Services.Label.AddToPull(r.Context(), owner, repoName, pr.Number, id); aerr != nil {
+				slog.Warn("new PR: attach label failed", "label_id", id, "error", aerr)
+			}
+		}
+	}
+
+	if usernames := r.Form["reviewers"]; len(usernames) > 0 {
+		if reviewers, rerr := h.Services.User.GetManyByUsernames(r.Context(), usernames); rerr != nil {
+			slog.Warn("new PR: resolve reviewer usernames failed", "error", rerr)
+		} else {
+			// Only request reviews from users who can actually read the repo,
+			// so a crafted POST cannot pull arbitrary accounts into the PR.
+			eligible := reviewers[:0]
+			for _, u := range reviewers {
+				if h.Services.Repo.CanRead(r.Context(), repo, &u.ID) {
+					eligible = append(eligible, u)
+				}
+			}
+			if len(eligible) > 0 {
+				if rerr := h.Services.PullReview.RequestReviewers(r.Context(), owner, repoName, pr.Number, eligible); rerr != nil {
+					slog.Warn("new PR: request reviewers failed", "error", rerr)
+				}
+			}
+		}
 	}
 
 	go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload("opened", *repo, *pr))
@@ -295,7 +425,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
-		BasePage:          withRepoSubnav(basePage(r, h.Services), owner, repoName, "pull_requests", canManage2),
+		BasePage:          withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage2),
 		Repo:              *repo,
 		Pull:              *pull,
 		Owner:             owner,
@@ -317,4 +447,74 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		LineComments:      lineComments,
 		Mergeability:      mergeabilityBox,
 	}))
+}
+
+func pullInitials(name string) string {
+	parts := strings.Fields(name)
+	if len(parts) == 0 {
+		return "?"
+	}
+	if len(parts) == 1 {
+		r, size := utf8.DecodeRuneInString(parts[0])
+		if size == 0 || r == utf8.RuneError {
+			return "?"
+		}
+		return strings.ToUpper(string(r))
+	}
+	a, _ := utf8.DecodeRuneInString(parts[0])
+	b, _ := utf8.DecodeRuneInString(parts[len(parts)-1])
+	return strings.ToUpper(string(a) + string(b))
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+func toReviewerOptions(users []model.User, selected map[string]bool) []components.ReviewerOption {
+	opts := make([]components.ReviewerOption, 0, len(users))
+	for _, u := range users {
+		opts = append(opts, components.ReviewerOption{Username: u.Username, Selected: selected[u.Username]})
+	}
+	return opts
+}
+
+func collaboratorsToReviewerOptions(perms []model.Permission, selected map[string]bool) []components.ReviewerOption {
+	opts := make([]components.ReviewerOption, 0, len(perms))
+	for _, p := range perms {
+		opts = append(opts, components.ReviewerOption{Username: p.Username, Selected: selected[p.Username]})
+	}
+	return opts
+}
+
+func pullFormatRelative(t time.Time) string {
+	d := time.Since(t)
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		m := int(d / time.Minute)
+		if m == 1 {
+			return "1 minute ago"
+		}
+		return strconv.Itoa(m) + " minutes ago"
+	case d < 24*time.Hour:
+		h := int(d / time.Hour)
+		if h == 1 {
+			return "1 hour ago"
+		}
+		return strconv.Itoa(h) + " hours ago"
+	case d < 7*24*time.Hour:
+		days := int(d / (24 * time.Hour))
+		if days == 1 {
+			return "1 day ago"
+		}
+		return strconv.Itoa(days) + " days ago"
+	default:
+		return t.Format("Jan 2, 2006")
+	}
 }

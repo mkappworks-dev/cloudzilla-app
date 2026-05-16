@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
+
+var reSlugDisallowed = regexp.MustCompile(`[^A-Za-z0-9_-]+`)
 
 // IssueTemplate holds a parsed issue template file.
 type IssueTemplate struct {
@@ -114,7 +117,7 @@ func (s *CodeService) GetIssueTemplates(owner, repoName, defaultBranch string) (
 			if berr != nil {
 				continue
 			}
-			slug := strings.TrimSuffix(entry.Name, ".md")
+			slug := strings.Trim(reSlugDisallowed.ReplaceAllString(strings.TrimSuffix(entry.Name, ".md"), "-"), "-")
 			templates = append(templates, IssueTemplate{Slug: slug, Name: templateName(entry.Name), Body: body})
 		}
 		if len(templates) > 0 {

@@ -66,11 +66,15 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	userSvc := NewUserService(stores.User, cfg.Auth)
 	emailSvc := NewEmailService(cfg.SMTP)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, emailSvc, userSvc)
+	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
+	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
+		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee,
+	).WithReviewerDeps(stores.ContributorStats, stores.User)
 	return &Services{
 		User:             userSvc,
 		Repo:             repoSvc,
-		Issue:            NewIssueService(stores.Issue, stores.Repo, repoSvc),
-		Pull:             NewPullService(stores.Pull, stores.Repo, repoSvc),
+		Issue:            NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc),
+		Pull:             pullSvc,
 		Comment:          NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc),
 		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),
 		Code:             code,
@@ -83,7 +87,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Assignee:         NewAssigneeService(stores.Assignee, stores.Repo, stores.Issue, stores.Pull, stores.User),
 		Star:             NewStarService(stores.Star, stores.Repo, stores.User),
 		Release:          NewReleaseService(stores.Release, stores.Repo, code),
-		CommitStatus:     NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code),
+		CommitStatus:     commitStatusSvc,
 		Milestone:        NewMilestoneService(stores.Milestone, stores.Repo),
 		PullReview:       NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo, stores.BranchProtection),
 		PullLineComment:  NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),

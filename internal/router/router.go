@@ -95,6 +95,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/gists", h.PageUserGists)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
+	r.With(authMW).Post("/{owner}/{repo}/settings/general", h.UpdateRepoGeneral)
+	r.With(authMW).Post("/{owner}/{repo}/settings/features", h.UpdateRepoFeatures)
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases", h.PageReleases)
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases/tag/{tagName}", h.PageReleaseDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/stargazers", h.PageStargazers)
@@ -114,6 +116,10 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}/*", h.PageTree)
 	r.With(optAuthMW).Get("/{owner}/{repo}/blob/{ref}/*", h.PageBlob)
 	r.With(optAuthMW).Get("/{owner}/{repo}/blame/{ref}/*", h.PageBlame)
+	r.With(authMW).Get("/{owner}/{repo}/new/{ref}", h.PageNewFile)
+	r.With(authMW).Get("/{owner}/{repo}/new/{ref}/*", h.PageNewFile)
+	r.With(authMW).Post("/{owner}/{repo}/new/{ref}", h.SubmitNewFile)
+	r.With(optAuthMW).Get("/{owner}/{repo}/archive/{ref}", h.DownloadArchive)
 	r.With(optAuthMW).Get("/{owner}/{repo}/commits", h.PageCommitsRedirect)
 	r.With(optAuthMW).Get("/{owner}/{repo}/commits/{ref}", h.PageCommits)
 	r.With(optAuthMW).Get("/{owner}/{repo}/commits/{ref}/*", h.PageCommits)
@@ -128,6 +134,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/projects/{id}", h.PageProjectDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/discussions", h.PageDiscussions)
 	r.With(optAuthMW).Get("/{owner}/{repo}/discussions/{number}", h.PageDiscussionDetail)
+	r.With(optAuthMW).Get("/{owner}/{repo}/actions", h.PageActions)
 
 	// OAuth routes
 	r.Get("/auth/google", h.GoogleOAuthBegin)
@@ -171,6 +178,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Get("/", h.ListRepos)
 		r.With(authMW).Post("/", h.CreateRepo)
 		r.Get("/{owner}/{repo}", h.GetRepo)
+		r.With(authMW).Patch("/{owner}/{repo}", h.UpdateRepo)
 
 		// Issues
 		r.Route("/{owner}/{repo}/issues", func(r chi.Router) {
@@ -300,6 +308,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.With(authMW).Post("/{owner}/{repo}/archive", h.ArchiveRepo)
 		r.With(authMW).Post("/{owner}/{repo}/unarchive", h.UnarchiveRepo)
 
+		// Delete
+		r.With(authMW).Post("/{owner}/{repo}/delete", h.DeleteRepo)
+
 		// Template
 		r.With(authMW).Patch("/{owner}/{repo}/template", h.SetRepoTemplate)
 
@@ -330,6 +341,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		// Projects
 		r.Route("/{owner}/{repo}/projects", func(r chi.Router) {
 			r.With(authMW).Post("/", h.CreateProject)
+			r.With(authMW).Patch("/{id}", h.UpdateProject)
 			r.With(authMW).Delete("/{id}", h.DeleteProject)
 			r.With(authMW).Post("/{id}/columns", h.CreateColumn)
 			r.With(authMW).Delete("/{id}/columns/{colID}", h.DeleteColumn)

@@ -19,6 +19,12 @@ type DiscussionsData struct {
 	Categories       []model.DiscussionCategory
 	Discussions      []model.Discussion
 	ActiveCategoryID int64
+	CategoryCounts   map[int64]int
+	TotalCount       int
+	StateFilter      string
+	OpenCount        int
+	AnsweredCount    int
+	ClosedCount      int
 	CanWrite         bool
 }
 
@@ -107,12 +113,16 @@ type DependenciesData struct {
 
 type ProjectsData struct {
 	BasePage
-	Repo      model.Repository
-	Owner     string
-	RepoName  string
-	Projects  []model.Project
-	CanWrite  bool
-	CanManage bool
+	Repo        model.Repository
+	Owner       string
+	RepoName    string
+	Items       []service.ProjectListView
+	StateFilter string // "open" | "closed"
+	SearchQuery string
+	OpenCount   int
+	ClosedCount int
+	CanWrite    bool
+	CanManage   bool
 }
 
 type ProjectDetailData struct {
@@ -169,4 +179,11 @@ type ContributorsData struct {
 	BasePage
 	Repo *model.Repository
 	Rows []service.ContributorWithTimeline
+}
+
+type ActionsData struct {
+	BasePage
+	Repo     model.Repository
+	Owner    string
+	RepoName string
 }

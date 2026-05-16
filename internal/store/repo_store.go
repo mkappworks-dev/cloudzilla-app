@@ -56,12 +56,14 @@ func (s *RepoStore) GetByOwnerName(ctx context.Context, ownerName, name string) 
 	var orgID, forkOfID sql.NullInt64
 	var archivedAt sql.NullTime
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
-		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template
+		`SELECT id, owner_id, owner_name, org_id, name, description, website, license, private, default_branch, created_at, updated_at,
+		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template,
+		        allow_issues, allow_discussions, allow_projects, allow_wiki
 		 FROM repositories WHERE owner_name = $1 AND name = $2 AND deleted_at IS NULL`,
 		ownerName, name,
-	).Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
-		&r.IsFork, &forkOfID, &r.ForkCount, &r.IsArchived, &archivedAt, &r.IsTemplate)
+	).Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Website, &r.License, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
+		&r.IsFork, &forkOfID, &r.ForkCount, &r.IsArchived, &archivedAt, &r.IsTemplate,
+		&r.AllowIssues, &r.AllowDiscussions, &r.AllowProjects, &r.AllowWiki)
 	if err != nil {
 		return nil, fmt.Errorf("repo get by owner name: %w", err)
 	}
@@ -158,6 +160,28 @@ func (s *RepoStore) GetPermission(ctx context.Context, repoID, userID int64) (st
 		return "", fmt.Errorf("get permission: %w", err)
 	}
 	return role, nil
+}
+
+func (s *RepoStore) UpdateGeneral(ctx context.Context, repoID int64, description, website, defaultBranch string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET description = $1, website = $2, default_branch = $3, updated_at = $4 WHERE id = $5`,
+		description, website, defaultBranch, time.Now().UTC(), repoID,
+	)
+	if err != nil {
+		return fmt.Errorf("update repo general settings: %w", err)
+	}
+	return nil
+}
+
+func (s *RepoStore) UpdateFeatureToggles(ctx context.Context, repoID int64, issues, discussions, projects, wiki bool) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET allow_issues = $1, allow_discussions = $2, allow_projects = $3, allow_wiki = $4, updated_at = $5 WHERE id = $6`,
+		issues, discussions, projects, wiki, time.Now().UTC(), repoID,
+	)
+	if err != nil {
+		return fmt.Errorf("update repo feature toggles: %w", err)
+	}
+	return nil
 }
 
 func (s *RepoStore) UpdateOwner(ctx context.Context, repoID, newOwnerID int64, newOwnerName string) error {
@@ -296,12 +320,14 @@ func (s *RepoStore) GetByID(ctx context.Context, id int64) (*model.Repository, e
 	var orgID, forkOfID sql.NullInt64
 	var archivedAt sql.NullTime
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
-		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template
+		`SELECT id, owner_id, owner_name, org_id, name, description, website, license, private, default_branch, created_at, updated_at,
+		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template,
+		        allow_issues, allow_discussions, allow_projects, allow_wiki
 		 FROM repositories WHERE id = $1 AND deleted_at IS NULL`,
 		id,
-	).Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
-		&r.IsFork, &forkOfID, &r.ForkCount, &r.IsArchived, &archivedAt, &r.IsTemplate)
+	).Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Website, &r.License, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
+		&r.IsFork, &forkOfID, &r.ForkCount, &r.IsArchived, &archivedAt, &r.IsTemplate,
+		&r.AllowIssues, &r.AllowDiscussions, &r.AllowProjects, &r.AllowWiki)
 	if err != nil {
 		return nil, fmt.Errorf("repo get by id: %w", err)
 	}
@@ -339,6 +365,17 @@ func (s *RepoStore) SetTemplate(ctx context.Context, repoID int64, isTemplate bo
 	)
 	if err != nil {
 		return fmt.Errorf("set template: %w", err)
+	}
+	return nil
+}
+
+func (s *RepoStore) UpdateMeta(ctx context.Context, repoID int64, description, website, license string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET description = $1, website = $2, license = $3, updated_at = $4 WHERE id = $5`,
+		description, website, license, time.Now().UTC(), repoID,
+	)
+	if err != nil {
+		return fmt.Errorf("update repo meta: %w", err)
 	}
 	return nil
 }

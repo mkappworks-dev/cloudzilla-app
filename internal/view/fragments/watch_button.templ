@@ -1,65 +1,46 @@
 package fragments
 
-import "github.com/mkappworks-dev/cloudzilla-app/internal/view"
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+)
 
 templ WatchButton(data view.WatchButtonData) {
-	<div id="watch-button" class="relative flex items-center">
+	<div id="watch-button" class="flex border border-border rounded-md overflow-hidden">
 		if data.LoggedIn {
-			if data.Level == "watching" || data.Level == "releases_only" || data.Level == "ignoring" {
-				<div class="flex items-center" x-data="{ open: false }">
-					<button
-						hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
-						hx-target="#watch-button"
-						hx-swap="outerHTML"
-						class={ "inline-flex items-center gap-1 px-3 py-1.5 border rounded-l text-sm font-medium transition-colors",
-							templ.KV("border-primary/40 bg-primary/10 text-foreground hover:bg-primary/10", data.Level != "ignoring"),
-							templ.KV("border-input bg-muted text-muted-foreground hover:bg-muted", data.Level == "ignoring") }
-					>
-						if data.Level == "watching" {
-							&#128065; Watching
-						} else if data.Level == "releases_only" {
-							&#128276; Releases only
-						} else {
-							&#128274; Ignoring
-						}
-					</button>
-					<div class="relative">
-						<button
-							@click="open = !open"
-							class={ "inline-flex items-center px-2 py-1.5 border border-l-0 rounded-r text-sm font-medium transition-colors",
-								templ.KV("border-primary/40 bg-primary/10 text-foreground hover:bg-primary/10", data.Level != "ignoring"),
-								templ.KV("border-input bg-muted text-muted-foreground hover:bg-muted", data.Level == "ignoring") }
-						>
-							&#9660;
-						</button>
-						<div
-							x-show="open"
-							@click.outside="open = false"
-							class="absolute right-0 mt-1 w-48 bg-background border border-border rounded shadow-lg z-10"
-						>
-							<button hx-put={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" } hx-vals={ `{"level":"watching"}` } hx-target="#watch-button" hx-swap="outerHTML" class="block w-full text-left px-4 py-2 text-sm hover:bg-muted/40">&#128065; Watching</button>
-							<button hx-put={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" } hx-vals={ `{"level":"releases_only"}` } hx-target="#watch-button" hx-swap="outerHTML" class="block w-full text-left px-4 py-2 text-sm hover:bg-muted/40">&#128276; Releases only</button>
-							<button hx-put={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" } hx-vals={ `{"level":"ignoring"}` } hx-target="#watch-button" hx-swap="outerHTML" class="block w-full text-left px-4 py-2 text-sm hover:bg-muted/40">&#128274; Ignoring</button>
-							<hr class="my-1"/>
-							<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" } hx-target="#watch-button" hx-swap="outerHTML" class="block w-full text-left px-4 py-2 text-sm text-destructive hover:bg-muted/40">Unwatch</button>
-						</div>
-					</div>
-				</div>
+			if data.Level != "" {
+				<button
+					hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
+					hx-target="#watch-button"
+					hx-swap="outerHTML"
+					type="button"
+					aria-pressed="true"
+					class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 bg-accent text-foreground hover:bg-accent/70"
+				>
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+					Watching
+				</button>
 			} else {
 				<button
 					hx-put={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
 					hx-vals={ `{"level":"watching"}` }
 					hx-target="#watch-button"
 					hx-swap="outerHTML"
-					class="inline-flex items-center gap-1 px-3 py-1.5 border border-border bg-background text-foreground rounded text-sm font-medium hover:bg-muted/40 transition-colors"
+					type="button"
+					aria-pressed="false"
+					class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 hover:bg-accent"
 				>
-					&#128065; Watch
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+					Watch
 				</button>
 			}
 		} else {
-			<a href="/login" class="inline-flex items-center gap-1 px-3 py-1.5 border border-border bg-background text-foreground rounded text-sm font-medium hover:bg-muted/40 transition-colors">
-				&#128065; Watch
+			<a href="/login" class="h-8 px-3 text-[13px] inline-flex items-center gap-1.5 hover:bg-accent">
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+				Watch
 			</a>
 		}
+		<span class="h-8 inline-flex items-center px-3 text-[13px] font-mono border-l border-border text-muted-foreground">{ strconv.Itoa(data.Count) }</span>
 	</div>
 }

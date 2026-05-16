@@ -1,0 +1,50 @@
+package components
+
+type ReviewerPickerData struct {
+	Suggested []ReviewerOption
+	All       []ReviewerOption
+}
+
+type ReviewerOption struct {
+	Username string
+	Reason   string // "CODEOWNERS" or "recent contributor"
+	Selected bool
+}
+
+templ ReviewerPicker(d ReviewerPickerData) {
+	<fieldset class="space-y-2">
+		<legend class="text-sm font-medium">Reviewers</legend>
+		if len(d.Suggested) > 0 {
+			<p class="text-xs text-muted-foreground">Suggested</p>
+			<ul class="space-y-1">
+				for _, opt := range d.Suggested {
+					@reviewerOption(opt)
+				}
+			</ul>
+		}
+		<details class="mt-2">
+			<summary class="text-xs text-muted-foreground cursor-pointer hover:text-foreground">All users</summary>
+			<ul class="space-y-1 mt-1 max-h-48 overflow-y-auto">
+				for _, opt := range d.All {
+					@reviewerOption(opt)
+				}
+			</ul>
+		</details>
+	</fieldset>
+}
+
+templ reviewerOption(opt ReviewerOption) {
+	<li>
+		<label class="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded text-sm cursor-pointer">
+			if opt.Selected {
+				<input type="checkbox" name="reviewers" value={ opt.Username } checked class="h-4 w-4 rounded border-border"/>
+			} else {
+				<input type="checkbox" name="reviewers" value={ opt.Username } class="h-4 w-4 rounded border-border"/>
+			}
+			<span class="flex-1">{ opt.Username }</span>
+			if opt.Reason != "" {
+				<span class="text-[10px] uppercase tracking-wider text-muted-foreground/70">{ opt.Reason }</span>
+			}
+		</label>
+	</li>
+}
