@@ -596,14 +596,12 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		diff = &service.PRDiffResult{}
 	}
 
+	// Anchor index must match the pr_files template's section id="diff-N" — both
+	// iterate Diff.Files in order, so sidebar links resolve to the right section.
 	tree := make([]components.DiffFileTreeItem, 0, len(diff.Files))
 	for i, f := range diff.Files {
-		path := f.NewPath
-		if f.IsDelete {
-			path = f.OldPath
-		}
 		tree = append(tree, components.DiffFileTreeItem{
-			Path:    path,
+			Path:    f.DisplayPath(),
 			Anchor:  fmt.Sprintf("diff-%d", i),
 			Added:   f.Added,
 			Deleted: f.Deleted,

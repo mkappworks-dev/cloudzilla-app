@@ -30,16 +30,16 @@ templ pullFilesBody(data view.PullFilesData) {
 			@components.DiffFileTree(data.Tree)
 			<main class="flex-1 min-w-0 space-y-4">
 				for i, f := range data.Diff.Files {
-					{{ path := f.NewPath }}
-					if f.IsDelete {
-						{{ path = f.OldPath }}
-					}
 					<section id={ fmt.Sprintf("diff-%d", i) } class="rounded-md border border-border bg-card">
 						<header class="px-4 py-2 border-b border-border flex items-center gap-3 text-sm">
-							<span class="font-mono truncate flex-1">{ path }</span>
+							<span class="font-mono truncate flex-1">{ f.DisplayPath() }</span>
 							if !f.IsBinary {
-								<span class="text-success">{ fmt.Sprintf("+%d", f.Added) }</span>
-								<span class="text-destructive">{ fmt.Sprintf("-%d", f.Deleted) }</span>
+								if f.Added > 0 {
+									<span class="text-success">{ fmt.Sprintf("+%d", f.Added) }</span>
+								}
+								if f.Deleted > 0 {
+									<span class="text-destructive">{ fmt.Sprintf("-%d", f.Deleted) }</span>
+								}
 							}
 						</header>
 						if f.IsBinary {

@@ -57,6 +57,14 @@ type FileDiff struct {
 	Hunks    []DiffHunk
 }
 
+// DisplayPath returns the path to show: the new path, or old path when deleted.
+func (f FileDiff) DisplayPath() string {
+	if f.IsDelete {
+		return f.OldPath
+	}
+	return f.NewPath
+}
+
 // CommitDetail holds full metadata and file diffs for a single commit.
 type CommitDetail struct {
 	Hash         string
