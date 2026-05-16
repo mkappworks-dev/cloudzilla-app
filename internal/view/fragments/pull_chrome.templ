@@ -1,0 +1,70 @@
+package fragments
+
+import (
+	"fmt"
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
+
+// PullChromeData carries everything the chrome needs. AuthorUsername is
+// pre-resolved by the handler; empty string falls back to Pull.AuthorName.
+type PullChromeData struct {
+	OwnerName      string
+	Repo           *model.Repository
+	Pull           *model.PullRequest
+	AuthorUsername string
+	Active         string // "conversation", "commits", "checks", "files"
+}
+
+templ PullChrome(data PullChromeData, children templ.Component) {
+	<div class="space-y-6">
+		<div>
+			<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+				<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name) } class="hover:underline">{ data.Repo.Name }</a>
+				<span aria-hidden="true">·</span>
+				<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name + "/pulls") } class="hover:underline">Pull requests</a>
+			</p>
+			<div class="flex justify-between items-start gap-4 mb-3">
+				<div class="flex-1 min-w-0">
+					<h1 class="text-2xl font-semibold tracking-tight flex items-center gap-2 flex-wrap">
+						{ data.Pull.Title }
+						<span class="text-muted-foreground font-normal">#{ strconv.Itoa(data.Pull.Number) }</span>
+					</h1>
+					<p class="text-sm text-muted-foreground mt-2">
+						if data.AuthorUsername != "" {
+							by <a href={ templ.SafeURL("/" + data.AuthorUsername) } class="hover:underline text-foreground">{ data.AuthorUsername }</a>
+						} else {
+							by <a href={ templ.SafeURL("/" + data.Pull.AuthorName) } class="hover:underline text-foreground">{ data.Pull.AuthorName }</a>
+						}
+						<span aria-hidden="true">·</span>
+						<time datetime={ data.Pull.CreatedAt.UTC().Format("2006-01-02T15:04:05Z") }>{ data.Pull.CreatedAt.Format("Jan 2, 2006") }</time>
+						<span aria-hidden="true">·</span>
+						<span class="font-mono text-xs px-1.5 py-0.5 bg-muted border border-border rounded">{ data.Pull.HeadBranch }</span>
+						<span aria-hidden="true">→</span>
+						<span class="font-mono text-xs px-1.5 py-0.5 bg-muted border border-border rounded">{ data.Pull.BaseBranch }</span>
+					</p>
+				</div>
+				@components.PullStateBadge(data.Pull.State, data.Pull.IsDraft)
+			</div>
+			<nav aria-label="Pull request sections" class="border-b border-border">
+				<div class="flex gap-1 -mb-px">
+					@pullChromeTab(data, "conversation", "Conversation", fmt.Sprintf("/%s/%s/pulls/%d", data.OwnerName, data.Repo.Name, data.Pull.Number))
+					@pullChromeTab(data, "commits", "Commits", fmt.Sprintf("/%s/%s/pulls/%d/commits", data.OwnerName, data.Repo.Name, data.Pull.Number))
+					@pullChromeTab(data, "checks", "Checks", fmt.Sprintf("/%s/%s/pulls/%d/checks", data.OwnerName, data.Repo.Name, data.Pull.Number))
+					@pullChromeTab(data, "files", "Files changed", fmt.Sprintf("/%s/%s/pulls/%d/files", data.OwnerName, data.Repo.Name, data.Pull.Number))
+				</div>
+			</nav>
+		</div>
+		@children
+	</div>
+}
+
+templ pullChromeTab(data PullChromeData, key, label, href string) {
+	if data.Active == key {
+		<a href={ templ.SafeURL(href) } aria-current="page" class="px-3 py-2 text-sm font-medium text-foreground border-b-2 border-foreground">{ label }</a>
+	} else {
+		<a href={ templ.SafeURL(href) } class="px-3 py-2 text-sm text-muted-foreground hover:text-foreground border-b-2 border-transparent">{ label }</a>
+	}
+}

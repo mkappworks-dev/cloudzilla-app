@@ -424,12 +424,18 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		mergeabilityBox.ApprovedReviews = approvedReviews
 	}
 
+	var authorUsername string
+	if author, err := h.Services.User.GetByID(r.Context(), pull.AuthorID); err == nil {
+		authorUsername = author.Username
+	}
+
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
 		BasePage:          withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage2),
 		Repo:              *repo,
 		Pull:              *pull,
 		Owner:             owner,
 		RepoName:          repoName,
+		AuthorUsername:    authorUsername,
 		Diff:              diff,
 		BodyHTML:          markdown.Render(pull.Body),
 		Labels:            pullLabels2,

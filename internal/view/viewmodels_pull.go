@@ -27,6 +27,7 @@ type PullDetailData struct {
 	Pull              model.PullRequest
 	Owner             string
 	RepoName          string
+	AuthorUsername    string // resolved by handler; empty -> chrome falls back to Pull.AuthorName
 	Diff              *service.PRDiffResult
 	BodyHTML          string
 	Labels            []model.Label
