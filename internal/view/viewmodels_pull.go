@@ -54,6 +54,7 @@ type PullCommitsData struct {
 	Pull           *model.PullRequest
 	AuthorUsername string
 	Commits        []service.CommitSummary
+	LoadError      bool
 }
 
 type PullChecksData struct {
@@ -63,6 +64,7 @@ type PullChecksData struct {
 	Pull           *model.PullRequest
 	AuthorUsername string
 	Rows           []components.CheckRow
+	LoadError      bool
 }
 
 type PullFilesData struct {
@@ -73,6 +75,7 @@ type PullFilesData struct {
 	AuthorUsername string
 	Tree           []components.DiffFileTreeItem
 	Diff           *service.PRDiffResult
+	LoadError      bool
 }
 
 type PullNewData struct {

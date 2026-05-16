@@ -479,10 +479,12 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var loadErrCommits bool
 	commits, err := h.Services.Code.PullCommits(owner, repoName, pull.BaseBranch, pull.HeadBranch)
 	if err != nil {
 		slog.Warn("pull commits: git walk failed", "owner", owner, "repo", repoName, "pull_number", number, "error", err)
 		commits = nil
+		loadErrCommits = true
 	}
 
 	var authorUsername string
@@ -490,7 +492,7 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 		authorUsername = author.Username
 	} else {
 		slog.Warn("pull commits: author lookup failed; falling back to name",
-			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+			"owner", owner, "repo", repoName, "pull_number", number, "author_id", pull.AuthorID, "error", err)
 	}
 
 	canManage := false
@@ -505,6 +507,7 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 		Pull:           pull,
 		AuthorUsername: authorUsername,
 		Commits:        commits,
+		LoadError:      loadErrCommits,
 	}))
 }
 
@@ -530,10 +533,13 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var rows []components.CheckRow
+	var loadErrChecks bool
 	if headCommit, _, rerr := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); rerr != nil {
 		slog.Warn("pull checks: ref resolution failed", "owner", owner, "repo", repoName, "pull_number", number, "error", rerr)
+		loadErrChecks = true
 	} else if statuses, serr := h.Services.CommitStatus.List(r.Context(), owner, repoName, headCommit.Hash.String()); serr != nil {
 		slog.Warn("pull checks: status list failed", "owner", owner, "repo", repoName, "pull_number", number, "error", serr)
+		loadErrChecks = true
 	} else {
 		rows = make([]components.CheckRow, 0, len(statuses))
 		for _, s := range statuses {
@@ -551,7 +557,7 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 		authorUsername = author.Username
 	} else {
 		slog.Warn("pull checks: author lookup failed; falling back to name",
-			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+			"owner", owner, "repo", repoName, "pull_number", number, "author_id", pull.AuthorID, "error", err)
 	}
 
 	canManage := false
@@ -566,6 +572,7 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 		Pull:           pull,
 		AuthorUsername: authorUsername,
 		Rows:           rows,
+		LoadError:      loadErrChecks,
 	}))
 }
 
@@ -590,10 +597,12 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var loadErrFiles bool
 	diff, err := h.Services.Code.GetPullDiff(owner, repoName, pull.BaseBranch, pull.HeadBranch)
 	if err != nil {
 		slog.Warn("pull files: get pull diff failed", "owner", owner, "repo", repoName, "pull_number", number, "error", err)
 		diff = &service.PRDiffResult{}
+		loadErrFiles = true
 	}
 
 	// Anchor index must match the pr_files template's section id="diff-N" — both
@@ -613,7 +622,7 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		authorUsername = author.Username
 	} else {
 		slog.Warn("pull files: author lookup failed; falling back to name",
-			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+			"owner", owner, "repo", repoName, "pull_number", number, "author_id", pull.AuthorID, "error", err)
 	}
 
 	canManage := false
@@ -629,6 +638,7 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		AuthorUsername: authorUsername,
 		Tree:           tree,
 		Diff:           diff,
+		LoadError:      loadErrFiles,
 	}))
 }
 

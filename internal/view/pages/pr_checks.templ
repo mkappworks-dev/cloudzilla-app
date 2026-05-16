@@ -23,7 +23,9 @@ templ PullChecks(data view.PullChecksData) {
 
 templ pullChecksBody(data view.PullChecksData) {
 	<div class="mt-4">
-		if len(data.Rows) == 0 {
+		if data.LoadError {
+			@components.EmptyState("Status checks couldn't be loaded.")
+		} else if len(data.Rows) == 0 {
 			@components.EmptyState("No status checks reported for this PR yet.")
 		} else {
 			@components.ChecksList(data.Rows)

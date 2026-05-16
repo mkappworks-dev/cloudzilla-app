@@ -95,7 +95,12 @@ func pullChecksBody(data view.PullChecksData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if len(data.Rows) == 0 {
+		if data.LoadError {
+			templ_7745c5c3_Err = components.EmptyState("Status checks couldn't be loaded.").Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		} else if len(data.Rows) == 0 {
 			templ_7745c5c3_Err = components.EmptyState("No status checks reported for this PR yet.").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err

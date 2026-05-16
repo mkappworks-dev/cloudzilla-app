@@ -23,7 +23,9 @@ templ PullCommits(data view.PullCommitsData) {
 
 templ pullCommitsBody(data view.PullCommitsData) {
 	<div class="mt-4">
-		if len(data.Commits) == 0 {
+		if data.LoadError {
+			@components.EmptyState("Commits couldn't be loaded.")
+		} else if len(data.Commits) == 0 {
 			@components.EmptyState("No commits between base and head.")
 		} else {
 			<div class="space-y-4">

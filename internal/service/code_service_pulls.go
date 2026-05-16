@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -27,10 +29,13 @@ func (s *CodeService) PullCommits(owner, repoName, base, head string) ([]CommitS
 	if err != nil {
 		return nil, err
 	}
-	_ = iterBase.ForEach(func(c *object.Commit) error {
+	if walkErr := iterBase.ForEach(func(c *object.Commit) error {
 		excluded[c.Hash] = true
 		return nil
-	})
+	}); walkErr != nil {
+		iterBase.Close()
+		return nil, fmt.Errorf("walk base history: %w", walkErr)
+	}
 	iterBase.Close()
 
 	iter, err := repo.Log(&gogit.LogOptions{From: headCommit.Hash, Order: gogit.LogOrderCommitterTime})
