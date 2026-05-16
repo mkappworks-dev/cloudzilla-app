@@ -113,6 +113,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls/{number}", h.PagePullDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls/{number}/commits", h.PagePullCommits)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls/{number}/checks", h.PagePullChecks)
+	r.With(optAuthMW).Get("/{owner}/{repo}/pulls/{number}/files", h.PagePullFiles)
 	r.With(optAuthMW).Get("/{owner}/{repo}/refs", h.PageRefs)
 	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}", h.PageTree)
 	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}/*", h.PageTree)

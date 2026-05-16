@@ -65,6 +65,16 @@ type PullChecksData struct {
 	Rows           []components.CheckRow
 }
 
+type PullFilesData struct {
+	BasePage
+	OwnerName      string
+	Repo           *model.Repository
+	Pull           *model.PullRequest
+	AuthorUsername string
+	Tree           []components.DiffFileTreeItem
+	Diff           *service.PRDiffResult
+}
+
 type PullNewData struct {
 	BasePage
 	Repo         model.Repository
