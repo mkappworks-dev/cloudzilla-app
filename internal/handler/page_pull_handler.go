@@ -509,6 +509,66 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
+// PagePullChecks renders the CI/status checks sub-view for a pull request.
+func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		http.Error(w, "invalid pull number", http.StatusBadRequest)
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	var rows []components.CheckRow
+	if headCommit, _, rerr := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); rerr == nil {
+		if statuses, serr := h.Services.CommitStatus.List(r.Context(), owner, repoName, headCommit.Hash.String()); serr == nil {
+			rows = make([]components.CheckRow, 0, len(statuses))
+			for _, s := range statuses {
+				rows = append(rows, components.CheckRow{
+					Context:     s.Context,
+					State:       string(s.State),
+					Description: s.Description,
+					URL:         s.TargetURL,
+				})
+			}
+		}
+	}
+
+	var authorUsername string
+	if author, err := h.Services.User.GetByID(r.Context(), pull.AuthorID); err == nil {
+		authorUsername = author.Username
+	} else {
+		slog.Warn("pull checks: author lookup failed; falling back to name",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+	}
+
+	canManage := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	}
+
+	h.render(w, r, pages.PullChecks(view.PullChecksData{
+		BasePage:       withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+		OwnerName:      owner,
+		Repo:           repo,
+		Pull:           pull,
+		AuthorUsername: authorUsername,
+		Rows:           rows,
+	}))
+}
+
 func pullInitials(name string) string {
 	parts := strings.Fields(name)
 	if len(parts) == 0 {

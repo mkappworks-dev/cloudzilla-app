@@ -57,6 +57,16 @@ type PullCommitsData struct {
 	Commits        []service.CommitSummary
 }
 
+// PullChecksData holds template data for the PR checks sub-view.
+type PullChecksData struct {
+	BasePage
+	OwnerName      string
+	Repo           *model.Repository
+	Pull           *model.PullRequest
+	AuthorUsername string
+	Rows           []components.CheckRow
+}
+
 type PullNewData struct {
 	BasePage
 	Repo         model.Repository

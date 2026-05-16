@@ -1,0 +1,32 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ PullChecks(data view.PullChecksData) {
+	@layout.Base(data.BasePage, "Checks · "+data.Pull.Title+" · PR #"+strconv.Itoa(data.Pull.Number)+" · "+data.OwnerName+"/"+data.Repo.Name) {
+		@fragments.PullChrome(fragments.PullChromeData{
+			OwnerName:      data.OwnerName,
+			Repo:           data.Repo,
+			Pull:           data.Pull,
+			AuthorUsername: data.AuthorUsername,
+			Active:         "checks",
+		}, pullChecksBody(data))
+	}
+}
+
+templ pullChecksBody(data view.PullChecksData) {
+	<div class="mt-4">
+		if len(data.Rows) == 0 {
+			@components.EmptyState("No status checks reported for this PR yet.")
+		} else {
+			@components.ChecksList(data.Rows)
+		}
+	</div>
+}
