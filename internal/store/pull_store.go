@@ -60,10 +60,13 @@ func (s *PullStore) Create(ctx context.Context, pr *model.PullRequest) error {
 
 func (s *PullStore) List(ctx context.Context, repoID int64) ([]model.PullRequest, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
-		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy
-		 FROM pull_requests WHERE repo_id = $1 ORDER BY number DESC`,
+		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
+		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
+		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
+		        pr.auto_merge_enabled, pr.auto_merge_strategy
+		 FROM pull_requests pr
+		 LEFT JOIN users u ON u.id = pr.author_id
+		 WHERE pr.repo_id = $1 ORDER BY pr.number DESC`,
 		repoID,
 	)
 	if err != nil {
@@ -163,12 +166,14 @@ func (s *PullStore) ListByState(ctx context.Context, repoID int64, state model.P
 		limitParam = sql.NullInt64{Int64: int64(limit), Valid: true}
 	}
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
-		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy
-		 FROM pull_requests
-		 WHERE repo_id = $1 AND ($2 = '' OR state = $2)
-		 ORDER BY number DESC LIMIT $3 OFFSET $4`,
+		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
+		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
+		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
+		        pr.auto_merge_enabled, pr.auto_merge_strategy
+		 FROM pull_requests pr
+		 LEFT JOIN users u ON u.id = pr.author_id
+		 WHERE pr.repo_id = $1 AND ($2 = '' OR pr.state = $2)
+		 ORDER BY pr.number DESC LIMIT $3 OFFSET $4`,
 		repoID, string(state), limitParam, offset,
 	)
 	if err != nil {
@@ -180,10 +185,13 @@ func (s *PullStore) ListByState(ctx context.Context, repoID int64, state model.P
 
 func (s *PullStore) ListOpen(ctx context.Context, repoID int64) ([]model.PullRequest, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
-		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy
-		 FROM pull_requests WHERE repo_id = $1 AND state = 'open' ORDER BY number DESC`,
+		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
+		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
+		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
+		        pr.auto_merge_enabled, pr.auto_merge_strategy
+		 FROM pull_requests pr
+		 LEFT JOIN users u ON u.id = pr.author_id
+		 WHERE pr.repo_id = $1 AND pr.state = 'open' ORDER BY pr.number DESC`,
 		repoID,
 	)
 	if err != nil {
@@ -232,7 +240,7 @@ func scanPullRows(rows *sql.Rows) ([]model.PullRequest, error) {
 		var mergedAt, closedAt, draftAt sql.NullTime
 		var autoMergeStrategy sql.NullString
 		if err := rows.Scan(
-			&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
+			&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.AuthorName, &pr.Title, &pr.Body,
 			&pr.State, &pr.HeadBranch, &pr.BaseBranch,
 			&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
 			&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy,
@@ -334,13 +342,15 @@ func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNu
 	// so prose mentions like "see #N for context" do not register as linked PRs.
 	pattern := fmt.Sprintf(`\y(close[sd]?|fix(es|ed)?|resolve[sd]?)\y:?[[:space:]]+#%d(\D|$)`, issueNumber)
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
-		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy
-		 FROM pull_requests
-		 WHERE repo_id = $1
-		   AND (title ~* $2 OR body ~* $2)
-		 ORDER BY number DESC`,
+		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
+		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
+		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
+		        pr.auto_merge_enabled, pr.auto_merge_strategy
+		 FROM pull_requests pr
+		 LEFT JOIN users u ON u.id = pr.author_id
+		 WHERE pr.repo_id = $1
+		   AND (pr.title ~* $2 OR pr.body ~* $2)
+		 ORDER BY pr.number DESC`,
 		repoID, pattern,
 	)
 	if err != nil {

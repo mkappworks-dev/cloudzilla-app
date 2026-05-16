@@ -21,6 +21,7 @@ type PullService struct {
 	reviewStore   *store.PullReviewStore
 	labelStore    *store.LabelStore
 	assigneeStore *store.AssigneeStore
+	commentStore  *store.CommentStore
 	contribStats  *store.ContributorStatsStore
 	userStore     *store.UserStore
 }
@@ -30,12 +31,13 @@ func NewPullService(pulls *store.PullStore, repos *store.RepoStore, repoSvc *Rep
 	return &PullService{pulls: pulls, repos: repos, repoSvc: repoSvc}
 }
 
-func (s *PullService) WithCIDeps(code *CodeService, commitStatus *CommitStatusService, reviews *store.PullReviewStore, labels *store.LabelStore, assignees *store.AssigneeStore) *PullService {
+func (s *PullService) WithCIDeps(code *CodeService, commitStatus *CommitStatusService, reviews *store.PullReviewStore, labels *store.LabelStore, assignees *store.AssigneeStore, comments *store.CommentStore) *PullService {
 	s.code = code
 	s.commitStatus = commitStatus
 	s.reviewStore = reviews
 	s.labelStore = labels
 	s.assigneeStore = assignees
+	s.commentStore = comments
 	return s
 }
 
@@ -43,6 +45,9 @@ type PullListRow struct {
 	model.PullRequest
 	HeadSHA       string
 	CIStatus      string
+	CIPassing     int
+	CITotal       int
+	CommentCount  int
 	Reviewers     []model.PullReview
 	LabelChips    []model.Label
 	AssigneeChips []model.User
@@ -83,6 +88,12 @@ func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName stri
 			return nil, fmt.Errorf("list assignees: %w", err)
 		}
 	}
+	var commentsByPull map[int64]int
+	if s.commentStore != nil {
+		if commentsByPull, err = s.commentStore.CountByPullIDs(ctx, pullIDs); err != nil {
+			return nil, fmt.Errorf("count comments: %w", err)
+		}
+	}
 
 	out := make([]PullListRow, 0, len(pulls))
 	for _, p := range pulls {
@@ -91,13 +102,20 @@ func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName stri
 			Reviewers:     reviewsByPull[p.ID],
 			LabelChips:    labelsByPull[p.ID],
 			AssigneeChips: assigneesByPull[p.ID],
+			CommentCount:  commentsByPull[p.ID],
 		}
 		if s.code != nil {
 			if commit, _, err := s.code.ResolveRef(owner, repoName, p.HeadBranch); err == nil {
 				row.HeadSHA = commit.Hash.String()
 				if s.commitStatus != nil {
-					if combined, _, err := s.commitStatus.GetCombined(ctx, owner, repoName, row.HeadSHA); err == nil {
+					if combined, statuses, err := s.commitStatus.GetCombined(ctx, owner, repoName, row.HeadSHA); err == nil {
 						row.CIStatus = string(combined)
+						row.CITotal = len(statuses)
+						for _, st := range statuses {
+							if st.State == model.CommitStatusSuccess {
+								row.CIPassing++
+							}
+						}
 					}
 				}
 			}

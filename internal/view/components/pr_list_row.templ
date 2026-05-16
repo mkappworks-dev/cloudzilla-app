@@ -3,6 +3,7 @@ package components
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -13,6 +14,9 @@ type PRListRowData struct {
 	Author              string
 	State               string // "open", "draft", "merged", "closed"
 	CIStatus            string
+	CIPassing           int
+	CITotal             int
+	CommentCount        int
 	LabelChips          []LabelChip
 	ReviewerAvatars     []string // initials
 	OpenedAt            string   // pre-formatted relative
@@ -26,52 +30,111 @@ type LabelChip struct {
 templ PRListRow(d PRListRowData) {
 	<li class="border-b border-border last:border-0">
 		<a href={ templ.SafeURL(fmt.Sprintf("/%s/%s/pulls/%d", d.OwnerName, d.RepoName, d.Number)) }
-		   class="flex items-center gap-3 px-4 py-3 hover:bg-accent">
-			@prStateIcon(d.State)
-			<div class="flex-1 min-w-0">
-				<p class="font-medium text-sm truncate">{ d.Title }</p>
-				<p class="text-xs text-muted-foreground mt-0.5">
-					{ fmt.Sprintf("#%d opened %s by %s", d.Number, d.OpenedAt, d.Author) }
-				</p>
-				if len(d.LabelChips) > 0 {
-					<ul class="flex flex-wrap gap-1 mt-1">
-						for _, lab := range d.LabelChips {
-							<li class="text-[10px] px-1.5 py-0.5 rounded font-medium" style={ labelChipStyle(lab.Color) }>{ lab.Name }</li>
-						}
-					</ul>
-				}
+			class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100">
+			<div class="flex items-start gap-3 mb-1.5">
+				@prStateIcon(d.State)
+				<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+					<p class="text-[13.5px] font-medium leading-snug group-hover:underline">{ d.Title }</p>
+					@prStateBadge(d.State)
+				</div>
 			</div>
-			@prCIBadge(d.CIStatus)
-			<div class="flex -space-x-1.5">
-				for _, r := range d.ReviewerAvatars {
-					<span class="h-5 w-5 rounded-full bg-muted border border-background grid place-items-center text-[10px] font-medium">{ r }</span>
-				}
+			<div class="flex items-center justify-between gap-3 pl-[27px]">
+				<div class="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-wrap">
+					<span class="font-mono">{ fmt.Sprintf("#%d", d.Number) }</span>
+					<span class="opacity-50" aria-hidden="true">·</span>
+					<span class="inline-grid place-items-center h-4 w-4 rounded-full bg-muted border border-border text-[8px] font-medium" aria-hidden="true">{ initials(d.Author) }</span>
+					<span>{ d.Author }</span>
+					<span class="opacity-50" aria-hidden="true">·</span>
+					<span>{ d.OpenedAt }</span>
+					if len(d.LabelChips) > 0 {
+						<span class="opacity-50 mx-0.5" aria-hidden="true">·</span>
+						for _, lab := range d.LabelChips {
+							<span class="text-[10px] px-[7px] py-px rounded-full border font-medium whitespace-nowrap" style={ labelChipStyle(lab.Color) }>{ lab.Name }</span>
+						}
+					}
+				</div>
+				<div class="flex items-center gap-3 text-xs shrink-0">
+					if len(d.ReviewerAvatars) > 0 {
+						<div class="flex -space-x-1.5" aria-label={ fmt.Sprintf("%d reviewers", len(d.ReviewerAvatars)) }>
+							for _, rv := range d.ReviewerAvatars {
+								<span class="h-5 w-5 rounded-full bg-muted ring-2 ring-background grid place-items-center text-[9px] font-medium text-muted-foreground">{ rv }</span>
+							}
+						</div>
+					}
+					@prCIBadge(d.CIStatus, d.CIPassing, d.CITotal)
+					if d.CommentCount > 0 {
+						<span class="text-muted-foreground inline-flex items-center gap-1" title={ fmt.Sprintf("%d comments", d.CommentCount) }>
+							<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
+							{ strconv.Itoa(d.CommentCount) }
+						</span>
+					}
+				</div>
 			</div>
 		</a>
 	</li>
 }
 
-templ prStateIcon(state string) {
+templ prStateBadge(state string) {
 	switch state {
 	case "merged":
-		<svg width="14" height="14" viewBox="0 0 24 24" class="text-primary flex-none" aria-label="merged" fill="currentColor"><circle cx="12" cy="12" r="3"/><path d="M14 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+		@Badge(BadgeMerged) {
+			Merged
+		}
 	case "draft":
-		<svg width="14" height="14" viewBox="0 0 24 24" class="text-muted-foreground flex-none" aria-label="draft" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>
+		@Badge(BadgeDraft) {
+			Draft
+		}
 	case "closed":
-		<svg width="14" height="14" viewBox="0 0 24 24" class="text-destructive flex-none" aria-label="closed" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+		@Badge(BadgeDestructive) {
+			Closed
+		}
 	default:
-		<svg width="14" height="14" viewBox="0 0 24 24" class="text-success flex-none" aria-label="open" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 9V3"/></svg>
+		@Badge(BadgeSuccess) {
+			Open
+		}
 	}
 }
 
-templ prCIBadge(state string) {
+templ prStateIcon(state string) {
 	switch state {
-	case "success":
-		<span class="text-success" title="CI passing" aria-label="CI passing">✓</span>
-	case "failure", "error":
-		<span class="text-destructive" title="CI failing" aria-label="CI failing">✗</span>
-	case "pending":
-		<span class="text-warning" title="CI pending" aria-label="CI pending">●</span>
+	case "merged":
+		<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-[hsl(270_70%_70%)]" aria-hidden="true">
+			<path d="M5 3.254V3.25v.005a.75.75 0 110-.005v.004zm.45 1.9a2.25 2.25 0 10-1.95.218v5.256a2.25 2.25 0 101.5 0V7.123A5.735 5.735 0 009.25 9h1.378a2.251 2.251 0 100-1.5H9.25a4.25 4.25 0 01-3.8-2.346zM12.75 9a.75.75 0 100-1.5.75.75 0 000 1.5zm-8.5 4.5a.75.75 0 100-1.5.75.75 0 000 1.5z"></path>
+		</svg>
+	case "draft":
+		<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true">
+			<path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm6.5-9.25a2.25 2.25 0 113 2.122V10.5a2.25 2.25 0 11-1.5 0V4.622a2.25 2.25 0 01-1.5-2.122zm2.25-.75a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5z"></path>
+		</svg>
+	case "closed":
+		<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true">
+			<path d="M3.25 1A2.25 2.25 0 014 5.372v5.256a2.251 2.251 0 11-1.5 0V5.372A2.251 2.251 0 013.25 1zm9.5 14a2.25 2.25 0 110-4.5 2.25 2.25 0 010 4.5zM2.5 3.25a.75.75 0 101.5 0 .75.75 0 00-1.5 0zM3.25 12a.75.75 0 100 1.5.75.75 0 000-1.5zm9.5 0a.75.75 0 100 1.5.75.75 0 000-1.5zm1.28-9.53a.75.75 0 010 1.06l-1.97 1.97 1.97 1.97a.75.75 0 11-1.06 1.06l-1.97-1.97-1.97 1.97a.75.75 0 01-1.06-1.06l1.97-1.97-1.97-1.97a.75.75 0 011.06-1.06l1.97 1.97 1.97-1.97a.75.75 0 011.06 0z"></path>
+		</svg>
+	default:
+		<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-success" aria-hidden="true">
+			<path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zm5.677-.177L9.573.677A.25.25 0 0110 .854V2.5h1A2.5 2.5 0 0113.5 5v5.628a2.251 2.251 0 11-1.5 0V5a1 1 0 00-1-1h-1v1.646a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm8.25.75a.75.75 0 101.5 0 .75.75 0 00-1.5 0z"></path>
+		</svg>
+	}
+}
+
+templ prCIBadge(state string, passing, total int) {
+	if total > 0 {
+		switch state {
+		case "success":
+			<span class="text-success inline-flex items-center gap-1" title="All checks passing" aria-label="CI passing">
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+				<span class="font-mono text-[11px]">{ fmt.Sprintf("%d/%d", passing, total) }</span>
+			</span>
+		case "failure", "error":
+			<span class="text-destructive inline-flex items-center gap-1" title="Some checks failing" aria-label="CI failing">
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+				<span class="font-mono text-[11px]">{ fmt.Sprintf("%d/%d", passing, total) }</span>
+			</span>
+		default:
+			<span class="text-warning inline-flex items-center gap-1" title="Checks in progress" aria-label="CI pending">
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+				<span class="font-mono text-[11px]">{ fmt.Sprintf("%d/%d", passing, total) }</span>
+			</span>
+		}
 	}
 }
 
@@ -87,5 +150,5 @@ func labelChipStyle(hex string) string {
 		r, g, b := string(hex[1]), string(hex[2]), string(hex[3])
 		full6 = "#" + strings.Repeat(r, 2) + strings.Repeat(g, 2) + strings.Repeat(b, 2)
 	}
-	return "background-color: " + full6 + "26; color: " + full6
+	return "background-color: " + full6 + "26; color: " + full6 + "; border-color: " + full6 + "59"
 }

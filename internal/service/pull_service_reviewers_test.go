@@ -194,7 +194,7 @@ func TestSuggestReviewers_PrefersCodeOwners(t *testing.T) {
 	}
 
 	pullSvc := service.NewPullService(store.NewPullStore(db), repoStore, repoSvc).
-		WithCIDeps(codeSvc, nil, nil, nil, nil).
+		WithCIDeps(codeSvc, nil, nil, nil, nil, nil).
 		WithReviewerDeps(store.NewContributorStatsStore(db), userStore)
 
 	ctx := context.Background()

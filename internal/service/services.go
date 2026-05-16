@@ -68,7 +68,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
-		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee,
+		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
 	).WithReviewerDeps(stores.ContributorStats, stores.User)
 	return &Services{
 		User:             userSvc,
