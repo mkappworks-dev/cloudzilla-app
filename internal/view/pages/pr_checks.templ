@@ -18,8 +18,13 @@ templ PullChecks(data view.PullChecksData) {
 			AuthorUsername: data.AuthorUsername,
 			Active:         "checks",
 			CanWrite:       data.CanWrite,
-			ChecksTotal:    len(data.Rows),
-			ChecksPassed:   checksPassedCount(data.Rows),
+			ConvCount:      data.ConvCount,
+			CommitsCount:   data.CommitsCount,
+			ChecksTotal:    data.ChecksTotal,
+			ChecksPassed:   data.ChecksPassed,
+			FilesCount:     data.FilesCount,
+			Added:          data.Added,
+			Deleted:        data.Deleted,
 		}, pullChecksBody(data))
 	}
 }

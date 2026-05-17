@@ -162,6 +162,7 @@ func (h *Handler) AddPullAssignee(w http.ResponseWriter, r *http.Request) {
 	h.recordPullAssigneeEvent(r, owner, repoName, number, username, model.PullEventAssigned)
 
 	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Assignee added")
 		h.renderPullAssigneeFragment(w, r, owner, repoName, number)
 		return
 	}
@@ -207,6 +208,7 @@ func (h *Handler) RemovePullAssignee(w http.ResponseWriter, r *http.Request) {
 	h.recordPullAssigneeEvent(r, owner, repoName, number, username, model.PullEventUnassigned)
 
 	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Assignee removed")
 		h.renderPullAssigneeFragment(w, r, owner, repoName, number)
 		return
 	}

@@ -22,9 +22,13 @@ templ PullFiles(data view.PullFilesData) {
 			AuthorUsername: data.AuthorUsername,
 			Active:         "files",
 			CanWrite:       data.CanWrite,
-			FilesCount:     prFilesCount(data.Diff),
-			Added:          prDiffAdded(data.Diff),
-			Deleted:        prDiffDeleted(data.Diff),
+			ConvCount:      data.ConvCount,
+			CommitsCount:   data.CommitsCount,
+			ChecksTotal:    data.ChecksTotal,
+			ChecksPassed:   data.ChecksPassed,
+			FilesCount:     data.FilesCount,
+			Added:          data.Added,
+			Deleted:        data.Deleted,
 		}, pullFilesBody(data))
 	}
 }

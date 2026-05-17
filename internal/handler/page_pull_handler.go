@@ -499,7 +499,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		Participants:      participants,
 		LinkedIssues:      linkedIssues,
 		Events:            pullEvents,
-		CommitsCount:      mergeabilityBox.Ahead,
+		PullChromeCounts:  h.pullChromeCounts(r.Context(), owner, repoName, pull),
 		CanMerge:          canMerge,
 		MergeBlockReason:  mergeBlockReason,
 		AutoMergeEnabled:  pull.AutoMergeEnabled,
@@ -554,14 +554,15 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.PullCommits(view.PullCommitsData{
-		BasePage:       withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
-		OwnerName:      owner,
-		Repo:           repo,
-		Pull:           pull,
-		AuthorUsername: authorUsername,
-		Commits:        commits,
-		CanWrite:       canWrite,
-		LoadError:      loadErrCommits,
+		BasePage:         withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+		OwnerName:        owner,
+		Repo:             repo,
+		Pull:             pull,
+		AuthorUsername:   authorUsername,
+		Commits:          commits,
+		CanWrite:         canWrite,
+		PullChromeCounts: h.pullChromeCounts(r.Context(), owner, repoName, pull),
+		LoadError:        loadErrCommits,
 	}))
 }
 
@@ -628,15 +629,16 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.PullChecks(view.PullChecksData{
-		BasePage:       withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
-		OwnerName:      owner,
-		Repo:           repo,
-		Pull:           pull,
-		AuthorUsername: authorUsername,
-		Rows:           rows,
-		HeadSHA:        headSHA,
-		CanWrite:       canWrite,
-		LoadError:      loadErrChecks,
+		BasePage:         withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+		OwnerName:        owner,
+		Repo:             repo,
+		Pull:             pull,
+		AuthorUsername:   authorUsername,
+		Rows:             rows,
+		HeadSHA:          headSHA,
+		CanWrite:         canWrite,
+		PullChromeCounts: h.pullChromeCounts(r.Context(), owner, repoName, pull),
+		LoadError:        loadErrChecks,
 	}))
 }
 
@@ -707,17 +709,53 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.PullFiles(view.PullFilesData{
-		BasePage:       withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
-		OwnerName:      owner,
-		Repo:           repo,
-		Pull:           pull,
-		AuthorUsername: authorUsername,
-		Tree:           tree,
-		Diff:           diff,
-		CanWrite:       canWrite,
-		LineComments:   lineComments,
-		LoadError:      loadErrFiles,
+		BasePage:         withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+		OwnerName:        owner,
+		Repo:             repo,
+		Pull:             pull,
+		AuthorUsername:   authorUsername,
+		Tree:             tree,
+		Diff:             diff,
+		CanWrite:         canWrite,
+		LineComments:     lineComments,
+		PullChromeCounts: h.pullChromeCounts(r.Context(), owner, repoName, pull),
+		LoadError:        loadErrFiles,
 	}))
+}
+
+// pullChromeCounts computes the tab-badge counts shown in the shared PR header.
+// Every PR sub-view calls it so the header is identical across all tabs.
+func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, pull *model.PullRequest) view.PullChromeCounts {
+	var c view.PullChromeCounts
+	if commits, err := h.Services.Code.PullCommits(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
+		c.CommitsCount = len(commits)
+	}
+	if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); err == nil {
+		if statuses, err := h.Services.CommitStatus.List(ctx, owner, repoName, headCommit.Hash.String()); err == nil {
+			c.ChecksTotal = len(statuses)
+			for _, s := range statuses {
+				if s.State == model.CommitStatusSuccess {
+					c.ChecksPassed++
+				}
+			}
+		}
+	}
+	if diff, err := h.Services.Code.GetPullDiff(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
+		c.FilesCount = len(diff.Files)
+		c.Added = diff.TotalAdded
+		c.Deleted = diff.TotalDeleted
+	}
+	if comments, err := h.Services.Comment.ListByPull(ctx, pull.ID); err == nil {
+		c.ConvCount += len(comments)
+	}
+	if reviews, err := h.Services.PullReview.ListByPull(ctx, owner, repoName, pull.Number); err == nil {
+		for _, rv := range reviews {
+			if rv.State != model.PRReviewPending {
+				c.ConvCount++
+			}
+		}
+	}
+	return c
 }
 
 var pullIssueRefRe = regexp.MustCompile(`#(\d+)`)

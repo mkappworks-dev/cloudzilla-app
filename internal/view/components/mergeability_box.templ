@@ -107,7 +107,7 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 					<button type="button" hx-patch={ d.PatchURL } hx-vals={ `{"state":"merged","merge_strategy":"ff"}` } hx-target="closest section" hx-swap="outerHTML" class="h-9 px-3 text-[13px] border border-border rounded-md hover:bg-accent">Fast-forward</button>
 				}
 			}
-			<button type="button" hx-patch={ d.PatchURL } hx-vals={ `{"state":"closed"}` } hx-target="closest section" hx-swap="outerHTML" class="ml-auto h-9 px-3 text-[13px] text-muted-foreground hover:text-foreground">Close pull request</button>
+			<button type="button" hx-patch={ d.PatchURL } hx-vals={ `{"state":"closed"}` } hx-swap="none" hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request closed'}));location.reload();}" class="ml-auto h-9 px-3 text-[13px] text-muted-foreground hover:text-foreground">Close pull request</button>
 		</footer>
 	</section>
 }

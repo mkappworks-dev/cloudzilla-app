@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
@@ -22,13 +21,13 @@ templ PullDetail(data view.PullDetailData) {
 			AuthorUsername: data.AuthorUsername,
 			Active:         "conversation",
 			CanWrite:       data.CanWrite,
-			ConvCount:      len(data.Comments) + len(submittedReviews(data.Reviews)),
+			ConvCount:      data.ConvCount,
 			CommitsCount:   data.CommitsCount,
-			ChecksTotal:    len(data.HeadStatuses),
-			ChecksPassed:   prChecksPassed(data.HeadStatuses),
-			FilesCount:     prFilesCount(data.Diff),
-			Added:          prDiffAdded(data.Diff),
-			Deleted:        prDiffDeleted(data.Diff),
+			ChecksTotal:    data.ChecksTotal,
+			ChecksPassed:   data.ChecksPassed,
+			FilesCount:     data.FilesCount,
+			Added:          data.Added,
+			Deleted:        data.Deleted,
 		}, pullDetailBody(data))
 	}
 }
@@ -79,7 +78,7 @@ templ pullDetailBody(data view.PullDetailData) {
 						}
 					</div>
 					if data.CanWrite {
-						<form id="desc-editor" class="hidden" hx-patch={ apiBase } hx-swap="none" hx-on--after-request="if(event.detail.successful) location.reload()">
+						<form id="desc-editor" class="hidden" hx-patch={ apiBase } hx-swap="none" hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Description updated'}));location.reload();}">
 							<div class="rounded-md border border-border overflow-hidden">
 								@components.MarkdownEditor("desc-body", "body", data.Pull.Body, "Edit the description…", 14)
 							</div>
@@ -148,11 +147,11 @@ templ pullDetailBody(data view.PullDetailData) {
 							<p class="text-[11px] text-muted-foreground font-mono flex-1">Markdown supported · drop files to attach</p>
 							if data.CanWrite && data.Pull.State == model.PRStateOpen {
 								@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
-									"hx-patch":              apiBase,
-									"hx-vals":               `{"state":"closed"}`,
-									"hx-swap":               "none",
-									"hx-on--after-request":  "if(event.detail.successful) location.reload()",
-									"type":                  "button",
+									"hx-patch":             apiBase,
+									"hx-vals":              `{"state":"closed"}`,
+									"hx-swap":              "none",
+									"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request closed'}));location.reload();}",
+									"type":                 "button",
 								}) {
 									Close pull request
 								}
@@ -494,37 +493,6 @@ func prAuthor(data view.PullDetailData) string {
 		return data.AuthorUsername
 	}
 	return data.Pull.AuthorName
-}
-
-func prChecksPassed(statuses []model.CommitStatus) int {
-	n := 0
-	for _, s := range statuses {
-		if s.State == model.CommitStatusSuccess {
-			n++
-		}
-	}
-	return n
-}
-
-func prFilesCount(d *service.PRDiffResult) int {
-	if d == nil {
-		return 0
-	}
-	return len(d.Files)
-}
-
-func prDiffAdded(d *service.PRDiffResult) int {
-	if d == nil {
-		return 0
-	}
-	return d.TotalAdded
-}
-
-func prDiffDeleted(d *service.PRDiffResult) int {
-	if d == nil {
-		return 0
-	}
-	return d.TotalDeleted
 }
 
 func participantsNoun(n int) string {

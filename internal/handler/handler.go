@@ -32,6 +32,20 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
+// toast queues a toast notification on the response via the HX-Trigger header.
+// The ToastContainer's listener turns it into a visible toast. Must be called
+// before the response body is written. toastType: "success" | "error" |
+// "warning" | "default".
+func toast(w http.ResponseWriter, toastType, message string) {
+	payload, err := json.Marshal(map[string]any{
+		"toast": map[string]string{"type": toastType, "message": message},
+	})
+	if err != nil {
+		return
+	}
+	w.Header().Set("HX-Trigger", string(payload))
+}
+
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, component templ.Component) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := component.Render(r.Context(), w); err != nil {

@@ -182,6 +182,7 @@ func (h *Handler) CreatePullComment(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Comment added")
 		h.render(w, r, fragments.Comment(view.CommentFragData{
 			Comment: view.RenderedComment{Comment: *comment, BodyHTML: renderMentionsHTML(markdown.Render(comment.Body))},
 		}))

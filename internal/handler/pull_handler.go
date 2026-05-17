@@ -228,10 +228,13 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		draftEvent := model.PullEventReadied
+		toastMsg := "Marked ready for review"
 		if newDraft {
 			draftEvent = model.PullEventDrafted
+			toastMsg = "Converted to draft"
 		}
 		h.Services.PullEvent.Record(r.Context(), pr.ID, claims.UserID, claims.Username, draftEvent, "")
+		toast(w, "success", toastMsg)
 		if r.Header.Get("HX-Request") == "true" {
 			h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
 				Pull:              *pr,
@@ -337,10 +340,12 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		switch pr.State {
 		case model.PRStateMerged:
 			h.Services.PullEvent.Record(r.Context(), pr.ID, claims.UserID, claims.Username, model.PullEventMerged, "")
+			toast(w, "success", "Pull request merged")
 		case model.PRStateClosed:
 			h.Services.PullEvent.Record(r.Context(), pr.ID, claims.UserID, claims.Username, model.PullEventClosed, "")
 		case model.PRStateOpen:
 			h.Services.PullEvent.Record(r.Context(), pr.ID, claims.UserID, claims.Username, model.PullEventReopened, "")
+			toast(w, "success", "Pull request reopened")
 		}
 	}
 

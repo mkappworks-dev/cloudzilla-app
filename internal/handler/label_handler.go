@@ -312,6 +312,7 @@ func (h *Handler) AddPullLabel(w http.ResponseWriter, r *http.Request) {
 	h.recordPullLabelEvent(r, owner, repoName, number, labelID, model.PullEventLabeled)
 
 	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Label added")
 		h.renderPullLabelFragment(w, r, owner, repoName, number)
 		return
 	}
@@ -356,6 +357,7 @@ func (h *Handler) RemovePullLabel(w http.ResponseWriter, r *http.Request) {
 	h.recordPullLabelEvent(r, owner, repoName, number, labelID, model.PullEventUnlabeled)
 
 	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Label removed")
 		h.renderPullLabelFragment(w, r, owner, repoName, number)
 		return
 	}

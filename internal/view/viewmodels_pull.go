@@ -27,9 +27,23 @@ type LinkedIssue struct {
 	State  string
 }
 
+// PullChromeCounts holds the tab-badge counts shown in the shared PR header.
+// The same values are computed for every PR sub-view so the header is
+// identical across the Conversation, Commits, Checks, and Files tabs.
+type PullChromeCounts struct {
+	ConvCount    int
+	CommitsCount int
+	ChecksTotal  int
+	ChecksPassed int
+	FilesCount   int
+	Added        int
+	Deleted      int
+}
+
 // PullDetailData holds template data for the pull request detail page.
 type PullDetailData struct {
 	BasePage
+	PullChromeCounts
 	Repo              model.Repository
 	Pull              model.PullRequest
 	Owner             string
@@ -49,7 +63,6 @@ type PullDetailData struct {
 	Participants      []string
 	LinkedIssues      []LinkedIssue
 	Events            []model.PullEvent
-	CommitsCount      int
 	CanMerge          bool
 	MergeBlockReason  string
 	AutoMergeEnabled  bool
@@ -61,6 +74,7 @@ type PullDetailData struct {
 
 type PullCommitsData struct {
 	BasePage
+	PullChromeCounts
 	OwnerName      string
 	Repo           *model.Repository
 	Pull           *model.PullRequest
@@ -72,6 +86,7 @@ type PullCommitsData struct {
 
 type PullChecksData struct {
 	BasePage
+	PullChromeCounts
 	OwnerName      string
 	Repo           *model.Repository
 	Pull           *model.PullRequest
@@ -84,6 +99,7 @@ type PullChecksData struct {
 
 type PullFilesData struct {
 	BasePage
+	PullChromeCounts
 	OwnerName      string
 	Repo           *model.Repository
 	Pull           *model.PullRequest
