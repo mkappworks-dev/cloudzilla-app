@@ -168,6 +168,8 @@ templ Base(base view.BasePage, title string) {
 				</div>
 				if base.RepoSubnav != nil {
 					@fragments.RepoSubnav(*base.RepoSubnav)
+				} else if base.AccountSubnav != nil {
+					@fragments.AccountSubnav(*base.AccountSubnav)
 				}
 			</header>
 
