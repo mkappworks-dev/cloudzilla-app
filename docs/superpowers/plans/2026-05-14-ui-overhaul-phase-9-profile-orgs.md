@@ -6,11 +6,12 @@
 
 **Architecture:** Pinned repos stored as `users.pinned_repo_ids BIGINT[]` (recommended per spec) — small additive migration. Profile uses the `Heatmap` component from Phase 1 with 52 weeks of repo-scoped commit data for the profile owner.
 
-**Subnav alignment:** The user profile overview tab is rendered under the `DashboardSubnav` chrome with `Active: "overview"`. The organizations listing at `/settings/organizations` is account-settings chrome, NOT `DashboardSubnav` — it lives under the account-settings sidebar. The `new_organization` page renders with the standard global header (no subnav, like new_repo).
+**Subnav alignment:** `DashboardSubnav` no longer exists — the account-navigation feature deleted the unused stub and replaced it with `AccountSubnav` (5 tabs: Overview / Repositories / Gists / Pull requests / Issues). `AccountSubnav`'s "Overview" tab points at `/` (the logged-in dashboard), NOT a user profile — so the profile page does **not** render under `AccountSubnav`; it keeps its own in-page tab strip (`user.templ` already has Overview / Repositories / … tabs). The organizations listing at `/settings/organizations` is account-settings chrome — it lives under the account-settings sidebar. The `new_organization` page renders with the standard global header (no subnav, like new_repo).
 
 **Codebase verification (performed during plan review):**
 - Highest existing migration: `053_create_dependency_graph.sql` (verified via `ls internal/db/migrations/`).
-- Phase 1 migration is 054, Phase 3 is 055, Phase 7 is 056, Phase 8 is 057. Phase 9's migration is therefore **058**.
+- Phase 1 migration is 054, Phase 3 is 055, Phase 7 is 056, Phase 8 is 057. Phase 9's migration is therefore **058**. (The account-navigation feature added **no** migration — it reused existing tables — so this numbering is unaffected.)
+- `DashboardSubnav` was **deleted** by the account-navigation feature; `AccountSubnav` replaced it. The profile page is **not** one of `AccountSubnav`'s tabs — it renders with its own in-page tab strip (see "Subnav alignment" above).
 - `OrgService.ListForUser` / `OrgService.CountMembers` — **do not exist**. Only `ListOwnedByUser(ctx, userID)` (`internal/service/org_service.go:59`). Both must be added as real sub-tasks (see Task 6.1).
 - `EventService.RecentForUserActivity` — **does not exist**. The real method is `EventService.UserActivity(ctx, username string, page, pageSize int)` (`internal/service/event_service.go:76`); it takes a **username**, not a user ID.
 - `LanguageService` — **does not exist** as a Go service at all. We will add it as a new service in Task 5.0 (see below); its `AggregateForUser(ctx, userID, limit)` walks the user's owned repos via go-git blob streams.
@@ -349,7 +350,7 @@ data.MemberSince = user.CreatedAt
 
 - [ ] **Step 3: Body**
 
-Renders inside `DashboardSubnav` chrome with `Active: "overview"`.
+Renders under the standard global header with the profile's own in-page tab strip (`Active: "overview"`). It does NOT use `AccountSubnav` — see "Subnav alignment" above.
 
 Header card: avatar (large) + name + bio + location + company + email link + "Member since {MemberSince}". When `IsOwnProfile`, render an "Edit profile" link to `/settings/profile`. Below, the "Overview" tab body:
 - Pinned repos grid (max 6, each `@components.PinnedRepo(...)`)
@@ -653,7 +654,7 @@ Tests + lint + templ regen + visual sweep on profile / orgs list / org detail / 
 - [ ] Pinned-repo star counts are fetched via `StarStore.CountByRepo`, since `Repository` has no `StarCount` field.
 - [ ] Profile page omits follower/following counts, the Follow button, and the Share button (no follow system in Cloudzilla). Documented as future work.
 - [ ] Profile sidebar surfaces "Member since" from `User.CreatedAt`.
-- [ ] Profile renders inside `DashboardSubnav` with `Active: "overview"`.
+- [ ] Profile renders with its own in-page tab strip (NOT `AccountSubnav` — `DashboardSubnav` was deleted; the profile is not one of `AccountSubnav`'s 5 tabs).
 - [ ] Profile page handles a user with zero pinned repos / zero commits gracefully (heatmap renders empty grid).
 - [ ] Organizations listing drops the mockup's "Collaborator" badge — only `Owner` / `Member` variants are rendered.
 - [ ] Organizations listing lives under account-settings chrome at `/settings/organizations` (NOT `DashboardSubnav`).

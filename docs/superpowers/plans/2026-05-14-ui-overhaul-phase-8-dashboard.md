@@ -2,21 +2,41 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Reshape `user.templ` repositories tab; create new pages at `/pulls`, `/issues`, `/activity`, `/stars` for cross-repo dashboards. Reshape `feed.templ` to match the activity-feed mockup. Wire cross-repo queries.
+> ⚠️ **Revised 2026-05-18.** The **account-navigation feature** (built on branch
+> `feat/ui-overhaul-phase-5-pr-subviews`) absorbed roughly two-thirds of this
+> phase's original scope — the `/pulls` and `/issues` cross-repo pages, their
+> store/service queries, and the account subnav. See **"Already delivered"**
+> below. This plan now covers only the *residual* scope: the activity feed
+> reshape, the `/stars` page, the `user.templ` repositories tab, and the
+> `repositories.primary_language` column.
 
-**Architecture:** One required migration (`057_phase8_dashboard.sql`) introduces the missing schema this phase depends on. It must run before any of the cross-repo store changes compile. New routes `/pulls`, `/issues`, `/activity`, `/stars` all use the existing `fragments.DashboardSubnav` component from Phase 0 (revised subnav keys: `overview`, `repositories`, `gists`, `pull_requests`, `issues`, `activity`, `topics`, `settings`).
+**Goal:** Reshape `feed.templ` to match the activity-feed mockup and serve it at `/activity`; create `/stars` (cross-repo starred-repos page); reshape `user.templ`'s repositories tab; add `repositories.primary_language` so language-filter chips have a source column.
 
-**Migration numbering.** 053 is the last existing migration. Phase 1 = 054, Phase 3 = 055, Phase 7 = 056, **Phase 8 = 057.** Phase 8 ships a single migration that bundles three schema gaps the plan depends on:
+**Architecture:** One migration (`057_add_repo_primary_language.sql`) adds `repositories.primary_language`, populated on push by extending Phase 1's `RepoService.OnPostReceive`. The account-level pages built by the account-navigation feature render under **`AccountSubnav`** (5 pill tabs: Overview / Repositories / Gists / Pull requests / Issues). `/activity` and `/stars` are **not** among those five tabs — they render under the standard global header without an active subnav tab. Adding Activity/Stars as `AccountSubnav` tabs is a deliberate follow-up, out of scope here.
 
-1. Create the `pull_review_requests` table (does not exist anywhere in 001–053).
-2. Add `ref_id BIGINT` and `ref_type TEXT` columns to the existing `mentions` table (migration 039 only stores `comment_id`/`user_id` — it cannot answer cross-repo "mentioned on issue/PR" queries).
-3. Add a `primary_language TEXT` column to `repos` so the `/stars` and `?tab=repositories` language-filter chips have a source column. Populated on each push by extending Phase 1's `RepoService.OnPostReceive` hook.
-
-**Prerequisites:** Phase 7 merged.
+**Prerequisites:** Phase 7 merged; the account-navigation feature merged.
 
 **Spec:** [2026-05-14-ui-overhaul-design.md](../specs/2026-05-14-ui-overhaul-design.md)
 
 **Branch:** `feat/ui-overhaul-phase-8-dashboard`
+
+---
+
+## Already delivered by the account-navigation feature
+
+Do **not** re-implement any of the following — they exist on the merged feature:
+
+- **`AccountSubnav`** fragment (`internal/view/fragments/account_subnav.templ`) — 5 pill tabs, wired through `BasePage.AccountSubnav *view.AccountSubnavInfo`, rendered by `layout.templ`. This **replaces** the `DashboardSubnav` component the original plan assumed; the unused `dashboard_subnav.templ` stub was deleted.
+- **Routes `/repos`, `/pulls`, `/issues`** — registered with `authMW`, before the `/{owner}` catch-all. Handlers `PageAccountRepos` / `PageAccountPulls` / `PageAccountIssues` in `internal/handler/account_handler.go`.
+- **Pages** `account_repos.templ`, `account_pulls.templ`, `account_issues.templ`; view-models `AccountReposData` / `AccountPullsData` / `AccountIssuesData` in `internal/view/viewmodels.go`.
+- **Cross-repo queries** — `PullStore.ListForUser` + `ListByIDs` (modes `created` / `assigned` / `review_requested` / `mentioned`, plus `open`/`closed` state) and `IssueStore.ListForUser` + `ListByIDs` (modes `assigned` / `created` / `mentioned`). Row types `store.PullListItem` / `store.IssueListItem`. Service wrappers `PullService.ListForUser` / `IssueService.ListForUser`.
+- **Review-requests** resolve via the **existing `pull_reviews` table** (`PullReviewStore.ListPullIDsAwaitingReviewer`, filtering `state = 'pending'`, reviewer = `author_id`). The originally-planned `pull_review_requests` table is **not needed** and is dropped from this plan.
+- **"Mentioned" filter** resolves via the **existing `mentions` + `comments` tables** (`MentionStore.ListPullIDsMentioning` / `ListIssueIDsMentioning`). The originally-planned `mentions.ref_id` / `ref_type` columns are **not needed** and are dropped from this plan.
+- **Topbar repo-switcher** dropdown; `withRepoSubnav` is now an `h.withRepoSubnav(ctx, …)` method.
+
+## Migration numbering
+
+054 = Phase 1, 055 = Phase 3, 056 = Phase 7, **057 = Phase 8**, 058 = Phase 9. The account-navigation feature added **no** migration (it reused `permissions`, `pull_reviews`, `mentions`, `comments`, `pull_assignees`, `issue_assignees`), so this numbering is unchanged. Phase 8's migration shrinks to a single column add. (Note: the standalone `2026-05-15-contributor-stats-sha-dedup` plan also claims `056` — a pre-existing collision with Phase 7 that must be resolved when those plans are scheduled; it does not affect Phase 8.)
 
 ---
 
@@ -26,244 +46,54 @@
 
 ---
 
-### Task 2: Migration 057 — schema gaps required by this phase
+### Task 2: Migration 057 — `repositories.primary_language`
 
 **Files:**
-- Create: `internal/db/migrations/057_phase8_dashboard.sql`
-- Modify: `internal/store/pull_review_request_store.go` (new)
-- Modify: `internal/service/pull_service.go` (add `RequestReview` / `ListReviewRequests` wrappers)
-- Modify: `internal/store/stores.go` (wire `PullReviewRequestStore` into `Stores`)
-- Modify: `internal/service/repo_service.go` (extend `OnPostReceive` to set `primary_language`)
+- Create: `internal/db/migrations/057_add_repo_primary_language.sql`
 - Modify: `internal/model/repo.go` (add `PrimaryLanguage *string` field, `db:"primary_language"`)
+- Modify: `internal/store/repo_store.go` (add `UpdatePrimaryLanguage`)
+- Modify: `internal/service/repo_service.go` (extend `OnPostReceive`)
 
 - [ ] **Step 1: Write the migration**
 
 ```sql
--- 057_phase8_dashboard.sql
+-- 057_add_repo_primary_language.sql
+-- Cached primary language per repo, for the language-filter chips on /stars
+-- and the user repositories tab. Populated on push by RepoService.OnPostReceive.
 
--- 1. Review-request join table (drives /pulls?filter=review_requested).
-CREATE TABLE IF NOT EXISTS pull_review_requests (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    pull_id BIGINT NOT NULL REFERENCES pulls(id) ON DELETE CASCADE,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (pull_id, user_id)
-);
-CREATE INDEX IF NOT EXISTS idx_pull_review_requests_user ON pull_review_requests(user_id, pull_id);
-
--- 2. Generalise mentions so "mentioned" tab can filter by ref kind.
-ALTER TABLE mentions ADD COLUMN IF NOT EXISTS ref_id   BIGINT;
-ALTER TABLE mentions ADD COLUMN IF NOT EXISTS ref_type TEXT;
-CREATE INDEX IF NOT EXISTS idx_mentions_user_ref ON mentions(user_id, ref_type, ref_id);
-
--- 3. Cached primary language per repo for filter chips on /stars and ?tab=repositories.
-ALTER TABLE repos ADD COLUMN IF NOT EXISTS primary_language TEXT;
-CREATE INDEX IF NOT EXISTS idx_repos_primary_language ON repos(primary_language);
+ALTER TABLE repositories ADD COLUMN IF NOT EXISTS primary_language TEXT;
+CREATE INDEX IF NOT EXISTS idx_repositories_primary_language ON repositories(primary_language);
 ```
 
-- [ ] **Step 2: PullReviewRequestStore + service**
+Note: the table is `repositories` (verify with `\d repositories`). The original plan said `repos` — that was an error.
 
-Minimal store with `Create(ctx, pullID, userID)`, `Delete(ctx, pullID, userID)`, `ListByPull(ctx, pullID)`. Wire into `Stores` struct. Expose `PullService.RequestReview` / `RemoveReviewRequest` / `ListReviewRequests` wrappers.
-
-- [ ] **Step 3: Populate `primary_language` on push**
-
-In Phase 1's `RepoService.OnPostReceive`, after stats refresh, call `LanguageService.Composition(ctx, repoID).TopLanguage` (the helper Phase 1 introduces). Persist via a new `RepoStore.UpdatePrimaryLanguage(ctx, repoID, lang)` method. If the language service is not yet wired when this task is implemented, gate the call behind a nil-check and leave a `// TODO(phase1)` comment — chips fall back to "Unknown".
-
-- [ ] **Step 4: Run migration + commit**
+- [ ] **Step 2: Apply + verify**
 
 ```bash
 make migrate
-go test ./internal/store/ -run TestPullReviewRequestStore -v
-git add internal/db/migrations/057_phase8_dashboard.sql internal/store/ internal/service/ internal/model/repo.go
-git commit -m "feat(db): migration 057 — review requests, mention refs, primary_language"
+psql "$CZ_DATABASE_DSN" -c '\d repositories' | grep primary_language
+```
+
+- [ ] **Step 3: Model + store**
+
+Add `PrimaryLanguage *string` (`db:"primary_language"`, `json:"primary_language"`) to `model.Repository`. Add `RepoStore.UpdatePrimaryLanguage(ctx, repoID int64, lang string) error` — a single `UPDATE repositories SET primary_language = $2 WHERE id = $1`.
+
+- [ ] **Step 4: Populate `primary_language` on push**
+
+In Phase 1's `RepoService.OnPostReceive`, after the stats refresh, call the language service for the default branch's top language and persist it via `RepoStore.UpdatePrimaryLanguage`. If Phase 1's `LanguageService` is not yet wired when this task is implemented, gate the call behind a nil-check and leave a `// TODO(phase1): wire LanguageService` comment — chips fall back to "Unknown".
+
+- [ ] **Step 5: Run migration + commit**
+
+```bash
+make migrate
+go build ./...
+git add internal/db/migrations/057_add_repo_primary_language.sql internal/model/repo.go internal/store/repo_store.go internal/service/repo_service.go
+git commit -m "feat(db): migration 057 — repositories.primary_language + push-hook population"
 ```
 
 ---
 
-### Task 3: Cross-repo PR query — TDD
-
-**Files:**
-- Modify: `internal/store/pull_store.go`
-- Modify: `internal/service/pull_service.go`
-- Create: `internal/service/pull_service_crossrepo_test.go`
-
-- [ ] **Step 1: Failing test**
-
-```go
-func TestPullStore_ListForUserAcrossRepos(t *testing.T) {
-    db := testDB(t)
-    alice := seedUser(t, db, "alice")
-    bob := seedUser(t, db, "bob")
-    r := seedRepo(t, db, bob.ID, "demo")
-
-    pAuthored := seedPull(t, db, r.ID, alice.ID, "by alice")
-    _ = pAuthored
-
-    pReviewing := seedPull(t, db, r.ID, bob.ID, "review me")
-    addReviewRequest(t, db, pReviewing.ID, alice.ID)
-
-    pAssigned := seedPull(t, db, r.ID, bob.ID, "fix me")
-    addAssignee(t, db, pAssigned.ID, alice.ID)
-
-    s := NewPullStore(db)
-    rows, err := s.ListForUserAcrossRepos(context.Background(), alice.ID, "created", 50)
-    if err != nil { t.Fatalf("created: %v", err) }
-    if len(rows) != 1 || rows[0].Title != "by alice" {
-        t.Errorf("created filter: %+v", rows)
-    }
-
-    rows, _ = s.ListForUserAcrossRepos(context.Background(), alice.ID, "review_requested", 50)
-    if len(rows) != 1 || rows[0].Title != "review me" {
-        t.Errorf("review_requested filter: %+v", rows)
-    }
-
-    rows, _ = s.ListForUserAcrossRepos(context.Background(), alice.ID, "assigned", 50)
-    if len(rows) != 1 || rows[0].Title != "fix me" {
-        t.Errorf("assigned filter: %+v", rows)
-    }
-}
-```
-
-- [ ] **Step 2: Implement**
-
-```go
-// in internal/store/pull_store.go
-
-// ListForUserAcrossRepos returns PRs across every repo where the user
-// matches the filter. Filter is one of "created", "assigned",
-// "review_requested", "mentioned". Repos the user can't see (private
-// without membership) are filtered out at the join.
-func (s *PullStore) ListForUserAcrossRepos(ctx context.Context, userID int64, filter string, limit int) ([]PullListItem, error) {
-    var q string
-    switch filter {
-    case "created":
-        q = `
-            SELECT p.id, p.number, p.title, p.state, p.is_draft, p.updated_at,
-                   r.id AS repo_id, owner.username || '/' || r.name AS repo_full_name
-            FROM pulls p
-            JOIN repos r ON r.id = p.repo_id
-            JOIN users owner ON owner.id = r.owner_id
-            WHERE p.author_id = $1
-              AND r.deleted_at IS NULL
-              AND (r.private = false OR r.id IN (SELECT repo_id FROM permissions WHERE user_id = $1))
-            ORDER BY p.updated_at DESC
-            LIMIT $2
-        `
-    case "assigned":
-        q = `
-            SELECT p.id, p.number, p.title, p.state, p.is_draft, p.updated_at,
-                   r.id AS repo_id, owner.username || '/' || r.name AS repo_full_name
-            FROM pulls p
-            JOIN pull_assignees pa ON pa.pull_id = p.id
-            JOIN repos r ON r.id = p.repo_id
-            JOIN users owner ON owner.id = r.owner_id
-            WHERE pa.user_id = $1
-              AND r.deleted_at IS NULL
-              AND (r.private = false OR r.id IN (SELECT repo_id FROM permissions WHERE user_id = $1))
-            ORDER BY p.updated_at DESC
-            LIMIT $2
-        `
-    case "review_requested":
-        q = `
-            SELECT p.id, p.number, p.title, p.state, p.is_draft, p.updated_at,
-                   r.id AS repo_id, owner.username || '/' || r.name AS repo_full_name
-            FROM pulls p
-            JOIN pull_review_requests pr ON pr.pull_id = p.id
-            JOIN repos r ON r.id = p.repo_id
-            JOIN users owner ON owner.id = r.owner_id
-            WHERE pr.user_id = $1
-              AND r.deleted_at IS NULL
-              AND (r.private = false OR r.id IN (SELECT repo_id FROM permissions WHERE user_id = $1))
-            ORDER BY p.updated_at DESC
-            LIMIT $2
-        `
-    case "mentioned":
-        q = `
-            SELECT p.id, p.number, p.title, p.state, p.is_draft, p.updated_at,
-                   r.id AS repo_id, owner.username || '/' || r.name AS repo_full_name
-            FROM pulls p
-            JOIN mentions m ON m.ref_id = p.id AND m.ref_type = 'pull'
-            JOIN repos r ON r.id = p.repo_id
-            JOIN users owner ON owner.id = r.owner_id
-            WHERE m.user_id = $1
-              AND r.deleted_at IS NULL
-              AND (r.private = false OR r.id IN (SELECT repo_id FROM permissions WHERE user_id = $1))
-            ORDER BY p.updated_at DESC
-            LIMIT $2
-        `
-    default:
-        return nil, fmt.Errorf("unknown filter: %s", filter)
-    }
-    var out []PullListItem
-    if err := s.db.SelectContext(ctx, &out, q, userID, limit); err != nil {
-        return nil, err
-    }
-    return out, nil
-}
-```
-
-**Schema notes (verified against migrations 001–053 + new 057):**
-- `pulls` has **no** `deleted_at`; soft-delete is on `repos` only (migration 051). Guard with `r.deleted_at IS NULL`, not `p.deleted_at IS NULL`.
-- The repo-collaborator table is `permissions` (migration 006), not `repo_collaborators`. The visibility sub-query is `(SELECT repo_id FROM permissions WHERE user_id = $1)`.
-- `pull_assignees` / `issue_assignees` come from migration 017 — names are correct.
-- `pull_review_requests` and `mentions.ref_id` / `mentions.ref_type` are introduced by migration 057 (Task 2 above).
-
-- [ ] **Step 3: Service wrapper + benchmark**
-
-```go
-func (s *PullService) ListForUserAcrossRepos(ctx context.Context, userID int64, filter string, limit int) ([]model.PullRequest, error) {
-    return s.store.ListForUserAcrossRepos(ctx, userID, filter, limit)
-}
-```
-
-Run a quick benchmark on the dev seed:
-
-```bash
-go test -bench BenchmarkListForUserAcrossRepos -benchtime 10s -count 3 ./internal/store/
-```
-
-If p95 > 200ms on the seed, append the following indexes to migration 057 (do NOT create a separate migration — the number is already taken by this phase):
-
-```sql
--- Append to 057_phase8_dashboard.sql if benchmark exceeds threshold.
-CREATE INDEX IF NOT EXISTS idx_pull_assignees_user  ON pull_assignees(user_id, pull_id);
-CREATE INDEX IF NOT EXISTS idx_pulls_author         ON pulls(author_id, updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_issue_assignees_user ON issue_assignees(user_id, issue_id);
-CREATE INDEX IF NOT EXISTS idx_issues_author        ON issues(author_id, updated_at DESC);
-```
-
-(No `WHERE deleted_at IS NULL` partial indexes — neither `pulls` nor `issues` has a `deleted_at` column. `idx_pull_review_requests_user` and `idx_mentions_user_ref` are already created in Step 1.)
-
-Skip the index addition if the benchmark passes.
-
-- [ ] **Step 4: Run tests, commit**
-
-```bash
-go test ./internal/store/ -run TestPullStore_ListForUserAcrossRepos -v
-git add internal/store/pull_store.go internal/service/pull_service.go internal/service/pull_service_crossrepo_test.go
-git commit -m "feat(store): add ListForUserAcrossRepos with filter on PullStore"
-```
-
----
-
-### Task 4: Cross-repo issue query — TDD
-
-Same pattern as Task 3, mirroring for `IssueStore.ListForUserAcrossRepos(ctx, userID, filter, limit)` where filter is `created` / `assigned` / `mentioned` (issues have no review-request concept). Test asserts each filter returns the right issues.
-
-**Same schema rules apply:**
-- Soft-delete column lives on `repos` only — guard with `r.deleted_at IS NULL`, never `i.deleted_at IS NULL`.
-- Visibility join uses `permissions` (not `repo_collaborators`).
-- `mentions` rows for issues use `ref_type = 'issue'` (after migration 057).
-
-```bash
-go test ./internal/store/ -run TestIssueStore_ListForUserAcrossRepos -v
-git add internal/store/issue_store.go internal/service/issue_service.go internal/service/issue_service_crossrepo_test.go
-git commit -m "feat(store): add ListForUserAcrossRepos with filter on IssueStore"
-```
-
----
-
-### Task 5: `ActivityRow` component
+### Task 3: `ActivityRow` component
 
 **Files:**
 - Create: `internal/view/components/activity_row.templ`
@@ -317,38 +147,27 @@ templ activityIcon(kind string) {
 }
 ```
 
-Test, regenerate, commit.
+- [ ] Test (renders actor/subject/verb for a sample kind), regenerate (`~/go/bin/templ generate`), commit.
+
+```bash
+git add internal/view/components/activity_row.templ internal/view/components/activity_row_templ.go internal/view/components/activity_row_test.go
+git commit -m "feat(ui): add ActivityRow component"
+```
 
 ---
 
-### Task 6: New routes — `/pulls`, `/issues`, `/activity`, `/stars`
+### Task 4: `/activity` page — reshape `feed.templ`
 
 **Files:**
+- Modify: `internal/view/pages/feed.templ`, `internal/handler/feed_handler.go`
+- Modify: `internal/view/viewmodels.go` (add `ActivityData`)
 - Modify: `internal/router/router.go`
-- Create: `internal/handler/dashboard_handler.go` (or extend `page_handler.go`)
-- Modify: `internal/handler/viewmodels.go` (add view-model structs — see Step 0 below)
 
-- [ ] **Step 0: View-models**
+- [ ] **Step 1: View-model**
 
-Add the four structs to `internal/handler/viewmodels.go` (this is where every other page in the codebase keeps its data type; `internal/view/view.go` does not exist). Each embeds the standard `BasePage` so the navbar / unread badge / user menu still work:
+Add to `internal/view/viewmodels.go` (alongside `AccountReposData` etc. — that is where the account-navigation feature placed page view-models):
 
 ```go
-// in internal/handler/viewmodels.go
-
-type MyPullsData struct {
-    BasePage
-    Username string
-    Filter   string // "created" | "assigned" | "review_requested" | "mentioned"
-    Pulls    []store.PullListItem
-}
-
-type MyIssuesData struct {
-    BasePage
-    Username string
-    Filter   string // "created" | "assigned" | "mentioned"
-    Issues   []store.IssueListItem
-}
-
 type ActivityData struct {
     BasePage
     Username string
@@ -356,8 +175,52 @@ type ActivityData struct {
     Page     int
     HasMore  bool
 }
+```
 
-type MyStarsData struct {
+- [ ] **Step 2: Reuse the existing feed wiring**
+
+There is no `EventService.RecentForUser`. The real method is `EventService.Feed(ctx, userID, page, pageSize)` (`internal/service/event_service.go:47`), already called from `feed_handler.go:29`:
+
+```go
+events, err := h.Services.Event.Feed(r.Context(), int(claims.UserID), page, pageSize+1)
+```
+
+This task is a template + view-model reshape; the service layer needs no change.
+
+- [ ] **Step 3: Route `/activity`**
+
+Register `/activity` alongside the existing `/feed` route, both behind `authMW`, pointing at the same handler (or a thin `PageActivity` wrapper). Both URLs render the same page during the migration.
+
+```go
+r.With(authMW).Get("/activity", h.PageActivity)
+```
+
+- [ ] **Step 4: Body**
+
+Page header + a chronological list using `@components.ActivityRow(...)` per event, with date headers between days. Mirror `mockups/activity.html`. The page renders under the **standard global header** — it is not an `AccountSubnav` tab, so do not attach `AccountSubnav`.
+
+- [ ] **Step 5: Commit**
+
+```bash
+~/go/bin/templ generate && make dev
+git add internal/view/pages/feed.templ internal/view/pages/feed_templ.go internal/handler/feed_handler.go internal/view/viewmodels.go internal/router/router.go
+git commit -m "feat(ui): reshape feed page to match activity mockup; serve at /activity"
+```
+
+---
+
+### Task 5: `/stars` cross-repo page
+
+**Files:**
+- Create: `internal/view/pages/account_stars.templ`
+- Modify: `internal/handler/account_handler.go` (add `PageAccountStars`)
+- Modify: `internal/view/viewmodels.go` (add `AccountStarsData`)
+- Modify: `internal/router/router.go`
+
+- [ ] **Step 1: View-model**
+
+```go
+type AccountStarsData struct {
     BasePage
     Username  string
     Stars     []model.Repository
@@ -366,227 +229,95 @@ type MyStarsData struct {
 }
 ```
 
-- [ ] **Step 1: Register routes**
+- [ ] **Step 2: Handler**
 
-In `internal/router/router.go`, under the authenticated group (alongside the existing `/{owner}/stars` route at line 101):
+Append `PageAccountStars` to `internal/handler/account_handler.go`, following the shape of the existing `PageAccountRepos` (login redirect, `slog.Error` + `http.Error` on failure — there is no `h.serverError` helper).
 
-```go
-r.With(authMW).Get("/pulls",    h.PageMyPulls)
-r.With(authMW).Get("/issues",   h.PageMyIssues)
-r.With(authMW).Get("/activity", h.PageActivity)
-r.With(authMW).Get("/stars",    h.PageMyStars)
-```
-
-`/stars` (no `{owner}` segment) and `/{owner}/stars` (existing line 101) coexist without conflict — chi treats them as separate routes because the first segment of `/stars` is a literal, not a `{param}`.
-
-- [ ] **Step 2: Page handlers**
+The real star query is `StarService.ListByUser(ctx context.Context, username string) ([]model.Repository, error)` (`internal/service/star_service.go:55`) — there is **no** `ListForUser(ctx, userID)`. Pass `claims.Username`:
 
 ```go
-// PageMyPulls renders the cross-repo pulls dashboard.
-func (h *Handler) PageMyPulls(w http.ResponseWriter, r *http.Request) {
-    claims, _ := middleware.ClaimsFromContext(r.Context())
-    filter := r.URL.Query().Get("filter")
-    switch filter {
-    case "created", "assigned", "review_requested", "mentioned":
-    default:
-        filter = "created"
-    }
-    pulls, _ := h.Services.Pull.ListForUserAcrossRepos(r.Context(), claims.UserID, filter, 100)
-    data := MyPullsData{
-        BasePage: h.basePage(r),
-        Username: claims.Username,
-        Filter:   filter,
-        Pulls:    pulls,
-    }
-    h.render(r, w, pages.MyPulls(data))
-}
+stars, err := h.Services.Star.ListByUser(r.Context(), claims.Username)
 ```
 
-Same shape for `PageMyIssues`, `PageActivity`, `PageMyStars`. The `authMW` middleware on the route already guarantees `claims != nil`, so no manual redirect is needed.
+Derive the language-chip list in the handler by collecting unique non-empty `PrimaryLanguage` values from `stars`, sorted alphabetically. Apply the `?language=` filter (if set) in the handler.
 
-- [ ] **Step 3: Wire `/stars` to existing star query**
-
-The real signature is `StarService.ListByUser(ctx context.Context, username string) ([]model.Repository, error)` (`internal/service/star_service.go:55`). There is **no** `ListForUser(ctx, userID)` method. Pass `claims.Username`:
+- [ ] **Step 3: Route**
 
 ```go
-stars, _ := h.Services.Star.ListByUser(r.Context(), claims.Username)
+r.With(authMW).Get("/stars", h.PageAccountStars)
 ```
 
-Then derive the language chip list in the handler by walking `stars` and collecting unique non-empty `PrimaryLanguage` values, sorted alphabetically.
+`/stars` (literal first segment) and the existing `/{owner}/stars` (`router.go:101`) coexist — chi distinguishes a literal segment from a `{param}`.
+
+- [ ] **Step 4: Body**
+
+Mirror `mockups/stars.html`: page title, language-filter chips above the list (sourced from `data.Languages`), then the repo list. Renders under the **standard global header** — not an `AccountSubnav` tab.
+
+- [ ] **Step 5: Commit**
+
+```bash
+~/go/bin/templ generate && make dev
+git add internal/view/pages/account_stars.templ internal/view/pages/account_stars_templ.go internal/handler/account_handler.go internal/view/viewmodels.go internal/router/router.go
+git commit -m "feat(ui): add /stars cross-repo starred-repos page"
+```
 
 ---
 
-### Task 7: Create `my_pulls.templ`
+### Task 6: Reshape `user.templ` repositories tab
 
-**Files:** Create `internal/view/pages/my_pulls.templ`. Mirror layout from `mockups/my_pulls.html`.
+**Files:** Modify `internal/view/pages/user.templ`, its handler, `internal/service/repo_service.go`.
 
 - [ ] **Step 1: Body**
 
-```go
-templ MyPulls(data handler.MyPullsData) {
-    @layout.Base(data.BasePage, "Your pull requests") {
-        @fragments.DashboardSubnav(fragments.DashboardSubnavData{
-            Username: data.Username, Active: "pull_requests",
-        })
-        <div class="max-w-[1100px] mx-auto px-6 py-6 space-y-4">
-            <h1 class="text-2xl font-semibold tracking-tight">Your pull requests</h1>
-            <nav aria-label="PR filters" class="flex gap-1 border-b border-border">
-                @myFilterTab(data.Filter, "created", "Created", "/pulls?filter=created")
-                @myFilterTab(data.Filter, "assigned", "Assigned", "/pulls?filter=assigned")
-                @myFilterTab(data.Filter, "review_requested", "Review requested", "/pulls?filter=review_requested")
-                @myFilterTab(data.Filter, "mentioned", "Mentioned", "/pulls?filter=mentioned")
-            </nav>
-            <ul class="rounded-md border border-border bg-card divide-y divide-border">
-                if len(data.Pulls) == 0 {
-                    <li class="p-8">
-                        @components.EmptyState("Nothing here yet.")
-                    </li>
-                } else {
-                    for _, p := range data.Pulls {
-                        @prListRowForMyPulls(p)
-                    }
-                }
-            </ul>
-        </div>
-    }
-}
+When `?tab=repositories`, render a filterable list (mirror `mockups/my_repositories.html`): search box, type filter (Sources / Forks / Templates), language-filter chips (sourced from `repositories.primary_language`), status filter (Public / Private). For each repo: a **role badge** (Owner / Maintainer / Contributor), name, description, language dot, updated time.
 
-templ myFilterTab(active, key, label, href string) {
-    if active == key {
-        <a href={ templ.SafeURL(href) } aria-current="page" class="px-3 py-2 text-sm font-medium text-foreground border-b-2 border-foreground -mb-px">{ label }</a>
-    } else {
-        <a href={ templ.SafeURL(href) } class="px-3 py-2 text-sm text-muted-foreground hover:text-foreground border-b-2 border-transparent -mb-px">{ label }</a>
-    }
-}
+The repositories tab renders under the **user profile's own in-page tab strip** (`user.templ` already has Overview / Repositories / … tabs) — NOT `AccountSubnav`.
 
-templ prListRowForMyPulls(p model.PullRequest) {
-    <li>
-        <a href={ templ.SafeURL(p.URL()) } class="flex items-center gap-3 px-4 py-3 hover:bg-accent">
-            <span class="font-mono text-xs text-muted-foreground w-24 truncate">{ p.RepoFullName }</span>
-            <span class="flex-1 text-sm truncate">{ p.Title }</span>
-            <span class="text-xs text-muted-foreground font-mono">{ formatRelative(p.UpdatedAt) }</span>
-        </a>
-    </li>
-}
-```
+- [ ] **Step 2: Role lookup**
 
-View-model `MyPullsData` is added to `internal/handler/viewmodels.go` in Task 6, Step 0 (not `internal/view/view.go`, which doesn't exist).
-
-- [ ] **Step 2: Commit**
-
-```bash
-~/go/bin/templ generate && make dev
-git add internal/view/pages/my_pulls.templ internal/view/pages/my_pulls_templ.go internal/handler/ internal/router/router.go
-git commit -m "feat(ui): add /pulls cross-repo dashboard page"
-```
-
----
-
-### Task 8: Create `my_issues.templ`
-
-Same shape as Task 7 with filter values `created` / `assigned` / `mentioned`, subnav `Active: "issues"`, and an issue-rendering body. Mirror layout from `mockups/my_issues.html`. `MyIssuesData` is added in Task 6, Step 0.
-
-```bash
-~/go/bin/templ generate && make dev
-git add internal/view/pages/my_issues.templ internal/view/pages/my_issues_templ.go internal/handler/
-git commit -m "feat(ui): add /issues cross-repo dashboard page"
-```
-
----
-
-### Task 9: Reshape `feed.templ` to match the `mockups/activity.html` design
-
-**Files:** Modify `internal/view/pages/feed.templ`, `internal/handler/feed_handler.go`.
-
-- [ ] **Step 1: Body**
-
-Page header + `@fragments.DashboardSubnav(..., Active: "activity")`. Body: chronological list using `@components.ActivityRow(...)` for each event. Date headers between days. Mirror layout from `mockups/activity.html`.
-
-- [ ] **Step 2: Reuse existing feed wiring**
-
-There is no `EventService.RecentForUser`. The real method is `EventService.Feed(ctx, userID, page, pageSize)` (`internal/service/event_service.go:47`) and it is already called from `feed_handler.go:29`:
-
-```go
-events, err := h.Services.Event.Feed(r.Context(), int(claims.UserID), page, pageSize+1)
-```
-
-This task is purely a template + viewmodel reshape; the service layer needs no change. Add `ActivityData` to `internal/handler/viewmodels.go` (already covered in Task 6, Step 0) and route `/activity` to the same handler (or add a thin `PageActivity` wrapper — both URLs `/feed` and `/activity` should render the same page during the migration).
-
-- [ ] **Step 3: Commit**
-
-```bash
-~/go/bin/templ generate && make dev
-git add internal/view/pages/feed.templ internal/view/pages/feed_templ.go internal/handler/feed_handler.go internal/handler/viewmodels.go
-git commit -m "feat(ui): reshape feed page to match activity mockup"
-```
-
----
-
-### Task 10: Reshape user.templ repositories tab + create global `/stars` page
-
-- [ ] **Step 1: Repositories tab in `user.templ`**
-
-When `?tab=repositories`, render a filterable list (mirror `mockups/my_repositories.html`) with: search box, type filter (Sources / Forks / Templates), language filter chips (sourced from `repos.primary_language`), status filter (Public / Private). For each repo show a **role badge** (Owner / Maintainer / Contributor), name, description, language indicator dot, updated time.
-
-The role badge requires a per-repo role lookup. Add the helper:
+The role badge needs a per-repo role. Add:
 
 ```go
 // internal/service/repo_service.go
 //
 // RoleForUserOnRepo returns "owner" | "admin" | "writer" | "reader" | ""
-// (empty if the user has no row in permissions and isn't the repo owner).
+// (empty when the user has no permissions row and isn't the repo owner).
 func (s *RepoService) RoleForUserOnRepo(ctx context.Context, userID, repoID int64) (string, error) {
     repo, err := s.repos.GetByID(ctx, repoID)
     if err != nil { return "", err }
     if repo.OwnerID == userID { return "owner", nil }
-    return s.perms.GetRole(ctx, userID, repoID) // returns "" + nil if no row
+    return s.perms.GetRole(ctx, userID, repoID) // "" + nil if no row
 }
 ```
 
-`PageHome` / `PageUser` should batch-resolve roles by calling `permissions.ListByUser(ctx, userID)` once and zipping into the repo list — avoid N+1.
-
-Subnav for this tab uses `Active: "repositories"`.
-
-- [ ] **Step 2: `/stars` page**
-
-Mirror `mockups/stars.html`. The handler skeleton from Task 6 already calls `StarService.ListByUser(ctx, claims.Username)`. Add language filter chips above the list, sourced from the distinct `PrimaryLanguage` values populated by migration 057 + the `OnPostReceive` hook.
-
-`/stars` does **not** appear in the `DashboardSubnav` keys (`overview`, `repositories`, `gists`, `pull_requests`, `issues`, `activity`, `topics`, `settings`). Render it under separate chrome — page title only, no subnav active state. The existing `/{owner}/stars` route at `router.go:101` continues to serve any user's public stars.
+The handler should batch-resolve roles — call `permissions.ListByUser(ctx, userID)` once and zip into the repo list — to avoid an N+1.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 ~/go/bin/templ generate && make dev
-git add internal/view/pages/user.templ internal/view/pages/user_templ.go internal/view/pages/my_stars.templ internal/view/pages/my_stars_templ.go internal/handler/ internal/service/repo_service.go internal/router/router.go
-git commit -m "feat(ui): reshape user repositories tab + add /stars cross-repo page"
+git add internal/view/pages/user.templ internal/view/pages/user_templ.go internal/handler/ internal/service/repo_service.go
+git commit -m "feat(ui): reshape user repositories tab with role badges + language filter"
 ```
 
 ---
 
-### Task 11: Verify and open PR
+### Task 7: Verify and open PR
 
-Tests + lint + templ regen + visual sweep across five dashboard pages (`/pulls`, `/issues`, `/activity`, `/stars`, `/{user}?tab=repositories`). Run `pr-review-toolkit:silent-failure-hunter`. PR title: `feat(ui): UI overhaul phase 8 — cross-repo dashboard`.
+Tests + lint + templ regen + visual sweep across `/activity`, `/stars`, and `/{user}?tab=repositories` in both themes. Run `pr-review-toolkit:silent-failure-hunter`. PR title: `feat(ui): UI overhaul phase 8 — activity, stars, repositories tab`.
 
 ---
 
 ## Self-review checklist
 
-- [ ] Migration **057** is the only new migration in this phase. Phase 1 = 054, Phase 3 = 055, Phase 7 = 056, Phase 8 = 057.
-- [ ] Migration 057 creates `pull_review_requests`, adds `mentions.ref_id` / `mentions.ref_type` columns + composite index, and adds `repos.primary_language`.
-- [ ] No SQL anywhere references `pulls.deleted_at` or `issues.deleted_at` — soft-delete lives on `repos` (migration 051) only.
-- [ ] No SQL references the non-existent `repo_collaborators` table; visibility joins use `permissions` (migration 006).
-- [ ] Each cross-repo query (`ListForUserAcrossRepos`) filters out private repos the user can't see via `(r.private = false OR r.id IN (SELECT repo_id FROM permissions WHERE user_id = $1))`.
-- [ ] `/stars` handler calls `StarService.ListByUser(ctx, claims.Username)` (not the non-existent `ListForUser(ctx, userID)`).
-- [ ] Feed/activity page reuses the existing `EventService.Feed(ctx, userID, page, pageSize)` — no new service method.
-- [ ] DashboardSubnav `Active` keys match the Phase 0 set exactly: `overview`, `repositories`, `gists`, `pull_requests`, `issues`, `activity`, `topics`, `settings`.
-  - `/pulls` → `Active: "pull_requests"`
-  - `/issues` → `Active: "issues"`
-  - `/activity` → `Active: "activity"`
-  - `user.templ?tab=repositories` → `Active: "repositories"`
-  - `/stars` → not in subnav; renders without subnav chrome.
-- [ ] `/stars` (current user, literal path) and `/{owner}/stars` (any user, existing `router.go:101`) coexist; chi distinguishes literal vs `{owner}` segments.
-- [ ] View-models `MyPullsData`, `MyIssuesData`, `ActivityData`, `MyStarsData` are declared in `internal/handler/viewmodels.go`, not `internal/view/view.go` (which does not exist).
-- [ ] No `pageNames` slice exists in `router.go` — nothing to update there. (Should one be added later, the four names to register are `MyPulls`, `MyIssues`, `Activity`, `MyStars`.)
-- [ ] `RepoService.RoleForUserOnRepo(ctx, userID, repoID) (string, error)` exists and is batch-friendly (the repositories tab pre-loads `permissions` for the viewer to avoid N+1).
-- [ ] `repos.primary_language` is populated by `RepoService.OnPostReceive` (the Phase 1 hook) — TODO-guarded if Phase 1's `LanguageService` is not yet merged when this task runs.
-- [ ] Filter tabs preserve `?filter=` in the URL so back/refresh works; handlers reject unknown filter values and fall back to `created`.
+- [ ] Migration **057** adds only `repositories.primary_language` (table name `repositories`, not `repos`). The `pull_review_requests` table and `mentions.ref_id`/`ref_type` columns from the original plan are **not** created — review-requests use `pull_reviews`, mentions use `mentions`+`comments` (both delivered by the account-navigation feature).
+- [ ] No SQL references the non-existent `repo_collaborators` table; visibility/role joins use `permissions` (migration 006).
+- [ ] `repositories.primary_language` is populated by `RepoService.OnPostReceive` — TODO-guarded if Phase 1's `LanguageService` is not yet merged.
+- [ ] `/activity` and `/stars` render under the standard global header — they are NOT `AccountSubnav` tabs (`AccountSubnav` has exactly: Overview, Repositories, Gists, Pull requests, Issues). Adding them as tabs is a noted follow-up, not done here.
+- [ ] `/stars` handler calls `StarService.ListByUser(ctx, claims.Username)` — not the non-existent `ListForUser(ctx, userID)`.
+- [ ] `/stars` (literal path) and `/{owner}/stars` (`router.go:101`) coexist.
+- [ ] Feed/activity page reuses `EventService.Feed(ctx, userID, page, pageSize)` — no new service method.
+- [ ] `/pulls` and `/issues` are NOT re-registered or re-built — they ship on the account-navigation feature (`PageAccountPulls` / `PageAccountIssues`).
+- [ ] View-models `ActivityData`, `AccountStarsData` live in `internal/view/viewmodels.go` (alongside `AccountReposData` etc.).
+- [ ] `RepoService.RoleForUserOnRepo(ctx, userID, repoID) (string, error)` exists; the repositories tab batch-loads `permissions` for the viewer to avoid N+1.
+- [ ] The user-profile repositories tab renders under the profile's own in-page tab strip, not `AccountSubnav`.
