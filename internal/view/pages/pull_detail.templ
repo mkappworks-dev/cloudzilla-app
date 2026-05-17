@@ -270,6 +270,12 @@ templ pullDetailBody(data view.PullDetailData) {
 					</ul>
 				</section>
 			}
+			<section class="border-t border-border pt-5">
+				<h3 class="text-[12px] font-medium text-muted-foreground mb-2">Notifications</h3>
+				<div hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" } hx-trigger="load" hx-swap="outerHTML">
+					<span class="text-xs text-muted-foreground">Loading…</span>
+				</div>
+			</section>
 		</aside>
 	</div>
 }

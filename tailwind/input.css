@@ -121,6 +121,13 @@
 
 [x-cloak] { display: none !important; }
 
+/* PR diff viewer (see internal/view/pages/pr_files.templ).
+ * Toggling unified/split and hide-whitespace is JS-driven; these rules
+ * react to the #diff-root[data-view] / .hide-ws state set by that script. */
+#diff-root[data-view="unified"] .diff-split,
+#diff-root[data-view="split"] .diff-unified { display: none; }
+#diff-root.hide-ws .ws-only { display: none; }
+
 /* ============================================================================
  * Timeline component (see internal/view/components/timeline.templ)
  *

@@ -1,7 +1,9 @@
 package pages
 
 import (
+	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -33,17 +35,45 @@ templ pullFilesBody(data view.PullFilesData) {
 	} else if data.Diff == nil || len(data.Diff.Files) == 0 {
 		@components.EmptyState("No changes.")
 	} else {
-		<section class="mb-4 flex items-center gap-2 text-[12.5px] text-muted-foreground" aria-label="Diff summary">
-			<span><strong class="text-foreground">{ strconv.Itoa(len(data.Diff.Files)) }</strong> changed { filesNoun(len(data.Diff.Files)) }</span>
-			<span aria-hidden="true" class="opacity-50">·</span>
-			<span class="font-mono text-success">+{ strconv.Itoa(data.Diff.TotalAdded) }</span>
-			<span class="font-mono text-destructive">−{ strconv.Itoa(data.Diff.TotalDeleted) }</span>
-			<button type="button" id="diff-collapse-all" data-state="expanded" class="ml-auto h-8 px-3 rounded-md border border-border hover:bg-accent text-[12.5px]">Collapse all</button>
+		<section class="mb-4 flex items-center justify-between gap-3 flex-wrap" aria-label="Diff summary">
+			<div class="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+				<span><strong class="text-foreground">{ strconv.Itoa(len(data.Diff.Files)) }</strong> changed { filesNoun(len(data.Diff.Files)) }</span>
+				<span aria-hidden="true" class="opacity-50">·</span>
+				<span class="font-mono text-success">+{ strconv.Itoa(data.Diff.TotalAdded) }</span>
+				<span class="font-mono text-destructive">−{ strconv.Itoa(data.Diff.TotalDeleted) }</span>
+			</div>
+			<div class="flex items-center gap-1.5">
+				<div class="inline-flex items-center border border-border rounded-md overflow-hidden" role="group" aria-label="Diff layout">
+					<button type="button" id="diff-view-unified" data-view="unified" aria-pressed="true" class="h-8 px-3 text-[12.5px] inline-flex items-center gap-1.5 hover:bg-accent bg-muted">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+						Unified
+					</button>
+					<button type="button" id="diff-view-split" data-view="split" aria-pressed="false" class="h-8 px-3 text-[12.5px] inline-flex items-center gap-1.5 hover:bg-accent text-muted-foreground border-l border-border">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="3" width="8" height="18" rx="1"></rect><rect x="13" y="3" width="8" height="18" rx="1"></rect></svg>
+						Split
+					</button>
+				</div>
+				<button type="button" id="diff-ws-toggle" aria-pressed="false" class="h-8 px-3 text-[12.5px] rounded-md border border-border hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5">
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0112 20C5 20 1 12 1 12a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+					Hide whitespace
+				</button>
+				<button type="button" id="diff-collapse-all" data-state="expanded" class="h-8 px-3 rounded-md border border-border hover:bg-accent text-[12.5px]">Collapse all</button>
+			</div>
 		</section>
-		<div class="grid lg:grid-cols-[260px_1fr] gap-4">
+		<div id="diff-root" data-view="unified" class="grid lg:grid-cols-[260px_1fr] gap-4">
 			<aside class="border border-border rounded-md bg-card p-3 lg:sticky lg:top-4 self-start max-h-[80vh] overflow-auto" aria-label="Files in this pull request">
-				<p class="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2 px-1">Changed files</p>
-				<ul class="text-[12.5px] space-y-0.5">
+				<div class="flex items-center justify-between gap-2 mb-2 px-1">
+					<p class="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Changed files</p>
+					<div class="inline-flex items-center border border-border rounded overflow-hidden" role="group" aria-label="File list layout">
+						<button type="button" id="diff-files-list-btn" aria-pressed="true" title="List view" aria-label="List view" class="px-1.5 py-1 inline-flex hover:bg-accent bg-muted">
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+						</button>
+						<button type="button" id="diff-files-tree-btn" aria-pressed="false" title="Tree view" aria-label="Tree view" class="px-1.5 py-1 inline-flex hover:bg-accent text-muted-foreground border-l border-border">
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 12h-8"></path><path d="M21 6H8"></path><path d="M21 18h-8"></path><path d="M3 6v4c0 1.1.9 2 2 2h3"></path><path d="M3 10v6c0 1.1.9 2 2 2h3"></path></svg>
+						</button>
+					</div>
+				</div>
+				<ul id="diff-files-list" class="text-[12.5px] space-y-0.5">
 					for _, item := range data.Tree {
 						<li>
 							<a href={ templ.SafeURL("#" + item.Anchor) } class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
@@ -58,6 +88,9 @@ templ pullFilesBody(data view.PullFilesData) {
 							</a>
 						</li>
 					}
+				</ul>
+				<ul id="diff-files-tree" class="text-[12.5px] space-y-0.5 hidden">
+					@prFileTreeNodes(prBuildFileTree(data.Tree), 0)
 				</ul>
 			</aside>
 			<div class="space-y-6 min-w-0">
@@ -82,7 +115,12 @@ templ pullFilesBody(data view.PullFilesData) {
 							if f.IsBinary {
 								<p class="px-4 py-3 text-sm text-muted-foreground">Binary file not shown.</p>
 							} else {
-								@prFileDiff(data, f)
+								<div class="diff-unified">
+									@prFileDiff(data, f)
+								</div>
+								<div class="diff-split">
+									@prFileSplitDiff(f)
+								</div>
 							}
 						</div>
 					</section>
@@ -114,6 +152,63 @@ templ pullFilesBody(data view.PullFilesData) {
 						btn.textContent = collapse ? 'Expand all' : 'Collapse all';
 					});
 				}
+
+				var root = document.getElementById('diff-root');
+				var unifiedBtn = document.getElementById('diff-view-unified');
+				var splitBtn = document.getElementById('diff-view-split');
+				function setView(view) {
+					root.dataset.view = view;
+					unifiedBtn.setAttribute('aria-pressed', view === 'unified');
+					splitBtn.setAttribute('aria-pressed', view === 'split');
+					unifiedBtn.classList.toggle('bg-muted', view === 'unified');
+					unifiedBtn.classList.toggle('text-muted-foreground', view !== 'unified');
+					splitBtn.classList.toggle('bg-muted', view === 'split');
+					splitBtn.classList.toggle('text-muted-foreground', view !== 'split');
+				}
+				if (unifiedBtn) unifiedBtn.addEventListener('click', function () { setView('unified'); });
+				if (splitBtn) splitBtn.addEventListener('click', function () { setView('split'); });
+
+				var wsBtn = document.getElementById('diff-ws-toggle');
+				if (wsBtn) {
+					wsBtn.addEventListener('click', function () {
+						var on = !root.classList.contains('hide-ws');
+						root.classList.toggle('hide-ws', on);
+						wsBtn.setAttribute('aria-pressed', on);
+						wsBtn.classList.toggle('bg-muted', on);
+						wsBtn.classList.toggle('text-muted-foreground', !on);
+					});
+				}
+
+				var listUl = document.getElementById('diff-files-list');
+				var treeUl = document.getElementById('diff-files-tree');
+				var listBtn = document.getElementById('diff-files-list-btn');
+				var treeBtn = document.getElementById('diff-files-tree-btn');
+				function setFileLayout(mode) {
+					var tree = mode === 'tree';
+					listUl.classList.toggle('hidden', tree);
+					treeUl.classList.toggle('hidden', !tree);
+					listBtn.setAttribute('aria-pressed', !tree);
+					treeBtn.setAttribute('aria-pressed', tree);
+					listBtn.classList.toggle('bg-muted', !tree);
+					listBtn.classList.toggle('text-muted-foreground', tree);
+					treeBtn.classList.toggle('bg-muted', tree);
+					treeBtn.classList.toggle('text-muted-foreground', !tree);
+				}
+				if (listBtn) listBtn.addEventListener('click', function () { setFileLayout('list'); });
+				if (treeBtn) treeBtn.addEventListener('click', function () { setFileLayout('tree'); });
+				if (treeUl) {
+					treeUl.querySelectorAll('.diff-tree-folder').forEach(function (b) {
+						b.addEventListener('click', function () {
+							var li = b.closest('li');
+							var open = li.dataset.open !== 'false';
+							li.dataset.open = open ? 'false' : 'true';
+							var caret = b.querySelector('.diff-tree-caret');
+							if (caret) caret.style.transform = open ? 'rotate(-90deg)' : '';
+							var group = li.querySelector(':scope > ul');
+							if (group) group.classList.toggle('hidden', open);
+						});
+					});
+				}
 			})();
 		</script>
 	}
@@ -129,9 +224,10 @@ templ prFileDiff(data view.PullFilesData, f service.FileDiff) {
 			<tbody>
 				for _, hunk := range f.Hunks {
 					<tr><td colspan="2" class="bg-primary/5 text-muted-foreground px-4 py-1 select-none border-y border-border">{ hunk.Header }</td></tr>
-					for _, line := range hunk.Lines {
+					{{ wsLines := prWSOnlyLines(hunk.Lines) }}
+					for li, line := range hunk.Lines {
 						{{ lineNum := prDiffLineNum(line) }}
-						<tr class={ templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del") }>
+						<tr class={ "diff-line", templ.KV("ws-only", wsLines[li]), templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del") }>
 							<td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">
 								{ strconv.Itoa(lineNum) }
 								if commentable && line.Type != "del" {
@@ -173,6 +269,138 @@ templ prFileDiff(data view.PullFilesData, f service.FileDiff) {
 	</div>
 }
 
+// prFileSplitDiff renders a comment-free side-by-side view: old lines left,
+// new lines right, del/add runs paired index-wise.
+templ prFileSplitDiff(f service.FileDiff) {
+	<div class="overflow-x-auto">
+		<table class="w-full border-collapse text-xs font-mono">
+			<tbody>
+				for _, hunk := range f.Hunks {
+					<tr><td colspan="4" class="bg-primary/5 text-muted-foreground px-4 py-1 select-none border-y border-border">{ hunk.Header }</td></tr>
+					for _, row := range prSplitRows(hunk.Lines) {
+						<tr class={ templ.KV("ws-only", row.WSOnly) }>
+							@prSplitCell(row.Left, false)
+							@prSplitCell(row.Right, true)
+						</tr>
+					}
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+templ prSplitCell(c prSplitCellData, right bool) {
+	if !c.Present {
+		<td class="w-12 bg-muted/30 border-r border-border"></td>
+		<td class={ "px-3 py-0.5 bg-muted/30", templ.KV("border-l border-border", right) }></td>
+	} else {
+		<td class="w-12 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">
+			if c.Num > 0 {
+				{ strconv.Itoa(c.Num) }
+			}
+		</td>
+		<td class={ "pl-3 pr-4 py-0.5 whitespace-pre", templ.KV("border-l border-border", right), templ.KV("bg-success/10 text-success", c.Type == "add"), templ.KV("bg-destructive/10 text-destructive", c.Type == "del"), templ.KV("text-foreground/85", c.Type == "ctx") }>
+			if c.Type == "add" {
+				+{ c.Content }
+			} else if c.Type == "del" {
+				-{ c.Content }
+			} else {
+				{ " " }{ c.Content }
+			}
+		</td>
+	}
+}
+
+type prSplitCellData struct {
+	Present bool
+	Type    string // "add", "del", "ctx"
+	Num     int
+	Content string
+}
+
+type prSplitRow struct {
+	Left   prSplitCellData
+	Right  prSplitCellData
+	WSOnly bool
+}
+
+// prSplitRows pairs a hunk's lines for side-by-side display: ctx lines mirror
+// on both sides; a del run pairs index-wise with the following add run, the
+// shorter side padded with empty cells. A del/add pair whose trimmed content
+// matches is flagged whitespace-only.
+func prSplitRows(lines []service.DiffLine) []prSplitRow {
+	var rows []prSplitRow
+	for i := 0; i < len(lines); {
+		l := lines[i]
+		if l.Type == "ctx" {
+			rows = append(rows, prSplitRow{
+				Left:  prSplitCellData{Present: true, Type: "ctx", Num: l.OldNum, Content: l.Content},
+				Right: prSplitCellData{Present: true, Type: "ctx", Num: l.NewNum, Content: l.Content},
+			})
+			i++
+			continue
+		}
+		var dels, adds []service.DiffLine
+		for i < len(lines) && lines[i].Type == "del" {
+			dels = append(dels, lines[i])
+			i++
+		}
+		for i < len(lines) && lines[i].Type == "add" {
+			adds = append(adds, lines[i])
+			i++
+		}
+		n := len(dels)
+		if len(adds) > n {
+			n = len(adds)
+		}
+		for j := 0; j < n; j++ {
+			var row prSplitRow
+			if j < len(dels) {
+				row.Left = prSplitCellData{Present: true, Type: "del", Num: dels[j].OldNum, Content: dels[j].Content}
+			}
+			if j < len(adds) {
+				row.Right = prSplitCellData{Present: true, Type: "add", Num: adds[j].NewNum, Content: adds[j].Content}
+			}
+			if j < len(dels) && j < len(adds) &&
+				strings.TrimSpace(dels[j].Content) == strings.TrimSpace(adds[j].Content) {
+				row.WSOnly = true
+			}
+			rows = append(rows, row)
+		}
+	}
+	return rows
+}
+
+// prWSOnlyLines flags unified-view rows whose del/add pair differs only in
+// whitespace, mirroring the split view's pairing so Hide-whitespace is
+// consistent across both layouts.
+func prWSOnlyLines(lines []service.DiffLine) map[int]bool {
+	out := map[int]bool{}
+	for i := 0; i < len(lines); {
+		if lines[i].Type != "del" {
+			i++
+			continue
+		}
+		delStart := i
+		for i < len(lines) && lines[i].Type == "del" {
+			i++
+		}
+		addStart := i
+		for i < len(lines) && lines[i].Type == "add" {
+			i++
+		}
+		dels := lines[delStart:addStart]
+		adds := lines[addStart:i]
+		for j := 0; j < len(dels) && j < len(adds); j++ {
+			if strings.TrimSpace(dels[j].Content) == strings.TrimSpace(adds[j].Content) {
+				out[delStart+j] = true
+				out[addStart+j] = true
+			}
+		}
+	}
+	return out
+}
+
 func prDiffLineNum(line service.DiffLine) int {
 	if line.Type == "add" {
 		return line.NewNum
@@ -190,4 +418,82 @@ func filesNoun(n int) string {
 		return "file"
 	}
 	return "files"
+}
+
+// prFileTreeNode is a compact tree node for the 260px sidebar (the standalone
+// components.DiffFileTree is sized for a wider w-72 panel).
+type prFileTreeNode struct {
+	Name     string
+	Item     *components.DiffFileTreeItem
+	Children []*prFileTreeNode
+}
+
+func prBuildFileTree(items []components.DiffFileTreeItem) []*prFileTreeNode {
+	type entry struct {
+		node     *prFileTreeNode
+		children map[string]*entry
+	}
+	root := &entry{children: map[string]*entry{}}
+	for i := range items {
+		it := items[i]
+		parts := strings.Split(it.Path, "/")
+		cur := root
+		for j, p := range parts {
+			child, ok := cur.children[p]
+			if !ok {
+				child = &entry{node: &prFileTreeNode{Name: p}, children: map[string]*entry{}}
+				cur.children[p] = child
+			}
+			if j == len(parts)-1 {
+				child.node.Item = &it
+			}
+			cur = child
+		}
+	}
+	var build func(e *entry) []*prFileTreeNode
+	build = func(e *entry) []*prFileTreeNode {
+		out := make([]*prFileTreeNode, 0, len(e.children))
+		for _, c := range e.children {
+			c.node.Children = build(c)
+			out = append(out, c.node)
+		}
+		sort.Slice(out, func(i, j int) bool {
+			di, dj := out[i].Item == nil, out[j].Item == nil
+			if di != dj {
+				return di // directories first
+			}
+			return out[i].Name < out[j].Name
+		})
+		return out
+	}
+	return build(root)
+}
+
+templ prFileTreeNodes(nodes []*prFileTreeNode, depth int) {
+	for _, n := range nodes {
+		if n.Item == nil {
+			<li data-open="true">
+				<button type="button" class="diff-tree-folder w-full flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground" style={ "padding-left: " + strconv.Itoa(8+depth*12) + "px" }>
+					<svg class="diff-tree-caret shrink-0 transition-transform" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+					<span class="truncate font-mono">{ n.Name }</span>
+				</button>
+				<ul>
+					@prFileTreeNodes(n.Children, depth+1)
+				</ul>
+			</li>
+		} else {
+			<li>
+				<a href={ templ.SafeURL("#" + n.Item.Anchor) } class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground" style={ "padding-left: " + strconv.Itoa(8+depth*12) + "px" }>
+					<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 opacity-70" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+					<span class="truncate flex-1 font-mono">{ n.Name }</span>
+					if n.Item.Added > 0 {
+						<span class="font-mono text-[10px] text-success">+{ strconv.Itoa(n.Item.Added) }</span>
+					}
+					if n.Item.Deleted > 0 {
+						<span class="font-mono text-[10px] text-destructive">−{ strconv.Itoa(n.Item.Deleted) }</span>
+					}
+				</a>
+			</li>
+		}
+	}
 }
