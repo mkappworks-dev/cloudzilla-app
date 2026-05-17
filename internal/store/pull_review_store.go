@@ -112,6 +112,30 @@ func (s *PullReviewStore) HasChangesRequested(ctx context.Context, pullID int64)
 	return exists, err
 }
 
+// ListPullIDsAwaitingReviewer returns IDs of pull requests with a pending
+// review request for reviewerID. RequestReview stores the reviewer in the
+// author_id column with state 'pending'; once they submit, state changes
+// away from 'pending' and the pull no longer awaits them.
+func (s *PullReviewStore) ListPullIDsAwaitingReviewer(ctx context.Context, reviewerID int64) ([]int64, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT DISTINCT pull_id FROM pull_reviews WHERE author_id = $1 AND state = 'pending'`,
+		reviewerID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 func (s *PullReviewStore) RequestReview(ctx context.Context, pullID, repoID, reviewerID int64, reviewerName string) error {
 	const q = `
 INSERT INTO pull_reviews (pull_id, repo_id, author_id, author_name, state, body)
