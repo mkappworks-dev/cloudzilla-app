@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -397,6 +398,7 @@ type IssueListItem struct {
 	ID           int64
 	Number       int
 	Title        string
+	State        string
 	AuthorID     int64
 	RepoFullName string // "<owner_username>/<repo_name>"
 	UpdatedAt    time.Time
@@ -404,7 +406,7 @@ type IssueListItem struct {
 
 func (s *IssueStore) ListOpenAssignedToUser(ctx context.Context, userID int64) ([]IssueListItem, error) {
 	const q = `
-		SELECT i.id, i.number, i.title, i.author_id,
+		SELECT i.id, i.number, i.title, i.state, i.author_id,
 		       u.username || '/' || r.name AS repo_full_name,
 		       i.updated_at
 		FROM issues i
@@ -423,7 +425,68 @@ func (s *IssueStore) ListOpenAssignedToUser(ctx context.Context, userID int64) (
 	var out []IssueListItem
 	for rows.Next() {
 		var it IssueListItem
-		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt); err != nil {
+		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, it)
+	}
+	return out, rows.Err()
+}
+
+// ListForUser lists issues related to userID. mode is "created" or "assigned";
+// state is "open" or "closed". For "mentioned", use ListByIDs with IDs from
+// MentionStore.ListIssueIDsMentioning.
+func (s *IssueStore) ListForUser(ctx context.Context, userID int64, mode, state string) ([]IssueListItem, error) {
+	join, cond := "", ""
+	switch mode {
+	case "assigned":
+		join = `JOIN issue_assignees ia ON ia.issue_id = i.id`
+		cond = `ia.user_id = $1`
+	default: // "created"
+		cond = `i.author_id = $1`
+	}
+	q := `SELECT DISTINCT i.id, i.number, i.title, i.state, i.author_id,
+	             u.username || '/' || r.name AS repo_full_name, i.updated_at
+	      FROM issues i
+	      JOIN repositories r ON r.id = i.repo_id
+	      JOIN users u        ON u.id = r.owner_id
+	      ` + join + `
+	      WHERE r.deleted_at IS NULL AND i.state = $2 AND ` + cond + `
+	      ORDER BY i.updated_at DESC LIMIT 100`
+	return s.scanIssueListItems(ctx, q, userID, state)
+}
+
+// ListByIDs lists issues with the given IDs and state. Used for "mentioned".
+func (s *IssueStore) ListByIDs(ctx context.Context, ids []int64, state string) ([]IssueListItem, error) {
+	if len(ids) == 0 {
+		return []IssueListItem{}, nil
+	}
+	placeholders := make([]string, len(ids))
+	args := []any{state}
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+2)
+		args = append(args, id)
+	}
+	q := `SELECT DISTINCT i.id, i.number, i.title, i.state, i.author_id,
+	             u.username || '/' || r.name AS repo_full_name, i.updated_at
+	      FROM issues i
+	      JOIN repositories r ON r.id = i.repo_id
+	      JOIN users u        ON u.id = r.owner_id
+	      WHERE r.deleted_at IS NULL AND i.state = $1 AND i.id IN (` + strings.Join(placeholders, ",") + `)
+	      ORDER BY i.updated_at DESC LIMIT 100`
+	return s.scanIssueListItems(ctx, q, args...)
+}
+
+func (s *IssueStore) scanIssueListItems(ctx context.Context, q string, args ...any) ([]IssueListItem, error) {
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("scan issue list items: %w", err)
+	}
+	defer rows.Close()
+	out := []IssueListItem{}
+	for rows.Next() {
+		var it IssueListItem
+		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, it)
