@@ -155,6 +155,16 @@ func (s *GistStore) Update(ctx context.Context, g *model.Gist, files []model.Gis
 	return nil
 }
 
+// CountByOwner returns the number of gists owned by ownerID.
+func (s *GistStore) CountByOwner(ctx context.Context, ownerID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM gists WHERE owner_id = $1`,
+		ownerID,
+	).Scan(&n)
+	return n, err
+}
+
 func (s *GistStore) Delete(ctx context.Context, id string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM gists WHERE id = $1`, id)
 	return err

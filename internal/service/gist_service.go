@@ -131,6 +131,11 @@ func (s *GistService) Update(ctx context.Context, gistID string, requesterID int
 	return s.gists.Update(ctx, g, files)
 }
 
+// CountByUser returns how many gists the user owns.
+func (s *GistService) CountByUser(ctx context.Context, userID int64) (int, error) {
+	return s.gists.CountByOwner(ctx, userID)
+}
+
 func (s *GistService) Delete(ctx context.Context, gistID string, requesterID int64) error {
 	g, _, err := s.gists.Get(ctx, gistID)
 	if err != nil {
