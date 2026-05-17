@@ -1,0 +1,55 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ AccountPulls(data view.AccountPullsData) {
+	@layout.Base(data.BasePage, "Pull requests") {
+		<div class="space-y-5">
+			<h1 id="pulls-title" class="text-2xl font-semibold tracking-tight">Pull requests</h1>
+			@components.Tabs("Pull request filter") {
+				@components.TabLink("/pulls?filter=created&state="+data.State, data.Filter == "created") {
+					Created
+				}
+				@components.TabLink("/pulls?filter=assigned&state="+data.State, data.Filter == "assigned") {
+					Assigned
+				}
+				@components.TabLink("/pulls?filter=review_requested&state="+data.State, data.Filter == "review_requested") {
+					Review requests
+				}
+				@components.TabLink("/pulls?filter=mentioned&state="+data.State, data.Filter == "mentioned") {
+					Mentioned
+				}
+				<span class="ml-auto inline-flex items-center">
+					@components.TabLink("/pulls?filter="+data.Filter+"&state=open", data.State == "open") {
+						Open
+					}
+					@components.TabLink("/pulls?filter="+data.Filter+"&state=closed", data.State == "closed") {
+						Closed
+					}
+				</span>
+			}
+			if len(data.Pulls) > 0 {
+				<ol class="rounded-md border border-border bg-card divide-y divide-border overflow-hidden">
+					for _, pr := range data.Pulls {
+						<li>
+							<a href={ templ.SafeURL("/" + pr.RepoFullName + "/pulls/" + strconv.Itoa(pr.Number)) } class="block px-4 py-3 hover:bg-muted/50">
+								<div class="text-[13px] font-medium hover:underline">{ pr.Title }</div>
+								<div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+									<span class="font-mono">{ pr.RepoFullName }#{ strconv.Itoa(pr.Number) }</span>
+								</div>
+							</a>
+						</li>
+					}
+				</ol>
+			} else {
+				@components.EmptyState("No " + data.State + " pull requests.")
+			}
+		</div>
+	}
+}
