@@ -90,3 +90,11 @@ type AccountPullsData struct {
 	Filter string // "created" | "assigned" | "review_requested" | "mentioned"
 	State  string // "open" | "closed"
 }
+
+// AccountIssuesData backs the /issues page.
+type AccountIssuesData struct {
+	BasePage
+	Issues []store.IssueListItem
+	Filter string // "assigned" | "created" | "mentioned"
+	State  string // "open" | "closed"
+}

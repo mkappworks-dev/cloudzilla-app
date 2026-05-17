@@ -71,3 +71,36 @@ func (h *Handler) PageAccountPulls(w http.ResponseWriter, r *http.Request) {
 	}
 	h.render(w, r, pages.AccountPulls(data))
 }
+
+// PageAccountIssues renders the logged-in user's cross-repo issue list at /issues.
+func (h *Handler) PageAccountIssues(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	claims, ok := middleware.ClaimsFromContext(ctx)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	filter := r.URL.Query().Get("filter")
+	switch filter {
+	case "created", "mentioned":
+	default:
+		filter = "assigned"
+	}
+	state := r.URL.Query().Get("state")
+	if state != "closed" {
+		state = "open"
+	}
+	issues, err := h.Services.Issue.ListForUser(ctx, claims.UserID, filter, state)
+	if err != nil {
+		slog.Error("issues: failed to load issues", "filter", filter, "state", state, "error", err)
+		http.Error(w, "Failed to load issues", http.StatusInternalServerError)
+		return
+	}
+	data := view.AccountIssuesData{
+		BasePage: withAccountSubnav(basePage(r, h.Services), "issues", h.accountCounts(ctx, claims.UserID)),
+		Issues:   issues,
+		Filter:   filter,
+		State:    state,
+	}
+	h.render(w, r, pages.AccountIssues(data))
+}
