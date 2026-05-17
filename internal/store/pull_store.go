@@ -4,10 +4,22 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
+
+// PullListItem is a cross-repo pull-request row for account-level lists.
+type PullListItem struct {
+	ID           int64
+	Number       int
+	Title        string
+	State        string
+	AuthorID     int64
+	RepoFullName string // "<owner_username>/<repo_name>"
+	UpdatedAt    time.Time
+}
 
 // PullStore provides database operations for pull requests.
 type PullStore struct {
@@ -374,4 +386,66 @@ func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNu
 	}
 	defer rows.Close()
 	return scanPullRows(rows)
+}
+
+// ListForUser lists pull requests related to userID. mode is "created" or
+// "assigned"; state is "open" or "closed". For "review_requested" and
+// "mentioned", use ListByIDs with IDs from PullReviewStore / MentionStore.
+func (s *PullStore) ListForUser(ctx context.Context, userID int64, mode, state string) ([]PullListItem, error) {
+	join, cond := "", ""
+	switch mode {
+	case "assigned":
+		join = `JOIN pull_assignees pa ON pa.pull_id = p.id`
+		cond = `pa.user_id = $1`
+	default: // "created"
+		cond = `p.author_id = $1`
+	}
+	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.author_id,
+	             u.username || '/' || r.name AS repo_full_name, p.updated_at
+	      FROM pull_requests p
+	      JOIN repositories r ON r.id = p.repo_id
+	      JOIN users u        ON u.id = r.owner_id
+	      ` + join + `
+	      WHERE r.deleted_at IS NULL AND p.state = $2 AND ` + cond + `
+	      ORDER BY p.updated_at DESC LIMIT 100`
+	return s.scanPullListItems(ctx, q, userID, state)
+}
+
+// ListByIDs lists pull requests with the given IDs and state, as PullListItem
+// rows. Used for the "review_requested" and "mentioned" filters.
+func (s *PullStore) ListByIDs(ctx context.Context, ids []int64, state string) ([]PullListItem, error) {
+	if len(ids) == 0 {
+		return []PullListItem{}, nil
+	}
+	placeholders := make([]string, len(ids))
+	args := []any{state}
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+2)
+		args = append(args, id)
+	}
+	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.author_id,
+	             u.username || '/' || r.name AS repo_full_name, p.updated_at
+	      FROM pull_requests p
+	      JOIN repositories r ON r.id = p.repo_id
+	      JOIN users u        ON u.id = r.owner_id
+	      WHERE r.deleted_at IS NULL AND p.state = $1 AND p.id IN (` + strings.Join(placeholders, ",") + `)
+	      ORDER BY p.updated_at DESC LIMIT 100`
+	return s.scanPullListItems(ctx, q, args...)
+}
+
+func (s *PullStore) scanPullListItems(ctx context.Context, q string, args ...any) ([]PullListItem, error) {
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []PullListItem{}
+	for rows.Next() {
+		var it PullListItem
+		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, it)
+	}
+	return out, rows.Err()
 }
