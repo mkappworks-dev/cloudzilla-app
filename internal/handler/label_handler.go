@@ -309,6 +309,7 @@ func (h *Handler) AddPullLabel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
+	h.recordPullLabelEvent(r, owner, repoName, number, labelID, model.PullEventLabeled)
 
 	if r.Header.Get("HX-Request") == "true" {
 		h.renderPullLabelFragment(w, r, owner, repoName, number)
@@ -352,12 +353,36 @@ func (h *Handler) RemovePullLabel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
+	h.recordPullLabelEvent(r, owner, repoName, number, labelID, model.PullEventUnlabeled)
 
 	if r.Header.Get("HX-Request") == "true" {
 		h.renderPullLabelFragment(w, r, owner, repoName, number)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// recordPullLabelEvent appends a labeled/unlabeled entry to the PR timeline.
+// Best-effort: a lookup failure skips the event rather than failing the request.
+func (h *Handler) recordPullLabelEvent(r *http.Request, owner, repoName string, number int, labelID int64, eventType string) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		return
+	}
+	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if err != nil {
+		return
+	}
+	name := ""
+	if labels, lerr := h.Services.Label.ListByRepo(r.Context(), owner, repoName); lerr == nil {
+		for _, l := range labels {
+			if l.ID == labelID {
+				name = l.Name
+				break
+			}
+		}
+	}
+	h.Services.PullEvent.Record(r.Context(), pull.ID, claims.UserID, claims.Username, eventType, name)
 }
 
 func (h *Handler) renderIssueLabelFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, issueNumber int) {

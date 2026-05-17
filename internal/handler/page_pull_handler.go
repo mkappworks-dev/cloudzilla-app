@@ -472,6 +472,12 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 
 	linkedIssues := h.resolvePullLinkedIssues(r.Context(), owner, repoName, pull.Body, callerID)
 
+	pullEvents, err := h.Services.PullEvent.ListByPull(r.Context(), pull.ID)
+	if err != nil {
+		slog.Warn("pull detail: timeline event list failed; rendering without them",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+	}
+
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
 		BasePage:          withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage2),
 		Repo:              *repo,
@@ -492,6 +498,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		Comments:          comments,
 		Participants:      participants,
 		LinkedIssues:      linkedIssues,
+		Events:            pullEvents,
 		CommitsCount:      mergeabilityBox.Ahead,
 		CanMerge:          canMerge,
 		MergeBlockReason:  mergeBlockReason,

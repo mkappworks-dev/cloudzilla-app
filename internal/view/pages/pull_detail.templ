@@ -111,11 +111,13 @@ templ pullDetailBody(data view.PullDetailData) {
 
 			<!-- Timeline of comments and reviews -->
 			<ol id="pr-timeline" class="cz-timeline space-y-4" aria-label="Pull request timeline">
-				for _, e := range prTimelineEvents(data.Comments, data.Reviews) {
+				for _, e := range prTimelineEvents(data.Comments, data.Reviews, data.Events) {
 					if e.Comment != nil {
 						@fragments.Comment(view.CommentFragData{Comment: *e.Comment})
 					} else if e.Review != nil {
 						@reviewTimelineEntry(*e.Review)
+					} else if e.Event != nil {
+						@pullEventEntry(*e.Event)
 					}
 				}
 			</ol>
@@ -334,15 +336,100 @@ templ linkedIssueIcon(state string) {
 	}
 }
 
-// prTimelineEvent is one chronological entry — exactly one of Comment / Review is set.
+templ pullEventEntry(ev model.PullEvent) {
+	@components.TimelineItem() {
+		@components.TimelineIcon(pullEventVariant(ev.Type)) {
+			@pullEventIcon(ev.Type)
+		}
+		<div class="flex-1 min-w-0">
+			<p class="text-sm text-muted-foreground">
+				<a href={ templ.SafeURL("/" + ev.ActorName) } class="font-medium text-foreground hover:text-primary">{ ev.ActorName }</a>
+				{ " " + pullEventVerb(ev.Type) + " " }
+				if ev.Detail != "" {
+					switch ev.Type {
+						case model.PullEventLabeled, model.PullEventUnlabeled:
+							<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-muted border border-border text-foreground">{ ev.Detail }</span>
+						case model.PullEventRenamed:
+							<span class="text-foreground font-medium">{ ev.Detail }</span>
+						default:
+							<a href={ templ.SafeURL("/" + ev.Detail) } class="text-foreground font-medium hover:underline">{ ev.Detail }</a>
+					}
+				}
+				<time class="ml-1" datetime={ ev.CreatedAt.UTC().Format(time.RFC3339) }>{ ev.CreatedAt.Format("Jan 2, 2006") }</time>
+			</p>
+		</div>
+	}
+}
+
+templ pullEventIcon(t string) {
+	switch t {
+		case model.PullEventMerged:
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6V8"></path></svg>
+		case model.PullEventClosed:
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+		case model.PullEventReopened:
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+		case model.PullEventLabeled, model.PullEventUnlabeled:
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+		case model.PullEventAssigned, model.PullEventUnassigned:
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+		default:
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+	}
+}
+
+func pullEventVariant(t string) components.TimelineVariant {
+	switch t {
+	case model.PullEventMerged:
+		return components.TimelineMerged
+	case model.PullEventClosed:
+		return components.TimelineDestructive
+	case model.PullEventReopened, model.PullEventReadied:
+		return components.TimelineSuccess
+	default:
+		return components.TimelineDefault
+	}
+}
+
+func pullEventVerb(t string) string {
+	switch t {
+	case model.PullEventRenamed:
+		return "changed the title to"
+	case model.PullEventDescribed:
+		return "edited the description"
+	case model.PullEventLabeled:
+		return "added the label"
+	case model.PullEventUnlabeled:
+		return "removed the label"
+	case model.PullEventAssigned:
+		return "assigned"
+	case model.PullEventUnassigned:
+		return "unassigned"
+	case model.PullEventMerged:
+		return "merged this pull request"
+	case model.PullEventClosed:
+		return "closed this pull request"
+	case model.PullEventReopened:
+		return "reopened this pull request"
+	case model.PullEventReadied:
+		return "marked this ready for review"
+	case model.PullEventDrafted:
+		return "converted this to a draft"
+	default:
+		return "updated this"
+	}
+}
+
+// prTimelineEvent is one chronological entry — exactly one field is set.
 type prTimelineEvent struct {
 	When    time.Time
 	Comment *view.RenderedComment
 	Review  *model.PullReview
+	Event   *model.PullEvent
 }
 
-func prTimelineEvents(comments []view.RenderedComment, reviews []model.PullReview) []prTimelineEvent {
-	events := make([]prTimelineEvent, 0, len(comments)+len(reviews))
+func prTimelineEvents(comments []view.RenderedComment, reviews []model.PullReview, pullEvents []model.PullEvent) []prTimelineEvent {
+	events := make([]prTimelineEvent, 0, len(comments)+len(reviews)+len(pullEvents))
 	for i := range comments {
 		events = append(events, prTimelineEvent{When: comments[i].CreatedAt, Comment: &comments[i]})
 	}
@@ -351,6 +438,9 @@ func prTimelineEvents(comments []view.RenderedComment, reviews []model.PullRevie
 			continue
 		}
 		events = append(events, prTimelineEvent{When: reviewTime(reviews[i]), Review: &reviews[i]})
+	}
+	for i := range pullEvents {
+		events = append(events, prTimelineEvent{When: pullEvents[i].CreatedAt, Event: &pullEvents[i]})
 	}
 	sort.SliceStable(events, func(i, j int) bool { return events[i].When.Before(events[j].When) })
 	return events

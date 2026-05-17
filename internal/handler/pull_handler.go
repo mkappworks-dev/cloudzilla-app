@@ -185,6 +185,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnprocessableEntity, err.Error())
 			return
 		}
+		h.Services.PullEvent.Record(r.Context(), pr.ID, claims.UserID, claims.Username, model.PullEventRenamed, prTitle)
 		if r.Header.Get("HX-Request") == "true" {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -204,6 +205,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnprocessableEntity, err.Error())
 			return
 		}
+		h.Services.PullEvent.Record(r.Context(), pr.ID, claims.UserID, claims.Username, model.PullEventDescribed, "")
 		if r.Header.Get("HX-Request") == "true" {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -225,6 +227,11 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
+		draftEvent := model.PullEventReadied
+		if newDraft {
+			draftEvent = model.PullEventDrafted
+		}
+		h.Services.PullEvent.Record(r.Context(), pr.ID, claims.UserID, claims.Username, draftEvent, "")
 		if r.Header.Get("HX-Request") == "true" {
 			h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
 				Pull:              *pr,
@@ -324,6 +331,17 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		slog.Error("operation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
+	}
+
+	if state != "" {
+		switch pr.State {
+		case model.PRStateMerged:
+			h.Services.PullEvent.Record(r.Context(), pr.ID, claims.UserID, claims.Username, model.PullEventMerged, "")
+		case model.PRStateClosed:
+			h.Services.PullEvent.Record(r.Context(), pr.ID, claims.UserID, claims.Username, model.PullEventClosed, "")
+		case model.PRStateOpen:
+			h.Services.PullEvent.Record(r.Context(), pr.ID, claims.UserID, claims.Username, model.PullEventReopened, "")
+		}
 	}
 
 	go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload(state, *repo, *pr))

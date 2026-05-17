@@ -159,6 +159,7 @@ func (h *Handler) AddPullAssignee(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
+	h.recordPullAssigneeEvent(r, owner, repoName, number, username, model.PullEventAssigned)
 
 	if r.Header.Get("HX-Request") == "true" {
 		h.renderPullAssigneeFragment(w, r, owner, repoName, number)
@@ -203,12 +204,26 @@ func (h *Handler) RemovePullAssignee(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
+	h.recordPullAssigneeEvent(r, owner, repoName, number, username, model.PullEventUnassigned)
 
 	if r.Header.Get("HX-Request") == "true" {
 		h.renderPullAssigneeFragment(w, r, owner, repoName, number)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// recordPullAssigneeEvent appends an assigned/unassigned entry to the PR timeline.
+func (h *Handler) recordPullAssigneeEvent(r *http.Request, owner, repoName string, number int, username, eventType string) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		return
+	}
+	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if err != nil {
+		return
+	}
+	h.Services.PullEvent.Record(r.Context(), pull.ID, claims.UserID, claims.Username, eventType, username)
 }
 
 func (h *Handler) renderIssueAssigneeFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, issueNumber int) {

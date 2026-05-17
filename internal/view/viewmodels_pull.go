@@ -48,6 +48,7 @@ type PullDetailData struct {
 	Comments          []RenderedComment
 	Participants      []string
 	LinkedIssues      []LinkedIssue
+	Events            []model.PullEvent
 	CommitsCount      int
 	CanMerge          bool
 	MergeBlockReason  string

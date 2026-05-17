@@ -27,6 +27,7 @@ type Services struct {
 	Milestone        *MilestoneService
 	PullReview       *PullReviewService
 	PullLineComment  *PullLineCommentService
+	PullEvent        *PullEventService
 	Search           *SearchService
 	AccessToken      *AccessTokenService
 	DeployKey        *DeployKeyService
@@ -91,6 +92,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Milestone:        NewMilestoneService(stores.Milestone, stores.Repo),
 		PullReview:       NewPullReviewService(stores.PullReview, stores.Pull, stores.Repo, stores.BranchProtection),
 		PullLineComment:  NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
+		PullEvent:        NewPullEventService(stores.PullEvent),
 		Search:           NewSearchService(stores.Search),
 		AccessToken:      NewAccessTokenService(stores.AccessToken, stores.User),
 		DeployKey:        NewDeployKeyService(stores.DeployKey, stores.SSHKey),
