@@ -128,12 +128,10 @@
 #diff-root[data-view="split"] .diff-unified { display: none; }
 #diff-root.hide-ws .ws-only { display: none; }
 
-/* Single-file mode: the lone visible file scrolls inside the viewport
- * instead of growing the page past the screen. */
-#diff-root.single-file .diff-file-body {
-  max-height: calc(100vh - 12rem);
-  overflow: auto;
-}
+/* Single-file mode: the page is locked and the lone visible file's body
+ * scrolls inside the remaining viewport (its max-height is set by JS). */
+#diff-root.single-file .diff-file-body { overflow: auto; }
+html.cz-files-locked { overflow: hidden; }
 
 /* ============================================================================
  * Timeline component (see internal/view/components/timeline.templ)

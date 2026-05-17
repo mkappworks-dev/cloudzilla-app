@@ -171,8 +171,23 @@ templ pullFilesBody(data view.PullFilesData) {
 				function applySingle() {
 					var on = singleOn();
 					root.classList.toggle('single-file', on);
-					sections.forEach(function (s) { s.classList.toggle('hidden', on && s.id !== activeId); });
+					document.documentElement.classList.toggle('cz-files-locked', on);
+					sections.forEach(function (s) {
+						s.classList.toggle('hidden', on && s.id !== activeId);
+						var b = s.querySelector('.diff-file-body');
+						if (b) b.style.maxHeight = '';
+					});
+					if (on) {
+						var vis = document.getElementById(activeId);
+						var body = vis && vis.querySelector('.diff-file-body');
+						if (body) {
+							window.scrollTo(0, 0);
+							var top = body.getBoundingClientRect().top;
+							body.style.maxHeight = Math.max(160, window.innerHeight - top - 16) + 'px';
+						}
+					}
 				}
+				window.addEventListener('resize', function () { if (singleOn()) applySingle(); });
 				function setActive(id) {
 					if (!id) return;
 					activeId = id;
