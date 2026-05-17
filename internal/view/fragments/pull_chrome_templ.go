@@ -426,7 +426,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</span></p></div></section><nav class=\"border-b border-border mb-6 flex flex-wrap items-center gap-1 text-sm\" aria-label=\"Pull request views\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</span></p></div></section><nav class=\"border-b border-border mb-6 py-1.5 flex flex-wrap items-center gap-1 text-sm\" aria-label=\"Pull request views\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -810,9 +810,9 @@ func commitsPhrase(n int) string {
 
 func chromeTabClass(active bool) string {
 	if active {
-		return "px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-2 whitespace-nowrap"
+		return "px-3 py-1.5 rounded-md bg-accent text-foreground font-medium inline-flex items-center gap-2 whitespace-nowrap"
 	}
-	return "px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-2 whitespace-nowrap"
+	return "px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-2 whitespace-nowrap"
 }
 
 func chromeTabCurrent(active bool) templ.Attributes {

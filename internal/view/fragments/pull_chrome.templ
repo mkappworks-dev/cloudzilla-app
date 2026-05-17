@@ -82,7 +82,7 @@ git checkout { data.Pull.HeadBranch }</pre>
 				</p>
 			</div>
 		</section>
-		<nav class="border-b border-border mb-6 flex flex-wrap items-center gap-1 text-sm" aria-label="Pull request views">
+		<nav class="border-b border-border mb-6 py-1.5 flex flex-wrap items-center gap-1 text-sm" aria-label="Pull request views">
 			<a href={ templ.SafeURL(pullPath) } class={ chromeTabClass(data.Active == "conversation") } { chromeTabCurrent(data.Active == "conversation")... }>
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
 				Conversation
@@ -198,9 +198,9 @@ func commitsPhrase(n int) string {
 
 func chromeTabClass(active bool) string {
 	if active {
-		return "px-3 py-2.5 border-b -mb-px border-foreground text-foreground font-medium inline-flex items-center gap-2 whitespace-nowrap"
+		return "px-3 py-1.5 rounded-md bg-accent text-foreground font-medium inline-flex items-center gap-2 whitespace-nowrap"
 	}
-	return "px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-2 whitespace-nowrap"
+	return "px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-2 whitespace-nowrap"
 }
 
 func chromeTabCurrent(active bool) templ.Attributes {
