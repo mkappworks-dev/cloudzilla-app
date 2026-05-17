@@ -25,11 +25,15 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 	if gists == nil {
 		gists = []model.Gist{}
 	}
-	h.render(w, r, pages.Gists(view.GistsData{
+	data := view.GistsData{
 		BasePage: basePage(r, h.Services),
 		Gists:    gists,
 		Page:     page,
-	}))
+	}
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(r.Context(), claims.UserID))
+	}
+	h.render(w, r, pages.Gists(data))
 }
 
 // PageGistNew renders the new gist form.

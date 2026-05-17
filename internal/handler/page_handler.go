@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
@@ -51,6 +52,32 @@ func withRepoSubnav(base BasePage, repo *model.Repository, active string, canMan
 		AllowWiki:        repo.AllowWiki,
 	}
 	return base
+}
+
+// withAccountSubnav attaches the account-level Primary nav. counts is keyed by
+// tab ("repositories"/"gists"/"pulls"/"issues"); pass nil to omit all badges.
+func withAccountSubnav(base BasePage, active string, counts map[string]int) BasePage {
+	base.AccountSubnav = &view.AccountSubnavInfo{Active: active, Counts: counts}
+	return base
+}
+
+// accountCounts loads the nav badge counts for a logged-in user. Best-effort:
+// any failed query degrades that badge to 0 rather than failing the page.
+func (h *Handler) accountCounts(ctx context.Context, userID int64) map[string]int {
+	counts := map[string]int{}
+	if n, err := h.Services.Repo.CountForUser(ctx, userID); err == nil {
+		counts["repositories"] = n
+	}
+	if n, err := h.Services.Gist.CountByUser(ctx, userID); err == nil {
+		counts["gists"] = n
+	}
+	if n, err := h.Services.Pull.CountOpenAuthoredByOrAssignedTo(ctx, userID); err == nil {
+		counts["pulls"] = n
+	}
+	if n, err := h.Services.Issue.CountOpenAuthoredByOrAssignedTo(ctx, userID); err == nil {
+		counts["issues"] = n
+	}
+	return counts
 }
 
 func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
@@ -110,6 +137,7 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 			{Label: "Issues", Value: countOpenIssues, Subtitle: "open"},
 			{Label: "Commits", Value: commitsLast7, Subtitle: "last 7 days"},
 		}
+		data.BasePage = withAccountSubnav(data.BasePage, "overview", h.accountCounts(ctx, userID))
 		if heat, err := h.Services.CommitStats.LookbackForUser(ctx, userID, 365); err != nil {
 			slog.Warn("home: heatmap lookback failed", "user_id", userID, "error", err)
 		} else {
