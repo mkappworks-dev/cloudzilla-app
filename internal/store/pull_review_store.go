@@ -122,7 +122,7 @@ func (s *PullReviewStore) ListPullIDsAwaitingReviewer(ctx context.Context, revie
 		reviewerID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("pull reviews list awaiting reviewer: %w", err)
 	}
 	defer rows.Close()
 	var ids []int64
