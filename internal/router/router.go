@@ -87,6 +87,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.With(authMW).Delete("/{id}", h.DeleteGist)
 	})
 
+	// Account-level cross-repo pages
+	r.With(authMW).Get("/repos", h.PageRepos)
+
 	// Topic explore page
 	r.With(optAuthMW).Get("/topic/{name}", h.PageTopic)
 

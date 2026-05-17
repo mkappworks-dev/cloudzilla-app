@@ -74,3 +74,10 @@ type FeedData struct {
 	Page        int
 	HasNextPage bool
 }
+
+// AccountReposData backs the /repos page.
+type AccountReposData struct {
+	BasePage
+	Repos  []model.Repository
+	Filter string // "all" | "owned" | "collaborator"
+}
