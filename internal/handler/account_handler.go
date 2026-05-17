@@ -10,8 +10,8 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// PageRepos renders the logged-in user's cross-repo repository list at /repos.
-func (h *Handler) PageRepos(w http.ResponseWriter, r *http.Request) {
+// PageAccountRepos renders the logged-in user's cross-repo repository list at /repos.
+func (h *Handler) PageAccountRepos(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims, ok := middleware.ClaimsFromContext(ctx)
 	if !ok {
