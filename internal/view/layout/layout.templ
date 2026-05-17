@@ -93,7 +93,7 @@ templ Base(base view.BasePage, title string) {
 									"class":      "flex items-center gap-2 -ml-1 px-2 h-7 rounded-md hover:bg-accent text-sm",
 									"aria-label": "Switch repository, current: " + base.RepoSubnav.OwnerName + "/" + base.RepoSubnav.RepoName,
 								}) {
-									<span class="font-medium">{ base.RepoSubnav.OwnerName }/{ base.RepoSubnav.RepoName }</span>
+									<span class="font-medium">{ base.RepoSubnav.RepoName }</span>
 									<svg class="text-muted-foreground" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"></path></svg>
 								}
 								@components.DropdownMenuContent(components.DropdownAlignStart) {
