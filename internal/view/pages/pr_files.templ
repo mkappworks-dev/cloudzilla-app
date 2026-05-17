@@ -136,6 +136,9 @@ templ pullFilesBody(data view.PullFilesData) {
 		</div>
 		<script>
 			(function () {
+				var STORE_NS = 'cz:pr-files:';
+				function store(key, val) { try { localStorage.setItem(STORE_NS + key, val); } catch (e) {} }
+				function load(key) { try { return localStorage.getItem(STORE_NS + key); } catch (e) { return null; } }
 				function setCollapsed(section, collapsed) {
 					var body = section.querySelector('.diff-file-body');
 					var caret = section.querySelector('.diff-file-caret');
@@ -170,24 +173,14 @@ templ pullFilesBody(data view.PullFilesData) {
 				}
 				function applySingle() {
 					var on = singleOn();
-					root.classList.toggle('single-file', on);
-					document.documentElement.classList.toggle('cz-files-locked', on);
 					sections.forEach(function (s) {
 						s.classList.toggle('hidden', on && s.id !== activeId);
-						var b = s.querySelector('.diff-file-body');
-						if (b) b.style.maxHeight = '';
 					});
-					if (on) {
-						var vis = document.getElementById(activeId);
-						var body = vis && vis.querySelector('.diff-file-body');
-						if (body) {
-							window.scrollTo(0, 0);
-							var top = body.getBoundingClientRect().top;
-							body.style.maxHeight = Math.max(160, window.innerHeight - top - 16) + 'px';
-						}
-					}
+					// Single-file mode shows one file at full height with the
+					// whole page scrollable; entering it or clicking a file in
+					// the sidebar jumps the page back to the top.
+					if (on) window.scrollTo(0, 0);
 				}
-				window.addEventListener('resize', function () { if (singleOn()) applySingle(); });
 				function setActive(id) {
 					if (!id) return;
 					activeId = id;
@@ -196,17 +189,26 @@ templ pullFilesBody(data view.PullFilesData) {
 				}
 				Object.keys(fileLinks).forEach(function (id) {
 					fileLinks[id].forEach(function (a) {
-						a.addEventListener('click', function () { setActive(id); });
+						a.addEventListener('click', function (e) {
+							// In single-file mode the anchor jump would scroll the
+							// shown file into view; keep the page pinned to top.
+							if (singleOn()) e.preventDefault();
+							setActive(id);
+						});
 					});
 				});
+				function setSingle(on) {
+					singleBtn.dataset.state = on ? 'on' : 'off';
+					singleBtn.setAttribute('aria-pressed', on);
+					singleBtn.classList.toggle('bg-muted', on);
+					singleBtn.classList.toggle('text-muted-foreground', !on);
+					applySingle();
+				}
 				if (singleBtn) {
 					singleBtn.addEventListener('click', function () {
-						singleBtn.dataset.state = singleOn() ? 'off' : 'on';
-						var on = singleOn();
-						singleBtn.setAttribute('aria-pressed', on);
-						singleBtn.classList.toggle('bg-muted', on);
-						singleBtn.classList.toggle('text-muted-foreground', !on);
-						applySingle();
+						var on = !singleOn();
+						store('single', on ? 'on' : 'off');
+						setSingle(on);
 					});
 				}
 				// Scroll-spy: highlight the file nearest the top while scrolling.
@@ -262,8 +264,8 @@ templ pullFilesBody(data view.PullFilesData) {
 					treeBtn.classList.toggle('bg-muted', tree);
 					treeBtn.classList.toggle('text-muted-foreground', !tree);
 				}
-				if (listBtn) listBtn.addEventListener('click', function () { setFileLayout('list'); });
-				if (treeBtn) treeBtn.addEventListener('click', function () { setFileLayout('tree'); });
+				if (listBtn) listBtn.addEventListener('click', function () { store('layout', 'list'); setFileLayout('list'); });
+				if (treeBtn) treeBtn.addEventListener('click', function () { store('layout', 'tree'); setFileLayout('tree'); });
 				if (treeUl) {
 					treeUl.querySelectorAll('.diff-tree-folder').forEach(function (b) {
 						b.addEventListener('click', function () {
@@ -277,6 +279,10 @@ templ pullFilesBody(data view.PullFilesData) {
 						});
 					});
 				}
+
+				// Restore persisted sidebar layout and single-file mode.
+				if (load('layout') === 'tree') setFileLayout('tree');
+				if (singleBtn && load('single') === 'on') setSingle(true);
 			})();
 		</script>
 	}
