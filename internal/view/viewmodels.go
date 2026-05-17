@@ -26,6 +26,8 @@ type BasePage struct {
 	AllowRegistration bool
 	UserOrgs          []model.Organization
 	RepoSubnav        *RepoSubnavInfo
+	AccountSubnav     *AccountSubnavInfo
+	RepoSwitcher      []RepoRef
 }
 
 type RepoSubnavInfo struct {
@@ -39,6 +41,20 @@ type RepoSubnavInfo struct {
 	AllowDiscussions bool
 	AllowProjects    bool
 	AllowWiki        bool
+}
+
+// RepoRef is a lightweight repo reference for the topbar repo switcher.
+type RepoRef struct {
+	Name string
+	Path string // "/{owner}/{repo}"
+}
+
+// AccountSubnavInfo drives the account-level Primary nav. Counts is keyed by
+// tab key ("repositories", "gists", "pulls", "issues"); a missing or zero
+// entry hides that tab's badge.
+type AccountSubnavInfo struct {
+	Active string // "overview" | "repositories" | "gists" | "pulls" | "issues"
+	Counts map[string]int
 }
 
 type HomeData struct {
