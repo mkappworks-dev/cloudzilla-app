@@ -228,7 +228,7 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 // AssigneeSidebar renders the assignees sidebar panel for an issue or pull request.
 // kind must be "issues" or "pulls" — it determines the HTMX target ID and API URL path.
 // The outer div ID is "issue-assignees" or "pull-assignees" to satisfy stable HTMX swap targets.
-func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assignees []model.User, canWrite bool) templ.Component {
+func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assignees []model.User, collaborators []string, canWrite bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -252,6 +252,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 		if validKind(kind) {
 			prefix := idPrefix(kind)
 			divID := prefix + "-assignees"
+			listID := divID + "-collaborators"
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<div id=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -259,7 +260,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(divID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 81, Col: 16}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 82, Col: 16}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 			if templ_7745c5c3_Err != nil {
@@ -291,7 +292,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 					var templ_7745c5c3_Var13 templ.SafeURL
 					templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + a.Username))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 90, Col: 47}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 91, Col: 47}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 					if templ_7745c5c3_Err != nil {
@@ -304,7 +305,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 					var templ_7745c5c3_Var14 string
 					templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(a.Username)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 90, Col: 114}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 91, Col: 114}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 					if templ_7745c5c3_Err != nil {
@@ -322,7 +323,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 						var templ_7745c5c3_Var15 string
 						templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/repos/" + owner + "/" + repoName + "/" + kind + "/" + strconv.Itoa(itemNumber) + "/assignees?username=" + a.Username)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 93, Col: 142}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 94, Col: 142}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 						if templ_7745c5c3_Err != nil {
@@ -335,7 +336,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 						var templ_7745c5c3_Var16 string
 						templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue("#" + divID)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 94, Col: 31}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 95, Col: 31}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 						if templ_7745c5c3_Err != nil {
@@ -348,7 +349,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 						var templ_7745c5c3_Var17 string
 						templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue("Remove " + a.Username)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 98, Col: 43}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 99, Col: 43}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 						if templ_7745c5c3_Err != nil {
@@ -377,7 +378,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/repos/" + owner + "/" + repoName + "/" + kind + "/" + strconv.Itoa(itemNumber) + "/assignees")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 107, Col: 113}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 108, Col: 113}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
 				if templ_7745c5c3_Err != nil {
@@ -390,18 +391,67 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 				var templ_7745c5c3_Var19 string
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.ResolveAttributeValue("#" + divID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 108, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 109, Col: 27}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var19)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "\" hx-swap=\"outerHTML\" class=\"mt-2 flex gap-1\"><input type=\"text\" name=\"username\" placeholder=\"Username\" required class=\"flex-1 h-8 rounded-md border border-input bg-transparent px-2 text-xs text-foreground placeholder:text-muted-foreground shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring\"> <button type=\"submit\" class=\"inline-flex items-center justify-center h-8 px-2.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90\">+</button></form>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "\" hx-swap=\"outerHTML\" class=\"mt-2 flex gap-1\"><input type=\"text\" name=\"username\" placeholder=\"Username\" list=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var20 string
+				templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.ResolveAttributeValue(listID)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 117, Col: 18}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var20)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "\" autocomplete=\"off\" required class=\"flex-1 h-8 rounded-md border border-input bg-transparent px-2 text-xs text-foreground placeholder:text-muted-foreground shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring\"> <datalist id=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var21 string
+				templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.ResolveAttributeValue(listID)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 122, Col: 25}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var21)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				for _, c := range collaborators {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<option value=\"")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var22 string
+					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.ResolveAttributeValue(c)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 124, Col: 23}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var22)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "\"></option>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</datalist> <button type=\"submit\" class=\"inline-flex items-center justify-center h-8 px-2.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90\">+</button></form>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

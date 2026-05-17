@@ -6,5 +6,5 @@ import (
 )
 
 templ IssueAssignees(data view.IssueAssigneeSidebarData) {
-	@components.AssigneeSidebar(data.Owner, data.RepoName, data.IssueNumber, "issues", data.Assignees, data.CanWrite)
+	@components.AssigneeSidebar(data.Owner, data.RepoName, data.IssueNumber, "issues", data.Assignees, data.Collaborators, data.CanWrite)
 }

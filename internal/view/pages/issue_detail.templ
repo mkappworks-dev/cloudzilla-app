@@ -228,7 +228,7 @@ templ IssueDetail(data view.IssueDetailData) {
 				<aside class="space-y-6 text-[12.5px]" aria-label="Issue metadata">
 
 					<section class="rounded-md border border-border bg-card p-4">
-						@components.AssigneeSidebar(data.Owner, data.RepoName, data.Issue.Number, "issues", data.Assignees, data.CanWrite)
+						@components.AssigneeSidebar(data.Owner, data.RepoName, data.Issue.Number, "issues", data.Assignees, data.Collaborators, data.CanWrite)
 					</section>
 
 					<section class="rounded-md border border-border bg-card p-4">

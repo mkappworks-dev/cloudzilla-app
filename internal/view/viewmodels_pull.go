@@ -57,6 +57,7 @@ type PullDetailData struct {
 	Milestone         *model.Milestone
 	AllMilestones     []model.Milestone
 	CanWrite          bool
+	Collaborators     []string
 	HeadStatuses      []model.CommitStatus
 	Reviews           []model.PullReview
 	Comments          []RenderedComment
@@ -161,11 +162,12 @@ type PullLabelSidebarData struct {
 
 // PullAssigneeSidebarData holds template data for the PR assignee sidebar HTMX fragment.
 type PullAssigneeSidebarData struct {
-	Owner      string
-	RepoName   string
-	PullNumber int
-	Assignees  []model.User
-	CanWrite   bool
+	Owner         string
+	RepoName      string
+	PullNumber    int
+	Assignees     []model.User
+	Collaborators []string
+	CanWrite      bool
 }
 
 // Line comment fragments

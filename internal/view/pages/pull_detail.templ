@@ -166,9 +166,34 @@ templ pullDetailBody(data view.PullDetailData) {
 		</div>
 
 		<!-- Sidebar -->
-		<aside class="space-y-5" aria-label="Pull request metadata">
+		<aside class="space-y-6" aria-label="Pull request metadata">
+			<!-- Reviewers -->
 			<section aria-labelledby="reviewers-heading">
-				<h3 id="reviewers-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Reviewers</h3>
+				<div class="flex items-center justify-between mb-2">
+					<h3 id="reviewers-heading" class="text-[12px] font-medium text-muted-foreground">Reviewers</h3>
+					if data.CanWrite && len(reviewerCandidates(data.Collaborators, data.Reviews)) > 0 {
+						<details class="cz-sidebar-picker relative">
+							<summary class="list-none cursor-pointer text-muted-foreground hover:text-foreground" aria-label="Request a reviewer">
+								@sidebarPlusIcon()
+							</summary>
+							<div class="absolute right-0 z-10 mt-1 w-56 rounded-md border border-border bg-card shadow-md p-1 max-h-56 overflow-y-auto">
+								for _, c := range reviewerCandidates(data.Collaborators, data.Reviews) {
+									<form
+										hx-post={ apiBase + "/reviewers" }
+										hx-swap="none"
+										hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review requested'}));location.reload();}"
+									>
+										<input type="hidden" name="username" value={ c }/>
+										<button type="submit" class="w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-accent rounded text-xs">
+											@components.Avatar(c, components.AvatarSizeSM, c)
+											{ c }
+										</button>
+									</form>
+								}
+							</div>
+						</details>
+					}
+				</div>
 				{{ reviewers := reviewersList(data.Reviews) }}
 				if len(reviewers) > 0 {
 					<ul class="space-y-1.5">
@@ -187,17 +212,31 @@ templ pullDetailBody(data view.PullDetailData) {
 				}
 			</section>
 
+			<!-- Assignees -->
 			<section class="border-t border-border pt-5">
-				@components.AssigneeSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Assignees, data.CanWrite)
+				<div class="cz-sidebar-edit">
+					@components.AssigneeSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Assignees, data.Collaborators, data.CanWrite)
+				</div>
 			</section>
 
+			<!-- Labels -->
 			<section class="border-t border-border pt-5">
-				@components.LabelSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Labels, data.AllLabels, data.CanWrite)
+				<div class="cz-sidebar-edit">
+					@components.LabelSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Labels, data.AllLabels, data.CanWrite)
+				</div>
 			</section>
 
+			<!-- Milestone -->
 			<section class="border-t border-border pt-5">
 				<div id="issue-milestone">
-					<h3 class="text-[12px] font-medium text-muted-foreground mb-2">Milestone</h3>
+					<div class="flex items-center justify-between mb-2">
+						<h3 class="text-[12px] font-medium text-muted-foreground">Milestone</h3>
+						if data.CanWrite && len(data.AllMilestones) > 0 {
+							<button type="button" class="cz-milestone-toggle text-muted-foreground hover:text-foreground" aria-label="Set milestone">
+								@sidebarPencilIcon()
+							</button>
+						}
+					</div>
 					if data.Milestone != nil {
 						<div class="text-sm">
 							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="font-medium hover:underline">{ data.Milestone.Title }</a>
@@ -215,35 +254,34 @@ templ pullDetailBody(data view.PullDetailData) {
 						<span class="text-xs text-muted-foreground">No milestone</span>
 					}
 					if data.CanWrite && len(data.AllMilestones) > 0 {
-						<details class="mt-2">
-							<summary class="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
-								if data.Milestone != nil {
-									Change
-								} else {
-									Set milestone
-								}
-							</summary>
-							<div class="mt-1 space-y-1 max-h-40 overflow-y-auto border border-border rounded-md">
-								<form hx-post={ apiBase + "/milestone" } hx-target="#issue-milestone" hx-swap="outerHTML" class="p-1">
-									<button type="submit" name="milestone_id" value="" class="w-full text-left px-2 py-1 hover:bg-accent rounded text-xs text-muted-foreground">
-										No milestone
+						<div id="milestone-picker" class="hidden mt-2 space-y-1 max-h-40 overflow-y-auto border border-border rounded-md">
+							<form hx-post={ apiBase + "/milestone" } hx-target="#issue-milestone" hx-swap="outerHTML" class="p-1">
+								<button type="submit" name="milestone_id" value="" class="w-full text-left px-2 py-1 hover:bg-accent rounded text-xs text-muted-foreground">
+									No milestone
+								</button>
+								for _, m := range data.AllMilestones {
+									<button type="submit" name="milestone_id" value={ strconv.FormatInt(m.ID, 10) } class={ "w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-accent rounded text-xs", templ.KV("font-semibold text-foreground", data.Milestone != nil && data.Milestone.ID == m.ID) }>
+										<span class={ "w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-muted-foreground", m.State == "closed"), templ.KV("bg-success", m.State != "closed") }></span>
+										{ m.Title }
 									</button>
-									for _, m := range data.AllMilestones {
-										<button type="submit" name="milestone_id" value={ strconv.FormatInt(m.ID, 10) } class={ "w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-accent rounded text-xs", templ.KV("font-semibold text-foreground", data.Milestone != nil && data.Milestone.ID == m.ID) }>
-											<span class={ "w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-muted-foreground", m.State == "closed"), templ.KV("bg-success", m.State != "closed") }></span>
-											{ m.Title }
-										</button>
-									}
-								</form>
-							</div>
-						</details>
+								}
+							</form>
+						</div>
 					}
 				</div>
 			</section>
 
-			if len(data.LinkedIssues) > 0 {
-				<section class="border-t border-border pt-5">
-					<h3 class="text-[12px] font-medium text-muted-foreground mb-2">Linked issues</h3>
+			<!-- Linked issues -->
+			<section class="border-t border-border pt-5" aria-labelledby="linked-heading">
+				<div class="flex items-center justify-between mb-2">
+					<h3 id="linked-heading" class="text-[12px] font-medium text-muted-foreground">Linked issues</h3>
+					if data.Repo.AllowIssues {
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/new") } class="text-muted-foreground hover:text-foreground" aria-label="Open a linked issue">
+							@sidebarPlusIcon()
+						</a>
+					}
+				</div>
+				if len(data.LinkedIssues) > 0 {
 					<ul class="space-y-1.5 text-[13px]">
 						for _, li := range data.LinkedIssues {
 							<li class="flex items-center gap-2">
@@ -255,8 +293,10 @@ templ pullDetailBody(data view.PullDetailData) {
 							</li>
 						}
 					</ul>
-				</section>
-			}
+				} else {
+					<p class="text-xs text-muted-foreground">No linked issues.</p>
+				}
+			</section>
 			if len(data.Participants) > 0 {
 				<section class="border-t border-border pt-5">
 					<h3 class="text-[12px] font-medium text-muted-foreground mb-2">{ strconv.Itoa(len(data.Participants)) } { participantsNoun(len(data.Participants)) }</h3>
@@ -279,6 +319,96 @@ templ pullDetailBody(data view.PullDetailData) {
 			</section>
 		</aside>
 	</div>
+	@pullSidebarScript()
+}
+
+// pullSidebarScript wires the section-header edit affordances to their pickers:
+// the milestone pencil toggles #milestone-picker; for the assignee/label panels
+// it injects a header pencil that toggles the panel's <details> picker, or its
+// add <form> when the panel has no <details>. Re-runs after HTMX swaps because
+// the assignee/label panels replace themselves via outerHTML.
+templ pullSidebarScript() {
+	<script>
+		(function () {
+			var SVG = 'http://www.w3.org/2000/svg';
+			function pencilSvg() {
+				var svg = document.createElementNS(SVG, 'svg');
+				svg.setAttribute('width', '13');
+				svg.setAttribute('height', '13');
+				svg.setAttribute('viewBox', '0 0 24 24');
+				svg.setAttribute('fill', 'none');
+				svg.setAttribute('stroke', 'currentColor');
+				svg.setAttribute('stroke-width', '2');
+				svg.setAttribute('aria-hidden', 'true');
+				['M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7',
+				 'M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z'].forEach(function (d) {
+					var p = document.createElementNS(SVG, 'path');
+					p.setAttribute('d', d);
+					svg.appendChild(p);
+				});
+				return svg;
+			}
+			function decorate(panel) {
+				var h3 = panel.querySelector('h3');
+				var details = panel.querySelector('details');
+				var form = panel.querySelector('form');
+				var picker = details || form;
+				if (!h3 || !picker || h3.parentElement.classList.contains('cz-sidebar-head')) return;
+				if (!details && form) form.classList.add('hidden');
+				var btn = document.createElement('button');
+				btn.type = 'button';
+				btn.className = 'text-muted-foreground hover:text-foreground';
+				btn.setAttribute('aria-label', 'Edit ' + h3.textContent.trim());
+				btn.appendChild(pencilSvg());
+				btn.addEventListener('click', function () {
+					if (details) { details.open = !details.open; }
+					else { form.classList.toggle('hidden'); }
+				});
+				var row = document.createElement('div');
+				row.className = 'cz-sidebar-head flex items-center justify-between mb-2';
+				h3.classList.remove('mb-2');
+				h3.parentNode.insertBefore(row, h3);
+				row.appendChild(h3);
+				row.appendChild(btn);
+			}
+			function decorateAll() {
+				var ms = document.getElementById('milestone-picker');
+				document.querySelectorAll('.cz-milestone-toggle').forEach(function (btn) {
+					if (btn.dataset.czWired) return;
+					btn.dataset.czWired = '1';
+					btn.addEventListener('click', function () {
+						if (ms) ms.classList.toggle('hidden');
+					});
+				});
+				document.querySelectorAll('.cz-sidebar-edit').forEach(decorate);
+			}
+			decorateAll();
+			document.body.addEventListener('htmx:afterSwap', decorateAll);
+		})();
+	</script>
+}
+
+templ sidebarPlusIcon() {
+	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>
+}
+
+templ sidebarPencilIcon() {
+	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+}
+
+// reviewerCandidates returns collaborators who are not already reviewing the PR.
+func reviewerCandidates(collaborators []string, reviews []model.PullReview) []string {
+	reviewing := map[string]bool{}
+	for _, r := range reviews {
+		reviewing[r.AuthorName] = true
+	}
+	out := make([]string, 0, len(collaborators))
+	for _, c := range collaborators {
+		if !reviewing[c] {
+			out = append(out, c)
+		}
+	}
+	return out
 }
 
 templ reviewTimelineEntry(rev model.PullReview) {

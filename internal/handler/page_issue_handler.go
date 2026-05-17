@@ -265,6 +265,11 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		linkedPRs = []model.PullRequest{}
 	}
 
+	collaborators, err := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
+	if err != nil {
+		slog.Warn("issue detail: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
+	}
+
 	h.render(w, r, pages.IssueDetail(view.IssueDetailData{
 		BasePage:      withRepoSubnav(basePage(r, h.Services), repo, "issues", canManage),
 		Repo:          *repo,
@@ -279,6 +284,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		Milestone:     issueMilestone,
 		AllMilestones: allIssueMilestones,
 		LinkedPRs:     linkedPRs,
+		Collaborators: collaboratorUsernames(collaborators),
 		CanWrite:      canWrite,
 		CanManage:     canManage,
 	}))

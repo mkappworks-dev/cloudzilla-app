@@ -478,6 +478,11 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
 	}
 
+	collaborators, err := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
+	if err != nil {
+		slog.Warn("pull detail: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
+	}
+
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
 		BasePage:          withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage2),
 		Repo:              *repo,
@@ -493,6 +498,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		Milestone:         pullMilestone,
 		AllMilestones:     allPullDetailMilestones,
 		CanWrite:          canWrite2,
+		Collaborators:     collaboratorUsernames(collaborators),
 		HeadStatuses:      headStatuses,
 		Reviews:           reviews,
 		Comments:          comments,
@@ -819,6 +825,16 @@ func toReviewerOptions(users []model.User, selected map[string]bool) []component
 		opts = append(opts, components.ReviewerOption{Username: u.Username, Selected: selected[u.Username]})
 	}
 	return opts
+}
+
+func collaboratorUsernames(perms []model.Permission) []string {
+	out := make([]string, 0, len(perms))
+	for _, p := range perms {
+		if p.Username != "" {
+			out = append(out, p.Username)
+		}
+	}
+	return out
 }
 
 func collaboratorsToReviewerOptions(perms []model.Permission, selected map[string]bool) []components.ReviewerOption {

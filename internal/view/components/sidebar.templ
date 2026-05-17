@@ -74,10 +74,11 @@ templ LabelSidebar(owner, repoName string, itemNumber int, kind string, labels [
 // AssigneeSidebar renders the assignees sidebar panel for an issue or pull request.
 // kind must be "issues" or "pulls" — it determines the HTMX target ID and API URL path.
 // The outer div ID is "issue-assignees" or "pull-assignees" to satisfy stable HTMX swap targets.
-templ AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assignees []model.User, canWrite bool) {
+templ AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assignees []model.User, collaborators []string, canWrite bool) {
 	if validKind(kind) {
 	{{ prefix := idPrefix(kind) }}
 	{{ divID := prefix + "-assignees" }}
+	{{ listID := divID + "-collaborators" }}
 	<div id={ divID } class="space-y-2">
 		<h3 class="text-[12px] font-medium text-muted-foreground">Assignees</h3>
 		<div class="space-y-1">
@@ -113,9 +114,16 @@ templ AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assig
 					type="text"
 					name="username"
 					placeholder="Username"
+					list={ listID }
+					autocomplete="off"
 					required
 					class="flex-1 h-8 rounded-md border border-input bg-transparent px-2 text-xs text-foreground placeholder:text-muted-foreground shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
 				/>
+				<datalist id={ listID }>
+					for _, c := range collaborators {
+						<option value={ c }></option>
+					}
+				</datalist>
 				<button
 					type="submit"
 					class="inline-flex items-center justify-center h-8 px-2.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90"

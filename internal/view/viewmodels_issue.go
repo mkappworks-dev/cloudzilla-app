@@ -44,6 +44,7 @@ type IssueDetailData struct {
 	Milestone     *model.Milestone
 	AllMilestones []model.Milestone
 	LinkedPRs     []model.PullRequest
+	Collaborators []string
 	CanWrite      bool
 	CanManage     bool
 }
@@ -85,11 +86,12 @@ type IssueLabelSidebarData struct {
 // Assignee sidebar fragments
 // IssueAssigneeSidebarData holds template data for the issue assignee sidebar HTMX fragment.
 type IssueAssigneeSidebarData struct {
-	Owner       string
-	RepoName    string
-	IssueNumber int
-	Assignees   []model.User
-	CanWrite    bool
+	Owner         string
+	RepoName      string
+	IssueNumber   int
+	Assignees     []model.User
+	Collaborators []string
+	CanWrite      bool
 }
 
 // Milestones page

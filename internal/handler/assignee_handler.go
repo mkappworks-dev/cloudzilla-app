@@ -242,14 +242,16 @@ func (h *Handler) renderIssueAssigneeFragment(w http.ResponseWriter, r *http.Req
 		assignees = []model.User{}
 	}
 	canWrite := false
+	var collaborators []model.Permission
 	if repo, err := h.Services.Repo.Get(r.Context(), owner, repoName); err == nil {
 		if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
+		collaborators, _ = h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
 	}
 	h.render(w, r, fragments.IssueAssignees(view.IssueAssigneeSidebarData{
 		Owner: owner, RepoName: repoName, IssueNumber: issueNumber,
-		Assignees: assignees, CanWrite: canWrite,
+		Assignees: assignees, Collaborators: collaboratorUsernames(collaborators), CanWrite: canWrite,
 	}))
 }
 
@@ -263,13 +265,15 @@ func (h *Handler) renderPullAssigneeFragment(w http.ResponseWriter, r *http.Requ
 		assignees = []model.User{}
 	}
 	canWrite := false
+	var collaborators []model.Permission
 	if repo, err := h.Services.Repo.Get(r.Context(), owner, repoName); err == nil {
 		if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
+		collaborators, _ = h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
 	}
 	h.render(w, r, fragments.PullAssignees(view.PullAssigneeSidebarData{
 		Owner: owner, RepoName: repoName, PullNumber: pullNumber,
-		Assignees: assignees, CanWrite: canWrite,
+		Assignees: assignees, Collaborators: collaboratorUsernames(collaborators), CanWrite: canWrite,
 	}))
 }

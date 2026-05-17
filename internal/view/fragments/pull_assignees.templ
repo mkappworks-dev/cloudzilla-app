@@ -6,5 +6,5 @@ import (
 )
 
 templ PullAssignees(data view.PullAssigneeSidebarData) {
-	@components.AssigneeSidebar(data.Owner, data.RepoName, data.PullNumber, "pulls", data.Assignees, data.CanWrite)
+	@components.AssigneeSidebar(data.Owner, data.RepoName, data.PullNumber, "pulls", data.Assignees, data.Collaborators, data.CanWrite)
 }

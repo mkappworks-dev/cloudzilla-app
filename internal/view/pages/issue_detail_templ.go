@@ -816,7 +816,7 @@ func IssueDetail(data view.IssueDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.AssigneeSidebar(data.Owner, data.RepoName, data.Issue.Number, "issues", data.Assignees, data.CanWrite).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.AssigneeSidebar(data.Owner, data.RepoName, data.Issue.Number, "issues", data.Assignees, data.Collaborators, data.CanWrite).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
