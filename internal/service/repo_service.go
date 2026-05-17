@@ -209,6 +209,15 @@ func (s *RepoService) CountForUser(ctx context.Context, userID int64) (int, erro
 	return s.repos.CountForUser(ctx, userID)
 }
 
+// ListForUser lists repositories related to userID. scope is "owned",
+// "collaborator", or "all" (default for any unknown value).
+func (s *RepoService) ListForUser(ctx context.Context, userID int64, scope string) ([]model.Repository, error) {
+	if scope != "owned" && scope != "collaborator" {
+		scope = "all"
+	}
+	return s.repos.ListForUser(ctx, userID, scope)
+}
+
 func (s *RepoService) GetByID(ctx context.Context, id int64) (*model.Repository, error) {
 	return s.repos.GetByID(ctx, id)
 }
