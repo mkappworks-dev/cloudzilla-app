@@ -170,6 +170,7 @@ templ pullFilesBody(data view.PullFilesData) {
 				}
 				function applySingle() {
 					var on = singleOn();
+					root.classList.toggle('single-file', on);
 					sections.forEach(function (s) { s.classList.toggle('hidden', on && s.id !== activeId); });
 				}
 				function setActive(id) {
