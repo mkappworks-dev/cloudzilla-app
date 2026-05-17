@@ -436,7 +436,7 @@ func (s *PullStore) ListByIDs(ctx context.Context, ids []int64, state string) ([
 func (s *PullStore) scanPullListItems(ctx context.Context, q string, args ...any) ([]PullListItem, error) {
 	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("scan pull list items: %w", err)
 	}
 	defer rows.Close()
 	out := []PullListItem{}
