@@ -109,7 +109,7 @@ func (h *Handler) PageNewFile(w http.ResponseWriter, r *http.Request) {
 	}
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	h.render(w, r, pages.NewFile(view.NewFileData{
-		BasePage: withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
+		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Owner:    owner,
 		RepoName: repoName,
 		Ref:      ref,

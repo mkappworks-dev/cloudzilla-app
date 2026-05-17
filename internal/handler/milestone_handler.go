@@ -49,7 +49,7 @@ func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Milestones(view.MilestonesData{
-		BasePage:         withRepoSubnav(basePage(r, h.Services), repo, "issues", canManage),
+		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
 		Repo:             *repo,
 		Owner:            owner,
 		RepoName:         repoName,

@@ -117,7 +117,7 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Discussions(view.DiscussionsData{
-		BasePage:         withRepoSubnav(basePage(r, h.Services), repo, "discussions", canManage),
+		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "discussions", canManage),
 		Repo:             *repo,
 		Owner:            owner,
 		RepoName:         repoName,
@@ -195,7 +195,7 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.DiscussionDetail(view.DiscussionDetailData{
-		BasePage:   withRepoSubnav(basePage(r, h.Services), repo, "discussions", canManage),
+		BasePage:   h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "discussions", canManage),
 		Repo:       *repo,
 		Owner:      owner,
 		RepoName:   repoName,

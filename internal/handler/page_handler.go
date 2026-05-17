@@ -38,9 +38,9 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 	return page
 }
 
-// withRepoSubnav attaches the repo subnav so layout.Base renders it inside
-// <header>. Use from any handler serving a repo-scoped route.
-func withRepoSubnav(base BasePage, repo *model.Repository, active string, canManage bool) BasePage {
+// withRepoSubnav attaches the repo subnav and the topbar repo-switcher list.
+// The switcher is best-effort: a failed lookup leaves it empty.
+func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model.Repository, active string, canManage bool) BasePage {
 	base.RepoSubnav = &view.RepoSubnavInfo{
 		OwnerName:        repo.OwnerName,
 		RepoName:         repo.Name,
@@ -50,6 +50,19 @@ func withRepoSubnav(base BasePage, repo *model.Repository, active string, canMan
 		AllowDiscussions: repo.AllowDiscussions,
 		AllowProjects:    repo.AllowProjects,
 		AllowWiki:        repo.AllowWiki,
+	}
+	var viewerID *int64
+	if base.CurrentUser != nil {
+		viewerID = &base.CurrentUser.UserID
+	}
+	if siblings, err := h.Services.Repo.ListByOwnerVisibleTo(ctx, repo.OwnerName, viewerID); err == nil {
+		refs := make([]view.RepoRef, 0, len(siblings))
+		for _, s := range siblings {
+			refs = append(refs, view.RepoRef{Name: s.Name, Path: "/" + s.OwnerName + "/" + s.Name})
+		}
+		base.RepoSwitcher = refs
+	} else {
+		slog.Error("withRepoSubnav: repo switcher list failed", "owner", repo.OwnerName, "error", err)
 	}
 	return base
 }

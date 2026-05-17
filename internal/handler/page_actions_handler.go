@@ -31,7 +31,7 @@ func (h *Handler) PageActions(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Actions(view.ActionsData{
-		BasePage: withRepoSubnav(basePage(r, h.Services), repo, "actions", canManage),
+		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "actions", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,

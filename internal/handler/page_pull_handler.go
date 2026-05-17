@@ -130,7 +130,7 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 	h.render(w, r, pages.Pulls(view.PullsData{
-		BasePage:    withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+		BasePage:    h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		Repo:        *repo,
 		Owner:       owner,
 		RepoName:    repoName,
@@ -186,7 +186,7 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.PullNew(view.PullNewData{
-		BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,
@@ -256,7 +256,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 
 	renderErr := func(msg string) {
 		h.render(w, r, pages.PullNew(view.PullNewData{
-			BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+			BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 			Repo:         *repo,
 			Owner:        owner,
 			RepoName:     repoName,
@@ -484,7 +484,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
-		BasePage:          withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage2),
+		BasePage:          h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage2),
 		Repo:              *repo,
 		Pull:              *pull,
 		Owner:             owner,
@@ -560,7 +560,7 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.PullCommits(view.PullCommitsData{
-		BasePage:         withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		OwnerName:        owner,
 		Repo:             repo,
 		Pull:             pull,
@@ -635,7 +635,7 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.PullChecks(view.PullChecksData{
-		BasePage:         withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		OwnerName:        owner,
 		Repo:             repo,
 		Pull:             pull,
@@ -715,7 +715,7 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.PullFiles(view.PullFilesData{
-		BasePage:         withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		OwnerName:        owner,
 		Repo:             repo,
 		Pull:             pull,

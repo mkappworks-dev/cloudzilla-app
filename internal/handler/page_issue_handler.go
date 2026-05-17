@@ -173,7 +173,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Issues(view.IssuesData{
-		BasePage:        withRepoSubnav(basePage(r, h.Services), repo, "issues", canManage),
+		BasePage:        h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
 		Repo:            *repo,
 		Issues:          issues,
 		PinnedIssues:    pinnedIssues,
@@ -271,7 +271,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.IssueDetail(view.IssueDetailData{
-		BasePage:      withRepoSubnav(basePage(r, h.Services), repo, "issues", canManage),
+		BasePage:      h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
 		Repo:          *repo,
 		Issue:         *issue,
 		Comments:      rendered,
@@ -325,7 +325,7 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 	h.render(w, r, pages.IssueNew(view.IssueNewData{
-		BasePage:  withRepoSubnav(basePage(r, h.Services), repo, "issues", canManage),
+		BasePage:  h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
 		Repo:      *repo,
 		Owner:     owner,
 		RepoName:  repoName,
@@ -367,7 +367,7 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	templates, _ := h.Services.Code.GetIssueTemplates(owner, repoName, repo.DefaultBranch)
 	renderErr := func(msg string) {
 		h.render(w, r, pages.IssueNew(view.IssueNewData{
-			BasePage:  withRepoSubnav(basePage(r, h.Services), repo, "issues", canManage),
+			BasePage:  h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
 			Repo:      *repo,
 			Owner:     owner,
 			RepoName:  repoName,

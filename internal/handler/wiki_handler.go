@@ -73,7 +73,7 @@ func (h *Handler) PageWikiPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.WikiPage(view.WikiPageData{
-		BasePage:    withRepoSubnav(basePage(r, h.Services), repo, "wiki", canManage),
+		BasePage:    h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "wiki", canManage),
 		Repo:        *repo,
 		Owner:       owner,
 		RepoName:    repoName,
@@ -131,7 +131,7 @@ func (h *Handler) PageWikiEdit(w http.ResponseWriter, r *http.Request) {
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	h.render(w, r, pages.WikiEdit(view.WikiEditData{
-		BasePage: withRepoSubnav(basePage(r, h.Services), repo, "wiki", canManage),
+		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "wiki", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
