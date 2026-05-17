@@ -6,6 +6,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
@@ -80,4 +81,12 @@ type AccountReposData struct {
 	BasePage
 	Repos  []model.Repository
 	Filter string // "all" | "owned" | "collaborator"
+}
+
+// AccountPullsData backs the /pulls page.
+type AccountPullsData struct {
+	BasePage
+	Pulls  []store.PullListItem
+	Filter string // "created" | "assigned" | "review_requested" | "mentioned"
+	State  string // "open" | "closed"
 }

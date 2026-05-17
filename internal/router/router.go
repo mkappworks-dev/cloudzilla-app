@@ -89,6 +89,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Account-level cross-repo pages
 	r.With(authMW).Get("/repos", h.PageRepos)
+	r.With(authMW).Get("/pulls", h.PageAccountPulls)
 
 	// Topic explore page
 	r.With(optAuthMW).Get("/topic/{name}", h.PageTopic)

@@ -38,3 +38,36 @@ func (h *Handler) PageRepos(w http.ResponseWriter, r *http.Request) {
 	}
 	h.render(w, r, pages.AccountRepos(data))
 }
+
+// PageAccountPulls renders the logged-in user's cross-repo pull-request list at /pulls.
+func (h *Handler) PageAccountPulls(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	claims, ok := middleware.ClaimsFromContext(ctx)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	filter := r.URL.Query().Get("filter")
+	switch filter {
+	case "assigned", "review_requested", "mentioned":
+	default:
+		filter = "created"
+	}
+	state := r.URL.Query().Get("state")
+	if state != "closed" {
+		state = "open"
+	}
+	pulls, err := h.Services.Pull.ListForUser(ctx, claims.UserID, filter, state)
+	if err != nil {
+		slog.Error("pulls: failed to load pull requests", "filter", filter, "state", state, "error", err)
+		http.Error(w, "Failed to load pull requests", http.StatusInternalServerError)
+		return
+	}
+	data := view.AccountPullsData{
+		BasePage: withAccountSubnav(basePage(r, h.Services), "pulls", h.accountCounts(ctx, claims.UserID)),
+		Pulls:    pulls,
+		Filter:   filter,
+		State:    state,
+	}
+	h.render(w, r, pages.AccountPulls(data))
+}
