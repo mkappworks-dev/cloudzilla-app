@@ -24,6 +24,7 @@ type PullService struct {
 	commentStore  *store.CommentStore
 	contribStats  *store.ContributorStatsStore
 	userStore     *store.UserStore
+	mentions      *store.MentionStore
 }
 
 // NewPullService creates a PullService backed by the given stores.
@@ -302,6 +303,38 @@ func (s *PullService) WithReviewerDeps(contribStats *store.ContributorStatsStore
 	s.contribStats = contribStats
 	s.userStore = userStore
 	return s
+}
+
+func (s *PullService) WithMentionStore(m *store.MentionStore) *PullService {
+	s.mentions = m
+	return s
+}
+
+// ListForUser lists pull requests related to userID. mode is one of
+// "created", "assigned", "review_requested", "mentioned"; state is "open" or
+// "closed".
+func (s *PullService) ListForUser(ctx context.Context, userID int64, mode, state string) ([]store.PullListItem, error) {
+	if state != "closed" {
+		state = "open"
+	}
+	switch mode {
+	case "review_requested":
+		ids, err := s.reviewStore.ListPullIDsAwaitingReviewer(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		return s.pulls.ListByIDs(ctx, ids, state)
+	case "mentioned":
+		ids, err := s.mentions.ListPullIDsMentioning(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		return s.pulls.ListByIDs(ctx, ids, state)
+	case "assigned":
+		return s.pulls.ListForUser(ctx, userID, "assigned", state)
+	default:
+		return s.pulls.ListForUser(ctx, userID, "created", state)
+	}
 }
 
 // SuggestReviewers returns up to limit candidate reviewers for a PR between base and head.
