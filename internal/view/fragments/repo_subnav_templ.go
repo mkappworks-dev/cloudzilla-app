@@ -40,7 +40,7 @@ func RepoSubnav(data RepoSubnavData) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav aria-label=\"Repository sections\" class=\"max-w-[1400px] mx-auto px-6 -mb-px flex items-center gap-1 text-sm overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav aria-label=\"Repository sections\" class=\"max-w-[1400px] mx-auto px-6 py-1.5 flex items-center gap-1 text-sm overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -282,7 +282,7 @@ func repoSubnavTab(data RepoSubnavData, key, label, href, extra string) templ.Co
 		}
 		ctx = templ.ClearChildren(ctx)
 		if data.Active == key {
-			var templ_7745c5c3_Var12 = []any{"px-3 py-2.5 border-b-2 border-foreground font-medium text-foreground -mb-px inline-flex items-center gap-1.5", extra}
+			var templ_7745c5c3_Var12 = []any{"px-3 py-1.5 rounded-md bg-accent font-medium text-foreground inline-flex items-center gap-1.5", extra}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var12...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -371,7 +371,7 @@ func repoSubnavTab(data RepoSubnavData, key, label, href, extra string) templ.Co
 				return templ_7745c5c3_Err
 			}
 		} else {
-			var templ_7745c5c3_Var18 = []any{"px-3 py-2.5 border-b-2 border-transparent text-muted-foreground hover:text-foreground -mb-px inline-flex items-center gap-1.5", extra}
+			var templ_7745c5c3_Var18 = []any{"px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5", extra}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var18...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err

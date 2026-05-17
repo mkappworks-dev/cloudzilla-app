@@ -34,11 +34,6 @@ templ RepoSettings(data view.RepoSettingsData) {
 	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" — Settings") {
 		<div class="space-y-6">
 			<section aria-labelledby="settings-title">
-				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
-					<span aria-hidden="true">·</span>
-					Settings
-				</p>
 				<h1 id="settings-title" class="text-2xl font-semibold tracking-tight">Repository settings</h1>
 			</section>
 			<div class="grid grid-cols-12 gap-8">

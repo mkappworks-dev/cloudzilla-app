@@ -41,11 +41,6 @@ templ Discussions(data view.DiscussionsData) {
 
 			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="disc-title">
 				<div class="min-w-0">
-					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
-						<span aria-hidden="true">·</span>
-						Discussions
-					</p>
 					<h1 id="disc-title" class="text-2xl font-semibold tracking-tight">Discussions</h1>
 				</div>
 				if data.CanWrite {

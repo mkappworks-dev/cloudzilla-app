@@ -47,33 +47,7 @@ func Actions(data view.ActionsData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"space-y-6\"><section aria-labelledby=\"actions-title\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2\"><a href=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var3 templ.SafeURL
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName))
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/actions.templ`, Line: 15, Col: 68}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"hover:underline\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var4 string
-			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.RepoName)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/actions.templ`, Line: 15, Col: 110}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</a> <span aria-hidden=\"true\">·</span> Actions</p><h1 id=\"actions-title\" class=\"text-2xl font-semibold tracking-tight\">Actions</h1></section>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"space-y-6\"><section aria-labelledby=\"actions-title\"><h1 id=\"actions-title\" class=\"text-2xl font-semibold tracking-tight\">Actions</h1></section>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -81,7 +55,7 @@ func Actions(data view.ActionsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"space-y-2 opacity-40 pointer-events-none\" aria-hidden=\"true\"><div class=\"rounded-md border border-border bg-card px-4 py-3 flex items-center gap-4\"><div class=\"w-3 h-3 rounded-full bg-success shrink-0\"></div><div class=\"min-w-0 flex-1\"><p class=\"text-[13px] font-medium font-mono\">CI · Go test</p><p class=\"text-[11px] text-muted-foreground font-mono\">build · main · 2m 14s</p></div><span class=\"text-[11px] text-muted-foreground font-mono shrink-0\">just now</span></div><div class=\"rounded-md border border-border bg-card px-4 py-3 flex items-center gap-4\"><div class=\"w-3 h-3 rounded-full bg-success shrink-0\"></div><div class=\"min-w-0 flex-1\"><p class=\"text-[13px] font-medium font-mono\">CI · Go test</p><p class=\"text-[11px] text-muted-foreground font-mono\">build · main · 1m 58s</p></div><span class=\"text-[11px] text-muted-foreground font-mono shrink-0\">2 days ago</span></div></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"space-y-2 opacity-40 pointer-events-none\" aria-hidden=\"true\"><div class=\"rounded-md border border-border bg-card px-4 py-3 flex items-center gap-4\"><div class=\"w-3 h-3 rounded-full bg-success shrink-0\"></div><div class=\"min-w-0 flex-1\"><p class=\"text-[13px] font-medium font-mono\">CI · Go test</p><p class=\"text-[11px] text-muted-foreground font-mono\">build · main · 2m 14s</p></div><span class=\"text-[11px] text-muted-foreground font-mono shrink-0\">just now</span></div><div class=\"rounded-md border border-border bg-card px-4 py-3 flex items-center gap-4\"><div class=\"w-3 h-3 rounded-full bg-success shrink-0\"></div><div class=\"min-w-0 flex-1\"><p class=\"text-[13px] font-medium font-mono\">CI · Go test</p><p class=\"text-[11px] text-muted-foreground font-mono\">build · main · 1m 58s</p></div><span class=\"text-[11px] text-muted-foreground font-mono shrink-0\">2 days ago</span></div></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

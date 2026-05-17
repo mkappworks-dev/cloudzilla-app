@@ -11,11 +11,6 @@ templ Actions(data view.ActionsData) {
 		<div class="space-y-6">
 
 			<section aria-labelledby="actions-title">
-				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
-					<span aria-hidden="true">·</span>
-					Actions
-				</p>
 				<h1 id="actions-title" class="text-2xl font-semibold tracking-tight">Actions</h1>
 			</section>
 
