@@ -12,11 +12,17 @@ templ AccountRepos(data view.AccountReposData) {
 			<div class="min-w-0">
 				<h1 id="repos-title" class="text-2xl font-semibold tracking-tight">Repositories</h1>
 			</div>
-			<nav aria-label="Repository filter" class="flex items-center gap-1 text-sm border-b border-border">
-				@accountFilterTab("/repos", "all", "All", data.Filter)
-				@accountFilterTab("/repos", "owned", "Owned", data.Filter)
-				@accountFilterTab("/repos", "collaborator", "Collaborator", data.Filter)
-			</nav>
+			@components.Tabs("Repository filter") {
+				@components.TabLink("/repos?filter=all", data.Filter == "all") {
+					All
+				}
+				@components.TabLink("/repos?filter=owned", data.Filter == "owned") {
+					Owned
+				}
+				@components.TabLink("/repos?filter=collaborator", data.Filter == "collaborator") {
+					Collaborator
+				}
+			}
 			if len(data.Repos) > 0 {
 				<ol class="rounded-md border border-border bg-card divide-y divide-border overflow-hidden">
 					for _, repo := range data.Repos {
@@ -39,14 +45,5 @@ templ AccountRepos(data view.AccountReposData) {
 				@components.EmptyState("No repositories.")
 			}
 		</div>
-	}
-}
-
-// accountFilterTab renders one filter-bar link; `current` is the active value.
-templ accountFilterTab(basePath, value, label, current string) {
-	if value == current {
-		<a href={ templ.SafeURL(basePath + "?filter=" + value) } aria-current="page" class="px-3 py-2 border-b-2 border-foreground text-foreground font-medium -mb-px">{ label }</a>
-	} else {
-		<a href={ templ.SafeURL(basePath + "?filter=" + value) } class="px-3 py-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground -mb-px">{ label }</a>
 	}
 }
