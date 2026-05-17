@@ -17,8 +17,12 @@ const (
 	ButtonGhost       ButtonVariant = "ghost"       // no border, hover bg only
 	ButtonSecondary   ButtonVariant = "secondary"   // muted solid bg
 	ButtonDestructive ButtonVariant = "destructive" // red, for delete-style actions
-	ButtonSuccess     ButtonVariant = "success"     // green, e.g. merge actions
-	ButtonLink        ButtonVariant = "link"        // text-only, underline on hover
+	// ButtonDestructiveOutline is the bordered counterpart of ButtonDestructive —
+	// red border + text on a transparent bg, for a destructive action that should
+	// stay visually secondary (e.g. next to a primary merge button).
+	ButtonDestructiveOutline ButtonVariant = "destructive-outline"
+	ButtonSuccess            ButtonVariant = "success" // green, e.g. merge actions
+	ButtonLink               ButtonVariant = "link"    // text-only, underline on hover
 )
 
 // ButtonSize controls the height/padding of a Button.
@@ -41,6 +45,8 @@ func buttonVariantClass(v ButtonVariant) string {
 		return "bg-secondary text-secondary-foreground hover:bg-secondary/80"
 	case ButtonDestructive:
 		return "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+	case ButtonDestructiveOutline:
+		return "border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive"
 	case ButtonSuccess:
 		return "bg-success text-success-foreground hover:bg-success/90"
 	case ButtonLink:
@@ -163,7 +169,7 @@ func LinkButton(href string, variant ButtonVariant, size ButtonSize, attrs templ
 		var templ_7745c5c3_Var6 templ.SafeURL
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/button.templ`, Line: 73, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/button.templ`, Line: 79, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {

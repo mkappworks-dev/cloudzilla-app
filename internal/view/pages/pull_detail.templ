@@ -146,7 +146,7 @@ templ pullDetailBody(data view.PullDetailData) {
 						<div class="px-3 py-2 border-t border-border bg-muted/40 flex items-center gap-2">
 							<p class="text-[11px] text-muted-foreground font-mono flex-1">Markdown supported · drop files to attach</p>
 							if data.CanWrite && data.Pull.State == model.PRStateOpen {
-								@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+								@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeDefault, templ.Attributes{
 									"hx-patch":             apiBase,
 									"hx-vals":              `{"state":"closed"}`,
 									"hx-swap":              "none",

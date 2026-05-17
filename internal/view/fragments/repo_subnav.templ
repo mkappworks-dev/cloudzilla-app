@@ -16,13 +16,13 @@ templ RepoSubnav(data RepoSubnavData) {
 		@repoSubnavTab(data, "code", "Code", "/"+data.OwnerName+"/"+data.RepoName, "") {
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
 		}
+		@repoSubnavTab(data, "pull_requests", "Pull requests", "/"+data.OwnerName+"/"+data.RepoName+"/pulls", "") {
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6v-2"></path></svg>
+		}
 		if data.AllowIssues {
 			@repoSubnavTab(data, "issues", "Issues", "/"+data.OwnerName+"/"+data.RepoName+"/issues", "") {
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
 			}
-		}
-		@repoSubnavTab(data, "pull_requests", "Pull requests", "/"+data.OwnerName+"/"+data.RepoName+"/pulls", "") {
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6v-2"></path></svg>
 		}
 		@repoSubnavTab(data, "actions", "Actions", "/"+data.OwnerName+"/"+data.RepoName+"/actions", "") {
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>

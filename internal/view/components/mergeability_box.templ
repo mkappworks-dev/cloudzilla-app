@@ -54,8 +54,8 @@ func mergeStateOf(d MergeabilityBoxData) mergeState {
 
 templ MergeabilityBox(d MergeabilityBoxData) {
 	{{ st := mergeStateOf(d) }}
-	<section aria-label="Mergeability" class="border border-border rounded-md overflow-hidden">
-		<header class={ "px-5 py-4 border-b border-border flex items-center gap-3", mergeHeaderClass(st) }>
+	<section aria-label="Mergeability" class="border border-border rounded-md">
+		<header class={ "px-5 py-4 border-b border-border rounded-t-md flex items-center gap-3", mergeHeaderClass(st) }>
 			<span class={ "h-8 w-8 rounded-full grid place-items-center shrink-0", mergeIconClass(st) }>
 				@mergeStateIcon(st)
 			</span>
@@ -94,22 +94,145 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 		}
 		<footer class="px-5 py-4 border-t border-border flex flex-wrap items-center gap-2">
 			if d.Mergeable && !d.HasConflicts {
-				if d.CanSquash {
-					<button type="button" hx-patch={ d.PatchURL } hx-vals={ `{"state":"merged","merge_strategy":"squash"}` } hx-target="closest section" hx-swap="outerHTML" class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground rounded-md hover:opacity-90 inline-flex items-center gap-1.5">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6V8"></path></svg>
-						Squash and merge
-					</button>
-				}
-				if d.CanThreeWayMerge {
-					<button type="button" hx-patch={ d.PatchURL } hx-vals={ `{"state":"merged","merge_strategy":"merge"}` } hx-target="closest section" hx-swap="outerHTML" class="h-9 px-3 text-[13px] border border-border rounded-md hover:bg-accent">Create merge commit</button>
-				}
-				if d.CanFastForward {
-					<button type="button" hx-patch={ d.PatchURL } hx-vals={ `{"state":"merged","merge_strategy":"ff"}` } hx-target="closest section" hx-swap="outerHTML" class="h-9 px-3 text-[13px] border border-border rounded-md hover:bg-accent">Fast-forward</button>
-				}
+				@mergeSplitButton(d)
 			}
-			<button type="button" hx-patch={ d.PatchURL } hx-vals={ `{"state":"closed"}` } hx-swap="none" hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request closed'}));location.reload();}" class="ml-auto h-9 px-3 text-[13px] text-muted-foreground hover:text-foreground">Close pull request</button>
+			<button type="button" hx-patch={ d.PatchURL } hx-vals={ `{"state":"closed"}` } hx-swap="none" hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request closed'}));location.reload();}" class="ml-auto h-9 px-3 text-[13px] rounded-md border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive">Close pull request</button>
 		</footer>
 	</section>
+}
+
+// mergeSplitButton renders the merge action. With one available strategy it is
+// a plain button; with two or three it becomes a split button — a primary
+// action plus a caret menu. The selected strategy lives in Alpine scope and is
+// fed into the HTMX request via the Alpine-bound `:hx-vals`, so picking from
+// the menu changes both the button label and the merge_strategy that is sent.
+templ mergeSplitButton(d MergeabilityBoxData) {
+	{{ defKey, defLabel := defaultMergeStrategy(d) }}
+	if mergeStrategyCount(d) == 1 {
+		<button
+			type="button"
+			hx-patch={ d.PatchURL }
+			hx-vals={ fmt.Sprintf(`{"state":"merged","merge_strategy":%q}`, defKey) }
+			hx-target="closest section"
+			hx-swap="outerHTML"
+			class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground rounded-md hover:opacity-90 inline-flex items-center gap-1.5"
+		>
+			@mergeStrategyIcon(defKey)
+			{ defLabel }
+		</button>
+	} else if mergeStrategyCount(d) > 1 {
+		<div x-data={ "{ open: false, strategy: '" + defKey + "', label: '" + defLabel + "' }" } class="relative inline-flex">
+			<div class="inline-flex rounded-md overflow-hidden">
+				<button
+					type="button"
+					hx-patch={ d.PatchURL }
+					hx-vals={ `{"state":"merged"}` }
+					:hx-vals="JSON.stringify({ state: 'merged', merge_strategy: strategy })"
+					hx-target="closest section"
+					hx-swap="outerHTML"
+					class="h-9 px-4 text-[13px] font-medium bg-success text-success-foreground hover:opacity-90 inline-flex items-center gap-1.5"
+				>
+					@mergeStrategyIcon(defKey)
+					<span x-text="label">{ defLabel }</span>
+				</button>
+				<button
+					type="button"
+					x-on:click="open = !open"
+					x-on:click.outside="open = false"
+					x-on:keydown.escape.window="open = false"
+					:aria-expanded="open ? 'true' : 'false'"
+					aria-haspopup="menu"
+					aria-label="Choose merge strategy"
+					class="h-9 px-2.5 grid place-items-center bg-success text-success-foreground hover:opacity-90 border-l border-success-foreground/25"
+				>
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg>
+				</button>
+			</div>
+			<div
+				x-show="open"
+				x-cloak
+				x-transition.opacity.duration.100ms
+				role="menu"
+				aria-label="Merge strategy"
+				class="absolute left-0 top-full mt-1.5 z-50 min-w-[18rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 text-sm"
+			>
+				<div class="px-2 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">Merge strategy</div>
+				if d.CanSquash {
+					@mergeStrategyMenuItem("squash", "Squash and merge", "Collapse the commits into one new commit")
+				}
+				if d.CanThreeWayMerge {
+					@mergeStrategyMenuItem("merge", "Create merge commit", "Keep every commit under a two-parent merge commit")
+				}
+				if d.CanFastForward {
+					@mergeStrategyMenuItem("ff", "Fast-forward", "Advance the base branch — no new commit")
+				}
+			</div>
+		</div>
+	}
+}
+
+// mergeStrategyMenuItem is one radio row in the split-button menu. The Alpine
+// expressions are built from `key`/`label` so a click both records the choice
+// and updates the primary button. `aria-checked` and the trailing check mirror
+// the live `strategy` value.
+templ mergeStrategyMenuItem(key, label, desc string) {
+	<button
+		type="button"
+		role="menuitemradio"
+		x-bind:aria-checked={ "strategy === '" + key + "' ? 'true' : 'false'" }
+		x-on:click={ "strategy = '" + key + "'; label = '" + label + "'; open = false" }
+		class="flex w-full items-start gap-2 px-2 py-1.5 rounded-sm text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none"
+	>
+		<span class="mt-px shrink-0 text-muted-foreground">
+			@mergeStrategyIcon(key)
+		</span>
+		<span class="flex-1 min-w-0">
+			<span class="block">{ label }</span>
+			<span class="block text-[11px] text-muted-foreground">{ desc }</span>
+		</span>
+		<svg x-show={ "strategy === '" + key + "'" } x-cloak class="mt-px shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+	</button>
+}
+
+// mergeStrategyIcon maps a strategy key to its glyph.
+templ mergeStrategyIcon(key string) {
+	switch key {
+		case "squash":
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6V8"></path></svg>
+		case "merge":
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 9v3a9 9 0 009 9"></path></svg>
+		default:
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><line x1="3" y1="12" x2="16" y2="12"></line><polyline points="12 6 18 12 12 18"></polyline></svg>
+	}
+}
+
+// defaultMergeStrategy picks the strategy shown on the primary button, ordered
+// squash → merge → fast-forward by preference.
+func defaultMergeStrategy(d MergeabilityBoxData) (key, label string) {
+	switch {
+	case d.CanSquash:
+		return "squash", "Squash and merge"
+	case d.CanThreeWayMerge:
+		return "merge", "Create merge commit"
+	case d.CanFastForward:
+		return "ff", "Fast-forward"
+	default:
+		return "", ""
+	}
+}
+
+func mergeStrategyCount(d MergeabilityBoxData) int {
+	n := 0
+	if d.CanSquash {
+		n++
+	}
+	if d.CanThreeWayMerge {
+		n++
+	}
+	if d.CanFastForward {
+		n++
+	}
+	return n
 }
 
 templ mergeStateIcon(st mergeState) {

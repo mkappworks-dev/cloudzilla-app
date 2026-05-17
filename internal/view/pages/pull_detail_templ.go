@@ -369,7 +369,7 @@ func pullDetailBody(data view.PullDetailData) templ.Component {
 					}
 					return nil
 				})
-				templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+				templ_7745c5c3_Err = components.Button(components.ButtonDestructiveOutline, components.ButtonSizeDefault, templ.Attributes{
 					"hx-patch":             apiBase,
 					"hx-vals":              `{"state":"closed"}`,
 					"hx-swap":              "none",
