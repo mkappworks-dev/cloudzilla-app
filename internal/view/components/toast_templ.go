@@ -9,21 +9,19 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 // ToastContainer should be rendered once, near the end of the page body
-// (typically inside layout.Base). It listens for two event sources:
+// (typically inside layout.Base). It shows compact top-center toasts from
+// two sources:
 //
-//  1. The browser CustomEvent `toast` — fire one anywhere with:
+//  1. The browser CustomEvent `toast`:
 //     document.dispatchEvent(new CustomEvent('toast', {detail: {type:'success', message:'Saved'}}))
 //
-//  2. HTMX `HX-Trigger` response header — server handlers can push:
-//     w.Header().Set("HX-Trigger", `{"toast":{"type":"success","message":"Repository created"}}`)
-//     HTMX parses this and dispatches a `toast` CustomEvent on the body,
-//     which bubbles up to document where our listener catches it.
+//  2. HTMX `HX-Trigger` response header (see the toast() helper in the
+//     handler package), which HTMX turns into the same CustomEvent.
 //
 // detail fields:
-//   - type:        "default" | "success" | "error" | "warning" (border color)
-//   - message:     primary title text (required)
-//   - description: secondary muted text (optional)
-//   - duration:    auto-dismiss ms; pass 0 for sticky (default 4000)
+//   - type:     "default" | "success" | "error" | "warning" (icon colour)
+//   - message:  the toast text (required)
+//   - duration: auto-dismiss ms; pass 0 for sticky (default 4000)
 func ToastContainer() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -45,7 +43,7 @@ func ToastContainer() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"toast-root\" aria-live=\"polite\" aria-atomic=\"true\" class=\"pointer-events-none fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2\"></div><template id=\"toast-template\"><div role=\"status\" class=\"cz-toast-in pointer-events-auto flex min-w-[260px] max-w-sm items-start gap-2.5 rounded-md border bg-popover px-3.5 py-3 text-sm text-popover-foreground shadow-lg\"><div class=\"flex-1\"><div data-toast-title class=\"font-medium leading-snug\"></div><div data-toast-desc class=\"mt-0.5 text-[12px] leading-snug text-muted-foreground\"></div></div><button type=\"button\" data-toast-close aria-label=\"Dismiss\" class=\"-mr-1 -mt-0.5 rounded p-1 text-muted-foreground hover:text-foreground focus:outline-none focus:bg-accent\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\"><path d=\"M4 4l8 8M12 4l-8 8\"></path></svg></button></div></template><script>\n\t\t(function(){\n\t\t\tvar root = document.getElementById('toast-root');\n\t\t\tvar tpl  = document.getElementById('toast-template');\n\t\t\tif (!root || !tpl) return;\n\t\t\tfunction variantClass(v){\n\t\t\t\tswitch(v){\n\t\t\t\t\tcase 'success': return 'border-success/40';\n\t\t\t\t\tcase 'error':   return 'border-destructive/40';\n\t\t\t\t\tcase 'warning': return 'border-warning/40';\n\t\t\t\t\tdefault:        return 'border-border';\n\t\t\t\t}\n\t\t\t}\n\t\t\tfunction fire(detail){\n\t\t\t\tdetail = detail || {};\n\t\t\t\tif (!detail.message) return;\n\t\t\t\tvar node = tpl.content.firstElementChild.cloneNode(true);\n\t\t\t\tnode.classList.add(variantClass(detail.type));\n\t\t\t\tnode.querySelector('[data-toast-title]').textContent = detail.message;\n\t\t\t\tvar descEl = node.querySelector('[data-toast-desc]');\n\t\t\t\tif (detail.description) descEl.textContent = detail.description;\n\t\t\t\telse descEl.remove();\n\t\t\t\tnode.querySelector('[data-toast-close]').addEventListener('click', function(){ node.remove(); });\n\t\t\t\troot.appendChild(node);\n\t\t\t\tvar duration = detail.duration === 0 ? 0 : (detail.duration || 4000);\n\t\t\t\tif (duration > 0) setTimeout(function(){ node.remove(); }, duration);\n\t\t\t}\n\t\t\tdocument.addEventListener('toast', function(e){ fire(e.detail); });\n\t\t\t// A toast stashed before a full-page reload (sessionStorage) fires once on load.\n\t\t\ttry {\n\t\t\t\tvar pending = sessionStorage.getItem('cz-toast');\n\t\t\t\tif (pending) { sessionStorage.removeItem('cz-toast'); fire(JSON.parse(pending)); }\n\t\t\t} catch (e) {}\n\t\t})();\n\t</script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div id=\"toast-root\" aria-live=\"polite\" aria-atomic=\"true\" class=\"pointer-events-none fixed top-5 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2\"></div><template id=\"toast-template\"><div role=\"status\" class=\"cz-toast-in pointer-events-auto inline-flex items-center gap-2 rounded-lg border border-border-strong bg-popover px-3.5 py-2.5 text-[13px] text-popover-foreground shadow-lg\"><span data-toast-icon class=\"shrink-0 grid place-items-center\"><svg data-icon=\"success\" class=\"text-success\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><path d=\"M20 6L9 17l-5-5\"></path></svg> <svg data-icon=\"error\" class=\"text-destructive\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><path d=\"M18 6L6 18M6 6l12 12\"></path></svg> <svg data-icon=\"warning\" class=\"text-warning\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><path d=\"M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z\"></path><path d=\"M12 9v4M12 17h.01\"></path></svg></span> <span data-toast-title></span></div></template><script>\n\t\t(function(){\n\t\t\tvar root = document.getElementById('toast-root');\n\t\t\tvar tpl  = document.getElementById('toast-template');\n\t\t\tif (!root || !tpl) return;\n\t\t\tfunction fire(detail){\n\t\t\t\tdetail = detail || {};\n\t\t\t\tif (!detail.message) return;\n\t\t\t\tvar node = tpl.content.firstElementChild.cloneNode(true);\n\t\t\t\tvar want = ({ success: 1, error: 1, warning: 1 })[detail.type] ? detail.type : 'success';\n\t\t\t\tnode.querySelectorAll('[data-icon]').forEach(function(svg){\n\t\t\t\t\tif (svg.getAttribute('data-icon') !== want) svg.remove();\n\t\t\t\t});\n\t\t\t\tnode.querySelector('[data-toast-title]').textContent = detail.message;\n\t\t\t\troot.appendChild(node);\n\t\t\t\tvar duration = detail.duration === 0 ? 0 : (detail.duration || 4000);\n\t\t\t\tif (duration > 0) setTimeout(function(){ node.remove(); }, duration);\n\t\t\t}\n\t\t\tdocument.addEventListener('toast', function(e){ fire(e.detail); });\n\t\t\t// A toast stashed before a full-page reload (sessionStorage) fires once on load.\n\t\t\ttry {\n\t\t\t\tvar pending = sessionStorage.getItem('cz-toast');\n\t\t\t\tif (pending) { sessionStorage.removeItem('cz-toast'); fire(JSON.parse(pending)); }\n\t\t\t} catch (e) {}\n\t\t})();\n\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

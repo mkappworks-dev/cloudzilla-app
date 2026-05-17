@@ -61,7 +61,10 @@ templ pullFilesBody(data view.PullFilesData) {
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0112 20C5 20 1 12 1 12a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
 					Hide whitespace
 				</button>
-				<button type="button" id="diff-collapse-all" data-state="expanded" class="h-8 px-3 rounded-md border border-border hover:bg-accent text-[12.5px]">Collapse all</button>
+				<button type="button" id="diff-single-file" data-state="off" aria-pressed="false" class="h-8 px-3 rounded-md border border-border hover:bg-accent text-muted-foreground text-[12.5px] inline-flex items-center gap-1.5">
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+					Single file
+				</button>
 			</div>
 		</section>
 		<div id="diff-root" data-view="unified" class="grid lg:grid-cols-[260px_1fr] gap-4">
@@ -147,15 +150,60 @@ templ pullFilesBody(data view.PullFilesData) {
 						setCollapsed(s, !collapsed);
 					});
 				});
-				var btn = document.getElementById('diff-collapse-all');
-				if (btn) {
-					btn.addEventListener('click', function () {
-						var collapse = btn.dataset.state !== 'collapsed';
-						document.querySelectorAll('.diff-file').forEach(function (s) { setCollapsed(s, collapse); });
-						btn.dataset.state = collapse ? 'collapsed' : 'expanded';
-						btn.textContent = collapse ? 'Expand all' : 'Collapse all';
+				// File sidebar links, scroll-spy highlight, and single-file mode.
+				var sections = Array.prototype.slice.call(document.querySelectorAll('.diff-file'));
+				var fileLinks = {};
+				document.querySelectorAll('#diff-files-list a[href^="#diff-"], #diff-files-tree a[href^="#diff-"]').forEach(function (a) {
+					var fid = a.getAttribute('href').slice(1);
+					(fileLinks[fid] = fileLinks[fid] || []).push(a);
+				});
+				var activeId = sections.length ? sections[0].id : null;
+				var singleBtn = document.getElementById('diff-single-file');
+				function singleOn() { return singleBtn && singleBtn.dataset.state === 'on'; }
+				function highlight(id) {
+					Object.keys(fileLinks).forEach(function (k) {
+						fileLinks[k].forEach(function (a) {
+							a.classList.toggle('bg-accent', k === id);
+							a.classList.toggle('text-foreground', k === id);
+						});
 					});
 				}
+				function applySingle() {
+					var on = singleOn();
+					sections.forEach(function (s) { s.classList.toggle('hidden', on && s.id !== activeId); });
+				}
+				function setActive(id) {
+					if (!id) return;
+					activeId = id;
+					highlight(id);
+					applySingle();
+				}
+				Object.keys(fileLinks).forEach(function (id) {
+					fileLinks[id].forEach(function (a) {
+						a.addEventListener('click', function () { setActive(id); });
+					});
+				});
+				if (singleBtn) {
+					singleBtn.addEventListener('click', function () {
+						singleBtn.dataset.state = singleOn() ? 'off' : 'on';
+						var on = singleOn();
+						singleBtn.setAttribute('aria-pressed', on);
+						singleBtn.classList.toggle('bg-muted', on);
+						singleBtn.classList.toggle('text-muted-foreground', !on);
+						applySingle();
+					});
+				}
+				// Scroll-spy: highlight the file nearest the top while scrolling.
+				if ('IntersectionObserver' in window && sections.length) {
+					var spy = new IntersectionObserver(function (entries) {
+						if (singleOn()) return;
+						entries.forEach(function (e) {
+							if (e.isIntersecting) { activeId = e.target.id; highlight(e.target.id); }
+						});
+					}, { rootMargin: '-8% 0px -82% 0px' });
+					sections.forEach(function (s) { spy.observe(s); });
+				}
+				highlight(activeId);
 
 				var root = document.getElementById('diff-root');
 				var unifiedBtn = document.getElementById('diff-view-unified');
@@ -274,17 +322,56 @@ templ prFileDiff(data view.PullFilesData, f service.FileDiff) {
 }
 
 // prFileSplitDiff renders a comment-free side-by-side view: old lines left,
-// new lines right, del/add runs paired index-wise.
+// new lines right, del/add runs paired index-wise. A wholly-new (or wholly-
+// deleted) file has nothing to compare against, so it renders full-width.
 templ prFileSplitDiff(f service.FileDiff) {
+	if f.IsNew || f.IsDelete {
+		@prFileWholeDiff(f)
+	} else {
+		<div class="overflow-x-auto">
+			<table class="w-full table-fixed border-collapse text-xs font-mono">
+				<colgroup>
+					<col class="w-10"/>
+					<col/>
+					<col class="w-10"/>
+					<col/>
+				</colgroup>
+				<tbody>
+					for _, hunk := range f.Hunks {
+						<tr><td colspan="4" class="bg-primary/5 text-muted-foreground px-4 py-1 select-none border-y border-border">{ hunk.Header }</td></tr>
+						for _, row := range prSplitRows(hunk.Lines) {
+							<tr class={ templ.KV("ws-only", row.WSOnly) }>
+								@prSplitCell(row.Left, false)
+								@prSplitCell(row.Right, true)
+							</tr>
+						}
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}
+
+// prFileWholeDiff renders a single full-width column — used in split view for
+// added or deleted files, where there is no other side to compare against.
+templ prFileWholeDiff(f service.FileDiff) {
 	<div class="overflow-x-auto">
 		<table class="w-full border-collapse text-xs font-mono">
 			<tbody>
 				for _, hunk := range f.Hunks {
-					<tr><td colspan="4" class="bg-primary/5 text-muted-foreground px-4 py-1 select-none border-y border-border">{ hunk.Header }</td></tr>
-					for _, row := range prSplitRows(hunk.Lines) {
-						<tr class={ templ.KV("ws-only", row.WSOnly) }>
-							@prSplitCell(row.Left, false)
-							@prSplitCell(row.Right, true)
+					<tr><td colspan="2" class="bg-primary/5 text-muted-foreground px-4 py-1 select-none border-y border-border">{ hunk.Header }</td></tr>
+					for _, line := range hunk.Lines {
+						<tr class={ templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del") }>
+							<td class="w-12 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">{ strconv.Itoa(prDiffLineNum(line)) }</td>
+							<td class={ "pl-3 pr-4 py-0.5 whitespace-pre", templ.KV("text-success", line.Type == "add"), templ.KV("text-destructive", line.Type == "del"), templ.KV("text-foreground/85", line.Type != "add" && line.Type != "del") }>
+								if line.Type == "add" {
+									+{ line.Content }
+								} else if line.Type == "del" {
+									-{ line.Content }
+								} else {
+									{ " " }{ line.Content }
+								}
+							</td>
 						</tr>
 					}
 				}
@@ -303,7 +390,7 @@ templ prSplitCell(c prSplitCellData, right bool) {
 				{ strconv.Itoa(c.Num) }
 			}
 		</td>
-		<td class={ "pl-3 pr-4 py-0.5 whitespace-pre", templ.KV("border-l border-border", right), templ.KV("bg-success/10 text-success", c.Type == "add"), templ.KV("bg-destructive/10 text-destructive", c.Type == "del"), templ.KV("text-foreground/85", c.Type == "ctx") }>
+		<td class={ "pl-3 pr-4 py-0.5 whitespace-pre overflow-hidden", templ.KV("border-l border-border", right), templ.KV("bg-success/10 text-success", c.Type == "add"), templ.KV("bg-destructive/10 text-destructive", c.Type == "del"), templ.KV("text-foreground/85", c.Type == "ctx") }>
 			if c.Type == "add" {
 				+{ c.Content }
 			} else if c.Type == "del" {
