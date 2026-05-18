@@ -298,5 +298,10 @@ func (h *Handler) DeleteWikiPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", "/"+owner+"/"+repoName+"/wiki")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	http.Redirect(w, r, "/"+owner+"/"+repoName+"/wiki", http.StatusSeeOther)
 }

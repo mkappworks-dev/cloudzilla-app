@@ -6,13 +6,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
-script deleteWikiPageJS(owner, repoName, slug string) {
-	if (!confirm('Delete this wiki page?')) return;
-	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
-	fetch('/api/repos/' + owner + '/' + repoName + '/wiki/' + slug, {method: 'DELETE', headers: {'X-CSRF-Token': csrf}})
-		.then(function(r) { if (r.ok || r.redirected) window.location.href = '/' + owner + '/' + repoName + '/wiki'; });
-}
-
 templ WikiPage(data view.WikiPageData) {
 	@layout.Base(data.BasePage, data.Slug+" — Wiki — "+data.RepoName+" — Cloudzilla") {
 		<div class="space-y-6">
@@ -29,8 +22,9 @@ templ WikiPage(data view.WikiPageData) {
 					}
 					if data.CanManage && data.Exists {
 						@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
-							"type":    "button",
-							"onclick": deleteWikiPageJS(data.Owner, data.RepoName, data.Slug),
+							"type":       "button",
+							"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug,
+							"hx-confirm": "Delete this wiki page?",
 						}) {
 							Delete
 						}

@@ -14,19 +14,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
-func deleteWikiPageJS(owner, repoName, slug string) templ.ComponentScript {
-	return templ.ComponentScript{
-		Name: `__templ_deleteWikiPageJS_8e2d`,
-		Function: `function __templ_deleteWikiPageJS_8e2d(owner, repoName, slug){if (!confirm('Delete this wiki page?')) return;
-	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
-	fetch('/api/repos/' + owner + '/' + repoName + '/wiki/' + slug, {method: 'DELETE', headers: {'X-CSRF-Token': csrf}})
-		.then(function(r) { if (r.ok || r.redirected) window.location.href = '/' + owner + '/' + repoName + '/wiki'; });
-}`,
-		Call:       templ.SafeScript(`__templ_deleteWikiPageJS_8e2d`, owner, repoName, slug),
-		CallInline: templ.SafeScriptInline(`__templ_deleteWikiPageJS_8e2d`, owner, repoName, slug),
-	}
-}
-
 func WikiPage(data view.WikiPageData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -67,7 +54,7 @@ func WikiPage(data view.WikiPageData) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Slug)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_page.templ`, Line: 22, Col: 82}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_page.templ`, Line: 15, Col: 82}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -121,8 +108,9 @@ func WikiPage(data view.WikiPageData) templ.Component {
 					return nil
 				})
 				templ_7745c5c3_Err = components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
-					"type":    "button",
-					"onclick": deleteWikiPageJS(data.Owner, data.RepoName, data.Slug),
+					"type":       "button",
+					"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug,
+					"hx-confirm": "Delete this wiki page?",
 				}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
