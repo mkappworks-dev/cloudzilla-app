@@ -6,48 +6,45 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
-templ WikiEdit(data view.WikiEditData) {
-	@layout.Base(data.BasePage, data.RepoName+" · Wiki · "+data.Slug+" · Edit — Cloudzilla") {
+templ WikiNew(data view.WikiNewData) {
+	@layout.Base(data.BasePage, data.RepoName+" · Wiki · New page — Cloudzilla") {
 		<div class="space-y-6">
 
-			<section class="mb-6" aria-labelledby="edit-title">
+			<section class="mb-6" aria-labelledby="wiki-title">
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
 					<span aria-hidden="true">·</span>
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki") } class="hover:underline">Wiki</a>
 					<span aria-hidden="true">·</span>
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug) } class="hover:underline">{ data.Slug }</a>
-					<span aria-hidden="true">·</span>
-					Edit
+					New page
 				</p>
-				<h1 id="edit-title" class="text-2xl font-semibold tracking-tight">Edit: { data.Slug }</h1>
+				<h1 id="wiki-title" class="text-2xl font-semibold tracking-tight">New page</h1>
 			</section>
 
 			<div class="grid lg:grid-cols-[220px_1fr] gap-8">
-				@wikiSidebar(data.Owner, data.RepoName, data.Slug, data.PageList, true)
+				@wikiSidebar(data.Owner, data.RepoName, "", data.PageList, true)
 
 				<article
-					id="wiki-edit-form"
+					id="wiki-new-form"
 					data-owner={ data.Owner }
 					data-repo={ data.RepoName }
-					data-slug={ data.Slug }
 					class="border border-border rounded-md bg-card p-6"
 				>
 					<form class="space-y-5">
 						<div>
 							<label for="wiki-page-title" class="block text-sm font-medium mb-1.5">Page title</label>
 							@components.Input(templ.Attributes{
-								"id":       "wiki-page-title",
-								"type":     "text",
-								"value":    data.Slug,
-								"readonly": true,
+								"id":          "wiki-page-title",
+								"type":        "text",
+								"placeholder": "e.g. Deployment-checklist",
 							})
+							<p class="mt-1 text-[12px] text-muted-foreground">Spaces become hyphens in the page URL.</p>
 						</div>
 
 						<div class="space-y-1.5">
 							<label for="wiki-content" class="block text-sm font-medium">Content (Markdown)</label>
 							<div class="border border-border rounded-md overflow-hidden">
-								@components.MarkdownEditor("wiki-content", "content", data.Content, "Write your page in Markdown…", 18)
+								@components.MarkdownEditor("wiki-content", "content", "", "# Page heading…\n\nWrite your page in Markdown…", 18)
 							</div>
 						</div>
 
@@ -57,17 +54,17 @@ templ WikiEdit(data view.WikiEditData) {
 								"id":          "wiki-message",
 								"type":        "text",
 								"name":        "message",
-								"placeholder": "Update " + data.Slug,
+								"placeholder": "Create page",
 							})
 						</div>
 
-						<div id="wiki-edit-error" role="alert" class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2"></div>
+						<div id="wiki-new-error" role="alert" class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2"></div>
 
 						<div class="flex items-center gap-3 pt-1">
 							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 								Save page
 							}
-							@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki/"+data.Slug, components.ButtonGhost, components.ButtonSizeDefault, nil) {
+							@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki", components.ButtonGhost, components.ButtonSizeDefault, nil) {
 								Cancel
 							}
 						</div>
@@ -79,16 +76,23 @@ templ WikiEdit(data view.WikiEditData) {
 
 		<script>
 			(function() {
-				var wrap = document.getElementById('wiki-edit-form');
+				var wrap = document.getElementById('wiki-new-form');
 				var form = wrap && wrap.querySelector('form');
-				var errBox = document.getElementById('wiki-edit-error');
+				var errBox = document.getElementById('wiki-new-error');
 				if (!form) return;
 				var owner = wrap.dataset.owner;
 				var repo  = wrap.dataset.repo;
-				var slug  = wrap.dataset.slug;
+				var slugRe = /^[A-Za-z0-9_-]{1,100}$/;
 				form.addEventListener('submit', async function(e) {
 					e.preventDefault();
 					errBox.classList.add('hidden');
+					var title = document.getElementById('wiki-page-title').value;
+					var slug  = title.trim().replace(/\s+/g, '-');
+					if (!slugRe.test(slug)) {
+						errBox.textContent = 'Page title must produce a slug matching [A-Za-z0-9_-]{1,100} (no special characters).';
+						errBox.classList.remove('hidden');
+						return;
+					}
 					var content = form.querySelector('[name=content]').value;
 					var message = form.querySelector('[name=message]').value;
 					var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
@@ -107,7 +111,7 @@ templ WikiEdit(data view.WikiEditData) {
 					var text = await res.text();
 					var msg = text;
 					try { msg = JSON.parse(text).error || text; } catch (_) {}
-					errBox.textContent = msg || ('Failed to save page (HTTP ' + res.status + ')');
+					errBox.textContent = msg || ('Failed to create page (HTTP ' + res.status + ')');
 					errBox.classList.remove('hidden');
 				});
 			})();

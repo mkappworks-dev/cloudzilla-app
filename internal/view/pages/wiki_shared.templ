@@ -1,0 +1,25 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+)
+
+templ wikiSidebar(owner, repoName, activeSlug string, pages []service.WikiPageMeta, canWrite bool) {
+	<aside aria-label="Wiki pages">
+		<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Pages</p>
+		<ul class="space-y-0.5 text-[13px]">
+			for _, pg := range pages {
+				<li>
+					if pg.Slug == activeSlug {
+						<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/" + pg.Slug) } class="block px-2 py-1.5 rounded-md font-medium bg-muted text-foreground" aria-current="page">{ pg.Title }</a>
+					} else {
+						<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/" + pg.Slug) } class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">{ pg.Title }</a>
+					}
+				</li>
+			}
+		</ul>
+		if canWrite {
+			<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/new") } class="inline-block mt-3 text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5">+ New page</a>
+		}
+	</aside>
+}

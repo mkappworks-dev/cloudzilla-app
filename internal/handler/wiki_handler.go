@@ -128,6 +128,12 @@ func (h *Handler) PageWikiEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pageList, err := h.Services.Code.WikiPageListMeta(owner, repoName)
+	if err != nil {
+		slog.Error("failed to list wiki pages", "owner", owner, "repo", repoName, "error", err)
+		pageList = []service.WikiPageMeta{}
+	}
+
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	h.render(w, r, pages.WikiEdit(view.WikiEditData{
 		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "wiki", canManage),
@@ -136,7 +142,53 @@ func (h *Handler) PageWikiEdit(w http.ResponseWriter, r *http.Request) {
 		RepoName: repoName,
 		Slug:     slug,
 		Content:  rawContent,
+		PageList: pageList,
 		CanWrite: true,
+	}))
+}
+
+// PageWikiNew renders the new wiki page creation form.
+func (h *Handler) PageWikiNew(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if !repo.AllowWiki {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	pageList, err := h.Services.Code.WikiPageListMeta(owner, repoName)
+	if err != nil {
+		slog.Error("failed to list wiki pages", "owner", owner, "repo", repoName, "error", err)
+		pageList = []service.WikiPageMeta{}
+	}
+
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	h.render(w, r, pages.WikiNew(view.WikiNewData{
+		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "wiki", canManage),
+		Repo:     *repo,
+		Owner:    owner,
+		RepoName: repoName,
+		PageList: pageList,
 	}))
 }
 

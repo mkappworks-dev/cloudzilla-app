@@ -40,23 +40,7 @@ templ WikiPage(data view.WikiPageData) {
 			</section>
 
 			<div class="grid lg:grid-cols-[220px_1fr] gap-8">
-				<aside aria-label="Wiki pages">
-					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Pages</p>
-					<ul class="space-y-0.5 text-[13px]">
-						for _, pg := range data.PageList {
-							<li>
-								if pg.Slug == data.Slug {
-									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + pg.Slug) } class="block px-2 py-1.5 rounded-md font-medium bg-muted text-foreground" aria-current="page">{ pg.Title }</a>
-								} else {
-									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/" + pg.Slug) } class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">{ pg.Title }</a>
-								}
-							</li>
-						}
-					</ul>
-					if data.CanWrite {
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki/new") } class="inline-block mt-3 text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5">+ New page</a>
-					}
-				</aside>
+				@wikiSidebar(data.Owner, data.RepoName, data.Slug, data.PageList, data.CanWrite)
 
 				<article class="rounded-md border border-border bg-card p-6">
 					if data.Exists {

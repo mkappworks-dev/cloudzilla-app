@@ -156,7 +156,16 @@ type WikiEditData struct {
 	RepoName string
 	Slug     string
 	Content  string
+	PageList []service.WikiPageMeta
 	CanWrite bool
+}
+
+type WikiNewData struct {
+	BasePage
+	Repo     model.Repository
+	Owner    string
+	RepoName string
+	PageList []service.WikiPageMeta
 }
 
 type PulseData struct {
