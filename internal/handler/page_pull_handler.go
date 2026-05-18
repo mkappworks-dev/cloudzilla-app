@@ -231,6 +231,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	body := r.FormValue("body")
 	headBranch := r.FormValue("head_branch")
 	baseBranch := r.FormValue("base_branch")
+	isDraft := r.FormValue("draft") == "1"
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	allLabels, err := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
@@ -277,7 +278,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, title, body, headBranch, baseBranch, false)
+	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, title, body, headBranch, baseBranch, isDraft)
 	if err != nil {
 		renderErr("Failed to create pull request: " + err.Error())
 		return

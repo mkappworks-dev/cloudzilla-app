@@ -369,6 +369,11 @@ func (h *Handler) loadIssueSidebarOptions(r *http.Request, data *view.IssueNewDa
 	} else {
 		slog.Warn("new issue: list milestones failed", "owner", owner, "repo", repoName, "error", err)
 	}
+	if pulls, err := h.Services.Pull.List(ctx, owner, repoName); err == nil {
+		data.RepoPulls = pullsToLinkedPulls(pulls)
+	} else {
+		slog.Warn("new issue: list pulls failed", "owner", owner, "repo", repoName, "error", err)
+	}
 }
 
 // applyNewIssueMetadata applies the assignees, labels, priority, and milestone
@@ -404,6 +409,20 @@ func (h *Handler) applyNewIssueMetadata(r *http.Request, owner, repoName string,
 			if err := h.Services.Milestone.SetIssue(ctx, issue.ID, &milestoneID); err != nil {
 				slog.Warn("new issue: set milestone failed", "issue", issue.Number, "milestone", milestoneID, "error", err)
 			}
+		}
+	}
+	for _, raw := range r.Form["linked_pulls"] {
+		pullNumber, convErr := strconv.Atoi(raw)
+		if convErr != nil {
+			continue
+		}
+		pull, perr := h.Services.Pull.Get(ctx, owner, repoName, pullNumber)
+		if perr != nil {
+			slog.Warn("new issue: link pull lookup failed", "issue", issue.Number, "pull", pullNumber, "error", perr)
+			continue
+		}
+		if err := h.Services.Issue.LinkPull(ctx, pull.ID, issue.ID); err != nil {
+			slog.Warn("new issue: link pull failed", "issue", issue.Number, "pull", pullNumber, "error", err)
 		}
 	}
 }

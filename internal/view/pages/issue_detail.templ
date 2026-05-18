@@ -85,7 +85,9 @@ templ IssueDetail(data view.IssueDetailData) {
 					if !data.Issue.IsLocked || data.CanManage {
 						if data.BasePage.CurrentUser != nil {
 							<section class="rounded-md border border-border bg-card p-4 space-y-3" aria-label="Add a comment">
-								@components.MarkdownEditor("comment-body", "body", "", "Add a comment…", 6)
+								<div class="rounded-md border border-border overflow-hidden">
+									@components.MarkdownEditor("comment-body", "body", "", "Add a comment…", 6)
+								</div>
 								<div class="flex flex-wrap justify-end gap-2">
 									if data.Issue.State == "open" {
 										<button

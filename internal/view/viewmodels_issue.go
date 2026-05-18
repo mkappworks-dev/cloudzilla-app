@@ -107,6 +107,7 @@ type IssueNewData struct {
 	Collaborators []string
 	Labels        []model.Label
 	Milestones    []model.Milestone
+	RepoPulls     []LinkedPull
 }
 
 // Fragment data structs

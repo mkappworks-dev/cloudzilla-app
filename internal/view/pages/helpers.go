@@ -2,9 +2,11 @@ package pages
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 type CommitDayGroup struct {
@@ -32,4 +34,26 @@ func pct(part, total int) string {
 		return "0"
 	}
 	return strconv.Itoa(part * 100 / total)
+}
+
+// jsStringList renders a string slice as a single-quoted JS array literal, for
+// seeding Alpine x-data state from server values (e.g. pre-selected reviewers).
+func jsStringList(ss []string) string {
+	parts := make([]string, len(ss))
+	for i, s := range ss {
+		parts[i] = "'" + strings.ReplaceAll(s, "'", `\'`) + "'"
+	}
+	return "[" + strings.Join(parts, ",") + "]"
+}
+
+// selectedReviewerList returns the usernames of reviewer options marked selected,
+// used to preserve the picker's state when the new-PR form re-renders on error.
+func selectedReviewerList(opts []components.ReviewerOption) []string {
+	var sel []string
+	for _, o := range opts {
+		if o.Selected {
+			sel = append(sel, o.Username)
+		}
+	}
+	return sel
 }
