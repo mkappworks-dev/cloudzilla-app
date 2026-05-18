@@ -12,6 +12,67 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
+// WikiPageMeta holds display metadata for a single wiki page.
+type WikiPageMeta struct {
+	Slug      string
+	Title     string
+	UpdatedAt time.Time
+}
+
+// WikiPageListMeta returns each wiki page's slug, first-heading title, and HEAD
+// commit time. Returns an empty slice when the wiki has no commits yet.
+func (s *CodeService) WikiPageListMeta(owner, repoName string) ([]WikiPageMeta, error) {
+	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
+	if err != nil {
+		return []WikiPageMeta{}, nil
+	}
+	head, err := repo.Head()
+	if err != nil {
+		return []WikiPageMeta{}, nil
+	}
+	commit, err := repo.CommitObject(head.Hash())
+	if err != nil {
+		return nil, err
+	}
+	tree, err := commit.Tree()
+	if err != nil {
+		return nil, err
+	}
+	updatedAt := commit.Author.When
+	var pages []WikiPageMeta
+	for _, entry := range tree.Entries {
+		if !strings.HasSuffix(entry.Name, ".md") {
+			continue
+		}
+		slug := strings.TrimSuffix(entry.Name, ".md")
+		title := slug
+		f, err := commit.File(entry.Name)
+		if err == nil {
+			contents, err := f.Contents()
+			if err == nil {
+				if h := firstHeading(contents); h != "" {
+					title = h
+				}
+			}
+		}
+		pages = append(pages, WikiPageMeta{Slug: slug, Title: title, UpdatedAt: updatedAt})
+	}
+	sort.Slice(pages, func(i, j int) bool { return pages[i].Slug < pages[j].Slug })
+	return pages, nil
+}
+
+// firstHeading scans content for the first H1 line ("# ") and returns its
+// trimmed text. Returns "" when no H1 heading is found.
+func firstHeading(content string) string {
+	for _, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimLeft(line, " ")
+		if strings.HasPrefix(trimmed, "# ") {
+			return strings.TrimSpace(trimmed[2:])
+		}
+	}
+	return ""
+}
+
 // WikiPageList opens the wiki bare repo (if it exists) and returns page slugs
 // (filenames without the .md extension) from the HEAD tree root.
 // Returns an empty slice when the wiki has no commits yet.
@@ -195,11 +256,11 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, authorN
 		return err
 	}
 
-	// If HEAD is missing or is a detached hash ref, make it a symbolic ref
-	// pointing at main so that future repo.Head() calls resolve correctly.
+	// Ensure HEAD is a symbolic ref pointing at main.
+	mainBranch := plumbing.NewBranchReferenceName("main")
 	headRef, headErr := storer.Reference(plumbing.HEAD)
-	if headErr != nil || headRef.Type() == plumbing.HashReference {
-		symRef := plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.NewBranchReferenceName("main"))
+	if headErr != nil || headRef.Type() == plumbing.HashReference || headRef.Target() != mainBranch {
+		symRef := plumbing.NewSymbolicReference(plumbing.HEAD, mainBranch)
 		if err := storer.SetReference(symRef); err != nil {
 			return fmt.Errorf("set symbolic HEAD: %w", err)
 		}
