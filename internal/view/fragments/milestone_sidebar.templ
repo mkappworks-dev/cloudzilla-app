@@ -7,142 +7,111 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
-templ MilestonesList(data view.MilestonesListFragData) {
-	<div id="milestones-list" class="space-y-4">
-		if len(data.OpenMilestones) == 0 && len(data.ClosedMilestones) == 0 {
-			<div class="text-center py-12 text-muted-foreground">
-				<p class="text-sm">No milestones yet.</p>
-				if data.CanWrite {
-					<p class="text-xs mt-1">Create one to start tracking progress.</p>
-				}
-			</div>
-		} else {
-			if len(data.OpenMilestones) > 0 {
-				<div>
-					<h2 class="text-sm font-semibold text-foreground mb-2">Open ({ strconv.Itoa(len(data.OpenMilestones)) })</h2>
-					<div class="space-y-3">
-						for _, m := range data.OpenMilestones {
-							<div class="bg-background border border-border rounded-lg p-4">
-								<div class="flex items-start justify-between gap-2">
-									<div class="flex-1 min-w-0">
-										<h3 class="font-semibold text-foreground">{ m.Title }</h3>
-										if m.Description != "" {
-											<p class="text-sm text-muted-foreground mt-0.5 truncate">{ m.Description }</p>
-										}
-										if m.DueDate != nil {
-											<p class="text-xs text-muted-foreground mt-1">Due { m.DueDate.Format("Jan 2, 2006") }</p>
-										}
-										if m.OpenCount+m.ClosedCount > 0 {
-											@components.ProgressBar(m.ClosedCount, m.OpenCount+m.ClosedCount)
-										} else {
-											<p class="text-xs text-muted-foreground mt-1">No issues assigned</p>
-										}
-									</div>
-									if data.CanWrite {
-										<div class="flex gap-2 shrink-0">
-											<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(m.Number) } hx-vals={ `{"state":"closed"}` } hx-target="#milestones-list" hx-swap="outerHTML" class="text-xs text-muted-foreground hover:text-foreground">
-												Close
-											</button>
-											<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(m.Number) } hx-target="#milestones-list" hx-swap="outerHTML" hx-confirm="Delete this milestone?" class="text-xs text-destructive hover:text-destructive">
-												Delete
-											</button>
-										</div>
-									}
-								</div>
-							</div>
-						}
-					</div>
-				</div>
-			}
-			if len(data.ClosedMilestones) > 0 {
-				<div>
-					<h2 class="text-sm font-semibold text-foreground mb-2">Closed ({ strconv.Itoa(len(data.ClosedMilestones)) })</h2>
-					<div class="space-y-3">
-						for _, m := range data.ClosedMilestones {
-							<div class="bg-background border border-border rounded-lg p-4 opacity-70">
-								<div class="flex items-start justify-between gap-2">
-									<div class="flex-1 min-w-0">
-										<h3 class="font-semibold text-foreground line-through">{ m.Title }</h3>
-										if m.Description != "" {
-											<p class="text-sm text-muted-foreground mt-0.5 truncate">{ m.Description }</p>
-										}
-										if m.ClosedAt != nil {
-											<p class="text-xs text-muted-foreground mt-1">Closed { m.ClosedAt.Format("Jan 2, 2006") }</p>
-										}
-										if m.OpenCount+m.ClosedCount > 0 {
-											@components.ProgressBar(m.ClosedCount, m.OpenCount+m.ClosedCount)
-										}
-									</div>
-									if data.CanWrite {
-										<div class="flex gap-2 shrink-0">
-											<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(m.Number) } hx-vals={ `{"state":"open"}` } hx-target="#milestones-list" hx-swap="outerHTML" class="text-xs text-foreground hover:text-foreground">
-												Reopen
-											</button>
-											<button hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(m.Number) } hx-target="#milestones-list" hx-swap="outerHTML" hx-confirm="Delete this milestone?" class="text-xs text-destructive hover:text-destructive">
-												Delete
-											</button>
-										</div>
-									}
-								</div>
-							</div>
-						}
-					</div>
-				</div>
-			}
-		}
-	</div>
+// milestoneKindPath maps the IsPull flag to the API path segment.
+func milestoneKindPath(isPull bool) string {
+	if isPull {
+		return "pulls"
+	}
+	return "issues"
 }
 
+// milestoneEditIcon is the pencil affordance in the Milestone section header.
+templ milestoneEditIcon() {
+	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+}
+
+// milestoneCheckIcon marks the currently-set milestone in the picker.
+templ milestoneCheckIcon() {
+	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+}
+
+// milestoneFlagIcon leads the "new milestone" footer action.
+templ milestoneFlagIcon() {
+	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+}
+
+// MilestoneSidebar renders the milestone metadata panel for an issue or pull
+// request. The picker is an Alpine dropdown driven by an `open` variable that
+// MUST be provided by an ancestor x-data scope (the detail page's <aside>) so
+// the menu survives the HTMX re-render after a selection.
 templ MilestoneSidebar(data view.MilestoneSidebarFragData) {
-	<div id="issue-milestone" class="bg-background border border-border rounded-lg p-4">
-		<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Milestone</h3>
+	{{ postURL := "/api/repos/" + data.Owner + "/" + data.RepoName + "/" + milestoneKindPath(data.IsPull) + "/" + strconv.Itoa(data.ItemNumber) + "/milestone" }}
+	<div id="issue-milestone" class="space-y-2">
+		<div class="flex items-center justify-between">
+			<h3 class="text-[12px] font-medium text-muted-foreground">Milestone</h3>
+			if data.CanWrite && len(data.AllMilestones) > 0 {
+				<div class="relative" x-on:click.outside="open === 'milestone' && (open = null)">
+					<button
+						type="button"
+						x-on:click="open = (open === 'milestone' ? null : 'milestone')"
+						:aria-expanded="open === 'milestone' ? 'true' : 'false'"
+						aria-haspopup="menu"
+						aria-label="Set milestone"
+						class="text-muted-foreground hover:text-foreground"
+					>
+						@milestoneEditIcon()
+					</button>
+					<div
+						x-show="open === 'milestone'"
+						x-cloak
+						x-transition.opacity.duration.100ms
+						role="menu"
+						aria-label="Set milestone"
+						class="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 max-h-72 overflow-y-auto"
+					>
+						<div class="px-2 pt-1 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Set milestone</div>
+						for _, m := range data.AllMilestones {
+							{{ current := data.Current != nil && data.Current.ID == m.ID }}
+							<form hx-post={ postURL } hx-target="#issue-milestone" hx-swap="outerHTML">
+								<button
+									type="submit"
+									name="milestone_id"
+									value={ strconv.FormatInt(m.ID, 10) }
+									role="menuitemradio"
+									aria-checked={ strconv.FormatBool(current) }
+									class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+								>
+									<span class={ "h-2 w-2 rounded-full inline-block shrink-0", templ.KV("bg-muted-foreground", m.State == "closed"), templ.KV("bg-success", m.State != "closed") }></span>
+									<span class="flex-1 truncate">{ m.Title }</span>
+									if current {
+										@milestoneCheckIcon()
+									}
+								</button>
+							</form>
+						}
+						<div role="separator" class="my-1 h-px bg-border"></div>
+						<form hx-post={ postURL } hx-target="#issue-milestone" hx-swap="outerHTML">
+							<button
+								type="submit"
+								name="milestone_id"
+								value=""
+								role="menuitem"
+								class="flex w-full items-center px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+							>
+								Clear milestone
+							</button>
+						</form>
+						<a
+							href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones/new") }
+							role="menuitem"
+							class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+						>
+							@milestoneFlagIcon()
+							New milestone
+						</a>
+					</div>
+				</div>
+			}
+		</div>
 		if data.Current != nil {
 			<div class="text-sm">
-				<span class="font-medium text-foreground">{ data.Current.Title }</span>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="font-medium text-foreground hover:underline">{ data.Current.Title }</a>
 				if data.Current.OpenCount+data.Current.ClosedCount > 0 {
 					@components.ProgressBarSmall(data.Current.ClosedCount, data.Current.OpenCount+data.Current.ClosedCount)
 				}
 			</div>
 		} else {
 			<span class="text-xs text-muted-foreground">No milestone</span>
-		}
-		if data.CanWrite && len(data.AllMilestones) > 0 {
-			<details class="mt-2">
-				<summary class="text-xs text-foreground cursor-pointer hover:underline">
-					if data.Current != nil {
-						Change
-					} else {
-						Set milestone
-					}
-				</summary>
-				<div class="mt-1 space-y-1 max-h-40 overflow-y-auto border border-border rounded">
-					if data.IsPull {
-						<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.ItemNumber) + "/milestone" } hx-target="#issue-milestone" hx-swap="outerHTML" class="p-1">
-							<button type="submit" name="milestone_id" value="" class="w-full text-left px-2 py-1 hover:bg-muted/40 text-xs text-muted-foreground">
-								No milestone
-							</button>
-							for _, m := range data.AllMilestones {
-								<button type="submit" name="milestone_id" value={ strconv.FormatInt(m.ID, 10) } class={ "w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-muted/40 text-xs", templ.KV("font-semibold text-foreground", data.Current != nil && data.Current.ID == m.ID) }>
-									<span class={ "w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-muted", m.State == "closed"), templ.KV("bg-success", m.State != "closed") }></span>
-									{ m.Title }
-								</button>
-							}
-						</form>
-					} else {
-						<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.ItemNumber) + "/milestone" } hx-target="#issue-milestone" hx-swap="outerHTML" class="p-1">
-							<button type="submit" name="milestone_id" value="" class="w-full text-left px-2 py-1 hover:bg-muted/40 text-xs text-muted-foreground">
-								No milestone
-							</button>
-							for _, m := range data.AllMilestones {
-								<button type="submit" name="milestone_id" value={ strconv.FormatInt(m.ID, 10) } class={ "w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-muted/40 text-xs", templ.KV("font-semibold text-foreground", data.Current != nil && data.Current.ID == m.ID) }>
-									<span class={ "w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-muted", m.State == "closed"), templ.KV("bg-success", m.State != "closed") }></span>
-									{ m.Title }
-								</button>
-							}
-						</form>
-					}
-				</div>
-			</details>
 		}
 	</div>
 }

@@ -2,9 +2,11 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -49,7 +51,7 @@ func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Milestones(view.MilestonesData{
-		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
+		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "milestones", canManage),
 		Repo:             *repo,
 		Owner:            owner,
 		RepoName:         repoName,
@@ -57,6 +59,100 @@ func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
 		ClosedMilestones: closed,
 		CanWrite:         canWrite,
 	}))
+}
+
+// PageNewMilestone renders the dedicated milestone creation page.
+func (h *Handler) PageNewMilestone(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok || !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+
+	h.render(w, r, pages.MilestoneNew(view.MilestoneNewData{
+		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "milestones", canManage),
+		Repo:     *repo,
+		Owner:    owner,
+		RepoName: repoName,
+		CanWrite: true,
+	}))
+}
+
+// PageNewMilestoneSubmit handles the new-milestone form submission.
+func (h *Handler) PageNewMilestoneSubmit(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
+	title := strings.TrimSpace(r.FormValue("title"))
+	description := r.FormValue("description")
+	dueRaw := r.FormValue("due_date")
+
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	renderErr := func(msg string) {
+		h.render(w, r, pages.MilestoneNew(view.MilestoneNewData{
+			BasePage:    h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "milestones", canManage),
+			Repo:        *repo,
+			Owner:       owner,
+			RepoName:    repoName,
+			CanWrite:    true,
+			Error:       msg,
+			Title:       title,
+			Description: description,
+			DueDate:     dueRaw,
+		}))
+	}
+
+	if title == "" {
+		renderErr("Title is required")
+		return
+	}
+
+	var dueDate *time.Time
+	if dueRaw != "" {
+		t, err := time.Parse("2006-01-02", dueRaw)
+		if err != nil {
+			renderErr("Due date must be a valid date")
+			return
+		}
+		dueDate = &t
+	}
+
+	if _, err := h.Services.Milestone.Create(r.Context(), owner, repoName, title, description, dueDate); err != nil {
+		slog.Error("operation failed", "error", err)
+		renderErr("Failed to create milestone: " + err.Error())
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/%s/%s/milestones", owner, repoName), http.StatusSeeOther)
 }
 
 // ─── API handlers ────────────────────────────────────────────────────────────
@@ -182,30 +278,6 @@ func (h *Handler) CreateMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Header.Get("HX-Request") == "true" {
-		all, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
-		var open, closed []model.Milestone
-		for _, ms := range all {
-			if ms.State == "open" {
-				open = append(open, ms)
-			} else {
-				closed = append(closed, ms)
-			}
-		}
-		repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-		canWrite := false
-		if repo != nil {
-			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		}
-		h.render(w, r, fragments.MilestonesList(view.MilestonesListFragData{
-			Owner:            owner,
-			RepoName:         repoName,
-			OpenMilestones:   open,
-			ClosedMilestones: closed,
-			CanWrite:         canWrite,
-		}))
-		return
-	}
 	writeJSON(w, http.StatusCreated, m)
 }
 
@@ -337,30 +409,6 @@ func (h *Handler) DeleteMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Header.Get("HX-Request") == "true" {
-		all, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
-		var open, closed []model.Milestone
-		for _, ms := range all {
-			if ms.State == "open" {
-				open = append(open, ms)
-			} else {
-				closed = append(closed, ms)
-			}
-		}
-		repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-		canWrite := false
-		if repo != nil {
-			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		}
-		h.render(w, r, fragments.MilestonesList(view.MilestonesListFragData{
-			Owner:            owner,
-			RepoName:         repoName,
-			OpenMilestones:   open,
-			ClosedMilestones: closed,
-			CanWrite:         canWrite,
-		}))
-		return
-	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
