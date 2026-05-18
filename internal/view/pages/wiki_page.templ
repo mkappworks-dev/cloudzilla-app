@@ -22,9 +22,8 @@ templ WikiPage(data view.WikiPageData) {
 					}
 					if data.CanManage && data.Exists {
 						@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
-							"type":       "button",
-							"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug,
-							"hx-confirm": "Delete this wiki page?",
+							"type":    "button",
+							"onclick": "document.getElementById('wiki-delete-dialog').showModal()",
 						}) {
 							Delete
 						}
@@ -54,5 +53,30 @@ templ WikiPage(data view.WikiPageData) {
 			</div>
 
 		</div>
+
+		if data.CanManage && data.Exists {
+			@components.Dialog("wiki-delete-dialog") {
+				@components.DialogHeader() {
+					@components.DialogTitle("wiki-delete-dialog") {
+						Delete this page?
+					}
+					@components.DialogDescription() {
+						This permanently removes the "{ data.Slug }" page from the wiki. This cannot be undone.
+					}
+				}
+				@components.DialogFooter() {
+					@components.DialogClose(templ.Attributes{}) {
+						Cancel
+					}
+					@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
+						"type":                "button",
+						"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug,
+						"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Wiki page deleted'}));location.href='/" + data.Owner + "/" + data.RepoName + "/wiki';}",
+					}) {
+						Delete page
+					}
+				}
+			}
+		}
 	}
 }
