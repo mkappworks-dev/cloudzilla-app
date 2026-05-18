@@ -129,7 +129,7 @@ func WikiEdit(data view.WikiEditData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = wikiSidebar(data.Owner, data.RepoName, data.Slug, data.PageList, true).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = wikiSidebar(data.Owner, data.RepoName, data.Slug, data.PageList, true, false).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

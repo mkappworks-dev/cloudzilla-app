@@ -20,6 +20,37 @@ type WikiPageMeta struct {
 	UpdatedAt time.Time
 }
 
+// orderWikiSlugs returns slugs in the order prescribed by the .order file
+// content, appending any real pages not listed there alphabetically.
+// Stale entries in the order content (slug not in all) are silently dropped.
+func orderWikiSlugs(all []string, orderContent string) []string {
+	set := make(map[string]bool, len(all))
+	for _, s := range all {
+		set[s] = true
+	}
+
+	var ordered []string
+	seen := make(map[string]bool)
+	for _, line := range strings.Split(orderContent, "\n") {
+		slug := strings.TrimSpace(line)
+		if slug == "" || !set[slug] || seen[slug] {
+			continue
+		}
+		ordered = append(ordered, slug)
+		seen[slug] = true
+	}
+
+	// Append remaining pages alphabetically.
+	var rest []string
+	for _, s := range all {
+		if !seen[s] {
+			rest = append(rest, s)
+		}
+	}
+	sort.Strings(rest)
+	return append(ordered, rest...)
+}
+
 // WikiPageListMeta returns each wiki page's slug, first-heading title, and HEAD
 // commit time. Returns an empty slice when the wiki has no commits yet.
 func (s *CodeService) WikiPageListMeta(owner, repoName string) ([]WikiPageMeta, error) {
@@ -46,7 +77,10 @@ func (s *CodeService) WikiPageListMeta(owner, repoName string) ([]WikiPageMeta, 
 		return nil, err
 	}
 	updatedAt := commit.Author.When
-	var pages []WikiPageMeta
+
+	// Collect metadata keyed by slug.
+	metaBySlug := make(map[string]WikiPageMeta)
+	var slugs []string
 	for _, entry := range tree.Entries {
 		if !strings.HasSuffix(entry.Name, ".md") {
 			continue
@@ -62,9 +96,21 @@ func (s *CodeService) WikiPageListMeta(owner, repoName string) ([]WikiPageMeta, 
 				}
 			}
 		}
-		pages = append(pages, WikiPageMeta{Slug: slug, Title: title, UpdatedAt: updatedAt})
+		metaBySlug[slug] = WikiPageMeta{Slug: slug, Title: title, UpdatedAt: updatedAt}
+		slugs = append(slugs, slug)
 	}
-	sort.Slice(pages, func(i, j int) bool { return pages[i].Slug < pages[j].Slug })
+
+	// Apply .order if present; fall back to alphabetical.
+	orderContent := ""
+	if f, err := commit.File(".order"); err == nil {
+		orderContent, _ = f.Contents()
+	}
+	ordered := orderWikiSlugs(slugs, orderContent)
+
+	pages := make([]WikiPageMeta, 0, len(ordered))
+	for _, slug := range ordered {
+		pages = append(pages, metaBySlug[slug])
+	}
 	return pages, nil
 }
 
@@ -108,8 +154,12 @@ func (s *CodeService) WikiPageList(owner, repoName string) ([]string, error) {
 			slugs = append(slugs, strings.TrimSuffix(entry.Name, ".md"))
 		}
 	}
-	sort.Strings(slugs)
-	return slugs, nil
+
+	orderContent := ""
+	if f, err := commit.File(".order"); err == nil {
+		orderContent, _ = f.Contents()
+	}
+	return orderWikiSlugs(slugs, orderContent), nil
 }
 
 // WikiPageGet returns the raw Markdown content of a single wiki page identified
@@ -137,6 +187,50 @@ func (s *CodeService) WikiPageGet(owner, repoName, slug string) (content string,
 	}
 	c, err := f.Contents()
 	return c, true, err
+}
+
+// WikiPageReorder moves slug one position up or down in the sidebar order,
+// persisting the result as a .order file in the wiki repo.
+func (s *CodeService) WikiPageReorder(owner, repoName, slug, direction, authorName, authorEmail string) error {
+	if direction != "up" && direction != "down" {
+		return fmt.Errorf("invalid direction %q: must be up or down", direction)
+	}
+
+	slugs, err := s.WikiPageList(owner, repoName)
+	if err != nil {
+		return err
+	}
+
+	idx := -1
+	for i, s := range slugs {
+		if s == slug {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return fmt.Errorf("wiki page %q not found", slug)
+	}
+
+	if direction == "up" && idx == 0 {
+		return nil
+	}
+	if direction == "down" && idx == len(slugs)-1 {
+		return nil
+	}
+
+	swap := idx - 1
+	if direction == "down" {
+		swap = idx + 1
+	}
+	slugs[idx], slugs[swap] = slugs[swap], slugs[idx]
+
+	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
+	if err != nil {
+		return fmt.Errorf("wiki open: %w", err)
+	}
+	content := strings.Join(slugs, "\n")
+	return wikiCommit(repo, ".order", []byte(content), authorName, authorEmail, "Reorder wiki pages")
 }
 
 // WikiPageSave creates or updates a wiki page in the bare repo, creating the

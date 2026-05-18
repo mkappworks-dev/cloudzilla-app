@@ -375,6 +375,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		// Wiki
 		r.With(authMW).Post("/{owner}/{repo}/wiki/{slug}", h.CreateOrUpdateWikiPage)
 		r.With(authMW).Delete("/{owner}/{repo}/wiki/{slug}", h.DeleteWikiPage)
+		r.With(authMW).Post("/{owner}/{repo}/wiki/{slug}/move", h.WikiPageMove)
 
 		// Topics
 		r.With(authMW).Put("/{owner}/{repo}/topics", h.SetTopics)

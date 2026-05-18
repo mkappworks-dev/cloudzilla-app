@@ -1,6 +1,7 @@
 package service
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -127,5 +128,132 @@ func TestWikiPageRename(t *testing.T) {
 	err = svc.WikiPageRename(owner, repo, "DoesNotExist", "Whatever", "Tester", "tester@example.com", "")
 	if err == nil {
 		t.Error("expected error for missing source page, got nil")
+	}
+}
+
+func TestOrderWikiSlugs(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		all     []string
+		order   string
+		want    []string
+	}{
+		{
+			name:  "no order file — alphabetical",
+			all:   []string{"Home", "Architecture", "Contributing"},
+			order: "",
+			want:  []string{"Architecture", "Contributing", "Home"},
+		},
+		{
+			name:  "full explicit order",
+			all:   []string{"Home", "Architecture", "Contributing"},
+			order: "Home\nArchitecture\nContributing",
+			want:  []string{"Home", "Architecture", "Contributing"},
+		},
+		{
+			name:  "partial order — unlisted pages appended alphabetically",
+			all:   []string{"Home", "Architecture", "Contributing", "Zzzz"},
+			order: "Zzzz\nHome",
+			want:  []string{"Zzzz", "Home", "Architecture", "Contributing"},
+		},
+		{
+			name:  "stale entry in order file is skipped",
+			all:   []string{"Home", "Architecture"},
+			order: "Deleted\nHome\nArchitecture",
+			want:  []string{"Home", "Architecture"},
+		},
+		{
+			name:  "duplicate in order file — only first occurrence kept",
+			all:   []string{"Home", "Architecture"},
+			order: "Home\nHome\nArchitecture",
+			want:  []string{"Home", "Architecture"},
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := orderWikiSlugs(tc.all, tc.order)
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("orderWikiSlugs(%v, %q) = %v, want %v", tc.all, tc.order, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestWikiPageReorder(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	svc := NewCodeService(czconfig.GitConfig{ReposRoot: root})
+
+	owner := "carol"
+	repo := "wikireorder"
+
+	for _, slug := range []string{"Alpha", "Beta", "Gamma"} {
+		if err := svc.WikiPageSave(owner, repo, slug, "# "+slug+"\n", "Tester", "tester@example.com", "add "+slug); err != nil {
+			t.Fatalf("WikiPageSave %s: %v", slug, err)
+		}
+	}
+
+	// Initial order is alphabetical: Alpha, Beta, Gamma.
+	slugs, err := svc.WikiPageList(owner, repo)
+	if err != nil {
+		t.Fatalf("WikiPageList: %v", err)
+	}
+	if !reflect.DeepEqual(slugs, []string{"Alpha", "Beta", "Gamma"}) {
+		t.Fatalf("initial order = %v, want [Alpha Beta Gamma]", slugs)
+	}
+
+	// Move Beta up → Beta, Alpha, Gamma.
+	if err := svc.WikiPageReorder(owner, repo, "Beta", "up", "Tester", "tester@example.com"); err != nil {
+		t.Fatalf("WikiPageReorder up: %v", err)
+	}
+	slugs, _ = svc.WikiPageList(owner, repo)
+	if !reflect.DeepEqual(slugs, []string{"Beta", "Alpha", "Gamma"}) {
+		t.Errorf("after move Beta up = %v, want [Beta Alpha Gamma]", slugs)
+	}
+
+	// Move Gamma up twice → Gamma, Beta, Alpha.
+	if err := svc.WikiPageReorder(owner, repo, "Gamma", "up", "Tester", "tester@example.com"); err != nil {
+		t.Fatalf("WikiPageReorder Gamma up (1): %v", err)
+	}
+	if err := svc.WikiPageReorder(owner, repo, "Gamma", "up", "Tester", "tester@example.com"); err != nil {
+		t.Fatalf("WikiPageReorder Gamma up (2): %v", err)
+	}
+	slugs, _ = svc.WikiPageList(owner, repo)
+	if !reflect.DeepEqual(slugs, []string{"Gamma", "Beta", "Alpha"}) {
+		t.Errorf("after move Gamma up x2 = %v, want [Gamma Beta Alpha]", slugs)
+	}
+
+	// No-op: move Gamma up when already first.
+	if err := svc.WikiPageReorder(owner, repo, "Gamma", "up", "Tester", "tester@example.com"); err != nil {
+		t.Fatalf("no-op up: %v", err)
+	}
+	slugs, _ = svc.WikiPageList(owner, repo)
+	if !reflect.DeepEqual(slugs, []string{"Gamma", "Beta", "Alpha"}) {
+		t.Errorf("after no-op up = %v, want [Gamma Beta Alpha]", slugs)
+	}
+
+	// No-op: move Alpha down when already last.
+	if err := svc.WikiPageReorder(owner, repo, "Alpha", "down", "Tester", "tester@example.com"); err != nil {
+		t.Fatalf("no-op down: %v", err)
+	}
+	slugs, _ = svc.WikiPageList(owner, repo)
+	if !reflect.DeepEqual(slugs, []string{"Gamma", "Beta", "Alpha"}) {
+		t.Errorf("after no-op down = %v, want [Gamma Beta Alpha]", slugs)
+	}
+
+	// Invalid direction.
+	if err := svc.WikiPageReorder(owner, repo, "Beta", "sideways", "Tester", "tester@example.com"); err == nil {
+		t.Error("expected error for invalid direction, got nil")
+	}
+
+	// Unknown slug.
+	if err := svc.WikiPageReorder(owner, repo, "NoSuchPage", "up", "Tester", "tester@example.com"); err == nil {
+		t.Error("expected error for unknown slug, got nil")
 	}
 }

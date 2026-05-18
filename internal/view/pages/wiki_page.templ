@@ -32,7 +32,7 @@ templ WikiPage(data view.WikiPageData) {
 			</section>
 
 			<div class="grid lg:grid-cols-[220px_1fr] gap-8">
-				@wikiSidebar(data.Owner, data.RepoName, data.Slug, data.PageList, data.CanWrite)
+				@wikiSidebar(data.Owner, data.RepoName, data.Slug, data.PageList, data.CanWrite, data.CanWrite)
 
 				<article class="rounded-md border border-border bg-card p-6">
 					if data.Exists {

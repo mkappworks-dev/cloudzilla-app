@@ -275,6 +275,68 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 	http.Redirect(w, r, "/"+owner+"/"+repoName+"/wiki/"+slug, http.StatusSeeOther)
 }
 
+// WikiPageMove handles POST /api/repos/{owner}/{repo}/wiki/{slug}/move.
+// Accepts form value: dir ("up" or "down").
+func (h *Handler) WikiPageMove(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	slug := chi.URLParam(r, "slug")
+
+	if !validWikiSlug.MatchString(slug) {
+		writeError(w, http.StatusBadRequest, "invalid page name")
+		return
+	}
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !repo.AllowWiki {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form data")
+		return
+	}
+	dir := r.FormValue("dir")
+	if dir != "up" && dir != "down" {
+		writeError(w, http.StatusBadRequest, "dir must be up or down")
+		return
+	}
+
+	user, err := h.Services.User.GetByID(r.Context(), claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load user")
+		return
+	}
+	authorEmail := user.Email
+	if authorEmail == "" {
+		authorEmail = user.Username + "@localhost"
+	}
+
+	if err := h.Services.Code.WikiPageReorder(owner, repoName, slug, dir, user.Username, authorEmail); err != nil {
+		slog.Error("failed to reorder wiki page", "owner", owner, "repo", repoName, "slug", slug, "dir", dir, "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to reorder wiki page")
+		return
+	}
+
+	w.Header().Set("HX-Refresh", "true")
+	w.WriteHeader(http.StatusOK)
+}
+
 // DeleteWikiPage handles DELETE /api/repos/{owner}/{repo}/wiki/{slug}.
 func (h *Handler) DeleteWikiPage(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
