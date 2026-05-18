@@ -49,6 +49,7 @@ func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model
 		AllowDiscussions: repo.AllowDiscussions,
 		AllowProjects:    repo.AllowProjects,
 		AllowWiki:        repo.AllowWiki,
+		Counts:           h.repoSubnavCounts(ctx, repo),
 	}
 	var viewerID *int64
 	if base.CurrentUser != nil {
@@ -64,6 +65,41 @@ func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model
 		slog.Error("withRepoSubnav: repo switcher list failed", "owner", repo.OwnerName, "error", err)
 	}
 	return base
+}
+
+// repoSubnavCounts builds the per-tab badge counts for the repo subnav.
+// Best-effort: a failed query drops that tab's count rather than failing the page.
+func (h *Handler) repoSubnavCounts(ctx context.Context, repo *model.Repository) map[string]int {
+	counts := map[string]int{}
+	logFail := func(tab string, err error) {
+		slog.Warn("repo subnav counts: tab query failed; hiding count",
+			"tab", tab, "repo_id", repo.ID, "error", err)
+	}
+	if n, err := h.Services.Pull.CountOpen(ctx, repo.ID); err == nil {
+		counts["pull_requests"] = n
+	} else {
+		logFail("pull_requests", err)
+	}
+	if repo.AllowIssues {
+		if n, err := h.Services.Issue.CountOpen(ctx, repo.ID); err == nil {
+			counts["issues"] = n
+		} else {
+			logFail("issues", err)
+		}
+	}
+	if repo.AllowDiscussions {
+		if n, err := h.Services.Discussion.CountByRepo(ctx, repo.ID); err == nil {
+			counts["discussions"] = n
+		} else {
+			logFail("discussions", err)
+		}
+	}
+	if n, err := h.Services.Release.CountPublished(ctx, repo.ID); err == nil {
+		counts["releases"] = n
+	} else {
+		logFail("releases", err)
+	}
+	return counts
 }
 
 func withAccountSubnav(base BasePage, active string, counts map[string]int) BasePage {

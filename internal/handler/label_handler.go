@@ -225,6 +225,7 @@ func (h *Handler) AddIssueLabel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Label added")
 		h.renderIssueLabelFragment(w, r, owner, repoName, number)
 		return
 	}
@@ -268,6 +269,7 @@ func (h *Handler) RemoveIssueLabel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Label removed")
 		h.renderIssueLabelFragment(w, r, owner, repoName, number)
 		return
 	}

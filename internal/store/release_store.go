@@ -40,6 +40,16 @@ func (s *ReleaseStore) ListByRepo(ctx context.Context, repoID int64) ([]model.Re
 	return scanReleases(rows)
 }
 
+// CountPublished returns the number of non-draft releases in a repo.
+func (s *ReleaseStore) CountPublished(ctx context.Context, repoID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM releases WHERE repo_id = $1 AND is_draft = FALSE`,
+		repoID,
+	).Scan(&n)
+	return n, err
+}
+
 func (s *ReleaseStore) GetByTag(ctx context.Context, repoID int64, tagName string) (*model.Release, error) {
 	r := &model.Release{}
 	var publishedAt sql.NullTime

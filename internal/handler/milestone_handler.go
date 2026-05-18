@@ -473,6 +473,11 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 	if repo != nil {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
+	if milestoneID != nil {
+		toast(w, "success", "Milestone set")
+	} else {
+		toast(w, "success", "Milestone cleared")
+	}
 	h.render(w, r, fragments.MilestoneSidebar(view.MilestoneSidebarFragData{
 		Owner:         owner,
 		RepoName:      repoName,

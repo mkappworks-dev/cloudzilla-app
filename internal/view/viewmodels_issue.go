@@ -1,6 +1,8 @@
 package view
 
 import (
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
@@ -44,9 +46,49 @@ type IssueDetailData struct {
 	Milestone     *model.Milestone
 	AllMilestones []model.Milestone
 	LinkedPRs     []model.PullRequest
+	RepoPulls     []model.PullRequest
 	Collaborators []string
 	CanWrite      bool
 	CanManage     bool
+}
+
+// IssuePrioritySidebarData holds data for the issue priority sidebar HTMX fragment.
+type IssuePrioritySidebarData struct {
+	Owner       string
+	RepoName    string
+	IssueNumber int
+	Priority    *string
+	CanWrite    bool
+}
+
+// LinkedPull is a lightweight pull-request projection for the linked-PR sidebar.
+type LinkedPull struct {
+	Number int
+	Title  string
+	State  string
+}
+
+// IssueLinkedPullsSidebarData holds data for the issue linked-PR sidebar HTMX fragment.
+type IssueLinkedPullsSidebarData struct {
+	Owner       string
+	RepoName    string
+	IssueNumber int
+	Linked      []LinkedPull
+	AllPulls    []LinkedPull
+	CanWrite    bool
+}
+
+// IssueBodyCardData holds data for the issue body card, re-rendered on body edit.
+type IssueBodyCardData struct {
+	Owner       string
+	RepoName    string
+	IssueNumber int
+	AuthorName  string
+	CreatedAt   time.Time
+	Body        string
+	BodyHTML    string
+	CanWrite    bool
+	Editing     bool
 }
 
 type IssueNewData struct {
@@ -61,6 +103,10 @@ type IssueNewData struct {
 	ShowForm bool
 	CanWrite bool
 	Error    string
+	// Sidebar metadata picker options — populated only when CanWrite.
+	Collaborators []string
+	Labels        []model.Label
+	Milestones    []model.Milestone
 }
 
 // Fragment data structs

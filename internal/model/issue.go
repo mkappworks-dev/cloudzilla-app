@@ -20,6 +20,7 @@ type Issue struct {
 	Title       string     `db:"title"        json:"title"`
 	Body        string     `db:"body"         json:"body"`
 	State       IssueState `db:"state"        json:"state"`
+	Priority    *string    `db:"priority"     json:"priority,omitempty"`
 	MilestoneID *int64     `db:"milestone_id" json:"milestone_id,omitempty"`
 	Visibility  string     `db:"visibility"   json:"visibility"`
 	CreatedAt   time.Time  `db:"created_at"   json:"created_at"`

@@ -4,6 +4,7 @@ import "strconv"
 
 // Tab switching and the toolbar are wired by the global script in the base layout.
 templ MarkdownEditor(id, name, content, placeholder string, rows int) {
+	{{ paneHeight := "height:" + strconv.Itoa(rows*22+24) + "px" }}
 	<div class="md-editor" data-md-editor>
 		<div class="flex items-center gap-2 border-b border-border px-3">
 			<div role="tablist" aria-label="Editor mode" class="flex">
@@ -41,9 +42,9 @@ templ MarkdownEditor(id, name, content, placeholder string, rows int) {
 		</div>
 		<div data-md-pane="write">
 			<label for={ id } class="sr-only">{ placeholder }</label>
-			<textarea id={ id } name={ name } rows={ strconv.Itoa(rows) } placeholder={ placeholder } class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-y focus:outline-none placeholder:text-muted-foreground">{ content }</textarea>
+			<textarea id={ id } name={ name } rows={ strconv.Itoa(rows) } placeholder={ placeholder } style={ paneHeight } class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground">{ content }</textarea>
 		</div>
-		<div id={ id + "-preview" } data-md-pane="preview" class="hidden px-4 py-3 prose prose-sm dark:prose-invert max-w-none min-h-[6rem]"></div>
+		<div id={ id + "-preview" } data-md-pane="preview" style={ paneHeight } class="hidden px-4 py-3 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"></div>
 	</div>
 }
 

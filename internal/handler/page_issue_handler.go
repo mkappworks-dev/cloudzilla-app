@@ -265,6 +265,14 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		linkedPRs = []model.PullRequest{}
 	}
 
+	repoPulls, err := h.Services.Pull.List(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Warn("issue detail: repo PR list failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	if repoPulls == nil {
+		repoPulls = []model.PullRequest{}
+	}
+
 	collaborators, err := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
 	if err != nil {
 		slog.Warn("issue detail: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
@@ -284,6 +292,7 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		Milestone:     issueMilestone,
 		AllMilestones: allIssueMilestones,
 		LinkedPRs:     linkedPRs,
+		RepoPulls:     repoPulls,
 		Collaborators: collaboratorUsernames(collaborators),
 		CanWrite:      canWrite,
 		CanManage:     canManage,
@@ -324,7 +333,7 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
-	h.render(w, r, pages.IssueNew(view.IssueNewData{
+	data := view.IssueNewData{
 		BasePage:  h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
 		Repo:      *repo,
 		Owner:     owner,
@@ -333,7 +342,70 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 		Selected:  selected,
 		ShowForm:  showForm,
 		CanWrite:  canWrite,
-	}))
+	}
+	if canWrite {
+		h.loadIssueSidebarOptions(r, &data, repo, owner, repoName)
+	}
+	h.render(w, r, pages.IssueNew(data))
+}
+
+// loadIssueSidebarOptions populates the new-issue metadata picker options
+// (collaborators, labels, milestones). Best-effort: a failed query leaves that
+// picker empty rather than failing the page.
+func (h *Handler) loadIssueSidebarOptions(r *http.Request, data *view.IssueNewData, repo *model.Repository, owner, repoName string) {
+	ctx := r.Context()
+	if collabs, err := h.Services.Repo.ListCollaborators(ctx, repo.ID); err == nil {
+		data.Collaborators = collaboratorUsernames(collabs)
+	} else {
+		slog.Warn("new issue: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	if labels, err := h.Services.Label.ListByRepo(ctx, owner, repoName); err == nil {
+		data.Labels = labels
+	} else {
+		slog.Warn("new issue: list labels failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	if milestones, err := h.Services.Milestone.ListByRepo(ctx, owner, repoName); err == nil {
+		data.Milestones = milestones
+	} else {
+		slog.Warn("new issue: list milestones failed", "owner", owner, "repo", repoName, "error", err)
+	}
+}
+
+// applyNewIssueMetadata applies the assignees, labels, priority, and milestone
+// chosen on the new-issue form. Best-effort: one field failing is logged and
+// skipped rather than failing the already-created issue.
+func (h *Handler) applyNewIssueMetadata(r *http.Request, owner, repoName string, issue *model.Issue) {
+	ctx := r.Context()
+	for _, username := range r.Form["assignees"] {
+		if username == "" {
+			continue
+		}
+		if err := h.Services.Assignee.AddToIssue(ctx, owner, repoName, issue.Number, username); err != nil {
+			slog.Warn("new issue: add assignee failed", "issue", issue.Number, "user", username, "error", err)
+		}
+	}
+	for _, raw := range r.Form["labels"] {
+		labelID, convErr := strconv.ParseInt(raw, 10, 64)
+		if convErr != nil {
+			continue
+		}
+		if err := h.Services.Label.AddToIssue(ctx, owner, repoName, issue.Number, labelID); err != nil {
+			slog.Warn("new issue: add label failed", "issue", issue.Number, "label", labelID, "error", err)
+		}
+	}
+	switch p := r.FormValue("priority"); p {
+	case "P0", "P1", "P2", "P3":
+		if _, err := h.Services.Issue.SetPriority(ctx, owner, repoName, issue.Number, &p); err != nil {
+			slog.Warn("new issue: set priority failed", "issue", issue.Number, "priority", p, "error", err)
+		}
+	}
+	if m := r.FormValue("milestone"); m != "" {
+		if milestoneID, convErr := strconv.ParseInt(m, 10, 64); convErr == nil {
+			if err := h.Services.Milestone.SetIssue(ctx, issue.ID, &milestoneID); err != nil {
+				slog.Warn("new issue: set milestone failed", "issue", issue.Number, "milestone", milestoneID, "error", err)
+			}
+		}
+	}
 }
 
 // PageNewIssueSubmit handles new issue form submission and redirects to the created issue.
@@ -364,9 +436,10 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	templates, _ := h.Services.Code.GetIssueTemplates(owner, repoName, repo.DefaultBranch)
 	renderErr := func(msg string) {
-		h.render(w, r, pages.IssueNew(view.IssueNewData{
+		data := view.IssueNewData{
 			BasePage:  h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
 			Repo:      *repo,
 			Owner:     owner,
@@ -374,8 +447,13 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 			Templates: templates,
 			Selected:  body,
 			ShowForm:  true,
+			CanWrite:  canWrite,
 			Error:     msg,
-		}))
+		}
+		if canWrite {
+			h.loadIssueSidebarOptions(r, &data, repo, owner, repoName)
+		}
+		h.render(w, r, pages.IssueNew(data))
 	}
 
 	if title == "" {
@@ -391,6 +469,10 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		renderErr("Failed to create issue: " + err.Error())
 		return
+	}
+
+	if canWrite {
+		h.applyNewIssueMetadata(r, owner, repoName, issue)
 	}
 
 	go h.Services.Webhook.Dispatch(repo.ID, "issues", h.Services.Webhook.IssuePayload("opened", *repo, *issue))

@@ -13,6 +13,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
 type createIssueRequest struct {
@@ -220,6 +221,20 @@ func (h *Handler) PinIssue(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
+	if r.Header.Get("HX-Request") == "true" {
+		issue, gerr := h.Services.Issue.Get(r.Context(), owner, repoName, number, &claims.UserID)
+		if gerr != nil {
+			writeError(w, http.StatusInternalServerError, "internal server error")
+			return
+		}
+		if issue.IsPinned {
+			toast(w, "success", "Issue pinned")
+		} else {
+			toast(w, "success", "Issue unpinned")
+		}
+		h.render(w, r, pages.MaintainerFragment(owner, repoName, number, issue.IsPinned, issue.IsLocked))
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -268,6 +283,20 @@ func (h *Handler) LockIssue(w http.ResponseWriter, r *http.Request) {
 		}
 		slog.Error("operation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		issue, gerr := h.Services.Issue.Get(r.Context(), owner, repoName, number, &claims.UserID)
+		if gerr != nil {
+			writeError(w, http.StatusInternalServerError, "internal server error")
+			return
+		}
+		if issue.IsLocked {
+			toast(w, "success", "Conversation locked")
+		} else {
+			toast(w, "success", "Conversation unlocked")
+		}
+		h.render(w, r, pages.MaintainerFragment(owner, repoName, number, issue.IsPinned, issue.IsLocked))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

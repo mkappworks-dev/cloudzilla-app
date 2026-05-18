@@ -39,6 +39,10 @@ func (s *DiscussionService) DeleteCategory(ctx context.Context, id, repoID int64
 	return s.discussions.DeleteCategory(ctx, id, repoID)
 }
 
+func (s *DiscussionService) CountByRepo(ctx context.Context, repoID int64) (int, error) {
+	return s.discussions.CountByRepo(ctx, repoID)
+}
+
 func (s *DiscussionService) List(ctx context.Context, owner, repoName string, categoryID int64) ([]model.Discussion, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {

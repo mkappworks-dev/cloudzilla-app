@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"strconv"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -8,7 +10,7 @@ import (
 
 templ IssueNew(data view.IssueNewData) {
 	@layout.Base(data.BasePage, "New Issue · "+data.Owner+"/"+data.RepoName) {
-		<div class="max-w-3xl mx-auto space-y-6">
+		<div class="space-y-6">
 
 			<section aria-labelledby="new-title">
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
@@ -42,9 +44,10 @@ templ IssueNew(data view.IssueNewData) {
 					</div>
 				}
 
-				<section aria-labelledby="composer" class="rounded-md border border-border bg-card p-6">
+				<div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+					<section aria-labelledby="composer" class="rounded-md border border-border bg-card p-6">
 					<h2 id="composer" class="text-[13px] font-medium mb-5">Issue details</h2>
-					<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/new") } class="space-y-5">
+					<form id="issue-new-form" method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/new") } class="space-y-5">
 						<div class="space-y-1.5">
 							<label for="title" class="block text-sm font-medium">Title</label>
 							@components.Input(templ.Attributes{
@@ -77,7 +80,74 @@ templ IssueNew(data view.IssueNewData) {
 							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues") } class="text-sm text-muted-foreground hover:underline">Cancel</a>
 						</div>
 					</form>
-				</section>
+					</section>
+					<aside class="space-y-6" aria-label="Issue metadata">
+						if data.CanWrite {
+							<section class="space-y-2" aria-label="Assignees">
+								<h3 class="text-[12px] font-medium text-muted-foreground">Assignees</h3>
+								if len(data.Collaborators) > 0 {
+									<div class="space-y-1.5">
+										for _, u := range data.Collaborators {
+											<label class="flex items-center gap-2 text-[13px] cursor-pointer">
+												@components.Checkbox(templ.Attributes{"name": "assignees", "value": u, "form": "issue-new-form"})
+												<span>{ "@" + u }</span>
+											</label>
+										}
+									</div>
+								} else {
+									<p class="text-[13px] text-muted-foreground">No collaborators to assign.</p>
+								}
+							</section>
+							<section class="space-y-2 border-t border-border pt-6" aria-label="Labels">
+								<h3 class="text-[12px] font-medium text-muted-foreground">Labels</h3>
+								if len(data.Labels) > 0 {
+									<div class="space-y-1.5">
+										for _, l := range data.Labels {
+											<label class="flex items-center gap-2 text-[13px] cursor-pointer">
+												@components.Checkbox(templ.Attributes{"name": "labels", "value": strconv.FormatInt(l.ID, 10), "form": "issue-new-form"})
+												<span class="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={ "background-color: " + l.Color }></span>
+												<span class="truncate">{ l.Name }</span>
+											</label>
+										}
+									</div>
+								} else {
+									<p class="text-[13px] text-muted-foreground">No labels in this repo.</p>
+								}
+							</section>
+							<section class="space-y-2 border-t border-border pt-6" aria-label="Priority">
+								<h3 class="text-[12px] font-medium text-muted-foreground">Priority</h3>
+								<div class="space-y-1.5">
+									@issueNewPriorityRadio("", "None", true)
+									@issueNewPriorityRadio("P0", "P0 · Critical", false)
+									@issueNewPriorityRadio("P1", "P1 · High", false)
+									@issueNewPriorityRadio("P2", "P2 · Medium", false)
+									@issueNewPriorityRadio("P3", "P3 · Low", false)
+								</div>
+							</section>
+							<section class="space-y-2 border-t border-border pt-6" aria-label="Milestone">
+								<h3 class="text-[12px] font-medium text-muted-foreground">Milestone</h3>
+								if len(data.Milestones) > 0 {
+									<label for="milestone-select" class="sr-only">Milestone</label>
+									@components.Select(templ.Attributes{"id": "milestone-select", "name": "milestone", "form": "issue-new-form"}) {
+										<option value="">No milestone</option>
+										for _, m := range data.Milestones {
+											<option value={ strconv.FormatInt(m.ID, 10) }>{ m.Title }</option>
+										}
+									}
+								} else {
+									<p class="text-[13px] text-muted-foreground">No milestones in this repo.</p>
+								}
+							</section>
+							@issueNewMetaSection("Linked pull requests", "Available after the issue is created.", true)
+						} else {
+							@issueNewMetaSection("Assignees", "No one assigned yet.", false)
+							@issueNewMetaSection("Labels", "No labels yet.", true)
+							@issueNewMetaSection("Priority", "No priority set.", true)
+							@issueNewMetaSection("Milestone", "No milestone.", true)
+							@issueNewMetaSection("Linked pull requests", "No linked pull requests.", true)
+						}
+					</aside>
+				</div>
 			} else {
 				<section aria-labelledby="templates">
 					<h2 id="templates" class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-3">Templates</h2>
@@ -96,4 +166,28 @@ templ IssueNew(data view.IssueNewData) {
 			}
 		</div>
 	}
+}
+
+// issueNewMetaSection renders one placeholder section of the new-issue metadata
+// sidebar. The pickers are not wired yet, so each section shows an empty state.
+templ issueNewMetaSection(title, emptyText string, divided bool) {
+	<section class={ "space-y-2", templ.KV("border-t border-border pt-6", divided) } aria-label={ title }>
+		<h3 class="text-[12px] font-medium text-muted-foreground">{ title }</h3>
+		<p class="text-[13px] text-muted-foreground">{ emptyText }</p>
+	</section>
+}
+
+// issueNewPriorityRadio renders one option of the new-issue priority picker.
+templ issueNewPriorityRadio(value, label string, checked bool) {
+	<label class="flex items-center gap-2 text-[13px] cursor-pointer">
+		<input
+			type="radio"
+			name="priority"
+			value={ value }
+			form="issue-new-form"
+			checked?={ checked }
+			class="h-4 w-4 shrink-0 border border-input bg-transparent accent-foreground"
+		/>
+		<span>{ label }</span>
+	</label>
 }

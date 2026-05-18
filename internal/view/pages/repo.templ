@@ -34,15 +34,13 @@ templ Repo(data view.RepoData) {
 						<a href={ templ.SafeURL("/" + data.Owner) } class="text-muted-foreground hover:underline">{ data.Owner }</a>
 						<span class="text-muted-foreground" aria-hidden="true">/</span>
 						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="font-semibold hover:underline">{ data.RepoName }</a>
-						if data.Repo.Private {
-							@components.Badge(components.BadgeOutline) {
+						<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground">
+							if data.Repo.Private {
 								Private
-							}
-						} else {
-							@components.Badge(components.BadgeOutline) {
+							} else {
 								Public
 							}
-						}
+						</span>
 						if data.IsArchived {
 							@components.Badge(components.BadgeDraft) {
 								Archived

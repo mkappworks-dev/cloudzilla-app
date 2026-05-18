@@ -66,6 +66,10 @@ func (s *ReleaseService) Create(ctx context.Context, owner, repoName, tagName, n
 	return r, nil
 }
 
+func (s *ReleaseService) CountPublished(ctx context.Context, repoID int64) (int, error) {
+	return s.releases.CountPublished(ctx, repoID)
+}
+
 func (s *ReleaseService) ListByRepo(ctx context.Context, owner, repoName string) ([]model.Release, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {

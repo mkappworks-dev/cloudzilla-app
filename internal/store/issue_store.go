@@ -54,7 +54,7 @@ func (s *IssueStore) List(ctx context.Context, repoID int64) ([]model.Issue, err
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT i.id, i.repo_id, i.number, i.author_id,
 		        COALESCE(u.username, '') AS author_name,
-		        i.title, i.body, i.state,
+		        i.title, i.body, i.state, i.priority,
 		        i.milestone_id, i.visibility, i.created_at, i.updated_at, i.closed_at,
 		        i.is_pinned, i.is_locked, i.locked_at
 		 FROM issues i
@@ -99,7 +99,7 @@ func (s *IssueStore) GetByNumber(ctx context.Context, repoID int64, number int, 
 	q := fmt.Sprintf(`
 		SELECT i.id, i.repo_id, i.number, i.author_id,
 		       COALESCE(u.username, '') AS author_name,
-		       i.title, i.body, i.state,
+		       i.title, i.body, i.state, i.priority,
 		       i.milestone_id, i.visibility,
 		       i.created_at, i.updated_at, i.closed_at,
 		       i.is_pinned, i.is_locked, i.locked_at
@@ -112,9 +112,10 @@ func (s *IssueStore) GetByNumber(ctx context.Context, repoID int64, number int, 
 	var iss model.Issue
 	var closedAt, lockedAt sql.NullTime
 	var milestoneID sql.NullInt64
+	var priority sql.NullString
 	err := s.db.QueryRowContext(ctx, q, args...).Scan(
 		&iss.ID, &iss.RepoID, &iss.Number, &iss.AuthorID, &iss.AuthorName,
-		&iss.Title, &iss.Body, &iss.State,
+		&iss.Title, &iss.Body, &iss.State, &priority,
 		&milestoneID, &iss.Visibility,
 		&iss.CreatedAt, &iss.UpdatedAt, &closedAt,
 		&iss.IsPinned, &iss.IsLocked, &lockedAt,
@@ -130,6 +131,9 @@ func (s *IssueStore) GetByNumber(ctx context.Context, repoID int64, number int, 
 	}
 	if milestoneID.Valid {
 		iss.MilestoneID = &milestoneID.Int64
+	}
+	if priority.Valid {
+		iss.Priority = &priority.String
 	}
 	return &iss, nil
 }
@@ -140,10 +144,11 @@ func (s *IssueStore) GetByNumberUnfiltered(ctx context.Context, repoID int64, nu
 	var iss model.Issue
 	var closedAt, lockedAt sql.NullTime
 	var milestoneID sql.NullInt64
+	var priority sql.NullString
 	err := s.db.QueryRowContext(ctx, `
 		SELECT i.id, i.repo_id, i.number, i.author_id,
 		       COALESCE(u.username, '') AS author_name,
-		       i.title, i.body, i.state,
+		       i.title, i.body, i.state, i.priority,
 		       i.milestone_id, i.visibility,
 		       i.created_at, i.updated_at, i.closed_at,
 		       i.is_pinned, i.is_locked, i.locked_at
@@ -154,7 +159,7 @@ func (s *IssueStore) GetByNumberUnfiltered(ctx context.Context, repoID int64, nu
 		repoID, number,
 	).Scan(
 		&iss.ID, &iss.RepoID, &iss.Number, &iss.AuthorID, &iss.AuthorName,
-		&iss.Title, &iss.Body, &iss.State,
+		&iss.Title, &iss.Body, &iss.State, &priority,
 		&milestoneID, &iss.Visibility,
 		&iss.CreatedAt, &iss.UpdatedAt, &closedAt,
 		&iss.IsPinned, &iss.IsLocked, &lockedAt,
@@ -170,6 +175,9 @@ func (s *IssueStore) GetByNumberUnfiltered(ctx context.Context, repoID int64, nu
 	}
 	if milestoneID.Valid {
 		iss.MilestoneID = &milestoneID.Int64
+	}
+	if priority.Valid {
+		iss.Priority = &priority.String
 	}
 	return &iss, nil
 }
@@ -210,7 +218,7 @@ func (s *IssueStore) ListByRepo(ctx context.Context, repoID int64, state *string
 	q := fmt.Sprintf(`
 		SELECT i.id, i.repo_id, i.number, i.author_id,
 		       COALESCE(u.username, '') AS author_name,
-		       i.title, i.body, i.state,
+		       i.title, i.body, i.state, i.priority,
 		       i.milestone_id, i.visibility,
 		       i.created_at, i.updated_at, i.closed_at,
 		       i.is_pinned, i.is_locked, i.locked_at
@@ -254,7 +262,7 @@ func (s *IssueStore) ListLinkedToPull(ctx context.Context, pullID int64) ([]mode
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT i.id, i.repo_id, i.number, i.author_id,
 		       COALESCE(u.username, '') AS author_name,
-		       i.title, i.body, i.state,
+		       i.title, i.body, i.state, i.priority,
 		       i.milestone_id, i.visibility,
 		       i.created_at, i.updated_at, i.closed_at,
 		       i.is_pinned, i.is_locked, i.locked_at
@@ -286,6 +294,33 @@ func (s *IssueStore) UpdateState(ctx context.Context, id int64, state model.Issu
 	return err
 }
 
+// UpdatePriority sets the issue priority. A nil priority clears it.
+func (s *IssueStore) UpdatePriority(ctx context.Context, id int64, priority *string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE issues SET priority = $1, updated_at = NOW() WHERE id = $2`,
+		priority, id,
+	)
+	return err
+}
+
+// UpdateTitle sets the issue title.
+func (s *IssueStore) UpdateTitle(ctx context.Context, id int64, title string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE issues SET title = $1, updated_at = NOW() WHERE id = $2`,
+		title, id,
+	)
+	return err
+}
+
+// UpdateBody sets the issue body.
+func (s *IssueStore) UpdateBody(ctx context.Context, id int64, body string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE issues SET body = $1, updated_at = NOW() WHERE id = $2`,
+		body, id,
+	)
+	return err
+}
+
 // CountPinnedByRepo returns the number of currently pinned issues in a repo.
 func (s *IssueStore) CountPinnedByRepo(ctx context.Context, repoID int64) (int, error) {
 	var count int
@@ -294,6 +329,16 @@ func (s *IssueStore) CountPinnedByRepo(ctx context.Context, repoID int64) (int, 
 		repoID,
 	).Scan(&count)
 	return count, err
+}
+
+// CountOpen returns the number of open issues in a repo.
+func (s *IssueStore) CountOpen(ctx context.Context, repoID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM issues WHERE repo_id = $1 AND state = 'open'`,
+		repoID,
+	).Scan(&n)
+	return n, err
 }
 
 // SetPinned pins or unpins an issue.
@@ -326,7 +371,7 @@ func (s *IssueStore) ListPinned(ctx context.Context, repoID int64) ([]model.Issu
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT i.id, i.repo_id, i.number, i.author_id,
 		        COALESCE(u.username, '') AS author_name,
-		        i.title, i.body, i.state,
+		        i.title, i.body, i.state, i.priority,
 		        i.milestone_id, i.visibility, i.created_at, i.updated_at, i.closed_at,
 		        i.is_pinned, i.is_locked, i.locked_at
 		 FROM issues i
@@ -348,9 +393,10 @@ func scanIssueRows(rows *sql.Rows) ([]model.Issue, error) {
 		var iss model.Issue
 		var closedAt, lockedAt sql.NullTime
 		var milestoneID sql.NullInt64
+		var priority sql.NullString
 		if err := rows.Scan(
 			&iss.ID, &iss.RepoID, &iss.Number, &iss.AuthorID,
-			&iss.AuthorName, &iss.Title, &iss.Body, &iss.State,
+			&iss.AuthorName, &iss.Title, &iss.Body, &iss.State, &priority,
 			&milestoneID, &iss.Visibility, &iss.CreatedAt, &iss.UpdatedAt, &closedAt,
 			&iss.IsPinned, &iss.IsLocked, &lockedAt,
 		); err != nil {
@@ -364,6 +410,9 @@ func scanIssueRows(rows *sql.Rows) ([]model.Issue, error) {
 		}
 		if milestoneID.Valid {
 			iss.MilestoneID = &milestoneID.Int64
+		}
+		if priority.Valid {
+			iss.Priority = &priority.String
 		}
 		issues = append(issues, iss)
 	}

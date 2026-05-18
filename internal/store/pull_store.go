@@ -365,9 +365,8 @@ func (s *PullStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int,
 }
 
 func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNumber int) ([]model.PullRequest, error) {
-	// Match GitHub-style closing keywords ("closes #N", "fixes #N", "resolves #N")
-	// so prose mentions like "see #N for context" do not register as linked PRs.
-	pattern := fmt.Sprintf(`\y(close[sd]?|fix(es|ed)?|resolve[sd]?)\y:?[[:space:]]+#%d(\D|$)`, issueNumber)
+	// Explicit links from the pull_issue_links table — the same set the issue
+	// sidebar's link/unlink dropdown writes to.
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
 		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
@@ -375,10 +374,11 @@ func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNu
 		        pr.auto_merge_enabled, pr.auto_merge_strategy
 		 FROM pull_requests pr
 		 LEFT JOIN users u ON u.id = pr.author_id
-		 WHERE pr.repo_id = $1
-		   AND (pr.title ~* $2 OR pr.body ~* $2)
+		 JOIN pull_issue_links pil ON pil.pull_id = pr.id
+		 JOIN issues i ON i.id = pil.issue_id
+		 WHERE pr.repo_id = $1 AND i.repo_id = $1 AND i.number = $2
 		 ORDER BY pr.number DESC`,
-		repoID, pattern,
+		repoID, issueNumber,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("pr linked to issue: %w", err)
