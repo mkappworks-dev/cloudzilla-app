@@ -20,11 +20,22 @@ type PullsData struct {
 	Rows        []components.PRListRowData
 }
 
-// LinkedIssue is an issue referenced from a pull request body.
+// LinkedIssue is an issue linked to a pull request.
 type LinkedIssue struct {
 	Number int
 	Title  string
 	State  string
+}
+
+// LinkedIssuesSidebarData is the template data for the linked-issues sidebar
+// panel and its HTMX re-render after a link/unlink.
+type LinkedIssuesSidebarData struct {
+	Owner      string
+	RepoName   string
+	PullNumber int
+	Linked     []LinkedIssue
+	AllIssues  []LinkedIssue
+	CanWrite   bool
 }
 
 // PullChromeCounts holds the tab-badge counts shown in the shared PR header.
@@ -63,6 +74,8 @@ type PullDetailData struct {
 	Comments          []RenderedComment
 	Participants      []string
 	LinkedIssues      []LinkedIssue
+	LinkableIssues    []LinkedIssue
+	Subscribed        bool
 	Events            []model.PullEvent
 	CanMerge          bool
 	MergeBlockReason  string

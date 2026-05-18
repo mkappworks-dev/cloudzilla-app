@@ -73,6 +73,21 @@ func (s *IssueService) List(ctx context.Context, owner, repoName string, visible
 	return s.issues.ListByRepo(ctx, repo.ID, nil, visibleToUserID, 1, 500)
 }
 
+// LinkPull records an explicit link from a pull request to an issue.
+func (s *IssueService) LinkPull(ctx context.Context, pullID, issueID int64) error {
+	return s.issues.LinkToPull(ctx, pullID, issueID)
+}
+
+// UnlinkPull removes an explicit pull-request → issue link.
+func (s *IssueService) UnlinkPull(ctx context.Context, pullID, issueID int64) error {
+	return s.issues.UnlinkFromPull(ctx, pullID, issueID)
+}
+
+// LinkedForPull returns the issues explicitly linked to a pull request.
+func (s *IssueService) LinkedForPull(ctx context.Context, pullID int64) ([]model.Issue, error) {
+	return s.issues.ListLinkedToPull(ctx, pullID)
+}
+
 func (s *IssueService) Get(ctx context.Context, owner, repoName string, number int, visibleToUserID *int64) (*model.Issue, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -470,7 +469,13 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		addParticipant(rv.AuthorName)
 	}
 
-	linkedIssues := h.resolvePullLinkedIssues(r.Context(), owner, repoName, pull.Body, callerID)
+	linkedIssueModels, _ := h.Services.Issue.LinkedForPull(r.Context(), pull.ID)
+	repoIssueModels, _ := h.Services.Issue.List(r.Context(), owner, repoName, callerID)
+
+	subscribed := false
+	if callerID != nil {
+		subscribed = h.Services.Watch.GetLevel(r.Context(), *callerID, repo.ID) != ""
+	}
 
 	pullEvents, err := h.Services.PullEvent.ListByPull(r.Context(), pull.ID)
 	if err != nil {
@@ -503,7 +508,9 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		Reviews:           reviews,
 		Comments:          comments,
 		Participants:      participants,
-		LinkedIssues:      linkedIssues,
+		LinkedIssues:      linkedIssuesToView(linkedIssueModels),
+		LinkableIssues:    linkedIssuesToView(repoIssueModels),
+		Subscribed:        subscribed,
 		Events:            pullEvents,
 		PullChromeCounts:  h.pullChromeCounts(r.Context(), owner, repoName, pull),
 		CanMerge:          canMerge,
@@ -762,35 +769,6 @@ func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, 
 		}
 	}
 	return c
-}
-
-var pullIssueRefRe = regexp.MustCompile(`#(\d+)`)
-
-// resolvePullLinkedIssues extracts #N issue references from a PR body and
-// returns the ones that resolve to real issues — deduped, capped at 10.
-func (h *Handler) resolvePullLinkedIssues(ctx context.Context, owner, repoName, body string, callerID *int64) []view.LinkedIssue {
-	matches := pullIssueRefRe.FindAllStringSubmatch(body, -1)
-	if len(matches) == 0 {
-		return nil
-	}
-	seen := map[int]bool{}
-	var out []view.LinkedIssue
-	for _, m := range matches {
-		n, err := strconv.Atoi(m[1])
-		if err != nil || seen[n] {
-			continue
-		}
-		seen[n] = true
-		issue, err := h.Services.Issue.Get(ctx, owner, repoName, n, callerID)
-		if err != nil {
-			continue
-		}
-		out = append(out, view.LinkedIssue{Number: issue.Number, Title: issue.Title, State: string(issue.State)})
-		if len(out) >= 10 {
-			break
-		}
-	}
-	return out
 }
 
 func pullInitials(name string) string {

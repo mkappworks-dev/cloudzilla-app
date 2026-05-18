@@ -78,6 +78,20 @@ func (s *PullReviewService) RequestReviewers(ctx context.Context, owner, repoNam
 	return nil
 }
 
+// WithdrawReviewer cancels a pending review request for a user. A review that
+// has already been submitted is left untouched.
+func (s *PullReviewService) WithdrawReviewer(ctx context.Context, owner, repoName string, pullNumber int, reviewer model.User) error {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	pr, err := s.pulls.GetByNumber(ctx, repo.ID, pullNumber)
+	if err != nil {
+		return fmt.Errorf("pull request not found: %w", err)
+	}
+	return s.reviews.RemovePendingReview(ctx, pr.ID, reviewer.ID)
+}
+
 func (s *PullReviewService) ListByPull(ctx context.Context, owner, repoName string, pullNumber int) ([]model.PullReview, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {

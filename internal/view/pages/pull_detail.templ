@@ -166,32 +166,67 @@ templ pullDetailBody(data view.PullDetailData) {
 		</div>
 
 		<!-- Sidebar -->
-		<aside class="space-y-6" aria-label="Pull request metadata">
+		<aside class="space-y-6" aria-label="Pull request metadata" x-data="{ open: null }" x-on:keydown.escape.window="open = null">
 			<!-- Reviewers -->
 			<section aria-labelledby="reviewers-heading">
 				<div class="flex items-center justify-between mb-2">
 					<h3 id="reviewers-heading" class="text-[12px] font-medium text-muted-foreground">Reviewers</h3>
-					if data.CanWrite && len(reviewerCandidates(data.Collaborators, data.Reviews)) > 0 {
-						<details class="cz-sidebar-picker relative">
-							<summary class="list-none cursor-pointer text-muted-foreground hover:text-foreground" aria-label="Request a reviewer">
+					if data.CanWrite && len(data.Collaborators) > 0 {
+						<div class="relative" x-on:click.outside="open === 'reviewers' && (open = null)">
+							<button
+								type="button"
+								x-on:click="open = (open === 'reviewers' ? null : 'reviewers')"
+								:aria-expanded="open === 'reviewers' ? 'true' : 'false'"
+								aria-haspopup="menu"
+								aria-label="Request a reviewer"
+								class="text-muted-foreground hover:text-foreground"
+							>
 								@sidebarPlusIcon()
-							</summary>
-							<div class="absolute right-0 z-10 mt-1 w-56 rounded-md border border-border bg-card shadow-md p-1 max-h-56 overflow-y-auto">
-								for _, c := range reviewerCandidates(data.Collaborators, data.Reviews) {
-									<form
-										hx-post={ apiBase + "/reviewers" }
+							</button>
+							<div
+								x-show="open === 'reviewers'"
+								x-cloak
+								x-transition.opacity.duration.100ms
+								role="menu"
+								aria-label="Request review from"
+								class="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 max-h-72 overflow-y-auto"
+							>
+								<div class="px-2 pt-1 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Request review from</div>
+								for _, c := range data.Collaborators {
+									{{ pending := reviewerPending(data.Reviews, c) }}
+									<button
+										type="button"
+										if pending {
+											hx-delete={ apiBase + "/reviewers?username=" + c }
+											hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review request withdrawn'}));location.reload();}"
+										} else {
+											hx-post={ apiBase + "/reviewers" }
+											hx-vals={ `{"username":"` + c + `"}` }
+											hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review requested'}));location.reload();}"
+										}
 										hx-swap="none"
-										hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review requested'}));location.reload();}"
+										role="menuitemcheckbox"
+										aria-checked={ strconv.FormatBool(pending) }
+										class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
 									>
-										<input type="hidden" name="username" value={ c }/>
-										<button type="submit" class="w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-accent rounded text-xs">
-											@components.Avatar(c, components.AvatarSizeSM, c)
-											{ c }
-										</button>
-									</form>
+										@components.Avatar(c, components.AvatarSizeSM, c)
+										<span class="flex-1 truncate">{ c }</span>
+										if pending {
+											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+										}
+									</button>
 								}
+								<div role="separator" class="my-1 h-px bg-border"></div>
+								<a
+									href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings#collaborators") }
+									role="menuitem"
+									class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+								>
+									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"></path><circle cx="11" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
+									Invite a collaborator
+								</a>
 							</div>
-						</details>
+						</div>
 					}
 				</div>
 				{{ reviewers := reviewersList(data.Reviews) }}
@@ -214,88 +249,37 @@ templ pullDetailBody(data view.PullDetailData) {
 
 			<!-- Assignees -->
 			<section class="border-t border-border pt-5">
-				<div class="cz-sidebar-edit">
-					@components.AssigneeSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Assignees, data.Collaborators, data.CanWrite)
-				</div>
+				@components.AssigneeSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Assignees, data.Collaborators, data.CanWrite)
 			</section>
 
 			<!-- Labels -->
 			<section class="border-t border-border pt-5">
-				<div class="cz-sidebar-edit">
-					@components.LabelSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Labels, data.AllLabels, data.CanWrite)
-				</div>
+				@components.LabelSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Labels, data.AllLabels, data.CanWrite)
 			</section>
 
 			<!-- Milestone -->
 			<section class="border-t border-border pt-5">
-				<div id="issue-milestone">
-					<div class="flex items-center justify-between mb-2">
-						<h3 class="text-[12px] font-medium text-muted-foreground">Milestone</h3>
-						if data.CanWrite && len(data.AllMilestones) > 0 {
-							<button type="button" class="cz-milestone-toggle text-muted-foreground hover:text-foreground" aria-label="Set milestone">
-								@sidebarPencilIcon()
-							</button>
-						}
-					</div>
-					if data.Milestone != nil {
-						<div class="text-sm">
-							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="font-medium hover:underline">{ data.Milestone.Title }</a>
-							{{ total := data.Milestone.OpenCount + data.Milestone.ClosedCount }}
-							if total > 0 {
-								<div class="mt-1.5" role="progressbar" aria-valuenow={ pct(data.Milestone.ClosedCount, total) } aria-valuemin="0" aria-valuemax="100" aria-label={ "Milestone progress: " + pct(data.Milestone.ClosedCount, total) + "%" }>
-									<div class="w-full bg-muted h-1.5 rounded-full overflow-hidden">
-										<div class="bg-success h-full" style={ "width: " + pct(data.Milestone.ClosedCount, total) + "%" }></div>
-									</div>
-									<p class="text-xs text-muted-foreground mt-1 font-mono">{ strconv.Itoa(data.Milestone.ClosedCount) }/{ strconv.Itoa(total) } closed</p>
-								</div>
-							}
-						</div>
-					} else {
-						<span class="text-xs text-muted-foreground">No milestone</span>
-					}
-					if data.CanWrite && len(data.AllMilestones) > 0 {
-						<div id="milestone-picker" class="hidden mt-2 space-y-1 max-h-40 overflow-y-auto border border-border rounded-md">
-							<form hx-post={ apiBase + "/milestone" } hx-target="#issue-milestone" hx-swap="outerHTML" class="p-1">
-								<button type="submit" name="milestone_id" value="" class="w-full text-left px-2 py-1 hover:bg-accent rounded text-xs text-muted-foreground">
-									No milestone
-								</button>
-								for _, m := range data.AllMilestones {
-									<button type="submit" name="milestone_id" value={ strconv.FormatInt(m.ID, 10) } class={ "w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-accent rounded text-xs", templ.KV("font-semibold text-foreground", data.Milestone != nil && data.Milestone.ID == m.ID) }>
-										<span class={ "w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-muted-foreground", m.State == "closed"), templ.KV("bg-success", m.State != "closed") }></span>
-										{ m.Title }
-									</button>
-								}
-							</form>
-						</div>
-					}
-				</div>
+				@fragments.MilestoneSidebar(view.MilestoneSidebarFragData{
+					Owner:         data.Owner,
+					RepoName:      data.RepoName,
+					ItemNumber:    data.Pull.Number,
+					IsPull:        true,
+					Current:       data.Milestone,
+					AllMilestones: data.AllMilestones,
+					CanWrite:      data.CanWrite,
+				})
 			</section>
 
 			<!-- Linked issues -->
-			<section class="border-t border-border pt-5" aria-labelledby="linked-heading">
-				<div class="flex items-center justify-between mb-2">
-					<h3 id="linked-heading" class="text-[12px] font-medium text-muted-foreground">Linked issues</h3>
-					if data.Repo.AllowIssues {
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/new") } class="text-muted-foreground hover:text-foreground" aria-label="Open a linked issue">
-							@sidebarPlusIcon()
-						</a>
-					}
-				</div>
-				if len(data.LinkedIssues) > 0 {
-					<ul class="space-y-1.5 text-[13px]">
-						for _, li := range data.LinkedIssues {
-							<li class="flex items-center gap-2">
-								@linkedIssueIcon(li.State)
-								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(li.Number)) } class="hover:underline truncate">
-									<span class="font-mono text-muted-foreground">#{ strconv.Itoa(li.Number) }</span>
-									{ " " }{ li.Title }
-								</a>
-							</li>
-						}
-					</ul>
-				} else {
-					<p class="text-xs text-muted-foreground">No linked issues.</p>
-				}
+			<section class="border-t border-border pt-5">
+				@fragments.LinkedIssuesSidebar(view.LinkedIssuesSidebarData{
+					Owner:      data.Owner,
+					RepoName:   data.RepoName,
+					PullNumber: data.Pull.Number,
+					Linked:     data.LinkedIssues,
+					AllIssues:  data.LinkableIssues,
+					CanWrite:   data.CanWrite,
+				})
 			</section>
 			if len(data.Participants) > 0 {
 				<section class="border-t border-border pt-5">
@@ -313,102 +297,49 @@ templ pullDetailBody(data view.PullDetailData) {
 			}
 			<section class="border-t border-border pt-5">
 				<h3 class="text-[12px] font-medium text-muted-foreground mb-2">Notifications</h3>
-				<div hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" } hx-trigger="load" hx-swap="outerHTML">
-					<span class="text-xs text-muted-foreground">Loading…</span>
-				</div>
+				if data.Subscribed {
+					<button
+						type="button"
+						hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
+						hx-swap="none"
+						hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Unsubscribed from this pull request'}));location.reload();}"
+						aria-pressed="true"
+						class="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-accent text-foreground text-[13px] hover:bg-accent/70"
+					>
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 003.4 0"></path></svg>
+						Subscribed
+					</button>
+				} else {
+					<button
+						type="button"
+						hx-put={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
+						hx-vals={ `{"level":"watching"}` }
+						hx-swap="none"
+						hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Subscribed to this pull request'}));location.reload();}"
+						aria-pressed="false"
+						class="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border text-muted-foreground text-[13px] hover:bg-accent hover:text-foreground"
+					>
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 003.4 0"></path></svg>
+						Subscribe
+					</button>
+				}
 			</section>
 		</aside>
 	</div>
-	@pullSidebarScript()
 }
-
-// pullSidebarScript wires the section-header edit affordances to their pickers:
-// the milestone pencil toggles #milestone-picker; for the assignee/label panels
-// it injects a header pencil that toggles the panel's <details> picker, or its
-// add <form> when the panel has no <details>. Re-runs after HTMX swaps because
-// the assignee/label panels replace themselves via outerHTML.
-templ pullSidebarScript() {
-	<script>
-		(function () {
-			var SVG = 'http://www.w3.org/2000/svg';
-			function pencilSvg() {
-				var svg = document.createElementNS(SVG, 'svg');
-				svg.setAttribute('width', '13');
-				svg.setAttribute('height', '13');
-				svg.setAttribute('viewBox', '0 0 24 24');
-				svg.setAttribute('fill', 'none');
-				svg.setAttribute('stroke', 'currentColor');
-				svg.setAttribute('stroke-width', '2');
-				svg.setAttribute('aria-hidden', 'true');
-				['M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7',
-				 'M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z'].forEach(function (d) {
-					var p = document.createElementNS(SVG, 'path');
-					p.setAttribute('d', d);
-					svg.appendChild(p);
-				});
-				return svg;
-			}
-			function decorate(panel) {
-				var h3 = panel.querySelector('h3');
-				var details = panel.querySelector('details');
-				var form = panel.querySelector('form');
-				var picker = details || form;
-				if (!h3 || !picker || h3.parentElement.classList.contains('cz-sidebar-head')) return;
-				if (!details && form) form.classList.add('hidden');
-				var btn = document.createElement('button');
-				btn.type = 'button';
-				btn.className = 'text-muted-foreground hover:text-foreground';
-				btn.setAttribute('aria-label', 'Edit ' + h3.textContent.trim());
-				btn.appendChild(pencilSvg());
-				btn.addEventListener('click', function () {
-					if (details) { details.open = !details.open; }
-					else { form.classList.toggle('hidden'); }
-				});
-				var row = document.createElement('div');
-				row.className = 'cz-sidebar-head flex items-center justify-between mb-2';
-				h3.classList.remove('mb-2');
-				h3.parentNode.insertBefore(row, h3);
-				row.appendChild(h3);
-				row.appendChild(btn);
-			}
-			function decorateAll() {
-				var ms = document.getElementById('milestone-picker');
-				document.querySelectorAll('.cz-milestone-toggle').forEach(function (btn) {
-					if (btn.dataset.czWired) return;
-					btn.dataset.czWired = '1';
-					btn.addEventListener('click', function () {
-						if (ms) ms.classList.toggle('hidden');
-					});
-				});
-				document.querySelectorAll('.cz-sidebar-edit').forEach(decorate);
-			}
-			decorateAll();
-			document.body.addEventListener('htmx:afterSwap', decorateAll);
-		})();
-	</script>
-}
-
 templ sidebarPlusIcon() {
 	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>
 }
 
-templ sidebarPencilIcon() {
-	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-}
-
-// reviewerCandidates returns collaborators who are not already reviewing the PR.
-func reviewerCandidates(collaborators []string, reviews []model.PullReview) []string {
-	reviewing := map[string]bool{}
-	for _, r := range reviews {
-		reviewing[r.AuthorName] = true
-	}
-	out := make([]string, 0, len(collaborators))
-	for _, c := range collaborators {
-		if !reviewing[c] {
-			out = append(out, c)
+// reviewerPending reports whether a collaborator has a pending (not yet
+// submitted) review request on the PR.
+func reviewerPending(reviews []model.PullReview, username string) bool {
+	for _, rv := range reviews {
+		if rv.AuthorName == username && rv.State == model.PRReviewPending {
+			return true
 		}
 	}
-	return out
+	return false
 }
 
 templ reviewTimelineEntry(rev model.PullReview) {
@@ -454,14 +385,6 @@ templ reviewStateBadge(state string) {
 		@components.Badge(components.BadgeSecondary) {
 			Commented
 		}
-	}
-}
-
-templ linkedIssueIcon(state string) {
-	if state == "closed" {
-		<svg class="shrink-0 text-[hsl(270_70%_70%)]" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="Closed" role="img"><circle cx="12" cy="12" r="9"></circle><polyline points="9 12 11 14 15 10"></polyline></svg>
-	} else {
-		<svg class="shrink-0 text-success" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="Open" role="img"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
 	}
 }
 

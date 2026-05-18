@@ -107,6 +107,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/stargazers", h.PageStargazers)
 	r.With(optAuthMW).Get("/{owner}/stars", h.PageUserStars)
 	r.With(optAuthMW).Get("/{owner}/{repo}/milestones", h.PageMilestones)
+	r.With(authMW).Get("/{owner}/{repo}/milestones/new", h.PageNewMilestone)
+	r.With(authMW).Post("/{owner}/{repo}/milestones/new", h.PageNewMilestoneSubmit)
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues", h.PageIssues)
 	// Issue and PR creation pages
 	r.With(authMW).Get("/{owner}/{repo}/issues/new", h.PageNewIssue)
@@ -217,6 +219,10 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.With(authMW).Post("/{owner}/{repo}/pulls/{number}/labels/{labelID}", h.AddPullLabel)
 		r.With(authMW).Delete("/{owner}/{repo}/pulls/{number}/labels/{labelID}", h.RemovePullLabel)
 
+		// Pull request ↔ issue links
+		r.With(authMW).Post("/{owner}/{repo}/pulls/{number}/linked-issues/{issueNumber}", h.LinkPullIssue)
+		r.With(authMW).Delete("/{owner}/{repo}/pulls/{number}/linked-issues/{issueNumber}", h.UnlinkPullIssue)
+
 		// Assignees
 		r.With(authMW).Post("/{owner}/{repo}/issues/{number}/assignees", h.AddIssueAssignee)
 		r.With(authMW).Delete("/{owner}/{repo}/issues/{number}/assignees", h.RemoveIssueAssignee)
@@ -248,6 +254,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.Get("/{number}/reviews", h.ListReviews)
 			r.With(authMW).Post("/{number}/reviews", h.SubmitReview)
 			r.With(authMW).Post("/{number}/reviewers", h.AddPullReviewer)
+			r.With(authMW).Delete("/{number}/reviewers", h.RemovePullReviewer)
 			r.With(authMW).Post("/{number}/comments", h.CreatePullComment)
 			r.With(authMW).Patch("/{number}/comments/{commentID}", h.UpdateComment)
 			r.With(authMW).Delete("/{number}/comments/{commentID}", h.DeleteComment)

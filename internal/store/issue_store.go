@@ -230,6 +230,49 @@ func (s *IssueStore) ListByRepo(ctx context.Context, repoID int64, state *string
 	return scanIssueRows(rows)
 }
 
+// LinkToPull records an explicit pull-request → issue link.
+func (s *IssueStore) LinkToPull(ctx context.Context, pullID, issueID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO pull_issue_links (pull_id, issue_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+		pullID, issueID)
+	if err != nil {
+		return fmt.Errorf("link issue to pull: %w", err)
+	}
+	return nil
+}
+
+// UnlinkFromPull removes an explicit pull-request → issue link.
+func (s *IssueStore) UnlinkFromPull(ctx context.Context, pullID, issueID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`DELETE FROM pull_issue_links WHERE pull_id = $1 AND issue_id = $2`,
+		pullID, issueID)
+	if err != nil {
+		return fmt.Errorf("unlink issue from pull: %w", err)
+	}
+	return nil
+}
+
+// ListLinkedToPull returns the issues explicitly linked to a pull request.
+func (s *IssueStore) ListLinkedToPull(ctx context.Context, pullID int64) ([]model.Issue, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT i.id, i.repo_id, i.number, i.author_id,
+		       COALESCE(u.username, '') AS author_name,
+		       i.title, i.body, i.state,
+		       i.milestone_id, i.visibility,
+		       i.created_at, i.updated_at, i.closed_at,
+		       i.is_pinned, i.is_locked, i.locked_at
+		FROM issues i
+		LEFT JOIN users u ON u.id = i.author_id
+		JOIN pull_issue_links pil ON pil.issue_id = i.id
+		WHERE pil.pull_id = $1
+		ORDER BY i.number`, pullID)
+	if err != nil {
+		return nil, fmt.Errorf("issue list linked to pull: %w", err)
+	}
+	defer rows.Close()
+	return scanIssueRows(rows)
+}
+
 func (s *IssueStore) UpdateState(ctx context.Context, id int64, state model.IssueState) error {
 	now := time.Now().UTC()
 	if state == model.IssueStateClosed {

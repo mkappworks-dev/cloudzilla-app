@@ -7,6 +7,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -225,7 +226,7 @@ templ IssueDetail(data view.IssueDetailData) {
 
 				</article>
 
-				<aside class="space-y-6 text-[12.5px]" aria-label="Issue metadata">
+				<aside class="space-y-6 text-[12.5px]" aria-label="Issue metadata" x-data="{ open: null }" x-on:keydown.escape.window="open = null">
 
 					<section class="rounded-md border border-border bg-card p-4">
 						@components.AssigneeSidebar(data.Owner, data.RepoName, data.Issue.Number, "issues", data.Assignees, data.Collaborators, data.CanWrite)
@@ -236,53 +237,15 @@ templ IssueDetail(data view.IssueDetailData) {
 					</section>
 
 					<section class="rounded-md border border-border bg-card p-4">
-						<div id="issue-milestone">
-							<h3 class="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Milestone</h3>
-							if data.Milestone != nil {
-								<div>
-									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="font-medium hover:underline text-foreground">{ data.Milestone.Title }</a>
-									if (data.Milestone.OpenCount + data.Milestone.ClosedCount) > 0 {
-										{{ total := data.Milestone.OpenCount + data.Milestone.ClosedCount }}
-										{{ pct := 0 }}
-										if total > 0 {
-											{{ pct = data.Milestone.ClosedCount * 100 / total }}
-										}
-										<div class="mt-1.5" role="progressbar" aria-valuenow={ strconv.Itoa(pct) } aria-valuemin="0" aria-valuemax="100" aria-label={ "Milestone progress: " + strconv.Itoa(pct) + "%" }>
-											<div class="w-full bg-muted h-1.5 rounded-full overflow-hidden">
-												<div class="bg-success h-full" style={ "width: " + strconv.Itoa(pct) + "%" }></div>
-											</div>
-											<p class="text-xs text-muted-foreground mt-1 font-mono">{ strconv.Itoa(data.Milestone.ClosedCount) }/{ strconv.Itoa(total) } closed</p>
-										</div>
-									}
-								</div>
-							} else {
-								<p class="text-xs text-muted-foreground">No milestone</p>
-							}
-							if data.CanWrite && len(data.AllMilestones) > 0 {
-								<details class="mt-2">
-									<summary class="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
-										if data.Milestone != nil {
-											Change
-										} else {
-											Set milestone
-										}
-									</summary>
-									<div class="mt-1 space-y-1 max-h-40 overflow-y-auto border border-border rounded-md">
-										<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/milestone" } hx-target="#issue-milestone" hx-swap="outerHTML" class="p-1">
-											<button type="submit" name="milestone_id" value="" class="w-full text-left px-2 py-1 hover:bg-accent rounded text-xs text-muted-foreground">
-												No milestone
-											</button>
-											for _, m := range data.AllMilestones {
-												<button type="submit" name="milestone_id" value={ strconv.FormatInt(m.ID, 10) } class={ "w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-accent rounded text-xs", templ.KV("font-semibold text-foreground", data.Milestone != nil && data.Milestone.ID == m.ID) }>
-													<span class={ "w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-muted-foreground", m.State == "closed"), templ.KV("bg-success", m.State != "closed") }></span>
-													{ m.Title }
-												</button>
-											}
-										</form>
-									</div>
-								</details>
-							}
-						</div>
+						@fragments.MilestoneSidebar(view.MilestoneSidebarFragData{
+							Owner:         data.Owner,
+							RepoName:      data.RepoName,
+							ItemNumber:    data.Issue.Number,
+							IsPull:        false,
+							Current:       data.Milestone,
+							AllMilestones: data.AllMilestones,
+							CanWrite:      data.CanWrite,
+						})
 					</section>
 
 					<section class="rounded-md border border-border bg-card p-4">

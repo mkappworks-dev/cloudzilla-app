@@ -70,3 +70,52 @@ func (h *Handler) AddPullReviewer(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// RemovePullReviewer withdraws a pending review request from a collaborator.
+func (h *Handler) RemovePullReviewer(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull number")
+		return
+	}
+
+	username := r.URL.Query().Get("username")
+	if username == "" {
+		writeError(w, http.StatusBadRequest, "username required")
+		return
+	}
+	users, err := h.Services.User.GetManyByUsernames(r.Context(), []string{username})
+	if err != nil || len(users) == 0 {
+		writeError(w, http.StatusBadRequest, "unknown user")
+		return
+	}
+
+	if err := h.Services.PullReview.WithdrawReviewer(r.Context(), owner, repoName, number, users[0]); err != nil {
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Review request withdrawn")
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

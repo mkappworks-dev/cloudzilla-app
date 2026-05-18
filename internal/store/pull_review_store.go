@@ -144,3 +144,12 @@ ON CONFLICT (pull_id, author_id) DO NOTHING`
 	_, err := s.db.ExecContext(ctx, q, pullID, repoID, reviewerID, reviewerName)
 	return err
 }
+
+// RemovePendingReview withdraws a pending review request for a reviewer. A
+// review that has already been submitted (state != 'pending') is left intact.
+func (s *PullReviewStore) RemovePendingReview(ctx context.Context, pullID, reviewerID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`DELETE FROM pull_reviews WHERE pull_id = $1 AND author_id = $2 AND state = 'pending'`,
+		pullID, reviewerID)
+	return err
+}
