@@ -62,7 +62,6 @@ type (
 	ForkButtonData            = view.ForkButtonData
 	StarButtonData            = view.StarButtonData
 	MilestonesData            = view.MilestonesData
-	MilestonesListFragData    = view.MilestonesListFragData
 	MilestoneSidebarFragData  = view.MilestoneSidebarFragData
 	LineCommentsFragData      = view.LineCommentsFragData
 	LineCommentFormFragData   = view.LineCommentFormFragData

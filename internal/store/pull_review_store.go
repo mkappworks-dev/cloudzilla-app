@@ -112,11 +112,40 @@ func (s *PullReviewStore) HasChangesRequested(ctx context.Context, pullID int64)
 	return exists, err
 }
 
+// RequestReview stores the reviewer in the author_id column with state 'pending'; once they submit, the state changes away from 'pending'.
+func (s *PullReviewStore) ListPullIDsAwaitingReviewer(ctx context.Context, reviewerID int64) ([]int64, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT DISTINCT pull_id FROM pull_reviews WHERE author_id = $1 AND state = 'pending'`,
+		reviewerID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("pull reviews list awaiting reviewer: %w", err)
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 func (s *PullReviewStore) RequestReview(ctx context.Context, pullID, repoID, reviewerID int64, reviewerName string) error {
 	const q = `
 INSERT INTO pull_reviews (pull_id, repo_id, author_id, author_name, state, body)
 VALUES ($1, $2, $3, $4, 'pending', '')
 ON CONFLICT (pull_id, author_id) DO NOTHING`
 	_, err := s.db.ExecContext(ctx, q, pullID, repoID, reviewerID, reviewerName)
+	return err
+}
+
+// A review that has already been submitted (state != 'pending') is left intact.
+func (s *PullReviewStore) RemovePendingReview(ctx context.Context, pullID, reviewerID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`DELETE FROM pull_reviews WHERE pull_id = $1 AND author_id = $2 AND state = 'pending'`,
+		pullID, reviewerID)
 	return err
 }

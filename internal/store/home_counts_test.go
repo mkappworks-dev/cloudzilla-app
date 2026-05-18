@@ -1,13 +1,6 @@
 package store_test
 
-// Integration tests for the home page count helpers:
-//   - RepoStore.CountForUser
-//   - PullStore.CountOpenAuthoredByOrAssignedTo
-//   - IssueStore.CountOpenAuthoredByOrAssignedTo
-//
-// Each test seeds two users, one repo, and the minimum fixture rows
-// needed to exercise the SQL. Tests are skipped when TEST_DATABASE_DSN
-// is unset, matching the project's existing integration-test pattern.
+// Integration tests for the account count helpers; skipped when TEST_DATABASE_DSN is unset.
 
 import (
 	"context"
@@ -20,8 +13,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
-// seedTwoUsers inserts two test users and returns their IDs plus a cleanup
-// func that deletes them (cascading to repositories, issues, pulls, …).
 func seedTwoUsers(t *testing.T, ctx context.Context, prefix string) (aliceID, bobID int64, cleanup func()) {
 	t.Helper()
 	suffix := fmt.Sprintf("%s_%d_%s", prefix, os.Getpid(), t.Name())
@@ -105,83 +96,84 @@ func TestRepoStore_CountForUser(t *testing.T) {
 	}
 }
 
-func TestPullStore_CountOpenAuthoredByOrAssignedTo(t *testing.T) {
+func TestPullStore_CountOpenAssignedTo(t *testing.T) {
 	db := openTestDB(t)
 	defer db.Close()
 	ctx := context.Background()
 
-	aliceID, bobID, cleanup := seedTwoUsers(t, ctx, "pullcnt")
+	aliceID, bobID, cleanup := seedTwoUsers(t, ctx, "pullassigned")
 	defer cleanup()
 
 	suffix := fmt.Sprintf("%d", os.Getpid())
 
-	// repo owned by alice
 	var repoID int64
 	if err := db.QueryRowContext(ctx,
 		`INSERT INTO repositories (owner_id, owner_name, name, description, private, default_branch)
 		 VALUES ($1, $2, $3, '', false, 'main') RETURNING id`,
-		aliceID, "alice_"+suffix, "pullcntrepo_"+suffix,
+		aliceID, "alice_"+suffix, "pullassignedrepo_"+suffix,
 	).Scan(&repoID); err != nil {
 		t.Fatalf("insert repo: %v", err)
 	}
 
-	// 2 open PRs authored by alice, 1 closed authored by alice.
-	var openPR1, openPR2 int64
+	// alice authors every PR but is assigned to none.
+	var openPR, closedPR int64
 	if err := db.QueryRowContext(ctx,
 		`INSERT INTO pull_requests (repo_id, number, author_id, title, state, head_branch, base_branch)
 		 VALUES ($1, 1, $2, 't1', 'open', 'h1', 'main') RETURNING id`,
 		repoID, aliceID,
-	).Scan(&openPR1); err != nil {
-		t.Fatalf("insert open pr1: %v", err)
+	).Scan(&openPR); err != nil {
+		t.Fatalf("insert open pr: %v", err)
+	}
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO pull_requests (repo_id, number, author_id, title, state, head_branch, base_branch)
+		 VALUES ($1, 2, $2, 't2', 'open', 'h2', 'main')`,
+		repoID, aliceID,
+	); err != nil {
+		t.Fatalf("insert open pr2: %v", err)
 	}
 	if err := db.QueryRowContext(ctx,
 		`INSERT INTO pull_requests (repo_id, number, author_id, title, state, head_branch, base_branch)
-		 VALUES ($1, 2, $2, 't2', 'open', 'h2', 'main') RETURNING id`,
+		 VALUES ($1, 3, $2, 't3-closed', 'closed', 'h3', 'main') RETURNING id`,
 		repoID, aliceID,
-	).Scan(&openPR2); err != nil {
-		t.Fatalf("insert open pr2: %v", err)
-	}
-	if _, err := db.ExecContext(ctx,
-		`INSERT INTO pull_requests (repo_id, number, author_id, title, state, head_branch, base_branch)
-		 VALUES ($1, 3, $2, 't3-closed', 'closed', 'h3', 'main')`,
-		repoID, aliceID,
-	); err != nil {
+	).Scan(&closedPR); err != nil {
 		t.Fatalf("insert closed pr: %v", err)
 	}
 
-	// bob assigned to openPR1.
-	if _, err := db.ExecContext(ctx,
-		`INSERT INTO pull_assignees (pull_id, user_id) VALUES ($1, $2)`,
-		openPR1, bobID,
-	); err != nil {
-		t.Fatalf("insert pull assignee: %v", err)
+	// bob is assigned to one open PR and one closed PR.
+	for _, id := range []int64{openPR, closedPR} {
+		if _, err := db.ExecContext(ctx,
+			`INSERT INTO pull_assignees (pull_id, user_id) VALUES ($1, $2)`,
+			id, bobID,
+		); err != nil {
+			t.Fatalf("insert pull assignee: %v", err)
+		}
 	}
 
 	s := store.NewPullStore(db)
 
-	got, err := s.CountOpenAuthoredByOrAssignedTo(ctx, aliceID)
+	got, err := s.CountOpenAssignedTo(ctx, aliceID)
 	if err != nil {
-		t.Fatalf("CountOpenAuthoredByOrAssignedTo(alice): %v", err)
+		t.Fatalf("CountOpenAssignedTo(alice): %v", err)
 	}
-	if got != 2 {
-		t.Errorf("alice: want 2 (own opens, dedup), got %d", got)
+	if got != 0 {
+		t.Errorf("alice: want 0 (authoring a PR does not make her an assignee), got %d", got)
 	}
 
-	got, err = s.CountOpenAuthoredByOrAssignedTo(ctx, bobID)
+	got, err = s.CountOpenAssignedTo(ctx, bobID)
 	if err != nil {
-		t.Fatalf("CountOpenAuthoredByOrAssignedTo(bob): %v", err)
+		t.Fatalf("CountOpenAssignedTo(bob): %v", err)
 	}
 	if got != 1 {
-		t.Errorf("bob: want 1 (assignee only), got %d", got)
+		t.Errorf("bob: want 1 (open assigned only, closed excluded), got %d", got)
 	}
 }
 
-func TestIssueStore_CountOpenAuthoredByOrAssignedTo(t *testing.T) {
+func TestIssueStore_CountOpenAssignedTo(t *testing.T) {
 	db := openTestDB(t)
 	defer db.Close()
 	ctx := context.Background()
 
-	aliceID, bobID, cleanup := seedTwoUsers(t, ctx, "issuecnt")
+	aliceID, bobID, cleanup := seedTwoUsers(t, ctx, "issueassigned")
 	defer cleanup()
 
 	suffix := fmt.Sprintf("%d", os.Getpid())
@@ -190,18 +182,18 @@ func TestIssueStore_CountOpenAuthoredByOrAssignedTo(t *testing.T) {
 	if err := db.QueryRowContext(ctx,
 		`INSERT INTO repositories (owner_id, owner_name, name, description, private, default_branch)
 		 VALUES ($1, $2, $3, '', false, 'main') RETURNING id`,
-		aliceID, "alice_"+suffix, "issuecntrepo_"+suffix,
+		aliceID, "alice_"+suffix, "issueassignedrepo_"+suffix,
 	).Scan(&repoID); err != nil {
 		t.Fatalf("insert repo: %v", err)
 	}
 
-	// 2 open issues by alice + 1 closed by alice.
-	var i1 int64
+	// alice authors every issue but is assigned to none.
+	var open1, closed3 int64
 	if err := db.QueryRowContext(ctx,
 		`INSERT INTO issues (repo_id, number, author_id, title, body, state)
 		 VALUES ($1, 1, $2, 't1', '', 'open') RETURNING id`,
 		repoID, aliceID,
-	).Scan(&i1); err != nil {
+	).Scan(&open1); err != nil {
 		t.Fatalf("insert issue1: %v", err)
 	}
 	if _, err := db.ExecContext(ctx,
@@ -211,37 +203,39 @@ func TestIssueStore_CountOpenAuthoredByOrAssignedTo(t *testing.T) {
 	); err != nil {
 		t.Fatalf("insert issue2: %v", err)
 	}
-	if _, err := db.ExecContext(ctx,
+	if err := db.QueryRowContext(ctx,
 		`INSERT INTO issues (repo_id, number, author_id, title, body, state)
-		 VALUES ($1, 3, $2, 't3-closed', '', 'closed')`,
+		 VALUES ($1, 3, $2, 't3-closed', '', 'closed') RETURNING id`,
 		repoID, aliceID,
-	); err != nil {
+	).Scan(&closed3); err != nil {
 		t.Fatalf("insert issue3: %v", err)
 	}
 
-	// bob is assigned to issue1.
-	if _, err := db.ExecContext(ctx,
-		`INSERT INTO issue_assignees (issue_id, user_id) VALUES ($1, $2)`,
-		i1, bobID,
-	); err != nil {
-		t.Fatalf("insert issue assignee: %v", err)
+	// bob is assigned to one open issue and one closed issue.
+	for _, id := range []int64{open1, closed3} {
+		if _, err := db.ExecContext(ctx,
+			`INSERT INTO issue_assignees (issue_id, user_id) VALUES ($1, $2)`,
+			id, bobID,
+		); err != nil {
+			t.Fatalf("insert issue assignee: %v", err)
+		}
 	}
 
 	s := store.NewIssueStore(db)
 
-	got, err := s.CountOpenAuthoredByOrAssignedTo(ctx, aliceID)
+	got, err := s.CountOpenAssignedTo(ctx, aliceID)
 	if err != nil {
-		t.Fatalf("CountOpenAuthoredByOrAssignedTo(alice): %v", err)
+		t.Fatalf("CountOpenAssignedTo(alice): %v", err)
 	}
-	if got != 2 {
-		t.Errorf("alice: want 2 (own opens, dedup), got %d", got)
+	if got != 0 {
+		t.Errorf("alice: want 0 (authoring an issue does not make her an assignee), got %d", got)
 	}
 
-	got, err = s.CountOpenAuthoredByOrAssignedTo(ctx, bobID)
+	got, err = s.CountOpenAssignedTo(ctx, bobID)
 	if err != nil {
-		t.Fatalf("CountOpenAuthoredByOrAssignedTo(bob): %v", err)
+		t.Fatalf("CountOpenAssignedTo(bob): %v", err)
 	}
 	if got != 1 {
-		t.Errorf("bob: want 1 (assignee only), got %d", got)
+		t.Errorf("bob: want 1 (open assigned only, closed excluded), got %d", got)
 	}
 }

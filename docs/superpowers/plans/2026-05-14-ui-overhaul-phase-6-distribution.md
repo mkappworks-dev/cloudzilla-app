@@ -26,6 +26,8 @@
 - **`TopicService` exists** in the `Services` struct (`internal/service/services.go:46`) and `topic_handler.go` already calls `h.Services.Topic.ListReposByTopic`.
 - **`internal/view/pages/repo_settings.templ`** currently renders these sections (verified): Collaborators, Transfer Ownership (conditional), Deploy Keys, Labels, Branch Protection, Webhooks, Danger Zone (Archive / Unarchive), Template Repository. There is no `General` form, no `Access` toggles, no `Notifications`. The sidebar must match what actually renders.
 - **Release assets do NOT exist** in the codebase OR the mockup. `release_service.go` exposes Create, ListByRepo, GetByTag, GetByID, GetLatest, Update, Delete — no `ListAssets`. `mockups/releases.html:233-237` shows a Notes / Diff / Delete action bar, NOT file assets. The `ReleaseAsset` component is therefore deleted from this plan.
+- **`withRepoSubnav` is now a `*Handler` method** (changed by the account-navigation feature). Call it as `h.withRepoSubnav(r.Context(), base, repo, active, canManage)` — not the old free-function form. It also populates `BasePage.RepoSwitcher` for the topbar repo-switcher dropdown. The release / wiki / repo-settings handlers this phase ports were already migrated to the method form; match it.
+- **Repo-scoped breadcrumbs were removed** (account-navigation feature). `releases.templ`, `wiki_page.templ`, `repo_settings.templ` no longer render a `repoName · Section` breadcrumb above the page `<h1>` — the topbar + pill subnav cover that. Do NOT re-add one when porting these pages.
 
 ---
 
@@ -399,7 +401,7 @@ h.render(w, r, pages.WikiPage(view.WikiPageData{
 - [ ] **Step 2: Body — three-column layout**
 
   - **Left** (220px): page list (mockup styling — see `mockups/wiki.html:190-202`). Each item highlights when `slug == data.Slug`.
-  - **Center**: page title, breadcrumb (`cloudzilla · Wiki · {Title}`), action buttons (Edit / Delete — Delete only when `CanManage`), then `@components.MarkdownBody(data.ContentHTML)`.
+  - **Center**: page title, action buttons (Edit / Delete — Delete only when `CanManage`), then `@components.MarkdownBody(data.ContentHTML)`. Do NOT render a `cloudzilla · Wiki · {Title}` breadcrumb — the wiki breadcrumb was removed by the account-navigation feature; the topbar repo switcher + `wiki` pill subnav tab already convey location.
   - **Right** (224px): `@components.WikiTOC(data.TOC)` — sticky. Hide the right column when `len(data.TOC) == 0` so two-heading pages don't render an empty rail.
   - Include `@components.RepoSubnav(..., Active: "wiki")`.
 

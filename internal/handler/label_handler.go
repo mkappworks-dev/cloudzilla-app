@@ -309,8 +309,10 @@ func (h *Handler) AddPullLabel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
+	h.recordPullLabelEvent(r, owner, repoName, number, labelID, model.PullEventLabeled)
 
 	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Label added")
 		h.renderPullLabelFragment(w, r, owner, repoName, number)
 		return
 	}
@@ -352,12 +354,41 @@ func (h *Handler) RemovePullLabel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
+	h.recordPullLabelEvent(r, owner, repoName, number, labelID, model.PullEventUnlabeled)
 
 	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Label removed")
 		h.renderPullLabelFragment(w, r, owner, repoName, number)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Best-effort: a lookup failure skips the event rather than failing the request.
+func (h *Handler) recordPullLabelEvent(r *http.Request, owner, repoName string, number int, labelID int64, eventType string) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		return
+	}
+	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if err != nil {
+		slog.Warn("record pull label event: pull lookup failed; timeline entry skipped",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+		return
+	}
+	name := ""
+	if labels, lerr := h.Services.Label.ListByRepo(r.Context(), owner, repoName); lerr == nil {
+		for _, l := range labels {
+			if l.ID == labelID {
+				name = l.Name
+				break
+			}
+		}
+	} else {
+		slog.Warn("record pull label event: label list failed; timeline entry will lack the label name",
+			"owner", owner, "repo", repoName, "label_id", labelID, "error", lerr)
+	}
+	h.recordPullEvent(r.Context(), owner, repoName, pull, claims.UserID, claims.Username, eventType, name)
 }
 
 func (h *Handler) renderIssueLabelFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, issueNumber int) {

@@ -4,10 +4,21 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
+
+type PullListItem struct {
+	ID           int64
+	Number       int
+	Title        string
+	State        string
+	AuthorID     int64
+	RepoFullName string // "<owner_username>/<repo_name>"
+	UpdatedAt    time.Time
+}
 
 // PullStore provides database operations for pull requests.
 type PullStore struct {
@@ -60,10 +71,13 @@ func (s *PullStore) Create(ctx context.Context, pr *model.PullRequest) error {
 
 func (s *PullStore) List(ctx context.Context, repoID int64) ([]model.PullRequest, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
-		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy
-		 FROM pull_requests WHERE repo_id = $1 ORDER BY number DESC`,
+		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
+		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
+		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
+		        pr.auto_merge_enabled, pr.auto_merge_strategy
+		 FROM pull_requests pr
+		 LEFT JOIN users u ON u.id = pr.author_id
+		 WHERE pr.repo_id = $1 ORDER BY pr.number DESC`,
 		repoID,
 	)
 	if err != nil {
@@ -141,6 +155,22 @@ func (s *PullStore) SetDraft(ctx context.Context, id int64, isDraft bool) error 
 	return err
 }
 
+func (s *PullStore) UpdateTitle(ctx context.Context, id int64, title string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE pull_requests SET title = $1, updated_at = NOW() WHERE id = $2`,
+		title, id,
+	)
+	return err
+}
+
+func (s *PullStore) UpdateBody(ctx context.Context, id int64, body string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE pull_requests SET body = $1, updated_at = NOW() WHERE id = $2`,
+		body, id,
+	)
+	return err
+}
+
 func (s *PullStore) SetAutoMerge(ctx context.Context, id int64, enabled bool, strategy string) error {
 	var strat sql.NullString
 	if strategy != "" {
@@ -163,12 +193,14 @@ func (s *PullStore) ListByState(ctx context.Context, repoID int64, state model.P
 		limitParam = sql.NullInt64{Int64: int64(limit), Valid: true}
 	}
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
-		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy
-		 FROM pull_requests
-		 WHERE repo_id = $1 AND ($2 = '' OR state = $2)
-		 ORDER BY number DESC LIMIT $3 OFFSET $4`,
+		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
+		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
+		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
+		        pr.auto_merge_enabled, pr.auto_merge_strategy
+		 FROM pull_requests pr
+		 LEFT JOIN users u ON u.id = pr.author_id
+		 WHERE pr.repo_id = $1 AND ($2 = '' OR pr.state = $2)
+		 ORDER BY pr.number DESC LIMIT $3 OFFSET $4`,
 		repoID, string(state), limitParam, offset,
 	)
 	if err != nil {
@@ -180,10 +212,13 @@ func (s *PullStore) ListByState(ctx context.Context, repoID int64, state model.P
 
 func (s *PullStore) ListOpen(ctx context.Context, repoID int64) ([]model.PullRequest, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
-		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy
-		 FROM pull_requests WHERE repo_id = $1 AND state = 'open' ORDER BY number DESC`,
+		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
+		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
+		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
+		        pr.auto_merge_enabled, pr.auto_merge_strategy
+		 FROM pull_requests pr
+		 LEFT JOIN users u ON u.id = pr.author_id
+		 WHERE pr.repo_id = $1 AND pr.state = 'open' ORDER BY pr.number DESC`,
 		repoID,
 	)
 	if err != nil {
@@ -226,13 +261,13 @@ func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, 
 }
 
 func scanPullRows(rows *sql.Rows) ([]model.PullRequest, error) {
-	var prs []model.PullRequest
+	prs := []model.PullRequest{}
 	for rows.Next() {
 		var pr model.PullRequest
 		var mergedAt, closedAt, draftAt sql.NullTime
 		var autoMergeStrategy sql.NullString
 		if err := rows.Scan(
-			&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
+			&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.AuthorName, &pr.Title, &pr.Body,
 			&pr.State, &pr.HeadBranch, &pr.BaseBranch,
 			&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
 			&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy,
@@ -315,15 +350,15 @@ func (s *PullStore) CountOpen(ctx context.Context, repoID int64) (int, error) {
 	return n, err
 }
 
-// Excludes soft-deleted repos so home-page counts match the heatmap's visibility rule.
-func (s *PullStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
+// Soft-deleted repos are excluded so the count matches the heatmap's visibility rule.
+func (s *PullStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,
 		`SELECT COUNT(DISTINCT p.id)
 		 FROM pull_requests p
 		 JOIN repositories r ON r.id = p.repo_id
-		 LEFT JOIN pull_assignees a ON a.pull_id = p.id
-		 WHERE p.state = 'open' AND r.deleted_at IS NULL AND (p.author_id = $1 OR a.user_id = $1)`,
+		 JOIN pull_assignees a ON a.pull_id = p.id
+		 WHERE p.state = 'open' AND r.deleted_at IS NULL AND a.user_id = $1`,
 		userID,
 	).Scan(&n)
 	return n, err
@@ -334,13 +369,15 @@ func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNu
 	// so prose mentions like "see #N for context" do not register as linked PRs.
 	pattern := fmt.Sprintf(`\y(close[sd]?|fix(es|ed)?|resolve[sd]?)\y:?[[:space:]]+#%d(\D|$)`, issueNumber)
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
-		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy
-		 FROM pull_requests
-		 WHERE repo_id = $1
-		   AND (title ~* $2 OR body ~* $2)
-		 ORDER BY number DESC`,
+		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
+		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
+		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
+		        pr.auto_merge_enabled, pr.auto_merge_strategy
+		 FROM pull_requests pr
+		 LEFT JOIN users u ON u.id = pr.author_id
+		 WHERE pr.repo_id = $1
+		   AND (pr.title ~* $2 OR pr.body ~* $2)
+		 ORDER BY pr.number DESC`,
 		repoID, pattern,
 	)
 	if err != nil {
@@ -348,4 +385,68 @@ func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNu
 	}
 	defer rows.Close()
 	return scanPullRows(rows)
+}
+
+// mode is "created" or "assigned"; state is "open" or "closed". For "review_requested" and "mentioned", use ListByIDs.
+func (s *PullStore) ListForUser(ctx context.Context, userID int64, mode, state string) ([]PullListItem, error) {
+	join, cond := "", ""
+	switch mode {
+	case "assigned":
+		join = `JOIN pull_assignees pa ON pa.pull_id = p.id`
+		cond = `pa.user_id = $1`
+	default: // "created"
+		cond = `p.author_id = $1`
+	}
+	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.author_id,
+	             u.username || '/' || r.name AS repo_full_name, p.updated_at
+	      FROM pull_requests p
+	      JOIN repositories r ON r.id = p.repo_id
+	      JOIN users u        ON u.id = r.owner_id
+	      ` + join + `
+	      WHERE r.deleted_at IS NULL AND p.state = $2 AND ` + cond + `
+	        AND (NOT r.private OR r.owner_id = $1
+	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
+	      ORDER BY p.updated_at DESC LIMIT 100`
+	return s.scanPullListItems(ctx, q, userID, state)
+}
+
+// Restricted to repos visible to userID — the ID sets can include PRs in private repos the user cannot read.
+func (s *PullStore) ListByIDs(ctx context.Context, userID int64, ids []int64, state string) ([]PullListItem, error) {
+	if len(ids) == 0 {
+		return []PullListItem{}, nil
+	}
+	placeholders := make([]string, len(ids))
+	args := []any{userID, state}
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+3)
+		args = append(args, id)
+	}
+	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.author_id,
+	             u.username || '/' || r.name AS repo_full_name, p.updated_at
+	      FROM pull_requests p
+	      JOIN repositories r ON r.id = p.repo_id
+	      JOIN users u        ON u.id = r.owner_id
+	      WHERE r.deleted_at IS NULL AND p.state = $2
+	        AND p.id IN (` + strings.Join(placeholders, ",") + `)
+	        AND (NOT r.private OR r.owner_id = $1
+	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
+	      ORDER BY p.updated_at DESC LIMIT 100`
+	return s.scanPullListItems(ctx, q, args...)
+}
+
+func (s *PullStore) scanPullListItems(ctx context.Context, q string, args ...any) ([]PullListItem, error) {
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("scan pull list items: %w", err)
+	}
+	defer rows.Close()
+	out := []PullListItem{}
+	for rows.Next() {
+		var it PullListItem
+		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, it)
+	}
+	return out, rows.Err()
 }

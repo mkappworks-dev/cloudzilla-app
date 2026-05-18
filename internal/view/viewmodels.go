@@ -6,6 +6,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
@@ -26,6 +27,8 @@ type BasePage struct {
 	AllowRegistration bool
 	UserOrgs          []model.Organization
 	RepoSubnav        *RepoSubnavInfo
+	AccountSubnav     *AccountSubnavInfo
+	RepoSwitcher      []RepoRef
 }
 
 type RepoSubnavInfo struct {
@@ -39,6 +42,17 @@ type RepoSubnavInfo struct {
 	AllowDiscussions bool
 	AllowProjects    bool
 	AllowWiki        bool
+}
+
+type RepoRef struct {
+	Name string
+	Path string // "/{owner}/{repo}"
+}
+
+// A missing or zero Counts entry hides that tab's badge.
+type AccountSubnavInfo struct {
+	Active string // "overview" | "repositories" | "gists" | "pulls" | "issues"
+	Counts map[string]int
 }
 
 type HomeData struct {
@@ -57,4 +71,24 @@ type FeedData struct {
 	Events      []model.Event
 	Page        int
 	HasNextPage bool
+}
+
+type AccountReposData struct {
+	BasePage
+	Repos  []model.Repository
+	Filter string // "all" | "owned" | "collaborator"
+}
+
+type AccountPullsData struct {
+	BasePage
+	Pulls  []store.PullListItem
+	Filter string // "created" | "assigned" | "review_requested" | "mentioned"
+	State  string // "open" | "closed"
+}
+
+type AccountIssuesData struct {
+	BasePage
+	Issues []store.IssueListItem
+	Filter string // "assigned" | "created" | "mentioned"
+	State  string // "open" | "closed"
 }

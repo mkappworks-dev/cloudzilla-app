@@ -1,6 +1,5 @@
 package components
 
-// ButtonVariant controls the visual style of a Button.
 type ButtonVariant string
 
 const (
@@ -9,11 +8,12 @@ const (
 	ButtonGhost       ButtonVariant = "ghost"       // no border, hover bg only
 	ButtonSecondary   ButtonVariant = "secondary"   // muted solid bg
 	ButtonDestructive ButtonVariant = "destructive" // red, for delete-style actions
-	ButtonSuccess     ButtonVariant = "success"     // green, e.g. merge actions
-	ButtonLink        ButtonVariant = "link"        // text-only, underline on hover
+	// Bordered destructive variant — stays visually secondary next to a primary button.
+	ButtonDestructiveOutline ButtonVariant = "destructive-outline"
+	ButtonSuccess            ButtonVariant = "success" // green, e.g. merge actions
+	ButtonLink               ButtonVariant = "link"    // text-only, underline on hover
 )
 
-// ButtonSize controls the height/padding of a Button.
 type ButtonSize string
 
 const (
@@ -33,6 +33,8 @@ func buttonVariantClass(v ButtonVariant) string {
 		return "bg-secondary text-secondary-foreground hover:bg-secondary/80"
 	case ButtonDestructive:
 		return "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+	case ButtonDestructiveOutline:
+		return "border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive"
 	case ButtonSuccess:
 		return "bg-success text-success-foreground hover:bg-success/90"
 	case ButtonLink:
@@ -55,9 +57,6 @@ func buttonSizeClass(s ButtonSize) string {
 	}
 }
 
-// Button renders a styled button with the given variant and size.
-// Pass attrs via templ.Attributes — typically `templ.Attributes{"type": "submit"}`,
-// `templ.Attributes{"aria-label": "Close"}`, `templ.Attributes{"onclick": "..."}`, etc.
 templ Button(variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
 	<button
 		class={ "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none", buttonVariantClass(variant), buttonSizeClass(size) }
@@ -67,7 +66,6 @@ templ Button(variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
 	</button>
 }
 
-// LinkButton renders an <a> styled identically to a Button — for navigation actions.
 templ LinkButton(href string, variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
 	<a
 		href={ templ.SafeURL(href) }

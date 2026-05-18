@@ -57,6 +57,14 @@ type FileDiff struct {
 	Hunks    []DiffHunk
 }
 
+// DisplayPath returns the path to show: the new path, or old path when deleted.
+func (f FileDiff) DisplayPath() string {
+	if f.IsDelete {
+		return f.OldPath
+	}
+	return f.NewPath
+}
+
 // CommitDetail holds full metadata and file diffs for a single commit.
 type CommitDetail struct {
 	Hash         string
@@ -101,23 +109,7 @@ func (s *CodeService) GetCommits(owner, repoName, ref string, page, pageSize int
 		if len(commits) > pageSize {
 			return storer.ErrStop
 		}
-		hash := c.Hash.String()
-		shortHash := hash
-		if len(hash) > 7 {
-			shortHash = hash[:7]
-		}
-		msg := strings.TrimSpace(c.Message)
-		firstLine := msg
-		if idx := strings.Index(msg, "\n"); idx >= 0 {
-			firstLine = strings.TrimSpace(msg[:idx])
-		}
-		commits = append(commits, CommitSummary{
-			Hash:       shortHash,
-			FullHash:   hash,
-			Message:    firstLine,
-			Author:     c.Author.Name,
-			AuthorTime: c.Author.When,
-		})
+		commits = append(commits, summarizeCommit(c))
 		count++
 		return nil
 	})
@@ -268,6 +260,26 @@ func (s *CodeService) GetCommit(owner, repoName, sha string) (*CommitDetail, err
 		TotalAdded:   totalAdded,
 		TotalDeleted: totalDeleted,
 	}, nil
+}
+
+func summarizeCommit(c *object.Commit) CommitSummary {
+	hash := c.Hash.String()
+	shortHash := hash
+	if len(hash) > 7 {
+		shortHash = hash[:7]
+	}
+	msg := strings.TrimSpace(c.Message)
+	firstLine := msg
+	if idx := strings.Index(msg, "\n"); idx >= 0 {
+		firstLine = strings.TrimSpace(msg[:idx])
+	}
+	return CommitSummary{
+		Hash:       shortHash,
+		FullHash:   hash,
+		Message:    firstLine,
+		Author:     c.Author.Name,
+		AuthorTime: c.Author.When,
+	}
 }
 
 func buildHunks(chunks []gogitdiff.Chunk) []DiffHunk {

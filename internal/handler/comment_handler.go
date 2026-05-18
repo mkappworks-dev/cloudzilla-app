@@ -104,7 +104,8 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 
 	comment, err := h.Services.Comment.CreateForIssue(r.Context(), *repo, issue.ID, issue.Number, claims.UserID, claims.Username, body)
 	if err != nil {
-		slog.Error("operation failed", "error", err)
+		slog.Error("create issue comment: store create failed",
+			"owner", owner, "repo", repoName, "issue_number", issueNumber, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -122,6 +123,83 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, comment)
 }
 
+func (h *Handler) CreatePullComment(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	pullNumber, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid pull request number")
+		return
+	}
+
+	var body string
+	if r.Header.Get("HX-Request") == "true" {
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form")
+			return
+		}
+		body = r.FormValue("body")
+	} else {
+		var req createCommentRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		body = req.Body
+	}
+
+	if strings.TrimSpace(body) == "" {
+		writeError(w, http.StatusBadRequest, "body required")
+		return
+	}
+
+	repo, repoErr := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if repoErr != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load repository")
+		return
+	}
+
+	// Pull.Get has no visibility enforcement, so gate on repo read access to keep
+	// private-repo pull requests unreachable to users who cannot see them.
+	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+		writeError(w, http.StatusNotFound, "pull request not found")
+		return
+	}
+
+	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, pullNumber)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "pull request not found")
+		return
+	}
+
+	comment, err := h.Services.Comment.CreateForPull(r.Context(), *repo, pull.ID, pull.Number, claims.UserID, claims.Username, body)
+	if err != nil {
+		slog.Error("create pull comment: store create failed",
+			"owner", owner, "repo", repoName, "pull_number", pullNumber, "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	go func() {
+		h.Services.Notification.NotifyPRComment(r.Context(), *repo, *pull, claims.UserID, claims.Username)
+	}()
+
+	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Comment added")
+		h.render(w, r, fragments.Comment(view.CommentFragData{
+			Comment: view.RenderedComment{Comment: *comment, BodyHTML: renderMentionsHTML(markdown.Render(comment.Body))},
+		}))
+		return
+	}
+	writeJSON(w, http.StatusCreated, comment)
+}
+
 func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -129,6 +207,8 @@ func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
 	id, err := strconv.ParseInt(chi.URLParam(r, "commentID"), 10, 64)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid comment id")
@@ -153,6 +233,19 @@ func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 
 	if strings.TrimSpace(body) == "" {
 		writeError(w, http.StatusBadRequest, "body required")
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+
+	// The comment must belong to the repo in the URL so the path identifies a
+	// single comment unambiguously.
+	if existing, err := h.Services.Comment.GetByID(r.Context(), id); err != nil || existing.RepoID != repo.ID {
+		writeError(w, http.StatusNotFound, "comment not found")
 		return
 	}
 
@@ -190,14 +283,21 @@ func (h *Handler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	existing, err := h.Services.Comment.GetByID(r.Context(), id)
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+
+	// The comment must belong to the repo in the URL — otherwise write access to
+	// any repo would authorize deleting comments in repos the caller cannot see.
+	existing, err := h.Services.Comment.GetByID(r.Context(), id)
+	if err != nil || existing.RepoID != repo.ID {
 		writeError(w, http.StatusNotFound, "comment not found")
 		return
 	}
 
-	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-	canWrite := repo != nil && h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	if existing.AuthorID != claims.UserID && !canWrite {
 		writeError(w, http.StatusForbidden, "forbidden")
 		return

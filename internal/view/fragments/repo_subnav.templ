@@ -12,17 +12,20 @@ import (
 type RepoSubnavData = view.RepoSubnavInfo
 
 templ RepoSubnav(data RepoSubnavData) {
-	<nav aria-label="Repository sections" class="max-w-[1400px] mx-auto px-6 -mb-px flex items-center gap-1 text-sm overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+	<nav aria-label="Repository sections" class="max-w-[1400px] mx-auto px-6 py-1.5 flex items-center gap-1 text-sm overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 		@repoSubnavTab(data, "code", "Code", "/"+data.OwnerName+"/"+data.RepoName, "") {
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+		}
+		@repoSubnavTab(data, "pull_requests", "Pull requests", "/"+data.OwnerName+"/"+data.RepoName+"/pulls", "") {
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6v-2"></path></svg>
 		}
 		if data.AllowIssues {
 			@repoSubnavTab(data, "issues", "Issues", "/"+data.OwnerName+"/"+data.RepoName+"/issues", "") {
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
 			}
 		}
-		@repoSubnavTab(data, "pull_requests", "Pull requests", "/"+data.OwnerName+"/"+data.RepoName+"/pulls", "") {
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6v-2"></path></svg>
+		@repoSubnavTab(data, "milestones", "Milestones", "/"+data.OwnerName+"/"+data.RepoName+"/milestones", "") {
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
 		}
 		@repoSubnavTab(data, "actions", "Actions", "/"+data.OwnerName+"/"+data.RepoName+"/actions", "") {
 			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
@@ -55,7 +58,7 @@ templ RepoSubnav(data RepoSubnavData) {
 
 templ repoSubnavTab(data RepoSubnavData, key, label, href, extra string) {
 	if data.Active == key {
-		<a href={ templ.SafeURL(href) } aria-current="page" class={ "px-3 py-2.5 border-b-2 border-foreground font-medium text-foreground -mb-px inline-flex items-center gap-1.5", extra }>
+		<a href={ templ.SafeURL(href) } aria-current="page" class={ "px-3 py-1.5 rounded-md bg-accent font-medium text-foreground inline-flex items-center gap-1.5", extra }>
 			{ children... }
 			{ label }
 			if count, ok := data.Counts[key]; ok && count > 0 {
@@ -63,7 +66,7 @@ templ repoSubnavTab(data RepoSubnavData, key, label, href, extra string) {
 			}
 		</a>
 	} else {
-		<a href={ templ.SafeURL(href) } class={ "px-3 py-2.5 border-b-2 border-transparent text-muted-foreground hover:text-foreground -mb-px inline-flex items-center gap-1.5", extra }>
+		<a href={ templ.SafeURL(href) } class={ "px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5", extra }>
 			{ children... }
 			{ label }
 			if count, ok := data.Counts[key]; ok && count > 0 {

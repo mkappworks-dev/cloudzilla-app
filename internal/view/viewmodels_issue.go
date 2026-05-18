@@ -44,6 +44,7 @@ type IssueDetailData struct {
 	Milestone     *model.Milestone
 	AllMilestones []model.Milestone
 	LinkedPRs     []model.PullRequest
+	Collaborators []string
 	CanWrite      bool
 	CanManage     bool
 }
@@ -85,43 +86,10 @@ type IssueLabelSidebarData struct {
 // Assignee sidebar fragments
 // IssueAssigneeSidebarData holds template data for the issue assignee sidebar HTMX fragment.
 type IssueAssigneeSidebarData struct {
-	Owner       string
-	RepoName    string
-	IssueNumber int
-	Assignees   []model.User
-	CanWrite    bool
-}
-
-// Milestones page
-// MilestonesData holds template data for the milestones list page.
-type MilestonesData struct {
-	BasePage
-	Repo             model.Repository
-	Owner            string
-	RepoName         string
-	OpenMilestones   []model.Milestone
-	ClosedMilestones []model.Milestone
-	CanWrite         bool
-}
-
-// Milestones list fragment (HTMX swap)
-// MilestonesListFragData holds template data for the milestones list HTMX fragment.
-type MilestonesListFragData struct {
-	Owner            string
-	RepoName         string
-	OpenMilestones   []model.Milestone
-	ClosedMilestones []model.Milestone
-	CanWrite         bool
-}
-
-// Milestone sidebar fragment for issue/PR detail pages
-// MilestoneSidebarFragData holds template data for the milestone sidebar HTMX fragment.
-type MilestoneSidebarFragData struct {
 	Owner         string
 	RepoName      string
-	ItemNumber    int
-	IsPull        bool
-	Current       *model.Milestone
-	AllMilestones []model.Milestone
+	IssueNumber   int
+	Assignees     []model.User
+	Collaborators []string
 	CanWrite      bool
 }

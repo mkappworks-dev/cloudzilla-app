@@ -154,6 +154,7 @@ func TestPullService_ListWithCIStatus(t *testing.T) {
 		store.NewPullReviewStore(db),
 		store.NewLabelStore(db),
 		store.NewAssigneeStore(db),
+		store.NewCommentStore(db),
 	)
 
 	rows, err := fullSvc.ListWithCIStatus(ctx, ownerName, repoName, model.PRStateOpen, 0, 50)
@@ -165,5 +166,8 @@ func TestPullService_ListWithCIStatus(t *testing.T) {
 	}
 	if rows[0].CIStatus != "failure" {
 		t.Errorf("expected combined CI status 'failure', got %q", rows[0].CIStatus)
+	}
+	if rows[0].AuthorName != ownerName {
+		t.Errorf("expected AuthorName %q, got %q", ownerName, rows[0].AuthorName)
 	}
 }

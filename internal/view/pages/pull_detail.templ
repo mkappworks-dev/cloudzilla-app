@@ -1,444 +1,360 @@
 package pages
 
 import (
-	"fmt"
+	"sort"
 	"strconv"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ PullDetail(data view.PullDetailData) {
 	@layout.Base(data.BasePage, data.Pull.Title+" · PR #"+strconv.Itoa(data.Pull.Number)+" · "+data.Owner+"/"+data.RepoName) {
-		<div class="space-y-6">
-			<div>
-				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
-					<span aria-hidden="true">·</span>
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="hover:underline">Pull requests</a>
-				</p>
-			</div>
+		@fragments.PullChrome(fragments.PullChromeData{
+			OwnerName:      data.Owner,
+			Repo:           &data.Repo,
+			Pull:           &data.Pull,
+			AuthorUsername: data.AuthorUsername,
+			Active:         "conversation",
+			CanWrite:       data.CanWrite,
+			ConvCount:      data.ConvCount,
+			CommitsCount:   data.CommitsCount,
+			ChecksTotal:    data.ChecksTotal,
+			ChecksPassed:   data.ChecksPassed,
+			FilesCount:     data.FilesCount,
+			Added:          data.Added,
+			Deleted:        data.Deleted,
+		}, pullDetailBody(data))
+	}
+}
 
-			<div class="flex gap-6">
-
-				<!-- Main column -->
-				<div class="flex-1 min-w-0 space-y-6">
-
-					<!-- PR header / body / actions / diff -->
-					<article id="pull-detail" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="pull-title">
-						<div class="p-6">
-							<!-- Title + state row -->
-							<div class="flex justify-between items-start gap-4 mb-3">
-								<div class="flex-1 min-w-0">
-									<h1 id="pull-title" class="text-2xl font-semibold tracking-tight flex items-center gap-2 flex-wrap">
-										{ data.Pull.Title }
-										<span class="text-muted-foreground font-normal">#{ strconv.Itoa(data.Pull.Number) }</span>
-										if data.Pull.IsDraft {
-											@components.Badge(components.BadgeDraft) {
-												Draft
-											}
-										}
-									</h1>
-									<p class="text-sm text-muted-foreground mt-2">
-										by <a href={ templ.SafeURL("/" + data.Pull.AuthorName) } class="hover:underline text-foreground">{ data.Pull.AuthorName }</a>
-										<span aria-hidden="true">·</span>
-										<time datetime={ data.Pull.CreatedAt.UTC().Format("2006-01-02T15:04:05Z") }>{ data.Pull.CreatedAt.Format("Jan 2, 2006") }</time>
-										<span aria-hidden="true">·</span>
-										<span class="font-mono text-xs px-1.5 py-0.5 bg-muted border border-border rounded">{ data.Pull.HeadBranch }</span>
-										<span aria-hidden="true">→</span>
-										<span class="font-mono text-xs px-1.5 py-0.5 bg-muted border border-border rounded">{ data.Pull.BaseBranch }</span>
-									</p>
-								</div>
-								@pullStateBadge(string(data.Pull.State))
-							</div>
-
-							<!-- Draft warning -->
-							if data.Pull.State == "open" && data.Pull.IsDraft {
-								<div role="status" class="mb-4 px-4 py-3 rounded-md border border-warning/40 bg-warning/10 flex items-center justify-between gap-4">
-									<p class="text-sm text-warning">This pull request is still a work in progress. Merge is blocked until it is marked ready for review.</p>
-									if data.CanWrite {
-										@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{
-											"hx-patch":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number),
-											"hx-vals":   `{"is_draft":"false"}`,
-											"hx-target": "#pull-detail",
-											"hx-swap":   "outerHTML",
-											"type":      "button",
-										}) {
-											Ready for review
-										}
-									}
-								</div>
-							}
-
-							<!-- Labels -->
-							if len(data.Labels) > 0 {
-								<div class="flex flex-wrap gap-1.5 mb-4" aria-label="Labels">
-									for _, l := range data.Labels {
-										<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style={ "background-color: " + l.Color + "33; color: " + l.Color + "; border-color: " + l.Color + "55" }>{ l.Name }</span>
-									}
-								</div>
-							}
-
-							<!-- Body markdown -->
-							@components.MarkdownBody(data.BodyHTML)
-
-							<!-- CI checks -->
-							if len(data.HeadStatuses) > 0 {
-								<section aria-labelledby="checks-heading" class="mt-4 rounded-md border border-border bg-muted/40 p-3 space-y-1.5">
-									<h2 id="checks-heading" class="text-xs font-medium text-muted-foreground mb-1">Checks on <span class="font-mono">{ data.Pull.HeadBranch }</span></h2>
-									for _, s := range data.HeadStatuses {
-										<div class="flex items-center gap-2 text-sm">
-											@checkStatusIcon(s.State)
-											<span class="font-medium">{ s.Context }</span>
-											if s.Description != "" {
-												<span class="text-muted-foreground">— { s.Description }</span>
-											}
-											if s.TargetURL != "" {
-												<a href={ templ.SafeURL(s.TargetURL) } class="ml-auto text-xs text-muted-foreground hover:text-foreground hover:underline">Details</a>
-											}
-										</div>
-									}
-								</section>
-							}
-
-							<!-- Action buttons -->
-							if data.Pull.State == "open" {
-								<div class="flex flex-wrap gap-2 items-center mt-5">
-									if !data.Pull.IsDraft {
-										if !data.CanMerge {
-											<div role="status" class="w-full px-4 py-2 rounded-md border border-destructive/40 bg-destructive/10 text-sm text-destructive">
-												Merge blocked: { data.MergeBlockReason }
-											</div>
-										}
-										if data.CanMerge && data.Diff != nil {
-											if data.Diff.CanFastForward {
-												@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
-													"hx-patch":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number),
-													"hx-vals":               `{"state":"merged","merge_strategy":"ff"}`,
-													"hx-target":             "#pull-detail",
-													"hx-swap":               "outerHTML",
-													"hx-on--response-error": "alert('Merge failed. Please refresh and try again.')",
-													"type":                  "button",
-												}) {
-													Merge (fast-forward)
-												}
-											}
-											if data.Diff.CanFastForward || data.Diff.CanThreeWayMerge {
-												@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
-													"hx-patch":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number),
-													"hx-vals":               `{"state":"merged","merge_strategy":"merge"}`,
-													"hx-target":             "#pull-detail",
-													"hx-swap":               "outerHTML",
-													"hx-on--response-error": "alert('Merge failed. Please refresh and try again.')",
-													"type":                  "button",
-												}) {
-													Create merge commit
-												}
-												@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{
-													"hx-patch":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number),
-													"hx-vals":               `{"state":"merged","merge_strategy":"squash"}`,
-													"hx-target":             "#pull-detail",
-													"hx-swap":               "outerHTML",
-													"hx-on--response-error": "alert('Merge failed. Please refresh and try again.')",
-													"type":                  "button",
-												}) {
-													Squash and merge
-												}
-											} else {
-												<div role="status" class="w-full px-4 py-2 rounded-md border border-warning/40 bg-warning/10 text-sm text-warning">
-													Cannot merge automatically — conflicting changes. Rebase the head branch onto
-													<code class="font-mono text-xs mx-1">{ data.Pull.BaseBranch }</code> and push to enable merge.
-												</div>
-											}
-										}
-									}
-									@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
-										"hx-patch":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number),
-										"hx-vals":   `{"state":"closed"}`,
-										"hx-target": "#pull-detail",
-										"hx-swap":   "outerHTML",
-										"type":      "button",
-									}) {
-										Close PR
-									}
-								</div>
-							}
-
-							<!-- Diff -->
-							if data.Diff != nil {
-								<section aria-labelledby="diff-heading" class="mt-6 border-t border-border pt-5 space-y-4">
-									<div class="flex items-center justify-between">
-										<h2 id="diff-heading" class="text-sm font-medium">Changed files <span class="text-muted-foreground font-mono ml-1">({ strconv.Itoa(len(data.Diff.Files)) })</span></h2>
-										<span class="text-xs font-mono">
-											<span class="text-success">+{ strconv.Itoa(data.Diff.TotalAdded) }</span>
-											<span class="text-destructive ml-2">−{ strconv.Itoa(data.Diff.TotalDeleted) }</span>
-										</span>
-									</div>
-									for _, f := range data.Diff.Files {
-										{{ filePath := f.NewPath }}
-										if filePath == "" {
-											{{ filePath = f.OldPath }}
-										}
-										<div class="rounded-md border border-border overflow-hidden">
-											<div class="bg-muted/60 px-4 py-2 text-sm font-mono border-b border-border flex items-center gap-2">
-												if f.IsNew {
-													@components.Badge(components.BadgeSuccess) {
-														added
-													}
-												} else if f.IsDelete {
-													@components.Badge(components.BadgeDestructive) {
-														deleted
-													}
-												}
-												<span class="truncate">{ filePath }</span>
-												<span class="ml-auto text-xs text-success">+{ strconv.Itoa(f.Added) }</span>
-												<span class="text-xs text-destructive ml-1">−{ strconv.Itoa(f.Deleted) }</span>
-											</div>
-											if f.IsBinary {
-												<div class="px-4 py-3 text-sm text-muted-foreground">Binary file</div>
-											} else {
-												<table class="w-full border-collapse">
-													for _, hunk := range f.Hunks {
-														<tr><td colspan="2" class="text-xs font-mono bg-muted px-4 py-1 text-muted-foreground border-b border-border">{ hunk.Header }</td></tr>
-														for _, line := range hunk.Lines {
-															{{ lineNum := line.NewNum }}
-															if line.Type == "del" {
-																{{ lineNum = line.OldNum }}
-															} else if line.Type == "ctx" {
-																{{ lineNum = line.OldNum }}
-															}
-															<tr class={ templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del") }>
-																<td class="w-10 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 text-xs font-mono align-top">
-																	if line.Type == "add" {
-																		{ strconv.Itoa(line.NewNum) }
-																	} else if line.Type == "del" {
-																		{ strconv.Itoa(line.OldNum) }
-																	} else {
-																		{ strconv.Itoa(line.OldNum) }
-																	}
-																	if data.CanWrite && data.Pull.State == "open" && line.Type != "del" {
-																		<span hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/line_comments/form?path=" + filePath + "&line=" + strconv.Itoa(lineNum) } hx-target={ "#lc-form-" + filePath + "-" + strconv.Itoa(lineNum) } hx-swap="innerHTML" class="cursor-pointer text-muted-foreground/50 hover:text-ring select-none pl-0.5">+</span>
-																	}
-																</td>
-																<td class={ "pl-3 py-0.5 whitespace-pre text-xs font-mono", templ.KV("text-success", line.Type == "add"), templ.KV("text-destructive", line.Type == "del"), templ.KV("text-foreground/85", line.Type != "add" && line.Type != "del") }>
-																	if line.Type == "add" {
-																		+{ line.Content }
-																	} else if line.Type == "del" {
-																		-{ line.Content }
-																	} else {
-																		{ " " }{ line.Content }
-																	}
-																</td>
-															</tr>
-															if line.Type != "del" {
-																{{ key := fmt.Sprintf("%s:%d", filePath, lineNum) }}
-																if comments, ok := data.LineComments[key]; ok && len(comments) > 0 {
-																	<tr id={ "lc-" + filePath + "-" + strconv.Itoa(lineNum) } class="bg-muted/40 border-t border-border">
-																		<td colspan="2" class="px-4 py-0">
-																			for _, lc := range comments {
-																				<div class="flex items-start gap-2 py-2 border-b border-border last:border-0">
-																					@components.Avatar(lc.AuthorName, components.AvatarSizeSM, lc.AuthorName)
-																					<div class="flex-1 min-w-0">
-																						<div class="flex items-center gap-2">
-																							<a href={ templ.SafeURL("/" + lc.AuthorName) } class="text-xs font-semibold hover:underline">{ lc.AuthorName }</a>
-																							<time class="text-xs text-muted-foreground" datetime={ lc.CreatedAt.UTC().Format("2006-01-02T15:04:05Z") }>{ lc.CreatedAt.Format("Jan 2, 2006") }</time>
-																						</div>
-																						<div class="text-xs text-foreground/85 mt-0.5">@templ.Raw(lc.BodyHTML)</div>
-																						if lc.IsSuggestion {
-																							<div class="mt-2 rounded-md border border-success/30 bg-success/10 text-xs font-mono overflow-x-auto">
-																								<div class="px-3 py-1 text-success font-medium border-b border-success/20">Suggested change</div>
-																								<pre class="px-3 py-2 whitespace-pre-wrap">{ lc.SuggestionBody }</pre>
-																								if data.CanWrite && data.Pull.State == "open" {
-																									<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/line_comments/" + strconv.FormatInt(lc.ID, 10) + "/apply" } hx-on--after-request="window.location.reload()" class="px-3 py-2 border-t border-success/20">
-																										@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
-																											Apply suggestion
-																										}
-																									</form>
-																								}
-																							</div>
-																						}
-																					</div>
-																					if data.CanWrite {
-																						<button type="button" hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/line_comments/" + strconv.FormatInt(lc.ID, 10) } hx-target={ "#lc-" + filePath + "-" + strconv.Itoa(lineNum) } hx-swap="outerHTML" class="text-muted-foreground/50 hover:text-destructive text-xs shrink-0" aria-label="Delete comment">×</button>
-																					}
-																				</div>
-																			}
-																			<div id={ "lc-form-" + filePath + "-" + strconv.Itoa(lineNum) }></div>
-																		</td>
-																	</tr>
-																} else {
-																	<tr><td colspan="2"><div id={ "lc-form-" + filePath + "-" + strconv.Itoa(lineNum) }></div></td></tr>
-																}
-															}
-														}
-													}
-												</table>
-											}
-										</div>
-									}
-								</section>
-							}
-						</div>
-					</article>
-
-					<!-- Reviews -->
-					<section id="pr-reviews" class="rounded-md border border-border bg-card p-6" aria-labelledby="reviews-heading">
-						<h2 id="reviews-heading" class="text-lg font-semibold mb-4">Reviews</h2>
-						{{ submitted := submittedReviews(data.Reviews) }}
-						if len(submitted) > 0 {
-							for _, rev := range submitted {
-								<div class="flex items-start gap-3 mb-4 pb-4 border-b border-border last:border-0 last:mb-0 last:pb-0">
-									@components.Avatar(rev.AuthorName, components.AvatarSizeDefault, rev.AuthorName)
-									<div class="flex-1 min-w-0">
-										<div class="flex items-center gap-2 flex-wrap">
-											<a href={ templ.SafeURL("/" + rev.AuthorName) } class="text-sm font-semibold hover:underline">{ rev.AuthorName }</a>
-											@reviewStateBadge(string(rev.State))
-										</div>
-										if rev.Body != "" {
-											<p class="text-sm text-foreground/85 mt-1">{ rev.Body }</p>
-										}
-									</div>
-								</div>
-							}
-						} else {
-							<p class="text-sm text-muted-foreground">No reviews yet.</p>
+templ pullDetailBody(data view.PullDetailData) {
+	{{ apiBase := "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) }}
+	<div class="grid lg:grid-cols-[1fr_280px] gap-8">
+		<div class="min-w-0">
+			if data.Pull.State == model.PRStateOpen && data.Pull.IsDraft {
+				<div role="status" class="mb-6 px-4 py-3 rounded-md border border-warning/40 bg-warning/10 flex items-center justify-between gap-4">
+					<p class="text-sm text-warning">This pull request is still a work in progress. Merge is blocked until it is marked ready for review.</p>
+					if data.CanWrite {
+						@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{
+							"hx-patch": apiBase,
+							"hx-vals":  `{"is_draft":"false"}`,
+							"hx-swap":  "none",
+							"type":     "button",
+						}) {
+							Ready for review
 						}
-						if data.CanWrite && data.Pull.State == "open" && !data.Pull.IsDraft {
-							<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/reviews" } hx-target="#pr-reviews" hx-swap="outerHTML" class="mt-4 border-t border-border pt-4 space-y-3">
-								<h3 class="text-sm font-medium">Submit a review</h3>
-								<label for="review-body" class="sr-only">Review body</label>
-								@components.Textarea(templ.Attributes{
-									"id":          "review-body",
-									"name":        "body",
-									"rows":        "3",
-									"placeholder": "Leave a comment (optional)",
-								})
-								<fieldset class="flex flex-wrap gap-4 text-sm">
-									<legend class="sr-only">Review type</legend>
-									<label class="flex items-center gap-2 cursor-pointer">
-										<input type="radio" name="state" value="commented" checked class="accent-muted-foreground"/>
-										<span>Comment</span>
-									</label>
-									<label class="flex items-center gap-2 cursor-pointer">
-										<input type="radio" name="state" value="approved" class="accent-success"/>
-										<span class="text-success">Approve</span>
-									</label>
-									<label class="flex items-center gap-2 cursor-pointer">
-										<input type="radio" name="state" value="changes_requested" class="accent-destructive"/>
-										<span class="text-destructive">Request changes</span>
-									</label>
-								</fieldset>
-								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-									Submit review
-								}
-							</form>
-						}
-					</section>
+					}
 				</div>
+			}
 
-				<!-- Sidebar -->
-				<aside class="w-64 shrink-0 space-y-4" aria-label="Pull request metadata">
-					if data.Pull.State == model.PRStateOpen {
-						@components.MergeabilityBox(data.Mergeability)
-						<!-- TODO Phase 2: consolidate inline merge UI (in main column) with MergeabilityBox -->
+			<article id="pr-description" class="rounded-md border border-border bg-card overflow-hidden mb-6" aria-label="Pull request description">
+				<header class="px-4 py-2.5 border-b border-border bg-blue-500/10 flex items-center gap-2 flex-wrap">
+					@components.Avatar(prAuthor(data), components.AvatarSizeSM, prAuthor(data))
+					<a href={ templ.SafeURL("/" + prAuthor(data)) } class="text-[13px] font-medium hover:underline">{ "@" + prAuthor(data) }</a>
+					<span class="text-[12px] text-muted-foreground">
+						opened this pull request
+						<time datetime={ data.Pull.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Pull.CreatedAt.Format("Jan 2, 2006") }</time>
+					</span>
+					<span class="ml-auto text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground">Author</span>
+					if data.CanWrite {
+						<button type="button" id="edit-desc-btn" class="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border hover:bg-accent text-[12px] text-muted-foreground">
+							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+							Edit
+						</button>
 					}
-					{{ pendingReviewers := pendingReviews(data.Reviews) }}
-					if len(pendingReviewers) > 0 {
-						<div class="rounded-md border border-border bg-card p-4">
-							<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Reviewers</h3>
-							<ul class="space-y-1.5">
-								for _, rev := range pendingReviewers {
-									<li class="flex items-center gap-2 text-sm">
-										@components.Avatar(rev.AuthorName, components.AvatarSizeSM, rev.AuthorName)
-										<a href={ templ.SafeURL("/" + rev.AuthorName) } class="hover:underline truncate">{ rev.AuthorName }</a>
-										@reviewStateBadge(string(rev.State))
-									</li>
+				</header>
+				<div class="px-5 py-4">
+					<div id="desc-rendered" class="prose prose-sm dark:prose-invert max-w-none">
+						if data.BodyHTML != "" {
+							@templ.Raw(data.BodyHTML)
+						} else {
+							<p class="text-sm text-muted-foreground italic">No description provided.</p>
+						}
+					</div>
+					if data.CanWrite {
+						<form id="desc-editor" class="hidden" hx-patch={ apiBase } hx-swap="none" hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Description updated'}));location.reload();}">
+							<div class="rounded-md border border-border overflow-hidden">
+								@components.MarkdownEditor("desc-body", "body", data.Pull.Body, "Edit the description…", 14)
+							</div>
+							<div class="flex justify-end gap-2 mt-2">
+								<button type="button" id="desc-cancel" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent">Cancel</button>
+								<button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Save</button>
+							</div>
+						</form>
+					}
+				</div>
+			</article>
+			if data.CanWrite {
+				<script>
+					(function () {
+						var btn = document.getElementById('edit-desc-btn');
+						var rendered = document.getElementById('desc-rendered');
+						var editor = document.getElementById('desc-editor');
+						var cancel = document.getElementById('desc-cancel');
+						if (!btn || !rendered || !editor) return;
+						function toggle(editing) {
+							rendered.classList.toggle('hidden', editing);
+							editor.classList.toggle('hidden', !editing);
+						}
+						btn.addEventListener('click', function () { toggle(editor.classList.contains('hidden')); });
+						if (cancel) cancel.addEventListener('click', function () { toggle(false); });
+					})();
+				</script>
+			}
+
+			<ol id="pr-timeline" class="cz-timeline space-y-4" aria-label="Pull request timeline">
+				for _, e := range prTimelineEvents(data.Comments, data.Reviews, data.Events) {
+					if e.Comment != nil {
+						@fragments.Comment(view.CommentFragData{Comment: *e.Comment})
+					} else if e.Review != nil {
+						@reviewTimelineEntry(*e.Review)
+					} else if e.Event != nil {
+						@pullEventEntry(*e.Event)
+					}
+				}
+			</ol>
+
+			if data.Pull.State == model.PRStateOpen && !data.Pull.IsDraft {
+				<div class="mt-8">
+					@components.MergeabilityBox(data.Mergeability)
+				</div>
+			}
+
+			if data.BasePage.CurrentUser != nil {
+				<section class="mt-8" aria-label="Add a comment">
+					<form
+						class="rounded-md border border-border bg-card overflow-hidden"
+						hx-post={ apiBase + "/comments" }
+						hx-target="#pr-timeline"
+						hx-swap="beforeend"
+						hx-on--after-request="if(event.detail.successful) this.reset()"
+					>
+						<header class="px-3 py-2 border-b border-border bg-background flex items-center gap-2">
+							@components.Avatar(data.BasePage.CurrentUser.Username, components.AvatarSizeSM, data.BasePage.CurrentUser.Username)
+							<span class="text-[13px] font-medium">Add a comment</span>
+						</header>
+						@components.MarkdownEditor("pr-comment-body", "body", "", "Leave a comment — Markdown supported", 5)
+						<div class="px-3 py-2 border-t border-border bg-muted/40 flex items-center gap-2">
+							<p class="text-[11px] text-muted-foreground font-mono flex-1">Markdown supported · drop files to attach</p>
+							if data.CanWrite && data.Pull.State == model.PRStateOpen {
+								@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeDefault, templ.Attributes{
+									"hx-patch":             apiBase,
+									"hx-vals":              `{"state":"closed"}`,
+									"hx-swap":              "none",
+									"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request closed'}));location.reload();}",
+									"type":                 "button",
+								}) {
+									Close pull request
 								}
-							</ul>
+							}
+							@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+								Comment
+							}
+						</div>
+					</form>
+				</section>
+			}
+		</div>
+
+		<aside class="space-y-6" aria-label="Pull request metadata" x-data="{ open: null }" x-on:keydown.escape.window="open = null">
+			<section aria-labelledby="reviewers-heading">
+				<div class="flex items-center justify-between mb-2">
+					<h3 id="reviewers-heading" class="text-[12px] font-medium text-muted-foreground">Reviewers</h3>
+					if data.CanWrite && len(data.Collaborators) > 0 {
+						<div class="relative" x-on:click.outside="open === 'reviewers' && (open = null)">
+							<button
+								type="button"
+								x-on:click="open = (open === 'reviewers' ? null : 'reviewers')"
+								:aria-expanded="open === 'reviewers' ? 'true' : 'false'"
+								aria-haspopup="menu"
+								aria-label="Request a reviewer"
+								class="text-muted-foreground hover:text-foreground"
+							>
+								@sidebarPlusIcon()
+							</button>
+							<div
+								x-show="open === 'reviewers'"
+								x-cloak
+								x-transition.opacity.duration.100ms
+								role="menu"
+								aria-label="Request review from"
+								class="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 max-h-72 overflow-y-auto"
+							>
+								<div class="px-2 pt-1 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Request review from</div>
+								for _, c := range data.Collaborators {
+									{{ pending := reviewerPending(data.Reviews, c) }}
+									<button
+										type="button"
+										if pending {
+											hx-delete={ apiBase + "/reviewers?username=" + c }
+											hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review request withdrawn'}));location.reload();}"
+										} else {
+											hx-post={ apiBase + "/reviewers" }
+											hx-vals={ `{"username":"` + c + `"}` }
+											hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review requested'}));location.reload();}"
+										}
+										hx-swap="none"
+										role="menuitemcheckbox"
+										aria-checked={ strconv.FormatBool(pending) }
+										class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+									>
+										@components.Avatar(c, components.AvatarSizeSM, c)
+										<span class="flex-1 truncate">{ c }</span>
+										if pending {
+											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+										}
+									</button>
+								}
+								<div role="separator" class="my-1 h-px bg-border"></div>
+								<a
+									href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings#collaborators") }
+									role="menuitem"
+									class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+								>
+									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"></path><circle cx="11" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
+									Invite a collaborator
+								</a>
+							</div>
 						</div>
 					}
-					<div class="rounded-md border border-border bg-card p-4">
-						@components.LabelSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Labels, data.AllLabels, data.CanWrite)
-					</div>
-					<div class="rounded-md border border-border bg-card p-4">
-						<div id="issue-milestone">
-							<h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Milestone</h3>
-							if data.Milestone != nil {
-								<div class="text-sm">
-									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="font-medium hover:underline">{ data.Milestone.Title }</a>
-									if (data.Milestone.OpenCount + data.Milestone.ClosedCount) > 0 {
-										{{ total := data.Milestone.OpenCount + data.Milestone.ClosedCount }}
-										{{ pct := 0 }}
-										if total > 0 {
-											{{ pct = data.Milestone.ClosedCount * 100 / total }}
-										}
-										<div class="mt-1.5" role="progressbar" aria-valuenow={ strconv.Itoa(pct) } aria-valuemin="0" aria-valuemax="100" aria-label={ "Milestone progress: " + strconv.Itoa(pct) + "%" }>
-											<div class="w-full bg-muted h-1.5 rounded-full overflow-hidden">
-												<div class="bg-success h-full" style={ "width: " + strconv.Itoa(pct) + "%" }></div>
-											</div>
-											<p class="text-xs text-muted-foreground mt-1 font-mono">{ strconv.Itoa(data.Milestone.ClosedCount) }/{ strconv.Itoa(total) } closed</p>
-										</div>
-									}
-								</div>
-							} else {
-								<span class="text-xs text-muted-foreground">No milestone</span>
-							}
-							if data.CanWrite && len(data.AllMilestones) > 0 {
-								<details class="mt-2">
-									<summary class="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
-										if data.Milestone != nil {
-											Change
-										} else {
-											Set milestone
-										}
-									</summary>
-									<div class="mt-1 space-y-1 max-h-40 overflow-y-auto border border-border rounded-md">
-										<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.Pull.Number) + "/milestone" } hx-target="#issue-milestone" hx-swap="outerHTML" class="p-1">
-											<button type="submit" name="milestone_id" value="" class="w-full text-left px-2 py-1 hover:bg-accent rounded text-xs text-muted-foreground">
-												No milestone
-											</button>
-											for _, m := range data.AllMilestones {
-												<button type="submit" name="milestone_id" value={ strconv.FormatInt(m.ID, 10) } class={ "w-full text-left flex items-center gap-2 px-2 py-1 hover:bg-accent rounded text-xs", templ.KV("font-semibold text-foreground", data.Milestone != nil && data.Milestone.ID == m.ID) }>
-													<span class={ "w-2 h-2 rounded-full inline-block shrink-0", templ.KV("bg-muted-foreground", m.State == "closed"), templ.KV("bg-success", m.State != "closed") }></span>
-													{ m.Title }
-												</button>
-											}
-										</form>
-									</div>
-								</details>
-							}
-						</div>
-					</div>
-					<div class="rounded-md border border-border bg-card p-4">
-						@components.AssigneeSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Assignees, data.CanWrite)
-					</div>
-				</aside>
-			</div>
+				</div>
+				{{ reviewers := reviewersList(data.Reviews) }}
+				if len(reviewers) > 0 {
+					<ul class="space-y-1.5">
+						for _, rev := range reviewers {
+							<li class="flex items-center gap-2 text-[13px]">
+								@components.Avatar(rev.AuthorName, components.AvatarSizeSM, rev.AuthorName)
+								<a href={ templ.SafeURL("/" + rev.AuthorName) } class="hover:underline truncate">{ rev.AuthorName }</a>
+								<span class="ml-auto">
+									@reviewStateBadge(string(rev.State))
+								</span>
+							</li>
+						}
+					</ul>
+				} else {
+					<p class="text-xs text-muted-foreground">No reviewers assigned.</p>
+				}
+			</section>
+
+			<section class="border-t border-border pt-5">
+				@components.AssigneeSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Assignees, data.Collaborators, data.CanWrite)
+			</section>
+
+			<section class="border-t border-border pt-5">
+				@components.LabelSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Labels, data.AllLabels, data.CanWrite)
+			</section>
+
+			<section class="border-t border-border pt-5">
+				@fragments.MilestoneSidebar(view.MilestoneSidebarFragData{
+					Owner:         data.Owner,
+					RepoName:      data.RepoName,
+					ItemNumber:    data.Pull.Number,
+					IsPull:        true,
+					Current:       data.Milestone,
+					AllMilestones: data.AllMilestones,
+					CanWrite:      data.CanWrite,
+				})
+			</section>
+
+			<section class="border-t border-border pt-5">
+				@fragments.LinkedIssuesSidebar(view.LinkedIssuesSidebarData{
+					Owner:      data.Owner,
+					RepoName:   data.RepoName,
+					PullNumber: data.Pull.Number,
+					Linked:     data.LinkedIssues,
+					AllIssues:  data.LinkableIssues,
+					CanWrite:   data.CanWrite,
+				})
+			</section>
+			if len(data.Participants) > 0 {
+				<section class="border-t border-border pt-5">
+					<h3 class="text-[12px] font-medium text-muted-foreground mb-2">{ strconv.Itoa(len(data.Participants)) } { participantsNoun(len(data.Participants)) }</h3>
+					<ul class="flex flex-wrap gap-1.5">
+						for _, p := range data.Participants {
+							<li>
+								<a href={ templ.SafeURL("/" + p) } aria-label={ p } class="block rounded-full">
+									@components.Avatar(p, components.AvatarSizeDefault, p)
+								</a>
+							</li>
+						}
+					</ul>
+				</section>
+			}
+			<section class="border-t border-border pt-5">
+				<h3 class="text-[12px] font-medium text-muted-foreground mb-2">Notifications</h3>
+				if data.Subscribed {
+					<button
+						type="button"
+						hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
+						hx-swap="none"
+						hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Unsubscribed from this pull request'}));location.reload();}"
+						aria-pressed="true"
+						class="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-accent text-foreground text-[13px] hover:bg-accent/70"
+					>
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 003.4 0"></path></svg>
+						Subscribed
+					</button>
+				} else {
+					<button
+						type="button"
+						hx-put={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
+						hx-vals={ `{"level":"watching"}` }
+						hx-swap="none"
+						hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Subscribed to this pull request'}));location.reload();}"
+						aria-pressed="false"
+						class="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border text-muted-foreground text-[13px] hover:bg-accent hover:text-foreground"
+					>
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 003.4 0"></path></svg>
+						Subscribe
+					</button>
+				}
+			</section>
+		</aside>
+	</div>
+}
+templ sidebarPlusIcon() {
+	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>
+}
+
+func reviewerPending(reviews []model.PullReview, username string) bool {
+	for _, rv := range reviews {
+		if rv.AuthorName == username && rv.State == model.PRReviewPending {
+			return true
+		}
+	}
+	return false
+}
+
+templ reviewTimelineEntry(rev model.PullReview) {
+	@components.TimelineItem() {
+		@components.TimelineIcon(reviewTimelineVariant(rev.State)) {
+			switch rev.State {
+			case model.PRReviewApproved:
+				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+			case model.PRReviewChangesRequested:
+				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>
+			default:
+				<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
+			}
+		}
+		<div class="flex-1 min-w-0">
+			<p class="text-sm flex items-center gap-1.5 flex-wrap">
+				<a href={ templ.SafeURL("/" + rev.AuthorName) } class="font-medium text-foreground hover:text-primary">{ rev.AuthorName }</a>
+				@reviewStateBadge(string(rev.State))
+				<time class="text-muted-foreground text-xs" datetime={ reviewTime(rev).UTC().Format(time.RFC3339) }>{ reviewTime(rev).Format("Jan 2, 2006") }</time>
+			</p>
+			if rev.Body != "" {
+				<div class="mt-1.5 rounded-md border border-border bg-card px-4 py-3 text-sm text-foreground/85">{ rev.Body }</div>
+			}
 		</div>
 	}
 }
 
-// pullStateBadge renders the open/merged/closed status with the right Badge variant.
-templ pullStateBadge(state string) {
-	switch state {
-	case "open":
-		@components.Badge(components.BadgeSuccess) {
-			Open
-		}
-	case "merged":
-		@components.Badge(components.BadgeMerged) {
-			Merged
-		}
-	default:
-		@components.Badge(components.BadgeDestructive) {
-			Closed
-		}
-	}
-}
-
-// reviewStateBadge renders the review state with the right Badge variant + label.
 templ reviewStateBadge(state string) {
 	switch state {
 	case "approved":
@@ -460,18 +376,151 @@ templ reviewStateBadge(state string) {
 	}
 }
 
-func pendingReviews(reviews []model.PullReview) []model.PullReview {
-	var out []model.PullReview
-	for _, r := range reviews {
-		if r.State == model.PRReviewPending {
-			out = append(out, r)
+templ pullEventEntry(ev model.PullEvent) {
+	@components.TimelineItem() {
+		@components.TimelineIcon(pullEventVariant(ev.Type)) {
+			@pullEventIcon(ev.Type)
 		}
+		<div class="flex-1 min-w-0">
+			<p class="text-sm text-muted-foreground">
+				<a href={ templ.SafeURL("/" + ev.ActorName) } class="font-medium text-foreground hover:text-primary">{ ev.ActorName }</a>
+				{ " " + pullEventVerb(ev.Type) + " " }
+				if ev.Detail != "" {
+					switch ev.Type {
+						case model.PullEventLabeled, model.PullEventUnlabeled:
+							<span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-muted border border-border text-foreground">{ ev.Detail }</span>
+						case model.PullEventRenamed:
+							<span class="text-foreground font-medium">{ ev.Detail }</span>
+						default:
+							<a href={ templ.SafeURL("/" + ev.Detail) } class="text-foreground font-medium hover:underline">{ ev.Detail }</a>
+					}
+				}
+				<time class="ml-1" datetime={ ev.CreatedAt.UTC().Format(time.RFC3339) }>{ ev.CreatedAt.Format("Jan 2, 2006") }</time>
+			</p>
+		</div>
+	}
+}
+
+templ pullEventIcon(t string) {
+	switch t {
+		case model.PullEventMerged:
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M6 8v8M6 18h6a6 6 0 006-6V8"></path></svg>
+		case model.PullEventClosed:
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+		case model.PullEventReopened:
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+		case model.PullEventLabeled, model.PullEventUnlabeled:
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+		case model.PullEventAssigned, model.PullEventUnassigned:
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+		default:
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+	}
+}
+
+func pullEventVariant(t string) components.TimelineVariant {
+	switch t {
+	case model.PullEventMerged:
+		return components.TimelineMerged
+	case model.PullEventClosed:
+		return components.TimelineDestructive
+	case model.PullEventReopened, model.PullEventReadied:
+		return components.TimelineSuccess
+	default:
+		return components.TimelineDefault
+	}
+}
+
+func pullEventVerb(t string) string {
+	switch t {
+	case model.PullEventRenamed:
+		return "changed the title to"
+	case model.PullEventDescribed:
+		return "edited the description"
+	case model.PullEventLabeled:
+		return "added the label"
+	case model.PullEventUnlabeled:
+		return "removed the label"
+	case model.PullEventAssigned:
+		return "assigned"
+	case model.PullEventUnassigned:
+		return "unassigned"
+	case model.PullEventMerged:
+		return "merged this pull request"
+	case model.PullEventClosed:
+		return "closed this pull request"
+	case model.PullEventReopened:
+		return "reopened this pull request"
+	case model.PullEventReadied:
+		return "marked this ready for review"
+	case model.PullEventDrafted:
+		return "converted this to a draft"
+	default:
+		return "updated this"
+	}
+}
+
+// prTimelineEvent is one chronological entry — exactly one field is set.
+type prTimelineEvent struct {
+	When    time.Time
+	Comment *view.RenderedComment
+	Review  *model.PullReview
+	Event   *model.PullEvent
+}
+
+func prTimelineEvents(comments []view.RenderedComment, reviews []model.PullReview, pullEvents []model.PullEvent) []prTimelineEvent {
+	events := make([]prTimelineEvent, 0, len(comments)+len(reviews)+len(pullEvents))
+	for i := range comments {
+		events = append(events, prTimelineEvent{When: comments[i].CreatedAt, Comment: &comments[i]})
+	}
+	for i := range reviews {
+		if reviews[i].State == model.PRReviewPending {
+			continue
+		}
+		events = append(events, prTimelineEvent{When: reviewTime(reviews[i]), Review: &reviews[i]})
+	}
+	for i := range pullEvents {
+		events = append(events, prTimelineEvent{When: pullEvents[i].CreatedAt, Event: &pullEvents[i]})
+	}
+	sort.SliceStable(events, func(i, j int) bool { return events[i].When.Before(events[j].When) })
+	return events
+}
+
+func reviewTime(rev model.PullReview) time.Time {
+	if rev.SubmittedAt != nil {
+		return *rev.SubmittedAt
+	}
+	return rev.CreatedAt
+}
+
+func reviewTimelineVariant(state model.PRReviewState) components.TimelineVariant {
+	switch state {
+	case model.PRReviewApproved:
+		return components.TimelineSuccess
+	case model.PRReviewChangesRequested:
+		return components.TimelineWarning
+	default:
+		return components.TimelineDefault
+	}
+}
+
+// reviewersList collapses multiple reviews from the same person to their latest.
+func reviewersList(reviews []model.PullReview) []model.PullReview {
+	idx := map[string]int{}
+	out := make([]model.PullReview, 0, len(reviews))
+	for _, r := range reviews {
+		if i, ok := idx[r.AuthorName]; ok {
+			out[i] = r
+			continue
+		}
+		idx[r.AuthorName] = len(out)
+		out = append(out, r)
 	}
 	return out
 }
 
 func submittedReviews(reviews []model.PullReview) []model.PullReview {
-	var out []model.PullReview
+	out := make([]model.PullReview, 0, len(reviews))
 	for _, r := range reviews {
 		if r.State != model.PRReviewPending {
 			out = append(out, r)
@@ -480,16 +529,16 @@ func submittedReviews(reviews []model.PullReview) []model.PullReview {
 	return out
 }
 
-// checkStatusIcon renders a small status indicator for a CI check.
-templ checkStatusIcon(state model.CommitStatusState) {
-	switch state {
-	case model.CommitStatusSuccess:
-		<span class="text-success" aria-label="Success">✓</span>
-	case model.CommitStatusFailure:
-		<span class="text-destructive" aria-label="Failure">✗</span>
-	case model.CommitStatusError:
-		<span class="text-destructive" aria-label="Error">⚠</span>
-	default:
-		<span class="text-warning" aria-label="Pending">●</span>
+func prAuthor(data view.PullDetailData) string {
+	if data.AuthorUsername != "" {
+		return data.AuthorUsername
 	}
+	return data.Pull.AuthorName
+}
+
+func participantsNoun(n int) string {
+	if n == 1 {
+		return "participant"
+	}
+	return "participants"
 }

@@ -1,0 +1,96 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ MilestoneNew(data view.MilestoneNewData) {
+	@layout.Base(data.BasePage, "New Milestone · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-6">
+
+			<section aria-labelledby="new-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="hover:underline">Milestones</a>
+					<span aria-hidden="true">·</span>
+					New
+				</p>
+				<h1 id="new-title" class="text-2xl font-semibold tracking-tight">Create a new milestone</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">Group issues and pull requests toward a shared goal and track progress to a date.</p>
+			</section>
+
+			if data.Error != "" {
+				@components.Alert(components.AlertDestructive) {
+					@components.AlertDescription() {
+						{ data.Error }
+					}
+				}
+			}
+
+			<div class="grid lg:grid-cols-[1fr_280px] gap-8">
+				<div class="min-w-0">
+					<section aria-labelledby="composer" class="rounded-md border border-border bg-card p-6">
+						<h2 id="composer" class="text-[13px] font-medium mb-5">Milestone details</h2>
+						<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones/new") } class="space-y-5">
+							<div class="space-y-1.5">
+								<label for="title" class="block text-sm font-medium">Title</label>
+								@components.Input(templ.Attributes{
+									"id":          "title",
+									"name":        "title",
+									"type":        "text",
+									"required":    "required",
+									"autofocus":   "autofocus",
+									"placeholder": "e.g. Milestone 4: Scale",
+									"value":       data.Title,
+								})
+							</div>
+
+							<div class="space-y-1.5">
+								<label for="due_date" class="block text-sm font-medium">Due date <span class="text-muted-foreground font-normal">(optional)</span></label>
+								<div class="sm:max-w-xs">
+									@components.Input(templ.Attributes{
+										"id":    "due_date",
+										"name":  "due_date",
+										"type":  "date",
+										"value": data.DueDate,
+									})
+								</div>
+								<p class="text-[11px] text-muted-foreground">Leave blank for an open-ended milestone.</p>
+							</div>
+
+							<div class="space-y-1.5">
+								<label for="description" class="block text-sm font-medium">Description <span class="text-muted-foreground font-normal">(optional)</span></label>
+								<textarea id="description" name="description" rows="8" class="flex min-h-[160px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical" placeholder="What does this milestone deliver? Markdown supported.">{ data.Description }</textarea>
+							</div>
+
+							<div class="flex items-center gap-3 pt-2">
+								@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+									Create milestone
+								}
+								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="text-sm text-muted-foreground hover:underline">Cancel</a>
+							</div>
+						</form>
+					</section>
+				</div>
+
+				<aside class="space-y-6" aria-label="Milestone tips">
+					<section aria-labelledby="about-h">
+						<h2 id="about-h" class="text-[12px] font-medium text-muted-foreground mb-2">About milestones</h2>
+						<p class="text-[13px] text-muted-foreground">A milestone groups issues and pull requests toward a shared goal — a release or a sprint — and tracks how many are closed.</p>
+					</section>
+					<section aria-labelledby="tips-h" class="border-t border-border pt-5">
+						<h2 id="tips-h" class="text-[12px] font-medium text-muted-foreground mb-2">Good to know</h2>
+						<ul class="space-y-2.5 text-[13px] text-muted-foreground">
+							<li class="flex gap-2"><span aria-hidden="true">·</span><span>Leave the due date blank for an open-ended milestone.</span></li>
+							<li class="flex gap-2"><span aria-hidden="true">·</span><span>Assign this milestone from any issue or pull request once it exists.</span></li>
+							<li class="flex gap-2"><span aria-hidden="true">·</span><span>Closed milestones stay searchable from issue filters.</span></li>
+						</ul>
+					</section>
+				</aside>
+			</div>
+		</div>
+	}
+}

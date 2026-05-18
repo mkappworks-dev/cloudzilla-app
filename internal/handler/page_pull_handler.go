@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -114,6 +115,9 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 			Author:          sr.AuthorName,
 			State:           rowState,
 			CIStatus:        sr.CIStatus,
+			CIPassing:       sr.CIPassing,
+			CITotal:         sr.CITotal,
+			CommentCount:    sr.CommentCount,
 			LabelChips:      labelChips,
 			ReviewerAvatars: reviewerAvatars,
 			OpenedAt:        pullFormatRelative(sr.CreatedAt),
@@ -125,7 +129,7 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 	h.render(w, r, pages.Pulls(view.PullsData{
-		BasePage:    withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+		BasePage:    h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		Repo:        *repo,
 		Owner:       owner,
 		RepoName:    repoName,
@@ -181,7 +185,7 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.PullNew(view.PullNewData{
-		BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,
@@ -251,7 +255,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 
 	renderErr := func(msg string) {
 		h.render(w, r, pages.PullNew(view.PullNewData{
-			BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage),
+			BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 			Repo:         *repo,
 			Owner:        owner,
 			RepoName:     repoName,
@@ -328,6 +332,15 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		h.NotFound(w, r)
+		return
+	}
+
 	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 	if err != nil {
 		h.NotFound(w, r)
@@ -356,9 +369,12 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 
 	canWrite2 := false
 	canManage2 := false
+	var callerID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canWrite2 = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		canManage2 = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+		id := claims.UserID
+		callerID = &id
 	}
 
 	var headStatuses []model.CommitStatus
@@ -381,6 +397,19 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	canMerge, mergeBlockReason, _ := h.Services.PullReview.CanMerge(r.Context(), pull.ID)
 
+	rawComments, err := h.Services.Comment.ListByPull(r.Context(), pull.ID)
+	if err != nil {
+		slog.Warn("pull detail: comment list failed; rendering without conversation",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+	}
+	comments := make([]view.RenderedComment, 0, len(rawComments))
+	for _, c := range rawComments {
+		comments = append(comments, view.RenderedComment{
+			Comment:  c,
+			BodyHTML: renderMentionsHTML(markdown.Render(c.Body)),
+		})
+	}
+
 	rawLineComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
 	lineComments := map[string][]RenderedLineComment{}
 	for _, c := range rawLineComments {
@@ -392,7 +421,8 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mergeabilityBox := components.MergeabilityBoxData{
-		PatchURL: fmt.Sprintf("/api/repos/%s/%s/pulls/%d", owner, repoName, pull.Number),
+		PatchURL:   fmt.Sprintf("/api/repos/%s/%s/pulls/%d", owner, repoName, pull.Number),
+		BaseBranch: pull.BaseBranch,
 	}
 	mg, mgErr := h.Services.Code.Mergeability(r.Context(), owner, repoName, pull.BaseBranch, pull.HeadBranch)
 	if mgErr != nil {
@@ -424,12 +454,64 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		mergeabilityBox.ApprovedReviews = approvedReviews
 	}
 
+	var authorUsername string
+	if author, err := h.Services.User.GetByID(r.Context(), pull.AuthorID); err == nil {
+		authorUsername = author.Username
+	} else {
+		slog.Warn("pull detail: author lookup failed; falling back to name",
+			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)
+	}
+
+	seenParticipant := map[string]bool{}
+	participants := make([]string, 0, len(comments)+len(reviews)+1)
+	addParticipant := func(name string) {
+		if name != "" && !seenParticipant[name] {
+			seenParticipant[name] = true
+			participants = append(participants, name)
+		}
+	}
+	addParticipant(firstNonEmpty(authorUsername, pull.AuthorName))
+	for _, c := range rawComments {
+		addParticipant(c.AuthorName)
+	}
+	for _, rv := range reviews {
+		addParticipant(rv.AuthorName)
+	}
+
+	linkedIssueModels, err := h.Services.Issue.LinkedForPull(r.Context(), pull.ID)
+	if err != nil {
+		slog.Warn("pull detail: linked issues list failed; rendering without them",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+	}
+	repoIssueModels, err := h.Services.Issue.List(r.Context(), owner, repoName, callerID)
+	if err != nil {
+		slog.Warn("pull detail: repo issue list failed; link picker will be empty",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+	}
+
+	subscribed := false
+	if callerID != nil {
+		subscribed = h.Services.Watch.GetLevel(r.Context(), *callerID, repo.ID) != ""
+	}
+
+	pullEvents, err := h.Services.PullEvent.ListByPull(r.Context(), pull.ID)
+	if err != nil {
+		slog.Warn("pull detail: timeline event list failed; rendering without them",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+	}
+
+	collaborators, err := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
+	if err != nil {
+		slog.Warn("pull detail: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
+	}
+
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
-		BasePage:          withRepoSubnav(basePage(r, h.Services), repo, "pull_requests", canManage2),
+		BasePage:          h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage2),
 		Repo:              *repo,
 		Pull:              *pull,
 		Owner:             owner,
 		RepoName:          repoName,
+		AuthorUsername:    authorUsername,
 		Diff:              diff,
 		BodyHTML:          markdown.Render(pull.Body),
 		Labels:            pullLabels2,
@@ -438,8 +520,16 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		Milestone:         pullMilestone,
 		AllMilestones:     allPullDetailMilestones,
 		CanWrite:          canWrite2,
+		Collaborators:     collaboratorUsernames(collaborators),
 		HeadStatuses:      headStatuses,
 		Reviews:           reviews,
+		Comments:          comments,
+		Participants:      participants,
+		LinkedIssues:      linkedIssuesToView(linkedIssueModels),
+		LinkableIssues:    linkedIssuesToView(repoIssueModels),
+		Subscribed:        subscribed,
+		Events:            pullEvents,
+		PullChromeCounts:  h.pullChromeCounts(r.Context(), owner, repoName, pull),
 		CanMerge:          canMerge,
 		MergeBlockReason:  mergeBlockReason,
 		AutoMergeEnabled:  pull.AutoMergeEnabled,
@@ -447,6 +537,319 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		LineComments:      lineComments,
 		Mergeability:      mergeabilityBox,
 	}))
+}
+
+func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		http.Error(w, "invalid pull number", http.StatusBadRequest)
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		h.NotFound(w, r)
+		return
+	}
+
+	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	var loadErrCommits bool
+	commits, err := h.Services.Code.PullCommits(owner, repoName, pull.BaseBranch, pull.HeadBranch)
+	if err != nil {
+		slog.Warn("pull commits: git walk failed", "owner", owner, "repo", repoName, "pull_number", number, "error", err)
+		commits = nil
+		loadErrCommits = true
+	}
+
+	var authorUsername string
+	if author, err := h.Services.User.GetByID(r.Context(), pull.AuthorID); err == nil {
+		authorUsername = author.Username
+	} else {
+		slog.Warn("pull commits: author lookup failed; falling back to name",
+			"owner", owner, "repo", repoName, "pull_number", number, "author_id", pull.AuthorID, "error", err)
+	}
+
+	canManage := false
+	canWrite := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	}
+
+	// Override the active tab's badge with this view's own load so the header
+	// count cannot contradict the body (or the error banner) below it.
+	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull)
+	chromeCounts.CommitsCount = len(commits)
+
+	h.render(w, r, pages.PullCommits(view.PullCommitsData{
+		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
+		OwnerName:        owner,
+		Repo:             repo,
+		Pull:             pull,
+		AuthorUsername:   authorUsername,
+		Commits:          commits,
+		CanWrite:         canWrite,
+		PullChromeCounts: chromeCounts,
+		LoadError:        loadErrCommits,
+	}))
+}
+
+func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		http.Error(w, "invalid pull number", http.StatusBadRequest)
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		h.NotFound(w, r)
+		return
+	}
+
+	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	var rows []components.CheckRow
+	var loadErrChecks bool
+	var headSHA string
+	headCommit, _, rerr := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch)
+	if rerr != nil {
+		slog.Warn("pull checks: ref resolution failed", "owner", owner, "repo", repoName, "pull_number", number, "error", rerr)
+		loadErrChecks = true
+	} else {
+		headSHA = headCommit.Hash.String()
+		statuses, serr := h.Services.CommitStatus.List(r.Context(), owner, repoName, headSHA)
+		if serr != nil {
+			slog.Warn("pull checks: status list failed", "owner", owner, "repo", repoName, "pull_number", number, "error", serr)
+			loadErrChecks = true
+		} else {
+			rows = make([]components.CheckRow, 0, len(statuses))
+			for _, s := range statuses {
+				rows = append(rows, components.CheckRow{
+					Context:     s.Context,
+					State:       string(s.State),
+					Description: s.Description,
+					URL:         s.TargetURL,
+				})
+			}
+		}
+	}
+
+	var authorUsername string
+	if author, err := h.Services.User.GetByID(r.Context(), pull.AuthorID); err == nil {
+		authorUsername = author.Username
+	} else {
+		slog.Warn("pull checks: author lookup failed; falling back to name",
+			"owner", owner, "repo", repoName, "pull_number", number, "author_id", pull.AuthorID, "error", err)
+	}
+
+	canManage := false
+	canWrite := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	}
+
+	// Override the active tab's badge with this view's own load so the header
+	// count cannot contradict the body (or the error banner) below it.
+	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull)
+	chromeCounts.ChecksTotal = len(rows)
+	chromeCounts.ChecksPassed = 0
+	for _, row := range rows {
+		if row.State == string(model.CommitStatusSuccess) {
+			chromeCounts.ChecksPassed++
+		}
+	}
+
+	h.render(w, r, pages.PullChecks(view.PullChecksData{
+		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
+		OwnerName:        owner,
+		Repo:             repo,
+		Pull:             pull,
+		AuthorUsername:   authorUsername,
+		Rows:             rows,
+		HeadSHA:          headSHA,
+		CanWrite:         canWrite,
+		PullChromeCounts: chromeCounts,
+		LoadError:        loadErrChecks,
+	}))
+}
+
+func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		http.Error(w, "invalid pull number", http.StatusBadRequest)
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		h.NotFound(w, r)
+		return
+	}
+
+	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	var loadErrFiles bool
+	diff, err := h.Services.Code.GetPullDiff(owner, repoName, pull.BaseBranch, pull.HeadBranch)
+	if err != nil {
+		slog.Warn("pull files: get pull diff failed", "owner", owner, "repo", repoName, "pull_number", number, "error", err)
+		diff = &service.PRDiffResult{}
+		loadErrFiles = true
+	}
+
+	// Anchor index must match the pr_files template's section id="diff-N" — both
+	// iterate Diff.Files in order, so sidebar links resolve to the right section.
+	tree := make([]components.DiffFileTreeItem, 0, len(diff.Files))
+	for i, f := range diff.Files {
+		tree = append(tree, components.DiffFileTreeItem{
+			Path:    f.DisplayPath(),
+			Anchor:  fmt.Sprintf("diff-%d", i),
+			Added:   f.Added,
+			Deleted: f.Deleted,
+		})
+	}
+
+	rawLineComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
+	lineComments := map[string][]RenderedLineComment{}
+	for _, c := range rawLineComments {
+		key := fmt.Sprintf("%s:%d", c.Path, c.Line)
+		lineComments[key] = append(lineComments[key], RenderedLineComment{
+			PullLineComment: c,
+			BodyHTML:        markdown.Render(c.Body),
+		})
+	}
+
+	var authorUsername string
+	if author, err := h.Services.User.GetByID(r.Context(), pull.AuthorID); err == nil {
+		authorUsername = author.Username
+	} else {
+		slog.Warn("pull files: author lookup failed; falling back to name",
+			"owner", owner, "repo", repoName, "pull_number", number, "author_id", pull.AuthorID, "error", err)
+	}
+
+	canManage := false
+	canWrite := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	}
+
+	// Override the active tab's badge with this view's own load so the header
+	// count cannot contradict the body (or the error banner) below it.
+	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull)
+	chromeCounts.FilesCount = len(diff.Files)
+	chromeCounts.Added = diff.TotalAdded
+	chromeCounts.Deleted = diff.TotalDeleted
+
+	h.render(w, r, pages.PullFiles(view.PullFilesData{
+		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
+		OwnerName:        owner,
+		Repo:             repo,
+		Pull:             pull,
+		AuthorUsername:   authorUsername,
+		Tree:             tree,
+		Diff:             diff,
+		CanWrite:         canWrite,
+		LineComments:     lineComments,
+		PullChromeCounts: chromeCounts,
+		LoadError:        loadErrFiles,
+	}))
+}
+
+func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, pull *model.PullRequest) view.PullChromeCounts {
+	var c view.PullChromeCounts
+	logFail := func(what string, err error) {
+		slog.Warn("pull chrome counts: "+what+" failed; tab badge may be wrong",
+			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)
+	}
+	if commits, err := h.Services.Code.PullCommits(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
+		c.CommitsCount = len(commits)
+	} else {
+		logFail("commit walk", err)
+	}
+	if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); err == nil {
+		if statuses, err := h.Services.CommitStatus.List(ctx, owner, repoName, headCommit.Hash.String()); err == nil {
+			c.ChecksTotal = len(statuses)
+			for _, s := range statuses {
+				if s.State == model.CommitStatusSuccess {
+					c.ChecksPassed++
+				}
+			}
+		} else {
+			logFail("status list", err)
+		}
+	} else {
+		logFail("ref resolution", err)
+	}
+	if diff, err := h.Services.Code.GetPullDiff(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
+		c.FilesCount = len(diff.Files)
+		c.Added = diff.TotalAdded
+		c.Deleted = diff.TotalDeleted
+	} else {
+		logFail("pull diff", err)
+	}
+	if comments, err := h.Services.Comment.ListByPull(ctx, pull.ID); err == nil {
+		c.ConvCount += len(comments)
+	} else {
+		logFail("comment list", err)
+	}
+	if reviews, err := h.Services.PullReview.ListByPull(ctx, owner, repoName, pull.Number); err == nil {
+		for _, rv := range reviews {
+			if rv.State != model.PRReviewPending {
+				c.ConvCount++
+			}
+		}
+	} else {
+		logFail("review list", err)
+	}
+	return c
 }
 
 func pullInitials(name string) string {
@@ -481,6 +884,16 @@ func toReviewerOptions(users []model.User, selected map[string]bool) []component
 		opts = append(opts, components.ReviewerOption{Username: u.Username, Selected: selected[u.Username]})
 	}
 	return opts
+}
+
+func collaboratorUsernames(perms []model.Permission) []string {
+	out := make([]string, 0, len(perms))
+	for _, p := range perms {
+		if p.Username != "" {
+			out = append(out, p.Username)
+		}
+	}
+	return out
 }
 
 func collaboratorsToReviewerOptions(perms []model.Permission, selected map[string]bool) []components.ReviewerOption {

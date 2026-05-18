@@ -1,0 +1,604 @@
+package pages
+
+import (
+	"sort"
+	"strconv"
+	"strings"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ PullFiles(data view.PullFilesData) {
+	@layout.Base(data.BasePage, "Files changed · "+data.Pull.Title+" · PR #"+strconv.Itoa(data.Pull.Number)+" · "+data.OwnerName+"/"+data.Repo.Name) {
+		@fragments.PullChrome(fragments.PullChromeData{
+			OwnerName:      data.OwnerName,
+			Repo:           data.Repo,
+			Pull:           data.Pull,
+			AuthorUsername: data.AuthorUsername,
+			Active:         "files",
+			CanWrite:       data.CanWrite,
+			ConvCount:      data.ConvCount,
+			CommitsCount:   data.CommitsCount,
+			ChecksTotal:    data.ChecksTotal,
+			ChecksPassed:   data.ChecksPassed,
+			FilesCount:     data.FilesCount,
+			Added:          data.Added,
+			Deleted:        data.Deleted,
+		}, pullFilesBody(data))
+	}
+}
+
+templ pullFilesBody(data view.PullFilesData) {
+	if data.LoadError {
+		@components.EmptyState("The diff couldn't be loaded.")
+	} else if data.Diff == nil || len(data.Diff.Files) == 0 {
+		@components.EmptyState("No changes.")
+	} else {
+		<section class="mb-4 flex items-center justify-between gap-3 flex-wrap" aria-label="Diff summary">
+			<div class="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+				<span><strong class="text-foreground">{ strconv.Itoa(len(data.Diff.Files)) }</strong> changed { filesNoun(len(data.Diff.Files)) }</span>
+				<span aria-hidden="true" class="opacity-50">·</span>
+				<span class="font-mono text-success">+{ strconv.Itoa(data.Diff.TotalAdded) }</span>
+				<span class="font-mono text-destructive">−{ strconv.Itoa(data.Diff.TotalDeleted) }</span>
+			</div>
+			<div class="flex items-center gap-1.5">
+				<div class="inline-flex items-center border border-border rounded-md overflow-hidden" role="group" aria-label="Diff layout">
+					<button type="button" id="diff-view-unified" data-view="unified" aria-pressed="true" class="h-8 px-3 text-[12.5px] inline-flex items-center gap-1.5 hover:bg-accent bg-muted">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+						Unified
+					</button>
+					<button type="button" id="diff-view-split" data-view="split" aria-pressed="false" class="h-8 px-3 text-[12.5px] inline-flex items-center gap-1.5 hover:bg-accent text-muted-foreground border-l border-border">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="3" width="8" height="18" rx="1"></rect><rect x="13" y="3" width="8" height="18" rx="1"></rect></svg>
+						Split
+					</button>
+				</div>
+				<button type="button" id="diff-ws-toggle" aria-pressed="false" class="h-8 px-3 text-[12.5px] rounded-md border border-border hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5">
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0112 20C5 20 1 12 1 12a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+					Hide whitespace
+				</button>
+				<button type="button" id="diff-single-file" data-state="off" aria-pressed="false" class="h-8 px-3 rounded-md border border-border hover:bg-accent text-muted-foreground text-[12.5px] inline-flex items-center gap-1.5">
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+					Single file
+				</button>
+			</div>
+		</section>
+		<div id="diff-root" data-view="unified" class="grid lg:grid-cols-[260px_1fr] gap-4">
+			<aside class="border border-border rounded-md bg-card p-3 lg:sticky lg:top-4 self-start max-h-[80vh] overflow-auto" aria-label="Files in this pull request">
+				<div class="flex items-center justify-between gap-2 mb-2 px-1">
+					<p class="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Changed files</p>
+					<div class="inline-flex items-center border border-border rounded overflow-hidden" role="group" aria-label="File list layout">
+						<button type="button" id="diff-files-list-btn" aria-pressed="true" title="List view" aria-label="List view" class="px-1.5 py-1 inline-flex hover:bg-accent bg-muted">
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+						</button>
+						<button type="button" id="diff-files-tree-btn" aria-pressed="false" title="Tree view" aria-label="Tree view" class="px-1.5 py-1 inline-flex hover:bg-accent text-muted-foreground border-l border-border">
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 12h-8"></path><path d="M21 6H8"></path><path d="M21 18h-8"></path><path d="M3 6v4c0 1.1.9 2 2 2h3"></path><path d="M3 10v6c0 1.1.9 2 2 2h3"></path></svg>
+						</button>
+					</div>
+				</div>
+				<ul id="diff-files-list" class="text-[12.5px] space-y-0.5">
+					for _, item := range data.Tree {
+						<li>
+							<a href={ templ.SafeURL("#" + item.Anchor) } class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 opacity-70" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+								<span class="truncate flex-1 font-mono">{ item.Path }</span>
+								if item.Added > 0 {
+									<span class="font-mono text-[10px] text-success">+{ strconv.Itoa(item.Added) }</span>
+								}
+								if item.Deleted > 0 {
+									<span class="font-mono text-[10px] text-destructive">−{ strconv.Itoa(item.Deleted) }</span>
+								}
+							</a>
+						</li>
+					}
+				</ul>
+				<ul id="diff-files-tree" class="text-[12.5px] space-y-0.5 hidden">
+					@prFileTreeNodes(prBuildFileTree(data.Tree), 0)
+				</ul>
+			</aside>
+			<div class="space-y-6 min-w-0">
+				for i, f := range data.Diff.Files {
+					<section id={ "diff-" + strconv.Itoa(i) } class="diff-file border border-border rounded-md overflow-hidden scroll-mt-6">
+						<header class="diff-file-header px-3 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px] cursor-pointer select-none">
+							<svg class="diff-file-caret shrink-0 text-muted-foreground transition-transform" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+							<span class="font-mono font-medium truncate">{ f.DisplayPath() }</span>
+							if !f.IsBinary {
+								<span class="ml-auto font-mono text-[11px] shrink-0">
+									if f.Added > 0 {
+										<span class="text-success">+{ strconv.Itoa(f.Added) }</span>
+									}
+									if f.Deleted > 0 {
+										<span class="text-destructive ml-1">−{ strconv.Itoa(f.Deleted) }</span>
+									}
+								</span>
+							}
+							<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name + "/blob/" + data.Pull.HeadBranch + "/" + f.DisplayPath()) } class={ templ.KV("ml-auto", f.IsBinary), "text-[12px] text-muted-foreground hover:text-foreground shrink-0" }>View file →</a>
+						</header>
+						<div class="diff-file-body">
+							if f.IsBinary {
+								<p class="px-4 py-3 text-sm text-muted-foreground">Binary file not shown.</p>
+							} else {
+								<div class="diff-unified">
+									@prFileDiff(data, f)
+								</div>
+								<div class="diff-split">
+									@prFileSplitDiff(f)
+								</div>
+							}
+						</div>
+					</section>
+				}
+			</div>
+		</div>
+		<script>
+			(function () {
+				var STORE_NS = 'cz:pr-files:';
+				function store(key, val) { try { localStorage.setItem(STORE_NS + key, val); } catch (e) {} }
+				function load(key) { try { return localStorage.getItem(STORE_NS + key); } catch (e) { return null; } }
+				function setCollapsed(section, collapsed) {
+					var body = section.querySelector('.diff-file-body');
+					var caret = section.querySelector('.diff-file-caret');
+					if (body) body.classList.toggle('hidden', collapsed);
+					if (caret) caret.style.transform = collapsed ? 'rotate(-90deg)' : '';
+				}
+				document.querySelectorAll('.diff-file-header').forEach(function (h) {
+					h.addEventListener('click', function (e) {
+						if (e.target.closest('a')) return;
+						var s = h.closest('.diff-file');
+						var collapsed = s.querySelector('.diff-file-body').classList.contains('hidden');
+						setCollapsed(s, !collapsed);
+					});
+				});
+				var sections = Array.prototype.slice.call(document.querySelectorAll('.diff-file'));
+				var fileLinks = {};
+				document.querySelectorAll('#diff-files-list a[href^="#diff-"], #diff-files-tree a[href^="#diff-"]').forEach(function (a) {
+					var fid = a.getAttribute('href').slice(1);
+					(fileLinks[fid] = fileLinks[fid] || []).push(a);
+				});
+				var activeId = sections.length ? sections[0].id : null;
+				var singleBtn = document.getElementById('diff-single-file');
+				function singleOn() { return singleBtn && singleBtn.dataset.state === 'on'; }
+				function highlight(id) {
+					Object.keys(fileLinks).forEach(function (k) {
+						fileLinks[k].forEach(function (a) {
+							a.classList.toggle('bg-accent', k === id);
+							a.classList.toggle('text-foreground', k === id);
+						});
+					});
+				}
+				function applySingle() {
+					var on = singleOn();
+					sections.forEach(function (s) {
+						s.classList.toggle('hidden', on && s.id !== activeId);
+					});
+					// Single-file mode shows one file at full height with the
+					// whole page scrollable; entering it or clicking a file in
+					// the sidebar jumps the page back to the top.
+					if (on) window.scrollTo(0, 0);
+				}
+				function setActive(id) {
+					if (!id) return;
+					activeId = id;
+					highlight(id);
+					applySingle();
+				}
+				Object.keys(fileLinks).forEach(function (id) {
+					fileLinks[id].forEach(function (a) {
+						a.addEventListener('click', function (e) {
+							// In single-file mode the anchor jump would scroll the
+							// shown file into view; keep the page pinned to top.
+							if (singleOn()) e.preventDefault();
+							setActive(id);
+						});
+					});
+				});
+				function setSingle(on) {
+					singleBtn.dataset.state = on ? 'on' : 'off';
+					singleBtn.setAttribute('aria-pressed', on);
+					singleBtn.classList.toggle('bg-muted', on);
+					singleBtn.classList.toggle('text-muted-foreground', !on);
+					applySingle();
+				}
+				if (singleBtn) {
+					singleBtn.addEventListener('click', function () {
+						var on = !singleOn();
+						store('single', on ? 'on' : 'off');
+						setSingle(on);
+					});
+				}
+				// Scroll-spy: highlight the file nearest the top while scrolling.
+				if ('IntersectionObserver' in window && sections.length) {
+					var spy = new IntersectionObserver(function (entries) {
+						if (singleOn()) return;
+						entries.forEach(function (e) {
+							if (e.isIntersecting) { activeId = e.target.id; highlight(e.target.id); }
+						});
+					}, { rootMargin: '-8% 0px -82% 0px' });
+					sections.forEach(function (s) { spy.observe(s); });
+				}
+				highlight(activeId);
+
+				var root = document.getElementById('diff-root');
+				var unifiedBtn = document.getElementById('diff-view-unified');
+				var splitBtn = document.getElementById('diff-view-split');
+				function setView(view) {
+					root.dataset.view = view;
+					unifiedBtn.setAttribute('aria-pressed', view === 'unified');
+					splitBtn.setAttribute('aria-pressed', view === 'split');
+					unifiedBtn.classList.toggle('bg-muted', view === 'unified');
+					unifiedBtn.classList.toggle('text-muted-foreground', view !== 'unified');
+					splitBtn.classList.toggle('bg-muted', view === 'split');
+					splitBtn.classList.toggle('text-muted-foreground', view !== 'split');
+				}
+				if (unifiedBtn) unifiedBtn.addEventListener('click', function () { setView('unified'); });
+				if (splitBtn) splitBtn.addEventListener('click', function () { setView('split'); });
+
+				var wsBtn = document.getElementById('diff-ws-toggle');
+				if (wsBtn) {
+					wsBtn.addEventListener('click', function () {
+						var on = !root.classList.contains('hide-ws');
+						root.classList.toggle('hide-ws', on);
+						wsBtn.setAttribute('aria-pressed', on);
+						wsBtn.classList.toggle('bg-muted', on);
+						wsBtn.classList.toggle('text-muted-foreground', !on);
+					});
+				}
+
+				var listUl = document.getElementById('diff-files-list');
+				var treeUl = document.getElementById('diff-files-tree');
+				var listBtn = document.getElementById('diff-files-list-btn');
+				var treeBtn = document.getElementById('diff-files-tree-btn');
+				function setFileLayout(mode) {
+					var tree = mode === 'tree';
+					listUl.classList.toggle('hidden', tree);
+					treeUl.classList.toggle('hidden', !tree);
+					listBtn.setAttribute('aria-pressed', !tree);
+					treeBtn.setAttribute('aria-pressed', tree);
+					listBtn.classList.toggle('bg-muted', !tree);
+					listBtn.classList.toggle('text-muted-foreground', tree);
+					treeBtn.classList.toggle('bg-muted', tree);
+					treeBtn.classList.toggle('text-muted-foreground', !tree);
+				}
+				if (listBtn) listBtn.addEventListener('click', function () { store('layout', 'list'); setFileLayout('list'); });
+				if (treeBtn) treeBtn.addEventListener('click', function () { store('layout', 'tree'); setFileLayout('tree'); });
+				if (treeUl) {
+					treeUl.querySelectorAll('.diff-tree-folder').forEach(function (b) {
+						b.addEventListener('click', function () {
+							var li = b.closest('li');
+							var open = li.dataset.open !== 'false';
+							li.dataset.open = open ? 'false' : 'true';
+							var caret = b.querySelector('.diff-tree-caret');
+							if (caret) caret.style.transform = open ? 'rotate(-90deg)' : '';
+							var group = li.querySelector(':scope > ul');
+							if (group) group.classList.toggle('hidden', open);
+						});
+					});
+				}
+
+				if (load('layout') === 'tree') setFileLayout('tree');
+				if (singleBtn && load('single') === 'on') setSingle(true);
+			})();
+		</script>
+	}
+}
+
+// prFileDiff renders one file's unified diff as a 2-column table so the
+// fragments.LineComments rows (which span colspan="2") slot in cleanly.
+templ prFileDiff(data view.PullFilesData, f service.FileDiff) {
+	{{ filePath := f.DisplayPath() }}
+	{{ commentable := data.CanWrite && data.Pull.State == model.PRStateOpen }}
+	<div class="overflow-x-auto">
+		<table class="w-full border-collapse text-xs font-mono">
+			<tbody>
+				for _, hunk := range f.Hunks {
+					<tr><td colspan="2" class="bg-primary/5 text-muted-foreground px-4 py-1 select-none border-y border-border">{ hunk.Header }</td></tr>
+					{{ wsLines := prWSOnlyLines(hunk.Lines) }}
+					for li, line := range hunk.Lines {
+						{{ lineNum := prDiffLineNum(line) }}
+						<tr class={ "diff-line", templ.KV("ws-only", wsLines[li]), templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del") }>
+							<td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">
+								{ strconv.Itoa(lineNum) }
+								if commentable && line.Type != "del" {
+									<button type="button" hx-get={ prLineCommentFormURL(data, filePath, lineNum) } hx-target={ "#lc-form-" + filePath + "-" + strconv.Itoa(lineNum) } hx-swap="innerHTML" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button>
+								}
+							</td>
+							<td class={ "pl-3 pr-4 py-0.5 whitespace-pre", templ.KV("text-success", line.Type == "add"), templ.KV("text-destructive", line.Type == "del"), templ.KV("text-foreground/85", line.Type != "add" && line.Type != "del") }>
+								if line.Type == "add" {
+									+{ line.Content }
+								} else if line.Type == "del" {
+									-{ line.Content }
+								} else {
+									{ " " }{ line.Content }
+								}
+							</td>
+						</tr>
+						if line.Type != "del" {
+							{{ key := filePath + ":" + strconv.Itoa(lineNum) }}
+							if cs, ok := data.LineComments[key]; ok && len(cs) > 0 {
+								@fragments.LineComments(view.LineCommentsFragData{
+									Owner:      data.OwnerName,
+									RepoName:   data.Repo.Name,
+									PullNumber: data.Pull.Number,
+									Path:       filePath,
+									Line:       lineNum,
+									Comments:   cs,
+									CanWrite:   data.CanWrite,
+								})
+							} else {
+								<tr id={ "lc-" + filePath + "-" + strconv.Itoa(lineNum) }>
+									<td colspan="2" class="p-0"><div id={ "lc-form-" + filePath + "-" + strconv.Itoa(lineNum) }></div></td>
+								</tr>
+							}
+						}
+					}
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+// A wholly-new or wholly-deleted file has nothing to compare against, so it renders full-width.
+templ prFileSplitDiff(f service.FileDiff) {
+	if f.IsNew || f.IsDelete {
+		@prFileWholeDiff(f)
+	} else {
+		<div class="overflow-x-auto">
+			<table class="w-full table-fixed border-collapse text-xs font-mono">
+				<colgroup>
+					<col class="w-10"/>
+					<col/>
+					<col class="w-10"/>
+					<col/>
+				</colgroup>
+				<tbody>
+					for _, hunk := range f.Hunks {
+						<tr><td colspan="4" class="bg-primary/5 text-muted-foreground px-4 py-1 select-none border-y border-border">{ hunk.Header }</td></tr>
+						for _, row := range prSplitRows(hunk.Lines) {
+							<tr class={ templ.KV("ws-only", row.WSOnly) }>
+								@prSplitCell(row.Left, false)
+								@prSplitCell(row.Right, true)
+							</tr>
+						}
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}
+
+// Full-width single column — used in split view for added or deleted files.
+templ prFileWholeDiff(f service.FileDiff) {
+	<div class="overflow-x-auto">
+		<table class="w-full border-collapse text-xs font-mono">
+			<tbody>
+				for _, hunk := range f.Hunks {
+					<tr><td colspan="2" class="bg-primary/5 text-muted-foreground px-4 py-1 select-none border-y border-border">{ hunk.Header }</td></tr>
+					for _, line := range hunk.Lines {
+						<tr class={ templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del") }>
+							<td class="w-12 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">{ strconv.Itoa(prDiffLineNum(line)) }</td>
+							<td class={ "pl-3 pr-4 py-0.5 whitespace-pre", templ.KV("text-success", line.Type == "add"), templ.KV("text-destructive", line.Type == "del"), templ.KV("text-foreground/85", line.Type != "add" && line.Type != "del") }>
+								if line.Type == "add" {
+									+{ line.Content }
+								} else if line.Type == "del" {
+									-{ line.Content }
+								} else {
+									{ " " }{ line.Content }
+								}
+							</td>
+						</tr>
+					}
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+templ prSplitCell(c prSplitCellData, right bool) {
+	if !c.Present {
+		<td class="w-12 bg-muted/30 border-r border-border"></td>
+		<td class={ "px-3 py-0.5 bg-muted/30", templ.KV("border-l border-border", right) }></td>
+	} else {
+		<td class="w-12 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">
+			if c.Num > 0 {
+				{ strconv.Itoa(c.Num) }
+			}
+		</td>
+		<td class={ "pl-3 pr-4 py-0.5 whitespace-pre overflow-hidden", templ.KV("border-l border-border", right), templ.KV("bg-success/10 text-success", c.Type == "add"), templ.KV("bg-destructive/10 text-destructive", c.Type == "del"), templ.KV("text-foreground/85", c.Type == "ctx") }>
+			if c.Type == "add" {
+				+{ c.Content }
+			} else if c.Type == "del" {
+				-{ c.Content }
+			} else {
+				{ " " }{ c.Content }
+			}
+		</td>
+	}
+}
+
+type prSplitCellData struct {
+	Present bool
+	Type    string // "add", "del", "ctx"
+	Num     int
+	Content string
+}
+
+type prSplitRow struct {
+	Left   prSplitCellData
+	Right  prSplitCellData
+	WSOnly bool
+}
+
+// Pairs a hunk's deleted/added lines index-wise for side-by-side display.
+func prSplitRows(lines []service.DiffLine) []prSplitRow {
+	var rows []prSplitRow
+	for i := 0; i < len(lines); {
+		l := lines[i]
+		if l.Type == "ctx" {
+			rows = append(rows, prSplitRow{
+				Left:  prSplitCellData{Present: true, Type: "ctx", Num: l.OldNum, Content: l.Content},
+				Right: prSplitCellData{Present: true, Type: "ctx", Num: l.NewNum, Content: l.Content},
+			})
+			i++
+			continue
+		}
+		var dels, adds []service.DiffLine
+		for i < len(lines) && lines[i].Type == "del" {
+			dels = append(dels, lines[i])
+			i++
+		}
+		for i < len(lines) && lines[i].Type == "add" {
+			adds = append(adds, lines[i])
+			i++
+		}
+		n := len(dels)
+		if len(adds) > n {
+			n = len(adds)
+		}
+		for j := 0; j < n; j++ {
+			var row prSplitRow
+			if j < len(dels) {
+				row.Left = prSplitCellData{Present: true, Type: "del", Num: dels[j].OldNum, Content: dels[j].Content}
+			}
+			if j < len(adds) {
+				row.Right = prSplitCellData{Present: true, Type: "add", Num: adds[j].NewNum, Content: adds[j].Content}
+			}
+			if j < len(dels) && j < len(adds) &&
+				strings.TrimSpace(dels[j].Content) == strings.TrimSpace(adds[j].Content) {
+				row.WSOnly = true
+			}
+			rows = append(rows, row)
+		}
+	}
+	return rows
+}
+
+// prWSOnlyLines flags unified-view rows whose del/add pair differs only in
+// whitespace, mirroring the split view's pairing so Hide-whitespace is
+// consistent across both layouts.
+func prWSOnlyLines(lines []service.DiffLine) map[int]bool {
+	out := map[int]bool{}
+	for i := 0; i < len(lines); {
+		if lines[i].Type != "del" {
+			i++
+			continue
+		}
+		delStart := i
+		for i < len(lines) && lines[i].Type == "del" {
+			i++
+		}
+		addStart := i
+		for i < len(lines) && lines[i].Type == "add" {
+			i++
+		}
+		dels := lines[delStart:addStart]
+		adds := lines[addStart:i]
+		for j := 0; j < len(dels) && j < len(adds); j++ {
+			if strings.TrimSpace(dels[j].Content) == strings.TrimSpace(adds[j].Content) {
+				out[delStart+j] = true
+				out[addStart+j] = true
+			}
+		}
+	}
+	return out
+}
+
+func prDiffLineNum(line service.DiffLine) int {
+	if line.Type == "add" {
+		return line.NewNum
+	}
+	return line.OldNum
+}
+
+func prLineCommentFormURL(data view.PullFilesData, path string, line int) string {
+	return "/api/repos/" + data.OwnerName + "/" + data.Repo.Name + "/pulls/" +
+		strconv.Itoa(data.Pull.Number) + "/line_comments/form?path=" + path + "&line=" + strconv.Itoa(line)
+}
+
+func filesNoun(n int) string {
+	if n == 1 {
+		return "file"
+	}
+	return "files"
+}
+
+// prFileTreeNode is a compact tree node for the 260px sidebar (the standalone
+// components.DiffFileTree is sized for a wider w-72 panel).
+type prFileTreeNode struct {
+	Name     string
+	Item     *components.DiffFileTreeItem
+	Children []*prFileTreeNode
+}
+
+func prBuildFileTree(items []components.DiffFileTreeItem) []*prFileTreeNode {
+	type entry struct {
+		node     *prFileTreeNode
+		children map[string]*entry
+	}
+	root := &entry{children: map[string]*entry{}}
+	for i := range items {
+		it := items[i]
+		parts := strings.Split(it.Path, "/")
+		cur := root
+		for j, p := range parts {
+			child, ok := cur.children[p]
+			if !ok {
+				child = &entry{node: &prFileTreeNode{Name: p}, children: map[string]*entry{}}
+				cur.children[p] = child
+			}
+			if j == len(parts)-1 {
+				child.node.Item = &it
+			}
+			cur = child
+		}
+	}
+	var build func(e *entry) []*prFileTreeNode
+	build = func(e *entry) []*prFileTreeNode {
+		out := make([]*prFileTreeNode, 0, len(e.children))
+		for _, c := range e.children {
+			c.node.Children = build(c)
+			out = append(out, c.node)
+		}
+		sort.Slice(out, func(i, j int) bool {
+			di, dj := out[i].Item == nil, out[j].Item == nil
+			if di != dj {
+				return di // directories first
+			}
+			return out[i].Name < out[j].Name
+		})
+		return out
+	}
+	return build(root)
+}
+
+templ prFileTreeNodes(nodes []*prFileTreeNode, depth int) {
+	for _, n := range nodes {
+		if n.Item == nil {
+			<li data-open="true">
+				<button type="button" class="diff-tree-folder w-full flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground" style={ "padding-left: " + strconv.Itoa(8+depth*12) + "px" }>
+					<svg class="diff-tree-caret shrink-0 transition-transform" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+					<span class="truncate font-mono">{ n.Name }</span>
+				</button>
+				<ul>
+					@prFileTreeNodes(n.Children, depth+1)
+				</ul>
+			</li>
+		} else {
+			<li>
+				<a href={ templ.SafeURL("#" + n.Item.Anchor) } class="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground" style={ "padding-left: " + strconv.Itoa(8+depth*12) + "px" }>
+					<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 opacity-70" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+					<span class="truncate flex-1 font-mono">{ n.Name }</span>
+					if n.Item.Added > 0 {
+						<span class="font-mono text-[10px] text-success">+{ strconv.Itoa(n.Item.Added) }</span>
+					}
+					if n.Item.Deleted > 0 {
+						<span class="font-mono text-[10px] text-destructive">−{ strconv.Itoa(n.Item.Deleted) }</span>
+					}
+				</a>
+			</li>
+		}
+	}
+}

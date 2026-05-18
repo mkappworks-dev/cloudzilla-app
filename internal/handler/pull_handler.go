@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
@@ -26,11 +27,13 @@ type createPRRequest struct {
 }
 
 type updatePRRequest struct {
-	State             string `json:"state"`
-	MergeStrategy     string `json:"merge_strategy"`     // "ff" | "merge" | "squash"
-	IsDraft           *bool  `json:"is_draft"`
-	AutoMerge         string `json:"auto_merge"`          // "enable" | "disable"
-	AutoMergeStrategy string `json:"auto_merge_strategy"` // "ff" | "merge" | "squash"
+	State             string  `json:"state"`
+	Title             *string `json:"title"`
+	Body              *string `json:"body"`
+	MergeStrategy     string  `json:"merge_strategy"` // "ff" | "merge" | "squash"
+	IsDraft           *bool   `json:"is_draft"`
+	AutoMerge         string  `json:"auto_merge"`          // "enable" | "disable"
+	AutoMergeStrategy string  `json:"auto_merge_strategy"` // "ff" | "merge" | "squash"
 }
 
 func (h *Handler) ListPulls(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +83,8 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusForbidden, "forbidden")
 			return
 		}
-		slog.Error("operation failed", "error", err)
+		slog.Error("create pull: service create failed",
+			"owner", owner, "repo", repoName, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -139,7 +143,8 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var state, mergeStrategy, isDraftStr, autoMergeAction, autoMergeStrategy string
+	var state, prTitle, mergeStrategy, isDraftStr, autoMergeAction, autoMergeStrategy string
+	var titlePresent bool
 	var req *updatePRRequest
 	if r.Header.Get("HX-Request") == "true" {
 		if err := r.ParseForm(); err != nil {
@@ -147,6 +152,8 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		state = r.FormValue("state")
+		prTitle = r.FormValue("title")
+		titlePresent = r.PostForm.Has("title")
 		mergeStrategy = r.FormValue("merge_strategy")
 		isDraftStr = r.FormValue("is_draft")
 		autoMergeAction = r.FormValue("auto_merge")
@@ -159,6 +166,10 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		}
 		req = &decoded
 		state = req.State
+		if req.Title != nil {
+			prTitle = *req.Title
+			titlePresent = true
+		}
 		mergeStrategy = req.MergeStrategy
 		autoMergeAction = req.AutoMerge
 		autoMergeStrategy = req.AutoMergeStrategy
@@ -173,6 +184,45 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if titlePresent {
+		if prTitle = strings.TrimSpace(prTitle); prTitle == "" {
+			writeError(w, http.StatusUnprocessableEntity, "title cannot be empty")
+			return
+		}
+		pr, err := h.Services.Pull.UpdateTitle(r.Context(), owner, repoName, number, prTitle)
+		if err != nil {
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			return
+		}
+		h.recordPullEvent(r.Context(), owner, repoName, pr, claims.UserID, claims.Username, model.PullEventRenamed, prTitle)
+		if r.Header.Get("HX-Request") == "true" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		writeJSON(w, http.StatusOK, pr)
+		return
+	}
+
+	// body may legitimately be empty — detect the edit by field presence.
+	if (r.Header.Get("HX-Request") == "true" && r.PostForm.Has("body")) || (req != nil && req.Body != nil) {
+		newBody := r.FormValue("body")
+		if req != nil && req.Body != nil {
+			newBody = *req.Body
+		}
+		pr, err := h.Services.Pull.UpdateBody(r.Context(), owner, repoName, number, newBody)
+		if err != nil {
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			return
+		}
+		h.recordPullEvent(r.Context(), owner, repoName, pr, claims.UserID, claims.Username, model.PullEventDescribed, "")
+		if r.Header.Get("HX-Request") == "true" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		writeJSON(w, http.StatusOK, pr)
+		return
+	}
+
 	// Handle is_draft toggle
 	if isDraftStr != "" || (req != nil && req.IsDraft != nil) {
 		newDraft := isDraftStr == "true" || (req != nil && req.IsDraft != nil && *req.IsDraft)
@@ -182,10 +232,19 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		}
 		pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 		if err != nil {
-			slog.Error("operation failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+			slog.Error("update pull: reload after draft toggle failed",
+				"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
+		draftEvent := model.PullEventReadied
+		toastMsg := "Marked ready for review"
+		if newDraft {
+			draftEvent = model.PullEventDrafted
+			toastMsg = "Converted to draft"
+		}
+		h.recordPullEvent(r.Context(), owner, repoName, pr, claims.UserID, claims.Username, draftEvent, "")
+		toast(w, "success", toastMsg)
 		if r.Header.Get("HX-Request") == "true" {
 			h.render(w, r, fragments.PullDetail(view.PullDetailFragData{
 				Pull:              *pr,
@@ -219,8 +278,9 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		}
 		pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 		if err != nil {
-			slog.Error("operation failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+			slog.Error("update pull: reload after auto-merge change failed",
+				"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 		if r.Header.Get("HX-Request") == "true" {
@@ -282,9 +342,23 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 
 	pr, err := h.Services.Pull.SetState(r.Context(), owner, repoName, number, model.PRState(state))
 	if err != nil {
-		slog.Error("operation failed", "error", err)
+		slog.Error("update pull: set state failed",
+			"owner", owner, "repo", repoName, "pull_number", number, "state", state, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
+	}
+
+	if state != "" {
+		switch pr.State {
+		case model.PRStateMerged:
+			h.recordPullEvent(r.Context(), owner, repoName, pr, claims.UserID, claims.Username, model.PullEventMerged, "")
+			toast(w, "success", "Pull request merged")
+		case model.PRStateClosed:
+			h.recordPullEvent(r.Context(), owner, repoName, pr, claims.UserID, claims.Username, model.PullEventClosed, "")
+		case model.PRStateOpen:
+			h.recordPullEvent(r.Context(), owner, repoName, pr, claims.UserID, claims.Username, model.PullEventReopened, "")
+			toast(w, "success", "Pull request reopened")
+		}
 	}
 
 	go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload(state, *repo, *pr))
@@ -306,6 +380,15 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, pr)
+}
+
+// recordPullEvent appends a timeline event best-effort: a failed write is logged
+// with request context but never fails the action that triggered it.
+func (h *Handler) recordPullEvent(ctx context.Context, owner, repoName string, pr *model.PullRequest, actorID int64, actorName, eventType, detail string) {
+	if err := h.Services.PullEvent.Record(ctx, pr.ID, actorID, actorName, eventType, detail); err != nil {
+		slog.Warn("pull event not recorded; timeline will be incomplete",
+			"owner", owner, "repo", repoName, "pull_number", pr.Number, "type", eventType, "error", err)
+	}
 }
 
 // tryAutoMerge checks if auto-merge conditions are satisfied for the given PR and,

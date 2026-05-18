@@ -155,12 +155,15 @@ func (h *Handler) AddPullAssignee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Assignee.AddToPull(r.Context(), owner, repoName, number, username); err != nil {
-		slog.Error("operation failed", "error", err)
+		slog.Error("add pull assignee: store add failed",
+			"owner", owner, "repo", repoName, "pull_number", number, "username", username, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
+	h.recordPullAssigneeEvent(r, owner, repoName, number, username, model.PullEventAssigned)
 
 	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Assignee added")
 		h.renderPullAssigneeFragment(w, r, owner, repoName, number)
 		return
 	}
@@ -199,16 +202,33 @@ func (h *Handler) RemovePullAssignee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Assignee.RemoveFromPull(r.Context(), owner, repoName, number, username); err != nil {
-		slog.Error("operation failed", "error", err)
+		slog.Error("remove pull assignee: store remove failed",
+			"owner", owner, "repo", repoName, "pull_number", number, "username", username, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
+	h.recordPullAssigneeEvent(r, owner, repoName, number, username, model.PullEventUnassigned)
 
 	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Assignee removed")
 		h.renderPullAssigneeFragment(w, r, owner, repoName, number)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) recordPullAssigneeEvent(r *http.Request, owner, repoName string, number int, username, eventType string) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		return
+	}
+	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if err != nil {
+		slog.Warn("record pull assignee event: pull lookup failed; timeline entry skipped",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+		return
+	}
+	h.recordPullEvent(r.Context(), owner, repoName, pull, claims.UserID, claims.Username, eventType, username)
 }
 
 func (h *Handler) renderIssueAssigneeFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, issueNumber int) {
@@ -225,14 +245,16 @@ func (h *Handler) renderIssueAssigneeFragment(w http.ResponseWriter, r *http.Req
 		assignees = []model.User{}
 	}
 	canWrite := false
+	var collaborators []model.Permission
 	if repo, err := h.Services.Repo.Get(r.Context(), owner, repoName); err == nil {
 		if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
+		collaborators, _ = h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
 	}
 	h.render(w, r, fragments.IssueAssignees(view.IssueAssigneeSidebarData{
 		Owner: owner, RepoName: repoName, IssueNumber: issueNumber,
-		Assignees: assignees, CanWrite: canWrite,
+		Assignees: assignees, Collaborators: collaboratorUsernames(collaborators), CanWrite: canWrite,
 	}))
 }
 
@@ -246,13 +268,15 @@ func (h *Handler) renderPullAssigneeFragment(w http.ResponseWriter, r *http.Requ
 		assignees = []model.User{}
 	}
 	canWrite := false
+	var collaborators []model.Permission
 	if repo, err := h.Services.Repo.Get(r.Context(), owner, repoName); err == nil {
 		if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
+		collaborators, _ = h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
 	}
 	h.render(w, r, fragments.PullAssignees(view.PullAssigneeSidebarData{
 		Owner: owner, RepoName: repoName, PullNumber: pullNumber,
-		Assignees: assignees, CanWrite: canWrite,
+		Assignees: assignees, Collaborators: collaboratorUsernames(collaborators), CanWrite: canWrite,
 	}))
 }

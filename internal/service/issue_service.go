@@ -20,15 +20,21 @@ func pinLimitGuard(pinnedCount int) string {
 
 // IssueService manages issue lifecycle including creation, state transitions, and visibility.
 type IssueService struct {
-	issues  *store.IssueStore
-	repos   *store.RepoStore
-	pulls   *store.PullStore
-	repoSvc *RepoService
+	issues   *store.IssueStore
+	repos    *store.RepoStore
+	pulls    *store.PullStore
+	repoSvc  *RepoService
+	mentions *store.MentionStore
 }
 
 // NewIssueService creates an IssueService backed by the given stores.
 func NewIssueService(issues *store.IssueStore, repos *store.RepoStore, pulls *store.PullStore, repoSvc *RepoService) *IssueService {
 	return &IssueService{issues: issues, repos: repos, pulls: pulls, repoSvc: repoSvc}
+}
+
+func (s *IssueService) WithMentionStore(m *store.MentionStore) *IssueService {
+	s.mentions = m
+	return s
 }
 
 func (s *IssueService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, visibility string) (*model.Issue, error) {
@@ -65,6 +71,18 @@ func (s *IssueService) List(ctx context.Context, owner, repoName string, visible
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
 	return s.issues.ListByRepo(ctx, repo.ID, nil, visibleToUserID, 1, 500)
+}
+
+func (s *IssueService) LinkPull(ctx context.Context, pullID, issueID int64) error {
+	return s.issues.LinkToPull(ctx, pullID, issueID)
+}
+
+func (s *IssueService) UnlinkPull(ctx context.Context, pullID, issueID int64) error {
+	return s.issues.UnlinkFromPull(ctx, pullID, issueID)
+}
+
+func (s *IssueService) LinkedForPull(ctx context.Context, pullID int64) ([]model.Issue, error) {
+	return s.issues.ListLinkedToPull(ctx, pullID)
 }
 
 func (s *IssueService) Get(ctx context.Context, owner, repoName string, number int, visibleToUserID *int64) (*model.Issue, error) {
@@ -191,8 +209,27 @@ func (s *IssueService) WeeklyCreated(ctx context.Context, repoID int64, weeks in
 	return s.issues.WeeklyCreated(ctx, repoID, weeks)
 }
 
-func (s *IssueService) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
-	return s.issues.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+func (s *IssueService) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
+	return s.issues.CountOpenAssignedTo(ctx, userID)
+}
+
+// mode is "assigned", "created", or "mentioned"; state is "open" or "closed".
+func (s *IssueService) ListForUser(ctx context.Context, userID int64, mode, state string) ([]store.IssueListItem, error) {
+	if state != "closed" {
+		state = "open"
+	}
+	switch mode {
+	case "mentioned":
+		ids, err := s.mentions.ListIssueIDsMentioning(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		return s.issues.ListByIDs(ctx, userID, ids, state)
+	case "created":
+		return s.issues.ListForUser(ctx, userID, "created", state)
+	default:
+		return s.issues.ListForUser(ctx, userID, "assigned", state)
+	}
 }
 
 func (s *IssueService) LinkedPRs(ctx context.Context, owner, repoName string, issueNumber int) ([]model.PullRequest, error) {

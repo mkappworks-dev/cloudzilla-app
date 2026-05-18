@@ -12,8 +12,8 @@ import (
 )
 
 // seedCommentDeps seeds an owner, repo, and issue for comment tests.
-// Returns the comment store, issue ID, and author ID.
-func seedCommentDeps(t *testing.T) (*store.CommentStore, int64, int64) {
+// Returns the comment store, issue ID, author ID, and repo ID.
+func seedCommentDeps(t *testing.T) (*store.CommentStore, int64, int64, int64) {
 	t.Helper()
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
@@ -31,15 +31,16 @@ func seedCommentDeps(t *testing.T) (*store.CommentStore, int64, int64) {
 	if err := issueStore.Create(context.Background(), issue); err != nil {
 		t.Fatalf("seed issue: %v", err)
 	}
-	return store.NewCommentStore(db), issue.ID, ownerID
+	return store.NewCommentStore(db), issue.ID, ownerID, repoID
 }
 
 // TestCommentStore_Create_AssignsID verifies that Create inserts a comment and returns
 // it with a non-zero database ID.
 func TestCommentStore_Create_AssignsID(t *testing.T) {
-	cs, issueID, authorID := seedCommentDeps(t)
+	cs, issueID, authorID, repoID := seedCommentDeps(t)
 
 	c := &model.Comment{
+		RepoID:     repoID,
 		IssueID:    &issueID,
 		AuthorID:   authorID,
 		AuthorName: "tester",
@@ -56,9 +57,9 @@ func TestCommentStore_Create_AssignsID(t *testing.T) {
 // TestCommentStore_GetByID_ReturnsCorrectComment verifies that GetByID retrieves the
 // comment by its database ID with the correct body.
 func TestCommentStore_GetByID_ReturnsCorrectComment(t *testing.T) {
-	cs, issueID, authorID := seedCommentDeps(t)
+	cs, issueID, authorID, repoID := seedCommentDeps(t)
 
-	c := &model.Comment{IssueID: &issueID, AuthorID: authorID, AuthorName: "tester", Body: "findable"}
+	c := &model.Comment{RepoID: repoID, IssueID: &issueID, AuthorID: authorID, AuthorName: "tester", Body: "findable"}
 	if err := cs.Create(context.Background(), c); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -75,7 +76,7 @@ func TestCommentStore_GetByID_ReturnsCorrectComment(t *testing.T) {
 // TestCommentStore_GetByID_Unknown_Error verifies that GetByID returns an error when
 // the requested comment ID does not exist.
 func TestCommentStore_GetByID_Unknown_Error(t *testing.T) {
-	cs, _, _ := seedCommentDeps(t)
+	cs, _, _, _ := seedCommentDeps(t)
 
 	_, err := cs.GetByID(context.Background(), 9_999_999)
 	if err == nil {
@@ -86,9 +87,9 @@ func TestCommentStore_GetByID_Unknown_Error(t *testing.T) {
 // TestCommentStore_Update_ChangesBody verifies that Update replaces the comment body
 // and the returned comment reflects the new value.
 func TestCommentStore_Update_ChangesBody(t *testing.T) {
-	cs, issueID, authorID := seedCommentDeps(t)
+	cs, issueID, authorID, repoID := seedCommentDeps(t)
 
-	c := &model.Comment{IssueID: &issueID, AuthorID: authorID, AuthorName: "tester", Body: "original"}
+	c := &model.Comment{RepoID: repoID, IssueID: &issueID, AuthorID: authorID, AuthorName: "tester", Body: "original"}
 	if err := cs.Create(context.Background(), c); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -105,9 +106,9 @@ func TestCommentStore_Update_ChangesBody(t *testing.T) {
 // TestCommentStore_ListByIssue_ReturnsComments verifies that ListByIssue returns all
 // comments for the given issue, including the one just created.
 func TestCommentStore_ListByIssue_ReturnsComments(t *testing.T) {
-	cs, issueID, authorID := seedCommentDeps(t)
+	cs, issueID, authorID, repoID := seedCommentDeps(t)
 
-	c := &model.Comment{IssueID: &issueID, AuthorID: authorID, AuthorName: "tester", Body: "listed"}
+	c := &model.Comment{RepoID: repoID, IssueID: &issueID, AuthorID: authorID, AuthorName: "tester", Body: "listed"}
 	if err := cs.Create(context.Background(), c); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -124,9 +125,9 @@ func TestCommentStore_ListByIssue_ReturnsComments(t *testing.T) {
 // TestCommentStore_Delete_RemovesRow verifies that Delete removes the comment so that
 // GetByID returns an error afterward.
 func TestCommentStore_Delete_RemovesRow(t *testing.T) {
-	cs, issueID, authorID := seedCommentDeps(t)
+	cs, issueID, authorID, repoID := seedCommentDeps(t)
 
-	c := &model.Comment{IssueID: &issueID, AuthorID: authorID, AuthorName: "tester", Body: "bye"}
+	c := &model.Comment{RepoID: repoID, IssueID: &issueID, AuthorID: authorID, AuthorName: "tester", Body: "bye"}
 	if err := cs.Create(context.Background(), c); err != nil {
 		t.Fatalf("Create: %v", err)
 	}

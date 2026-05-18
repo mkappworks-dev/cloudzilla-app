@@ -58,11 +58,11 @@ func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.
 	return &RepoService{repos: repos, users: users, orgs: orgs, commitStats: commitStats, contributorStats: contributorStats, code: code, cfg: cfg}
 }
 
-func (s *RepoService) TopContributors(ctx context.Context, owner, name string, limit int) ([]ContributorStat, error) {
+func (s *RepoService) TopContributors(ctx context.Context, owner, name, ref string, limit int) ([]ContributorStat, error) {
 	if s.code == nil {
 		return nil, nil
 	}
-	all, err := s.code.GetContributors(owner, name)
+	all, err := s.code.GetContributors(owner, name, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -207,6 +207,14 @@ func (s *RepoService) List(ctx context.Context) ([]model.Repository, error) {
 
 func (s *RepoService) CountForUser(ctx context.Context, userID int64) (int, error) {
 	return s.repos.CountForUser(ctx, userID)
+}
+
+// scope is "owned", "collaborator", or "all" (default for any unknown value).
+func (s *RepoService) ListForUser(ctx context.Context, userID int64, scope string) ([]model.Repository, error) {
+	if scope != "owned" && scope != "collaborator" {
+		scope = "all"
+	}
+	return s.repos.ListForUser(ctx, userID, scope)
 }
 
 func (s *RepoService) GetByID(ctx context.Context, id int64) (*model.Repository, error) {

@@ -1,0 +1,37 @@
+package fragments
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+)
+
+type AccountSubnavData = view.AccountSubnavInfo
+
+templ AccountSubnav(data AccountSubnavData) {
+	<nav aria-label="Primary" class="max-w-[1400px] mx-auto px-6 py-1.5 flex items-center gap-1 text-sm overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+		@accountSubnavTab(data, "overview", "Overview", "/")
+		@accountSubnavTab(data, "repositories", "Repositories", "/repos")
+		@accountSubnavTab(data, "gists", "Gists", "/gists")
+		@accountSubnavTab(data, "pulls", "Pull requests", "/pulls")
+		@accountSubnavTab(data, "issues", "Issues", "/issues")
+	</nav>
+}
+
+templ accountSubnavTab(data AccountSubnavData, key, label, href string) {
+	if data.Active == key {
+		<a href={ templ.SafeURL(href) } aria-current="page" class="px-3 py-1.5 rounded-md bg-accent font-medium text-foreground inline-flex items-center gap-1.5">
+			{ label }
+			if count, ok := data.Counts[key]; ok && count > 0 {
+				<span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5" aria-label={ strconv.Itoa(count) + " " + label }>{ strconv.Itoa(count) }</span>
+			}
+		</a>
+	} else {
+		<a href={ templ.SafeURL(href) } class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">
+			{ label }
+			if count, ok := data.Counts[key]; ok && count > 0 {
+				<span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5" aria-label={ strconv.Itoa(count) + " " + label }>{ strconv.Itoa(count) }</span>
+			}
+		</a>
+	}
+}

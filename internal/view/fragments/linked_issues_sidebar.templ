@@ -1,0 +1,108 @@
+package fragments
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+)
+
+func linkedIssueLinked(linked []view.LinkedIssue, number int) bool {
+	for _, li := range linked {
+		if li.Number == number {
+			return true
+		}
+	}
+	return false
+}
+
+templ liCheckIcon() {
+	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+}
+
+templ liStateIcon(state string) {
+	if state == "closed" {
+		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><polyline points="9 12 11 14 15 10"></polyline></svg>
+	} else {
+		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"></circle></svg>
+	}
+}
+
+// See LabelSidebar for the Alpine open-scope contract.
+templ LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) {
+	{{ base := "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/linked-issues/" }}
+	<div id="pull-linked-issues" class="space-y-2">
+		<div class="flex items-center justify-between">
+			<h3 class="text-[12px] font-medium text-muted-foreground">Linked issues</h3>
+			if data.CanWrite && len(data.AllIssues) > 0 {
+				<div class="relative" x-on:click.outside="open === 'linked-issues' && (open = null)">
+					<button
+						type="button"
+						x-on:click="open = (open === 'linked-issues' ? null : 'linked-issues')"
+						:aria-expanded="open === 'linked-issues' ? 'true' : 'false'"
+						aria-haspopup="menu"
+						aria-label="Link an issue"
+						class="text-muted-foreground hover:text-foreground"
+					>
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>
+					</button>
+					<div
+						x-show="open === 'linked-issues'"
+						x-cloak
+						x-transition.opacity.duration.100ms
+						role="menu"
+						aria-label="Link an issue"
+						class="absolute right-0 top-full mt-1.5 z-50 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 max-h-72 overflow-y-auto"
+					>
+						<div class="px-2 pt-1 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Link an issue</div>
+						for _, iss := range data.AllIssues {
+							{{ linked := linkedIssueLinked(data.Linked, iss.Number) }}
+							<button
+								type="button"
+								if linked {
+									hx-delete={ base + strconv.Itoa(iss.Number) }
+								} else {
+									hx-post={ base + strconv.Itoa(iss.Number) }
+								}
+								hx-target="#pull-linked-issues"
+								hx-swap="outerHTML"
+								role="menuitemcheckbox"
+								aria-checked={ strconv.FormatBool(linked) }
+								class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+							>
+								@liStateIcon(iss.State)
+								<span class="flex-1 truncate"><span class="font-mono text-muted-foreground">#{ strconv.Itoa(iss.Number) }</span> { iss.Title }</span>
+								if linked {
+									@liCheckIcon()
+								}
+							</button>
+						}
+						<div role="separator" class="my-1 h-px bg-border"></div>
+						<a
+							href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/new") }
+							role="menuitem"
+							class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+						>
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+							Create a new issue
+						</a>
+					</div>
+				</div>
+			}
+		</div>
+		if len(data.Linked) > 0 {
+			<ul class="space-y-1.5 text-[13px]">
+				for _, li := range data.Linked {
+					<li class="flex items-center gap-2">
+						@liStateIcon(li.State)
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(li.Number)) } class="hover:underline truncate">
+							<span class="font-mono text-muted-foreground">#{ strconv.Itoa(li.Number) }</span>
+							{ " " }{ li.Title }
+						</a>
+					</li>
+				}
+			</ul>
+		} else {
+			<p class="text-xs text-muted-foreground">No linked issues.</p>
+		}
+	</div>
+}

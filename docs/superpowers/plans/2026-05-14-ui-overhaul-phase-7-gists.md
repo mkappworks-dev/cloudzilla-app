@@ -8,6 +8,10 @@
 
 **Prerequisites:** Phase 6 merged.
 
+> **Revised 2026-05-18 (account-navigation feature).** Two adjustments:
+> - `GistStore.CountByOwner` and `GistService.CountByUser` **already exist** (added for the account nav's "Gists" badge). Do NOT redefine them in Task 3 — `ListWithCounts` / `ListPrivateByOwner` are still net-new.
+> - The `/gists` handler now attaches `AccountSubnav` via `withAccountSubnav(..., "gists", ...)`. The `gists.templ` port in Task 4 must keep rendering under `AccountSubnav` (the layout renders it from `BasePage.AccountSubnav`); don't strip it.
+
 **Spec:** [2026-05-14-ui-overhaul-design.md](../specs/2026-05-14-ui-overhaul-design.md)
 
 **Branch:** `feat/ui-overhaul-phase-7-gists`

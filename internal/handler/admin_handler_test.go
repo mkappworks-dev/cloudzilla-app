@@ -20,7 +20,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-// newAdminHandler builds a Handler with the services needed by admin endpoints.
 func newAdminHandler(db *sql.DB) *handler.Handler {
 	cfg := &config.Config{
 		Auth: config.AuthConfig{
@@ -39,14 +38,13 @@ func newAdminHandler(db *sql.DB) *handler.Handler {
 	return handler.New(svc, cfg)
 }
 
-// makeSuperadminJWT creates a signed HS256 JWT with IsSuperadmin=true.
 func makeSuperadminJWT(t *testing.T, userID int64, username string) string {
 	t.Helper()
 	claims := jwt.MapClaims{
-		"sub":          float64(userID),
-		"username":     username,
+		"sub":           float64(userID),
+		"username":      username,
 		"is_superadmin": true,
-		"exp":          float64(time.Now().Add(time.Hour).Unix()),
+		"exp":           float64(time.Now().Add(time.Hour).Unix()),
 	}
 	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	s, err := tok.SignedString([]byte(testJWTSecret))
@@ -56,15 +54,12 @@ func makeSuperadminJWT(t *testing.T, userID int64, username string) string {
 	return s
 }
 
-// withAuth returns a new http.Handler that wraps h in the Auth middleware.
 func withAuth(h *handler.Handler) http.Handler {
 	return middleware.Auth(testJWTSecret, testCookieName, nil, nil, func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) })(
 		http.HandlerFunc(h.UpdateSiteSetting),
 	)
 }
 
-// TestUpdateSiteSetting_NoAuth_403 verifies that UpdateSiteSetting returns HTTP 403
-// when no Authorization header is present (treated as non-superadmin).
 func TestUpdateSiteSetting_NoAuth_403(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	h := newAdminHandler(db)
@@ -81,15 +76,12 @@ func TestUpdateSiteSetting_NoAuth_403(t *testing.T) {
 	}
 }
 
-// TestUpdateSiteSetting_RegularUser_403 verifies that a non-superadmin user receives
-// HTTP 403 when attempting to update a site setting.
 func TestUpdateSiteSetting_RegularUser_403(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	userID := testutil.SeedUser(t, db, suffix)
 
 	h := newAdminHandler(db)
-	// Use a regular (non-superadmin) JWT via Auth middleware.
 	router := withAuth(h)
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/settings",
@@ -104,9 +96,7 @@ func TestUpdateSiteSetting_RegularUser_403(t *testing.T) {
 	}
 }
 
-// TestUpdateSiteSetting_Superadmin_200 verifies that a superadmin can update a
-// site setting and receives HTTP 200 (non-HTMX response).
-func TestUpdateSiteSetting_Superadmin_200(t *testing.T) {
+func TestUpdateSiteSetting_Superadmin_303(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	adminID := testutil.SeedSuperadmin(t, db, suffix)
@@ -122,7 +112,7 @@ func TestUpdateSiteSetting_Superadmin_200(t *testing.T) {
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("want 200 for superadmin, got %d: %s", rr.Code, rr.Body.String())
+	if rr.Code != http.StatusSeeOther {
+		t.Errorf("want 303 for superadmin, got %d: %s", rr.Code, rr.Body.String())
 	}
 }

@@ -8,7 +8,6 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// ButtonVariant controls the visual style of a Button.
 type ButtonVariant string
 
 const (
@@ -17,11 +16,12 @@ const (
 	ButtonGhost       ButtonVariant = "ghost"       // no border, hover bg only
 	ButtonSecondary   ButtonVariant = "secondary"   // muted solid bg
 	ButtonDestructive ButtonVariant = "destructive" // red, for delete-style actions
-	ButtonSuccess     ButtonVariant = "success"     // green, e.g. merge actions
-	ButtonLink        ButtonVariant = "link"        // text-only, underline on hover
+	// Bordered destructive variant — stays visually secondary next to a primary button.
+	ButtonDestructiveOutline ButtonVariant = "destructive-outline"
+	ButtonSuccess            ButtonVariant = "success" // green, e.g. merge actions
+	ButtonLink               ButtonVariant = "link"    // text-only, underline on hover
 )
 
-// ButtonSize controls the height/padding of a Button.
 type ButtonSize string
 
 const (
@@ -41,6 +41,8 @@ func buttonVariantClass(v ButtonVariant) string {
 		return "bg-secondary text-secondary-foreground hover:bg-secondary/80"
 	case ButtonDestructive:
 		return "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+	case ButtonDestructiveOutline:
+		return "border border-destructive/40 text-destructive bg-transparent hover:bg-destructive/10 hover:border-destructive"
 	case ButtonSuccess:
 		return "bg-success text-success-foreground hover:bg-success/90"
 	case ButtonLink:
@@ -63,9 +65,6 @@ func buttonSizeClass(s ButtonSize) string {
 	}
 }
 
-// Button renders a styled button with the given variant and size.
-// Pass attrs via templ.Attributes — typically `templ.Attributes{"type": "submit"}`,
-// `templ.Attributes{"aria-label": "Close"}`, `templ.Attributes{"onclick": "..."}`, etc.
 func Button(variant ButtonVariant, size ButtonSize, attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -129,7 +128,6 @@ func Button(variant ButtonVariant, size ButtonSize, attrs templ.Attributes) temp
 	})
 }
 
-// LinkButton renders an <a> styled identically to a Button — for navigation actions.
 func LinkButton(href string, variant ButtonVariant, size ButtonSize, attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -163,7 +161,7 @@ func LinkButton(href string, variant ButtonVariant, size ButtonSize, attrs templ
 		var templ_7745c5c3_Var6 templ.SafeURL
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/button.templ`, Line: 73, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/button.templ`, Line: 71, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {

@@ -34,7 +34,7 @@ func IssueAssignees(data view.IssueAssigneeSidebarData) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = components.AssigneeSidebar(data.Owner, data.RepoName, data.IssueNumber, "issues", data.Assignees, data.CanWrite).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.AssigneeSidebar(data.Owner, data.RepoName, data.IssueNumber, "issues", data.Assignees, data.Collaborators, data.CanWrite).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

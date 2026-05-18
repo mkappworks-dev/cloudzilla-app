@@ -1,47 +1,25 @@
 package components
 
-// ToastContainer should be rendered once, near the end of the page body
-// (typically inside layout.Base). It listens for two event sources:
-//
-//  1. The browser CustomEvent `toast` — fire one anywhere with:
-//     document.dispatchEvent(new CustomEvent('toast', {detail: {type:'success', message:'Saved'}}))
-//
-//  2. HTMX `HX-Trigger` response header — server handlers can push:
-//     w.Header().Set("HX-Trigger", `{"toast":{"type":"success","message":"Repository created"}}`)
-//     HTMX parses this and dispatches a `toast` CustomEvent on the body,
-//     which bubbles up to document where our listener catches it.
-//
-// detail fields:
-//   - type:        "default" | "success" | "error" | "warning" (border color)
-//   - message:     primary title text (required)
-//   - description: secondary muted text (optional)
-//   - duration:    auto-dismiss ms; pass 0 for sticky (default 4000)
+// Render once near the end of the body. Reacts to the "toast" CustomEvent and to
+// HTMX HX-Trigger headers.
 templ ToastContainer() {
 	<div
 		id="toast-root"
 		aria-live="polite"
 		aria-atomic="true"
-		class="pointer-events-none fixed bottom-4 right-4 z-[100] flex flex-col gap-2"
+		class="pointer-events-none fixed top-5 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2"
 	></div>
 	<template id="toast-template">
 		<div
 			role="status"
-			class="pointer-events-auto flex min-w-[260px] max-w-sm items-start gap-2.5 rounded-md border bg-popover px-3.5 py-3 text-sm text-popover-foreground shadow-lg"
+			class="cz-toast-in pointer-events-auto inline-flex items-center gap-2 rounded-lg border border-border-strong bg-popover px-3.5 py-2.5 text-[13px] text-popover-foreground shadow-lg"
 		>
-			<div class="flex-1">
-				<div data-toast-title class="font-medium leading-snug"></div>
-				<div data-toast-desc class="mt-0.5 text-[12px] leading-snug text-muted-foreground"></div>
-			</div>
-			<button
-				type="button"
-				data-toast-close
-				aria-label="Dismiss"
-				class="-mr-1 -mt-0.5 rounded p-1 text-muted-foreground hover:text-foreground focus:outline-none focus:bg-accent"
-			>
-				<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-					<path d="M4 4l8 8M12 4l-8 8"/>
-				</svg>
-			</button>
+			<span data-toast-icon class="shrink-0 grid place-items-center">
+				<svg data-icon="success" class="text-success" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+				<svg data-icon="error" class="text-destructive" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+				<svg data-icon="warning" class="text-warning" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+			</span>
+			<span data-toast-title></span>
 		</div>
 	</template>
 	<script>
@@ -49,29 +27,25 @@ templ ToastContainer() {
 			var root = document.getElementById('toast-root');
 			var tpl  = document.getElementById('toast-template');
 			if (!root || !tpl) return;
-			function variantClass(v){
-				switch(v){
-					case 'success': return 'border-success/40';
-					case 'error':   return 'border-destructive/40';
-					case 'warning': return 'border-warning/40';
-					default:        return 'border-border';
-				}
-			}
 			function fire(detail){
 				detail = detail || {};
 				if (!detail.message) return;
 				var node = tpl.content.firstElementChild.cloneNode(true);
-				node.classList.add(variantClass(detail.type));
+				var want = ({ success: 1, error: 1, warning: 1 })[detail.type] ? detail.type : 'success';
+				node.querySelectorAll('[data-icon]').forEach(function(svg){
+					if (svg.getAttribute('data-icon') !== want) svg.remove();
+				});
 				node.querySelector('[data-toast-title]').textContent = detail.message;
-				var descEl = node.querySelector('[data-toast-desc]');
-				if (detail.description) descEl.textContent = detail.description;
-				else descEl.remove();
-				node.querySelector('[data-toast-close]').addEventListener('click', function(){ node.remove(); });
 				root.appendChild(node);
 				var duration = detail.duration === 0 ? 0 : (detail.duration || 4000);
 				if (duration > 0) setTimeout(function(){ node.remove(); }, duration);
 			}
 			document.addEventListener('toast', function(e){ fire(e.detail); });
+			// A toast stashed before a full-page reload (sessionStorage) fires once on load.
+			try {
+				var pending = sessionStorage.getItem('cz-toast');
+				if (pending) { sessionStorage.removeItem('cz-toast'); fire(JSON.parse(pending)); }
+			} catch (e) {}
 		})();
 	</script>
 }

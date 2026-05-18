@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
@@ -37,9 +38,8 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 	return page
 }
 
-// withRepoSubnav attaches the repo subnav so layout.Base renders it inside
-// <header>. Use from any handler serving a repo-scoped route.
-func withRepoSubnav(base BasePage, repo *model.Repository, active string, canManage bool) BasePage {
+// The repo-switcher list is best-effort: a failed lookup leaves it empty.
+func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model.Repository, active string, canManage bool) BasePage {
 	base.RepoSubnav = &view.RepoSubnavInfo{
 		OwnerName:        repo.OwnerName,
 		RepoName:         repo.Name,
@@ -50,7 +50,55 @@ func withRepoSubnav(base BasePage, repo *model.Repository, active string, canMan
 		AllowProjects:    repo.AllowProjects,
 		AllowWiki:        repo.AllowWiki,
 	}
+	var viewerID *int64
+	if base.CurrentUser != nil {
+		viewerID = &base.CurrentUser.UserID
+	}
+	if siblings, err := h.Services.Repo.ListByOwnerVisibleTo(ctx, repo.OwnerName, viewerID); err == nil {
+		refs := make([]view.RepoRef, 0, len(siblings))
+		for _, s := range siblings {
+			refs = append(refs, view.RepoRef{Name: s.Name, Path: "/" + s.OwnerName + "/" + s.Name})
+		}
+		base.RepoSwitcher = refs
+	} else {
+		slog.Error("withRepoSubnav: repo switcher list failed", "owner", repo.OwnerName, "error", err)
+	}
 	return base
+}
+
+func withAccountSubnav(base BasePage, active string, counts map[string]int) BasePage {
+	base.AccountSubnav = &view.AccountSubnavInfo{Active: active, Counts: counts}
+	return base
+}
+
+// Best-effort: any failed query degrades that badge to 0 rather than failing the page.
+func (h *Handler) accountCounts(ctx context.Context, userID int64) map[string]int {
+	counts := map[string]int{}
+	logFail := func(badge string, err error) {
+		slog.Warn("account counts: badge query failed; showing 0",
+			"badge", badge, "user_id", userID, "error", err)
+	}
+	if n, err := h.Services.Repo.CountForUser(ctx, userID); err == nil {
+		counts["repositories"] = n
+	} else {
+		logFail("repositories", err)
+	}
+	if n, err := h.Services.Gist.CountByUser(ctx, userID); err == nil {
+		counts["gists"] = n
+	} else {
+		logFail("gists", err)
+	}
+	if n, err := h.Services.Pull.CountOpenAssignedTo(ctx, userID); err == nil {
+		counts["pulls"] = n
+	} else {
+		logFail("pulls", err)
+	}
+	if n, err := h.Services.Issue.CountOpenAssignedTo(ctx, userID); err == nil {
+		counts["issues"] = n
+	} else {
+		logFail("issues", err)
+	}
+	return counts
 }
 
 func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
@@ -96,11 +144,11 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			slog.Warn("home: repo count stat failed", "user_id", userID, "error", err)
 		}
-		countOpenPulls, err := h.Services.Pull.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+		countOpenPulls, err := h.Services.Pull.CountOpenAssignedTo(ctx, userID)
 		if err != nil {
 			slog.Warn("home: open-pulls count stat failed", "user_id", userID, "error", err)
 		}
-		countOpenIssues, err := h.Services.Issue.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+		countOpenIssues, err := h.Services.Issue.CountOpenAssignedTo(ctx, userID)
 		if err != nil {
 			slog.Warn("home: open-issues count stat failed", "user_id", userID, "error", err)
 		}
@@ -110,6 +158,7 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 			{Label: "Issues", Value: countOpenIssues, Subtitle: "open"},
 			{Label: "Commits", Value: commitsLast7, Subtitle: "last 7 days"},
 		}
+		data.BasePage = withAccountSubnav(data.BasePage, "overview", h.accountCounts(ctx, userID))
 		if heat, err := h.Services.CommitStats.LookbackForUser(ctx, userID, 365); err != nil {
 			slog.Warn("home: heatmap lookback failed", "user_id", userID, "error", err)
 		} else {

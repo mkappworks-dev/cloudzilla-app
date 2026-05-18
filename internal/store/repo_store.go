@@ -604,6 +604,28 @@ func (s *RepoStore) CountForUser(ctx context.Context, userID int64) (int, error)
 	return n, err
 }
 
+// scope is "owned", "collaborator", or "all" (default for any unknown value).
+// The repo owner also holds a permission row, so "collaborator" excludes owned repos.
+func (s *RepoStore) ListForUser(ctx context.Context, userID int64, scope string) ([]model.Repository, error) {
+	const cols = `r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at, r.is_fork, r.fork_of_id, r.fork_count, r.is_archived, r.archived_at, r.is_template`
+	var where string
+	switch scope {
+	case "owned":
+		where = `r.owner_id = $1`
+	case "collaborator":
+		where = `r.owner_id <> $1 AND EXISTS (SELECT 1 FROM permissions p WHERE p.repo_id = r.id AND p.user_id = $1)`
+	default: // "all"
+		where = `(r.owner_id = $1 OR EXISTS (SELECT 1 FROM permissions p WHERE p.repo_id = r.id AND p.user_id = $1))`
+	}
+	q := `SELECT ` + cols + ` FROM repositories r WHERE r.deleted_at IS NULL AND (` + where + `) ORDER BY r.updated_at DESC`
+	rows, err := s.db.QueryContext(ctx, q, userID)
+	if err != nil {
+		return nil, fmt.Errorf("repo list for user: %w", err)
+	}
+	defer rows.Close()
+	return scanRepoRows(rows)
+}
+
 func scanRepoRows(rows *sql.Rows) ([]model.Repository, error) {
 	var repos []model.Repository
 	for rows.Next() {

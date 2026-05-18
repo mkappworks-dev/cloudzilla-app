@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -12,162 +13,148 @@ import (
 templ Milestones(data view.MilestonesData) {
 	@layout.Base(data.BasePage, "Milestones · "+data.Owner+"/"+data.RepoName) {
 		<div class="space-y-6">
-			<div class="flex items-center justify-between">
-				<div>
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="text-foreground hover:underline text-sm font-medium">{ data.Owner }/{ data.RepoName }</a>
-					<span class="text-muted-foreground mx-1" aria-hidden="true">/</span>
-					<span class="text-sm font-medium text-foreground">Milestones</span>
+			<div class="flex flex-wrap items-start justify-between gap-4">
+				<div class="min-w-0">
+					<h1 class="text-2xl font-semibold tracking-tight">Milestones</h1>
+					<p class="mt-1 text-[13px] text-muted-foreground">Group issues and pull requests toward a shared goal and track progress.</p>
 				</div>
 				if data.CanWrite {
-					<details class="relative">
-						<summary class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-9 px-4 text-sm bg-success text-success-foreground hover:bg-success/90 cursor-pointer list-none">
-							New milestone
-						</summary>
-						<div class="absolute right-0 mt-2 w-96 rounded-md border border-border bg-popover text-foreground shadow-lg p-4 z-10">
-							<h3 class="font-semibold text-foreground mb-3">Create milestone</h3>
-							<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones" } hx-target="#milestones-list" hx-swap="outerHTML" class="space-y-3">
-								<div>
-									<label for="milestone-title" class="block text-xs font-medium text-foreground mb-1">Title <span class="text-destructive" aria-hidden="true">*</span></label>
-									@components.Input(templ.Attributes{
-										"id":       "milestone-title",
-										"type":     "text",
-										"name":     "title",
-										"required": "required",
-									})
-								</div>
-								<div>
-									<label for="milestone-description" class="block text-xs font-medium text-foreground mb-1">Description</label>
-									@components.Textarea(templ.Attributes{
-										"id":   "milestone-description",
-										"name": "description",
-										"rows": "2",
-									})
-								</div>
-								<div>
-									<label for="milestone-due-date" class="block text-xs font-medium text-foreground mb-1">Due date</label>
-									@components.Input(templ.Attributes{
-										"id":   "milestone-due-date",
-										"type": "date",
-										"name": "due_date",
-									})
-								</div>
-								<div class="flex justify-end gap-2">
-									@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
-										Create milestone
-									}
-								</div>
-							</form>
-						</div>
-					</details>
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones/new") } class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors h-9 px-4 text-sm bg-success text-success-foreground hover:bg-success/90">
+						New milestone
+					</a>
 				}
 			</div>
-			<div id="milestones-list" class="space-y-4">
-				if len(data.OpenMilestones) == 0 && len(data.ClosedMilestones) == 0 {
-					<div class="text-center py-12 text-muted-foreground">
-						<p class="text-sm">No milestones yet.</p>
-						if data.CanWrite {
-							<p class="text-xs mt-1">Create one to start tracking progress.</p>
-						}
-					</div>
-				} else {
-					if len(data.OpenMilestones) > 0 {
-						<div>
-							<h2 class="text-sm font-semibold text-foreground mb-2">Open ({ strconv.Itoa(len(data.OpenMilestones)) })</h2>
-							<div class="space-y-3">
-								for _, m := range data.OpenMilestones {
-									<div class="rounded-md border border-border bg-card p-4">
-										<div class="flex items-start justify-between gap-2">
-											<div class="flex-1 min-w-0">
-												<h3 class="font-semibold text-foreground">{ m.Title }</h3>
-												if m.Description != "" {
-													<p class="text-sm text-muted-foreground mt-0.5 truncate">{ m.Description }</p>
-												}
-												if m.DueDate != nil {
-													<p class="text-xs text-muted-foreground mt-1">Due <time datetime={ m.DueDate.UTC().Format(time.RFC3339) }>{ m.DueDate.Format("Jan 2, 2006") }</time></p>
-												}
-												if m.OpenCount+m.ClosedCount > 0 {
-													@components.ProgressBar(m.ClosedCount, m.OpenCount+m.ClosedCount)
-												} else {
-													<p class="text-xs text-muted-foreground mt-1">No issues assigned</p>
-												}
-											</div>
-											if data.CanWrite {
-												<div class="flex gap-2 shrink-0">
-													@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-														"hx-patch":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(m.Number),
-														"hx-vals":   `{"state":"closed"}`,
-														"hx-target": "#milestones-list",
-														"hx-swap":   "outerHTML",
-														"type":      "button",
-													}) {
-														Close
-													}
-													@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-														"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(m.Number),
-														"hx-target":  "#milestones-list",
-														"hx-swap":    "outerHTML",
-														"hx-confirm": "Delete this milestone?",
-														"type":       "button",
-													}) {
-														Delete
-													}
-												</div>
-											}
-										</div>
-									</div>
-								}
-							</div>
-						</div>
+			if len(data.OpenMilestones) == 0 && len(data.ClosedMilestones) == 0 {
+				<div class="rounded-md border border-border bg-card text-center py-12">
+					<p class="text-sm text-muted-foreground">No milestones yet.</p>
+					if data.CanWrite {
+						<p class="text-xs text-muted-foreground mt-1">Create one to start tracking progress.</p>
 					}
-					if len(data.ClosedMilestones) > 0 {
-						<div>
-							<h2 class="text-sm font-semibold text-foreground mb-2">Closed ({ strconv.Itoa(len(data.ClosedMilestones)) })</h2>
-							<div class="space-y-3">
-								for _, m := range data.ClosedMilestones {
-									<div class="rounded-md border border-border bg-card p-4 opacity-70">
-										<div class="flex items-start justify-between gap-2">
-											<div class="flex-1 min-w-0">
-												<h3 class="font-semibold text-foreground line-through">{ m.Title }</h3>
-												if m.Description != "" {
-													<p class="text-sm text-muted-foreground mt-0.5 truncate">{ m.Description }</p>
-												}
-												if m.ClosedAt != nil {
-													<p class="text-xs text-muted-foreground mt-1">Closed <time datetime={ m.ClosedAt.UTC().Format(time.RFC3339) }>{ m.ClosedAt.Format("Jan 2, 2006") }</time></p>
-												}
-												if m.OpenCount+m.ClosedCount > 0 {
-													@components.ProgressBar(m.ClosedCount, m.OpenCount+m.ClosedCount)
-												}
-											</div>
-											if data.CanWrite {
-												<div class="flex gap-2 shrink-0">
-													@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-														"hx-patch":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(m.Number),
-														"hx-vals":   `{"state":"open"}`,
-														"hx-target": "#milestones-list",
-														"hx-swap":   "outerHTML",
-														"type":      "button",
-													}) {
-														Reopen
-													}
-													@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-														"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(m.Number),
-														"hx-target":  "#milestones-list",
-														"hx-swap":    "outerHTML",
-														"hx-confirm": "Delete this milestone?",
-														"type":       "button",
-													}) {
-														Delete
-													}
-												</div>
-											}
-										</div>
-									</div>
-								}
-							</div>
-						</div>
+				</div>
+			} else {
+				<div class="flex items-center gap-1 border-b border-border text-sm" role="tablist" aria-label="Milestone state">
+					<button type="button" id="ms-tab-open" role="tab" aria-selected="true" aria-controls="ms-list-open" class="cz-ms-tab px-3 py-2.5 -mb-px border-b-2 border-foreground font-medium text-foreground">
+						Open <span class="font-mono text-[11px] text-muted-foreground ml-0.5">{ strconv.Itoa(len(data.OpenMilestones)) }</span>
+					</button>
+					<button type="button" id="ms-tab-closed" role="tab" aria-selected="false" aria-controls="ms-list-closed" class="cz-ms-tab px-3 py-2.5 -mb-px border-b-2 border-transparent text-muted-foreground hover:text-foreground">
+						Closed <span class="font-mono text-[11px] text-muted-foreground ml-0.5">{ strconv.Itoa(len(data.ClosedMilestones)) }</span>
+					</button>
+				</div>
+				<div id="ms-list-open" role="tabpanel" aria-labelledby="ms-tab-open" class="space-y-3">
+					if len(data.OpenMilestones) == 0 {
+						<p class="text-sm text-muted-foreground text-center py-6">No open milestones.</p>
 					}
-				}
-			</div>
+					for _, m := range data.OpenMilestones {
+						@milestoneCard(data.Owner, data.RepoName, m, data.CanWrite)
+					}
+				</div>
+				<div id="ms-list-closed" role="tabpanel" aria-labelledby="ms-tab-closed" class="space-y-3 hidden">
+					if len(data.ClosedMilestones) == 0 {
+						<p class="text-sm text-muted-foreground text-center py-6">No closed milestones.</p>
+					}
+					for _, m := range data.ClosedMilestones {
+						@milestoneCard(data.Owner, data.RepoName, m, data.CanWrite)
+					}
+				</div>
+			}
 		</div>
+		@milestonesTabScript()
 	}
+}
+
+templ milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) {
+	{{ closed := m.State == "closed" }}
+	{{ total := m.OpenCount + m.ClosedCount }}
+	{{ apiURL := "/api/repos/" + owner + "/" + repoName + "/milestones/" + strconv.Itoa(m.Number) }}
+	<div class={ "relative rounded-md border border-border bg-card p-4 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-sm before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px]", templ.KV("opacity-70", closed) }>
+		<div class="flex items-start gap-3">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class={ "shrink-0 mt-0.5", templ.KV("text-success", !closed), templ.KV("text-muted-foreground", closed) } aria-hidden="true">
+				<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+				<line x1="4" y1="22" x2="4" y2="15"></line>
+			</svg>
+			<div class="min-w-0 flex-1">
+				<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/issues?milestone=" + strconv.Itoa(m.Number)) } class={ "font-semibold hover:underline", templ.KV("line-through", closed) }>{ m.Title }</a>
+				<p class="text-xs text-muted-foreground mt-0.5">
+					if closed && m.ClosedAt != nil {
+						Closed <time datetime={ m.ClosedAt.UTC().Format(time.RFC3339) }>{ m.ClosedAt.Format("Jan 2, 2006") }</time>
+					} else if m.DueDate != nil {
+						Due by <time datetime={ m.DueDate.UTC().Format(time.RFC3339) }>{ m.DueDate.Format("Jan 2, 2006") }</time>
+					} else {
+						No due date
+					}
+				</p>
+				if m.Description != "" {
+					<p class="text-sm text-muted-foreground mt-1.5">{ m.Description }</p>
+				}
+				if total > 0 {
+					<div class="mt-2.5 max-w-md">
+						@components.ProgressBar(m.ClosedCount, total)
+					</div>
+					<p class="text-[11px] text-muted-foreground mt-1.5 font-mono">
+						{ strconv.Itoa(m.ClosedCount * 100 / total) }% complete · { strconv.Itoa(m.ClosedCount) } closed · { strconv.Itoa(m.OpenCount) } open
+					</p>
+				} else {
+					<p class="text-[11px] text-muted-foreground mt-1.5 font-mono">No issues or pull requests assigned</p>
+				}
+			</div>
+			if canWrite {
+				<div class="flex items-center gap-2 shrink-0">
+					if closed {
+						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+							"type":                 "button",
+							"hx-patch":              apiURL,
+							"hx-vals":               `{"state":"open"}`,
+							"hx-swap":               "none",
+							"hx-on--after-request": "if(event.detail.successful)location.reload()",
+						}) {
+							Reopen
+						}
+					} else {
+						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+							"type":                 "button",
+							"hx-patch":              apiURL,
+							"hx-vals":               `{"state":"closed"}`,
+							"hx-swap":               "none",
+							"hx-on--after-request": "if(event.detail.successful)location.reload()",
+						}) {
+							Close
+						}
+					}
+					@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
+						"type":                 "button",
+						"hx-delete":             apiURL,
+						"hx-confirm":            "Delete this milestone?",
+						"hx-swap":               "none",
+						"hx-on--after-request": "if(event.detail.successful)location.reload()",
+					}) {
+						Delete
+					}
+				</div>
+			}
+		</div>
+	</div>
+}
+
+templ milestonesTabScript() {
+	<script>
+		(function () {
+			var tabs = { open: document.getElementById('ms-tab-open'), closed: document.getElementById('ms-tab-closed') };
+			var lists = { open: document.getElementById('ms-list-open'), closed: document.getElementById('ms-list-closed') };
+			if (!tabs.open || !tabs.closed) return;
+			function show(which) {
+				['open', 'closed'].forEach(function (k) {
+					var active = k === which;
+					lists[k].classList.toggle('hidden', !active);
+					tabs[k].setAttribute('aria-selected', String(active));
+					tabs[k].classList.toggle('border-foreground', active);
+					tabs[k].classList.toggle('text-foreground', active);
+					tabs[k].classList.toggle('font-medium', active);
+					tabs[k].classList.toggle('border-transparent', !active);
+					tabs[k].classList.toggle('text-muted-foreground', !active);
+				});
+			}
+			tabs.open.addEventListener('click', function () { show('open'); });
+			tabs.closed.addEventListener('click', function () { show('closed'); });
+		})();
+	</script>
 }

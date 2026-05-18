@@ -1,0 +1,26 @@
+package components
+
+import "github.com/mkappworks-dev/cloudzilla-app/internal/model"
+
+templ PullStateBadge(state model.PRState, isDraft bool) {
+	if isDraft {
+		@Badge(BadgeDraft) {
+			Draft
+		}
+	} else {
+		switch state {
+		case model.PRStateOpen:
+			@Badge(BadgeSuccess) {
+				Open
+			}
+		case model.PRStateMerged:
+			@Badge(BadgeMerged) {
+				Merged
+			}
+		default:
+			@Badge(BadgeDestructive) {
+				Closed
+			}
+		}
+	}
+}

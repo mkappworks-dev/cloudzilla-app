@@ -87,6 +87,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.With(authMW).Delete("/{id}", h.DeleteGist)
 	})
 
+	// Account-level cross-repo pages
+	r.With(authMW).Get("/repos", h.PageAccountRepos)
+	r.With(authMW).Get("/pulls", h.PageAccountPulls)
+	r.With(authMW).Get("/issues", h.PageAccountIssues)
+
 	// Topic explore page
 	r.With(optAuthMW).Get("/topic/{name}", h.PageTopic)
 
@@ -102,6 +107,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/stargazers", h.PageStargazers)
 	r.With(optAuthMW).Get("/{owner}/stars", h.PageUserStars)
 	r.With(optAuthMW).Get("/{owner}/{repo}/milestones", h.PageMilestones)
+	r.With(authMW).Get("/{owner}/{repo}/milestones/new", h.PageNewMilestone)
+	r.With(authMW).Post("/{owner}/{repo}/milestones/new", h.PageNewMilestoneSubmit)
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues", h.PageIssues)
 	// Issue and PR creation pages
 	r.With(authMW).Get("/{owner}/{repo}/issues/new", h.PageNewIssue)
@@ -111,6 +118,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Get("/{owner}/{repo}/pulls/new", h.PageNewPull)
 	r.With(authMW).Post("/{owner}/{repo}/pulls/new", h.PageNewPullSubmit)
 	r.With(optAuthMW).Get("/{owner}/{repo}/pulls/{number}", h.PagePullDetail)
+	r.With(optAuthMW).Get("/{owner}/{repo}/pulls/{number}/commits", h.PagePullCommits)
+	r.With(optAuthMW).Get("/{owner}/{repo}/pulls/{number}/checks", h.PagePullChecks)
+	r.With(optAuthMW).Get("/{owner}/{repo}/pulls/{number}/files", h.PagePullFiles)
 	r.With(optAuthMW).Get("/{owner}/{repo}/refs", h.PageRefs)
 	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}", h.PageTree)
 	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}/*", h.PageTree)
@@ -209,6 +219,10 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.With(authMW).Post("/{owner}/{repo}/pulls/{number}/labels/{labelID}", h.AddPullLabel)
 		r.With(authMW).Delete("/{owner}/{repo}/pulls/{number}/labels/{labelID}", h.RemovePullLabel)
 
+		// Pull request ↔ issue links
+		r.With(authMW).Post("/{owner}/{repo}/pulls/{number}/linked-issues/{issueNumber}", h.LinkPullIssue)
+		r.With(authMW).Delete("/{owner}/{repo}/pulls/{number}/linked-issues/{issueNumber}", h.UnlinkPullIssue)
+
 		// Assignees
 		r.With(authMW).Post("/{owner}/{repo}/issues/{number}/assignees", h.AddIssueAssignee)
 		r.With(authMW).Delete("/{owner}/{repo}/issues/{number}/assignees", h.RemoveIssueAssignee)
@@ -239,6 +253,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Patch("/{number}", h.UpdatePull)
 			r.Get("/{number}/reviews", h.ListReviews)
 			r.With(authMW).Post("/{number}/reviews", h.SubmitReview)
+			r.With(authMW).Post("/{number}/reviewers", h.AddPullReviewer)
+			r.With(authMW).Delete("/{number}/reviewers", h.RemovePullReviewer)
+			r.With(authMW).Post("/{number}/comments", h.CreatePullComment)
+			r.With(authMW).Patch("/{number}/comments/{commentID}", h.UpdateComment)
+			r.With(authMW).Delete("/{number}/comments/{commentID}", h.DeleteComment)
 			r.Get("/{number}/line_comments", h.ListLineComments)
 			r.With(authMW).Post("/{number}/line_comments", h.CreateLineComment)
 			// /form must be before /{id} to avoid chi wildcard conflict
@@ -390,6 +409,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Use(optAuthMW)
 		r.Get("/{owner}/{repo}/issues/{number}/comments", h.IssueCommentsFragment)
 	})
+
+	// Markdown preview for editor Preview tabs
+	r.With(authMW, apiBodyLimit).Post("/api/markdown/preview", h.MarkdownPreview)
 
 	// SSH Key routes
 	r.Route("/api/user/keys", func(r chi.Router) {

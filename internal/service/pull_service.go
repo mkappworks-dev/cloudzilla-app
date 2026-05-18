@@ -21,8 +21,10 @@ type PullService struct {
 	reviewStore   *store.PullReviewStore
 	labelStore    *store.LabelStore
 	assigneeStore *store.AssigneeStore
+	commentStore  *store.CommentStore
 	contribStats  *store.ContributorStatsStore
 	userStore     *store.UserStore
+	mentions      *store.MentionStore
 }
 
 // NewPullService creates a PullService backed by the given stores.
@@ -30,12 +32,13 @@ func NewPullService(pulls *store.PullStore, repos *store.RepoStore, repoSvc *Rep
 	return &PullService{pulls: pulls, repos: repos, repoSvc: repoSvc}
 }
 
-func (s *PullService) WithCIDeps(code *CodeService, commitStatus *CommitStatusService, reviews *store.PullReviewStore, labels *store.LabelStore, assignees *store.AssigneeStore) *PullService {
+func (s *PullService) WithCIDeps(code *CodeService, commitStatus *CommitStatusService, reviews *store.PullReviewStore, labels *store.LabelStore, assignees *store.AssigneeStore, comments *store.CommentStore) *PullService {
 	s.code = code
 	s.commitStatus = commitStatus
 	s.reviewStore = reviews
 	s.labelStore = labels
 	s.assigneeStore = assignees
+	s.commentStore = comments
 	return s
 }
 
@@ -43,6 +46,9 @@ type PullListRow struct {
 	model.PullRequest
 	HeadSHA       string
 	CIStatus      string
+	CIPassing     int
+	CITotal       int
+	CommentCount  int
 	Reviewers     []model.PullReview
 	LabelChips    []model.Label
 	AssigneeChips []model.User
@@ -83,6 +89,12 @@ func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName stri
 			return nil, fmt.Errorf("list assignees: %w", err)
 		}
 	}
+	var commentsByPull map[int64]int
+	if s.commentStore != nil {
+		if commentsByPull, err = s.commentStore.CountByPullIDs(ctx, pullIDs); err != nil {
+			return nil, fmt.Errorf("count comments: %w", err)
+		}
+	}
 
 	out := make([]PullListRow, 0, len(pulls))
 	for _, p := range pulls {
@@ -91,13 +103,20 @@ func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName stri
 			Reviewers:     reviewsByPull[p.ID],
 			LabelChips:    labelsByPull[p.ID],
 			AssigneeChips: assigneesByPull[p.ID],
+			CommentCount:  commentsByPull[p.ID],
 		}
 		if s.code != nil {
 			if commit, _, err := s.code.ResolveRef(owner, repoName, p.HeadBranch); err == nil {
 				row.HeadSHA = commit.Hash.String()
 				if s.commitStatus != nil {
-					if combined, _, err := s.commitStatus.GetCombined(ctx, owner, repoName, row.HeadSHA); err == nil {
+					if combined, statuses, err := s.commitStatus.GetCombined(ctx, owner, repoName, row.HeadSHA); err == nil {
 						row.CIStatus = string(combined)
+						row.CITotal = len(statuses)
+						for _, st := range statuses {
+							if st.State == model.CommitStatusSuccess {
+								row.CIPassing++
+							}
+						}
 					}
 				}
 			}
@@ -227,6 +246,38 @@ func (s *PullService) SetState(ctx context.Context, owner, repoName string, numb
 	return s.Get(ctx, owner, repoName, number)
 }
 
+// title must be pre-trimmed.
+func (s *PullService) UpdateTitle(ctx context.Context, owner, repoName string, number int, title string) (*model.PullRequest, error) {
+	pr, err := s.Get(ctx, owner, repoName, number)
+	if err != nil {
+		return nil, err
+	}
+	if pr.State == model.PRStateMerged {
+		return nil, fmt.Errorf("merged PRs cannot be updated")
+	}
+	if title == "" {
+		return nil, fmt.Errorf("title cannot be empty")
+	}
+	if err := s.pulls.UpdateTitle(ctx, pr.ID, title); err != nil {
+		return nil, err
+	}
+	return s.Get(ctx, owner, repoName, number)
+}
+
+func (s *PullService) UpdateBody(ctx context.Context, owner, repoName string, number int, body string) (*model.PullRequest, error) {
+	pr, err := s.Get(ctx, owner, repoName, number)
+	if err != nil {
+		return nil, err
+	}
+	if pr.State == model.PRStateMerged {
+		return nil, fmt.Errorf("merged PRs cannot be updated")
+	}
+	if err := s.pulls.UpdateBody(ctx, pr.ID, body); err != nil {
+		return nil, err
+	}
+	return s.Get(ctx, owner, repoName, number)
+}
+
 func (s *PullService) CountCreatedSince(ctx context.Context, repoID int64, since time.Time) (int, error) {
 	return s.pulls.CountCreatedSince(ctx, repoID, since)
 }
@@ -243,14 +294,44 @@ func (s *PullService) CountOpen(ctx context.Context, repoID int64) (int, error) 
 	return s.pulls.CountOpen(ctx, repoID)
 }
 
-func (s *PullService) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
-	return s.pulls.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+func (s *PullService) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
+	return s.pulls.CountOpenAssignedTo(ctx, userID)
 }
 
 func (s *PullService) WithReviewerDeps(contribStats *store.ContributorStatsStore, userStore *store.UserStore) *PullService {
 	s.contribStats = contribStats
 	s.userStore = userStore
 	return s
+}
+
+func (s *PullService) WithMentionStore(m *store.MentionStore) *PullService {
+	s.mentions = m
+	return s
+}
+
+// mode is one of "created", "assigned", "review_requested", "mentioned"; state is "open" or "closed".
+func (s *PullService) ListForUser(ctx context.Context, userID int64, mode, state string) ([]store.PullListItem, error) {
+	if state != "closed" {
+		state = "open"
+	}
+	switch mode {
+	case "review_requested":
+		ids, err := s.reviewStore.ListPullIDsAwaitingReviewer(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		return s.pulls.ListByIDs(ctx, userID, ids, state)
+	case "mentioned":
+		ids, err := s.mentions.ListPullIDsMentioning(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		return s.pulls.ListByIDs(ctx, userID, ids, state)
+	case "assigned":
+		return s.pulls.ListForUser(ctx, userID, "assigned", state)
+	default:
+		return s.pulls.ListForUser(ctx, userID, "created", state)
+	}
 }
 
 // SuggestReviewers returns up to limit candidate reviewers for a PR between base and head.

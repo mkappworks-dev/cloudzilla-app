@@ -61,7 +61,7 @@ func TestListIssues_VisibilityFilter(t *testing.T) {
 	// Create repo owned by ownerID.
 	var repoID int64
 	err = db.QueryRowContext(ctx,
-		`INSERT INTO repositories (owner_id, owner_name, name, description, is_private)
+		`INSERT INTO repositories (owner_id, owner_name, name, description, private)
 		 VALUES ($1, $2, $3, '', false) RETURNING id`,
 		ownerID, "testowner_"+suffix, "testrepo_"+suffix,
 	).Scan(&repoID)

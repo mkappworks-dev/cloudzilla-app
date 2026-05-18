@@ -13,11 +13,6 @@ templ Commits(data view.CommitsData) {
 		<div class="space-y-6">
 
 			<section aria-labelledby="commits-title">
-				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
-					<span aria-hidden="true">·</span>
-					Commits
-				</p>
 				<h1 id="commits-title" class="text-2xl font-semibold tracking-tight">Commit history</h1>
 				<div class="mt-3 flex flex-wrap items-center gap-2">
 					@components.LinkButton(data.RefsURL, components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"aria-label": "Branches and tags, current: " + data.Log.Ref}) {

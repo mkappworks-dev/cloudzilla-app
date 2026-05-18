@@ -20,13 +20,40 @@ type PullsData struct {
 	Rows        []components.PRListRowData
 }
 
+type LinkedIssue struct {
+	Number int
+	Title  string
+	State  string
+}
+
+type LinkedIssuesSidebarData struct {
+	Owner      string
+	RepoName   string
+	PullNumber int
+	Linked     []LinkedIssue
+	AllIssues  []LinkedIssue
+	CanWrite   bool
+}
+
+type PullChromeCounts struct {
+	ConvCount    int
+	CommitsCount int
+	ChecksTotal  int
+	ChecksPassed int
+	FilesCount   int
+	Added        int
+	Deleted      int
+}
+
 // PullDetailData holds template data for the pull request detail page.
 type PullDetailData struct {
 	BasePage
+	PullChromeCounts
 	Repo              model.Repository
 	Pull              model.PullRequest
 	Owner             string
 	RepoName          string
+	AuthorUsername    string // resolved by handler; empty -> chrome falls back to Pull.AuthorName
 	Diff              *service.PRDiffResult
 	BodyHTML          string
 	Labels            []model.Label
@@ -35,8 +62,15 @@ type PullDetailData struct {
 	Milestone         *model.Milestone
 	AllMilestones     []model.Milestone
 	CanWrite          bool
+	Collaborators     []string
 	HeadStatuses      []model.CommitStatus
 	Reviews           []model.PullReview
+	Comments          []RenderedComment
+	Participants      []string
+	LinkedIssues      []LinkedIssue
+	LinkableIssues    []LinkedIssue
+	Subscribed        bool
+	Events            []model.PullEvent
 	CanMerge          bool
 	MergeBlockReason  string
 	AutoMergeEnabled  bool
@@ -44,6 +78,46 @@ type PullDetailData struct {
 	// LineComments keyed by "path:line" (e.g. "src/main.go:42")
 	LineComments map[string][]RenderedLineComment
 	Mergeability components.MergeabilityBoxData
+}
+
+type PullCommitsData struct {
+	BasePage
+	PullChromeCounts
+	OwnerName      string
+	Repo           *model.Repository
+	Pull           *model.PullRequest
+	AuthorUsername string
+	Commits        []service.CommitSummary
+	CanWrite       bool
+	LoadError      bool
+}
+
+type PullChecksData struct {
+	BasePage
+	PullChromeCounts
+	OwnerName      string
+	Repo           *model.Repository
+	Pull           *model.PullRequest
+	AuthorUsername string
+	Rows           []components.CheckRow
+	HeadSHA        string
+	CanWrite       bool
+	LoadError      bool
+}
+
+type PullFilesData struct {
+	BasePage
+	PullChromeCounts
+	OwnerName      string
+	Repo           *model.Repository
+	Pull           *model.PullRequest
+	AuthorUsername string
+	Tree           []components.DiffFileTreeItem
+	Diff           *service.PRDiffResult
+	CanWrite       bool
+	// LineComments keyed by "path:line" (e.g. "src/main.go:42").
+	LineComments map[string][]RenderedLineComment
+	LoadError    bool
 }
 
 type PullNewData struct {
@@ -95,11 +169,12 @@ type PullLabelSidebarData struct {
 
 // PullAssigneeSidebarData holds template data for the PR assignee sidebar HTMX fragment.
 type PullAssigneeSidebarData struct {
-	Owner      string
-	RepoName   string
-	PullNumber int
-	Assignees  []model.User
-	CanWrite   bool
+	Owner         string
+	RepoName      string
+	PullNumber    int
+	Assignees     []model.User
+	Collaborators []string
+	CanWrite      bool
 }
 
 // Line comment fragments

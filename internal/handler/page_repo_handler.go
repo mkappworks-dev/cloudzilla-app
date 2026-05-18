@@ -128,7 +128,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
-	topContribs, contribErr := h.Services.Repo.TopContributors(r.Context(), owner, repoName, 10)
+	topContribs, contribErr := h.Services.Repo.TopContributors(r.Context(), owner, repoName, repo.DefaultBranch, 10)
 	if contribErr != nil {
 		slog.Warn("repo: top contributors failed", "owner", owner, "repo", repoName, "error", contribErr)
 	}
@@ -193,7 +193,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Repo(view.RepoData{
-		BasePage:      withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
+		BasePage:      h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:          *repo,
 		Owner:         owner,
 		RepoName:      repoName,
@@ -279,7 +279,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 	canTransfer := isOwner && repo.OrgID == 0
 
 	h.render(w, r, pages.RepoSettings(view.RepoSettingsData{
-		BasePage:          withRepoSubnav(basePage(r, h.Services), repo, "settings", canManage),
+		BasePage:          h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "settings", canManage),
 		Repo:              *repo,
 		Owner:             owner,
 		RepoName:          repoName,
@@ -391,7 +391,7 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Refs(view.RefsData{
-		BasePage: withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
+		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
@@ -467,7 +467,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 			}
 
 			h.render(w, r, pages.Tree(view.TreeData{
-				BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
+				BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 				Repo:         *repo,
 				Owner:        owner,
 				RepoName:     repoName,
@@ -544,7 +544,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Tree(view.TreeData{
-		BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
+		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,
@@ -617,7 +617,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Blob(view.BlobData{
-		BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
+		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,
@@ -692,7 +692,7 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Commits(view.CommitsData{
-		BasePage: withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
+		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
@@ -736,7 +736,7 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.Commit(view.CommitData{
-		BasePage: withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
+		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
@@ -784,7 +784,7 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Blame(view.BlameData{
-		BasePage:     withRepoSubnav(basePage(r, h.Services), repo, "code", canManage),
+		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:         *repo,
 		Owner:        owner,
 		RepoName:     repoName,

@@ -57,21 +57,3 @@ templ IssueStateBadge(state string) {
 	}
 }
 
-// PullStateBadge renders an open / merged / closed pill badge for a PR.
-// Kept as a wrapper around Badge for existing callers.
-templ PullStateBadge(state string) {
-	switch state {
-	case "open":
-		@Badge(BadgeSuccess) {
-			{ state }
-		}
-	case "merged":
-		@Badge(BadgeMerged) {
-			{ state }
-		}
-	default:
-		@Badge(BadgeDestructive) {
-			{ state }
-		}
-	}
-}

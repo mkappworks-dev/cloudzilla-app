@@ -45,3 +45,34 @@ func (s *MentionStore) CreateBatch(ctx context.Context, commentID int64, userIDs
 	}
 	return tx.Commit()
 }
+
+func (s *MentionStore) ListPullIDsMentioning(ctx context.Context, userID int64) ([]int64, error) {
+	return s.listMentionTargetIDs(ctx, userID, "c.pull_id")
+}
+
+func (s *MentionStore) ListIssueIDsMentioning(ctx context.Context, userID int64) ([]int64, error) {
+	return s.listMentionTargetIDs(ctx, userID, "c.issue_id")
+}
+
+// listMentionTargetIDs returns distinct, non-null values of col (a fixed
+// comments-table column, never user input) for comments that mention userID.
+func (s *MentionStore) listMentionTargetIDs(ctx context.Context, userID int64, col string) ([]int64, error) {
+	q := `SELECT DISTINCT ` + col + `
+	      FROM mentions m
+	      JOIN comments c ON c.id = m.comment_id
+	      WHERE m.user_id = $1 AND ` + col + ` IS NOT NULL`
+	rows, err := s.db.QueryContext(ctx, q, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}

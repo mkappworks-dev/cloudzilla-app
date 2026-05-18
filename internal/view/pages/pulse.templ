@@ -34,11 +34,6 @@ templ Pulse(data view.PulseData) {
 		<div class="space-y-8">
 
 			<section aria-labelledby="pulse-title">
-				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
-					<span aria-hidden="true">·</span>
-					Pulse
-				</p>
 				<h1 id="pulse-title" class="text-2xl font-semibold tracking-tight">
 					Repository pulse
 					<span class="text-muted-foreground font-normal text-base font-mono">last 30 days</span>

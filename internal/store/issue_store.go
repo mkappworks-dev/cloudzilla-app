@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -229,6 +230,46 @@ func (s *IssueStore) ListByRepo(ctx context.Context, repoID int64, state *string
 	return scanIssueRows(rows)
 }
 
+func (s *IssueStore) LinkToPull(ctx context.Context, pullID, issueID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO pull_issue_links (pull_id, issue_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+		pullID, issueID)
+	if err != nil {
+		return fmt.Errorf("link issue to pull: %w", err)
+	}
+	return nil
+}
+
+func (s *IssueStore) UnlinkFromPull(ctx context.Context, pullID, issueID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`DELETE FROM pull_issue_links WHERE pull_id = $1 AND issue_id = $2`,
+		pullID, issueID)
+	if err != nil {
+		return fmt.Errorf("unlink issue from pull: %w", err)
+	}
+	return nil
+}
+
+func (s *IssueStore) ListLinkedToPull(ctx context.Context, pullID int64) ([]model.Issue, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT i.id, i.repo_id, i.number, i.author_id,
+		       COALESCE(u.username, '') AS author_name,
+		       i.title, i.body, i.state,
+		       i.milestone_id, i.visibility,
+		       i.created_at, i.updated_at, i.closed_at,
+		       i.is_pinned, i.is_locked, i.locked_at
+		FROM issues i
+		LEFT JOIN users u ON u.id = i.author_id
+		JOIN pull_issue_links pil ON pil.issue_id = i.id
+		WHERE pil.pull_id = $1
+		ORDER BY i.number`, pullID)
+	if err != nil {
+		return nil, fmt.Errorf("issue list linked to pull: %w", err)
+	}
+	defer rows.Close()
+	return scanIssueRows(rows)
+}
+
 func (s *IssueStore) UpdateState(ctx context.Context, id int64, state model.IssueState) error {
 	now := time.Now().UTC()
 	if state == model.IssueStateClosed {
@@ -302,7 +343,7 @@ func (s *IssueStore) ListPinned(ctx context.Context, repoID int64) ([]model.Issu
 }
 
 func scanIssueRows(rows *sql.Rows) ([]model.Issue, error) {
-	var issues []model.Issue
+	issues := []model.Issue{}
 	for rows.Next() {
 		var iss model.Issue
 		var closedAt, lockedAt sql.NullTime
@@ -379,15 +420,15 @@ func (s *IssueStore) WeeklyCreated(ctx context.Context, repoID int64, weeks int)
 	return out, rows.Err()
 }
 
-// Excludes soft-deleted repos so home-page counts match the heatmap's visibility rule.
-func (s *IssueStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
+// Soft-deleted repos are excluded so the count matches the heatmap's visibility rule.
+func (s *IssueStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,
 		`SELECT COUNT(DISTINCT i.id)
 		 FROM issues i
 		 JOIN repositories r ON r.id = i.repo_id
-		 LEFT JOIN issue_assignees a ON a.issue_id = i.id
-		 WHERE i.state = 'open' AND r.deleted_at IS NULL AND (i.author_id = $1 OR a.user_id = $1)`,
+		 JOIN issue_assignees a ON a.issue_id = i.id
+		 WHERE i.state = 'open' AND r.deleted_at IS NULL AND a.user_id = $1`,
 		userID,
 	).Scan(&n)
 	return n, err
@@ -397,6 +438,7 @@ type IssueListItem struct {
 	ID           int64
 	Number       int
 	Title        string
+	State        string
 	AuthorID     int64
 	RepoFullName string // "<owner_username>/<repo_name>"
 	UpdatedAt    time.Time
@@ -404,7 +446,7 @@ type IssueListItem struct {
 
 func (s *IssueStore) ListOpenAssignedToUser(ctx context.Context, userID int64) ([]IssueListItem, error) {
 	const q = `
-		SELECT i.id, i.number, i.title, i.author_id,
+		SELECT i.id, i.number, i.title, i.state, i.author_id,
 		       u.username || '/' || r.name AS repo_full_name,
 		       i.updated_at
 		FROM issues i
@@ -423,7 +465,71 @@ func (s *IssueStore) ListOpenAssignedToUser(ctx context.Context, userID int64) (
 	var out []IssueListItem
 	for rows.Next() {
 		var it IssueListItem
-		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt); err != nil {
+		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, it)
+	}
+	return out, rows.Err()
+}
+
+// mode is "created" or "assigned"; state is "open" or "closed". For "mentioned", use ListByIDs.
+func (s *IssueStore) ListForUser(ctx context.Context, userID int64, mode, state string) ([]IssueListItem, error) {
+	join, cond := "", ""
+	switch mode {
+	case "assigned":
+		join = `JOIN issue_assignees ia ON ia.issue_id = i.id`
+		cond = `ia.user_id = $1`
+	default: // "created"
+		cond = `i.author_id = $1`
+	}
+	q := `SELECT DISTINCT i.id, i.number, i.title, i.state, i.author_id,
+	             u.username || '/' || r.name AS repo_full_name, i.updated_at
+	      FROM issues i
+	      JOIN repositories r ON r.id = i.repo_id
+	      JOIN users u        ON u.id = r.owner_id
+	      ` + join + `
+	      WHERE r.deleted_at IS NULL AND i.state = $2 AND ` + cond + `
+	        AND (NOT r.private OR r.owner_id = $1
+	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
+	      ORDER BY i.updated_at DESC LIMIT 100`
+	return s.scanIssueListItems(ctx, q, userID, state)
+}
+
+// Restricted to repos visible to userID — the ID set can include issues in private repos the user cannot read.
+func (s *IssueStore) ListByIDs(ctx context.Context, userID int64, ids []int64, state string) ([]IssueListItem, error) {
+	if len(ids) == 0 {
+		return []IssueListItem{}, nil
+	}
+	placeholders := make([]string, len(ids))
+	args := []any{userID, state}
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+3)
+		args = append(args, id)
+	}
+	q := `SELECT DISTINCT i.id, i.number, i.title, i.state, i.author_id,
+	             u.username || '/' || r.name AS repo_full_name, i.updated_at
+	      FROM issues i
+	      JOIN repositories r ON r.id = i.repo_id
+	      JOIN users u        ON u.id = r.owner_id
+	      WHERE r.deleted_at IS NULL AND i.state = $2
+	        AND i.id IN (` + strings.Join(placeholders, ",") + `)
+	        AND (NOT r.private OR r.owner_id = $1
+	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
+	      ORDER BY i.updated_at DESC LIMIT 100`
+	return s.scanIssueListItems(ctx, q, args...)
+}
+
+func (s *IssueStore) scanIssueListItems(ctx context.Context, q string, args ...any) ([]IssueListItem, error) {
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("scan issue list items: %w", err)
+	}
+	defer rows.Close()
+	out := []IssueListItem{}
+	for rows.Next() {
+		var it IssueListItem
+		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, it)

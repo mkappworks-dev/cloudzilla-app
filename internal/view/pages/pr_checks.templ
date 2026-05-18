@@ -1,0 +1,156 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ PullChecks(data view.PullChecksData) {
+	@layout.Base(data.BasePage, "Checks · "+data.Pull.Title+" · PR #"+strconv.Itoa(data.Pull.Number)+" · "+data.OwnerName+"/"+data.Repo.Name) {
+		@fragments.PullChrome(fragments.PullChromeData{
+			OwnerName:      data.OwnerName,
+			Repo:           data.Repo,
+			Pull:           data.Pull,
+			AuthorUsername: data.AuthorUsername,
+			Active:         "checks",
+			CanWrite:       data.CanWrite,
+			ConvCount:      data.ConvCount,
+			CommitsCount:   data.CommitsCount,
+			ChecksTotal:    data.ChecksTotal,
+			ChecksPassed:   data.ChecksPassed,
+			FilesCount:     data.FilesCount,
+			Added:          data.Added,
+			Deleted:        data.Deleted,
+		}, pullChecksBody(data))
+	}
+}
+
+templ pullChecksBody(data view.PullChecksData) {
+	if data.LoadError {
+		@components.EmptyState("Status checks couldn't be loaded.")
+	} else if len(data.Rows) == 0 {
+		@components.EmptyState("No status checks reported for this PR yet.")
+	} else {
+		{{ passed := checksPassedCount(data.Rows) }}
+		{{ failed := checksFailedCount(data.Rows) }}
+		<section class="mb-6">
+			<div class={ "flex items-center gap-2 border rounded-md px-4 py-3", checksBannerClass(passed, failed, len(data.Rows)) }>
+				@checksBannerIcon(passed, failed, len(data.Rows))
+				<p class="text-[13px] font-medium">{ checksBannerTitle(passed, failed, len(data.Rows)) }</p>
+				<p class="text-[12.5px] text-muted-foreground">· { checksBannerDetail(passed, failed) }</p>
+				if data.HeadSHA != "" {
+					<p class="ml-auto text-[12.5px] text-muted-foreground font-mono">on commit { shortSHA(data.HeadSHA) }</p>
+				}
+			</div>
+		</section>
+		<section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Status checks">
+			<ol class="divide-y divide-border">
+				for _, r := range data.Rows {
+					<li class="px-4 py-3 flex items-center gap-3 hover:bg-muted/40">
+						@checkRowIcon(r.State)
+						<div class="min-w-0 flex-1">
+							<p class="text-[13.5px] font-medium font-mono">{ r.Context }</p>
+							if r.Description != "" {
+								<p class="text-[12px] text-muted-foreground mt-0.5">{ r.Description }</p>
+							}
+						</div>
+						if r.URL != "" {
+							<a href={ templ.SafeURL(r.URL) } class="text-[12px] text-muted-foreground hover:text-foreground shrink-0">Details</a>
+						}
+					</li>
+				}
+			</ol>
+		</section>
+		<p class="mt-4 text-[12.5px] text-muted-foreground">
+			<a href={ templ.SafeURL("/" + data.OwnerName + "/" + data.Repo.Name + "/actions") } class="hover:text-foreground">View all workflow runs →</a>
+		</p>
+	}
+}
+
+templ checkRowIcon(state string) {
+	switch state {
+	case "success":
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-label="Succeeded"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+	case "failure", "error":
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-destructive" aria-label="Failed"><path d="M15 9l-6 6M9 9l6 6"></path><circle cx="12" cy="12" r="10"></circle></svg>
+	default:
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-warning" aria-label="Pending"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg>
+	}
+}
+
+templ checksBannerIcon(passed, failed, total int) {
+	if failed > 0 {
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-destructive" aria-hidden="true"><path d="M15 9l-6 6M9 9l6 6"></path><circle cx="12" cy="12" r="10"></circle></svg>
+	} else if passed >= total {
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-success" aria-hidden="true"><path d="M9 12l2 2 4-4"></path><circle cx="12" cy="12" r="10"></circle></svg>
+	} else {
+		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-warning" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 2"></path></svg>
+	}
+}
+
+func checksPassedCount(rows []components.CheckRow) int {
+	n := 0
+	for _, r := range rows {
+		if r.State == "success" {
+			n++
+		}
+	}
+	return n
+}
+
+func checksFailedCount(rows []components.CheckRow) int {
+	n := 0
+	for _, r := range rows {
+		if r.State == "failure" || r.State == "error" {
+			n++
+		}
+	}
+	return n
+}
+
+func checksBannerClass(passed, failed, total int) string {
+	switch {
+	case failed > 0:
+		return "border-destructive/40 bg-destructive/10"
+	case passed >= total:
+		return "border-success/40 bg-success/10"
+	default:
+		return "border-warning/40 bg-warning/10"
+	}
+}
+
+func checksBannerTitle(passed, failed, total int) string {
+	switch {
+	case failed > 0:
+		return "Some checks were not successful"
+	case passed >= total:
+		return "All checks have passed"
+	default:
+		return "Checks are still running"
+	}
+}
+
+func checksBannerDetail(passed, failed int) string {
+	if failed > 0 {
+		return strconv.Itoa(failed) + " failing, " + strconv.Itoa(passed) + " successful"
+	}
+	return strconv.Itoa(passed) + " successful " + checkNoun(passed)
+}
+
+func checkNoun(n int) string {
+	if n == 1 {
+		return "check"
+	}
+	return "checks"
+}
+
+func shortSHA(sha string) string {
+	if len(sha) > 7 {
+		return sha[:7]
+	}
+	return sha
+}
