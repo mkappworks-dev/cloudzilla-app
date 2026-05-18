@@ -103,6 +103,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Post("/{owner}/{repo}/settings/general", h.UpdateRepoGeneral)
 	r.With(authMW).Post("/{owner}/{repo}/settings/features", h.UpdateRepoFeatures)
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases", h.PageReleases)
+	r.With(authMW).Get("/{owner}/{repo}/releases/new", h.PageReleaseNew)
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases/tag/{tagName}", h.PageReleaseDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/stargazers", h.PageStargazers)
 	r.With(optAuthMW).Get("/{owner}/stars", h.PageUserStars)

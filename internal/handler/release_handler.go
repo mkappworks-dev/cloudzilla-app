@@ -40,9 +40,20 @@ func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	releases, _ := h.Services.Release.ListByRepo(r.Context(), owner, repoName)
-	if releases == nil {
-		releases = []model.Release{}
+	rawReleases, _ := h.Services.Release.ListByRepo(r.Context(), owner, repoName)
+	if rawReleases == nil {
+		rawReleases = []model.Release{}
+	}
+
+	latest, _ := h.Services.Release.GetLatest(r.Context(), owner, repoName)
+
+	releaseViews := make([]view.ReleaseView, len(rawReleases))
+	for i, rel := range rawReleases {
+		rv := view.ReleaseView{Release: rel}
+		if latest != nil && rel.ID == latest.ID {
+			rv.IsLatest = true
+		}
+		releaseViews[i] = rv
 	}
 
 	h.render(w, r, pages.Releases(view.ReleasesData{
@@ -50,8 +61,39 @@ func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
-		Releases: releases,
+		Releases: releaseViews,
 		CanWrite: canWrite,
+	}))
+}
+
+func (h *Handler) PageReleaseNew(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+
+	h.render(w, r, pages.ReleaseNew(view.ReleaseNewData{
+		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "releases", canManage),
+		Repo:     *repo,
+		Owner:    owner,
+		RepoName: repoName,
 	}))
 }
 

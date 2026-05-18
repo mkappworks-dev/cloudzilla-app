@@ -58,15 +58,29 @@ type RepoNewData struct {
 	OwnedOrgs []model.Organization
 }
 
-// Releases page
+// ReleaseView decorates a model.Release with computed display fields.
+type ReleaseView struct {
+	model.Release
+	IsLatest bool   // true for the single newest published, non-draft, non-prerelease release
+	DiffURL  string // compare URL vs the previous release; "" if no compare route
+}
+
 // ReleasesData holds template data for the releases list page.
 type ReleasesData struct {
 	BasePage
 	Repo     model.Repository
 	Owner    string
 	RepoName string
-	Releases []model.Release
+	Releases []ReleaseView
 	CanWrite bool
+}
+
+// ReleaseNewData holds template data for the new-release form page.
+type ReleaseNewData struct {
+	BasePage
+	Repo     model.Repository
+	Owner    string
+	RepoName string
 }
 
 // Release detail page
