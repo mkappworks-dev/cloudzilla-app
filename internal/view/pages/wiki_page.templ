@@ -28,10 +28,9 @@ templ WikiPage(data view.WikiPageData) {
 						}
 					}
 					if data.CanManage && data.Exists {
-						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+						@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
 							"type":    "button",
 							"onclick": deleteWikiPageJS(data.Owner, data.RepoName, data.Slug),
-							"class":   "text-destructive border-destructive/40 hover:bg-destructive/10",
 						}) {
 							Delete
 						}
@@ -44,7 +43,9 @@ templ WikiPage(data view.WikiPageData) {
 
 				<article class="rounded-md border border-border bg-card p-6">
 					if data.Exists {
-						@components.MarkdownBody(data.ContentHTML)
+						<div class="prose prose-sm dark:prose-invert max-w-none">
+							@templ.Raw(data.ContentHTML)
+						</div>
 					} else {
 						<div class="text-muted-foreground">
 							<p class="mb-4">This page does not exist yet.</p>

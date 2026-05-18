@@ -61,9 +61,9 @@ func wikiSidebar(owner, repoName, activeSlug string, pages []service.WikiPageMet
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
-				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(pg.Title)
+				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(pg.Slug)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_shared.templ`, Line: 14, Col: 187}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_shared.templ`, Line: 14, Col: 186}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -92,9 +92,9 @@ func wikiSidebar(owner, repoName, activeSlug string, pages []service.WikiPageMet
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var5 string
-				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(pg.Title)
+				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(pg.Slug)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_shared.templ`, Line: 16, Col: 192}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/wiki_shared.templ`, Line: 16, Col: 191}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 				if templ_7745c5c3_Err != nil {

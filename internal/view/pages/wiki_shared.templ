@@ -11,9 +11,9 @@ templ wikiSidebar(owner, repoName, activeSlug string, pages []service.WikiPageMe
 			for _, pg := range pages {
 				<li>
 					if pg.Slug == activeSlug {
-						<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/" + pg.Slug) } class="block px-2 py-1.5 rounded-md font-medium bg-muted text-foreground" aria-current="page">{ pg.Title }</a>
+						<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/" + pg.Slug) } class="block px-2 py-1.5 rounded-md font-medium bg-muted text-foreground" aria-current="page">{ pg.Slug }</a>
 					} else {
-						<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/" + pg.Slug) } class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">{ pg.Title }</a>
+						<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/" + pg.Slug) } class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">{ pg.Slug }</a>
 					}
 				</li>
 			}
