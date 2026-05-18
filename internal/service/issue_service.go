@@ -216,6 +216,10 @@ func (s *IssueService) CountOpenAuthoredByOrAssignedTo(ctx context.Context, user
 	return s.issues.CountOpenAuthoredByOrAssignedTo(ctx, userID)
 }
 
+func (s *IssueService) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
+	return s.issues.CountOpenAssignedTo(ctx, userID)
+}
+
 // ListForUser lists issues related to userID. mode is "assigned", "created",
 // or "mentioned"; state is "open" or "closed".
 func (s *IssueService) ListForUser(ctx context.Context, userID int64, mode, state string) ([]store.IssueListItem, error) {
@@ -228,7 +232,7 @@ func (s *IssueService) ListForUser(ctx context.Context, userID int64, mode, stat
 		if err != nil {
 			return nil, err
 		}
-		return s.issues.ListByIDs(ctx, ids, state)
+		return s.issues.ListByIDs(ctx, userID, ids, state)
 	case "created":
 		return s.issues.ListForUser(ctx, userID, "created", state)
 	default:

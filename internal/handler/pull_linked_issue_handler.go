@@ -87,8 +87,16 @@ func (h *Handler) setPullIssueLink(w http.ResponseWriter, r *http.Request, link 
 }
 
 func (h *Handler) renderLinkedIssuesFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, pullID int64, pullNumber int, userID int64) {
-	linked, _ := h.Services.Issue.LinkedForPull(r.Context(), pullID)
-	all, _ := h.Services.Issue.List(r.Context(), owner, repoName, &userID)
+	linked, err := h.Services.Issue.LinkedForPull(r.Context(), pullID)
+	if err != nil {
+		slog.Warn("linked issues fragment: list failed; sidebar may contradict the toast",
+			"owner", owner, "repo", repoName, "pull_number", pullNumber, "error", err)
+	}
+	all, err := h.Services.Issue.List(r.Context(), owner, repoName, &userID)
+	if err != nil {
+		slog.Warn("linked issues fragment: repo issue list failed; picker will be empty",
+			"owner", owner, "repo", repoName, "pull_number", pullNumber, "error", err)
+	}
 	canWrite := false
 	if repo, err := h.Services.Repo.Get(r.Context(), owner, repoName); err == nil {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, userID)

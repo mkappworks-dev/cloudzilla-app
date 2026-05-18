@@ -2,7 +2,6 @@ package model
 
 import "time"
 
-// Pull request timeline event types.
 const (
 	PullEventRenamed    = "renamed"
 	PullEventDescribed  = "described"

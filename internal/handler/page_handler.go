@@ -78,17 +78,29 @@ func withAccountSubnav(base BasePage, active string, counts map[string]int) Base
 // any failed query degrades that badge to 0 rather than failing the page.
 func (h *Handler) accountCounts(ctx context.Context, userID int64) map[string]int {
 	counts := map[string]int{}
+	logFail := func(badge string, err error) {
+		slog.Warn("account counts: badge query failed; showing 0",
+			"badge", badge, "user_id", userID, "error", err)
+	}
 	if n, err := h.Services.Repo.CountForUser(ctx, userID); err == nil {
 		counts["repositories"] = n
+	} else {
+		logFail("repositories", err)
 	}
 	if n, err := h.Services.Gist.CountByUser(ctx, userID); err == nil {
 		counts["gists"] = n
+	} else {
+		logFail("gists", err)
 	}
 	if n, err := h.Services.Pull.CountOpenAuthoredByOrAssignedTo(ctx, userID); err == nil {
 		counts["pulls"] = n
+	} else {
+		logFail("pulls", err)
 	}
-	if n, err := h.Services.Issue.CountOpenAuthoredByOrAssignedTo(ctx, userID); err == nil {
+	if n, err := h.Services.Issue.CountOpenAssignedTo(ctx, userID); err == nil {
 		counts["issues"] = n
+	} else {
+		logFail("issues", err)
 	}
 	return counts
 }

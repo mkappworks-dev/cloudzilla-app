@@ -245,3 +245,75 @@ func TestIssueStore_CountOpenAuthoredByOrAssignedTo(t *testing.T) {
 		t.Errorf("bob: want 1 (assignee only), got %d", got)
 	}
 }
+
+func TestIssueStore_CountOpenAssignedTo(t *testing.T) {
+	db := openTestDB(t)
+	defer db.Close()
+	ctx := context.Background()
+
+	aliceID, bobID, cleanup := seedTwoUsers(t, ctx, "issueassigned")
+	defer cleanup()
+
+	suffix := fmt.Sprintf("%d", os.Getpid())
+
+	var repoID int64
+	if err := db.QueryRowContext(ctx,
+		`INSERT INTO repositories (owner_id, owner_name, name, description, private, default_branch)
+		 VALUES ($1, $2, $3, '', false, 'main') RETURNING id`,
+		aliceID, "alice_"+suffix, "issueassignedrepo_"+suffix,
+	).Scan(&repoID); err != nil {
+		t.Fatalf("insert repo: %v", err)
+	}
+
+	// alice authors every issue but is assigned to none.
+	var open1, closed3 int64
+	if err := db.QueryRowContext(ctx,
+		`INSERT INTO issues (repo_id, number, author_id, title, body, state)
+		 VALUES ($1, 1, $2, 't1', '', 'open') RETURNING id`,
+		repoID, aliceID,
+	).Scan(&open1); err != nil {
+		t.Fatalf("insert issue1: %v", err)
+	}
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO issues (repo_id, number, author_id, title, body, state)
+		 VALUES ($1, 2, $2, 't2', '', 'open')`,
+		repoID, aliceID,
+	); err != nil {
+		t.Fatalf("insert issue2: %v", err)
+	}
+	if err := db.QueryRowContext(ctx,
+		`INSERT INTO issues (repo_id, number, author_id, title, body, state)
+		 VALUES ($1, 3, $2, 't3-closed', '', 'closed') RETURNING id`,
+		repoID, aliceID,
+	).Scan(&closed3); err != nil {
+		t.Fatalf("insert issue3: %v", err)
+	}
+
+	// bob is assigned to one open issue and one closed issue.
+	for _, id := range []int64{open1, closed3} {
+		if _, err := db.ExecContext(ctx,
+			`INSERT INTO issue_assignees (issue_id, user_id) VALUES ($1, $2)`,
+			id, bobID,
+		); err != nil {
+			t.Fatalf("insert issue assignee: %v", err)
+		}
+	}
+
+	s := store.NewIssueStore(db)
+
+	got, err := s.CountOpenAssignedTo(ctx, aliceID)
+	if err != nil {
+		t.Fatalf("CountOpenAssignedTo(alice): %v", err)
+	}
+	if got != 0 {
+		t.Errorf("alice: want 0 (authoring an issue does not make her an assignee), got %d", got)
+	}
+
+	got, err = s.CountOpenAssignedTo(ctx, bobID)
+	if err != nil {
+		t.Fatalf("CountOpenAssignedTo(bob): %v", err)
+	}
+	if got != 1 {
+		t.Errorf("bob: want 1 (open assigned only, closed excluded), got %d", got)
+	}
+}

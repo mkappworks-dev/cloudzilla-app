@@ -178,7 +178,6 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Handle title rename
 	if prTitle = strings.TrimSpace(prTitle); prTitle != "" {
 		pr, err := h.Services.Pull.UpdateTitle(r.Context(), owner, repoName, number, prTitle)
 		if err != nil {

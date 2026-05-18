@@ -411,16 +411,17 @@ func (s *PullStore) ListForUser(ctx context.Context, userID int64, mode, state s
 	return s.scanPullListItems(ctx, q, userID, state)
 }
 
-// ListByIDs lists pull requests with the given IDs and state, as PullListItem
-// rows. Used for the "review_requested" and "mentioned" filters.
-func (s *PullStore) ListByIDs(ctx context.Context, ids []int64, state string) ([]PullListItem, error) {
+// ListByIDs lists pull requests with the given IDs and state, restricted to
+// repos visible to userID. Used for the "review_requested" and "mentioned"
+// filters, whose ID sets can include PRs in private repos the user cannot read.
+func (s *PullStore) ListByIDs(ctx context.Context, userID int64, ids []int64, state string) ([]PullListItem, error) {
 	if len(ids) == 0 {
 		return []PullListItem{}, nil
 	}
 	placeholders := make([]string, len(ids))
-	args := []any{state}
+	args := []any{userID, state}
 	for i, id := range ids {
-		placeholders[i] = fmt.Sprintf("$%d", i+2)
+		placeholders[i] = fmt.Sprintf("$%d", i+3)
 		args = append(args, id)
 	}
 	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.author_id,
@@ -428,7 +429,10 @@ func (s *PullStore) ListByIDs(ctx context.Context, ids []int64, state string) ([
 	      FROM pull_requests p
 	      JOIN repositories r ON r.id = p.repo_id
 	      JOIN users u        ON u.id = r.owner_id
-	      WHERE r.deleted_at IS NULL AND p.state = $1 AND p.id IN (` + strings.Join(placeholders, ",") + `)
+	      WHERE r.deleted_at IS NULL AND p.state = $2
+	        AND p.id IN (` + strings.Join(placeholders, ",") + `)
+	        AND (NOT r.private OR r.owner_id = $1
+	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
 	      ORDER BY p.updated_at DESC LIMIT 100`
 	return s.scanPullListItems(ctx, q, args...)
 }

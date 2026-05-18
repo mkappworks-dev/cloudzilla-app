@@ -223,6 +223,8 @@ func (h *Handler) recordPullAssigneeEvent(r *http.Request, owner, repoName strin
 	}
 	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 	if err != nil {
+		slog.Warn("record pull assignee event: pull lookup failed; timeline entry skipped",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
 		return
 	}
 	h.Services.PullEvent.Record(r.Context(), pull.ID, claims.UserID, claims.Username, eventType, username)

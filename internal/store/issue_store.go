@@ -437,6 +437,22 @@ func (s *IssueStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID
 	return n, err
 }
 
+// CountOpenAssignedTo counts open issues assigned to userID. It backs the
+// account nav "Issues" badge, so it mirrors the /issues page's default
+// "assigned" tab rather than the broader authored-or-assigned set.
+func (s *IssueStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(DISTINCT i.id)
+		 FROM issues i
+		 JOIN repositories r ON r.id = i.repo_id
+		 JOIN issue_assignees a ON a.issue_id = i.id
+		 WHERE i.state = 'open' AND r.deleted_at IS NULL AND a.user_id = $1`,
+		userID,
+	).Scan(&n)
+	return n, err
+}
+
 type IssueListItem struct {
 	ID           int64
 	Number       int
@@ -499,15 +515,17 @@ func (s *IssueStore) ListForUser(ctx context.Context, userID int64, mode, state 
 	return s.scanIssueListItems(ctx, q, userID, state)
 }
 
-// ListByIDs lists issues with the given IDs and state. Used for "mentioned".
-func (s *IssueStore) ListByIDs(ctx context.Context, ids []int64, state string) ([]IssueListItem, error) {
+// ListByIDs lists issues with the given IDs and state, restricted to repos
+// visible to userID. Used for "mentioned", whose ID set can include issues in
+// private repos the user cannot read.
+func (s *IssueStore) ListByIDs(ctx context.Context, userID int64, ids []int64, state string) ([]IssueListItem, error) {
 	if len(ids) == 0 {
 		return []IssueListItem{}, nil
 	}
 	placeholders := make([]string, len(ids))
-	args := []any{state}
+	args := []any{userID, state}
 	for i, id := range ids {
-		placeholders[i] = fmt.Sprintf("$%d", i+2)
+		placeholders[i] = fmt.Sprintf("$%d", i+3)
 		args = append(args, id)
 	}
 	q := `SELECT DISTINCT i.id, i.number, i.title, i.state, i.author_id,
@@ -515,7 +533,10 @@ func (s *IssueStore) ListByIDs(ctx context.Context, ids []int64, state string) (
 	      FROM issues i
 	      JOIN repositories r ON r.id = i.repo_id
 	      JOIN users u        ON u.id = r.owner_id
-	      WHERE r.deleted_at IS NULL AND i.state = $1 AND i.id IN (` + strings.Join(placeholders, ",") + `)
+	      WHERE r.deleted_at IS NULL AND i.state = $2
+	        AND i.id IN (` + strings.Join(placeholders, ",") + `)
+	        AND (NOT r.private OR r.owner_id = $1
+	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
 	      ORDER BY i.updated_at DESC LIMIT 100`
 	return s.scanIssueListItems(ctx, q, args...)
 }

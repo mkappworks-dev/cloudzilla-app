@@ -373,6 +373,8 @@ func (h *Handler) recordPullLabelEvent(r *http.Request, owner, repoName string, 
 	}
 	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 	if err != nil {
+		slog.Warn("record pull label event: pull lookup failed; timeline entry skipped",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
 		return
 	}
 	name := ""

@@ -469,8 +469,16 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		addParticipant(rv.AuthorName)
 	}
 
-	linkedIssueModels, _ := h.Services.Issue.LinkedForPull(r.Context(), pull.ID)
-	repoIssueModels, _ := h.Services.Issue.List(r.Context(), owner, repoName, callerID)
+	linkedIssueModels, err := h.Services.Issue.LinkedForPull(r.Context(), pull.ID)
+	if err != nil {
+		slog.Warn("pull detail: linked issues list failed; rendering without them",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+	}
+	repoIssueModels, err := h.Services.Issue.List(r.Context(), owner, repoName, callerID)
+	if err != nil {
+		slog.Warn("pull detail: repo issue list failed; link picker will be empty",
+			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
+	}
 
 	subscribed := false
 	if callerID != nil {
@@ -740,8 +748,14 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 // Every PR sub-view calls it so the header is identical across all tabs.
 func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, pull *model.PullRequest) view.PullChromeCounts {
 	var c view.PullChromeCounts
+	logFail := func(what string, err error) {
+		slog.Warn("pull chrome counts: "+what+" failed; tab badge may be wrong",
+			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)
+	}
 	if commits, err := h.Services.Code.PullCommits(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
 		c.CommitsCount = len(commits)
+	} else {
+		logFail("commit walk", err)
 	}
 	if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); err == nil {
 		if statuses, err := h.Services.CommitStatus.List(ctx, owner, repoName, headCommit.Hash.String()); err == nil {
@@ -751,15 +765,23 @@ func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, 
 					c.ChecksPassed++
 				}
 			}
+		} else {
+			logFail("status list", err)
 		}
+	} else {
+		logFail("ref resolution", err)
 	}
 	if diff, err := h.Services.Code.GetPullDiff(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
 		c.FilesCount = len(diff.Files)
 		c.Added = diff.TotalAdded
 		c.Deleted = diff.TotalDeleted
+	} else {
+		logFail("pull diff", err)
 	}
 	if comments, err := h.Services.Comment.ListByPull(ctx, pull.ID); err == nil {
 		c.ConvCount += len(comments)
+	} else {
+		logFail("comment list", err)
 	}
 	if reviews, err := h.Services.PullReview.ListByPull(ctx, owner, repoName, pull.Number); err == nil {
 		for _, rv := range reviews {
@@ -767,6 +789,8 @@ func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, 
 				c.ConvCount++
 			}
 		}
+	} else {
+		logFail("review list", err)
 	}
 	return c
 }

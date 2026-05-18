@@ -198,6 +198,8 @@ func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
 	id, err := strconv.ParseInt(chi.URLParam(r, "commentID"), 10, 64)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid comment id")
@@ -222,6 +224,19 @@ func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 
 	if strings.TrimSpace(body) == "" {
 		writeError(w, http.StatusBadRequest, "body required")
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+
+	// The comment must belong to the repo in the URL so the path identifies a
+	// single comment unambiguously.
+	if existing, err := h.Services.Comment.GetByID(r.Context(), id); err != nil || existing.RepoID != repo.ID {
+		writeError(w, http.StatusNotFound, "comment not found")
 		return
 	}
 
@@ -259,14 +274,21 @@ func (h *Handler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	existing, err := h.Services.Comment.GetByID(r.Context(), id)
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+
+	// The comment must belong to the repo in the URL — otherwise write access to
+	// any repo would authorize deleting comments in repos the caller cannot see.
+	existing, err := h.Services.Comment.GetByID(r.Context(), id)
+	if err != nil || existing.RepoID != repo.ID {
 		writeError(w, http.StatusNotFound, "comment not found")
 		return
 	}
 
-	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-	canWrite := repo != nil && h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	if existing.AuthorID != claims.UserID && !canWrite {
 		writeError(w, http.StatusForbidden, "forbidden")
 		return

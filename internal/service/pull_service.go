@@ -323,13 +323,13 @@ func (s *PullService) ListForUser(ctx context.Context, userID int64, mode, state
 		if err != nil {
 			return nil, err
 		}
-		return s.pulls.ListByIDs(ctx, ids, state)
+		return s.pulls.ListByIDs(ctx, userID, ids, state)
 	case "mentioned":
 		ids, err := s.mentions.ListPullIDsMentioning(ctx, userID)
 		if err != nil {
 			return nil, err
 		}
-		return s.pulls.ListByIDs(ctx, ids, state)
+		return s.pulls.ListByIDs(ctx, userID, ids, state)
 	case "assigned":
 		return s.pulls.ListForUser(ctx, userID, "assigned", state)
 	default:
