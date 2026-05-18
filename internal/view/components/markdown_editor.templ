@@ -14,7 +14,7 @@ templ MarkdownEditor(id, name, content, placeholder string, rows int) {
 					data-md-tab="preview"
 					aria-selected="false"
 					hx-post="/api/markdown/preview"
-					hx-include={ "#" + id }
+					hx-vals={ "js:{body: document.getElementById('" + id + "').value}" }
 					hx-target={ "#" + id + "-preview" }
 					hx-swap="innerHTML"
 					class="px-3 py-2 text-[13px] border-b-2 border-transparent text-muted-foreground hover:text-foreground -mb-px"

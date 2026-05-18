@@ -32,14 +32,14 @@ func MarkdownEditor(id, name, content, placeholder string, rows int) templ.Compo
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"md-editor\" data-md-editor><div class=\"flex items-center gap-2 border-b border-border px-3\"><div role=\"tablist\" aria-label=\"Editor mode\" class=\"flex\"><button type=\"button\" role=\"tab\" data-md-tab=\"write\" aria-selected=\"true\" class=\"px-3 py-2 text-[13px] border-b-2 border-foreground text-foreground font-medium -mb-px\">Write</button> <button type=\"button\" role=\"tab\" data-md-tab=\"preview\" aria-selected=\"false\" hx-post=\"/api/markdown/preview\" hx-include=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"md-editor\" data-md-editor><div class=\"flex items-center gap-2 border-b border-border px-3\"><div role=\"tablist\" aria-label=\"Editor mode\" class=\"flex\"><button type=\"button\" role=\"tab\" data-md-tab=\"write\" aria-selected=\"true\" class=\"px-3 py-2 text-[13px] border-b-2 border-foreground text-foreground font-medium -mb-px\">Write</button> <button type=\"button\" role=\"tab\" data-md-tab=\"preview\" aria-selected=\"false\" hx-post=\"/api/markdown/preview\" hx-vals=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue("#" + id)
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue("js:{body: document.getElementById('" + id + "').value}")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/markdown_editor.templ`, Line: 17, Col: 26}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/markdown_editor.templ`, Line: 17, Col: 71}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
