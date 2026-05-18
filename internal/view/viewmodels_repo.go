@@ -87,12 +87,14 @@ type ReleaseNewData struct {
 // ReleaseDetailData holds template data for a single release detail page.
 type ReleaseDetailData struct {
 	BasePage
-	Repo     model.Repository
-	Owner    string
-	RepoName string
-	Release  model.Release
-	BodyHTML string
-	CanWrite bool
+	Repo       model.Repository
+	Owner      string
+	RepoName   string
+	Release    model.Release
+	BodyHTML   string
+	CanWrite   bool
+	AuthorName string // resolved from Release.AuthorID
+	IsLatest   bool   // true if this is the newest published non-draft non-prerelease release
 }
 
 // RepoSettingsData holds template data for the repository settings page.

@@ -10,124 +10,220 @@ import (
 )
 
 templ ReleaseDetail(data view.ReleaseDetailData) {
-	@layout.Base(data.BasePage, releaseDetailTitle(data)+" · "+data.Owner+"/"+data.RepoName) {
-		<div class="space-y-6">
-			<div>
-				<nav class="text-sm text-muted-foreground mb-2" aria-label="Breadcrumb">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.Owner }/{ data.RepoName }</a>
-					<span class="mx-1" aria-hidden="true">/</span>
+	@layout.Base(data.BasePage, releaseDetailTitle(data)+" · "+data.RepoName+" · Releases · Cloudzilla") {
+		<div class="max-w-[1400px] mx-auto px-6 pt-8 pb-20 space-y-6">
+
+			<section aria-labelledby="rel-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases") } class="hover:underline">Releases</a>
-					<span class="mx-1" aria-hidden="true">/</span>
-					<span class="font-mono">{ data.Release.TagName }</span>
-				</nav>
-			</div>
-			@components.Card(nil) {
-				@components.CardContent() {
-					<div class="flex items-start justify-between gap-4 mb-4">
+					<span aria-hidden="true">·</span>
+					<span>{ data.Release.TagName }</span>
+				</p>
+				<div class="flex flex-wrap items-center gap-2">
+					<h1 id="rel-title" class="text-2xl font-semibold tracking-tight">
+						if data.Release.Name != "" {
+							{ data.Release.Name }
+						} else {
+							{ data.Release.TagName }
+						}
+					</h1>
+					<code class="font-mono px-2 py-0.5 border border-border bg-muted rounded text-[12px]">{ data.Release.TagName }</code>
+					if data.IsLatest {
+						@components.Badge(components.BadgeSuccess) {
+							Latest
+						}
+					} else if data.Release.IsPrerelease {
+						@components.Badge(components.BadgeWarning) {
+							Pre-release
+						}
+					} else if data.Release.IsDraft {
+						@components.Badge(components.BadgeDraft) {
+							Draft
+						}
+					}
+					if data.CanWrite {
+						<button type="button" id="rel-edit-btn" class="ml-auto h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent inline-flex items-center shrink-0">Edit</button>
+					}
+				</div>
+				<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+					if data.AuthorName != "" {
+						<span class="inline-flex items-center gap-1.5">
+							@components.Avatar(data.AuthorName, components.AvatarSizeXS, data.AuthorName)
+							{ data.AuthorName }
+						</span>
+						<span aria-hidden="true" class="text-muted-foreground/50">·</span>
+					}
+					<span>
+						if data.Release.PublishedAt != nil {
+							published <time datetime={ data.Release.PublishedAt.UTC().Format(time.RFC3339) }>{ data.Release.PublishedAt.Format("Jan 2, 2006") }</time>
+						} else {
+							not yet published
+						}
+					</span>
+				</div>
+			</section>
+
+			<div class="grid lg:grid-cols-[1fr_280px] gap-6 items-start">
+
+				<div class="space-y-6 min-w-0">
+
+					<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="notes-heading">
+						<header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+							<h2 id="notes-heading" class="text-[13px] font-medium">Release notes</h2>
+						</header>
+						<div class="p-5">
+							<div id="rel-desc-rendered">
+								if data.BodyHTML != "" {
+									@components.MarkdownBody(data.BodyHTML)
+								} else {
+									<p class="text-[13px] text-muted-foreground italic">No release notes.</p>
+								}
+							</div>
+							if data.CanWrite {
+								<form
+									id="release-editor"
+									class="hidden"
+									hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) }
+									hx-swap="none"
+									hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Release updated'}));location.reload();}"
+								>
+									<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+										<div class="space-y-1.5">
+											<label for="rel-edit-tag" class="block text-sm font-medium">Tag <span class="text-destructive" aria-hidden="true">*</span></label>
+											@components.Input(templ.Attributes{
+												"id":       "rel-edit-tag",
+												"type":     "text",
+												"name":     "tag_name",
+												"required": "required",
+												"value":    data.Release.TagName,
+												"class":    "font-mono",
+											})
+										</div>
+										<div class="space-y-1.5">
+											<label for="rel-edit-name" class="block text-sm font-medium">Release title</label>
+											@components.Input(templ.Attributes{
+												"id":    "rel-edit-name",
+												"type":  "text",
+												"name":  "name",
+												"value": data.Release.Name,
+											})
+										</div>
+									</div>
+									<div class="space-y-1.5 mb-4">
+										<label for="release-body" class="block text-sm font-medium">Description</label>
+										@components.MarkdownEditor("release-body", "body", data.Release.Body, "Release notes…", 14)
+									</div>
+									<div class="flex flex-wrap items-center gap-6 mb-4">
+										<label class="flex items-center gap-2 text-sm cursor-pointer">
+											if data.Release.IsPrerelease {
+												@components.Checkbox(templ.Attributes{"name": "is_prerelease", "value": "true", "checked": "checked"})
+											} else {
+												@components.Checkbox(templ.Attributes{"name": "is_prerelease", "value": "true"})
+											}
+											<span>Pre-release</span>
+										</label>
+										<label class="flex items-center gap-2 text-sm cursor-pointer">
+											if data.Release.IsDraft {
+												@components.Checkbox(templ.Attributes{"name": "is_draft", "value": "true", "checked": "checked"})
+											} else {
+												@components.Checkbox(templ.Attributes{"name": "is_draft", "value": "true"})
+											}
+											<span>Save as draft</span>
+										</label>
+									</div>
+									<div class="flex justify-end gap-2">
+										<button type="button" id="rel-edit-cancel" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent">Cancel</button>
+										<button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Save</button>
+									</div>
+								</form>
+							}
+						</div>
+					</section>
+
+					<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="assets-heading">
+						<header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+							<h2 id="assets-heading" class="text-[13px] font-medium">Assets</h2>
+						</header>
+						<ul class="divide-y divide-border">
+							<li class="flex items-center gap-3 px-5 py-3">
+								<svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+								<span class="font-mono text-[13px] min-w-0 truncate">Source code (zip)</span>
+								<a
+									href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/archive/" + data.Release.TagName + ".zip") }
+									class="ml-auto h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] shrink-0"
+								>
+									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+									Download
+								</a>
+							</li>
+						</ul>
+					</section>
+
+				</div>
+
+				<aside class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="rel-meta-heading">
+					<header class="px-5 py-3 border-b border-border bg-muted/50">
+						<h2 id="rel-meta-heading" class="text-[13px] font-medium">Details</h2>
+					</header>
+					<div class="p-5 space-y-4 text-[13px]">
 						<div>
-							<div class="flex items-center gap-2 flex-wrap mb-1">
-								<h1 class="text-2xl font-bold">
-									if data.Release.Name != "" {
-										{ data.Release.Name }
-									} else {
-										{ data.Release.TagName }
+							<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Tag</p>
+							<p class="mt-1"><code class="font-mono px-2 py-0.5 border border-border bg-muted rounded text-[12px]">{ data.Release.TagName }</code></p>
+						</div>
+						<div>
+							<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Status</p>
+							<p class="mt-1">
+								if data.IsLatest {
+									@components.Badge(components.BadgeSuccess) {
+										Latest
 									}
-								</h1>
-								<code class="px-2 py-0.5 bg-muted text-foreground border border-border rounded text-sm font-mono">{ data.Release.TagName }</code>
-								if data.Release.IsPrerelease {
+								} else if data.Release.IsPrerelease {
 									@components.Badge(components.BadgeWarning) {
 										Pre-release
 									}
-								}
-								if data.Release.IsDraft {
+								} else if data.Release.IsDraft {
 									@components.Badge(components.BadgeDraft) {
 										Draft
 									}
-								}
-							</div>
-							<p class="text-sm text-muted-foreground">
-								if data.Release.PublishedAt != nil {
-									Published <time datetime={ data.Release.PublishedAt.UTC().Format(time.RFC3339) }>{ data.Release.PublishedAt.Format("January 2, 2006") }</time>
 								} else {
-									Not yet published
+									<span class="text-muted-foreground">—</span>
 								}
 							</p>
 						</div>
-						if data.CanWrite {
-							<div class="flex items-center gap-2 shrink-0">
-								@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-									"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10),
-									"hx-confirm": "Delete this release?",
-									"class":      "text-destructive border-destructive/40 hover:bg-destructive/10",
-								}) {
-									Delete
-								}
+						if data.AuthorName != "" {
+							<div>
+								<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Contributors</p>
+								<div class="mt-1.5 flex items-center gap-1.5">
+									@components.Avatar(data.AuthorName, components.AvatarSizeSM, data.AuthorName)
+								</div>
 							</div>
 						}
 					</div>
-					if data.BodyHTML != "" {
-						<div class="prose prose-sm max-w-none border-t border-border pt-4 mt-4">
-							@templ.Raw(data.BodyHTML)
-						</div>
-					} else {
-						<p class="text-muted-foreground text-sm border-t border-border pt-4 mt-4 italic">No description provided.</p>
-					}
-				}
-			}
-			if data.CanWrite {
-				@components.Card(nil) {
-					@components.CardHeader() {
-						@components.CardTitle(2) {
-							Edit Release
-						}
-					}
-					@components.CardContent() {
-						<form hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) } hx-target="body" class="space-y-4">
-							<div class="grid grid-cols-2 gap-4">
-								<div>
-									<label for="edit-release-tag-name" class="block text-sm font-medium text-foreground mb-1">Tag Name <span class="text-destructive" aria-hidden="true">*</span></label>
-									@components.Input(templ.Attributes{
-										"id":       "edit-release-tag-name",
-										"type":     "text",
-										"name":     "tag_name",
-										"required": "required",
-										"value":    data.Release.TagName,
-									})
-								</div>
-								<div>
-									<label for="edit-release-name" class="block text-sm font-medium text-foreground mb-1">Release Title</label>
-									@components.Input(templ.Attributes{
-										"id":    "edit-release-name",
-										"type":  "text",
-										"name":  "name",
-										"value": data.Release.Name,
-									})
-								</div>
-							</div>
-							<div>
-								<label for="edit-release-body" class="block text-sm font-medium text-foreground mb-1">Description</label>
-								<textarea id="edit-release-body" name="body" rows="8" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono">{ data.Release.Body }</textarea>
-							</div>
-							<div class="flex items-center gap-6">
-								<label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-									<input type="checkbox" name="is_prerelease" value="true" checked?={ data.Release.IsPrerelease } class="rounded"/>
-									Pre-release
-								</label>
-								<label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-									<input type="checkbox" name="is_draft" value="true" checked?={ data.Release.IsDraft } class="rounded"/>
-									Draft
-								</label>
-							</div>
-							<div class="flex justify-end">
-								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-									Save Changes
-								}
-							</div>
-						</form>
-					}
-				}
-			}
+				</aside>
+
+			</div>
+
 		</div>
+		if data.CanWrite {
+			<script>
+				(function () {
+					var editBtn = document.getElementById('rel-edit-btn');
+					var rendered = document.getElementById('rel-desc-rendered');
+					var editor = document.getElementById('release-editor');
+					var cancel = document.getElementById('rel-edit-cancel');
+					if (!editBtn || !rendered || !editor) return;
+					function toggle(editing) {
+						rendered.classList.toggle('hidden', editing);
+						editor.classList.toggle('hidden', !editing);
+						editBtn.classList.toggle('hidden', editing);
+					}
+					editBtn.addEventListener('click', function () { toggle(true); });
+					if (cancel) cancel.addEventListener('click', function () { toggle(false); });
+				})();
+			</script>
+		}
 	}
 }
 

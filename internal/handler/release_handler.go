@@ -128,14 +128,26 @@ func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	authorName := ""
+	if u, uErr := h.Services.User.GetByID(r.Context(), release.AuthorID); uErr == nil {
+		authorName = u.Username
+	}
+
+	isLatest := false
+	if latest, lErr := h.Services.Release.GetLatest(r.Context(), owner, repoName); lErr == nil && latest != nil {
+		isLatest = latest.ID == release.ID
+	}
+
 	h.render(w, r, pages.ReleaseDetail(view.ReleaseDetailData{
-		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "releases", canManage),
-		Repo:     *repo,
-		Owner:    owner,
-		RepoName: repoName,
-		Release:  *release,
-		BodyHTML: markdown.Render(release.Body),
-		CanWrite: canWrite,
+		BasePage:   h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "releases", canManage),
+		Repo:       *repo,
+		Owner:      owner,
+		RepoName:   repoName,
+		Release:    *release,
+		BodyHTML:   markdown.Render(release.Body),
+		CanWrite:   canWrite,
+		AuthorName: authorName,
+		IsLatest:   isLatest,
 	}))
 }
 
