@@ -346,7 +346,7 @@ func (s *IssueStore) ListPinned(ctx context.Context, repoID int64) ([]model.Issu
 }
 
 func scanIssueRows(rows *sql.Rows) ([]model.Issue, error) {
-	var issues []model.Issue
+	issues := []model.Issue{}
 	for rows.Next() {
 		var iss model.Issue
 		var closedAt, lockedAt sql.NullTime
