@@ -143,7 +143,7 @@ type WikiPageData struct {
 	RepoName    string
 	Slug        string
 	ContentHTML string
-	PageList    []string
+	PageList    []service.WikiPageMeta
 	CanWrite    bool
 	CanManage   bool
 	Exists      bool

@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -58,12 +59,10 @@ func (h *Handler) PageWikiPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pageList, err := h.Services.Code.WikiPageList(owner, repoName)
+	pageList, err := h.Services.Code.WikiPageListMeta(owner, repoName)
 	if err != nil {
 		slog.Error("failed to list wiki pages", "owner", owner, "repo", repoName, "error", err)
-	}
-	if pageList == nil {
-		pageList = []string{}
+		pageList = []service.WikiPageMeta{}
 	}
 
 	rawContent, exists, err := h.Services.Code.WikiPageGet(owner, repoName, slug)
