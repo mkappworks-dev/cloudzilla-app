@@ -2,9 +2,7 @@ package components
 
 import "strconv"
 
-// MarkdownEditor renders a textarea with Write/Preview tabs and a formatting
-// toolbar. The Preview tab posts the content to /api/markdown/preview; tab
-// switching and the toolbar are wired by the global script in the base layout.
+// Tab switching and the toolbar are wired by the global script in the base layout.
 templ MarkdownEditor(id, name, content, placeholder string, rows int) {
 	<div class="md-editor" data-md-editor>
 		<div class="flex items-center gap-2 border-b border-border px-2 py-1.5 bg-muted/30">

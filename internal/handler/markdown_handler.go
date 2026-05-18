@@ -7,7 +7,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 )
 
-// MarkdownPreview renders submitted markdown to HTML for the editor Preview tab.
 func (h *Handler) MarkdownPreview(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid form")

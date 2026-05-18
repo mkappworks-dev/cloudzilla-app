@@ -46,12 +46,10 @@ func (s *MentionStore) CreateBatch(ctx context.Context, commentID int64, userIDs
 	return tx.Commit()
 }
 
-// ListPullIDsMentioning returns IDs of pull requests whose comments mention userID.
 func (s *MentionStore) ListPullIDsMentioning(ctx context.Context, userID int64) ([]int64, error) {
 	return s.listMentionTargetIDs(ctx, userID, "c.pull_id")
 }
 
-// ListIssueIDsMentioning returns IDs of issues whose comments mention userID.
 func (s *MentionStore) ListIssueIDsMentioning(ctx context.Context, userID int64) ([]int64, error) {
 	return s.listMentionTargetIDs(ctx, userID, "c.issue_id")
 }

@@ -112,10 +112,7 @@ func (s *PullReviewStore) HasChangesRequested(ctx context.Context, pullID int64)
 	return exists, err
 }
 
-// ListPullIDsAwaitingReviewer returns IDs of pull requests with a pending
-// review request for reviewerID. RequestReview stores the reviewer in the
-// author_id column with state 'pending'; once they submit, state changes
-// away from 'pending' and the pull no longer awaits them.
+// RequestReview stores the reviewer in the author_id column with state 'pending'; once they submit, the state changes away from 'pending'.
 func (s *PullReviewStore) ListPullIDsAwaitingReviewer(ctx context.Context, reviewerID int64) ([]int64, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT DISTINCT pull_id FROM pull_reviews WHERE author_id = $1 AND state = 'pending'`,
@@ -145,8 +142,7 @@ ON CONFLICT (pull_id, author_id) DO NOTHING`
 	return err
 }
 
-// RemovePendingReview withdraws a pending review request for a reviewer. A
-// review that has already been submitted (state != 'pending') is left intact.
+// A review that has already been submitted (state != 'pending') is left intact.
 func (s *PullReviewStore) RemovePendingReview(ctx context.Context, pullID, reviewerID int64) error {
 	_, err := s.db.ExecContext(ctx,
 		`DELETE FROM pull_reviews WHERE pull_id = $1 AND author_id = $2 AND state = 'pending'`,

@@ -246,7 +246,7 @@ func (s *PullService) SetState(ctx context.Context, owner, repoName string, numb
 	return s.Get(ctx, owner, repoName, number)
 }
 
-// UpdateTitle renames an open or closed pull request. title must be pre-trimmed.
+// title must be pre-trimmed.
 func (s *PullService) UpdateTitle(ctx context.Context, owner, repoName string, number int, title string) (*model.PullRequest, error) {
 	pr, err := s.Get(ctx, owner, repoName, number)
 	if err != nil {
@@ -264,7 +264,6 @@ func (s *PullService) UpdateTitle(ctx context.Context, owner, repoName string, n
 	return s.Get(ctx, owner, repoName, number)
 }
 
-// UpdateBody edits the description of an open or closed pull request.
 func (s *PullService) UpdateBody(ctx context.Context, owner, repoName string, number int, body string) (*model.PullRequest, error) {
 	pr, err := s.Get(ctx, owner, repoName, number)
 	if err != nil {
@@ -310,9 +309,7 @@ func (s *PullService) WithMentionStore(m *store.MentionStore) *PullService {
 	return s
 }
 
-// ListForUser lists pull requests related to userID. mode is one of
-// "created", "assigned", "review_requested", "mentioned"; state is "open" or
-// "closed".
+// mode is one of "created", "assigned", "review_requested", "mentioned"; state is "open" or "closed".
 func (s *PullService) ListForUser(ctx context.Context, userID int64, mode, state string) ([]store.PullListItem, error) {
 	if state != "closed" {
 		state = "open"

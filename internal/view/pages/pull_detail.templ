@@ -52,7 +52,6 @@ templ pullDetailBody(data view.PullDetailData) {
 				</div>
 			}
 
-			<!-- PR description (first comment) -->
 			<article id="pr-description" class="rounded-md border border-border bg-card overflow-hidden mb-6" aria-label="Pull request description">
 				<header class="px-4 py-2.5 border-b border-border bg-blue-500/10 flex items-center gap-2 flex-wrap">
 					@components.Avatar(prAuthor(data), components.AvatarSizeSM, prAuthor(data))
@@ -108,7 +107,6 @@ templ pullDetailBody(data view.PullDetailData) {
 				</script>
 			}
 
-			<!-- Timeline of comments and reviews -->
 			<ol id="pr-timeline" class="cz-timeline space-y-4" aria-label="Pull request timeline">
 				for _, e := range prTimelineEvents(data.Comments, data.Reviews, data.Events) {
 					if e.Comment != nil {
@@ -121,14 +119,12 @@ templ pullDetailBody(data view.PullDetailData) {
 				}
 			</ol>
 
-			<!-- Mergeability -->
 			if data.Pull.State == model.PRStateOpen && !data.Pull.IsDraft {
 				<div class="mt-8">
 					@components.MergeabilityBox(data.Mergeability)
 				</div>
 			}
 
-			<!-- Comment composer -->
 			if data.BasePage.CurrentUser != nil {
 				<section class="mt-8" aria-label="Add a comment">
 					<form
@@ -165,9 +161,7 @@ templ pullDetailBody(data view.PullDetailData) {
 			}
 		</div>
 
-		<!-- Sidebar -->
 		<aside class="space-y-6" aria-label="Pull request metadata" x-data="{ open: null }" x-on:keydown.escape.window="open = null">
-			<!-- Reviewers -->
 			<section aria-labelledby="reviewers-heading">
 				<div class="flex items-center justify-between mb-2">
 					<h3 id="reviewers-heading" class="text-[12px] font-medium text-muted-foreground">Reviewers</h3>
@@ -247,17 +241,14 @@ templ pullDetailBody(data view.PullDetailData) {
 				}
 			</section>
 
-			<!-- Assignees -->
 			<section class="border-t border-border pt-5">
 				@components.AssigneeSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Assignees, data.Collaborators, data.CanWrite)
 			</section>
 
-			<!-- Labels -->
 			<section class="border-t border-border pt-5">
 				@components.LabelSidebar(data.Owner, data.RepoName, data.Pull.Number, "pulls", data.Labels, data.AllLabels, data.CanWrite)
 			</section>
 
-			<!-- Milestone -->
 			<section class="border-t border-border pt-5">
 				@fragments.MilestoneSidebar(view.MilestoneSidebarFragData{
 					Owner:         data.Owner,
@@ -270,7 +261,6 @@ templ pullDetailBody(data view.PullDetailData) {
 				})
 			</section>
 
-			<!-- Linked issues -->
 			<section class="border-t border-border pt-5">
 				@fragments.LinkedIssuesSidebar(view.LinkedIssuesSidebarData{
 					Owner:      data.Owner,
@@ -331,8 +321,6 @@ templ sidebarPlusIcon() {
 	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>
 }
 
-// reviewerPending reports whether a collaborator has a pending (not yet
-// submitted) review request on the PR.
 func reviewerPending(reviews []model.PullReview, username string) bool {
 	for _, rv := range reviews {
 		if rv.AuthorName == username && rv.State == model.PRReviewPending {

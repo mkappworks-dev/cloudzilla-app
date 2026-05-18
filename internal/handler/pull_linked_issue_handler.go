@@ -12,12 +12,10 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
-// LinkPullIssue links an issue to a pull request via the sidebar picker.
 func (h *Handler) LinkPullIssue(w http.ResponseWriter, r *http.Request) {
 	h.setPullIssueLink(w, r, true)
 }
 
-// UnlinkPullIssue removes an issue ↔ pull-request link.
 func (h *Handler) UnlinkPullIssue(w http.ResponseWriter, r *http.Request) {
 	h.setPullIssueLink(w, r, false)
 }
@@ -69,25 +67,30 @@ func (h *Handler) setPullIssueLink(w http.ResponseWriter, r *http.Request, link 
 		err = h.Services.Issue.UnlinkPull(r.Context(), pull.ID, issue.ID)
 	}
 	if err != nil {
-		slog.Error("operation failed", "error", err)
+		slog.Error("set pull issue link: store update failed",
+			"owner", owner, "repo", repoName, "pull_number", pullNumber,
+			"issue_number", issueNumber, "link", link, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		if link {
-			toast(w, "success", "Issue linked")
-		} else {
-			toast(w, "success", "Issue unlinked")
+		successMsg := "Issue linked"
+		if !link {
+			successMsg = "Issue unlinked"
 		}
-		h.renderLinkedIssuesFragment(w, r, owner, repoName, pull.ID, pullNumber, claims.UserID)
+		h.renderLinkedIssuesFragment(w, r, owner, repoName, pull.ID, pullNumber, claims.UserID, successMsg)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) renderLinkedIssuesFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, pullID int64, pullNumber int, userID int64) {
+// renderLinkedIssuesFragment re-renders the sidebar. When successToast is set it
+// emits a "success" toast only if the linked-issue reload succeeded — otherwise a
+// "warning" toast, so the toast never claims a state the sidebar does not show.
+func (h *Handler) renderLinkedIssuesFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, pullID int64, pullNumber int, userID int64, successToast string) {
 	linked, err := h.Services.Issue.LinkedForPull(r.Context(), pullID)
+	reloadFailed := err != nil
 	if err != nil {
 		slog.Warn("linked issues fragment: list failed; sidebar may contradict the toast",
 			"owner", owner, "repo", repoName, "pull_number", pullNumber, "error", err)
@@ -98,8 +101,18 @@ func (h *Handler) renderLinkedIssuesFragment(w http.ResponseWriter, r *http.Requ
 			"owner", owner, "repo", repoName, "pull_number", pullNumber, "error", err)
 	}
 	canWrite := false
-	if repo, err := h.Services.Repo.Get(r.Context(), owner, repoName); err == nil {
+	if repo, rerr := h.Services.Repo.Get(r.Context(), owner, repoName); rerr == nil {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, userID)
+	} else {
+		slog.Warn("linked issues fragment: repo lookup failed; rendering read-only",
+			"owner", owner, "repo", repoName, "pull_number", pullNumber, "error", rerr)
+	}
+	if successToast != "" {
+		if reloadFailed {
+			toast(w, "warning", "Saved — refresh to see linked issues")
+		} else {
+			toast(w, "success", successToast)
+		}
 	}
 	h.render(w, r, fragments.LinkedIssuesSidebar(view.LinkedIssuesSidebarData{
 		Owner:      owner,
@@ -111,7 +124,6 @@ func (h *Handler) renderLinkedIssuesFragment(w http.ResponseWriter, r *http.Requ
 	}))
 }
 
-// linkedIssuesToView converts issue models to the lightweight linked-issue view struct.
 func linkedIssuesToView(issues []model.Issue) []view.LinkedIssue {
 	out := make([]view.LinkedIssue, 0, len(issues))
 	for _, i := range issues {

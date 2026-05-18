@@ -10,7 +10,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-// AddPullReviewer requests a review from a repo collaborator named in the form.
 func (h *Handler) AddPullReviewer(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -47,7 +46,13 @@ func (h *Handler) AddPullReviewer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	users, err := h.Services.User.GetManyByUsernames(r.Context(), []string{username})
-	if err != nil || len(users) == 0 {
+	if err != nil {
+		slog.Error("add pull reviewer: user lookup failed",
+			"owner", owner, "repo", repoName, "pull_number", number, "username", username, "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	if len(users) == 0 {
 		writeError(w, http.StatusBadRequest, "unknown user")
 		return
 	}
@@ -60,7 +65,8 @@ func (h *Handler) AddPullReviewer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.PullReview.RequestReviewers(r.Context(), owner, repoName, number, []model.User{user}); err != nil {
-		slog.Error("operation failed", "error", err)
+		slog.Error("add pull reviewer: request review failed",
+			"owner", owner, "repo", repoName, "pull_number", number, "username", username, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -71,7 +77,6 @@ func (h *Handler) AddPullReviewer(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// RemovePullReviewer withdraws a pending review request from a collaborator.
 func (h *Handler) RemovePullReviewer(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -103,13 +108,20 @@ func (h *Handler) RemovePullReviewer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	users, err := h.Services.User.GetManyByUsernames(r.Context(), []string{username})
-	if err != nil || len(users) == 0 {
+	if err != nil {
+		slog.Error("remove pull reviewer: user lookup failed",
+			"owner", owner, "repo", repoName, "pull_number", number, "username", username, "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	if len(users) == 0 {
 		writeError(w, http.StatusBadRequest, "unknown user")
 		return
 	}
 
 	if err := h.Services.PullReview.WithdrawReviewer(r.Context(), owner, repoName, number, users[0]); err != nil {
-		slog.Error("operation failed", "error", err)
+		slog.Error("remove pull reviewer: withdraw failed",
+			"owner", owner, "repo", repoName, "pull_number", number, "username", username, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}

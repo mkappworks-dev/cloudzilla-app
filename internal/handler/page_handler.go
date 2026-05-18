@@ -38,8 +38,7 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 	return page
 }
 
-// withRepoSubnav attaches the repo subnav and the topbar repo-switcher list.
-// The switcher is best-effort: a failed lookup leaves it empty.
+// The repo-switcher list is best-effort: a failed lookup leaves it empty.
 func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model.Repository, active string, canManage bool) BasePage {
 	base.RepoSubnav = &view.RepoSubnavInfo{
 		OwnerName:        repo.OwnerName,
@@ -67,15 +66,12 @@ func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model
 	return base
 }
 
-// withAccountSubnav attaches the account-level Primary nav. counts is keyed by
-// tab ("repositories"/"gists"/"pulls"/"issues"); pass nil to omit all badges.
 func withAccountSubnav(base BasePage, active string, counts map[string]int) BasePage {
 	base.AccountSubnav = &view.AccountSubnavInfo{Active: active, Counts: counts}
 	return base
 }
 
-// accountCounts loads the nav badge counts for a logged-in user. Best-effort:
-// any failed query degrades that badge to 0 rather than failing the page.
+// Best-effort: any failed query degrades that badge to 0 rather than failing the page.
 func (h *Handler) accountCounts(ctx context.Context, userID int64) map[string]int {
 	counts := map[string]int{}
 	logFail := func(badge string, err error) {

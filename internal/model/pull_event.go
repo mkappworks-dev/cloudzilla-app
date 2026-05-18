@@ -16,7 +16,6 @@ const (
 	PullEventDrafted    = "drafted"
 )
 
-// PullEvent is one entry in a pull request's activity timeline.
 type PullEvent struct {
 	ID        int64     `db:"id"         json:"id"`
 	PullID    int64     `db:"pull_id"    json:"pull_id"`

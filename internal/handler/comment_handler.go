@@ -104,7 +104,8 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 
 	comment, err := h.Services.Comment.CreateForIssue(r.Context(), *repo, issue.ID, issue.Number, claims.UserID, claims.Username, body)
 	if err != nil {
-		slog.Error("operation failed", "error", err)
+		slog.Error("create issue comment: store create failed",
+			"owner", owner, "repo", repoName, "issue_number", issueNumber, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -164,6 +165,13 @@ func (h *Handler) CreatePullComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Pull.Get has no visibility enforcement, so gate on repo read access to keep
+	// private-repo pull requests unreachable to users who cannot see them.
+	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+		writeError(w, http.StatusNotFound, "pull request not found")
+		return
+	}
+
 	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, pullNumber)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "pull request not found")
@@ -172,7 +180,8 @@ func (h *Handler) CreatePullComment(w http.ResponseWriter, r *http.Request) {
 
 	comment, err := h.Services.Comment.CreateForPull(r.Context(), *repo, pull.ID, pull.Number, claims.UserID, claims.Username, body)
 	if err != nil {
-		slog.Error("operation failed", "error", err)
+		slog.Error("create pull comment: store create failed",
+			"owner", owner, "repo", repoName, "pull_number", pullNumber, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}

@@ -14,7 +14,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 )
 
-// linkedIssueLinked reports whether issue number N is in the linked set.
 func linkedIssueLinked(linked []view.LinkedIssue, number int) bool {
 	for _, li := range linked {
 		if li.Number == number {
@@ -24,7 +23,6 @@ func linkedIssueLinked(linked []view.LinkedIssue, number int) bool {
 	return false
 }
 
-// liCheckIcon marks a linked issue inside the picker dropdown.
 func liCheckIcon() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -54,7 +52,6 @@ func liCheckIcon() templ.Component {
 	})
 }
 
-// liStateIcon renders an open or closed issue glyph.
 func liStateIcon(state string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -91,9 +88,7 @@ func liStateIcon(state string) templ.Component {
 	})
 }
 
-// LinkedIssuesSidebar renders the linked-issues metadata panel for a pull
-// request. The picker is an Alpine dropdown driven by an `open` variable that
-// MUST be provided by an ancestor x-data scope (the PR detail page's <aside>).
+// See LabelSidebar for the Alpine open-scope contract.
 func LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -139,7 +134,7 @@ func LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) templ.Component {
 					var templ_7745c5c3_Var4 string
 					templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(base + strconv.Itoa(iss.Number))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 67, Col: 52}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 62, Col: 52}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 					if templ_7745c5c3_Err != nil {
@@ -157,7 +152,7 @@ func LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) templ.Component {
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(base + strconv.Itoa(iss.Number))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 69, Col: 50}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 64, Col: 50}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 					if templ_7745c5c3_Err != nil {
@@ -175,7 +170,7 @@ func LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatBool(linked))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 74, Col: 49}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 69, Col: 49}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 				if templ_7745c5c3_Err != nil {
@@ -196,7 +191,7 @@ func LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(iss.Number))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 78, Col: 111}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 73, Col: 111}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 				if templ_7745c5c3_Err != nil {
@@ -209,7 +204,7 @@ func LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) templ.Component {
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(iss.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 78, Col: 132}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 73, Col: 132}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -237,7 +232,7 @@ func LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) templ.Component {
 			var templ_7745c5c3_Var9 templ.SafeURL
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/new"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 86, Col: 83}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 81, Col: 83}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -273,7 +268,7 @@ func LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) templ.Component {
 				var templ_7745c5c3_Var10 templ.SafeURL
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(li.Number)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 102, Col: 108}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 97, Col: 108}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -286,7 +281,7 @@ func LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) templ.Component {
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(li.Number))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 103, Col: 79}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 98, Col: 79}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -299,7 +294,7 @@ func LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) templ.Component {
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(" ")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 104, Col: 12}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 99, Col: 12}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {
@@ -308,7 +303,7 @@ func LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) templ.Component {
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(li.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 104, Col: 24}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/linked_issues_sidebar.templ`, Line: 99, Col: 24}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {

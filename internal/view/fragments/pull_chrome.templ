@@ -7,9 +7,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
-// PullChromeData drives the shared PR header and tab bar. AuthorUsername is
-// pre-resolved by the handler; empty falls back to Pull.AuthorName. Count
-// fields drive the tab badges — a zero count hides its badge.
+// AuthorUsername empty falls back to Pull.AuthorName; a zero count field hides its tab badge.
 type PullChromeData struct {
 	OwnerName      string
 	Repo           *model.Repository

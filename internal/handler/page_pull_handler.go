@@ -332,6 +332,15 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		h.NotFound(w, r)
+		return
+	}
+
 	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 	if err != nil {
 		h.NotFound(w, r)
@@ -545,6 +554,15 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		h.NotFound(w, r)
+		return
+	}
+
 	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 	if err != nil {
 		h.NotFound(w, r)
@@ -574,6 +592,11 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
+	// Override the active tab's badge with this view's own load so the header
+	// count cannot contradict the body (or the error banner) below it.
+	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull)
+	chromeCounts.CommitsCount = len(commits)
+
 	h.render(w, r, pages.PullCommits(view.PullCommitsData{
 		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		OwnerName:        owner,
@@ -582,7 +605,7 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 		AuthorUsername:   authorUsername,
 		Commits:          commits,
 		CanWrite:         canWrite,
-		PullChromeCounts: h.pullChromeCounts(r.Context(), owner, repoName, pull),
+		PullChromeCounts: chromeCounts,
 		LoadError:        loadErrCommits,
 	}))
 }
@@ -598,6 +621,15 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
 		h.NotFound(w, r)
 		return
 	}
@@ -649,6 +681,17 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
+	// Override the active tab's badge with this view's own load so the header
+	// count cannot contradict the body (or the error banner) below it.
+	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull)
+	chromeCounts.ChecksTotal = len(rows)
+	chromeCounts.ChecksPassed = 0
+	for _, row := range rows {
+		if row.State == string(model.CommitStatusSuccess) {
+			chromeCounts.ChecksPassed++
+		}
+	}
+
 	h.render(w, r, pages.PullChecks(view.PullChecksData{
 		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		OwnerName:        owner,
@@ -658,7 +701,7 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 		Rows:             rows,
 		HeadSHA:          headSHA,
 		CanWrite:         canWrite,
-		PullChromeCounts: h.pullChromeCounts(r.Context(), owner, repoName, pull),
+		PullChromeCounts: chromeCounts,
 		LoadError:        loadErrChecks,
 	}))
 }
@@ -674,6 +717,15 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
 		h.NotFound(w, r)
 		return
 	}
@@ -729,6 +781,13 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
+	// Override the active tab's badge with this view's own load so the header
+	// count cannot contradict the body (or the error banner) below it.
+	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull)
+	chromeCounts.FilesCount = len(diff.Files)
+	chromeCounts.Added = diff.TotalAdded
+	chromeCounts.Deleted = diff.TotalDeleted
+
 	h.render(w, r, pages.PullFiles(view.PullFilesData{
 		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage),
 		OwnerName:        owner,
@@ -739,13 +798,11 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		Diff:             diff,
 		CanWrite:         canWrite,
 		LineComments:     lineComments,
-		PullChromeCounts: h.pullChromeCounts(r.Context(), owner, repoName, pull),
+		PullChromeCounts: chromeCounts,
 		LoadError:        loadErrFiles,
 	}))
 }
 
-// pullChromeCounts computes the tab-badge counts shown in the shared PR header.
-// Every PR sub-view calls it so the header is identical across all tabs.
 func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, pull *model.PullRequest) view.PullChromeCounts {
 	var c view.PullChromeCounts
 	logFail := func(what string, err error) {

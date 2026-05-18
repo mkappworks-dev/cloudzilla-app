@@ -10,7 +10,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-// PullListItem is a cross-repo pull-request row for account-level lists.
 type PullListItem struct {
 	ID           int64
 	Number       int
@@ -351,10 +350,7 @@ func (s *PullStore) CountOpen(ctx context.Context, repoID int64) (int, error) {
 	return n, err
 }
 
-// CountOpenAssignedTo counts open pull requests assigned to userID. It backs the
-// account nav "Pull requests" badge and the home "Pull requests" stat with an
-// assigned-only count. Soft-deleted repos are excluded so the count matches the
-// heatmap's visibility rule.
+// Soft-deleted repos are excluded so the count matches the heatmap's visibility rule.
 func (s *PullStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,
@@ -391,9 +387,7 @@ func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNu
 	return scanPullRows(rows)
 }
 
-// ListForUser lists pull requests related to userID. mode is "created" or
-// "assigned"; state is "open" or "closed". For "review_requested" and
-// "mentioned", use ListByIDs with IDs from PullReviewStore / MentionStore.
+// mode is "created" or "assigned"; state is "open" or "closed". For "review_requested" and "mentioned", use ListByIDs.
 func (s *PullStore) ListForUser(ctx context.Context, userID int64, mode, state string) ([]PullListItem, error) {
 	join, cond := "", ""
 	switch mode {
@@ -410,13 +404,13 @@ func (s *PullStore) ListForUser(ctx context.Context, userID int64, mode, state s
 	      JOIN users u        ON u.id = r.owner_id
 	      ` + join + `
 	      WHERE r.deleted_at IS NULL AND p.state = $2 AND ` + cond + `
+	        AND (NOT r.private OR r.owner_id = $1
+	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
 	      ORDER BY p.updated_at DESC LIMIT 100`
 	return s.scanPullListItems(ctx, q, userID, state)
 }
 
-// ListByIDs lists pull requests with the given IDs and state, restricted to
-// repos visible to userID. Used for the "review_requested" and "mentioned"
-// filters, whose ID sets can include PRs in private repos the user cannot read.
+// Restricted to repos visible to userID — the ID sets can include PRs in private repos the user cannot read.
 func (s *PullStore) ListByIDs(ctx context.Context, userID int64, ids []int64, state string) ([]PullListItem, error) {
 	if len(ids) == 0 {
 		return []PullListItem{}, nil

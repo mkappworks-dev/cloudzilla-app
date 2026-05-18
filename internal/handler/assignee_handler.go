@@ -155,7 +155,8 @@ func (h *Handler) AddPullAssignee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Assignee.AddToPull(r.Context(), owner, repoName, number, username); err != nil {
-		slog.Error("operation failed", "error", err)
+		slog.Error("add pull assignee: store add failed",
+			"owner", owner, "repo", repoName, "pull_number", number, "username", username, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -201,7 +202,8 @@ func (h *Handler) RemovePullAssignee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Assignee.RemoveFromPull(r.Context(), owner, repoName, number, username); err != nil {
-		slog.Error("operation failed", "error", err)
+		slog.Error("remove pull assignee: store remove failed",
+			"owner", owner, "repo", repoName, "pull_number", number, "username", username, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
@@ -215,7 +217,6 @@ func (h *Handler) RemovePullAssignee(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// recordPullAssigneeEvent appends an assigned/unassigned entry to the PR timeline.
 func (h *Handler) recordPullAssigneeEvent(r *http.Request, owner, repoName string, number int, username, eventType string) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -227,7 +228,7 @@ func (h *Handler) recordPullAssigneeEvent(r *http.Request, owner, repoName strin
 			"owner", owner, "repo", repoName, "pull_number", number, "error", err)
 		return
 	}
-	h.Services.PullEvent.Record(r.Context(), pull.ID, claims.UserID, claims.Username, eventType, username)
+	h.recordPullEvent(r.Context(), owner, repoName, pull, claims.UserID, claims.Username, eventType, username)
 }
 
 func (h *Handler) renderIssueAssigneeFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, issueNumber int) {

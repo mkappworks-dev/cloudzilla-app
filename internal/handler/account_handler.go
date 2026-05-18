@@ -10,7 +10,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// PageAccountRepos renders the logged-in user's cross-repo repository list at /repos.
 func (h *Handler) PageAccountRepos(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims, ok := middleware.ClaimsFromContext(ctx)
@@ -39,7 +38,6 @@ func (h *Handler) PageAccountRepos(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, pages.AccountRepos(data))
 }
 
-// PageAccountPulls renders the logged-in user's cross-repo pull-request list at /pulls.
 func (h *Handler) PageAccountPulls(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims, ok := middleware.ClaimsFromContext(ctx)
@@ -72,7 +70,6 @@ func (h *Handler) PageAccountPulls(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, pages.AccountPulls(data))
 }
 
-// PageAccountIssues renders the logged-in user's cross-repo issue list at /issues.
 func (h *Handler) PageAccountIssues(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims, ok := middleware.ClaimsFromContext(ctx)

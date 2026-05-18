@@ -1,11 +1,6 @@
 package store_test
 
-// Integration tests for the MentionStore lookup helpers:
-//   - MentionStore.ListIssueIDsMentioning
-//   - MentionStore.ListPullIDsMentioning
-//
-// Skipped when TEST_DATABASE_DSN is unset, matching the project's
-// existing integration-test pattern.
+// Integration tests for the MentionStore lookup helpers; skipped when TEST_DATABASE_DSN is unset.
 
 import (
 	"context"

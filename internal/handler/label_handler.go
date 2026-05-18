@@ -364,7 +364,6 @@ func (h *Handler) RemovePullLabel(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// recordPullLabelEvent appends a labeled/unlabeled entry to the PR timeline.
 // Best-effort: a lookup failure skips the event rather than failing the request.
 func (h *Handler) recordPullLabelEvent(r *http.Request, owner, repoName string, number int, labelID int64, eventType string) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
@@ -385,8 +384,11 @@ func (h *Handler) recordPullLabelEvent(r *http.Request, owner, repoName string, 
 				break
 			}
 		}
+	} else {
+		slog.Warn("record pull label event: label list failed; timeline entry will lack the label name",
+			"owner", owner, "repo", repoName, "label_id", labelID, "error", lerr)
 	}
-	h.Services.PullEvent.Record(r.Context(), pull.ID, claims.UserID, claims.Username, eventType, name)
+	h.recordPullEvent(r.Context(), owner, repoName, pull, claims.UserID, claims.Username, eventType, name)
 }
 
 func (h *Handler) renderIssueLabelFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, issueNumber int) {

@@ -153,7 +153,6 @@ templ pullFilesBody(data view.PullFilesData) {
 						setCollapsed(s, !collapsed);
 					});
 				});
-				// File sidebar links, scroll-spy highlight, and single-file mode.
 				var sections = Array.prototype.slice.call(document.querySelectorAll('.diff-file'));
 				var fileLinks = {};
 				document.querySelectorAll('#diff-files-list a[href^="#diff-"], #diff-files-tree a[href^="#diff-"]').forEach(function (a) {
@@ -280,7 +279,6 @@ templ pullFilesBody(data view.PullFilesData) {
 					});
 				}
 
-				// Restore persisted sidebar layout and single-file mode.
 				if (load('layout') === 'tree') setFileLayout('tree');
 				if (singleBtn && load('single') === 'on') setSingle(true);
 			})();
@@ -343,9 +341,7 @@ templ prFileDiff(data view.PullFilesData, f service.FileDiff) {
 	</div>
 }
 
-// prFileSplitDiff renders a comment-free side-by-side view: old lines left,
-// new lines right, del/add runs paired index-wise. A wholly-new (or wholly-
-// deleted) file has nothing to compare against, so it renders full-width.
+// A wholly-new or wholly-deleted file has nothing to compare against, so it renders full-width.
 templ prFileSplitDiff(f service.FileDiff) {
 	if f.IsNew || f.IsDelete {
 		@prFileWholeDiff(f)
@@ -374,8 +370,7 @@ templ prFileSplitDiff(f service.FileDiff) {
 	}
 }
 
-// prFileWholeDiff renders a single full-width column — used in split view for
-// added or deleted files, where there is no other side to compare against.
+// Full-width single column — used in split view for added or deleted files.
 templ prFileWholeDiff(f service.FileDiff) {
 	<div class="overflow-x-auto">
 		<table class="w-full border-collapse text-xs font-mono">
@@ -437,10 +432,7 @@ type prSplitRow struct {
 	WSOnly bool
 }
 
-// prSplitRows pairs a hunk's lines for side-by-side display: ctx lines mirror
-// on both sides; a del run pairs index-wise with the following add run, the
-// shorter side padded with empty cells. A del/add pair whose trimmed content
-// matches is flagged whitespace-only.
+// Pairs a hunk's deleted/added lines index-wise for side-by-side display.
 func prSplitRows(lines []service.DiffLine) []prSplitRow {
 	var rows []prSplitRow
 	for i := 0; i < len(lines); {

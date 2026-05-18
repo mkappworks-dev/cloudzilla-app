@@ -16,7 +16,6 @@ func TestPullCommits_Linear(t *testing.T) {
 	}
 	svc := newTestRepoWithCommits(t, "alice", "linear", times)
 
-	// Get all commits on master to extract individual SHAs.
 	log, err := svc.GetCommits("alice", "linear", "master", 1, 10)
 	if err != nil {
 		t.Fatalf("GetCommits: %v", err)

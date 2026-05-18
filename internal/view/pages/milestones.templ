@@ -62,9 +62,6 @@ templ Milestones(data view.MilestonesData) {
 	}
 }
 
-// milestoneCard renders one milestone row matching the milestones.html mockup:
-// a state-coloured flag, title, due/closed date, description, progress, and
-// write-only Close/Reopen/Delete actions that reload the page on success.
 templ milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) {
 	{{ closed := m.State == "closed" }}
 	{{ total := m.OpenCount + m.ClosedCount }}
@@ -138,7 +135,6 @@ templ milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) {
 	</div>
 }
 
-// milestonesTabScript toggles the Open/Closed milestone lists client-side.
 templ milestonesTabScript() {
 	<script>
 		(function () {

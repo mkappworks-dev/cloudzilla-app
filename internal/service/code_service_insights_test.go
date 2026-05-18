@@ -14,10 +14,7 @@ import (
 	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
 )
 
-// newTestRepoStaleHEAD builds a bare repo whose only branch is `main` while its
-// symbolic HEAD still points at a nonexistent `master` — the state of repos
-// created before `main` became the default branch. The single commit is
-// authored by "Ada".
+// Builds a bare repo whose only branch is main while its symbolic HEAD still points at a nonexistent master.
 func newTestRepoStaleHEAD(t *testing.T, owner, name string) *CodeService {
 	t.Helper()
 	root := t.TempDir()

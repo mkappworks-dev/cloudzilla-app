@@ -7,7 +7,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
-// milestoneKindPath maps the IsPull flag to the API path segment.
 func milestoneKindPath(isPull bool) string {
 	if isPull {
 		return "pulls"
@@ -15,25 +14,20 @@ func milestoneKindPath(isPull bool) string {
 	return "issues"
 }
 
-// milestoneEditIcon is the pencil affordance in the Milestone section header.
 templ milestoneEditIcon() {
 	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
 }
 
-// milestoneCheckIcon marks the currently-set milestone in the picker.
 templ milestoneCheckIcon() {
 	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
 }
 
-// milestoneFlagIcon leads the "new milestone" footer action.
 templ milestoneFlagIcon() {
 	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
 }
 
-// MilestoneSidebar renders the milestone metadata panel for an issue or pull
-// request. The picker is an Alpine dropdown driven by an `open` variable that
-// MUST be provided by an ancestor x-data scope (the detail page's <aside>) so
-// the menu survives the HTMX re-render after a selection.
+// The picker is an Alpine dropdown driven by an "open" variable that MUST be
+// provided by an ancestor x-data scope, so the menu survives HTMX re-renders.
 templ MilestoneSidebar(data view.MilestoneSidebarFragData) {
 	{{ postURL := "/api/repos/" + data.Owner + "/" + data.RepoName + "/" + milestoneKindPath(data.IsPull) + "/" + strconv.Itoa(data.ItemNumber) + "/milestone" }}
 	<div id="issue-milestone" class="space-y-2">

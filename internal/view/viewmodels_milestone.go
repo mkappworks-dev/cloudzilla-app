@@ -4,7 +4,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-// MilestonesData holds template data for the milestones list page.
 type MilestonesData struct {
 	BasePage
 	Repo             model.Repository
@@ -15,7 +14,6 @@ type MilestonesData struct {
 	CanWrite         bool
 }
 
-// MilestoneNewData holds template data for the dedicated new-milestone page.
 type MilestoneNewData struct {
 	BasePage
 	Repo     model.Repository
@@ -30,8 +28,6 @@ type MilestoneNewData struct {
 	DueDate     string
 }
 
-// MilestoneSidebarFragData holds template data for the milestone sidebar HTMX
-// fragment shown on issue and pull request detail pages.
 type MilestoneSidebarFragData struct {
 	Owner         string
 	RepoName      string

@@ -230,7 +230,6 @@ func (s *IssueStore) ListByRepo(ctx context.Context, repoID int64, state *string
 	return scanIssueRows(rows)
 }
 
-// LinkToPull records an explicit pull-request → issue link.
 func (s *IssueStore) LinkToPull(ctx context.Context, pullID, issueID int64) error {
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO pull_issue_links (pull_id, issue_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
@@ -241,7 +240,6 @@ func (s *IssueStore) LinkToPull(ctx context.Context, pullID, issueID int64) erro
 	return nil
 }
 
-// UnlinkFromPull removes an explicit pull-request → issue link.
 func (s *IssueStore) UnlinkFromPull(ctx context.Context, pullID, issueID int64) error {
 	_, err := s.db.ExecContext(ctx,
 		`DELETE FROM pull_issue_links WHERE pull_id = $1 AND issue_id = $2`,
@@ -252,7 +250,6 @@ func (s *IssueStore) UnlinkFromPull(ctx context.Context, pullID, issueID int64) 
 	return nil
 }
 
-// ListLinkedToPull returns the issues explicitly linked to a pull request.
 func (s *IssueStore) ListLinkedToPull(ctx context.Context, pullID int64) ([]model.Issue, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT i.id, i.repo_id, i.number, i.author_id,
@@ -423,10 +420,7 @@ func (s *IssueStore) WeeklyCreated(ctx context.Context, repoID int64, weeks int)
 	return out, rows.Err()
 }
 
-// CountOpenAssignedTo counts open issues assigned to userID. It backs the
-// account nav "Issues" badge and the home "Issues" stat, so it mirrors the
-// /issues page's default "assigned" tab. Soft-deleted repos are excluded so the
-// count matches the heatmap's visibility rule.
+// Soft-deleted repos are excluded so the count matches the heatmap's visibility rule.
 func (s *IssueStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,
@@ -479,9 +473,7 @@ func (s *IssueStore) ListOpenAssignedToUser(ctx context.Context, userID int64) (
 	return out, rows.Err()
 }
 
-// ListForUser lists issues related to userID. mode is "created" or "assigned";
-// state is "open" or "closed". For "mentioned", use ListByIDs with IDs from
-// MentionStore.ListIssueIDsMentioning.
+// mode is "created" or "assigned"; state is "open" or "closed". For "mentioned", use ListByIDs.
 func (s *IssueStore) ListForUser(ctx context.Context, userID int64, mode, state string) ([]IssueListItem, error) {
 	join, cond := "", ""
 	switch mode {
@@ -498,13 +490,13 @@ func (s *IssueStore) ListForUser(ctx context.Context, userID int64, mode, state 
 	      JOIN users u        ON u.id = r.owner_id
 	      ` + join + `
 	      WHERE r.deleted_at IS NULL AND i.state = $2 AND ` + cond + `
+	        AND (NOT r.private OR r.owner_id = $1
+	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
 	      ORDER BY i.updated_at DESC LIMIT 100`
 	return s.scanIssueListItems(ctx, q, userID, state)
 }
 
-// ListByIDs lists issues with the given IDs and state, restricted to repos
-// visible to userID. Used for "mentioned", whose ID set can include issues in
-// private repos the user cannot read.
+// Restricted to repos visible to userID — the ID set can include issues in private repos the user cannot read.
 func (s *IssueStore) ListByIDs(ctx context.Context, userID int64, ids []int64, state string) ([]IssueListItem, error) {
 	if len(ids) == 0 {
 		return []IssueListItem{}, nil

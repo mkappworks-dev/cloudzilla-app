@@ -44,15 +44,12 @@ type RepoSubnavInfo struct {
 	AllowWiki        bool
 }
 
-// RepoRef is a lightweight repo reference for the topbar repo switcher.
 type RepoRef struct {
 	Name string
 	Path string // "/{owner}/{repo}"
 }
 
-// AccountSubnavInfo drives the account-level Primary nav. Counts is keyed by
-// tab key ("repositories", "gists", "pulls", "issues"); a missing or zero
-// entry hides that tab's badge.
+// A missing or zero Counts entry hides that tab's badge.
 type AccountSubnavInfo struct {
 	Active string // "overview" | "repositories" | "gists" | "pulls" | "issues"
 	Counts map[string]int
@@ -76,14 +73,12 @@ type FeedData struct {
 	HasNextPage bool
 }
 
-// AccountReposData backs the /repos page.
 type AccountReposData struct {
 	BasePage
 	Repos  []model.Repository
 	Filter string // "all" | "owned" | "collaborator"
 }
 
-// AccountPullsData backs the /pulls page.
 type AccountPullsData struct {
 	BasePage
 	Pulls  []store.PullListItem
@@ -91,7 +86,6 @@ type AccountPullsData struct {
 	State  string // "open" | "closed"
 }
 
-// AccountIssuesData backs the /issues page.
 type AccountIssuesData struct {
 	BasePage
 	Issues []store.IssueListItem

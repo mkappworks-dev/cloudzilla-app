@@ -8,20 +8,8 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// ToastContainer should be rendered once, near the end of the page body
-// (typically inside layout.Base). It shows compact top-center toasts from
-// two sources:
-//
-//  1. The browser CustomEvent `toast`:
-//     document.dispatchEvent(new CustomEvent('toast', {detail: {type:'success', message:'Saved'}}))
-//
-//  2. HTMX `HX-Trigger` response header (see the toast() helper in the
-//     handler package), which HTMX turns into the same CustomEvent.
-//
-// detail fields:
-//   - type:     "default" | "success" | "error" | "warning" (icon colour)
-//   - message:  the toast text (required)
-//   - duration: auto-dismiss ms; pass 0 for sticky (default 4000)
+// Render once near the end of the body. Reacts to the "toast" CustomEvent and to
+// HTMX HX-Trigger headers.
 func ToastContainer() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

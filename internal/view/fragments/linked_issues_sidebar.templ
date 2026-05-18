@@ -6,7 +6,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 )
 
-// linkedIssueLinked reports whether issue number N is in the linked set.
 func linkedIssueLinked(linked []view.LinkedIssue, number int) bool {
 	for _, li := range linked {
 		if li.Number == number {
@@ -16,12 +15,10 @@ func linkedIssueLinked(linked []view.LinkedIssue, number int) bool {
 	return false
 }
 
-// liCheckIcon marks a linked issue inside the picker dropdown.
 templ liCheckIcon() {
 	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
 }
 
-// liStateIcon renders an open or closed issue glyph.
 templ liStateIcon(state string) {
 	if state == "closed" {
 		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><polyline points="9 12 11 14 15 10"></polyline></svg>
@@ -30,9 +27,7 @@ templ liStateIcon(state string) {
 	}
 }
 
-// LinkedIssuesSidebar renders the linked-issues metadata panel for a pull
-// request. The picker is an Alpine dropdown driven by an `open` variable that
-// MUST be provided by an ancestor x-data scope (the PR detail page's <aside>).
+// See LabelSidebar for the Alpine open-scope contract.
 templ LinkedIssuesSidebar(data view.LinkedIssuesSidebarData) {
 	{{ base := "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/linked-issues/" }}
 	<div id="pull-linked-issues" class="space-y-2">

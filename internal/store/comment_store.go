@@ -116,8 +116,7 @@ func (s *CommentStore) ListByPull(ctx context.Context, pullID int64) ([]model.Co
 	return scanCommentRows(rows)
 }
 
-// CountByPullIDs batch-counts comments for multiple PRs. Returns a map of
-// pullID → comment count; PRs with no comments are absent from the map.
+// PRs with no comments are absent from the returned map.
 func (s *CommentStore) CountByPullIDs(ctx context.Context, pullIDs []int64) (map[int64]int, error) {
 	if len(pullIDs) == 0 {
 		return map[int64]int{}, nil

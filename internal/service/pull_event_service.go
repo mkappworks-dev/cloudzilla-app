@@ -2,25 +2,23 @@ package service
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
-// PullEventService records and reads pull request timeline events.
 type PullEventService struct {
 	events *store.PullEventStore
 }
 
-// NewPullEventService creates a PullEventService.
 func NewPullEventService(events *store.PullEventStore) *PullEventService {
 	return &PullEventService{events: events}
 }
 
-// Record writes a timeline event. A failure is logged, never propagated — a
-// missing timeline entry must not fail the action that triggered it.
-func (s *PullEventService) Record(ctx context.Context, pullID, actorID int64, actorName, eventType, detail string) {
+// Record writes a timeline event. A failed write must not fail the action that
+// triggered it — callers log the returned error and continue.
+func (s *PullEventService) Record(ctx context.Context, pullID, actorID int64, actorName, eventType, detail string) error {
 	e := &model.PullEvent{
 		PullID:    pullID,
 		ActorID:   actorID,
@@ -29,11 +27,11 @@ func (s *PullEventService) Record(ctx context.Context, pullID, actorID int64, ac
 		Detail:    detail,
 	}
 	if err := s.events.Create(ctx, e); err != nil {
-		slog.Error("pull event record failed", "pull_id", pullID, "type", eventType, "error", err)
+		return fmt.Errorf("record pull event %q: %w", eventType, err)
 	}
+	return nil
 }
 
-// ListByPull returns a pull request's timeline events oldest-first.
 func (s *PullEventService) ListByPull(ctx context.Context, pullID int64) ([]model.PullEvent, error) {
 	return s.events.ListByPull(ctx, pullID)
 }

@@ -411,7 +411,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	})
 
 	// Markdown preview for editor Preview tabs
-	r.With(authMW).Post("/api/markdown/preview", h.MarkdownPreview)
+	r.With(authMW, apiBodyLimit).Post("/api/markdown/preview", h.MarkdownPreview)
 
 	// SSH Key routes
 	r.Route("/api/user/keys", func(r chi.Router) {

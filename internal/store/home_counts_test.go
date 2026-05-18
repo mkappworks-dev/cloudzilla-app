@@ -1,13 +1,6 @@
 package store_test
 
-// Integration tests for the account count helpers:
-//   - RepoStore.CountForUser
-//   - PullStore.CountOpenAssignedTo
-//   - IssueStore.CountOpenAssignedTo
-//
-// Each test seeds two users, one repo, and the minimum fixture rows
-// needed to exercise the SQL. Tests are skipped when TEST_DATABASE_DSN
-// is unset, matching the project's existing integration-test pattern.
+// Integration tests for the account count helpers; skipped when TEST_DATABASE_DSN is unset.
 
 import (
 	"context"
@@ -20,8 +13,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
-// seedTwoUsers inserts two test users and returns their IDs plus a cleanup
-// func that deletes them (cascading to repositories, issues, pulls, …).
 func seedTwoUsers(t *testing.T, ctx context.Context, prefix string) (aliceID, bobID int64, cleanup func()) {
 	t.Helper()
 	suffix := fmt.Sprintf("%s_%d_%s", prefix, os.Getpid(), t.Name())

@@ -604,11 +604,8 @@ func (s *RepoStore) CountForUser(ctx context.Context, userID int64) (int, error)
 	return n, err
 }
 
-// ListForUser lists repositories related to userID. scope is "owned" (repos
-// the user owns), "collaborator" (repos the user collaborates on but does not
-// own), or "all" (both). Soft-deleted repos are excluded. Collaboration is
-// modeled by the permissions table; the repo owner also holds a permission
-// row, so the collaborator scope excludes repos the user owns.
+// scope is "owned", "collaborator", or "all" (default for any unknown value).
+// The repo owner also holds a permission row, so "collaborator" excludes owned repos.
 func (s *RepoStore) ListForUser(ctx context.Context, userID int64, scope string) ([]model.Repository, error) {
 	const cols = `r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at, r.is_fork, r.fork_of_id, r.fork_count, r.is_archived, r.archived_at, r.is_template`
 	var where string

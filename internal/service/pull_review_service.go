@@ -78,8 +78,7 @@ func (s *PullReviewService) RequestReviewers(ctx context.Context, owner, repoNam
 	return nil
 }
 
-// WithdrawReviewer cancels a pending review request for a user. A review that
-// has already been submitted is left untouched.
+// A review that has already been submitted is left untouched.
 func (s *PullReviewService) WithdrawReviewer(ctx context.Context, owner, repoName string, pullNumber int, reviewer model.User) error {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {

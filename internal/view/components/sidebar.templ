@@ -7,17 +7,14 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-// idPrefix converts a kind string ("issues" or "pulls") to the singular prefix ("issue" or "pull").
 func idPrefix(kind string) string {
 	return strings.TrimSuffix(kind, "s")
 }
 
-// validKind reports whether kind is a recognised sidebar kind.
 func validKind(kind string) bool {
 	return kind == "issues" || kind == "pulls"
 }
 
-// labelApplied reports whether a label id is in the applied set.
 func labelApplied(applied []model.Label, id int64) bool {
 	for _, l := range applied {
 		if l.ID == id {
@@ -27,7 +24,6 @@ func labelApplied(applied []model.Label, id int64) bool {
 	return false
 }
 
-// userAssigned reports whether username is in the assignee set.
 func userAssigned(assignees []model.User, username string) bool {
 	for _, a := range assignees {
 		if a.Username == username {
@@ -37,34 +33,24 @@ func userAssigned(assignees []model.User, username string) bool {
 	return false
 }
 
-// sidebarEditIcon is the pencil affordance shown in a metadata section header.
 templ sidebarEditIcon() {
 	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
 }
 
-// sidebarCheckIcon marks a selected item inside a picker dropdown.
 templ sidebarCheckIcon() {
 	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
 }
 
-// sidebarTagIcon leads the "create a new label" footer action.
 templ sidebarTagIcon() {
 	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
 }
 
-// sidebarInviteIcon leads the "invite a collaborator" footer action.
 templ sidebarInviteIcon() {
 	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"></path><circle cx="11" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg>
 }
 
-// LabelSidebar renders the labels metadata panel for an issue or pull request.
-// kind must be "issues" or "pulls". The outer div ID ("issue-labels"/"pull-labels")
-// is the stable HTMX swap target.
-//
-// The picker is an Alpine dropdown driven by an `open` variable that MUST be
-// provided by an ancestor x-data scope (the detail page's <aside>). Keeping the
-// state on the non-swapped ancestor is what lets the menu stay open while HTMX
-// re-renders this component after each toggle.
+// The picker is an Alpine dropdown driven by an "open" variable that MUST be
+// provided by an ancestor x-data scope, so the menu survives HTMX re-renders.
 templ LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []model.Label, allLabels []model.Label, canWrite bool) {
 	if validKind(kind) {
 		{{ divID := idPrefix(kind) + "-labels" }}
@@ -146,8 +132,7 @@ templ LabelSidebar(owner, repoName string, itemNumber int, kind string, labels [
 	}
 }
 
-// AssigneeSidebar renders the assignees metadata panel for an issue or pull request.
-// See LabelSidebar for the Alpine `open` scope contract.
+// See LabelSidebar for the Alpine open-scope contract.
 templ AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assignees []model.User, collaborators []string, canWrite bool) {
 	if validKind(kind) {
 		{{ divID := idPrefix(kind) + "-assignees" }}

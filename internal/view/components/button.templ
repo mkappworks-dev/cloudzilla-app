@@ -1,6 +1,5 @@
 package components
 
-// ButtonVariant controls the visual style of a Button.
 type ButtonVariant string
 
 const (
@@ -9,15 +8,12 @@ const (
 	ButtonGhost       ButtonVariant = "ghost"       // no border, hover bg only
 	ButtonSecondary   ButtonVariant = "secondary"   // muted solid bg
 	ButtonDestructive ButtonVariant = "destructive" // red, for delete-style actions
-	// ButtonDestructiveOutline is the bordered counterpart of ButtonDestructive —
-	// red border + text on a transparent bg, for a destructive action that should
-	// stay visually secondary (e.g. next to a primary merge button).
+	// Bordered destructive variant — stays visually secondary next to a primary button.
 	ButtonDestructiveOutline ButtonVariant = "destructive-outline"
 	ButtonSuccess            ButtonVariant = "success" // green, e.g. merge actions
 	ButtonLink               ButtonVariant = "link"    // text-only, underline on hover
 )
 
-// ButtonSize controls the height/padding of a Button.
 type ButtonSize string
 
 const (
@@ -61,9 +57,6 @@ func buttonSizeClass(s ButtonSize) string {
 	}
 }
 
-// Button renders a styled button with the given variant and size.
-// Pass attrs via templ.Attributes — typically `templ.Attributes{"type": "submit"}`,
-// `templ.Attributes{"aria-label": "Close"}`, `templ.Attributes{"onclick": "..."}`, etc.
 templ Button(variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
 	<button
 		class={ "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none", buttonVariantClass(variant), buttonSizeClass(size) }
@@ -73,7 +66,6 @@ templ Button(variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
 	</button>
 }
 
-// LinkButton renders an <a> styled identically to a Button — for navigation actions.
 templ LinkButton(href string, variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
 	<a
 		href={ templ.SafeURL(href) }

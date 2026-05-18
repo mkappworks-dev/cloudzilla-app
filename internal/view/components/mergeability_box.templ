@@ -6,9 +6,7 @@ import (
 )
 
 type MergeabilityBoxData struct {
-	// PatchURL is the hx-patch target for the merge / close buttons.
 	PatchURL string
-	// BaseBranch names the merge target in the conflict line.
 	BaseBranch string
 	// Unavailable renders an explicit message instead of zero values when mergeability couldn't be computed.
 	Unavailable bool
@@ -101,11 +99,7 @@ templ MergeabilityBox(d MergeabilityBoxData) {
 	</section>
 }
 
-// mergeSplitButton renders the merge action. With one available strategy it is
-// a plain button; with two or three it becomes a split button — a primary
-// action plus a caret menu. The selected strategy lives in Alpine scope and is
-// fed into the HTMX request via the Alpine-bound `:hx-vals`, so picking from
-// the menu changes both the button label and the merge_strategy that is sent.
+// The selected strategy lives in Alpine scope and is fed to the action via :hx-vals.
 templ mergeSplitButton(d MergeabilityBoxData) {
 	{{ defKey, defLabel := defaultMergeStrategy(d) }}
 	if mergeStrategyCount(d) == 1 {
@@ -171,10 +165,7 @@ templ mergeSplitButton(d MergeabilityBoxData) {
 	}
 }
 
-// mergeStrategyMenuItem is one radio row in the split-button menu. The Alpine
-// expressions are built from `key`/`label` so a click both records the choice
-// and updates the primary button. `aria-checked` and the trailing check mirror
-// the live `strategy` value.
+// Clicking both records the chosen strategy and updates the primary button.
 templ mergeStrategyMenuItem(key, label, desc string) {
 	<button
 		type="button"
@@ -194,7 +185,6 @@ templ mergeStrategyMenuItem(key, label, desc string) {
 	</button>
 }
 
-// mergeStrategyIcon maps a strategy key to its glyph.
 templ mergeStrategyIcon(key string) {
 	switch key {
 		case "squash":
@@ -206,8 +196,7 @@ templ mergeStrategyIcon(key string) {
 	}
 }
 
-// defaultMergeStrategy picks the strategy shown on the primary button, ordered
-// squash → merge → fast-forward by preference.
+// Preference order: squash → merge → fast-forward.
 func defaultMergeStrategy(d MergeabilityBoxData) (key, label string) {
 	switch {
 	case d.CanSquash:
