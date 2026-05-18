@@ -1,0 +1,51 @@
+package components
+
+type SettingsSidebarItem struct {
+	Label      string
+	Href       string
+	Key        string
+	Danger     bool
+	GroupLabel string // when non-empty, renders a section header above this item
+}
+
+type SettingsSidebarData struct {
+	Items  []SettingsSidebarItem
+	Active string
+}
+
+templ SettingsSidebar(d SettingsSidebarData) {
+	<nav aria-label="Settings sections" class="w-56 flex-none">
+		<ul class="space-y-1">
+			for _, it := range d.Items {
+				if it.GroupLabel != "" {
+					<li role="presentation" aria-hidden="true">
+						if it.Danger {
+							<p class="font-mono text-[10px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-destructive">{ it.GroupLabel }</p>
+						} else {
+							<p class="font-mono text-[10px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-muted-foreground">{ it.GroupLabel }</p>
+						}
+					</li>
+				}
+				<li>
+					@settingsSidebarLink(it, d.Active)
+				</li>
+			}
+		</ul>
+	</nav>
+}
+
+templ settingsSidebarLink(it SettingsSidebarItem, active string) {
+	if it.Key == active {
+		if it.Danger {
+			<a href={ templ.SafeURL(it.Href) } aria-current="page" class="block px-3 py-1.5 rounded text-sm font-medium bg-destructive/10 text-destructive">{ it.Label }</a>
+		} else {
+			<a href={ templ.SafeURL(it.Href) } aria-current="page" class="block px-3 py-1.5 rounded text-sm font-medium bg-accent text-foreground">{ it.Label }</a>
+		}
+	} else {
+		if it.Danger {
+			<a href={ templ.SafeURL(it.Href) } class="block px-3 py-1.5 rounded text-sm text-destructive hover:bg-destructive/10">{ it.Label }</a>
+		} else {
+			<a href={ templ.SafeURL(it.Href) } class="block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent">{ it.Label }</a>
+		}
+	}
+}
