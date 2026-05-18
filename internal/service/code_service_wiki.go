@@ -189,47 +189,15 @@ func (s *CodeService) WikiPageGet(owner, repoName, slug string) (content string,
 	return c, true, err
 }
 
-// WikiPageReorder moves slug one position up or down in the sidebar order,
-// persisting the result as a .order file in the wiki repo.
-func (s *CodeService) WikiPageReorder(owner, repoName, slug, direction, authorName, authorEmail string) error {
-	if direction != "up" && direction != "down" {
-		return fmt.Errorf("invalid direction %q: must be up or down", direction)
-	}
-
-	slugs, err := s.WikiPageList(owner, repoName)
-	if err != nil {
-		return err
-	}
-
-	idx := -1
-	for i, s := range slugs {
-		if s == slug {
-			idx = i
-			break
-		}
-	}
-	if idx == -1 {
-		return fmt.Errorf("wiki page %q not found", slug)
-	}
-
-	if direction == "up" && idx == 0 {
-		return nil
-	}
-	if direction == "down" && idx == len(slugs)-1 {
-		return nil
-	}
-
-	swap := idx - 1
-	if direction == "down" {
-		swap = idx + 1
-	}
-	slugs[idx], slugs[swap] = slugs[swap], slugs[idx]
-
+// WikiPageSetOrder persists orderedSlugs as the sidebar order by committing a
+// new .order file to the wiki bare repo. Returns an error when the wiki repo
+// does not yet exist.
+func (s *CodeService) WikiPageSetOrder(owner, repoName string, orderedSlugs []string, authorName, authorEmail string) error {
 	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
 	if err != nil {
 		return fmt.Errorf("wiki open: %w", err)
 	}
-	content := strings.Join(slugs, "\n")
+	content := strings.Join(orderedSlugs, "\n")
 	return wikiCommit(repo, ".order", []byte(content), authorName, authorEmail, "Reorder wiki pages")
 }
 

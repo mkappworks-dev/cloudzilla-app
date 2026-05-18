@@ -1,56 +1,124 @@
 package pages
 
 import (
-	"fmt"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 templ wikiSidebar(owner, repoName, activeSlug string, pages []service.WikiPageMeta, canWrite, canReorder bool) {
 	<aside aria-label="Wiki pages">
 		<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Pages</p>
-		<ul class="space-y-0.5 text-[13px]">
-			for i, pg := range pages {
-				<li class="flex items-center gap-1 group">
-					if pg.Slug == activeSlug {
-						<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/" + pg.Slug) } class="flex-1 block px-2 py-1.5 rounded-md font-medium bg-muted text-foreground" aria-current="page">{ pg.Slug }</a>
-					} else {
-						<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/" + pg.Slug) } class="flex-1 block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">{ pg.Slug }</a>
-					}
+		<ul id="wiki-page-list" class="space-y-0.5 text-[13px]">
+			for _, pg := range pages {
+				<li
 					if canReorder {
-						<span class="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
-							if i > 0 {
-								<button
-									type="button"
-									class="p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50"
-									aria-label={ fmt.Sprintf("Move %s up", pg.Slug) }
-									hx-post={ "/api/repos/" + owner + "/" + repoName + "/wiki/" + pg.Slug + "/move" }
-									hx-vals={ `{"dir":"up"}` }
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
-								</button>
-							} else {
-								<span class="p-0.5 w-[17px] h-[17px]"></span>
-							}
-							if i < len(pages) - 1 {
-								<button
-									type="button"
-									class="p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50"
-									aria-label={ fmt.Sprintf("Move %s down", pg.Slug) }
-									hx-post={ "/api/repos/" + owner + "/" + repoName + "/wiki/" + pg.Slug + "/move" }
-									hx-vals={ `{"dir":"down"}` }
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-								</button>
-							} else {
-								<span class="p-0.5 w-[17px] h-[17px]"></span>
-							}
-						</span>
+						data-slug={ pg.Slug }
+					}
+				>
+					if pg.Slug == activeSlug {
+						<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/" + pg.Slug) } class="block px-2 py-1.5 rounded-md font-medium bg-muted text-foreground" aria-current="page">{ pg.Slug }</a>
+					} else {
+						<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/" + pg.Slug) } class="block px-2 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50">{ pg.Slug }</a>
 					}
 				</li>
 			}
 		</ul>
 		if canWrite {
 			<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/wiki/new") } class="inline-block mt-3 text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5">+ New page</a>
+		}
+		if canReorder {
+			<button
+				type="button"
+				id="wiki-reorder-toggle"
+				data-owner={ owner }
+				data-repo={ repoName }
+				class="mt-2 inline-block text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5"
+			>Reorder pages</button>
+			<script>
+			(function() {
+				var list    = document.getElementById('wiki-page-list');
+				var toggle  = document.getElementById('wiki-reorder-toggle');
+				var owner   = toggle.dataset.owner;
+				var repo    = toggle.dataset.repo;
+				var active  = false;
+				var dragged = null;
+
+				function setMode(on) {
+					active = on;
+					toggle.textContent = on ? 'Done' : 'Reorder pages';
+					list.querySelectorAll('li[data-slug]').forEach(function(li) {
+						li.draggable = on;
+						if (on) {
+							li.classList.add('cursor-move');
+						} else {
+							li.classList.remove('cursor-move', 'opacity-50');
+						}
+					});
+					if (on) {
+						list.classList.add('ring-1', 'ring-border', 'rounded-md', 'p-1');
+					} else {
+						list.classList.remove('ring-1', 'ring-border', 'rounded-md', 'p-1');
+					}
+				}
+
+				toggle.addEventListener('click', function() { setMode(!active); });
+
+				list.addEventListener('click', function(e) {
+					if (!active) return;
+					var a = e.target.closest('a');
+					if (a) e.preventDefault();
+				});
+
+				list.addEventListener('dragstart', function(e) {
+					var li = e.target.closest('li[data-slug]');
+					if (!li) return;
+					dragged = li;
+					li.classList.add('opacity-50');
+					e.dataTransfer.effectAllowed = 'move';
+				});
+
+				list.addEventListener('dragend', function(e) {
+					var li = e.target.closest('li[data-slug]');
+					if (li) li.classList.remove('opacity-50');
+					dragged = null;
+					saveOrder();
+				});
+
+				list.addEventListener('dragover', function(e) {
+					e.preventDefault();
+					e.dataTransfer.dropEffect = 'move';
+					var target = e.target.closest('li[data-slug]');
+					if (!target || target === dragged) return;
+					var rect = target.getBoundingClientRect();
+					var after = e.clientY > rect.top + rect.height / 2;
+					if (after) {
+						target.after(dragged);
+					} else {
+						target.before(dragged);
+					}
+				});
+
+				function getCsrf() {
+					return (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+				}
+
+				function saveOrder() {
+					var slugs = Array.from(list.querySelectorAll('li[data-slug]'))
+						.map(function(li) { return li.dataset.slug; });
+					var body = new URLSearchParams();
+					body.set('order', slugs.join(','));
+					fetch('/api/repos/' + owner + '/' + repo + '/wiki/order', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded',
+							'X-CSRF-Token': getCsrf(),
+						},
+						body: body.toString(),
+					}).then(function(res) {
+						if (!res.ok) { location.reload(); }
+					}).catch(function() { location.reload(); });
+				}
+			})();
+			</script>
 		}
 	</aside>
 }

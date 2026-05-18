@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
@@ -275,17 +276,11 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 	http.Redirect(w, r, "/"+owner+"/"+repoName+"/wiki/"+slug, http.StatusSeeOther)
 }
 
-// WikiPageMove handles POST /api/repos/{owner}/{repo}/wiki/{slug}/move.
-// Accepts form value: dir ("up" or "down").
-func (h *Handler) WikiPageMove(w http.ResponseWriter, r *http.Request) {
+// WikiSetPageOrder handles POST /api/repos/{owner}/{repo}/wiki/order.
+// Accepts form field: order (comma-separated slugs in desired order).
+func (h *Handler) WikiSetPageOrder(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	slug := chi.URLParam(r, "slug")
-
-	if !validWikiSlug.MatchString(slug) {
-		writeError(w, http.StatusBadRequest, "invalid page name")
-		return
-	}
 
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -311,10 +306,20 @@ func (h *Handler) WikiPageMove(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid form data")
 		return
 	}
-	dir := r.FormValue("dir")
-	if dir != "up" && dir != "down" {
-		writeError(w, http.StatusBadRequest, "dir must be up or down")
-		return
+
+	raw := r.FormValue("order")
+	parts := strings.Split(raw, ",")
+	slugs := make([]string, 0, len(parts))
+	for _, p := range parts {
+		s := strings.TrimSpace(p)
+		if s == "" {
+			continue
+		}
+		if !validWikiSlug.MatchString(s) {
+			writeError(w, http.StatusBadRequest, "invalid page name: "+s)
+			return
+		}
+		slugs = append(slugs, s)
 	}
 
 	user, err := h.Services.User.GetByID(r.Context(), claims.UserID)
@@ -327,13 +332,12 @@ func (h *Handler) WikiPageMove(w http.ResponseWriter, r *http.Request) {
 		authorEmail = user.Username + "@localhost"
 	}
 
-	if err := h.Services.Code.WikiPageReorder(owner, repoName, slug, dir, user.Username, authorEmail); err != nil {
-		slog.Error("failed to reorder wiki page", "owner", owner, "repo", repoName, "slug", slug, "dir", dir, "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to reorder wiki page")
+	if err := h.Services.Code.WikiPageSetOrder(owner, repoName, slugs, user.Username, authorEmail); err != nil {
+		slog.Error("failed to set wiki page order", "owner", owner, "repo", repoName, "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to set wiki page order")
 		return
 	}
 
-	w.Header().Set("HX-Refresh", "true")
 	w.WriteHeader(http.StatusOK)
 }
 
