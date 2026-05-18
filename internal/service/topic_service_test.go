@@ -53,3 +53,17 @@ func TestSetTopics_TooMany(t *testing.T) {
 		t.Fatal("expected error for too many topics, got nil")
 	}
 }
+
+func TestListReposByTopicWithStats_RejectsInvalidTopic(t *testing.T) {
+	svc := &TopicService{}
+	if _, err := svc.ListReposByTopicWithStats(context.TODO(), "INVALID!", 1, 20, "stars"); err == nil {
+		t.Fatal("expected error for invalid topic name, got nil")
+	}
+}
+
+func TestCountReposByTopic_RejectsInvalidTopic(t *testing.T) {
+	svc := &TopicService{}
+	if _, err := svc.CountReposByTopic(context.TODO(), "INVALID!"); err == nil {
+		t.Fatal("expected error for invalid topic name, got nil")
+	}
+}

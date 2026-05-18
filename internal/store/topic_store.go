@@ -92,6 +92,53 @@ func (s *TopicStore) ListReposByTopic(ctx context.Context, topicName string, pag
 	return scanRepos(rows)
 }
 
+// ListReposByTopicWithStats returns public repos with star counts, paginated and sorted.
+func (s *TopicStore) ListReposByTopicWithStats(ctx context.Context, topicName string, page, pageSize int, sort string) ([]model.RepositoryWithStats, error) {
+	var orderBy string
+	switch sort {
+	case "updated":
+		orderBy = "r.updated_at DESC"
+	case "name":
+		orderBy = "r.name ASC"
+	default:
+		orderBy = "star_count DESC, r.updated_at DESC"
+	}
+	offset := (page - 1) * pageSize
+	q := `SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private,
+	             r.default_branch, r.created_at, r.updated_at, r.is_fork, r.fork_of_id,
+	             COALESCE((SELECT COUNT(*) FROM stars s WHERE s.repo_id = r.id), 0) AS star_count,
+	             r.fork_count
+	      FROM repositories r
+	      JOIN repo_topics rt ON r.id = rt.repo_id
+	      JOIN topics t ON t.id = rt.topic_id
+	      WHERE t.name = $1 AND r.private = false
+	      ORDER BY ` + orderBy + `
+	      LIMIT $2 OFFSET $3`
+	rows, err := s.db.QueryContext(ctx, q, topicName, pageSize, offset)
+	if err != nil {
+		return nil, fmt.Errorf("topic list repos with stats: %w", err)
+	}
+	defer rows.Close()
+	return scanReposWithStats(rows)
+}
+
+// CountReposByTopic returns the total number of public repos tagged with a topic.
+func (s *TopicStore) CountReposByTopic(ctx context.Context, topicName string) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*)
+		 FROM repositories r
+		 JOIN repo_topics rt ON r.id = rt.repo_id
+		 JOIN topics t ON t.id = rt.topic_id
+		 WHERE t.name = $1 AND r.private = false`,
+		topicName,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("topic count repos: %w", err)
+	}
+	return count, nil
+}
+
 func scanTopics(rows *sql.Rows) ([]model.Topic, error) {
 	var topics []model.Topic
 	for rows.Next() {

@@ -11,10 +11,9 @@ import (
 
 templ Topic(data view.TopicData) {
 	@layout.Base(data.BasePage, "Topic: "+data.TopicName) {
-		<div class="max-w-4xl mx-auto space-y-6">
+		<div class="max-w-[1400px] mx-auto px-6 pt-8 pb-20">
 
-			<section aria-labelledby="topic-title">
-				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Cloudzilla · Topic</p>
+			<section class="mb-8" aria-labelledby="topic-title">
 				<h1 id="topic-title" class="text-3xl font-semibold tracking-tight inline-flex items-center gap-3">
 					<span class="px-3 py-1 rounded-full text-base font-medium border border-primary/30 bg-primary/10 text-primary">{ data.TopicName }</span>
 				</h1>
@@ -24,34 +23,69 @@ templ Topic(data view.TopicData) {
 				</p>
 			</section>
 
+			<div class="mb-3 flex items-center justify-between gap-4">
+				<p class="text-[13px] text-muted-foreground"><span class="font-medium">{ strconv.Itoa(data.Total) }</span> repositories</p>
+				<form method="get" class="inline-flex items-center gap-2">
+					<label for="topic-sort" class="text-[12px] text-muted-foreground">Sort</label>
+					<select
+						id="topic-sort"
+						name="sort"
+						aria-label="Sort repositories"
+						class="h-7 text-[12px] bg-card border border-border rounded-md px-2 text-muted-foreground"
+						onchange="this.form.submit()"
+					>
+						if data.Sort == "stars" {
+							<option value="stars" selected>Most stars</option>
+						} else {
+							<option value="stars">Most stars</option>
+						}
+						if data.Sort == "updated" {
+							<option value="updated" selected>Recently updated</option>
+						} else {
+							<option value="updated">Recently updated</option>
+						}
+						if data.Sort == "name" {
+							<option value="name" selected>Name</option>
+						} else {
+							<option value="name">Name</option>
+						}
+					</select>
+				</form>
+			</div>
+
 			if len(data.Repos) > 0 {
 				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="repos">
 					<h2 id="repos" class="sr-only">Repositories tagged with { data.TopicName }</h2>
 					<ol class="divide-y divide-border">
 						for _, repo := range data.Repos {
-							<li class="px-4 py-4 hover:bg-muted/50">
+							<li class="group relative px-4 py-4 hover:bg-muted/50 transition-[padding-left] duration-[120ms] hover:pl-[18px]">
+								<span class="absolute left-0 top-2 bottom-2 w-0.5 bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-[120ms] rounded-sm" aria-hidden="true"></span>
 								<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-[14px] font-medium hover:underline">{ repo.OwnerName }/{ repo.Name }</a>
 								if repo.Description != "" {
 									<p class="mt-1 text-[13px] text-muted-foreground">{ repo.Description }</p>
 								}
-								<p class="mt-2 font-mono text-[11px] text-muted-foreground">
-									Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ repo.UpdatedAt.Format("Jan 2, 2006") }</time>
-								</p>
+								<div class="mt-2 flex items-center gap-4 text-[11px] text-muted-foreground font-mono">
+									<span class="inline-flex items-center gap-1" aria-label={ strconv.Itoa(repo.StarCount) + " stars" }>
+										<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+										{ strconv.Itoa(repo.StarCount) }
+									</span>
+									<span>Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ repo.UpdatedAt.Format("Jan 2, 2006") }</time></span>
+								</div>
 							</li>
 						}
 					</ol>
 				</section>
 
-				<nav class="flex items-center justify-between text-[12px]" aria-label="Pagination">
+				<nav class="mt-6 flex items-center justify-between text-[12px]" aria-label="Pagination">
 					if data.Page > 1 {
-						@components.LinkButton("?page="+strconv.Itoa(data.Page-1), components.ButtonOutline, components.ButtonSizeSM, nil) {
+						@components.LinkButton("?page="+strconv.Itoa(data.Page-1)+"&sort="+data.Sort, components.ButtonOutline, components.ButtonSizeSM, nil) {
 							← Previous
 						}
 					} else {
 						<span></span>
 					}
 					<span class="text-muted-foreground font-mono">page { strconv.Itoa(data.Page) }</span>
-					@components.LinkButton("?page="+strconv.Itoa(data.Page+1), components.ButtonOutline, components.ButtonSizeSM, nil) {
+					@components.LinkButton("?page="+strconv.Itoa(data.Page+1)+"&sort="+data.Sort, components.ButtonOutline, components.ButtonSizeSM, nil) {
 						Next →
 					}
 				</nav>

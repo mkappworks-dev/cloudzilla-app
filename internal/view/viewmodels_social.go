@@ -82,7 +82,9 @@ type SearchData struct {
 type TopicData struct {
 	BasePage
 	TopicName string
-	Repos     []model.Repository
+	Repos     []model.RepositoryWithStats
+	Total     int
+	Sort      string
 	Page      int
 }
 

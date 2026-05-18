@@ -114,15 +114,26 @@ func (h *Handler) PageTopic(w http.ResponseWriter, r *http.Request) {
 		page = p
 	}
 
-	repos, _ := h.Services.Topic.ListReposByTopic(r.Context(), topicName, page, 20)
-	if repos == nil {
-		repos = []model.Repository{}
+	sort := r.URL.Query().Get("sort")
+	switch sort {
+	case "updated", "name":
+	default:
+		sort = "stars"
 	}
+
+	repos, _ := h.Services.Topic.ListReposByTopicWithStats(r.Context(), topicName, page, 20, sort)
+	if repos == nil {
+		repos = []model.RepositoryWithStats{}
+	}
+
+	total, _ := h.Services.Topic.CountReposByTopic(r.Context(), topicName)
 
 	h.render(w, r, pages.Topic(view.TopicData{
 		BasePage:  basePage(r, h.Services),
 		TopicName: topicName,
 		Repos:     repos,
+		Total:     total,
+		Sort:      sort,
 		Page:      page,
 	}))
 }
