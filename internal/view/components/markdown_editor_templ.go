@@ -32,7 +32,7 @@ func MarkdownEditor(id, name, content, placeholder string, rows int) templ.Compo
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"md-editor\" data-md-editor><div class=\"flex items-center gap-2 border-b border-border px-2 py-1.5 bg-muted/30\"><div role=\"tablist\" aria-label=\"Editor mode\" class=\"flex gap-1\"><button type=\"button\" role=\"tab\" data-md-tab=\"write\" aria-selected=\"true\" class=\"px-2.5 py-1 text-[12.5px] rounded-md bg-background text-foreground shadow-sm\">Write</button> <button type=\"button\" role=\"tab\" data-md-tab=\"preview\" aria-selected=\"false\" hx-post=\"/api/markdown/preview\" hx-include=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"md-editor\" data-md-editor><div class=\"flex items-center gap-2 border-b border-border px-3\"><div role=\"tablist\" aria-label=\"Editor mode\" class=\"flex\"><button type=\"button\" role=\"tab\" data-md-tab=\"write\" aria-selected=\"true\" class=\"px-3 py-2 text-[13px] border-b-2 border-foreground text-foreground font-medium -mb-px\">Write</button> <button type=\"button\" role=\"tab\" data-md-tab=\"preview\" aria-selected=\"false\" hx-post=\"/api/markdown/preview\" hx-include=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -58,7 +58,7 @@ func MarkdownEditor(id, name, content, placeholder string, rows int) templ.Compo
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" hx-swap=\"innerHTML\" class=\"px-2.5 py-1 text-[12.5px] rounded-md text-muted-foreground hover:text-foreground\">Preview</button></div><div class=\"ml-auto flex items-center gap-0.5 text-muted-foreground\" aria-label=\"Formatting\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" hx-swap=\"innerHTML\" class=\"px-3 py-2 text-[13px] border-b-2 border-transparent text-muted-foreground hover:text-foreground -mb-px\">Preview</button></div><div class=\"ml-auto flex items-center gap-0.5 text-muted-foreground\" aria-label=\"Formatting\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

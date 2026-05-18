@@ -323,9 +323,10 @@ templ Base(base view.BasePage, title string) {
 					function setMode(ed, mode) {
 						ed.querySelectorAll('[data-md-tab]').forEach(function(t) {
 							var on = t.dataset.mdTab === mode;
-							t.classList.toggle('bg-background', on);
+							t.classList.toggle('border-foreground', on);
 							t.classList.toggle('text-foreground', on);
-							t.classList.toggle('shadow-sm', on);
+							t.classList.toggle('font-medium', on);
+							t.classList.toggle('border-transparent', !on);
 							t.classList.toggle('text-muted-foreground', !on);
 							t.setAttribute('aria-selected', on ? 'true' : 'false');
 						});
