@@ -184,6 +184,17 @@ func (s *RepoStore) UpdateFeatureToggles(ctx context.Context, repoID int64, issu
 	return nil
 }
 
+func (s *RepoStore) UpdateVisibility(ctx context.Context, repoID int64, private bool) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET private = $1, updated_at = NOW() WHERE id = $2`,
+		private, repoID,
+	)
+	if err != nil {
+		return fmt.Errorf("update repo visibility: %w", err)
+	}
+	return nil
+}
+
 func (s *RepoStore) UpdateOwner(ctx context.Context, repoID, newOwnerID int64, newOwnerName string) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE repositories SET owner_id = $1, owner_name = $2, updated_at = $3 WHERE id = $4`,
