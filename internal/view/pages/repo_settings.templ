@@ -9,14 +9,25 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
-// settingsNavLink renders one entry in the settings section sidebar.
-templ settingsNavLink(href, label string) {
-	<a href={ templ.SafeURL(href) } class="block px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">{ label }</a>
-}
-
-// settingsNavLinkDanger is the red-tinted sidebar entry for Danger zone items.
-templ settingsNavLinkDanger(href, label string) {
-	<a href={ templ.SafeURL(href) } class="block px-2.5 py-1.5 rounded-md !text-destructive hover:bg-destructive/10 transition-colors">{ label }</a>
+func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem {
+	items := []components.SettingsSidebarItem{
+		{Label: "General", Href: "#general", Key: "general"},
+		{Label: "Access", Href: "#access", Key: "access"},
+		{Label: "Collaborators", Href: "#collaborators", Key: "collaborators"},
+		{Label: "Deploy keys", Href: "#deploy-keys", Key: "deploy-keys"},
+		{Label: "Labels", Href: "#labels", Key: "labels"},
+		{Label: "Branch protection", Href: "#branches", Key: "branches"},
+		{Label: "Webhooks", Href: "#webhooks", Key: "webhooks"},
+	}
+	if d.IsOwner {
+		items = append(items, components.SettingsSidebarItem{Label: "Template", Href: "#template", Key: "template"})
+		items = append(items, components.SettingsSidebarItem{Label: "Archive", Href: "#archive", Key: "archive", Danger: true, GroupLabel: "Danger zone"})
+		if d.CanTransfer {
+			items = append(items, components.SettingsSidebarItem{Label: "Transfer Ownership", Href: "#transfer", Key: "transfer", Danger: true})
+		}
+		items = append(items, components.SettingsSidebarItem{Label: "Delete repository", Href: "#delete", Key: "delete", Danger: true})
+	}
+	return items
 }
 
 // settingsToggle renders a labelled checkbox row for a repo feature flag.
@@ -38,24 +49,9 @@ templ RepoSettings(data view.RepoSettingsData) {
 			</section>
 			<div class="grid grid-cols-12 gap-8">
 				<aside class="col-span-12 lg:col-span-3" aria-label="Settings sections">
-					<nav id="settings-nav" class="lg:sticky lg:top-4 flex flex-col gap-0.5 text-[13px]">
-						@settingsNavLink("#general", "General")
-						@settingsNavLink("#access", "Access")
-						@settingsNavLink("#collaborators", "Collaborators")
-						@settingsNavLink("#deploy-keys", "Deploy keys")
-						@settingsNavLink("#labels", "Labels")
-						@settingsNavLink("#branches", "Branch protection")
-						@settingsNavLink("#webhooks", "Webhooks")
-						if data.IsOwner {
-							@settingsNavLink("#template", "Template")
-							<p class="font-mono text-[10px] text-destructive uppercase tracking-wider mt-4 mb-1 px-2.5">Danger zone</p>
-							@settingsNavLinkDanger("#archive", "Archive")
-							if data.CanTransfer {
-								@settingsNavLinkDanger("#transfer", "Transfer Ownership")
-							}
-							@settingsNavLinkDanger("#delete", "Delete repository")
-						}
-					</nav>
+					<div class="lg:sticky lg:top-4">
+						@components.SettingsSidebar(components.SettingsSidebarData{Items: settingsNavItems(data), Active: "general"})
+					</div>
 				</aside>
 				<div class="col-span-12 lg:col-span-9 space-y-8">
 					<!-- General -->
@@ -687,7 +683,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 			</div>
 			<script>
 				(function () {
-					var nav = document.getElementById('settings-nav');
+					var nav = document.querySelector('nav[aria-label="Settings sections"]');
 					if (!nav) return;
 					var links = Array.prototype.slice.call(nav.querySelectorAll('a[href^="#"]'));
 					var targets = links
@@ -701,10 +697,13 @@ templ RepoSettings(data view.RepoSettingsData) {
 						}
 						links.forEach(function (l) {
 							var on = l === active.link;
-							l.classList.toggle('bg-muted', on);
-							l.classList.toggle('text-foreground', on);
-							l.classList.toggle('font-medium', on);
-							l.classList.toggle('text-muted-foreground', !on);
+							var isDanger = l.classList.contains('text-destructive');
+							if (!isDanger) {
+								l.classList.toggle('bg-accent', on);
+								l.classList.toggle('text-foreground', on);
+								l.classList.toggle('font-medium', on);
+								l.classList.toggle('text-muted-foreground', !on);
+							}
 						});
 					}
 					update();
