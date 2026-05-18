@@ -1,0 +1,31 @@
+package components
+
+import "github.com/mkappworks-dev/cloudzilla-app/internal/service"
+
+templ WikiTOC(entries []service.WikiTOCEntry) {
+	<nav aria-label="On this page" class="w-56 flex-none">
+		<p class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">On this page</p>
+		<ul class="space-y-1 text-sm">
+			for _, e := range entries {
+				<li style={ tocIndent(e.Level) }>
+					<a href={ templ.SafeURL("#" + e.Anchor) } class="text-muted-foreground hover:text-foreground block py-0.5">{ e.Text }</a>
+				</li>
+			}
+		</ul>
+	</nav>
+}
+
+func tocIndent(level int) string {
+	switch level {
+	case 1:
+		return "padding-left: 0"
+	case 2:
+		return "padding-left: 0"
+	case 3:
+		return "padding-left: 12px"
+	case 4:
+		return "padding-left: 24px"
+	default:
+		return "padding-left: 32px"
+	}
+}
