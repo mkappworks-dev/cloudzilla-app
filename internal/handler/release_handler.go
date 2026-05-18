@@ -40,12 +40,20 @@ func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rawReleases, _ := h.Services.Release.ListByRepo(r.Context(), owner, repoName)
+	rawReleases, err := h.Services.Release.ListByRepo(r.Context(), owner, repoName)
+	if err != nil {
+		slog.Error("releases: list failed", "owner", owner, "repo", repoName, "error", err)
+		http.Error(w, "failed to load releases", http.StatusInternalServerError)
+		return
+	}
 	if rawReleases == nil {
 		rawReleases = []model.Release{}
 	}
 
-	latest, _ := h.Services.Release.GetLatest(r.Context(), owner, repoName)
+	latest, latestErr := h.Services.Release.GetLatest(r.Context(), owner, repoName)
+	if latestErr != nil {
+		slog.Warn("releases: latest lookup failed", "owner", owner, "repo", repoName, "error", latestErr)
+	}
 
 	releaseViews := make([]view.ReleaseView, len(rawReleases))
 	for i, rel := range rawReleases {
@@ -131,6 +139,8 @@ func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 	authorName := ""
 	if u, uErr := h.Services.User.GetByID(r.Context(), release.AuthorID); uErr == nil {
 		authorName = u.Username
+	} else {
+		slog.Warn("release: author lookup failed", "author_id", release.AuthorID, "release_id", release.ID, "error", uErr)
 	}
 
 	isLatest := false

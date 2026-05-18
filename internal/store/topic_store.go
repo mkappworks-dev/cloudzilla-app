@@ -111,7 +111,7 @@ func (s *TopicStore) ListReposByTopicWithStats(ctx context.Context, topicName st
 	      FROM repositories r
 	      JOIN repo_topics rt ON r.id = rt.repo_id
 	      JOIN topics t ON t.id = rt.topic_id
-	      WHERE t.name = $1 AND r.private = false
+	      WHERE t.name = $1 AND r.private = false AND r.deleted_at IS NULL
 	      ORDER BY ` + orderBy + `
 	      LIMIT $2 OFFSET $3`
 	rows, err := s.db.QueryContext(ctx, q, topicName, pageSize, offset)
@@ -130,7 +130,7 @@ func (s *TopicStore) CountReposByTopic(ctx context.Context, topicName string) (i
 		 FROM repositories r
 		 JOIN repo_topics rt ON r.id = rt.repo_id
 		 JOIN topics t ON t.id = rt.topic_id
-		 WHERE t.name = $1 AND r.private = false`,
+		 WHERE t.name = $1 AND r.private = false AND r.deleted_at IS NULL`,
 		topicName,
 	).Scan(&count)
 	if err != nil {

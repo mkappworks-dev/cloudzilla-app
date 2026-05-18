@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -24,11 +25,17 @@ type WikiPageMeta struct {
 func (s *CodeService) WikiPageListMeta(owner, repoName string) ([]WikiPageMeta, error) {
 	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
 	if err != nil {
-		return []WikiPageMeta{}, nil
+		if errors.Is(err, gogit.ErrRepositoryNotExists) {
+			return []WikiPageMeta{}, nil
+		}
+		return nil, fmt.Errorf("wiki open: %w", err)
 	}
 	head, err := repo.Head()
 	if err != nil {
-		return []WikiPageMeta{}, nil
+		if errors.Is(err, plumbing.ErrReferenceNotFound) {
+			return []WikiPageMeta{}, nil
+		}
+		return nil, fmt.Errorf("wiki head: %w", err)
 	}
 	commit, err := repo.CommitObject(head.Hash())
 	if err != nil {

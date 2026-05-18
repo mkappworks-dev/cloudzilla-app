@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -121,12 +122,22 @@ func (h *Handler) PageTopic(w http.ResponseWriter, r *http.Request) {
 		sort = "stars"
 	}
 
-	repos, _ := h.Services.Topic.ListReposByTopicWithStats(r.Context(), topicName, page, 20, sort)
+	repos, err := h.Services.Topic.ListReposByTopicWithStats(r.Context(), topicName, page, 20, sort)
+	if err != nil {
+		slog.Error("topic: list repos failed", "topic", topicName, "sort", sort, "page", page, "error", err)
+		h.NotFound(w, r)
+		return
+	}
 	if repos == nil {
 		repos = []model.RepositoryWithStats{}
 	}
 
-	total, _ := h.Services.Topic.CountReposByTopic(r.Context(), topicName)
+	total, err := h.Services.Topic.CountReposByTopic(r.Context(), topicName)
+	if err != nil {
+		slog.Error("topic: count repos failed", "topic", topicName, "error", err)
+		h.NotFound(w, r)
+		return
+	}
 
 	h.render(w, r, pages.Topic(view.TopicData{
 		BasePage:  basePage(r, h.Services),
