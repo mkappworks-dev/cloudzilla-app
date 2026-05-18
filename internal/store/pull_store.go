@@ -262,7 +262,7 @@ func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, 
 }
 
 func scanPullRows(rows *sql.Rows) ([]model.PullRequest, error) {
-	var prs []model.PullRequest
+	prs := []model.PullRequest{}
 	for rows.Next() {
 		var pr model.PullRequest
 		var mergedAt, closedAt, draftAt sql.NullTime
