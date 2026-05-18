@@ -30,14 +30,18 @@ func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem 
 	return items
 }
 
-// settingsToggle renders a labelled checkbox row for a repo feature flag.
+// settingsToggle renders a labelled pill-switch row for a repo feature flag.
 templ settingsToggle(name, label, desc string, on bool) {
 	<label class="flex items-start justify-between gap-4 py-3 border-b border-border last:border-b-0 cursor-pointer">
 		<span class="min-w-0">
 			<span class="block text-sm font-medium text-foreground">{ label }</span>
 			<span class="block text-xs text-muted-foreground mt-0.5">{ desc }</span>
 		</span>
-		<input type="checkbox" name={ name } checked?={ on } class="mt-0.5 h-4 w-4 shrink-0 rounded border-input accent-foreground"/>
+		<span class="relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5">
+			<input type="checkbox" name={ name } checked?={ on } class="peer sr-only"/>
+			<span class="absolute inset-0 rounded-full bg-input transition-colors peer-checked:bg-primary"></span>
+			<span class="absolute left-0.5 h-4 w-4 rounded-full bg-background transition-transform peer-checked:translate-x-4"></span>
+		</span>
 	</label>
 }
 
@@ -102,7 +106,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 							}
 							@components.CardContent() {
 								<div class="flex items-start justify-between gap-4 pb-4 mb-2 border-b border-border">
-									<div>
+									<div class="min-w-0">
 										<p class="text-sm font-medium text-foreground">Visibility</p>
 										<p class="text-xs text-muted-foreground mt-0.5">
 											if data.Repo.Private {
@@ -112,15 +116,32 @@ templ RepoSettings(data view.RepoSettingsData) {
 											}
 										</p>
 									</div>
-									if data.Repo.Private {
-										@components.Badge(components.BadgeSecondary) {
-											Private
+									<div class="flex items-center gap-3 shrink-0">
+										if data.Repo.Private {
+											@components.Badge(components.BadgeSecondary) {
+												Private
+											}
+										} else {
+											@components.Badge(components.BadgeSuccess) {
+												Public
+											}
 										}
-									} else {
-										@components.Badge(components.BadgeSuccess) {
-											Public
+										if data.Repo.Private {
+											<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/visibility") } onsubmit="return confirm('Make this repository public? Anyone will be able to view it.')">
+												<input type="hidden" name="private" value="false"/>
+												@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
+													Make public
+												}
+											</form>
+										} else {
+											<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/visibility") } onsubmit="return confirm('Make this repository private? Only collaborators will be able to see it.')">
+												<input type="hidden" name="private" value="true"/>
+												@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
+													Make private
+												}
+											</form>
 										}
-									}
+									</div>
 								</div>
 								<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/features") }>
 									@settingsToggle("allow_issues", "Issues", "Let people open and track issues.", data.Repo.AllowIssues)
