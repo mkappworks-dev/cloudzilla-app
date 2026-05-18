@@ -73,3 +73,59 @@ func TestWikiPageListMeta_Empty(t *testing.T) {
 		t.Errorf("expected empty slice, got %d pages", len(pages))
 	}
 }
+
+func TestWikiPageRename(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	svc := NewCodeService(czconfig.GitConfig{ReposRoot: root})
+
+	owner := "bob"
+	repo := "wikirepo"
+	content := "# My Page\n\nContent here.\n"
+
+	if err := svc.WikiPageSave(owner, repo, "OldName", content, "Tester", "tester@example.com", "add OldName"); err != nil {
+		t.Fatalf("WikiPageSave: %v", err)
+	}
+
+	// Rename OldName → NewName.
+	if err := svc.WikiPageRename(owner, repo, "OldName", "NewName", "Tester", "tester@example.com", "Rename OldName to NewName"); err != nil {
+		t.Fatalf("WikiPageRename: %v", err)
+	}
+
+	// NewName must exist with original content.
+	got, found, err := svc.WikiPageGet(owner, repo, "NewName")
+	if err != nil {
+		t.Fatalf("WikiPageGet NewName: %v", err)
+	}
+	if !found {
+		t.Fatal("NewName not found after rename")
+	}
+	if got != content {
+		t.Errorf("NewName content = %q, want %q", got, content)
+	}
+
+	// OldName must be gone.
+	_, found, err = svc.WikiPageGet(owner, repo, "OldName")
+	if err != nil {
+		t.Fatalf("WikiPageGet OldName: %v", err)
+	}
+	if found {
+		t.Error("OldName still present after rename")
+	}
+
+	// Collision: renaming to an existing page must error.
+	if err := svc.WikiPageSave(owner, repo, "Existing", "# Existing\n", "Tester", "tester@example.com", "add Existing"); err != nil {
+		t.Fatalf("WikiPageSave Existing: %v", err)
+	}
+	err = svc.WikiPageRename(owner, repo, "NewName", "Existing", "Tester", "tester@example.com", "")
+	if err == nil {
+		t.Error("expected error on collision, got nil")
+	}
+
+	// Renaming a non-existent page must error.
+	err = svc.WikiPageRename(owner, repo, "DoesNotExist", "Whatever", "Tester", "tester@example.com", "")
+	if err == nil {
+		t.Error("expected error for missing source page, got nil")
+	}
+}

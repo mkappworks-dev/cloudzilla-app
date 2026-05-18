@@ -163,6 +163,97 @@ func (s *CodeService) WikiPageSave(owner, repoName, slug, content, authorName, a
 	return wikiCommit(repo, slug+".md", []byte(content), authorName, authorEmail, message)
 }
 
+// WikiPageRename moves a wiki page from oldSlug to newSlug in a single commit,
+// preserving the original content. Returns an error when oldSlug does not exist
+// or newSlug already exists (collision).
+func (s *CodeService) WikiPageRename(owner, repoName, oldSlug, newSlug, authorName, authorEmail, message string) error {
+	wPath := s.wikiPath(owner, repoName)
+	repo, err := gogit.PlainOpen(wPath)
+	if err != nil {
+		return fmt.Errorf("wiki open: %w", err)
+	}
+
+	head, err := repo.Head()
+	if err != nil {
+		return fmt.Errorf("wiki head: %w", err)
+	}
+	parentCommit, err := repo.CommitObject(head.Hash())
+	if err != nil {
+		return err
+	}
+	existingTree, err := parentCommit.Tree()
+	if err != nil {
+		return err
+	}
+
+	oldFile := oldSlug + ".md"
+	newFile := newSlug + ".md"
+
+	var oldEntry *object.TreeEntry
+	for i := range existingTree.Entries {
+		switch existingTree.Entries[i].Name {
+		case oldFile:
+			e := existingTree.Entries[i]
+			oldEntry = &e
+		case newFile:
+			return fmt.Errorf("a page named %q already exists", newSlug)
+		}
+	}
+	if oldEntry == nil {
+		return fmt.Errorf("page %q not found", oldSlug)
+	}
+
+	// Build the new tree: all existing entries minus oldFile, plus newFile.
+	stor := repo.Storer
+	now := time.Now()
+	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
+
+	entries := make([]object.TreeEntry, 0, len(existingTree.Entries))
+	for _, e := range existingTree.Entries {
+		if e.Name != oldFile {
+			entries = append(entries, e)
+		}
+	}
+	entries = append(entries, object.TreeEntry{
+		Name: newFile,
+		Mode: oldEntry.Mode,
+		Hash: oldEntry.Hash,
+	})
+	sort.Slice(entries, func(i, j int) bool { return entries[i].Name < entries[j].Name })
+
+	treeObj := stor.NewEncodedObject()
+	tree := object.Tree{Entries: entries}
+	if err := tree.Encode(treeObj); err != nil {
+		return err
+	}
+	treeHash, err := stor.SetEncodedObject(treeObj)
+	if err != nil {
+		return err
+	}
+
+	if message == "" {
+		message = "Rename " + oldSlug + " to " + newSlug
+	}
+	commitObj := stor.NewEncodedObject()
+	commit := object.Commit{
+		Author:       sig,
+		Committer:    sig,
+		Message:      message,
+		TreeHash:     treeHash,
+		ParentHashes: []plumbing.Hash{parentCommit.Hash},
+	}
+	if err := commit.Encode(commitObj); err != nil {
+		return err
+	}
+	commitHash, err := stor.SetEncodedObject(commitObj)
+	if err != nil {
+		return err
+	}
+
+	ref := plumbing.NewHashReference(head.Name(), commitHash)
+	return stor.SetReference(ref)
+}
+
 // WikiPageDelete removes a wiki page by committing a tree without the file.
 func (s *CodeService) WikiPageDelete(owner, repoName, slug, authorName, authorEmail string) error {
 	wPath := s.wikiPath(owner, repoName)

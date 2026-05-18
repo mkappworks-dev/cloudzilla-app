@@ -178,14 +178,16 @@ func WikiEdit(data view.WikiEditData) templ.Component {
 			}
 			templ_7745c5c3_Err = components.Input(templ.Attributes{
 				"id":       "wiki-page-title",
+				"name":     "new_slug",
 				"type":     "text",
 				"value":    data.Slug,
-				"readonly": true,
+				"pattern":  "[A-Za-z0-9_-]{1,100}",
+				"required": true,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div><div class=\"space-y-1.5\"><label for=\"wiki-content\" class=\"block text-sm font-medium\">Content (Markdown)</label><div class=\"border border-border rounded-md overflow-hidden\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<p class=\"mt-1 text-[12px] text-muted-foreground\">Letters, numbers, hyphens and underscores only. Changing this renames the page.</p></div><div class=\"space-y-1.5\"><label for=\"wiki-content\" class=\"block text-sm font-medium\">Content (Markdown)</label><div class=\"border border-border rounded-md overflow-hidden\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -254,7 +256,7 @@ func WikiEdit(data view.WikiEditData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</div></form></article></div></div><script>\n\t\t\t(function() {\n\t\t\t\tvar wrap = document.getElementById('wiki-edit-form');\n\t\t\t\tvar form = wrap && wrap.querySelector('form');\n\t\t\t\tvar errBox = document.getElementById('wiki-edit-error');\n\t\t\t\tif (!form) return;\n\t\t\t\tvar owner = wrap.dataset.owner;\n\t\t\t\tvar repo  = wrap.dataset.repo;\n\t\t\t\tvar slug  = wrap.dataset.slug;\n\t\t\t\tform.addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\terrBox.classList.add('hidden');\n\t\t\t\t\tvar content = form.querySelector('[name=content]').value;\n\t\t\t\t\tvar message = form.querySelector('[name=message]').value;\n\t\t\t\t\tvar csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\tvar body = new URLSearchParams();\n\t\t\t\t\tbody.set('content', content);\n\t\t\t\t\tbody.set('message', message);\n\t\t\t\t\tvar res = await fetch('/api/repos/' + owner + '/' + repo + '/wiki/' + slug, {\n\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\theaders: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': csrf },\n\t\t\t\t\t\tbody: body.toString(),\n\t\t\t\t\t});\n\t\t\t\t\tif (res.ok || res.redirected) {\n\t\t\t\t\t\twindow.location.href = '/' + owner + '/' + repo + '/wiki/' + slug;\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\tvar text = await res.text();\n\t\t\t\t\tvar msg = text;\n\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\terrBox.textContent = msg || ('Failed to save page (HTTP ' + res.status + ')');\n\t\t\t\t\terrBox.classList.remove('hidden');\n\t\t\t\t});\n\t\t\t})();\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "</div></form></article></div></div><script>\n\t\t\t(function() {\n\t\t\t\tvar wrap = document.getElementById('wiki-edit-form');\n\t\t\t\tvar form = wrap && wrap.querySelector('form');\n\t\t\t\tvar errBox = document.getElementById('wiki-edit-error');\n\t\t\t\tif (!form) return;\n\t\t\t\tvar owner = wrap.dataset.owner;\n\t\t\t\tvar repo  = wrap.dataset.repo;\n\t\t\t\tvar slug  = wrap.dataset.slug;\n\t\t\t\tform.addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\terrBox.classList.add('hidden');\n\t\t\t\t\tvar content = form.querySelector('[name=content]').value;\n\t\t\t\t\tvar message = form.querySelector('[name=message]').value;\n\t\t\t\t\tvar newSlug = form.querySelector('[name=new_slug]').value;\n\t\t\t\t\tvar csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\tvar body = new URLSearchParams();\n\t\t\t\t\tbody.set('content', content);\n\t\t\t\t\tbody.set('message', message);\n\t\t\t\t\tbody.set('new_slug', newSlug);\n\t\t\t\t\tvar res = await fetch('/api/repos/' + owner + '/' + repo + '/wiki/' + slug, {\n\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\theaders: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': csrf },\n\t\t\t\t\t\tbody: body.toString(),\n\t\t\t\t\t});\n\t\t\t\t\tif (res.ok || res.redirected) {\n\t\t\t\t\t\tsessionStorage.setItem('cz-toast', JSON.stringify({type: 'success', message: 'Wiki page saved'}));\n\t\t\t\t\t\tif (res.redirected) { window.location.href = res.url; return; }\n\t\t\t\t\t\twindow.location.href = '/' + owner + '/' + repo + '/wiki/' + slug;\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\tvar text = await res.text();\n\t\t\t\t\tvar msg = text;\n\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\terrBox.textContent = msg || ('Failed to save page (HTTP ' + res.status + ')');\n\t\t\t\t\terrBox.classList.remove('hidden');\n\t\t\t\t});\n\t\t\t})();\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

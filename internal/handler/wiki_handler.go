@@ -230,6 +230,7 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 	}
 	content := r.FormValue("content")
 	message := r.FormValue("message")
+	newSlug := r.FormValue("new_slug")
 
 	user, err := h.Services.User.GetByID(r.Context(), claims.UserID)
 	if err != nil {
@@ -240,6 +241,29 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 	authorEmail := user.Email
 	if authorEmail == "" {
 		authorEmail = user.Username + "@localhost"
+	}
+
+	if newSlug != "" && newSlug != slug {
+		if !validWikiSlug.MatchString(newSlug) {
+			writeError(w, http.StatusBadRequest, "invalid new page name")
+			return
+		}
+		_, exists, err := h.Services.Code.WikiPageGet(owner, repoName, newSlug)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to check page existence")
+			return
+		}
+		if exists {
+			writeError(w, http.StatusConflict, "a page with that name already exists")
+			return
+		}
+		renameMsg := "Rename " + slug + " to " + newSlug
+		if err := h.Services.Code.WikiPageRename(owner, repoName, slug, newSlug, user.Username, authorEmail, renameMsg); err != nil {
+			slog.Error("failed to rename wiki page", "owner", owner, "repo", repoName, "slug", slug, "newSlug", newSlug, "error", err)
+			writeError(w, http.StatusInternalServerError, "failed to rename wiki page")
+			return
+		}
+		slug = newSlug
 	}
 
 	if err := h.Services.Code.WikiPageSave(owner, repoName, slug, content, user.Username, authorEmail, message); err != nil {

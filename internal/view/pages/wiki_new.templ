@@ -105,6 +105,7 @@ templ WikiNew(data view.WikiNewData) {
 						body: body.toString(),
 					});
 					if (res.ok || res.redirected) {
+						sessionStorage.setItem('cz-toast', JSON.stringify({type: 'success', message: 'Wiki page created'}));
 						window.location.href = '/' + owner + '/' + repo + '/wiki/' + slug;
 						return;
 					}

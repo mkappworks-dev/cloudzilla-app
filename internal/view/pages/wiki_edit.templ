@@ -37,11 +37,14 @@ templ WikiEdit(data view.WikiEditData) {
 						<div>
 							<label for="wiki-page-title" class="block text-sm font-medium mb-1.5">Page title</label>
 							@components.Input(templ.Attributes{
-								"id":       "wiki-page-title",
-								"type":     "text",
-								"value":    data.Slug,
-								"readonly": true,
+								"id":      "wiki-page-title",
+								"name":    "new_slug",
+								"type":    "text",
+								"value":   data.Slug,
+								"pattern": "[A-Za-z0-9_-]{1,100}",
+								"required": true,
 							})
+							<p class="mt-1 text-[12px] text-muted-foreground">Letters, numbers, hyphens and underscores only. Changing this renames the page.</p>
 						</div>
 
 						<div class="space-y-1.5">
@@ -91,16 +94,20 @@ templ WikiEdit(data view.WikiEditData) {
 					errBox.classList.add('hidden');
 					var content = form.querySelector('[name=content]').value;
 					var message = form.querySelector('[name=message]').value;
+					var newSlug = form.querySelector('[name=new_slug]').value;
 					var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 					var body = new URLSearchParams();
 					body.set('content', content);
 					body.set('message', message);
+					body.set('new_slug', newSlug);
 					var res = await fetch('/api/repos/' + owner + '/' + repo + '/wiki/' + slug, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': csrf },
 						body: body.toString(),
 					});
 					if (res.ok || res.redirected) {
+						sessionStorage.setItem('cz-toast', JSON.stringify({type: 'success', message: 'Wiki page saved'}));
+						if (res.redirected) { window.location.href = res.url; return; }
 						window.location.href = '/' + owner + '/' + repo + '/wiki/' + slug;
 						return;
 					}
