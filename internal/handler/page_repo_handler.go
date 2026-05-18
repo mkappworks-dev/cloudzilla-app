@@ -128,7 +128,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
-	topContribs, contribErr := h.Services.Repo.TopContributors(r.Context(), owner, repoName, 10)
+	topContribs, contribErr := h.Services.Repo.TopContributors(r.Context(), owner, repoName, repo.DefaultBranch, 10)
 	if contribErr != nil {
 		slog.Warn("repo: top contributors failed", "owner", owner, "repo", repoName, "error", contribErr)
 	}

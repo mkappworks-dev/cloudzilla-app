@@ -92,7 +92,7 @@ func (h *Handler) accountCounts(ctx context.Context, userID int64) map[string]in
 	} else {
 		logFail("gists", err)
 	}
-	if n, err := h.Services.Pull.CountOpenAuthoredByOrAssignedTo(ctx, userID); err == nil {
+	if n, err := h.Services.Pull.CountOpenAssignedTo(ctx, userID); err == nil {
 		counts["pulls"] = n
 	} else {
 		logFail("pulls", err)
@@ -148,11 +148,11 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			slog.Warn("home: repo count stat failed", "user_id", userID, "error", err)
 		}
-		countOpenPulls, err := h.Services.Pull.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+		countOpenPulls, err := h.Services.Pull.CountOpenAssignedTo(ctx, userID)
 		if err != nil {
 			slog.Warn("home: open-pulls count stat failed", "user_id", userID, "error", err)
 		}
-		countOpenIssues, err := h.Services.Issue.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+		countOpenIssues, err := h.Services.Issue.CountOpenAssignedTo(ctx, userID)
 		if err != nil {
 			slog.Warn("home: open-issues count stat failed", "user_id", userID, "error", err)
 		}

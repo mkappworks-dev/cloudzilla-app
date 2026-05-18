@@ -295,8 +295,8 @@ func (s *PullService) CountOpen(ctx context.Context, repoID int64) (int, error) 
 	return s.pulls.CountOpen(ctx, repoID)
 }
 
-func (s *PullService) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
-	return s.pulls.CountOpenAuthoredByOrAssignedTo(ctx, userID)
+func (s *PullService) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
+	return s.pulls.CountOpenAssignedTo(ctx, userID)
 }
 
 func (s *PullService) WithReviewerDeps(contribStats *store.ContributorStatsStore, userStore *store.UserStore) *PullService {

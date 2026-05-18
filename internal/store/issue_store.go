@@ -423,23 +423,10 @@ func (s *IssueStore) WeeklyCreated(ctx context.Context, repoID int64, weeks int)
 	return out, rows.Err()
 }
 
-// Excludes soft-deleted repos so home-page counts match the heatmap's visibility rule.
-func (s *IssueStore) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
-	var n int
-	err := s.db.QueryRowContext(ctx,
-		`SELECT COUNT(DISTINCT i.id)
-		 FROM issues i
-		 JOIN repositories r ON r.id = i.repo_id
-		 LEFT JOIN issue_assignees a ON a.issue_id = i.id
-		 WHERE i.state = 'open' AND r.deleted_at IS NULL AND (i.author_id = $1 OR a.user_id = $1)`,
-		userID,
-	).Scan(&n)
-	return n, err
-}
-
 // CountOpenAssignedTo counts open issues assigned to userID. It backs the
-// account nav "Issues" badge, so it mirrors the /issues page's default
-// "assigned" tab rather than the broader authored-or-assigned set.
+// account nav "Issues" badge and the home "Issues" stat, so it mirrors the
+// /issues page's default "assigned" tab. Soft-deleted repos are excluded so the
+// count matches the heatmap's visibility rule.
 func (s *IssueStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,

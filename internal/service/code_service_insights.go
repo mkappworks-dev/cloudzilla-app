@@ -42,18 +42,20 @@ func weekStart(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day()-weekday+1, 0, 0, 0, 0, time.UTC)
 }
 
-// GetContributors walks all commits from HEAD and returns up to 100 contributors
-// sorted by commit count descending.
-func (s *CodeService) GetContributors(owner, repoName string) ([]ContributorStat, error) {
+// GetContributors walks all commits reachable from ref and returns up to 100
+// contributors sorted by commit count descending. ref should be the repo's
+// default branch; relying on the bare repo's symbolic HEAD is unsafe because it
+// can still point at a branch that no longer exists.
+func (s *CodeService) GetContributors(owner, repoName, ref string) ([]ContributorStat, error) {
 	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
 	if err != nil {
 		return nil, err
 	}
-	head, err := repo.Head()
+	commit, _, err := resolveRef(repo, ref)
 	if err != nil {
-		return nil, ErrEmptyRepo
+		return nil, err
 	}
-	iter, err := repo.Log(&gogit.LogOptions{From: head.Hash()})
+	iter, err := repo.Log(&gogit.LogOptions{From: commit.Hash})
 	if err != nil {
 		return nil, err
 	}

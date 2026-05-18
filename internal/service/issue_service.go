@@ -212,10 +212,6 @@ func (s *IssueService) WeeklyCreated(ctx context.Context, repoID int64, weeks in
 	return s.issues.WeeklyCreated(ctx, repoID, weeks)
 }
 
-func (s *IssueService) CountOpenAuthoredByOrAssignedTo(ctx context.Context, userID int64) (int, error) {
-	return s.issues.CountOpenAuthoredByOrAssignedTo(ctx, userID)
-}
-
 func (s *IssueService) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
 	return s.issues.CountOpenAssignedTo(ctx, userID)
 }

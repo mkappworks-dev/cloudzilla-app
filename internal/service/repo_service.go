@@ -58,11 +58,11 @@ func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.
 	return &RepoService{repos: repos, users: users, orgs: orgs, commitStats: commitStats, contributorStats: contributorStats, code: code, cfg: cfg}
 }
 
-func (s *RepoService) TopContributors(ctx context.Context, owner, name string, limit int) ([]ContributorStat, error) {
+func (s *RepoService) TopContributors(ctx context.Context, owner, name, ref string, limit int) ([]ContributorStat, error) {
 	if s.code == nil {
 		return nil, nil
 	}
-	all, err := s.code.GetContributors(owner, name)
+	all, err := s.code.GetContributors(owner, name, ref)
 	if err != nil {
 		return nil, err
 	}
