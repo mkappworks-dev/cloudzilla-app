@@ -254,7 +254,7 @@ func MarkdownEditor(id, name, content, placeholder string, rows int) templ.Compo
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" data-md-pane=\"preview\" class=\"hidden px-4 py-3 prose prose-sm max-w-none min-h-[6rem]\"></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" data-md-pane=\"preview\" class=\"hidden px-4 py-3 prose prose-sm dark:prose-invert max-w-none min-h-[6rem]\"></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
