@@ -1332,7 +1332,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							}
 							return nil
 						})
-						templ_7745c5c3_Err = components.DialogClose(templ.Attributes{}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var56), templ_7745c5c3_Buffer)
+						templ_7745c5c3_Err = components.DialogClose().Render(templ.WithChildren(ctx, templ_7745c5c3_Var56), templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -1752,7 +1752,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							}
 							return nil
 						})
-						templ_7745c5c3_Err = components.DialogClose(templ.Attributes{}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var73), templ_7745c5c3_Buffer)
+						templ_7745c5c3_Err = components.DialogClose().Render(templ.WithChildren(ctx, templ_7745c5c3_Var73), templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -2263,7 +2263,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 							}
 							return nil
 						})
-						templ_7745c5c3_Err = components.DialogClose(templ.Attributes{}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var93), templ_7745c5c3_Buffer)
+						templ_7745c5c3_Err = components.DialogClose().Render(templ.WithChildren(ctx, templ_7745c5c3_Var93), templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -2684,7 +2684,7 @@ func RepoSettings(data view.RepoSettingsData) templ.Component {
 						}
 						return nil
 					})
-					templ_7745c5c3_Err = components.DialogClose(templ.Attributes{}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var109), templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = components.DialogClose().Render(templ.WithChildren(ctx, templ_7745c5c3_Var109), templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
