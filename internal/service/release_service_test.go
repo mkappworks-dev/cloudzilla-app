@@ -4,7 +4,14 @@ package service_test
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
+
+	gogit "github.com/go-git/go-git/v5"
+	gitconfig "github.com/go-git/go-git/v5/config"
+	gitobj "github.com/go-git/go-git/v5/plumbing/object"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -12,9 +19,65 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-// newReleaseSvc builds a ReleaseService backed by the test database and seeds an owner
-// and repo. Returns the service, ownerName, and repoName.
-func newReleaseSvc(t *testing.T) (*service.ReleaseService, string, string, int64) {
+// seedReleaseRepo creates a bare repo at <root>/<owner>/<name>.git holding one commit
+// tagged with each given tag, then returns the ReposRoot. ReleaseService.Create reads
+// the on-disk repo to validate that the release tag exists.
+func seedReleaseRepo(t *testing.T, owner, name string, tags ...string) string {
+	t.Helper()
+	root := t.TempDir()
+
+	bareDir := filepath.Join(root, owner, name+".git")
+	if err := os.MkdirAll(filepath.Dir(bareDir), 0o755); err != nil {
+		t.Fatalf("mkdir owner: %v", err)
+	}
+	if _, err := gogit.PlainInit(bareDir, true); err != nil {
+		t.Fatalf("plain init bare: %v", err)
+	}
+
+	workDir := t.TempDir()
+	work, err := gogit.PlainInit(workDir, false)
+	if err != nil {
+		t.Fatalf("plain init work: %v", err)
+	}
+	wt, err := work.Worktree()
+	if err != nil {
+		t.Fatalf("worktree: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(workDir, "f.txt"), []byte("seed"), 0o644); err != nil {
+		t.Fatalf("write file: %v", err)
+	}
+	if _, err := wt.Add("f.txt"); err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	sig := &gitobj.Signature{Name: "Tester", Email: "tester@test.invalid", When: time.Now().UTC()}
+	commit, err := wt.Commit("seed commit", &gogit.CommitOptions{Author: sig, Committer: sig})
+	if err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+	for _, tag := range tags {
+		if _, err := work.CreateTag(tag, commit, nil); err != nil {
+			t.Fatalf("create tag %s: %v", tag, err)
+		}
+	}
+
+	if _, err := work.CreateRemote(&gitconfig.RemoteConfig{
+		Name: "bare",
+		URLs: []string{bareDir},
+	}); err != nil {
+		t.Fatalf("create remote: %v", err)
+	}
+	if err := work.Push(&gogit.PushOptions{
+		RemoteName: "bare",
+		RefSpecs:   []gitconfig.RefSpec{"refs/tags/*:refs/tags/*"},
+	}); err != nil {
+		t.Fatalf("push tags: %v", err)
+	}
+	return root
+}
+
+// newReleaseSvc builds a ReleaseService backed by the test database and an on-disk git
+// repo seeded with the given tags. Returns the service, ownerName, repoName, and owner ID.
+func newReleaseSvc(t *testing.T, tags ...string) (*service.ReleaseService, string, string, int64) {
 	t.Helper()
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
@@ -22,10 +85,11 @@ func newReleaseSvc(t *testing.T) (*service.ReleaseService, string, string, int64
 	ownerName := "testuser_" + suffix
 	repoName := "testrepo_" + suffix
 	testutil.SeedRepo(t, db, ownerID, ownerName, suffix)
+	reposRoot := seedReleaseRepo(t, ownerName, repoName, tags...)
 	svc := service.NewReleaseService(
 		store.NewReleaseStore(db),
 		store.NewRepoStore(db),
-		service.NewCodeService(config.GitConfig{}),
+		service.NewCodeService(config.GitConfig{ReposRoot: reposRoot}),
 	)
 	return svc, ownerName, repoName, ownerID
 }
@@ -33,7 +97,7 @@ func newReleaseSvc(t *testing.T) (*service.ReleaseService, string, string, int64
 // TestReleaseService_Create_AssignsID verifies that Create inserts a release and
 // returns it with a non-zero database ID.
 func TestReleaseService_Create_AssignsID(t *testing.T) {
-	svc, owner, repo, authorID := newReleaseSvc(t)
+	svc, owner, repo, authorID := newReleaseSvc(t, "v1.0.0")
 
 	r, err := svc.Create(context.Background(), owner, repo, "v1.0.0", "Release 1.0", "First release", false, false, authorID)
 	if err != nil {
@@ -50,7 +114,7 @@ func TestReleaseService_Create_AssignsID(t *testing.T) {
 // TestReleaseService_ListByRepo_ReturnsRelease verifies that ListByRepo returns the
 // release we just created.
 func TestReleaseService_ListByRepo_ReturnsRelease(t *testing.T) {
-	svc, owner, repo, authorID := newReleaseSvc(t)
+	svc, owner, repo, authorID := newReleaseSvc(t, "v2.0.0")
 
 	if _, err := svc.Create(context.Background(), owner, repo, "v2.0.0", "Release 2.0", "", false, false, authorID); err != nil {
 		t.Fatalf("Create: %v", err)
@@ -68,7 +132,7 @@ func TestReleaseService_ListByRepo_ReturnsRelease(t *testing.T) {
 // TestReleaseService_GetByTag_ReturnsCorrectRelease verifies that GetByTag finds the
 // release by its tag name.
 func TestReleaseService_GetByTag_ReturnsCorrectRelease(t *testing.T) {
-	svc, owner, repo, authorID := newReleaseSvc(t)
+	svc, owner, repo, authorID := newReleaseSvc(t, "v3.0.0")
 
 	r, err := svc.Create(context.Background(), owner, repo, "v3.0.0", "Release 3.0", "", false, false, authorID)
 	if err != nil {
@@ -87,7 +151,7 @@ func TestReleaseService_GetByTag_ReturnsCorrectRelease(t *testing.T) {
 // TestReleaseService_Delete_RemovesRelease verifies that Delete removes the release so
 // GetByTag returns an error afterward.
 func TestReleaseService_Delete_RemovesRelease(t *testing.T) {
-	svc, owner, repo, authorID := newReleaseSvc(t)
+	svc, owner, repo, authorID := newReleaseSvc(t, "v4.0.0")
 
 	r, err := svc.Create(context.Background(), owner, repo, "v4.0.0", "Release 4.0", "", false, false, authorID)
 	if err != nil {
@@ -107,7 +171,7 @@ func TestReleaseService_Delete_RemovesRelease(t *testing.T) {
 // TestReleaseService_Create_Prerelease verifies that a release created with
 // isPrerelease=true stores the flag correctly.
 func TestReleaseService_Create_Prerelease(t *testing.T) {
-	svc, owner, repo, authorID := newReleaseSvc(t)
+	svc, owner, repo, authorID := newReleaseSvc(t, "v1.0.0-rc1")
 
 	r, err := svc.Create(context.Background(), owner, repo, "v1.0.0-rc1", "Release Candidate", "", true, false, authorID)
 	if err != nil {
