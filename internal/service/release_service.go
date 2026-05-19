@@ -168,6 +168,85 @@ func (s *ReleaseService) Update(ctx context.Context, owner, repoName string, id 
 	return r, nil
 }
 
+// EditName updates only the human-readable name of a release.
+func (s *ReleaseService) EditName(ctx context.Context, owner, repoName string, id int64, name string) (*model.Release, error) {
+	r, err := s.loadByID(ctx, owner, repoName, id)
+	if err != nil {
+		return nil, err
+	}
+	r.Name = name
+	if err := s.releases.Update(ctx, r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+// ErrReleaseAlreadyPublished is returned by Publish when the release is no
+// longer a draft. Publishing is a one-way transition; the only way back is
+// delete + recreate.
+var ErrReleaseAlreadyPublished = errors.New("release is already published")
+
+// Publish promotes a draft release to a published one. It clears is_draft and
+// stamps published_at if not already set. Returns ErrReleaseAlreadyPublished
+// when called on a release that is not currently a draft.
+func (s *ReleaseService) Publish(ctx context.Context, owner, repoName string, id int64) (*model.Release, error) {
+	r, err := s.loadByID(ctx, owner, repoName, id)
+	if err != nil {
+		return nil, err
+	}
+	if !r.IsDraft {
+		return nil, ErrReleaseAlreadyPublished
+	}
+	r.IsDraft = false
+	if r.PublishedAt == nil {
+		now := time.Now()
+		r.PublishedAt = &now
+	}
+	if err := s.releases.Update(ctx, r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+// EditPrerelease toggles the pre-release flag without touching tag, name, body,
+// or draft state.
+func (s *ReleaseService) EditPrerelease(ctx context.Context, owner, repoName string, id int64, isPrerelease bool) (*model.Release, error) {
+	r, err := s.loadByID(ctx, owner, repoName, id)
+	if err != nil {
+		return nil, err
+	}
+	r.IsPrerelease = isPrerelease
+	if err := s.releases.Update(ctx, r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+// EditBody updates only the markdown body of a release.
+func (s *ReleaseService) EditBody(ctx context.Context, owner, repoName string, id int64, body string) (*model.Release, error) {
+	r, err := s.loadByID(ctx, owner, repoName, id)
+	if err != nil {
+		return nil, err
+	}
+	r.Body = body
+	if err := s.releases.Update(ctx, r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (s *ReleaseService) loadByID(ctx context.Context, owner, repoName string, id int64) (*model.Release, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	r, err := s.releases.GetByID(ctx, id, repo.ID)
+	if err != nil {
+		return nil, fmt.Errorf("release not found: %w", err)
+	}
+	return r, nil
+}
+
 func (s *ReleaseService) Delete(ctx context.Context, owner, repoName string, id int64) error {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {

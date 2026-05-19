@@ -6,6 +6,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -21,32 +22,7 @@ templ ReleaseDetail(data view.ReleaseDetailData) {
 					<span aria-hidden="true">·</span>
 					<span>{ data.Release.TagName }</span>
 				</p>
-				<div class="flex flex-wrap items-center gap-2">
-					<h1 id="rel-title" class="text-2xl font-semibold tracking-tight">
-						if data.Release.Name != "" {
-							{ data.Release.Name }
-						} else {
-							{ data.Release.TagName }
-						}
-					</h1>
-					<code class="font-mono px-2 py-0.5 border border-border bg-muted rounded text-[12px]">{ data.Release.TagName }</code>
-					if data.IsLatest {
-						@components.Badge(components.BadgeSuccess) {
-							Latest
-						}
-					} else if data.Release.IsPrerelease {
-						@components.Badge(components.BadgeWarning) {
-							Pre-release
-						}
-					} else if data.Release.IsDraft {
-						@components.Badge(components.BadgeDraft) {
-							Draft
-						}
-					}
-					if data.CanWrite {
-						<button type="button" id="rel-edit-btn" class="ml-auto h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent inline-flex items-center shrink-0">Edit</button>
-					}
-				</div>
+				@fragments.ReleaseTitleSection(data.Owner, data.RepoName, data.Release.ID, data.Release.Name, data.Release.TagName, releaseStatus(data), data.CanWrite, false)
 				<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
 					if data.AuthorName != "" {
 						<span class="inline-flex items-center gap-1.5">
@@ -69,78 +45,15 @@ templ ReleaseDetail(data view.ReleaseDetailData) {
 
 				<div class="space-y-6 min-w-0">
 
-					<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="notes-heading">
-						<header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
-							<h2 id="notes-heading" class="text-[13px] font-medium">Release notes</h2>
-						</header>
-						<div class="p-5">
-							<div id="rel-desc-rendered">
-								if data.BodyHTML != "" {
-									@components.MarkdownBody(data.BodyHTML)
-								} else {
-									<p class="text-[13px] text-muted-foreground italic">No release notes.</p>
-								}
-							</div>
-							if data.CanWrite {
-								<form
-									id="release-editor"
-									class="hidden"
-									hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) }
-									hx-swap="none"
-									hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Release updated'}));location.reload();}"
-								>
-									<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-										<div class="space-y-1.5">
-											<label for="rel-edit-tag" class="block text-sm font-medium">Tag <span class="text-destructive" aria-hidden="true">*</span></label>
-											@components.Input(templ.Attributes{
-												"id":       "rel-edit-tag",
-												"type":     "text",
-												"name":     "tag_name",
-												"required": "required",
-												"value":    data.Release.TagName,
-												"class":    "font-mono",
-											})
-										</div>
-										<div class="space-y-1.5">
-											<label for="rel-edit-name" class="block text-sm font-medium">Release title</label>
-											@components.Input(templ.Attributes{
-												"id":    "rel-edit-name",
-												"type":  "text",
-												"name":  "name",
-												"value": data.Release.Name,
-											})
-										</div>
-									</div>
-									<div class="space-y-1.5 mb-4">
-										<label for="release-body" class="block text-sm font-medium">Description</label>
-										@components.MarkdownEditor("release-body", "body", data.Release.Body, "Release notes…", 14)
-									</div>
-									<div class="flex flex-wrap items-center gap-6 mb-4">
-										<label class="flex items-center gap-2 text-sm cursor-pointer">
-											if data.Release.IsPrerelease {
-												@components.Checkbox(templ.Attributes{"name": "is_prerelease", "value": "true", "checked": "checked"})
-											} else {
-												@components.Checkbox(templ.Attributes{"name": "is_prerelease", "value": "true"})
-											}
-											<span>Pre-release</span>
-										</label>
-										<label class="flex items-center gap-2 text-sm cursor-pointer">
-											if data.Release.IsDraft {
-												@components.Checkbox(templ.Attributes{"name": "is_draft", "value": "true", "checked": "checked"})
-											} else {
-												@components.Checkbox(templ.Attributes{"name": "is_draft", "value": "true"})
-											}
-											<span>Save as draft</span>
-										</label>
-									</div>
-									<div class="flex justify-end gap-2">
-										<button type="button" id="rel-edit-cancel" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent">Cancel</button>
-										<button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Save</button>
-									</div>
-								</form>
-							}
-						</div>
-					</section>
+					@fragments.ReleaseBodyCard(view.ReleaseBodyCardData{
+						Owner:     data.Owner,
+						RepoName:  data.RepoName,
+						ReleaseID: data.Release.ID,
+						Body:      data.Release.Body,
+						BodyHTML:  data.BodyHTML,
+						CanWrite:  data.CanWrite,
+						Editing:   false,
+					})
 
 					<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="assets-heading">
 						<header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
@@ -163,66 +76,170 @@ templ ReleaseDetail(data view.ReleaseDetailData) {
 
 				</div>
 
-				<aside class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="rel-meta-heading">
-					<header class="px-5 py-3 border-b border-border bg-muted/50">
-						<h2 id="rel-meta-heading" class="text-[13px] font-medium">Details</h2>
-					</header>
-					<div class="p-5 space-y-4 text-[13px]">
-						<div>
-							<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Tag</p>
-							<p class="mt-1"><code class="font-mono px-2 py-0.5 border border-border bg-muted rounded text-[12px]">{ data.Release.TagName }</code></p>
-						</div>
-						<div>
-							<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Status</p>
-							<p class="mt-1">
-								if data.IsLatest {
-									@components.Badge(components.BadgeSuccess) {
-										Latest
-									}
-								} else if data.Release.IsPrerelease {
-									@components.Badge(components.BadgeWarning) {
-										Pre-release
-									}
-								} else if data.Release.IsDraft {
-									@components.Badge(components.BadgeDraft) {
-										Draft
-									}
-								} else {
-									<span class="text-muted-foreground">—</span>
-								}
+				<aside class="space-y-6" aria-label="Release metadata">
+
+					<section aria-labelledby="rel-tag-heading">
+						<h2 id="rel-tag-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Tag</h2>
+						<p><code class="font-mono px-2 py-0.5 border border-border bg-muted rounded text-[12px]">{ data.Release.TagName }</code></p>
+					</section>
+
+					if data.CommitSHA != "" {
+						<section aria-labelledby="rel-commit-heading" class="border-t border-border pt-5">
+							<h2 id="rel-commit-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Commit</h2>
+							<p>
+								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commit/" + data.CommitSHA) } class="font-mono text-[12px] text-muted-foreground hover:text-foreground hover:underline">
+									{ data.CommitSHA[:7] }
+								</a>
 							</p>
-						</div>
-						if data.AuthorName != "" {
-							<div>
-								<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Contributors</p>
-								<div class="mt-1.5 flex items-center gap-1.5">
-									@components.Avatar(data.AuthorName, components.AvatarSizeSM, data.AuthorName)
-								</div>
+						</section>
+					}
+
+					<section aria-labelledby="rel-status-heading" class="border-t border-border pt-5">
+						<h2 id="rel-status-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Status</h2>
+						<p>
+							if data.IsLatest {
+								@components.Badge(components.BadgeSuccess) {
+									Latest
+								}
+							} else if data.Release.IsPrerelease {
+								@components.Badge(components.BadgeWarning) {
+									Pre-release
+								}
+							} else if data.Release.IsDraft {
+								@components.Badge(components.BadgeDraft) {
+									Draft
+								}
+							} else {
+								<span class="text-muted-foreground">—</span>
+							}
+						</p>
+					</section>
+
+					if data.AuthorName != "" {
+						<section aria-labelledby="rel-contributors-heading" class="border-t border-border pt-5">
+							<h2 id="rel-contributors-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Contributors</h2>
+							<div class="flex items-center gap-1.5">
+								@components.Avatar(data.AuthorName, components.AvatarSizeSM, data.AuthorName)
 							</div>
-						}
-					</div>
+						</section>
+					}
+
+					if data.CanWrite {
+						<section aria-labelledby="rel-manage-heading" class="border-t border-border pt-5">
+							<h2 id="rel-manage-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Manage</h2>
+							<div class="space-y-1.5">
+								if data.Release.IsDraft {
+									<button
+										type="button"
+										onclick="document.getElementById('rel-publish-dialog').showModal()"
+										class="flex w-full items-center justify-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] font-medium bg-success text-success-foreground hover:bg-success/90"
+									>Publish release</button>
+								}
+								if data.Release.IsPrerelease {
+									<button
+										type="button"
+										hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) + "/prerelease" }
+										hx-vals={ `{"is_prerelease":"false"}` }
+										hx-swap="none"
+										class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md border border-border text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground"
+									>Mark as latest release</button>
+								} else {
+									<button
+										type="button"
+										onclick="document.getElementById('rel-demote-dialog').showModal()"
+										class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md border border-border text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground"
+									>Mark as pre-release</button>
+								}
+								<button
+									type="button"
+									onclick="document.getElementById('rel-delete-dialog').showModal()"
+									class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
+								>Delete release</button>
+							</div>
+							<p class="mt-2 text-[11px] text-muted-foreground leading-relaxed">Deleting a release removes the notes and metadata. The git tag itself stays in the repository.</p>
+						</section>
+					}
+
 				</aside>
 
 			</div>
 
 		</div>
 		if data.CanWrite {
-			<script>
-				(function () {
-					var editBtn = document.getElementById('rel-edit-btn');
-					var rendered = document.getElementById('rel-desc-rendered');
-					var editor = document.getElementById('release-editor');
-					var cancel = document.getElementById('rel-edit-cancel');
-					if (!editBtn || !rendered || !editor) return;
-					function toggle(editing) {
-						rendered.classList.toggle('hidden', editing);
-						editor.classList.toggle('hidden', !editing);
-						editBtn.classList.toggle('hidden', editing);
+			if data.Release.IsDraft {
+				@components.Dialog("rel-publish-dialog") {
+					@components.DialogHeader() {
+						@components.DialogTitle("rel-publish-dialog") {
+							Publish this release?
+						}
+						@components.DialogDescription() {
+							Publish <strong class="text-foreground">{ releaseDetailTitle(data) }</strong> (<code class="font-mono">{ data.Release.TagName }</code>). Subscribers will be notified, the audit log will record the publish, and the release will appear in feeds. This cannot be undone — to roll back, you have to delete and recreate the release.
+						}
 					}
-					editBtn.addEventListener('click', function () { toggle(true); });
-					if (cancel) cancel.addEventListener('click', function () { toggle(false); });
-				})();
-			</script>
+					@components.DialogFooter() {
+						@components.DialogClose() {
+							Cancel
+						}
+						<button
+							type="button"
+							hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) + "/publish" }
+							hx-swap="none"
+							class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-success text-success-foreground hover:bg-success/90"
+						>
+							Publish release
+						</button>
+					}
+				}
+			}
+			if !data.Release.IsPrerelease {
+				@components.Dialog("rel-demote-dialog") {
+					@components.DialogHeader() {
+						@components.DialogTitle("rel-demote-dialog") {
+							Mark as pre-release?
+						}
+						@components.DialogDescription() {
+							Mark <strong class="text-foreground">{ releaseDetailTitle(data) }</strong> as a pre-release. It stops being eligible for the "Latest" badge until you mark it back. Consumers who already pulled it as stable won't be re-notified.
+						}
+					}
+					@components.DialogFooter() {
+						@components.DialogClose() {
+							Cancel
+						}
+						<button
+							type="button"
+							hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) + "/prerelease" }
+							hx-vals={ `{"is_prerelease":"true"}` }
+							hx-swap="none"
+							class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90"
+						>
+							Mark as pre-release
+						</button>
+					}
+				}
+			}
+			@components.Dialog("rel-delete-dialog") {
+				@components.DialogHeader() {
+					@components.DialogTitle("rel-delete-dialog") {
+						Delete this release?
+					}
+					@components.DialogDescription() {
+						Delete <strong class="text-foreground">{ releaseDetailTitle(data) }</strong>. The release notes and metadata are removed, but the git tag <code class="font-mono">{ data.Release.TagName }</code> is preserved — you can re-attach it as a new release later. This cannot be undone.
+					}
+				}
+				@components.DialogFooter() {
+					@components.DialogClose() {
+						Cancel
+					}
+					<button
+						type="button"
+						hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) }
+						hx-target="body"
+						class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+					>
+						Delete release
+					</button>
+				}
+			}
 		}
 	}
 }
@@ -232,4 +249,18 @@ func releaseDetailTitle(data view.ReleaseDetailData) string {
 		return data.Release.Name
 	}
 	return data.Release.TagName
+}
+
+// releaseStatus collapses the boolean release flags into a single keyword the
+// title fragment uses to pick a badge: "latest" / "prerelease" / "draft" / "".
+func releaseStatus(data view.ReleaseDetailData) string {
+	switch {
+	case data.IsLatest:
+		return "latest"
+	case data.Release.IsPrerelease:
+		return "prerelease"
+	case data.Release.IsDraft:
+		return "draft"
+	}
+	return ""
 }

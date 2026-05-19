@@ -308,6 +308,12 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.Get("/{id}", h.GetRelease)
 			r.With(authMW).Patch("/{id}", h.UpdateRelease)
 			r.With(authMW).Delete("/{id}", h.DeleteRelease)
+			r.Get("/{id}/title", h.ReleaseTitleSection)
+			r.With(authMW).Patch("/{id}/title", h.EditReleaseTitle)
+			r.Get("/{id}/body", h.ReleaseBodySection)
+			r.With(authMW).Patch("/{id}/body", h.EditReleaseBody)
+			r.With(authMW).Patch("/{id}/prerelease", h.EditReleasePrerelease)
+			r.With(authMW).Patch("/{id}/publish", h.PublishRelease)
 		})
 
 		// Commit statuses

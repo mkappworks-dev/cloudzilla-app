@@ -85,6 +85,17 @@ type ReleaseNewData struct {
 }
 
 // Release detail page
+// ReleaseBodyCardData holds data for the release body card, re-rendered on body edit.
+type ReleaseBodyCardData struct {
+	Owner     string
+	RepoName  string
+	ReleaseID int64
+	Body      string
+	BodyHTML  string
+	CanWrite  bool
+	Editing   bool
+}
+
 // ReleaseDetailData holds template data for a single release detail page.
 type ReleaseDetailData struct {
 	BasePage
@@ -96,6 +107,7 @@ type ReleaseDetailData struct {
 	CanWrite   bool
 	AuthorName string // resolved from Release.AuthorID
 	IsLatest   bool   // true if this is the newest published non-draft non-prerelease release
+	CommitSHA  string // full hash of the commit the tag points at; "" if tag cannot be resolved
 }
 
 // RepoSettingsData holds template data for the repository settings page.
