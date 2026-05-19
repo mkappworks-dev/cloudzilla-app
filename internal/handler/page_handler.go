@@ -45,6 +45,7 @@ func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model
 		RepoName:         repo.Name,
 		Active:           active,
 		CanManage:        canManage,
+		Private:          repo.Private,
 		AllowIssues:      repo.AllowIssues,
 		AllowDiscussions: repo.AllowDiscussions,
 		AllowProjects:    repo.AllowProjects,

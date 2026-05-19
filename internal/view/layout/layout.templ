@@ -111,6 +111,13 @@ templ Base(base view.BasePage, title string) {
 									}
 								}
 							}
+							<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground">
+								if base.RepoSubnav.Private {
+									Private
+								} else {
+									Public
+								}
+							</span>
 						}
 					}
 
