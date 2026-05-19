@@ -11,6 +11,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -97,11 +98,19 @@ func (h *Handler) PageReleaseNew(w http.ResponseWriter, r *http.Request) {
 
 	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 
+	var branches []service.BranchInfo
+	if refs, refsErr := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch); refsErr != nil {
+		slog.Warn("release new: list refs failed", "owner", owner, "repo", repoName, "error", refsErr)
+	} else {
+		branches = refs.Branches
+	}
+
 	h.render(w, r, pages.ReleaseNew(view.ReleaseNewData{
 		BasePage: h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "releases", canManage),
 		Repo:     *repo,
 		Owner:    owner,
 		RepoName: repoName,
+		Branches: branches,
 	}))
 }
 
@@ -222,6 +231,7 @@ func (h *Handler) GetLatestRelease(w http.ResponseWriter, r *http.Request) {
 
 type createReleaseRequest struct {
 	TagName      string `json:"tag_name"`
+	Target       string `json:"target"`
 	Name         string `json:"name"`
 	Body         string `json:"body"`
 	IsPrerelease bool   `json:"is_prerelease"`
@@ -248,7 +258,7 @@ func (h *Handler) CreateRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var tagName, name, body string
+	var tagName, target, name, body string
 	var isPrerelease, isDraft bool
 
 	if r.Header.Get("HX-Request") == "true" {
@@ -257,6 +267,7 @@ func (h *Handler) CreateRelease(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		tagName = r.FormValue("tag_name")
+		target = r.FormValue("target")
 		name = r.FormValue("name")
 		body = r.FormValue("body")
 		isPrerelease = r.FormValue("is_prerelease") == "true"
@@ -267,11 +278,11 @@ func (h *Handler) CreateRelease(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		tagName, name, body = req.TagName, req.Name, req.Body
+		tagName, target, name, body = req.TagName, req.Target, req.Name, req.Body
 		isPrerelease, isDraft = req.IsPrerelease, req.IsDraft
 	}
 
-	release, err := h.Services.Release.Create(r.Context(), owner, repoName, tagName, name, body, isPrerelease, isDraft, claims.UserID)
+	release, err := h.Services.Release.Create(r.Context(), owner, repoName, tagName, target, name, body, isPrerelease, isDraft, claims.UserID)
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return

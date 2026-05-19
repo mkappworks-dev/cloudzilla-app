@@ -81,6 +81,7 @@ type ReleaseNewData struct {
 	Repo     model.Repository
 	Owner    string
 	RepoName string
+	Branches []service.BranchInfo
 }
 
 // Release detail page
