@@ -22,13 +22,14 @@ func NewReleaseService(releases *store.ReleaseStore, repos *store.RepoStore, cod
 	return &ReleaseService{releases: releases, repos: repos, code: code}
 }
 
-func (s *ReleaseService) Create(ctx context.Context, owner, repoName, tagName, name, body string, isPrerelease, isDraft bool, authorID int64) (*model.Release, error) {
+// Create records a release for tagName. When the tag does not yet exist it is
+// created on the latest commit of target (falling back to the default branch).
+func (s *ReleaseService) Create(ctx context.Context, owner, repoName, tagName, target, name, body string, isPrerelease, isDraft bool, authorID int64) (*model.Release, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
 
-	// Validate tag exists
 	refs, err := s.code.ListRefs(owner, repoName, repo.DefaultBranch)
 	if err != nil {
 		return nil, fmt.Errorf("could not list refs: %w", err)
@@ -41,7 +42,12 @@ func (s *ReleaseService) Create(ctx context.Context, owner, repoName, tagName, n
 		}
 	}
 	if !tagFound {
-		return nil, fmt.Errorf("tag %q does not exist in repository", tagName)
+		if target == "" {
+			target = repo.DefaultBranch
+		}
+		if err := s.code.CreateTag(owner, repoName, tagName, target); err != nil {
+			return nil, fmt.Errorf("could not create tag %q on %q: %w", tagName, target, err)
+		}
 	}
 
 	var publishedAt *time.Time

@@ -59,6 +59,15 @@ templ ReleaseNew(data view.ReleaseNewData) {
 								</div>
 							</div>
 							<div class="space-y-1.5">
+								<label for="r-target" class="block text-sm font-medium">Target branch</label>
+								@components.Select(templ.Attributes{"id": "r-target", "name": "target"}) {
+									for _, b := range data.Branches {
+										<option value={ b.Name } selected?={ b.Name == data.Repo.DefaultBranch }>{ b.Name }</option>
+									}
+								}
+								<p class="text-[12px] text-muted-foreground">When the tag doesn't exist yet, it's created on this branch's latest commit.</p>
+							</div>
+							<div class="space-y-1.5">
 								<label for="r-body" class="block text-sm font-medium">Description</label>
 								@components.MarkdownEditor("r-body", "body", "", "What changed, why it matters, upgrade notes…", 8)
 							</div>
@@ -67,13 +76,18 @@ templ ReleaseNew(data view.ReleaseNewData) {
 									@components.Checkbox(templ.Attributes{"name": "is_prerelease", "value": "true"})
 									<span>Pre-release</span>
 								</label>
-								<label class="flex items-center gap-2 text-sm cursor-pointer">
-									@components.Checkbox(templ.Attributes{"name": "is_draft", "value": "true"})
-									<span>Save as draft</span>
-								</label>
 							</div>
 							<div class="flex flex-wrap justify-end gap-2 pt-1">
 								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases") } class="h-9 px-3 border border-border rounded-md text-sm text-muted-foreground hover:bg-muted inline-flex items-center">Cancel</a>
+								@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+									"type":       "button",
+									"hx-post":    "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases",
+									"hx-include": "closest form",
+									"hx-vals":    `{"is_draft":"true"}`,
+									"hx-target":  "body",
+								}) {
+									Save draft
+								}
 								@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 									Publish release
 								}
@@ -90,7 +104,7 @@ templ ReleaseNew(data view.ReleaseNewData) {
 					<section aria-labelledby="tips-heading" class="border-t border-border pt-5">
 						<h2 id="tips-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Good to know</h2>
 						<ul class="space-y-2 text-[13px] text-muted-foreground leading-relaxed">
-							<li>The tag is created on the repository's latest commit if it doesn't already exist.</li>
+							<li>The tag is created on the target branch's latest commit if it doesn't already exist.</li>
 							<li>Mark a pre-release when the build isn't production-ready.</li>
 							<li>Saving as a draft keeps the release private and notifies no one until you publish.</li>
 						</ul>

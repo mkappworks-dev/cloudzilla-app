@@ -113,6 +113,29 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 		discussions = []model.Discussion{}
 	}
 
+	// Per-discussion card metadata. N+1 over the visible page is acceptable;
+	// the list is paginated below the threshold where batched queries pay off.
+	labelsByDisc := make(map[int64][]model.Label, len(discussions))
+	replyCounts := make(map[int64]int, len(discussions))
+	participantsByDisc := make(map[int64][]string, len(discussions))
+	for _, d := range discussions {
+		if ls, lerr := h.Services.Label.GetForDiscussion(r.Context(), d.ID); lerr == nil && len(ls) > 0 {
+			labelsByDisc[d.ID] = ls
+		}
+		replies, _ := h.Services.Discussion.ListReplies(r.Context(), d.ID)
+		replyCounts[d.ID] = len(replies)
+		seen := map[string]bool{d.AuthorName: true}
+		parts := []string{d.AuthorName}
+		for _, rp := range replies {
+			if rp.AuthorName == "" || seen[rp.AuthorName] {
+				continue
+			}
+			seen[rp.AuthorName] = true
+			parts = append(parts, rp.AuthorName)
+		}
+		participantsByDisc[d.ID] = parts
+	}
+
 	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
@@ -131,6 +154,9 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 		AnsweredCount:    answeredCount,
 		ClosedCount:      closedCount,
 		CanWrite:         canWrite,
+		Labels:           labelsByDisc,
+		ReplyCounts:      replyCounts,
+		Participants:     participantsByDisc,
 	}))
 }
 
