@@ -38,32 +38,32 @@ templ MilestoneDetail(data view.MilestoneDetailData) {
 				</div>
 				@milestoneDetailSidebar(data, base)
 			</div>
-			if data.CanWrite {
-				@components.Dialog("ms-delete-dialog") {
-					@components.DialogHeader() {
-						@components.DialogTitle("ms-delete-dialog") {
-							Delete this milestone?
-						}
-						@components.DialogDescription() {
-							Delete <strong class="text-foreground">{ data.Milestone.Title }</strong>. It will be unassigned from all issues and pull requests. This cannot be undone.
-						}
+		</div>
+		if data.CanWrite {
+			@components.Dialog("ms-delete-dialog") {
+				@components.DialogHeader() {
+					@components.DialogTitle("ms-delete-dialog") {
+						Delete this milestone?
 					}
-					@components.DialogFooter() {
-						@components.DialogClose() {
-							Cancel
-						}
-						<form method="POST" action={ templ.SafeURL(base) } onsubmit="czStashToast('success','Milestone deleted')">
-							<input type="hidden" name="action" value="delete"/>
-							<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete milestone</button>
-						</form>
+					@components.DialogDescription() {
+						Delete <strong class="text-foreground">{ data.Milestone.Title }</strong>. It will be unassigned from all issues and pull requests. This cannot be undone.
 					}
 				}
+				@components.DialogFooter() {
+					@components.DialogClose() {
+						Cancel
+					}
+					<form method="POST" action={ templ.SafeURL(base) } onsubmit="czStashToast('success','Milestone deleted')">
+						<input type="hidden" name="action" value="delete"/>
+						<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete milestone</button>
+					</form>
+				}
 			}
-			<script>
-				// Stash a toast so it fires on the page that loads after the form's redirect.
-				function czStashToast(t, m) { try { sessionStorage.setItem('cz-toast', JSON.stringify({ type: t, message: m })); } catch (e) {} }
-			</script>
-		</div>
+		}
+		<script>
+			// Stash a toast so it fires on the page that loads after the form's redirect.
+			function czStashToast(t, m) { try { sessionStorage.setItem('cz-toast', JSON.stringify({ type: t, message: m })); } catch (e) {} }
+		</script>
 	}
 }
 
