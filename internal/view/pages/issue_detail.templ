@@ -84,11 +84,15 @@ templ IssueDetail(data view.IssueDetailData) {
 
 					if !data.Issue.IsLocked || data.CanManage {
 						if data.BasePage.CurrentUser != nil {
-							<section class="rounded-md border border-border bg-card p-4 space-y-3" aria-label="Add a comment">
-								<div class="rounded-md border border-border overflow-hidden">
-									@components.MarkdownEditor("comment-body", "body", "", "Add a comment…", 6)
-								</div>
-								<div class="flex flex-wrap justify-end gap-2">
+							@components.CommentEditor(templ.Attributes{
+								"hx-post":               "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/comments",
+								"hx-target":             "#comments",
+								"hx-swap":               "beforeend",
+								"hx-on--after-request":  "if(event.target===this&&event.detail.successful){var el=document.getElementById('issue-comment-count');if(el){var n=parseInt(el.dataset.count||'0',10)+1;el.dataset.count=n;el.textContent=' · '+n+(n===1?' comment':' comments');}var pv=document.getElementById('comment-body-preview');if(pv)pv.replaceChildren();this.reset();}",
+							}) {
+								@components.CommentEditorHeader(data.BasePage.CurrentUser.Username)
+								@components.MarkdownEditor("comment-body", "body", "", "Add a comment…", 6)
+								@components.CommentEditorActions() {
 									if data.Issue.State == "open" {
 										<button
 											type="button"
@@ -109,18 +113,11 @@ templ IssueDetail(data view.IssueDetailData) {
 											Reopen issue
 										}
 									}
-									@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
-										"hx-post":    "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/comments",
-										"hx-include": "#comment-body",
-										"hx-swap":    "beforeend",
-										"hx-target":  "#comments",
-										"hx-on::after-request": "if(event.detail.successful){var el=document.getElementById('issue-comment-count');var n=parseInt(el.dataset.count||'0',10)+1;el.dataset.count=n;el.textContent=' · '+n+(n===1?' comment':' comments');var ta=document.getElementById('comment-body');if(ta)ta.value='';var pv=document.getElementById('comment-body-preview');if(pv)pv.replaceChildren();}",
-										"type":       "button",
-									}) {
+									@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 										Comment
 									}
-								</div>
-							</section>
+								}
+							}
 						}
 					}
 					if data.Issue.IsLocked && !data.CanManage {
