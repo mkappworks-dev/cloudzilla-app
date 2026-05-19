@@ -11,8 +11,8 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
 type createLabelRequest struct {
@@ -530,7 +530,7 @@ func (h *Handler) renderDiscussionLabelFragment(w http.ResponseWriter, r *http.R
 			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		}
 	}
-	h.render(w, r, components.LabelSidebar(owner, repoName, number, "discussions", labels, allLabels, canWrite))
+	h.render(w, r, pages.DiscussionLabelsFragment(owner, repoName, number, labels, allLabels, canWrite))
 }
 
 var hexColorRe = regexp.MustCompile(`^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)

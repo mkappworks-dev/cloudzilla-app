@@ -437,16 +437,34 @@ func (h *Handler) CreateReply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var body struct {
-		Body     string `json:"body"`
-		ParentID *int64 `json:"parent_id,omitempty"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid JSON")
-		return
+	hxRequest := r.Header.Get("HX-Request") == "true"
+
+	var replyBody string
+	var parentID *int64
+	if hxRequest {
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form")
+			return
+		}
+		replyBody = r.FormValue("body")
+		if pid := r.FormValue("parent_id"); pid != "" {
+			if v, err := strconv.ParseInt(pid, 10, 64); err == nil {
+				parentID = &v
+			}
+		}
+	} else {
+		var body struct {
+			Body     string `json:"body"`
+			ParentID *int64 `json:"parent_id,omitempty"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON")
+			return
+		}
+		replyBody, parentID = body.Body, body.ParentID
 	}
 
-	reply, err := h.Services.Discussion.CreateReply(r.Context(), discussion.ID, claims.UserID, claims.Username, body.Body, body.ParentID)
+	reply, err := h.Services.Discussion.CreateReply(r.Context(), discussion.ID, claims.UserID, claims.Username, replyBody, parentID)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -457,6 +475,16 @@ func (h *Handler) CreateReply(w http.ResponseWriter, r *http.Request) {
 		go h.Services.Notification.NotifyDiscussionReply(r.Context(), *repo, *discussion, claims.UserID, claims.Username)
 	}
 
+	if hxRequest {
+		canWrite := repo != nil && h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		allReplies, _ := h.Services.Discussion.ListReplies(r.Context(), discussion.ID)
+		rendered := view.RenderedDiscussionReply{
+			DiscussionReply: *reply,
+			BodyHTML:        markdown.Render(reply.Body),
+		}
+		h.render(w, r, pages.DiscussionReplyCreated(owner, repoName, number, rendered, len(allReplies), canWrite, true))
+		return
+	}
 	writeJSON(w, http.StatusCreated, reply)
 }
 
@@ -500,7 +528,37 @@ func (h *Handler) MarkAnswer(w http.ResponseWriter, r *http.Request) {
 		Body       *string         `json:"body"`
 		CategoryID *int64          `json:"category_id"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if r.Header.Get("HX-Request") == "true" {
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form")
+			return
+		}
+		if r.Form.Has("answer_id") {
+			// hx-vals serializes JSON null to the literal string "null".
+			v := r.FormValue("answer_id")
+			if v == "" {
+				v = "null"
+			}
+			body.AnswerID = json.RawMessage(v)
+		}
+		if r.Form.Has("locked") {
+			locked := r.FormValue("locked") == "true"
+			body.Locked = &locked
+		}
+		if r.Form.Has("title") {
+			title := r.FormValue("title")
+			body.Title = &title
+		}
+		if r.Form.Has("body") {
+			text := r.FormValue("body")
+			body.Body = &text
+		}
+		if r.Form.Has("category_id") {
+			if v, err := strconv.ParseInt(r.FormValue("category_id"), 10, 64); err == nil {
+				body.CategoryID = &v
+			}
+		}
+	} else if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON")
 		return
 	}

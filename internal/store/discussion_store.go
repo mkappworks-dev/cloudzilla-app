@@ -131,8 +131,14 @@ func (s *DiscussionStore) GetByNumber(ctx context.Context, repoID int64, number 
 
 func (s *DiscussionStore) SetAnswer(ctx context.Context, discussionID int64, replyID *int64) error {
 	if replyID == nil {
-		_, err := s.db.ExecContext(ctx,
+		if _, err := s.db.ExecContext(ctx,
 			`UPDATE discussions SET answer_id = NULL, is_answered = FALSE, updated_at = NOW() WHERE id = $1`,
+			discussionID,
+		); err != nil {
+			return err
+		}
+		_, err := s.db.ExecContext(ctx,
+			`UPDATE discussion_replies SET is_answer = FALSE WHERE discussion_id = $1`,
 			discussionID,
 		)
 		return err
