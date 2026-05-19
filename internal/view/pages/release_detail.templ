@@ -132,8 +132,11 @@ templ ReleaseDetail(data view.ReleaseDetailData) {
 									<button
 										type="button"
 										onclick="document.getElementById('rel-publish-dialog').showModal()"
-										class="flex w-full items-center justify-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] font-medium bg-success text-success-foreground hover:bg-success/90"
-									>Publish release</button>
+										class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] font-medium bg-success text-success-foreground hover:bg-success/90"
+									>
+										<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+										<span>Publish release</span>
+									</button>
 								}
 								if data.Release.IsPrerelease {
 									<button
@@ -142,19 +145,28 @@ templ ReleaseDetail(data view.ReleaseDetailData) {
 										hx-vals={ `{"is_prerelease":"false"}` }
 										hx-swap="none"
 										class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md border border-border text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground"
-									>Mark as latest release</button>
+									>
+										<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+										<span>Mark as latest release</span>
+									</button>
 								} else {
 									<button
 										type="button"
 										onclick="document.getElementById('rel-demote-dialog').showModal()"
 										class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md border border-border text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground"
-									>Mark as pre-release</button>
+									>
+										<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+										<span>Mark as pre-release</span>
+									</button>
 								}
 								<button
 									type="button"
 									onclick="document.getElementById('rel-delete-dialog').showModal()"
 									class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
-								>Delete release</button>
+								>
+									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"></path></svg>
+									<span>Delete release</span>
+								</button>
 							</div>
 							<p class="mt-2 text-[11px] text-muted-foreground leading-relaxed">Deleting a release removes the notes and metadata. The git tag itself stays in the repository.</p>
 						</section>
