@@ -45,7 +45,7 @@ templ Milestones(data view.MilestonesData) {
 						<p class="text-sm text-muted-foreground text-center py-6">No open milestones.</p>
 					}
 					for _, m := range data.OpenMilestones {
-						@milestoneCard(data.Owner, data.RepoName, m, data.CanWrite)
+						@milestoneCard(data.Owner, data.RepoName, m)
 					}
 				</div>
 				<div id="ms-list-closed" role="tabpanel" aria-labelledby="ms-tab-closed" class="space-y-3 hidden">
@@ -53,7 +53,7 @@ templ Milestones(data view.MilestonesData) {
 						<p class="text-sm text-muted-foreground text-center py-6">No closed milestones.</p>
 					}
 					for _, m := range data.ClosedMilestones {
-						@milestoneCard(data.Owner, data.RepoName, m, data.CanWrite)
+						@milestoneCard(data.Owner, data.RepoName, m)
 					}
 				</div>
 			}
@@ -62,10 +62,9 @@ templ Milestones(data view.MilestonesData) {
 	}
 }
 
-templ milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) {
+templ milestoneCard(owner, repoName string, m model.Milestone) {
 	{{ closed := m.State == "closed" }}
 	{{ total := m.OpenCount + m.ClosedCount }}
-	{{ apiURL := "/api/repos/" + owner + "/" + repoName + "/milestones/" + strconv.Itoa(m.Number) }}
 	<div class={ "relative rounded-md border border-border bg-card p-4 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-sm before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px]", templ.KV("opacity-70", closed) }>
 		<div class="flex items-start gap-3">
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class={ "shrink-0 mt-0.5", templ.KV("text-success", !closed), templ.KV("text-muted-foreground", closed) } aria-hidden="true">
@@ -73,7 +72,7 @@ templ milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) {
 				<line x1="4" y1="22" x2="4" y2="15"></line>
 			</svg>
 			<div class="min-w-0 flex-1">
-				<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/issues?milestone=" + strconv.Itoa(m.Number)) } class={ "font-semibold hover:underline", templ.KV("line-through", closed) }>{ m.Title }</a>
+				<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/milestones/" + strconv.Itoa(m.Number)) } class={ "font-semibold hover:underline after:absolute after:inset-0", templ.KV("line-through", closed) }>{ m.Title }</a>
 				<p class="text-xs text-muted-foreground mt-0.5">
 					if closed && m.ClosedAt != nil {
 						Closed <time datetime={ m.ClosedAt.UTC().Format(time.RFC3339) }>{ m.ClosedAt.Format("Jan 2, 2006") }</time>
@@ -97,40 +96,6 @@ templ milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) {
 					<p class="text-[11px] text-muted-foreground mt-1.5 font-mono">No issues or pull requests assigned</p>
 				}
 			</div>
-			if canWrite {
-				<div class="flex items-center gap-2 shrink-0">
-					if closed {
-						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-							"type":                 "button",
-							"hx-patch":              apiURL,
-							"hx-vals":               `{"state":"open"}`,
-							"hx-swap":               "none",
-							"hx-on--after-request": "if(event.detail.successful)location.reload()",
-						}) {
-							Reopen
-						}
-					} else {
-						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-							"type":                 "button",
-							"hx-patch":              apiURL,
-							"hx-vals":               `{"state":"closed"}`,
-							"hx-swap":               "none",
-							"hx-on--after-request": "if(event.detail.successful)location.reload()",
-						}) {
-							Close
-						}
-					}
-					@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-						"type":                 "button",
-						"hx-delete":             apiURL,
-						"hx-confirm":            "Delete this milestone?",
-						"hx-swap":               "none",
-						"hx-on--after-request": "if(event.detail.successful)location.reload()",
-					}) {
-						Delete
-					}
-				</div>
-			}
 		</div>
 	</div>
 }

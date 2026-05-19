@@ -226,3 +226,72 @@ func (s *MilestoneStore) ListIssuesByMilestone(ctx context.Context, milestoneID 
 	return ids, rows.Err()
 }
 
+// ListIssuesPaged returns issues assigned to the milestone for the given state
+// ("open" or "closed"), newest first, one page at a time.
+func (s *MilestoneStore) ListIssuesPaged(ctx context.Context, milestoneID int64, state string, page, pageSize int) ([]model.Issue, error) {
+	offset := (page - 1) * pageSize
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT i.id, i.repo_id, i.number, i.author_id,
+		       COALESCE(u.username, '') AS author_name,
+		       i.title, i.body, i.state, i.priority,
+		       i.milestone_id, i.visibility,
+		       i.created_at, i.updated_at, i.closed_at,
+		       i.is_pinned, i.is_locked, i.locked_at
+		FROM issues i
+		LEFT JOIN users u ON u.id = i.author_id
+		WHERE i.milestone_id = $1 AND i.state = $2
+		ORDER BY i.created_at DESC
+		LIMIT $3 OFFSET $4`,
+		milestoneID, state, pageSize, offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("milestone issues paged: %w", err)
+	}
+	defer rows.Close()
+	return scanIssueRows(rows)
+}
+
+// ListPullsPaged returns pull requests assigned to the milestone for the given
+// state group, newest first, one page at a time. The "closed" group includes
+// merged pull requests.
+func (s *MilestoneStore) ListPullsPaged(ctx context.Context, milestoneID int64, state string, page, pageSize int) ([]model.PullRequest, error) {
+	offset := (page - 1) * pageSize
+	stateClause := `pr.state = 'open'`
+	if state == "closed" {
+		stateClause = `pr.state IN ('closed', 'merged')`
+	}
+	rows, err := s.db.QueryContext(ctx, fmt.Sprintf(`
+		SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
+		       pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
+		       pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
+		       pr.auto_merge_enabled, pr.auto_merge_strategy
+		FROM pull_requests pr
+		LEFT JOIN users u ON u.id = pr.author_id
+		WHERE pr.milestone_id = $1 AND %s
+		ORDER BY pr.number DESC
+		LIMIT $2 OFFSET $3`, stateClause),
+		milestoneID, pageSize, offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("milestone pulls paged: %w", err)
+	}
+	defer rows.Close()
+	return scanPullRows(rows)
+}
+
+// PullCounts returns the number of open and closed pull requests assigned to
+// the milestone. Merged pull requests count as closed.
+func (s *MilestoneStore) PullCounts(ctx context.Context, milestoneID int64) (open, closed int, err error) {
+	err = s.db.QueryRowContext(ctx, `
+		SELECT
+		  COUNT(*) FILTER (WHERE state = 'open'),
+		  COUNT(*) FILTER (WHERE state IN ('closed', 'merged'))
+		FROM pull_requests WHERE milestone_id = $1`,
+		milestoneID,
+	).Scan(&open, &closed)
+	if err != nil {
+		return 0, 0, fmt.Errorf("milestone pull counts: %w", err)
+	}
+	return open, closed, nil
+}
+

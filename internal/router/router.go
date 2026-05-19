@@ -111,6 +111,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/milestones", h.PageMilestones)
 	r.With(authMW).Get("/{owner}/{repo}/milestones/new", h.PageNewMilestone)
 	r.With(authMW).Post("/{owner}/{repo}/milestones/new", h.PageNewMilestoneSubmit)
+	r.With(optAuthMW).Get("/{owner}/{repo}/milestones/{number}", h.PageMilestoneDetail)
+	r.With(authMW).Post("/{owner}/{repo}/milestones/{number}", h.PageMilestoneDetailAction)
 	r.With(optAuthMW).Get("/{owner}/{repo}/issues", h.PageIssues)
 	// Issue and PR creation pages
 	r.With(authMW).Get("/{owner}/{repo}/issues/new", h.PageNewIssue)
@@ -146,6 +148,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/{owner}/{repo}/projects", h.PageProjects)
 	r.With(optAuthMW).Get("/{owner}/{repo}/projects/{id}", h.PageProjectDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/discussions", h.PageDiscussions)
+	r.With(authMW).Get("/{owner}/{repo}/discussions/new", h.PageNewDiscussion)
+	r.With(authMW).Post("/{owner}/{repo}/discussions/new", h.PageNewDiscussionSubmit)
 	r.With(optAuthMW).Get("/{owner}/{repo}/discussions/{number}", h.PageDiscussionDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/actions", h.PageActions)
 
@@ -318,6 +322,12 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.Get("/{number}", h.GetMilestone)
 			r.With(authMW).Patch("/{number}", h.UpdateMilestone)
 			r.With(authMW).Delete("/{number}", h.DeleteMilestone)
+			r.Get("/{number}/title", h.MilestoneTitleSection)
+			r.With(authMW).Patch("/{number}/title", h.EditMilestoneTitle)
+			r.Get("/{number}/body", h.MilestoneBodySection)
+			r.With(authMW).Patch("/{number}/body", h.EditMilestoneBody)
+			r.Get("/{number}/due", h.MilestoneDueSection)
+			r.With(authMW).Patch("/{number}/due", h.EditMilestoneDue)
 		})
 
 		// Milestone sidebar for issues and PRs
@@ -394,8 +404,10 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 			r.With(authMW).Post("/{number}/replies", h.CreateReply)
 			r.With(authMW).Patch("/{number}", h.MarkAnswer)
 			r.With(authMW).Delete("/{number}/replies/{id}", h.DeleteDiscussionReply)
-			r.With(authMW).Post("/categories", h.CreateDiscussionCategory)
-			r.With(authMW).Delete("/categories/{id}", h.DeleteDiscussionCategory)
+			r.With(authMW).Post("/{number}/labels/{labelID}", h.AddDiscussionLabel)
+			r.With(authMW).Delete("/{number}/labels/{labelID}", h.RemoveDiscussionLabel)
+			r.With(authMW).Post("/{number}/reactions", h.ToggleDiscussionReaction)
+			r.With(authMW).Post("/{number}/replies/{id}/reactions", h.ToggleDiscussionReplyReaction)
 		})
 	})
 

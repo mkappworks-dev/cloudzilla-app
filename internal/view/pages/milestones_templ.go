@@ -131,7 +131,7 @@ func Milestones(data view.MilestonesData) templ.Component {
 					}
 				}
 				for _, m := range data.OpenMilestones {
-					templ_7745c5c3_Err = milestoneCard(data.Owner, data.RepoName, m, data.CanWrite).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = milestoneCard(data.Owner, data.RepoName, m).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -147,7 +147,7 @@ func Milestones(data view.MilestonesData) templ.Component {
 					}
 				}
 				for _, m := range data.ClosedMilestones {
-					templ_7745c5c3_Err = milestoneCard(data.Owner, data.RepoName, m, data.CanWrite).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = milestoneCard(data.Owner, data.RepoName, m).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -175,7 +175,7 @@ func Milestones(data view.MilestonesData) templ.Component {
 	})
 }
 
-func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) templ.Component {
+func milestoneCard(owner, repoName string, m model.Milestone) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -198,7 +198,6 @@ func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) tem
 		ctx = templ.ClearChildren(ctx)
 		closed := m.State == "closed"
 		total := m.OpenCount + m.ClosedCount
-		apiURL := "/api/repos/" + owner + "/" + repoName + "/milestones/" + strconv.Itoa(m.Number)
 		var templ_7745c5c3_Var7 = []any{"relative rounded-md border border-border bg-card p-4 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-sm before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px]", templ.KV("opacity-70", closed)}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var7...)
 		if templ_7745c5c3_Err != nil {
@@ -243,7 +242,7 @@ func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) tem
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var11 = []any{"font-semibold hover:underline", templ.KV("line-through", closed)}
+		var templ_7745c5c3_Var11 = []any{"font-semibold hover:underline after:absolute after:inset-0", templ.KV("line-through", closed)}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var11...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -253,9 +252,9 @@ func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) tem
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var12 templ.SafeURL
-		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + owner + "/" + repoName + "/issues?milestone=" + strconv.Itoa(m.Number)))
+		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + owner + "/" + repoName + "/milestones/" + strconv.Itoa(m.Number)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 76, Col: 105}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 75, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 		if templ_7745c5c3_Err != nil {
@@ -281,7 +280,7 @@ func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) tem
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(m.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 76, Col: 193}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 75, Col: 216}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
@@ -299,7 +298,7 @@ func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) tem
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(m.ClosedAt.UTC().Format(time.RFC3339))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 79, Col: 67}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 78, Col: 67}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 			if templ_7745c5c3_Err != nil {
@@ -312,7 +311,7 @@ func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) tem
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(m.ClosedAt.Format("Jan 2, 2006"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 79, Col: 104}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 78, Col: 104}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -330,7 +329,7 @@ func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) tem
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(m.DueDate.UTC().Format(time.RFC3339))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 81, Col: 66}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 80, Col: 66}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 			if templ_7745c5c3_Err != nil {
@@ -343,7 +342,7 @@ func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) tem
 			var templ_7745c5c3_Var18 string
 			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(m.DueDate.Format("Jan 2, 2006"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 81, Col: 102}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 80, Col: 102}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 			if templ_7745c5c3_Err != nil {
@@ -371,7 +370,7 @@ func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) tem
 			var templ_7745c5c3_Var19 string
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(m.Description)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 87, Col: 68}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 86, Col: 68}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
@@ -398,7 +397,7 @@ func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) tem
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(m.ClosedCount * 100 / total))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 94, Col: 49}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 93, Col: 49}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {
@@ -411,7 +410,7 @@ func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) tem
 			var templ_7745c5c3_Var21 string
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(m.ClosedCount))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 94, Col: 94}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 93, Col: 94}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
@@ -424,7 +423,7 @@ func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) tem
 			var templ_7745c5c3_Var22 string
 			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(m.OpenCount))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 94, Col: 134}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/milestones.templ`, Line: 93, Col: 134}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 			if templ_7745c5c3_Err != nil {
@@ -440,108 +439,7 @@ func milestoneCard(owner, repoName string, m model.Milestone, canWrite bool) tem
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</div>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		if canWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<div class=\"flex items-center gap-2 shrink-0\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			if closed {
-				templ_7745c5c3_Var23 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-					if !templ_7745c5c3_IsBuffer {
-						defer func() {
-							templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-							if templ_7745c5c3_Err == nil {
-								templ_7745c5c3_Err = templ_7745c5c3_BufErr
-							}
-						}()
-					}
-					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "Reopen")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					return nil
-				})
-				templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-					"type":                 "button",
-					"hx-patch":             apiURL,
-					"hx-vals":              `{"state":"open"}`,
-					"hx-swap":              "none",
-					"hx-on--after-request": "if(event.detail.successful)location.reload()",
-				}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var23), templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			} else {
-				templ_7745c5c3_Var24 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-					if !templ_7745c5c3_IsBuffer {
-						defer func() {
-							templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-							if templ_7745c5c3_Err == nil {
-								templ_7745c5c3_Err = templ_7745c5c3_BufErr
-							}
-						}()
-					}
-					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "Close")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					return nil
-				})
-				templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-					"type":                 "button",
-					"hx-patch":             apiURL,
-					"hx-vals":              `{"state":"closed"}`,
-					"hx-swap":              "none",
-					"hx-on--after-request": "if(event.detail.successful)location.reload()",
-				}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var24), templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			}
-			templ_7745c5c3_Var25 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-				if !templ_7745c5c3_IsBuffer {
-					defer func() {
-						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-						if templ_7745c5c3_Err == nil {
-							templ_7745c5c3_Err = templ_7745c5c3_BufErr
-						}
-					}()
-				}
-				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "Delete")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				return nil
-			})
-			templ_7745c5c3_Err = components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-				"type":                 "button",
-				"hx-delete":            apiURL,
-				"hx-confirm":           "Delete this milestone?",
-				"hx-swap":              "none",
-				"hx-on--after-request": "if(event.detail.successful)location.reload()",
-			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var25), templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "</div>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "</div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -565,12 +463,12 @@ func milestonesTabScript() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var26 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var26 == nil {
-			templ_7745c5c3_Var26 = templ.NopComponent
+		templ_7745c5c3_Var23 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var23 == nil {
+			templ_7745c5c3_Var23 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<script>\n\t\t(function () {\n\t\t\tvar tabs = { open: document.getElementById('ms-tab-open'), closed: document.getElementById('ms-tab-closed') };\n\t\t\tvar lists = { open: document.getElementById('ms-list-open'), closed: document.getElementById('ms-list-closed') };\n\t\t\tif (!tabs.open || !tabs.closed) return;\n\t\t\tfunction show(which) {\n\t\t\t\t['open', 'closed'].forEach(function (k) {\n\t\t\t\t\tvar active = k === which;\n\t\t\t\t\tlists[k].classList.toggle('hidden', !active);\n\t\t\t\t\ttabs[k].setAttribute('aria-selected', String(active));\n\t\t\t\t\ttabs[k].classList.toggle('border-foreground', active);\n\t\t\t\t\ttabs[k].classList.toggle('text-foreground', active);\n\t\t\t\t\ttabs[k].classList.toggle('font-medium', active);\n\t\t\t\t\ttabs[k].classList.toggle('border-transparent', !active);\n\t\t\t\t\ttabs[k].classList.toggle('text-muted-foreground', !active);\n\t\t\t\t});\n\t\t\t}\n\t\t\ttabs.open.addEventListener('click', function () { show('open'); });\n\t\t\ttabs.closed.addEventListener('click', function () { show('closed'); });\n\t\t})();\n\t</script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<script>\n\t\t(function () {\n\t\t\tvar tabs = { open: document.getElementById('ms-tab-open'), closed: document.getElementById('ms-tab-closed') };\n\t\t\tvar lists = { open: document.getElementById('ms-list-open'), closed: document.getElementById('ms-list-closed') };\n\t\t\tif (!tabs.open || !tabs.closed) return;\n\t\t\tfunction show(which) {\n\t\t\t\t['open', 'closed'].forEach(function (k) {\n\t\t\t\t\tvar active = k === which;\n\t\t\t\t\tlists[k].classList.toggle('hidden', !active);\n\t\t\t\t\ttabs[k].setAttribute('aria-selected', String(active));\n\t\t\t\t\ttabs[k].classList.toggle('border-foreground', active);\n\t\t\t\t\ttabs[k].classList.toggle('text-foreground', active);\n\t\t\t\t\ttabs[k].classList.toggle('font-medium', active);\n\t\t\t\t\ttabs[k].classList.toggle('border-transparent', !active);\n\t\t\t\t\ttabs[k].classList.toggle('text-muted-foreground', !active);\n\t\t\t\t});\n\t\t\t}\n\t\t\ttabs.open.addEventListener('click', function () { show('open'); });\n\t\t\ttabs.closed.addEventListener('click', function () { show('closed'); });\n\t\t})();\n\t</script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -146,3 +146,18 @@ func (s *MilestoneService) GetForPull(ctx context.Context, pullID int64) (*model
 	}
 	return s.milestones.GetByID(ctx, *mid)
 }
+
+// ListIssues returns a page of issues assigned to the milestone, filtered by state.
+func (s *MilestoneService) ListIssues(ctx context.Context, milestoneID int64, state string, page, pageSize int) ([]model.Issue, error) {
+	return s.milestones.ListIssuesPaged(ctx, milestoneID, state, page, pageSize)
+}
+
+// ListPulls returns a page of pull requests assigned to the milestone, filtered by state.
+func (s *MilestoneService) ListPulls(ctx context.Context, milestoneID int64, state string, page, pageSize int) ([]model.PullRequest, error) {
+	return s.milestones.ListPullsPaged(ctx, milestoneID, state, page, pageSize)
+}
+
+// PullCounts returns the open and closed pull-request counts for the milestone.
+func (s *MilestoneService) PullCounts(ctx context.Context, milestoneID int64) (open, closed int, err error) {
+	return s.milestones.PullCounts(ctx, milestoneID)
+}

@@ -37,3 +37,45 @@ type MilestoneSidebarFragData struct {
 	AllMilestones []model.Milestone
 	CanWrite      bool
 }
+
+// MilestoneDetailData backs the milestone detail page. The Tab/State/Page
+// fields come from the query string and select which slice of items renders.
+type MilestoneDetailData struct {
+	BasePage
+	Repo      model.Repository
+	Owner     string
+	RepoName  string
+	Milestone model.Milestone
+	CanWrite  bool
+
+	Tab   string // "issues" or "pulls"
+	State string // "open" or "closed"
+	Page  int
+
+	Issues []model.Issue       // populated when Tab == "issues"
+	Pulls  []model.PullRequest // populated when Tab == "pulls"
+
+	IssueOpenCount   int
+	IssueClosedCount int
+	PullOpenCount    int
+	PullClosedCount  int
+
+	TotalCount int // items matching the current Tab+State
+	TotalPages int
+	PerPage    int
+
+	// DescriptionHTML is the milestone description rendered to HTML.
+	DescriptionHTML string
+}
+
+// MilestoneBodyCardData holds data for the milestone description card, which is
+// re-rendered on its own when the inline editor opens or saves.
+type MilestoneBodyCardData struct {
+	Owner           string
+	RepoName        string
+	Number          int
+	Description     string
+	DescriptionHTML string
+	CanWrite        bool
+	Editing         bool
+}
