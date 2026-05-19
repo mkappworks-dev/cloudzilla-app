@@ -4,6 +4,7 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -217,5 +218,21 @@ func TestReleaseService_Create_FailsWhenTargetBranchMissing(t *testing.T) {
 	_, err := svc.Create(context.Background(), owner, repo, "v6.0.0", "no-such-branch", "Release 6.0", "", false, false, authorID)
 	if err == nil {
 		t.Error("Create must fail when the target branch does not exist")
+	}
+}
+
+// TestReleaseService_Create_DuplicateTagReturnsSentinel verifies that creating a
+// second release for the same tag returns ErrReleaseTagInUse rather than leaking
+// the underlying database constraint error.
+func TestReleaseService_Create_DuplicateTagReturnsSentinel(t *testing.T) {
+	svc, owner, repo, authorID := newReleaseSvc(t, "v7.0.0")
+
+	if _, err := svc.Create(context.Background(), owner, repo, "v7.0.0", "main", "Release 7.0", "", false, false, authorID); err != nil {
+		t.Fatalf("first Create: %v", err)
+	}
+
+	_, err := svc.Create(context.Background(), owner, repo, "v7.0.0", "main", "Release 7.0 again", "", false, false, authorID)
+	if !errors.Is(err, service.ErrReleaseTagInUse) {
+		t.Errorf("want ErrReleaseTagInUse, got %v", err)
 	}
 }

@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -284,7 +285,16 @@ func (h *Handler) CreateRelease(w http.ResponseWriter, r *http.Request) {
 
 	release, err := h.Services.Release.Create(r.Context(), owner, repoName, tagName, target, name, body, isPrerelease, isDraft, claims.UserID)
 	if err != nil {
-		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		msg := err.Error()
+		if errors.Is(err, service.ErrReleaseTagInUse) {
+			msg = "A release for tag " + tagName + " already exists."
+		}
+		if r.Header.Get("HX-Request") == "true" {
+			toast(w, "error", msg)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		writeError(w, http.StatusUnprocessableEntity, msg)
 		return
 	}
 

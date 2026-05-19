@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -9,6 +11,10 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
+
+// ErrReleaseTagInUse is returned by Create when a release already exists for
+// the requested tag in the repository.
+var ErrReleaseTagInUse = errors.New("a release already exists for this tag")
 
 // ReleaseService manages repository release creation, updates, and deletion.
 type ReleaseService struct {
@@ -28,6 +34,12 @@ func (s *ReleaseService) Create(ctx context.Context, owner, repoName, tagName, t
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+
+	if _, err := s.releases.GetByTag(ctx, repo.ID, tagName); err == nil {
+		return nil, ErrReleaseTagInUse
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("could not check existing releases: %w", err)
 	}
 
 	refs, err := s.code.ListRefs(owner, repoName, repo.DefaultBranch)
