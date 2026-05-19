@@ -8,7 +8,8 @@ import (
 
 type RenderedDiscussionReply struct {
 	model.DiscussionReply
-	BodyHTML string
+	BodyHTML  string
+	Reactions []model.ReactionSummary
 }
 
 type DiscussionsData struct {
@@ -30,14 +31,31 @@ type DiscussionsData struct {
 
 type DiscussionDetailData struct {
 	BasePage
-	Repo       model.Repository
-	Owner      string
-	RepoName   string
-	Discussion model.Discussion
-	Category   model.DiscussionCategory
-	Replies    []RenderedDiscussionReply
-	BodyHTML   string
-	CanWrite   bool
+	Repo          model.Repository
+	Owner         string
+	RepoName      string
+	Discussion    model.Discussion
+	Category      model.DiscussionCategory
+	AllCategories []model.DiscussionCategory
+	Labels        []model.Label
+	AllLabels     []model.Label
+	Replies       []RenderedDiscussionReply
+	Participants  []string
+	OPReactions   []model.ReactionSummary
+	BodyHTML      string
+	CanWrite      bool
+}
+
+type DiscussionNewData struct {
+	BasePage
+	Repo             model.Repository
+	Owner            string
+	RepoName         string
+	Categories       []model.DiscussionCategory
+	ActiveCategoryID int64
+	Title            string
+	Body             string
+	Error            string
 }
 
 type GistsData struct {

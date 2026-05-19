@@ -83,6 +83,7 @@ type (
 	RenderedDiscussionReply   = view.RenderedDiscussionReply
 	DiscussionsData           = view.DiscussionsData
 	DiscussionDetailData      = view.DiscussionDetailData
+	DiscussionNewData         = view.DiscussionNewData
 	GistsData                 = view.GistsData
 	GistDetailData            = view.GistDetailData
 	GistNewData               = view.GistNewData

@@ -12,7 +12,7 @@ func idPrefix(kind string) string {
 }
 
 func validKind(kind string) bool {
-	return kind == "issues" || kind == "pulls"
+	return kind == "issues" || kind == "pulls" || kind == "discussions"
 }
 
 func labelApplied(applied []model.Label, id int64) bool {

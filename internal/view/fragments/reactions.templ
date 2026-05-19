@@ -3,26 +3,36 @@ package fragments
 import (
 	"strconv"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 )
 
+var reactionEmojis = []string{"+1", "-1", "laugh", "hooray", "confused", "heart", "rocket", "eyes"}
+
+// Reactions renders the reaction bar for an issue/PR comment.
 templ Reactions(data view.ReactionFragData) {
-	<div id={ "reactions-" + strconv.FormatInt(data.CommentID, 10) } class="flex flex-wrap items-center gap-1 mt-2">
-		for _, r := range data.Reactions {
-			<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/comments/" + strconv.FormatInt(data.CommentID, 10) + "/reactions" } hx-vals={ `{"emoji":"` + r.Emoji + `"}` } hx-target={ "#reactions-" + strconv.FormatInt(data.CommentID, 10) } hx-swap="outerHTML" class={ "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors hover:border-primary/40", templ.KV("bg-primary/10 border-primary/40 text-foreground", r.UserReacted), templ.KV("bg-background border-border text-muted-foreground", !r.UserReacted) }>{ view.EmojiChar(r.Emoji) } <span class="text-xs font-medium">{ strconv.Itoa(r.Count) }</span></button>
+	@ReactionBar(
+		"/api/repos/"+data.Owner+"/"+data.RepoName+"/comments/"+strconv.FormatInt(data.CommentID, 10)+"/reactions",
+		"reactions-"+strconv.FormatInt(data.CommentID, 10),
+		data.Reactions,
+		data.LoggedIn,
+	)
+}
+
+// ReactionBar renders an emoji reaction bar. Toggles POST to endpoint; the bar
+// swaps itself by domID. Shared by comments, discussion posts, and replies.
+templ ReactionBar(endpoint, domID string, reactions []model.ReactionSummary, loggedIn bool) {
+	<div id={ domID } class="flex flex-wrap items-center gap-1 mt-2">
+		for _, r := range reactions {
+			<button hx-post={ endpoint } hx-vals={ `{"emoji":"` + r.Emoji + `"}` } hx-target={ "#" + domID } hx-swap="outerHTML" class={ "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors hover:border-primary/40", templ.KV("bg-primary/10 border-primary/40 text-foreground", r.UserReacted), templ.KV("bg-background border-border text-muted-foreground", !r.UserReacted) }>{ view.EmojiChar(r.Emoji) } <span class="text-xs font-medium">{ strconv.Itoa(r.Count) }</span></button>
 		}
-		if data.LoggedIn {
+		if loggedIn {
 			<details class="relative">
 				<summary class="list-none inline-flex items-center justify-center w-7 h-7 rounded-full border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground cursor-pointer text-sm transition-colors">+</summary>
 				<div class="absolute z-10 left-0 top-8 bg-background border border-border rounded-lg shadow-md p-2 flex gap-1 flex-wrap">
-					<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/comments/" + strconv.FormatInt(data.CommentID, 10) + "/reactions" } hx-vals={ `{"emoji":"+1"}` } hx-target={ "#reactions-" + strconv.FormatInt(data.CommentID, 10) } hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">👍</button>
-					<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/comments/" + strconv.FormatInt(data.CommentID, 10) + "/reactions" } hx-vals={ `{"emoji":"-1"}` } hx-target={ "#reactions-" + strconv.FormatInt(data.CommentID, 10) } hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">👎</button>
-					<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/comments/" + strconv.FormatInt(data.CommentID, 10) + "/reactions" } hx-vals={ `{"emoji":"laugh"}` } hx-target={ "#reactions-" + strconv.FormatInt(data.CommentID, 10) } hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">😄</button>
-					<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/comments/" + strconv.FormatInt(data.CommentID, 10) + "/reactions" } hx-vals={ `{"emoji":"hooray"}` } hx-target={ "#reactions-" + strconv.FormatInt(data.CommentID, 10) } hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">🎉</button>
-					<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/comments/" + strconv.FormatInt(data.CommentID, 10) + "/reactions" } hx-vals={ `{"emoji":"confused"}` } hx-target={ "#reactions-" + strconv.FormatInt(data.CommentID, 10) } hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">😕</button>
-					<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/comments/" + strconv.FormatInt(data.CommentID, 10) + "/reactions" } hx-vals={ `{"emoji":"heart"}` } hx-target={ "#reactions-" + strconv.FormatInt(data.CommentID, 10) } hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">❤️</button>
-					<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/comments/" + strconv.FormatInt(data.CommentID, 10) + "/reactions" } hx-vals={ `{"emoji":"rocket"}` } hx-target={ "#reactions-" + strconv.FormatInt(data.CommentID, 10) } hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">🚀</button>
-					<button hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/comments/" + strconv.FormatInt(data.CommentID, 10) + "/reactions" } hx-vals={ `{"emoji":"eyes"}` } hx-target={ "#reactions-" + strconv.FormatInt(data.CommentID, 10) } hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">👀</button>
+					for _, e := range reactionEmojis {
+						<button hx-post={ endpoint } hx-vals={ `{"emoji":"` + e + `"}` } hx-target={ "#" + domID } hx-swap="outerHTML" class="text-lg hover:scale-125 transition-transform leading-none">{ view.EmojiChar(e) }</button>
+					}
 				</div>
 			</details>
 		}

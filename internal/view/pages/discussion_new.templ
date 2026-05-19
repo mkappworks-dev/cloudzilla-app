@@ -1,0 +1,139 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+func discussionNewCategoryURL(owner, repo string, categoryID int64) string {
+	return "/" + owner + "/" + repo + "/discussions/new?category=" + strconv.FormatInt(categoryID, 10)
+}
+
+templ DiscussionNew(data view.DiscussionNewData) {
+	@layout.Base(data.BasePage, "New discussion · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-6">
+
+			<section aria-labelledby="new-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/discussions") } class="hover:underline">Discussions</a>
+					<span aria-hidden="true">·</span>
+					New
+				</p>
+				<h1 id="new-title" class="text-2xl font-semibold tracking-tight">Start a new discussion</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">A discussion is an open-ended conversation, idea, or question — no code change required.</p>
+			</section>
+
+			if data.Error != "" {
+				@components.Alert(components.AlertDestructive) {
+					@components.AlertDescription() {
+						{ data.Error }
+					}
+				}
+			}
+
+			<div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+				<div class="min-w-0 space-y-10">
+
+					<section aria-labelledby="categories">
+						<h2 id="categories" class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-3">Category</h2>
+						if len(data.Categories) > 0 {
+							<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+								for _, cat := range data.Categories {
+									@discussionNewCategoryCard(data.Owner, data.RepoName, cat, cat.ID == data.ActiveCategoryID)
+								}
+							</div>
+						} else {
+							<p class="text-[13px] text-muted-foreground rounded-md border border-border bg-card p-4">Discussion categories haven&#39;t been configured on this instance yet.</p>
+						}
+					</section>
+
+					<section aria-labelledby="composer" class="rounded-md border border-border bg-card p-6">
+						<h2 id="composer" class="text-[13px] font-medium mb-4">Compose</h2>
+						<form id="discussion-new-form" method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/discussions/new") } class="space-y-5">
+							<input type="hidden" name="category_id" value={ strconv.FormatInt(data.ActiveCategoryID, 10) }/>
+							<div class="space-y-1.5">
+								<label for="title" class="block text-sm font-medium">Title</label>
+								@components.Input(templ.Attributes{
+									"id":          "title",
+									"name":        "title",
+									"type":        "text",
+									"required":    "required",
+									"autofocus":   "autofocus",
+									"value":       data.Title,
+									"placeholder": "Give your discussion a clear title",
+								})
+							</div>
+
+							<div class="space-y-1.5">
+								<label for="body" class="block text-sm font-medium">Body</label>
+								<div class="rounded-md border border-border bg-card overflow-hidden">
+									@components.MarkdownEditor("body", "body", data.Body, "Share the context, your question, or your idea.", 12)
+								</div>
+								<p class="text-[11px] text-muted-foreground">Markdown is supported. <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded">{ "@" }</kbd> mentions notify users; <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded">#</kbd> links issues/PRs.</p>
+							</div>
+
+							<div class="flex items-center gap-3 pt-2">
+								@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+									Start discussion
+								}
+								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/discussions") } class="text-sm text-muted-foreground hover:underline">Cancel</a>
+							</div>
+						</form>
+					</section>
+
+				</div>
+
+				<aside class="space-y-6" aria-label="Discussion options">
+					<section aria-labelledby="tips-heading">
+						<h2 id="tips-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Posting tips</h2>
+						<ul class="space-y-2 text-[12px] text-muted-foreground">
+							@discussionNewTip() {
+								Search existing discussions first — your question may already be answered.
+							}
+							@discussionNewTip() {
+								Pick the category that best fits — Q&amp;A for questions, Ideas for proposals.
+							}
+							@discussionNewTip() {
+								Be specific: include context, versions, and what you have already tried.
+							}
+						</ul>
+					</section>
+				</aside>
+			</div>
+
+		</div>
+	}
+}
+
+templ discussionNewCategoryCard(owner, repo string, cat model.DiscussionCategory, active bool) {
+	<a
+		href={ templ.SafeURL(discussionNewCategoryURL(owner, repo, cat.ID)) }
+		class={ "rounded-md border p-4 transition", templ.KV("border-border bg-muted", active), templ.KV("border-border bg-card hover:bg-muted/50", !active) }
+		if active {
+			aria-current="true"
+		}
+	>
+		<div class="flex items-center gap-2">
+			<p class="text-[13px] font-medium">{ cat.Name }</p>
+			if active {
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="ml-auto text-success" aria-label="Selected"><path d="M20 6L9 17l-5-5"></path></svg>
+			}
+		</div>
+		if cat.Description != "" {
+			<p class="mt-1 text-[12px] text-muted-foreground">{ cat.Description }</p>
+		}
+	</a>
+}
+
+templ discussionNewTip() {
+	<li class="flex gap-2">
+		<span aria-hidden="true" class="text-muted-foreground">·</span>
+		<span>{ children... }</span>
+	</li>
+}

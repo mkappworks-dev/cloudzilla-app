@@ -11,6 +11,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
@@ -420,6 +421,116 @@ func (h *Handler) renderIssueLabelFragment(w http.ResponseWriter, r *http.Reques
 		Owner: owner, RepoName: repoName, IssueNumber: issueNumber,
 		Labels: labels, AllLabels: allLabels, CanWrite: canWrite,
 	}))
+}
+
+func (h *Handler) AddDiscussionLabel(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid discussion number")
+		return
+	}
+	labelID, err := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid label id")
+		return
+	}
+
+	if err := h.Services.Label.AddToDiscussion(r.Context(), owner, repoName, number, labelID); err != nil {
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Label added")
+		h.renderDiscussionLabelFragment(w, r, owner, repoName, number)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) RemoveDiscussionLabel(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid discussion number")
+		return
+	}
+	labelID, err := strconv.ParseInt(chi.URLParam(r, "labelID"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid label id")
+		return
+	}
+
+	if err := h.Services.Label.RemoveFromDiscussion(r.Context(), owner, repoName, number, labelID); err != nil {
+		slog.Error("operation failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Label removed")
+		h.renderDiscussionLabelFragment(w, r, owner, repoName, number)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) renderDiscussionLabelFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, number int) {
+	discussion, _ := h.Services.Discussion.Get(r.Context(), owner, repoName, number)
+	var labels, allLabels []model.Label
+	if discussion != nil {
+		labels, _ = h.Services.Label.GetForDiscussion(r.Context(), discussion.ID)
+	}
+	allLabels, _ = h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if labels == nil {
+		labels = []model.Label{}
+	}
+	if allLabels == nil {
+		allLabels = []model.Label{}
+	}
+	canWrite := false
+	if repo, err := h.Services.Repo.Get(r.Context(), owner, repoName); err == nil {
+		if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		}
+	}
+	h.render(w, r, components.LabelSidebar(owner, repoName, number, "discussions", labels, allLabels, canWrite))
 }
 
 var hexColorRe = regexp.MustCompile(`^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$`)

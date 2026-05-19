@@ -17,17 +17,11 @@ func NewDiscussionStore(db *sql.DB) *DiscussionStore { return &DiscussionStore{d
 
 // ---- Categories ----
 
-func (s *DiscussionStore) CreateCategory(ctx context.Context, c *model.DiscussionCategory) error {
-	return s.db.QueryRowContext(ctx,
-		`INSERT INTO discussion_categories (repo_id, name, emoji) VALUES ($1, $2, $3) RETURNING id`,
-		c.RepoID, c.Name, c.Emoji,
-	).Scan(&c.ID)
-}
+// Categories are a fixed, instance-wide set seeded by migration — no runtime create/delete.
 
-func (s *DiscussionStore) ListCategories(ctx context.Context, repoID int64) ([]model.DiscussionCategory, error) {
+func (s *DiscussionStore) ListCategories(ctx context.Context) ([]model.DiscussionCategory, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, repo_id, name, emoji FROM discussion_categories WHERE repo_id = $1 ORDER BY name`,
-		repoID,
+		`SELECT id, name, emoji, description FROM discussion_categories ORDER BY id`,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("category list: %w", err)
@@ -36,7 +30,7 @@ func (s *DiscussionStore) ListCategories(ctx context.Context, repoID int64) ([]m
 	var cats []model.DiscussionCategory
 	for rows.Next() {
 		var c model.DiscussionCategory
-		if err := rows.Scan(&c.ID, &c.RepoID, &c.Name, &c.Emoji); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Emoji, &c.Description); err != nil {
 			return nil, err
 		}
 		cats = append(cats, c)
@@ -47,17 +41,12 @@ func (s *DiscussionStore) ListCategories(ctx context.Context, repoID int64) ([]m
 func (s *DiscussionStore) GetCategory(ctx context.Context, id int64) (*model.DiscussionCategory, error) {
 	var c model.DiscussionCategory
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, repo_id, name, emoji FROM discussion_categories WHERE id = $1`, id,
-	).Scan(&c.ID, &c.RepoID, &c.Name, &c.Emoji)
+		`SELECT id, name, emoji, description FROM discussion_categories WHERE id = $1`, id,
+	).Scan(&c.ID, &c.Name, &c.Emoji, &c.Description)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	return &c, err
-}
-
-func (s *DiscussionStore) DeleteCategory(ctx context.Context, id, repoID int64) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM discussion_categories WHERE id = $1 AND repo_id = $2`, id, repoID)
-	return err
 }
 
 // ---- Discussions ----
@@ -175,6 +164,22 @@ func (s *DiscussionStore) LockDiscussion(ctx context.Context, id int64, locked b
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE discussions SET is_locked = $2, updated_at = NOW() WHERE id = $1`,
 		id, locked,
+	)
+	return err
+}
+
+func (s *DiscussionStore) UpdateContent(ctx context.Context, id int64, title, body string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE discussions SET title = $2, body = $3, updated_at = NOW() WHERE id = $1`,
+		id, title, body,
+	)
+	return err
+}
+
+func (s *DiscussionStore) SetCategory(ctx context.Context, id, categoryID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE discussions SET category_id = $2, updated_at = NOW() WHERE id = $1`,
+		id, categoryID,
 	)
 	return err
 }

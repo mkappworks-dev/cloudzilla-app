@@ -5,12 +5,12 @@ import (
 	"time"
 )
 
-// DiscussionCategory represents a category grouping for repository discussions.
+// DiscussionCategory represents an instance-wide discussion category.
 type DiscussionCategory struct {
-	ID     int64  `db:"id"      json:"id"`
-	RepoID int64  `db:"repo_id" json:"repo_id"`
-	Name   string `db:"name"    json:"name"`
-	Emoji  string `db:"emoji"   json:"emoji"`
+	ID          int64  `db:"id"          json:"id"`
+	Name        string `db:"name"        json:"name"`
+	Emoji       string `db:"emoji"       json:"emoji"`
+	Description string `db:"description" json:"description"`
 }
 
 // Discussion represents a threaded discussion post in a repository.

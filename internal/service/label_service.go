@@ -10,15 +10,16 @@ import (
 
 // LabelService manages repository labels and their assignment to issues and PRs.
 type LabelService struct {
-	labels *store.LabelStore
-	repos  *store.RepoStore
-	issues *store.IssueStore
-	pulls  *store.PullStore
+	labels      *store.LabelStore
+	repos       *store.RepoStore
+	issues      *store.IssueStore
+	pulls       *store.PullStore
+	discussions *store.DiscussionStore
 }
 
 // NewLabelService creates a LabelService backed by the given stores.
-func NewLabelService(labels *store.LabelStore, repos *store.RepoStore, issues *store.IssueStore, pulls *store.PullStore) *LabelService {
-	return &LabelService{labels: labels, repos: repos, issues: issues, pulls: pulls}
+func NewLabelService(labels *store.LabelStore, repos *store.RepoStore, issues *store.IssueStore, pulls *store.PullStore, discussions *store.DiscussionStore) *LabelService {
+	return &LabelService{labels: labels, repos: repos, issues: issues, pulls: pulls, discussions: discussions}
 }
 
 func (s *LabelService) Create(ctx context.Context, owner, repoName, name, color, description string) (*model.Label, error) {
@@ -115,6 +116,37 @@ func (s *LabelService) RemoveFromPull(ctx context.Context, owner, repoName strin
 
 func (s *LabelService) GetForPull(ctx context.Context, pullID int64) ([]model.Label, error) {
 	return s.labels.ListByPull(ctx, pullID)
+}
+
+func (s *LabelService) AddToDiscussion(ctx context.Context, owner, repoName string, discussionNumber int, labelID int64) error {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	discussion, err := s.discussions.GetByNumber(ctx, repo.ID, discussionNumber)
+	if err != nil || discussion == nil {
+		return fmt.Errorf("discussion not found")
+	}
+	if _, err := s.labels.GetByID(ctx, labelID, repo.ID); err != nil {
+		return fmt.Errorf("label not found: %w", err)
+	}
+	return s.labels.AddToDiscussion(ctx, discussion.ID, labelID)
+}
+
+func (s *LabelService) RemoveFromDiscussion(ctx context.Context, owner, repoName string, discussionNumber int, labelID int64) error {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	discussion, err := s.discussions.GetByNumber(ctx, repo.ID, discussionNumber)
+	if err != nil || discussion == nil {
+		return fmt.Errorf("discussion not found")
+	}
+	return s.labels.RemoveFromDiscussion(ctx, discussion.ID, labelID)
+}
+
+func (s *LabelService) GetForDiscussion(ctx context.Context, discussionID int64) ([]model.Label, error) {
+	return s.labels.ListByDiscussion(ctx, discussionID)
 }
 
 func (s *LabelService) BatchForIssues(ctx context.Context, issues []model.Issue) (map[int64][]model.Label, error) {

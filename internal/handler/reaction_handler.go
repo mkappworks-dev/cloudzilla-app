@@ -114,3 +114,116 @@ func (h *Handler) ToggleReaction(w http.ResponseWriter, r *http.Request) {
 		LoggedIn:  true,
 	}))
 }
+
+// ToggleDiscussionReaction toggles a reaction on a discussion post.
+func (h *Handler) ToggleDiscussionReaction(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid discussion number")
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	discussion, err := h.Services.Discussion.Get(r.Context(), owner, repoName, number)
+	if err != nil || discussion == nil {
+		writeError(w, http.StatusNotFound, "discussion not found")
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
+	if _, err := h.Services.Reaction.ToggleDiscussion(r.Context(), claims.UserID, discussion.ID, r.FormValue("emoji")); err != nil {
+		if strings.HasPrefix(err.Error(), "unsupported emoji") {
+			writeError(w, http.StatusBadRequest, err.Error())
+		} else {
+			writeError(w, http.StatusInternalServerError, "internal error")
+		}
+		return
+	}
+
+	reactions, _ := h.Services.Reaction.ListByDiscussion(r.Context(), discussion.ID, claims.UserID)
+	endpoint := "/api/repos/" + owner + "/" + repoName + "/discussions/" + strconv.Itoa(number) + "/reactions"
+	h.render(w, r, fragments.ReactionBar(endpoint, "reactions-discussion-"+strconv.Itoa(number), reactions, true))
+}
+
+// ToggleDiscussionReplyReaction toggles a reaction on a discussion reply.
+func (h *Handler) ToggleDiscussionReplyReaction(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid discussion number")
+		return
+	}
+	replyID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid reply id")
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	discussion, err := h.Services.Discussion.Get(r.Context(), owner, repoName, number)
+	if err != nil || discussion == nil {
+		writeError(w, http.StatusNotFound, "discussion not found")
+		return
+	}
+	replies, _ := h.Services.Discussion.ListReplies(r.Context(), discussion.ID)
+	found := false
+	for _, rp := range replies {
+		if rp.ID == replyID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		writeError(w, http.StatusNotFound, "reply not found")
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
+	if _, err := h.Services.Reaction.ToggleReply(r.Context(), claims.UserID, replyID, r.FormValue("emoji")); err != nil {
+		if strings.HasPrefix(err.Error(), "unsupported emoji") {
+			writeError(w, http.StatusBadRequest, err.Error())
+		} else {
+			writeError(w, http.StatusInternalServerError, "internal error")
+		}
+		return
+	}
+
+	reactions, _ := h.Services.Reaction.ListByReply(r.Context(), replyID, claims.UserID)
+	endpoint := "/api/repos/" + owner + "/" + repoName + "/discussions/" + strconv.Itoa(number) + "/replies/" + strconv.FormatInt(replyID, 10) + "/reactions"
+	h.render(w, r, fragments.ReactionBar(endpoint, "reactions-reply-"+strconv.FormatInt(replyID, 10), reactions, true))
+}

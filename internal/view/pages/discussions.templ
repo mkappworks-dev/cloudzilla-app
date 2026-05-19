@@ -44,11 +44,7 @@ templ Discussions(data view.DiscussionsData) {
 					<h1 id="disc-title" class="text-2xl font-semibold tracking-tight">Discussions</h1>
 				</div>
 				if data.CanWrite {
-					@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{
-						"type":        "button",
-						"x-data":      "",
-						"x-on:click":  "document.getElementById('new-discussion-form').classList.toggle('hidden')",
-					}) {
+					@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/discussions/new", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
 							<path d="M12 5v14M5 12h14"></path>
 						</svg>
@@ -56,44 +52,6 @@ templ Discussions(data view.DiscussionsData) {
 					}
 				}
 			</section>
-
-			if data.CanWrite {
-				<div id="new-discussion-form" class="hidden rounded-md border border-border bg-card p-6 space-y-4">
-					<h2 class="text-lg font-semibold">Start a Discussion</h2>
-					<div>
-						<label for="new-discussion-category" class="block text-sm font-medium text-foreground mb-1">Category</label>
-						<select id="new-discussion-category" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
-							for _, cat := range data.Categories {
-								<option value={ strconv.FormatInt(cat.ID, 10) }>{ cat.Emoji } { cat.Name }</option>
-							}
-						</select>
-					</div>
-					<div>
-						<label for="new-discussion-title" class="block text-sm font-medium text-foreground mb-1">Title</label>
-						@components.Input(templ.Attributes{
-							"id":          "new-discussion-title",
-							"type":        "text",
-							"placeholder": "Discussion title",
-						})
-					</div>
-					<div>
-						<label for="new-discussion-body" class="block text-sm font-medium text-foreground mb-1">Body (Markdown)</label>
-						@components.Textarea(templ.Attributes{
-							"id":    "new-discussion-body",
-							"rows":  "6",
-							"class": "font-mono",
-						})
-					</div>
-					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
-						"type":                 "button",
-						"hx-post":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions",
-						"hx-vals":              `js:{category_id: parseInt(document.getElementById("new-discussion-category").value), title: document.getElementById("new-discussion-title").value, body: document.getElementById("new-discussion-body").value}`,
-						"hx-on::after-request": "window.location.reload()",
-					}) {
-						Submit
-					}
-				</div>
-			}
 
 			<nav class="flex items-center gap-2 flex-wrap" aria-label="Discussion categories">
 				<a

@@ -53,7 +53,7 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 		stateFilter = "open"
 	}
 
-	categories, err := h.Services.Discussion.ListCategories(r.Context(), repo.ID)
+	categories, err := h.Services.Discussion.ListCategories(r.Context())
 	if err != nil {
 		slog.Warn("discussions: category list failed", "owner", owner, "repo", repoName, "error", err)
 	}
@@ -174,15 +174,35 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 	if rawReplies == nil {
 		rawReplies = []model.DiscussionReply{}
 	}
+	var callerID int64
+	if userID != nil {
+		callerID = *userID
+	}
 	replies := make([]view.RenderedDiscussionReply, len(rawReplies))
 	for i, rr := range rawReplies {
+		rxn, _ := h.Services.Reaction.ListByReply(r.Context(), rr.ID, callerID)
 		replies[i] = view.RenderedDiscussionReply{
 			DiscussionReply: rr,
 			BodyHTML:        markdown.Render(rr.Body),
+			Reactions:       rxn,
 		}
 	}
+	opReactions, _ := h.Services.Reaction.ListByDiscussion(r.Context(), discussion.ID, callerID)
 
-	cats, _ := h.Services.Discussion.ListCategories(r.Context(), repo.ID)
+	participants := make([]string, 0, len(rawReplies)+1)
+	seen := make(map[string]bool)
+	addParticipant := func(name string) {
+		if name != "" && !seen[name] {
+			seen[name] = true
+			participants = append(participants, name)
+		}
+	}
+	addParticipant(discussion.AuthorName)
+	for _, rr := range rawReplies {
+		addParticipant(rr.AuthorName)
+	}
+
+	cats, _ := h.Services.Discussion.ListCategories(r.Context())
 	var category model.DiscussionCategory
 	for _, c := range cats {
 		if c.ID == discussion.CategoryID {
@@ -191,20 +211,166 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	labels, _ := h.Services.Label.GetForDiscussion(r.Context(), discussion.ID)
+	if labels == nil {
+		labels = []model.Label{}
+	}
+	allLabels, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if allLabels == nil {
+		allLabels = []model.Label{}
+	}
+
 	canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 
 	h.render(w, r, pages.DiscussionDetail(view.DiscussionDetailData{
-		BasePage:   h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "discussions", canManage),
-		Repo:       *repo,
-		Owner:      owner,
-		RepoName:   repoName,
-		Discussion: *discussion,
-		Category:   category,
-		Replies:    replies,
-		BodyHTML:   markdown.Render(discussion.Body),
-		CanWrite:   canWrite,
+		BasePage:      h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "discussions", canManage),
+		Repo:          *repo,
+		Owner:         owner,
+		RepoName:      repoName,
+		Discussion:    *discussion,
+		Category:      category,
+		AllCategories: cats,
+		Labels:        labels,
+		AllLabels:     allLabels,
+		Replies:       replies,
+		Participants:  participants,
+		OPReactions:   opReactions,
+		BodyHTML:      markdown.Render(discussion.Body),
+		CanWrite:      canWrite,
 	}))
+}
+
+// resolveDiscussionCategory returns the category selected via the ?category=
+// query param, falling back to the first category. Returns 0 when none exist.
+func resolveDiscussionCategory(r *http.Request, categories []model.DiscussionCategory) int64 {
+	if cidStr := r.URL.Query().Get("category"); cidStr != "" {
+		if cid, err := strconv.ParseInt(cidStr, 10, 64); err == nil {
+			for _, c := range categories {
+				if c.ID == cid {
+					return cid
+				}
+			}
+		}
+	}
+	if len(categories) > 0 {
+		return categories[0].ID
+	}
+	return 0
+}
+
+// PageNewDiscussion renders /{owner}/{repo}/discussions/new
+func (h *Handler) PageNewDiscussion(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+	if !repo.AllowDiscussions {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	categories, err := h.Services.Discussion.ListCategories(r.Context())
+	if err != nil {
+		slog.Warn("new discussion: category list failed", "owner", owner, "repo", repoName, "error", err)
+	}
+	if categories == nil {
+		categories = []model.DiscussionCategory{}
+	}
+
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+
+	h.render(w, r, pages.DiscussionNew(view.DiscussionNewData{
+		BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "discussions", canManage),
+		Repo:             *repo,
+		Owner:            owner,
+		RepoName:         repoName,
+		Categories:       categories,
+		ActiveCategoryID: resolveDiscussionCategory(r, categories),
+	}))
+}
+
+// PageNewDiscussionSubmit handles the new discussion form and redirects to the created discussion.
+func (h *Handler) PageNewDiscussionSubmit(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		http.Error(w, "repo not found", http.StatusNotFound)
+		return
+	}
+	if !repo.AllowDiscussions {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
+	title := r.FormValue("title")
+	body := r.FormValue("body")
+	categoryID, _ := strconv.ParseInt(r.FormValue("category_id"), 10, 64)
+
+	categories, _ := h.Services.Discussion.ListCategories(r.Context())
+	if categories == nil {
+		categories = []model.DiscussionCategory{}
+	}
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
+	renderErr := func(msg string) {
+		h.render(w, r, pages.DiscussionNew(view.DiscussionNewData{
+			BasePage:         h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "discussions", canManage),
+			Repo:             *repo,
+			Owner:            owner,
+			RepoName:         repoName,
+			Categories:       categories,
+			ActiveCategoryID: categoryID,
+			Title:            title,
+			Body:             body,
+			Error:            msg,
+		}))
+	}
+
+	if title == "" {
+		renderErr("Title is required")
+		return
+	}
+	if categoryID == 0 {
+		renderErr("Pick a category for your discussion")
+		return
+	}
+
+	d, err := h.Services.Discussion.Create(r.Context(), owner, repoName, claims.UserID, claims.Username, categoryID, title, body)
+	if err != nil {
+		renderErr("Failed to create discussion: " + err.Error())
+		return
+	}
+	http.Redirect(w, r, "/"+owner+"/"+repoName+"/discussions/"+strconv.Itoa(d.Number), http.StatusSeeOther)
 }
 
 // CreateDiscussion handles POST /api/repos/{owner}/{repo}/discussions
@@ -328,8 +494,11 @@ func (h *Handler) MarkAnswer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		AnswerID json.RawMessage `json:"answer_id"`
-		Locked   *bool           `json:"locked"`
+		AnswerID   json.RawMessage `json:"answer_id"`
+		Locked     *bool           `json:"locked"`
+		Title      *string         `json:"title"`
+		Body       *string         `json:"body"`
+		CategoryID *int64          `json:"category_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON")
@@ -357,6 +526,27 @@ func (h *Handler) MarkAnswer(w http.ResponseWriter, r *http.Request) {
 	}
 	if body.Locked != nil {
 		if err := h.Services.Discussion.Lock(r.Context(), discussion.ID, *body.Locked); err != nil {
+			slog.Error("operation failed", "error", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
+			return
+		}
+	}
+	if body.Title != nil || body.Body != nil {
+		title := discussion.Title
+		if body.Title != nil {
+			title = *body.Title
+		}
+		bodyText := discussion.Body
+		if body.Body != nil {
+			bodyText = *body.Body
+		}
+		if err := h.Services.Discussion.UpdateContent(r.Context(), discussion.ID, title, bodyText); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+	if body.CategoryID != nil {
+		if err := h.Services.Discussion.SetCategory(r.Context(), discussion.ID, *body.CategoryID); err != nil {
 			slog.Error("operation failed", "error", err)
 			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
@@ -405,77 +595,6 @@ func (h *Handler) DeleteDiscussionReply(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if err := h.Services.Discussion.DeleteReply(r.Context(), replyID, discussion.ID); err != nil {
-		slog.Error("operation failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-
-// CreateDiscussionCategory handles POST /api/repos/{owner}/{repo}/discussions/categories
-func (h *Handler) CreateDiscussionCategory(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
-		return
-	}
-	owner := chi.URLParam(r, "owner")
-	repoName := chi.URLParam(r, "repo")
-
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "manage access required")
-		return
-	}
-
-	var body struct {
-		Name  string `json:"name"`
-		Emoji string `json:"emoji"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid JSON")
-		return
-	}
-
-	cat, err := h.Services.Discussion.CreateCategory(r.Context(), repo.ID, body.Name, body.Emoji)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	writeJSON(w, http.StatusCreated, cat)
-}
-
-// DeleteDiscussionCategory handles DELETE /api/repos/{owner}/{repo}/discussions/categories/{id}
-func (h *Handler) DeleteDiscussionCategory(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
-		return
-	}
-	owner := chi.URLParam(r, "owner")
-	repoName := chi.URLParam(r, "repo")
-	idStr := chi.URLParam(r, "id")
-	catID, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid category id")
-		return
-	}
-
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "manage access required")
-		return
-	}
-
-	if err := h.Services.Discussion.DeleteCategory(r.Context(), catID, repo.ID); err != nil {
 		slog.Error("operation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return

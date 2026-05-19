@@ -84,7 +84,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Notification:     notifSvc,
 		SiteSetting:      siteSettingSvc,
 		Invitation:       NewInvitationService(stores.Invitation),
-		Label:            NewLabelService(stores.Label, stores.Repo, stores.Issue, stores.Pull),
+		Label:            NewLabelService(stores.Label, stores.Repo, stores.Issue, stores.Pull, stores.Discussion),
 		Assignee:         NewAssigneeService(stores.Assignee, stores.Repo, stores.Issue, stores.Pull, stores.User),
 		Star:             NewStarService(stores.Star, stores.Repo, stores.User),
 		Release:          NewReleaseService(stores.Release, stores.Repo, code),
