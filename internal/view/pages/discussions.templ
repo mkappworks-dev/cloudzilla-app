@@ -75,7 +75,7 @@ templ Discussions(data view.DiscussionsData) {
 						href={ templ.SafeURL(discussionCategoryURL(data.Owner, data.RepoName, cat.ID, data.StateFilter)) }
 						class={ "inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] transition-colors", templ.KV("bg-foreground text-background border-foreground", cat.ID == data.ActiveCategoryID), templ.KV("bg-muted text-muted-foreground border-border hover:text-foreground", cat.ID != data.ActiveCategoryID) }
 					>
-						{ cat.Emoji } { cat.Name }
+						{ cat.Name }
 						<span class="font-mono opacity-70">{ strconv.Itoa(data.CategoryCounts[cat.ID]) }</span>
 					</a>
 				}
@@ -156,12 +156,7 @@ templ discussionRow(data view.DiscussionsData, d model.Discussion) {
 					}
 					if category != nil {
 						<span aria-hidden="true">·</span>
-						<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border border-border bg-muted text-muted-foreground">
-							if category.Emoji != "" {
-								<span aria-hidden="true">{ category.Emoji }</span>
-							}
-							{ category.Name }
-						</span>
+						<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border border-border bg-muted text-muted-foreground">{ category.Name }</span>
 					}
 					for _, lbl := range labels {
 						<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style={ "background-color: " + lbl.Color + "33; color: " + lbl.Color + "; border-color: " + lbl.Color + "55" }>{ lbl.Name }</span>
