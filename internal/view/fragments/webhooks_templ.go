@@ -255,7 +255,7 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "Delete")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "Remove")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -266,10 +266,10 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 						"hx-target":           "#webhooks-list",
 						"hx-swap":             "outerHTML",
 						"hx-confirm":          data.RepoName + " will stop sending events to " + wh.URL + ".",
-						"data-confirm-title":  "Delete this webhook?",
-						"data-confirm-label":  "Delete",
+						"data-confirm-title":  "Remove this webhook?",
+						"data-confirm-label":  "Remove",
 						"data-confirm-danger": "true",
-						"data-toast":          "Webhook deleted",
+						"data-toast":          "Webhook removed",
 						"type":                "button",
 					}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var9), templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {

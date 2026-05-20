@@ -108,7 +108,7 @@ func RepoLabels(data view.RepoLabelsFragData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "Delete")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "Remove")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -119,10 +119,10 @@ func RepoLabels(data view.RepoLabelsFragData) templ.Component {
 						"hx-target":           "#repo-labels",
 						"hx-swap":             "outerHTML",
 						"hx-confirm":          "The " + lbl.Name + " label will be removed from every issue and pull request that uses it.",
-						"data-confirm-title":  "Delete this label?",
-						"data-confirm-label":  "Delete",
+						"data-confirm-title":  "Remove this label?",
+						"data-confirm-label":  "Remove",
 						"data-confirm-danger": "true",
-						"data-toast":          "Label deleted",
+						"data-toast":          "Label removed",
 						"type":                "button",
 					}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {

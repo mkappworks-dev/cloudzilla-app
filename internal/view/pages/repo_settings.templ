@@ -28,7 +28,69 @@ func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem 
 	return items
 }
 
+// visibilityToggle renders the public/private switch as a single pill toggle.
+// aria-pressed=true means Public (green); clicking submits the visibility form
+// with the opposite value, routed through the global ConfirmDialog for the
+// "Make public/private?" prompt.
+templ visibilityToggle(owner, repoName string, private bool) {
+	<div class="flex items-start justify-between gap-4 pb-4 mb-2 border-b border-border">
+		<div class="min-w-0">
+			<p class="text-sm font-medium text-foreground">Visibility</p>
+			<p class="text-xs text-muted-foreground mt-0.5">
+				if private {
+					This repository is private — only collaborators can see it.
+				} else {
+					This repository is public — anyone can view it.
+				}
+			</p>
+		</div>
+		<div class="flex items-center gap-3 shrink-0">
+			if private {
+				@components.Badge(components.BadgeSecondary) {
+					Private
+				}
+				<form method="POST" action={ templ.SafeURL("/" + owner + "/" + repoName + "/settings/visibility") } data-toast="Repository is now public">
+					<input type="hidden" name="private" value="false"/>
+					<button
+						type="submit"
+						aria-pressed="false"
+						aria-label="Repository visibility"
+						data-confirm-action="true"
+						data-confirm-title="Make this repository public?"
+						data-confirm-msg={ "Anyone on the internet will be able to view " + repoName + "." }
+						data-confirm-label="Make public"
+						class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-border bg-muted transition-colors cursor-pointer"
+					>
+						<span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform"></span>
+					</button>
+				</form>
+			} else {
+				@components.Badge(components.BadgeSuccess) {
+					Public
+				}
+				<form method="POST" action={ templ.SafeURL("/" + owner + "/" + repoName + "/settings/visibility") } data-toast="Repository is now private">
+					<input type="hidden" name="private" value="true"/>
+					<button
+						type="submit"
+						aria-pressed="true"
+						aria-label="Repository visibility"
+						data-confirm-action="true"
+						data-confirm-title="Make this repository private?"
+						data-confirm-msg={ "Only collaborators with access will be able to view " + repoName + "." }
+						data-confirm-label="Make private"
+						data-confirm-danger="true"
+						class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-success bg-success transition-colors cursor-pointer"
+					>
+						<span class="absolute left-[18px] h-3.5 w-3.5 rounded-full bg-background transition-transform"></span>
+					</button>
+				</form>
+			}
+		</div>
+	</div>
+}
+
 // settingsToggle renders a labelled pill-switch row for a repo feature flag.
+// The toggle is green when ON, matching the design-system success colour.
 templ settingsToggle(name, label, desc string, on bool) {
 	<label class="flex items-start justify-between gap-4 py-3 border-b border-border last:border-b-0 cursor-pointer">
 		<span class="min-w-0">
@@ -37,8 +99,8 @@ templ settingsToggle(name, label, desc string, on bool) {
 		</span>
 		<span class="relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5">
 			<input type="checkbox" name={ name } checked?={ on } class="peer sr-only"/>
-			<span class="absolute inset-0 rounded-full bg-input transition-colors peer-checked:bg-primary"></span>
-			<span class="absolute left-0.5 h-4 w-4 rounded-full bg-background transition-transform peer-checked:translate-x-4"></span>
+			<span class="absolute inset-0 rounded-full border border-border bg-muted transition-colors peer-checked:bg-success peer-checked:border-success"></span>
+			<span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform peer-checked:bg-background peer-checked:translate-x-4"></span>
 		</span>
 	</label>
 }
@@ -103,56 +165,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								<div class="flex items-start justify-between gap-4 pb-4 mb-2 border-b border-border">
-									<div class="min-w-0">
-										<p class="text-sm font-medium text-foreground">Visibility</p>
-										<p class="text-xs text-muted-foreground mt-0.5">
-											if data.Repo.Private {
-												This repository is private — only collaborators can see it.
-											} else {
-												This repository is public — anyone can view it.
-											}
-										</p>
-									</div>
-									<div class="flex items-center gap-3 shrink-0">
-										if data.Repo.Private {
-											@components.Badge(components.BadgeSecondary) {
-												Private
-											}
-										} else {
-											@components.Badge(components.BadgeSuccess) {
-												Public
-											}
-										}
-										if data.Repo.Private {
-											<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/visibility") } data-toast="Repository is now public">
-												<input type="hidden" name="private" value="false"/>
-												@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-													"type":                "submit",
-													"data-confirm-action": "true",
-													"data-confirm-title":  "Make this repository public?",
-													"data-confirm-msg":    "Anyone on the internet will be able to view " + data.RepoName + ".",
-													"data-confirm-label":  "Make public",
-												}) {
-													Make public
-												}
-											</form>
-										} else {
-											<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/visibility") } data-toast="Repository is now private">
-												<input type="hidden" name="private" value="true"/>
-												@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-													"type":                "submit",
-													"data-confirm-action": "true",
-													"data-confirm-title":  "Make this repository private?",
-													"data-confirm-msg":    "Only collaborators with access will be able to view " + data.RepoName + ".",
-													"data-confirm-label":  "Make private",
-												}) {
-													Make private
-												}
-											</form>
-										}
-									</div>
-								</div>
+								@visibilityToggle(data.Owner, data.RepoName, data.Repo.Private)
 								<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/features") } data-toast="Feature settings saved">
 									@settingsToggle("allow_issues", "Issues", "Let people open and track issues.", data.Repo.AllowIssues)
 									@settingsToggle("allow_discussions", "Discussions", "Enable the Discussions tab for Q&A and announcements.", data.Repo.AllowDiscussions)
@@ -539,26 +552,26 @@ templ RepoSettings(data view.RepoSettingsData) {
 								<div class="flex justify-end">
 									if data.Repo.IsArchived {
 										@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{
-											"hx-post":               "/api/repos/" + data.Owner + "/" + data.RepoName + "/unarchive",
-											"hx-target":             "body",
-											"hx-confirm":            "Push access will be restored and " + data.RepoName + " will return to active views.",
-											"data-confirm-title":    "Unarchive this repository?",
-											"data-confirm-label":    "Unarchive",
-											"hx-on--after-request":  "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Repository unarchived'}));}",
-											"type":                  "button",
+											"hx-post":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/unarchive",
+											"hx-target":            "body",
+											"hx-confirm":           "Push access will be restored and " + data.RepoName + " will return to active views.",
+											"data-confirm-title":   "Unarchive this repository?",
+											"data-confirm-label":   "Unarchive",
+											"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Repository unarchived'}));}",
+											"type":                 "button",
 										}) {
 											Unarchive
 										}
 									} else {
 										@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-											"hx-post":               "/api/repos/" + data.Owner + "/" + data.RepoName + "/archive",
-											"hx-target":             "body",
-											"hx-confirm":            data.RepoName + " will become read-only and hidden from active views. You can unarchive it later.",
-											"data-confirm-title":    "Archive this repository?",
-											"data-confirm-label":    "Archive",
-											"data-confirm-danger":   "true",
-											"hx-on--after-request":  "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Repository archived'}));}",
-											"type":                  "button",
+											"hx-post":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/archive",
+											"hx-target":            "body",
+											"hx-confirm":           data.RepoName + " will become read-only and hidden from active views. You can unarchive it later.",
+											"data-confirm-title":   "Archive this repository?",
+											"data-confirm-label":   "Archive",
+											"data-confirm-danger":  "true",
+											"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Repository archived'}));}",
+											"type":                 "button",
 										}) {
 											Archive
 										}
@@ -589,11 +602,11 @@ templ RepoSettings(data view.RepoSettingsData) {
 											})
 											@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
 												"type":                "submit",
-												"data-confirm-action": "true",
-												"data-confirm-title":  "Transfer ownership?",
-												"data-confirm-msg":    data.RepoName + " will be transferred to another user. You will lose owner access to this repository.",
-												"data-confirm-label":  "Transfer",
-												"data-confirm-danger": "true",
+												"data-confirm-action":  "true",
+												"data-confirm-title":   "Transfer ownership?",
+												"data-confirm-msg":     data.RepoName + " will be transferred to another user. You will lose owner access to this repository.",
+												"data-confirm-label":   "Transfer",
+												"data-confirm-danger":  "true",
 											}) {
 												Transfer
 											}
@@ -615,11 +628,11 @@ templ RepoSettings(data view.RepoSettingsData) {
 								<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/delete") } data-toast="Repository deleted" class="flex justify-end">
 									@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
 										"type":                "submit",
-										"data-confirm-action": "true",
-										"data-confirm-title":  "Delete this repository?",
-										"data-confirm-msg":    "This permanently removes " + data.RepoName + " and all of its data — issues, pull requests, and history. This cannot be undone.",
-										"data-confirm-label":  "Delete repository",
-										"data-confirm-danger": "true",
+										"data-confirm-action":  "true",
+										"data-confirm-title":   "Delete this repository?",
+										"data-confirm-msg":     "This permanently removes " + data.RepoName + " and all of its data — issues, pull requests, and history. This cannot be undone.",
+										"data-confirm-label":   "Delete repository",
+										"data-confirm-danger":  "true",
 									}) {
 										Delete repository
 									}

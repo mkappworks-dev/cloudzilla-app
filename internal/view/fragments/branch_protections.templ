@@ -9,66 +9,55 @@ import (
 )
 
 templ BranchProtections(data view.BranchProtectionsFragData) {
-	<div id="branch-protections">
+	<div id="branch-protections" class="space-y-2">
 		if len(data.Rules) > 0 {
-			<table class="w-full text-sm">
-				<thead>
-					<tr class="text-left text-muted-foreground border-b border-border">
-						<th class="pb-2 font-medium">Pattern</th>
-						<th class="pb-2 font-medium">Required Reviews</th>
-						<th class="pb-2 font-medium">Status Checks</th>
-						<th class="pb-2 font-medium">Block Force Push</th>
-						<th class="pb-2"></th>
-					</tr>
-				</thead>
-				<tbody class="divide-y divide-border">
-					for _, rule := range data.Rules {
-						<tr>
-							<td class="py-3 font-mono text-sm text-foreground">{ rule.Pattern }</td>
-							<td class="py-3 text-foreground">{ strconv.Itoa(rule.RequireReviewCount) }</td>
-							<td class="py-3 text-muted-foreground text-xs">
-								if len(rule.RequireStatusChecks) > 0 {
-									{ strings.Join(rule.RequireStatusChecks, ", ") }
-								} else {
-									—
+			for _, rule := range data.Rules {
+				<div class="flex items-center justify-between rounded-md border border-border p-3 gap-3">
+					<div class="min-w-0 flex-1">
+						<div class="flex items-center gap-2 flex-wrap">
+							<span class="font-mono text-sm font-medium text-foreground">{ rule.Pattern }</span>
+							if rule.BlockForcePush {
+								@components.Badge(components.BadgeDestructive) {
+									Force push blocked
 								}
-							</td>
-							<td class="py-3">
-								if rule.BlockForcePush {
-									@components.Badge(components.BadgeDestructive) {
-										Blocked
-									}
-								} else {
-									@components.Badge(components.BadgeSecondary) {
-										Allowed
-									}
-								}
-							</td>
-							<td class="py-3 text-right">
-								if data.CanManage {
-									@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
-										"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections/" + strconv.FormatInt(rule.ID, 10),
-										"hx-target":           "#branch-protections",
-										"hx-swap":             "outerHTML",
-										"hx-confirm":          "The " + rule.Pattern + " branch will no longer require reviews or block force pushes.",
-										"data-confirm-title":  "Delete this protection rule?",
-										"data-confirm-label":  "Delete",
-										"data-confirm-danger": "true",
-										"data-toast":          "Branch protection deleted",
-										"type":                "button",
-									}) {
-										Delete
-									}
-								}
-							</td>
-						</tr>
+							}
+						</div>
+						<p class="text-xs text-muted-foreground mt-1">
+							{ strconv.Itoa(rule.RequireReviewCount) } required { reviewWord(rule.RequireReviewCount) }
+							if len(rule.RequireStatusChecks) > 0 {
+								<span aria-hidden="true"> · </span>
+								Status checks: { strings.Join(rule.RequireStatusChecks, ", ") }
+							}
+						</p>
+					</div>
+					if data.CanManage {
+						@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
+							"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections/" + strconv.FormatInt(rule.ID, 10),
+							"hx-target":           "#branch-protections",
+							"hx-swap":             "outerHTML",
+							"hx-confirm":          "The " + rule.Pattern + " branch will no longer require reviews or block force pushes.",
+							"data-confirm-title":  "Remove this protection rule?",
+							"data-confirm-label":  "Remove",
+							"data-confirm-danger": "true",
+							"data-toast":          "Branch protection removed",
+							"type":                "button",
+						}) {
+							Remove
+						}
 					}
-				</tbody>
-			</table>
+				</div>
+			}
 		} else {
 			<div class="text-center py-6 border border-dashed border-border rounded-md bg-muted/30">
 				<p class="text-sm text-muted-foreground">No branch protection rules yet.</p>
 			</div>
 		}
 	</div>
+}
+
+func reviewWord(n int) string {
+	if n == 1 {
+		return "review"
+	}
+	return "reviews"
 }

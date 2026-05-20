@@ -87,13 +87,13 @@ templ WebhooksList(data view.WebhooksFragData) {
 									"hx-target":           "#webhooks-list",
 									"hx-swap":             "outerHTML",
 									"hx-confirm":          data.RepoName + " will stop sending events to " + wh.URL + ".",
-									"data-confirm-title":  "Delete this webhook?",
-									"data-confirm-label":  "Delete",
+									"data-confirm-title":  "Remove this webhook?",
+									"data-confirm-label":  "Remove",
 									"data-confirm-danger": "true",
-									"data-toast":          "Webhook deleted",
+									"data-toast":          "Webhook removed",
 									"type":                "button",
 								}) {
-									Delete
+									Remove
 								}
 							</div>
 						}

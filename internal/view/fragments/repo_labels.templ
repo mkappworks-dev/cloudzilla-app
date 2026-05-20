@@ -25,13 +25,13 @@ templ RepoLabels(data view.RepoLabelsFragData) {
 							"hx-target":           "#repo-labels",
 							"hx-swap":             "outerHTML",
 							"hx-confirm":          "The " + lbl.Name + " label will be removed from every issue and pull request that uses it.",
-							"data-confirm-title":  "Delete this label?",
-							"data-confirm-label":  "Delete",
+							"data-confirm-title":  "Remove this label?",
+							"data-confirm-label":  "Remove",
 							"data-confirm-danger": "true",
-							"data-toast":          "Label deleted",
+							"data-toast":          "Label removed",
 							"type":                "button",
 						}) {
-							Delete
+							Remove
 						}
 					}
 				</div>
