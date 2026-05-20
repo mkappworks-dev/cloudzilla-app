@@ -8,18 +8,21 @@
 
 **Subnav alignment:** `DashboardSubnav` no longer exists — the account-navigation feature deleted the unused stub and replaced it with `AccountSubnav` (5 tabs: Overview / Repositories / Gists / Pull requests / Issues). `AccountSubnav`'s "Overview" tab points at `/` (the logged-in dashboard), NOT a user profile — so the profile page does **not** render under `AccountSubnav`; it keeps its own in-page tab strip (`user.templ` already has Overview / Repositories / … tabs). The organizations listing at `/settings/organizations` is account-settings chrome — it lives under the account-settings sidebar. The `new_organization` page renders with the standard global header (no subnav, like new_repo).
 
-**Codebase verification (performed during plan review):**
-- Highest existing migration: `053_create_dependency_graph.sql` (verified via `ls internal/db/migrations/`).
-- Phase 1 migration is 054, Phase 3 is 055, Phase 7 is 056, Phase 8 is 057. Phase 9's migration is therefore **058**. (The account-navigation feature added **no** migration — it reused existing tables — so this numbering is unaffected.)
+**Codebase verification (performed 2026-05-20, sequencing Phase 9 before Phase 7 & 8):**
+- Highest existing migration on `main`: `064_polymorphic_reactions.sql` (verified via `ls internal/db/migrations/`). Phase 7's in-flight worktree has reserved **065** (`065_add_gist_stars_and_forks.sql`), and Phase 8 will take **066** (`066_add_repo_primary_language.sql`). Phase 9's migration is therefore **067**.
+- The original plan assumed Phase 9 followed Phases 1/3/7/8 in slots 054–058, but phases shipped on `main` between the original plan and now consumed 056–064; Phase 7 and 8 worktrees claim 065 and 066. Renumbered accordingly.
 - `DashboardSubnav` was **deleted** by the account-navigation feature; `AccountSubnav` replaced it. The profile page is **not** one of `AccountSubnav`'s tabs — it renders with its own in-page tab strip (see "Subnav alignment" above).
 - `OrgService.ListForUser` / `OrgService.CountMembers` — **do not exist**. Only `ListOwnedByUser(ctx, userID)` (`internal/service/org_service.go:59`). Both must be added as real sub-tasks (see Task 6.1).
 - `EventService.RecentForUserActivity` — **does not exist**. The real method is `EventService.UserActivity(ctx, username string, page, pageSize int)` (`internal/service/event_service.go:76`); it takes a **username**, not a user ID.
 - `LanguageService` — **does not exist** as a Go service at all. We will add it as a new service in Task 5.0 (see below); its `AggregateForUser(ctx, userID, limit)` walks the user's owned repos via go-git blob streams.
-- `Repository.PrimaryLanguage` — **not on the struct** (`internal/model/repo.go`). Phase 8's revision recommends adding it; if Phase 8 ships that column, Phase 9 reads it directly. **If Phase 8 does NOT add it**, Phase 9 derives the language ad-hoc via the new `LanguageService.Composition(repoPath, ref).TopLanguage()`. Phase 9 plan assumes Phase 8 added the column and falls back to derivation otherwise — see Task 5 step 2.
+- `Repository.PrimaryLanguage` — **not on the struct** (`internal/model/repo.go`). Phase 8 was originally going to add the column; sequencing Phase 9 first means **Phase 9 owns the derivation path** via `LanguageService.Composition(repoPath, ref).TopLanguage()`. When Phase 8 ships, it adds the column and the profile handler can prefer it for speed; until then, derivation is the primary (and only) path. See Task 5.1 step 2.
 - `Repository.StarCount` — **not on the base struct**; it lives on `RepositoryWithStats` only. Phase 9 must query `StarStore.CountByRepo(ctx, repoID)` to populate pinned cards (no model change needed).
+- `ActivityRow` component — Phase 8 Task 3 was originally going to create this. Since Phase 9 is shipping first and Task 5.1 calls `@components.ActivityRow(...)`, **Phase 9 absorbs creating it** (see new Task 4.5 below). When Phase 8 lands, its Task 3 becomes a no-op.
 - `/organizations/new` — **not currently routed**. Plan adds the route (`Task 7 step 1`).
 
-**Prerequisites:** Phase 8 merged.
+**Prerequisites:** None on Phase 7 or Phase 8. (Originally declared "Phase 8 merged" but the only hard dependency was `Repository.PrimaryLanguage`, now handled by Phase 9 owning the derivation path.)
+
+**Merge-conflict warning:** Phase 8 also reshapes the `user.templ` Repositories tab (Phase 8 Task 6). Phase 9 reshapes the Overview tab on the same file. When Phase 8 lands after Phase 9, expect a conflict in `internal/view/pages/user.templ` — likely small (different tab blocks) but flagged here.
 
 **Spec:** [2026-05-14-ui-overhaul-design.md](../specs/2026-05-14-ui-overhaul-design.md)
 
@@ -36,14 +39,14 @@
 ### Task 2: Migration (additive) — pinned repos
 
 **Files:**
-- Create: `internal/db/migrations/058_add_pinned_repos_to_users.sql`
+- Create: `internal/db/migrations/067_add_pinned_repos_to_users.sql`
 
-(Highest existing migration is `053_create_dependency_graph.sql`; Phases 1, 3, 7, 8 consume 054–057.)
+(Highest on `main` is `064_polymorphic_reactions.sql`. Phase 7 reserves 065, Phase 8 reserves 066. **Re-run `ls internal/db/migrations/` at branch-creation time** in case ordering has shifted again.)
 
 - [ ] **Step 1: Write the migration**
 
 ```sql
--- 058_add_pinned_repos_to_users.sql
+-- 067_add_pinned_repos_to_users.sql
 -- Pinned repository IDs are stored as a BIGINT[] column on users so the
 -- profile page reads them in a single query alongside the user. Ordering
 -- in the array is preserved as the pin order.
@@ -62,8 +65,8 @@ psql "$CZ_DATABASE_DSN" -c '\d users' | grep pinned_repo_ids
 - [ ] **Step 3: Commit**
 
 ```bash
-git add internal/db/migrations/058_add_pinned_repos_to_users.sql
-git commit -m "feat(db): migration 058 — add users.pinned_repo_ids"
+git add internal/db/migrations/067_add_pinned_repos_to_users.sql
+git commit -m "feat(db): migration 067 — add users.pinned_repo_ids"
 ```
 
 ---
@@ -233,6 +236,72 @@ Test, regenerate, commit.
 
 ---
 
+### Task 4.5: `ActivityRow` component (absorbed from Phase 8)
+
+Phase 9 is shipping before Phase 8, but Task 5.1 (profile overview tab) renders the recent-activity list with `@components.ActivityRow(...)`. The component was originally specified in Phase 8 Task 3. **Create it here.** When Phase 8 lands later, its Task 3 becomes a no-op (or a no-conflict re-touch — its plan should be updated to note Phase 9 already shipped this).
+
+**Files:**
+- Create: `internal/view/components/activity_row.templ`
+- Create: `internal/view/components/activity_row_test.go`
+
+- [ ] **Step 1: Write the component**
+
+```go
+// internal/view/components/activity_row.templ
+package components
+
+type ActivityRowData struct {
+    Kind       string // "pr_opened", "pr_merged", "issue_opened", "issue_closed", "comment", "star", "release"
+    Actor      string
+    RepoName   string
+    Subject    string // "PR #341: refactor X" or "Issue #12: ..."
+    SubjectURL string
+    When       string // pre-formatted relative
+}
+
+templ ActivityRow(a ActivityRowData) {
+    <li class="flex items-center gap-3 px-3 py-2 hover:bg-accent rounded">
+        @activityIcon(a.Kind)
+        <p class="flex-1 text-sm">
+            <a href={ templ.SafeURL("/" + a.Actor) } class="font-medium hover:text-primary">{ a.Actor }</a>
+            <span class="text-muted-foreground">{ " " + activityVerb(a.Kind) + " " }</span>
+            <a href={ templ.SafeURL(a.SubjectURL) } class="text-foreground hover:text-primary">{ a.Subject }</a>
+            <span class="text-muted-foreground">{ " in " }</span>
+            <a href={ templ.SafeURL("/" + a.RepoName) } class="text-foreground hover:text-primary">{ a.RepoName }</a>
+        </p>
+        <time class="text-xs text-muted-foreground/70 font-mono">{ a.When }</time>
+    </li>
+}
+
+func activityVerb(kind string) string {
+    switch kind {
+    case "pr_opened":    return "opened"
+    case "pr_merged":    return "merged"
+    case "issue_opened": return "opened"
+    case "issue_closed": return "closed"
+    case "comment":      return "commented on"
+    case "star":         return "starred"
+    case "release":      return "released"
+    }
+    return "updated"
+}
+
+templ activityIcon(kind string) {
+    // minimal SVG per kind — keep small, monochrome, follow Phase 0 icon conventions
+}
+```
+
+- [ ] **Step 2: Test, regenerate, commit**
+
+```bash
+~/go/bin/templ generate
+go test ./internal/view/components/ -run TestActivityRow -v
+git add internal/view/components/activity_row.templ internal/view/components/activity_row_templ.go internal/view/components/activity_row_test.go
+git commit -m "feat(ui): add ActivityRow component"
+```
+
+---
+
 ### Task 5.0: `LanguageService` (new) + `AggregateForUser` — TDD
 
 This service does not exist today. It owns repo-language aggregation logic used by the profile page (and reusable by repo pages later).
@@ -320,14 +389,13 @@ for _, rid := range ids {
     r, err := h.Services.Repo.GetByID(ctx, rid)
     if err != nil { continue }
 
-    // Primary language: prefer Repository.PrimaryLanguage (Phase 8) if present,
-    // otherwise fall back to LanguageService.Composition(...).TopLanguage().
-    lang := r.PrimaryLanguage
-    if lang == "" {
-        repoPath := filepath.Join(h.Cfg.Git.ReposRoot, r.OwnerName, r.Name+".git")
-        if comp, err := h.Services.Language.Composition(ctx, repoPath, r.DefaultBranch); err == nil {
-            lang = comp.TopLanguage()
-        }
+    // Phase 9 derives primary language live (Phase 8 will add a cached
+    // repositories.primary_language column later; when that lands, prefer it
+    // and skip the tree walk).
+    repoPath := filepath.Join(h.Cfg.Git.ReposRoot, r.OwnerName, r.Name+".git")
+    lang := ""
+    if comp, err := h.Services.Language.Composition(ctx, repoPath, r.DefaultBranch); err == nil {
+        lang = comp.TopLanguage()
     }
 
     // Stars are not on model.Repository; query StarStore.
@@ -346,7 +414,7 @@ data.TopLangs, _ = h.Services.Language.AggregateForUser(ctx, user.ID, 5)
 data.MemberSince = user.CreatedAt
 ```
 
-> Note: `Repository.PrimaryLanguage` is conditional on Phase 8 adding the column. If Phase 8 does not, the fallback path keeps the page functional (at the cost of a tree walk per pinned repo on first render — acceptable for ≤6 pins).
+> **Performance note:** Each pinned-repo render currently triggers a default-branch tree walk for language detection (`LanguageService.Composition`). For ≤6 pins this is acceptable. When Phase 8 adds `repositories.primary_language`, switch the loop above to prefer the column and fall back to `Composition` only when the column is empty (post-restore / empty repos).
 
 - [ ] **Step 3: Body**
 
@@ -644,13 +712,14 @@ Tests + lint + templ regen + visual sweep on profile / orgs list / org detail / 
 
 ## Self-review checklist
 
-- [ ] Migration **058** is additive (column with default) and survives an empty `pinned_repo_ids` correctly.
+- [ ] Migration **067** is additive (column with default) and survives an empty `pinned_repo_ids` correctly. (Re-verified ordering against `ls internal/db/migrations/` at implementation time — Phase 7 = 065, Phase 8 = 066.)
 - [ ] Pin limit enforced (max 6 per profile); `UserService.PinRepo` is idempotent.
 - [ ] `OrgService.ListForUser` returns both owned and member orgs (covered by `TestOrgService_ListForUser_OwnedAndMember`).
 - [ ] `OrgService.CountMembers` returns the count of `org_members` rows for the org.
 - [ ] `EventService.UserActivity(ctx, username, 1, 10)` is called with **username**, not user ID.
 - [ ] `LanguageService.AggregateForUser` returns top-N as `[]LangPercent` summing across the user's owned repos.
-- [ ] Profile primary-language path: prefers `Repository.PrimaryLanguage` when populated (Phase 8 column); falls back to `LanguageService.Composition(...).TopLanguage()`.
+- [ ] Profile primary-language path uses `LanguageService.Composition(repoPath, defaultBranch).TopLanguage()` per pinned repo. (When Phase 8 lands and adds `repositories.primary_language`, this loop should be amended to prefer the cached column.)
+- [ ] `ActivityRow` component (`internal/view/components/activity_row.templ`) created in Task 4.5 — absorbed from Phase 8 Task 3 because Phase 9 is shipping first.
 - [ ] Pinned-repo star counts are fetched via `StarStore.CountByRepo`, since `Repository` has no `StarCount` field.
 - [ ] Profile page omits follower/following counts, the Follow button, and the Share button (no follow system in Cloudzilla). Documented as future work.
 - [ ] Profile sidebar surfaces "Member since" from `User.CreatedAt`.
