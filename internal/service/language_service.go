@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -139,7 +140,10 @@ func (s *LanguageService) Percentages(ctx context.Context, owner, repoName, ref 
 	return out, nil
 }
 
-// Returns "" when the repo has no detected source files.
+// TopLanguageFor returns the language with the largest byte count in the repo's
+// default tree. Ties are broken by alphabetical order. Returns ("", nil) when
+// no recognised code is found (including repos containing only empty source
+// files or only excluded extensions like Markdown).
 func (s *LanguageService) TopLanguageFor(ctx context.Context, owner, repoName, ref string) (string, error) {
 	comp, err := s.Composition(ctx, owner, repoName, ref)
 	if err != nil {
@@ -157,7 +161,8 @@ func (s *LanguageService) TopLanguageFor(ctx context.Context, owner, repoName, r
 }
 
 // Per-repo failures (empty repo, bad ref) are skipped so a single broken repo
-// can't blank out the user's whole composition.
+// can't blank out the user's whole composition. limit <= 0 returns all
+// languages, sorted desc by percent.
 func (s *LanguageService) AggregateForUser(ctx context.Context, userID int64, limit int) ([]LangPercent, error) {
 	repos, err := s.repos.GetByOwnerID(ctx, userID)
 	if err != nil {
@@ -167,6 +172,8 @@ func (s *LanguageService) AggregateForUser(ctx context.Context, userID int64, li
 	for _, r := range repos {
 		comp, err := s.Composition(ctx, r.OwnerName, r.Name, r.DefaultBranch)
 		if err != nil {
+			slog.WarnContext(ctx, "language_service: composition failed for repo",
+				"owner", r.OwnerName, "name", r.Name, "ref", r.DefaultBranch, "err", err)
 			continue
 		}
 		for name, b := range comp {

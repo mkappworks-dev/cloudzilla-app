@@ -5,16 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"path/filepath"
 	"reflect"
 	"sort"
 	"testing"
-	"time"
 
-	gogit "github.com/go-git/go-git/v5"
-	gitconfig "github.com/go-git/go-git/v5/config"
-	"github.com/go-git/go-git/v5/plumbing"
-	gitobj "github.com/go-git/go-git/v5/plumbing/object"
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -29,6 +23,9 @@ func TestLanguageService_Composition(t *testing.T) {
 		"static/index.js": "console.log('hi');\n\n",           // 20 bytes JS
 	}
 	code := newTestRepoWithFiles(t, "alice", "lang", files)
+	// repos is intentionally nil — Composition/Percentages/TopLanguageFor do not
+	// touch s.repos; only AggregateForUser does. A future change to those methods
+	// would surface this as a nil-deref panic in this test.
 	svc := NewLanguageService(code, nil)
 
 	comp, err := svc.Composition(context.Background(), "alice", "lang", "")
@@ -158,66 +155,6 @@ func TestLanguageService_TopLanguageFor(t *testing.T) {
 	}
 }
 
-// addBareRepoWithFiles seeds an additional bare repo under an existing repos
-// root (so multiple repos share the same ReposRoot — required for the
-// AggregateForUser test which queries by owner_id).
-func addBareRepoWithFiles(t *testing.T, root, owner, name string, files map[string]string) {
-	t.Helper()
-	bareDir := filepath.Join(root, owner, name+".git")
-	if err := os.MkdirAll(filepath.Dir(bareDir), 0o755); err != nil {
-		t.Fatalf("mkdir owner: %v", err)
-	}
-	if _, err := gogit.PlainInit(bareDir, true); err != nil {
-		t.Fatalf("plain init bare: %v", err)
-	}
-
-	workDir := t.TempDir()
-	work, err := gogit.PlainInit(workDir, false)
-	if err != nil {
-		t.Fatalf("plain init work: %v", err)
-	}
-	wt, err := work.Worktree()
-	if err != nil {
-		t.Fatalf("worktree: %v", err)
-	}
-	for relPath, content := range files {
-		full := filepath.Join(workDir, relPath)
-		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-			t.Fatalf("mkdir parent for %s: %v", relPath, err)
-		}
-		if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
-			t.Fatalf("write %s: %v", relPath, err)
-		}
-		if _, err := wt.Add(relPath); err != nil {
-			t.Fatalf("add %s: %v", relPath, err)
-		}
-	}
-	sig := &gitobj.Signature{Name: "Tester", Email: "tester@example.com", When: time.Now().UTC()}
-	if _, err := wt.Commit("seed", &gogit.CommitOptions{Author: sig, Committer: sig}); err != nil {
-		t.Fatalf("commit: %v", err)
-	}
-	if _, err := work.CreateRemote(&gitconfig.RemoteConfig{
-		Name: "bare",
-		URLs: []string{bareDir},
-	}); err != nil {
-		t.Fatalf("create remote: %v", err)
-	}
-	if err := work.Push(&gogit.PushOptions{
-		RemoteName: "bare",
-		RefSpecs:   []gitconfig.RefSpec{"refs/heads/master:refs/heads/master"},
-	}); err != nil {
-		t.Fatalf("push: %v", err)
-	}
-	bare, err := gogit.PlainOpen(bareDir)
-	if err != nil {
-		t.Fatalf("open bare: %v", err)
-	}
-	headRef := plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.NewBranchReferenceName("master"))
-	if err := bare.Storer.SetReference(headRef); err != nil {
-		t.Fatalf("set HEAD: %v", err)
-	}
-}
-
 func TestLanguageService_AggregateForUser(t *testing.T) {
 	dsn := os.Getenv("TEST_DATABASE_DSN")
 	if dsn == "" {
@@ -264,7 +201,7 @@ func TestLanguageService_AggregateForUser(t *testing.T) {
 	repo2Files := map[string]string{
 		"app.py": "print('hello world')\n",
 	}
-	addBareRepoWithFiles(t, root, username, "repo2", repo2Files)
+	newTestRepoWithFilesAt(t, root, username, "repo2", repo2Files)
 
 	// Insert matching repository rows.
 	if _, err := db.ExecContext(ctx,
