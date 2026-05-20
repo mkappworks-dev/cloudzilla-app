@@ -3,12 +3,32 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
+
+// deployKeyErrorMessage turns a service-level error into copy fit for a toast.
+// Unique-constraint violations come back from Postgres as a wrapped pq error
+// containing "duplicate key value"; the SSH parser returns "invalid public key".
+func deployKeyErrorMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "invalid public key"):
+		return "Invalid public key. Paste the full contents of a .pub file (e.g. starts with ssh-ed25519 or ssh-rsa)."
+	case strings.Contains(msg, "already registered as a user SSH key"):
+		return "This key is already registered to your account. Deploy keys must be distinct from user SSH keys."
+	case strings.Contains(msg, "duplicate key") || strings.Contains(msg, "unique constraint"):
+		return "This key is already a deploy key on this repository."
+	}
+	return "Couldn't add deploy key: " + msg
+}
 
 func (h *Handler) ListDeployKeys(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
@@ -69,13 +89,24 @@ func (h *Handler) AddDeployKey(w http.ResponseWriter, r *http.Request) {
 	readOnly := r.FormValue("read_only") == "true" // checkbox sends "true" when checked; unchecked = read-write
 
 	if title == "" || publicKey == "" {
+		if r.Header.Get("HX-Request") == "true" {
+			toast(w, "error", "Title and public key are required")
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
 		http.Error(w, "title and public_key are required", http.StatusBadRequest)
 		return
 	}
 
 	dk, err := h.Services.DeployKey.Add(r.Context(), repo.ID, title, publicKey, readOnly)
 	if err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "failed to add deploy key")
+		msg := deployKeyErrorMessage(err)
+		if r.Header.Get("HX-Request") == "true" {
+			toast(w, "error", msg)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		writeError(w, http.StatusUnprocessableEntity, msg)
 		return
 	}
 
