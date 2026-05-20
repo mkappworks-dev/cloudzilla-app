@@ -1,0 +1,94 @@
+package components
+
+type ActivityRowData struct {
+	Kind       string
+	Actor      string
+	RepoName   string
+	Subject    string
+	SubjectURL string
+	When       string
+}
+
+templ ActivityRow(a ActivityRowData) {
+	<li class="flex items-center gap-3 px-3 py-2 hover:bg-accent rounded">
+		@activityIcon(a.Kind)
+		<p class="flex-1 text-sm">
+			<a href={ templ.SafeURL("/" + a.Actor) } class="font-medium hover:text-primary">{ a.Actor }</a>
+			<span class="text-muted-foreground">{ " " + activityVerb(a.Kind) + " " }</span>
+			<a href={ templ.SafeURL(a.SubjectURL) } class="text-foreground hover:text-primary">{ a.Subject }</a>
+			<span class="text-muted-foreground">{ " in " }</span>
+			<a href={ templ.SafeURL("/" + a.RepoName) } class="text-foreground hover:text-primary">{ a.RepoName }</a>
+		</p>
+		<time class="text-xs text-muted-foreground/70 font-mono">{ a.When }</time>
+	</li>
+}
+
+func activityVerb(kind string) string {
+	switch kind {
+	case "pr_opened":
+		return "opened"
+	case "pr_merged":
+		return "merged"
+	case "issue_opened":
+		return "opened"
+	case "issue_closed":
+		return "closed"
+	case "comment":
+		return "commented on"
+	case "star":
+		return "starred"
+	case "release":
+		return "released"
+	}
+	return "updated"
+}
+
+templ activityIcon(kind string) {
+	switch kind {
+		case "pr_opened":
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="text-muted-foreground shrink-0">
+				<circle cx="6" cy="6" r="2"></circle>
+				<circle cx="6" cy="18" r="2"></circle>
+				<circle cx="18" cy="18" r="2"></circle>
+				<path d="M6 8v8"></path>
+				<path d="M18 16V9a3 3 0 0 0-3-3h-3"></path>
+				<path d="m15 9-3-3 3-3"></path>
+			</svg>
+		case "pr_merged":
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="text-muted-foreground shrink-0">
+				<circle cx="6" cy="6" r="2"></circle>
+				<circle cx="6" cy="18" r="2"></circle>
+				<circle cx="18" cy="12" r="2"></circle>
+				<path d="M6 8v8"></path>
+				<path d="M6 8a6 6 0 0 0 6 6h4"></path>
+			</svg>
+		case "issue_opened":
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="text-muted-foreground shrink-0">
+				<circle cx="12" cy="12" r="9"></circle>
+				<circle cx="12" cy="12" r="2"></circle>
+			</svg>
+		case "issue_closed":
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="text-muted-foreground shrink-0">
+				<circle cx="12" cy="12" r="9"></circle>
+				<path d="m9 12 2 2 4-4"></path>
+			</svg>
+		case "comment":
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="text-muted-foreground shrink-0">
+				<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+			</svg>
+		case "star":
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="text-muted-foreground shrink-0">
+				<polygon points="12 2 15 9 22 9.5 17 14.5 18.5 22 12 18 5.5 22 7 14.5 2 9.5 9 9 12 2"></polygon>
+			</svg>
+		case "release":
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="text-muted-foreground shrink-0">
+				<path d="M20 7h-7l-2-3H4a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"></path>
+				<path d="M12 12v5"></path>
+				<path d="m9 14 3-3 3 3"></path>
+			</svg>
+		default:
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="text-muted-foreground shrink-0">
+				<circle cx="12" cy="12" r="3"></circle>
+			</svg>
+	}
+}
