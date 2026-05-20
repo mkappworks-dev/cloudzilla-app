@@ -79,13 +79,19 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 
 // PageGistNew renders the new gist form.
 func (h *Handler) PageGistNew(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, pages.GistNew(view.GistNewData{BasePage: basePage(r, h.Services)}))
+	ctx := r.Context()
+	data := view.GistNewData{BasePage: basePage(r, h.Services)}
+	if claims, ok := middleware.ClaimsFromContext(ctx); ok {
+		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
+	}
+	h.render(w, r, pages.GistNew(data))
 }
 
 // PageGistDetail renders a gist's detail page.
 func (h *Handler) PageGistDetail(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	g, files, err := h.Services.Gist.Get(r.Context(), id)
+	ctx := r.Context()
+	g, files, err := h.Services.Gist.Get(ctx, id)
 	if err != nil {
 		http.Error(w, "gist not found", http.StatusNotFound)
 		return
@@ -94,7 +100,8 @@ func (h *Handler) PageGistDetail(w http.ResponseWriter, r *http.Request) {
 		files = []model.GistFile{}
 	}
 	isOwner := false
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+	claims, signedIn := middleware.ClaimsFromContext(ctx)
+	if signedIn {
 		isOwner = claims.UserID == g.OwnerID
 	}
 	// Private gists are only visible to their owner.
@@ -102,23 +109,28 @@ func (h *Handler) PageGistDetail(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
-	h.render(w, r, pages.GistDetail(view.GistDetailData{
+	data := view.GistDetailData{
 		BasePage: basePage(r, h.Services),
 		Gist:     *g,
 		Files:    files,
 		IsOwner:  isOwner,
-	}))
+	}
+	if signedIn {
+		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
+	}
+	h.render(w, r, pages.GistDetail(data))
 }
 
 // PageGistEdit renders the gist edit form.
 func (h *Handler) PageGistEdit(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	claims, ok := middleware.ClaimsFromContext(r.Context())
+	ctx := r.Context()
+	claims, ok := middleware.ClaimsFromContext(ctx)
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	g, files, err := h.Services.Gist.Get(r.Context(), id)
+	g, files, err := h.Services.Gist.Get(ctx, id)
 	if err != nil {
 		http.Error(w, "gist not found", http.StatusNotFound)
 		return
@@ -130,11 +142,13 @@ func (h *Handler) PageGistEdit(w http.ResponseWriter, r *http.Request) {
 	if files == nil {
 		files = []model.GistFile{}
 	}
-	h.render(w, r, pages.GistEdit(view.GistEditData{
+	data := view.GistEditData{
 		BasePage: basePage(r, h.Services),
 		Gist:     *g,
 		Files:    files,
-	}))
+	}
+	data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
+	h.render(w, r, pages.GistEdit(data))
 }
 
 // CreateGist handles POST /api/gists.
