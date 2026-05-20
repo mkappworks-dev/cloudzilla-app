@@ -217,9 +217,9 @@ func Gists(data view.GistsData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var8 string
-					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(g.ID[:12])
+					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(g.ID[:min(12, len(g.ID))])
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 82, Col: 46}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gists.templ`, Line: 82, Col: 62}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 					if templ_7745c5c3_Err != nil {
@@ -419,17 +419,19 @@ func Gists(data view.GistsData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				gistPrev := ""
-				if data.Page > 1 {
-					gistPrev = "?tab=" + data.Tab + "&page=" + strconv.Itoa(data.Page-1)
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, " ")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = components.Pagination(gistPrev, "?tab="+data.Tab+"&page="+strconv.Itoa(data.Page+1)).Render(ctx, templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
+				if data.Tab == "secret" {
+					gistPrev := ""
+					if data.Page > 1 {
+						gistPrev = "?tab=secret&page=" + strconv.Itoa(data.Page-1)
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, " ")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = components.Pagination(gistPrev, "?tab=secret&page="+strconv.Itoa(data.Page+1)).Render(ctx, templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
 				}
 			} else {
 				templ_7745c5c3_Err = components.EmptyState("No gists yet.").Render(ctx, templ_7745c5c3_Buffer)

@@ -79,7 +79,7 @@ templ Gists(data view.GistsData) {
 									</div>
 									<div class="flex items-center justify-between gap-3 pl-[27px]">
 										<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground/70 min-w-0 flex-wrap">
-											<span class="font-mono">{ g.ID[:12] }</span>
+											<span class="font-mono">{ g.ID[:min(12, len(g.ID))] }</span>
 											<span class="opacity-50" aria-hidden="true">·</span>
 											@components.Avatar(g.OwnerName, components.AvatarSizeXS, "")
 											<span class="hover:text-foreground">{ g.OwnerName }</span>
@@ -122,11 +122,13 @@ templ Gists(data view.GistsData) {
 					</ol>
 				</section>
 
-				{{ gistPrev := "" }}
-				if data.Page > 1 {
-					{{ gistPrev = "?tab=" + data.Tab + "&page=" + strconv.Itoa(data.Page-1) }}
+				if data.Tab == "secret" {
+					{{ gistPrev := "" }}
+					if data.Page > 1 {
+						{{ gistPrev = "?tab=secret&page=" + strconv.Itoa(data.Page-1) }}
+					}
+					@components.Pagination(gistPrev, "?tab=secret&page="+strconv.Itoa(data.Page+1))
 				}
-				@components.Pagination(gistPrev, "?tab="+data.Tab+"&page="+strconv.Itoa(data.Page+1))
 			} else {
 				@components.EmptyState("No gists yet.")
 			}

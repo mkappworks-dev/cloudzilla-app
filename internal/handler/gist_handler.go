@@ -53,11 +53,11 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 	filenamesByGist, _ := h.Services.Gist.LoadFilenames(ctx, ids)
 
 	items := make([]view.GistListItem, 0, len(rows))
-	for _, r := range rows {
-		files := filenamesByGist[r.ID]
+	for _, row := range rows {
+		files := filenamesByGist[row.ID]
 		label, chipClass := gistLanguage(files)
-		r.FileCount = int64(len(files))
-		items = append(items, view.GistListItem{GistListRow: r, LanguageLabel: label, LanguageClass: chipClass})
+		row.FileCount = int64(len(files))
+		items = append(items, view.GistListItem{GistListRow: row, LanguageLabel: label, LanguageClass: chipClass})
 	}
 
 	data := view.GistsData{
