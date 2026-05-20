@@ -6,8 +6,13 @@ import (
 )
 
 func relativeTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
 	d := time.Since(t)
 	switch {
+	case d < -2*time.Minute:
+		return "in the future"
 	case d < time.Minute:
 		return "just now"
 	case d < time.Hour:

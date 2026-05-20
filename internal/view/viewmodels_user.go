@@ -15,9 +15,9 @@ type UserData struct {
 	ProfileReadme  template.HTML
 
 	// Repositories tab — populated only when ?tab=repositories
-	RepoTabRepos       []model.Repository
-	RepoTabRoles       map[int64]string // viewer's role per repo ID
-	RepoTabLanguages   []string         // distinct primary languages for filter chips
+	RepoTabRepos          []model.Repository
+	RepoTabRoles          map[int64]string // viewer's role per repo ID
+	RepoTabLanguages      []string         // distinct primary languages for filter chips
 	RepoTabActiveQuery    string
 	RepoTabActiveType     string // "sources" | "forks" | "templates" | ""
 	RepoTabActiveLanguage string
