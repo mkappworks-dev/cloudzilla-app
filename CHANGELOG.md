@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.3.0](https://github.com/mkappworks-dev/cloudzilla-app/compare/v0.2.0...v0.3.0) (2026-05-20)
+
+
+### Features
+
+* add publish step to promote draft releases to published ([420b44b](https://github.com/mkappworks-dev/cloudzilla-app/commit/420b44b943dcb62a486acae819347806735ecae8))
+* phase 6 UI overhaul — wiki, releases, discussions, settings polish ([#42](https://github.com/mkappworks-dev/cloudzilla-app/issues/42)) ([0e3a228](https://github.com/mkappworks-dev/cloudzilla-app/commit/0e3a2286a2c680eaa322adf2a8b82b4e9d950176))
+* **ui:** implement phase 9 of UI overhaul for profile and organizations ([778661b](https://github.com/mkappworks-dev/cloudzilla-app/commit/778661b0ccc185ee5e61d60df207a2f1a8ec143e))
+* **ui:** repo Insights overhaul — commits, contributors, pulse, dependencies ([#39](https://github.com/mkappworks-dev/cloudzilla-app/issues/39)) ([d6b46cc](https://github.com/mkappworks-dev/cloudzilla-app/commit/d6b46cc7bad8670bb5dd95cd05bb716a5f1709db))
+* **ui:** UI overhaul phase 0 — foundation ([#35](https://github.com/mkappworks-dev/cloudzilla-app/issues/35)) ([0545892](https://github.com/mkappworks-dev/cloudzilla-app/commit/0545892486c86d2bb44b4916e0bf0b08220cb060))
+* **ui:** UI overhaul phase 1 — flagship pages ([#36](https://github.com/mkappworks-dev/cloudzilla-app/issues/36)) ([369158b](https://github.com/mkappworks-dev/cloudzilla-app/commit/369158b028616836ecb4e67567e200733fac441a))
+* **ui:** UI overhaul phase 2 — code browser + project boards ([#37](https://github.com/mkappworks-dev/cloudzilla-app/issues/37)) ([6be4000](https://github.com/mkappworks-dev/cloudzilla-app/commit/6be400012e2703f177d96f38420eaeb3c0eda45d))
+* **ui:** UI overhaul phase 4 — tracker pages, Actions, review requests ([#40](https://github.com/mkappworks-dev/cloudzilla-app/issues/40)) ([87276ff](https://github.com/mkappworks-dev/cloudzilla-app/commit/87276ffc75be7dca9b41734f62d64e03c3bad50e))
+* **ui:** UI overhaul phase 5 — PR sub-views, account navigation, and milestone redesign ([#41](https://github.com/mkappworks-dev/cloudzilla-app/issues/41)) ([30643f0](https://github.com/mkappworks-dev/cloudzilla-app/commit/30643f087827bdb083b5da9cd582a36c5bdf5757))
+
+
+### Technical
+
+* **ui:** design system foundation — port all pages + expand component library ([#34](https://github.com/mkappworks-dev/cloudzilla-app/issues/34)) ([36c8d6b](https://github.com/mkappworks-dev/cloudzilla-app/commit/36c8d6b1997364a5433e4a8d69d65e157787d52a))
+
+
+### Documentation
+
+* add UI overhaul design spec ([7ed3773](https://github.com/mkappworks-dev/cloudzilla-app/commit/7ed3773e4331967cdf3895fca5c18878e0e4df26))
+* update CLAUDE.md for clarity and consistency in project details ([395763f](https://github.com/mkappworks-dev/cloudzilla-app/commit/395763f600cc19a2aa6e05f2ed81d57b1f0f7c03))
+
+
+### CI
+
+* harden GitHub Actions workflows ([#38](https://github.com/mkappworks-dev/cloudzilla-app/issues/38)) ([78d55ed](https://github.com/mkappworks-dev/cloudzilla-app/commit/78d55ed6580a1f80d511e248871da67eca102d29))
+
 ## [0.2.0](https://github.com/mkappworks-dev/cloudzilla-app/compare/v0.1.0...v0.2.0) (2026-05-12)
 
 
