@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -47,7 +48,10 @@ func (h *Handler) ListReactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reactions, _ := h.Services.Reaction.List(r.Context(), commentID, callerID)
+	reactions, lerr := h.Services.Reaction.List(r.Context(), commentID, callerID)
+	if lerr != nil {
+		slog.Warn("list reactions: reload failed; bar may render empty", "comment", commentID, "error", lerr)
+	}
 	h.render(w, r, fragments.Reactions(view.ReactionFragData{
 		Owner:     owner,
 		RepoName:  repoName,
@@ -105,7 +109,13 @@ func (h *Handler) ToggleReaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reactions, _ := h.Services.Reaction.List(r.Context(), commentID, claims.UserID)
+	reactions, lerr := h.Services.Reaction.List(r.Context(), commentID, claims.UserID)
+	if lerr != nil {
+		// Toggle succeeded but the re-fetch failed — render with the stale empty
+		// slice rather than dropping the response; double-toggle on the next
+		// click is preferable to leaving the user staring at nothing.
+		slog.Warn("toggle reaction: reload failed", "comment", commentID, "error", lerr)
+	}
 	h.render(w, r, fragments.Reactions(view.ReactionFragData{
 		Owner:     owner,
 		RepoName:  repoName,
@@ -157,7 +167,10 @@ func (h *Handler) ToggleDiscussionReaction(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	reactions, _ := h.Services.Reaction.ListByDiscussion(r.Context(), discussion.ID, claims.UserID)
+	reactions, lerr := h.Services.Reaction.ListByDiscussion(r.Context(), discussion.ID, claims.UserID)
+	if lerr != nil {
+		slog.Warn("toggle discussion reaction: reload failed", "discussion", discussion.ID, "error", lerr)
+	}
 	endpoint := "/api/repos/" + owner + "/" + repoName + "/discussions/" + strconv.Itoa(number) + "/reactions"
 	h.render(w, r, fragments.ReactionBar(endpoint, "reactions-discussion-"+strconv.Itoa(number), reactions, true))
 }
@@ -195,7 +208,13 @@ func (h *Handler) ToggleDiscussionReplyReaction(w http.ResponseWriter, r *http.R
 		writeError(w, http.StatusNotFound, "discussion not found")
 		return
 	}
-	replies, _ := h.Services.Discussion.ListReplies(r.Context(), discussion.ID)
+	replies, rerr := h.Services.Discussion.ListReplies(r.Context(), discussion.ID)
+	if rerr != nil {
+		// We can't confirm reply membership; fail closed.
+		slog.Error("toggle discussion reply reaction: list replies failed", "discussion", discussion.ID, "error", rerr)
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
 	found := false
 	for _, rp := range replies {
 		if rp.ID == replyID {
@@ -221,7 +240,10 @@ func (h *Handler) ToggleDiscussionReplyReaction(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	reactions, _ := h.Services.Reaction.ListByReply(r.Context(), replyID, claims.UserID)
+	reactions, lerr := h.Services.Reaction.ListByReply(r.Context(), replyID, claims.UserID)
+	if lerr != nil {
+		slog.Warn("toggle discussion reply reaction: reload failed", "reply", replyID, "error", lerr)
+	}
 	endpoint := "/api/repos/" + owner + "/" + repoName + "/discussions/" + strconv.Itoa(number) + "/replies/" + strconv.FormatInt(replyID, 10) + "/reactions"
 	h.render(w, r, fragments.ReactionBar(endpoint, "reactions-reply-"+strconv.FormatInt(replyID, 10), reactions, true))
 }

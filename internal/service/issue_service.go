@@ -38,6 +38,9 @@ func (s *IssueService) WithMentionStore(m *store.MentionStore) *IssueService {
 }
 
 func (s *IssueService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, visibility string) (*model.Issue, error) {
+	if len(title) > MaxTitleLen {
+		return nil, ErrTitleTooLong
+	}
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
@@ -109,7 +112,7 @@ func (s *IssueService) SetState(ctx context.Context, owner, repoName string, num
 	return s.issues.GetByNumberUnfiltered(ctx, repo.ID, number)
 }
 
-// SetPriority sets, or clears when priority is nil, an issue's priority.
+// SetPriority clears the priority when priority is nil.
 func (s *IssueService) SetPriority(ctx context.Context, owner, repoName string, number int, priority *string) (*model.Issue, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
@@ -126,6 +129,9 @@ func (s *IssueService) SetPriority(ctx context.Context, owner, repoName string, 
 }
 
 func (s *IssueService) EditTitle(ctx context.Context, owner, repoName string, number int, title string) (*model.Issue, error) {
+	if len(title) > MaxTitleLen {
+		return nil, ErrTitleTooLong
+	}
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)

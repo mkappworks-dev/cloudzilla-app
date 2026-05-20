@@ -219,3 +219,35 @@ func TestReleaseService_Create_DuplicateTagReturnsSentinel(t *testing.T) {
 		t.Errorf("want ErrReleaseTagInUse, got %v", err)
 	}
 }
+
+func TestReleaseService_Create_RejectsInvalidTagName(t *testing.T) {
+	svc, owner, repo, authorID := newReleaseSvc(t)
+
+	cases := []string{
+		"../etc/passwd",
+		"has spaces",
+		"semicolon;injected",
+		"unicode-✨-tag",
+		"",
+	}
+	for _, tag := range cases {
+		_, err := svc.Create(context.Background(), owner, repo, tag, "main", "x", "", false, false, authorID)
+		if !errors.Is(err, service.ErrInvalidTagName) {
+			t.Errorf("Create(tag=%q): want ErrInvalidTagName, got %v", tag, err)
+		}
+	}
+}
+
+func TestReleaseService_Update_RejectsInvalidTagName(t *testing.T) {
+	svc, owner, repo, authorID := newReleaseSvc(t, "v8.0.0")
+
+	r, err := svc.Create(context.Background(), owner, repo, "v8.0.0", "main", "Release 8.0", "", false, false, authorID)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	_, err = svc.Update(context.Background(), owner, repo, r.ID, "../etc/passwd", "x", "", false, false)
+	if !errors.Is(err, service.ErrInvalidTagName) {
+		t.Errorf("Update(tag=../etc/passwd): want ErrInvalidTagName, got %v", err)
+	}
+}

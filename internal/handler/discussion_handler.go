@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -11,13 +12,10 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
-
-// discussionTitleMaxLen caps inline-edit title length so a MarkAnswer caller
-// can't pipe an unbounded string through UpdateContent.
-const discussionTitleMaxLen = 256
 
 // PageDiscussions renders /{owner}/{repo}/discussions
 func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
@@ -118,8 +116,6 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 		discussions = []model.Discussion{}
 	}
 
-	// Per-discussion card metadata. N+1 over the visible page is acceptable;
-	// the list is paginated below the threshold where batched queries pay off.
 	labelsByDisc := make(map[int64][]model.Label, len(discussions))
 	replyCounts := make(map[int64]int, len(discussions))
 	participantsByDisc := make(map[int64][]string, len(discussions))
@@ -386,7 +382,15 @@ func (h *Handler) PageNewDiscussionSubmit(w http.ResponseWriter, r *http.Request
 	}
 	title := r.FormValue("title")
 	body := r.FormValue("body")
-	categoryID, _ := strconv.ParseInt(r.FormValue("category_id"), 10, 64)
+	var categoryID int64
+	if raw := r.FormValue("category_id"); raw != "" {
+		v, perr := strconv.ParseInt(raw, 10, 64)
+		if perr != nil {
+			writeError(w, http.StatusBadRequest, "invalid category id")
+			return
+		}
+		categoryID = v
+	}
 
 	categories, _ := h.Services.Discussion.ListCategories(r.Context())
 	if categories == nil {
@@ -628,10 +632,7 @@ func (h *Handler) MarkAnswer(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, "title is required")
 			return
 		}
-		if len(title) > discussionTitleMaxLen {
-			writeError(w, http.StatusBadRequest, "title is too long")
-			return
-		}
+		// Length cap is enforced by DiscussionService.UpdateContent.
 		body.Title = &title
 	}
 	if body.CategoryID != nil {
@@ -683,7 +684,12 @@ func (h *Handler) MarkAnswer(w http.ResponseWriter, r *http.Request) {
 			bodyText = *body.Body
 		}
 		if err := h.Services.Discussion.UpdateContent(r.Context(), discussion.ID, title, bodyText); err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
+			if errors.Is(err, service.ErrTitleTooLong) {
+				writeError(w, http.StatusBadRequest, "title is too long")
+				return
+			}
+			slog.Error("mark answer: update content failed", "discussion", discussion.ID, "error", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 	}

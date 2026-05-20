@@ -52,7 +52,6 @@ type IssueDetailData struct {
 	CanManage     bool
 }
 
-// IssuePrioritySidebarData holds data for the issue priority sidebar HTMX fragment.
 type IssuePrioritySidebarData struct {
 	Owner       string
 	RepoName    string
@@ -61,14 +60,12 @@ type IssuePrioritySidebarData struct {
 	CanWrite    bool
 }
 
-// LinkedPull is a lightweight pull-request projection for the linked-PR sidebar.
 type LinkedPull struct {
 	Number int
 	Title  string
 	State  string
 }
 
-// IssueLinkedPullsSidebarData holds data for the issue linked-PR sidebar HTMX fragment.
 type IssueLinkedPullsSidebarData struct {
 	Owner       string
 	RepoName    string
@@ -78,7 +75,6 @@ type IssueLinkedPullsSidebarData struct {
 	CanWrite    bool
 }
 
-// IssueBodyCardData holds data for the issue body card, re-rendered on body edit.
 type IssueBodyCardData struct {
 	Owner       string
 	RepoName    string

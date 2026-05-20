@@ -27,7 +27,6 @@ type DiscussionsData struct {
 	AnsweredCount    int
 	ClosedCount      int
 	CanWrite         bool
-	// Per-discussion metadata for the list card. Keyed by discussion ID.
 	Labels       map[int64][]model.Label
 	ReplyCounts  map[int64]int
 	Participants map[int64][]string

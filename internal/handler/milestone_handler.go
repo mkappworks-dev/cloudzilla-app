@@ -20,6 +20,19 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
+// milestoneSetFailureMessage maps SetIssue/SetPull sentinel errors to a
+// user-safe toast. Returns "" when err is not a known sentinel; callers should
+// log the raw error and emit a generic 500 in that case.
+func milestoneSetFailureMessage(err error) string {
+	switch {
+	case errors.Is(err, service.ErrMilestoneRepoMismatch):
+		return "That milestone belongs to a different repository."
+	case errors.Is(err, service.ErrMilestoneNotFound):
+		return "That milestone no longer exists."
+	}
+	return ""
+}
+
 func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -247,10 +260,12 @@ func (h *Handler) CreateMilestone(w http.ResponseWriter, r *http.Request) {
 		title = r.FormValue("title")
 		description = r.FormValue("description")
 		if d := r.FormValue("due_date"); d != "" {
-			t, err := time.Parse("2006-01-02", d)
-			if err == nil {
-				dueDate = &t
+			t, perr := time.Parse("2006-01-02", d)
+			if perr != nil {
+				writeError(w, http.StatusBadRequest, "due date must be a valid date (YYYY-MM-DD)")
+				return
 			}
+			dueDate = &t
 		}
 	} else {
 		var req createMilestoneRequest
@@ -261,10 +276,12 @@ func (h *Handler) CreateMilestone(w http.ResponseWriter, r *http.Request) {
 		title = req.Title
 		description = req.Description
 		if req.DueDate != nil && *req.DueDate != "" {
-			t, err := time.Parse(time.RFC3339, *req.DueDate)
-			if err == nil {
-				dueDate = &t
+			t, perr := time.Parse(time.RFC3339, *req.DueDate)
+			if perr != nil {
+				writeError(w, http.StatusBadRequest, "due_date must be RFC3339")
+				return
 			}
+			dueDate = &t
 		}
 	}
 
@@ -354,13 +371,14 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Field update
 	var dueDate *time.Time
 	if req.DueDate != nil && *req.DueDate != "" {
-		t, err := time.Parse("2006-01-02", *req.DueDate)
-		if err == nil {
-			dueDate = &t
+		t, perr := time.Parse("2006-01-02", *req.DueDate)
+		if perr != nil {
+			writeError(w, http.StatusBadRequest, "due_date must be YYYY-MM-DD")
+			return
 		}
+		dueDate = &t
 	}
 	title := req.Title
 	if title == "" {
@@ -446,10 +464,15 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 	var milestoneID *int64
 	if s := r.FormValue("milestone_id"); s != "" {
-		id, err := strconv.ParseInt(s, 10, 64)
-		if err == nil {
-			milestoneID = &id
+		// A malformed milestone_id used to silently coerce to nil — the
+		// "clear milestone" sentinel — so a "set" with a typo would land as
+		// "clear" with a success toast. Refuse with 400 instead.
+		id, perr := strconv.ParseInt(s, 10, 64)
+		if perr != nil {
+			writeError(w, http.StatusBadRequest, "invalid milestone id")
+			return
 		}
+		milestoneID = &id
 	}
 
 	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber, &claims.UserID)
@@ -458,8 +481,8 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Milestone.SetIssue(r.Context(), issue.ID, milestoneID); err != nil {
-		if errors.Is(err, service.ErrMilestoneRepoMismatch) {
-			toast(w, "error", "That milestone belongs to a different repository.")
+		if msg := milestoneSetFailureMessage(err); msg != "" {
+			toast(w, "error", msg)
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
@@ -526,10 +549,12 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 	var milestoneID *int64
 	if s := r.FormValue("milestone_id"); s != "" {
-		id, err := strconv.ParseInt(s, 10, 64)
-		if err == nil {
-			milestoneID = &id
+		id, perr := strconv.ParseInt(s, 10, 64)
+		if perr != nil {
+			writeError(w, http.StatusBadRequest, "invalid milestone id")
+			return
 		}
+		milestoneID = &id
 	}
 
 	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, pullNumber)
@@ -538,8 +563,8 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Milestone.SetPull(r.Context(), pull.ID, milestoneID); err != nil {
-		if errors.Is(err, service.ErrMilestoneRepoMismatch) {
-			toast(w, "error", "That milestone belongs to a different repository.")
+		if msg := milestoneSetFailureMessage(err); msg != "" {
+			toast(w, "error", msg)
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
 		}
@@ -569,8 +594,6 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// milestoneItemsPerPage caps each of the detail page's two stacked lists,
-// kept small because issues and pull requests render on the same page.
 const milestoneItemsPerPage = 10
 
 func (h *Handler) PageMilestoneDetail(w http.ResponseWriter, r *http.Request) {

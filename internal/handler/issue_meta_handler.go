@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -10,11 +11,11 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
-// issueWriteContext returns ok=false after writing the error response itself.
 func (h *Handler) issueWriteContext(w http.ResponseWriter, r *http.Request) (owner, repoName string, number int, repo *model.Repository, userID int64, ok bool) {
 	claims, found := middleware.ClaimsFromContext(r.Context())
 	if !found {
@@ -85,7 +86,6 @@ func (h *Handler) SetIssuePriority(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, issue)
 }
 
-// IssueTitleSection renders the title (or its inline editor when ?mode=edit).
 func (h *Handler) IssueTitleSection(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -113,7 +113,7 @@ func (h *Handler) IssueTitleSection(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) EditIssueTitle(w http.ResponseWriter, r *http.Request) {
-	owner, repoName, number, _, _, ok := h.issueWriteContext(w, r)
+	owner, repoName, number, repo, userID, ok := h.issueWriteContext(w, r)
 	if !ok {
 		return
 	}
@@ -128,14 +128,20 @@ func (h *Handler) EditIssueTitle(w http.ResponseWriter, r *http.Request) {
 	}
 	issue, err := h.Services.Issue.EditTitle(r.Context(), owner, repoName, number, title)
 	if err != nil {
+		if errors.Is(err, service.ErrTitleTooLong) {
+			writeError(w, http.StatusBadRequest, "title is too long")
+			return
+		}
 		slog.Error("edit issue title failed", "owner", owner, "repo", repoName, "number", number, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
-	h.render(w, r, fragments.IssueTitleSection(owner, repoName, number, issue.Title, true, false))
+	// Re-derive canWrite from current claims rather than hardcoding true; this
+	// matters if permissions were revoked between the gate check and now.
+	canWrite := h.Services.Repo.CanWrite(r.Context(), repo, userID)
+	h.render(w, r, fragments.IssueTitleSection(owner, repoName, number, issue.Title, canWrite, false))
 }
 
-// IssueBodySection renders the body (or its inline editor when ?mode=edit).
 func (h *Handler) IssueBodySection(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")

@@ -22,9 +22,7 @@ var ErrReleaseTagInUse = errors.New("a release already exists for this tag")
 // these up-front rather than relying on go-git's looser plumbing checks.
 var ErrInvalidTagName = errors.New("tag name must match ^[A-Za-z0-9._/-]{1,255}$")
 
-// tagNamePattern caps tag names to a conservative ASCII identifier subset.
-// Matches the same character class git itself encourages, minus '@' to keep
-// us clear of reflog syntax.
+// tagNamePattern excludes '@' to keep clear of reflog syntax.
 var tagNamePattern = regexp.MustCompile(`^[A-Za-z0-9._/-]{1,255}$`)
 
 type ReleaseService struct {
@@ -37,8 +35,8 @@ func NewReleaseService(releases *store.ReleaseStore, repos *store.RepoStore, cod
 	return &ReleaseService{releases: releases, repos: repos, code: code}
 }
 
-// Create records a release for tagName. When the tag does not yet exist it is
-// created on the latest commit of target (falling back to the default branch).
+// Create creates the tag on the tip of target (default branch when unset) when
+// the tag does not yet exist.
 func (s *ReleaseService) Create(ctx context.Context, owner, repoName, tagName, target, name, body string, isPrerelease, isDraft bool, authorID int64) (*model.Release, error) {
 	if !tagNamePattern.MatchString(tagName) {
 		return nil, ErrInvalidTagName
@@ -162,6 +160,9 @@ func (s *ReleaseService) GetLatest(ctx context.Context, owner, repoName string) 
 }
 
 func (s *ReleaseService) Update(ctx context.Context, owner, repoName string, id int64, tagName, name, body string, isPrerelease, isDraft bool) (*model.Release, error) {
+	if !tagNamePattern.MatchString(tagName) {
+		return nil, ErrInvalidTagName
+	}
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
@@ -199,14 +200,10 @@ func (s *ReleaseService) EditName(ctx context.Context, owner, repoName string, i
 	return r, nil
 }
 
-// ErrReleaseAlreadyPublished is returned by Publish when the release is no
-// longer a draft. Publishing is a one-way transition; the only way back is
-// delete + recreate.
+// ErrReleaseAlreadyPublished is returned by Publish on a non-draft. Publishing
+// is one-way; delete + recreate is the only way back.
 var ErrReleaseAlreadyPublished = errors.New("release is already published")
 
-// Publish promotes a draft release to a published one. It clears is_draft and
-// stamps published_at if not already set. Returns ErrReleaseAlreadyPublished
-// when called on a release that is not currently a draft.
 func (s *ReleaseService) Publish(ctx context.Context, owner, repoName string, id int64) (*model.Release, error) {
 	r, err := s.loadByID(ctx, owner, repoName, id)
 	if err != nil {

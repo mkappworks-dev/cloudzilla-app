@@ -53,7 +53,10 @@ func (h *Handler) SetTopics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topics, _ := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
+	topics, lerr := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
+	if lerr != nil {
+		slog.Warn("set topics: reload failed; pill list may render stale", "repo_id", repo.ID, "error", lerr)
+	}
 	if topics == nil {
 		topics = []model.Topic{}
 	}
@@ -93,7 +96,10 @@ func (h *Handler) GetTopicsFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topics, _ := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
+	topics, lerr := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
+	if lerr != nil {
+		slog.Warn("topics fragment: list failed", "repo_id", repo.ID, "error", lerr)
+	}
 	if topics == nil {
 		topics = []model.Topic{}
 	}

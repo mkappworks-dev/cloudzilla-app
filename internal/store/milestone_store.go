@@ -13,6 +13,10 @@ import (
 // issue/PR to a milestone that belongs to a different repository.
 var ErrMilestoneRepoMismatch = errors.New("milestone belongs to a different repository")
 
+// ErrMilestoneNotFound is returned when a SetIssue/SetPull RowsAffected==0
+// turns out to be a missing milestone rather than a cross-repo attempt.
+var ErrMilestoneNotFound = errors.New("milestone not found")
+
 type MilestoneStore struct{ db *sql.DB }
 
 func NewMilestoneStore(db *sql.DB) *MilestoneStore { return &MilestoneStore{db: db} }
@@ -154,7 +158,8 @@ func scanMilestones(rows *sql.Rows) ([]model.Milestone, error) {
 // SetIssue attaches (or clears) a milestone on an issue. When milestoneID is
 // non-nil the SQL guard requires the milestone to share the issue's repo_id,
 // closing the cross-repo IDOR where a writer on repo A could attach an issue
-// to a milestone in repo B by guessing the id.
+// to a milestone in repo B by guessing the id. When the update affects no rows
+// the helper disambiguates "milestone missing" from "wrong repo".
 func (s *MilestoneStore) SetIssue(ctx context.Context, issueID int64, milestoneID *int64) error {
 	if milestoneID == nil {
 		_, err := s.db.ExecContext(ctx,
@@ -177,13 +182,12 @@ func (s *MilestoneStore) SetIssue(ctx context.Context, issueID int64, milestoneI
 		return err
 	}
 	if n == 0 {
-		return ErrMilestoneRepoMismatch
+		return s.classifyMilestoneSetFailure(ctx, *milestoneID)
 	}
 	return nil
 }
 
-// SetPull attaches (or clears) a milestone on a pull request, with the same
-// cross-repo guard as SetIssue.
+// SetPull is SetIssue for pull requests.
 func (s *MilestoneStore) SetPull(ctx context.Context, pullID int64, milestoneID *int64) error {
 	if milestoneID == nil {
 		_, err := s.db.ExecContext(ctx,
@@ -206,9 +210,26 @@ func (s *MilestoneStore) SetPull(ctx context.Context, pullID int64, milestoneID 
 		return err
 	}
 	if n == 0 {
-		return ErrMilestoneRepoMismatch
+		return s.classifyMilestoneSetFailure(ctx, *milestoneID)
 	}
 	return nil
+}
+
+// classifyMilestoneSetFailure picks the right sentinel for a SetIssue/SetPull
+// that affected zero rows: ErrMilestoneNotFound when the milestone id doesn't
+// match any row, ErrMilestoneRepoMismatch otherwise.
+func (s *MilestoneStore) classifyMilestoneSetFailure(ctx context.Context, milestoneID int64) error {
+	var exists bool
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT EXISTS (SELECT 1 FROM milestones WHERE id=$1)`,
+		milestoneID,
+	).Scan(&exists); err != nil {
+		return err
+	}
+	if !exists {
+		return ErrMilestoneNotFound
+	}
+	return ErrMilestoneRepoMismatch
 }
 
 // GetIssueID returns the milestone_id for an issue (nil if unset).
@@ -286,8 +307,7 @@ func (s *MilestoneStore) ListIssuesPaged(ctx context.Context, milestoneID int64,
 	return scanIssueRows(rows)
 }
 
-// ListPullsPaged returns pull requests in the milestone for the given state
-// group; the "closed" group includes merged PRs.
+// ListPullsPaged: state="closed" includes merged PRs.
 func (s *MilestoneStore) ListPullsPaged(ctx context.Context, milestoneID int64, state string, page, pageSize int) ([]model.PullRequest, error) {
 	offset := (page - 1) * pageSize
 	stateClause := `pr.state = 'open'`
@@ -313,7 +333,7 @@ func (s *MilestoneStore) ListPullsPaged(ctx context.Context, milestoneID int64, 
 	return scanPullRows(rows)
 }
 
-// PullCounts returns open + closed PR totals for the milestone; merged counts as closed.
+// PullCounts: merged counts as closed.
 func (s *MilestoneStore) PullCounts(ctx context.Context, milestoneID int64) (open, closed int, err error) {
 	err = s.db.QueryRowContext(ctx, `
 		SELECT

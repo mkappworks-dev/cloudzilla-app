@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -18,8 +19,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// releaseStatus collapses the release flags into the badge keyword the title
-// fragment renders: "latest" / "prerelease" / "draft" / "".
 func (h *Handler) releaseStatus(ctx context.Context, owner, repoName string, release model.Release) string {
 	if !release.IsDraft && !release.IsPrerelease {
 		if latest, err := h.Services.Release.GetLatest(ctx, owner, repoName); err == nil && latest != nil && latest.ID == release.ID {
@@ -35,7 +34,6 @@ func (h *Handler) releaseStatus(ctx context.Context, owner, repoName string, rel
 	return ""
 }
 
-// releaseWriteContext returns ok=false after writing the error response itself.
 func (h *Handler) releaseWriteContext(w http.ResponseWriter, r *http.Request) (owner, repoName string, release *model.Release, canWrite bool, ok bool) {
 	owner = chi.URLParam(r, "owner")
 	repoName = chi.URLParam(r, "repo")
@@ -102,7 +100,7 @@ func (h *Handler) ReleaseTitleSection(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) EditReleaseTitle(w http.ResponseWriter, r *http.Request) {
-	owner, repoName, release, _, ok := h.releaseWriteContext(w, r)
+	owner, repoName, release, canWrite, ok := h.releaseWriteContext(w, r)
 	if !ok {
 		return
 	}
@@ -117,7 +115,7 @@ func (h *Handler) EditReleaseTitle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	status := h.releaseStatus(r.Context(), owner, repoName, *updated)
-	h.render(w, r, fragments.ReleaseTitleSection(owner, repoName, updated.ID, updated.Name, updated.TagName, status, true, false))
+	h.render(w, r, fragments.ReleaseTitleSection(owner, repoName, updated.ID, updated.Name, updated.TagName, status, canWrite, false))
 }
 
 func (h *Handler) ReleaseBodySection(w http.ResponseWriter, r *http.Request) {
@@ -159,9 +157,6 @@ func (h *Handler) ReleaseBodySection(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// PublishRelease promotes a draft. Draft → published is one-way;
-// ErrReleaseAlreadyPublished surfaces as 422. Fires the same release webhook +
-// audit event as a fresh non-draft create.
 func (h *Handler) PublishRelease(w http.ResponseWriter, r *http.Request) {
 	owner, repoName, release, _, ok := h.releaseWriteContext(w, r)
 	if !ok {
@@ -216,8 +211,6 @@ func releaseSideEffects(h *Handler, label, owner, repoName string, releaseID int
 	}()
 }
 
-// EditReleasePrerelease returns HX-Refresh so the title badge, sidebar status,
-// and any other derived state re-render server-side from one source of truth.
 func (h *Handler) EditReleasePrerelease(w http.ResponseWriter, r *http.Request) {
 	owner, repoName, release, _, ok := h.releaseWriteContext(w, r)
 	if !ok {
@@ -543,9 +536,16 @@ func (h *Handler) CreateRelease(w http.ResponseWriter, r *http.Request) {
 
 	release, err := h.Services.Release.Create(r.Context(), owner, repoName, tagName, target, name, body, isPrerelease, isDraft, claims.UserID)
 	if err != nil {
-		msg := err.Error()
-		if errors.Is(err, service.ErrReleaseTagInUse) {
-			msg = "A release for tag " + tagName + " already exists."
+		msg := releaseCreateErrorMessage(err, tagName)
+		if msg == "" {
+			slog.Error("create release failed", "owner", owner, "repo", repoName, "tag", tagName, "error", err)
+			if r.Header.Get("HX-Request") == "true" {
+				toast(w, "error", "Could not create release.")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "could not create release")
+			return
 		}
 		if r.Header.Get("HX-Request") == "true" {
 			toast(w, "error", msg)
@@ -556,13 +556,18 @@ func (h *Handler) CreateRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoID := release.RepoID
-	releaseSideEffects(h, "create release", owner, repoName, release.ID, func() {
-		h.Services.Webhook.Dispatch(release.RepoID, "release", h.Services.Webhook.ReleasePayload("published", owner, repoName, *release))
-	})
-	releaseSideEffects(h, "create release event", owner, repoName, release.ID, func() {
-		h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventReleasePublished, map[string]any{"tag": release.TagName, "name": release.Name})
-	})
+	// Skip the "published" webhook + audit event when the release is created as
+	// a draft; PublishRelease fires them at the moment the draft is promoted.
+	// Otherwise consumers would see two `published` events per release.
+	if !release.IsDraft {
+		repoID := release.RepoID
+		releaseSideEffects(h, "create release", owner, repoName, release.ID, func() {
+			h.Services.Webhook.Dispatch(release.RepoID, "release", h.Services.Webhook.ReleasePayload("published", owner, repoName, *release))
+		})
+		releaseSideEffects(h, "create release event", owner, repoName, release.ID, func() {
+			h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventReleasePublished, map[string]any{"tag": release.TagName, "name": release.Name})
+		})
+	}
 
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("HX-Redirect", "/"+owner+"/"+repoName+"/releases")
@@ -570,6 +575,20 @@ func (h *Handler) CreateRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, release)
+}
+
+// releaseCreateErrorMessage maps known service-level errors to a user-safe
+// string. Returns "" when err is not a known sentinel; callers should log the
+// raw error server-side and emit a generic 500 instead of leaking err.Error()
+// (which can contain CZ_GIT_REPOS_ROOT path fragments via go-git wraps).
+func releaseCreateErrorMessage(err error, tagName string) string {
+	switch {
+	case errors.Is(err, service.ErrReleaseTagInUse):
+		return "A release for tag " + tagName + " already exists."
+	case errors.Is(err, service.ErrInvalidTagName):
+		return "Tag name must use letters, digits, '.', '_', '/', or '-' (max 255 chars)."
+	}
+	return ""
 }
 
 type updateReleaseRequest struct {
@@ -629,12 +648,17 @@ func (h *Handler) UpdateRelease(w http.ResponseWriter, r *http.Request) {
 
 	release, err := h.Services.Release.Update(r.Context(), owner, repoName, id, tagName, name, body, isPrerelease, isDraft)
 	if err != nil {
-		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		if msg := releaseCreateErrorMessage(err, tagName); msg != "" {
+			writeError(w, http.StatusUnprocessableEntity, msg)
+			return
+		}
+		slog.Error("update release failed", "owner", owner, "repo", repoName, "id", id, "error", err)
+		writeError(w, http.StatusInternalServerError, "could not update release")
 		return
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		w.Header().Set("HX-Redirect", "/"+owner+"/"+repoName+"/releases/tag/"+release.TagName)
+		w.Header().Set("HX-Redirect", "/"+owner+"/"+repoName+"/releases/tag/"+url.PathEscape(release.TagName))
 		w.WriteHeader(http.StatusOK)
 		return
 	}

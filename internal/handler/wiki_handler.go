@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -259,6 +260,14 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 		}
 		renameMsg := "Rename " + slug + " to " + newSlug
 		if err := h.Services.Code.WikiPageRename(owner, repoName, slug, newSlug, user.Username, authorEmail, renameMsg); err != nil {
+			if errors.Is(err, service.ErrWikiPageExists) {
+				writeError(w, http.StatusConflict, "a page with that name already exists")
+				return
+			}
+			if errors.Is(err, service.ErrWikiPageNotFound) {
+				writeError(w, http.StatusNotFound, "wiki page not found")
+				return
+			}
 			slog.Error("failed to rename wiki page", "owner", owner, "repo", repoName, "slug", slug, "newSlug", newSlug, "error", err)
 			writeError(w, http.StatusInternalServerError, "failed to rename wiki page")
 			return

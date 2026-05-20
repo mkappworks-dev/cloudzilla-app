@@ -58,7 +58,6 @@ type RepoNewData struct {
 	OwnedOrgs []model.Organization
 }
 
-// ReleaseView decorates a model.Release with computed display fields.
 type ReleaseView struct {
 	model.Release
 	IsLatest bool   // true for the single newest published, non-draft, non-prerelease release

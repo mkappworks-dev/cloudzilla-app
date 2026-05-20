@@ -378,15 +378,20 @@ func (h *Handler) loadIssueSidebarOptions(r *http.Request, data *view.IssueNewDa
 
 // applyNewIssueMetadata applies the assignees, labels, priority, and milestone
 // chosen on the new-issue form. Best-effort: one field failing is logged and
-// skipped rather than failing the already-created issue.
-func (h *Handler) applyNewIssueMetadata(r *http.Request, owner, repoName string, issue *model.Issue) {
+// skipped rather than failing the already-created issue. Returns the kinds of
+// metadata that failed so the caller can surface a single consolidated signal
+// (one log line per submit + an optional ?warn=metadata redirect param) rather
+// than scattered per-field warnings the user never sees.
+func (h *Handler) applyNewIssueMetadata(r *http.Request, owner, repoName string, issue *model.Issue) []string {
 	ctx := r.Context()
+	var failed []string
 	for _, username := range r.Form["assignees"] {
 		if username == "" {
 			continue
 		}
 		if err := h.Services.Assignee.AddToIssue(ctx, owner, repoName, issue.Number, username); err != nil {
 			slog.Warn("new issue: add assignee failed", "issue", issue.Number, "user", username, "error", err)
+			failed = append(failed, "assignee")
 		}
 	}
 	for _, raw := range r.Form["labels"] {
@@ -396,21 +401,21 @@ func (h *Handler) applyNewIssueMetadata(r *http.Request, owner, repoName string,
 		}
 		if err := h.Services.Label.AddToIssue(ctx, owner, repoName, issue.Number, labelID); err != nil {
 			slog.Warn("new issue: add label failed", "issue", issue.Number, "label", labelID, "error", err)
+			failed = append(failed, "label")
 		}
 	}
 	switch p := r.FormValue("priority"); p {
 	case "P0", "P1", "P2", "P3":
 		if _, err := h.Services.Issue.SetPriority(ctx, owner, repoName, issue.Number, &p); err != nil {
 			slog.Warn("new issue: set priority failed", "issue", issue.Number, "priority", p, "error", err)
+			failed = append(failed, "priority")
 		}
 	}
 	if m := r.FormValue("milestone"); m != "" {
 		if milestoneID, convErr := strconv.ParseInt(m, 10, 64); convErr == nil {
 			if err := h.Services.Milestone.SetIssue(ctx, issue.ID, &milestoneID); err != nil {
-				// ErrMilestoneRepoMismatch lands here too — the rejection is logged
-				// and the issue is created without the milestone rather than failing
-				// the whole submit.
 				slog.Warn("new issue: set milestone failed", "issue", issue.Number, "milestone", milestoneID, "error", err)
+				failed = append(failed, "milestone")
 			}
 		}
 	}
@@ -422,12 +427,19 @@ func (h *Handler) applyNewIssueMetadata(r *http.Request, owner, repoName string,
 		pull, perr := h.Services.Pull.Get(ctx, owner, repoName, pullNumber)
 		if perr != nil {
 			slog.Warn("new issue: link pull lookup failed", "issue", issue.Number, "pull", pullNumber, "error", perr)
+			failed = append(failed, "linked_pull")
 			continue
 		}
 		if err := h.Services.Issue.LinkPull(ctx, pull.ID, issue.ID); err != nil {
 			slog.Warn("new issue: link pull failed", "issue", issue.Number, "pull", pullNumber, "error", err)
+			failed = append(failed, "linked_pull")
 		}
 	}
+	if len(failed) > 0 {
+		slog.Warn("new issue: some metadata failed to apply",
+			"issue", issue.Number, "owner", owner, "repo", repoName, "failed", failed)
+	}
+	return failed
 }
 
 // PageNewIssueSubmit handles new issue form submission and redirects to the created issue.
@@ -493,11 +505,16 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var metadataFailures []string
 	if canWrite {
-		h.applyNewIssueMetadata(r, owner, repoName, issue)
+		metadataFailures = h.applyNewIssueMetadata(r, owner, repoName, issue)
 	}
 
 	go h.Services.Webhook.Dispatch(repo.ID, "issues", h.Services.Webhook.IssuePayload("opened", *repo, *issue))
 
-	http.Redirect(w, r, fmt.Sprintf("/%s/%s/issues/%d", owner, repoName, issue.Number), http.StatusSeeOther)
+	redirectURL := fmt.Sprintf("/%s/%s/issues/%d", owner, repoName, issue.Number)
+	if len(metadataFailures) > 0 {
+		redirectURL += "?warn=metadata"
+	}
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }

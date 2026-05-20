@@ -3,11 +3,20 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
+
+// MaxTitleLen caps the size of any user-supplied issue/PR/discussion title.
+// Enforced at the service layer so all callers (forms, JSON API, inline edit)
+// get the same bound regardless of which handler fronts the call.
+const MaxTitleLen = 256
+
+// ErrTitleTooLong is returned when a title exceeds MaxTitleLen.
+var ErrTitleTooLong = errors.New("title is too long")
 
 // DiscussionService manages repository discussions, replies, and categories.
 type DiscussionService struct {
@@ -58,6 +67,9 @@ func (s *DiscussionService) Get(ctx context.Context, owner, repoName string, num
 func (s *DiscussionService) Create(ctx context.Context, owner, repoName string, authorID int64, authorName string, categoryID int64, title, body string) (*model.Discussion, error) {
 	if title == "" {
 		return nil, fmt.Errorf("title is required")
+	}
+	if len(title) > MaxTitleLen {
+		return nil, ErrTitleTooLong
 	}
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
@@ -111,6 +123,9 @@ func (s *DiscussionService) Lock(ctx context.Context, discussionID int64, locked
 func (s *DiscussionService) UpdateContent(ctx context.Context, discussionID int64, title, body string) error {
 	if title == "" {
 		return fmt.Errorf("title is required")
+	}
+	if len(title) > MaxTitleLen {
+		return ErrTitleTooLong
 	}
 	return s.discussions.UpdateContent(ctx, discussionID, title, body)
 }

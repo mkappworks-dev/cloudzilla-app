@@ -2,6 +2,7 @@ package handler
 
 import (
 	"html"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,10 +13,8 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
-// renderDeployKeyFormError redirects htmx's swap to the in-dialog error slot
-// so the dialog stays open and shows the validation error inline. Uses status
-// 200 because htmx skips swaps on 4xx by default; the form distinguishes
-// success from error by inspecting the swapped target's id.
+// renderDeployKeyFormError uses status 200 because htmx skips swaps on 4xx by
+// default; the form distinguishes success from error by the swapped target id.
 func renderDeployKeyFormError(w http.ResponseWriter, msg string) {
 	w.Header().Set("HX-Retarget", "#deploy-key-form-error")
 	w.Header().Set("HX-Reswap", "innerHTML")
@@ -23,9 +22,9 @@ func renderDeployKeyFormError(w http.ResponseWriter, msg string) {
 	_, _ = w.Write([]byte(`<div class="rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs p-3" role="alert">` + html.EscapeString(msg) + `</div>`))
 }
 
-// deployKeyErrorMessage turns a service-level error into copy fit for a toast.
-// Unique-constraint violations come back from Postgres as a wrapped pq error
-// containing "duplicate key value"; the SSH parser returns "invalid public key".
+// deployKeyErrorMessage maps known service-level errors to user-safe copy.
+// The unmatched fallback logs the raw error and returns a generic message so
+// driver-level details (pq error structure, schema names) never reach clients.
 func deployKeyErrorMessage(err error) string {
 	if err == nil {
 		return ""
@@ -39,7 +38,8 @@ func deployKeyErrorMessage(err error) string {
 	case strings.Contains(msg, "duplicate key") || strings.Contains(msg, "unique constraint"):
 		return "This key is already a deploy key on this repository."
 	}
-	return "Couldn't add deploy key: " + msg
+	slog.Error("deploy key: unexpected error", "error", err)
+	return "Couldn't add deploy key. Please try again."
 }
 
 func (h *Handler) ListDeployKeys(w http.ResponseWriter, r *http.Request) {

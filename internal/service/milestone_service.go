@@ -9,9 +9,12 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
-// ErrMilestoneRepoMismatch is re-exported from the store layer so handlers
+// ErrMilestoneRepoMismatch / ErrMilestoneNotFound are re-exported so handlers
 // can errors.Is() without importing the store package directly.
-var ErrMilestoneRepoMismatch = store.ErrMilestoneRepoMismatch
+var (
+	ErrMilestoneRepoMismatch = store.ErrMilestoneRepoMismatch
+	ErrMilestoneNotFound     = store.ErrMilestoneNotFound
+)
 
 type MilestoneService struct {
 	milestones *store.MilestoneStore

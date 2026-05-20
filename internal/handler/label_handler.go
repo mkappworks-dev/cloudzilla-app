@@ -117,11 +117,17 @@ func (h *Handler) CreateLabel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		labels, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+		labels, lerr := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+		if lerr != nil {
+			slog.Warn("create label: list reload failed; sidebar may render stale", "owner", owner, "repo", repoName, "error", lerr)
+		}
 		if labels == nil {
 			labels = []model.Label{}
 		}
-		repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
+		repo, rerr := h.Services.Repo.Get(r.Context(), owner, repoName)
+		if rerr != nil {
+			slog.Warn("create label: repo reload failed; canWrite may degrade", "owner", owner, "repo", repoName, "error", rerr)
+		}
 		canWrite := false
 		var repoID int64
 		if claims, ok := middleware.ClaimsFromContext(r.Context()); ok && repo != nil {
@@ -169,11 +175,17 @@ func (h *Handler) DeleteLabel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		labels, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+		labels, lerr := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+		if lerr != nil {
+			slog.Warn("delete label: list reload failed; sidebar may render stale", "owner", owner, "repo", repoName, "error", lerr)
+		}
 		if labels == nil {
 			labels = []model.Label{}
 		}
-		repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
+		repo, rerr := h.Services.Repo.Get(r.Context(), owner, repoName)
+		if rerr != nil {
+			slog.Warn("delete label: repo reload failed; canWrite may degrade", "owner", owner, "repo", repoName, "error", rerr)
+		}
 		canWrite := false
 		var repoID int64
 		if claims, ok := middleware.ClaimsFromContext(r.Context()); ok && repo != nil {
@@ -399,12 +411,23 @@ func (h *Handler) renderIssueLabelFragment(w http.ResponseWriter, r *http.Reques
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		callerID = &claims.UserID
 	}
-	issue, _ := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber, callerID)
+	issue, ierr := h.Services.Issue.Get(r.Context(), owner, repoName, issueNumber, callerID)
+	if ierr != nil {
+		slog.Warn("issue label fragment: issue lookup failed; sidebar may render empty", "owner", owner, "repo", repoName, "issue", issueNumber, "error", ierr)
+	}
 	var labels, allLabels []model.Label
 	if issue != nil {
-		labels, _ = h.Services.Label.GetForIssue(r.Context(), issue.ID)
+		var lerr error
+		labels, lerr = h.Services.Label.GetForIssue(r.Context(), issue.ID)
+		if lerr != nil {
+			slog.Warn("issue label fragment: GetForIssue failed", "issue", issue.ID, "error", lerr)
+		}
 	}
-	allLabels, _ = h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	var alerr error
+	allLabels, alerr = h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if alerr != nil {
+		slog.Warn("issue label fragment: ListByRepo failed", "owner", owner, "repo", repoName, "error", alerr)
+	}
 	if labels == nil {
 		labels = []model.Label{}
 	}
@@ -512,12 +535,23 @@ func (h *Handler) RemoveDiscussionLabel(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handler) renderDiscussionLabelFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, number int) {
-	discussion, _ := h.Services.Discussion.Get(r.Context(), owner, repoName, number)
+	discussion, derr := h.Services.Discussion.Get(r.Context(), owner, repoName, number)
+	if derr != nil {
+		slog.Warn("discussion label fragment: discussion lookup failed", "owner", owner, "repo", repoName, "number", number, "error", derr)
+	}
 	var labels, allLabels []model.Label
 	if discussion != nil {
-		labels, _ = h.Services.Label.GetForDiscussion(r.Context(), discussion.ID)
+		var lerr error
+		labels, lerr = h.Services.Label.GetForDiscussion(r.Context(), discussion.ID)
+		if lerr != nil {
+			slog.Warn("discussion label fragment: GetForDiscussion failed", "discussion", discussion.ID, "error", lerr)
+		}
 	}
-	allLabels, _ = h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	var alerr error
+	allLabels, alerr = h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if alerr != nil {
+		slog.Warn("discussion label fragment: ListByRepo failed", "owner", owner, "repo", repoName, "error", alerr)
+	}
 	if labels == nil {
 		labels = []model.Label{}
 	}
@@ -540,12 +574,23 @@ func validLabelColor(color string) bool {
 }
 
 func (h *Handler) renderPullLabelFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, pullNumber int) {
-	pull, _ := h.Services.Pull.Get(r.Context(), owner, repoName, pullNumber)
+	pull, perr := h.Services.Pull.Get(r.Context(), owner, repoName, pullNumber)
+	if perr != nil {
+		slog.Warn("pull label fragment: pull lookup failed", "owner", owner, "repo", repoName, "pull", pullNumber, "error", perr)
+	}
 	var labels, allLabels []model.Label
 	if pull != nil {
-		labels, _ = h.Services.Label.GetForPull(r.Context(), pull.ID)
+		var lerr error
+		labels, lerr = h.Services.Label.GetForPull(r.Context(), pull.ID)
+		if lerr != nil {
+			slog.Warn("pull label fragment: GetForPull failed", "pull", pull.ID, "error", lerr)
+		}
 	}
-	allLabels, _ = h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	var alerr error
+	allLabels, alerr = h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if alerr != nil {
+		slog.Warn("pull label fragment: ListByRepo failed", "owner", owner, "repo", repoName, "error", alerr)
+	}
 	if labels == nil {
 		labels = []model.Label{}
 	}

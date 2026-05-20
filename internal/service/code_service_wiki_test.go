@@ -176,6 +176,67 @@ func TestOrderWikiSlugs(t *testing.T) {
 	}
 }
 
+func TestWikiPageRename_RewritesOrder(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	svc := NewCodeService(czconfig.GitConfig{ReposRoot: root})
+
+	owner := "dave"
+	repo := "renameorder"
+	for _, slug := range []string{"Alpha", "Beta", "Gamma"} {
+		if err := svc.WikiPageSave(owner, repo, slug, "# "+slug+"\n", "Tester", "tester@example.com", "add "+slug); err != nil {
+			t.Fatalf("WikiPageSave %s: %v", slug, err)
+		}
+	}
+	if err := svc.WikiPageSetOrder(owner, repo, []string{"Gamma", "Alpha", "Beta"}, "Tester", "tester@example.com"); err != nil {
+		t.Fatalf("WikiPageSetOrder: %v", err)
+	}
+
+	if err := svc.WikiPageRename(owner, repo, "Alpha", "Aardvark", "Tester", "tester@example.com", ""); err != nil {
+		t.Fatalf("WikiPageRename: %v", err)
+	}
+
+	slugs, err := svc.WikiPageList(owner, repo)
+	if err != nil {
+		t.Fatalf("WikiPageList: %v", err)
+	}
+	if !reflect.DeepEqual(slugs, []string{"Gamma", "Aardvark", "Beta"}) {
+		t.Errorf("post-rename order = %v, want [Gamma Aardvark Beta]", slugs)
+	}
+}
+
+func TestWikiPageDelete_StripsOrder(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	svc := NewCodeService(czconfig.GitConfig{ReposRoot: root})
+
+	owner := "eve"
+	repo := "deleteorder"
+	for _, slug := range []string{"Alpha", "Beta", "Gamma"} {
+		if err := svc.WikiPageSave(owner, repo, slug, "# "+slug+"\n", "Tester", "tester@example.com", "add "+slug); err != nil {
+			t.Fatalf("WikiPageSave %s: %v", slug, err)
+		}
+	}
+	if err := svc.WikiPageSetOrder(owner, repo, []string{"Gamma", "Alpha", "Beta"}, "Tester", "tester@example.com"); err != nil {
+		t.Fatalf("WikiPageSetOrder: %v", err)
+	}
+
+	if err := svc.WikiPageDelete(owner, repo, "Alpha", "Tester", "tester@example.com"); err != nil {
+		t.Fatalf("WikiPageDelete: %v", err)
+	}
+
+	slugs, err := svc.WikiPageList(owner, repo)
+	if err != nil {
+		t.Fatalf("WikiPageList: %v", err)
+	}
+	// Alpha is gone; Gamma stays first per .order; Beta picks up after it.
+	if !reflect.DeepEqual(slugs, []string{"Gamma", "Beta"}) {
+		t.Errorf("post-delete order = %v, want [Gamma Beta]", slugs)
+	}
+}
+
 func TestWikiPageSetOrder(t *testing.T) {
 	t.Parallel()
 
