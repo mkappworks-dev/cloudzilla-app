@@ -29,6 +29,10 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims, signedIn := middleware.ClaimsFromContext(ctx)
 
+	if tab == "secret" && !signedIn {
+		tab = "public"
+	}
+
 	var rows []model.GistListRow
 	if tab == "secret" && signedIn {
 		privateGists, _ := h.Services.Gist.ListPrivateByOwner(ctx, claims.UserID, page, 50)
@@ -49,9 +53,11 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 	filenamesByGist, _ := h.Services.Gist.LoadFilenames(ctx, ids)
 
 	items := make([]view.GistListItem, 0, len(rows))
-	for _, row := range rows {
-		label, chipClass := gistLanguage(filenamesByGist[row.ID])
-		items = append(items, view.GistListItem{GistListRow: row, LanguageLabel: label, LanguageClass: chipClass})
+	for _, r := range rows {
+		files := filenamesByGist[r.ID]
+		label, chipClass := gistLanguage(files)
+		r.FileCount = int64(len(files))
+		items = append(items, view.GistListItem{GistListRow: r, LanguageLabel: label, LanguageClass: chipClass})
 	}
 
 	data := view.GistsData{
