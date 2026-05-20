@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
@@ -69,6 +71,7 @@ templ GistDetail(data view.GistDetailData) {
 								<polyline points="14 2 14 8 20 8"></polyline>
 							</svg>
 							<h2 class="font-mono text-[13px] font-medium">{ f.Filename }</h2>
+							<span class="ml-auto font-mono text-[11px] text-muted-foreground/70">{ gistFileStats(f.Content) }</span>
 						</header>
 						<pre class="px-4 py-3 font-mono text-[12.5px] leading-[1.6] overflow-x-auto"><code>{ f.Content }</code></pre>
 					</section>
@@ -83,4 +86,14 @@ func gistDetailTitle(data view.GistDetailData) string {
 		return data.Gist.Description
 	}
 	return "Gist " + data.Gist.ID
+}
+
+// gistFileStats returns a human-readable "N lines · X KB" string for a file's content.
+func gistFileStats(content string) string {
+	if content == "" {
+		return "0 lines · 0 B"
+	}
+	lines := strings.Count(content, "\n") + 1
+	size := humanBytes(int64(len(content)))
+	return fmt.Sprintf("%d lines · %s", lines, size)
 }
