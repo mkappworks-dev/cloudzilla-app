@@ -199,7 +199,7 @@ func (s *GistStore) ListWithCounts(ctx context.Context, ownerFilter string) ([]m
 		       (SELECT COUNT(*) FROM gists        WHERE forked_from_id = g.id) AS fork_count
 		FROM gists g
 		JOIN users u ON u.id = g.owner_id
-		WHERE ($1 = '' OR u.username = $1)
+		WHERE g.public = true AND ($1 = '' OR u.username = $1)
 		ORDER BY g.updated_at DESC
 		LIMIT 50`,
 		ownerFilter,

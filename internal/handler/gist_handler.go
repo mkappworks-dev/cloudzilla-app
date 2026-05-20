@@ -15,26 +15,26 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// PageGists renders the public gist explore page, with a Secret tab for the signed-in viewer.
+// PageGists renders the public gist explore page, with a Private tab for the signed-in viewer.
 func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 	page := 1
 	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
 		page = p
 	}
 	tab := r.URL.Query().Get("tab")
-	if tab != "secret" {
+	if tab != "private" {
 		tab = "public"
 	}
 
 	ctx := r.Context()
 	claims, signedIn := middleware.ClaimsFromContext(ctx)
 
-	if tab == "secret" && !signedIn {
+	if tab == "private" && !signedIn {
 		tab = "public"
 	}
 
 	var rows []model.GistListRow
-	if tab == "secret" && signedIn {
+	if tab == "private" && signedIn {
 		privateGists, _ := h.Services.Gist.ListPrivateByOwner(ctx, claims.UserID, page, 50)
 		for _, g := range privateGists {
 			rows = append(rows, model.GistListRow{Gist: g})
@@ -58,18 +58,18 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 		label, chipClass := gistLanguage(files)
 		// ListPrivateByOwner returns model.Gist with no counts; derive FileCount
 		// from the batched filenames fetch. ListWithCounts already populates it.
-		if tab == "secret" {
+		if tab == "private" {
 			row.FileCount = int64(len(files))
 		}
 		items = append(items, view.GistListItem{GistListRow: row, LanguageLabel: label, LanguageClass: chipClass})
 	}
 
 	data := view.GistsData{
-		BasePage:           basePage(r, h.Services),
-		Gists:              items,
-		Page:               page,
-		Tab:                tab,
-		SecretTabAvailable: signedIn,
+		BasePage:            basePage(r, h.Services),
+		Gists:               items,
+		Page:                page,
+		Tab:                 tab,
+		PrivateTabAvailable: signedIn,
 	}
 	if signedIn {
 		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))

@@ -184,7 +184,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "Secret")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "Private")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

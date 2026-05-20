@@ -29,18 +29,18 @@ templ Gists(data view.GistsData) {
 				}
 			</section>
 
-			if data.SecretTabAvailable {
+			if data.PrivateTabAvailable {
 				@components.TabBar([]components.Tab{
 					{Label: "Public", URL: "/gists?tab=public", IsActive: data.Tab == "public", Count: -1},
-					{Label: "Secret", URL: "/gists?tab=secret", IsActive: data.Tab == "secret", Count: -1},
+					{Label: "Private", URL: "/gists?tab=private", IsActive: data.Tab == "private", Count: -1},
 				})
 			}
 
 			if len(data.Gists) > 0 {
 				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="gist-list">
 					<h2 id="gist-list" class="sr-only">
-						if data.Tab == "secret" {
-							Secret gists
+						if data.Tab == "private" {
+							Private gists
 						} else {
 							Public gists
 						}
@@ -70,7 +70,7 @@ templ Gists(data view.GistsData) {
 													}
 												} else {
 													@components.Badge(components.BadgeWarning) {
-														Secret
+														Private
 													}
 												}
 											</span>
@@ -121,12 +121,12 @@ templ Gists(data view.GistsData) {
 					</ol>
 				</section>
 
-				if data.Tab == "secret" {
+				if data.Tab == "private" {
 					{{ gistPrev := "" }}
 					if data.Page > 1 {
-						{{ gistPrev = "?tab=secret&page=" + strconv.Itoa(data.Page-1) }}
+						{{ gistPrev = "?tab=private&page=" + strconv.Itoa(data.Page-1) }}
 					}
-					@components.Pagination(gistPrev, "?tab=secret&page="+strconv.Itoa(data.Page+1))
+					@components.Pagination(gistPrev, "?tab=private&page="+strconv.Itoa(data.Page+1))
 				}
 			} else {
 				@components.EmptyState("No gists yet.")

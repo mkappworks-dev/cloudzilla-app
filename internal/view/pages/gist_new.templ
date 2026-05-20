@@ -70,7 +70,7 @@ templ GistNew(data view.GistNewData) {
 									<input type="radio" name="visibility" value="public" checked/> Public
 								</label>
 								<label class="flex items-center gap-1.5 text-[13px]">
-									<input type="radio" name="visibility" value="secret"/> Secret
+									<input type="radio" name="visibility" value="private"/> Private
 								</label>
 							</fieldset>
 							<div class="flex items-center gap-2">
@@ -94,7 +94,7 @@ templ GistNew(data view.GistNewData) {
 						<h2 id="gists-tips-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Good to know</h2>
 						<ul class="space-y-2 text-[13px] text-muted-foreground leading-relaxed">
 							<li>Gists are standalone — they aren't attached to any repository.</li>
-							<li>Secret gists aren't listed or searchable, but anyone with the link can view them.</li>
+							<li>Private gists aren't listed or searchable, but anyone with the link can view them.</li>
 							<li>A file's extension picks its syntax highlighting and sort order, so name files precisely.</li>
 						</ul>
 					</section>

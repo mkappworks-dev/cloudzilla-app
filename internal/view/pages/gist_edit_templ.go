@@ -195,12 +195,12 @@ func GistEdit(data view.GistEditData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if data.Gist.Public {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<label class=\"flex items-center gap-1.5 text-[13px]\"><input type=\"radio\" name=\"visibility\" value=\"public\" checked> Public</label> <label class=\"flex items-center gap-1.5 text-[13px]\"><input type=\"radio\" name=\"visibility\" value=\"secret\"> Secret</label>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<label class=\"flex items-center gap-1.5 text-[13px]\"><input type=\"radio\" name=\"visibility\" value=\"public\" checked> Public</label> <label class=\"flex items-center gap-1.5 text-[13px]\"><input type=\"radio\" name=\"visibility\" value=\"private\"> Private</label>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<label class=\"flex items-center gap-1.5 text-[13px]\"><input type=\"radio\" name=\"visibility\" value=\"public\"> Public</label> <label class=\"flex items-center gap-1.5 text-[13px]\"><input type=\"radio\" name=\"visibility\" value=\"secret\" checked> Secret</label>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<label class=\"flex items-center gap-1.5 text-[13px]\"><input type=\"radio\" name=\"visibility\" value=\"public\"> Public</label> <label class=\"flex items-center gap-1.5 text-[13px]\"><input type=\"radio\" name=\"visibility\" value=\"private\" checked> Private</label>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -243,44 +243,17 @@ func GistEdit(data view.GistEditData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "Delete gist")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "Save changes")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.Button(components.ButtonDestructiveOutline, components.ButtonSizeDefault, templ.Attributes{
-				"type":                 "button",
-				"hx-delete":            "/api/gists/" + data.Gist.ID,
-				"hx-confirm":           "Delete this gist? This action cannot be undone.",
-				"hx-on::after-request": "if(event.detail.successful){window.location.href='/gists'}",
-			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var11), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var11), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var12 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-				if !templ_7745c5c3_IsBuffer {
-					defer func() {
-						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-						if templ_7745c5c3_Err == nil {
-							templ_7745c5c3_Err = templ_7745c5c3_BufErr
-						}
-					}()
-				}
-				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "Save changes")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				return nil
-			})
-			templ_7745c5c3_Err = components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var12), templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</div></div></form></div><aside class=\"space-y-6\" aria-label=\"About this gist\"><section aria-labelledby=\"edit-tips-heading\"><h2 id=\"edit-tips-heading\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Editing tips</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground leading-relaxed\"><li>Renaming a file keeps its content; saving creates a new revision.</li><li>Switching to Secret hides the gist from the Explore listing.</li><li>Use the file extension to pick syntax highlighting (e.g. <span class=\"font-mono\">.go</span>, <span class=\"font-mono\">.sql</span>).</li></ul></section><section aria-labelledby=\"danger-heading\" class=\"border-t border-border pt-5\"><h2 id=\"danger-heading\" class=\"text-[12px] font-medium text-destructive mb-2\">Danger zone</h2><p class=\"text-[13px] text-muted-foreground leading-relaxed\">Deleting a gist removes all files and revisions permanently.</p></section></aside></div><script>\n\t\t\t\tdocument.getElementById('gist-edit-form').addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\tconst desc = this.querySelector('[name=description]').value;\n\t\t\t\t\tconst visEl = this.querySelector('[name=\"visibility\"]:checked');\n\t\t\t\t\tconst pub = !visEl || visEl.value === 'public';\n\t\t\t\t\tconst filenames = [...this.querySelectorAll('[name=\"filename[]\"]')].map(el => el.value);\n\t\t\t\t\tconst contents = [...this.querySelectorAll('[name=\"content[]\"]')].map(el => el.value);\n\t\t\t\t\tconst files = filenames.map((fn, i) => ({ filename: fn, content: contents[i] }));\n\t\t\t\t\tconst gistID = this.dataset.gistId;\n\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\ttry {\n\t\t\t\t\t\tconst res = await fetch('/api/gists/' + gistID, {\n\t\t\t\t\t\t\tmethod: 'PATCH',\n\t\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\t\tbody: JSON.stringify({ description: desc, public: pub, files })\n\t\t\t\t\t\t});\n\t\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\t\twindow.location.href = '/gists/' + gistID;\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\t\t\tlet msg = text;\n\t\t\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\t\t\talert(msg || ('Failed to update gist (HTTP ' + res.status + ')'));\n\t\t\t\t\t\t}\n\t\t\t\t\t} catch (err) {\n\t\t\t\t\t\talert('Could not reach the server. Check your connection and try again.');\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t</script></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</div></div></form></div><aside class=\"space-y-6\" aria-label=\"About this gist\"><section aria-labelledby=\"edit-tips-heading\"><h2 id=\"edit-tips-heading\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Editing tips</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground leading-relaxed\"><li>Renaming a file keeps its content; saving creates a new revision.</li><li>Switching to Private hides the gist from the Explore listing.</li><li>Use the file extension to pick syntax highlighting (e.g. <span class=\"font-mono\">.go</span>, <span class=\"font-mono\">.sql</span>).</li></ul></section></aside></div><script>\n\t\t\t\tdocument.getElementById('gist-edit-form').addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\tconst desc = this.querySelector('[name=description]').value;\n\t\t\t\t\tconst visEl = this.querySelector('[name=\"visibility\"]:checked');\n\t\t\t\t\tconst pub = !visEl || visEl.value === 'public';\n\t\t\t\t\tconst filenames = [...this.querySelectorAll('[name=\"filename[]\"]')].map(el => el.value);\n\t\t\t\t\tconst contents = [...this.querySelectorAll('[name=\"content[]\"]')].map(el => el.value);\n\t\t\t\t\tconst files = filenames.map((fn, i) => ({ filename: fn, content: contents[i] }));\n\t\t\t\t\tconst gistID = this.dataset.gistId;\n\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\ttry {\n\t\t\t\t\t\tconst res = await fetch('/api/gists/' + gistID, {\n\t\t\t\t\t\t\tmethod: 'PATCH',\n\t\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\t\tbody: JSON.stringify({ description: desc, public: pub, files })\n\t\t\t\t\t\t});\n\t\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\t\twindow.location.href = '/gists/' + gistID;\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\t\t\tlet msg = text;\n\t\t\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\t\t\talert(msg || ('Failed to update gist (HTTP ' + res.status + ')'));\n\t\t\t\t\t\t}\n\t\t\t\t\t} catch (err) {\n\t\t\t\t\t\talert('Could not reach the server. Check your connection and try again.');\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t</script></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

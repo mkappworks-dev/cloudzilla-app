@@ -72,8 +72,8 @@ type GistsData struct {
 	BasePage
 	Gists              []GistListItem
 	Page               int
-	Tab                string // "public" or "secret"
-	SecretTabAvailable bool
+	Tab                 string // "public" or "private"
+	PrivateTabAvailable bool
 }
 
 type GistDetailData struct {

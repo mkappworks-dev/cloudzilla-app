@@ -76,28 +76,20 @@ templ GistEdit(data view.GistEditData) {
 										<input type="radio" name="visibility" value="public" checked/> Public
 									</label>
 									<label class="flex items-center gap-1.5 text-[13px]">
-										<input type="radio" name="visibility" value="secret"/> Secret
+										<input type="radio" name="visibility" value="private"/> Private
 									</label>
 								} else {
 									<label class="flex items-center gap-1.5 text-[13px]">
 										<input type="radio" name="visibility" value="public"/> Public
 									</label>
 									<label class="flex items-center gap-1.5 text-[13px]">
-										<input type="radio" name="visibility" value="secret" checked/> Secret
+										<input type="radio" name="visibility" value="private" checked/> Private
 									</label>
 								}
 							</fieldset>
 							<div class="flex items-center gap-2">
 								@components.LinkButton("/gists/"+data.Gist.ID, components.ButtonOutline, components.ButtonSizeDefault, nil) {
 									Cancel
-								}
-								@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeDefault, templ.Attributes{
-									"type":                 "button",
-									"hx-delete":            "/api/gists/" + data.Gist.ID,
-									"hx-confirm":           "Delete this gist? This action cannot be undone.",
-									"hx-on::after-request": "if(event.detail.successful){window.location.href='/gists'}",
-								}) {
-									Delete gist
 								}
 								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 									Save changes
@@ -112,13 +104,9 @@ templ GistEdit(data view.GistEditData) {
 						<h2 id="edit-tips-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Editing tips</h2>
 						<ul class="space-y-2 text-[13px] text-muted-foreground leading-relaxed">
 							<li>Renaming a file keeps its content; saving creates a new revision.</li>
-							<li>Switching to Secret hides the gist from the Explore listing.</li>
+							<li>Switching to Private hides the gist from the Explore listing.</li>
 							<li>Use the file extension to pick syntax highlighting (e.g. <span class="font-mono">.go</span>, <span class="font-mono">.sql</span>).</li>
 						</ul>
-					</section>
-					<section aria-labelledby="danger-heading" class="border-t border-border pt-5">
-						<h2 id="danger-heading" class="text-[12px] font-medium text-destructive mb-2">Danger zone</h2>
-						<p class="text-[13px] text-muted-foreground leading-relaxed">Deleting a gist removes all files and revisions permanently.</p>
 					</section>
 				</aside>
 			</div>
