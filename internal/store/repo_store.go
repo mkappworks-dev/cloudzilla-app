@@ -382,8 +382,8 @@ func (s *RepoStore) SetTemplate(ctx context.Context, repoID int64, isTemplate bo
 
 func (s *RepoStore) UpdatePrimaryLanguage(ctx context.Context, repoID int64, lang string) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE repositories SET primary_language = $2 WHERE id = $1`,
-		repoID, lang,
+		`UPDATE repositories SET primary_language = $2, updated_at = $3 WHERE id = $1`,
+		repoID, lang, time.Now().UTC(),
 	)
 	if err != nil {
 		return fmt.Errorf("update repo primary language: %w", err)

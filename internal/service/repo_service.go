@@ -186,10 +186,8 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 					top, topBytes = lang, b
 				}
 			}
-			if top != "" {
-				if err := s.repos.UpdatePrimaryLanguage(ctx, repo.ID, top); err != nil {
-					slog.Warn("post-receive: update primary language failed", "repo_id", repo.ID, "error", err)
-				}
+			if err := s.repos.UpdatePrimaryLanguage(ctx, repo.ID, top); err != nil {
+				slog.Warn("post-receive: update primary language failed", "repo_id", repo.ID, "error", err)
 			}
 		}
 	}
