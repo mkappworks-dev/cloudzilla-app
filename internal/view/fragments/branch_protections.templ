@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 templ BranchProtections(data view.BranchProtectionsFragData) {
@@ -34,22 +35,30 @@ templ BranchProtections(data view.BranchProtectionsFragData) {
 							</td>
 							<td class="py-3">
 								if rule.BlockForcePush {
-									<span class="inline-block bg-destructive/10 text-destructive text-xs px-2 py-0.5 rounded">Blocked</span>
+									@components.Badge(components.BadgeDestructive) {
+										Blocked
+									}
 								} else {
-									<span class="inline-block bg-muted text-muted-foreground text-xs px-2 py-0.5 rounded">Allowed</span>
+									@components.Badge(components.BadgeSecondary) {
+										Allowed
+									}
 								}
 							</td>
-							<td class="py-3">
+							<td class="py-3 text-right">
 								if data.CanManage {
-									<button
-										hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections/" + strconv.FormatInt(rule.ID, 10) }
-										hx-target="#branch-protections"
-										hx-swap="outerHTML"
-										hx-confirm="Delete this branch protection rule?"
-										class="px-3 py-1 text-destructive border border-destructive/40 rounded hover:bg-destructive/10 transition-colors text-xs"
-									>
+									@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
+										"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections/" + strconv.FormatInt(rule.ID, 10),
+										"hx-target":           "#branch-protections",
+										"hx-swap":             "outerHTML",
+										"hx-confirm":          "The " + rule.Pattern + " branch will no longer require reviews or block force pushes.",
+										"data-confirm-title":  "Delete this protection rule?",
+										"data-confirm-label":  "Delete",
+										"data-confirm-danger": "true",
+										"data-toast":          "Branch protection deleted",
+										"type":                "button",
+									}) {
 										Delete
-									</button>
+									}
 								}
 							</td>
 						</tr>
@@ -57,8 +66,8 @@ templ BranchProtections(data view.BranchProtectionsFragData) {
 				</tbody>
 			</table>
 		} else {
-			<div class="text-center py-6 border border-border border-dashed rounded-lg bg-muted/40">
-				<p class="text-muted-foreground text-sm">No branch protection rules yet.</p>
+			<div class="text-center py-6 border border-dashed border-border rounded-md bg-muted/30">
+				<p class="text-sm text-muted-foreground">No branch protection rules yet.</p>
 			</div>
 		}
 	</div>

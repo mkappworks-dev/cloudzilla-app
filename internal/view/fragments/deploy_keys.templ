@@ -2,12 +2,14 @@ package fragments
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 templ DeployKeys(data view.DeployKeysFragData) {
-	<div id="deploy-keys">
+	<div id="deploy-keys-list">
 		if len(data.DeployKeys) > 0 {
 			<table class="w-full text-sm">
 				<thead>
@@ -26,29 +28,37 @@ templ DeployKeys(data view.DeployKeysFragData) {
 							<td class="py-3 font-mono text-muted-foreground text-xs">{ dk.Fingerprint }</td>
 							<td class="py-3">
 								if dk.ReadOnly {
-									<span class="inline-block bg-warning/10 text-warning text-xs px-2 py-0.5 rounded">Read-only</span>
+									@components.Badge(components.BadgeWarning) {
+										Read-only
+									}
 								} else {
-									<span class="inline-block bg-success/10 text-success text-xs px-2 py-0.5 rounded">Read-write</span>
+									@components.Badge(components.BadgeSuccess) {
+										Read-write
+									}
 								}
 							</td>
 							<td class="py-3 text-muted-foreground text-xs">
 								if dk.LastUsedAt != nil {
-									{ dk.LastUsedAt.Format("Jan 2, 2006") }
+									<time datetime={ dk.LastUsedAt.UTC().Format(time.RFC3339) }>{ dk.LastUsedAt.Format("Jan 2, 2006") }</time>
 								} else {
 									Never
 								}
 							</td>
-							<td class="py-3">
+							<td class="py-3 text-right">
 								if data.CanManage {
-									<button
-										hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys/" + strconv.FormatInt(dk.ID, 10) }
-										hx-target="#deploy-keys"
-										hx-swap="outerHTML"
-										hx-confirm="Revoke this deploy key?"
-										class="px-3 py-1 text-destructive border border-destructive/40 rounded hover:bg-destructive/10 transition-colors text-xs"
-									>
+									@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
+										"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys/" + strconv.FormatInt(dk.ID, 10),
+										"hx-target":           "#deploy-keys-list",
+										"hx-swap":             "outerHTML",
+										"hx-confirm":          "The " + dk.Title + " key will immediately lose access. Any pipeline using it will stop working.",
+										"data-confirm-title":  "Revoke this deploy key?",
+										"data-confirm-label":  "Revoke",
+										"data-confirm-danger": "true",
+										"data-toast":          "Deploy key revoked",
+										"type":                "button",
+									}) {
 										Revoke
-									</button>
+									}
 								}
 							</td>
 						</tr>
@@ -56,8 +66,8 @@ templ DeployKeys(data view.DeployKeysFragData) {
 				</tbody>
 			</table>
 		} else {
-			<div class="text-center py-6 border border-border border-dashed rounded-lg bg-muted/40">
-				<p class="text-muted-foreground text-sm">No deploy keys yet.</p>
+			<div class="text-center py-6 border border-dashed border-border rounded-md bg-muted/30">
+				<p class="text-sm text-muted-foreground">No deploy keys yet.</p>
 			</div>
 		}
 	</div>

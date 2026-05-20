@@ -1,11 +1,9 @@
 package pages
 
 import (
-	"strconv"
-	"time"
-
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -167,53 +165,13 @@ templ RepoSettings(data view.RepoSettingsData) {
 							}
 						}
 						@components.CardContent() {
-							<div id="repo-collaborators" class="space-y-2">
-								if data.CanManage {
-									<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/collaborators" } hx-target="#repo-collaborators" hx-swap="outerHTML" class="flex gap-3 mb-4">
-										<label for="collab-username" class="sr-only">Username</label>
-										@components.Input(templ.Attributes{
-											"id":          "collab-username",
-											"type":        "text",
-											"name":        "username",
-											"placeholder": "Username",
-											"required":    "required",
-											"class":       "flex-1",
-										})
-										<label for="collab-role" class="sr-only">Role</label>
-										<select id="collab-role" name="role" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
-											<option value="reader">Reader</option>
-											<option value="writer">Writer</option>
-											<option value="admin">Admin</option>
-										</select>
-										@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-											Add
-										}
-									</form>
-								}
-								if len(data.Collabs) > 0 {
-									for _, c := range data.Collabs {
-										<div class="rounded-md border border-border p-4 flex justify-between items-center">
-											<div>
-												<p class="text-sm font-medium text-foreground">{ c.Username }</p>
-												<p class="text-xs text-muted-foreground capitalize">{ c.Role }</p>
-											</div>
-											if data.CanManage {
-												@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-													"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/collaborators?user_id=" + strconv.FormatInt(c.UserID, 10),
-													"hx-target":  "#repo-collaborators",
-													"hx-swap":    "outerHTML",
-													"hx-confirm": "Remove this collaborator?",
-													"type":       "button",
-												}) {
-													Remove
-												}
-											}
-										</div>
-									}
-								} else {
-									<p class="text-sm text-muted-foreground">No collaborators yet.</p>
-								}
-							</div>
+							@fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
+								Owner:     data.Owner,
+								RepoName:  data.RepoName,
+								RepoID:    data.Repo.ID,
+								Collabs:   data.Collabs,
+								CanManage: data.CanManage,
+							})
 						}
 					}
 					<div id="deploy-keys" class="scroll-mt-6"></div>
@@ -235,64 +193,13 @@ templ RepoSettings(data view.RepoSettingsData) {
 							</div>
 						}
 						@components.CardContent() {
-							<div id="deploy-keys">
-								if len(data.DeployKeys) > 0 {
-									<table class="w-full text-sm">
-										<thead>
-											<tr class="text-left text-muted-foreground border-b border-border">
-												<th class="pb-2 font-medium">Title</th>
-												<th class="pb-2 font-medium">Fingerprint</th>
-												<th class="pb-2 font-medium">Access</th>
-												<th class="pb-2 font-medium">Last used</th>
-												<th class="pb-2"></th>
-											</tr>
-										</thead>
-										<tbody class="divide-y divide-border">
-											for _, dk := range data.DeployKeys {
-												<tr>
-													<td class="py-3 font-medium text-foreground">{ dk.Title }</td>
-													<td class="py-3 font-mono text-muted-foreground text-xs">{ dk.Fingerprint }</td>
-													<td class="py-3">
-														if dk.ReadOnly {
-															@components.Badge(components.BadgeWarning) {
-																Read-only
-															}
-														} else {
-															@components.Badge(components.BadgeSuccess) {
-																Read-write
-															}
-														}
-													</td>
-													<td class="py-3 text-muted-foreground text-xs">
-														if dk.LastUsedAt != nil {
-															<time datetime={ dk.LastUsedAt.UTC().Format(time.RFC3339) }>{ dk.LastUsedAt.Format("Jan 2, 2006") }</time>
-														} else {
-															Never
-														}
-													</td>
-													<td class="py-3">
-														if data.CanManage {
-															@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-																"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys/" + strconv.FormatInt(dk.ID, 10),
-																"hx-target":  "#deploy-keys",
-																"hx-swap":    "outerHTML",
-																"hx-confirm": "Revoke this deploy key?",
-																"type":       "button",
-															}) {
-																Revoke
-															}
-														}
-													</td>
-												</tr>
-											}
-										</tbody>
-									</table>
-								} else {
-									<div class="text-center py-6 border border-dashed border-border rounded-md bg-muted/30">
-										<p class="text-sm text-muted-foreground">No deploy keys yet.</p>
-									</div>
-								}
-							</div>
+							@fragments.DeployKeys(view.DeployKeysFragData{
+								Owner:      data.Owner,
+								RepoName:   data.RepoName,
+								RepoID:     data.Repo.ID,
+								DeployKeys: data.DeployKeys,
+								CanManage:  data.CanManage,
+							})
 						}
 					}
 					if data.CanManage {
@@ -303,7 +210,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.DialogBody() {
-								<form id="deploy-key-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys" } hx-target="#deploy-keys" hx-swap="outerHTML" hx-on::after-request="this.closest('dialog').close()" class="space-y-4">
+								<form id="deploy-key-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys" } hx-target="#deploy-keys-list" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful){this.closest('dialog').close();this.reset();}" class="space-y-4">
 									<div class="space-y-1.5">
 										<label for="deploy-key-title" class="block text-xs font-medium">Title</label>
 										@components.Input(templ.Attributes{
@@ -360,36 +267,13 @@ templ RepoSettings(data view.RepoSettingsData) {
 							</div>
 						}
 						@components.CardContent() {
-							<div id="repo-labels" class="space-y-3">
-								if len(data.Labels) > 0 {
-									for _, l := range data.Labels {
-										<div class="flex items-center justify-between rounded-md border border-border p-3">
-											<div class="flex items-center gap-2">
-												<span class="w-4 h-4 rounded-full inline-block border border-border shrink-0" style={ "background-color: " + l.Color } aria-hidden="true"></span>
-												<div>
-													<span class="text-sm font-medium text-foreground">{ l.Name }</span>
-													if l.Description != "" {
-														<span class="text-xs text-muted-foreground ml-2">{ l.Description }</span>
-													}
-												</div>
-											</div>
-											if data.CanManage {
-												@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-													"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/labels/" + strconv.FormatInt(l.ID, 10),
-													"hx-target":  "#repo-labels",
-													"hx-swap":    "outerHTML",
-													"hx-confirm": "Delete this label?",
-													"type":       "button",
-												}) {
-													Delete
-												}
-											}
-										</div>
-									}
-								} else {
-									<p class="text-sm text-muted-foreground">No labels defined yet.</p>
-								}
-							</div>
+							@fragments.RepoLabels(view.RepoLabelsFragData{
+								Owner:    data.Owner,
+								RepoName: data.RepoName,
+								RepoID:   data.Repo.ID,
+								Labels:   data.Labels,
+								CanWrite: data.CanManage,
+							})
 						}
 					}
 					if data.CanManage {
@@ -455,69 +339,13 @@ templ RepoSettings(data view.RepoSettingsData) {
 							</div>
 						}
 						@components.CardContent() {
-							<div id="branch-protections">
-								if len(data.BranchProtections) > 0 {
-									<table class="w-full text-sm">
-										<thead>
-											<tr class="text-left text-muted-foreground border-b border-border">
-												<th class="pb-2 font-medium">Pattern</th>
-												<th class="pb-2 font-medium">Required Reviews</th>
-												<th class="pb-2 font-medium">Status Checks</th>
-												<th class="pb-2 font-medium">Block Force Push</th>
-												<th class="pb-2"></th>
-											</tr>
-										</thead>
-										<tbody class="divide-y divide-border">
-											for _, p := range data.BranchProtections {
-												<tr>
-													<td class="py-3 font-mono text-sm text-foreground">{ p.Pattern }</td>
-													<td class="py-3 text-foreground">{ strconv.Itoa(p.RequireReviewCount) }</td>
-													<td class="py-3 text-muted-foreground text-xs">
-														if len(p.RequireStatusChecks) > 0 {
-															for i, c := range p.RequireStatusChecks {
-																if i > 0 {
-																	,{ " " }
-																}
-																{ c }
-															}
-														} else {
-															—
-														}
-													</td>
-													<td class="py-3">
-														if p.BlockForcePush {
-															@components.Badge(components.BadgeDestructive) {
-																Blocked
-															}
-														} else {
-															@components.Badge(components.BadgeSecondary) {
-																Allowed
-															}
-														}
-													</td>
-													<td class="py-3">
-														if data.CanManage {
-															@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-																"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections/" + strconv.FormatInt(p.ID, 10),
-																"hx-target":  "#branch-protections",
-																"hx-swap":    "outerHTML",
-																"hx-confirm": "Delete this branch protection rule?",
-																"type":       "button",
-															}) {
-																Delete
-															}
-														}
-													</td>
-												</tr>
-											}
-										</tbody>
-									</table>
-								} else {
-									<div class="text-center py-6 border border-dashed border-border rounded-md bg-muted/30">
-										<p class="text-sm text-muted-foreground">No branch protection rules yet.</p>
-									</div>
-								}
-							</div>
+							@fragments.BranchProtections(view.BranchProtectionsFragData{
+								Owner:     data.Owner,
+								RepoName:  data.RepoName,
+								RepoID:    data.Repo.ID,
+								Rules:     data.BranchProtections,
+								CanManage: data.CanManage,
+							})
 						}
 					}
 					if data.CanManage {
@@ -591,35 +419,13 @@ templ RepoSettings(data view.RepoSettingsData) {
 							</div>
 						}
 						@components.CardContent() {
-							<div id="webhooks-list" class="space-y-2">
-								if len(data.Webhooks) > 0 {
-									for _, wh := range data.Webhooks {
-										<div class="rounded-md border border-border p-4 flex justify-between items-start">
-											<div>
-												<p class="font-medium text-sm font-mono break-all text-foreground">{ wh.URL }</p>
-												<p class="text-xs text-muted-foreground mt-1">Events: { wh.Events }</p>
-												if wh.Active {
-													<p class="text-xs mt-1 text-success">Active</p>
-												} else {
-													<p class="text-xs mt-1 text-muted-foreground">Inactive</p>
-												}
-											</div>
-											@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-												"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10),
-												"hx-target":  "#webhooks-list",
-												"hx-swap":    "outerHTML",
-												"hx-confirm": "Delete this webhook?",
-												"type":       "button",
-												"class":      "ml-4 shrink-0",
-											}) {
-												Delete
-											}
-										</div>
-									}
-								} else {
-									<p class="text-sm text-muted-foreground">No webhooks configured.</p>
-								}
-							</div>
+							@fragments.WebhooksList(view.WebhooksFragData{
+								Owner:     data.Owner,
+								RepoName:  data.RepoName,
+								RepoID:    data.Repo.ID,
+								Webhooks:  data.Webhooks,
+								CanManage: data.CanManage,
+							})
 						}
 					}
 					@components.Dialog("webhook-dialog") {

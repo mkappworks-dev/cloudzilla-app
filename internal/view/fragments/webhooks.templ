@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 script toggleEventsForm(id string) {
@@ -11,13 +12,13 @@ script toggleEventsForm(id string) {
 }
 
 templ WebhooksList(data view.WebhooksFragData) {
-	<div id="webhooks-list" class="space-y-4">
+	<div id="webhooks-list" class="space-y-2">
 		if len(data.Webhooks) > 0 {
 			for _, wh := range data.Webhooks {
 				<div>
-					<div class="border border-border rounded-lg p-4 flex justify-between items-start">
+					<div class="rounded-md border border-border p-4 flex justify-between items-start">
 						<div class="min-w-0 flex-1">
-							<p class="font-medium text-sm font-mono break-all">{ wh.URL }</p>
+							<p class="font-medium text-sm font-mono break-all text-foreground">{ wh.URL }</p>
 							<p class="text-xs text-muted-foreground mt-1">
 								Events:
 								<button
@@ -33,33 +34,36 @@ templ WebhooksList(data view.WebhooksFragData) {
 									hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10) }
 									hx-target="#webhooks-list"
 									hx-swap="outerHTML"
+									data-toast="Webhook updated"
 									class="space-y-1"
 								>
-									<label class="flex items-center gap-2 text-xs">
+									<label class="flex items-center gap-2 text-xs text-foreground">
 										if hasEvent(wh.Events, "push") {
-											<input type="checkbox" name="push" value="1" checked/>
+											<input type="checkbox" name="push" value="1" checked class="rounded border-input accent-foreground"/>
 										} else {
-											<input type="checkbox" name="push" value="1"/>
+											<input type="checkbox" name="push" value="1" class="rounded border-input accent-foreground"/>
 										}
 										push
 									</label>
-									<label class="flex items-center gap-2 text-xs">
+									<label class="flex items-center gap-2 text-xs text-foreground">
 										if hasEvent(wh.Events, "issues") {
-											<input type="checkbox" name="issues" value="1" checked/>
+											<input type="checkbox" name="issues" value="1" checked class="rounded border-input accent-foreground"/>
 										} else {
-											<input type="checkbox" name="issues" value="1"/>
+											<input type="checkbox" name="issues" value="1" class="rounded border-input accent-foreground"/>
 										}
 										issues
 									</label>
-									<label class="flex items-center gap-2 text-xs">
+									<label class="flex items-center gap-2 text-xs text-foreground">
 										if hasEvent(wh.Events, "pull_request") {
-											<input type="checkbox" name="pull_request" value="1" checked/>
+											<input type="checkbox" name="pull_request" value="1" checked class="rounded border-input accent-foreground"/>
 										} else {
-											<input type="checkbox" name="pull_request" value="1"/>
+											<input type="checkbox" name="pull_request" value="1" class="rounded border-input accent-foreground"/>
 										}
 										pull_request
 									</label>
-									<button type="submit" class="mt-2 px-2 py-1 bg-primary text-background rounded text-xs">Save</button>
+									@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{"type": "submit", "class": "mt-2"}) {
+										Save
+									}
 								</form>
 							</div>
 							if wh.Active {
@@ -70,23 +74,27 @@ templ WebhooksList(data view.WebhooksFragData) {
 						</div>
 						if data.CanManage {
 							<div class="flex gap-2 ml-4 shrink-0">
-								<button
-									hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10) + "/deliveries" }
-									hx-target={ "#webhook-deliveries-" + strconv.FormatInt(wh.ID, 10) }
-									hx-swap="outerHTML"
-									class="text-xs text-foreground hover:underline"
-								>
+								@components.Button(components.ButtonGhost, components.ButtonSizeSM, templ.Attributes{
+									"hx-get":    "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10) + "/deliveries",
+									"hx-target": "#webhook-deliveries-" + strconv.FormatInt(wh.ID, 10),
+									"hx-swap":   "outerHTML",
+									"type":      "button",
+								}) {
 									Deliveries
-								</button>
-								<button
-									hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10) }
-									hx-target="#webhooks-list"
-									hx-swap="outerHTML"
-									hx-confirm="Delete this webhook?"
-									class="text-xs text-destructive hover:underline"
-								>
+								}
+								@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
+									"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10),
+									"hx-target":           "#webhooks-list",
+									"hx-swap":             "outerHTML",
+									"hx-confirm":          data.RepoName + " will stop sending events to " + wh.URL + ".",
+									"data-confirm-title":  "Delete this webhook?",
+									"data-confirm-label":  "Delete",
+									"data-confirm-danger": "true",
+									"data-toast":          "Webhook deleted",
+									"type":                "button",
+								}) {
 									Delete
-								</button>
+								}
 							</div>
 						}
 					</div>
@@ -94,7 +102,7 @@ templ WebhooksList(data view.WebhooksFragData) {
 				</div>
 			}
 		} else {
-			<p class="text-muted-foreground text-sm">No webhooks configured.</p>
+			<p class="text-sm text-muted-foreground">No webhooks configured.</p>
 		}
 	</div>
 }
