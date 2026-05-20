@@ -242,7 +242,7 @@ func SSOSettings(data view.SSOSettingsData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<form method=\"POST\" action=\"/admin/sso\" class=\"space-y-4\"><input type=\"hidden\" name=\"provider\" value=\"ldap\"><div class=\"grid grid-cols-2 gap-4\"><div class=\"space-y-1.5\"><label for=\"ldap_host\" class=\"block text-sm font-medium text-foreground\">Host</label> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<form method=\"POST\" action=\"/admin/sso\" data-toast=\"LDAP settings saved\" class=\"space-y-4\"><input type=\"hidden\" name=\"provider\" value=\"ldap\"><div class=\"grid grid-cols-2 gap-4\"><div class=\"space-y-1.5\"><label for=\"ldap_host\" class=\"block text-sm font-medium text-foreground\">Host</label> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -579,7 +579,7 @@ func SSOSettings(data view.SSOSettingsData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<form method=\"POST\" action=\"/admin/sso\" class=\"space-y-4\"><input type=\"hidden\" name=\"provider\" value=\"saml\"><div class=\"space-y-1.5\"><label for=\"saml_entity_id\" class=\"block text-sm font-medium text-foreground\">Entity ID</label> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<form method=\"POST\" action=\"/admin/sso\" data-toast=\"SAML settings saved\" class=\"space-y-4\"><input type=\"hidden\" name=\"provider\" value=\"saml\"><div class=\"space-y-1.5\"><label for=\"saml_entity_id\" class=\"block text-sm font-medium text-foreground\">Entity ID</label> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

@@ -33,7 +33,7 @@ templ AdminSettings(data view.AdminSettingsData) {
 									<div>
 										<p class="text-sm font-medium text-foreground">{ s.Key }</p>
 									</div>
-									<form hx-post="/api/admin/settings" hx-target="#admin-settings-list" hx-swap="outerHTML" class="flex items-center gap-3">
+									<form hx-post="/api/admin/settings" hx-target="#admin-settings-list" hx-swap="outerHTML" data-toast="Setting updated" class="flex items-center gap-3">
 										<input type="hidden" name="key" value={ s.Key }/>
 										if s.Value == "true" {
 											<span class="text-xs text-success font-medium">Enabled</span>
@@ -68,7 +68,7 @@ templ AdminSettings(data view.AdminSettingsData) {
 					}
 				}
 				@components.CardContent() {
-					<form hx-post="/api/admin/invitations" hx-target="#admin-invitations-list" hx-swap="outerHTML" class="flex gap-3 mb-6">
+					<form hx-post="/api/admin/invitations" hx-target="#admin-invitations-list" hx-swap="outerHTML" data-toast="Invitation sent" class="flex gap-3 mb-6">
 						<label for="invite-email" class="sr-only">Invitee email</label>
 						@components.Input(templ.Attributes{
 							"id":          "invite-email",
@@ -100,12 +100,16 @@ templ AdminSettings(data view.AdminSettingsData) {
 									</div>
 									if inv.AcceptedAt == nil {
 										@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-											"hx-delete":  "/api/admin/invitations/" + strconv.FormatInt(inv.ID, 10),
-											"hx-target":  "#admin-invitations-list",
-											"hx-swap":    "outerHTML",
-											"hx-confirm": "Delete this invitation?",
-											"type":       "button",
-											"class":      "ml-4 shrink-0",
+											"hx-delete":           "/api/admin/invitations/" + strconv.FormatInt(inv.ID, 10),
+											"hx-target":           "#admin-invitations-list",
+											"hx-swap":             "outerHTML",
+											"hx-confirm":          "The invite link for " + inv.Email + " will stop working immediately.",
+											"data-confirm-title":  "Delete this invitation?",
+											"data-confirm-label":  "Delete",
+											"data-confirm-danger": "true",
+											"data-toast":          "Invitation deleted",
+											"type":                "button",
+											"class":               "ml-4 shrink-0",
 										}) {
 											Delete
 										}
