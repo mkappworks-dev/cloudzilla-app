@@ -36,3 +36,29 @@ func TestActivityRow_RendersFields(t *testing.T) {
 		}
 	}
 }
+
+func TestActivityRow_NoSubject(t *testing.T) {
+	var buf bytes.Buffer
+	err := ActivityRow(ActivityRowData{
+		Kind:       "push",
+		Actor:      "bob",
+		RepoName:   "acme/bar",
+		Subject:    "",
+		SubjectURL: "",
+		When:       "5 minutes ago",
+	}).Render(context.Background(), &buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if !strings.Contains(s, "acme/bar") {
+		t.Errorf("expected repo name %q in output", "acme/bar")
+	}
+	if strings.Contains(s, " in ") {
+		t.Errorf("unexpected \" in \" in output when Subject is empty")
+	}
+	if strings.Contains(s, `href=""`) {
+		t.Errorf("unexpected empty href in output when Subject is empty")
+	}
+}

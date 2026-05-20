@@ -15,8 +15,10 @@ templ ActivityRow(a ActivityRowData) {
 		<p class="flex-1 text-sm">
 			<a href={ templ.SafeURL("/" + a.Actor) } class="font-medium hover:text-primary">{ a.Actor }</a>
 			<span class="text-muted-foreground">{ " " + activityVerb(a.Kind) + " " }</span>
-			<a href={ templ.SafeURL(a.SubjectURL) } class="text-foreground hover:text-primary">{ a.Subject }</a>
-			<span class="text-muted-foreground">{ " in " }</span>
+			if a.Subject != "" {
+				<a href={ templ.SafeURL(a.SubjectURL) } class="text-foreground hover:text-primary">{ a.Subject }</a>
+				<span class="text-muted-foreground">{ " in " }</span>
+			}
 			<a href={ templ.SafeURL("/" + a.RepoName) } class="text-foreground hover:text-primary">{ a.RepoName }</a>
 		</p>
 		<time class="text-xs text-muted-foreground/70 font-mono">{ a.When }</time>

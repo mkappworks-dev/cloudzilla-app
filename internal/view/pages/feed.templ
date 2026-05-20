@@ -20,8 +20,8 @@ func eventToActivityRow(e model.Event) components.ActivityRowData {
 		Kind:       kind,
 		Actor:      e.ActorName,
 		RepoName:   e.OwnerName + "/" + e.RepoName,
-		Subject:    e.OwnerName + "/" + e.RepoName,
-		SubjectURL: "/" + e.OwnerName + "/" + e.RepoName,
+		Subject:    "",
+		SubjectURL: "",
 		When:       activityRelativeTime(e.CreatedAt),
 	}
 }
