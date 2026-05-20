@@ -50,11 +50,10 @@ templ GistDetail(data view.GistDetailData) {
 						@components.LinkButton("/gists/"+data.Gist.ID+"/edit", components.ButtonOutline, components.ButtonSizeSM, nil) {
 							Edit
 						}
-						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+						@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
 							"hx-delete":            "/api/gists/" + data.Gist.ID,
 							"hx-confirm":           "Delete this gist?",
-							"hx-on::after-request": "window.location.href='/gists'",
-							"class":                "text-destructive border-destructive/40 hover:bg-destructive/10",
+							"hx-on::after-request": "if(event.detail.successful){window.location.href='/gists'}",
 						}) {
 							Delete
 						}
