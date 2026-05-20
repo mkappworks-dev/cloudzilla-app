@@ -255,5 +255,6 @@ func (h *Handler) PageUserGists(w http.ResponseWriter, r *http.Request) {
 
 // AddFileFragment returns an HTMX fragment for a new gist file row.
 func (h *Handler) AddFileFragment(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, fragments.GistFileRow())
+	idx, _ := strconv.Atoi(r.URL.Query().Get("index"))
+	h.render(w, r, fragments.GistFileRow(idx))
 }

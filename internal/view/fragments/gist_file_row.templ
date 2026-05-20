@@ -1,8 +1,12 @@
 package fragments
 
-import "github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+import (
+	"strconv"
 
-templ GistFileRow() {
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
+
+templ GistFileRow(index int) {
 	<section class="rounded-md border border-border bg-card overflow-hidden">
 		<header class="px-3 py-2 border-b border-border bg-accent flex items-center gap-2">
 			<label class="sr-only">Filename</label>
@@ -14,6 +18,6 @@ templ GistFileRow() {
 				required
 			/>
 		</header>
-		@components.MarkdownEditor("gist-content-new", "content[]", "", "File contents…", 8)
+		@components.MarkdownEditor("gist-content-new-"+strconv.Itoa(index), "content[]", "", "File contents…", 8)
 	</section>
 }

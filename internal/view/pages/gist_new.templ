@@ -58,6 +58,7 @@ templ GistNew(data view.GistNewData) {
 							"hx-get":    "/api/gists/file-row",
 							"hx-target": "#file-rows",
 							"hx-swap":   "beforeend",
+							"hx-vals":   "js:{index: document.querySelectorAll('#file-rows > *').length}",
 						}) {
 							+ Add file
 						}
