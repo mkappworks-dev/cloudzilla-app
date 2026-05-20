@@ -30,33 +30,7 @@ func eventToActivityRow(e model.Event) components.ActivityRowData {
 		RepoName:   e.OwnerName + "/" + e.RepoName,
 		Subject:    "",
 		SubjectURL: "",
-		When:       activityRelativeTime(e.CreatedAt),
-	}
-}
-
-func activityRelativeTime(t time.Time) string {
-	d := time.Since(t)
-	switch {
-	case d < time.Minute:
-		return "just now"
-	case d < time.Hour:
-		m := int(d / time.Minute)
-		if m == 1 {
-			return "1 minute ago"
-		}
-		return strconv.Itoa(m) + " minutes ago"
-	case d < 24*time.Hour:
-		h := int(d / time.Hour)
-		if h == 1 {
-			return "1 hour ago"
-		}
-		return strconv.Itoa(h) + " hours ago"
-	case d < 48*time.Hour:
-		return "yesterday"
-	case d < 7*24*time.Hour:
-		return strconv.Itoa(int(d/(24*time.Hour))) + " days ago"
-	default:
-		return t.Format("Jan 2, 2006")
+		When:       relativeTime(e.CreatedAt),
 	}
 }
 
@@ -139,7 +113,7 @@ func Activity(data view.ActivityData) templ.Component {
 						var templ_7745c5c3_Var3 string
 						templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(activityDateLabel(e.CreatedAt))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/feed.templ`, Line: 93, Col: 94}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/feed.templ`, Line: 68, Col: 94}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 						if templ_7745c5c3_Err != nil {

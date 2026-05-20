@@ -2,6 +2,7 @@ package pages
 
 import (
 	"net/url"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -42,9 +43,12 @@ templ AccountStars(data view.AccountStarsData) {
 								if repo.Description != "" {
 									<div class="mt-1 text-[12px] text-muted-foreground">{ repo.Description }</div>
 								}
-								if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
-									<div class="mt-1.5 text-[12px] text-muted-foreground">{ *repo.PrimaryLanguage }</div>
-								}
+								<div class="mt-1.5 flex items-center gap-3 text-[12px] text-muted-foreground">
+									if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
+										<span>{ *repo.PrimaryLanguage }</span>
+									}
+									<time class="font-mono text-xs text-muted-foreground/70" datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>Updated { relativeTime(repo.UpdatedAt) }</time>
+								</div>
 							</a>
 						</li>
 					}
