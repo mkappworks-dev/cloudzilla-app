@@ -21,7 +21,7 @@ func NewDiscussionStore(db *sql.DB) *DiscussionStore { return &DiscussionStore{d
 
 func (s *DiscussionStore) ListCategories(ctx context.Context) ([]model.DiscussionCategory, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, name, emoji, description FROM discussion_categories ORDER BY id`,
+		`SELECT id, name, description FROM discussion_categories ORDER BY id`,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("category list: %w", err)
@@ -30,7 +30,7 @@ func (s *DiscussionStore) ListCategories(ctx context.Context) ([]model.Discussio
 	var cats []model.DiscussionCategory
 	for rows.Next() {
 		var c model.DiscussionCategory
-		if err := rows.Scan(&c.ID, &c.Name, &c.Emoji, &c.Description); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Description); err != nil {
 			return nil, err
 		}
 		cats = append(cats, c)
@@ -41,8 +41,8 @@ func (s *DiscussionStore) ListCategories(ctx context.Context) ([]model.Discussio
 func (s *DiscussionStore) GetCategory(ctx context.Context, id int64) (*model.DiscussionCategory, error) {
 	var c model.DiscussionCategory
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, name, emoji, description FROM discussion_categories WHERE id = $1`, id,
-	).Scan(&c.ID, &c.Name, &c.Emoji, &c.Description)
+		`SELECT id, name, description FROM discussion_categories WHERE id = $1`, id,
+	).Scan(&c.ID, &c.Name, &c.Description)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
