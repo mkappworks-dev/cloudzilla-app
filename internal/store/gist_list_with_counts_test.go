@@ -42,35 +42,44 @@ func TestGistStore_ListWithCounts(t *testing.T) {
 		t.Fatalf("insert star: %v", err)
 	}
 
-	rows, err := gs.ListWithCounts(ctx, "alice")
+	var aliceUsername string
+	if err := db.QueryRowContext(ctx, `SELECT username FROM users WHERE id = $1`, aliceID).Scan(&aliceUsername); err != nil {
+		t.Fatalf("lookup alice username: %v", err)
+	}
+
+	rows, err := gs.ListWithCounts(ctx, aliceUsername)
 	if err != nil {
 		t.Fatalf("ListWithCounts: %v", err)
 	}
 
-	// ListWithCounts filters by username; seedTwoUsers creates "alice_<suffix>" but we passed
-	// OwnerName "alice" when creating the gist. The SQL JOIN is on u.username, so we need to
-	// look up what username was actually seeded and use the empty-filter path instead.
-	// Fall back to empty filter (all gists) and find our parent by ID.
-	if len(rows) == 0 {
-		rows, err = gs.ListWithCounts(ctx, "")
-		if err != nil {
-			t.Fatalf("ListWithCounts (no filter): %v", err)
-		}
+	if len(rows) != 2 {
+		t.Fatalf("expected 2 rows (parent + fork), got %d", len(rows))
 	}
 
-	var found *model.GistListRow
+	var parentRow, forkRow *model.GistListRow
 	for i := range rows {
-		if rows[i].ID == parent.ID {
-			found = &rows[i]
-			break
+		switch rows[i].ID {
+		case parent.ID:
+			parentRow = &rows[i]
+		case fork.ID:
+			forkRow = &rows[i]
 		}
 	}
-	if found == nil {
+	if parentRow == nil {
 		t.Fatalf("parent gist %q not in ListWithCounts results", parent.ID)
 	}
-	if found.StarCount < 1 || found.ForkCount < 1 || found.FileCount < 1 {
-		t.Errorf("expected counts >=1, got StarCount=%d ForkCount=%d FileCount=%d",
-			found.StarCount, found.ForkCount, found.FileCount)
+	if forkRow == nil {
+		t.Fatalf("fork gist %q not in ListWithCounts results", fork.ID)
+	}
+	if parentRow.ForkCount < 1 {
+		t.Errorf("parent ForkCount: want >=1, got %d", parentRow.ForkCount)
+	}
+	if forkRow.ForkCount != 0 {
+		t.Errorf("fork ForkCount: want 0, got %d", forkRow.ForkCount)
+	}
+	if parentRow.StarCount < 1 || parentRow.FileCount < 1 {
+		t.Errorf("parent counts: StarCount=%d FileCount=%d, both want >=1",
+			parentRow.StarCount, parentRow.FileCount)
 	}
 }
 

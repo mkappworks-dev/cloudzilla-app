@@ -52,11 +52,11 @@ func (s *GistStore) Get(ctx context.Context, id string) (*model.Gist, []model.Gi
 		`SELECT id, owner_id, owner_name, description, public, forked_from_id, created_at, updated_at FROM gists WHERE id = $1`,
 		id,
 	).Scan(&g.ID, &g.OwnerID, &g.OwnerName, &g.Description, &g.Public, &forkedFrom, &g.CreatedAt, &g.UpdatedAt)
-	if forkedFrom.Valid {
-		g.ForkedFromID = &forkedFrom.String
-	}
 	if err != nil {
 		return nil, nil, fmt.Errorf("gist get: %w", err)
+	}
+	if forkedFrom.Valid {
+		g.ForkedFromID = &forkedFrom.String
 	}
 
 	rows, err := s.db.QueryContext(ctx,
