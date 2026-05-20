@@ -50,12 +50,18 @@ type RepoService struct {
 	commitStats      *CommitStatsService
 	contributorStats *ContributorStatsService
 	code             *CodeService
+	language         *LanguageService
 	cfg              config.GitConfig
 }
 
 // The code service may be nil in tests that do not exercise contributor queries.
 func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, commitStats *CommitStatsService, contributorStats *ContributorStatsService, code *CodeService, cfg config.GitConfig) *RepoService {
 	return &RepoService{repos: repos, users: users, orgs: orgs, commitStats: commitStats, contributorStats: contributorStats, code: code, cfg: cfg}
+}
+
+func (s *RepoService) WithLanguageService(lang *LanguageService) *RepoService {
+	s.language = lang
+	return s
 }
 
 func (s *RepoService) TopContributors(ctx context.Context, owner, name, ref string, limit int) ([]ContributorStat, error) {
@@ -168,6 +174,26 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 			}
 		}
 	}
+
+	if s.language != nil && repo.OwnerName != "" && repo.DefaultBranch != "" {
+		comp, err := s.language.Composition(ctx, repo.OwnerName, repo.Name, repo.DefaultBranch)
+		if err != nil {
+			slog.Warn("post-receive: language composition failed", "repo_id", repo.ID, "error", err)
+		} else if len(comp) > 0 {
+			top, topBytes := "", int64(0)
+			for lang, b := range comp {
+				if b > topBytes {
+					top, topBytes = lang, b
+				}
+			}
+			if top != "" {
+				if err := s.repos.UpdatePrimaryLanguage(ctx, repo.ID, top); err != nil {
+					slog.Warn("post-receive: update primary language failed", "repo_id", repo.ID, "error", err)
+				}
+			}
+		}
+	}
+
 	return nil
 }
 

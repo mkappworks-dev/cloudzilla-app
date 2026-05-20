@@ -380,6 +380,17 @@ func (s *RepoStore) SetTemplate(ctx context.Context, repoID int64, isTemplate bo
 	return nil
 }
 
+func (s *RepoStore) UpdatePrimaryLanguage(ctx context.Context, repoID int64, lang string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET primary_language = $2 WHERE id = $1`,
+		repoID, lang,
+	)
+	if err != nil {
+		return fmt.Errorf("update repo primary language: %w", err)
+	}
+	return nil
+}
+
 func (s *RepoStore) UpdateMeta(ctx context.Context, repoID int64, description, website, license string) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE repositories SET description = $1, website = $2, license = $3, updated_at = $4 WHERE id = $5`,
