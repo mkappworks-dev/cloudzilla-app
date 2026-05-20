@@ -15,23 +15,54 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// PageGists renders the public gist explore page.
+// PageGists renders the public gist explore page, with a Secret tab for the signed-in viewer.
 func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 	page := 1
 	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
 		page = p
 	}
-	gists, _ := h.Services.Gist.Explore(r.Context(), page, 20)
-	if gists == nil {
-		gists = []model.Gist{}
+	tab := r.URL.Query().Get("tab")
+	if tab != "secret" {
+		tab = "public"
 	}
+
+	ctx := r.Context()
+	claims, signedIn := middleware.ClaimsFromContext(ctx)
+
+	var rows []model.GistListRow
+	if tab == "secret" && signedIn {
+		privateGists, _ := h.Services.Gist.ListPrivateByOwner(ctx, claims.UserID, page, 50)
+		for _, g := range privateGists {
+			rows = append(rows, model.GistListRow{Gist: g})
+		}
+	} else {
+		rows, _ = h.Services.Gist.ListWithCounts(ctx, "")
+	}
+	if rows == nil {
+		rows = []model.GistListRow{}
+	}
+
+	ids := make([]string, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.ID)
+	}
+	filenamesByGist, _ := h.Services.Gist.LoadFilenames(ctx, ids)
+
+	items := make([]view.GistListItem, 0, len(rows))
+	for _, row := range rows {
+		label, chipClass := gistLanguage(filenamesByGist[row.ID])
+		items = append(items, view.GistListItem{GistListRow: row, LanguageLabel: label, LanguageClass: chipClass})
+	}
+
 	data := view.GistsData{
-		BasePage: basePage(r, h.Services),
-		Gists:    gists,
-		Page:     page,
+		BasePage:           basePage(r, h.Services),
+		Gists:              items,
+		Page:               page,
+		Tab:                tab,
+		SecretTabAvailable: signedIn,
 	}
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(r.Context(), claims.UserID))
+	if signedIn {
+		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
 	}
 	h.render(w, r, pages.Gists(data))
 }

@@ -135,6 +135,10 @@ func (s *GistService) ListWithCounts(ctx context.Context, ownerFilter string) ([
 	return s.gists.ListWithCounts(ctx, ownerFilter)
 }
 
+func (s *GistService) LoadFilenames(ctx context.Context, gistIDs []string) (map[string][]string, error) {
+	return s.gists.LoadFilenames(ctx, gistIDs)
+}
+
 func (s *GistService) ListPrivateByOwner(ctx context.Context, ownerID int64, page, pageSize int) ([]model.Gist, error) {
 	if page < 1 {
 		page = 1

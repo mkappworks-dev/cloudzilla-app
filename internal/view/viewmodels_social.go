@@ -61,10 +61,19 @@ type DiscussionNewData struct {
 	Error            string
 }
 
+// GistListItem extends GistListRow with display fields derived in the handler.
+type GistListItem struct {
+	model.GistListRow
+	LanguageLabel string
+	LanguageClass string
+}
+
 type GistsData struct {
 	BasePage
-	Gists []model.Gist
-	Page  int
+	Gists              []GistListItem
+	Page               int
+	Tab                string // "public" or "secret"
+	SecretTabAvailable bool
 }
 
 type GistDetailData struct {

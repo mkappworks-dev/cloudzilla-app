@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -219,6 +220,36 @@ func (s *GistStore) ListWithCounts(ctx context.Context, ownerFilter string) ([]m
 			return nil, err
 		}
 		result = append(result, row)
+	}
+	return result, rows.Err()
+}
+
+// LoadFilenames returns a map of gist_id → filenames for the given gist IDs.
+// Used by the gists list view to derive the language chip without an N+1.
+func (s *GistStore) LoadFilenames(ctx context.Context, gistIDs []string) (map[string][]string, error) {
+	if len(gistIDs) == 0 {
+		return map[string][]string{}, nil
+	}
+	placeholders := make([]string, len(gistIDs))
+	args := make([]any, len(gistIDs))
+	for i, id := range gistIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	q := `SELECT gist_id, filename FROM gist_files WHERE gist_id IN (` +
+		strings.Join(placeholders, ",") + `) ORDER BY id`
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("load filenames: %w", err)
+	}
+	defer rows.Close()
+	result := make(map[string][]string, len(gistIDs))
+	for rows.Next() {
+		var gistID, filename string
+		if err := rows.Scan(&gistID, &filename); err != nil {
+			return nil, err
+		}
+		result[gistID] = append(result[gistID], filename)
 	}
 	return result, rows.Err()
 }
