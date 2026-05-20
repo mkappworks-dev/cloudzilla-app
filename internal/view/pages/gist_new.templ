@@ -8,7 +8,7 @@ import (
 
 templ GistNew(data view.GistNewData) {
 	@layout.Base(data.BasePage, "New Gist") {
-		<div class="max-w-4xl mx-auto space-y-6">
+		<div class="space-y-6">
 
 			<section aria-labelledby="new-title">
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
@@ -16,68 +16,96 @@ templ GistNew(data view.GistNewData) {
 					<span aria-hidden="true">·</span>
 					New
 				</p>
-				<h1 id="new-title" class="text-2xl font-semibold tracking-tight">Create a new gist</h1>
-				<p class="mt-1 text-[13px] text-muted-foreground">Add one or more files. Public gists are listed on the Explore page; secret gists are only reachable by direct link.</p>
+				<h1 id="new-title" class="text-2xl font-semibold tracking-tight">New gist</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">Standalone files for snippets, scratch notes, and one-off configuration.</p>
 			</section>
 
-			<form id="gist-form" class="space-y-5 rounded-md border border-border bg-card p-6">
-				<div class="space-y-1.5">
-					<label for="gist-description" class="block text-sm font-medium">
-						Description <span class="text-muted-foreground font-normal">(optional)</span>
-					</label>
-					@components.Input(templ.Attributes{
-						"id":          "gist-description",
-						"type":        "text",
-						"name":        "description",
-						"placeholder": "Short summary of what this gist contains",
-					})
+			<div class="grid lg:grid-cols-[1fr_280px] gap-8">
+				<div class="min-w-0">
+					<form id="gist-form" class="space-y-5">
+						<div class="space-y-1.5">
+							<label for="gist-description" class="block text-[12px] font-medium text-muted-foreground">
+								Gist description <span class="font-normal">(optional)</span>
+							</label>
+							@components.Input(templ.Attributes{
+								"id":          "gist-description",
+								"type":        "text",
+								"name":        "description",
+								"placeholder": "A short description of this gist",
+								"autofocus":   "autofocus",
+							})
+						</div>
+
+						<div id="file-rows" class="space-y-4">
+							<section class="rounded-md border border-border bg-card overflow-hidden">
+								<header class="px-3 py-2 border-b border-border bg-accent flex items-center gap-2">
+									<label for="gist-filename-0" class="sr-only">Filename</label>
+									<input
+										id="gist-filename-0"
+										class="font-mono text-[13px] flex-1 bg-transparent focus:outline-none placeholder:text-muted-foreground"
+										type="text"
+										name="filename[]"
+										placeholder="filename.ext"
+										required
+									/>
+								</header>
+								@components.MarkdownEditor("gist-content-0", "content[]", "", "File contents…", 8)
+							</section>
+						</div>
+
+						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+							"type":      "button",
+							"hx-get":    "/api/gists/file-row",
+							"hx-target": "#file-rows",
+							"hx-swap":   "beforeend",
+						}) {
+							+ Add file
+						}
+
+						<div class="border-t border-border pt-5 flex items-center justify-between flex-wrap gap-3">
+							<fieldset class="flex items-center gap-3">
+								<legend class="sr-only">Visibility</legend>
+								<label class="flex items-center gap-1.5 text-[13px]">
+									<input type="radio" name="visibility" value="public" checked/> Public
+								</label>
+								<label class="flex items-center gap-1.5 text-[13px]">
+									<input type="radio" name="visibility" value="secret"/> Secret
+								</label>
+							</fieldset>
+							<div class="flex items-center gap-2">
+								@components.LinkButton("/gists", components.ButtonOutline, components.ButtonSizeDefault, nil) {
+									Cancel
+								}
+								@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+									Create gist
+								}
+							</div>
+						</div>
+					</form>
 				</div>
 
-				<label class="flex items-center gap-2 text-sm cursor-pointer">
-					@components.Checkbox(templ.Attributes{"id": "public", "name": "public", "checked": "checked"})
-					<span>Public gist <span class="text-muted-foreground">(listed in Explore)</span></span>
-				</label>
-
-				<div id="file-rows" class="space-y-4">
-					<div class="rounded-md border border-border bg-muted/30 p-4 space-y-2">
-						<label for="gist-filename-0" class="sr-only">Filename</label>
-						@components.Input(templ.Attributes{
-							"id":          "gist-filename-0",
-							"type":        "text",
-							"name":        "filename[]",
-							"placeholder": "filename.ext",
-							"required":    "required",
-							"class":       "font-mono",
-						})
-						<label for="gist-content-0" class="sr-only">File contents</label>
-						<textarea id="gist-content-0" name="content[]" rows="10" class="flex min-h-[160px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical" placeholder="File contents…"></textarea>
-					</div>
-				</div>
-
-				@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-					"type":      "button",
-					"hx-get":    "/api/gists/file-row",
-					"hx-target": "#file-rows",
-					"hx-swap":   "beforeend",
-				}) {
-					+ Add file
-				}
-
-				<div class="flex items-center gap-3 pt-2">
-					@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-						Create gist
-					}
-					@components.LinkButton("/gists", components.ButtonGhost, components.ButtonSizeDefault, nil) {
-						Cancel
-					}
-				</div>
-			</form>
+				<aside class="space-y-6" aria-label="About gists">
+					<section aria-labelledby="about-gists-heading">
+						<h2 id="about-gists-heading" class="text-[12px] font-medium text-muted-foreground mb-2">About gists</h2>
+						<p class="text-[13px] text-muted-foreground leading-relaxed">A gist is a lightweight home for standalone files — snippets, scratch notes, or one-off configuration. Each gist can hold multiple files and keeps full revision history.</p>
+					</section>
+					<section aria-labelledby="gists-tips-heading" class="border-t border-border pt-5">
+						<h2 id="gists-tips-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Good to know</h2>
+						<ul class="space-y-2 text-[13px] text-muted-foreground leading-relaxed">
+							<li>Gists are standalone — they aren't attached to any repository.</li>
+							<li>Secret gists aren't listed or searchable, but anyone with the link can view them.</li>
+							<li>A file's extension picks its syntax highlighting and sort order, so name files precisely.</li>
+						</ul>
+					</section>
+				</aside>
+			</div>
 
 			<script>
 				document.getElementById('gist-form').addEventListener('submit', async function(e) {
 					e.preventDefault();
 					const desc = this.querySelector('[name=description]').value;
-					const pub = this.querySelector('[name=public]').checked;
+					const visEl = this.querySelector('[name="visibility"]:checked');
+					const pub = !visEl || visEl.value === 'public';
 					const filenames = [...this.querySelectorAll('[name="filename[]"]')].map(el => el.value);
 					const contents = [...this.querySelectorAll('[name="content[]"]')].map(el => el.value);
 					const files = filenames.map((fn, i) => ({ filename: fn, content: contents[i] }));

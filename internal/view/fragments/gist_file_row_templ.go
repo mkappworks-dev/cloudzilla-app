@@ -8,6 +8,8 @@ package fragments
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
+import "github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+
 func GistFileRow() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -29,7 +31,15 @@ func GistFileRow() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"border border-border rounded p-4\"><input type=\"text\" name=\"filename[]\" placeholder=\"Filename including extension\" class=\"w-full border border-border rounded px-3 py-1 text-sm mb-2\" required> <textarea name=\"content[]\" rows=\"8\" class=\"w-full border border-border rounded px-3 py-1 text-sm font-mono\" placeholder=\"File contents...\"></textarea></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<section class=\"rounded-md border border-border bg-card overflow-hidden\"><header class=\"px-3 py-2 border-b border-border bg-accent flex items-center gap-2\"><label class=\"sr-only\">Filename</label> <input class=\"font-mono text-[13px] flex-1 bg-transparent focus:outline-none placeholder:text-muted-foreground\" type=\"text\" name=\"filename[]\" placeholder=\"filename.ext\" required></header>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = components.MarkdownEditor("gist-content-new", "content[]", "", "File contents…", 8).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
