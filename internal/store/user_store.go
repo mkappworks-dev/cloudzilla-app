@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -390,4 +391,60 @@ func postgresArrayToJSON(pgArr string) []byte {
 		return []byte("[]")
 	}
 	return []byte("[" + inner + "]")
+}
+
+// formatPGInt64Array formats []int64 as a Postgres int-array literal like "{1,2,3}".
+func formatPGInt64Array(ids []int64) string {
+	if len(ids) == 0 {
+		return "{}"
+	}
+	parts := make([]string, len(ids))
+	for i, id := range ids {
+		parts[i] = strconv.FormatInt(id, 10)
+	}
+	return "{" + strings.Join(parts, ",") + "}"
+}
+
+// parsePGInt64Array parses a Postgres int-array literal "{1,2,3}" into []int64.
+// Returns nil for "{}" or empty strings.
+func parsePGInt64Array(s string) ([]int64, error) {
+	s = strings.Trim(s, "{}")
+	if s == "" {
+		return nil, nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]int64, 0, len(parts))
+	for _, p := range parts {
+		n, err := strconv.ParseInt(strings.TrimSpace(p), 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, n)
+	}
+	return out, nil
+}
+
+// SetPinnedRepoIDs replaces the user's pinned repo IDs with the given slice,
+// preserving order. Pass an empty slice to clear.
+func (s *UserStore) SetPinnedRepoIDs(ctx context.Context, userID int64, ids []int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users SET pinned_repo_ids = $2::bigint[], updated_at = NOW() WHERE id = $1`,
+		userID, formatPGInt64Array(ids),
+	)
+	if err != nil {
+		return fmt.Errorf("user set pinned repo ids: %w", err)
+	}
+	return nil
+}
+
+// GetPinnedRepoIDs returns the user's pinned repo IDs in pin order.
+func (s *UserStore) GetPinnedRepoIDs(ctx context.Context, userID int64) ([]int64, error) {
+	var raw string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT pinned_repo_ids::text FROM users WHERE id = $1`, userID,
+	).Scan(&raw)
+	if err != nil {
+		return nil, fmt.Errorf("user get pinned repo ids: %w", err)
+	}
+	return parsePGInt64Array(raw)
 }

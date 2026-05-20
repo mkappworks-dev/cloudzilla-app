@@ -175,6 +175,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Use(optAuthMW)
 		r.Get("/{username}", h.GetUser)
 		r.Get("/{username}/repos", h.ListUserRepos)
+		r.With(authMW).Post("/{id}/pinned-repos/{repoID}", h.PinRepo)
+		r.With(authMW).Delete("/{id}/pinned-repos/{repoID}", h.UnpinRepo)
 	})
 
 	// Org routes

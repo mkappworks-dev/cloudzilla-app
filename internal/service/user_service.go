@@ -18,8 +18,12 @@ import (
 var (
 	ErrRegistrationDisabled = errors.New("registration is disabled")
 	ErrLoginDisabled        = errors.New("login is currently disabled")
+	ErrPinLimit             = errors.New("pin limit reached (6)")
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
 )
+
+// MaxPinnedRepos is the per-user cap on pinned repositories.
+const MaxPinnedRepos = 6
 
 // UserService manages user account operations including authentication and profile updates.
 type UserService struct {
@@ -160,6 +164,50 @@ func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (s
 		return "", fmt.Errorf("get user: %w", err)
 	}
 	return s.generateJWT(u)
+}
+
+// PinnedRepoIDs returns the user's pinned repo IDs in pin order.
+func (s *UserService) PinnedRepoIDs(ctx context.Context, userID int64) ([]int64, error) {
+	return s.store.GetPinnedRepoIDs(ctx, userID)
+}
+
+// PinRepo appends repoID to the user's pinned list. It is idempotent (pinning
+// an already-pinned repo is a no-op) and returns ErrPinLimit if the user
+// already has MaxPinnedRepos distinct pins.
+func (s *UserService) PinRepo(ctx context.Context, userID, repoID int64) error {
+	ids, err := s.store.GetPinnedRepoIDs(ctx, userID)
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		if id == repoID {
+			return nil
+		}
+	}
+	if len(ids) >= MaxPinnedRepos {
+		return ErrPinLimit
+	}
+	ids = append(ids, repoID)
+	return s.store.SetPinnedRepoIDs(ctx, userID, ids)
+}
+
+// UnpinRepo removes repoID from the user's pinned list. Removing a repo that
+// is not pinned is a no-op.
+func (s *UserService) UnpinRepo(ctx context.Context, userID, repoID int64) error {
+	ids, err := s.store.GetPinnedRepoIDs(ctx, userID)
+	if err != nil {
+		return err
+	}
+	out := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		if id != repoID {
+			out = append(out, id)
+		}
+	}
+	if len(out) == len(ids) {
+		return nil
+	}
+	return s.store.SetPinnedRepoIDs(ctx, userID, out)
 }
 
 func (s *UserService) generateJWT(u *model.User) (string, error) {
