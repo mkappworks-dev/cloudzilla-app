@@ -135,7 +135,7 @@ func (h *Handler) PageAccountStars(w http.ResponseWriter, r *http.Request) {
 
 	langFilter := r.URL.Query().Get("language")
 	if langFilter != "" {
-		filtered := stars[:0]
+		filtered := make([]model.Repository, 0, len(stars))
 		for _, repo := range stars {
 			if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage == langFilter {
 				filtered = append(filtered, repo)
