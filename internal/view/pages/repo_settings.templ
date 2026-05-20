@@ -235,7 +235,8 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.DialogBody() {
-								<form id="deploy-key-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys" } hx-target="#deploy-keys-list" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful){this.closest('dialog').close();this.reset();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Deploy key added'}}));}" class="space-y-4">
+								<form id="deploy-key-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys" } hx-target="#deploy-keys-list" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful&&event.detail.target&&event.detail.target.id==='deploy-keys-list'){this.closest('dialog').close();this.reset();this.querySelector('#deploy-key-form-error').textContent='';document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Deploy key added'}}));}" class="space-y-4">
+									<div id="deploy-key-form-error"></div>
 									<div class="space-y-1.5">
 										<label for="deploy-key-title" class="block text-xs font-medium">Title</label>
 										@components.Input(templ.Attributes{

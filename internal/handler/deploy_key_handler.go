@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"html"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,6 +11,17 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
+
+// renderDeployKeyFormError redirects htmx's swap to the in-dialog error slot
+// so the dialog stays open and shows the validation error inline. Uses status
+// 200 because htmx skips swaps on 4xx by default; the form distinguishes
+// success from error by inspecting the swapped target's id.
+func renderDeployKeyFormError(w http.ResponseWriter, msg string) {
+	w.Header().Set("HX-Retarget", "#deploy-key-form-error")
+	w.Header().Set("HX-Reswap", "innerHTML")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write([]byte(`<div class="rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs p-3" role="alert">` + html.EscapeString(msg) + `</div>`))
+}
 
 // deployKeyErrorMessage turns a service-level error into copy fit for a toast.
 // Unique-constraint violations come back from Postgres as a wrapped pq error
@@ -90,8 +102,7 @@ func (h *Handler) AddDeployKey(w http.ResponseWriter, r *http.Request) {
 
 	if title == "" || publicKey == "" {
 		if r.Header.Get("HX-Request") == "true" {
-			toast(w, "error", "Title and public key are required")
-			w.WriteHeader(http.StatusUnprocessableEntity)
+			renderDeployKeyFormError(w, "Title and public key are required.")
 			return
 		}
 		http.Error(w, "title and public_key are required", http.StatusBadRequest)
@@ -102,8 +113,7 @@ func (h *Handler) AddDeployKey(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		msg := deployKeyErrorMessage(err)
 		if r.Header.Get("HX-Request") == "true" {
-			toast(w, "error", msg)
-			w.WriteHeader(http.StatusUnprocessableEntity)
+			renderDeployKeyFormError(w, msg)
 			return
 		}
 		writeError(w, http.StatusUnprocessableEntity, msg)
