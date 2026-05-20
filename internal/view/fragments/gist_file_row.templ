@@ -9,8 +9,9 @@ import (
 templ GistFileRow(index int) {
 	<section class="rounded-md border border-border bg-card overflow-hidden">
 		<header class="px-3 py-2 border-b border-border bg-accent flex items-center gap-2">
-			<label class="sr-only">Filename</label>
+			<label for={ "gist-filename-new-" + strconv.Itoa(index) } class="sr-only">Filename</label>
 			<input
+				id={ "gist-filename-new-" + strconv.Itoa(index) }
 				class="font-mono text-[13px] flex-1 bg-transparent focus:outline-none placeholder:text-muted-foreground"
 				type="text"
 				name="filename[]"
