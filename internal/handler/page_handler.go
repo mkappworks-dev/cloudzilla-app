@@ -28,12 +28,16 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 		count = 0
 	}
 	page := BasePage{CurrentUser: &claims, UnreadNotifCount: count, AllowLogin: allowLogin, AllowRegistration: allowRegistration}
-	orgs, err := services.Org.ListOwnedByUser(r.Context(), claims.UserID)
+	memberships, err := services.Org.ListMembershipsForUser(r.Context(), claims.UserID)
 	if err != nil {
 		slog.Error("basePage: workspace switcher org list failed; degrading to personal-only",
 			"error", err, "user_id", claims.UserID, "path", r.URL.Path)
 	} else {
-		page.UserOrgs = orgs
+		entries := make([]view.OrgEntry, 0, len(memberships))
+		for _, m := range memberships {
+			entries = append(entries, view.OrgEntry{Org: m.Org, Role: m.Role})
+		}
+		page.UserOrgs = entries
 	}
 	return page
 }
@@ -45,10 +49,12 @@ func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model
 		RepoName:         repo.Name,
 		Active:           active,
 		CanManage:        canManage,
+		Private:          repo.Private,
 		AllowIssues:      repo.AllowIssues,
 		AllowDiscussions: repo.AllowDiscussions,
 		AllowProjects:    repo.AllowProjects,
 		AllowWiki:        repo.AllowWiki,
+		Counts:           h.repoSubnavCounts(ctx, repo),
 	}
 	var viewerID *int64
 	if base.CurrentUser != nil {
@@ -64,6 +70,40 @@ func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model
 		slog.Error("withRepoSubnav: repo switcher list failed", "owner", repo.OwnerName, "error", err)
 	}
 	return base
+}
+
+// Best-effort: a failed query drops that tab's count rather than failing the page.
+func (h *Handler) repoSubnavCounts(ctx context.Context, repo *model.Repository) map[string]int {
+	counts := map[string]int{}
+	logFail := func(tab string, err error) {
+		slog.Warn("repo subnav counts: tab query failed; hiding count",
+			"tab", tab, "repo_id", repo.ID, "error", err)
+	}
+	if n, err := h.Services.Pull.CountOpen(ctx, repo.ID); err == nil {
+		counts["pull_requests"] = n
+	} else {
+		logFail("pull_requests", err)
+	}
+	if repo.AllowIssues {
+		if n, err := h.Services.Issue.CountOpen(ctx, repo.ID); err == nil {
+			counts["issues"] = n
+		} else {
+			logFail("issues", err)
+		}
+	}
+	if repo.AllowDiscussions {
+		if n, err := h.Services.Discussion.CountByRepo(ctx, repo.ID); err == nil {
+			counts["discussions"] = n
+		} else {
+			logFail("discussions", err)
+		}
+	}
+	if n, err := h.Services.Release.CountPublished(ctx, repo.ID); err == nil {
+		counts["releases"] = n
+	} else {
+		logFail("releases", err)
+	}
+	return counts
 }
 
 func withAccountSubnav(base BasePage, active string, counts map[string]int) BasePage {

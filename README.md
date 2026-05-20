@@ -2,7 +2,7 @@
 
 A minimal, self-hosted Git forge — single binary, no external runtime dependencies.
 
-**Stack:** Go · Templ · HTMX · Tailwind CSS · PostgreSQL
+**Stack:** Go · Templ · HTMX · Alpine.js · Tailwind CSS · PostgreSQL
 
 [![License: BSL 1.1](https://img.shields.io/badge/License-BSL_1.1-blue.svg)](LICENSE)
 
@@ -12,10 +12,10 @@ A minimal, self-hosted Git forge — single binary, no external runtime dependen
 
 ## Milestones
 
-| Milestone                                       | Scope                                                                                                                           | Status       |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| **M1 — Core Platform** (Phases 0–15.3)          | Identity, git hosting, issues, PRs, code review, orgs, wikis, discussions, gists, search, and 50+ features across 53 migrations | **Complete** |
-| **M2 — Advanced Infrastructure** (Phases 16–20) | Container registry, Git LFS, CI/CD pipelines, clustering, GraphQL API                                                           | Planned      |
+| Milestone                                       | Scope                                                                                                                            | Status       |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| **M1 — Core Platform** (Phases 0–15.3)          | Identity, git hosting, issues, PRs, code review, orgs, wikis, discussions, gists, search, and 50+ features across 60+ migrations | **Complete** |
+| **M2 — Advanced Infrastructure** (Phases 16–20) | Container registry, Git LFS, CI/CD pipelines, clustering, GraphQL API                                                            | Planned      |
 
 ---
 
@@ -120,7 +120,7 @@ make docker-down        # Stop and remove containers
 
 ### Local Development
 
-**Prerequisites:** Go 1.23+, PostgreSQL 14+ (or Docker, for the Postgres step below)
+**Prerequisites:** Go 1.26+, PostgreSQL 14+ (or Docker, for the Postgres step below)
 
 ```bash
 go mod tidy
@@ -168,20 +168,25 @@ First visit redirects to `/setup` to create your superadmin account.
 
 ## Make Targets
 
-| Target                  | Description                                                |
-| ----------------------- | ---------------------------------------------------------- |
-| `make setup-tailwind`   | Download Tailwind CLI (one-time)                           |
-| `make download-mermaid` | Download mermaid.min.js (one-time; auto-runs in build/dev) |
-| `make download-htmx`    | Download htmx.min.js (one-time; auto-runs in build/dev)    |
-| `make build-css`        | Compile Tailwind CSS                                       |
-| `make dev`              | Run backend + Tailwind watch concurrently                  |
-| `make build`            | Build Go binaries (with embedded CSS)                      |
-| `make migrate`          | Run DB migrations                                          |
-| `make lint`             | Run golangci-lint                                          |
-| `make test`             | Run Go tests                                               |
-| `make docker-build`     | Build Docker image                                         |
-| `make docker-run`       | Start with docker compose                                  |
-| `make docker-down`      | Stop and remove containers                                 |
+| Target                  | Description                                                        |
+| ----------------------- | ------------------------------------------------------------------ |
+| `make setup-tailwind`   | Download Tailwind CLI (one-time)                                   |
+| `make setup-templ`      | Install the templ CLI (one-time)                                   |
+| `make generate-templ`   | Regenerate `*_templ.go` from `*.templ` files                       |
+| `make download-mermaid` | Download mermaid.min.js (one-time; auto-runs in build/dev)         |
+| `make download-htmx`    | Download htmx.min.js (one-time; auto-runs in build/dev)            |
+| `make build-css`        | Compile Tailwind CSS                                               |
+| `make dev`              | Run backend + Tailwind + templ watch concurrently                  |
+| `make build`            | Full build: download assets, compile CSS, generate templ, build Go |
+| `make migrate`          | Run DB migrations                                                  |
+| `make lint`             | Run golangci-lint                                                  |
+| `make test`             | Run unit tests (no database required)                              |
+| `make test-db`          | Start the test database container                                  |
+| `make test-integration` | Run all tests including integration tests (requires Docker)        |
+| `make clean`            | Remove build artifacts                                             |
+| `make docker-build`     | Build Docker image                                                 |
+| `make docker-run`       | Start with docker compose (detached)                               |
+| `make docker-down`      | Stop and remove containers                                         |
 
 ---
 
@@ -192,12 +197,15 @@ cmd/
   server/            # HTTP server entrypoint
     frontend/        # Static files (embedded in binary)
       static/
-        main.css     # Compiled Tailwind output
-      htmx.min.js    # HTMX library
+        main.css         # Compiled Tailwind output
+        mermaid.min.js   # served at /static/mermaid.min.js
+      htmx.min.js        # served at /htmx.min.js
+      alpine.min.js      # served at /alpine.min.js
   cloudzilla/        # Admin CLI (cobra)
 internal/
   config/            # Config loading (viper + YAML)
   db/                # DB connection + migration runner
+    migrations/      # SQL files (embedded via embed.FS)
   model/             # Data structs (db + json tags)
   store/             # Store layer (raw SQL via sqlx)
   service/           # Business logic (calls stores)
@@ -209,7 +217,6 @@ internal/
     layout/          # Base layout component
     pages/           # Page components
     fragments/       # HTMX fragment components
-migrations/          # SQL files (embedded via embed.FS)
 tailwind/            # Tailwind CSS config
 docs/                # Architecture and feature docs
 ```

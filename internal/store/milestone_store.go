@@ -3,15 +3,22 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-// MilestoneStore provides database operations for milestones.
+// ErrMilestoneRepoMismatch is returned when a caller tries to attach an
+// issue/PR to a milestone that belongs to a different repository.
+var ErrMilestoneRepoMismatch = errors.New("milestone belongs to a different repository")
+
+// ErrMilestoneNotFound is returned when a SetIssue/SetPull RowsAffected==0
+// turns out to be a missing milestone rather than a cross-repo attempt.
+var ErrMilestoneNotFound = errors.New("milestone not found")
+
 type MilestoneStore struct{ db *sql.DB }
 
-// NewMilestoneStore creates a MilestoneStore backed by the given database.
 func NewMilestoneStore(db *sql.DB) *MilestoneStore { return &MilestoneStore{db: db} }
 
 const milestoneCountsSQL = `
@@ -148,30 +155,81 @@ func scanMilestones(rows *sql.Rows) ([]model.Milestone, error) {
 	return milestones, rows.Err()
 }
 
-// SetMilestone on issues
+// SetIssue attaches (or clears) a milestone on an issue. When milestoneID is
+// non-nil the SQL guard requires the milestone to share the issue's repo_id,
+// closing the cross-repo IDOR where a writer on repo A could attach an issue
+// to a milestone in repo B by guessing the id. When the update affects no rows
+// the helper disambiguates "milestone missing" from "wrong repo".
 func (s *MilestoneStore) SetIssue(ctx context.Context, issueID int64, milestoneID *int64) error {
-	var mid sql.NullInt64
-	if milestoneID != nil {
-		mid = sql.NullInt64{Int64: *milestoneID, Valid: true}
+	if milestoneID == nil {
+		_, err := s.db.ExecContext(ctx,
+			`UPDATE issues SET milestone_id=NULL, updated_at=NOW() WHERE id=$1`,
+			issueID,
+		)
+		return err
 	}
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE issues SET milestone_id=$1, updated_at=NOW() WHERE id=$2`,
-		mid, issueID,
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE issues SET milestone_id=$1, updated_at=NOW()
+		 WHERE id=$2
+		   AND EXISTS (SELECT 1 FROM milestones m WHERE m.id=$1 AND m.repo_id = issues.repo_id)`,
+		*milestoneID, issueID,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return s.classifyMilestoneSetFailure(ctx, *milestoneID)
+	}
+	return nil
 }
 
-// SetMilestone on pull_requests
+// SetPull is SetIssue for pull requests.
 func (s *MilestoneStore) SetPull(ctx context.Context, pullID int64, milestoneID *int64) error {
-	var mid sql.NullInt64
-	if milestoneID != nil {
-		mid = sql.NullInt64{Int64: *milestoneID, Valid: true}
+	if milestoneID == nil {
+		_, err := s.db.ExecContext(ctx,
+			`UPDATE pull_requests SET milestone_id=NULL, updated_at=NOW() WHERE id=$1`,
+			pullID,
+		)
+		return err
 	}
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE pull_requests SET milestone_id=$1, updated_at=NOW() WHERE id=$2`,
-		mid, pullID,
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE pull_requests SET milestone_id=$1, updated_at=NOW()
+		 WHERE id=$2
+		   AND EXISTS (SELECT 1 FROM milestones m WHERE m.id=$1 AND m.repo_id = pull_requests.repo_id)`,
+		*milestoneID, pullID,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return s.classifyMilestoneSetFailure(ctx, *milestoneID)
+	}
+	return nil
+}
+
+// classifyMilestoneSetFailure picks the right sentinel for a SetIssue/SetPull
+// that affected zero rows: ErrMilestoneNotFound when the milestone id doesn't
+// match any row, ErrMilestoneRepoMismatch otherwise.
+func (s *MilestoneStore) classifyMilestoneSetFailure(ctx context.Context, milestoneID int64) error {
+	var exists bool
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT EXISTS (SELECT 1 FROM milestones WHERE id=$1)`,
+		milestoneID,
+	).Scan(&exists); err != nil {
+		return err
+	}
+	if !exists {
+		return ErrMilestoneNotFound
+	}
+	return ErrMilestoneRepoMismatch
 }
 
 // GetIssueID returns the milestone_id for an issue (nil if unset).
@@ -224,5 +282,69 @@ func (s *MilestoneStore) ListIssuesByMilestone(ctx context.Context, milestoneID 
 		ids = append(ids, id)
 	}
 	return ids, rows.Err()
+}
+
+func (s *MilestoneStore) ListIssuesPaged(ctx context.Context, milestoneID int64, state string, page, pageSize int) ([]model.Issue, error) {
+	offset := (page - 1) * pageSize
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT i.id, i.repo_id, i.number, i.author_id,
+		       COALESCE(u.username, '') AS author_name,
+		       i.title, i.body, i.state, i.priority,
+		       i.milestone_id, i.visibility,
+		       i.created_at, i.updated_at, i.closed_at,
+		       i.is_pinned, i.is_locked, i.locked_at
+		FROM issues i
+		LEFT JOIN users u ON u.id = i.author_id
+		WHERE i.milestone_id = $1 AND i.state = $2
+		ORDER BY i.created_at DESC
+		LIMIT $3 OFFSET $4`,
+		milestoneID, state, pageSize, offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("milestone issues paged: %w", err)
+	}
+	defer rows.Close()
+	return scanIssueRows(rows)
+}
+
+// ListPullsPaged: state="closed" includes merged PRs.
+func (s *MilestoneStore) ListPullsPaged(ctx context.Context, milestoneID int64, state string, page, pageSize int) ([]model.PullRequest, error) {
+	offset := (page - 1) * pageSize
+	stateClause := `pr.state = 'open'`
+	if state == "closed" {
+		stateClause = `pr.state IN ('closed', 'merged')`
+	}
+	rows, err := s.db.QueryContext(ctx, fmt.Sprintf(`
+		SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
+		       pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
+		       pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
+		       pr.auto_merge_enabled, pr.auto_merge_strategy
+		FROM pull_requests pr
+		LEFT JOIN users u ON u.id = pr.author_id
+		WHERE pr.milestone_id = $1 AND %s
+		ORDER BY pr.number DESC
+		LIMIT $2 OFFSET $3`, stateClause),
+		milestoneID, pageSize, offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("milestone pulls paged: %w", err)
+	}
+	defer rows.Close()
+	return scanPullRows(rows)
+}
+
+// PullCounts: merged counts as closed.
+func (s *MilestoneStore) PullCounts(ctx context.Context, milestoneID int64) (open, closed int, err error) {
+	err = s.db.QueryRowContext(ctx, `
+		SELECT
+		  COUNT(*) FILTER (WHERE state = 'open'),
+		  COUNT(*) FILTER (WHERE state IN ('closed', 'merged'))
+		FROM pull_requests WHERE milestone_id = $1`,
+		milestoneID,
+	).Scan(&open, &closed)
+	if err != nil {
+		return 0, 0, fmt.Errorf("milestone pull counts: %w", err)
+	}
+	return open, closed, nil
 }
 

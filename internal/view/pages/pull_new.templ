@@ -1,8 +1,9 @@
 package pages
 
 import (
-	"fmt"
+	"strconv"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -35,93 +36,192 @@ templ PullNew(data view.PullNewData) {
 			if len(data.Branches) == 0 {
 				@components.EmptyState("This repository has no branches yet. Push at least one commit to create a pull request.")
 			} else {
-				<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/new") } class="space-y-5">
+				{{ effHead := data.Head }}
+				if effHead == "" {
+					{{ effHead = data.Branches[0].Name }}
+				}
+				{{ reviewersInit := jsStringList(selectedReviewerList(data.Reviewer.All)) }}
+				<form
+					method="POST"
+					action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/new") }
+					class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8 items-start"
+				>
 
-					<fieldset class="rounded-md border border-border bg-card p-4">
-						<legend class="px-2 font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Compare</legend>
-						<div class="flex flex-wrap items-end gap-3">
-							<div class="flex-1 min-w-[10rem] space-y-1.5">
-								<label for="head_branch" class="block text-[12px] font-medium text-muted-foreground">
-									Head branch <span class="text-muted-foreground/70">(yours)</span>
-								</label>
-								<div class="relative">
-									<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="3" r="3"/><circle cx="12" cy="21" r="3"/><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"/></svg>
-									<select id="head_branch" name="head_branch" required class="h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-3 text-sm font-mono shadow-sm">
-										for _, b := range data.Branches {
-											<option value={ b.Name } selected?={ data.Head != "" && b.Name == data.Head }>{ b.Name }</option>
-										}
-									</select>
-								</div>
-							</div>
-							<span class="text-muted-foreground pb-2" aria-hidden="true">→</span>
-							<div class="flex-1 min-w-[10rem] space-y-1.5">
-								<label for="base_branch" class="block text-[12px] font-medium text-muted-foreground">
-									Base branch <span class="text-muted-foreground/70">(target)</span>
-								</label>
-								<div class="relative">
-									<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="3" r="3"/><circle cx="12" cy="21" r="3"/><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"/></svg>
-									<select id="base_branch" name="base_branch" required class="h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-3 text-sm font-mono shadow-sm">
-										for _, b := range data.Branches {
-											<option value={ b.Name } selected?={ b.Name == data.Base }>{ b.Name }</option>
-										}
-									</select>
-								</div>
-							</div>
-						</div>
-					</fieldset>
+					<section class="rounded-md border border-border bg-card p-6 space-y-5 min-w-0">
 
-					<div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
-
-						<div class="space-y-5 min-w-0">
-							<div class="space-y-1.5">
-								<label for="title" class="block text-sm font-medium">Title</label>
-								@components.Input(templ.Attributes{
-									"id":          "title",
-									"name":        "title",
-									"type":        "text",
-									"required":    "required",
-									"autofocus":   "autofocus",
-									"placeholder": "Summary of changes",
-								})
+						<fieldset class="rounded-md border border-border bg-card p-4">
+							<legend class="px-2 font-mono text-[11px] text-muted-foreground uppercase tracking-wider">Compare</legend>
+							<div class="flex flex-wrap items-end gap-3">
+								@pullNewBranchSelect("base_branch", "Base branch", "(target)", data.Branches, data.Base)
+								<span class="text-muted-foreground pb-2" aria-hidden="true">←</span>
+								@pullNewBranchSelect("head_branch", "Head branch", "(yours)", data.Branches, effHead)
 							</div>
+							<p class="mt-3 text-[12px] text-muted-foreground">
+								Comparing <span class="font-mono text-foreground">{ effHead }</span> → <span class="font-mono text-foreground">{ data.Base }</span>.
+							</p>
+						</fieldset>
 
-							<div class="space-y-1.5">
-								<label for="body" class="block text-sm font-medium">Description</label>
-								<textarea id="body" name="body" rows="12" class="flex min-h-[200px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical" placeholder="What does this change, and why? Reference any related issues with #number.">{ data.TemplateBody }</textarea>
-							</div>
-
-							<div class="flex items-center gap-3 pt-2">
-								@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-									Create pull request
-								}
-								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="text-sm text-muted-foreground hover:underline ml-auto">Cancel</a>
-							</div>
+						<div class="space-y-1.5">
+							<label for="title" class="block text-sm font-medium">Title</label>
+							@components.Input(templ.Attributes{
+								"id":          "title",
+								"name":        "title",
+								"type":        "text",
+								"required":    "required",
+								"autofocus":   "autofocus",
+								"placeholder": "Summary of changes",
+							})
 						</div>
 
-						<aside class="space-y-5">
-							@components.ReviewerPicker(data.Reviewer)
-							if len(data.AllLabels) > 0 {
-								<fieldset class="space-y-2">
-									<legend class="text-sm font-medium">Labels</legend>
-									<ul class="space-y-1">
-										for _, l := range data.AllLabels {
-											<li>
-												<label class="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded text-sm cursor-pointer">
-													<input type="checkbox" name="labels" value={ fmt.Sprintf("%d", l.ID) } class="h-4 w-4 rounded border-border"/>
-													<span class="inline-block h-3 w-3 rounded-full shrink-0" style={ "background-color: " + l.Color }></span>
-													<span class="flex-1 truncate">{ l.Name }</span>
-												</label>
-											</li>
-										}
-									</ul>
-								</fieldset>
+						<div class="space-y-1.5">
+							<label for="body" class="block text-sm font-medium">Description</label>
+							<div class="rounded-md border border-border bg-card overflow-hidden">
+								@components.MarkdownEditor("body", "body", data.TemplateBody, "What does this change, and why? Reference any related issues with #number.", 12)
+							</div>
+							<p class="text-[11px] text-muted-foreground">Markdown is supported. <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded">#</kbd> links issues and pull requests.</p>
+						</div>
+
+						<div class="flex items-center gap-3 pt-2">
+							@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+								Create pull request
 							}
-						</aside>
+							@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "name": "draft", "value": "1"}) {
+								Save as draft
+							}
+							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") } class="text-sm text-muted-foreground hover:underline ml-auto">Cancel</a>
+						</div>
+					</section>
 
-					</div>
+					<aside
+						class="space-y-6 text-[12.5px]"
+						aria-label="Pull request metadata"
+						x-data={ "{ open: null, reviewers: " + reviewersInit + ", labels: [], toggle(a, v) { const i = a.indexOf(v); i < 0 ? a.push(v) : a.splice(i, 1) } }" }
+						x-on:keydown.escape.window="open = null"
+					>
+						<section>
+							@pullNewReviewers(data)
+						</section>
+						<section class="border-t border-border pt-6">
+							@pullNewLabels(data)
+						</section>
+					</aside>
 
 				</form>
 			}
 		</div>
 	}
+}
+
+// pullNewBranchSelect renders one labelled branch <select> in the Compare
+// fieldset, with the option matching current pre-selected.
+templ pullNewBranchSelect(id, labelText, hint string, branches []service.BranchInfo, current string) {
+	<div class="flex-1 min-w-[10rem] space-y-1.5">
+		<label for={ id } class="block text-[12px] font-medium text-muted-foreground">
+			{ labelText } <span class="text-muted-foreground/70">{ hint }</span>
+		</label>
+		<div class="relative">
+			<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="3" r="3"></circle><circle cx="12" cy="21" r="3"></circle><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path></svg>
+			<select id={ id } name={ id } required class="h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-3 text-sm font-mono shadow-sm">
+				for _, b := range branches {
+					<option value={ b.Name } selected?={ b.Name == current }>{ b.Name }</option>
+				}
+			</select>
+		</div>
+	</div>
+}
+
+templ pullNewReviewers(data view.PullNewData) {
+	{{ opts := data.Reviewer.All }}
+	<div class="space-y-2">
+		if len(opts) > 0 {
+			@issueNewPicker("reviewers", "Reviewers", "Request reviewers", "Request reviewers", true) {
+				for _, o := range opts {
+					<button
+						type="button"
+						role="menuitemcheckbox"
+						x-on:click={ "toggle(reviewers, '" + o.Username + "')" }
+						:aria-checked={ "reviewers.includes('" + o.Username + "') ? 'true' : 'false'" }
+						class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+					>
+						@components.Avatar(o.Username, components.AvatarSizeSM, o.Username)
+						<span class="flex-1 truncate">{ o.Username }</span>
+						<span x-show={ "reviewers.includes('" + o.Username + "')" } x-cloak>
+							@issueNewCheckIcon()
+						</span>
+					</button>
+				}
+				<div role="separator" class="my-1 h-px bg-border"></div>
+				@issueNewMenuLink("/" + data.Owner + "/" + data.RepoName + "/settings#collaborators") {
+					@issueNewInviteIcon()
+					Invite a collaborator
+				}
+			}
+		} else {
+			<h3 class="text-[12px] font-medium text-muted-foreground">Reviewers</h3>
+		}
+		<ul class="space-y-1.5">
+			for _, o := range opts {
+				<li x-show={ "reviewers.includes('" + o.Username + "')" } x-cloak class="flex items-center gap-2 text-[13px]">
+					@components.Avatar(o.Username, components.AvatarSizeSM, o.Username)
+					<a href={ templ.SafeURL("/" + o.Username) } class="font-medium hover:underline truncate">{ o.Username }</a>
+					<span class="ml-auto text-[10px] font-mono text-muted-foreground">Pending</span>
+				</li>
+			}
+		</ul>
+		<p x-show="reviewers.length === 0" class="text-[13px] text-muted-foreground">No reviewers requested.</p>
+		<p class="text-[12px] text-muted-foreground">Suggested from the files changed.</p>
+		for _, o := range opts {
+			<input type="hidden" name="reviewers" value={ o.Username } :disabled={ "!reviewers.includes('" + o.Username + "')" }/>
+		}
+	</div>
+}
+
+templ pullNewLabels(data view.PullNewData) {
+	<div class="space-y-2">
+		if len(data.AllLabels) > 0 {
+			@issueNewPicker("labels", "Labels", "Apply labels", "Edit labels", false) {
+				for _, lbl := range data.AllLabels {
+					{{ id := strconv.FormatInt(lbl.ID, 10) }}
+					<button
+						type="button"
+						role="menuitemcheckbox"
+						x-on:click={ "toggle(labels, '" + id + "')" }
+						:aria-checked={ "labels.includes('" + id + "') ? 'true' : 'false'" }
+						class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+					>
+						<span class="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={ "background-color: " + lbl.Color }></span>
+						<span class="flex-1 truncate">{ lbl.Name }</span>
+						<span x-show={ "labels.includes('" + id + "')" } x-cloak>
+							@issueNewCheckIcon()
+						</span>
+					</button>
+				}
+				<div role="separator" class="my-1 h-px bg-border"></div>
+				@issueNewMenuLink("/" + data.Owner + "/" + data.RepoName + "/settings#labels") {
+					@issueNewTagIcon()
+					Create a new label
+				}
+			}
+		} else {
+			<h3 class="text-[12px] font-medium text-muted-foreground">Labels</h3>
+		}
+		<div class="flex flex-wrap gap-1.5">
+			for _, lbl := range data.AllLabels {
+				{{ id := strconv.FormatInt(lbl.ID, 10) }}
+				<span
+					x-show={ "labels.includes('" + id + "')" }
+					x-cloak
+					class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border"
+					style={ "background-color: " + lbl.Color + "33; color: " + lbl.Color + "; border-color: " + lbl.Color + "55" }
+				>
+					{ lbl.Name }
+				</span>
+			}
+			<span x-show="labels.length === 0" class="text-[13px] text-muted-foreground">No labels.</span>
+		</div>
+		for _, lbl := range data.AllLabels {
+			{{ id := strconv.FormatInt(lbl.ID, 10) }}
+			<input type="hidden" name="labels" value={ id } :disabled={ "!labels.includes('" + id + "')" }/>
+		}
+	</div>
 }

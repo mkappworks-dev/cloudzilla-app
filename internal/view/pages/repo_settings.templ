@@ -1,32 +1,107 @@
 package pages
 
 import (
-	"strconv"
-	"time"
-
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
-// settingsNavLink renders one entry in the settings section sidebar.
-templ settingsNavLink(href, label string) {
-	<a href={ templ.SafeURL(href) } class="block px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">{ label }</a>
+func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem {
+	items := []components.SettingsSidebarItem{
+		{Label: "General", Href: "#general", Key: "general"},
+		{Label: "Access", Href: "#access", Key: "access"},
+		{Label: "Collaborators", Href: "#collaborators", Key: "collaborators"},
+		{Label: "Deploy keys", Href: "#deploy-keys", Key: "deploy-keys"},
+		{Label: "Labels", Href: "#labels", Key: "labels"},
+		{Label: "Branch protection", Href: "#branches", Key: "branches"},
+		{Label: "Webhooks", Href: "#webhooks", Key: "webhooks"},
+	}
+	if d.IsOwner {
+		items = append(items, components.SettingsSidebarItem{Label: "Template", Href: "#template", Key: "template"})
+		items = append(items, components.SettingsSidebarItem{Label: "Archive", Href: "#archive", Key: "archive", Danger: true, GroupLabel: "Danger zone"})
+		if d.CanTransfer {
+			items = append(items, components.SettingsSidebarItem{Label: "Transfer Ownership", Href: "#transfer", Key: "transfer", Danger: true})
+		}
+		items = append(items, components.SettingsSidebarItem{Label: "Delete repository", Href: "#delete", Key: "delete", Danger: true})
+	}
+	return items
 }
 
-// settingsNavLinkDanger is the red-tinted sidebar entry for Danger zone items.
-templ settingsNavLinkDanger(href, label string) {
-	<a href={ templ.SafeURL(href) } class="block px-2.5 py-1.5 rounded-md !text-destructive hover:bg-destructive/10 transition-colors">{ label }</a>
+// visibilityToggle renders the public/private switch as a single pill toggle.
+// aria-pressed=true means Public (green); clicking submits the visibility form
+// with the opposite value, routed through the global ConfirmDialog for the
+// "Make public/private?" prompt.
+templ visibilityToggle(owner, repoName string, private bool) {
+	<div class="flex items-start justify-between gap-4 pb-4 mb-2 border-b border-border">
+		<div class="min-w-0">
+			<p class="text-sm font-medium text-foreground">Visibility</p>
+			<p class="text-xs text-muted-foreground mt-0.5">
+				if private {
+					This repository is private — only collaborators can see it.
+				} else {
+					This repository is public — anyone can view it.
+				}
+			</p>
+		</div>
+		<div class="flex items-center gap-3 shrink-0">
+			if private {
+				@components.Badge(components.BadgeSecondary) {
+					Private
+				}
+				<form method="POST" action={ templ.SafeURL("/" + owner + "/" + repoName + "/settings/visibility") } data-toast="Repository is now public">
+					<input type="hidden" name="private" value="false"/>
+					<button
+						type="submit"
+						aria-pressed="false"
+						aria-label="Repository visibility"
+						data-confirm-action="true"
+						data-confirm-title="Make this repository public?"
+						data-confirm-msg={ "Anyone on the internet will be able to view " + repoName + "." }
+						data-confirm-label="Make public"
+						class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-border bg-muted transition-colors cursor-pointer"
+					>
+						<span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform"></span>
+					</button>
+				</form>
+			} else {
+				@components.Badge(components.BadgeSuccess) {
+					Public
+				}
+				<form method="POST" action={ templ.SafeURL("/" + owner + "/" + repoName + "/settings/visibility") } data-toast="Repository is now private">
+					<input type="hidden" name="private" value="true"/>
+					<button
+						type="submit"
+						aria-pressed="true"
+						aria-label="Repository visibility"
+						data-confirm-action="true"
+						data-confirm-title="Make this repository private?"
+						data-confirm-msg={ "Only collaborators with access will be able to view " + repoName + "." }
+						data-confirm-label="Make private"
+						data-confirm-danger="true"
+						class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-success bg-success transition-colors cursor-pointer"
+					>
+						<span class="absolute left-[18px] h-3.5 w-3.5 rounded-full bg-background transition-transform"></span>
+					</button>
+				</form>
+			}
+		</div>
+	</div>
 }
 
-// settingsToggle renders a labelled checkbox row for a repo feature flag.
+// settingsToggle renders a labelled pill-switch row for a repo feature flag.
+// The toggle is green when ON, matching the design-system success colour.
 templ settingsToggle(name, label, desc string, on bool) {
 	<label class="flex items-start justify-between gap-4 py-3 border-b border-border last:border-b-0 cursor-pointer">
 		<span class="min-w-0">
 			<span class="block text-sm font-medium text-foreground">{ label }</span>
 			<span class="block text-xs text-muted-foreground mt-0.5">{ desc }</span>
 		</span>
-		<input type="checkbox" name={ name } checked?={ on } class="mt-0.5 h-4 w-4 shrink-0 rounded border-input accent-foreground"/>
+		<span class="relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5">
+			<input type="checkbox" name={ name } checked?={ on } class="peer sr-only"/>
+			<span class="absolute inset-0 rounded-full border border-border bg-muted transition-colors peer-checked:bg-success peer-checked:border-success"></span>
+			<span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform peer-checked:bg-background peer-checked:translate-x-4"></span>
+		</span>
 	</label>
 }
 
@@ -38,24 +113,9 @@ templ RepoSettings(data view.RepoSettingsData) {
 			</section>
 			<div class="grid grid-cols-12 gap-8">
 				<aside class="col-span-12 lg:col-span-3" aria-label="Settings sections">
-					<nav id="settings-nav" class="lg:sticky lg:top-4 flex flex-col gap-0.5 text-[13px]">
-						@settingsNavLink("#general", "General")
-						@settingsNavLink("#access", "Access")
-						@settingsNavLink("#collaborators", "Collaborators")
-						@settingsNavLink("#deploy-keys", "Deploy keys")
-						@settingsNavLink("#labels", "Labels")
-						@settingsNavLink("#branches", "Branch protection")
-						@settingsNavLink("#webhooks", "Webhooks")
-						if data.IsOwner {
-							@settingsNavLink("#template", "Template")
-							<p class="font-mono text-[10px] text-destructive uppercase tracking-wider mt-4 mb-1 px-2.5">Danger zone</p>
-							@settingsNavLinkDanger("#archive", "Archive")
-							if data.CanTransfer {
-								@settingsNavLinkDanger("#transfer", "Transfer Ownership")
-							}
-							@settingsNavLinkDanger("#delete", "Delete repository")
-						}
-					</nav>
+					<div class="lg:sticky lg:top-4">
+						@components.SettingsSidebar(components.SettingsSidebarData{Items: settingsNavItems(data), Active: "general"})
+					</div>
 				</aside>
 				<div class="col-span-12 lg:col-span-9 space-y-8">
 					<!-- General -->
@@ -68,7 +128,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/general") } class="space-y-5">
+								<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/general") } data-toast="Repository settings saved" class="space-y-5">
 									<div class="space-y-1.5">
 										<label for="repo-name" class="block text-sm font-medium">Repository name</label>
 										<input id="repo-name" type="text" value={ data.RepoName } readonly class="h-9 w-full rounded-md border border-input bg-muted/50 px-3 py-1 text-sm text-muted-foreground"/>
@@ -105,28 +165,8 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								<div class="flex items-start justify-between gap-4 pb-4 mb-2 border-b border-border">
-									<div>
-										<p class="text-sm font-medium text-foreground">Visibility</p>
-										<p class="text-xs text-muted-foreground mt-0.5">
-											if data.Repo.Private {
-												This repository is private — only collaborators can see it.
-											} else {
-												This repository is public — anyone can view it.
-											}
-										</p>
-									</div>
-									if data.Repo.Private {
-										@components.Badge(components.BadgeSecondary) {
-											Private
-										}
-									} else {
-										@components.Badge(components.BadgeSuccess) {
-											Public
-										}
-									}
-								</div>
-								<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/features") }>
+								@visibilityToggle(data.Owner, data.RepoName, data.Repo.Private)
+								<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/features") } data-toast="Feature settings saved">
 									@settingsToggle("allow_issues", "Issues", "Let people open and track issues.", data.Repo.AllowIssues)
 									@settingsToggle("allow_discussions", "Discussions", "Enable the Discussions tab for Q&A and announcements.", data.Repo.AllowDiscussions)
 									@settingsToggle("allow_projects", "Projects", "Enable project boards for planning work.", data.Repo.AllowProjects)
@@ -150,431 +190,315 @@ templ RepoSettings(data view.RepoSettingsData) {
 							}
 						}
 						@components.CardContent() {
-							<div id="repo-collaborators" class="space-y-2">
-								if data.CanManage {
-									<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/collaborators" } hx-target="#repo-collaborators" hx-swap="outerHTML" class="flex gap-3 mb-4">
-										<label for="collab-username" class="sr-only">Username</label>
-										@components.Input(templ.Attributes{
-											"id":          "collab-username",
-											"type":        "text",
-											"name":        "username",
-											"placeholder": "Username",
-											"required":    "required",
-											"class":       "flex-1",
-										})
-										<label for="collab-role" class="sr-only">Role</label>
-										<select id="collab-role" name="role" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
-											<option value="reader">Reader</option>
-											<option value="writer">Writer</option>
-											<option value="admin">Admin</option>
-										</select>
-										@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-											Add
-										}
-									</form>
-								}
-								if len(data.Collabs) > 0 {
-									for _, c := range data.Collabs {
-										<div class="rounded-md border border-border p-4 flex justify-between items-center">
-											<div>
-												<p class="text-sm font-medium text-foreground">{ c.Username }</p>
-												<p class="text-xs text-muted-foreground capitalize">{ c.Role }</p>
-											</div>
-											if data.CanManage {
-												@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-													"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/collaborators?user_id=" + strconv.FormatInt(c.UserID, 10),
-													"hx-target":  "#repo-collaborators",
-													"hx-swap":    "outerHTML",
-													"hx-confirm": "Remove this collaborator?",
-													"type":       "button",
-												}) {
-													Remove
-												}
-											}
-										</div>
-									}
-								} else {
-									<p class="text-sm text-muted-foreground">No collaborators yet.</p>
-								}
-							</div>
+							@fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
+								Owner:     data.Owner,
+								RepoName:  data.RepoName,
+								RepoID:    data.Repo.ID,
+								Collabs:   data.Collabs,
+								CanManage: data.CanManage,
+							})
 						}
 					}
 					<div id="deploy-keys" class="scroll-mt-6"></div>
 					<!-- Deploy Keys section -->
 					@components.Card(nil) {
 						@components.CardHeader() {
-							<h2 class="text-base font-semibold tracking-tight">Deploy Keys</h2>
-							@components.CardDescription() {
-								SSH keys that grant CI/CD pipelines access to this repository.
-							}
-						}
-						@components.CardContent() {
-							if data.CanManage {
-								<section aria-labelledby="add-deploy-key-heading" class="rounded-md border border-border bg-muted/40 p-4 mb-6">
-									<h3 id="add-deploy-key-heading" class="text-sm font-medium mb-3">Add Deploy Key</h3>
-									<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys" } hx-target="#deploy-keys" hx-swap="outerHTML" class="space-y-4">
-										<div class="space-y-1.5">
-											<label for="deploy-key-title" class="block text-xs font-medium">Title</label>
-											@components.Input(templ.Attributes{
-												"id":          "deploy-key-title",
-												"type":        "text",
-												"name":        "title",
-												"placeholder": "e.g., CI server",
-												"required":    "required",
-											})
-										</div>
-										<div class="space-y-1.5">
-											<label for="deploy-key-public" class="block text-xs font-medium">Public Key</label>
-											@components.Textarea(templ.Attributes{
-												"id":          "deploy-key-public",
-												"name":        "public_key",
-												"placeholder": "ssh-ed25519 AAAA...",
-												"rows":        "3",
-												"required":    "required",
-												"class":       "font-mono text-xs",
-											})
-										</div>
-										<label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-											<input type="checkbox" name="read_only" value="true" checked class="rounded border-input accent-foreground"/>
-											Read-only (uncheck to allow push access)
-										</label>
-										<div class="flex justify-end">
-											@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-												Add Deploy Key
-											}
-										</div>
-									</form>
-								</section>
-							}
-							<div id="deploy-keys">
-								if len(data.DeployKeys) > 0 {
-									<table class="w-full text-sm">
-										<thead>
-											<tr class="text-left text-muted-foreground border-b border-border">
-												<th class="pb-2 font-medium">Title</th>
-												<th class="pb-2 font-medium">Fingerprint</th>
-												<th class="pb-2 font-medium">Access</th>
-												<th class="pb-2 font-medium">Last used</th>
-												<th class="pb-2"></th>
-											</tr>
-										</thead>
-										<tbody class="divide-y divide-border">
-											for _, dk := range data.DeployKeys {
-												<tr>
-													<td class="py-3 font-medium text-foreground">{ dk.Title }</td>
-													<td class="py-3 font-mono text-muted-foreground text-xs">{ dk.Fingerprint }</td>
-													<td class="py-3">
-														if dk.ReadOnly {
-															@components.Badge(components.BadgeWarning) {
-																Read-only
-															}
-														} else {
-															@components.Badge(components.BadgeSuccess) {
-																Read-write
-															}
-														}
-													</td>
-													<td class="py-3 text-muted-foreground text-xs">
-														if dk.LastUsedAt != nil {
-															<time datetime={ dk.LastUsedAt.UTC().Format(time.RFC3339) }>{ dk.LastUsedAt.Format("Jan 2, 2006") }</time>
-														} else {
-															Never
-														}
-													</td>
-													<td class="py-3">
-														if data.CanManage {
-															@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-																"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys/" + strconv.FormatInt(dk.ID, 10),
-																"hx-target":  "#deploy-keys",
-																"hx-swap":    "outerHTML",
-																"hx-confirm": "Revoke this deploy key?",
-																"type":       "button",
-															}) {
-																Revoke
-															}
-														}
-													</td>
-												</tr>
-											}
-										</tbody>
-									</table>
-								} else {
-									<div class="text-center py-6 border border-dashed border-border rounded-md bg-muted/30">
-										<p class="text-sm text-muted-foreground">No deploy keys yet.</p>
-									</div>
+							<div class="flex items-start justify-between gap-4">
+								<div class="min-w-0">
+									<h2 class="text-base font-semibold tracking-tight">Deploy Keys</h2>
+									@components.CardDescription() {
+										SSH keys that grant CI/CD pipelines access to this repository.
+									}
+								</div>
+								if data.CanManage {
+									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": "document.getElementById('deploy-key-dialog').showModal()"}) {
+										Add deploy key
+									}
 								}
 							</div>
+						}
+						@components.CardContent() {
+							@fragments.DeployKeys(view.DeployKeysFragData{
+								Owner:      data.Owner,
+								RepoName:   data.RepoName,
+								RepoID:     data.Repo.ID,
+								DeployKeys: data.DeployKeys,
+								CanManage:  data.CanManage,
+							})
+						}
+					}
+					if data.CanManage {
+						@components.Dialog("deploy-key-dialog") {
+							@components.DialogHeader() {
+								@components.DialogTitle("deploy-key-dialog") {
+									Add deploy key
+								}
+							}
+							@components.DialogBody() {
+								<form id="deploy-key-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys" } hx-target="#deploy-keys-list" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful&&event.detail.target&&event.detail.target.id==='deploy-keys-list'){this.closest('dialog').close();this.reset();this.querySelector('#deploy-key-form-error').textContent='';document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Deploy key added'}}));}" class="space-y-4">
+									<div id="deploy-key-form-error"></div>
+									<div class="space-y-1.5">
+										<label for="deploy-key-title" class="block text-xs font-medium">Title</label>
+										@components.Input(templ.Attributes{
+											"id":          "deploy-key-title",
+											"type":        "text",
+											"name":        "title",
+											"placeholder": "e.g., CI server",
+											"required":    "required",
+										})
+									</div>
+									<div class="space-y-1.5">
+										<label for="deploy-key-public" class="block text-xs font-medium">Public Key</label>
+										@components.Textarea(templ.Attributes{
+											"id":          "deploy-key-public",
+											"name":        "public_key",
+											"placeholder": "ssh-ed25519 AAAA...",
+											"rows":        "3",
+											"required":    "required",
+											"class":       "font-mono text-xs",
+										})
+									</div>
+									<label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+										<input type="checkbox" name="read_only" value="true" checked class="rounded border-input accent-foreground"/>
+										Read-only (uncheck to allow push access)
+									</label>
+								</form>
+							}
+							@components.DialogFooter() {
+								@components.DialogClose() {
+									Cancel
+								}
+								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "deploy-key-form"}) {
+									Add Deploy Key
+								}
+							}
 						}
 					}
 					<div id="labels" class="scroll-mt-6"></div>
 					<!-- Labels section -->
 					@components.Card(nil) {
 						@components.CardHeader() {
-							<h2 class="text-base font-semibold tracking-tight">Labels</h2>
-							@components.CardDescription() {
-								Categorize issues and pull requests.
-							}
-						}
-						@components.CardContent() {
-							<div id="repo-labels" class="space-y-3">
-								if data.CanManage {
-									<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/labels" } hx-target="#repo-labels" hx-swap="outerHTML" class="flex gap-2 flex-wrap items-end rounded-md border border-border bg-muted/40 p-3">
-										<div class="space-y-1.5">
-											<label for="label-name" class="block text-xs font-medium">Name</label>
-											@components.Input(templ.Attributes{
-												"id":          "label-name",
-												"type":        "text",
-												"name":        "name",
-												"placeholder": "bug, enhancement…",
-												"required":    "required",
-											})
-										</div>
-										<div class="space-y-1.5">
-											<label for="label-color" class="block text-xs font-medium">Color</label>
-											<input id="label-color" type="color" name="color" value="#e5e5e5" class="w-12 h-9 rounded-md border border-input cursor-pointer bg-transparent"/>
-										</div>
-										<div class="flex-1 space-y-1.5">
-											<label for="label-description" class="block text-xs font-medium">Description (optional)</label>
-											@components.Input(templ.Attributes{
-												"id":          "label-description",
-												"type":        "text",
-												"name":        "description",
-												"placeholder": "Short description",
-											})
-										</div>
-										@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "shrink-0"}) {
-											Create label
-										}
-									</form>
-								}
-								if len(data.Labels) > 0 {
-									for _, l := range data.Labels {
-										<div class="flex items-center justify-between rounded-md border border-border p-3">
-											<div class="flex items-center gap-2">
-												<span class="w-4 h-4 rounded-full inline-block border border-border shrink-0" style={ "background-color: " + l.Color } aria-hidden="true"></span>
-												<div>
-													<span class="text-sm font-medium text-foreground">{ l.Name }</span>
-													if l.Description != "" {
-														<span class="text-xs text-muted-foreground ml-2">{ l.Description }</span>
-													}
-												</div>
-											</div>
-											if data.CanManage {
-												@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-													"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/labels/" + strconv.FormatInt(l.ID, 10),
-													"hx-target":  "#repo-labels",
-													"hx-swap":    "outerHTML",
-													"hx-confirm": "Delete this label?",
-													"type":       "button",
-												}) {
-													Delete
-												}
-											}
-										</div>
+							<div class="flex items-start justify-between gap-4">
+								<div class="min-w-0">
+									<h2 class="text-base font-semibold tracking-tight">Labels</h2>
+									@components.CardDescription() {
+										Categorize issues and pull requests.
 									}
-								} else {
-									<p class="text-sm text-muted-foreground">No labels defined yet.</p>
+								</div>
+								if data.CanManage {
+									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": "document.getElementById('label-dialog').showModal()"}) {
+										New label
+									}
 								}
 							</div>
+						}
+						@components.CardContent() {
+							@fragments.RepoLabels(view.RepoLabelsFragData{
+								Owner:    data.Owner,
+								RepoName: data.RepoName,
+								RepoID:   data.Repo.ID,
+								Labels:   data.Labels,
+								CanWrite: data.CanManage,
+							})
+						}
+					}
+					if data.CanManage {
+						@components.Dialog("label-dialog") {
+							@components.DialogHeader() {
+								@components.DialogTitle("label-dialog") {
+									New label
+								}
+							}
+							@components.DialogBody() {
+								<form id="label-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/labels" } hx-target="#repo-labels" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful){this.closest('dialog').close();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Label created'}}));}" class="space-y-4">
+									<div class="space-y-1.5">
+										<label for="label-name" class="block text-xs font-medium">Name</label>
+										@components.Input(templ.Attributes{
+											"id":          "label-name",
+											"type":        "text",
+											"name":        "name",
+											"placeholder": "bug, enhancement…",
+											"required":    "required",
+										})
+									</div>
+									<div class="space-y-1.5">
+										<label for="label-color" class="block text-xs font-medium">Color</label>
+										<input id="label-color" type="color" name="color" value="#e5e5e5" class="w-12 h-9 rounded-md border border-input cursor-pointer bg-transparent"/>
+									</div>
+									<div class="space-y-1.5">
+										<label for="label-description" class="block text-xs font-medium">Description (optional)</label>
+										@components.Input(templ.Attributes{
+											"id":          "label-description",
+											"type":        "text",
+											"name":        "description",
+											"placeholder": "Short description",
+										})
+									</div>
+								</form>
+							}
+							@components.DialogFooter() {
+								@components.DialogClose() {
+									Cancel
+								}
+								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "label-form"}) {
+									Create label
+								}
+							}
 						}
 					}
 					<div id="branches" class="scroll-mt-6"></div>
 					<!-- Branch Protection section -->
 					@components.Card(nil) {
 						@components.CardHeader() {
-							<h2 class="text-base font-semibold tracking-tight">Branch Protection</h2>
-							@components.CardDescription() {
-								Protect branches by requiring reviews, status checks, or blocking force pushes.
-							}
-						}
-						@components.CardContent() {
-							if data.CanManage {
-								<section aria-labelledby="add-branch-protection-heading" class="rounded-md border border-border bg-muted/40 p-4 mb-6">
-									<h3 id="add-branch-protection-heading" class="text-sm font-medium mb-3">Add Protection Rule</h3>
-									<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections" } hx-target="#branch-protections" hx-swap="outerHTML" class="space-y-4">
-										<div class="space-y-1.5">
-											<label for="bp-pattern" class="block text-xs font-medium">Branch Pattern</label>
-											@components.Input(templ.Attributes{
-												"id":          "bp-pattern",
-												"type":        "text",
-												"name":        "pattern",
-												"placeholder": "e.g., main or release/*",
-												"required":    "required",
-											})
-										</div>
-										<div class="space-y-1.5">
-											<label for="bp-review-count" class="block text-xs font-medium">Required Approvals</label>
-											@components.Input(templ.Attributes{
-												"id":    "bp-review-count",
-												"type":  "number",
-												"name":  "require_review_count",
-												"value": "0",
-												"min":   "0",
-											})
-										</div>
-										<div class="space-y-1.5">
-											<label for="bp-status-checks" class="block text-xs font-medium">Required Status Checks (comma-separated)</label>
-											@components.Input(templ.Attributes{
-												"id":          "bp-status-checks",
-												"type":        "text",
-												"name":        "require_status_checks",
-												"placeholder": "e.g., ci/build,ci/test",
-											})
-										</div>
-										<label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-											<input type="checkbox" name="block_force_push" value="true" checked class="rounded border-input accent-foreground"/>
-											Block force pushes
-										</label>
-										<div class="flex justify-end">
-											@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-												Add Rule
-											}
-										</div>
-									</form>
-								</section>
-							}
-							<div id="branch-protections">
-								if len(data.BranchProtections) > 0 {
-									<table class="w-full text-sm">
-										<thead>
-											<tr class="text-left text-muted-foreground border-b border-border">
-												<th class="pb-2 font-medium">Pattern</th>
-												<th class="pb-2 font-medium">Required Reviews</th>
-												<th class="pb-2 font-medium">Status Checks</th>
-												<th class="pb-2 font-medium">Block Force Push</th>
-												<th class="pb-2"></th>
-											</tr>
-										</thead>
-										<tbody class="divide-y divide-border">
-											for _, p := range data.BranchProtections {
-												<tr>
-													<td class="py-3 font-mono text-sm text-foreground">{ p.Pattern }</td>
-													<td class="py-3 text-foreground">{ strconv.Itoa(p.RequireReviewCount) }</td>
-													<td class="py-3 text-muted-foreground text-xs">
-														if len(p.RequireStatusChecks) > 0 {
-															for i, c := range p.RequireStatusChecks {
-																if i > 0 {
-																	,{ " " }
-																}
-																{ c }
-															}
-														} else {
-															—
-														}
-													</td>
-													<td class="py-3">
-														if p.BlockForcePush {
-															@components.Badge(components.BadgeDestructive) {
-																Blocked
-															}
-														} else {
-															@components.Badge(components.BadgeSecondary) {
-																Allowed
-															}
-														}
-													</td>
-													<td class="py-3">
-														if data.CanManage {
-															@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-																"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections/" + strconv.FormatInt(p.ID, 10),
-																"hx-target":  "#branch-protections",
-																"hx-swap":    "outerHTML",
-																"hx-confirm": "Delete this branch protection rule?",
-																"type":       "button",
-															}) {
-																Delete
-															}
-														}
-													</td>
-												</tr>
-											}
-										</tbody>
-									</table>
-								} else {
-									<div class="text-center py-6 border border-dashed border-border rounded-md bg-muted/30">
-										<p class="text-sm text-muted-foreground">No branch protection rules yet.</p>
-									</div>
+							<div class="flex items-start justify-between gap-4">
+								<div class="min-w-0">
+									<h2 class="text-base font-semibold tracking-tight">Branch Protection</h2>
+									@components.CardDescription() {
+										Protect branches by requiring reviews, status checks, or blocking force pushes.
+									}
+								</div>
+								if data.CanManage {
+									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": "document.getElementById('protection-rule-dialog').showModal()"}) {
+										Add rule
+									}
 								}
 							</div>
+						}
+						@components.CardContent() {
+							@fragments.BranchProtections(view.BranchProtectionsFragData{
+								Owner:     data.Owner,
+								RepoName:  data.RepoName,
+								RepoID:    data.Repo.ID,
+								Rules:     data.BranchProtections,
+								CanManage: data.CanManage,
+							})
+						}
+					}
+					if data.CanManage {
+						@components.Dialog("protection-rule-dialog") {
+							@components.DialogHeader() {
+								@components.DialogTitle("protection-rule-dialog") {
+									Add rule
+								}
+							}
+							@components.DialogBody() {
+								<form id="protection-rule-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections" } hx-target="#branch-protections" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful){this.closest('dialog').close();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Protection rule added'}}));}" class="space-y-4">
+									<div class="space-y-1.5">
+										<label for="bp-pattern" class="block text-xs font-medium">Branch Pattern</label>
+										@components.Input(templ.Attributes{
+											"id":          "bp-pattern",
+											"type":        "text",
+											"name":        "pattern",
+											"placeholder": "e.g., main or release/*",
+											"required":    "required",
+										})
+									</div>
+									<div class="space-y-1.5">
+										<label for="bp-review-count" class="block text-xs font-medium">Required Approvals</label>
+										@components.Input(templ.Attributes{
+											"id":    "bp-review-count",
+											"type":  "number",
+											"name":  "require_review_count",
+											"value": "0",
+											"min":   "0",
+										})
+									</div>
+									<div class="space-y-1.5">
+										<label for="bp-status-checks" class="block text-xs font-medium">Required Status Checks (comma-separated)</label>
+										@components.Input(templ.Attributes{
+											"id":          "bp-status-checks",
+											"type":        "text",
+											"name":        "require_status_checks",
+											"placeholder": "e.g., ci/build,ci/test",
+										})
+									</div>
+									<label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+										<input type="checkbox" name="block_force_push" value="true" checked class="rounded border-input accent-foreground"/>
+										Block force pushes
+									</label>
+								</form>
+							}
+							@components.DialogFooter() {
+								@components.DialogClose() {
+									Cancel
+								}
+								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "protection-rule-form"}) {
+									Add Rule
+								}
+							}
 						}
 					}
 					<div id="webhooks" class="scroll-mt-6"></div>
 					<!-- Webhooks section -->
 					@components.Card(nil) {
 						@components.CardHeader() {
-							<h2 class="text-base font-semibold tracking-tight">Webhooks</h2>
-							@components.CardDescription() {
-								Send HTTP requests to external services when events occur in this repository.
-							}
-						}
-						@components.CardContent() {
-							<section aria-labelledby="add-webhook-heading" class="rounded-md border border-border bg-muted/40 p-4 mb-6">
-								<h3 id="add-webhook-heading" class="text-sm font-medium mb-3">Add Webhook</h3>
-								<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks" } hx-target="#webhooks-list" hx-swap="outerHTML" class="space-y-4">
-									<div class="space-y-1.5">
-										<label for="webhook-url" class="block text-xs font-medium">Payload URL</label>
-										@components.Input(templ.Attributes{
-											"id":          "webhook-url",
-											"type":        "url",
-											"name":        "url",
-											"placeholder": "https://example.com/webhook",
-											"required":    "required",
-										})
-									</div>
-									<div class="space-y-1.5">
-										<label for="webhook-secret" class="block text-xs font-medium">Secret</label>
-										@components.Input(templ.Attributes{
-											"id":          "webhook-secret",
-											"type":        "text",
-											"name":        "secret",
-											"placeholder": "Optional HMAC secret",
-										})
-									</div>
-									<div class="space-y-1.5">
-										<label for="webhook-events" class="block text-xs font-medium">Events (comma-separated)</label>
-										@components.Input(templ.Attributes{
-											"id":    "webhook-events",
-											"type":  "text",
-											"name":  "events",
-											"value": "push,issues,pull_request",
-										})
-									</div>
-									<div class="flex justify-end">
-										@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-											Add Webhook
-										}
-									</div>
-								</form>
-							</section>
-							<div id="webhooks-list" class="space-y-2">
-								if len(data.Webhooks) > 0 {
-									for _, wh := range data.Webhooks {
-										<div class="rounded-md border border-border p-4 flex justify-between items-start">
-											<div>
-												<p class="font-medium text-sm font-mono break-all text-foreground">{ wh.URL }</p>
-												<p class="text-xs text-muted-foreground mt-1">Events: { wh.Events }</p>
-												if wh.Active {
-													<p class="text-xs mt-1 text-success">Active</p>
-												} else {
-													<p class="text-xs mt-1 text-muted-foreground">Inactive</p>
-												}
-											</div>
-											@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-												"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks/" + strconv.FormatInt(wh.ID, 10),
-												"hx-target":  "#webhooks-list",
-												"hx-swap":    "outerHTML",
-												"hx-confirm": "Delete this webhook?",
-												"type":       "button",
-												"class":      "ml-4 shrink-0",
-											}) {
-												Delete
-											}
-										</div>
+							<div class="flex items-start justify-between gap-4">
+								<div class="min-w-0">
+									<h2 class="text-base font-semibold tracking-tight">Webhooks</h2>
+									@components.CardDescription() {
+										Send HTTP requests to external services when events occur in this repository.
 									}
-								} else {
-									<p class="text-sm text-muted-foreground">No webhooks configured.</p>
+								</div>
+								@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": "document.getElementById('webhook-dialog').showModal()"}) {
+									Add webhook
 								}
 							</div>
+						}
+						@components.CardContent() {
+							@fragments.WebhooksList(view.WebhooksFragData{
+								Owner:     data.Owner,
+								RepoName:  data.RepoName,
+								RepoID:    data.Repo.ID,
+								Webhooks:  data.Webhooks,
+								CanManage: data.CanManage,
+							})
+						}
+					}
+					@components.Dialog("webhook-dialog") {
+						@components.DialogHeader() {
+							@components.DialogTitle("webhook-dialog") {
+								Add webhook
+							}
+						}
+						@components.DialogBody() {
+							<form id="webhook-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks" } hx-target="#webhooks-list" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful){this.closest('dialog').close();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Webhook added'}}));}" class="space-y-4">
+								<div class="space-y-1.5">
+									<label for="webhook-url" class="block text-xs font-medium">Payload URL</label>
+									@components.Input(templ.Attributes{
+										"id":          "webhook-url",
+										"type":        "url",
+										"name":        "url",
+										"placeholder": "https://example.com/webhook",
+										"required":    "required",
+									})
+								</div>
+								<div class="space-y-1.5">
+									<label for="webhook-secret" class="block text-xs font-medium">Secret</label>
+									@components.Input(templ.Attributes{
+										"id":          "webhook-secret",
+										"type":        "text",
+										"name":        "secret",
+										"placeholder": "Optional HMAC secret",
+									})
+								</div>
+								<div class="space-y-1.5">
+									<label for="webhook-events" class="block text-xs font-medium">Events (comma-separated)</label>
+									@components.Input(templ.Attributes{
+										"id":    "webhook-events",
+										"type":  "text",
+										"name":  "events",
+										"value": "push,issues,pull_request",
+									})
+								</div>
+							</form>
+						}
+						@components.DialogFooter() {
+							@components.DialogClose() {
+								Cancel
+							}
+							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "webhook-form"}) {
+								Add Webhook
+							}
 						}
 					}
 					if data.IsOwner {
@@ -591,9 +515,20 @@ templ RepoSettings(data view.RepoSettingsData) {
 										<p class="text-xs text-muted-foreground mt-0.5">Allow other users to create new repositories with the same directory structure and files.</p>
 									</div>
 									if data.Repo.IsTemplate {
-										<input type="checkbox" aria-label="Template repository" checked hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/template" } hx-vals='{"is_template": "false"}' hx-trigger="change" class="rounded border-input accent-foreground h-4 w-4"/>
+										<input type="checkbox" aria-label="Template repository" checked hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/template" } hx-vals='{"is_template": "false"}' hx-trigger="change" data-toast="Repository is no longer a template" class="rounded border-input accent-foreground h-4 w-4"/>
 									} else {
-										<input type="checkbox" aria-label="Template repository" hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/template" } hx-vals='{"is_template": "true"}' hx-trigger="change" class="rounded border-input accent-foreground h-4 w-4"/>
+										<input
+											type="checkbox"
+											aria-label="Template repository"
+											hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/template" }
+											hx-vals='{"is_template": "true"}'
+											hx-trigger="change"
+											hx-confirm={ "Anyone will be able to create new repositories with the same directory structure and files as " + data.RepoName + "." }
+											data-confirm-title="Make this a template repository?"
+											data-confirm-label="Make template"
+											data-toast="Repository is now a template"
+											class="rounded border-input accent-foreground h-4 w-4"
+										/>
 									}
 								</div>
 							}
@@ -618,17 +553,26 @@ templ RepoSettings(data view.RepoSettingsData) {
 								<div class="flex justify-end">
 									if data.Repo.IsArchived {
 										@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{
-											"hx-post":   "/api/repos/" + data.Owner + "/" + data.RepoName + "/unarchive",
-											"hx-target": "body",
-											"type":      "button",
+											"hx-post":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/unarchive",
+											"hx-target":            "body",
+											"hx-confirm":           "Push access will be restored and " + data.RepoName + " will return to active views.",
+											"data-confirm-title":   "Unarchive this repository?",
+											"data-confirm-label":   "Unarchive",
+											"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Repository unarchived'}));}",
+											"type":                 "button",
 										}) {
 											Unarchive
 										}
 									} else {
 										@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-											"hx-post":   "/api/repos/" + data.Owner + "/" + data.RepoName + "/archive",
-											"hx-target": "body",
-											"type":      "button",
+											"hx-post":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/archive",
+											"hx-target":            "body",
+											"hx-confirm":           data.RepoName + " will become read-only and hidden from active views. You can unarchive it later.",
+											"data-confirm-title":   "Archive this repository?",
+											"data-confirm-label":   "Archive",
+											"data-confirm-danger":  "true",
+											"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Repository archived'}));}",
+											"type":                 "button",
 										}) {
 											Archive
 										}
@@ -646,7 +590,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 									}
 								}
 								@components.CardContent() {
-									<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer") } onsubmit="return confirm('Transfer this repository? This cannot be undone.')">
+									<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer") } data-toast="Repository transferred">
 										<div class="flex gap-3">
 											<label for="transfer-new-owner" class="sr-only">New owner username</label>
 											@components.Input(templ.Attributes{
@@ -657,7 +601,14 @@ templ RepoSettings(data view.RepoSettingsData) {
 												"required":    "required",
 												"class":       "flex-1",
 											})
-											@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+											@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
+												"type":                "submit",
+												"data-confirm-action":  "true",
+												"data-confirm-title":   "Transfer ownership?",
+												"data-confirm-msg":     data.RepoName + " will be transferred to another user. You will lose owner access to this repository.",
+												"data-confirm-label":   "Transfer",
+												"data-confirm-danger":  "true",
+											}) {
 												Transfer
 											}
 										</div>
@@ -675,8 +626,15 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/delete") } onsubmit="return confirm('Permanently delete this repository and all its data? This cannot be undone.')" class="flex justify-end">
-									@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+								<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/delete") } data-toast="Repository deleted" class="flex justify-end">
+									@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
+										"type":                "submit",
+										"data-confirm-action":  "true",
+										"data-confirm-title":   "Delete this repository?",
+										"data-confirm-msg":     "This permanently removes " + data.RepoName + " and all of its data — issues, pull requests, and history. This cannot be undone.",
+										"data-confirm-label":   "Delete repository",
+										"data-confirm-danger":  "true",
+									}) {
 										Delete repository
 									}
 								</form>
@@ -687,7 +645,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 			</div>
 			<script>
 				(function () {
-					var nav = document.getElementById('settings-nav');
+					var nav = document.querySelector('nav[aria-label="Settings sections"]');
 					if (!nav) return;
 					var links = Array.prototype.slice.call(nav.querySelectorAll('a[href^="#"]'));
 					var targets = links
@@ -701,10 +659,13 @@ templ RepoSettings(data view.RepoSettingsData) {
 						}
 						links.forEach(function (l) {
 							var on = l === active.link;
-							l.classList.toggle('bg-muted', on);
-							l.classList.toggle('text-foreground', on);
-							l.classList.toggle('font-medium', on);
-							l.classList.toggle('text-muted-foreground', !on);
+							var isDanger = l.classList.contains('text-destructive');
+							if (!isDanger) {
+								l.classList.toggle('bg-accent', on);
+								l.classList.toggle('text-foreground', on);
+								l.classList.toggle('font-medium', on);
+								l.classList.toggle('text-muted-foreground', !on);
+							}
 						});
 					}
 					update();

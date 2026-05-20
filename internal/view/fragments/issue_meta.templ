@@ -1,0 +1,370 @@
+package fragments
+
+import (
+	"strconv"
+	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
+
+type priorityOption struct {
+	Key      string
+	Label    string
+	DotClass string
+}
+
+func priorityOptionList() []priorityOption {
+	return []priorityOption{
+		{"P0", "P0 · Critical", "bg-destructive"},
+		{"P1", "P1 · High", "bg-blue-500"},
+		{"P2", "P2 · Medium", "bg-warning"},
+		{"P3", "P3 · Low", "bg-muted-foreground"},
+	}
+}
+
+func priorityIsSet(current *string, key string) bool {
+	return current != nil && *current == key
+}
+
+func pullLinked(linked []view.LinkedPull, number int) bool {
+	for _, lp := range linked {
+		if lp.Number == number {
+			return true
+		}
+	}
+	return false
+}
+
+templ metaCheckIcon() {
+	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+}
+
+templ metaEditIcon() {
+	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+}
+
+templ prStateIcon(state string) {
+	switch state {
+		case "merged":
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-[hsl(270_70%_70%)]" aria-hidden="true" focusable="false"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 009 9"></path></svg>
+		case "closed":
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-destructive" aria-hidden="true" focusable="false"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 009 9"></path></svg>
+		default:
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-hidden="true" focusable="false"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 009 9"></path></svg>
+	}
+}
+
+templ priorityBadge(p string) {
+	switch p {
+		case "P0":
+			<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-destructive/10 text-destructive border-destructive/30">P0</span>
+		case "P1":
+			<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-blue-500/10 text-blue-500 border-blue-500/30">P1</span>
+		case "P2":
+			<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-warning/10 text-warning border-warning/30">P2</span>
+		case "P3":
+			<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-muted text-muted-foreground border-border">P3</span>
+	}
+}
+
+// IssuePrioritySidebar renders the Priority sidebar section. The Alpine "open"
+// variable must be supplied by an ancestor x-data scope (see LabelSidebar).
+templ IssuePrioritySidebar(data view.IssuePrioritySidebarData) {
+	{{ postURL := "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.IssueNumber) + "/priority" }}
+	<div id="issue-priority" class="space-y-2">
+		<div class="flex items-center justify-between">
+			<h3 class="text-[12px] font-medium text-muted-foreground">Priority</h3>
+			if data.CanWrite {
+				<div class="relative" x-on:click.outside="open === 'priority' && (open = null)">
+					<button
+						type="button"
+						x-on:click="open = (open === 'priority' ? null : 'priority')"
+						:aria-expanded="open === 'priority' ? 'true' : 'false'"
+						aria-haspopup="menu"
+						aria-label="Set priority"
+						class="text-muted-foreground hover:text-foreground"
+					>
+						@metaEditIcon()
+					</button>
+					<div
+						x-show="open === 'priority'"
+						x-cloak
+						x-transition.opacity.duration.100ms
+						role="menu"
+						aria-label="Set priority"
+						class="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
+					>
+						<div class="px-2 pt-1 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Set priority</div>
+						for _, opt := range priorityOptionList() {
+							{{ current := priorityIsSet(data.Priority, opt.Key) }}
+							<form hx-post={ postURL } hx-target="#issue-priority" hx-swap="outerHTML">
+								<button
+									type="submit"
+									name="priority"
+									value={ opt.Key }
+									role="menuitemradio"
+									aria-checked={ strconv.FormatBool(current) }
+									class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+								>
+									<span class={ "h-2 w-2 rounded-full inline-block shrink-0", opt.DotClass }></span>
+									<span class="flex-1 truncate">{ opt.Label }</span>
+									if current {
+										@metaCheckIcon()
+									}
+								</button>
+							</form>
+						}
+						<div role="separator" class="my-1 h-px bg-border"></div>
+						<form hx-post={ postURL } hx-target="#issue-priority" hx-swap="outerHTML">
+							<button
+								type="submit"
+								name="priority"
+								value=""
+								role="menuitemradio"
+								aria-checked={ strconv.FormatBool(data.Priority == nil) }
+								class="flex w-full items-center px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+							>
+								No priority
+							</button>
+						</form>
+					</div>
+				</div>
+			}
+		</div>
+		if data.Priority != nil {
+			@priorityBadge(*data.Priority)
+		} else {
+			<span class="text-xs text-muted-foreground">No priority</span>
+		}
+	</div>
+}
+
+templ IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) {
+	{{ base := "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.IssueNumber) + "/linked-pulls/" }}
+	<div id="issue-linked-pulls" class="space-y-2">
+		<div class="flex items-center justify-between">
+			<h3 class="text-[12px] font-medium text-muted-foreground">Linked pull requests</h3>
+			if data.CanWrite && len(data.AllPulls) > 0 {
+				<div class="relative" x-on:click.outside="open === 'linked-pulls' && (open = null)">
+					<button
+						type="button"
+						x-on:click="open = (open === 'linked-pulls' ? null : 'linked-pulls')"
+						:aria-expanded="open === 'linked-pulls' ? 'true' : 'false'"
+						aria-haspopup="menu"
+						aria-label="Link a pull request"
+						class="text-muted-foreground hover:text-foreground"
+					>
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>
+					</button>
+					<div
+						x-show="open === 'linked-pulls'"
+						x-cloak
+						x-transition.opacity.duration.100ms
+						role="menu"
+						aria-label="Link a pull request"
+						class="absolute right-0 top-full mt-1.5 z-50 w-64 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 max-h-72 overflow-y-auto"
+					>
+						<div class="px-2 pt-1 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Link a pull request</div>
+						for _, pr := range data.AllPulls {
+							{{ linked := pullLinked(data.Linked, pr.Number) }}
+							<button
+								type="button"
+								if linked {
+									hx-delete={ base + strconv.Itoa(pr.Number) }
+								} else {
+									hx-post={ base + strconv.Itoa(pr.Number) }
+								}
+								hx-target="#issue-linked-pulls"
+								hx-swap="outerHTML"
+								role="menuitemcheckbox"
+								aria-checked={ strconv.FormatBool(linked) }
+								class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+							>
+								@prStateIcon(pr.State)
+								<span class="flex-1 truncate"><span class="font-mono text-muted-foreground">#{ strconv.Itoa(pr.Number) }</span> { pr.Title }</span>
+								if linked {
+									@metaCheckIcon()
+								}
+							</button>
+						}
+						<div role="separator" class="my-1 h-px bg-border"></div>
+						<a
+							href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls") }
+							role="menuitem"
+							class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+						>
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0" aria-hidden="true" focusable="false"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 01-9 9"></path></svg>
+							Browse pull requests
+						</a>
+					</div>
+				</div>
+			}
+		</div>
+		if len(data.Linked) > 0 {
+			<ul class="space-y-1.5 text-[13px]">
+				for _, lp := range data.Linked {
+					<li class="flex items-center gap-2">
+						@prStateIcon(lp.State)
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(lp.Number)) } class="hover:underline truncate">
+							<span class="font-mono text-muted-foreground">#{ strconv.Itoa(lp.Number) }</span>
+							{ " " }{ lp.Title }
+						</a>
+					</li>
+				}
+			</ul>
+		} else {
+			<p class="text-xs text-muted-foreground">No linked PRs yet.</p>
+		}
+	</div>
+}
+
+templ IssueTitleSection(owner, repoName string, number int, title string, canWrite, editing bool) {
+	{{ base := "/api/repos/" + owner + "/" + repoName + "/issues/" + strconv.Itoa(number) + "/title" }}
+	<div id="issue-title-section" class="flex flex-wrap items-start justify-between gap-3">
+		if editing {
+			<form
+				hx-patch={ base }
+				hx-target="#issue-title-section"
+				hx-swap="outerHTML"
+				class="flex flex-1 items-center gap-2 min-w-0"
+			>
+				<input
+					type="text"
+					name="title"
+					value={ title }
+					required
+					autofocus
+					aria-label="Issue title"
+					class="flex-1 min-w-0 h-9 px-3 rounded-md border border-input bg-background text-lg font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+				/>
+				<button type="submit" class="h-9 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">Save</button>
+				<button
+					type="button"
+					hx-get={ base }
+					hx-target="#issue-title-section"
+					hx-swap="outerHTML"
+					class="h-9 px-3 text-[13px] rounded-md border border-border hover:bg-muted shrink-0"
+				>Cancel</button>
+			</form>
+		} else {
+			<h1 class="text-2xl font-semibold tracking-tight flex items-center gap-2 flex-wrap min-w-0">
+				{ title }
+				<span class="text-muted-foreground font-normal" aria-label={ "Issue number " + strconv.Itoa(number) }>#{ strconv.Itoa(number) }</span>
+			</h1>
+			if canWrite {
+				<button
+					type="button"
+					hx-get={ base + "?mode=edit" }
+					hx-target="#issue-title-section"
+					hx-swap="outerHTML"
+					class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted inline-flex items-center shrink-0"
+				>Edit</button>
+			}
+		}
+	</div>
+}
+
+// mdToolbarButton renders one toolbar icon button. onClick is an Alpine
+// expression — typically a wrap() that surrounds the textarea selection with
+// markdown markers.
+templ mdToolbarButton(label, onClick string) {
+	<button type="button" aria-label={ label } x-on:click={ onClick } class="h-7 w-7 grid place-items-center rounded hover:bg-muted hover:text-foreground">
+		{ children... }
+	</button>
+}
+
+templ IssueBodyCard(data view.IssueBodyCardData) {
+	{{ base := "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.IssueNumber) + "/body" }}
+	<section id="issue-body-card" class="rounded-md border border-border bg-card overflow-hidden" aria-label="Issue description">
+		<header class="px-4 py-2.5 border-b border-border bg-blue-500/10 dark:bg-blue-900/40 flex items-center gap-2 text-[12.5px]">
+			@components.Avatar(data.AuthorName, components.AvatarSizeSM, data.AuthorName)
+			<strong class="text-foreground">{ data.AuthorName }</strong>
+			<span class="text-muted-foreground">opened</span>
+			<time class="text-muted-foreground ml-auto text-xs" datetime={ data.CreatedAt.UTC().Format(time.RFC3339) }>{ data.CreatedAt.Format("Jan 2, 2006") }</time>
+			if data.CanWrite && !data.Editing {
+				<button
+					type="button"
+					hx-get={ base + "?mode=edit" }
+					hx-target="#issue-body-card"
+					hx-swap="outerHTML"
+					class="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border hover:bg-muted text-[12px] text-muted-foreground"
+				>
+					@metaEditIcon()
+					Edit
+				</button>
+			}
+		</header>
+		if data.Editing {
+			<form hx-patch={ base } hx-target="#issue-body-card" hx-swap="outerHTML" class="px-4 py-4" x-data="{ tab: 'write', wrap(b, a) { const t = $refs.body, s = t.selectionStart, e = t.selectionEnd; t.setRangeText(b + t.value.slice(s, e) + a, s, e, 'end'); t.focus(); } }">
+				<label for="issue-body-textarea" class="sr-only">Issue description</label>
+				<div class="border border-border rounded-md bg-card overflow-hidden">
+					<header class="px-3 border-b border-border bg-background flex items-center gap-3">
+						<div role="tablist" aria-label="Description editor mode" class="flex">
+							<button
+								type="button"
+								role="tab"
+								x-on:click="tab = 'write'"
+								:aria-selected="tab === 'write' ? 'true' : 'false'"
+								class="px-3 py-2.5 border-b -mb-px text-[13px]"
+								:class="tab === 'write' ? 'border-foreground text-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'"
+							>Write</button>
+							<button
+								type="button"
+								role="tab"
+								x-on:click="tab = 'preview'"
+								:aria-selected="tab === 'preview' ? 'true' : 'false'"
+								hx-post="/api/markdown/preview"
+								hx-vals="js:{body: document.getElementById('issue-body-textarea').value}"
+								hx-target="#issue-body-preview"
+								hx-swap="innerHTML"
+								class="px-3 py-2.5 border-b -mb-px text-[13px]"
+								:class="tab === 'preview' ? 'border-foreground text-foreground font-medium' : 'border-transparent text-muted-foreground hover:text-foreground'"
+							>Preview</button>
+						</div>
+						<div class="ml-auto flex items-center gap-1 text-muted-foreground" aria-label="Formatting toolbar">
+							@mdToolbarButton("Bold", "wrap('**', '**')") {
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6zM6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"></path></svg>
+							}
+							@mdToolbarButton("Italic", "wrap('*', '*')") {
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><line x1="19" y1="4" x2="10" y2="4"></line><line x1="14" y1="20" x2="5" y2="20"></line><line x1="15" y1="4" x2="9" y2="20"></line></svg>
+							}
+							@mdToolbarButton("Code", "wrap('`', '`')") {
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+							}
+							@mdToolbarButton("Insert link", "wrap('[', '](url)')") {
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M10 13a5 5 0 007.07 0l3-3a5 5 0 00-7.07-7.07l-1 1"></path><path d="M14 11a5 5 0 00-7.07 0l-3 3a5 5 0 007.07 7.07l1-1"></path></svg>
+							}
+						</div>
+					</header>
+					<div role="tabpanel" x-show="tab === 'write'">
+						<textarea
+							id="issue-body-textarea"
+							x-ref="body"
+							name="body"
+							rows="10"
+							class="w-full p-3 h-[240px] text-sm font-mono bg-transparent resize-none placeholder:text-muted-foreground focus:outline-none"
+						>{ data.Body }</textarea>
+					</div>
+					<div id="issue-body-preview" role="tabpanel" x-show="tab === 'preview'" x-cloak class="prose prose-sm dark:prose-invert max-w-none p-4 h-[240px] overflow-y-auto">
+						@templ.Raw(data.BodyHTML)
+					</div>
+				</div>
+				<div class="flex justify-end gap-2 mt-3">
+					<button
+						type="button"
+						hx-get={ base }
+						hx-target="#issue-body-card"
+						hx-swap="outerHTML"
+						class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted"
+					>Cancel</button>
+					<button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Save</button>
+				</div>
+			</form>
+		} else {
+			<div class="px-4 py-4 prose prose-sm dark:prose-invert max-w-none">
+				@templ.Raw(data.BodyHTML)
+			</div>
+		}
+	</section>
+}

@@ -1,0 +1,146 @@
+package fragments
+
+import (
+	"strconv"
+	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
+
+templ MilestoneTitleSection(owner, repoName string, number int, title string, canWrite, editing bool) {
+	{{ base := "/api/repos/" + owner + "/" + repoName + "/milestones/" + strconv.Itoa(number) + "/title" }}
+	<div id="milestone-title-section" class="flex flex-wrap items-start justify-between gap-3">
+		if editing {
+			<form
+				hx-patch={ base }
+				hx-target="#milestone-title-section"
+				hx-swap="outerHTML"
+				class="flex flex-1 items-center gap-2 min-w-0"
+			>
+				<input
+					type="text"
+					name="title"
+					value={ title }
+					required
+					autofocus
+					aria-label="Milestone title"
+					class="flex-1 min-w-0 h-9 px-3 rounded-md border border-input bg-background text-lg font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+				/>
+				<button type="submit" class="h-9 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">Save</button>
+				<button
+					type="button"
+					hx-get={ base }
+					hx-target="#milestone-title-section"
+					hx-swap="outerHTML"
+					class="h-9 px-3 text-[13px] rounded-md border border-border hover:bg-muted shrink-0"
+				>Cancel</button>
+			</form>
+		} else {
+			<h1 class="text-2xl font-semibold tracking-tight min-w-0">{ title }</h1>
+			if canWrite {
+				<button
+					type="button"
+					hx-get={ base + "?mode=edit" }
+					hx-target="#milestone-title-section"
+					hx-swap="outerHTML"
+					class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted inline-flex items-center shrink-0"
+				>Edit</button>
+			}
+		}
+	</div>
+}
+
+templ MilestoneBodyCard(data view.MilestoneBodyCardData) {
+	{{ base := "/api/repos/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(data.Number) + "/body" }}
+	<section id="milestone-body-card" class="rounded-md border border-border bg-card overflow-hidden" aria-label="Milestone description">
+		<header class="px-4 py-2.5 border-b border-border bg-muted/50 flex items-center gap-2 text-[12.5px]">
+			<strong class="text-foreground">Description</strong>
+			if data.CanWrite && !data.Editing {
+				<button
+					type="button"
+					hx-get={ base + "?mode=edit" }
+					hx-target="#milestone-body-card"
+					hx-swap="outerHTML"
+					class="ml-auto inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border hover:bg-muted text-[12px] text-muted-foreground"
+				>
+					@metaEditIcon()
+					Edit
+				</button>
+			}
+		</header>
+		if data.Editing {
+			<form hx-patch={ base } hx-target="#milestone-body-card" hx-swap="outerHTML" class="px-4 py-4">
+				@components.MarkdownEditor("milestone-body", "description", data.Description, "Describe what this milestone delivers. Markdown supported.", 10)
+				<div class="flex justify-end gap-2 mt-3">
+					<button
+						type="button"
+						hx-get={ base }
+						hx-target="#milestone-body-card"
+						hx-swap="outerHTML"
+						class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted"
+					>Cancel</button>
+					<button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Save</button>
+				</div>
+			</form>
+		} else {
+			if data.Description != "" {
+				<div class="px-4 py-4 prose prose-sm dark:prose-invert max-w-none">
+					@templ.Raw(data.DescriptionHTML)
+				</div>
+			} else {
+				<div class="px-4 py-4">
+					<p class="text-sm text-muted-foreground italic">No description provided.</p>
+				</div>
+			}
+		}
+	</section>
+}
+
+templ MilestoneDueSection(owner, repoName string, number int, due *time.Time, canWrite, editing bool) {
+	{{ base := "/api/repos/" + owner + "/" + repoName + "/milestones/" + strconv.Itoa(number) + "/due" }}
+	<section id="milestone-due-section" aria-labelledby="ms-due-heading">
+		<div class="flex items-center justify-between mb-2">
+			<h2 id="ms-due-heading" class="text-[12px] font-medium text-muted-foreground">Due date</h2>
+			if canWrite && !editing {
+				<button
+					type="button"
+					hx-get={ base + "?mode=edit" }
+					hx-target="#milestone-due-section"
+					hx-swap="outerHTML"
+					aria-label="Edit due date"
+					class="text-muted-foreground hover:text-foreground"
+				>
+					@metaEditIcon()
+				</button>
+			}
+		</div>
+		if editing {
+			<form hx-patch={ base } hx-target="#milestone-due-section" hx-swap="outerHTML" class="space-y-2">
+				<input
+					type="date"
+					name="due_date"
+					value={ milestoneDueInput(due) }
+					class="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+				/>
+				<div class="flex justify-end gap-2">
+					<button
+						type="button"
+						hx-get={ base }
+						hx-target="#milestone-due-section"
+						hx-swap="outerHTML"
+						class="h-7 px-2.5 text-[12px] rounded-md border border-border hover:bg-muted"
+					>Cancel</button>
+					<button type="submit" class="h-7 px-2.5 text-[12px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Save</button>
+				</div>
+				<p class="text-[11px] text-muted-foreground">Leave blank for an open-ended milestone.</p>
+			</form>
+		} else {
+			if due != nil {
+				<p class="text-[13px]"><time datetime={ due.UTC().Format(time.RFC3339) }>{ due.Format("Jan 2, 2006") }</time></p>
+			} else {
+				<p class="text-[13px] text-muted-foreground">No due date</p>
+			}
+		}
+	</section>
+}

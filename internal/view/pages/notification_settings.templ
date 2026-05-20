@@ -20,7 +20,7 @@ templ NotificationSettings(data view.NotificationSettingsData) {
 				<p class="mt-1 text-[13px] text-muted-foreground">Choose how Cloudzilla reaches you about issues, pull requests, and other repo activity.</p>
 			</section>
 
-			<form method="POST" action="/settings/notifications" class="space-y-5 rounded-md border border-border bg-card p-6">
+			<form method="POST" action="/settings/notifications" data-toast="Notification preferences saved" class="space-y-5 rounded-md border border-border bg-card p-6">
 				<label class="flex items-center gap-3 cursor-pointer">
 					if data.EmailNotifications {
 						@components.Checkbox(templ.Attributes{"id": "email_notifications", "name": "email_notifications", "checked": "checked"})

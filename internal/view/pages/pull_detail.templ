@@ -77,7 +77,7 @@ templ pullDetailBody(data view.PullDetailData) {
 						}
 					</div>
 					if data.CanWrite {
-						<form id="desc-editor" class="hidden" hx-patch={ apiBase } hx-swap="none" hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Description updated'}));location.reload();}">
+						<form id="desc-editor" class="hidden" hx-patch={ apiBase } hx-swap="none" hx-on--after-request="if(event.target===this&&event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Description updated'}));location.reload();}">
 							<div class="rounded-md border border-border overflow-hidden">
 								@components.MarkdownEditor("desc-body", "body", data.Pull.Body, "Edit the description…", 14)
 							</div>
@@ -125,39 +125,43 @@ templ pullDetailBody(data view.PullDetailData) {
 				</div>
 			}
 
+			if data.CanWrite && data.Pull.State == model.PRStateClosed {
+				<div class="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-card px-4 py-3">
+					<p class="text-[13px] text-muted-foreground">This pull request is closed.</p>
+					@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+						"type":                 "button",
+						"hx-patch":             apiBase,
+						"hx-vals":              `{"state":"open"}`,
+						"hx-swap":              "none",
+						"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request reopened'}));location.reload();}",
+					}) {
+						Reopen pull request
+					}
+				</div>
+			}
 			if data.BasePage.CurrentUser != nil {
-				<section class="mt-8" aria-label="Add a comment">
-					<form
-						class="rounded-md border border-border bg-card overflow-hidden"
-						hx-post={ apiBase + "/comments" }
-						hx-target="#pr-timeline"
-						hx-swap="beforeend"
-						hx-on--after-request="if(event.detail.successful) this.reset()"
-					>
-						<header class="px-3 py-2 border-b border-border bg-background flex items-center gap-2">
-							@components.Avatar(data.BasePage.CurrentUser.Username, components.AvatarSizeSM, data.BasePage.CurrentUser.Username)
-							<span class="text-[13px] font-medium">Add a comment</span>
-						</header>
-						@components.MarkdownEditor("pr-comment-body", "body", "", "Leave a comment — Markdown supported", 5)
-						<div class="px-3 py-2 border-t border-border bg-muted/40 flex items-center gap-2">
-							<p class="text-[11px] text-muted-foreground font-mono flex-1">Markdown supported · drop files to attach</p>
-							if data.CanWrite && data.Pull.State == model.PRStateOpen {
-								@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeDefault, templ.Attributes{
-									"hx-patch":             apiBase,
-									"hx-vals":              `{"state":"closed"}`,
-									"hx-swap":              "none",
-									"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request closed'}));location.reload();}",
-									"type":                 "button",
-								}) {
-									Close pull request
-								}
+				@components.CommentEditor(templ.Attributes{
+					"hx-post":              apiBase + "/comments",
+					"hx-target":            "#pr-timeline",
+					"hx-swap":              "beforeend",
+					"hx-on--after-request": "if(event.target===this&&event.detail.successful) this.reset()",
+				}) {
+					@components.CommentEditorHeader(data.BasePage.CurrentUser.Username)
+					@components.MarkdownEditor("pr-comment-body", "body", "", "Leave a comment — Markdown supported", 5)
+					@components.CommentEditorActions() {
+						if data.CanWrite && data.Pull.State == model.PRStateOpen {
+							@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeDefault, templ.Attributes{
+								"type":    "button",
+								"onclick": "document.getElementById('close-pull-dialog').showModal()",
+							}) {
+								Close pull request
 							}
-							@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-								Comment
-							}
-						</div>
-					</form>
-				</section>
+						}
+						@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							Comment
+						}
+					}
+				}
 			}
 		</div>
 
@@ -316,6 +320,31 @@ templ pullDetailBody(data view.PullDetailData) {
 			</section>
 		</aside>
 	</div>
+	@components.Dialog("close-pull-dialog") {
+		@components.DialogHeader() {
+			@components.DialogTitle("close-pull-dialog") {
+				Close this pull request?
+			}
+			@components.DialogDescription() {
+				Close pull request <strong class="text-foreground">#{ strconv.Itoa(data.Pull.Number) }</strong> — <strong class="text-foreground">{ data.Pull.Title }</strong>. You can reopen it later if needed.
+			}
+		}
+		@components.DialogFooter() {
+			@components.DialogClose() {
+				Cancel
+			}
+			<button
+				type="button"
+				hx-patch={ apiBase }
+				hx-vals={ `{"state":"closed"}` }
+				hx-swap="none"
+				hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request closed'}));location.reload();}"
+				class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+			>
+				Close pull request
+			</button>
+		}
+	}
 }
 templ sidebarPlusIcon() {
 	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>

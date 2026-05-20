@@ -130,6 +130,9 @@ func (s *PullService) ListWithCIStatus(ctx context.Context, owner, repoName stri
 var ErrPullForbidden = fmt.Errorf("forbidden: cannot open pull requests on this repository")
 
 func (s *PullService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, head, base string, isDraft bool) (*model.PullRequest, error) {
+	if len(title) > MaxTitleLen {
+		return nil, ErrTitleTooLong
+	}
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
@@ -257,6 +260,9 @@ func (s *PullService) UpdateTitle(ctx context.Context, owner, repoName string, n
 	}
 	if title == "" {
 		return nil, fmt.Errorf("title cannot be empty")
+	}
+	if len(title) > MaxTitleLen {
+		return nil, ErrTitleTooLong
 	}
 	if err := s.pulls.UpdateTitle(ctx, pr.ID, title); err != nil {
 		return nil, err

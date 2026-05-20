@@ -184,7 +184,7 @@ func OrgSettings(data view.OrgSettingsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" hx-target=\"#org-members-list\" hx-swap=\"outerHTML\" class=\"flex gap-2 mb-4\"><label for=\"org-member-username\" class=\"sr-only\">Username</label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" hx-target=\"#org-members-list\" hx-swap=\"outerHTML\" data-toast=\"Member added\" class=\"flex gap-2 mb-4\"><label for=\"org-member-username\" class=\"sr-only\">Username</label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -298,11 +298,15 @@ func OrgSettings(data view.OrgSettingsData) templ.Component {
 							return nil
 						})
 						templ_7745c5c3_Err = components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-							"hx-delete":  "/api/orgs/" + data.Org.Name + "/members/" + m.Username,
-							"hx-target":  "#org-members-list",
-							"hx-swap":    "outerHTML",
-							"hx-confirm": "Remove " + m.Username + " from this organization?",
-							"type":       "button",
+							"hx-delete":           "/api/orgs/" + data.Org.Name + "/members/" + m.Username,
+							"hx-target":           "#org-members-list",
+							"hx-swap":             "outerHTML",
+							"hx-confirm":          m.Username + " will lose access to " + data.Org.Name + ". You can add them back later.",
+							"data-confirm-title":  "Remove " + m.Username + " from this organization?",
+							"data-confirm-label":  "Remove",
+							"data-confirm-danger": "true",
+							"data-toast":          "Member removed",
+							"type":                "button",
 						}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var15), templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
@@ -429,13 +433,13 @@ func OrgSettings(data view.OrgSettingsData) templ.Component {
 					var templ_7745c5c3_Var21 templ.SafeURL
 					templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/api/orgs/" + data.Org.Name + "/transfer"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 81, Col: 91}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/org_settings.templ`, Line: 85, Col: 91}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\" onsubmit=\"return confirm('Transfer this organization? You will lose owner access.')\"><div class=\"flex gap-3\"><label for=\"org-transfer-new-owner\" class=\"sr-only\">New owner username</label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\" data-toast=\"Organization transferred\"><div class=\"flex gap-3\"><label for=\"org-transfer-new-owner\" class=\"sr-only\">New owner username</label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -468,7 +472,14 @@ func OrgSettings(data view.OrgSettingsData) templ.Component {
 						}
 						return nil
 					})
-					templ_7745c5c3_Err = components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var22), templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
+						"type":                "submit",
+						"data-confirm-action": "true",
+						"data-confirm-title":  "Transfer this organization?",
+						"data-confirm-msg":    data.Org.Name + " will be transferred to another user. You will be demoted to member and lose owner access.",
+						"data-confirm-label":  "Transfer",
+						"data-confirm-danger": "true",
+					}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var22), templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

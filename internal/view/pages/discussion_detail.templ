@@ -4,159 +4,332 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
+func discussionReplyCountText(n int) string {
+	if n == 1 {
+		return "1 reply"
+	}
+	return strconv.Itoa(n) + " replies"
+}
+
+func discussionAnswerAuthor(replies []view.RenderedDiscussionReply) string {
+	for _, r := range replies {
+		if r.IsAnswer {
+			return r.AuthorName
+		}
+	}
+	return ""
+}
+
+func discussionAnswerAnchor(replies []view.RenderedDiscussionReply) string {
+	for _, r := range replies {
+		if r.IsAnswer {
+			return "#reply-" + strconv.FormatInt(r.ID, 10)
+		}
+	}
+	return "#"
+}
+
 templ DiscussionDetail(data view.DiscussionDetailData) {
 	@layout.Base(data.BasePage, data.Discussion.Title+" · "+data.Owner+"/"+data.RepoName) {
-		<div class="max-w-4xl mx-auto space-y-6">
-			<!-- Header -->
-			<div>
-				<div class="text-sm text-muted-foreground mb-1">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/discussions") } class="text-foreground hover:underline">Discussions</a>
-					<span class="mx-1" aria-hidden="true">/</span>
-					<span>#{ strconv.Itoa(data.Discussion.Number) }</span>
-				</div>
-				<h1 class="text-2xl font-bold text-foreground flex items-center gap-2">
-					if data.Discussion.IsAnswered {
-						<span class="inline-flex items-center justify-center w-6 h-6 bg-success text-success-foreground text-sm rounded-full" aria-label="Answered">✓</span>
+		<div>
+			{{ patchURL := "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number) }}
+			<section class="mb-6 border-b border-border pb-6">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/discussions") } class="hover:underline">Discussions</a>
+					<span aria-hidden="true">·</span>
+					<span aria-current="page">#{ strconv.Itoa(data.Discussion.Number) }</span>
+				</p>
+				<div class="mb-3" x-data="{ editingTitle: false }">
+					<div class="flex items-start justify-between gap-3" x-show="!editingTitle">
+						<h1 class="text-2xl font-semibold tracking-tight min-w-0">
+							{ data.Discussion.Title }
+							<span class="text-muted-foreground font-normal font-mono">#{ strconv.Itoa(data.Discussion.Number) }</span>
+						</h1>
+						if data.CanWrite {
+							<button type="button" x-on:click="editingTitle = true" class="shrink-0 inline-flex items-center h-8 px-3 text-[13px] rounded-md border border-border text-muted-foreground hover:bg-muted hover:text-foreground">Edit</button>
+						}
+					</div>
+					if data.CanWrite {
+						<div x-show="editingTitle" x-cloak class="flex items-center gap-2">
+							<input id="dd-title-input" type="text" value={ data.Discussion.Title } class="flex-1 min-w-0 h-9 rounded-md border border-border bg-transparent px-3 text-sm"/>
+							<button type="button" hx-patch={ patchURL } hx-vals="js:{title: document.getElementById('dd-title-input').value}" hx-on::after-request="window.location.reload()" class="inline-flex items-center h-9 px-4 text-[13px] rounded-md font-medium bg-foreground text-background">Save</button>
+							<button type="button" x-on:click="editingTitle = false" class="inline-flex items-center h-9 px-3 text-[13px] rounded-md text-muted-foreground hover:underline">Cancel</button>
+						</div>
 					}
-					{ data.Discussion.Title }
-				</h1>
-				<div class="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-					<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border bg-[hsl(270_70%_50%/0.15)] text-[hsl(270_70%_70%)] border-[hsl(270_70%_50%/0.30)]">{ data.Category.Emoji } { data.Category.Name }</span>
-					<span>By <a href={ templ.SafeURL("/" + data.Discussion.AuthorName) } class="text-foreground hover:underline">{ data.Discussion.AuthorName }</a></span>
+				</div>
+				<div class="flex flex-wrap items-center gap-1.5 text-[13px] text-muted-foreground">
+					@components.Avatar(data.Discussion.AuthorName, components.AvatarSizeXS, "")
+					<span><strong class="text-foreground">{ data.Discussion.AuthorName }</strong> started this discussion</span>
 					<time datetime={ data.Discussion.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Discussion.CreatedAt.Format("Jan 2, 2006") }</time>
+					<span class="opacity-50 mx-1" aria-hidden="true">·</span>
+					@discussionReplyCount("discussion-reply-count-meta", len(data.Replies), false)
+					<span class="opacity-50 mx-1" aria-hidden="true">·</span>
+					<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border border-border bg-muted text-muted-foreground">{ data.Category.Name }</span>
+					@discussionHeaderLabels(data.Labels, false)
 					if data.Discussion.IsLocked {
 						@components.Badge(components.BadgeSecondary) {
 							Locked
 						}
 					}
 				</div>
-			</div>
-			<!-- Body -->
-			<div class="rounded-md border border-border bg-card p-6">
-				@components.MarkdownBody(data.BodyHTML)
-				if data.CanWrite {
-					<div class="mt-4 pt-4 border-t border-border flex items-center gap-3 text-sm">
-						if data.Discussion.IsLocked {
-							@components.Button(components.ButtonGhost, components.ButtonSizeSM, templ.Attributes{
-								"hx-patch":             "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number),
-								"hx-vals":              `{"locked": false}`,
-								"hx-on::after-request": "window.location.reload()",
-								"type":                 "button",
-							}) {
-								Unlock
+			</section>
+			<div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
+				<div class="space-y-5 min-w-0">
+					if data.Discussion.IsAnswered {
+						<div class="rounded-md border border-success/40 bg-success/10 p-3 flex items-center gap-2.5 text-[13px]">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-success shrink-0" aria-hidden="true"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+							<span><strong class="text-foreground">Answered</strong> — <a href={ templ.SafeURL(discussionAnswerAnchor(data.Replies)) } class="text-foreground hover:underline">{ discussionAnswerAuthor(data.Replies) }'s reply</a> was marked as the answer.</span>
+						</div>
+					}
+					<article id="discussion-description" class="rounded-md border border-border bg-card overflow-hidden">
+						<header class="px-4 py-2.5 border-b border-border bg-blue-500/10 flex items-center gap-2 flex-wrap text-[12.5px]">
+							@components.Avatar(data.Discussion.AuthorName, components.AvatarSizeSM, data.Discussion.AuthorName)
+							<strong class="text-foreground">{ data.Discussion.AuthorName }</strong>
+							<span class="text-muted-foreground">started the discussion</span>
+							<time class="text-muted-foreground" datetime={ data.Discussion.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Discussion.CreatedAt.Format("Jan 2, 2006") }</time>
+							if data.CanWrite {
+								<button type="button" id="edit-desc-btn" class="ml-auto inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border hover:bg-accent text-[12px] text-muted-foreground">
+									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+									Edit
+								</button>
 							}
-						} else {
-							@components.Button(components.ButtonGhost, components.ButtonSizeSM, templ.Attributes{
-								"hx-patch":             "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number),
-								"hx-vals":              `{"locked": true}`,
-								"hx-on::after-request": "window.location.reload()",
-								"type":                 "button",
-							}) {
-								Lock
-							}
-						}
-					</div>
-				}
-			</div>
-			<!-- Replies -->
-			<div class="space-y-4">
-				if len(data.Replies) == 1 {
-					<h2 class="text-lg font-semibold text-foreground">1 reply</h2>
-				} else {
-					<h2 class="text-lg font-semibold text-foreground">{ strconv.Itoa(len(data.Replies)) } replies</h2>
-				}
-				for _, reply := range data.Replies {
-					<div
-						id={ "reply-" + strconv.FormatInt(reply.ID, 10) }
-						class={ "rounded-md bg-card p-5", templ.KV("border border-success/40", reply.IsAnswer), templ.KV("border border-border", !reply.IsAnswer) }
-					>
-						if reply.IsAnswer {
-							<div class="flex items-center gap-2 mb-3 text-success text-sm font-medium">
-								<span aria-hidden="true">✓</span>
-								<span>Accepted Answer</span>
-							</div>
-						}
-						<div class="flex items-start gap-3">
-							@components.Avatar(reply.AuthorName, components.AvatarSizeSM, reply.AuthorName)
-							<div class="flex-1 min-w-0">
-								<div class="flex items-center gap-2 mb-2">
-									<a href={ templ.SafeURL("/" + reply.AuthorName) } class="text-foreground hover:underline font-medium text-sm">{ reply.AuthorName }</a>
-									<time class="text-xs text-muted-foreground" datetime={ reply.CreatedAt.UTC().Format(time.RFC3339) }>{ reply.CreatedAt.Format("Jan 2, 2006 at 15:04") }</time>
-								</div>
-								@components.MarkdownBody(reply.BodyHTML)
+						</header>
+						<div class="px-4 py-4">
+							<div id="desc-rendered" class="prose prose-sm dark:prose-invert max-w-none">
+								@templ.Raw(data.BodyHTML)
 							</div>
 							if data.CanWrite {
-								<div class="flex-shrink-0 flex flex-col gap-1">
-									if !reply.IsAnswer {
-										@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{
-											"hx-patch":             "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number),
-											"hx-vals":              `{"answer_id": ` + strconv.FormatInt(reply.ID, 10) + `}`,
-											"hx-on::after-request": "window.location.reload()",
+								<form id="desc-editor" class="hidden" hx-patch={ patchURL } hx-swap="none" hx-on--after-request="if(event.target===this&&event.detail.successful){location.reload();}">
+									<div class="rounded-md border border-border overflow-hidden">
+										@components.MarkdownEditor("desc-body", "body", data.Discussion.Body, "Edit the description…", 12)
+									</div>
+									<div class="flex justify-end gap-2 mt-2">
+										<button type="button" id="desc-cancel" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent">Cancel</button>
+										<button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-foreground text-background">Save</button>
+									</div>
+								</form>
+							}
+						</div>
+						<footer class="px-4 py-2 border-t border-border">
+							@fragments.ReactionBar("/api/repos/"+data.Owner+"/"+data.RepoName+"/discussions/"+strconv.Itoa(data.Discussion.Number)+"/reactions", "reactions-discussion-"+strconv.Itoa(data.Discussion.Number), data.OPReactions, data.BasePage.CurrentUser != nil)
+						</footer>
+					</article>
+					if data.CanWrite {
+						<script>
+							(function () {
+								var btn = document.getElementById('edit-desc-btn');
+								var rendered = document.getElementById('desc-rendered');
+								var editor = document.getElementById('desc-editor');
+								var cancel = document.getElementById('desc-cancel');
+								if (!btn || !rendered || !editor) return;
+								function toggle(editing) {
+									rendered.classList.toggle('hidden', editing);
+									editor.classList.toggle('hidden', !editing);
+									btn.classList.toggle('hidden', editing);
+								}
+								btn.addEventListener('click', function () { toggle(true); });
+								if (cancel) cancel.addEventListener('click', function () { toggle(false); });
+							})();
+						</script>
+					}
+					<h2 class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider pt-1">
+						@discussionReplyCount("discussion-reply-count-heading", len(data.Replies), false)
+					</h2>
+					<div id="discussion-timeline" class="space-y-5">
+						for _, reply := range data.Replies {
+							@discussionReply(data.Owner, data.RepoName, data.Discussion.Number, reply, data.CanWrite, data.BasePage.CurrentUser != nil)
+						}
+					</div>
+					if data.BasePage.CurrentUser != nil {
+						if !data.Discussion.IsLocked {
+							@components.CommentEditor(templ.Attributes{
+								"hx-post":              patchURL + "/replies",
+								"hx-target":            "#discussion-timeline",
+								"hx-swap":              "beforeend",
+								"hx-on--after-request": "if(event.target===this&&event.detail.successful) this.reset()",
+							}) {
+								@components.CommentEditorHeader(data.BasePage.CurrentUser.Username)
+								@components.MarkdownEditor("reply-body", "body", "", "Add to the discussion…", 6)
+								@components.CommentEditorActions() {
+									if data.CanWrite {
+										@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
 											"type":                 "button",
-										}) {
-											Mark Answer
-										}
-									} else {
-										@components.Button(components.ButtonSecondary, components.ButtonSizeSM, templ.Attributes{
-											"hx-patch":             "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number),
-											"hx-vals":              `{"answer_id": null}`,
+											"hx-patch":             patchURL,
+											"hx-vals":              `{"locked": true}`,
 											"hx-on::after-request": "window.location.reload()",
-											"type":                 "button",
 										}) {
-											Unmark
+											Lock discussion
 										}
 									}
-									@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-										"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number) + "/replies/" + strconv.FormatInt(reply.ID, 10),
-										"hx-confirm": "Delete this reply?",
-										"hx-target":  "#reply-" + strconv.FormatInt(reply.ID, 10),
-										"hx-swap":    "outerHTML",
-										"type":       "button",
+									@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+										Comment
+									}
+								}
+							}
+						} else {
+							<div class="rounded-md border border-border bg-muted p-4 text-[13px] text-muted-foreground flex items-center justify-between gap-3">
+								<span>This discussion is locked. No new replies can be added.</span>
+								if data.CanWrite {
+									@components.Button(components.ButtonGhost, components.ButtonSizeSM, templ.Attributes{
+										"hx-patch":             "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number),
+										"hx-vals":              `{"locked": false}`,
+										"hx-on::after-request": "window.location.reload()",
+										"type":                 "button",
 									}) {
-										Delete
+										Unlock discussion
 									}
+								}
+							</div>
+						}
+					} else {
+						<div class="rounded-md border border-border bg-muted p-4 text-[13px] text-muted-foreground text-center">
+							<a href="/login" class="text-foreground hover:underline">Sign in</a> to reply.
+						</div>
+					}
+				</div>
+				<aside class="space-y-6" aria-label="Discussion metadata" x-data="{ open: null }" x-on:keydown.escape.window="open = null">
+					<section aria-labelledby="dd-category-heading">
+						<div class="flex items-center justify-between mb-2">
+							<h2 id="dd-category-heading" class="text-[12px] font-medium text-muted-foreground">Category</h2>
+							if data.CanWrite {
+								<div class="relative" x-on:click.outside="open === 'category' && (open = null)">
+									<button type="button" x-on:click="open = (open === 'category' ? null : 'category')" :aria-expanded="open === 'category' ? 'true' : 'false'" aria-haspopup="menu" aria-label="Change category" class="text-muted-foreground hover:text-foreground">
+										<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+									</button>
+									<div x-show="open === 'category'" x-cloak x-transition.opacity.duration.100ms role="menu" aria-label="Move to category" class="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1">
+										<div class="px-2 pt-1 pb-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Move to category</div>
+										for _, cat := range data.AllCategories {
+											<button type="button" hx-patch={ patchURL } hx-vals={ `{"category_id":` + strconv.FormatInt(cat.ID, 10) + `}` } hx-on::after-request="window.location.reload()" role="menuitemradio" aria-checked={ strconv.FormatBool(cat.ID == data.Category.ID) } class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground">
+												<span class="flex-1 truncate">{ cat.Name }</span>
+												if cat.ID == data.Category.ID {
+													<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="shrink-0 text-success" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+												}
+											</button>
+										}
+									</div>
 								</div>
 							}
 						</div>
-					</div>
-				}
+						<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-medium border border-border bg-muted text-foreground">{ data.Category.Name }</span>
+					</section>
+					@components.LabelSidebar(data.Owner, data.RepoName, data.Discussion.Number, "discussions", data.Labels, data.AllLabels, data.CanWrite)
+					<section aria-labelledby="dd-participants-heading">
+						<h2 id="dd-participants-heading" class="text-[12px] font-medium text-muted-foreground mb-2">
+							if len(data.Participants) == 1 {
+								1 participant
+							} else {
+								{ strconv.Itoa(len(data.Participants)) } participants
+							}
+						</h2>
+						<ul class="flex flex-wrap gap-1.5">
+							for _, p := range data.Participants {
+								<li>
+									@components.Avatar(p, components.AvatarSizeDefault, p)
+								</li>
+							}
+						</ul>
+					</section>
+				</aside>
 			</div>
-			<!-- Reply form -->
-			if data.BasePage.CurrentUser != nil {
-				if !data.Discussion.IsLocked {
-					<div class="rounded-md border border-border bg-card p-6 space-y-4">
-						<h3 class="text-base font-semibold text-foreground">Add a reply</h3>
-						<label for="reply-body" class="sr-only">Reply body</label>
-						@components.Textarea(templ.Attributes{
-							"id":          "reply-body",
-							"rows":        "5",
-							"class":       "font-mono",
-							"placeholder": "Write a reply (Markdown supported)...",
-						})
-						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
-							"hx-post":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(data.Discussion.Number) + "/replies",
-							"hx-vals":              `js:{body: document.getElementById("reply-body").value}`,
-							"hx-on::after-request": "window.location.reload()",
-							"type":                 "button",
-						}) {
-							Reply
-						}
-					</div>
-				} else {
-					<div class="rounded-md border border-border bg-muted p-4 text-sm text-muted-foreground text-center">
-						This discussion is locked. No new replies can be added.
-					</div>
-				}
-			} else {
-				<div class="rounded-md border border-border bg-muted p-4 text-sm text-muted-foreground text-center">
-					<a href="/login" class="text-foreground hover:underline">Sign in</a> to reply.
-				</div>
-			}
 		</div>
 	}
+}
+
+// discussionHeaderLabels renders the header meta-row label pills in a stable
+// display:contents wrapper so the label picker can refresh them via an
+// out-of-band swap (oob=true) alongside the sidebar section.
+templ discussionHeaderLabels(labels []model.Label, oob bool) {
+	<span id="discussion-header-labels" class="contents" if oob { hx-swap-oob="true" }>
+		for _, lbl := range labels {
+			<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style={ "background-color: " + lbl.Color + "33; color: " + lbl.Color + "; border-color: " + lbl.Color + "55" }>{ lbl.Name }</span>
+		}
+	</span>
+}
+
+// DiscussionLabelsFragment is the label-picker response: the re-rendered sidebar
+// section plus an out-of-band swap that keeps the header label row in sync.
+templ DiscussionLabelsFragment(owner, repoName string, number int, labels, allLabels []model.Label, canWrite bool) {
+	@components.LabelSidebar(owner, repoName, number, "discussions", labels, allLabels, canWrite)
+	@discussionHeaderLabels(labels, true)
+}
+
+// discussionReplyCount renders the reply tally in a stable wrapper so a new
+// reply can refresh both the header meta count and the timeline heading via
+// out-of-band swaps (oob=true).
+templ discussionReplyCount(elemID string, n int, oob bool) {
+	<span id={ elemID } if oob { hx-swap-oob="true" }>{ discussionReplyCountText(n) }</span>
+}
+
+// discussionReply is one reply card, reused by the timeline loop and by the
+// fragment returned when a new reply is posted.
+templ discussionReply(owner, repoName string, number int, reply view.RenderedDiscussionReply, canWrite, signedIn bool) {
+	{{ patchURL := "/api/repos/" + owner + "/" + repoName + "/discussions/" + strconv.Itoa(number) }}
+	<article
+		id={ "reply-" + strconv.FormatInt(reply.ID, 10) }
+		class={ "rounded-md border bg-card overflow-hidden", templ.KV("border-success/40", reply.IsAnswer), templ.KV("border-border", !reply.IsAnswer) }
+	>
+		<header class={ "px-4 py-2.5 border-b flex items-center gap-2 text-[12.5px]", templ.KV("border-success/30 bg-success/10", reply.IsAnswer), templ.KV("border-border bg-muted", !reply.IsAnswer) }>
+			@components.Avatar(reply.AuthorName, components.AvatarSizeSM, reply.AuthorName)
+			<strong class="text-foreground">{ reply.AuthorName }</strong>
+			if reply.IsAnswer {
+				<span class="inline-flex items-center gap-1 text-success font-medium">
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+					Answer
+				</span>
+			}
+			<span class="text-muted-foreground">replied</span>
+			<time class="text-muted-foreground ml-auto" datetime={ reply.CreatedAt.UTC().Format(time.RFC3339) }>{ reply.CreatedAt.Format("Jan 2, 2006 at 15:04") }</time>
+		</header>
+		<div class="px-4 py-4 prose prose-sm dark:prose-invert max-w-none">
+			@templ.Raw(reply.BodyHTML)
+		</div>
+		<footer class="px-4 py-2 border-t border-border flex items-center gap-2">
+			@fragments.ReactionBar(patchURL+"/replies/"+strconv.FormatInt(reply.ID, 10)+"/reactions", "reactions-reply-"+strconv.FormatInt(reply.ID, 10), reply.Reactions, signedIn)
+			if canWrite {
+				<div class="ml-auto flex items-center gap-2">
+					if reply.IsAnswer {
+						<span class="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+							Marked as answer
+						</span>
+						@components.Button(components.ButtonSecondary, components.ButtonSizeSM, templ.Attributes{
+							"type":                 "button",
+							"hx-patch":             patchURL,
+							"hx-vals":              `{"answer_id": "null"}`,
+							"hx-on::after-request": "window.location.reload()",
+						}) {
+							Unmark answer
+						}
+					} else {
+						@components.Button(components.ButtonSuccess, components.ButtonSizeSM, templ.Attributes{
+							"type":                 "button",
+							"hx-patch":             patchURL,
+							"hx-vals":              `{"answer_id": ` + strconv.FormatInt(reply.ID, 10) + `}`,
+							"hx-on::after-request": "window.location.reload()",
+						}) {
+							Mark as answer
+						}
+					}
+				</div>
+			}
+		</footer>
+	</article>
+}
+
+// DiscussionReplyCreated is the response after posting a reply: the new reply
+// card (appended to #discussion-timeline) plus out-of-band swaps refreshing the
+// reply counts in the header and the timeline heading.
+templ DiscussionReplyCreated(owner, repoName string, number int, reply view.RenderedDiscussionReply, replyCount int, canWrite, signedIn bool) {
+	@discussionReply(owner, repoName, number, reply, canWrite, signedIn)
+	@discussionReplyCount("discussion-reply-count-meta", replyCount, true)
+	@discussionReplyCount("discussion-reply-count-heading", replyCount, true)
 }

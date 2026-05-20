@@ -1,0 +1,314 @@
+package pages
+
+import (
+	"strconv"
+	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ MilestoneDetail(data view.MilestoneDetailData) {
+	{{ base := "/" + data.Owner + "/" + data.RepoName + "/milestones/" + strconv.Itoa(data.Milestone.Number) }}
+	@layout.Base(data.BasePage, data.Milestone.Title+" · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-6">
+			<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider">
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+				<span aria-hidden="true">·</span>
+				<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="hover:underline">Milestones</a>
+				<span aria-hidden="true">·</span>
+				<span aria-current="page">{ data.Milestone.Title }</span>
+			</p>
+			@milestoneDetailHeader(data)
+			<div class="grid lg:grid-cols-[1fr_280px] gap-8">
+				<div class="min-w-0 space-y-5">
+					@fragments.MilestoneBodyCard(view.MilestoneBodyCardData{
+						Owner:           data.Owner,
+						RepoName:        data.RepoName,
+						Number:          data.Milestone.Number,
+						Description:     data.Milestone.Description,
+						DescriptionHTML: data.DescriptionHTML,
+						CanWrite:        data.CanWrite,
+						Editing:         false,
+					})
+					@milestoneItemsSection(data, base)
+				</div>
+				@milestoneDetailSidebar(data, base)
+			</div>
+		</div>
+		if data.CanWrite {
+			@components.Dialog("ms-delete-dialog") {
+				@components.DialogHeader() {
+					@components.DialogTitle("ms-delete-dialog") {
+						Delete this milestone?
+					}
+					@components.DialogDescription() {
+						Delete <strong class="text-foreground">{ data.Milestone.Title }</strong>. It will be unassigned from all issues and pull requests. This cannot be undone.
+					}
+				}
+				@components.DialogFooter() {
+					@components.DialogClose() {
+						Cancel
+					}
+					<form method="POST" action={ templ.SafeURL(base) } onsubmit="czStashToast('success','Milestone deleted')">
+						<input type="hidden" name="action" value="delete"/>
+						<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete milestone</button>
+					</form>
+				}
+			}
+		}
+		<script>
+			// Stash a toast so it fires on the page that loads after the form's redirect.
+			function czStashToast(t, m) { try { sessionStorage.setItem('cz-toast', JSON.stringify({ type: t, message: m })); } catch (e) {} }
+		</script>
+	}
+}
+
+templ milestoneDetailHeader(data view.MilestoneDetailData) {
+	{{ open := data.Milestone.State == "open" }}
+	<div class="space-y-2">
+		@fragments.MilestoneTitleSection(data.Owner, data.RepoName, data.Milestone.Number, data.Milestone.Title, data.CanWrite, false)
+		<div class="flex flex-wrap items-center gap-3">
+			if open {
+				<span class="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[12px] font-medium bg-success/15 text-success border border-success/30">
+					Open
+				</span>
+			} else {
+				<span class="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[12px] font-medium bg-muted text-muted-foreground border border-border">
+					Closed
+				</span>
+			}
+			<p class="text-[13px] text-muted-foreground">
+				if data.Milestone.DueDate != nil {
+					Due by <strong class="text-foreground"><time datetime={ data.Milestone.DueDate.UTC().Format(time.RFC3339) }>{ data.Milestone.DueDate.Format("Jan 2, 2006") }</time></strong>
+				} else {
+					No due date
+				}
+			</p>
+		</div>
+	</div>
+}
+
+templ milestoneItemsSection(data view.MilestoneDetailData, base string) {
+	{{ issuesTotal := data.IssueOpenCount + data.IssueClosedCount }}
+	{{ pullsTotal := data.PullOpenCount + data.PullClosedCount }}
+	{{ stateBase := base + "?tab=" + data.Tab + "&state=" }}
+	<section class="rounded-md border border-border bg-card overflow-hidden" aria-label="Issues and pull requests in this milestone">
+		<nav class="flex items-center gap-1 border-b border-border px-2 text-sm" aria-label="Milestone items">
+			<a
+				href={ templ.SafeURL(base + "?tab=issues&state=" + data.State) }
+				class={ "px-3 py-2.5 -mb-px border-b-2", templ.KV("border-foreground font-medium text-foreground", data.Tab == "issues"), templ.KV("border-transparent text-muted-foreground hover:text-foreground", data.Tab != "issues") }
+			>
+				Issues <span class="font-mono text-[11px] text-muted-foreground ml-0.5">{ strconv.Itoa(issuesTotal) }</span>
+			</a>
+			<a
+				href={ templ.SafeURL(base + "?tab=pulls&state=" + data.State) }
+				class={ "px-3 py-2.5 -mb-px border-b-2", templ.KV("border-foreground font-medium text-foreground", data.Tab == "pulls"), templ.KV("border-transparent text-muted-foreground hover:text-foreground", data.Tab != "pulls") }
+			>
+				Pull requests <span class="font-mono text-[11px] text-muted-foreground ml-0.5">{ strconv.Itoa(pullsTotal) }</span>
+			</a>
+			<div class="ml-auto flex items-center py-1.5">
+				<div class="inline-flex border border-border rounded-md overflow-hidden text-[12px]" role="group" aria-label="Filter by state">
+					<a
+						href={ templ.SafeURL(stateBase + "open") }
+						class={ "px-2.5 py-1", templ.KV("bg-muted text-foreground", data.State == "open"), templ.KV("text-muted-foreground hover:text-foreground", data.State != "open") }
+					>
+						Open <span class="font-mono text-muted-foreground">{ strconv.Itoa(milestoneStateCount(data, "open")) }</span>
+					</a>
+					<a
+						href={ templ.SafeURL(stateBase + "closed") }
+						class={ "px-2.5 py-1 border-l border-border", templ.KV("bg-muted text-foreground", data.State == "closed"), templ.KV("text-muted-foreground hover:text-foreground", data.State != "closed") }
+					>
+						Closed <span class="font-mono text-muted-foreground">{ strconv.Itoa(milestoneStateCount(data, "closed")) }</span>
+					</a>
+				</div>
+			</div>
+		</nav>
+		if data.Tab == "issues" {
+			if len(data.Issues) == 0 {
+				<p class="px-4 py-10 text-center text-sm text-muted-foreground">No { data.State } issues in this milestone.</p>
+			} else {
+				<ol class="divide-y divide-border">
+					for _, iss := range data.Issues {
+						@milestoneIssueRow(data.Owner, data.RepoName, iss)
+					}
+				</ol>
+			}
+		} else {
+			if len(data.Pulls) == 0 {
+				<p class="px-4 py-10 text-center text-sm text-muted-foreground">No { data.State } pull requests in this milestone.</p>
+			} else {
+				<ol class="divide-y divide-border">
+					for _, pr := range data.Pulls {
+						@milestonePullRow(data.Owner, data.RepoName, pr)
+					}
+				</ol>
+			}
+		}
+		if data.TotalCount > 0 {
+			@milestonePager(data, base)
+		}
+	</section>
+}
+
+templ milestoneIssueRow(owner, repoName string, iss model.Issue) {
+	{{ open := iss.State == model.IssueStateOpen }}
+	<li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-sm before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class={ "shrink-0 mt-1", templ.KV("text-success", open), templ.KV("text-muted-foreground", !open) } aria-hidden="true">
+			<circle cx="12" cy="12" r="9"></circle>
+			<circle cx="12" cy="12" r="3"></circle>
+		</svg>
+		<div class="min-w-0 flex-1">
+			<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/issues/" + strconv.Itoa(iss.Number)) } class="text-[13px] font-medium hover:underline">{ iss.Title }</a>
+			<div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+				<span class="font-mono">#{ strconv.Itoa(iss.Number) }</span>
+				<span aria-hidden="true">·</span>
+				<span>by { milestoneAuthor(iss.AuthorName) }</span>
+				<span aria-hidden="true">·</span>
+				<time datetime={ iss.CreatedAt.UTC().Format(time.RFC3339) }>{ iss.CreatedAt.Format("Jan 2, 2006") }</time>
+			</div>
+		</div>
+		if open {
+			<span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/10 text-success border-success/30 shrink-0">open</span>
+		} else {
+			<span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-border shrink-0">closed</span>
+		}
+	</li>
+}
+
+templ milestonePullRow(owner, repoName string, pr model.PullRequest) {
+	{{ open := pr.State == model.PRStateOpen }}
+	{{ merged := pr.State == model.PRStateMerged }}
+	<li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-sm before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class={ "shrink-0 mt-1", templ.KV("text-success", open), templ.KV("text-violet-400", merged), templ.KV("text-muted-foreground", !open && !merged) } aria-hidden="true">
+			<line x1="6" y1="3" x2="6" y2="15"></line>
+			<circle cx="18" cy="6" r="3"></circle>
+			<circle cx="6" cy="18" r="3"></circle>
+			<path d="M18 9a9 9 0 01-9 9"></path>
+		</svg>
+		<div class="min-w-0 flex-1">
+			<a href={ templ.SafeURL("/" + owner + "/" + repoName + "/pulls/" + strconv.Itoa(pr.Number)) } class="text-[13px] font-medium hover:underline">{ pr.Title }</a>
+			<div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
+				<span class="font-mono">#{ strconv.Itoa(pr.Number) }</span>
+				<span aria-hidden="true">·</span>
+				<span>by { milestoneAuthor(pr.AuthorName) }</span>
+				<span aria-hidden="true">·</span>
+				<time datetime={ pr.CreatedAt.UTC().Format(time.RFC3339) }>{ pr.CreatedAt.Format("Jan 2, 2006") }</time>
+			</div>
+		</div>
+		if open {
+			<span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-success/10 text-success border-success/30 shrink-0">open</span>
+		} else if merged {
+			<span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-violet-400/10 text-violet-400 border-violet-400/30 shrink-0">merged</span>
+		} else {
+			<span class="inline-flex items-center h-[22px] px-2 rounded-full border text-[11px] font-medium bg-muted text-muted-foreground border-border shrink-0">closed</span>
+		}
+	</li>
+}
+
+templ milestonePager(data view.MilestoneDetailData, base string) {
+	{{ from := (data.Page-1)*data.PerPage + 1 }}
+	{{ pageBase := base + "?tab=" + data.Tab + "&state=" + data.State + "&page=" }}
+	<div class="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-border">
+		<span class="text-[12px] text-muted-foreground">
+			Showing <span class="font-mono">{ strconv.Itoa(from) }–{ strconv.Itoa(from + milestoneItemsLen(data) - 1) }</span> of <span class="font-mono">{ strconv.Itoa(data.TotalCount) }</span>
+		</span>
+		if data.TotalPages > 1 {
+			<nav class="flex items-center gap-1" aria-label="Pagination">
+				if data.Page > 1 {
+					<a href={ templ.SafeURL(pageBase + strconv.Itoa(data.Page-1)) } class="h-7 px-2 inline-flex items-center rounded-md border border-border text-[12px] text-muted-foreground hover:bg-muted">Prev</a>
+				} else {
+					<span class="h-7 px-2 inline-flex items-center rounded-md border border-border text-[12px] text-muted-foreground/40">Prev</span>
+				}
+				for p := 1; p <= data.TotalPages; p++ {
+					if p == data.Page {
+						<span class="h-7 min-w-[28px] px-2 inline-flex items-center justify-center rounded-md border border-border bg-muted text-[12px] font-medium" aria-current="page">{ strconv.Itoa(p) }</span>
+					} else {
+						<a href={ templ.SafeURL(pageBase + strconv.Itoa(p)) } class="h-7 min-w-[28px] px-2 inline-flex items-center justify-center rounded-md border border-border text-[12px] text-muted-foreground hover:bg-muted">{ strconv.Itoa(p) }</a>
+					}
+				}
+				if data.Page < data.TotalPages {
+					<a href={ templ.SafeURL(pageBase + strconv.Itoa(data.Page+1)) } class="h-7 px-2 inline-flex items-center rounded-md border border-border text-[12px] text-muted-foreground hover:bg-muted">Next</a>
+				} else {
+					<span class="h-7 px-2 inline-flex items-center rounded-md border border-border text-[12px] text-muted-foreground/40">Next</span>
+				}
+			</nav>
+		}
+	</div>
+}
+
+templ milestoneDetailSidebar(data view.MilestoneDetailData, base string) {
+	{{ open := data.Milestone.State == "open" }}
+	{{ issuesTotal := data.IssueOpenCount + data.IssueClosedCount }}
+	<aside class="space-y-6" aria-label="Milestone details">
+		<section aria-labelledby="ms-progress">
+			<h2 id="ms-progress" class="text-[12px] font-medium text-muted-foreground mb-2">Progress</h2>
+			if issuesTotal > 0 {
+				@components.ProgressBar(data.IssueClosedCount, issuesTotal)
+				<p class="mt-2 text-[20px] font-semibold tracking-tight">
+					{ strconv.Itoa(data.IssueClosedCount * 100 / issuesTotal) }%<span class="text-[13px] text-muted-foreground font-normal ml-1.5">complete</span>
+				</p>
+			} else {
+				<p class="mt-2 text-[13px] text-muted-foreground">No issues assigned yet.</p>
+			}
+			<ul class="mt-2 space-y-1 text-[12px] text-muted-foreground">
+				<li>{ strconv.Itoa(data.IssueClosedCount) } closed · { strconv.Itoa(data.IssueOpenCount) } open issues</li>
+				<li>{ strconv.Itoa(data.PullClosedCount) } closed · { strconv.Itoa(data.PullOpenCount) } open pull requests</li>
+			</ul>
+		</section>
+		<div class="border-t border-border pt-5">
+			@fragments.MilestoneDueSection(data.Owner, data.RepoName, data.Milestone.Number, data.Milestone.DueDate, data.CanWrite, false)
+		</div>
+		<section aria-labelledby="ms-details" class="border-t border-border pt-5">
+			<h2 id="ms-details" class="text-[12px] font-medium text-muted-foreground mb-2">Details</h2>
+			<dl class="space-y-1.5 text-[12px]">
+				<div class="flex justify-between gap-2">
+					<dt class="text-muted-foreground">Created</dt>
+					<dd>{ data.Milestone.CreatedAt.Format("Jan 2, 2006") }</dd>
+				</div>
+				<div class="flex justify-between gap-2">
+					<dt class="text-muted-foreground">Updated</dt>
+					<dd>{ data.Milestone.UpdatedAt.Format("Jan 2, 2006") }</dd>
+				</div>
+				if !open && data.Milestone.ClosedAt != nil {
+					<div class="flex justify-between gap-2">
+						<dt class="text-muted-foreground">Closed</dt>
+						<dd>{ data.Milestone.ClosedAt.Format("Jan 2, 2006") }</dd>
+					</div>
+				}
+			</dl>
+		</section>
+		if data.CanWrite {
+			<section aria-labelledby="ms-manage" class="border-t border-border pt-5">
+				<h2 id="ms-manage" class="text-[12px] font-medium text-muted-foreground mb-2">Manage</h2>
+				<div class="space-y-1.5">
+					if open {
+						<form method="POST" action={ templ.SafeURL(base) } onsubmit="czStashToast('success','Milestone closed')">
+							<input type="hidden" name="action" value="close"/>
+							<button type="submit" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md border border-border text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground">
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+								<span>Close milestone</span>
+							</button>
+						</form>
+					} else {
+						<form method="POST" action={ templ.SafeURL(base) } onsubmit="czStashToast('success','Milestone reopened')">
+							<input type="hidden" name="action" value="reopen"/>
+							<button type="submit" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md border border-border text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground">
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 0115-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 01-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg>
+								<span>Reopen milestone</span>
+							</button>
+						</form>
+					}
+					<button type="button" onclick="document.getElementById('ms-delete-dialog').showModal()" class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"></path></svg>
+						<span>Delete milestone</span>
+					</button>
+				</div>
+				<p class="mt-2 text-[11px] text-muted-foreground leading-relaxed">Deleting a milestone unassigns it from all issues and pull requests. This cannot be undone.</p>
+			</section>
+		}
+	</aside>
+}

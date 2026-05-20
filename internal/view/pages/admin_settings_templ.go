@@ -167,7 +167,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</p></div><form hx-post=\"/api/admin/settings\" hx-target=\"#admin-settings-list\" hx-swap=\"outerHTML\" class=\"flex items-center gap-3\"><input type=\"hidden\" name=\"key\" value=\"")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</p></div><form hx-post=\"/api/admin/settings\" hx-target=\"#admin-settings-list\" hx-swap=\"outerHTML\" data-toast=\"Setting updated\" class=\"flex items-center gap-3\"><input type=\"hidden\" name=\"key\" value=\"")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -364,7 +364,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<form hx-post=\"/api/admin/invitations\" hx-target=\"#admin-invitations-list\" hx-swap=\"outerHTML\" class=\"flex gap-3 mb-6\"><label for=\"invite-email\" class=\"sr-only\">Invitee email</label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<form hx-post=\"/api/admin/invitations\" hx-target=\"#admin-invitations-list\" hx-swap=\"outerHTML\" data-toast=\"Invitation sent\" class=\"flex gap-3 mb-6\"><label for=\"invite-email\" class=\"sr-only\">Invitee email</label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -498,12 +498,16 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 									return nil
 								})
 								templ_7745c5c3_Err = components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-									"hx-delete":  "/api/admin/invitations/" + strconv.FormatInt(inv.ID, 10),
-									"hx-target":  "#admin-invitations-list",
-									"hx-swap":    "outerHTML",
-									"hx-confirm": "Delete this invitation?",
-									"type":       "button",
-									"class":      "ml-4 shrink-0",
+									"hx-delete":           "/api/admin/invitations/" + strconv.FormatInt(inv.ID, 10),
+									"hx-target":           "#admin-invitations-list",
+									"hx-swap":             "outerHTML",
+									"hx-confirm":          "The invite link for " + inv.Email + " will stop working immediately.",
+									"data-confirm-title":  "Delete this invitation?",
+									"data-confirm-label":  "Delete",
+									"data-confirm-danger": "true",
+									"data-toast":          "Invitation deleted",
+									"type":                "button",
+									"class":               "ml-4 shrink-0",
 								}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var22), templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
 									return templ_7745c5c3_Err

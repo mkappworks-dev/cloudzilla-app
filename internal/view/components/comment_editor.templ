@@ -1,0 +1,23 @@
+package components
+
+templ CommentEditor(attrs templ.Attributes) {
+	<section class="mt-6" aria-label="Add a comment">
+		<form class="rounded-md border border-border bg-card overflow-hidden" { attrs... }>
+			{ children... }
+		</form>
+	</section>
+}
+
+templ CommentEditorHeader(username string) {
+	<header class="px-3 py-2 border-b border-border bg-background flex items-center gap-2">
+		@Avatar(username, AvatarSizeSM, username)
+		<span class="text-[13px] font-medium">Add a comment</span>
+	</header>
+}
+
+templ CommentEditorActions() {
+	<div class="px-3 py-2 border-t border-border bg-muted/40 flex items-center gap-2">
+		<p class="text-[11px] text-muted-foreground font-mono flex-1">Markdown supported · drop files to attach</p>
+		{ children... }
+	</div>
+}

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -52,7 +53,10 @@ func (h *Handler) SetTopics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topics, _ := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
+	topics, lerr := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
+	if lerr != nil {
+		slog.Warn("set topics: reload failed; pill list may render stale", "repo_id", repo.ID, "error", lerr)
+	}
 	if topics == nil {
 		topics = []model.Topic{}
 	}
@@ -92,7 +96,10 @@ func (h *Handler) GetTopicsFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topics, _ := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
+	topics, lerr := h.Services.Topic.ListByRepo(r.Context(), repo.ID)
+	if lerr != nil {
+		slog.Warn("topics fragment: list failed", "repo_id", repo.ID, "error", lerr)
+	}
 	if topics == nil {
 		topics = []model.Topic{}
 	}
@@ -114,15 +121,36 @@ func (h *Handler) PageTopic(w http.ResponseWriter, r *http.Request) {
 		page = p
 	}
 
-	repos, _ := h.Services.Topic.ListReposByTopic(r.Context(), topicName, page, 20)
+	sort := r.URL.Query().Get("sort")
+	switch sort {
+	case "updated", "name":
+	default:
+		sort = "stars"
+	}
+
+	repos, err := h.Services.Topic.ListReposByTopicWithStats(r.Context(), topicName, page, 20, sort)
+	if err != nil {
+		slog.Error("topic: list repos failed", "topic", topicName, "sort", sort, "page", page, "error", err)
+		h.NotFound(w, r)
+		return
+	}
 	if repos == nil {
-		repos = []model.Repository{}
+		repos = []model.RepositoryWithStats{}
+	}
+
+	total, err := h.Services.Topic.CountReposByTopic(r.Context(), topicName)
+	if err != nil {
+		slog.Error("topic: count repos failed", "topic", topicName, "error", err)
+		h.NotFound(w, r)
+		return
 	}
 
 	h.render(w, r, pages.Topic(view.TopicData{
 		BasePage:  basePage(r, h.Services),
 		TopicName: topicName,
 		Repos:     repos,
+		Total:     total,
+		Sort:      sort,
 		Page:      page,
 	}))
 }

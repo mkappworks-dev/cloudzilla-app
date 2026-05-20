@@ -1,0 +1,121 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ WikiNew(data view.WikiNewData) {
+	@layout.Base(data.BasePage, data.RepoName+" · Wiki · New page — Cloudzilla") {
+		<div class="space-y-6">
+
+			<section class="mb-6" aria-labelledby="wiki-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/wiki") } class="hover:underline">Wiki</a>
+					<span aria-hidden="true">·</span>
+					New page
+				</p>
+				<h1 id="wiki-title" class="text-2xl font-semibold tracking-tight">New page</h1>
+			</section>
+
+			<div class="grid lg:grid-cols-[220px_1fr] gap-8">
+				@wikiSidebar(data.Owner, data.RepoName, "", data.PageList, true, false)
+
+				<article
+					id="wiki-new-form"
+					data-owner={ data.Owner }
+					data-repo={ data.RepoName }
+					class="border border-border rounded-md bg-card p-6"
+				>
+					<form class="space-y-5">
+						<div>
+							<label for="wiki-page-title" class="block text-sm font-medium mb-1.5">Page title</label>
+							@components.Input(templ.Attributes{
+								"id":          "wiki-page-title",
+								"type":        "text",
+								"placeholder": "e.g. Deployment-checklist",
+							})
+							<p class="mt-1 text-[12px] text-muted-foreground">Spaces become hyphens in the page URL.</p>
+						</div>
+
+						<div class="space-y-1.5">
+							<label for="wiki-content" class="block text-sm font-medium">Content (Markdown)</label>
+							<div class="border border-border rounded-md overflow-hidden">
+								@components.MarkdownEditor("wiki-content", "content", "", "# Page heading…\n\nWrite your page in Markdown…", 18)
+							</div>
+						</div>
+
+						<div>
+							<label for="wiki-message" class="block text-sm font-medium mb-1.5">Commit message <span class="text-muted-foreground font-normal">(optional)</span></label>
+							@components.Input(templ.Attributes{
+								"id":          "wiki-message",
+								"type":        "text",
+								"name":        "message",
+								"placeholder": "Create page",
+							})
+						</div>
+
+						<div id="wiki-new-error" role="alert" class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2"></div>
+
+						<div class="flex items-center gap-3 pt-1">
+							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+								Save page
+							}
+							@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/wiki", components.ButtonGhost, components.ButtonSizeDefault, nil) {
+								Cancel
+							}
+						</div>
+					</form>
+				</article>
+			</div>
+
+		</div>
+
+		<script>
+			(function() {
+				var wrap = document.getElementById('wiki-new-form');
+				var form = wrap && wrap.querySelector('form');
+				var errBox = document.getElementById('wiki-new-error');
+				if (!form) return;
+				var owner = wrap.dataset.owner;
+				var repo  = wrap.dataset.repo;
+				var slugRe = /^[A-Za-z0-9_-]{1,100}$/;
+				form.addEventListener('submit', async function(e) {
+					e.preventDefault();
+					errBox.classList.add('hidden');
+					var title = document.getElementById('wiki-page-title').value;
+					var slug  = title.trim().replace(/\s+/g, '-');
+					if (!slugRe.test(slug)) {
+						errBox.textContent = 'Page title must produce a slug matching [A-Za-z0-9_-]{1,100} (no special characters).';
+						errBox.classList.remove('hidden');
+						return;
+					}
+					var content = form.querySelector('[name=content]').value;
+					var message = form.querySelector('[name=message]').value;
+					var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+					var body = new URLSearchParams();
+					body.set('content', content);
+					body.set('message', message);
+					var res = await fetch('/api/repos/' + owner + '/' + repo + '/wiki/' + slug, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': csrf },
+						body: body.toString(),
+					});
+					if (res.ok || res.redirected) {
+						sessionStorage.setItem('cz-toast', JSON.stringify({type: 'success', message: 'Wiki page created'}));
+						window.location.href = '/' + owner + '/' + repo + '/wiki/' + slug;
+						return;
+					}
+					var text = await res.text();
+					var msg = text;
+					try { msg = JSON.parse(text).error || text; } catch (_) {}
+					errBox.textContent = msg || ('Failed to create page (HTTP ' + res.status + ')');
+					errBox.classList.remove('hidden');
+				});
+			})();
+		</script>
+	}
+}

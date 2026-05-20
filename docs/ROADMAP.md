@@ -13,7 +13,7 @@
 
 # Milestone 1 — Core Platform (Phases 0–15.3) ✅ COMPLETE
 
-_All 53 migrations implemented. Code complete — closing with licensing, security audit, documentation overhaul, refactoring, and test coverage._
+_All Phase 0–15.3 migrations implemented (60+ total, currently 064). Code complete — closing with licensing, security audit, documentation overhaul, refactoring, and test coverage._
 
 ---
 
@@ -2104,7 +2104,7 @@ After each push, a `DependencyService.ParseAndStore(ctx, repo)` goroutine reads 
 
 ---
 
-> **Milestone 1 Closing (April 2026):** All Phases 0–15.3 are code-complete with 53 migrations. Current work: BSL 1.1 licensing, security audit, Go server refactor, frontend DRY refactor, documentation overhaul, and test coverage plan. These close Milestone 1 before tagging v0.1.0.
+> **Milestone 1 Closing (April 2026):** All Phases 0–15.3 are code-complete (60+ migrations, currently through 064). Current work: BSL 1.1 licensing, security audit, Go server refactor, frontend DRY refactor, documentation overhaul, and test coverage plan. These close Milestone 1 before tagging v0.1.0.
 
 ---
 

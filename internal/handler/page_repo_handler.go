@@ -361,6 +361,36 @@ func (h *Handler) UpdateRepoFeatures(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/"+owner+"/"+repoName+"/settings", http.StatusSeeOther)
 }
 
+func (h *Handler) UpdateRepoVisibility(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if err := h.Services.Repo.UpdateVisibility(r.Context(), repo.ID, claims.UserID,
+		r.FormValue("private") == "true"); err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
+			return
+		}
+		slog.Error("settings: update visibility failed", "owner", owner, "repo", repoName, "error", err)
+		http.Error(w, "failed to update settings", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/"+owner+"/"+repoName+"/settings", http.StatusSeeOther)
+}
+
 // PageRefs renders the branches and tags overview page.
 func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")

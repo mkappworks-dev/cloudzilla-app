@@ -3,15 +3,20 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-// ReleaseStore provides database operations for repository releases.
+// ErrReleaseTagInUseStore signals a unique-violation on (repo_id, tag_name).
+// The service layer wraps this in service.ErrReleaseTagInUse so handlers can
+// surface a friendly message instead of the raw pq driver text.
+var ErrReleaseTagInUseStore = errors.New("release tag already in use")
+
 type ReleaseStore struct{ db *sql.DB }
 
-// NewReleaseStore creates a ReleaseStore backed by the given database.
 func NewReleaseStore(db *sql.DB) *ReleaseStore { return &ReleaseStore{db: db} }
 
 func (s *ReleaseStore) Create(ctx context.Context, r *model.Release) error {
@@ -22,6 +27,10 @@ func (s *ReleaseStore) Create(ctx context.Context, r *model.Release) error {
 		r.RepoID, r.TagName, r.Name, r.Body, r.IsPrerelease, r.IsDraft, r.AuthorID, r.PublishedAt,
 	).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return ErrReleaseTagInUseStore
+		}
 		return fmt.Errorf("release create: %w", err)
 	}
 	return nil
@@ -38,6 +47,15 @@ func (s *ReleaseStore) ListByRepo(ctx context.Context, repoID int64) ([]model.Re
 	}
 	defer rows.Close()
 	return scanReleases(rows)
+}
+
+func (s *ReleaseStore) CountPublished(ctx context.Context, repoID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM releases WHERE repo_id = $1 AND is_draft = FALSE`,
+		repoID,
+	).Scan(&n)
+	return n, err
 }
 
 func (s *ReleaseStore) GetByTag(ctx context.Context, repoID int64, tagName string) (*model.Release, error) {

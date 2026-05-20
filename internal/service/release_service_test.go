@@ -4,6 +4,7 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -20,8 +21,8 @@ import (
 )
 
 // seedReleaseRepo creates a bare repo at <root>/<owner>/<name>.git holding one commit
-// tagged with each given tag, then returns the ReposRoot. ReleaseService.Create reads
-// the on-disk repo to validate that the release tag exists.
+// on a "main" branch, tagged with each given tag, then returns the ReposRoot.
+// ReleaseService.Create reads the on-disk repo to find or create the release tag.
 func seedReleaseRepo(t *testing.T, owner, name string, tags ...string) string {
 	t.Helper()
 	root := t.TempDir()
@@ -66,11 +67,16 @@ func seedReleaseRepo(t *testing.T, owner, name string, tags ...string) string {
 	}); err != nil {
 		t.Fatalf("create remote: %v", err)
 	}
-	if err := work.Push(&gogit.PushOptions{
-		RemoteName: "bare",
-		RefSpecs:   []gitconfig.RefSpec{"refs/tags/*:refs/tags/*"},
-	}); err != nil {
-		t.Fatalf("push tags: %v", err)
+	head, err := work.Head()
+	if err != nil {
+		t.Fatalf("head: %v", err)
+	}
+	refSpecs := []gitconfig.RefSpec{gitconfig.RefSpec(head.Name().String() + ":refs/heads/main")}
+	if len(tags) > 0 {
+		refSpecs = append(refSpecs, "refs/tags/*:refs/tags/*")
+	}
+	if err := work.Push(&gogit.PushOptions{RemoteName: "bare", RefSpecs: refSpecs}); err != nil {
+		t.Fatalf("push: %v", err)
 	}
 	return root
 }
@@ -94,12 +100,10 @@ func newReleaseSvc(t *testing.T, tags ...string) (*service.ReleaseService, strin
 	return svc, ownerName, repoName, ownerID
 }
 
-// TestReleaseService_Create_AssignsID verifies that Create inserts a release and
-// returns it with a non-zero database ID.
 func TestReleaseService_Create_AssignsID(t *testing.T) {
 	svc, owner, repo, authorID := newReleaseSvc(t, "v1.0.0")
 
-	r, err := svc.Create(context.Background(), owner, repo, "v1.0.0", "Release 1.0", "First release", false, false, authorID)
+	r, err := svc.Create(context.Background(), owner, repo, "v1.0.0", "main", "Release 1.0", "First release", false, false, authorID)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -111,12 +115,10 @@ func TestReleaseService_Create_AssignsID(t *testing.T) {
 	}
 }
 
-// TestReleaseService_ListByRepo_ReturnsRelease verifies that ListByRepo returns the
-// release we just created.
 func TestReleaseService_ListByRepo_ReturnsRelease(t *testing.T) {
 	svc, owner, repo, authorID := newReleaseSvc(t, "v2.0.0")
 
-	if _, err := svc.Create(context.Background(), owner, repo, "v2.0.0", "Release 2.0", "", false, false, authorID); err != nil {
+	if _, err := svc.Create(context.Background(), owner, repo, "v2.0.0", "main", "Release 2.0", "", false, false, authorID); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 
@@ -129,12 +131,10 @@ func TestReleaseService_ListByRepo_ReturnsRelease(t *testing.T) {
 	}
 }
 
-// TestReleaseService_GetByTag_ReturnsCorrectRelease verifies that GetByTag finds the
-// release by its tag name.
 func TestReleaseService_GetByTag_ReturnsCorrectRelease(t *testing.T) {
 	svc, owner, repo, authorID := newReleaseSvc(t, "v3.0.0")
 
-	r, err := svc.Create(context.Background(), owner, repo, "v3.0.0", "Release 3.0", "", false, false, authorID)
+	r, err := svc.Create(context.Background(), owner, repo, "v3.0.0", "main", "Release 3.0", "", false, false, authorID)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -148,12 +148,10 @@ func TestReleaseService_GetByTag_ReturnsCorrectRelease(t *testing.T) {
 	}
 }
 
-// TestReleaseService_Delete_RemovesRelease verifies that Delete removes the release so
-// GetByTag returns an error afterward.
 func TestReleaseService_Delete_RemovesRelease(t *testing.T) {
 	svc, owner, repo, authorID := newReleaseSvc(t, "v4.0.0")
 
-	r, err := svc.Create(context.Background(), owner, repo, "v4.0.0", "Release 4.0", "", false, false, authorID)
+	r, err := svc.Create(context.Background(), owner, repo, "v4.0.0", "main", "Release 4.0", "", false, false, authorID)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -168,16 +166,88 @@ func TestReleaseService_Delete_RemovesRelease(t *testing.T) {
 	}
 }
 
-// TestReleaseService_Create_Prerelease verifies that a release created with
-// isPrerelease=true stores the flag correctly.
 func TestReleaseService_Create_Prerelease(t *testing.T) {
 	svc, owner, repo, authorID := newReleaseSvc(t, "v1.0.0-rc1")
 
-	r, err := svc.Create(context.Background(), owner, repo, "v1.0.0-rc1", "Release Candidate", "", true, false, authorID)
+	r, err := svc.Create(context.Background(), owner, repo, "v1.0.0-rc1", "main", "Release Candidate", "", true, false, authorID)
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 	if !r.IsPrerelease {
 		t.Error("Create with isPrerelease=true must set IsPrerelease=true")
+	}
+}
+
+func TestReleaseService_Create_CreatesTagOnTargetBranch(t *testing.T) {
+	svc, owner, repo, authorID := newReleaseSvc(t) // no pre-existing tags
+
+	r, err := svc.Create(context.Background(), owner, repo, "v5.0.0", "main", "Release 5.0", "", false, false, authorID)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if r.TagName != "v5.0.0" {
+		t.Errorf("want tag %q, got %q", "v5.0.0", r.TagName)
+	}
+
+	found, err := svc.GetByTag(context.Background(), owner, repo, "v5.0.0")
+	if err != nil {
+		t.Fatalf("GetByTag after tag creation: %v", err)
+	}
+	if found.ID != r.ID {
+		t.Errorf("want release ID %d, got %d", r.ID, found.ID)
+	}
+}
+
+func TestReleaseService_Create_FailsWhenTargetBranchMissing(t *testing.T) {
+	svc, owner, repo, authorID := newReleaseSvc(t) // no pre-existing tags
+
+	_, err := svc.Create(context.Background(), owner, repo, "v6.0.0", "no-such-branch", "Release 6.0", "", false, false, authorID)
+	if err == nil {
+		t.Error("Create must fail when the target branch does not exist")
+	}
+}
+
+func TestReleaseService_Create_DuplicateTagReturnsSentinel(t *testing.T) {
+	svc, owner, repo, authorID := newReleaseSvc(t, "v7.0.0")
+
+	if _, err := svc.Create(context.Background(), owner, repo, "v7.0.0", "main", "Release 7.0", "", false, false, authorID); err != nil {
+		t.Fatalf("first Create: %v", err)
+	}
+
+	_, err := svc.Create(context.Background(), owner, repo, "v7.0.0", "main", "Release 7.0 again", "", false, false, authorID)
+	if !errors.Is(err, service.ErrReleaseTagInUse) {
+		t.Errorf("want ErrReleaseTagInUse, got %v", err)
+	}
+}
+
+func TestReleaseService_Create_RejectsInvalidTagName(t *testing.T) {
+	svc, owner, repo, authorID := newReleaseSvc(t)
+
+	cases := []string{
+		"../etc/passwd",
+		"has spaces",
+		"semicolon;injected",
+		"unicode-✨-tag",
+		"",
+	}
+	for _, tag := range cases {
+		_, err := svc.Create(context.Background(), owner, repo, tag, "main", "x", "", false, false, authorID)
+		if !errors.Is(err, service.ErrInvalidTagName) {
+			t.Errorf("Create(tag=%q): want ErrInvalidTagName, got %v", tag, err)
+		}
+	}
+}
+
+func TestReleaseService_Update_RejectsInvalidTagName(t *testing.T) {
+	svc, owner, repo, authorID := newReleaseSvc(t, "v8.0.0")
+
+	r, err := svc.Create(context.Background(), owner, repo, "v8.0.0", "main", "Release 8.0", "", false, false, authorID)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	_, err = svc.Update(context.Background(), owner, repo, r.ID, "../etc/passwd", "x", "", false, false)
+	if !errors.Is(err, service.ErrInvalidTagName) {
+		t.Errorf("Update(tag=../etc/passwd): want ErrInvalidTagName, got %v", err)
 	}
 }

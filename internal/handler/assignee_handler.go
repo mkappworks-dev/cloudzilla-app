@@ -73,6 +73,7 @@ func (h *Handler) AddIssueAssignee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Assignee added")
 		h.renderIssueAssigneeFragment(w, r, owner, repoName, number)
 		return
 	}
@@ -117,6 +118,7 @@ func (h *Handler) RemoveIssueAssignee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
+		toast(w, "success", "Assignee removed")
 		h.renderIssueAssigneeFragment(w, r, owner, repoName, number)
 		return
 	}

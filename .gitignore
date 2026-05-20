@@ -34,3 +34,6 @@ mockups/
 # OS
 .DS_Store
 Thumbs.db
+
+# Superpowers brainstorm sessions
+.superpowers/

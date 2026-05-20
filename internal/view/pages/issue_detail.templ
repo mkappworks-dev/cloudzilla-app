@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
@@ -15,43 +14,37 @@ templ IssueDetail(data view.IssueDetailData) {
 	@layout.Base(data.BasePage, data.Issue.Title+" · Issue #"+strconv.Itoa(data.Issue.Number)+" · "+data.Owner+"/"+data.RepoName) {
 		<div class="space-y-6">
 
-			<section aria-labelledby="issue-heading">
+			<section aria-labelledby="issue-heading" class="border-b border-border pb-6">
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
 					<span aria-hidden="true">·</span>
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues") } class="hover:underline">Issues</a>
+					<span aria-hidden="true">·</span>
+					<span aria-current="page">#{ strconv.Itoa(data.Issue.Number) }</span>
 				</p>
-				<div class="flex flex-wrap items-start justify-between gap-3 mb-3">
-					<h1 id="issue-heading" class="text-2xl font-semibold tracking-tight flex items-center gap-2 flex-wrap min-w-0">
-						{ data.Issue.Title }
-						<span class="text-muted-foreground font-normal" aria-label={ "Issue number " + strconv.Itoa(data.Issue.Number) }>#{ strconv.Itoa(data.Issue.Number) }</span>
-						if data.Issue.Visibility == "private" {
-							@components.Badge(components.BadgeDestructive) {
-								Private
-							}
-						}
-					</h1>
-					if data.BasePage.CurrentUser != nil {
-						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/issues/new") } class="h-8 px-3 text-[13px] rounded-md border border-border bg-card hover:bg-muted/50 inline-flex items-center shrink-0">New issue</a>
-					}
+				<div class="mb-3">
+					@fragments.IssueTitleSection(data.Owner, data.RepoName, data.Issue.Number, data.Issue.Title, data.CanWrite, false)
 				</div>
 				<div class="flex flex-wrap items-center gap-3">
 					@components.IssueStateBadge(string(data.Issue.State))
-					if data.Issue.IsLocked {
-						@components.Badge(components.BadgeSecondary) {
-							Locked
+					@issueLockedBadge(data.Issue.IsLocked, false)
+					if data.Issue.Visibility == "private" {
+						@components.Badge(components.BadgeDestructive) {
+							Private
 						}
 					}
 					<p class="text-[13px] text-muted-foreground">
 						<a href={ templ.SafeURL("/" + data.Issue.AuthorName) } class="font-medium text-foreground hover:underline">{ data.Issue.AuthorName }</a>
 						{ " opened this issue " }
 						<time datetime={ data.Issue.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Issue.CreatedAt.Format("Jan 2, 2006") }</time>
-						{ " · " + strconv.Itoa(len(data.Comments)) }
-						if len(data.Comments) == 1 {
-							{ " comment" }
-						} else {
-							{ " comments" }
-						}
+						<span id="issue-comment-count" data-count={ strconv.Itoa(len(data.Comments)) }>
+							{ " · " + strconv.Itoa(len(data.Comments)) }
+							if len(data.Comments) == 1 {
+								{ " comment" }
+							} else {
+								{ " comments" }
+							}
+						</span>
 					</p>
 				</div>
 			</section>
@@ -60,183 +53,102 @@ templ IssueDetail(data view.IssueDetailData) {
 
 				<article class="space-y-5 min-w-0">
 
-					<section id="issue-detail" class="rounded-md border border-border bg-card overflow-hidden" aria-label="Issue body">
-						<header class="px-4 py-2.5 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px]">
-							@components.Avatar(data.Issue.AuthorName, components.AvatarSizeSM, data.Issue.AuthorName)
-							<strong class="text-foreground">{ data.Issue.AuthorName }</strong>
-							<span class="text-muted-foreground">opened</span>
-							<time class="text-muted-foreground ml-auto text-xs" datetime={ data.Issue.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Issue.CreatedAt.Format("Jan 2, 2006") }</time>
-						</header>
-						if len(data.Labels) > 0 {
-							<div class="flex flex-wrap gap-1.5 px-4 pt-3" aria-label="Labels">
-								for _, l := range data.Labels {
-									<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style={ "background-color: " + l.Color + "33; color: " + l.Color + "; border-color: " + l.Color + "55" }>{ l.Name }</span>
-								}
-							</div>
-						}
-						<div class="px-4 py-4">
-							@components.MarkdownBody(data.BodyHTML)
-						</div>
-						<div class="px-4 pb-4 flex flex-wrap gap-2">
-							if data.Issue.State == "open" {
-								@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
-									"hx-patch":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number),
-									"hx-vals":   `{"state":"closed"}`,
-									"hx-target": "#issue-detail",
-									"hx-swap":   "outerHTML",
-									"type":      "button",
-								}) {
-									Close issue
-								}
-							} else {
-								@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{
-									"hx-patch":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number),
-									"hx-vals":   `{"state":"open"}`,
-									"hx-target": "#issue-detail",
-									"hx-swap":   "outerHTML",
-									"type":      "button",
-								}) {
-									Reopen issue
-								}
-							}
-							if data.CanManage {
-								if data.Issue.IsPinned {
-									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-										"hx-patch": "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/pin",
-										"hx-vals":  `{"action":"unpin"}`,
-										"hx-swap":  "none",
-										"type":     "button",
-									}) {
-										Unpin
-									}
-								} else {
-									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-										"hx-patch": "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/pin",
-										"hx-vals":  `{"action":"pin"}`,
-										"hx-swap":  "none",
-										"type":     "button",
-									}) {
-										Pin
-									}
-								}
-								if data.Issue.IsLocked {
-									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-										"hx-patch": "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/lock",
-										"hx-vals":  `{"action":"unlock"}`,
-										"hx-swap":  "none",
-										"type":     "button",
-									}) {
-										Unlock
-									}
-								} else {
-									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-										"hx-patch": "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/lock",
-										"hx-vals":  `{"action":"lock"}`,
-										"hx-swap":  "none",
-										"type":     "button",
-									}) {
-										Lock
-									}
-								}
-							}
-						</div>
-					</section>
+					@fragments.IssueBodyCard(view.IssueBodyCardData{
+						Owner:       data.Owner,
+						RepoName:    data.RepoName,
+						IssueNumber: data.Issue.Number,
+						AuthorName:  data.Issue.AuthorName,
+						CreatedAt:   data.Issue.CreatedAt,
+						Body:        data.Issue.Body,
+						BodyHTML:    data.BodyHTML,
+						CanWrite:    data.CanWrite,
+						Editing:     false,
+					})
 
-					<ol id="comments" class="cz-timeline space-y-4" aria-label="Issue activity">
+					<ol id="comments" class="space-y-4" aria-label="Issue activity">
 						for _, c := range data.Comments {
-							@components.TimelineEntry(components.TimelineEntryComment, c.AuthorName, c.CreatedAt.Format("Jan 2, 2006 at 3:04 PM")) {
-								<div class="rounded-md border border-border bg-card overflow-hidden">
-									<header class="px-4 py-2 border-b border-border bg-muted/40 flex items-center gap-2 text-xs text-muted-foreground">
-										<time datetime={ c.CreatedAt.UTC().Format(time.RFC3339) }>{ c.CreatedAt.Format("Jan 2, 2006 at 3:04 PM") }</time>
-									</header>
-									<div class="px-4 py-3">
-										@components.MarkdownBody(c.BodyHTML)
-									</div>
-									<div id={ "reactions-" + strconv.FormatInt(c.ID, 10) } hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/comments/" + strconv.FormatInt(c.ID, 10) + "/reactions" } hx-trigger="load" hx-swap="outerHTML" class="px-4 pb-2"></div>
+							<li class="rounded-md border border-border bg-card overflow-hidden">
+								<header class="px-4 py-2.5 border-b border-border bg-muted/40 flex items-center gap-2 text-[12.5px]">
+									@components.Avatar(c.AuthorName, components.AvatarSizeSM, c.AuthorName)
+									<strong class="text-foreground">{ c.AuthorName }</strong>
+									<span class="text-muted-foreground">commented</span>
+									<time class="text-muted-foreground ml-auto text-xs" datetime={ c.CreatedAt.UTC().Format(time.RFC3339) }>{ c.CreatedAt.Format("Jan 2, 2006 at 3:04 PM") }</time>
+								</header>
+								<div class="px-4 py-3 prose prose-sm dark:prose-invert max-w-none">
+									@templ.Raw(c.BodyHTML)
 								</div>
-							}
+								<div id={ "reactions-" + strconv.FormatInt(c.ID, 10) } hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/comments/" + strconv.FormatInt(c.ID, 10) + "/reactions" } hx-trigger="load" hx-swap="outerHTML" class="px-4 pb-2"></div>
+							</li>
 						}
 					</ol>
 
-					<div>
-						if !data.Issue.IsLocked || data.CanManage {
-							if data.BasePage.CurrentUser != nil {
-								<form class="rounded-md border border-border bg-card p-4 space-y-3">
-									<div class="flex justify-end">
-										@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-											"type":      "button",
-											"hx-get":    "/api/user/replies",
-											"hx-target": "#saved-replies-picker-container",
-											"hx-swap":   "outerHTML",
+					if !data.Issue.IsLocked || data.CanManage {
+						if data.BasePage.CurrentUser != nil {
+							@components.CommentEditor(templ.Attributes{
+								"hx-post":               "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/comments",
+								"hx-target":             "#comments",
+								"hx-swap":               "beforeend",
+								"hx-on--after-request":  "if(event.target===this&&event.detail.successful){var el=document.getElementById('issue-comment-count');if(el){var n=parseInt(el.dataset.count||'0',10)+1;el.dataset.count=n;el.textContent=' · '+n+(n===1?' comment':' comments');}var pv=document.getElementById('comment-body-preview');if(pv)pv.replaceChildren();this.reset();}",
+							}) {
+								@components.CommentEditorHeader(data.BasePage.CurrentUser.Username)
+								@components.MarkdownEditor("comment-body", "body", "", "Add a comment…", 6)
+								@components.CommentEditorActions() {
+									if data.Issue.State == "open" {
+										<button
+											type="button"
+											onclick="document.getElementById('close-issue-dialog').showModal()"
+											class="inline-flex items-center gap-1.5 h-9 px-3 text-[13px] rounded-md font-medium border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20"
+										>
+											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 12l2 2 4-4"></path></svg>
+											Close issue
+										</button>
+									} else {
+										@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{
+											"hx-patch": "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number),
+											"hx-vals":  `{"state":"open"}`,
+											"hx-swap":  "none",
+											"hx-on::after-request": "if(event.detail.successful)window.location.reload()",
+											"type":     "button",
 										}) {
-											Saved replies
+											Reopen issue
 										}
-									</div>
-									<div id="saved-replies-picker-container"></div>
-									<label for="comment-body" class="sr-only">Add a comment</label>
-									@components.Textarea(templ.Attributes{
-										"id":          "comment-body",
-										"name":        "body",
-										"rows":        "6",
-										"placeholder": "Add a comment…",
-										"class":       "w-full min-h-28 font-mono",
-									})
-									<div class="flex justify-end gap-2">
-										if data.Issue.State == "open" {
-											@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
-												"hx-patch":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number),
-												"hx-vals":   `{"state":"closed"}`,
-												"hx-target": "#issue-detail",
-												"hx-swap":   "outerHTML",
-												"type":      "button",
-											}) {
-												Close issue
-											}
-										}
-										@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
-											"hx-post":    "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/comments",
-											"hx-include": "#comment-body",
-											"hx-swap":    "beforeend",
-											"hx-target":  "#comments",
-											"type":       "button",
-										}) {
-											Comment
-										}
-									</div>
-								</form>
-								<script>
-								document.addEventListener('click', function(e) {
-								  var btn = e.target.closest('[data-saved-reply-body]');
-								  if (btn) {
-								    var ta = document.getElementById('comment-body');
-								    if (ta) { ta.value = btn.dataset.savedReplyBody; }
-								    var container = document.getElementById('saved-replies-picker-container');
-								    if (container) { container.replaceChildren(); }
-								  }
-								});
-								</script>
+									}
+									@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+										Comment
+									}
+								}
 							}
 						}
-						if data.Issue.IsLocked && !data.CanManage {
-							<div class="rounded-md border border-border bg-muted p-4 text-center text-sm text-muted-foreground">
-								This issue is locked. Only maintainers can comment.
-							</div>
-						}
-					</div>
+					}
+					if data.Issue.IsLocked && !data.CanManage {
+						<div class="rounded-md border border-border bg-muted p-4 text-center text-sm text-muted-foreground">
+							This issue is locked. Only maintainers can comment.
+						</div>
+					}
 
 				</article>
 
 				<aside class="space-y-6 text-[12.5px]" aria-label="Issue metadata" x-data="{ open: null }" x-on:keydown.escape.window="open = null">
 
-					<section class="rounded-md border border-border bg-card p-4">
+					<section>
 						@components.AssigneeSidebar(data.Owner, data.RepoName, data.Issue.Number, "issues", data.Assignees, data.Collaborators, data.CanWrite)
 					</section>
 
-					<section class="rounded-md border border-border bg-card p-4">
+					<section class="border-t border-border pt-6">
 						@components.LabelSidebar(data.Owner, data.RepoName, data.Issue.Number, "issues", data.Labels, data.AllLabels, data.CanWrite)
 					</section>
 
-					<section class="rounded-md border border-border bg-card p-4">
+					<section class="border-t border-border pt-6">
+						@fragments.IssuePrioritySidebar(view.IssuePrioritySidebarData{
+							Owner:       data.Owner,
+							RepoName:    data.RepoName,
+							IssueNumber: data.Issue.Number,
+							Priority:    data.Issue.Priority,
+							CanWrite:    data.CanWrite,
+						})
+					</section>
+
+					<section class="border-t border-border pt-6">
 						@fragments.MilestoneSidebar(view.MilestoneSidebarFragData{
 							Owner:         data.Owner,
 							RepoName:      data.RepoName,
@@ -248,37 +160,123 @@ templ IssueDetail(data view.IssueDetailData) {
 						})
 					</section>
 
-					<section class="rounded-md border border-border bg-card p-4">
-						<h3 class="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Linked pull requests</h3>
-						if len(data.LinkedPRs) > 0 {
-							<div class="space-y-1.5">
-								for _, pr := range data.LinkedPRs {
-									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(pr.Number)) } class="flex items-center gap-2 text-muted-foreground hover:text-foreground group">
-										@linkedPRIcon(pr.State)
-										<span class="font-mono text-[11px] shrink-0">#{ strconv.Itoa(pr.Number) }</span>
-										<span class="truncate text-[12.5px]">{ pr.Title }</span>
-									</a>
-								}
-							</div>
-						} else {
-							<p class="text-xs text-muted-foreground">No linked PRs yet.</p>
-						}
+					<section class="border-t border-border pt-6">
+						@fragments.IssueLinkedPullsSidebar(view.IssueLinkedPullsSidebarData{
+							Owner:       data.Owner,
+							RepoName:    data.RepoName,
+							IssueNumber: data.Issue.Number,
+							Linked:      linkedPullsView(data.LinkedPRs),
+							AllPulls:    linkedPullsView(data.RepoPulls),
+							CanWrite:    data.CanWrite,
+						})
 					</section>
+
+					if data.CanManage {
+						@MaintainerSection(data.Owner, data.RepoName, data.Issue.Number, data.Issue.IsPinned, data.Issue.IsLocked)
+					}
 
 				</aside>
 
 			</div>
 		</div>
+
+		@components.Dialog("close-issue-dialog") {
+			@components.DialogHeader() {
+				@components.DialogTitle("close-issue-dialog") {
+					Close this issue?
+				}
+				@components.DialogDescription() {
+					Close issue <strong class="text-foreground">#{ strconv.Itoa(data.Issue.Number) }</strong> — <strong class="text-foreground">{ data.Issue.Title }</strong>. You can reopen it later if needed.
+				}
+			}
+			@components.DialogFooter() {
+				@components.DialogClose() {
+					Cancel
+				}
+				<button
+					type="button"
+					hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) }
+					hx-vals={ `{"state":"closed"}` }
+					hx-swap="none"
+					hx-on:htmx:after-request="if(event.detail.successful)window.location.reload()"
+					class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+				>
+					Close issue
+				</button>
+			}
+		}
 	}
 }
 
-templ linkedPRIcon(state model.PRState) {
-	switch state {
-	case model.PRStateMerged:
-		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-[hsl(270_70%_70%)]" aria-hidden="true"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 009 9"></path></svg>
-	case model.PRStateClosed:
-		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-destructive" aria-hidden="true"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 009 9"></path></svg>
-	default:
-		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 text-success" aria-hidden="true"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M6 21V9a9 9 0 009 9"></path></svg>
-	}
+// MaintainerSection renders the pin/lock controls. The pin/lock handlers
+// re-render and swap it in place (no page reload).
+templ MaintainerSection(owner, repoName string, number int, pinned, locked bool) {
+	{{ pinURL := "/api/repos/" + owner + "/" + repoName + "/issues/" + strconv.Itoa(number) + "/pin" }}
+	{{ lockURL := "/api/repos/" + owner + "/" + repoName + "/issues/" + strconv.Itoa(number) + "/lock" }}
+	<section id="maintainer-section" class="border-t border-border pt-6">
+		<h3 class="text-[12px] font-medium text-muted-foreground mb-2">Maintainer</h3>
+		<div class="space-y-1.5">
+			if pinned {
+				@maintainerToggle(pinURL, "unpin", "Unpin issue") {
+					@pinIcon()
+				}
+			} else {
+				@maintainerToggle(pinURL, "pin", "Pin issue") {
+					@pinIcon()
+				}
+			}
+			if locked {
+				@maintainerToggle(lockURL, "unlock", "Unlock conversation") {
+					@lockIcon()
+				}
+			} else {
+				@maintainerToggle(lockURL, "lock", "Lock conversation") {
+					@lockIcon()
+				}
+			}
+		</div>
+	</section>
+}
+
+// MaintainerFragment is the pin/lock toggle response: the re-rendered section
+// plus an out-of-band swap that keeps the header "Locked" badge in sync.
+templ MaintainerFragment(owner, repoName string, number int, pinned, locked bool) {
+	@MaintainerSection(owner, repoName, number, pinned, locked)
+	@issueLockedBadge(locked, true)
+}
+
+// issueLockedBadge renders the header "Locked" pill in a stable wrapper so the
+// lock toggle can refresh it via an out-of-band swap (oob=true).
+templ issueLockedBadge(locked, oob bool) {
+	<span id="issue-locked-badge" if oob { hx-swap-oob="true" }>
+		if locked {
+			@components.Badge(components.BadgeSecondary) {
+				Locked
+			}
+		}
+	</span>
+}
+
+// maintainerToggle is a full-width sidebar button for a maintainer-only issue
+// action (pin/lock). On success the handler swaps #maintainer-section in place.
+templ maintainerToggle(endpoint, action, label string) {
+	<button
+		type="button"
+		hx-patch={ endpoint }
+		hx-vals={ `{"action":"` + action + `"}` }
+		hx-target="#maintainer-section"
+		hx-swap="outerHTML"
+		class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md border border-border text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
+	>
+		{ children... }
+		{ label }
+	</button>
+}
+
+templ pinIcon() {
+	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M9 4h6l-1 7 3 3H7l3-3-1-7z"></path></svg>
+}
+
+templ lockIcon() {
+	<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 018 0v4"></path></svg>
 }

@@ -1,0 +1,116 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ ReleaseNew(data view.ReleaseNewData) {
+	@layout.Base(data.BasePage, "New release · "+data.Owner+"/"+data.RepoName) {
+		<div class="space-y-6">
+
+			<section aria-labelledby="new-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases") } class="hover:underline">Releases</a>
+					<span aria-hidden="true">·</span>
+					New
+				</p>
+				<h1 id="new-title" class="text-2xl font-semibold tracking-tight">Draft a new release</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">Tag a point in history, write the notes, and publish — or save it as a draft for later.</p>
+			</section>
+
+			<div class="grid lg:grid-cols-[1fr_280px] gap-8">
+				<div class="min-w-0">
+					<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="draft-heading">
+						<header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+							<h2 id="draft-heading" class="text-[13px] font-medium">New release</h2>
+							<span class="ml-auto font-mono text-[11px] text-muted-foreground">draft</span>
+						</header>
+						<form
+							hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases" }
+							hx-target="body"
+							class="p-5 space-y-4"
+						>
+							<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+								<div class="space-y-1.5">
+									<label for="r-tag" class="block text-sm font-medium">
+										Tag <span class="text-destructive" aria-hidden="true">*</span>
+									</label>
+									@components.Input(templ.Attributes{
+										"id":          "r-tag",
+										"type":        "text",
+										"name":        "tag_name",
+										"required":    "required",
+										"placeholder": "v1.0.0",
+										"class":       "font-mono",
+									})
+								</div>
+								<div class="space-y-1.5">
+									<label for="r-name" class="block text-sm font-medium">Release title</label>
+									@components.Input(templ.Attributes{
+										"id":          "r-name",
+										"type":        "text",
+										"name":        "name",
+										"placeholder": "Phase 16 — performance",
+									})
+								</div>
+							</div>
+							<div class="space-y-1.5">
+								<label for="r-target" class="block text-sm font-medium">Target branch</label>
+								@components.Select(templ.Attributes{"id": "r-target", "name": "target"}) {
+									for _, b := range data.Branches {
+										<option value={ b.Name } selected?={ b.Name == data.Repo.DefaultBranch }>{ b.Name }</option>
+									}
+								}
+								<p class="text-[12px] text-muted-foreground">When the tag doesn't exist yet, it's created on this branch's latest commit.</p>
+							</div>
+							<div class="space-y-1.5">
+								<label for="r-body" class="block text-sm font-medium">Description</label>
+								@components.MarkdownEditor("r-body", "body", "", "What changed, why it matters, upgrade notes…", 8)
+							</div>
+							<div class="flex flex-wrap items-center gap-6">
+								<label class="flex items-center gap-2 text-sm cursor-pointer">
+									@components.Checkbox(templ.Attributes{"name": "is_prerelease", "value": "true"})
+									<span>Pre-release</span>
+								</label>
+							</div>
+							<div class="flex flex-wrap justify-end gap-2 pt-1">
+								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases") } class="h-9 px-3 border border-border rounded-md text-sm text-muted-foreground hover:bg-muted inline-flex items-center">Cancel</a>
+								@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+									"type":       "button",
+									"hx-post":    "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases",
+									"hx-include": "closest form",
+									"hx-vals":    `{"is_draft":"true"}`,
+									"hx-target":  "body",
+								}) {
+									Save draft
+								}
+								@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+									Publish release
+								}
+							</div>
+						</form>
+					</section>
+				</div>
+
+				<aside class="space-y-6" aria-label="About releases">
+					<section aria-labelledby="about-heading">
+						<h2 id="about-heading" class="text-[12px] font-medium text-muted-foreground mb-2">About releases</h2>
+						<p class="text-[13px] text-muted-foreground leading-relaxed">A release packages a Git tag with notes and downloadable assets — the cuttable points in your project's history.</p>
+					</section>
+					<section aria-labelledby="tips-heading" class="border-t border-border pt-5">
+						<h2 id="tips-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Good to know</h2>
+						<ul class="space-y-2 text-[13px] text-muted-foreground leading-relaxed">
+							<li>The tag is created on the target branch's latest commit if it doesn't already exist.</li>
+							<li>Mark a pre-release when the build isn't production-ready.</li>
+							<li>Saving as a draft keeps the release private and notifies no one until you publish.</li>
+						</ul>
+					</section>
+				</aside>
+			</div>
+		</div>
+	}
+}

@@ -1,14 +1,46 @@
 package handler
 
 import (
+	"html"
+	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
+
+// renderDeployKeyFormError uses status 200 because htmx skips swaps on 4xx by
+// default; the form distinguishes success from error by the swapped target id.
+func renderDeployKeyFormError(w http.ResponseWriter, msg string) {
+	w.Header().Set("HX-Retarget", "#deploy-key-form-error")
+	w.Header().Set("HX-Reswap", "innerHTML")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write([]byte(`<div class="rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs p-3" role="alert">` + html.EscapeString(msg) + `</div>`))
+}
+
+// deployKeyErrorMessage maps known service-level errors to user-safe copy.
+// The unmatched fallback logs the raw error and returns a generic message so
+// driver-level details (pq error structure, schema names) never reach clients.
+func deployKeyErrorMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "invalid public key"):
+		return "Invalid public key. Paste the full contents of a .pub file (e.g. starts with ssh-ed25519 or ssh-rsa)."
+	case strings.Contains(msg, "already registered as a user SSH key"):
+		return "This key is already registered to your account. Deploy keys must be distinct from user SSH keys."
+	case strings.Contains(msg, "duplicate key") || strings.Contains(msg, "unique constraint"):
+		return "This key is already a deploy key on this repository."
+	}
+	slog.Error("deploy key: unexpected error", "error", err)
+	return "Couldn't add deploy key. Please try again."
+}
 
 func (h *Handler) ListDeployKeys(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
@@ -69,13 +101,22 @@ func (h *Handler) AddDeployKey(w http.ResponseWriter, r *http.Request) {
 	readOnly := r.FormValue("read_only") == "true" // checkbox sends "true" when checked; unchecked = read-write
 
 	if title == "" || publicKey == "" {
+		if r.Header.Get("HX-Request") == "true" {
+			renderDeployKeyFormError(w, "Title and public key are required.")
+			return
+		}
 		http.Error(w, "title and public_key are required", http.StatusBadRequest)
 		return
 	}
 
 	dk, err := h.Services.DeployKey.Add(r.Context(), repo.ID, title, publicKey, readOnly)
 	if err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "failed to add deploy key")
+		msg := deployKeyErrorMessage(err)
+		if r.Header.Get("HX-Request") == "true" {
+			renderDeployKeyFormError(w, msg)
+			return
+		}
+		writeError(w, http.StatusUnprocessableEntity, msg)
 		return
 	}
 

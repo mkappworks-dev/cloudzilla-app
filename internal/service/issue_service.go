@@ -38,6 +38,9 @@ func (s *IssueService) WithMentionStore(m *store.MentionStore) *IssueService {
 }
 
 func (s *IssueService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, visibility string) (*model.Issue, error) {
+	if len(title) > MaxTitleLen {
+		return nil, ErrTitleTooLong
+	}
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
@@ -106,6 +109,55 @@ func (s *IssueService) SetState(ctx context.Context, owner, repoName string, num
 		return nil, err
 	}
 	// Re-fetch so closed_at and updated_at reflect DB values
+	return s.issues.GetByNumberUnfiltered(ctx, repo.ID, number)
+}
+
+// SetPriority clears the priority when priority is nil.
+func (s *IssueService) SetPriority(ctx context.Context, owner, repoName string, number int, priority *string) (*model.Issue, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	issue, err := s.issues.GetByNumberUnfiltered(ctx, repo.ID, number)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.issues.UpdatePriority(ctx, issue.ID, priority); err != nil {
+		return nil, err
+	}
+	return s.issues.GetByNumberUnfiltered(ctx, repo.ID, number)
+}
+
+func (s *IssueService) EditTitle(ctx context.Context, owner, repoName string, number int, title string) (*model.Issue, error) {
+	if len(title) > MaxTitleLen {
+		return nil, ErrTitleTooLong
+	}
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	issue, err := s.issues.GetByNumberUnfiltered(ctx, repo.ID, number)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.issues.UpdateTitle(ctx, issue.ID, title); err != nil {
+		return nil, err
+	}
+	return s.issues.GetByNumberUnfiltered(ctx, repo.ID, number)
+}
+
+func (s *IssueService) EditBody(ctx context.Context, owner, repoName string, number int, body string) (*model.Issue, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	issue, err := s.issues.GetByNumberUnfiltered(ctx, repo.ID, number)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.issues.UpdateBody(ctx, issue.ID, body); err != nil {
+		return nil, err
+	}
 	return s.issues.GetByNumberUnfiltered(ctx, repo.ID, number)
 }
 
@@ -211,6 +263,10 @@ func (s *IssueService) WeeklyCreated(ctx context.Context, repoID int64, weeks in
 
 func (s *IssueService) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
 	return s.issues.CountOpenAssignedTo(ctx, userID)
+}
+
+func (s *IssueService) CountOpen(ctx context.Context, repoID int64) (int, error) {
+	return s.issues.CountOpen(ctx, repoID)
 }
 
 // mode is "assigned", "created", or "mentioned"; state is "open" or "closed".

@@ -540,6 +540,17 @@ func (s *RepoService) UpdateFeatureToggles(ctx context.Context, repoID, userID i
 	return s.repos.UpdateFeatureToggles(ctx, repoID, issues, discussions, projects, wiki)
 }
 
+func (s *RepoService) UpdateVisibility(ctx context.Context, repoID, userID int64, private bool) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if err != nil {
+		return fmt.Errorf("repo not found: %w", err)
+	}
+	if !s.CanManage(ctx, repo, userID) {
+		return fmt.Errorf("manage permission required: %w", ErrForbidden)
+	}
+	return s.repos.UpdateVisibility(ctx, repoID, private)
+}
+
 func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, newOwnerID int64, newOwnerUsername, newName, description string) (*model.Repository, error) {
 	tmpl, err := s.repos.GetByID(ctx, templateRepoID)
 	if err != nil {

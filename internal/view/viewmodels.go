@@ -25,10 +25,15 @@ type BasePage struct {
 	UnreadNotifCount  int
 	AllowLogin        bool
 	AllowRegistration bool
-	UserOrgs          []model.Organization
+	UserOrgs          []OrgEntry
 	RepoSubnav        *RepoSubnavInfo
 	AccountSubnav     *AccountSubnavInfo
 	RepoSwitcher      []RepoRef
+}
+
+type OrgEntry struct {
+	Org  model.Organization
+	Role model.OrgRole
 }
 
 type RepoSubnavInfo struct {
@@ -37,6 +42,7 @@ type RepoSubnavInfo struct {
 	Active    string
 	Counts    map[string]int
 	CanManage bool
+	Private   bool
 	// Feature toggles — when false the corresponding tab is hidden.
 	AllowIssues      bool
 	AllowDiscussions bool

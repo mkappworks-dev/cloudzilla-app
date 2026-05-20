@@ -25,7 +25,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 					}
 				}
 				@components.CardContent() {
-					<form hx-post={ "/api/orgs/" + data.Org.Name + "/members" } hx-target="#org-members-list" hx-swap="outerHTML" class="flex gap-2 mb-4">
+					<form hx-post={ "/api/orgs/" + data.Org.Name + "/members" } hx-target="#org-members-list" hx-swap="outerHTML" data-toast="Member added" class="flex gap-2 mb-4">
 						<label for="org-member-username" class="sr-only">Username</label>
 						@components.Input(templ.Attributes{
 							"id":          "org-member-username",
@@ -55,11 +55,15 @@ templ OrgSettings(data view.OrgSettingsData) {
 									<span class="ml-2 text-xs text-muted-foreground capitalize">{ m.Role }</span>
 								</div>
 								@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-									"hx-delete":  "/api/orgs/" + data.Org.Name + "/members/" + m.Username,
-									"hx-target":  "#org-members-list",
-									"hx-swap":    "outerHTML",
-									"hx-confirm": "Remove " + m.Username + " from this organization?",
-									"type":       "button",
+									"hx-delete":           "/api/orgs/" + data.Org.Name + "/members/" + m.Username,
+									"hx-target":           "#org-members-list",
+									"hx-swap":             "outerHTML",
+									"hx-confirm":          m.Username + " will lose access to " + data.Org.Name + ". You can add them back later.",
+									"data-confirm-title":  "Remove " + m.Username + " from this organization?",
+									"data-confirm-label":  "Remove",
+									"data-confirm-danger": "true",
+									"data-toast":          "Member removed",
+									"type":                "button",
 								}) {
 									Remove
 								}
@@ -78,7 +82,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 					}
 				}
 				@components.CardContent() {
-					<form method="POST" action={ templ.SafeURL("/api/orgs/" + data.Org.Name + "/transfer") } onsubmit="return confirm('Transfer this organization? You will lose owner access.')">
+					<form method="POST" action={ templ.SafeURL("/api/orgs/" + data.Org.Name + "/transfer") } data-toast="Organization transferred">
 						<div class="flex gap-3">
 							<label for="org-transfer-new-owner" class="sr-only">New owner username</label>
 							@components.Input(templ.Attributes{
@@ -89,7 +93,14 @@ templ OrgSettings(data view.OrgSettingsData) {
 								"required":    "required",
 								"class":       "flex-1",
 							})
-							@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
+								"type":                "submit",
+								"data-confirm-action":  "true",
+								"data-confirm-title":   "Transfer this organization?",
+								"data-confirm-msg":     data.Org.Name + " will be transferred to another user. You will be demoted to member and lose owner access.",
+								"data-confirm-label":   "Transfer",
+								"data-confirm-danger":  "true",
+							}) {
 								Transfer
 							}
 						</div>

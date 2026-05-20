@@ -58,27 +58,51 @@ type RepoNewData struct {
 	OwnedOrgs []model.Organization
 }
 
-// Releases page
+type ReleaseView struct {
+	model.Release
+	IsLatest bool   // true for the single newest published, non-draft, non-prerelease release
+	DiffURL  string // compare URL vs the previous release; "" if no compare route
+}
+
 // ReleasesData holds template data for the releases list page.
 type ReleasesData struct {
 	BasePage
 	Repo     model.Repository
 	Owner    string
 	RepoName string
-	Releases []model.Release
+	Releases []ReleaseView
 	CanWrite bool
 }
 
-// Release detail page
-// ReleaseDetailData holds template data for a single release detail page.
-type ReleaseDetailData struct {
+type ReleaseNewData struct {
 	BasePage
 	Repo     model.Repository
 	Owner    string
 	RepoName string
-	Release  model.Release
-	BodyHTML string
-	CanWrite bool
+	Branches []service.BranchInfo
+}
+
+type ReleaseBodyCardData struct {
+	Owner     string
+	RepoName  string
+	ReleaseID int64
+	Body      string
+	BodyHTML  string
+	CanWrite  bool
+	Editing   bool
+}
+
+type ReleaseDetailData struct {
+	BasePage
+	Repo       model.Repository
+	Owner      string
+	RepoName   string
+	Release    model.Release
+	BodyHTML   string
+	CanWrite   bool
+	AuthorName string // resolved from Release.AuthorID
+	IsLatest   bool   // true if this is the newest published non-draft non-prerelease release
+	CommitSHA  string // full hash of the commit the tag points at; "" if tag cannot be resolved
 }
 
 // RepoSettingsData holds template data for the repository settings page.

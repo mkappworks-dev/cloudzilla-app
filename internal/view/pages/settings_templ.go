@@ -148,7 +148,7 @@ func Settings(data view.SettingsData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<!-- Add key form --> <section aria-labelledby=\"add-ssh-heading\" class=\"rounded-md border border-border bg-muted/40 p-4 mb-6\"><h3 id=\"add-ssh-heading\" class=\"text-sm font-medium mb-3\">Add SSH key</h3><form id=\"add-ssh-key-form\" hx-post=\"/api/user/keys\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" class=\"space-y-4\"><div class=\"space-y-1.5\"><label for=\"key-title\" class=\"block text-xs font-medium\">Key title</label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<!-- Add key form --> <section aria-labelledby=\"add-ssh-heading\" class=\"rounded-md border border-border bg-muted/40 p-4 mb-6\"><h3 id=\"add-ssh-heading\" class=\"text-sm font-medium mb-3\">Add SSH key</h3><form id=\"add-ssh-key-form\" hx-post=\"/api/user/keys\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" data-toast=\"SSH key added\" class=\"space-y-4\"><div class=\"space-y-1.5\"><label for=\"key-title\" class=\"block text-xs font-medium\">Key title</label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -319,11 +319,15 @@ func Settings(data view.SettingsData) templ.Component {
 								return nil
 							})
 							templ_7745c5c3_Err = components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-								"hx-delete":  "/api/user/keys/" + strconv.FormatInt(k.ID, 10),
-								"hx-target":  "#ssh-keys-list",
-								"hx-swap":    "outerHTML",
-								"hx-confirm": "Delete this SSH key?",
-								"type":       "button",
+								"hx-delete":           "/api/user/keys/" + strconv.FormatInt(k.ID, 10),
+								"hx-target":           "#ssh-keys-list",
+								"hx-swap":             "outerHTML",
+								"hx-confirm":          "The " + k.Title + " key will immediately lose access. Any system using it for git operations will stop working.",
+								"data-confirm-title":  "Delete this SSH key?",
+								"data-confirm-label":  "Delete",
+								"data-confirm-danger": "true",
+								"data-toast":          "SSH key deleted",
+								"type":                "button",
 							}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var15), templ_7745c5c3_Buffer)
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err

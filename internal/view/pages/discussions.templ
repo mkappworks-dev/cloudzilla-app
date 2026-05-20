@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -35,20 +36,25 @@ func discussionCategoryURL(owner, repo string, categoryID int64, state string) s
 	return u
 }
 
+// discussionCategoryByID looks up a category by ID for per-card rendering.
+func discussionCategoryByID(cats []model.DiscussionCategory, id int64) *model.DiscussionCategory {
+	for i := range cats {
+		if cats[i].ID == id {
+			return &cats[i]
+		}
+	}
+	return nil
+}
+
 templ Discussions(data view.DiscussionsData) {
 	@layout.Base(data.BasePage, "Discussions · "+data.Owner+"/"+data.RepoName) {
 		<div class="space-y-6">
-
 			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="disc-title">
 				<div class="min-w-0">
 					<h1 id="disc-title" class="text-2xl font-semibold tracking-tight">Discussions</h1>
 				</div>
 				if data.CanWrite {
-					@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{
-						"type":        "button",
-						"x-data":      "",
-						"x-on:click":  "document.getElementById('new-discussion-form').classList.toggle('hidden')",
-					}) {
+					@components.LinkButton("/"+data.Owner+"/"+data.RepoName+"/discussions/new", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
 							<path d="M12 5v14M5 12h14"></path>
 						</svg>
@@ -56,49 +62,10 @@ templ Discussions(data view.DiscussionsData) {
 					}
 				}
 			</section>
-
-			if data.CanWrite {
-				<div id="new-discussion-form" class="hidden rounded-md border border-border bg-card p-6 space-y-4">
-					<h2 class="text-lg font-semibold">Start a Discussion</h2>
-					<div>
-						<label for="new-discussion-category" class="block text-sm font-medium text-foreground mb-1">Category</label>
-						<select id="new-discussion-category" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
-							for _, cat := range data.Categories {
-								<option value={ strconv.FormatInt(cat.ID, 10) }>{ cat.Emoji } { cat.Name }</option>
-							}
-						</select>
-					</div>
-					<div>
-						<label for="new-discussion-title" class="block text-sm font-medium text-foreground mb-1">Title</label>
-						@components.Input(templ.Attributes{
-							"id":          "new-discussion-title",
-							"type":        "text",
-							"placeholder": "Discussion title",
-						})
-					</div>
-					<div>
-						<label for="new-discussion-body" class="block text-sm font-medium text-foreground mb-1">Body (Markdown)</label>
-						@components.Textarea(templ.Attributes{
-							"id":    "new-discussion-body",
-							"rows":  "6",
-							"class": "font-mono",
-						})
-					</div>
-					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
-						"type":                 "button",
-						"hx-post":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/discussions",
-						"hx-vals":              `js:{category_id: parseInt(document.getElementById("new-discussion-category").value), title: document.getElementById("new-discussion-title").value, body: document.getElementById("new-discussion-body").value}`,
-						"hx-on::after-request": "window.location.reload()",
-					}) {
-						Submit
-					}
-				</div>
-			}
-
 			<nav class="flex items-center gap-2 flex-wrap" aria-label="Discussion categories">
 				<a
 					href={ templ.SafeURL(discussionCategoryURL(data.Owner, data.RepoName, 0, data.StateFilter)) }
-					class={ "inline-flex items-center gap-1 px-3 py-1 rounded-full border text-[12px] transition-colors", templ.KV("bg-foreground text-background border-foreground", data.ActiveCategoryID == 0), templ.KV("bg-card text-muted-foreground border-border hover:text-foreground", data.ActiveCategoryID != 0) }
+					class={ "inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] transition-colors", templ.KV("bg-foreground text-background border-foreground", data.ActiveCategoryID == 0), templ.KV("bg-muted text-muted-foreground border-border hover:text-foreground", data.ActiveCategoryID != 0) }
 				>
 					All
 					<span class="font-mono opacity-70">{ strconv.Itoa(data.TotalCount) }</span>
@@ -106,14 +73,13 @@ templ Discussions(data view.DiscussionsData) {
 				for _, cat := range data.Categories {
 					<a
 						href={ templ.SafeURL(discussionCategoryURL(data.Owner, data.RepoName, cat.ID, data.StateFilter)) }
-						class={ "inline-flex items-center gap-1 px-3 py-1 rounded-full border text-[12px] transition-colors", templ.KV("bg-foreground text-background border-foreground", cat.ID == data.ActiveCategoryID), templ.KV("bg-card text-muted-foreground border-border hover:text-foreground", cat.ID != data.ActiveCategoryID) }
+						class={ "inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] transition-colors", templ.KV("bg-foreground text-background border-foreground", cat.ID == data.ActiveCategoryID), templ.KV("bg-muted text-muted-foreground border-border hover:text-foreground", cat.ID != data.ActiveCategoryID) }
 					>
-						{ cat.Emoji } { cat.Name }
+						{ cat.Name }
 						<span class="font-mono opacity-70">{ strconv.Itoa(data.CategoryCounts[cat.ID]) }</span>
 					</a>
 				}
 			</nav>
-
 			<nav class="flex items-center gap-1 border-b border-border text-sm" aria-label="Discussion state">
 				@components.TabLink(discussionStateURL(data.Owner, data.RepoName, "open", data.ActiveCategoryID), data.StateFilter == "open") {
 					Open
@@ -128,7 +94,6 @@ templ Discussions(data view.DiscussionsData) {
 					<span class="ml-0.5 font-mono text-[11px] text-muted-foreground" aria-label={ strconv.Itoa(data.ClosedCount) + " closed" }>{ strconv.Itoa(data.ClosedCount) }</span>
 				}
 			</nav>
-
 			if len(data.Discussions) == 0 {
 				@components.EmptyState("No " + data.StateFilter + " discussions.")
 			} else {
@@ -136,48 +101,96 @@ templ Discussions(data view.DiscussionsData) {
 					<h2 id="disc-list" class="sr-only">Discussion threads</h2>
 					<ol class="divide-y divide-border">
 						for _, d := range data.Discussions {
-							<li>
-								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(d.Number)) } class="block px-4 py-3 hover:bg-muted/50 transition-colors group">
-									<div class="flex items-start gap-3 mb-1.5">
-										if d.IsAnswered {
-											<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-success" aria-hidden="true" focusable="false">
-												<path d="M9 12l2 2 4-4"></path>
-												<circle cx="12" cy="12" r="10"></circle>
-											</svg>
-										} else {
-											<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true" focusable="false">
-												<path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path>
-											</svg>
-										}
-										<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
-											<p class="text-[13.5px] font-medium leading-snug group-hover:underline">{ d.Title }</p>
-											if d.IsAnswered {
-												<span class="inline-flex items-center gap-1 text-[11px] text-success font-medium shrink-0">
-													<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true" focusable="false"><path d="M20 6L9 17l-5-5"></path></svg>
-													Answered
-												</span>
-											}
-											if d.IsLocked {
-												@components.Badge(components.BadgeSecondary) {
-													Locked
-												}
-											}
-										</div>
-									</div>
-									<div class="pl-[28px] flex items-center gap-1.5 text-[12px] text-muted-foreground flex-wrap">
-										<span class="font-mono">#{ strconv.Itoa(d.Number) }</span>
-										<span aria-hidden="true">·</span>
-										<span>{ d.AuthorName }</span>
-										<span aria-hidden="true">·</span>
-										<time datetime={ d.CreatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(d.CreatedAt) }</time>
-									</div>
-								</a>
-							</li>
+							@discussionRow(data, d)
 						}
 					</ol>
 				</section>
 			}
-
 		</div>
 	}
+}
+
+// discussionRow renders one card. The hover treatment (left-border + padding
+// shift) matches the PR list / milestones list patterns used elsewhere.
+templ discussionRow(data view.DiscussionsData, d model.Discussion) {
+	{{ parts := data.Participants[d.ID] }}
+	{{ replyCount := data.ReplyCounts[d.ID] }}
+	{{ labels := data.Labels[d.ID] }}
+	{{ category := discussionCategoryByID(data.Categories, d.CategoryID) }}
+	<li>
+		<a
+			href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/discussions/" + strconv.Itoa(d.Number)) }
+			class="group relative block px-4 py-3 transition-[padding] hover:bg-muted/50 hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100"
+		>
+			<div class="flex items-start gap-3 mb-1.5">
+				if d.IsAnswered {
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-success" aria-hidden="true" focusable="false">
+						<path d="M9 12l2 2 4-4"></path>
+						<circle cx="12" cy="12" r="10"></circle>
+					</svg>
+				} else {
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true" focusable="false">
+						<path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path>
+					</svg>
+				}
+				<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+					<p class="text-[13.5px] font-medium leading-snug group-hover:underline">{ d.Title }</p>
+					if d.IsLocked {
+						@components.Badge(components.BadgeSecondary) {
+							Locked
+						}
+					}
+				</div>
+			</div>
+			<div class="pl-[28px] flex items-center justify-between gap-3">
+				<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground flex-wrap min-w-0">
+					<span class="font-mono">#{ strconv.Itoa(d.Number) }</span>
+					<span aria-hidden="true">·</span>
+					@components.Avatar(d.AuthorName, components.AvatarSizeXS, "")
+					<span>{ d.AuthorName }</span>
+					<span aria-hidden="true">·</span>
+					if d.IsAnswered {
+						<span>answered <time datetime={ d.CreatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(d.CreatedAt) }</time></span>
+					} else {
+						<time datetime={ d.CreatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(d.CreatedAt) }</time>
+					}
+					if category != nil {
+						<span aria-hidden="true">·</span>
+						<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border border-border bg-muted text-muted-foreground">{ category.Name }</span>
+					}
+					for _, lbl := range labels {
+						<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border" style={ "background-color: " + lbl.Color + "33; color: " + lbl.Color + "; border-color: " + lbl.Color + "55" }>{ lbl.Name }</span>
+					}
+				</div>
+				<div class="flex items-center gap-3 text-[12px] shrink-0">
+					if len(parts) > 0 {
+						<div class="flex -space-x-1.5" aria-label={ strconv.Itoa(len(parts)) + " participants" }>
+							for i, p := range parts {
+								if i < 3 {
+									<span class="rounded-full ring-2 ring-card inline-block">
+										@components.Avatar(p, components.AvatarSizeXS, "")
+									</span>
+								}
+							}
+							if len(parts) > 3 {
+								<span class="inline-grid place-items-center rounded-full bg-muted border border-border h-5 w-5 text-[9px] font-medium text-muted-foreground ring-2 ring-card" title={ "+" + strconv.Itoa(len(parts)-3) + " more" }>+{ strconv.Itoa(len(parts) - 3) }</span>
+							}
+						</div>
+					}
+					if d.IsAnswered {
+						<span class="inline-flex items-center gap-1 text-[11px] text-success font-medium" title="Answered">
+							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" aria-hidden="true" focusable="false"><path d="M20 6L9 17l-5-5"></path></svg>
+							Answered
+						</span>
+					}
+					<span class="text-muted-foreground inline-flex items-center gap-1" title={ strconv.Itoa(replyCount) + " replies" }>
+						<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+							<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"></path>
+						</svg>
+						{ strconv.Itoa(replyCount) }
+					</span>
+				</div>
+			</div>
+		</a>
+	</li>
 }

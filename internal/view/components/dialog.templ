@@ -10,7 +10,7 @@ package components
 templ Dialog(id string) {
 	<dialog
 		id={ id }
-		class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] backdrop:bg-foreground/40 open:animate-in"
+		class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[480px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-sm open:animate-in"
 		aria-labelledby={ id + "-title" }
 	>
 		{ children... }
@@ -48,14 +48,9 @@ templ DialogFooter() {
 	</div>
 }
 
-// DialogClose wraps any button content in <form method="dialog"> so submitting
-// the form closes the parent <dialog> without any JS. Use this for cancel buttons.
-//
-// To run an HTMX request and then close, fire the request as normal and use
-// `hx-on::after-request="this.closest('dialog').close()"` on the trigger.
-templ DialogClose(attrs templ.Attributes) {
+templ DialogClose() {
 	<form method="dialog" class="contents">
-		<button type="submit" { attrs... }>
+		<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">
 			{ children... }
 		</button>
 	</form>

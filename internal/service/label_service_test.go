@@ -26,6 +26,7 @@ func newLabelSvc(t *testing.T) (*service.LabelService, string, string) {
 		store.NewRepoStore(db),
 		store.NewIssueStore(db),
 		store.NewPullStore(db),
+		store.NewDiscussionStore(db),
 	)
 	return svc, ownerName, repoName
 }

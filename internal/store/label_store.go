@@ -123,6 +123,36 @@ func (s *LabelStore) ListByPull(ctx context.Context, pullID int64) ([]model.Labe
 	return scanLabels(rows)
 }
 
+func (s *LabelStore) AddToDiscussion(ctx context.Context, discussionID, labelID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO discussion_labels (discussion_id, label_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+		discussionID, labelID,
+	)
+	return err
+}
+
+func (s *LabelStore) RemoveFromDiscussion(ctx context.Context, discussionID, labelID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`DELETE FROM discussion_labels WHERE discussion_id = $1 AND label_id = $2`,
+		discussionID, labelID,
+	)
+	return err
+}
+
+func (s *LabelStore) ListByDiscussion(ctx context.Context, discussionID int64) ([]model.Label, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT l.id, l.repo_id, l.name, l.color, l.description, l.created_at
+		 FROM labels l JOIN discussion_labels dl ON l.id = dl.label_id
+		 WHERE dl.discussion_id = $1 ORDER BY l.name`,
+		discussionID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("label list by discussion: %w", err)
+	}
+	defer rows.Close()
+	return scanLabels(rows)
+}
+
 // ListByIssueIDs batch-fetches labels for multiple issues. Returns a map of issueID → labels.
 func (s *LabelStore) ListByIssueIDs(ctx context.Context, issueIDs []int64) (map[int64][]model.Label, error) {
 	if len(issueIDs) == 0 {

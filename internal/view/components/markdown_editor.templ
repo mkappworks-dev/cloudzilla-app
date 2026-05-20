@@ -4,20 +4,21 @@ import "strconv"
 
 // Tab switching and the toolbar are wired by the global script in the base layout.
 templ MarkdownEditor(id, name, content, placeholder string, rows int) {
+	{{ paneHeight := "height:" + strconv.Itoa(rows*22+24) + "px" }}
 	<div class="md-editor" data-md-editor>
-		<div class="flex items-center gap-2 border-b border-border px-2 py-1.5 bg-muted/30">
-			<div role="tablist" aria-label="Editor mode" class="flex gap-1">
-				<button type="button" role="tab" data-md-tab="write" aria-selected="true" class="px-2.5 py-1 text-[12.5px] rounded-md bg-background text-foreground shadow-sm">Write</button>
+		<div class="flex items-center gap-2 border-b border-border px-3">
+			<div role="tablist" aria-label="Editor mode" class="flex">
+				<button type="button" role="tab" data-md-tab="write" aria-selected="true" class="px-3 py-2 text-[13px] border-b-2 border-foreground text-foreground font-medium -mb-px">Write</button>
 				<button
 					type="button"
 					role="tab"
 					data-md-tab="preview"
 					aria-selected="false"
 					hx-post="/api/markdown/preview"
-					hx-include={ "#" + id }
+					hx-vals={ "js:{body: document.getElementById('" + id + "').value}" }
 					hx-target={ "#" + id + "-preview" }
 					hx-swap="innerHTML"
-					class="px-2.5 py-1 text-[12.5px] rounded-md text-muted-foreground hover:text-foreground"
+					class="px-3 py-2 text-[13px] border-b-2 border-transparent text-muted-foreground hover:text-foreground -mb-px"
 				>Preview</button>
 			</div>
 			<div class="ml-auto flex items-center gap-0.5 text-muted-foreground" aria-label="Formatting">
@@ -41,9 +42,9 @@ templ MarkdownEditor(id, name, content, placeholder string, rows int) {
 		</div>
 		<div data-md-pane="write">
 			<label for={ id } class="sr-only">{ placeholder }</label>
-			<textarea id={ id } name={ name } rows={ strconv.Itoa(rows) } placeholder={ placeholder } class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-y focus:outline-none placeholder:text-muted-foreground">{ content }</textarea>
+			<textarea id={ id } name={ name } rows={ strconv.Itoa(rows) } placeholder={ placeholder } style={ paneHeight } class="w-full px-3 py-3 text-[13px] font-mono leading-relaxed bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground">{ content }</textarea>
 		</div>
-		<div id={ id + "-preview" } data-md-pane="preview" class="hidden px-4 py-3 prose prose-sm max-w-none min-h-[6rem]"></div>
+		<div id={ id + "-preview" } data-md-pane="preview" style={ paneHeight } class="hidden px-4 py-3 prose prose-sm dark:prose-invert max-w-none overflow-y-auto"></div>
 	</div>
 }
 

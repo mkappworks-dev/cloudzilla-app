@@ -3,11 +3,20 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
+
+// MaxTitleLen caps the size of any user-supplied issue/PR/discussion title.
+// Enforced at the service layer so all callers (forms, JSON API, inline edit)
+// get the same bound regardless of which handler fronts the call.
+const MaxTitleLen = 256
+
+// ErrTitleTooLong is returned when a title exceeds MaxTitleLen.
+var ErrTitleTooLong = errors.New("title is too long")
 
 // DiscussionService manages repository discussions, replies, and categories.
 type DiscussionService struct {
@@ -20,23 +29,16 @@ func NewDiscussionService(discussions *store.DiscussionStore, repos *store.RepoS
 	return &DiscussionService{discussions: discussions, repos: repos}
 }
 
-func (s *DiscussionService) ListCategories(ctx context.Context, repoID int64) ([]model.DiscussionCategory, error) {
-	return s.discussions.ListCategories(ctx, repoID)
+func (s *DiscussionService) ListCategories(ctx context.Context) ([]model.DiscussionCategory, error) {
+	return s.discussions.ListCategories(ctx)
 }
 
-func (s *DiscussionService) CreateCategory(ctx context.Context, repoID int64, name, emoji string) (*model.DiscussionCategory, error) {
-	if name == "" {
-		return nil, fmt.Errorf("category name is required")
-	}
-	c := &model.DiscussionCategory{RepoID: repoID, Name: name, Emoji: emoji}
-	if err := s.discussions.CreateCategory(ctx, c); err != nil {
-		return nil, fmt.Errorf("create category: %w", err)
-	}
-	return c, nil
+func (s *DiscussionService) GetCategory(ctx context.Context, id int64) (*model.DiscussionCategory, error) {
+	return s.discussions.GetCategory(ctx, id)
 }
 
-func (s *DiscussionService) DeleteCategory(ctx context.Context, id, repoID int64) error {
-	return s.discussions.DeleteCategory(ctx, id, repoID)
+func (s *DiscussionService) CountByRepo(ctx context.Context, repoID int64) (int, error) {
+	return s.discussions.CountByRepo(ctx, repoID)
 }
 
 func (s *DiscussionService) List(ctx context.Context, owner, repoName string, categoryID int64) ([]model.Discussion, error) {
@@ -65,6 +67,9 @@ func (s *DiscussionService) Get(ctx context.Context, owner, repoName string, num
 func (s *DiscussionService) Create(ctx context.Context, owner, repoName string, authorID int64, authorName string, categoryID int64, title, body string) (*model.Discussion, error) {
 	if title == "" {
 		return nil, fmt.Errorf("title is required")
+	}
+	if len(title) > MaxTitleLen {
+		return nil, ErrTitleTooLong
 	}
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
@@ -113,6 +118,20 @@ func (s *DiscussionService) SetAnswer(ctx context.Context, discussionID int64, r
 
 func (s *DiscussionService) Lock(ctx context.Context, discussionID int64, locked bool) error {
 	return s.discussions.LockDiscussion(ctx, discussionID, locked)
+}
+
+func (s *DiscussionService) UpdateContent(ctx context.Context, discussionID int64, title, body string) error {
+	if title == "" {
+		return fmt.Errorf("title is required")
+	}
+	if len(title) > MaxTitleLen {
+		return ErrTitleTooLong
+	}
+	return s.discussions.UpdateContent(ctx, discussionID, title, body)
+}
+
+func (s *DiscussionService) SetCategory(ctx context.Context, discussionID, categoryID int64) error {
+	return s.discussions.SetCategory(ctx, discussionID, categoryID)
 }
 
 func (s *DiscussionService) DeleteReply(ctx context.Context, id, discussionID int64) error {

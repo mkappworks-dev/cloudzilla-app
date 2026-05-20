@@ -4,11 +4,11 @@
 
 ## Architecture
 
-- **Backend**: Go 1.23+, chi router, sqlx, go-git, cobra CLI
-- **Frontend**: [Templ](https://templ.guide/) (type-safe Go HTML components), HTMX for partial updates, Tailwind CSS
+- **Backend**: Go 1.26+, chi router, sqlx, go-git, cobra CLI
+- **Frontend**: [Templ](https://templ.guide/) (type-safe Go HTML components), HTMX for partial updates, Alpine.js for client-side interactivity, Tailwind CSS
 - **DB**: PostgreSQL
 - **Pattern**: Stores → Services → Handlers (strict layer separation)
-- **Rendering**: Server-driven; no JS framework; Templ compiles to Go
+- **Rendering**: Server-driven; Templ compiles to Go. Alpine.js + HTMX handle the small amount of client-side behavior.
 - **Git Transport**: HTTP smart protocol + SSH server (both pure Go, no git binary required)
 - **SSH Auth**: Public key auth via stored SSH keys
 
@@ -27,8 +27,9 @@
 - `internal/ssh/` — SSH server for git operations (gliderlabs/ssh)
 - `internal/view/` — Templ components (compiled to `_templ.go`)
   - `layout/` base layout, `pages/` page components, `fragments/` HTMX fragments
-- `migrations/` — SQL files, embedded via embed.FS
-- `cmd/server/frontend/static/` — `main.css` (compiled Tailwind), `htmx.min.js`
+- `internal/db/migrations/` — SQL files, embedded via `//go:embed migrations/*.sql` from `internal/db/migrate.go`
+- `cmd/server/frontend/static/` — `main.css` (compiled Tailwind), `mermaid.min.js`
+- `cmd/server/frontend/` — `htmx.min.js` (served at `/htmx.min.js`), `alpine.min.js` (served at `/alpine.min.js`)
 - `tailwind/` — `input.css`, `tailwind.config.js`
 
 ## Dev Commands
@@ -49,8 +50,8 @@ go test ./...           # Run Go tests
 
 ### Comments
 
-- Default to **no comment**. Add one only when the *why* is non-obvious: a hidden constraint, a subtle invariant, a workaround for a specific bug, or behavior that would surprise a reader.
-- Do **not** narrate *what* the code does — names and types already do that.
+- Default to **no comment**. Add one only when the _why_ is non-obvious: a hidden constraint, a subtle invariant, a workaround for a specific bug, or behavior that would surprise a reader.
+- Do **not** narrate _what_ the code does — names and types already do that.
 - Do **not** reference the current task, PR, or recent commit ("added for X flow", "see issue #123"). Those belong in the commit message.
 - Single-line `// ...` is the default; multi-line block comments and multi-paragraph docstrings are usually a sign the comment is over-explaining.
 - When editing existing code, prefer **deleting** stale or explanatory comments over preserving them.
@@ -84,7 +85,7 @@ go test ./...           # Run Go tests
 
 ## Adding a New Feature
 
-1. Add SQL migration in `migrations/` (next sequential number)
+1. Add SQL migration in `internal/db/migrations/` (next sequential number)
 2. Add/update model struct in `internal/model/`
 3. Add store method in `internal/store/` — wire into `Stores` struct in `stores.go`
 4. Add service method in `internal/service/` — wire into `Services` struct in `services.go`

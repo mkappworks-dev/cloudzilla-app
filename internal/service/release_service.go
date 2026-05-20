@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"time"
 
@@ -10,25 +13,46 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
-// ReleaseService manages repository release creation, updates, and deletion.
+// ErrReleaseTagInUse is returned by Create when a release already exists for
+// the requested tag in the repository.
+var ErrReleaseTagInUse = errors.New("a release already exists for this tag")
+
+// ErrInvalidTagName is returned when the tag string contains characters that
+// would land in git storage but aren't safe ASCII identifiers. We refuse
+// these up-front rather than relying on go-git's looser plumbing checks.
+var ErrInvalidTagName = errors.New("tag name must match ^[A-Za-z0-9._/-]{1,255}$")
+
+// tagNamePattern excludes '@' to keep clear of reflog syntax.
+var tagNamePattern = regexp.MustCompile(`^[A-Za-z0-9._/-]{1,255}$`)
+
 type ReleaseService struct {
 	releases *store.ReleaseStore
 	repos    *store.RepoStore
 	code     *CodeService
 }
 
-// NewReleaseService creates a ReleaseService backed by the given stores and code service.
 func NewReleaseService(releases *store.ReleaseStore, repos *store.RepoStore, code *CodeService) *ReleaseService {
 	return &ReleaseService{releases: releases, repos: repos, code: code}
 }
 
-func (s *ReleaseService) Create(ctx context.Context, owner, repoName, tagName, name, body string, isPrerelease, isDraft bool, authorID int64) (*model.Release, error) {
+// Create creates the tag on the tip of target (default branch when unset) when
+// the tag does not yet exist.
+func (s *ReleaseService) Create(ctx context.Context, owner, repoName, tagName, target, name, body string, isPrerelease, isDraft bool, authorID int64) (*model.Release, error) {
+	if !tagNamePattern.MatchString(tagName) {
+		return nil, ErrInvalidTagName
+	}
+
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
 
-	// Validate tag exists
+	if _, err := s.releases.GetByTag(ctx, repo.ID, tagName); err == nil {
+		return nil, ErrReleaseTagInUse
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("could not check existing releases: %w", err)
+	}
+
 	refs, err := s.code.ListRefs(owner, repoName, repo.DefaultBranch)
 	if err != nil {
 		return nil, fmt.Errorf("could not list refs: %w", err)
@@ -41,7 +65,12 @@ func (s *ReleaseService) Create(ctx context.Context, owner, repoName, tagName, n
 		}
 	}
 	if !tagFound {
-		return nil, fmt.Errorf("tag %q does not exist in repository", tagName)
+		if target == "" {
+			target = repo.DefaultBranch
+		}
+		if err := s.code.CreateTag(owner, repoName, tagName, target); err != nil {
+			return nil, fmt.Errorf("could not create tag %q on %q: %w", tagName, target, err)
+		}
 	}
 
 	var publishedAt *time.Time
@@ -61,9 +90,19 @@ func (s *ReleaseService) Create(ctx context.Context, owner, repoName, tagName, n
 		PublishedAt:  publishedAt,
 	}
 	if err := s.releases.Create(ctx, r); err != nil {
+		// Race-loser path: another in-flight Create on the same tag won the
+		// unique-violation; surface the same friendly sentinel as the pre-check
+		// so the handler emits one toast wording.
+		if errors.Is(err, store.ErrReleaseTagInUseStore) {
+			return nil, ErrReleaseTagInUse
+		}
 		return nil, err
 	}
 	return r, nil
+}
+
+func (s *ReleaseService) CountPublished(ctx context.Context, repoID int64) (int, error) {
+	return s.releases.CountPublished(ctx, repoID)
 }
 
 func (s *ReleaseService) ListByRepo(ctx context.Context, owner, repoName string) ([]model.Release, error) {
@@ -121,6 +160,9 @@ func (s *ReleaseService) GetLatest(ctx context.Context, owner, repoName string) 
 }
 
 func (s *ReleaseService) Update(ctx context.Context, owner, repoName string, id int64, tagName, name, body string, isPrerelease, isDraft bool) (*model.Release, error) {
+	if !tagNamePattern.MatchString(tagName) {
+		return nil, ErrInvalidTagName
+	}
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
@@ -142,6 +184,77 @@ func (s *ReleaseService) Update(ctx context.Context, owner, repoName string, id 
 
 	if err := s.releases.Update(ctx, r); err != nil {
 		return nil, err
+	}
+	return r, nil
+}
+
+func (s *ReleaseService) EditName(ctx context.Context, owner, repoName string, id int64, name string) (*model.Release, error) {
+	r, err := s.loadByID(ctx, owner, repoName, id)
+	if err != nil {
+		return nil, err
+	}
+	r.Name = name
+	if err := s.releases.Update(ctx, r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+// ErrReleaseAlreadyPublished is returned by Publish on a non-draft. Publishing
+// is one-way; delete + recreate is the only way back.
+var ErrReleaseAlreadyPublished = errors.New("release is already published")
+
+func (s *ReleaseService) Publish(ctx context.Context, owner, repoName string, id int64) (*model.Release, error) {
+	r, err := s.loadByID(ctx, owner, repoName, id)
+	if err != nil {
+		return nil, err
+	}
+	if !r.IsDraft {
+		return nil, ErrReleaseAlreadyPublished
+	}
+	r.IsDraft = false
+	if r.PublishedAt == nil {
+		now := time.Now()
+		r.PublishedAt = &now
+	}
+	if err := s.releases.Update(ctx, r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (s *ReleaseService) EditPrerelease(ctx context.Context, owner, repoName string, id int64, isPrerelease bool) (*model.Release, error) {
+	r, err := s.loadByID(ctx, owner, repoName, id)
+	if err != nil {
+		return nil, err
+	}
+	r.IsPrerelease = isPrerelease
+	if err := s.releases.Update(ctx, r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (s *ReleaseService) EditBody(ctx context.Context, owner, repoName string, id int64, body string) (*model.Release, error) {
+	r, err := s.loadByID(ctx, owner, repoName, id)
+	if err != nil {
+		return nil, err
+	}
+	r.Body = body
+	if err := s.releases.Update(ctx, r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (s *ReleaseService) loadByID(ctx context.Context, owner, repoName string, id int64) (*model.Release, error) {
+	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
+	if err != nil {
+		return nil, fmt.Errorf("repo not found: %w", err)
+	}
+	r, err := s.releases.GetByID(ctx, id, repo.ID)
+	if err != nil {
+		return nil, fmt.Errorf("release not found: %w", err)
 	}
 	return r, nil
 }

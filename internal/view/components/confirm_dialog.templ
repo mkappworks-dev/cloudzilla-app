@@ -1,0 +1,110 @@
+package components
+
+// ConfirmDialog: page-global confirmation modal mounted once near </body>.
+// Triggered by hx-confirm (htmx) or data-confirm-action (non-htmx).
+// Also wires data-toast sugar (htmx success + cross-redirect via sessionStorage).
+templ ConfirmDialog() {
+	<dialog
+		id="cz-confirm-dialog"
+		aria-labelledby="cz-confirm-title"
+		class="rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[420px] max-w-[calc(100vw-2rem)] mt-[28vh] mb-auto backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+	>
+		<div class="p-5">
+			<h2 id="cz-confirm-title" class="text-base font-semibold tracking-tight mb-1"></h2>
+			<p id="cz-confirm-msg" class="text-[13px] text-muted-foreground leading-relaxed mb-5"></p>
+			<div class="flex justify-end gap-2">
+				<button type="button" id="cz-confirm-cancel" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="button" id="cz-confirm-ok" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Confirm</button>
+			</div>
+		</div>
+	</dialog>
+	<script>
+		(function () {
+			var dlg       = document.getElementById('cz-confirm-dialog');
+			var titleEl   = document.getElementById('cz-confirm-title');
+			var msgEl     = document.getElementById('cz-confirm-msg');
+			var okBtn     = document.getElementById('cz-confirm-ok');
+			var cancelBtn = document.getElementById('cz-confirm-cancel');
+			if (!dlg || typeof dlg.showModal !== 'function') return;
+
+			var OK_BASE   = 'inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4';
+			var OK_PRIMARY = OK_BASE + ' bg-primary text-primary-foreground hover:bg-primary/90';
+			var OK_DANGER  = OK_BASE + ' bg-destructive text-destructive-foreground hover:bg-destructive/90';
+
+			var resolver = null;
+
+			function open(opts) {
+				titleEl.textContent = opts.title   || 'Are you sure?';
+				msgEl.textContent   = opts.message || '';
+				okBtn.textContent   = opts.label   || 'Confirm';
+				okBtn.className     = opts.danger ? OK_DANGER : OK_PRIMARY;
+				dlg.returnValue = '';
+				dlg.showModal();
+				return new Promise(function (resolve) { resolver = resolve; });
+			}
+
+			okBtn.addEventListener('click',     function () { dlg.close('confirm'); });
+			cancelBtn.addEventListener('click', function () { dlg.close('cancel'); });
+			dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close('cancel'); });
+			dlg.addEventListener('close', function () {
+				var ok = dlg.returnValue === 'confirm';
+				if (resolver) { var r = resolver; resolver = null; r(ok); }
+			});
+
+			document.body.addEventListener('htmx:confirm', function (e) {
+				var elt = e.detail.elt;
+				if (!elt || !elt.hasAttribute('hx-confirm')) return;
+				e.preventDefault();
+				open({
+					title:   elt.getAttribute('data-confirm-title') || 'Are you sure?',
+					message: e.detail.question || '',
+					label:   elt.getAttribute('data-confirm-label') || 'Confirm',
+					danger:  elt.hasAttribute('data-confirm-danger'),
+				}).then(function (ok) { if (ok) e.detail.issueRequest(true); });
+			});
+
+			document.body.addEventListener('click', function (e) {
+				var trigger = e.target.closest('[data-confirm-action]');
+				if (!trigger) return;
+				if (trigger.dataset.confirmBypass === '1') { delete trigger.dataset.confirmBypass; return; }
+				e.preventDefault();
+				open({
+					title:   trigger.getAttribute('data-confirm-title') || 'Are you sure?',
+					message: trigger.getAttribute('data-confirm-msg')   || '',
+					label:   trigger.getAttribute('data-confirm-label') || 'Confirm',
+					danger:  trigger.hasAttribute('data-confirm-danger'),
+				}).then(function (ok) {
+					if (!ok) return;
+					var form = trigger.closest('form');
+					if (form) {
+						stashToastFromForm(form);
+						if (form.requestSubmit) form.requestSubmit(trigger);
+						else form.submit();
+					} else {
+						trigger.dataset.confirmBypass = '1';
+						trigger.click();
+					}
+				});
+			}, true);
+
+			document.body.addEventListener('htmx:afterRequest', function (e) {
+				if (!e.detail.successful) return;
+				var elt = e.detail.elt;
+				if (!elt) return;
+				var msg = elt.getAttribute('data-toast');
+				if (!msg) return;
+				document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: msg } }));
+			});
+
+			function stashToastFromForm(form) {
+				var msg = form.getAttribute('data-toast');
+				if (!msg) return;
+				try { sessionStorage.setItem('cz-toast', JSON.stringify({ type: 'success', message: msg })); } catch (e) {}
+			}
+			document.body.addEventListener('submit', function (e) {
+				var form = e.target;
+				if (form && form.matches && form.matches('form[data-toast]')) stashToastFromForm(form);
+			});
+		})();
+	</script>
+}

@@ -44,3 +44,33 @@ func (s *ReactionService) List(ctx context.Context, commentID, callerID int64) (
 	}
 	return reactions, err
 }
+
+func (s *ReactionService) ToggleDiscussion(ctx context.Context, userID, discussionID int64, emoji string) (bool, error) {
+	if !validEmoji(emoji) {
+		return false, fmt.Errorf("unsupported emoji: %s", emoji)
+	}
+	return s.store.ToggleDiscussion(ctx, userID, discussionID, emoji)
+}
+
+func (s *ReactionService) ListByDiscussion(ctx context.Context, discussionID, callerID int64) ([]model.ReactionSummary, error) {
+	reactions, err := s.store.ListByDiscussion(ctx, discussionID, callerID)
+	if reactions == nil {
+		reactions = []model.ReactionSummary{}
+	}
+	return reactions, err
+}
+
+func (s *ReactionService) ToggleReply(ctx context.Context, userID, replyID int64, emoji string) (bool, error) {
+	if !validEmoji(emoji) {
+		return false, fmt.Errorf("unsupported emoji: %s", emoji)
+	}
+	return s.store.ToggleReply(ctx, userID, replyID, emoji)
+}
+
+func (s *ReactionService) ListByReply(ctx context.Context, replyID, callerID int64) ([]model.ReactionSummary, error) {
+	reactions, err := s.store.ListByReply(ctx, replyID, callerID)
+	if reactions == nil {
+		reactions = []model.ReactionSummary{}
+	}
+	return reactions, err
+}

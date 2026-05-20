@@ -9,13 +9,18 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
-// MilestoneService manages milestone creation, updates, and issue/PR associations.
+// ErrMilestoneRepoMismatch / ErrMilestoneNotFound are re-exported so handlers
+// can errors.Is() without importing the store package directly.
+var (
+	ErrMilestoneRepoMismatch = store.ErrMilestoneRepoMismatch
+	ErrMilestoneNotFound     = store.ErrMilestoneNotFound
+)
+
 type MilestoneService struct {
 	milestones *store.MilestoneStore
 	repos      *store.RepoStore
 }
 
-// NewMilestoneService creates a MilestoneService backed by the given stores.
 func NewMilestoneService(milestones *store.MilestoneStore, repos *store.RepoStore) *MilestoneService {
 	return &MilestoneService{milestones: milestones, repos: repos}
 }
@@ -119,17 +124,14 @@ func (s *MilestoneService) Delete(ctx context.Context, owner, repoName string, n
 	return s.milestones.Delete(ctx, repo.ID, number)
 }
 
-// SetIssue assigns or removes a milestone from an issue.
 func (s *MilestoneService) SetIssue(ctx context.Context, issueID int64, milestoneID *int64) error {
 	return s.milestones.SetIssue(ctx, issueID, milestoneID)
 }
 
-// SetPull assigns or removes a milestone from a pull request.
 func (s *MilestoneService) SetPull(ctx context.Context, pullID int64, milestoneID *int64) error {
 	return s.milestones.SetPull(ctx, pullID, milestoneID)
 }
 
-// GetForIssue returns the milestone attached to an issue (nil if none).
 func (s *MilestoneService) GetForIssue(ctx context.Context, issueID int64) (*model.Milestone, error) {
 	mid, err := s.milestones.GetIssueID(ctx, issueID)
 	if err != nil || mid == nil {
@@ -138,11 +140,22 @@ func (s *MilestoneService) GetForIssue(ctx context.Context, issueID int64) (*mod
 	return s.milestones.GetByID(ctx, *mid)
 }
 
-// GetForPull returns the milestone attached to a pull request (nil if none).
 func (s *MilestoneService) GetForPull(ctx context.Context, pullID int64) (*model.Milestone, error) {
 	mid, err := s.milestones.GetPullID(ctx, pullID)
 	if err != nil || mid == nil {
 		return nil, err
 	}
 	return s.milestones.GetByID(ctx, *mid)
+}
+
+func (s *MilestoneService) ListIssues(ctx context.Context, milestoneID int64, state string, page, pageSize int) ([]model.Issue, error) {
+	return s.milestones.ListIssuesPaged(ctx, milestoneID, state, page, pageSize)
+}
+
+func (s *MilestoneService) ListPulls(ctx context.Context, milestoneID int64, state string, page, pageSize int) ([]model.PullRequest, error) {
+	return s.milestones.ListPullsPaged(ctx, milestoneID, state, page, pageSize)
+}
+
+func (s *MilestoneService) PullCounts(ctx context.Context, milestoneID int64) (open, closed int, err error) {
+	return s.milestones.PullCounts(ctx, milestoneID)
 }

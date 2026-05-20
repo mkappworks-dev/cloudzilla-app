@@ -8,7 +8,8 @@ import (
 
 type RenderedDiscussionReply struct {
 	model.DiscussionReply
-	BodyHTML string
+	BodyHTML  string
+	Reactions []model.ReactionSummary
 }
 
 type DiscussionsData struct {
@@ -26,18 +27,38 @@ type DiscussionsData struct {
 	AnsweredCount    int
 	ClosedCount      int
 	CanWrite         bool
+	Labels       map[int64][]model.Label
+	ReplyCounts  map[int64]int
+	Participants map[int64][]string
 }
 
 type DiscussionDetailData struct {
 	BasePage
-	Repo       model.Repository
-	Owner      string
-	RepoName   string
-	Discussion model.Discussion
-	Category   model.DiscussionCategory
-	Replies    []RenderedDiscussionReply
-	BodyHTML   string
-	CanWrite   bool
+	Repo          model.Repository
+	Owner         string
+	RepoName      string
+	Discussion    model.Discussion
+	Category      model.DiscussionCategory
+	AllCategories []model.DiscussionCategory
+	Labels        []model.Label
+	AllLabels     []model.Label
+	Replies       []RenderedDiscussionReply
+	Participants  []string
+	OPReactions   []model.ReactionSummary
+	BodyHTML      string
+	CanWrite      bool
+}
+
+type DiscussionNewData struct {
+	BasePage
+	Repo             model.Repository
+	Owner            string
+	RepoName         string
+	Categories       []model.DiscussionCategory
+	ActiveCategoryID int64
+	Title            string
+	Body             string
+	Error            string
 }
 
 type GistsData struct {
@@ -82,7 +103,9 @@ type SearchData struct {
 type TopicData struct {
 	BasePage
 	TopicName string
-	Repos     []model.Repository
+	Repos     []model.RepositoryWithStats
+	Total     int
+	Sort      string
 	Page      int
 }
 
@@ -143,7 +166,7 @@ type WikiPageData struct {
 	RepoName    string
 	Slug        string
 	ContentHTML string
-	PageList    []string
+	PageList    []service.WikiPageMeta
 	CanWrite    bool
 	CanManage   bool
 	Exists      bool
@@ -156,7 +179,16 @@ type WikiEditData struct {
 	RepoName string
 	Slug     string
 	Content  string
+	PageList []service.WikiPageMeta
 	CanWrite bool
+}
+
+type WikiNewData struct {
+	BasePage
+	Repo     model.Repository
+	Owner    string
+	RepoName string
+	PageList []service.WikiPageMeta
 }
 
 type PulseData struct {

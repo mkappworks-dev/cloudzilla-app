@@ -6,128 +6,253 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ ReleaseDetail(data view.ReleaseDetailData) {
-	@layout.Base(data.BasePage, releaseDetailTitle(data)+" · "+data.Owner+"/"+data.RepoName) {
-		<div class="space-y-6">
-			<div>
-				<nav class="text-sm text-muted-foreground mb-2" aria-label="Breadcrumb">
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.Owner }/{ data.RepoName }</a>
-					<span class="mx-1" aria-hidden="true">/</span>
+	@layout.Base(data.BasePage, releaseDetailTitle(data)+" · "+data.RepoName+" · Releases · Cloudzilla") {
+		<div class="max-w-[1400px] mx-auto px-6 pt-8 pb-20 space-y-6">
+
+			<section aria-labelledby="rel-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="hover:underline">{ data.RepoName }</a>
+					<span aria-hidden="true">·</span>
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/releases") } class="hover:underline">Releases</a>
-					<span class="mx-1" aria-hidden="true">/</span>
-					<span class="font-mono">{ data.Release.TagName }</span>
-				</nav>
-			</div>
-			@components.Card(nil) {
-				@components.CardContent() {
-					<div class="flex items-start justify-between gap-4 mb-4">
-						<div>
-							<div class="flex items-center gap-2 flex-wrap mb-1">
-								<h1 class="text-2xl font-bold">
-									if data.Release.Name != "" {
-										{ data.Release.Name }
-									} else {
-										{ data.Release.TagName }
-									}
-								</h1>
-								<code class="px-2 py-0.5 bg-muted text-foreground border border-border rounded text-sm font-mono">{ data.Release.TagName }</code>
-								if data.Release.IsPrerelease {
-									@components.Badge(components.BadgeWarning) {
-										Pre-release
-									}
-								}
-								if data.Release.IsDraft {
-									@components.Badge(components.BadgeDraft) {
-										Draft
-									}
-								}
-							</div>
-							<p class="text-sm text-muted-foreground">
-								if data.Release.PublishedAt != nil {
-									Published <time datetime={ data.Release.PublishedAt.UTC().Format(time.RFC3339) }>{ data.Release.PublishedAt.Format("January 2, 2006") }</time>
-								} else {
-									Not yet published
-								}
+					<span aria-hidden="true">·</span>
+					<span>{ data.Release.TagName }</span>
+				</p>
+				@fragments.ReleaseTitleSection(data.Owner, data.RepoName, data.Release.ID, data.Release.Name, data.Release.TagName, releaseStatus(data), data.CanWrite, false)
+				<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+					if data.AuthorName != "" {
+						<span class="inline-flex items-center gap-1.5">
+							@components.Avatar(data.AuthorName, components.AvatarSizeXS, data.AuthorName)
+							{ data.AuthorName }
+						</span>
+						<span aria-hidden="true" class="text-muted-foreground/50">·</span>
+					}
+					<span>
+						if data.Release.PublishedAt != nil {
+							published <time datetime={ data.Release.PublishedAt.UTC().Format(time.RFC3339) }>{ data.Release.PublishedAt.Format("Jan 2, 2006") }</time>
+						} else {
+							not yet published
+						}
+					</span>
+				</div>
+			</section>
+
+			<div class="grid lg:grid-cols-[1fr_280px] gap-6 items-start">
+
+				<div class="space-y-6 min-w-0">
+
+					@fragments.ReleaseBodyCard(view.ReleaseBodyCardData{
+						Owner:     data.Owner,
+						RepoName:  data.RepoName,
+						ReleaseID: data.Release.ID,
+						Body:      data.Release.Body,
+						BodyHTML:  data.BodyHTML,
+						CanWrite:  data.CanWrite,
+						Editing:   false,
+					})
+
+					<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="assets-heading">
+						<header class="px-5 py-3 border-b border-border bg-muted/50 flex items-center gap-2">
+							<h2 id="assets-heading" class="text-[13px] font-medium">Assets</h2>
+						</header>
+						<ul class="divide-y divide-border">
+							<li class="flex items-center gap-3 px-5 py-3">
+								<svg class="text-muted-foreground shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+								<span class="font-mono text-[13px] min-w-0 truncate">Source code (zip)</span>
+								<a
+									href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/archive/" + data.Release.TagName + ".zip") }
+									class="ml-auto h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] shrink-0"
+								>
+									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+									Download
+								</a>
+							</li>
+						</ul>
+					</section>
+
+				</div>
+
+				<aside class="space-y-6" aria-label="Release metadata">
+
+					<section aria-labelledby="rel-tag-heading">
+						<h2 id="rel-tag-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Tag</h2>
+						<p><code class="font-mono px-2 py-0.5 border border-border bg-muted rounded text-[12px]">{ data.Release.TagName }</code></p>
+					</section>
+
+					if data.CommitSHA != "" {
+						<section aria-labelledby="rel-commit-heading" class="border-t border-border pt-5">
+							<h2 id="rel-commit-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Commit</h2>
+							<p>
+								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commit/" + data.CommitSHA) } class="font-mono text-[12px] text-muted-foreground hover:text-foreground hover:underline">
+									{ data.CommitSHA[:7] }
+								</a>
 							</p>
-						</div>
-						if data.CanWrite {
-							<div class="flex items-center gap-2 shrink-0">
-								@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-									"hx-delete":  "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10),
-									"hx-confirm": "Delete this release?",
-									"class":      "text-destructive border-destructive/40 hover:bg-destructive/10",
-								}) {
-									Delete
+						</section>
+					}
+
+					<section aria-labelledby="rel-status-heading" class="border-t border-border pt-5">
+						<h2 id="rel-status-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Status</h2>
+						<p>
+							if data.IsLatest {
+								@components.Badge(components.BadgeSuccess) {
+									Latest
 								}
-							</div>
-						}
-					</div>
-					if data.BodyHTML != "" {
-						<div class="prose prose-sm max-w-none border-t border-border pt-4 mt-4">
-							@templ.Raw(data.BodyHTML)
-						</div>
-					} else {
-						<p class="text-muted-foreground text-sm border-t border-border pt-4 mt-4 italic">No description provided.</p>
-					}
-				}
-			}
-			if data.CanWrite {
-				@components.Card(nil) {
-					@components.CardHeader() {
-						@components.CardTitle(2) {
-							Edit Release
-						}
-					}
-					@components.CardContent() {
-						<form hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) } hx-target="body" class="space-y-4">
-							<div class="grid grid-cols-2 gap-4">
-								<div>
-									<label for="edit-release-tag-name" class="block text-sm font-medium text-foreground mb-1">Tag Name <span class="text-destructive" aria-hidden="true">*</span></label>
-									@components.Input(templ.Attributes{
-										"id":       "edit-release-tag-name",
-										"type":     "text",
-										"name":     "tag_name",
-										"required": "required",
-										"value":    data.Release.TagName,
-									})
-								</div>
-								<div>
-									<label for="edit-release-name" class="block text-sm font-medium text-foreground mb-1">Release Title</label>
-									@components.Input(templ.Attributes{
-										"id":    "edit-release-name",
-										"type":  "text",
-										"name":  "name",
-										"value": data.Release.Name,
-									})
-								</div>
-							</div>
-							<div>
-								<label for="edit-release-body" class="block text-sm font-medium text-foreground mb-1">Description</label>
-								<textarea id="edit-release-body" name="body" rows="8" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 font-mono">{ data.Release.Body }</textarea>
-							</div>
-							<div class="flex items-center gap-6">
-								<label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-									<input type="checkbox" name="is_prerelease" value="true" checked?={ data.Release.IsPrerelease } class="rounded"/>
+							} else if data.Release.IsPrerelease {
+								@components.Badge(components.BadgeWarning) {
 									Pre-release
-								</label>
-								<label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-									<input type="checkbox" name="is_draft" value="true" checked?={ data.Release.IsDraft } class="rounded"/>
-									Draft
-								</label>
-							</div>
-							<div class="flex justify-end">
-								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-									Save Changes
 								}
+							} else if data.Release.IsDraft {
+								@components.Badge(components.BadgeDraft) {
+									Draft
+								}
+							} else {
+								<span class="text-muted-foreground">—</span>
+							}
+						</p>
+					</section>
+
+					if data.AuthorName != "" {
+						<section aria-labelledby="rel-contributors-heading" class="border-t border-border pt-5">
+							<h2 id="rel-contributors-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Contributors</h2>
+							<div class="flex items-center gap-1.5">
+								@components.Avatar(data.AuthorName, components.AvatarSizeSM, data.AuthorName)
 							</div>
-						</form>
+						</section>
+					}
+
+					if data.CanWrite {
+						<section aria-labelledby="rel-manage-heading" class="border-t border-border pt-5">
+							<h2 id="rel-manage-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Manage</h2>
+							<div class="space-y-1.5">
+								if data.Release.IsDraft {
+									<button
+										type="button"
+										onclick="document.getElementById('rel-publish-dialog').showModal()"
+										class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] font-medium bg-success text-success-foreground hover:bg-success/90"
+									>
+										<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+										<span>Publish release</span>
+									</button>
+								}
+								if data.Release.IsPrerelease {
+									<button
+										type="button"
+										hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) + "/prerelease" }
+										hx-vals={ `{"is_prerelease":"false"}` }
+										hx-swap="none"
+										class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md border border-border text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground"
+									>
+										<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+										<span>Mark as latest release</span>
+									</button>
+								} else {
+									<button
+										type="button"
+										onclick="document.getElementById('rel-demote-dialog').showModal()"
+										class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md border border-border text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground"
+									>
+										<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+										<span>Mark as pre-release</span>
+									</button>
+								}
+								<button
+									type="button"
+									onclick="document.getElementById('rel-delete-dialog').showModal()"
+									class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
+								>
+									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0" aria-hidden="true" focusable="false"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"></path></svg>
+									<span>Delete release</span>
+								</button>
+							</div>
+							<p class="mt-2 text-[11px] text-muted-foreground leading-relaxed">Deleting a release removes the notes and metadata. The git tag itself stays in the repository.</p>
+						</section>
+					}
+
+				</aside>
+
+			</div>
+
+		</div>
+		if data.CanWrite {
+			if data.Release.IsDraft {
+				@components.Dialog("rel-publish-dialog") {
+					@components.DialogHeader() {
+						@components.DialogTitle("rel-publish-dialog") {
+							Publish this release?
+						}
+						@components.DialogDescription() {
+							Publish <strong class="text-foreground">{ releaseDetailTitle(data) }</strong> (<code class="font-mono">{ data.Release.TagName }</code>). Subscribers will be notified, the audit log will record the publish, and the release will appear in feeds. This cannot be undone — to roll back, you have to delete and recreate the release.
+						}
+					}
+					@components.DialogFooter() {
+						@components.DialogClose() {
+							Cancel
+						}
+						<button
+							type="button"
+							hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) + "/publish" }
+							hx-swap="none"
+							class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-success text-success-foreground hover:bg-success/90"
+						>
+							Publish release
+						</button>
 					}
 				}
 			}
-		</div>
+			if !data.Release.IsPrerelease {
+				@components.Dialog("rel-demote-dialog") {
+					@components.DialogHeader() {
+						@components.DialogTitle("rel-demote-dialog") {
+							Mark as pre-release?
+						}
+						@components.DialogDescription() {
+							Mark <strong class="text-foreground">{ releaseDetailTitle(data) }</strong> as a pre-release. It stops being eligible for the "Latest" badge until you mark it back. Consumers who already pulled it as stable won't be re-notified.
+						}
+					}
+					@components.DialogFooter() {
+						@components.DialogClose() {
+							Cancel
+						}
+						<button
+							type="button"
+							hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) + "/prerelease" }
+							hx-vals={ `{"is_prerelease":"true"}` }
+							hx-swap="none"
+							class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90"
+						>
+							Mark as pre-release
+						</button>
+					}
+				}
+			}
+			@components.Dialog("rel-delete-dialog") {
+				@components.DialogHeader() {
+					@components.DialogTitle("rel-delete-dialog") {
+						Delete this release?
+					}
+					@components.DialogDescription() {
+						Delete <strong class="text-foreground">{ releaseDetailTitle(data) }</strong>. The release notes and metadata are removed, but the git tag <code class="font-mono">{ data.Release.TagName }</code> is preserved — you can re-attach it as a new release later. This cannot be undone.
+					}
+				}
+				@components.DialogFooter() {
+					@components.DialogClose() {
+						Cancel
+					}
+					<button
+						type="button"
+						hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.Release.ID, 10) }
+						hx-target="body"
+						class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+					>
+						Delete release
+					</button>
+				}
+			}
+		}
 	}
 }
 
@@ -136,4 +261,18 @@ func releaseDetailTitle(data view.ReleaseDetailData) string {
 		return data.Release.Name
 	}
 	return data.Release.TagName
+}
+
+// releaseStatus collapses the boolean release flags into a single keyword the
+// title fragment uses to pick a badge: "latest" / "prerelease" / "draft" / "".
+func releaseStatus(data view.ReleaseDetailData) string {
+	switch {
+	case data.IsLatest:
+		return "latest"
+	case data.Release.IsPrerelease:
+		return "prerelease"
+	case data.Release.IsDraft:
+		return "draft"
+	}
+	return ""
 }
