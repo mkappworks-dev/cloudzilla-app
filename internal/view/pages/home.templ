@@ -14,11 +14,11 @@ import (
 
 templ Home(data view.HomeData) {
 	@layout.Base(data.BasePage, "Overview") {
-		<div class="space-y-10">
+		<div class="space-y-8">
 
+			<!-- Header row -->
 			<div class="flex items-end justify-between">
 				<div>
-					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5">Overview</p>
 					if data.BasePage.CurrentUser != nil {
 						<h1 class="text-2xl font-semibold tracking-tight">{ data.BasePage.CurrentUser.Username }</h1>
 					} else {
@@ -27,7 +27,16 @@ templ Home(data view.HomeData) {
 				</div>
 				if data.BasePage.CurrentUser != nil {
 					<div class="flex items-center gap-1.5">
+						@components.LinkButton("/repos/import", components.ButtonOutline, components.ButtonSizeSM, nil) {
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+								<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"></path>
+							</svg>
+							Import
+						}
 						@components.LinkButton("/repos/new", components.ButtonDefault, components.ButtonSizeSM, nil) {
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+								<path d="M12 5v14M5 12h14"></path>
+							</svg>
 							New repository
 						}
 					</div>
@@ -49,99 +58,107 @@ templ Home(data view.HomeData) {
 			if len(data.Stats) > 0 {
 				<section aria-labelledby="stats-heading">
 					<h2 id="stats-heading" class="sr-only">Workspace statistics</h2>
-					@components.StatStrip(data.Stats)
+					<dl class="grid grid-cols-2 md:grid-cols-4 border border-border rounded-md divide-x divide-border">
+						for i, it := range data.Stats {
+							<div class={ "p-5", templ.KV("border-l border-border", i > 0) }>
+								<dt class="text-[11px] font-mono text-muted-foreground uppercase tracking-wider mb-2">{ it.Label }</dt>
+								<dd class="text-2xl font-medium tracking-tight">
+									{ strconv.Itoa(it.Value) }
+									if it.Subtitle != "" {
+										<span class="text-muted-foreground text-lg font-normal"> { it.Subtitle }</span>
+									}
+								</dd>
+							</div>
+						}
+					</dl>
 				</section>
 			}
 
+			<!-- Main two-column layout -->
 			<div class="grid lg:grid-cols-[1fr_320px] gap-8">
+
+				<!-- LEFT column -->
 				<div class="space-y-10">
 
-					if len(data.Repos) > 0 {
-						<section aria-labelledby="repos-heading">
-							<div class="flex items-center justify-between mb-4">
-								<h2 id="repos-heading" class="text-[13px] font-medium">Repositories</h2>
-								@components.LinkButton("/explore", components.ButtonOutline, components.ButtonSizeSM, nil) {
-									Explore
-								}
-							</div>
-							<div class="rounded-md border border-border bg-card overflow-hidden">
-								@components.Table(nil) {
-									@components.TableCaption(templ.Attributes{"class": "sr-only"}) {
-										Your repositories, sorted by most recently updated
+					<!-- Repositories -->
+					<section aria-labelledby="repos-heading">
+						<div class="flex items-center justify-between mb-4">
+							<h2 id="repos-heading" class="text-[13px] font-medium">Repositories</h2>
+							if data.BasePage.CurrentUser != nil {
+								<div class="flex items-center gap-1.5">
+									@components.LinkButton("/repos?filter=all", components.ButtonOutline, components.ButtonSizeSM, nil) {
+										<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+											<path d="M3 6h18M6 12h12M10 18h4"></path>
+										</svg>
+										All repositories
 									}
-									@components.TableHeader() {
-										@components.TableRow(false) {
-											@components.TableHead(templ.Attributes{"scope": "col", "class": "w-10"}) {
-												<span class="sr-only">Visibility</span>
-											}
-											@components.TableHead(templ.Attributes{"scope": "col"}) {
-												Name
-											}
-											@components.TableHead(templ.Attributes{"scope": "col", "class": "text-right"}) {
-												Updated
-											}
-										}
-									}
-									@components.TableBody() {
+								</div>
+							}
+						</div>
+						if len(data.Repos) > 0 {
+							<div class="border border-border rounded-md bg-card overflow-hidden">
+								<table class="w-full text-left">
+									<caption class="sr-only">Your recently updated repositories</caption>
+									<colgroup>
+										<col style="width: 28px"/>
+										<col/>
+										<col style="width: 120px"/>
+									</colgroup>
+									<thead>
+										<tr class="border-b border-border text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+											<th scope="col" class="px-4 py-2.5 font-normal"><span class="sr-only">Visibility</span></th>
+											<th scope="col" class="px-4 py-2.5 font-normal">Name</th>
+											<th scope="col" class="px-4 py-2.5 font-normal text-right">Updated</th>
+										</tr>
+									</thead>
+									<tbody>
 										for _, repo := range data.Repos {
-											@components.TableRow(true) {
-												@components.TableCell(templ.Attributes{"class": "w-10"}) {
+											<tr class="border-b border-border last:border-0 hover:bg-muted/40">
+												<td class="px-4 py-3">
 													@repoIcon(repo.Private)
-												}
-												@components.TableRowHead(nil) {
-													<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-sm hover:underline">
-														{ repo.OwnerName }<span class="text-muted-foreground mx-1" aria-hidden="true">/</span>{ repo.Name }
-													</a>
+												</td>
+												<th scope="row" class="px-4 py-3 font-normal min-w-0">
+													<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-[13px] hover:underline">{ repo.Name }</a>
+													<span class="text-muted-foreground mx-1" aria-hidden="true">/</span>
+													<span class="text-muted-foreground text-[12px]">{ repo.OwnerName }</span>
 													if repo.Private {
-														<span class="ml-2 align-middle">
-															@components.Badge(components.BadgeOutline) {
-																Private
-															}
-														</span>
+														<span class="ml-1.5 inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground">Private</span>
 													}
 													if repo.IsArchived {
-														<span class="ml-2 align-middle">
-															@components.Badge(components.BadgeDraft) {
-																Archived
-															}
-														</span>
-													}
-													if repo.IsTemplate {
-														<span class="ml-2 align-middle">
-															@components.Badge(components.BadgeOutline) {
-																Template
-															}
-														</span>
+														<span class="ml-1.5 inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground">Archived</span>
 													}
 													if repo.Description != "" {
-														<p class="text-[12px] text-muted-foreground mt-0.5 font-normal">{ repo.Description }</p>
+														<p class="text-[11px] text-muted-foreground truncate mt-0.5 font-normal">{ repo.Description }</p>
 													}
-												}
-												@components.TableCell(templ.Attributes{"class": "text-right text-xs text-muted-foreground font-mono whitespace-nowrap"}) {
-													<time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>
-														{ repo.UpdatedAt.Format("Jan 2, 2006") }
-													</time>
-												}
-											}
+												</th>
+												<td class="px-4 py-3 text-right text-[12px] text-muted-foreground font-mono whitespace-nowrap">
+													<time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(repo.UpdatedAt) }</time>
+												</td>
+											</tr>
 										}
-									}
-								}
+									</tbody>
+								</table>
 							</div>
-						</section>
-					} else {
-						@components.EmptyState("No repositories yet.")
-					}
+							<div class="mt-3 flex justify-between text-[12px] text-muted-foreground">
+								<span>{ strconv.Itoa(len(data.Repos)) } repositories</span>
+								<a href="/repos" class="hover:text-foreground">View all repositories<span aria-hidden="true"> →</span></a>
+							</div>
+						} else {
+							@components.EmptyState("No repositories yet.")
+						}
+					</section>
 
+					<!-- Needs your attention -->
 					if len(data.Attention) > 0 {
 						<section aria-labelledby="attention-heading">
 							<div class="flex items-center justify-between mb-4">
 								<h2 id="attention-heading" class="text-[13px] font-medium">Needs your attention</h2>
 							</div>
-							<ul class="rounded-md border border-border bg-card divide-y divide-border">
+							<ul class="border border-border rounded-md bg-card divide-y divide-border">
 								for _, item := range data.Attention {
 									<li>
 										<a href={ templ.SafeURL(attentionItemURL(item)) } class="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition">
-											<span class="flex-shrink-0 text-muted-foreground" aria-hidden="true">
+											<span class={ "flex-shrink-0", attentionKindColorClass(item.Kind) } aria-hidden="true">
 												@attentionKindIcon(item.Kind)
 											</span>
 											<div class="min-w-0 flex-1">
@@ -161,78 +178,128 @@ templ Home(data view.HomeData) {
 						</section>
 					}
 
+					<!-- Commit activity heatmap -->
 					if data.Heatmap != nil {
 						<section aria-labelledby="commits-heading">
 							<div class="flex items-center justify-between mb-4">
-								<h2 id="commits-heading" class="text-[13px] font-medium">Contribution activity</h2>
+								<h2 id="commits-heading" class="text-[13px] font-medium">Commit activity</h2>
 								<span class="text-[12px] text-muted-foreground">Last 52 weeks</span>
 							</div>
-							<div class="rounded-md border border-border bg-card p-5 overflow-x-auto">
+							<div class="border border-border rounded-md bg-card p-5 overflow-x-auto">
 								@components.Heatmap(data.Heatmap, time.Now(), 52)
 							</div>
 						</section>
 					}
 				</div>
 
+				<!-- RIGHT rail / sidebar -->
 				<aside class="space-y-8" aria-label="Sidebar">
 
+					<!-- Activity -->
 					if len(data.Activity) > 0 {
 						<section aria-labelledby="activity-heading">
 							<div class="flex items-center justify-between mb-3">
-								<h3 id="activity-heading" class="text-[13px] font-medium">Recent activity</h3>
-								<a href="/feed" class="text-[12px] text-muted-foreground hover:text-foreground">All<span aria-hidden="true"> →</span><span class="sr-only"> activity</span></a>
+								<h3 id="activity-heading" class="text-[13px] font-medium">Activity</h3>
+								<a href="/activity" class="text-[12px] text-muted-foreground hover:text-foreground">All<span aria-hidden="true"> →</span><span class="sr-only"> activity</span></a>
 							</div>
-							@components.Timeline("Recent activity") {
+							<ol class="space-y-3">
 								for _, ev := range data.Activity {
-									@components.TimelineEntry(eventTimelineKind(ev.EventType), ev.ActorName, formatRelative(ev.CreatedAt)) {
-										<p class="text-xs text-muted-foreground mt-0.5">
-											{ eventTimelineDetail(ev) }
-										</p>
-									}
+									<li class="text-[12px] flex gap-2.5">
+										<span class={ "mt-1 flex-shrink-0 h-1.5 w-1.5 rounded-full", activityDotClass(ev.EventType) } aria-hidden="true"></span>
+										<div class="min-w-0 flex-1">
+											<p>
+												<a href={ templ.SafeURL("/" + ev.ActorName) } class="hover:underline">{ "@" + ev.ActorName }</a>
+												<span class="text-muted-foreground">{ " " + eventVerb(ev.EventType) + " " }</span>
+												if ev.OwnerName != "" && ev.RepoName != "" {
+													<span class="font-mono">{ ev.RepoName }</span>
+												}
+											</p>
+											<p class="text-muted-foreground mt-0.5 font-mono text-[11px]">
+												if ev.OwnerName != "" && ev.RepoName != "" {
+													{ ev.OwnerName + "/" + ev.RepoName }
+													<span aria-hidden="true">{ " · " }</span>
+												}
+												<time datetime={ ev.CreatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(ev.CreatedAt) }</time>
+											</p>
+										</div>
+									</li>
 								}
-							}
+							</ol>
 						</section>
 					}
 
+					<!-- Templates -->
 					if len(data.Templates) > 0 {
 						<section aria-labelledby="templates-heading">
 							<div class="flex items-center justify-between mb-3">
 								<h3 id="templates-heading" class="text-[13px] font-medium">Start from a template</h3>
 							</div>
-							<ul class="rounded-md border border-border bg-card divide-y divide-border">
+							<ul class="border border-border rounded-md bg-card divide-y divide-border">
 								for _, tmpl := range data.Templates {
 									<li>
-										<div class="px-3 py-2.5">
-											<p class="text-[12px] truncate">
-												{ tmpl.OwnerName }<span class="text-muted-foreground mx-1" aria-hidden="true">/</span>{ tmpl.Name }
-											</p>
-											if tmpl.Description != "" {
-												<p class="text-[11px] text-muted-foreground truncate mt-0.5">{ tmpl.Description }</p>
-											}
-											if data.BasePage.CurrentUser != nil {
-												<form method="POST" action="/api/repos/from-template" class="mt-2 space-y-2">
-													<input type="hidden" name="template_repo_id" value={ strconv.FormatInt(tmpl.ID, 10) }/>
-													<label for={ "tmpl-name-" + strconv.FormatInt(tmpl.ID, 10) } class="sr-only">
-														New repository name from { tmpl.Name }
-													</label>
-													@components.Input(templ.Attributes{
-														"id":          "tmpl-name-" + strconv.FormatInt(tmpl.ID, 10),
-														"type":        "text",
-														"name":        "name",
-														"placeholder": "New repo name",
-														"required":    "required",
-													})
-													@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{"type": "submit", "class": "w-full"}) {
-														Use this template
-													}
-												</form>
-											}
-										</div>
+										<a href={ templ.SafeURL("/repos/new?template=" + strconv.FormatInt(tmpl.ID, 10)) } class="flex items-center justify-between px-3 py-2.5 hover:bg-muted/40 group">
+											<div class="min-w-0">
+												<p class="text-[12px] truncate">{ tmpl.Name }</p>
+												if tmpl.Description != "" {
+													<p class="text-[11px] text-muted-foreground truncate mt-0.5">{ tmpl.Description }</p>
+												}
+											</div>
+											<svg class="text-muted-foreground group-hover:text-foreground flex-shrink-0 ml-2" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+												<path d="M5 12h14M12 5l7 7-7 7"></path>
+											</svg>
+										</a>
 									</li>
 								}
 							</ul>
 						</section>
 					}
+
+					<!-- Keyboard shortcuts -->
+					<section aria-labelledby="shortcuts-heading">
+						<div class="flex items-center justify-between mb-3">
+							<h3 id="shortcuts-heading" class="text-[13px] font-medium">Shortcuts</h3>
+						</div>
+						<dl class="space-y-1.5 text-[12px]">
+							<div class="flex items-center justify-between">
+								<dt class="text-muted-foreground">Command palette</dt>
+								<dd class="font-mono"><kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">⌘K</kbd></dd>
+							</div>
+							<div class="flex items-center justify-between">
+								<dt class="text-muted-foreground">New repository</dt>
+								<dd class="font-mono">
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">N</kbd>
+									{ " " }
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">R</kbd>
+								</dd>
+							</div>
+							<div class="flex items-center justify-between">
+								<dt class="text-muted-foreground">Go to issues</dt>
+								<dd class="font-mono">
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">G</kbd>
+									{ " " }
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">I</kbd>
+								</dd>
+							</div>
+							<div class="flex items-center justify-between">
+								<dt class="text-muted-foreground">Go to pulls</dt>
+								<dd class="font-mono">
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">G</kbd>
+									{ " " }
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">P</kbd>
+								</dd>
+							</div>
+							<div class="flex items-center justify-between">
+								<dt class="text-muted-foreground">Toggle theme</dt>
+								<dd class="font-mono">
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">⌘</kbd>
+									{ " " }
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">⇧</kbd>
+									{ " " }
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">L</kbd>
+								</dd>
+							</div>
+						</dl>
+					</section>
 				</aside>
 			</div>
 		</div>
@@ -256,6 +323,10 @@ templ repoIcon(private bool) {
 
 templ attentionKindIcon(kind service.AttentionKind) {
 	switch kind {
+		case service.AttentionPRReviewRequested:
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+				<path d="M5 12h14M12 5l7 7-7 7"></path>
+			</svg>
 		case service.AttentionIssueAssigned:
 			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
 				<circle cx="12" cy="12" r="9"></circle>
@@ -265,6 +336,45 @@ templ attentionKindIcon(kind service.AttentionKind) {
 			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
 				<circle cx="12" cy="12" r="9"></circle>
 			</svg>
+	}
+}
+
+func attentionKindColorClass(kind service.AttentionKind) string {
+	switch kind {
+	case service.AttentionPRReviewRequested:
+		return "text-success"
+	default:
+		return "text-muted-foreground"
+	}
+}
+
+func activityDotClass(eventType string) string {
+	switch eventType {
+	case model.EventPRMerged:
+		return "bg-[hsl(270_70%_70%)]"
+	case model.EventIssueOpened, model.EventPROpened:
+		return "bg-success"
+	case model.EventIssueClosed, model.EventPRClosed:
+		return "bg-destructive"
+	default:
+		return "bg-muted-foreground"
+	}
+}
+
+func eventVerb(eventType string) string {
+	switch eventType {
+	case model.EventPRMerged:
+		return "merged"
+	case model.EventPROpened:
+		return "opened a pull request in"
+	case model.EventPRClosed:
+		return "closed a pull request in"
+	case model.EventIssueOpened:
+		return "opened an issue in"
+	case model.EventIssueClosed:
+		return "closed an issue in"
+	default:
+		return "pushed to"
 	}
 }
 
