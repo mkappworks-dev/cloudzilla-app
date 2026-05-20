@@ -3,6 +3,7 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	"sort"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -100,4 +101,55 @@ func (h *Handler) PageAccountIssues(w http.ResponseWriter, r *http.Request) {
 		State:    state,
 	}
 	h.render(w, r, pages.AccountIssues(data))
+}
+
+func (h *Handler) PageAccountStars(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	claims, ok := middleware.ClaimsFromContext(ctx)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	stars, err := h.Services.Star.ListByUser(ctx, claims.Username)
+	if err != nil {
+		slog.Error("stars: failed to load starred repositories", "username", claims.Username, "error", err)
+		http.Error(w, "Failed to load starred repositories", http.StatusInternalServerError)
+		return
+	}
+	if stars == nil {
+		stars = []model.Repository{}
+	}
+
+	seen := map[string]struct{}{}
+	var languages []string
+	for _, repo := range stars {
+		if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
+			lang := *repo.PrimaryLanguage
+			if _, ok := seen[lang]; !ok {
+				seen[lang] = struct{}{}
+				languages = append(languages, lang)
+			}
+		}
+	}
+	sort.Strings(languages)
+
+	langFilter := r.URL.Query().Get("language")
+	if langFilter != "" {
+		filtered := stars[:0]
+		for _, repo := range stars {
+			if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage == langFilter {
+				filtered = append(filtered, repo)
+			}
+		}
+		stars = filtered
+	}
+
+	data := view.AccountStarsData{
+		BasePage:  basePage(r, h.Services),
+		Username:  claims.Username,
+		Stars:     stars,
+		Language:  langFilter,
+		Languages: languages,
+	}
+	h.render(w, r, pages.AccountStars(data))
 }

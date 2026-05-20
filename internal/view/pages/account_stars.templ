@@ -1,0 +1,57 @@
+package pages
+
+import (
+	"net/url"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ AccountStars(data view.AccountStarsData) {
+	@layout.Base(data.BasePage, "Starred repositories") {
+		<div class="space-y-5">
+			<h1 class="text-2xl font-semibold tracking-tight">Starred repositories</h1>
+			if len(data.Languages) > 0 {
+				<div class="flex flex-wrap gap-2">
+					if data.Language == "" {
+						<a href="/stars" class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-primary text-primary-foreground">All</a>
+					} else {
+						<a href="/stars" class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80">All</a>
+					}
+					for _, lang := range data.Languages {
+						if data.Language == lang {
+							<a href={ templ.SafeURL("/stars?language=" + url.QueryEscape(lang)) } class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-primary text-primary-foreground">{ lang }</a>
+						} else {
+							<a href={ templ.SafeURL("/stars?language=" + url.QueryEscape(lang)) } class="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80">{ lang }</a>
+						}
+					}
+				</div>
+			}
+			if len(data.Stars) > 0 {
+				<ol class="rounded-md border border-border bg-card divide-y divide-border overflow-hidden">
+					for _, repo := range data.Stars {
+						<li>
+							<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="block px-4 py-3 hover:bg-muted/50">
+								<div class="text-[13px] font-medium">
+									<span class="text-muted-foreground">{ repo.OwnerName }/</span><span class="hover:underline">{ repo.Name }</span>
+									if repo.Private {
+										<span class="ml-1.5 text-[11px] text-muted-foreground">Private</span>
+									}
+								</div>
+								if repo.Description != "" {
+									<div class="mt-1 text-[12px] text-muted-foreground">{ repo.Description }</div>
+								}
+								if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
+									<div class="mt-1.5 text-[12px] text-muted-foreground">{ *repo.PrimaryLanguage }</div>
+								}
+							</a>
+						</li>
+					}
+				</ol>
+			} else {
+				@components.EmptyState("No starred repositories.")
+			}
+		</div>
+	}
+}

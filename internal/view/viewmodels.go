@@ -99,3 +99,11 @@ type AccountIssuesData struct {
 	Filter string // "assigned" | "created" | "mentioned"
 	State  string // "open" | "closed"
 }
+
+type AccountStarsData struct {
+	BasePage
+	Username  string
+	Stars     []model.Repository
+	Language  string   // active language chip (empty == all)
+	Languages []string // distinct primary_language values for chip rendering
+}
