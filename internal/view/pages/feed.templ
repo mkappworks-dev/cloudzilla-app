@@ -53,18 +53,19 @@ func activityRelativeTime(t time.Time) string {
 }
 
 func activityDateLabel(t time.Time) string {
-	now := time.Now()
-	y, m, d := t.Date()
-	ny, nm, nd := now.Date()
-	if y == ny && m == nm && d == nd {
+	tu := t.UTC()
+	now := time.Now().UTC()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	yesterday := today.AddDate(0, 0, -1)
+	eventDay := time.Date(tu.Year(), tu.Month(), tu.Day(), 0, 0, 0, 0, time.UTC)
+	switch eventDay {
+	case today:
 		return "Today"
-	}
-	yest := now.AddDate(0, 0, -1)
-	yy, ym, yd := yest.Date()
-	if y == yy && m == ym && d == yd {
+	case yesterday:
 		return "Yesterday"
+	default:
+		return tu.Format("Jan 2, 2006")
 	}
-	return t.Format("January 2, 2006")
 }
 
 func activityDateKey(t time.Time) string {

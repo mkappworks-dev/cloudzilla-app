@@ -72,13 +72,6 @@ type HomeData struct {
 	LoadWarnings []string
 }
 
-type FeedData struct {
-	BasePage
-	Events      []model.Event
-	Page        int
-	HasNextPage bool
-}
-
 type ActivityData struct {
 	BasePage
 	Username string

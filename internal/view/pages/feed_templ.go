@@ -61,18 +61,19 @@ func activityRelativeTime(t time.Time) string {
 }
 
 func activityDateLabel(t time.Time) string {
-	now := time.Now()
-	y, m, d := t.Date()
-	ny, nm, nd := now.Date()
-	if y == ny && m == nm && d == nd {
+	tu := t.UTC()
+	now := time.Now().UTC()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	yesterday := today.AddDate(0, 0, -1)
+	eventDay := time.Date(tu.Year(), tu.Month(), tu.Day(), 0, 0, 0, 0, time.UTC)
+	switch eventDay {
+	case today:
 		return "Today"
-	}
-	yest := now.AddDate(0, 0, -1)
-	yy, ym, yd := yest.Date()
-	if y == yy && m == ym && d == yd {
+	case yesterday:
 		return "Yesterday"
+	default:
+		return tu.Format("Jan 2, 2006")
 	}
-	return t.Format("January 2, 2006")
 }
 
 func activityDateKey(t time.Time) string {
@@ -138,7 +139,7 @@ func Activity(data view.ActivityData) templ.Component {
 						var templ_7745c5c3_Var3 string
 						templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(activityDateLabel(e.CreatedAt))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/feed.templ`, Line: 92, Col: 94}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/feed.templ`, Line: 93, Col: 94}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 						if templ_7745c5c3_Err != nil {
