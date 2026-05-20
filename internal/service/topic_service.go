@@ -70,7 +70,6 @@ func (s *TopicService) ListReposByTopic(ctx context.Context, name string, page, 
 	return s.topics.ListReposByTopic(ctx, name, page, pageSize)
 }
 
-// ListReposByTopicWithStats returns public repos with star counts for a topic name, paginated and sorted.
 func (s *TopicService) ListReposByTopicWithStats(ctx context.Context, name string, page, pageSize int, sort string) ([]model.RepositoryWithStats, error) {
 	if err := validateTopicName(name); err != nil {
 		return nil, err
@@ -84,7 +83,6 @@ func (s *TopicService) ListReposByTopicWithStats(ctx context.Context, name strin
 	return s.topics.ListReposByTopicWithStats(ctx, name, page, pageSize, sort)
 }
 
-// CountReposByTopic returns the total count of public repos tagged with a topic.
 func (s *TopicService) CountReposByTopic(ctx context.Context, name string) (int, error) {
 	if err := validateTopicName(name); err != nil {
 		return 0, err

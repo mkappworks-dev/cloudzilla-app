@@ -1,24 +1,8 @@
 package components
 
-// ConfirmDialog renders a single, page-global confirmation modal that any button
-// can trigger. Mounted once near </body> via layout.Base so every page reuses it.
-//
-// Two triggers are supported:
-//
-//  1. HTMX requests with `hx-confirm="..."` — htmx fires `htmx:confirm` and this
-//     dialog intercepts it, showing a styled prompt instead of the browser default.
-//     Add `data-confirm-title` / `data-confirm-label` / `data-confirm-danger` on the
-//     same element to customise heading, button label, and destructive styling.
-//
-//  2. Non-htmx buttons with `data-confirm-action` — the dialog opens with
-//     `data-confirm-title` / `data-confirm-msg` / `data-confirm-label` /
-//     `data-confirm-danger`. On confirm, if the button is inside a <form>, the
-//     form is submitted; otherwise the click is replayed with a bypass flag.
-//
-// Toast sugar (paired here because the same script wires it):
-//   - Any element with `data-toast="msg"` fires a success toast on htmx success.
-//   - Any `<form data-toast="msg">` stashes the toast in sessionStorage on submit
-//     so it appears after the form's redirect lands on the next page.
+// ConfirmDialog: page-global confirmation modal mounted once near </body>.
+// Triggered by hx-confirm (htmx) or data-confirm-action (non-htmx).
+// Also wires data-toast sugar (htmx success + cross-redirect via sessionStorage).
 templ ConfirmDialog() {
 	<dialog
 		id="cz-confirm-dialog"
@@ -67,7 +51,6 @@ templ ConfirmDialog() {
 				if (resolver) { var r = resolver; resolver = null; r(ok); }
 			});
 
-			// (1) htmx:confirm — replace browser confirm() for hx-confirm buttons.
 			document.body.addEventListener('htmx:confirm', function (e) {
 				var elt = e.detail.elt;
 				if (!elt || !elt.hasAttribute('hx-confirm')) return;
@@ -80,7 +63,6 @@ templ ConfirmDialog() {
 				}).then(function (ok) { if (ok) e.detail.issueRequest(true); });
 			});
 
-			// (2) Non-htmx triggers — buttons with data-confirm-action.
 			document.body.addEventListener('click', function (e) {
 				var trigger = e.target.closest('[data-confirm-action]');
 				if (!trigger) return;
@@ -105,7 +87,6 @@ templ ConfirmDialog() {
 				});
 			}, true);
 
-			// (3) Toast sugar — htmx success + data-toast → fire success toast.
 			document.body.addEventListener('htmx:afterRequest', function (e) {
 				if (!e.detail.successful) return;
 				var elt = e.detail.elt;
@@ -115,7 +96,6 @@ templ ConfirmDialog() {
 				document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: msg } }));
 			});
 
-			// (4) Toast sugar — stash toast across redirecting form submits.
 			function stashToastFromForm(form) {
 				var msg = form.getAttribute('data-toast');
 				if (!msg) return;

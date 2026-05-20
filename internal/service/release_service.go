@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"time"
 
@@ -16,14 +17,22 @@ import (
 // the requested tag in the repository.
 var ErrReleaseTagInUse = errors.New("a release already exists for this tag")
 
-// ReleaseService manages repository release creation, updates, and deletion.
+// ErrInvalidTagName is returned when the tag string contains characters that
+// would land in git storage but aren't safe ASCII identifiers. We refuse
+// these up-front rather than relying on go-git's looser plumbing checks.
+var ErrInvalidTagName = errors.New("tag name must match ^[A-Za-z0-9._/-]{1,255}$")
+
+// tagNamePattern caps tag names to a conservative ASCII identifier subset.
+// Matches the same character class git itself encourages, minus '@' to keep
+// us clear of reflog syntax.
+var tagNamePattern = regexp.MustCompile(`^[A-Za-z0-9._/-]{1,255}$`)
+
 type ReleaseService struct {
 	releases *store.ReleaseStore
 	repos    *store.RepoStore
 	code     *CodeService
 }
 
-// NewReleaseService creates a ReleaseService backed by the given stores and code service.
 func NewReleaseService(releases *store.ReleaseStore, repos *store.RepoStore, code *CodeService) *ReleaseService {
 	return &ReleaseService{releases: releases, repos: repos, code: code}
 }
@@ -31,6 +40,10 @@ func NewReleaseService(releases *store.ReleaseStore, repos *store.RepoStore, cod
 // Create records a release for tagName. When the tag does not yet exist it is
 // created on the latest commit of target (falling back to the default branch).
 func (s *ReleaseService) Create(ctx context.Context, owner, repoName, tagName, target, name, body string, isPrerelease, isDraft bool, authorID int64) (*model.Release, error) {
+	if !tagNamePattern.MatchString(tagName) {
+		return nil, ErrInvalidTagName
+	}
+
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
@@ -79,6 +92,12 @@ func (s *ReleaseService) Create(ctx context.Context, owner, repoName, tagName, t
 		PublishedAt:  publishedAt,
 	}
 	if err := s.releases.Create(ctx, r); err != nil {
+		// Race-loser path: another in-flight Create on the same tag won the
+		// unique-violation; surface the same friendly sentinel as the pre-check
+		// so the handler emits one toast wording.
+		if errors.Is(err, store.ErrReleaseTagInUseStore) {
+			return nil, ErrReleaseTagInUse
+		}
 		return nil, err
 	}
 	return r, nil
@@ -168,7 +187,6 @@ func (s *ReleaseService) Update(ctx context.Context, owner, repoName string, id 
 	return r, nil
 }
 
-// EditName updates only the human-readable name of a release.
 func (s *ReleaseService) EditName(ctx context.Context, owner, repoName string, id int64, name string) (*model.Release, error) {
 	r, err := s.loadByID(ctx, owner, repoName, id)
 	if err != nil {
@@ -208,8 +226,6 @@ func (s *ReleaseService) Publish(ctx context.Context, owner, repoName string, id
 	return r, nil
 }
 
-// EditPrerelease toggles the pre-release flag without touching tag, name, body,
-// or draft state.
 func (s *ReleaseService) EditPrerelease(ctx context.Context, owner, repoName string, id int64, isPrerelease bool) (*model.Release, error) {
 	r, err := s.loadByID(ctx, owner, repoName, id)
 	if err != nil {
@@ -222,7 +238,6 @@ func (s *ReleaseService) EditPrerelease(ctx context.Context, owner, repoName str
 	return r, nil
 }
 
-// EditBody updates only the markdown body of a release.
 func (s *ReleaseService) EditBody(ctx context.Context, owner, repoName string, id int64, body string) (*model.Release, error) {
 	r, err := s.loadByID(ctx, owner, repoName, id)
 	if err != nil {

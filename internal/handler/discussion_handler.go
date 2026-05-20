@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
@@ -13,6 +14,10 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
+
+// discussionTitleMaxLen caps inline-edit title length so a MarkAnswer caller
+// can't pipe an unbounded string through UpdateContent.
+const discussionTitleMaxLen = 256
 
 // PageDiscussions renders /{owner}/{repo}/discussions
 func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
@@ -119,10 +124,16 @@ func (h *Handler) PageDiscussions(w http.ResponseWriter, r *http.Request) {
 	replyCounts := make(map[int64]int, len(discussions))
 	participantsByDisc := make(map[int64][]string, len(discussions))
 	for _, d := range discussions {
-		if ls, lerr := h.Services.Label.GetForDiscussion(r.Context(), d.ID); lerr == nil && len(ls) > 0 {
+		ls, lerr := h.Services.Label.GetForDiscussion(r.Context(), d.ID)
+		if lerr != nil {
+			slog.Warn("discussions list: label fetch failed", "owner", owner, "repo", repoName, "discussion", d.ID, "error", lerr)
+		} else if len(ls) > 0 {
 			labelsByDisc[d.ID] = ls
 		}
-		replies, _ := h.Services.Discussion.ListReplies(r.Context(), d.ID)
+		replies, rerr := h.Services.Discussion.ListReplies(r.Context(), d.ID)
+		if rerr != nil {
+			slog.Warn("discussions list: reply fetch failed", "owner", owner, "repo", repoName, "discussion", d.ID, "error", rerr)
+		}
 		replyCounts[d.ID] = len(replies)
 		seen := map[string]bool{d.AuthorName: true}
 		parts := []string{d.AuthorName}
@@ -196,7 +207,10 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rawReplies, _ := h.Services.Discussion.ListReplies(r.Context(), discussion.ID)
+	rawReplies, repliesErr := h.Services.Discussion.ListReplies(r.Context(), discussion.ID)
+	if repliesErr != nil {
+		slog.Warn("discussion detail: reply fetch failed", "owner", owner, "repo", repoName, "discussion", discussion.ID, "error", repliesErr)
+	}
 	if rawReplies == nil {
 		rawReplies = []model.DiscussionReply{}
 	}
@@ -206,14 +220,20 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	replies := make([]view.RenderedDiscussionReply, len(rawReplies))
 	for i, rr := range rawReplies {
-		rxn, _ := h.Services.Reaction.ListByReply(r.Context(), rr.ID, callerID)
+		rxn, rerr := h.Services.Reaction.ListByReply(r.Context(), rr.ID, callerID)
+		if rerr != nil {
+			slog.Warn("discussion detail: reply reactions failed", "discussion", discussion.ID, "reply", rr.ID, "error", rerr)
+		}
 		replies[i] = view.RenderedDiscussionReply{
 			DiscussionReply: rr,
 			BodyHTML:        markdown.Render(rr.Body),
 			Reactions:       rxn,
 		}
 	}
-	opReactions, _ := h.Services.Reaction.ListByDiscussion(r.Context(), discussion.ID, callerID)
+	opReactions, opRxnErr := h.Services.Reaction.ListByDiscussion(r.Context(), discussion.ID, callerID)
+	if opRxnErr != nil {
+		slog.Warn("discussion detail: OP reactions failed", "discussion", discussion.ID, "error", opRxnErr)
+	}
 
 	participants := make([]string, 0, len(rawReplies)+1)
 	seen := make(map[string]bool)
@@ -228,7 +248,10 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 		addParticipant(rr.AuthorName)
 	}
 
-	cats, _ := h.Services.Discussion.ListCategories(r.Context())
+	cats, catsErr := h.Services.Discussion.ListCategories(r.Context())
+	if catsErr != nil {
+		slog.Warn("discussion detail: category list failed", "owner", owner, "repo", repoName, "error", catsErr)
+	}
 	var category model.DiscussionCategory
 	for _, c := range cats {
 		if c.ID == discussion.CategoryID {
@@ -237,11 +260,17 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	labels, _ := h.Services.Label.GetForDiscussion(r.Context(), discussion.ID)
+	labels, labelsErr := h.Services.Label.GetForDiscussion(r.Context(), discussion.ID)
+	if labelsErr != nil {
+		slog.Warn("discussion detail: label fetch failed", "owner", owner, "repo", repoName, "discussion", discussion.ID, "error", labelsErr)
+	}
 	if labels == nil {
 		labels = []model.Label{}
 	}
-	allLabels, _ := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	allLabels, allLabelsErr := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
+	if allLabelsErr != nil {
+		slog.Warn("discussion detail: label list failed", "owner", owner, "repo", repoName, "error", allLabelsErr)
+	}
 	if allLabels == nil {
 		allLabels = []model.Label{}
 	}
@@ -267,8 +296,6 @@ func (h *Handler) PageDiscussionDetail(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// resolveDiscussionCategory returns the category selected via the ?category=
-// query param, falling back to the first category. Returns 0 when none exist.
 func resolveDiscussionCategory(r *http.Request, categories []model.DiscussionCategory) int64 {
 	if cidStr := r.URL.Query().Get("category"); cidStr != "" {
 		if cid, err := strconv.ParseInt(cidStr, 10, 64); err == nil {
@@ -285,7 +312,6 @@ func resolveDiscussionCategory(r *http.Request, categories []model.DiscussionCat
 	return 0
 }
 
-// PageNewDiscussion renders /{owner}/{repo}/discussions/new
 func (h *Handler) PageNewDiscussion(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -330,7 +356,6 @@ func (h *Handler) PageNewDiscussion(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// PageNewDiscussionSubmit handles the new discussion form and redirects to the created discussion.
 func (h *Handler) PageNewDiscussionSubmit(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -496,7 +521,12 @@ func (h *Handler) CreateReply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
+	repo, repoErr := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if repoErr != nil {
+		// The reply already landed; we just can't fan out notifications or
+		// render the post-reply card with full write affordances.
+		slog.Warn("create reply: post-reply repo fetch failed", "owner", owner, "repo", repoName, "discussion", discussion.ID, "error", repoErr)
+	}
 	if repo != nil {
 		go h.Services.Notification.NotifyDiscussionReply(r.Context(), *repo, *discussion, claims.UserID, claims.Username)
 	}
@@ -580,13 +610,41 @@ func (h *Handler) MarkAnswer(w http.ResponseWriter, r *http.Request) {
 			body.Body = &text
 		}
 		if r.Form.Has("category_id") {
-			if v, err := strconv.ParseInt(r.FormValue("category_id"), 10, 64); err == nil {
-				body.CategoryID = &v
+			v, err := strconv.ParseInt(r.FormValue("category_id"), 10, 64)
+			if err != nil {
+				writeError(w, http.StatusBadRequest, "invalid category id")
+				return
 			}
+			body.CategoryID = &v
 		}
 	} else if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON")
 		return
+	}
+
+	if body.Title != nil {
+		title := strings.TrimSpace(*body.Title)
+		if title == "" {
+			writeError(w, http.StatusBadRequest, "title is required")
+			return
+		}
+		if len(title) > discussionTitleMaxLen {
+			writeError(w, http.StatusBadRequest, "title is too long")
+			return
+		}
+		body.Title = &title
+	}
+	if body.CategoryID != nil {
+		cat, cerr := h.Services.Discussion.GetCategory(r.Context(), *body.CategoryID)
+		if cerr != nil {
+			slog.Error("mark answer: category lookup failed", "discussion", discussion.ID, "category", *body.CategoryID, "error", cerr)
+			writeError(w, http.StatusInternalServerError, "internal server error")
+			return
+		}
+		if cat == nil {
+			writeError(w, http.StatusUnprocessableEntity, "unknown category")
+			return
+		}
 	}
 
 	if body.AnswerID != nil {

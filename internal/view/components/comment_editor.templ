@@ -1,8 +1,5 @@
 package components
 
-// CommentEditor is the card shell for a comment composer. The form attributes
-// (hx-post, hx-target, …) are supplied by the caller; children compose the
-// bands: CommentEditorHeader, MarkdownEditor, CommentEditorActions.
 templ CommentEditor(attrs templ.Attributes) {
 	<section class="mt-6" aria-label="Add a comment">
 		<form class="rounded-md border border-border bg-card overflow-hidden" { attrs... }>
@@ -11,7 +8,6 @@ templ CommentEditor(attrs templ.Attributes) {
 	</section>
 }
 
-// CommentEditorHeader is the avatar + label band at the top of a CommentEditor.
 templ CommentEditorHeader(username string) {
 	<header class="px-3 py-2 border-b border-border bg-background flex items-center gap-2">
 		@Avatar(username, AvatarSizeSM, username)
@@ -19,7 +15,6 @@ templ CommentEditorHeader(username string) {
 	</header>
 }
 
-// CommentEditorActions is the footer band; children are the action buttons.
 templ CommentEditorActions() {
 	<div class="px-3 py-2 border-t border-border bg-muted/40 flex items-center gap-2">
 		<p class="text-[11px] text-muted-foreground font-mono flex-1">Markdown supported · drop files to attach</p>

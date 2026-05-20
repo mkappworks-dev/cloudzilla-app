@@ -109,7 +109,7 @@ func (s *IssueService) SetState(ctx context.Context, owner, repoName string, num
 	return s.issues.GetByNumberUnfiltered(ctx, repo.ID, number)
 }
 
-// SetPriority sets (or clears, when priority is nil) an issue's priority.
+// SetPriority sets, or clears when priority is nil, an issue's priority.
 func (s *IssueService) SetPriority(ctx context.Context, owner, repoName string, number int, priority *string) (*model.Issue, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
@@ -125,7 +125,6 @@ func (s *IssueService) SetPriority(ctx context.Context, owner, repoName string, 
 	return s.issues.GetByNumberUnfiltered(ctx, repo.ID, number)
 }
 
-// EditTitle updates an issue's title.
 func (s *IssueService) EditTitle(ctx context.Context, owner, repoName string, number int, title string) (*model.Issue, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
@@ -141,7 +140,6 @@ func (s *IssueService) EditTitle(ctx context.Context, owner, repoName string, nu
 	return s.issues.GetByNumberUnfiltered(ctx, repo.ID, number)
 }
 
-// EditBody updates an issue's body.
 func (s *IssueService) EditBody(ctx context.Context, owner, repoName string, number int, body string) (*model.Issue, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {

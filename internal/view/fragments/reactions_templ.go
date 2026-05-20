@@ -17,7 +17,6 @@ import (
 
 var reactionEmojis = []string{"+1", "-1", "laugh", "hooray", "confused", "heart", "rocket", "eyes"}
 
-// Reactions renders the reaction bar for an issue/PR comment.
 func Reactions(data view.ReactionFragData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -52,8 +51,7 @@ func Reactions(data view.ReactionFragData) templ.Component {
 	})
 }
 
-// ReactionBar renders an emoji reaction bar. Toggles POST to endpoint; the bar
-// swaps itself by domID. Shared by comments, discussion posts, and replies.
+// ReactionBar swaps itself by domID. Shared by comments, discussion posts, and replies.
 func ReactionBar(endpoint, domID string, reactions []model.ReactionSummary, loggedIn bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -82,7 +80,7 @@ func ReactionBar(endpoint, domID string, reactions []model.ReactionSummary, logg
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(domID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 25, Col: 16}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 23, Col: 16}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {
@@ -105,7 +103,7 @@ func ReactionBar(endpoint, domID string, reactions []model.ReactionSummary, logg
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(endpoint)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 27, Col: 29}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 25, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 			if templ_7745c5c3_Err != nil {
@@ -118,7 +116,7 @@ func ReactionBar(endpoint, domID string, reactions []model.ReactionSummary, logg
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(`{"emoji":"` + r.Emoji + `"}`)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 27, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 25, Col: 71}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 			if templ_7745c5c3_Err != nil {
@@ -131,7 +129,7 @@ func ReactionBar(endpoint, domID string, reactions []model.ReactionSummary, logg
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue("#" + domID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 27, Col: 97}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 25, Col: 97}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 			if templ_7745c5c3_Err != nil {
@@ -157,7 +155,7 @@ func ReactionBar(endpoint, domID string, reactions []model.ReactionSummary, logg
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(view.EmojiChar(r.Emoji))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 27, Col: 425}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 25, Col: 425}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -170,7 +168,7 @@ func ReactionBar(endpoint, domID string, reactions []model.ReactionSummary, logg
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(r.Count))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 27, Col: 485}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 25, Col: 485}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -194,7 +192,7 @@ func ReactionBar(endpoint, domID string, reactions []model.ReactionSummary, logg
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(endpoint)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 34, Col: 32}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 32, Col: 32}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 				if templ_7745c5c3_Err != nil {
@@ -207,7 +205,7 @@ func ReactionBar(endpoint, domID string, reactions []model.ReactionSummary, logg
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(`{"emoji":"` + e + `"}`)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 34, Col: 68}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 32, Col: 68}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 				if templ_7745c5c3_Err != nil {
@@ -220,7 +218,7 @@ func ReactionBar(endpoint, domID string, reactions []model.ReactionSummary, logg
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue("#" + domID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 34, Col: 94}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 32, Col: 94}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 				if templ_7745c5c3_Err != nil {
@@ -233,7 +231,7 @@ func ReactionBar(endpoint, domID string, reactions []model.ReactionSummary, logg
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(view.EmojiChar(e))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 34, Col: 202}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/reactions.templ`, Line: 32, Col: 202}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {

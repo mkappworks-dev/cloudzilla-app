@@ -100,8 +100,6 @@ func newReleaseSvc(t *testing.T, tags ...string) (*service.ReleaseService, strin
 	return svc, ownerName, repoName, ownerID
 }
 
-// TestReleaseService_Create_AssignsID verifies that Create inserts a release and
-// returns it with a non-zero database ID.
 func TestReleaseService_Create_AssignsID(t *testing.T) {
 	svc, owner, repo, authorID := newReleaseSvc(t, "v1.0.0")
 
@@ -117,8 +115,6 @@ func TestReleaseService_Create_AssignsID(t *testing.T) {
 	}
 }
 
-// TestReleaseService_ListByRepo_ReturnsRelease verifies that ListByRepo returns the
-// release we just created.
 func TestReleaseService_ListByRepo_ReturnsRelease(t *testing.T) {
 	svc, owner, repo, authorID := newReleaseSvc(t, "v2.0.0")
 
@@ -135,8 +131,6 @@ func TestReleaseService_ListByRepo_ReturnsRelease(t *testing.T) {
 	}
 }
 
-// TestReleaseService_GetByTag_ReturnsCorrectRelease verifies that GetByTag finds the
-// release by its tag name.
 func TestReleaseService_GetByTag_ReturnsCorrectRelease(t *testing.T) {
 	svc, owner, repo, authorID := newReleaseSvc(t, "v3.0.0")
 
@@ -154,8 +148,6 @@ func TestReleaseService_GetByTag_ReturnsCorrectRelease(t *testing.T) {
 	}
 }
 
-// TestReleaseService_Delete_RemovesRelease verifies that Delete removes the release so
-// GetByTag returns an error afterward.
 func TestReleaseService_Delete_RemovesRelease(t *testing.T) {
 	svc, owner, repo, authorID := newReleaseSvc(t, "v4.0.0")
 
@@ -174,8 +166,6 @@ func TestReleaseService_Delete_RemovesRelease(t *testing.T) {
 	}
 }
 
-// TestReleaseService_Create_Prerelease verifies that a release created with
-// isPrerelease=true stores the flag correctly.
 func TestReleaseService_Create_Prerelease(t *testing.T) {
 	svc, owner, repo, authorID := newReleaseSvc(t, "v1.0.0-rc1")
 
@@ -188,8 +178,6 @@ func TestReleaseService_Create_Prerelease(t *testing.T) {
 	}
 }
 
-// TestReleaseService_Create_CreatesTagOnTargetBranch verifies that Create tags the
-// target branch's tip when the release tag does not yet exist.
 func TestReleaseService_Create_CreatesTagOnTargetBranch(t *testing.T) {
 	svc, owner, repo, authorID := newReleaseSvc(t) // no pre-existing tags
 
@@ -210,8 +198,6 @@ func TestReleaseService_Create_CreatesTagOnTargetBranch(t *testing.T) {
 	}
 }
 
-// TestReleaseService_Create_FailsWhenTargetBranchMissing verifies that Create fails
-// when the tag is absent and the target branch cannot be resolved.
 func TestReleaseService_Create_FailsWhenTargetBranchMissing(t *testing.T) {
 	svc, owner, repo, authorID := newReleaseSvc(t) // no pre-existing tags
 
@@ -221,9 +207,6 @@ func TestReleaseService_Create_FailsWhenTargetBranchMissing(t *testing.T) {
 	}
 }
 
-// TestReleaseService_Create_DuplicateTagReturnsSentinel verifies that creating a
-// second release for the same tag returns ErrReleaseTagInUse rather than leaking
-// the underlying database constraint error.
 func TestReleaseService_Create_DuplicateTagReturnsSentinel(t *testing.T) {
 	svc, owner, repo, authorID := newReleaseSvc(t, "v7.0.0")
 

@@ -14,8 +14,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
-// issueWriteContext resolves the repo + issue number and verifies the caller has
-// write access. It writes the error response itself; ok is false when it did.
+// issueWriteContext returns ok=false after writing the error response itself.
 func (h *Handler) issueWriteContext(w http.ResponseWriter, r *http.Request) (owner, repoName string, number int, repo *model.Repository, userID int64, ok bool) {
 	claims, found := middleware.ClaimsFromContext(r.Context())
 	if !found {
@@ -41,7 +40,6 @@ func (h *Handler) issueWriteContext(w http.ResponseWriter, r *http.Request) (own
 	return owner, repoName, number, repo, claims.UserID, true
 }
 
-// SetIssuePriority handles POST /api/repos/{owner}/{repo}/issues/{number}/priority
 func (h *Handler) SetIssuePriority(w http.ResponseWriter, r *http.Request) {
 	owner, repoName, number, _, _, ok := h.issueWriteContext(w, r)
 	if !ok {
@@ -87,8 +85,7 @@ func (h *Handler) SetIssuePriority(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, issue)
 }
 
-// IssueTitleSection handles GET /api/repos/{owner}/{repo}/issues/{number}/title
-// (?mode=edit renders the inline edit form).
+// IssueTitleSection renders the title (or its inline editor when ?mode=edit).
 func (h *Handler) IssueTitleSection(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -115,7 +112,6 @@ func (h *Handler) IssueTitleSection(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, fragments.IssueTitleSection(owner, repoName, number, issue.Title, canWrite, r.URL.Query().Get("mode") == "edit"))
 }
 
-// EditIssueTitle handles PATCH /api/repos/{owner}/{repo}/issues/{number}/title
 func (h *Handler) EditIssueTitle(w http.ResponseWriter, r *http.Request) {
 	owner, repoName, number, _, _, ok := h.issueWriteContext(w, r)
 	if !ok {
@@ -139,8 +135,7 @@ func (h *Handler) EditIssueTitle(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, fragments.IssueTitleSection(owner, repoName, number, issue.Title, true, false))
 }
 
-// IssueBodySection handles GET /api/repos/{owner}/{repo}/issues/{number}/body
-// (?mode=edit renders the inline edit form).
+// IssueBodySection renders the body (or its inline editor when ?mode=edit).
 func (h *Handler) IssueBodySection(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -177,7 +172,6 @@ func (h *Handler) IssueBodySection(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// EditIssueBody handles PATCH /api/repos/{owner}/{repo}/issues/{number}/body
 func (h *Handler) EditIssueBody(w http.ResponseWriter, r *http.Request) {
 	owner, repoName, number, _, _, ok := h.issueWriteContext(w, r)
 	if !ok {
@@ -206,12 +200,10 @@ func (h *Handler) EditIssueBody(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// LinkIssuePull handles POST  /api/repos/{owner}/{repo}/issues/{number}/linked-pulls/{pullNumber}
 func (h *Handler) LinkIssuePull(w http.ResponseWriter, r *http.Request) {
 	h.setIssuePullLink(w, r, true)
 }
 
-// UnlinkIssuePull handles DELETE /api/repos/{owner}/{repo}/issues/{number}/linked-pulls/{pullNumber}
 func (h *Handler) UnlinkIssuePull(w http.ResponseWriter, r *http.Request) {
 	h.setIssuePullLink(w, r, false)
 }
@@ -260,7 +252,6 @@ func (h *Handler) setIssuePullLink(w http.ResponseWriter, r *http.Request, link 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// renderIssueLinkedPullsFragment re-renders the issue's linked-PR sidebar section.
 func (h *Handler) renderIssueLinkedPullsFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, issueNumber int, canWrite bool) {
 	linked, err := h.Services.Issue.LinkedPRs(r.Context(), owner, repoName, issueNumber)
 	if err != nil {

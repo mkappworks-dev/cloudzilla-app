@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -13,16 +14,12 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// WikiPageMeta holds display metadata for a single wiki page.
 type WikiPageMeta struct {
 	Slug      string
 	Title     string
 	UpdatedAt time.Time
 }
 
-// orderWikiSlugs returns slugs in the order prescribed by the .order file
-// content, appending any real pages not listed there alphabetically.
-// Stale entries in the order content (slug not in all) are silently dropped.
 func orderWikiSlugs(all []string, orderContent string) []string {
 	set := make(map[string]bool, len(all))
 	for _, s := range all {
@@ -40,7 +37,6 @@ func orderWikiSlugs(all []string, orderContent string) []string {
 		seen[slug] = true
 	}
 
-	// Append remaining pages alphabetically.
 	var rest []string
 	for _, s := range all {
 		if !seen[s] {
@@ -51,8 +47,54 @@ func orderWikiSlugs(all []string, orderContent string) []string {
 	return append(ordered, rest...)
 }
 
+// readWikiOrder returns the raw .order content for a commit, or "" when the
+// blob does not exist. A blob that exists but cannot be read is logged at
+// warn level so the user-visible "alphabetical fallback" is never silent.
+func readWikiOrder(commit *object.Commit, owner, repoName string) string {
+	f, err := commit.File(".order")
+	if err != nil {
+		return ""
+	}
+	content, cerr := f.Contents()
+	if cerr != nil {
+		slog.Warn("wiki: .order read failed; falling back to alphabetical",
+			"owner", owner, "repo", repoName, "error", cerr)
+		return ""
+	}
+	return content
+}
+
+// rewriteWikiOrder returns updated .order content with slug substitution
+// (oldSlug→newSlug when newSlug != "") or removal (newSlug == ""). Returns
+// empty + false when the input had no usable lines, signalling callers to
+// skip writing a .order blob entirely.
+func rewriteWikiOrder(orderContent, oldSlug, newSlug string) (string, bool) {
+	if orderContent == "" {
+		return "", false
+	}
+	var out []string
+	for _, line := range strings.Split(orderContent, "\n") {
+		s := strings.TrimSpace(line)
+		if s == "" {
+			continue
+		}
+		if s == oldSlug {
+			if newSlug == "" {
+				continue
+			}
+			out = append(out, newSlug)
+			continue
+		}
+		out = append(out, s)
+	}
+	if len(out) == 0 {
+		return "", false
+	}
+	return strings.Join(out, "\n"), true
+}
+
 // WikiPageListMeta returns each wiki page's slug, first-heading title, and HEAD
-// commit time. Returns an empty slice when the wiki has no commits yet.
+// commit time. Empty slice when the wiki has no commits yet.
 func (s *CodeService) WikiPageListMeta(owner, repoName string) ([]WikiPageMeta, error) {
 	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
 	if err != nil {
@@ -78,7 +120,6 @@ func (s *CodeService) WikiPageListMeta(owner, repoName string) ([]WikiPageMeta, 
 	}
 	updatedAt := commit.Author.When
 
-	// Collect metadata keyed by slug.
 	metaBySlug := make(map[string]WikiPageMeta)
 	var slugs []string
 	for _, entry := range tree.Entries {
@@ -100,12 +141,7 @@ func (s *CodeService) WikiPageListMeta(owner, repoName string) ([]WikiPageMeta, 
 		slugs = append(slugs, slug)
 	}
 
-	// Apply .order if present; fall back to alphabetical.
-	orderContent := ""
-	if f, err := commit.File(".order"); err == nil {
-		orderContent, _ = f.Contents()
-	}
-	ordered := orderWikiSlugs(slugs, orderContent)
+	ordered := orderWikiSlugs(slugs, readWikiOrder(commit, owner, repoName))
 
 	pages := make([]WikiPageMeta, 0, len(ordered))
 	for _, slug := range ordered {
@@ -114,8 +150,6 @@ func (s *CodeService) WikiPageListMeta(owner, repoName string) ([]WikiPageMeta, 
 	return pages, nil
 }
 
-// firstHeading scans content for the first H1 line ("# ") and returns its
-// trimmed text. Returns "" when no H1 heading is found.
 func firstHeading(content string) string {
 	for _, line := range strings.Split(content, "\n") {
 		trimmed := strings.TrimLeft(line, " ")
@@ -155,11 +189,7 @@ func (s *CodeService) WikiPageList(owner, repoName string) ([]string, error) {
 		}
 	}
 
-	orderContent := ""
-	if f, err := commit.File(".order"); err == nil {
-		orderContent, _ = f.Contents()
-	}
-	return orderWikiSlugs(slugs, orderContent), nil
+	return orderWikiSlugs(slugs, readWikiOrder(commit, owner, repoName)), nil
 }
 
 // WikiPageGet returns the raw Markdown content of a single wiki page identified
@@ -225,9 +255,8 @@ func (s *CodeService) WikiPageSave(owner, repoName, slug, content, authorName, a
 	return wikiCommit(repo, slug+".md", []byte(content), authorName, authorEmail, message)
 }
 
-// WikiPageRename moves a wiki page from oldSlug to newSlug in a single commit,
-// preserving the original content. Returns an error when oldSlug does not exist
-// or newSlug already exists (collision).
+// WikiPageRename moves a page in a single commit and rewrites .order so the
+// user-defined sidebar position is preserved across the rename.
 func (s *CodeService) WikiPageRename(owner, repoName, oldSlug, newSlug, authorName, authorEmail, message string) error {
 	wPath := s.wikiPath(owner, repoName)
 	repo, err := gogit.PlainOpen(wPath)
@@ -265,22 +294,144 @@ func (s *CodeService) WikiPageRename(owner, repoName, oldSlug, newSlug, authorNa
 		return fmt.Errorf("page %q not found", oldSlug)
 	}
 
-	// Build the new tree: all existing entries minus oldFile, plus newFile.
-	stor := repo.Storer
-	now := time.Now()
-	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
+	if message == "" {
+		message = "Rename " + oldSlug + " to " + newSlug
+	}
 
-	entries := make([]object.TreeEntry, 0, len(existingTree.Entries))
-	for _, e := range existingTree.Entries {
-		if e.Name != oldFile {
-			entries = append(entries, e)
+	mutate := func(entries []object.TreeEntry) ([]object.TreeEntry, []blobWrite, error) {
+		out := make([]object.TreeEntry, 0, len(entries))
+		for _, e := range entries {
+			if e.Name == oldFile {
+				continue
+			}
+			out = append(out, e)
+		}
+		out = append(out, object.TreeEntry{Name: newFile, Mode: oldEntry.Mode, Hash: oldEntry.Hash})
+
+		var blobs []blobWrite
+		if orderContent := readWikiOrder(parentCommit, owner, repoName); orderContent != "" {
+			if rewritten, ok := rewriteWikiOrder(orderContent, oldSlug, newSlug); ok {
+				blobs = append(blobs, blobWrite{Name: ".order", Content: []byte(rewritten)})
+			}
+		}
+		return out, blobs, nil
+	}
+	return wikiMutateTree(repo, parentCommit, authorName, authorEmail, message, mutate)
+}
+
+// WikiPageDelete removes a wiki page and strips the slug from .order so the
+// sidebar order does not silently drift toward a dead entry.
+func (s *CodeService) WikiPageDelete(owner, repoName, slug, authorName, authorEmail string) error {
+	wPath := s.wikiPath(owner, repoName)
+	repo, err := gogit.PlainOpen(wPath)
+	if err != nil {
+		return nil
+	}
+	head, err := repo.Head()
+	if err != nil {
+		return nil
+	}
+	parentCommit, err := repo.CommitObject(head.Hash())
+	if err != nil {
+		return err
+	}
+
+	filename := slug + ".md"
+	mutate := func(entries []object.TreeEntry) ([]object.TreeEntry, []blobWrite, error) {
+		out := make([]object.TreeEntry, 0, len(entries))
+		found := false
+		for _, e := range entries {
+			if e.Name == filename {
+				found = true
+				continue
+			}
+			out = append(out, e)
+		}
+		if !found {
+			return nil, nil, errWikiNoChange
+		}
+
+		var blobs []blobWrite
+		if orderContent := readWikiOrder(parentCommit, owner, repoName); orderContent != "" {
+			if rewritten, ok := rewriteWikiOrder(orderContent, slug, ""); ok {
+				blobs = append(blobs, blobWrite{Name: ".order", Content: []byte(rewritten)})
+			} else {
+				// All entries stripped — replace .order with an empty blob so
+				// any prior stale slug references are also flushed.
+				blobs = append(blobs, blobWrite{Name: ".order", Content: []byte("")})
+			}
+		}
+		return out, blobs, nil
+	}
+	if err := wikiMutateTree(repo, parentCommit, authorName, authorEmail, "Delete "+slug, mutate); err != nil {
+		if errors.Is(err, errWikiNoChange) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+// errWikiNoChange signals that a mutate callback observed nothing to do.
+// wikiMutateTree turns this into a no-op rather than a vacuous commit.
+var errWikiNoChange = errors.New("wiki: no change")
+
+type blobWrite struct {
+	Name    string
+	Content []byte
+}
+
+// wikiMutateTree commits the result of applying mutate() to the parent commit's
+// tree entries. The callback returns the new entry list (with .md changes
+// applied) plus any additional blobs to write into the new tree by name —
+// used here to co-update .order on rename/delete.
+func wikiMutateTree(
+	repo *gogit.Repository,
+	parentCommit *object.Commit,
+	authorName, authorEmail, message string,
+	mutate func([]object.TreeEntry) ([]object.TreeEntry, []blobWrite, error),
+) error {
+	parentTree, err := parentCommit.Tree()
+	if err != nil {
+		return err
+	}
+	entries, blobs, err := mutate(parentTree.Entries)
+	if err != nil {
+		return err
+	}
+
+	stor := repo.Storer
+	for _, b := range blobs {
+		blobObj := stor.NewEncodedObject()
+		blobObj.SetType(plumbing.BlobObject)
+		blobObj.SetSize(int64(len(b.Content)))
+		bw, err := blobObj.Writer()
+		if err != nil {
+			return err
+		}
+		if _, err := bw.Write(b.Content); err != nil {
+			return err
+		}
+		if err := bw.Close(); err != nil {
+			return err
+		}
+		hash, err := stor.SetEncodedObject(blobObj)
+		if err != nil {
+			return err
+		}
+		replaced := false
+		for i, e := range entries {
+			if e.Name == b.Name {
+				entries[i].Hash = hash
+				entries[i].Mode = filemode.Regular
+				replaced = true
+				break
+			}
+		}
+		if !replaced {
+			entries = append(entries, object.TreeEntry{Name: b.Name, Mode: filemode.Regular, Hash: hash})
 		}
 	}
-	entries = append(entries, object.TreeEntry{
-		Name: newFile,
-		Mode: oldEntry.Mode,
-		Hash: oldEntry.Hash,
-	})
 	sort.Slice(entries, func(i, j int) bool { return entries[i].Name < entries[j].Name })
 
 	treeObj := stor.NewEncodedObject()
@@ -293,9 +444,8 @@ func (s *CodeService) WikiPageRename(owner, repoName, oldSlug, newSlug, authorNa
 		return err
 	}
 
-	if message == "" {
-		message = "Rename " + oldSlug + " to " + newSlug
-	}
+	now := time.Now()
+	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
 	commitObj := stor.NewEncodedObject()
 	commit := object.Commit{
 		Author:       sig,
@@ -312,18 +462,11 @@ func (s *CodeService) WikiPageRename(owner, repoName, oldSlug, newSlug, authorNa
 		return err
 	}
 
-	ref := plumbing.NewHashReference(head.Name(), commitHash)
-	return stor.SetReference(ref)
-}
-
-// WikiPageDelete removes a wiki page by committing a tree without the file.
-func (s *CodeService) WikiPageDelete(owner, repoName, slug, authorName, authorEmail string) error {
-	wPath := s.wikiPath(owner, repoName)
-	repo, err := gogit.PlainOpen(wPath)
+	headRef, err := repo.Head()
 	if err != nil {
-		return nil // nothing to delete
+		return err
 	}
-	return wikiDelete(repo, slug+".md", authorName, authorEmail, "Delete "+slug)
+	return stor.SetReference(plumbing.NewHashReference(headRef.Name(), commitHash))
 }
 
 // wikiCommit writes filename/content into the bare repo as a new commit on

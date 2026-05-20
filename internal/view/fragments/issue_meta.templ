@@ -8,7 +8,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
-// priorityOption describes one entry in the priority picker.
 type priorityOption struct {
 	Key      string
 	Label    string
@@ -56,7 +55,6 @@ templ prStateIcon(state string) {
 	}
 }
 
-// priorityBadge renders the colored display badge for a set priority.
 templ priorityBadge(p string) {
 	switch p {
 		case "P0":
@@ -142,7 +140,6 @@ templ IssuePrioritySidebar(data view.IssuePrioritySidebarData) {
 	</div>
 }
 
-// IssueLinkedPullsSidebar renders the Linked pull requests sidebar section.
 templ IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) {
 	{{ base := "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.IssueNumber) + "/linked-pulls/" }}
 	<div id="issue-linked-pulls" class="space-y-2">
@@ -222,7 +219,6 @@ templ IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) {
 	</div>
 }
 
-// IssueTitleSection renders the issue title with an inline edit affordance.
 templ IssueTitleSection(owner, repoName string, number int, title string, canWrite, editing bool) {
 	{{ base := "/api/repos/" + owner + "/" + repoName + "/issues/" + strconv.Itoa(number) + "/title" }}
 	<div id="issue-title-section" class="flex flex-wrap items-start justify-between gap-3">
@@ -269,10 +265,9 @@ templ IssueTitleSection(owner, repoName string, number int, title string, canWri
 	</div>
 }
 
-// IssueBodyCard renders the issue description card with an inline edit affordance.
-// mdToolbarButton renders one icon button in the markdown editor's formatting
-// toolbar. onClick is an Alpine expression — typically a wrap() call that
-// surrounds the textarea selection with markdown markers.
+// mdToolbarButton renders one toolbar icon button. onClick is an Alpine
+// expression — typically a wrap() that surrounds the textarea selection with
+// markdown markers.
 templ mdToolbarButton(label, onClick string) {
 	<button type="button" aria-label={ label } x-on:click={ onClick } class="h-7 w-7 grid place-items-center rounded hover:bg-muted hover:text-foreground">
 		{ children... }

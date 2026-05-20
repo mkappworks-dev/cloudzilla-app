@@ -24,6 +24,10 @@ func (s *DiscussionService) ListCategories(ctx context.Context) ([]model.Discuss
 	return s.discussions.ListCategories(ctx)
 }
 
+func (s *DiscussionService) GetCategory(ctx context.Context, id int64) (*model.DiscussionCategory, error) {
+	return s.discussions.GetCategory(ctx, id)
+}
+
 func (s *DiscussionService) CountByRepo(ctx context.Context, repoID int64) (int, error) {
 	return s.discussions.CountByRepo(ctx, repoID)
 }

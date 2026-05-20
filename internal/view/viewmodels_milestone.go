@@ -64,12 +64,9 @@ type MilestoneDetailData struct {
 	TotalPages int
 	PerPage    int
 
-	// DescriptionHTML is the milestone description rendered to HTML.
 	DescriptionHTML string
 }
 
-// MilestoneBodyCardData holds data for the milestone description card, which is
-// re-rendered on its own when the inline editor opens or saves.
 type MilestoneBodyCardData struct {
 	Owner           string
 	RepoName        string

@@ -75,7 +75,6 @@ type ReleasesData struct {
 	CanWrite bool
 }
 
-// ReleaseNewData holds template data for the new-release form page.
 type ReleaseNewData struct {
 	BasePage
 	Repo     model.Repository
@@ -84,8 +83,6 @@ type ReleaseNewData struct {
 	Branches []service.BranchInfo
 }
 
-// Release detail page
-// ReleaseBodyCardData holds data for the release body card, re-rendered on body edit.
 type ReleaseBodyCardData struct {
 	Owner     string
 	RepoName  string
@@ -96,7 +93,6 @@ type ReleaseBodyCardData struct {
 	Editing   bool
 }
 
-// ReleaseDetailData holds template data for a single release detail page.
 type ReleaseDetailData struct {
 	BasePage
 	Repo       model.Repository

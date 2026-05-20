@@ -18,8 +18,8 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// releaseStatus collapses the release flags into a single keyword the title
-// fragment uses to pick a badge: "latest" / "prerelease" / "draft" / "".
+// releaseStatus collapses the release flags into the badge keyword the title
+// fragment renders: "latest" / "prerelease" / "draft" / "".
 func (h *Handler) releaseStatus(ctx context.Context, owner, repoName string, release model.Release) string {
 	if !release.IsDraft && !release.IsPrerelease {
 		if latest, err := h.Services.Release.GetLatest(ctx, owner, repoName); err == nil && latest != nil && latest.ID == release.ID {
@@ -35,8 +35,7 @@ func (h *Handler) releaseStatus(ctx context.Context, owner, repoName string, rel
 	return ""
 }
 
-// releaseWriteContext loads the release and resolves caller permissions for
-// inline-edit handlers. Returns ok=false after writing the response on failure.
+// releaseWriteContext returns ok=false after writing the error response itself.
 func (h *Handler) releaseWriteContext(w http.ResponseWriter, r *http.Request) (owner, repoName string, release *model.Release, canWrite bool, ok bool) {
 	owner = chi.URLParam(r, "owner")
 	repoName = chi.URLParam(r, "repo")
@@ -69,8 +68,6 @@ func (h *Handler) releaseWriteContext(w http.ResponseWriter, r *http.Request) (o
 	return
 }
 
-// ReleaseTitleSection handles GET /api/repos/{owner}/{repo}/releases/{id}/title
-// (?mode=edit renders the inline edit form).
 func (h *Handler) ReleaseTitleSection(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -104,7 +101,6 @@ func (h *Handler) ReleaseTitleSection(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, fragments.ReleaseTitleSection(owner, repoName, release.ID, release.Name, release.TagName, status, canWrite, editing))
 }
 
-// EditReleaseTitle handles PATCH /api/repos/{owner}/{repo}/releases/{id}/title.
 func (h *Handler) EditReleaseTitle(w http.ResponseWriter, r *http.Request) {
 	owner, repoName, release, _, ok := h.releaseWriteContext(w, r)
 	if !ok {
@@ -124,8 +120,6 @@ func (h *Handler) EditReleaseTitle(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, fragments.ReleaseTitleSection(owner, repoName, updated.ID, updated.Name, updated.TagName, status, true, false))
 }
 
-// ReleaseBodySection handles GET /api/repos/{owner}/{repo}/releases/{id}/body
-// (?mode=edit renders the inline edit form).
 func (h *Handler) ReleaseBodySection(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -165,9 +159,9 @@ func (h *Handler) ReleaseBodySection(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// PublishRelease handles PATCH /api/repos/{owner}/{repo}/releases/{id}/publish.
-// Draft → published is one-way; ErrReleaseAlreadyPublished surfaces as 422.
-// Fires the same release webhook + audit event as a fresh non-draft create.
+// PublishRelease promotes a draft. Draft → published is one-way;
+// ErrReleaseAlreadyPublished surfaces as 422. Fires the same release webhook +
+// audit event as a fresh non-draft create.
 func (h *Handler) PublishRelease(w http.ResponseWriter, r *http.Request) {
 	owner, repoName, release, _, ok := h.releaseWriteContext(w, r)
 	if !ok {
@@ -190,9 +184,13 @@ func (h *Handler) PublishRelease(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
-	go h.Services.Webhook.Dispatch(updated.RepoID, "release", h.Services.Webhook.ReleasePayload("published", owner, repoName, *updated))
 	repoID := updated.RepoID
-	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventReleasePublished, map[string]any{"tag": updated.TagName, "name": updated.Name})
+	releaseSideEffects(h, "publish release", owner, repoName, updated.ID, func() {
+		h.Services.Webhook.Dispatch(updated.RepoID, "release", h.Services.Webhook.ReleasePayload("published", owner, repoName, *updated))
+	})
+	releaseSideEffects(h, "publish release event", owner, repoName, updated.ID, func() {
+		h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventReleasePublished, map[string]any{"tag": updated.TagName, "name": updated.Name})
+	})
 
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("HX-Refresh", "true")
@@ -202,8 +200,23 @@ func (h *Handler) PublishRelease(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, updated)
 }
 
-// EditReleasePrerelease handles PATCH /api/repos/{owner}/{repo}/releases/{id}/prerelease.
-// The HTMX response asks the page to refresh so the title badge, sidebar status,
+// releaseSideEffects fires fn in a goroutine wrapped in panic recovery. The
+// outcome of the side-effect must never propagate to the request response, but
+// a panic in a hot release goroutine would crash the whole server — so we log
+// and contain it instead.
+func releaseSideEffects(h *Handler, label, owner, repoName string, releaseID int64, fn func()) {
+	go func() {
+		defer func() {
+			if rec := recover(); rec != nil {
+				slog.Error("release side-effect panic",
+					"label", label, "owner", owner, "repo", repoName, "release_id", releaseID, "panic", rec)
+			}
+		}()
+		fn()
+	}()
+}
+
+// EditReleasePrerelease returns HX-Refresh so the title badge, sidebar status,
 // and any other derived state re-render server-side from one source of truth.
 func (h *Handler) EditReleasePrerelease(w http.ResponseWriter, r *http.Request) {
 	owner, repoName, release, _, ok := h.releaseWriteContext(w, r)
@@ -228,7 +241,6 @@ func (h *Handler) EditReleasePrerelease(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// EditReleaseBody handles PATCH /api/repos/{owner}/{repo}/releases/{id}/body.
 func (h *Handler) EditReleaseBody(w http.ResponseWriter, r *http.Request) {
 	owner, repoName, release, _, ok := h.releaseWriteContext(w, r)
 	if !ok {
@@ -544,9 +556,13 @@ func (h *Handler) CreateRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go h.Services.Webhook.Dispatch(release.RepoID, "release", h.Services.Webhook.ReleasePayload("published", owner, repoName, *release))
 	repoID := release.RepoID
-	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventReleasePublished, map[string]any{"tag": release.TagName, "name": release.Name})
+	releaseSideEffects(h, "create release", owner, repoName, release.ID, func() {
+		h.Services.Webhook.Dispatch(release.RepoID, "release", h.Services.Webhook.ReleasePayload("published", owner, repoName, *release))
+	})
+	releaseSideEffects(h, "create release event", owner, repoName, release.ID, func() {
+		h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventReleasePublished, map[string]any{"tag": release.TagName, "name": release.Name})
+	})
 
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("HX-Redirect", "/"+owner+"/"+repoName+"/releases")

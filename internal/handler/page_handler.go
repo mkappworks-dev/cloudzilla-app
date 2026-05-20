@@ -72,7 +72,6 @@ func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model
 	return base
 }
 
-// repoSubnavCounts builds the per-tab badge counts for the repo subnav.
 // Best-effort: a failed query drops that tab's count rather than failing the page.
 func (h *Handler) repoSubnavCounts(ctx context.Context, repo *model.Repository) map[string]int {
 	counts := map[string]int{}

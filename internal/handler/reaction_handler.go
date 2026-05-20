@@ -115,7 +115,6 @@ func (h *Handler) ToggleReaction(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// ToggleDiscussionReaction toggles a reaction on a discussion post.
 func (h *Handler) ToggleDiscussionReaction(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -163,7 +162,6 @@ func (h *Handler) ToggleDiscussionReaction(w http.ResponseWriter, r *http.Reques
 	h.render(w, r, fragments.ReactionBar(endpoint, "reactions-discussion-"+strconv.Itoa(number), reactions, true))
 }
 
-// ToggleDiscussionReplyReaction toggles a reaction on a discussion reply.
 func (h *Handler) ToggleDiscussionReplyReaction(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {

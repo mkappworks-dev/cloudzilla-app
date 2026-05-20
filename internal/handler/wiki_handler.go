@@ -148,7 +148,6 @@ func (h *Handler) PageWikiEdit(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// PageWikiNew renders the new wiki page creation form.
 func (h *Handler) PageWikiNew(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -276,8 +275,6 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 	http.Redirect(w, r, "/"+owner+"/"+repoName+"/wiki/"+slug, http.StatusSeeOther)
 }
 
-// WikiSetPageOrder handles POST /api/repos/{owner}/{repo}/wiki/order.
-// Accepts form field: order (comma-separated slugs in desired order).
 func (h *Handler) WikiSetPageOrder(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")

@@ -22,40 +22,33 @@ func TestSettingsSidebar(t *testing.T) {
 	}
 	out := buf.String()
 
-	// nav landmark
 	if !strings.Contains(out, `aria-label="Settings sections"`) {
 		t.Errorf("missing aria-label on nav")
 	}
 
-	// active item gets aria-current="page"
 	if !strings.Contains(out, `aria-current="page"`) {
 		t.Errorf("missing aria-current=page on active item")
 	}
 
-	// non-active items must NOT have aria-current
 	idx := strings.Index(out, `aria-current="page"`)
 	if idx == -1 {
 		t.Fatalf("aria-current not found at all")
 	}
-	// strip the one occurrence and verify no second one remains
 	remaining := out[:idx] + out[idx+len(`aria-current="page"`):]
 	if strings.Contains(remaining, `aria-current`) {
 		t.Errorf("aria-current present on more than one item")
 	}
 
-	// group label text appears
 	if !strings.Contains(out, "Danger zone") {
 		t.Errorf("missing GroupLabel text in output")
 	}
 
-	// all item labels appear
 	for _, label := range []string{"General", "Access", "Webhooks", "Archive", "Delete repository"} {
 		if !strings.Contains(out, label) {
 			t.Errorf("missing label %q in output", label)
 		}
 	}
 
-	// all hrefs appear
 	for _, href := range []string{"/repo/settings", "/repo/settings/access", "/repo/settings/webhooks", "/repo/settings/archive", "/repo/settings/delete"} {
 		if !strings.Contains(out, href) {
 			t.Errorf("missing href %q in output", href)

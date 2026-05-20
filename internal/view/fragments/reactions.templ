@@ -9,7 +9,6 @@ import (
 
 var reactionEmojis = []string{"+1", "-1", "laugh", "hooray", "confused", "heart", "rocket", "eyes"}
 
-// Reactions renders the reaction bar for an issue/PR comment.
 templ Reactions(data view.ReactionFragData) {
 	@ReactionBar(
 		"/api/repos/"+data.Owner+"/"+data.RepoName+"/comments/"+strconv.FormatInt(data.CommentID, 10)+"/reactions",
@@ -19,8 +18,7 @@ templ Reactions(data view.ReactionFragData) {
 	)
 }
 
-// ReactionBar renders an emoji reaction bar. Toggles POST to endpoint; the bar
-// swaps itself by domID. Shared by comments, discussion posts, and replies.
+// ReactionBar swaps itself by domID. Shared by comments, discussion posts, and replies.
 templ ReactionBar(endpoint, domID string, reactions []model.ReactionSummary, loggedIn bool) {
 	<div id={ domID } class="flex flex-wrap items-center gap-1 mt-2">
 		for _, r := range reactions {

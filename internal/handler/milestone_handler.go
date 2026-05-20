@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -156,8 +158,6 @@ func (h *Handler) PageNewMilestoneSubmit(w http.ResponseWriter, r *http.Request)
 
 	http.Redirect(w, r, fmt.Sprintf("/%s/%s/milestones", owner, repoName), http.StatusSeeOther)
 }
-
-// ─── API handlers ────────────────────────────────────────────────────────────
 
 func (h *Handler) ListMilestones(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
@@ -458,12 +458,16 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Milestone.SetIssue(r.Context(), issue.ID, milestoneID); err != nil {
-		slog.Error("operation failed", "error", err)
+		if errors.Is(err, service.ErrMilestoneRepoMismatch) {
+			toast(w, "error", "That milestone belongs to a different repository.")
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		slog.Error("set issue milestone failed", "owner", owner, "repo", repoName, "issue", issueNumber, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
-	// Return updated sidebar fragment
 	allMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
 	var currentMilestone *model.Milestone
 	if milestoneID != nil {
@@ -534,12 +538,16 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.Milestone.SetPull(r.Context(), pull.ID, milestoneID); err != nil {
-		slog.Error("operation failed", "error", err)
+		if errors.Is(err, service.ErrMilestoneRepoMismatch) {
+			toast(w, "error", "That milestone belongs to a different repository.")
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+		slog.Error("set pull milestone failed", "owner", owner, "repo", repoName, "pull", pullNumber, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
-	// Return updated sidebar fragment
 	allMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
 	var currentMilestone *model.Milestone
 	if milestoneID != nil {
@@ -561,14 +569,10 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// ─── Milestone detail page ───────────────────────────────────────────────────
-
-// milestoneItemsPerPage caps each of the detail page's two stacked lists.
-// It is kept small because issues and pull requests render on the same page.
+// milestoneItemsPerPage caps each of the detail page's two stacked lists,
+// kept small because issues and pull requests render on the same page.
 const milestoneItemsPerPage = 10
 
-// PageMilestoneDetail renders the milestone detail page. Tab, state, and page
-// are read from the query string.
 func (h *Handler) PageMilestoneDetail(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -604,7 +608,6 @@ func (h *Handler) PageMilestoneDetail(w http.ResponseWriter, r *http.Request) {
 	h.renderMilestoneDetail(w, r, repo, m, canWrite)
 }
 
-// renderMilestoneDetail builds and renders the milestone detail page.
 func (h *Handler) renderMilestoneDetail(w http.ResponseWriter, r *http.Request, repo *model.Repository, m *model.Milestone, canWrite bool) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -684,8 +687,6 @@ func (h *Handler) renderMilestoneDetail(w http.ResponseWriter, r *http.Request, 
 	}))
 }
 
-// PageMilestoneDetailAction handles the milestone detail page's sidebar
-// close/reopen/delete buttons.
 func (h *Handler) PageMilestoneDetailAction(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -745,10 +746,6 @@ func (h *Handler) PageMilestoneDetailAction(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-// ─── Milestone field inline-edit fragments ───────────────────────────────────
-
-// milestoneFragmentContext loads the milestone for a read-only fragment request
-// and reports whether the viewer may write.
 func (h *Handler) milestoneFragmentContext(w http.ResponseWriter, r *http.Request, owner, repoName string, number int) (*model.Milestone, bool, bool) {
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -773,8 +770,6 @@ func (h *Handler) milestoneFragmentContext(w http.ResponseWriter, r *http.Reques
 	return m, canWrite, true
 }
 
-// milestoneWriteContext loads the milestone for an inline-edit save and verifies
-// the viewer may write.
 func (h *Handler) milestoneWriteContext(w http.ResponseWriter, r *http.Request, owner, repoName string, number int) (*model.Milestone, bool) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -798,8 +793,6 @@ func (h *Handler) milestoneWriteContext(w http.ResponseWriter, r *http.Request, 
 	return m, true
 }
 
-// MilestoneTitleSection handles GET .../milestones/{number}/title
-// (?mode=edit renders the inline edit form).
 func (h *Handler) MilestoneTitleSection(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -815,7 +808,6 @@ func (h *Handler) MilestoneTitleSection(w http.ResponseWriter, r *http.Request) 
 	h.render(w, r, fragments.MilestoneTitleSection(owner, repoName, number, m.Title, canWrite, r.URL.Query().Get("mode") == "edit"))
 }
 
-// EditMilestoneTitle handles PATCH .../milestones/{number}/title.
 func (h *Handler) EditMilestoneTitle(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -846,8 +838,6 @@ func (h *Handler) EditMilestoneTitle(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, fragments.MilestoneTitleSection(owner, repoName, number, updated.Title, true, false))
 }
 
-// MilestoneBodySection handles GET .../milestones/{number}/body
-// (?mode=edit renders the inline editor).
 func (h *Handler) MilestoneBodySection(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -871,7 +861,6 @@ func (h *Handler) MilestoneBodySection(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// EditMilestoneBody handles PATCH .../milestones/{number}/body.
 func (h *Handler) EditMilestoneBody(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -906,8 +895,6 @@ func (h *Handler) EditMilestoneBody(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// MilestoneDueSection handles GET .../milestones/{number}/due
-// (?mode=edit renders the inline edit form).
 func (h *Handler) MilestoneDueSection(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -923,7 +910,6 @@ func (h *Handler) MilestoneDueSection(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, fragments.MilestoneDueSection(owner, repoName, number, m.DueDate, canWrite, r.URL.Query().Get("mode") == "edit"))
 }
 
-// EditMilestoneDue handles PATCH .../milestones/{number}/due.
 func (h *Handler) EditMilestoneDue(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")

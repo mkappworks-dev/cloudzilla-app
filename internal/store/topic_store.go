@@ -92,7 +92,6 @@ func (s *TopicStore) ListReposByTopic(ctx context.Context, topicName string, pag
 	return scanRepos(rows)
 }
 
-// ListReposByTopicWithStats returns public repos with star counts, paginated and sorted.
 func (s *TopicStore) ListReposByTopicWithStats(ctx context.Context, topicName string, page, pageSize int, sort string) ([]model.RepositoryWithStats, error) {
 	var orderBy string
 	switch sort {
@@ -122,7 +121,6 @@ func (s *TopicStore) ListReposByTopicWithStats(ctx context.Context, topicName st
 	return scanReposWithStats(rows)
 }
 
-// CountReposByTopic returns the total number of public repos tagged with a topic.
 func (s *TopicStore) CountReposByTopic(ctx context.Context, topicName string) (int, error) {
 	var count int
 	err := s.db.QueryRowContext(ctx,

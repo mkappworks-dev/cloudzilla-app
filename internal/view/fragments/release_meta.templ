@@ -7,9 +7,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
-// ReleaseTitleSection renders the release "title" cluster (display name, tag
-// chip, status badges) with an inline edit affordance. Mirrors the issue title
-// pattern: GET ?mode=edit swaps in a form; PATCH swaps the form back to view.
 templ ReleaseTitleSection(owner, repoName string, id int64, name, tagName, status string, canWrite, editing bool) {
 	{{ base := "/api/repos/" + owner + "/" + repoName + "/releases/" + strconv.FormatInt(id, 10) + "/title" }}
 	<div id="release-title-section" class="flex flex-wrap items-center gap-2">
@@ -74,9 +71,6 @@ templ ReleaseTitleSection(owner, repoName string, id int64, name, tagName, statu
 	</div>
 }
 
-// ReleaseBodyCard renders the release notes card with an inline edit affordance.
-// Edit lives inside the same container — clicking it swaps the rendered notes
-// for the tabbed markdown editor in-place, mirroring IssueBodyCard.
 templ ReleaseBodyCard(data view.ReleaseBodyCardData) {
 	{{ base := "/api/repos/" + data.Owner + "/" + data.RepoName + "/releases/" + strconv.FormatInt(data.ReleaseID, 10) + "/body" }}
 	<section id="release-body-card" class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="rel-notes-heading">

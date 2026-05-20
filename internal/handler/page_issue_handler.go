@@ -407,6 +407,9 @@ func (h *Handler) applyNewIssueMetadata(r *http.Request, owner, repoName string,
 	if m := r.FormValue("milestone"); m != "" {
 		if milestoneID, convErr := strconv.ParseInt(m, 10, 64); convErr == nil {
 			if err := h.Services.Milestone.SetIssue(ctx, issue.ID, &milestoneID); err != nil {
+				// ErrMilestoneRepoMismatch lands here too — the rejection is logged
+				// and the issue is created without the milestone rather than failing
+				// the whole submit.
 				slog.Warn("new issue: set milestone failed", "issue", issue.Number, "milestone", milestoneID, "error", err)
 			}
 		}

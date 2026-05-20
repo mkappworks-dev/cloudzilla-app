@@ -103,7 +103,6 @@ func (s *DiscussionStore) List(ctx context.Context, repoID int64, categoryID int
 	return scanDiscussions(rows)
 }
 
-// CountByRepo returns the number of discussion threads in a repo.
 func (s *DiscussionStore) CountByRepo(ctx context.Context, repoID int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,
@@ -183,11 +182,21 @@ func (s *DiscussionStore) UpdateContent(ctx context.Context, id int64, title, bo
 }
 
 func (s *DiscussionStore) SetCategory(ctx context.Context, id, categoryID int64) error {
-	_, err := s.db.ExecContext(ctx,
+	res, err := s.db.ExecContext(ctx,
 		`UPDATE discussions SET category_id = $2, updated_at = NOW() WHERE id = $1`,
 		id, categoryID,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 
 func scanDiscussions(rows *sql.Rows) ([]model.Discussion, error) {

@@ -361,7 +361,6 @@ func (h *Handler) UpdateRepoFeatures(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/"+owner+"/"+repoName+"/settings", http.StatusSeeOther)
 }
 
-// UpdateRepoVisibility handles POST /{owner}/{repo}/settings/visibility.
 func (h *Handler) UpdateRepoVisibility(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")

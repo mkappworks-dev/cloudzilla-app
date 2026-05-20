@@ -31,8 +31,6 @@ type BasePage struct {
 	RepoSwitcher      []RepoRef
 }
 
-// OrgEntry pairs an organization with the viewer's role inside it, so the
-// workspace switcher can render an "Owner" / "Member" badge per row.
 type OrgEntry struct {
 	Org  model.Organization
 	Role model.OrgRole

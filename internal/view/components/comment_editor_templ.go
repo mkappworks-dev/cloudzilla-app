@@ -8,9 +8,6 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// CommentEditor is the card shell for a comment composer. The form attributes
-// (hx-post, hx-target, …) are supplied by the caller; children compose the
-// bands: CommentEditorHeader, MarkdownEditor, CommentEditorActions.
 func CommentEditor(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -56,7 +53,6 @@ func CommentEditor(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// CommentEditorHeader is the avatar + label band at the top of a CommentEditor.
 func CommentEditorHeader(username string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -94,7 +90,6 @@ func CommentEditorHeader(username string) templ.Component {
 	})
 }
 
-// CommentEditorActions is the footer band; children are the action buttons.
 func CommentEditorActions() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

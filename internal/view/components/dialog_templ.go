@@ -281,8 +281,6 @@ func DialogFooter() templ.Component {
 	})
 }
 
-// DialogClose renders a styled secondary button inside <form method="dialog">
-// so submitting it closes the parent <dialog> without any JS. Use for cancel buttons.
 func DialogClose() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

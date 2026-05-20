@@ -17,7 +17,6 @@ func TestWikiPageListMeta(t *testing.T) {
 	owner := "alice"
 	repo := "testrepo"
 
-	// Home has a leading H1 heading; Architecture has no heading.
 	if err := svc.WikiPageSave(owner, repo, "Home", "# Hello\n\nSome content here.\n", "Tester", "tester@example.com", "add Home"); err != nil {
 		t.Fatalf("WikiPageSave Home: %v", err)
 	}
@@ -41,7 +40,6 @@ func TestWikiPageListMeta(t *testing.T) {
 		t.Errorf("pages[1].Slug = %q, want %q", pages[1].Slug, "Home")
 	}
 
-	// Architecture has no heading — title should fall back to the slug.
 	if pages[0].Title != "Architecture" {
 		t.Errorf("Architecture Title = %q, want %q", pages[0].Title, "Architecture")
 	}
@@ -65,7 +63,6 @@ func TestWikiPageListMeta_Empty(t *testing.T) {
 	root := t.TempDir()
 	svc := NewCodeService(czconfig.GitConfig{ReposRoot: root})
 
-	// No wiki repo seeded — should return empty slice, not error.
 	pages, err := svc.WikiPageListMeta("nobody", "norepo")
 	if err != nil {
 		t.Fatalf("expected nil error for missing wiki, got: %v", err)
@@ -89,12 +86,10 @@ func TestWikiPageRename(t *testing.T) {
 		t.Fatalf("WikiPageSave: %v", err)
 	}
 
-	// Rename OldName → NewName.
 	if err := svc.WikiPageRename(owner, repo, "OldName", "NewName", "Tester", "tester@example.com", "Rename OldName to NewName"); err != nil {
 		t.Fatalf("WikiPageRename: %v", err)
 	}
 
-	// NewName must exist with original content.
 	got, found, err := svc.WikiPageGet(owner, repo, "NewName")
 	if err != nil {
 		t.Fatalf("WikiPageGet NewName: %v", err)
@@ -106,7 +101,6 @@ func TestWikiPageRename(t *testing.T) {
 		t.Errorf("NewName content = %q, want %q", got, content)
 	}
 
-	// OldName must be gone.
 	_, found, err = svc.WikiPageGet(owner, repo, "OldName")
 	if err != nil {
 		t.Fatalf("WikiPageGet OldName: %v", err)
@@ -115,7 +109,6 @@ func TestWikiPageRename(t *testing.T) {
 		t.Error("OldName still present after rename")
 	}
 
-	// Collision: renaming to an existing page must error.
 	if err := svc.WikiPageSave(owner, repo, "Existing", "# Existing\n", "Tester", "tester@example.com", "add Existing"); err != nil {
 		t.Fatalf("WikiPageSave Existing: %v", err)
 	}
@@ -124,7 +117,6 @@ func TestWikiPageRename(t *testing.T) {
 		t.Error("expected error on collision, got nil")
 	}
 
-	// Renaming a non-existent page must error.
 	err = svc.WikiPageRename(owner, repo, "DoesNotExist", "Whatever", "Tester", "tester@example.com", "")
 	if err == nil {
 		t.Error("expected error for missing source page, got nil")
@@ -199,7 +191,6 @@ func TestWikiPageSetOrder(t *testing.T) {
 		}
 	}
 
-	// Initial order is alphabetical: Alpha, Beta, Gamma.
 	slugs, err := svc.WikiPageList(owner, repo)
 	if err != nil {
 		t.Fatalf("WikiPageList: %v", err)
@@ -208,7 +199,6 @@ func TestWikiPageSetOrder(t *testing.T) {
 		t.Fatalf("initial order = %v, want [Alpha Beta Gamma]", slugs)
 	}
 
-	// Set a custom order: Gamma, Alpha, Beta.
 	if err := svc.WikiPageSetOrder(owner, repo, []string{"Gamma", "Alpha", "Beta"}, "Tester", "tester@example.com"); err != nil {
 		t.Fatalf("WikiPageSetOrder: %v", err)
 	}
@@ -220,7 +210,6 @@ func TestWikiPageSetOrder(t *testing.T) {
 		t.Errorf("after SetOrder = %v, want [Gamma Alpha Beta]", slugs)
 	}
 
-	// Overwrite with another order: Beta, Gamma, Alpha.
 	if err := svc.WikiPageSetOrder(owner, repo, []string{"Beta", "Gamma", "Alpha"}, "Tester", "tester@example.com"); err != nil {
 		t.Fatalf("WikiPageSetOrder second call: %v", err)
 	}
@@ -229,7 +218,6 @@ func TestWikiPageSetOrder(t *testing.T) {
 		t.Errorf("after second SetOrder = %v, want [Beta Gamma Alpha]", slugs)
 	}
 
-	// Non-existent wiki repo must return an error.
 	if err := svc.WikiPageSetOrder("nobody", "norepo", []string{"X"}, "Tester", "tester@example.com"); err == nil {
 		t.Error("expected error for missing wiki repo, got nil")
 	}

@@ -16,7 +16,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
-// priorityOption describes one entry in the priority picker.
 type priorityOption struct {
 	Key      string
 	Label    string
@@ -145,7 +144,6 @@ func prStateIcon(state string) templ.Component {
 	})
 }
 
-// priorityBadge renders the colored display badge for a set priority.
 func priorityBadge(p string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -243,7 +241,7 @@ func IssuePrioritySidebar(data view.IssuePrioritySidebarData) templ.Component {
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(postURL)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 103, Col: 30}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 101, Col: 30}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 				if templ_7745c5c3_Err != nil {
@@ -256,7 +254,7 @@ func IssuePrioritySidebar(data view.IssuePrioritySidebarData) templ.Component {
 				var templ_7745c5c3_Var7 string
 				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(opt.Key)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 107, Col: 24}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 105, Col: 24}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 				if templ_7745c5c3_Err != nil {
@@ -269,7 +267,7 @@ func IssuePrioritySidebar(data view.IssuePrioritySidebarData) templ.Component {
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatBool(current))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 109, Col: 51}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 107, Col: 51}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 				if templ_7745c5c3_Err != nil {
@@ -304,7 +302,7 @@ func IssuePrioritySidebar(data view.IssuePrioritySidebarData) templ.Component {
 				var templ_7745c5c3_Var11 string
 				templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(opt.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 113, Col: 50}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 111, Col: 50}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 				if templ_7745c5c3_Err != nil {
@@ -332,7 +330,7 @@ func IssuePrioritySidebar(data view.IssuePrioritySidebarData) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(postURL)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 121, Col: 29}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 119, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 			if templ_7745c5c3_Err != nil {
@@ -345,7 +343,7 @@ func IssuePrioritySidebar(data view.IssuePrioritySidebarData) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatBool(data.Priority == nil))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 127, Col: 63}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 125, Col: 63}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 			if templ_7745c5c3_Err != nil {
@@ -379,7 +377,6 @@ func IssuePrioritySidebar(data view.IssuePrioritySidebarData) templ.Component {
 	})
 }
 
-// IssueLinkedPullsSidebar renders the Linked pull requests sidebar section.
 func IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -425,7 +422,7 @@ func IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) templ.Compon
 					var templ_7745c5c3_Var15 string
 					templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(base + strconv.Itoa(pr.Number))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 177, Col: 51}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 174, Col: 51}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 					if templ_7745c5c3_Err != nil {
@@ -443,7 +440,7 @@ func IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) templ.Compon
 					var templ_7745c5c3_Var16 string
 					templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(base + strconv.Itoa(pr.Number))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 179, Col: 49}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 176, Col: 49}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 					if templ_7745c5c3_Err != nil {
@@ -461,7 +458,7 @@ func IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) templ.Compon
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatBool(linked))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 184, Col: 49}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 181, Col: 49}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 				if templ_7745c5c3_Err != nil {
@@ -482,7 +479,7 @@ func IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) templ.Compon
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(pr.Number))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 188, Col: 110}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 185, Col: 110}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {
@@ -495,7 +492,7 @@ func IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) templ.Compon
 				var templ_7745c5c3_Var19 string
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(pr.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 188, Col: 130}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 185, Col: 130}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 				if templ_7745c5c3_Err != nil {
@@ -523,7 +520,7 @@ func IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) templ.Compon
 			var templ_7745c5c3_Var20 templ.SafeURL
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 196, Col: 78}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 193, Col: 78}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {
@@ -559,7 +556,7 @@ func IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) templ.Compon
 				var templ_7745c5c3_Var21 templ.SafeURL
 				templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(lp.Number)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 212, Col: 107}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 209, Col: 107}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 				if templ_7745c5c3_Err != nil {
@@ -572,7 +569,7 @@ func IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) templ.Compon
 				var templ_7745c5c3_Var22 string
 				templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(lp.Number))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 213, Col: 79}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 210, Col: 79}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 				if templ_7745c5c3_Err != nil {
@@ -585,7 +582,7 @@ func IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) templ.Compon
 				var templ_7745c5c3_Var23 string
 				templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(" ")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 214, Col: 12}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 211, Col: 12}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 				if templ_7745c5c3_Err != nil {
@@ -594,7 +591,7 @@ func IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) templ.Compon
 				var templ_7745c5c3_Var24 string
 				templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(lp.Title)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 214, Col: 24}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 211, Col: 24}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 				if templ_7745c5c3_Err != nil {
@@ -623,7 +620,6 @@ func IssueLinkedPullsSidebar(data view.IssueLinkedPullsSidebarData) templ.Compon
 	})
 }
 
-// IssueTitleSection renders the issue title with an inline edit affordance.
 func IssueTitleSection(owner, repoName string, number int, title string, canWrite, editing bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -658,7 +654,7 @@ func IssueTitleSection(owner, repoName string, number int, title string, canWrit
 			var templ_7745c5c3_Var26 string
 			templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.ResolveAttributeValue(base)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 231, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 227, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var26)
 			if templ_7745c5c3_Err != nil {
@@ -671,7 +667,7 @@ func IssueTitleSection(owner, repoName string, number int, title string, canWrit
 			var templ_7745c5c3_Var27 string
 			templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.ResolveAttributeValue(title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 239, Col: 18}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 235, Col: 18}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var27)
 			if templ_7745c5c3_Err != nil {
@@ -684,7 +680,7 @@ func IssueTitleSection(owner, repoName string, number int, title string, canWrit
 			var templ_7745c5c3_Var28 string
 			templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.ResolveAttributeValue(base)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 248, Col: 18}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 244, Col: 18}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var28)
 			if templ_7745c5c3_Err != nil {
@@ -702,7 +698,7 @@ func IssueTitleSection(owner, repoName string, number int, title string, canWrit
 			var templ_7745c5c3_Var29 string
 			templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 256, Col: 11}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 252, Col: 11}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 			if templ_7745c5c3_Err != nil {
@@ -715,7 +711,7 @@ func IssueTitleSection(owner, repoName string, number int, title string, canWrit
 			var templ_7745c5c3_Var30 string
 			templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.ResolveAttributeValue("Issue number " + strconv.Itoa(number))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 257, Col: 103}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 253, Col: 103}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var30)
 			if templ_7745c5c3_Err != nil {
@@ -728,7 +724,7 @@ func IssueTitleSection(owner, repoName string, number int, title string, canWrit
 			var templ_7745c5c3_Var31 string
 			templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(number))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 257, Col: 129}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 253, Col: 129}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 			if templ_7745c5c3_Err != nil {
@@ -746,7 +742,7 @@ func IssueTitleSection(owner, repoName string, number int, title string, canWrit
 				var templ_7745c5c3_Var32 string
 				templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.ResolveAttributeValue(base + "?mode=edit")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 262, Col: 33}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 258, Col: 33}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var32)
 				if templ_7745c5c3_Err != nil {
@@ -766,10 +762,9 @@ func IssueTitleSection(owner, repoName string, number int, title string, canWrit
 	})
 }
 
-// IssueBodyCard renders the issue description card with an inline edit affordance.
-// mdToolbarButton renders one icon button in the markdown editor's formatting
-// toolbar. onClick is an Alpine expression — typically a wrap() call that
-// surrounds the textarea selection with markdown markers.
+// mdToolbarButton renders one toolbar icon button. onClick is an Alpine
+// expression — typically a wrap() that surrounds the textarea selection with
+// markdown markers.
 func mdToolbarButton(label, onClick string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -798,7 +793,7 @@ func mdToolbarButton(label, onClick string) templ.Component {
 		var templ_7745c5c3_Var34 string
 		templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.ResolveAttributeValue(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 277, Col: 41}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 272, Col: 41}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var34)
 		if templ_7745c5c3_Err != nil {
@@ -811,7 +806,7 @@ func mdToolbarButton(label, onClick string) templ.Component {
 		var templ_7745c5c3_Var35 string
 		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.ResolveAttributeValue(onClick)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 277, Col: 64}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 272, Col: 64}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var35)
 		if templ_7745c5c3_Err != nil {
@@ -870,7 +865,7 @@ func IssueBodyCard(data view.IssueBodyCardData) templ.Component {
 		var templ_7745c5c3_Var37 string
 		templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(data.AuthorName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 287, Col: 52}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 282, Col: 52}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 		if templ_7745c5c3_Err != nil {
@@ -883,7 +878,7 @@ func IssueBodyCard(data view.IssueBodyCardData) templ.Component {
 		var templ_7745c5c3_Var38 string
 		templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.CreatedAt.UTC().Format(time.RFC3339))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 289, Col: 107}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 284, Col: 107}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var38)
 		if templ_7745c5c3_Err != nil {
@@ -896,7 +891,7 @@ func IssueBodyCard(data view.IssueBodyCardData) templ.Component {
 		var templ_7745c5c3_Var39 string
 		templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(data.CreatedAt.Format("Jan 2, 2006"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 289, Col: 148}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 284, Col: 148}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 		if templ_7745c5c3_Err != nil {
@@ -914,7 +909,7 @@ func IssueBodyCard(data view.IssueBodyCardData) templ.Component {
 			var templ_7745c5c3_Var40 string
 			templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.ResolveAttributeValue(base + "?mode=edit")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 293, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 288, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var40)
 			if templ_7745c5c3_Err != nil {
@@ -945,7 +940,7 @@ func IssueBodyCard(data view.IssueBodyCardData) templ.Component {
 			var templ_7745c5c3_Var41 string
 			templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.ResolveAttributeValue(base)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 304, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 299, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var41)
 			if templ_7745c5c3_Err != nil {
@@ -1050,7 +1045,7 @@ func IssueBodyCard(data view.IssueBodyCardData) templ.Component {
 			var templ_7745c5c3_Var46 string
 			templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.JoinStringErrs(data.Body)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 352, Col: 18}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 347, Col: 18}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var46))
 			if templ_7745c5c3_Err != nil {
@@ -1071,7 +1066,7 @@ func IssueBodyCard(data view.IssueBodyCardData) templ.Component {
 			var templ_7745c5c3_Var47 string
 			templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.ResolveAttributeValue(base)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 361, Col: 19}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/issue_meta.templ`, Line: 356, Col: 19}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var47)
 			if templ_7745c5c3_Err != nil {

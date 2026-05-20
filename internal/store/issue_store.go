@@ -294,7 +294,6 @@ func (s *IssueStore) UpdateState(ctx context.Context, id int64, state model.Issu
 	return err
 }
 
-// UpdatePriority sets the issue priority. A nil priority clears it.
 func (s *IssueStore) UpdatePriority(ctx context.Context, id int64, priority *string) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE issues SET priority = $1, updated_at = NOW() WHERE id = $2`,
@@ -303,7 +302,6 @@ func (s *IssueStore) UpdatePriority(ctx context.Context, id int64, priority *str
 	return err
 }
 
-// UpdateTitle sets the issue title.
 func (s *IssueStore) UpdateTitle(ctx context.Context, id int64, title string) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE issues SET title = $1, updated_at = NOW() WHERE id = $2`,
@@ -312,7 +310,6 @@ func (s *IssueStore) UpdateTitle(ctx context.Context, id int64, title string) er
 	return err
 }
 
-// UpdateBody sets the issue body.
 func (s *IssueStore) UpdateBody(ctx context.Context, id int64, body string) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE issues SET body = $1, updated_at = NOW() WHERE id = $2`,
@@ -331,7 +328,6 @@ func (s *IssueStore) CountPinnedByRepo(ctx context.Context, repoID int64) (int, 
 	return count, err
 }
 
-// CountOpen returns the number of open issues in a repo.
 func (s *IssueStore) CountOpen(ctx context.Context, repoID int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,
