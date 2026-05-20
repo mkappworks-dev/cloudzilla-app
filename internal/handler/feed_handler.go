@@ -40,7 +40,7 @@ func (h *Handler) PageActivity(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Activity(view.ActivityData{
-		BasePage: basePage(r, h.Services),
+		BasePage: withAccountSubnav(basePage(r, h.Services), "activity", h.accountCounts(r.Context(), claims.UserID)),
 		Username: claims.Username,
 		Events:   events,
 		Page:     page,
