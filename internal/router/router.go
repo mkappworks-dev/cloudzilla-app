@@ -65,6 +65,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
 	r.With(authMW).Get("/settings/oauth-apps", h.PageOAuthApps)
 	r.With(authMW).Get("/notifications", h.PageNotifications)
+	r.With(authMW).Get("/activity", h.PageActivity)
 	r.With(authMW).Get("/feed", h.PageFeed)
 
 	// OAuth 2.0 authorization code flow

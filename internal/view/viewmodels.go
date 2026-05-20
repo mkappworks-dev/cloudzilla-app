@@ -79,6 +79,14 @@ type FeedData struct {
 	HasNextPage bool
 }
 
+type ActivityData struct {
+	BasePage
+	Username string
+	Events   []model.Event
+	Page     int
+	HasMore  bool
+}
+
 type AccountReposData struct {
 	BasePage
 	Repos  []model.Repository

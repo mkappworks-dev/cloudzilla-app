@@ -11,7 +11,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-func (h *Handler) PageFeed(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) PageActivity(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -28,21 +28,26 @@ func (h *Handler) PageFeed(w http.ResponseWriter, r *http.Request) {
 	const pageSize = 30
 	events, err := h.Services.Event.Feed(r.Context(), int(claims.UserID), page, pageSize+1)
 	if err != nil {
-		slog.Error("feed: failed to load events", "user_id", claims.UserID, "error", err)
+		slog.Error("activity: failed to load events", "user_id", claims.UserID, "error", err)
 		events = []model.Event{}
 	}
 	if events == nil {
 		events = []model.Event{}
 	}
-	hasNextPage := len(events) > pageSize
-	if hasNextPage {
+	hasMore := len(events) > pageSize
+	if hasMore {
 		events = events[:pageSize]
 	}
 
-	h.render(w, r, pages.Feed(view.FeedData{
-		BasePage:    basePage(r, h.Services),
-		Events:      events,
-		Page:        page,
-		HasNextPage: hasNextPage,
+	h.render(w, r, pages.Activity(view.ActivityData{
+		BasePage: basePage(r, h.Services),
+		Username: claims.Username,
+		Events:   events,
+		Page:     page,
+		HasMore:  hasMore,
 	}))
+}
+
+func (h *Handler) PageFeed(w http.ResponseWriter, r *http.Request) {
+	h.PageActivity(w, r)
 }
