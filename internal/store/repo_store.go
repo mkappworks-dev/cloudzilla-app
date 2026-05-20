@@ -350,15 +350,16 @@ func (s *RepoStore) GetByID(ctx context.Context, id int64) (*model.Repository, e
 	r := &model.Repository{}
 	var orgID, forkOfID sql.NullInt64
 	var archivedAt sql.NullTime
+	var primaryLang sql.NullString
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, website, license, private, default_branch, created_at, updated_at,
 		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template,
-		        allow_issues, allow_discussions, allow_projects, allow_wiki
+		        allow_issues, allow_discussions, allow_projects, allow_wiki, primary_language
 		 FROM repositories WHERE id = $1 AND deleted_at IS NULL`,
 		id,
 	).Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Website, &r.License, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
 		&r.IsFork, &forkOfID, &r.ForkCount, &r.IsArchived, &archivedAt, &r.IsTemplate,
-		&r.AllowIssues, &r.AllowDiscussions, &r.AllowProjects, &r.AllowWiki)
+		&r.AllowIssues, &r.AllowDiscussions, &r.AllowProjects, &r.AllowWiki, &primaryLang)
 	if err != nil {
 		return nil, fmt.Errorf("repo get by id: %w", err)
 	}
@@ -370,6 +371,9 @@ func (s *RepoStore) GetByID(ctx context.Context, id int64) (*model.Repository, e
 	}
 	if archivedAt.Valid {
 		r.ArchivedAt = &archivedAt.Time
+	}
+	if primaryLang.Valid {
+		r.PrimaryLanguage = &primaryLang.String
 	}
 	return r, nil
 }

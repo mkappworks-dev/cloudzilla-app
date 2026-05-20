@@ -179,15 +179,18 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 		comp, err := s.language.Composition(ctx, repo.OwnerName, repo.Name, repo.DefaultBranch)
 		if err != nil {
 			slog.Warn("post-receive: language composition failed", "repo_id", repo.ID, "error", err)
-		} else if len(comp) > 0 {
-			top, topBytes := "", int64(0)
-			for lang, b := range comp {
-				if b > topBytes {
-					top, topBytes = lang, b
+		} else {
+			top := ""
+			if len(comp) > 0 {
+				topBytes := int64(0)
+				for lang, b := range comp {
+					if b > topBytes {
+						top, topBytes = lang, b
+					}
 				}
 			}
 			if err := s.repos.UpdatePrimaryLanguage(ctx, repo.ID, top); err != nil {
-				slog.Warn("post-receive: update primary language failed", "repo_id", repo.ID, "error", err)
+				slog.Error("post-receive: update primary language failed", "repo_id", repo.ID, "error", err)
 			}
 		}
 	}

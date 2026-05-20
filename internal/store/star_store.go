@@ -50,7 +50,7 @@ func (s *StarStore) IsStarred(ctx context.Context, userID, repoID int64) (bool, 
 
 func (s *StarStore) ListByUser(ctx context.Context, userID int64) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at
+		`SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at, r.primary_language
 		 FROM repositories r JOIN stars st ON r.id = st.repo_id
 		 WHERE st.user_id = $1 AND r.private = false
 		 ORDER BY st.created_at DESC`,
@@ -82,11 +82,15 @@ func scanRepos(rows *sql.Rows) ([]model.Repository, error) {
 	for rows.Next() {
 		var r model.Repository
 		var orgID sql.NullInt64
-		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt); err != nil {
+		var primaryLang sql.NullString
+		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt, &primaryLang); err != nil {
 			return nil, err
 		}
 		if orgID.Valid {
 			r.OrgID = orgID.Int64
+		}
+		if primaryLang.Valid {
+			r.PrimaryLanguage = &primaryLang.String
 		}
 		repos = append(repos, r)
 	}
