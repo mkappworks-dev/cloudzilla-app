@@ -328,7 +328,6 @@ func gistDetailTitle(data view.GistDetailData) string {
 	return "Gist " + data.Gist.ID
 }
 
-// gistFileStats returns a human-readable "N lines · X KB" string for a file's content.
 func gistFileStats(content string) string {
 	if content == "" {
 		return "0 lines · 0 B"
