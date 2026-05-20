@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"net/url"
 	"strconv"
 	"time"
 
@@ -339,7 +340,7 @@ func pluralRepo(n int) string {
 }
 
 func repoTabURL(data view.UserData, key, val string) string {
-	base := "/" + data.User.Username + "?tab=repositories"
+	values := url.Values{"tab": []string{"repositories"}}
 	params := map[string]string{
 		"q":        data.RepoTabActiveQuery,
 		"type":     data.RepoTabActiveType,
@@ -349,8 +350,8 @@ func repoTabURL(data view.UserData, key, val string) string {
 	params[key] = val
 	for _, k := range []string{"q", "type", "language", "status"} {
 		if v := params[k]; v != "" {
-			base += "&" + k + "=" + v
+			values.Set(k, v)
 		}
 	}
-	return base
+	return "/" + data.User.Username + "?" + values.Encode()
 }

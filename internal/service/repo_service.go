@@ -367,8 +367,6 @@ func (s *RepoService) IsOwner(ctx context.Context, repo *model.Repository, userI
 	return s.isOrgOwner(ctx, repo, userID)
 }
 
-// ListPermissionsByUser returns all permission rows for the given user across all repos.
-// Use this to batch-resolve roles without N+1 queries.
 func (s *RepoService) ListPermissionsByUser(ctx context.Context, userID int64) ([]model.Permission, error) {
 	return s.repos.ListPermissionsByUser(ctx, userID)
 }
