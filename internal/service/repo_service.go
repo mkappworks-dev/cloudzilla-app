@@ -367,6 +367,29 @@ func (s *RepoService) IsOwner(ctx context.Context, repo *model.Repository, userI
 	return s.isOrgOwner(ctx, repo, userID)
 }
 
+// ListPermissionsByUser returns all permission rows for the given user across all repos.
+// Use this to batch-resolve roles without N+1 queries.
+func (s *RepoService) ListPermissionsByUser(ctx context.Context, userID int64) ([]model.Permission, error) {
+	return s.repos.ListPermissionsByUser(ctx, userID)
+}
+
+// RoleForUserOnRepo returns "owner" | "admin" | "writer" | "reader" | "" (empty
+// when the user has no permissions row and isn't the repo owner).
+func (s *RepoService) RoleForUserOnRepo(ctx context.Context, userID, repoID int64) (string, error) {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if err != nil {
+		return "", err
+	}
+	if repo.OwnerID == userID {
+		return "owner", nil
+	}
+	role, err := s.repos.GetPermission(ctx, repoID, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return role, err
+}
+
 func (s *RepoService) ListCollaborators(ctx context.Context, repoID int64) ([]model.Permission, error) {
 	perms, err := s.repos.ListPermissionsWithUsername(ctx, repoID)
 	if err != nil {

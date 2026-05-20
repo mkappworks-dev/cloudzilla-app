@@ -13,6 +13,15 @@ type UserData struct {
 	Repos          []model.Repository
 	RecentActivity []model.Event
 	ProfileReadme  template.HTML
+
+	// Repositories tab — populated only when ?tab=repositories
+	RepoTabRepos       []model.Repository
+	RepoTabRoles       map[int64]string // viewer's role per repo ID
+	RepoTabLanguages   []string         // distinct primary languages for filter chips
+	RepoTabActiveQuery    string
+	RepoTabActiveType     string // "sources" | "forks" | "templates" | ""
+	RepoTabActiveLanguage string
+	RepoTabActiveStatus   string // "public" | "private" | ""
 }
 
 // OrgData holds template data for the organization profile page.

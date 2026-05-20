@@ -82,7 +82,7 @@ func (s *RepoStore) GetByOwnerName(ctx context.Context, ownerName, name string) 
 func (s *RepoStore) GetByOwnerNameList(ctx context.Context, ownerName string) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
-		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template
+		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template, primary_language
 		 FROM repositories WHERE owner_name = $1 AND deleted_at IS NULL ORDER BY created_at DESC`,
 		ownerName,
 	)
@@ -96,7 +96,7 @@ func (s *RepoStore) GetByOwnerNameList(ctx context.Context, ownerName string) ([
 func (s *RepoStore) List(ctx context.Context) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
-		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template
+		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template, primary_language
 		 FROM repositories WHERE deleted_at IS NULL ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, fmt.Errorf("repo list: %w", err)
@@ -109,7 +109,7 @@ func (s *RepoStore) List(ctx context.Context) ([]model.Repository, error) {
 func (s *RepoStore) ListAll(ctx context.Context) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
-		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template
+		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template, primary_language
 		 FROM repositories WHERE deleted_at IS NULL ORDER BY id ASC`)
 	if err != nil {
 		return nil, fmt.Errorf("repo list all: %w", err)
@@ -125,7 +125,7 @@ func (s *RepoStore) GetByOwnerAndName(ctx context.Context, ownerName, name strin
 func (s *RepoStore) GetByOwnerID(ctx context.Context, ownerID int64) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
-		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template
+		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template, primary_language
 		 FROM repositories WHERE owner_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC`,
 		ownerID,
 	)
@@ -139,7 +139,7 @@ func (s *RepoStore) GetByOwnerID(ctx context.Context, ownerID int64) ([]model.Re
 func (s *RepoStore) GetByOrgID(ctx context.Context, orgID int64) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
-		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template
+		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template, primary_language
 		 FROM repositories WHERE org_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC`,
 		orgID,
 	)
@@ -265,6 +265,26 @@ func (s *RepoStore) ListPermissionsWithUsername(ctx context.Context, repoID int6
 	return perms, rows.Err()
 }
 
+func (s *RepoStore) ListPermissionsByUser(ctx context.Context, userID int64) ([]model.Permission, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, repo_id, user_id, role, created_at FROM permissions WHERE user_id = $1`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list permissions by user: %w", err)
+	}
+	defer rows.Close()
+	var perms []model.Permission
+	for rows.Next() {
+		var p model.Permission
+		if err := rows.Scan(&p.ID, &p.RepoID, &p.UserID, &p.Role, &p.CreatedAt); err != nil {
+			return nil, err
+		}
+		perms = append(perms, p)
+	}
+	return perms, rows.Err()
+}
+
 func (s *RepoStore) Fork(ctx context.Context, orig *model.Repository, newOwnerID int64, newOwnerName, newName string) (*model.Repository, error) {
 	now := time.Now().UTC()
 	r := &model.Repository{
@@ -315,7 +335,7 @@ func (s *RepoStore) DecrementForkCount(ctx context.Context, repoID int64) error 
 func (s *RepoStore) ListForks(ctx context.Context, repoID int64) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
-		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template
+		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template, primary_language
 		 FROM repositories WHERE fork_of_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC`,
 		repoID,
 	)
@@ -406,7 +426,7 @@ func (s *RepoStore) ListTemplates(ctx context.Context) ([]model.Repository, erro
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch,
 		        created_at, updated_at, is_fork, fork_of_id, fork_count,
-		        is_archived, archived_at, is_template
+		        is_archived, archived_at, is_template, primary_language
 		 FROM repositories
 		 WHERE is_template = TRUE AND private = FALSE AND is_archived = FALSE AND deleted_at IS NULL
 		 ORDER BY name ASC`,
@@ -629,7 +649,7 @@ func (s *RepoStore) CountForUser(ctx context.Context, userID int64) (int, error)
 // scope is "owned", "collaborator", or "all" (default for any unknown value).
 // The repo owner also holds a permission row, so "collaborator" excludes owned repos.
 func (s *RepoStore) ListForUser(ctx context.Context, userID int64, scope string) ([]model.Repository, error) {
-	const cols = `r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at, r.is_fork, r.fork_of_id, r.fork_count, r.is_archived, r.archived_at, r.is_template`
+	const cols = `r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at, r.is_fork, r.fork_of_id, r.fork_count, r.is_archived, r.archived_at, r.is_template, r.primary_language`
 	var where string
 	switch scope {
 	case "owned":
@@ -654,8 +674,9 @@ func scanRepoRows(rows *sql.Rows) ([]model.Repository, error) {
 		var r model.Repository
 		var orgID, forkOfID sql.NullInt64
 		var archivedAt sql.NullTime
+		var primaryLang sql.NullString
 		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
-			&r.IsFork, &forkOfID, &r.ForkCount, &r.IsArchived, &archivedAt, &r.IsTemplate); err != nil {
+			&r.IsFork, &forkOfID, &r.ForkCount, &r.IsArchived, &archivedAt, &r.IsTemplate, &primaryLang); err != nil {
 			return nil, err
 		}
 		if orgID.Valid {
@@ -666,6 +687,9 @@ func scanRepoRows(rows *sql.Rows) ([]model.Repository, error) {
 		}
 		if archivedAt.Valid {
 			r.ArchivedAt = &archivedAt.Time
+		}
+		if primaryLang.Valid {
+			r.PrimaryLanguage = &primaryLang.String
 		}
 		repos = append(repos, r)
 	}
