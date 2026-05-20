@@ -56,7 +56,11 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 	for _, row := range rows {
 		files := filenamesByGist[row.ID]
 		label, chipClass := gistLanguage(files)
-		row.FileCount = int64(len(files))
+		// ListPrivateByOwner returns model.Gist with no counts; derive FileCount
+		// from the batched filenames fetch. ListWithCounts already populates it.
+		if tab == "secret" {
+			row.FileCount = int64(len(files))
+		}
 		items = append(items, view.GistListItem{GistListRow: row, LanguageLabel: label, LanguageClass: chipClass})
 	}
 
