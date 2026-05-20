@@ -131,6 +131,20 @@ func (s *GistService) Update(ctx context.Context, gistID string, requesterID int
 	return s.gists.Update(ctx, g, files)
 }
 
+func (s *GistService) ListWithCounts(ctx context.Context, ownerFilter string) ([]model.GistListRow, error) {
+	return s.gists.ListWithCounts(ctx, ownerFilter)
+}
+
+func (s *GistService) ListPrivateByOwner(ctx context.Context, ownerID int64, page, pageSize int) ([]model.Gist, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	return s.gists.ListPrivateByOwner(ctx, ownerID, page, pageSize)
+}
+
 func (s *GistService) CountByUser(ctx context.Context, userID int64) (int, error) {
 	return s.gists.CountByOwner(ctx, userID)
 }
