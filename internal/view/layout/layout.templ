@@ -2,7 +2,7 @@ package layout
 
 import (
 	"strconv"
-	"strings"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
@@ -52,37 +52,38 @@ templ Base(base view.BasePage, title string) {
 						@components.DropdownMenu() {
 							@components.DropdownMenuTrigger(templ.Attributes{
 								"class":      "flex items-center gap-2 -ml-1 px-2 h-7 rounded-md hover:bg-accent text-sm font-medium",
-								"aria-label": "Switch account or owned organization, current: " + base.CurrentUser.Username,
+								"aria-label": "Switch account or organization, current: " + base.CurrentUser.Username,
 							}) {
-								<span class="inline-grid place-items-center h-5 w-5 rounded bg-accent text-[10px] font-medium" aria-hidden="true">
-									if len(base.CurrentUser.Username) > 0 {
-										{ strings.ToUpper(base.CurrentUser.Username[:1]) }
-									}
+								<span class="inline-grid place-items-center h-5 w-5 rounded bg-accent border border-border text-[10px] font-medium" aria-hidden="true">
+									{ firstInitial(base.CurrentUser.Username) }
 								</span>
 								<span class="font-medium">{ base.CurrentUser.Username }</span>
-								<svg class="text-muted-foreground" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
+								<svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
 							}
 							@components.DropdownMenuContent(components.DropdownAlignStart) {
 								@components.DropdownMenuLabel() {
-									{ "Account" }
+									{ "Account / orgs" }
 								}
 								@components.DropdownMenuLink("/"+base.CurrentUser.Username, nil) {
-									{ base.CurrentUser.Username + " (personal)" }
+									<span class="inline-grid place-items-center h-5 w-5 rounded bg-accent border border-border text-[10px] font-medium" aria-hidden="true">
+										{ firstInitial(base.CurrentUser.Username) }
+									</span>
+									<span class="flex-1">{ base.CurrentUser.Username }</span>
+									<span class="text-[10px] text-muted-foreground">Personal</span>
 								}
-								if len(base.UserOrgs) > 0 {
-									@components.DropdownMenuSeparator()
-									@components.DropdownMenuLabel() {
-										{ "Owned organizations" }
-									}
-									for _, org := range base.UserOrgs {
-										@components.DropdownMenuLink("/"+org.Name, nil) {
-											{ org.Name }
-										}
+								for _, entry := range base.UserOrgs {
+									@components.DropdownMenuLink("/"+entry.Org.Name, nil) {
+										<span class="inline-grid place-items-center h-5 w-5 rounded bg-accent border border-border text-[10px] font-medium" aria-hidden="true">
+											{ firstInitial(entry.Org.Name) }
+										</span>
+										<span class="flex-1">{ entry.Org.Name }</span>
+										<span class="text-[10px] text-muted-foreground">{ orgRoleLabel(entry.Role) }</span>
 									}
 								}
 								@components.DropdownMenuSeparator()
-								@components.DropdownMenuLink("/organizations/new", nil) {
-									{ "New organization" }
+								@components.DropdownMenuLink("/organizations", nil) {
+									<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 21h18M3 7h18M5 21V7l7-4 7 4v14"/></svg>
+									{ "Your organizations" }
 								}
 							}
 						}
@@ -131,16 +132,7 @@ templ Base(base view.BasePage, title string) {
 							</div>
 						</form>
 
-						<a href="/explore" class="text-sm text-muted-foreground hover:text-foreground px-2.5 h-7 inline-flex items-center">Explore</a>
-
 						if base.CurrentUser != nil {
-							<a href="/new" class="text-sm text-muted-foreground hover:text-foreground px-2.5 h-7 inline-flex items-center gap-1.5" title="Create new repository">
-								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg>
-								New
-							</a>
-							if base.CurrentUser.IsSuperadmin {
-								<a href="/admin/settings" class="text-sm text-warning hover:opacity-90 px-2.5 h-7 inline-flex items-center" title="Admin">Admin</a>
-							}
 							<a href="/notifications" class="relative h-7 w-7 grid place-items-center text-muted-foreground hover:text-foreground rounded-md hover:bg-accent" aria-label={ notificationsAriaLabel(base.UnreadNotifCount) }>
 								<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/></svg>
 								if base.UnreadNotifCount > 0 {
@@ -164,26 +156,37 @@ templ Base(base view.BasePage, title string) {
 										{ avatarInitials(base.CurrentUser.Username) }
 									}
 									@components.DropdownMenuContent(components.DropdownAlignEnd) {
-										@components.DropdownMenuLabel() {
-											{ base.CurrentUser.Username }
-										}
+										<div class="px-2.5 py-2">
+											<p class="text-[12px] text-muted-foreground">Signed in as</p>
+											<p class="text-[13px] font-medium">{ base.CurrentUser.Username }</p>
+										</div>
 										@components.DropdownMenuSeparator()
 										@components.DropdownMenuLink("/"+base.CurrentUser.Username, nil) {
+											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
 											{ "Your profile" }
 										}
-										@components.DropdownMenuLink("/"+base.CurrentUser.Username+"/gists", nil) {
-											{ "Your gists" }
-										}
 										@components.DropdownMenuLink("/"+base.CurrentUser.Username+"/stars", nil) {
+											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
 											{ "Your stars" }
 										}
+										@components.DropdownMenuSeparator()
 										@components.DropdownMenuLink("/settings", nil) {
+											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
 											{ "Settings" }
+										}
+										@components.DropdownMenuLink("/docs", nil) {
+											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"></path></svg>
+											{ "Docs" }
+										}
+										@components.DropdownMenuLink("/changelog", nil) {
+											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+											{ "Changelog" }
 										}
 										@components.DropdownMenuSeparator()
 										<form method="POST" action="/api/auth/logout" class="contents">
 											@components.DropdownMenuItem(templ.Attributes{"type": "submit"}) {
-												{ "Sign out" }
+												<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-destructive" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+												<span class="text-destructive">Sign out</span>
 											}
 										</form>
 									}
@@ -369,6 +372,27 @@ templ Base(base view.BasePage, title string) {
 			</script>
 		</body>
 	</html>
+}
+
+// firstInitial returns the single-letter avatar fallback used by the workspace
+// switcher (a 5×5 px square — one letter is all that fits).
+func firstInitial(name string) string {
+	if name == "" {
+		return "?"
+	}
+	return upperASCII(name[:1])
+}
+
+// orgRoleLabel maps the stored role enum to the human label shown as a small
+// badge in the workspace switcher dropdown.
+func orgRoleLabel(role model.OrgRole) string {
+	switch role {
+	case model.OrgRoleOwner:
+		return "Owner"
+	case model.OrgRoleMember:
+		return "Member"
+	}
+	return string(role)
 }
 
 // avatarInitials returns 1–2 letters from a username for the avatar fallback.

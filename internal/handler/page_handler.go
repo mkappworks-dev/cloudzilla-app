@@ -28,12 +28,16 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 		count = 0
 	}
 	page := BasePage{CurrentUser: &claims, UnreadNotifCount: count, AllowLogin: allowLogin, AllowRegistration: allowRegistration}
-	orgs, err := services.Org.ListOwnedByUser(r.Context(), claims.UserID)
+	memberships, err := services.Org.ListMembershipsForUser(r.Context(), claims.UserID)
 	if err != nil {
 		slog.Error("basePage: workspace switcher org list failed; degrading to personal-only",
 			"error", err, "user_id", claims.UserID, "path", r.URL.Path)
 	} else {
-		page.UserOrgs = orgs
+		entries := make([]view.OrgEntry, 0, len(memberships))
+		for _, m := range memberships {
+			entries = append(entries, view.OrgEntry{Org: m.Org, Role: m.Role})
+		}
+		page.UserOrgs = entries
 	}
 	return page
 }

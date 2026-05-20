@@ -70,6 +70,30 @@ func (s *OrgService) ListOwnedByUser(ctx context.Context, userID int64) ([]model
 	return owned, nil
 }
 
+// OrgMembership is an org paired with the role the given user holds inside it.
+type OrgMembership struct {
+	Org  model.Organization
+	Role model.OrgRole
+}
+
+// ListMembershipsForUser returns every org the user belongs to, each tagged with
+// the user's role. Drives the workspace switcher in the top nav.
+func (s *OrgService) ListMembershipsForUser(ctx context.Context, userID int64) ([]OrgMembership, error) {
+	orgs, err := s.orgs.ListByMember(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]OrgMembership, 0, len(orgs))
+	for _, o := range orgs {
+		role := model.OrgRoleMember
+		if s.IsOwner(ctx, o.ID, userID) {
+			role = model.OrgRoleOwner
+		}
+		out = append(out, OrgMembership{Org: o, Role: role})
+	}
+	return out, nil
+}
+
 func (s *OrgService) IsOwner(ctx context.Context, orgID, userID int64) bool {
 	m, err := s.orgs.GetMember(ctx, orgID, userID)
 	if err != nil {
