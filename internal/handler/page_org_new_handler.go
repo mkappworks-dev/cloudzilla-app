@@ -47,7 +47,12 @@ func (h *Handler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 	}
 	org, err := h.Services.Org.Create(r.Context(), claims.UserID, name, name, description)
 	if err != nil {
-		h.renderNewOrgError(w, r, name, description, err.Error())
+		msg := "Could not create the organization. Please try again."
+		es := err.Error()
+		if strings.Contains(es, "already taken") || strings.Contains(es, "duplicate key") || strings.Contains(es, "unique constraint") {
+			msg = "That organization name is already taken."
+		}
+		h.renderNewOrgError(w, r, name, description, msg)
 		return
 	}
 	http.Redirect(w, r, "/"+org.Name, http.StatusSeeOther)
