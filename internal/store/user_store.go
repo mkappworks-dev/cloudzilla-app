@@ -329,6 +329,36 @@ func (s *UserStore) GetManyByUsernames(ctx context.Context, usernames []string) 
 	return scanFullUsers(rows)
 }
 
+// UsernamesByIDs returns a map of id→username for the given IDs (one query).
+// Missing IDs are simply absent from the map.
+func (s *UserStore) UsernamesByIDs(ctx context.Context, ids []int64) (map[int64]string, error) {
+	if len(ids) == 0 {
+		return map[int64]string{}, nil
+	}
+	placeholders := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	q := `SELECT id, username FROM users WHERE id IN (` + strings.Join(placeholders, ",") + `)`
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("user usernames by ids: %w", err)
+	}
+	defer rows.Close()
+	out := make(map[int64]string, len(ids))
+	for rows.Next() {
+		var id int64
+		var username string
+		if err := rows.Scan(&id, &username); err != nil {
+			return nil, err
+		}
+		out[id] = username
+	}
+	return out, rows.Err()
+}
+
 // Returns only the rows that exist; ordering is undefined.
 func (s *UserStore) GetManyByIDs(ctx context.Context, ids []int64) ([]model.User, error) {
 	if len(ids) == 0 {

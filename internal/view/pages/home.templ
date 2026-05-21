@@ -268,22 +268,24 @@ templ Home(data view.HomeData) {
 							</div>
 						</div>
 						if len(data.Attention) > 0 {
-							<ul id="attention-panel" role="tabpanel" aria-labelledby="attention-heading" class="border border-border rounded-md bg-card divide-y divide-border">
+							<ul id="attention-panel" role="tabpanel" aria-labelledby="attention-heading" class="b border rounded-md surface divide-y">
 								for _, item := range data.Attention {
-									<li class="last:border-0">
-										<a href={ templ.SafeURL(item.URL) } class="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
+									<li class="b border-b last:border-0">
+										<a href={ templ.SafeURL(item.URL) } class="flex items-center gap-3 px-4 py-3 hover-row transition">
 											<span class={ "flex-shrink-0 h-4 w-4 rounded-full grid place-items-center", attentionKindColorClass(item.Kind) } aria-hidden="true">
 												@attentionKindIcon(item.Kind)
 											</span>
 											<div class="min-w-0 flex-1">
-												<p class="text-[13px] truncate">
-													<span class="text-muted-foreground">{ attentionKindLabel(item.Kind) + ": " }</span>{ item.Title }
-												</p>
-												<p class="text-[11px] text-muted-foreground mt-0.5">
-													<a href={ templ.SafeURL(attentionRepoURL(item)) } class="font-mono hover:underline">{ item.RepoName }</a>
-													<span aria-hidden="true">{ " · " }</span>
-													<span class="font-mono">{ "#" + strconv.Itoa(item.Number) }</span>
-													<span aria-hidden="true">{ " · " }</span>
+												<p class="text-[13px] truncate">{ attentionKindLabel(item.Kind) + ": " + item.Title }</p>
+												<p class="text-[11px] fg2 mt-0.5">
+													<span class="mono">{ item.RepoName }</span>
+													<span aria-hidden="true"> · </span>
+													<span class="mono">{ "#" + strconv.Itoa(item.Number) }</span>
+													if item.Actor != "" {
+														<span aria-hidden="true"> · </span>
+														<span>{ "opened by @" + item.Actor }</span>
+													}
+													<span aria-hidden="true"> · </span>
 													<time datetime={ item.UpdatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(item.UpdatedAt) }</time>
 												</p>
 											</div>
