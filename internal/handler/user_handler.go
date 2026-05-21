@@ -41,6 +41,15 @@ func (h *Handler) PinRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid repo id")
 		return
 	}
+	repo, err := h.Services.Repo.GetByID(r.Context(), repoID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "repository not found")
+		return
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+		writeError(w, http.StatusNotFound, "repository not found")
+		return
+	}
 	if err := h.Services.User.PinRepo(r.Context(), userID, repoID); err != nil {
 		if errors.Is(err, service.ErrPinLimit) {
 			writeError(w, http.StatusUnprocessableEntity, "pin limit reached")
