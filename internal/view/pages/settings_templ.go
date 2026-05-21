@@ -50,7 +50,7 @@ func Settings(data view.SettingsData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"space-y-8 max-w-3xl\"><div><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5\">Account</p><h1 class=\"text-2xl font-semibold tracking-tight\">Settings</h1></div><!-- SSH Keys -->")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"space-y-8\"><section aria-labelledby=\"settings-title\"><h1 id=\"settings-title\" class=\"text-2xl font-semibold tracking-tight\">Account settings</h1><p class=\"mt-1 text-sm text-muted-foreground\">SSH keys, access tokens, and saved replies.</p></section><div class=\"grid grid-cols-12 gap-8\"><aside class=\"col-span-12 lg:col-span-3\" aria-label=\"Settings sections\"><div class=\"lg:sticky lg:top-4\"><nav class=\"flex flex-col gap-0.5\"><a href=\"#ssh-keys\" class=\"block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent\">SSH keys</a> <a href=\"#tokens\" class=\"block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent\">Access tokens</a> <a href=\"#replies\" class=\"block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent\">Saved replies</a></nav></div></aside><div class=\"col-span-12 lg:col-span-9 space-y-8\"><section id=\"ssh-keys\" class=\"scroll-mt-6\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -148,7 +148,7 @@ func Settings(data view.SettingsData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<!-- Add key form --> <section aria-labelledby=\"add-ssh-heading\" class=\"rounded-md border border-border bg-muted/40 p-4 mb-6\"><h3 id=\"add-ssh-heading\" class=\"text-sm font-medium mb-3\">Add SSH key</h3><form id=\"add-ssh-key-form\" hx-post=\"/api/user/keys\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" data-toast=\"SSH key added\" class=\"space-y-4\"><div class=\"space-y-1.5\"><label for=\"key-title\" class=\"block text-xs font-medium\">Key title</label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<section aria-labelledby=\"add-ssh-heading\" class=\"rounded-md border border-border bg-muted/40 p-4 mb-6\"><h3 id=\"add-ssh-heading\" class=\"text-sm font-medium mb-3\">Add SSH key</h3><form id=\"add-ssh-key-form\" hx-post=\"/api/user/keys\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" data-toast=\"SSH key added\" class=\"space-y-4\"><div class=\"space-y-1.5\"><label for=\"key-title\" class=\"block text-xs font-medium text-muted-foreground\">Key title</label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -162,7 +162,7 @@ func Settings(data view.SettingsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<p class=\"text-xs text-muted-foreground\">A short name to help you remember this key.</p></div><div class=\"space-y-1.5\"><label for=\"public-key\" class=\"block text-xs font-medium\">Public key</label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<p class=\"text-xs text-muted-foreground\">A short name to help you remember this key.</p></div><div class=\"space-y-1.5\"><label for=\"public-key\" class=\"block text-xs font-medium text-muted-foreground\">Public key</label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -225,59 +225,59 @@ func Settings(data view.SettingsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div></form></section><!-- Existing keys list --> <div id=\"ssh-keys-list\" class=\"space-y-2\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div></form></section><div id=\"ssh-keys-list\" class=\"space-y-2\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					if len(data.SSHKeys) > 0 {
 						for _, k := range data.SSHKeys {
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"flex items-start justify-between gap-3 p-4 rounded-md border border-border\" data-key-id=\"")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<div class=\"flex items-start gap-3 p-4 rounded-md border border-border\" data-key-id=\"")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var10 string
 							templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatInt(k.ID, 10))
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 74, Col: 137}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 90, Col: 124}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\"><div class=\"flex-1 min-w-0\"><h4 class=\"text-sm font-medium\">")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground mt-0.5 shrink-0\" aria-hidden=\"true\"><path d=\"M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4\"></path></svg><div class=\"flex-1 min-w-0\"><p class=\"text-sm font-medium text-foreground\">")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var11 string
 							templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(k.Title)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 76, Col: 51}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 93, Col: 69}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</h4><p class=\"text-xs text-muted-foreground mt-1 font-mono break-all\">")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</p><p class=\"text-xs text-muted-foreground mt-0.5 font-mono break-all\">")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var12 string
 							templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(k.Fingerprint)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 77, Col: 91}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 94, Col: 96}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</p><p class=\"text-xs text-muted-foreground mt-2\">Added <time datetime=\"")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</p><p class=\"text-xs text-muted-foreground mt-1\">Added <time datetime=\"")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var13 string
 							templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(k.CreatedAt.UTC().Format(time.RFC3339))
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 79, Col: 72}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 96, Col: 75}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 							if templ_7745c5c3_Err != nil {
@@ -290,7 +290,7 @@ func Settings(data view.SettingsData) templ.Component {
 							var templ_7745c5c3_Var14 string
 							templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(k.CreatedAt.Format("Jan 2, 2006"))
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 79, Col: 110}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 96, Col: 113}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 							if templ_7745c5c3_Err != nil {
@@ -343,7 +343,7 @@ func Settings(data view.SettingsData) templ.Component {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</div>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</div><aside aria-labelledby=\"ssh-howto-heading\" class=\"mt-6 rounded-md border border-border bg-muted/40 p-4\"><h3 id=\"ssh-howto-heading\" class=\"text-sm font-medium mb-3\">Getting started with SSH</h3><ol class=\"space-y-2 text-sm text-muted-foreground\"><li><span class=\"font-mono text-foreground/70 mr-2\">1.</span> Generate a key: <code class=\"text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1\">ssh-keygen -t ed25519</code></li><li><span class=\"font-mono text-foreground/70 mr-2\">2.</span> Copy your public key: <code class=\"text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1\">cat ~/.ssh/id_ed25519.pub</code></li><li><span class=\"font-mono text-foreground/70 mr-2\">3.</span> Paste it above and save.</li><li><span class=\"font-mono text-foreground/70 mr-2\">4.</span> Clone via SSH: <code class=\"text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1\">git clone ssh://git@localhost:2222/owner/repo.git</code></li></ol></aside>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -359,7 +359,7 @@ func Settings(data view.SettingsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<!-- Getting started callout --><aside aria-labelledby=\"ssh-howto-heading\" class=\"rounded-md border border-border bg-muted/40 p-5\"><h2 id=\"ssh-howto-heading\" class=\"text-sm font-medium mb-3\">Getting started with SSH</h2><ol class=\"space-y-2 text-sm text-muted-foreground\"><li><span class=\"font-mono text-foreground/70 mr-2\">1.</span> Generate a key: <code class=\"text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1\">ssh-keygen -t ed25519</code></li><li><span class=\"font-mono text-foreground/70 mr-2\">2.</span> Copy your public key: <code class=\"text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1\">cat ~/.ssh/id_ed25519.pub</code></li><li><span class=\"font-mono text-foreground/70 mr-2\">3.</span> Paste it above and save.</li><li><span class=\"font-mono text-foreground/70 mr-2\">4.</span> Clone via SSH: <code class=\"text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1\">git clone ssh://git@localhost:2222/owner/repo.git</code></li></ol></aside><!-- Personal access tokens -->")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</section><section id=\"tokens\" class=\"scroll-mt-6\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -491,7 +491,7 @@ func Settings(data view.SettingsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<!-- Saved replies -->")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</section><section id=\"replies\" class=\"scroll-mt-6\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -623,7 +623,7 @@ func Settings(data view.SettingsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</section></div></div><script>\n\t\t\t\t(function () {\n\t\t\t\t\tvar nav = document.querySelector('aside[aria-label=\"Settings sections\"] nav');\n\t\t\t\t\tif (!nav) return;\n\t\t\t\t\tvar links = Array.prototype.slice.call(nav.querySelectorAll('a[href^=\"#\"]'));\n\t\t\t\t\tvar targets = links\n\t\t\t\t\t\t.map(function (l) { return { link: l, el: document.getElementById(l.getAttribute('href').slice(1)) }; })\n\t\t\t\t\t\t.filter(function (t) { return t.el; });\n\t\t\t\t\tif (!targets.length) return;\n\t\t\t\t\tfunction update() {\n\t\t\t\t\t\tvar active = targets[0];\n\t\t\t\t\t\tfor (var i = 0; i < targets.length; i++) {\n\t\t\t\t\t\t\tif (targets[i].el.getBoundingClientRect().top <= 120) active = targets[i];\n\t\t\t\t\t\t}\n\t\t\t\t\t\tlinks.forEach(function (l) {\n\t\t\t\t\t\t\tvar on = l === active.link;\n\t\t\t\t\t\t\tl.classList.toggle('bg-accent', on);\n\t\t\t\t\t\t\tl.classList.toggle('text-foreground', on);\n\t\t\t\t\t\t\tl.classList.toggle('font-medium', on);\n\t\t\t\t\t\t\tl.classList.toggle('text-muted-foreground', !on);\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t\tupdate();\n\t\t\t\t\twindow.addEventListener('scroll', update, { passive: true });\n\t\t\t\t\twindow.addEventListener('resize', update, { passive: true });\n\t\t\t\t})();\n\t\t\t</script></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
