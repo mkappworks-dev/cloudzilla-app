@@ -94,6 +94,11 @@ func (s *OrgService) ListMembershipsForUser(ctx context.Context, userID int64) (
 	return out, nil
 }
 
+// CountMembers returns the number of members in the given organization.
+func (s *OrgService) CountMembers(ctx context.Context, orgID int64) (int, error) {
+	return s.orgs.CountMembers(ctx, orgID)
+}
+
 func (s *OrgService) IsOwner(ctx context.Context, orgID, userID int64) bool {
 	m, err := s.orgs.GetMember(ctx, orgID, userID)
 	if err != nil {

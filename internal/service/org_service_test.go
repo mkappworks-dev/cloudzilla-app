@@ -166,6 +166,48 @@ func TestOrgService_RemoveMember_OwnerCanRemove(t *testing.T) {
 	}
 }
 
+// TestOrgService_CountMembers verifies that CountMembers reflects the creator-owner
+// after Create and increments when another member is added.
+func TestOrgService_CountMembers(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	creatorID := testutil.SeedUser(t, db, suffix)
+
+	svc := service.NewOrgService(
+		store.NewOrgStore(db),
+		store.NewRepoStore(db),
+		store.NewUserStore(db),
+		config.GitConfig{},
+	)
+
+	org, err := svc.Create(context.Background(), creatorID, "testorg_count_"+suffix, "Org", "")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	// Creator is auto-added as owner member.
+	count, err := svc.CountMembers(context.Background(), org.ID)
+	if err != nil {
+		t.Fatalf("CountMembers: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("want 1 member after Create, got %d", count)
+	}
+
+	memberID := testutil.SeedUser(t, db, "counted_"+suffix)
+	if err := svc.AddMember(context.Background(), org.ID, creatorID, memberID, model.OrgRoleMember); err != nil {
+		t.Fatalf("AddMember: %v", err)
+	}
+
+	count, err = svc.CountMembers(context.Background(), org.ID)
+	if err != nil {
+		t.Fatalf("CountMembers: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("want 2 members after AddMember, got %d", count)
+	}
+}
+
 // TestOrgService_IsOwner_MemberRole_ReturnsFalse verifies that a user with the "member"
 // role is not considered an owner.
 func TestOrgService_IsOwner_MemberRole_ReturnsFalse(t *testing.T) {
