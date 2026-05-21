@@ -59,6 +59,18 @@ func (s *CommitStatsStore) HasRowsForRepoSince(ctx context.Context, repoID int64
 	return true, nil
 }
 
+func (s *CommitStatsStore) CountDistinctReposForUserSince(ctx context.Context, userID int64, since time.Time) (int, error) {
+	const q = `
+		SELECT COUNT(DISTINCT c.repo_id)
+		FROM commit_day_counts c
+		JOIN repositories r ON r.id = c.repo_id
+		WHERE c.user_id = $1 AND c.day >= $2 AND r.deleted_at IS NULL
+	`
+	var n int
+	err := s.db.QueryRowContext(ctx, q, userID, since.UTC().Truncate(24*time.Hour)).Scan(&n)
+	return n, err
+}
+
 // Excludes soft-deleted repos so the heatmap stops counting work the user can no longer browse.
 func (s *CommitStatsStore) ListForUserSince(ctx context.Context, userID int64, since time.Time) ([]CommitDayCount, error) {
 	const q = `

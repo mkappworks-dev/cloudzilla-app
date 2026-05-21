@@ -181,6 +181,10 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			slog.Warn("home: commits-last-7 stat failed", "user_id", userID, "error", err)
 		}
+		distinctRepos, err := h.Services.CommitStats.DistinctReposForUserSince(ctx, userID, 7)
+		if err != nil {
+			slog.Warn("home: distinct-repos-7 stat failed", "user_id", userID, "error", err)
+		}
 		countRepos, err := h.Services.Repo.CountForUser(ctx, userID)
 		if err != nil {
 			slog.Warn("home: repo count stat failed", "user_id", userID, "error", err)
@@ -188,6 +192,10 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		countOpenPulls, err := h.Services.Pull.CountOpenAssignedTo(ctx, userID)
 		if err != nil {
 			slog.Warn("home: open-pulls count stat failed", "user_id", userID, "error", err)
+		}
+		countAwaitingReview, err := h.Services.Pull.CountAwaitingReview(ctx, userID)
+		if err != nil {
+			slog.Warn("home: awaiting-review count stat failed", "user_id", userID, "error", err)
 		}
 		countOpenIssues, err := h.Services.Issue.CountOpenAssignedTo(ctx, userID)
 		if err != nil {
@@ -203,11 +211,24 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		if len(data.Repos) > 0 {
 			reposDetail = fmt.Sprintf("%d private, %d public", privateRepos, len(data.Repos)-privateRepos)
 		}
+		pullsDetail := ""
+		if countAwaitingReview == 1 {
+			pullsDetail = "1 awaiting your review"
+		} else if countAwaitingReview > 1 {
+			pullsDetail = fmt.Sprintf("%d awaiting your review", countAwaitingReview)
+		}
+		commitsDetail := ""
+		if distinctRepos == 1 {
+			commitsDetail = "across 1 repository"
+		} else if distinctRepos > 1 {
+			commitsDetail = fmt.Sprintf("across %d repositories", distinctRepos)
+		}
+		data.TotalRepos = countRepos
 		data.Stats = []components.StatItem{
 			{Label: "Repositories", Value: countRepos, Detail: reposDetail},
-			{Label: "Pull requests", Value: countOpenPulls, Subtitle: "open"},
+			{Label: "Pull requests", Value: countOpenPulls, Subtitle: "open", Detail: pullsDetail},
 			{Label: "Issues", Value: countOpenIssues, Subtitle: "assigned"},
-			{Label: "Commits, last 7 days", Value: commitsLast7},
+			{Label: "Commits, last 7 days", Value: commitsLast7, Detail: commitsDetail},
 		}
 		data.BasePage = withAccountSubnav(data.BasePage, "overview", h.accountCounts(ctx, userID))
 		if heat, err := h.Services.CommitStats.LookbackForUser(ctx, userID, 365); err != nil {

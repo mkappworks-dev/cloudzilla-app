@@ -64,6 +64,7 @@ type AccountSubnavInfo struct {
 type HomeData struct {
 	BasePage
 	Repos        []model.Repository
+	TotalRepos   int // authoritative count from DB (may exceed len(Repos) after future pagination)
 	Templates    []model.Repository
 	Stats        []components.StatItem
 	Heatmap      map[time.Time]int

@@ -89,11 +89,8 @@ templ Home(data view.HomeData) {
 							<h2 id="repos-heading" class="text-[13px] font-medium">Repositories</h2>
 							if data.BasePage.CurrentUser != nil {
 								<div class="flex items-center gap-1.5">
-									@components.LinkButton("/repos?filter=all", components.ButtonOutline, components.ButtonSizeSM, nil) {
-										<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-											<path d="M3 6h18M6 12h12M10 18h4"></path>
-										</svg>
-										All repositories
+									@components.LinkButton("/repos", components.ButtonOutline, components.ButtonSizeSM, nil) {
+										View all
 									}
 								</div>
 							}
@@ -101,7 +98,13 @@ templ Home(data view.HomeData) {
 						if len(data.Repos) > 0 {
 							<div class="border border-border rounded-md bg-card overflow-hidden">
 								<table class="w-full text-left">
-									<caption class="sr-only">Your recently updated repositories</caption>
+									<caption class="sr-only">
+										if data.TotalRepos > 0 {
+											Your recently updated repositories — { strconv.Itoa(len(data.Repos)) } of { strconv.Itoa(data.TotalRepos) } shown
+										} else {
+											Your recently updated repositories
+										}
+									</caption>
 									<colgroup>
 										<col style="width: 28px"/>
 										<col/>
@@ -118,14 +121,14 @@ templ Home(data view.HomeData) {
 									</thead>
 									<tbody>
 										for _, repo := range data.Repos {
-											<tr class="border-b border-border last:border-0 hover:bg-muted/40">
+											<tr class="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
 												<td class="px-4 py-3">
 													@repoIcon(repo.Private)
 												</td>
 												<th scope="row" class="px-4 py-3 font-normal min-w-0">
-													<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-[13px] hover:underline">{ repo.Name }</a>
+													<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-[13px] hover:underline focus:outline-offset-4">{ repo.Name }</a>
 													<span class="text-muted-foreground mx-1" aria-hidden="true">/</span>
-													<span class="text-muted-foreground text-[12px]">{ repo.OwnerName }</span>
+													<span class="text-muted-foreground text-[12px]">{ repo.DefaultBranch }</span>
 													if repo.Private {
 														<span class="ml-1.5 inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground">Private</span>
 													}
@@ -138,8 +141,8 @@ templ Home(data view.HomeData) {
 												</th>
 												<td class="px-4 py-3">
 													if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
-														<span class="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground">
-															<span class="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" aria-hidden="true"></span>
+														<span class="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+															<span class={ "h-1.5 w-1.5 rounded-full", languageDotClass(*repo.PrimaryLanguage) } aria-hidden="true"></span>
 															{ *repo.PrimaryLanguage }
 														</span>
 													}
@@ -153,8 +156,12 @@ templ Home(data view.HomeData) {
 								</table>
 							</div>
 							<div class="mt-3 flex justify-between text-[12px] text-muted-foreground">
-								<span>{ strconv.Itoa(len(data.Repos)) } repositories</span>
-								<a href="/repos" class="hover:text-foreground">View all repositories<span aria-hidden="true"> →</span></a>
+								if data.TotalRepos > 0 && data.TotalRepos > len(data.Repos) {
+									<span>Showing { strconv.Itoa(len(data.Repos)) } of { strconv.Itoa(data.TotalRepos) }</span>
+								} else {
+									<span>{ strconv.Itoa(len(data.Repos)) } { pluralize(len(data.Repos), "repository", "repositories") }</span>
+								}
+								<a href="/repos" class="hover:text-foreground link">View all repositories<span aria-hidden="true"> →</span></a>
 							</div>
 						} else {
 							@components.EmptyState("No repositories yet.")
@@ -162,16 +169,21 @@ templ Home(data view.HomeData) {
 					</section>
 
 					<!-- Needs your attention -->
-					if len(data.Attention) > 0 {
-						<section aria-labelledby="attention-heading">
-							<div class="flex items-center justify-between mb-4">
-								<h2 id="attention-heading" class="text-[13px] font-medium">Needs your attention</h2>
+					<section aria-labelledby="attention-heading">
+						<div class="flex items-center justify-between mb-4">
+							<h2 id="attention-heading" class="text-[13px] font-medium">Needs your attention</h2>
+							<div role="tablist" aria-label="Filter attention items" class="flex items-center gap-0.5 text-[12px]">
+								<button type="button" role="tab" aria-selected="false" class="px-2 py-1 rounded text-muted-foreground cursor-default">Mentions</button>
+								<button type="button" role="tab" aria-selected="false" class="px-2 py-1 rounded text-muted-foreground cursor-default">Reviews</button>
+								<button type="button" role="tab" aria-selected="true" class="px-2 py-1 rounded bg-muted text-foreground">Assigned</button>
 							</div>
-							<ul class="border border-border rounded-md bg-card divide-y divide-border">
+						</div>
+						if len(data.Attention) > 0 {
+							<ul id="attention-panel" role="tabpanel" aria-labelledby="attention-heading" class="border border-border rounded-md bg-card divide-y divide-border">
 								for _, item := range data.Attention {
-									<li>
-										<a href={ templ.SafeURL(attentionItemURL(item)) } class="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition">
-											<span class={ "flex-shrink-0", attentionKindColorClass(item.Kind) } aria-hidden="true">
+									<li class="last:border-0">
+										<a href={ templ.SafeURL(attentionItemURL(item)) } class="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
+											<span class={ "flex-shrink-0 h-4 w-4 rounded-full grid place-items-center", attentionKindColorClass(item.Kind) } aria-hidden="true">
 												@attentionKindIcon(item.Kind)
 											</span>
 											<div class="min-w-0 flex-1">
@@ -190,8 +202,12 @@ templ Home(data view.HomeData) {
 									</li>
 								}
 							</ul>
-						</section>
-					}
+						} else {
+							<div class="border border-border rounded-md bg-card px-4 py-8 text-center text-[13px] text-muted-foreground">
+								Nothing needs your attention right now.
+							</div>
+						}
+					</section>
 
 					<!-- Commit activity heatmap -->
 					if data.Heatmap != nil {
@@ -325,8 +341,8 @@ templ repoIcon(private bool) {
 	if private {
 		<svg class="text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" role="img" focusable="false">
 			<title>Private repository</title>
-			<rect x="3" y="11" width="18" height="11" rx="2"></rect>
-			<path d="M7 11V7a5 5 0 0110 0v4"></path>
+			<rect x="3" y="3" width="18" height="18" rx="2"></rect>
+			<circle cx="12" cy="12" r="3"></circle>
 		</svg>
 	} else {
 		<svg class="text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" role="img" focusable="false">
@@ -471,4 +487,53 @@ func eventTimelineDetail(ev model.Event) string {
 		return ev.RepoName
 	}
 	return fmt.Sprintf("%s/%s", ev.OwnerName, ev.RepoName)
+}
+
+func pluralize(n int, singular, plural string) string {
+	if n == 1 {
+		return singular
+	}
+	return plural
+}
+
+// Returns a Tailwind color class for the language dot. Unknown languages get a neutral dot.
+func languageDotClass(lang string) string {
+	switch lang {
+	case "Go":
+		return "bg-cyan-400"
+	case "Rust":
+		return "bg-orange-400"
+	case "TypeScript", "JavaScript":
+		return "bg-yellow-400"
+	case "Python":
+		return "bg-blue-400"
+	case "Ruby":
+		return "bg-red-400"
+	case "Java", "Kotlin":
+		return "bg-orange-500"
+	case "C", "C++":
+		return "bg-blue-600"
+	case "C#":
+		return "bg-violet-500"
+	case "Lua":
+		return "bg-violet-400"
+	case "Swift":
+		return "bg-orange-300"
+	case "Shell", "Bash":
+		return "bg-green-400"
+	case "HTML", "CSS":
+		return "bg-pink-400"
+	case "PHP":
+		return "bg-indigo-400"
+	case "Scala":
+		return "bg-red-500"
+	case "Elixir":
+		return "bg-purple-400"
+	case "Haskell":
+		return "bg-violet-600"
+	case "Dart":
+		return "bg-sky-400"
+	default:
+		return "bg-muted-foreground/60"
+	}
 }

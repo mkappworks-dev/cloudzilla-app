@@ -315,6 +315,17 @@ func (s *PullService) CountOpenAssignedTo(ctx context.Context, userID int64) (in
 	return s.pulls.CountOpenAssignedTo(ctx, userID)
 }
 
+func (s *PullService) CountAwaitingReview(ctx context.Context, userID int64) (int, error) {
+	if s.reviewStore == nil {
+		return 0, nil
+	}
+	ids, err := s.reviewStore.ListPullIDsAwaitingReviewer(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	return len(ids), nil
+}
+
 func (s *PullService) WithReviewerDeps(contribStats *store.ContributorStatsStore, userStore *store.UserStore) *PullService {
 	s.contribStats = contribStats
 	s.userStore = userStore

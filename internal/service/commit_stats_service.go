@@ -91,6 +91,11 @@ func (s *CommitStatsService) CommitsForUserSince(ctx context.Context, userID int
 	return total, nil
 }
 
+func (s *CommitStatsService) DistinctReposForUserSince(ctx context.Context, userID int64, days int) (int, error) {
+	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)
+	return s.stats.CountDistinctReposForUserSince(ctx, userID, since)
+}
+
 func (s *CommitStatsService) WeeklyForRepo(ctx context.Context, repoID int64, weeks int) ([]int, error) {
 	return s.stats.WeeklyForRepo(ctx, repoID, weeks)
 }
