@@ -286,6 +286,11 @@ templ userReposTab(data view.UserData) {
 
 templ userRepoRow(data view.UserData, repo model.Repository) {
 	{{ role := data.RepoTabRoles[repo.ID] }}
+	{{ stars := data.RepoTabStars[repo.ID] }}
+	{{ topics := data.RepoTabTopics[repo.ID] }}
+	if len(topics) > 3 {
+		{{ topics = topics[:3] }}
+	}
 	<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="block px-4 py-3 hover:bg-accent group">
 		<div class="flex items-start gap-3 mb-1.5">
 			<span class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true">
@@ -318,15 +323,35 @@ templ userRepoRow(data view.UserData, repo model.Repository) {
 				}
 			</div>
 		</div>
-		<div class="pl-[27px] flex items-center gap-1.5 text-[12px] text-muted-foreground flex-wrap">
-			if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
-				<span class="inline-flex items-center gap-1">
-					<span class="w-2 h-2 rounded-full" style={ "background:" + components.LangColor(*repo.PrimaryLanguage) } aria-hidden="true"></span>
-					{ *repo.PrimaryLanguage }
+		<div class="pl-[27px] flex items-center justify-between gap-3">
+			<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground flex-wrap min-w-0">
+				if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
+					<span class="inline-flex items-center gap-1">
+						<span class="w-2 h-2 rounded-full" style={ "background:" + components.LangColor(*repo.PrimaryLanguage) } aria-hidden="true"></span>
+						{ *repo.PrimaryLanguage }
+					</span>
+					<span class="opacity-50" aria-hidden="true">·</span>
+				}
+				<span>Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(repo.UpdatedAt) }</time></span>
+				for _, topic := range topics {
+					<span class="opacity-50 mx-0.5" aria-hidden="true">·</span>
+					<a
+						href={ templ.SafeURL("/topic/" + topic.Name) }
+						class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-accent text-muted-foreground hover:text-foreground hover:border-foreground/40"
+						onclick="event.stopPropagation()"
+					>{ topic.Name }</a>
+				}
+			</div>
+			<div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0">
+				<span class="inline-flex items-center gap-1" title={ strconv.Itoa(stars) + " stars" }>
+					<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+					{ strconv.Itoa(stars) }
 				</span>
-				<span class="opacity-50" aria-hidden="true">·</span>
-			}
-			<span>Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(repo.UpdatedAt) }</time></span>
+				<span class="inline-flex items-center gap-1" title={ strconv.Itoa(repo.ForkCount) + " forks" }>
+					<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="21" r="3"/><path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"/></svg>
+					{ strconv.Itoa(repo.ForkCount) }
+				</span>
+			</div>
 		</div>
 	</a>
 }

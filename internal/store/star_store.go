@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -37,6 +38,35 @@ func (s *StarStore) CountByRepo(ctx context.Context, repoID int64) (int, error) 
 		return 0, fmt.Errorf("star count: %w", err)
 	}
 	return count, nil
+}
+
+func (s *StarStore) CountByRepoIDs(ctx context.Context, repoIDs []int64) (map[int64]int, error) {
+	if len(repoIDs) == 0 {
+		return map[int64]int{}, nil
+	}
+	placeholders := make([]string, len(repoIDs))
+	args := make([]any, len(repoIDs))
+	for i, id := range repoIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	q := `SELECT repo_id, COUNT(*) FROM stars WHERE repo_id IN (` +
+		strings.Join(placeholders, ",") + `) GROUP BY repo_id`
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("star count by repo ids: %w", err)
+	}
+	defer rows.Close()
+	result := make(map[int64]int, len(repoIDs))
+	for rows.Next() {
+		var repoID int64
+		var count int
+		if err := rows.Scan(&repoID, &count); err != nil {
+			return nil, err
+		}
+		result[repoID] = count
+	}
+	return result, rows.Err()
 }
 
 func (s *StarStore) IsStarred(ctx context.Context, userID, repoID int64) (bool, error) {

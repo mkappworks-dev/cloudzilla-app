@@ -156,9 +156,29 @@ func (h *Handler) buildRepoTabData(r *http.Request, data view.UserData, allRepos
 		}
 	}
 
+	// Collect IDs of the filtered repos for batch lookups.
+	repoIDs := make([]int64, len(filtered))
+	for i, repo := range filtered {
+		repoIDs[i] = repo.ID
+	}
+
+	starCounts, err := h.Services.Star.CountByRepoIDs(r.Context(), repoIDs)
+	if err != nil {
+		slog.Warn("user profile repos tab: failed to load star counts", "error", err)
+		starCounts = map[int64]int{}
+	}
+
+	topicMap, err := h.Services.Topic.ListByRepoIDs(r.Context(), repoIDs)
+	if err != nil {
+		slog.Warn("user profile repos tab: failed to load topics", "error", err)
+		topicMap = map[int64][]model.Topic{}
+	}
+
 	data.RepoTabRepos = filtered
 	data.RepoTabRoles = roleMap
 	data.RepoTabLanguages = languages
+	data.RepoTabStars = starCounts
+	data.RepoTabTopics = topicMap
 	data.RepoTabActiveQuery = q
 	data.RepoTabActiveType = repoType
 	data.RepoTabActiveLanguage = langFilter
