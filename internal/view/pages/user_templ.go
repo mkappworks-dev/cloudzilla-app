@@ -1093,7 +1093,6 @@ func totalContributions(counts map[time.Time]int) int {
 	return total
 }
 
-// TODO(phase-8): refine event-type mapping when activity page lands.
 func eventToActivityRow(e model.Event) components.ActivityRowData {
 	repo := e.RepoName
 	if e.OwnerName != "" && e.RepoName != "" {
@@ -1118,7 +1117,7 @@ func mapEventKind(e model.Event, repo string) (kind, subject, subjectURL string)
 	case model.EventPRMerged:
 		return "pr_merged", "a pull request", subjectURL + "/pulls"
 	case model.EventPRClosed:
-		return "pr_opened", "a pull request", subjectURL + "/pulls"
+		return "pr_closed", "a pull request", subjectURL + "/pulls"
 	case model.EventIssueOpened:
 		return "issue_opened", "an issue", subjectURL + "/issues"
 	case model.EventIssueClosed:
@@ -1129,6 +1128,10 @@ func mapEventKind(e model.Event, repo string) (kind, subject, subjectURL string)
 		return "release", "a release", subjectURL + "/releases"
 	case model.EventPush:
 		return "comment", "new commits", subjectURL
+	case model.EventFork:
+		return "fork", "this repository", subjectURL
+	case model.EventMemberAdded:
+		return "member_added", "this organization", subjectURL
 	}
 	return "", "activity", subjectURL
 }

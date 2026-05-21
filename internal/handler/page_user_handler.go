@@ -72,7 +72,11 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 
 	var pinned []components.PinnedRepoData
 	if tab == "overview" {
-		ids, _ := h.Services.User.PinnedRepoIDs(r.Context(), user.ID)
+		ids, err := h.Services.User.PinnedRepoIDs(r.Context(), user.ID)
+		if err != nil {
+			slog.Warn("user profile: failed to load pinned repositories", "username", username, "error", err)
+			ids = nil
+		}
 		for _, rid := range ids {
 			rp, err := h.Services.Repo.GetByID(r.Context(), rid)
 			if err != nil || rp == nil {
@@ -91,12 +95,20 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	heatmap, _ := h.Services.CommitStats.LookbackForUser(r.Context(), user.ID, 365)
+	heatmap, err := h.Services.CommitStats.LookbackForUser(r.Context(), user.ID, 365)
+	if err != nil {
+		slog.Warn("user profile: failed to load commit heatmap", "username", username, "error", err)
+		heatmap = nil
+	}
 	if heatmap == nil {
 		heatmap = map[time.Time]int{}
 	}
 
-	langPcts, _ := h.Services.Language.AggregateForUser(r.Context(), user.ID, 5)
+	langPcts, err := h.Services.Language.AggregateForUser(r.Context(), user.ID, 5)
+	if err != nil {
+		slog.Warn("user profile: failed to load language stats", "username", username, "error", err)
+		langPcts = nil
+	}
 	topLangs := make([]components.LangBarItem, 0, len(langPcts))
 	for _, p := range langPcts {
 		topLangs = append(topLangs, components.LangBarItem{
@@ -106,7 +118,11 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	orgs, _ := h.Services.Org.ListMembershipsForUser(r.Context(), user.ID)
+	orgs, err := h.Services.Org.ListMembershipsForUser(r.Context(), user.ID)
+	if err != nil {
+		slog.Warn("user profile: failed to load organization memberships", "username", username, "error", err)
+		orgs = nil
+	}
 	if orgs == nil {
 		orgs = []service.OrgMembership{}
 	}

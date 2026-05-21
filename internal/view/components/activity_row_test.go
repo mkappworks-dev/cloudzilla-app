@@ -30,8 +30,11 @@ func TestActivityVerb_KnownAndUnknown(t *testing.T) {
 	cases := map[string]string{
 		"pr_opened":    "opened",
 		"pr_merged":    "merged",
+		"pr_closed":    "closed",
 		"issue_closed": "closed",
 		"comment":      "commented on",
+		"fork":         "forked",
+		"member_added": "joined",
 		"mystery":      "updated",
 	}
 	for kind, want := range cases {
