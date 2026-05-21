@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
@@ -27,6 +28,9 @@ type createOrgRepoRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Private     bool   `json:"private"`
+	AddReadme   bool   `json:"add_readme"`
+	Gitignore   string `json:"gitignore"`
+	License     string `json:"license"`
 }
 
 func (h *Handler) CreateOrg(w http.ResponseWriter, r *http.Request) {
@@ -226,7 +230,11 @@ func (h *Handler) CreateOrgRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Org.CreateRepo(r.Context(), org.ID, claims.UserID, req.Name, req.Description, req.Private)
+	repo, err := h.Services.Org.CreateRepo(r.Context(), org.ID, claims.UserID, req.Name, req.Description, req.Private, service.RepoInitOptions{
+		AddREADME: req.AddReadme,
+		Gitignore: req.Gitignore,
+		License:   req.License,
+	})
 	if err != nil {
 		slog.Error("failed to create org repo", "org", orgName, "error", err)
 		writeError(w, http.StatusUnprocessableEntity, "failed to create repository")

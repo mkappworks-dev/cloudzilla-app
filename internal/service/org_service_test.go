@@ -4,6 +4,7 @@ package service_test
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
@@ -233,5 +234,46 @@ func TestOrgService_IsOwner_MemberRole_ReturnsFalse(t *testing.T) {
 
 	if svc.IsOwner(context.Background(), org.ID, memberID) {
 		t.Error("user with member role must not be IsOwner")
+	}
+}
+
+// TestOrgService_CreateRepo_WithInitFiles verifies that an org-owned repo
+// created with init options gets a seeded initial commit containing the
+// README, .gitignore, and LICENSE files.
+func TestOrgService_CreateRepo_WithInitFiles(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	creatorID := testutil.SeedUser(t, db, suffix)
+	root := t.TempDir()
+
+	svc := service.NewOrgService(
+		store.NewOrgStore(db),
+		store.NewRepoStore(db),
+		store.NewUserStore(db),
+		config.GitConfig{ReposRoot: root},
+	)
+
+	ctx := context.Background()
+	org, err := svc.Create(ctx, creatorID, "testorg_initrepo_"+suffix, "Org", "")
+	if err != nil {
+		t.Fatalf("Create org: %v", err)
+	}
+
+	repo, err := svc.CreateRepo(ctx, org.ID, creatorID, "initrepo", "an initialized project", false, service.RepoInitOptions{
+		AddREADME: true,
+		Gitignore: "Go",
+		License:   "mit",
+	})
+	if err != nil {
+		t.Fatalf("CreateRepo: %v", err)
+	}
+
+	bareDir := filepath.Join(root, org.Name, repo.Name+".git")
+	files := bareTreeFiles(t, bareDir, repo.DefaultBranch)
+
+	for _, want := range []string{"README.md", ".gitignore", "LICENSE"} {
+		if !files[want] {
+			t.Errorf("initial commit missing %s (have %v)", want, files)
+		}
 	}
 }

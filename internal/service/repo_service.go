@@ -215,7 +215,12 @@ func (s *RepoService) Create(ctx context.Context, ownerUsername, name, descripti
 		// The DB row and bare repo already exist. A failure here leaves a valid
 		// empty repo the user can still push to, so we log and return success
 		// rather than 500-ing on already-created state.
-		if err := seedInitialCommit(repoPath, r, owner, description, init); err != nil {
+		email := owner.Email
+		if email == "" {
+			email = owner.Username + "@users.noreply.localhost"
+		}
+		sig := object.Signature{Name: owner.Username, Email: email, When: time.Now().UTC()}
+		if err := seedInitialCommit(repoPath, r.DefaultBranch, sig, init, owner.Username, name, description); err != nil {
 			slog.Error("seed initial commit for new repo failed; repo created empty",
 				"repo_id", r.ID, "owner", ownerUsername, "name", name, "error", err)
 		}
@@ -224,13 +229,16 @@ func (s *RepoService) Create(ctx context.Context, ownerUsername, name, descripti
 	return r, nil
 }
 
-// seedInitialCommit builds an initial commit in a temp worktree from the chosen
-// starter files and pushes it to the bare repo's default branch.
-func seedInitialCommit(bareDir string, repo *model.Repository, owner *model.User, description string, init RepoInitOptions) error {
+// seedInitialCommit creates the first commit (README/.gitignore/LICENSE) on a
+// freshly-PlainInit'd bare repo via a temp worktree, and points the bare repo's
+// HEAD at defaultBranch. ownerName is used for the license [fullname]
+// substitution. Returns an error the caller should log (not fail on), since the
+// bare repo already exists and remains usable when seeding fails.
+func seedInitialCommit(bareDir, defaultBranch string, sig object.Signature, init RepoInitOptions, ownerName, repoName, description string) error {
 	files := map[string]string{}
 
 	if init.AddREADME {
-		readme := "# " + repo.Name + "\n"
+		readme := "# " + repoName + "\n"
 		if d := strings.TrimSpace(description); d != "" {
 			readme += "\n" + d + "\n"
 		}
@@ -244,7 +252,6 @@ func seedInitialCommit(bareDir string, repo *model.Repository, owner *model.User
 		}
 	}
 	if init.License != "" {
-		ownerName := owner.Username
 		if content, ok := licenseContent(init.License, ownerName); ok {
 			files["LICENSE"] = content
 		} else {
@@ -280,16 +287,11 @@ func seedInitialCommit(bareDir string, repo *model.Repository, owner *model.User
 		}
 	}
 
-	email := owner.Email
-	if email == "" {
-		email = owner.Username + "@users.noreply.localhost"
-	}
-	sig := &object.Signature{Name: owner.Username, Email: email, When: time.Now().UTC()}
-	if _, err := wt.Commit("Initial commit", &gogit.CommitOptions{Author: sig, Committer: sig}); err != nil {
+	if _, err := wt.Commit("Initial commit", &gogit.CommitOptions{Author: &sig, Committer: &sig}); err != nil {
 		return fmt.Errorf("commit: %w", err)
 	}
 
-	branch := repo.DefaultBranch
+	branch := defaultBranch
 	if branch == "" {
 		branch = "main"
 	}
@@ -300,8 +302,13 @@ func seedInitialCommit(bareDir string, repo *model.Repository, owner *model.User
 	}); err != nil {
 		return fmt.Errorf("create remote: %w", err)
 	}
-	headName := plumbing.NewBranchReferenceName("master") // worktree's default branch after PlainInit
-	refSpec := gitconfig.RefSpec(headName.String() + ":" + plumbing.NewBranchReferenceName(branch).String())
+	// Resolve the worktree's actual HEAD branch rather than assuming go-git's
+	// PlainInit default ("master"), so the push survives a go-git default change.
+	headRefAfterCommit, err := work.Head()
+	if err != nil {
+		return fmt.Errorf("resolve worktree HEAD: %w", err)
+	}
+	refSpec := gitconfig.RefSpec(headRefAfterCommit.Name().String() + ":" + plumbing.NewBranchReferenceName(branch).String())
 	if err := work.Push(&gogit.PushOptions{
 		RemoteName: "bare",
 		RefSpecs:   []gitconfig.RefSpec{refSpec},

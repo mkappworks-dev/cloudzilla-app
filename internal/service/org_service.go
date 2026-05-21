@@ -3,9 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"path/filepath"
+	"time"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -147,7 +150,7 @@ func (s *OrgService) RemoveMember(ctx context.Context, orgID, requestingUserID, 
 	return s.orgs.RemoveMember(ctx, orgID, targetUserID)
 }
 
-func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int64, name, description string, private bool) (*model.Repository, error) {
+func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int64, name, description string, private bool, init RepoInitOptions) (*model.Repository, error) {
 	if err := ValidateName(name); err != nil {
 		return nil, fmt.Errorf("invalid repository name: %w", err)
 	}
@@ -176,6 +179,21 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 	repoPath := filepath.Join(s.cfg.ReposRoot, org.Name, name+".git")
 	if _, err := gogit.PlainInit(repoPath, true); err != nil {
 		return nil, fmt.Errorf("git init bare: %w", err)
+	}
+
+	if init.any() {
+		// The DB row and bare repo already exist. A failure here leaves a valid
+		// empty repo the user can still push to, so we log and return success
+		// rather than 500-ing on already-created state.
+		sig := object.Signature{
+			Name:  org.Name,
+			Email: org.Name + "@users.noreply.localhost",
+			When:  time.Now().UTC(),
+		}
+		if err := seedInitialCommit(repoPath, r.DefaultBranch, sig, init, org.Name, name, description); err != nil {
+			slog.Error("seed initial commit for new org repo failed; repo created empty",
+				"repo_id", r.ID, "org", org.Name, "name", name, "error", err)
+		}
 	}
 
 	return r, nil
