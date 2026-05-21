@@ -1,0 +1,112 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ NewOrganization(data view.NewOrganizationData) {
+	{{ var me string }}
+	if data.CurrentUser != nil {
+		{{ me = data.CurrentUser.Username }}
+	}
+	@layout.Base(data.BasePage, "New Organization") {
+		<div class="max-w-2xl mx-auto space-y-6">
+
+			<section aria-labelledby="no-title">
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Cloudzilla · New</p>
+				<h1 id="no-title" class="text-2xl font-semibold tracking-tight">Tell us about your organization</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">Set up an organization to collaborate on repositories with your team.</p>
+			</section>
+
+			<form method="post" action="/organizations/new" class="space-y-5 rounded-md border border-border bg-card p-6">
+				if data.Error != "" {
+					<div role="alert" class="text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2">{ data.Error }</div>
+				}
+
+				<div class="space-y-1.5">
+					<label for="org-name" class="block text-sm font-medium">
+						Organization name <span class="text-destructive" aria-hidden="true">*</span>
+					</label>
+					@components.Input(templ.Attributes{
+						"type":        "text",
+						"id":          "org-name",
+						"name":        "name",
+						"required":    "required",
+						"pattern":     "[A-Za-z0-9._-]+",
+						"value":       data.Name,
+						"placeholder": "my-organization",
+						"class":       "font-mono",
+					})
+					<p class="text-[11px] text-muted-foreground">Letters, numbers, dots, dashes, and underscores only.</p>
+				</div>
+
+				<div class="space-y-1.5">
+					<label for="org-description" class="block text-sm font-medium">
+						Description <span class="text-muted-foreground font-normal">(optional)</span>
+					</label>
+					@components.Input(templ.Attributes{
+						"type":        "text",
+						"id":          "org-description",
+						"name":        "description",
+						"value":       data.Description,
+						"placeholder": "Short description of the organization",
+					})
+				</div>
+
+				<fieldset class="space-y-3 border-t border-border pt-5">
+					<legend class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2">This organization belongs to</legend>
+					<label class="flex items-start gap-3 cursor-pointer">
+						@components.Radio(templ.Attributes{"value": "personal", "checked": "checked", "class": "mt-0.5"})
+						<span class="text-sm">
+							<span class="font-medium block">My personal account ({ me })</span>
+							<span class="text-muted-foreground text-[12px]">You will be the owner of this organization.</span>
+						</span>
+					</label>
+					<label class="flex items-start gap-3">
+						@components.Radio(templ.Attributes{"value": "enterprise", "disabled": "disabled", "class": "mt-0.5"})
+						<span class="text-sm">
+							<span class="font-medium block text-muted-foreground">An enterprise account</span>
+							<span class="text-muted-foreground text-[12px]">Not available.</span>
+						</span>
+					</label>
+				</fieldset>
+
+				<fieldset class="space-y-3 border-t border-border pt-5">
+					<legend class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2">Plan</legend>
+					<label class="flex items-start gap-3 cursor-pointer">
+						@components.Radio(templ.Attributes{"value": "free", "checked": "checked", "class": "mt-0.5"})
+						<span class="text-sm">
+							<span class="font-medium block">Free</span>
+							<span class="text-muted-foreground text-[12px]">Unlimited public and private repositories.</span>
+						</span>
+					</label>
+					<label class="flex items-start gap-3">
+						@components.Radio(templ.Attributes{"value": "team", "disabled": "disabled", "class": "mt-0.5"})
+						<span class="text-sm">
+							<span class="font-medium block text-muted-foreground">Team</span>
+							<span class="text-muted-foreground text-[12px]">Billing not yet supported.</span>
+						</span>
+					</label>
+				</fieldset>
+
+				<div class="border-t border-border pt-5">
+					<label class="flex items-start gap-3 cursor-pointer">
+						@components.Checkbox(templ.Attributes{"name": "accept_tos", "id": "accept-tos", "required": "required", "class": "mt-0.5"})
+						<span class="text-sm">I have read and agree to the Terms of Service.</span>
+					</label>
+				</div>
+
+				<div class="flex items-center gap-3 pt-2">
+					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+						Create organization
+					}
+					@components.LinkButton("/settings/organizations", components.ButtonGhost, components.ButtonSizeDefault, nil) {
+						Cancel
+					}
+				</div>
+			</form>
+		</div>
+	}
+}

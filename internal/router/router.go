@@ -65,6 +65,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
 	r.With(authMW).Get("/settings/oauth-apps", h.PageOAuthApps)
 	r.With(authMW).Get("/settings/organizations", h.PageOrganizations)
+	r.With(authMW).Get("/organizations/new", h.PageNewOrganization)
+	r.With(authMW).Post("/organizations/new", h.CreateOrganization)
 	r.With(authMW).Get("/notifications", h.PageNotifications)
 	r.With(authMW).Get("/feed", h.PageFeed)
 

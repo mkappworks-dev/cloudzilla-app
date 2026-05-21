@@ -60,6 +60,14 @@ type OrgMembersFragData struct {
 	CanManage bool
 }
 
+// NewOrganizationData holds template data for the new-organization form page.
+type NewOrganizationData struct {
+	BasePage
+	Error       string // non-empty re-renders the form with an error banner
+	Name        string // preserved on validation-error re-render
+	Description string // preserved on re-render
+}
+
 // UserStarsData holds template data for the user's starred repositories page.
 type UserStarsData struct {
 	BasePage
