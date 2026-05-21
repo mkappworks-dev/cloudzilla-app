@@ -172,7 +172,9 @@ templ Home(data view.HomeData) {
 												@attentionKindIcon(item.Kind)
 											</span>
 											<div class="min-w-0 flex-1">
-												<p class="text-[13px] truncate">{ item.Title }</p>
+												<p class="text-[13px] truncate">
+													<span class="text-muted-foreground">{ attentionKindLabel(item.Kind) + ": " }</span>{ item.Title }
+												</p>
 												<p class="text-[11px] text-muted-foreground mt-0.5">
 													<a href={ templ.SafeURL(attentionRepoURL(item)) } class="font-mono hover:underline">{ item.RepoName }</a>
 													<span aria-hidden="true">{ " · " }</span>
@@ -355,6 +357,17 @@ func attentionKindColorClass(kind service.AttentionKind) string {
 		return "text-success"
 	default:
 		return "text-muted-foreground"
+	}
+}
+
+func attentionKindLabel(kind service.AttentionKind) string {
+	switch kind {
+	case service.AttentionPRReviewRequested:
+		return "Pull request"
+	case service.AttentionMention:
+		return "Mention"
+	default:
+		return "Issue"
 	}
 }
 
