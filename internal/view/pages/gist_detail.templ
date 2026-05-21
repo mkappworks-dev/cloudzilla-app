@@ -53,7 +53,7 @@ templ GistDetail(data view.GistDetailData) {
 						@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
 							"hx-delete":            "/api/gists/" + data.Gist.ID,
 							"hx-confirm":           "Delete this gist?",
-							"hx-on::after-request": "if(event.detail.successful){window.location.href='/gists'}",
+							"hx-on::after-request": "if(event.detail.successful){window.location.href='/gists'}else{alert('Failed to delete gist.')}",
 						}) {
 							Delete
 						}

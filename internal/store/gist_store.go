@@ -110,20 +110,6 @@ func (s *GistStore) ListPublicByOwner(ctx context.Context, ownerID int64, page, 
 	return scanGists(rows)
 }
 
-func (s *GistStore) ListPublic(ctx context.Context, page, pageSize int) ([]model.Gist, error) {
-	offset := (page - 1) * pageSize
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, owner_id, owner_name, description, public, forked_from_id, created_at, updated_at
-         FROM gists WHERE public = true ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-		pageSize, offset,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("gist list public: %w", err)
-	}
-	defer rows.Close()
-	return scanGists(rows)
-}
-
 func (s *GistStore) Update(ctx context.Context, g *model.Gist, files []model.GistFile) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -190,7 +176,8 @@ func scanGists(rows *sql.Rows) ([]model.Gist, error) {
 	return gists, rows.Err()
 }
 
-func (s *GistStore) ListWithCounts(ctx context.Context, ownerFilter string) ([]model.GistListRow, error) {
+func (s *GistStore) ListWithCounts(ctx context.Context, ownerFilter string, page, pageSize int) ([]model.GistListRow, error) {
+	offset := (page - 1) * pageSize
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT g.id, g.owner_id, g.owner_name, g.description, g.public,
 		       g.created_at, g.updated_at,
@@ -201,8 +188,8 @@ func (s *GistStore) ListWithCounts(ctx context.Context, ownerFilter string) ([]m
 		JOIN users u ON u.id = g.owner_id
 		WHERE g.public = true AND ($1 = '' OR u.username = $1)
 		ORDER BY g.updated_at DESC
-		LIMIT 50`,
-		ownerFilter,
+		LIMIT $2 OFFSET $3`,
+		ownerFilter, pageSize, offset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("gist list with counts: %w", err)
@@ -224,8 +211,7 @@ func (s *GistStore) ListWithCounts(ctx context.Context, ownerFilter string) ([]m
 	return result, rows.Err()
 }
 
-// LoadFilenames returns a map of gist_id → filenames for the given gist IDs.
-// Used by the gists list view to derive the language chip without an N+1.
+// LoadFilenames batches gist_files lookups to avoid an N+1 in list views.
 func (s *GistStore) LoadFilenames(ctx context.Context, gistIDs []string) (map[string][]string, error) {
 	if len(gistIDs) == 0 {
 		return map[string][]string{}, nil

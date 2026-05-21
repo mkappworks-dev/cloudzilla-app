@@ -121,13 +121,15 @@ templ Gists(data view.GistsData) {
 					</ol>
 				</section>
 
-				if data.Tab == "private" {
-					{{ gistPrev := "" }}
-					if data.Page > 1 {
-						{{ gistPrev = "?tab=private&page=" + strconv.Itoa(data.Page-1) }}
-					}
-					@components.Pagination(gistPrev, "?tab=private&page="+strconv.Itoa(data.Page+1))
+				{{ gistPrev := "" }}
+				if data.Page > 1 {
+					{{ gistPrev = "?tab=" + data.Tab + "&page=" + strconv.Itoa(data.Page-1) }}
 				}
+				{{ gistNext := "" }}
+				if data.HasNext {
+					{{ gistNext = "?tab=" + data.Tab + "&page=" + strconv.Itoa(data.Page+1) }}
+				}
+				@components.Pagination(gistPrev, gistNext)
 			} else {
 				@components.EmptyState("No gists yet.")
 			}

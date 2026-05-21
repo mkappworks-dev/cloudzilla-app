@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -15,7 +16,9 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// PageGists renders the public gist explore page, with a Private tab for the signed-in viewer.
+const gistsPerPage = 50
+
+// PageGists renders the public gist explore page.
 func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 	page := 1
 	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
@@ -35,13 +38,25 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 
 	var rows []model.GistListRow
 	if tab == "private" && signedIn {
-		privateGists, _ := h.Services.Gist.ListPrivateByOwner(ctx, claims.UserID, page, 50)
+		privateGists, err := h.Services.Gist.ListPrivateByOwner(ctx, claims.UserID, page, gistsPerPage)
+		if err != nil {
+			slog.Error("gists: failed to load private gists", "user_id", claims.UserID, "page", page, "error", err)
+			http.Error(w, "Failed to load gists", http.StatusInternalServerError)
+			return
+		}
 		for _, g := range privateGists {
 			rows = append(rows, model.GistListRow{Gist: g})
 		}
 	} else {
-		rows, _ = h.Services.Gist.ListWithCounts(ctx, "")
+		var err error
+		rows, err = h.Services.Gist.ListWithCounts(ctx, "", page, gistsPerPage)
+		if err != nil {
+			slog.Error("gists: failed to load public gists", "page", page, "error", err)
+			http.Error(w, "Failed to load gists", http.StatusInternalServerError)
+			return
+		}
 	}
+	hasNext := len(rows) == gistsPerPage
 	if rows == nil {
 		rows = []model.GistListRow{}
 	}
@@ -50,14 +65,18 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 	for _, row := range rows {
 		ids = append(ids, row.ID)
 	}
-	filenamesByGist, _ := h.Services.Gist.LoadFilenames(ctx, ids)
+	filenamesByGist, err := h.Services.Gist.LoadFilenames(ctx, ids)
+	if err != nil {
+		slog.Error("gists: failed to load gist filenames", "error", err)
+		http.Error(w, "Failed to load gists", http.StatusInternalServerError)
+		return
+	}
 
 	items := make([]view.GistListItem, 0, len(rows))
 	for _, row := range rows {
 		files := filenamesByGist[row.ID]
 		label, chipClass := gistLanguage(files)
-		// ListPrivateByOwner returns model.Gist with no counts; derive FileCount
-		// from the batched filenames fetch. ListWithCounts already populates it.
+		// Private tab path skips ListWithCounts, so derive FileCount here.
 		if tab == "private" {
 			row.FileCount = int64(len(files))
 		}
@@ -68,6 +87,7 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 		BasePage:            basePage(r, h.Services),
 		Gists:               items,
 		Page:                page,
+		HasNext:             hasNext,
 		Tab:                 tab,
 		PrivateTabAvailable: signedIn,
 	}

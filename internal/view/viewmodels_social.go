@@ -61,7 +61,6 @@ type DiscussionNewData struct {
 	Error            string
 }
 
-// GistListItem extends GistListRow with display fields derived in the handler.
 type GistListItem struct {
 	model.GistListRow
 	LanguageLabel string
@@ -70,8 +69,9 @@ type GistListItem struct {
 
 type GistsData struct {
 	BasePage
-	Gists              []GistListItem
-	Page               int
+	Gists               []GistListItem
+	Page                int
+	HasNext             bool
 	Tab                 string // "public" or "private"
 	PrivateTabAvailable bool
 }

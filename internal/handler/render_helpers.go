@@ -16,9 +16,6 @@ func renderMentionsHTML(html string) string {
 	})
 }
 
-// gistLanguage derives a display label and Tailwind chip class from a slice of
-// filenames. The first filename's extension drives the result. Returns ("", "")
-// when no recognisable extension is found.
 func gistLanguage(filenames []string) (label, chipClass string) {
 	if len(filenames) == 0 {
 		return "", ""

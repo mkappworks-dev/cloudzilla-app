@@ -185,7 +185,7 @@ func GistEdit(data view.GistEditData) templ.Component {
 				"hx-get":    "/api/gists/file-row",
 				"hx-target": "#file-rows",
 				"hx-swap":   "beforeend",
-				"hx-vals":   "js:{index: document.querySelectorAll('#file-rows > *').length}",
+				"hx-vals":   "js:{index: window.gistFileSeq = (window.gistFileSeq || 0) + 1}",
 			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var9), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err

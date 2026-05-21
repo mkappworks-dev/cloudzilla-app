@@ -47,7 +47,7 @@ func TestGistStore_ListWithCounts(t *testing.T) {
 		t.Fatalf("lookup alice username: %v", err)
 	}
 
-	rows, err := gs.ListWithCounts(ctx, aliceUsername)
+	rows, err := gs.ListWithCounts(ctx, aliceUsername, 1, 50)
 	if err != nil {
 		t.Fatalf("ListWithCounts: %v", err)
 	}

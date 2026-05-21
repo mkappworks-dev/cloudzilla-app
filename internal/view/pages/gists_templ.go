@@ -419,19 +419,25 @@ func Gists(data view.GistsData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				if data.Tab == "private" {
-					gistPrev := ""
-					if data.Page > 1 {
-						gistPrev = "?tab=private&page=" + strconv.Itoa(data.Page-1)
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, " ")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = components.Pagination(gistPrev, "?tab=private&page="+strconv.Itoa(data.Page+1)).Render(ctx, templ_7745c5c3_Buffer)
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
+				gistPrev := ""
+				if data.Page > 1 {
+					gistPrev = "?tab=" + data.Tab + "&page=" + strconv.Itoa(data.Page-1)
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, " ")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				gistNext := ""
+				if data.HasNext {
+					gistNext = "?tab=" + data.Tab + "&page=" + strconv.Itoa(data.Page+1)
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, " ")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = components.Pagination(gistPrev, gistNext).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
 				}
 			} else {
 				templ_7745c5c3_Err = components.EmptyState("No gists yet.").Render(ctx, templ_7745c5c3_Buffer)
@@ -439,7 +445,7 @@ func Gists(data view.GistsData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

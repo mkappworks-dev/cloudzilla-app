@@ -14,7 +14,6 @@ type Gist struct {
 	UpdatedAt    time.Time `db:"updated_at"     json:"updated_at"`
 }
 
-// GistListRow extends Gist with aggregate counts for list views.
 type GistListRow struct {
 	Gist
 	FileCount int64 `db:"file_count" json:"file_count"`
