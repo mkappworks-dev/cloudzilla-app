@@ -1,8 +1,24 @@
 package fragments
 
-templ GistFileRow() {
-	<div class="border border-border rounded p-4">
-		<input type="text" name="filename[]" placeholder="Filename including extension" class="w-full border border-border rounded px-3 py-1 text-sm mb-2" required/>
-		<textarea name="content[]" rows="8" class="w-full border border-border rounded px-3 py-1 text-sm font-mono" placeholder="File contents..."></textarea>
-	</div>
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
+
+templ GistFileRow(index int) {
+	<section class="rounded-md border border-border bg-card overflow-hidden">
+		<header class="px-3 py-2 border-b border-border bg-accent flex items-center gap-2">
+			<label for={ "gist-filename-new-" + strconv.Itoa(index) } class="sr-only">Filename</label>
+			<input
+				id={ "gist-filename-new-" + strconv.Itoa(index) }
+				class="font-mono text-[13px] flex-1 bg-transparent focus:outline-none placeholder:text-muted-foreground"
+				type="text"
+				name="filename[]"
+				placeholder="filename.ext"
+				required
+			/>
+		</header>
+		@components.MarkdownEditor("gist-content-new-"+strconv.Itoa(index), "content[]", "", "File contents…", 8)
+	</section>
 }

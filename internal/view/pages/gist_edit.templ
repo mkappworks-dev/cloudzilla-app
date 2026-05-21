@@ -10,7 +10,7 @@ import (
 
 templ GistEdit(data view.GistEditData) {
 	@layout.Base(data.BasePage, "Edit Gist") {
-		<div class="max-w-4xl mx-auto space-y-6">
+		<div class="space-y-5">
 
 			<section aria-labelledby="edit-title">
 				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
@@ -23,78 +23,121 @@ templ GistEdit(data view.GistEditData) {
 				<h1 id="edit-title" class="text-2xl font-semibold tracking-tight">Edit gist</h1>
 			</section>
 
-			<form id="gist-edit-form" data-gist-id={ data.Gist.ID } class="space-y-5 rounded-md border border-border bg-card p-6">
-				<div class="space-y-1.5">
-					<label for="gist-edit-description" class="block text-sm font-medium">Description</label>
-					@components.Input(templ.Attributes{
-						"id":    "gist-edit-description",
-						"type":  "text",
-						"name":  "description",
-						"value": data.Gist.Description,
-					})
-				</div>
+			<div class="grid lg:grid-cols-[1fr_280px] gap-8">
+				<div class="min-w-0">
 
-				<label class="flex items-center gap-2 text-sm cursor-pointer">
-					if data.Gist.Public {
-						@components.Checkbox(templ.Attributes{"id": "public", "name": "public", "checked": "checked"})
-					} else {
-						@components.Checkbox(templ.Attributes{"id": "public", "name": "public"})
-					}
-					<span>Public gist</span>
-				</label>
-
-				<div id="file-rows" class="space-y-4">
-					for i, f := range data.Files {
-						<div class="rounded-md border border-border bg-muted/30 p-4 space-y-2">
-							<label for={ "gist-edit-filename-" + strconv.Itoa(i) } class="sr-only">Filename</label>
-							<input id={ "gist-edit-filename-" + strconv.Itoa(i) } type="text" name="filename[]" value={ f.Filename } class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-sm placeholder:text-muted-foreground" required/>
-							<label for={ "gist-edit-content-" + strconv.Itoa(i) } class="sr-only">File contents</label>
-							<textarea id={ "gist-edit-content-" + strconv.Itoa(i) } name="content[]" rows="10" class="flex min-h-[160px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical">{ f.Content }</textarea>
+					<form id="gist-edit-form" data-gist-id={ data.Gist.ID } class="space-y-5">
+						<div class="space-y-1.5">
+							<label for="gist-edit-description" class="block text-sm font-medium">
+								Gist description <span class="text-muted-foreground font-normal">(optional)</span>
+							</label>
+							@components.Input(templ.Attributes{
+								"id":    "gist-edit-description",
+								"type":  "text",
+								"name":  "description",
+								"value": data.Gist.Description,
+							})
 						</div>
-					}
+
+						<div id="file-rows" class="space-y-4">
+							for i, f := range data.Files {
+								<section class="rounded-md border border-border bg-card overflow-hidden">
+									<header class="px-3 py-2 border-b border-border bg-accent flex items-center gap-2">
+										<label for={ "gist-edit-filename-" + strconv.Itoa(i) } class="sr-only">Filename</label>
+										<input
+											id={ "gist-edit-filename-" + strconv.Itoa(i) }
+											class="font-mono text-[13px] flex-1 bg-transparent focus:outline-none placeholder:text-muted-foreground"
+											type="text"
+											name="filename[]"
+											value={ f.Filename }
+											required
+										/>
+									</header>
+									@components.MarkdownEditor("gist-edit-content-"+strconv.Itoa(i), "content[]", f.Content, "File contents…", 8)
+								</section>
+							}
+						</div>
+
+						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+							"type":      "button",
+							"hx-get":    "/api/gists/file-row",
+							"hx-target": "#file-rows",
+							"hx-swap":   "beforeend",
+							"hx-vals":   "js:{index: window.gistFileSeq = (window.gistFileSeq || 0) + 1}",
+						}) {
+							+ Add file
+						}
+
+						<div class="border-t border-border pt-5 flex items-center justify-between flex-wrap gap-3">
+							<fieldset class="flex items-center gap-3">
+								<legend class="sr-only">Visibility</legend>
+								if data.Gist.Public {
+									<label class="flex items-center gap-1.5 text-[13px]">
+										<input type="radio" name="visibility" value="public" checked/> Public
+									</label>
+									<label class="flex items-center gap-1.5 text-[13px]">
+										<input type="radio" name="visibility" value="private"/> Private
+									</label>
+								} else {
+									<label class="flex items-center gap-1.5 text-[13px]">
+										<input type="radio" name="visibility" value="public"/> Public
+									</label>
+									<label class="flex items-center gap-1.5 text-[13px]">
+										<input type="radio" name="visibility" value="private" checked/> Private
+									</label>
+								}
+							</fieldset>
+							<div class="flex items-center gap-2">
+								@components.LinkButton("/gists/"+data.Gist.ID, components.ButtonOutline, components.ButtonSizeDefault, nil) {
+									Cancel
+								}
+								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+									Save changes
+								}
+							</div>
+						</div>
+					</form>
 				</div>
 
-				@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
-					"type":      "button",
-					"hx-get":    "/api/gists/file-row",
-					"hx-target": "#file-rows",
-					"hx-swap":   "beforeend",
-				}) {
-					+ Add file
-				}
-
-				<div class="flex items-center gap-3 pt-2">
-					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-						Save changes
-					}
-					@components.LinkButton("/gists/"+data.Gist.ID, components.ButtonGhost, components.ButtonSizeDefault, nil) {
-						Cancel
-					}
-				</div>
-			</form>
+				<aside class="space-y-6" aria-label="About this gist">
+					<section aria-labelledby="edit-tips-heading">
+						<h2 id="edit-tips-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Editing tips</h2>
+						<ul class="space-y-2 text-[13px] text-muted-foreground leading-relaxed">
+							<li>Renaming a file keeps its content; saving creates a new revision.</li>
+							<li>Switching to Private hides the gist from the Explore listing.</li>
+							<li>Use the file extension to pick syntax highlighting (e.g. <span class="font-mono">.go</span>, <span class="font-mono">.sql</span>).</li>
+						</ul>
+					</section>
+				</aside>
+			</div>
 
 			<script>
 				document.getElementById('gist-edit-form').addEventListener('submit', async function(e) {
 					e.preventDefault();
 					const desc = this.querySelector('[name=description]').value;
-					const pub = this.querySelector('[name=public]').checked;
+					const visEl = this.querySelector('[name="visibility"]:checked');
+					const pub = !visEl || visEl.value === 'public';
 					const filenames = [...this.querySelectorAll('[name="filename[]"]')].map(el => el.value);
 					const contents = [...this.querySelectorAll('[name="content[]"]')].map(el => el.value);
 					const files = filenames.map((fn, i) => ({ filename: fn, content: contents[i] }));
 					const gistID = this.dataset.gistId;
 					const csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
-					const res = await fetch('/api/gists/' + gistID, {
-						method: 'PATCH',
-						headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
-						body: JSON.stringify({ description: desc, public: pub, files })
-					});
-					if (res.ok) {
-						window.location.href = '/gists/' + gistID;
-					} else {
-						const text = await res.text();
-						let msg = text;
-						try { msg = JSON.parse(text).error || text; } catch (_) {}
-						alert(msg || ('Failed to update gist (HTTP ' + res.status + ')'));
+					try {
+						const res = await fetch('/api/gists/' + gistID, {
+							method: 'PATCH',
+							headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+							body: JSON.stringify({ description: desc, public: pub, files })
+						});
+						if (res.ok) {
+							window.location.href = '/gists/' + gistID;
+						} else {
+							const text = await res.text();
+							let msg = text;
+							try { msg = JSON.parse(text).error || text; } catch (_) {}
+							alert(msg || ('Failed to update gist (HTTP ' + res.status + ')'));
+						}
+					} catch (err) {
+						alert('Could not reach the server. Check your connection and try again.');
 					}
 				});
 			</script>
