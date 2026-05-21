@@ -61,10 +61,19 @@ type DiscussionNewData struct {
 	Error            string
 }
 
+type GistListItem struct {
+	model.GistListRow
+	LanguageLabel string
+	LanguageClass string
+}
+
 type GistsData struct {
 	BasePage
-	Gists []model.Gist
-	Page  int
+	Gists               []GistListItem
+	Page                int
+	HasNext             bool
+	Tab                 string // "public" or "private"
+	PrivateTabAvailable bool
 }
 
 type GistDetailData struct {

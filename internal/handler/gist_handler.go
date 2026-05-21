@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -15,36 +16,102 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
+const gistsPerPage = 50
+
 // PageGists renders the public gist explore page.
 func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 	page := 1
 	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
 		page = p
 	}
-	gists, _ := h.Services.Gist.Explore(r.Context(), page, 20)
-	if gists == nil {
-		gists = []model.Gist{}
+	tab := r.URL.Query().Get("tab")
+	if tab != "private" {
+		tab = "public"
 	}
+
+	ctx := r.Context()
+	claims, signedIn := middleware.ClaimsFromContext(ctx)
+
+	if tab == "private" && !signedIn {
+		tab = "public"
+	}
+
+	var rows []model.GistListRow
+	if tab == "private" && signedIn {
+		privateGists, err := h.Services.Gist.ListPrivateByOwner(ctx, claims.UserID, page, gistsPerPage)
+		if err != nil {
+			slog.Error("gists: failed to load private gists", "user_id", claims.UserID, "page", page, "error", err)
+			http.Error(w, "Failed to load gists", http.StatusInternalServerError)
+			return
+		}
+		for _, g := range privateGists {
+			rows = append(rows, model.GistListRow{Gist: g})
+		}
+	} else {
+		var err error
+		rows, err = h.Services.Gist.ListWithCounts(ctx, "", page, gistsPerPage)
+		if err != nil {
+			slog.Error("gists: failed to load public gists", "page", page, "error", err)
+			http.Error(w, "Failed to load gists", http.StatusInternalServerError)
+			return
+		}
+	}
+	hasNext := len(rows) == gistsPerPage
+	if rows == nil {
+		rows = []model.GistListRow{}
+	}
+
+	ids := make([]string, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.ID)
+	}
+	filenamesByGist, err := h.Services.Gist.LoadFilenames(ctx, ids)
+	if err != nil {
+		slog.Error("gists: failed to load gist filenames", "error", err)
+		http.Error(w, "Failed to load gists", http.StatusInternalServerError)
+		return
+	}
+
+	items := make([]view.GistListItem, 0, len(rows))
+	for _, row := range rows {
+		files := filenamesByGist[row.ID]
+		label, chipClass := gistLanguage(files)
+		// Private tab path skips ListWithCounts, so derive FileCount here.
+		if tab == "private" {
+			row.FileCount = int64(len(files))
+		}
+		items = append(items, view.GistListItem{GistListRow: row, LanguageLabel: label, LanguageClass: chipClass})
+	}
+
 	data := view.GistsData{
-		BasePage: basePage(r, h.Services),
-		Gists:    gists,
-		Page:     page,
+		BasePage:            basePage(r, h.Services),
+		Gists:               items,
+		Page:                page,
+		HasNext:             hasNext,
+		Tab:                 tab,
+		PrivateTabAvailable: signedIn,
 	}
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(r.Context(), claims.UserID))
+	if signedIn {
+		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
 	}
 	h.render(w, r, pages.Gists(data))
 }
 
 // PageGistNew renders the new gist form.
 func (h *Handler) PageGistNew(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, pages.GistNew(view.GistNewData{BasePage: basePage(r, h.Services)}))
+	ctx := r.Context()
+	data := view.GistNewData{BasePage: basePage(r, h.Services)}
+	if claims, ok := middleware.ClaimsFromContext(ctx); ok {
+		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
+	}
+	h.render(w, r, pages.GistNew(data))
 }
 
 // PageGistDetail renders a gist's detail page.
 func (h *Handler) PageGistDetail(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	g, files, err := h.Services.Gist.Get(r.Context(), id)
+	ctx := r.Context()
+	g, files, err := h.Services.Gist.Get(ctx, id)
 	if err != nil {
 		http.Error(w, "gist not found", http.StatusNotFound)
 		return
@@ -53,7 +120,8 @@ func (h *Handler) PageGistDetail(w http.ResponseWriter, r *http.Request) {
 		files = []model.GistFile{}
 	}
 	isOwner := false
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+	claims, signedIn := middleware.ClaimsFromContext(ctx)
+	if signedIn {
 		isOwner = claims.UserID == g.OwnerID
 	}
 	// Private gists are only visible to their owner.
@@ -61,23 +129,28 @@ func (h *Handler) PageGistDetail(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
-	h.render(w, r, pages.GistDetail(view.GistDetailData{
+	data := view.GistDetailData{
 		BasePage: basePage(r, h.Services),
 		Gist:     *g,
 		Files:    files,
 		IsOwner:  isOwner,
-	}))
+	}
+	if signedIn {
+		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
+	}
+	h.render(w, r, pages.GistDetail(data))
 }
 
 // PageGistEdit renders the gist edit form.
 func (h *Handler) PageGistEdit(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	claims, ok := middleware.ClaimsFromContext(r.Context())
+	ctx := r.Context()
+	claims, ok := middleware.ClaimsFromContext(ctx)
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	g, files, err := h.Services.Gist.Get(r.Context(), id)
+	g, files, err := h.Services.Gist.Get(ctx, id)
 	if err != nil {
 		http.Error(w, "gist not found", http.StatusNotFound)
 		return
@@ -89,11 +162,13 @@ func (h *Handler) PageGistEdit(w http.ResponseWriter, r *http.Request) {
 	if files == nil {
 		files = []model.GistFile{}
 	}
-	h.render(w, r, pages.GistEdit(view.GistEditData{
+	data := view.GistEditData{
 		BasePage: basePage(r, h.Services),
 		Gist:     *g,
 		Files:    files,
-	}))
+	}
+	data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
+	h.render(w, r, pages.GistEdit(data))
 }
 
 // CreateGist handles POST /api/gists.
@@ -218,5 +293,6 @@ func (h *Handler) PageUserGists(w http.ResponseWriter, r *http.Request) {
 
 // AddFileFragment returns an HTMX fragment for a new gist file row.
 func (h *Handler) AddFileFragment(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, fragments.GistFileRow())
+	idx, _ := strconv.Atoi(r.URL.Query().Get("index"))
+	h.render(w, r, fragments.GistFileRow(idx))
 }
