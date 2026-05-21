@@ -1,0 +1,98 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ Organizations(data view.OrgListData) {
+	@layout.Base(data.BasePage, "Organizations") {
+		<div class="space-y-8 max-w-3xl">
+
+			<div class="flex flex-wrap items-start justify-between gap-3">
+				<div>
+					<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5">Account</p>
+					<h1 class="text-2xl font-semibold tracking-tight">Your organizations</h1>
+				</div>
+				@components.LinkButton("/organizations/new", components.ButtonDefault, components.ButtonSizeSM, nil) {
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
+					New organization
+				}
+			</div>
+
+			if len(data.Entries) > 0 {
+				<ul class="divide-y divide-border rounded-md border border-border bg-card overflow-hidden">
+					for _, e := range data.Entries {
+						@orgListRow(e, viewerUsername(data))
+					}
+				</ul>
+			} else {
+				@components.EmptyState("You're not a member of any organizations yet.")
+			}
+		</div>
+	}
+}
+
+templ orgListRow(e view.OrgListEntry, viewerUsername string) {
+	<li class="flex items-center gap-4 px-4 py-3.5">
+		@components.Avatar(e.Org.Name, components.AvatarSizeLG, e.Org.Name)
+		<div class="min-w-0 flex-1">
+			<div class="flex flex-wrap items-center gap-2">
+				<a href={ templ.SafeURL("/" + e.Org.Name) } class="text-sm font-medium hover:underline">
+					{ e.Org.Name }
+				</a>
+				if e.Role == model.OrgRoleOwner {
+					@components.Badge(components.BadgeDefault) {
+						Owner
+					}
+				} else {
+					@components.Badge(components.BadgeOutline) {
+						Member
+					}
+				}
+			</div>
+			if e.Org.DisplayName != "" {
+				<p class="text-xs text-muted-foreground mt-0.5">{ e.Org.DisplayName }</p>
+			}
+			<p class="text-xs text-muted-foreground mt-0.5">{ memberCountLabel(e.MemberCount) }</p>
+		</div>
+		<div class="flex-shrink-0">
+			if e.Role == model.OrgRoleOwner {
+				@components.LinkButton("/orgs/"+e.Org.Name+"/settings", components.ButtonOutline, components.ButtonSizeSM, nil) {
+					Manage
+				}
+			} else if viewerUsername != "" {
+				@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+					"hx-delete":           "/api/orgs/" + e.Org.Name + "/members/" + viewerUsername,
+					"hx-confirm":          "You will lose access to all repositories in " + e.Org.Name + ".",
+					"data-confirm-title":  "Leave this organization?",
+					"data-confirm-label":  "Leave",
+					"data-confirm-danger": "true",
+					"data-toast":          "Left organization",
+					"hx-on::after-request": "window.location.reload()",
+					"type":                "button",
+				}) {
+					Leave
+				}
+			}
+		</div>
+	</li>
+}
+
+func memberCountLabel(n int) string {
+	if n == 1 {
+		return "1 member"
+	}
+	return strconv.Itoa(n) + " members"
+}
+
+func viewerUsername(data view.OrgListData) string {
+	if data.CurrentUser == nil {
+		return ""
+	}
+	return data.CurrentUser.Username
+}

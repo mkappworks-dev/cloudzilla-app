@@ -170,6 +170,40 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	}))
 }
 
+// PageOrganizations renders the organizations listing page at /settings/organizations.
+func (h *Handler) PageOrganizations(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	memberships, err := h.Services.Org.ListMembershipsForUser(r.Context(), claims.UserID)
+	if err != nil {
+		slog.Warn("organizations: failed to load memberships", "user_id", claims.UserID, "error", err)
+		memberships = nil
+	}
+
+	entries := make([]view.OrgListEntry, 0, len(memberships))
+	for _, m := range memberships {
+		count, err := h.Services.Org.CountMembers(r.Context(), m.Org.ID)
+		if err != nil {
+			slog.Warn("organizations: failed to count members", "org_id", m.Org.ID, "error", err)
+			count = 0
+		}
+		entries = append(entries, view.OrgListEntry{
+			Org:         m.Org,
+			Role:        m.Role,
+			MemberCount: count,
+		})
+	}
+
+	h.render(w, r, pages.Organizations(view.OrgListData{
+		BasePage: basePage(r, h.Services),
+		Entries:  entries,
+	}))
+}
+
 // PageOrgSettings renders the organization settings page for org owners.
 func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 	orgName := chi.URLParam(r, "org")

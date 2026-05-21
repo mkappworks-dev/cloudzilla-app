@@ -33,6 +33,19 @@ type OrgData struct {
 	CanManage bool
 }
 
+// OrgListData holds template data for the organizations listing page.
+type OrgListData struct {
+	BasePage
+	Entries []OrgListEntry
+}
+
+// OrgListEntry is one organization row with the viewer's role and member count.
+type OrgListEntry struct {
+	Org         model.Organization
+	Role        model.OrgRole
+	MemberCount int
+}
+
 // OrgSettingsData holds template data for the organization settings page.
 type OrgSettingsData struct {
 	BasePage
