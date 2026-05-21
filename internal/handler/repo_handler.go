@@ -96,7 +96,7 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		slog.Error("failed to create repo", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to create repository")
+		writeError(w, http.StatusUnprocessableEntity, "failed to create repository")
 		return
 	}
 

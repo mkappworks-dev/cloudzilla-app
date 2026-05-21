@@ -1127,7 +1127,7 @@ func mapEventKind(e model.Event, repo string) (kind, subject, subjectURL string)
 	case model.EventReleasePublished:
 		return "release", "a release", subjectURL + "/releases"
 	case model.EventPush:
-		return "comment", "new commits", subjectURL
+		return "push", "new commits", subjectURL
 	case model.EventFork:
 		return "fork", "this repository", subjectURL
 	case model.EventMemberAdded:
