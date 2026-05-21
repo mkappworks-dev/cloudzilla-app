@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"path/filepath"
@@ -9,10 +10,15 @@ import (
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
+
+// ErrOrgNameTaken indicates the requested organization name is already in use
+// (by another organization or a user account).
+var ErrOrgNameTaken = errors.New("organization name is already taken")
 
 // OrgService manages organization creation, membership, and ownership transfers.
 type OrgService struct {
@@ -30,7 +36,7 @@ func NewOrgService(orgs *store.OrgStore, repos *store.RepoStore, users *store.Us
 func (s *OrgService) Create(ctx context.Context, creatorUserID int64, name, displayName, description string) (*model.Organization, error) {
 	// Check name not already used by a user
 	if _, err := s.users.GetByUsername(ctx, name); err == nil {
-		return nil, fmt.Errorf("name already taken by a user account")
+		return nil, fmt.Errorf("%w: conflicts with a user account", ErrOrgNameTaken)
 	}
 
 	org := &model.Organization{
@@ -39,6 +45,10 @@ func (s *OrgService) Create(ctx context.Context, creatorUserID int64, name, disp
 		Description: description,
 	}
 	if err := s.orgs.Create(ctx, org); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, ErrOrgNameTaken
+		}
 		return nil, fmt.Errorf("create org: %w", err)
 	}
 
@@ -123,7 +133,8 @@ func (s *OrgService) AddMember(ctx context.Context, orgID, requestingUserID, tar
 }
 
 func (s *OrgService) RemoveMember(ctx context.Context, orgID, requestingUserID, targetUserID int64) error {
-	if !s.IsOwner(ctx, orgID, requestingUserID) {
+	// A member may always remove themselves ("leave"); otherwise only owners may remove members.
+	if requestingUserID != targetUserID && !s.IsOwner(ctx, orgID, requestingUserID) {
 		return fmt.Errorf("only org owners can remove members")
 	}
 

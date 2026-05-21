@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -48,8 +49,7 @@ func (h *Handler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 	org, err := h.Services.Org.Create(r.Context(), claims.UserID, name, name, description)
 	if err != nil {
 		msg := "Could not create the organization. Please try again."
-		es := err.Error()
-		if strings.Contains(es, "already taken") || strings.Contains(es, "duplicate key") || strings.Contains(es, "unique constraint") {
+		if errors.Is(err, service.ErrOrgNameTaken) {
 			msg = "That organization name is already taken."
 		}
 		h.renderNewOrgError(w, r, name, description, msg)

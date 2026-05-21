@@ -82,6 +82,9 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 			if err != nil || rp == nil {
 				continue
 			}
+			if !h.Services.Repo.CanRead(r.Context(), rp, viewerID) {
+				continue
+			}
 			lang, _ := h.Services.Language.TopLanguageFor(r.Context(), rp.OwnerName, rp.Name, rp.DefaultBranch)
 			stars, _ := h.Services.Star.GetStarCount(r.Context(), rp.ID)
 			pinned = append(pinned, components.PinnedRepoData{
@@ -147,8 +150,16 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		viewerID = &claims.UserID
 	}
-	repos, _ := h.Services.Org.ListReposVisibleTo(r.Context(), org.ID, viewerID)
-	members, _ := h.Services.Org.ListMembers(r.Context(), org.ID)
+	repos, err := h.Services.Org.ListReposVisibleTo(r.Context(), org.ID, viewerID)
+	if err != nil {
+		slog.Warn("org profile: failed to load repositories", "org", org.Name, "error", err)
+		repos = nil
+	}
+	members, err := h.Services.Org.ListMembers(r.Context(), org.ID)
+	if err != nil {
+		slog.Warn("org profile: failed to load members", "org", org.Name, "error", err)
+		members = nil
+	}
 	if repos == nil {
 		repos = []model.Repository{}
 	}
@@ -224,7 +235,11 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, _ := h.Services.Org.ListMembers(r.Context(), org.ID)
+	members, err := h.Services.Org.ListMembers(r.Context(), org.ID)
+	if err != nil {
+		slog.Warn("org settings: failed to load members", "org", org.Name, "error", err)
+		members = nil
+	}
 	if members == nil {
 		members = []model.OrgMember{}
 	}

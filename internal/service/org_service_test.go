@@ -167,6 +167,43 @@ func TestOrgService_RemoveMember_OwnerCanRemove(t *testing.T) {
 	}
 }
 
+// TestOrgService_RemoveMember_MemberCanLeaveSelf verifies that a non-owner member can
+// remove themselves (the "leave org" flow), and that a sole owner still cannot leave.
+func TestOrgService_RemoveMember_MemberCanLeaveSelf(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	creatorID := testutil.SeedUser(t, db, suffix)
+	memberID := testutil.SeedUser(t, db, "leaver_"+suffix)
+
+	svc := service.NewOrgService(
+		store.NewOrgStore(db),
+		store.NewRepoStore(db),
+		store.NewUserStore(db),
+		config.GitConfig{},
+	)
+
+	org, err := svc.Create(context.Background(), creatorID, "testorg_leave_"+suffix, "Org", "")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if err := svc.AddMember(context.Background(), org.ID, creatorID, memberID, model.OrgRoleMember); err != nil {
+		t.Fatalf("AddMember: %v", err)
+	}
+
+	// A non-owner member removes themselves: must succeed.
+	if err := svc.RemoveMember(context.Background(), org.ID, memberID, memberID); err != nil {
+		t.Fatalf("member leaving themselves: %v", err)
+	}
+	if svc.IsMember(context.Background(), org.ID, memberID) {
+		t.Error("member must no longer belong to the org after leaving")
+	}
+
+	// The sole remaining owner attempts to leave: last-owner guard must block it.
+	if err := svc.RemoveMember(context.Background(), org.ID, creatorID, creatorID); err == nil {
+		t.Error("sole owner must not be able to leave (last-owner guard)")
+	}
+}
+
 // TestOrgService_CountMembers verifies that CountMembers reflects the creator-owner
 // after Create and increments when another member is added.
 func TestOrgService_CountMembers(t *testing.T) {
