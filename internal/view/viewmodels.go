@@ -71,7 +71,9 @@ type HomeData struct {
 	Templates    []model.Repository
 	Stats        []components.StatItem
 	Heatmap      map[time.Time]int
-	Attention    []service.AttentionItem
+	Attention        []service.AttentionItem
+	AttentionActive  string         // "assigned" | "reviews" | "mentions"
+	AttentionCounts  map[string]int // keys: "assigned", "reviews", "mentions"
 	Activity     []model.Event
 	LoadWarnings []string
 }

@@ -317,7 +317,44 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		if att, err := h.Services.Attention.ForUser(ctx, userID); err != nil {
 			slog.Warn("home: attention list failed", "user_id", userID, "error", err)
 		} else {
-			data.Attention = att
+			attnActive := r.URL.Query().Get("attn")
+			if attnActive != "reviews" && attnActive != "mentions" {
+				attnActive = "assigned"
+			}
+			counts := map[string]int{"assigned": 0, "reviews": 0, "mentions": 0}
+			for _, item := range att {
+				switch item.Kind {
+				case service.AttentionIssueAssigned:
+					counts["assigned"]++
+				case service.AttentionPRReviewRequested:
+					counts["reviews"]++
+				case service.AttentionMention:
+					counts["mentions"]++
+				}
+			}
+			var filtered []service.AttentionItem
+			for _, item := range att {
+				switch attnActive {
+				case "assigned":
+					if item.Kind == service.AttentionIssueAssigned {
+						filtered = append(filtered, item)
+					}
+				case "reviews":
+					if item.Kind == service.AttentionPRReviewRequested {
+						filtered = append(filtered, item)
+					}
+				case "mentions":
+					if item.Kind == service.AttentionMention {
+						filtered = append(filtered, item)
+					}
+				}
+			}
+			if len(filtered) > 20 {
+				filtered = filtered[:20]
+			}
+			data.Attention = filtered
+			data.AttentionActive = attnActive
+			data.AttentionCounts = counts
 		}
 		if feed, err := h.Services.Event.Feed(ctx, int(userID), 1, 10); err != nil {
 			slog.Warn("home: activity feed failed", "user_id", userID, "error", err)

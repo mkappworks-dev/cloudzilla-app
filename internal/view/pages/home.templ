@@ -247,16 +247,31 @@ templ Home(data view.HomeData) {
 						<div class="flex items-center justify-between mb-4">
 							<h2 id="attention-heading" class="text-[13px] font-medium">Needs your attention</h2>
 							<div role="tablist" aria-label="Filter attention items" class="flex items-center gap-0.5 text-[12px]">
-								<button type="button" role="tab" aria-selected="false" class="px-2 py-1 rounded text-muted-foreground cursor-default">Mentions</button>
-								<button type="button" role="tab" aria-selected="false" class="px-2 py-1 rounded text-muted-foreground cursor-default">Reviews</button>
-								<button type="button" role="tab" aria-selected="true" class="px-2 py-1 rounded bg-muted text-foreground">Assigned</button>
+								<a href="/?attn=mentions" role="tab" aria-selected={ strconv.FormatBool(data.AttentionActive == "mentions") } class={ "px-2 py-1 rounded", attentionTabClass(data.AttentionActive == "mentions") }>
+									Mentions
+									if data.AttentionCounts["mentions"] > 0 {
+										<span class="ml-1 tabular-nums">{ strconv.Itoa(data.AttentionCounts["mentions"]) }</span>
+									}
+								</a>
+								<a href="/?attn=reviews" role="tab" aria-selected={ strconv.FormatBool(data.AttentionActive == "reviews") } class={ "px-2 py-1 rounded", attentionTabClass(data.AttentionActive == "reviews") }>
+									Reviews
+									if data.AttentionCounts["reviews"] > 0 {
+										<span class="ml-1 tabular-nums">{ strconv.Itoa(data.AttentionCounts["reviews"]) }</span>
+									}
+								</a>
+								<a href="/?attn=assigned" role="tab" aria-selected={ strconv.FormatBool(data.AttentionActive == "assigned") } class={ "px-2 py-1 rounded", attentionTabClass(data.AttentionActive == "assigned") }>
+									Assigned
+									if data.AttentionCounts["assigned"] > 0 {
+										<span class="ml-1 tabular-nums">{ strconv.Itoa(data.AttentionCounts["assigned"]) }</span>
+									}
+								</a>
 							</div>
 						</div>
 						if len(data.Attention) > 0 {
 							<ul id="attention-panel" role="tabpanel" aria-labelledby="attention-heading" class="border border-border rounded-md bg-card divide-y divide-border">
 								for _, item := range data.Attention {
 									<li class="last:border-0">
-										<a href={ templ.SafeURL(attentionItemURL(item)) } class="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
+										<a href={ templ.SafeURL(item.URL) } class="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors">
 											<span class={ "flex-shrink-0 h-4 w-4 rounded-full grid place-items-center", attentionKindColorClass(item.Kind) } aria-hidden="true">
 												@attentionKindIcon(item.Kind)
 											</span>
@@ -442,6 +457,13 @@ templ attentionKindIcon(kind service.AttentionKind) {
 				<circle cx="12" cy="12" r="9"></circle>
 			</svg>
 	}
+}
+
+func attentionTabClass(active bool) string {
+	if active {
+		return "bg-muted text-foreground"
+	}
+	return "text-muted-foreground hover:text-foreground"
 }
 
 func attentionKindColorClass(kind service.AttentionKind) string {
