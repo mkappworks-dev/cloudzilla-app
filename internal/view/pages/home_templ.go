@@ -696,7 +696,7 @@ func Home(data view.HomeData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				if data.TotalRepos > 0 && data.TotalRepos > len(data.Repos) {
+				if data.TotalRepos > 0 {
 					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 69, "<span>Showing ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
