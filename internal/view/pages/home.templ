@@ -88,10 +88,78 @@ templ Home(data view.HomeData) {
 						<div class="flex items-center justify-between mb-4">
 							<h2 id="repos-heading" class="text-[13px] font-medium">Repositories</h2>
 							if data.BasePage.CurrentUser != nil {
-								<div class="flex items-center gap-1.5">
-									@components.LinkButton("/repos", components.ButtonOutline, components.ButtonSizeSM, nil) {
-										View all
-									}
+								<div class="flex items-center gap-1.5" x-data="{ openMenu: null }">
+									<!-- Filter dropdown -->
+									<div class="relative" x-on:click.outside="openMenu === 'filter' && (openMenu = null)">
+										<button
+											type="button"
+											x-on:click="openMenu = (openMenu === 'filter' ? null : 'filter')"
+											:aria-expanded="openMenu === 'filter' ? 'true' : 'false'"
+											aria-haspopup="menu"
+											class="h-7 px-2.5 text-[12px] border border-border rounded-md text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+										>
+											<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+											Filter
+										</button>
+										<div
+											x-show="openMenu === 'filter'"
+											x-cloak
+											x-transition.opacity.duration.100ms
+											role="menu"
+											aria-label="Filter repositories"
+											class="absolute right-0 top-full mt-1.5 z-50 w-44 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
+										>
+											<div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Type</div>
+											for _, opt := range repoFilterOptions() {
+												<a
+													href={ templ.SafeURL(homeRepoURL(data.RepoSort, opt.Value)) }
+													role="menuitem"
+													class={ "flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground", templ.KV("text-foreground font-medium", data.RepoFilter == opt.Value) }
+												>
+													{ opt.Label }
+													if data.RepoFilter == opt.Value {
+														<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+													}
+												</a>
+											}
+										</div>
+									</div>
+									<!-- Sort dropdown -->
+									<div class="relative" x-on:click.outside="openMenu === 'sort' && (openMenu = null)">
+										<button
+											type="button"
+											x-on:click="openMenu = (openMenu === 'sort' ? null : 'sort')"
+											:aria-expanded="openMenu === 'sort' ? 'true' : 'false'"
+											aria-haspopup="menu"
+											aria-label={ "Sort by, current: " + repoSortLabel(data.RepoSort) }
+											class="h-7 px-2.5 text-[12px] border border-border rounded-md text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+										>
+											<span aria-hidden="true">{ repoSortLabel(data.RepoSort) }</span>
+											<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
+										</button>
+										<div
+											x-show="openMenu === 'sort'"
+											x-cloak
+											x-transition.opacity.duration.100ms
+											role="menu"
+											aria-label="Sort repositories"
+											class="absolute right-0 top-full mt-1.5 z-50 w-48 rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
+										>
+											<div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Sort by</div>
+											for _, opt := range repoSortOptions() {
+												<a
+													href={ templ.SafeURL(homeRepoURL(opt.Value, data.RepoFilter)) }
+													role="menuitem"
+													class={ "flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground", templ.KV("text-foreground font-medium", data.RepoSort == opt.Value) }
+												>
+													{ opt.Label }
+													if data.RepoSort == opt.Value {
+														<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><polyline points="20 6 9 17 4 12"></polyline></svg>
+													}
+												</a>
+											}
+										</div>
+									</div>
 								</div>
 							}
 						</div>
@@ -109,6 +177,7 @@ templ Home(data view.HomeData) {
 										<col style="width: 28px"/>
 										<col/>
 										<col style="width: 120px"/>
+										<col style="width: 90px"/>
 										<col style="width: 120px"/>
 									</colgroup>
 									<thead>
@@ -116,6 +185,7 @@ templ Home(data view.HomeData) {
 											<th scope="col" class="px-4 py-2.5 font-normal"><span class="sr-only">Visibility</span></th>
 											<th scope="col" class="px-4 py-2.5 font-normal">Name</th>
 											<th scope="col" class="px-4 py-2.5 font-normal">Language</th>
+											<th scope="col" class="px-4 py-2.5 font-normal text-right" abbr="Pull requests">PRs</th>
 											<th scope="col" class="px-4 py-2.5 font-normal text-right">Updated</th>
 										</tr>
 									</thead>
@@ -146,6 +216,10 @@ templ Home(data view.HomeData) {
 															{ *repo.PrimaryLanguage }
 														</span>
 													}
+												</td>
+												<td class="px-4 py-3 text-right text-[12px] text-muted-foreground font-mono">
+													<span class="sr-only">Open pull requests: </span>
+													{ strconv.Itoa(data.RepoOpenPRs[repo.ID]) }
 												</td>
 												<td class="px-4 py-3 text-right text-[12px] text-muted-foreground font-mono whitespace-nowrap">
 													<time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(repo.UpdatedAt) }</time>
@@ -494,6 +568,53 @@ func pluralize(n int, singular, plural string) string {
 		return singular
 	}
 	return plural
+}
+
+type repoDropdownOption struct {
+	Value string
+	Label string
+}
+
+func repoSortOptions() []repoDropdownOption {
+	return []repoDropdownOption{
+		{"updated", "Last updated"},
+		{"created", "Recently created"},
+		{"name", "Name"},
+	}
+}
+
+func repoFilterOptions() []repoDropdownOption {
+	return []repoDropdownOption{
+		{"all", "All"},
+		{"sources", "Sources"},
+		{"forks", "Forks"},
+		{"templates", "Templates"},
+	}
+}
+
+func repoSortLabel(sort string) string {
+	switch sort {
+	case "name":
+		return "Name"
+	case "created":
+		return "Recently created"
+	default:
+		return "Last updated"
+	}
+}
+
+func homeRepoURL(sort, filter string) string {
+	q := "?"
+	if sort != "" && sort != "updated" {
+		q += "repo_sort=" + sort + "&"
+	}
+	if filter != "" && filter != "all" {
+		q += "repo_filter=" + filter + "&"
+	}
+	if q == "?" {
+		return "/"
+	}
+	return "/" + q[:len(q)-1]
 }
 
 // Returns a Tailwind color class for the language dot. Unknown languages get a neutral dot.

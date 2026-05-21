@@ -311,6 +311,10 @@ func (s *PullService) CountOpen(ctx context.Context, repoID int64) (int, error) 
 	return s.pulls.CountOpen(ctx, repoID)
 }
 
+func (s *PullService) CountOpenByRepoIDs(ctx context.Context, repoIDs []int64) (map[int64]int, error) {
+	return s.pulls.CountOpenByRepoIDs(ctx, repoIDs)
+}
+
 func (s *PullService) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
 	return s.pulls.CountOpenAssignedTo(ctx, userID)
 }

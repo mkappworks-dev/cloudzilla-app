@@ -65,6 +65,9 @@ type HomeData struct {
 	BasePage
 	Repos        []model.Repository
 	TotalRepos   int // authoritative count from DB (may exceed len(Repos) after future pagination)
+	RepoOpenPRs  map[int64]int // open PR count per repo ID; missing key → 0
+	RepoSort     string        // "updated" | "name" | "created"
+	RepoFilter   string        // "all" | "sources" | "forks" | "templates"
 	Templates    []model.Repository
 	Stats        []components.StatItem
 	Heatmap      map[time.Time]int

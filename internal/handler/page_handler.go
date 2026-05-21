@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sort"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -13,6 +14,47 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
+
+func applyHomeRepoFilter(repos []model.Repository, filter string) []model.Repository {
+	if filter == "all" || filter == "" {
+		return repos
+	}
+	out := repos[:0:0]
+	for _, r := range repos {
+		switch filter {
+		case "sources":
+			if r.ForkOfID == nil && !r.IsTemplate {
+				out = append(out, r)
+			}
+		case "forks":
+			if r.ForkOfID != nil {
+				out = append(out, r)
+			}
+		case "templates":
+			if r.IsTemplate {
+				out = append(out, r)
+			}
+		}
+	}
+	return out
+}
+
+func applyHomeRepoSort(repos []model.Repository, by string) {
+	switch by {
+	case "name":
+		sort.Slice(repos, func(i, j int) bool {
+			return repos[i].Name < repos[j].Name
+		})
+	case "created":
+		sort.Slice(repos, func(i, j int) bool {
+			return repos[i].CreatedAt.After(repos[j].CreatedAt)
+		})
+	default: // "updated"
+		sort.Slice(repos, func(i, j int) bool {
+			return repos[i].UpdatedAt.After(repos[j].UpdatedAt)
+		})
+	}
+}
 
 // Best-effort: each optional field degrades to zero value on failure rather than 500ing the whole layout.
 func basePage(r *http.Request, services *service.Services) BasePage {
@@ -149,11 +191,22 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		templates = []model.Repository{}
 	}
 
+	repoSort := r.URL.Query().Get("repo_sort")
+	if repoSort != "name" && repoSort != "created" {
+		repoSort = "updated"
+	}
+	repoFilter := r.URL.Query().Get("repo_filter")
+	if repoFilter != "sources" && repoFilter != "forks" && repoFilter != "templates" {
+		repoFilter = "all"
+	}
+
 	repos := []model.Repository{}
 	data := view.HomeData{
-		BasePage:  basePage(r, h.Services),
-		Repos:     repos,
-		Templates: templates,
+		BasePage:   basePage(r, h.Services),
+		Repos:      repos,
+		RepoSort:   repoSort,
+		RepoFilter: repoFilter,
+		Templates:  templates,
 	}
 
 	if claims, ok := middleware.ClaimsFromContext(ctx); ok {
@@ -165,14 +218,29 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 			data.LoadWarnings = append(data.LoadWarnings,
 				"We couldn't load your repositories right now. Refresh to try again.")
 		} else {
-			data.Repos = ownRepos
+			data.Repos = applyHomeRepoFilter(ownRepos, repoFilter)
+			applyHomeRepoSort(data.Repos, repoSort)
 		}
 	} else {
 		publicRepos, err := h.Services.Repo.List(ctx)
 		if err != nil {
 			slog.Warn("home: anonymous public-repo list failed", "error", err)
 		} else {
-			data.Repos = publicRepos
+			data.Repos = applyHomeRepoFilter(publicRepos, repoFilter)
+			applyHomeRepoSort(data.Repos, repoSort)
+		}
+	}
+
+	if len(data.Repos) > 0 {
+		repoIDs := make([]int64, len(data.Repos))
+		for i, repo := range data.Repos {
+			repoIDs[i] = repo.ID
+		}
+		if prCounts, err := h.Services.Pull.CountOpenByRepoIDs(ctx, repoIDs); err != nil {
+			slog.Warn("home: open PR counts failed", "error", err)
+			data.RepoOpenPRs = map[int64]int{}
+		} else {
+			data.RepoOpenPRs = prCounts
 		}
 	}
 	if claims, ok := middleware.ClaimsFromContext(ctx); ok {
