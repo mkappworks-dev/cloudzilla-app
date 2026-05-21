@@ -103,11 +103,13 @@ templ Home(data view.HomeData) {
 										<col style="width: 28px"/>
 										<col/>
 										<col style="width: 120px"/>
+										<col style="width: 120px"/>
 									</colgroup>
 									<thead>
 										<tr class="border-b border-border text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
 											<th scope="col" class="px-4 py-2.5 font-normal"><span class="sr-only">Visibility</span></th>
 											<th scope="col" class="px-4 py-2.5 font-normal">Name</th>
+											<th scope="col" class="px-4 py-2.5 font-normal">Language</th>
 											<th scope="col" class="px-4 py-2.5 font-normal text-right">Updated</th>
 										</tr>
 									</thead>
@@ -131,6 +133,14 @@ templ Home(data view.HomeData) {
 														<p class="text-[11px] text-muted-foreground truncate mt-0.5 font-normal">{ repo.Description }</p>
 													}
 												</th>
+												<td class="px-4 py-3">
+													if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
+														<span class="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground">
+															<span class="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" aria-hidden="true"></span>
+															{ *repo.PrimaryLanguage }
+														</span>
+													}
+												</td>
 												<td class="px-4 py-3 text-right text-[12px] text-muted-foreground font-mono whitespace-nowrap">
 													<time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(repo.UpdatedAt) }</time>
 												</td>
