@@ -1,12 +1,13 @@
 package components
 
 type ActivityRowData struct {
-	Kind       string // "pr_opened", "pr_merged", "issue_opened", "issue_closed", "comment", "star", "release"
-	Actor      string
-	RepoName   string
-	Subject    string
-	SubjectURL string
-	When       string // pre-formatted relative
+	Kind     string // "pr_opened", "pr_merged", "pr_closed", "issue_opened", "issue_closed", "star", "release", "fork", "member_added"
+	Actor    string
+	RepoName string // "owner/repo"
+	Ref      string // "#341" — inline on line 1; empty for star/fork/member
+	RefURL   string // link target for Ref
+	Title    string // line-2 subject text; empty when unavailable
+	When     string // pre-formatted relative
 }
 
 templ ActivityRow(a ActivityRowData) {
@@ -16,13 +17,16 @@ templ ActivityRow(a ActivityRowData) {
 			<p class="text-[13px]">
 				<a href={ templ.SafeURL("/" + a.Actor) } class="font-medium hover:underline">{ a.Actor }</a>
 				<span class="text-muted-foreground">{ " " + activityVerb(a.Kind) }</span>
-				if a.Subject != "" {
-					<span class="text-muted-foreground">{ " " }</span><a href={ templ.SafeURL(a.SubjectURL) } class="font-mono hover:underline text-primary">{ a.Subject }</a>
+				if a.Ref != "" {
+					<span class="text-muted-foreground">{ " " }</span><a href={ templ.SafeURL(a.RefURL) } class="font-mono hover:underline text-primary">{ a.Ref }</a>
 				}
 				if a.RepoName != "" {
 					<span class="text-muted-foreground">{ " in " }</span><a href={ templ.SafeURL("/" + a.RepoName) } class="font-mono text-muted-foreground hover:underline">{ a.RepoName }</a>
 				}
 			</p>
+			if a.Title != "" {
+				<p class="mt-0.5 text-[12.5px] text-muted-foreground truncate">{ a.Title }</p>
+			}
 			<p class="mt-1 text-[11px] text-muted-foreground/70"><time>{ a.When }</time></p>
 		</div>
 		@activityIcon(a.Kind)
@@ -47,6 +51,8 @@ func activityVerb(kind string) string {
 		return "opened"
 	case "pr_merged":
 		return "merged"
+	case "pr_closed":
+		return "closed"
 	case "issue_opened":
 		return "opened"
 	case "issue_closed":
@@ -55,8 +61,12 @@ func activityVerb(kind string) string {
 		return "commented on"
 	case "star":
 		return "starred"
-	case "release":
+	case "release", "release_published":
 		return "released"
+	case "fork":
+		return "forked"
+	case "member_added":
+		return "added member"
 	}
 	return "updated"
 }
@@ -70,6 +80,10 @@ templ activityIcon(kind string) {
 	case "pr_merged":
 		<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-1 text-[hsl(270_70%_70%)]" aria-hidden="true">
 			<path d="M5 3.254V3.25v.005a.75.75 0 110-.005v.004zm.45 1.9a2.25 2.25 0 10-1.95.218v5.256a2.25 2.25 0 101.5 0V7.123A5.735 5.735 0 009.25 9h1.378a2.251 2.251 0 100-1.5H9.25a4.25 4.25 0 01-3.8-2.346zM12.75 9a.75.75 0 100-1.5.75.75 0 000 1.5zm-8.5 4.5a.75.75 0 100-1.5.75.75 0 000 1.5z"></path>
+		</svg>
+	case "pr_closed":
+		<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-1 text-destructive" aria-hidden="true">
+			<path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zm5.677-.177L9.573.677A.25.25 0 0110 .854V2.5h1A2.5 2.5 0 0113.5 5v5.628a2.251 2.251 0 11-1.5 0V5a1 1 0 00-1-1h-1v1.646a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm8.25.75a.75.75 0 101.5 0 .75.75 0 00-1.5 0z"></path>
 		</svg>
 	case "issue_opened":
 		<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-1 text-success" aria-hidden="true">
@@ -87,7 +101,7 @@ templ activityIcon(kind string) {
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-warning" aria-hidden="true">
 			<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
 		</svg>
-	case "release":
+	case "release", "release_published":
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-muted-foreground" aria-hidden="true">
 			<path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line>
 		</svg>

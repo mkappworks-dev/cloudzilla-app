@@ -9,6 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
+	"encoding/json"
 	"strconv"
 	"time"
 
@@ -19,18 +20,72 @@ import (
 )
 
 func eventToActivityRow(e model.Event) components.ActivityRowData {
-	kind := e.EventType
-	switch kind {
+	repoPath := e.OwnerName + "/" + e.RepoName
+
+	var m map[string]any
+	if len(e.Payload) > 0 {
+		_ = json.Unmarshal(e.Payload, &m)
+	}
+
+	strVal := func(key string) string {
+		if m == nil {
+			return ""
+		}
+		v, _ := m[key].(string)
+		return v
+	}
+	intVal := func(key string) int {
+		if m == nil {
+			return 0
+		}
+		f, _ := m[key].(float64)
+		return int(f)
+	}
+
+	var ref, refURL, title string
+
+	switch e.EventType {
+	case model.EventPROpened, model.EventPRMerged, model.EventPRClosed:
+		n := intVal("number")
+		if n > 0 {
+			ns := strconv.Itoa(n)
+			ref = "#" + ns
+			refURL = "/" + repoPath + "/pulls/" + ns
+		}
+		if e.EventType == model.EventPROpened {
+			title = strVal("title")
+		}
+	case model.EventIssueOpened, model.EventIssueClosed:
+		n := intVal("number")
+		if n > 0 {
+			ns := strconv.Itoa(n)
+			ref = "#" + ns
+			refURL = "/" + repoPath + "/issues/" + ns
+		}
+		if e.EventType == model.EventIssueOpened {
+			title = strVal("title")
+		}
 	case model.EventReleasePublished:
+		ref = strVal("tag")
+		title = strVal("name")
+		if ref != "" {
+			refURL = "/" + repoPath + "/releases/tag/" + ref
+		}
+	}
+
+	kind := e.EventType
+	if kind == model.EventReleasePublished {
 		kind = "release"
 	}
+
 	return components.ActivityRowData{
-		Kind:       kind,
-		Actor:      e.ActorName,
-		RepoName:   e.OwnerName + "/" + e.RepoName,
-		Subject:    "",
-		SubjectURL: "",
-		When:       relativeTime(e.CreatedAt),
+		Kind:     kind,
+		Actor:    e.ActorName,
+		RepoName: repoPath,
+		Ref:      ref,
+		RefURL:   refURL,
+		Title:    title,
+		When:     relativeTime(e.CreatedAt),
 	}
 }
 
@@ -117,7 +172,7 @@ func Activity(data view.ActivityData) templ.Component {
 						var templ_7745c5c3_Var3 string
 						templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(activityDateLabel(e.CreatedAt))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/feed.templ`, Line: 74, Col: 124}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/feed.templ`, Line: 129, Col: 124}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 						if templ_7745c5c3_Err != nil {
@@ -150,7 +205,7 @@ func Activity(data view.ActivityData) templ.Component {
 					var templ_7745c5c3_Var4 templ.SafeURL
 					templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(nextURL))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/feed.templ`, Line: 84, Col: 38}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/feed.templ`, Line: 139, Col: 38}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 					if templ_7745c5c3_Err != nil {
