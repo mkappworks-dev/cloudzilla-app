@@ -1,7 +1,7 @@
 package pages
 
 import (
-	"strconv"
+	"fmt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -11,13 +11,16 @@ import (
 templ AccountIssues(data view.AccountIssuesData) {
 	@layout.Base(data.BasePage, "Issues") {
 		<div class="space-y-5">
-			<h1 id="issues-title" class="text-2xl font-semibold tracking-tight">Issues</h1>
+			<section class="mb-6">
+				<h1 class="text-2xl font-semibold tracking-tight">Issues</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">Issues that involve you across every repository.</p>
+			</section>
 			@components.Tabs("Issue filter") {
 				@components.TabLink("/issues?filter=assigned&state="+data.State, data.Filter == "assigned") {
 					Assigned
 				}
 				@components.TabLink("/issues?filter=created&state="+data.State, data.Filter == "created") {
-					Created
+					Created by you
 				}
 				@components.TabLink("/issues?filter=mentioned&state="+data.State, data.Filter == "mentioned") {
 					Mentioned
@@ -32,21 +35,63 @@ templ AccountIssues(data view.AccountIssuesData) {
 				</span>
 			}
 			if len(data.Issues) > 0 {
-				<ol class="rounded-md border border-border bg-card divide-y divide-border overflow-hidden">
-					for _, is := range data.Issues {
-						<li>
-							<a href={ templ.SafeURL("/" + is.RepoFullName + "/issues/" + strconv.Itoa(is.Number)) } class="block px-4 py-3 hover:bg-muted/50">
-								<div class="text-[13px] font-medium hover:underline">{ is.Title }</div>
-								<div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
-									<span class="font-mono">{ is.RepoFullName }#{ strconv.Itoa(is.Number) }</span>
-								</div>
-							</a>
-						</li>
-					}
-				</ol>
+				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="myissue-list">
+					<h2 id="myissue-list" class="sr-only">Your issues</h2>
+					<ol class="divide-y divide-border">
+						for _, is := range data.Issues {
+							<li>
+								<a
+									href={ templ.SafeURL(fmt.Sprintf("/%s/issues/%d", is.RepoFullName, is.Number)) }
+									class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100"
+								>
+									<div class="flex items-start gap-3 mb-1.5">
+										@issueStateIcon(is.State)
+										<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+											<span class="font-mono text-[12px] text-muted-foreground">{ is.RepoFullName }</span>
+											<span class="opacity-50" aria-hidden="true">·</span>
+											<p class="text-[13.5px] font-medium leading-snug group-hover:underline">{ is.Title }</p>
+											@issueStateBadge(is.State)
+										</div>
+									</div>
+									<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground pl-[27px] min-w-0 flex-wrap">
+										<span class="font-mono">{ fmt.Sprintf("#%d", is.Number) }</span>
+										<span class="opacity-50" aria-hidden="true">·</span>
+										<time>{ relativeTime(is.UpdatedAt) }</time>
+									</div>
+								</a>
+							</li>
+						}
+					</ol>
+				</section>
 			} else {
 				@components.EmptyState("No " + data.State + " issues.")
 			}
 		</div>
+	}
+}
+
+templ issueStateIcon(state string) {
+	if state == "closed" {
+		<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true">
+			<circle cx="12" cy="12" r="9"></circle>
+			<path d="M9 9l6 6M15 9l-6 6"></path>
+		</svg>
+	} else {
+		<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5 text-success" aria-hidden="true">
+			<circle cx="12" cy="12" r="9"></circle>
+			<circle cx="12" cy="12" r="3"></circle>
+		</svg>
+	}
+}
+
+templ issueStateBadge(state string) {
+	if state == "closed" {
+		@components.Badge(components.BadgeDestructive) {
+			Closed
+		}
+	} else {
+		@components.Badge(components.BadgeSuccess) {
+			Open
+		}
 	}
 }
