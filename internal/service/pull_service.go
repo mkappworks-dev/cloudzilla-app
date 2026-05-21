@@ -153,6 +153,17 @@ func (s *PullService) Create(ctx context.Context, owner, repoName string, author
 	if err := s.pulls.Create(ctx, pr); err != nil {
 		return nil, err
 	}
+	if s.code != nil {
+		if headCommit, _, resolveErr := s.code.ResolveRef(owner, repoName, head); resolveErr == nil && headCommit != nil {
+			if shaErr := s.pulls.UpdateHeadSHA(ctx, pr.ID, headCommit.Hash.String()); shaErr == nil {
+				pr.HeadSHA = headCommit.Hash.String()
+			} else {
+				slog.Warn("pr create: update head sha failed", "pull_id", pr.ID, "error", shaErr)
+			}
+		} else if resolveErr != nil {
+			slog.Warn("pr create: resolve head ref failed", "pull_id", pr.ID, "head", head, "error", resolveErr)
+		}
+	}
 	return pr, nil
 }
 

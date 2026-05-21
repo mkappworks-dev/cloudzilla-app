@@ -78,13 +78,25 @@ func (h *Handler) PageAccountPulls(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to load pull requests", http.StatusInternalServerError)
 		return
 	}
+	pullCI, err := h.Services.CommitStatus.CountsByPullIDs(ctx, pullIDs)
+	if err != nil {
+		slog.Warn("pulls: failed to load CI counts", "error", err)
+		pullCI = nil
+	}
+	pullReviewers, err := h.Services.PullReview.ListReviewersByPullIDs(ctx, pullIDs)
+	if err != nil {
+		slog.Warn("pulls: failed to load reviewers", "error", err)
+		pullReviewers = nil
+	}
 	data := view.AccountPullsData{
-		BasePage:     withAccountSubnav(basePage(r, h.Services), "pulls", h.accountCounts(ctx, claims.UserID)),
-		Pulls:        pulls,
-		Filter:       filter,
-		State:        state,
-		PullComments: commentCounts,
-		PullLabels:   pullLabels,
+		BasePage:      withAccountSubnav(basePage(r, h.Services), "pulls", h.accountCounts(ctx, claims.UserID)),
+		Pulls:         pulls,
+		Filter:        filter,
+		State:         state,
+		PullComments:  commentCounts,
+		PullLabels:    pullLabels,
+		PullCI:        pullCI,
+		PullReviewers: pullReviewers,
 	}
 	h.render(w, r, pages.AccountPulls(data))
 }

@@ -59,6 +59,83 @@ func (s *CommitStatusService) GetCombined(ctx context.Context, owner, repoName, 
 	return combined, statuses, nil
 }
 
+// CIChecks holds the required and passing check counts for a PR.
+type CIChecks struct{ Required, Passing int }
+
+// CountsByPullIDs returns CI check counts for multiple PRs in a bounded number of SQL queries.
+// PRs with empty HeadSHA are omitted from the result map.
+func (s *CommitStatusService) CountsByPullIDs(ctx context.Context, pullIDs []int64) (map[int64]CIChecks, error) {
+	if s.pulls == nil || s.protections == nil {
+		return map[int64]CIChecks{}, nil
+	}
+	prs, err := s.pulls.GetManyByIDs(ctx, pullIDs)
+	if err != nil {
+		return nil, fmt.Errorf("ci counts: load prs: %w", err)
+	}
+
+	// Collect unique repo IDs so we can resolve owner names once.
+	repoIDSet := make(map[int64]struct{}, len(prs))
+	for _, pr := range prs {
+		repoIDSet[pr.RepoID] = struct{}{}
+	}
+	repoByID := make(map[int64]*model.Repository, len(repoIDSet))
+	for repoID := range repoIDSet {
+		repo, err := s.repos.GetByID(ctx, repoID)
+		if err != nil || repo == nil {
+			continue
+		}
+		repoByID[repoID] = repo
+	}
+
+	// Cache branch-protection rules per (repoID, baseBranch) to avoid repeat lookups.
+	type bpKey struct {
+		repoID     int64
+		baseBranch string
+	}
+	bpCache := map[bpKey][]string{}
+
+	result := make(map[int64]CIChecks, len(prs))
+	for _, pr := range prs {
+		if pr.HeadSHA == "" {
+			continue
+		}
+		repo := repoByID[pr.RepoID]
+		if repo == nil {
+			continue
+		}
+		k := bpKey{pr.RepoID, pr.BaseBranch}
+		requiredContexts, cached := bpCache[k]
+		if !cached {
+			rule, err := s.protections.MatchForBranch(ctx, pr.RepoID, pr.BaseBranch)
+			if err == nil && rule != nil {
+				requiredContexts = []string(rule.RequireStatusChecks)
+			}
+			bpCache[k] = requiredContexts
+		}
+		if len(requiredContexts) == 0 {
+			continue
+		}
+		statuses, err := s.statuses.ListBySHA(ctx, pr.RepoID, pr.HeadSHA)
+		if err != nil {
+			continue
+		}
+		passingByCtx := make(map[string]bool, len(statuses))
+		for _, st := range statuses {
+			if st.State == model.CommitStatusSuccess {
+				passingByCtx[st.Context] = true
+			}
+		}
+		pass := 0
+		for _, ctxName := range requiredContexts {
+			if passingByCtx[ctxName] {
+				pass++
+			}
+		}
+		result[pr.ID] = CIChecks{Required: len(requiredContexts), Passing: pass}
+	}
+	return result, nil
+}
+
 // Returns (0, 0, nil) when no protection rule matches or required deps are unavailable.
 func (s *CommitStatusService) Counts(ctx context.Context, pullID int64) (required int, passing int, err error) {
 	if s.pulls == nil || s.protections == nil || s.code == nil {

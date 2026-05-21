@@ -30,4 +30,5 @@ type PullRequest struct {
 	DraftAt           *time.Time `db:"draft_at"             json:"draft_at,omitempty"`
 	AutoMergeEnabled  bool       `db:"auto_merge_enabled"   json:"auto_merge_enabled"`
 	AutoMergeStrategy string     `db:"auto_merge_strategy"  json:"auto_merge_strategy,omitempty"`
+	HeadSHA           string     `db:"head_sha"             json:"head_sha,omitempty"`
 }

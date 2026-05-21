@@ -51,6 +51,7 @@ type RepoService struct {
 	contributorStats *ContributorStatsService
 	code             *CodeService
 	language         *LanguageService
+	pulls            *store.PullStore
 	cfg              config.GitConfig
 }
 
@@ -61,6 +62,11 @@ func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.
 
 func (s *RepoService) WithLanguageService(lang *LanguageService) *RepoService {
 	s.language = lang
+	return s
+}
+
+func (s *RepoService) WithPullStore(pulls *store.PullStore) *RepoService {
+	s.pulls = pulls
 	return s
 }
 
@@ -171,6 +177,19 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 				detail.TotalAdded, detail.TotalDeleted); err != nil {
 				slog.Warn("post-receive: contributor stats ingest failed",
 					"repo_id", repo.ID, "sha", c.SHA, "user_id", user.ID, "error", err)
+			}
+		}
+	}
+
+	if s.pulls != nil {
+		for _, cmd := range commands {
+			if cmd == nil || !strings.HasPrefix(cmd.Name.String(), "refs/heads/") || cmd.Action() == packp.Delete {
+				continue
+			}
+			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
+			if err := s.pulls.UpdateHeadSHAByBranch(ctx, repo.ID, branch, cmd.New.String()); err != nil {
+				slog.Warn("post-receive: update PR head sha failed",
+					"repo_id", repo.ID, "branch", branch, "error", err)
 			}
 		}
 	}

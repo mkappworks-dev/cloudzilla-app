@@ -62,7 +62,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
 	contributorStatsSvc := NewContributorStatsService(stores.ContributorStats, stores.User)
 	attentionSvc := NewAttentionService(stores.Issue)
-	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, commitStatsSvc, contributorStatsSvc, code, cfg.Git).WithLanguageService(languageSvc)
+	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, commitStatsSvc, contributorStatsSvc, code, cfg.Git).WithLanguageService(languageSvc).WithPullStore(stores.Pull)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
 	userSvc := NewUserService(stores.User, cfg.Auth)
 	emailSvc := NewEmailService(cfg.SMTP)
