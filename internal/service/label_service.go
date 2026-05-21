@@ -164,3 +164,7 @@ func (s *LabelService) BatchForPulls(ctx context.Context, pulls []model.PullRequ
 	}
 	return s.labels.ListByPullIDs(ctx, ids)
 }
+
+func (s *LabelService) BatchForPullIDs(ctx context.Context, pullIDs []int64) (map[int64][]model.Label, error) {
+	return s.labels.ListByPullIDs(ctx, pullIDs)
+}

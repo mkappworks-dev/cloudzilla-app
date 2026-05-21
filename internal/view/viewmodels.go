@@ -88,9 +88,11 @@ type AccountReposData struct {
 
 type AccountPullsData struct {
 	BasePage
-	Pulls  []store.PullListItem
-	Filter string // "created" | "assigned" | "review_requested" | "mentioned"
-	State  string // "open" | "closed"
+	Pulls        []store.PullListItem
+	Filter       string // "created" | "assigned" | "review_requested" | "mentioned"
+	State        string // "open" | "closed"
+	PullComments map[int64]int
+	PullLabels   map[int64][]model.Label
 }
 
 type AccountIssuesData struct {

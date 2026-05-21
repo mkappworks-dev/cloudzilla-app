@@ -62,11 +62,29 @@ func (h *Handler) PageAccountPulls(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to load pull requests", http.StatusInternalServerError)
 		return
 	}
+	pullIDs := make([]int64, len(pulls))
+	for i, p := range pulls {
+		pullIDs[i] = p.ID
+	}
+	commentCounts, err := h.Services.Comment.CountByPullIDs(ctx, pullIDs)
+	if err != nil {
+		slog.Error("pulls: failed to load comment counts", "error", err)
+		http.Error(w, "Failed to load pull requests", http.StatusInternalServerError)
+		return
+	}
+	pullLabels, err := h.Services.Label.BatchForPullIDs(ctx, pullIDs)
+	if err != nil {
+		slog.Error("pulls: failed to load labels", "error", err)
+		http.Error(w, "Failed to load pull requests", http.StatusInternalServerError)
+		return
+	}
 	data := view.AccountPullsData{
-		BasePage: withAccountSubnav(basePage(r, h.Services), "pulls", h.accountCounts(ctx, claims.UserID)),
-		Pulls:    pulls,
-		Filter:   filter,
-		State:    state,
+		BasePage:     withAccountSubnav(basePage(r, h.Services), "pulls", h.accountCounts(ctx, claims.UserID)),
+		Pulls:        pulls,
+		Filter:       filter,
+		State:        state,
+		PullComments: commentCounts,
+		PullLabels:   pullLabels,
 	}
 	h.render(w, r, pages.AccountPulls(data))
 }

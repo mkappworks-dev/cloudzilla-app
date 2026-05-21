@@ -2,7 +2,9 @@ package pages
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -56,10 +58,24 @@ templ AccountPulls(data view.AccountPullsData) {
 											@pullStateBadge(pr.State)
 										</div>
 									</div>
-									<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground pl-[27px] min-w-0 flex-wrap">
-										<span class="font-mono">{ fmt.Sprintf("#%d", pr.Number) }</span>
-										<span class="opacity-50" aria-hidden="true">·</span>
-										<time>{ relativeTime(pr.UpdatedAt) }</time>
+									<div class="flex items-center justify-between gap-3 pl-[27px]">
+										<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+											<span class="font-mono">{ fmt.Sprintf("#%d", pr.Number) }</span>
+											<span class="opacity-50" aria-hidden="true">·</span>
+											<time>{ relativeTime(pr.UpdatedAt) }</time>
+											if len(data.PullLabels[pr.ID]) > 0 {
+												<span class="opacity-50 mx-0.5" aria-hidden="true">·</span>
+												for _, lbl := range data.PullLabels[pr.ID] {
+													@pullLabelPill(lbl)
+												}
+											}
+										</div>
+										if data.PullComments[pr.ID] > 0 {
+											<span class="text-muted-foreground inline-flex items-center gap-1 shrink-0 text-[12px]">
+												<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
+												{ fmt.Sprintf("%d", data.PullComments[pr.ID]) }
+											</span>
+										}
 									</div>
 								</a>
 							</li>
@@ -70,6 +86,17 @@ templ AccountPulls(data view.AccountPullsData) {
 				@components.EmptyState("No " + data.State + " pull requests.")
 			}
 		</div>
+	}
+}
+
+templ pullLabelPill(lbl model.Label) {
+	if lbl.Color != "" && !strings.EqualFold(lbl.Color, "none") {
+		<span
+			class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border whitespace-nowrap"
+			style={ fmt.Sprintf("background:%s22;color:%s;border-color:%s55", lbl.Color, lbl.Color, lbl.Color) }
+		>{ lbl.Name }</span>
+	} else {
+		<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-accent text-muted-foreground whitespace-nowrap">{ lbl.Name }</span>
 	}
 }
 

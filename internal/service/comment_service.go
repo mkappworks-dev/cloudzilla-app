@@ -88,6 +88,10 @@ func (s *CommentService) Delete(ctx context.Context, id int64) error {
 	return s.comments.Delete(ctx, id)
 }
 
+func (s *CommentService) CountByPullIDs(ctx context.Context, pullIDs []int64) (map[int64]int, error) {
+	return s.comments.CountByPullIDs(ctx, pullIDs)
+}
+
 // processMentions extracts @mentions from the comment body, fires notifications,
 // and persists mention rows. Errors are silently dropped (best-effort).
 // subjectNumber is the repo-scoped display number (issue.Number or pull.Number),
