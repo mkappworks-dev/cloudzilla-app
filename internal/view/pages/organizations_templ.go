@@ -305,12 +305,13 @@ func orgListRow(e view.OrgListEntry, viewerUsername string) templ.Component {
 			})
 			templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
 				"hx-delete":            "/api/orgs/" + e.Org.Name + "/members/" + viewerUsername,
+				"hx-swap":              "none",
 				"hx-confirm":           "You will lose access to all repositories in " + e.Org.Name + ".",
 				"data-confirm-title":   "Leave this organization?",
 				"data-confirm-label":   "Leave",
 				"data-confirm-danger":  "true",
 				"data-toast":           "Left organization",
-				"hx-on::after-request": "window.location.reload()",
+				"hx-on::after-request": "if(event.detail.successful)window.location.reload()",
 				"type":                 "button",
 			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var12), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
