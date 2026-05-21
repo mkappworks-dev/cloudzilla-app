@@ -1,7 +1,7 @@
 package pages
 
 import (
-	"strconv"
+	"fmt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -11,10 +11,13 @@ import (
 templ AccountPulls(data view.AccountPullsData) {
 	@layout.Base(data.BasePage, "Pull requests") {
 		<div class="space-y-5">
-			<h1 id="pulls-title" class="text-2xl font-semibold tracking-tight">Pull requests</h1>
-			@components.Tabs("Pull request filter") {
+			<section class="mb-6">
+				<h1 class="text-2xl font-semibold tracking-tight">Pull requests</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">Across every repository you own or collaborate on.</p>
+			</section>
+			@components.Tabs("PR filter") {
 				@components.TabLink("/pulls?filter=created&state="+data.State, data.Filter == "created") {
-					Created
+					Created by you
 				}
 				@components.TabLink("/pulls?filter=assigned&state="+data.State, data.Filter == "assigned") {
 					Assigned
@@ -35,21 +38,71 @@ templ AccountPulls(data view.AccountPullsData) {
 				</span>
 			}
 			if len(data.Pulls) > 0 {
-				<ol class="rounded-md border border-border bg-card divide-y divide-border overflow-hidden">
-					for _, pr := range data.Pulls {
-						<li>
-							<a href={ templ.SafeURL("/" + pr.RepoFullName + "/pulls/" + strconv.Itoa(pr.Number)) } class="block px-4 py-3 hover:bg-muted/50">
-								<div class="text-[13px] font-medium hover:underline">{ pr.Title }</div>
-								<div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
-									<span class="font-mono">{ pr.RepoFullName }#{ strconv.Itoa(pr.Number) }</span>
-								</div>
-							</a>
-						</li>
-					}
-				</ol>
+				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="mypr-list">
+					<h2 id="mypr-list" class="sr-only">Your pull requests</h2>
+					<ol class="divide-y divide-border">
+						for _, pr := range data.Pulls {
+							<li>
+								<a
+									href={ templ.SafeURL(fmt.Sprintf("/%s/pulls/%d", pr.RepoFullName, pr.Number)) }
+									class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100"
+								>
+									<div class="flex items-start gap-3 mb-1.5">
+										@pullStateIcon(pr.State)
+										<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+											<span class="font-mono text-[12px] text-muted-foreground">{ pr.RepoFullName }</span>
+											<span class="opacity-50" aria-hidden="true">·</span>
+											<p class="text-[13.5px] font-medium leading-snug group-hover:underline">{ pr.Title }</p>
+											@pullStateBadge(pr.State)
+										</div>
+									</div>
+									<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground pl-[27px] min-w-0 flex-wrap">
+										<span class="font-mono">{ fmt.Sprintf("#%d", pr.Number) }</span>
+										<span class="opacity-50" aria-hidden="true">·</span>
+										<time>{ relativeTime(pr.UpdatedAt) }</time>
+									</div>
+								</a>
+							</li>
+						}
+					</ol>
+				</section>
 			} else {
 				@components.EmptyState("No " + data.State + " pull requests.")
 			}
 		</div>
+	}
+}
+
+templ pullStateIcon(state string) {
+	switch state {
+	case "merged":
+		<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-[hsl(270_70%_70%)]" aria-hidden="true">
+			<path d="M5 3.254V3.25v.005a.75.75 0 110-.005v.004zm.45 1.9a2.25 2.25 0 10-1.95.218v5.256a2.25 2.25 0 101.5 0V7.123A5.735 5.735 0 009.25 9h1.378a2.251 2.251 0 100-1.5H9.25a4.25 4.25 0 01-3.8-2.346zM12.75 9a.75.75 0 100-1.5.75.75 0 000 1.5zm-8.5 4.5a.75.75 0 100-1.5.75.75 0 000 1.5z"></path>
+		</svg>
+	case "closed":
+		<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-destructive" aria-hidden="true">
+			<path d="M3.25 1A2.25 2.25 0 014 5.372v5.256a2.251 2.251 0 11-1.5 0V5.372A2.251 2.251 0 013.25 1zm9.5 14a2.25 2.25 0 110-4.5 2.25 2.25 0 010 4.5zM2.5 3.25a.75.75 0 101.5 0 .75.75 0 00-1.5 0zM3.25 12a.75.75 0 100 1.5.75.75 0 000-1.5zm9.5 0a.75.75 0 100 1.5.75.75 0 000-1.5zm1.28-9.53a.75.75 0 010 1.06l-1.97 1.97 1.97 1.97a.75.75 0 11-1.06 1.06l-1.97-1.97-1.97 1.97a.75.75 0 01-1.06-1.06l1.97-1.97-1.97-1.97a.75.75 0 011.06-1.06l1.97 1.97 1.97-1.97a.75.75 0 011.06 0z"></path>
+		</svg>
+	default:
+		<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="shrink-0 mt-0.5 text-success" aria-hidden="true">
+			<path d="M1.5 3.25a2.25 2.25 0 113 2.122v5.256a2.251 2.251 0 11-1.5 0V5.372A2.25 2.25 0 011.5 3.25zm5.677-.177L9.573.677A.25.25 0 0110 .854V2.5h1A2.5 2.5 0 0113.5 5v5.628a2.251 2.251 0 11-1.5 0V5a1 1 0 00-1-1h-1v1.646a.25.25 0 01-.427.177L7.177 3.427a.25.25 0 010-.354zM3.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm0 9.5a.75.75 0 100 1.5.75.75 0 000-1.5zm8.25.75a.75.75 0 101.5 0 .75.75 0 00-1.5 0z"></path>
+		</svg>
+	}
+}
+
+templ pullStateBadge(state string) {
+	switch state {
+	case "merged":
+		@components.Badge(components.BadgeMerged) {
+			Merged
+		}
+	case "closed":
+		@components.Badge(components.BadgeDestructive) {
+			Closed
+		}
+	default:
+		@components.Badge(components.BadgeSuccess) {
+			Open
+		}
 	}
 }
