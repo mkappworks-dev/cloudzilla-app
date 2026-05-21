@@ -189,60 +189,75 @@ templ userOverviewTab(data view.UserData) {
 
 templ userReposTab(data view.UserData) {
 	<section aria-labelledby="repos-tab-heading">
-		<h2 id="repos-tab-heading" class="sr-only">Repositories</h2>
+		<!-- Section header -->
+		<div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+			<div class="min-w-0">
+				<h2 id="repos-tab-heading" class="text-2xl font-semibold tracking-tight">Repositories</h2>
+				<p class="mt-1 text-[13px] text-muted-foreground">
+					{ strconv.Itoa(len(data.RepoTabRepos)) } { pluralRepo(len(data.RepoTabRepos)) } you own or collaborate on.
+				</p>
+			</div>
+			if data.BasePage.CurrentUser != nil && data.BasePage.CurrentUser.UserID == data.User.ID {
+				<a href="/new" class="h-9 px-4 rounded-md font-medium text-sm inline-flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 shrink-0">
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
+					New repository
+				</a>
+			}
+		</div>
 
 		<!-- Filter bar -->
-		<form method="GET" action={ templ.SafeURL("/" + data.User.Username) } class="flex flex-wrap gap-3 mb-5">
+		<form method="GET" action={ templ.SafeURL("/" + data.User.Username) } class="flex items-center gap-2 mb-4 flex-wrap">
 			<input type="hidden" name="tab" value="repositories"/>
-			<div class="flex-1 min-w-[200px]">
-				<label for="repo-search" class="sr-only">Search repositories</label>
-				@components.SearchInput(templ.Attributes{
-					"id":          "repo-search",
-					"name":        "q",
-					"value":       data.RepoTabActiveQuery,
-					"placeholder": "Find a repository…",
-				}, "")
+			<div class="relative flex-1 min-w-[240px]">
+				<label for="repo-search" class="sr-only">Filter repositories</label>
+				<input
+					id="repo-search"
+					type="search"
+					name="q"
+					value={ data.RepoTabActiveQuery }
+					placeholder="Filter by name…"
+					class="w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:border-border-strong"
+				/>
+				<svg class="absolute left-2.5 top-2.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
 			</div>
-			<div class="flex flex-wrap gap-2 items-center">
-				<!-- Type filter -->
-				<select
-					name="type"
-					onchange="this.form.submit()"
-					class="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors"
-					aria-label="Filter by type"
-				>
-					<option value="" selected?={ data.RepoTabActiveType == "" }>All types</option>
-					<option value="sources" selected?={ data.RepoTabActiveType == "sources" }>Sources</option>
-					<option value="forks" selected?={ data.RepoTabActiveType == "forks" }>Forks</option>
-					<option value="templates" selected?={ data.RepoTabActiveType == "templates" }>Templates</option>
-				</select>
-				<!-- Status filter -->
-				<select
-					name="status"
-					onchange="this.form.submit()"
-					class="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors"
-					aria-label="Filter by visibility"
-				>
-					<option value="" selected?={ data.RepoTabActiveStatus == "" }>All</option>
-					<option value="public" selected?={ data.RepoTabActiveStatus == "public" }>Public</option>
-					<option value="private" selected?={ data.RepoTabActiveStatus == "private" }>Private</option>
-				</select>
-			</div>
+			<select
+				name="type"
+				onchange="this.form.submit()"
+				class="h-9 bg-card border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-border-strong"
+				aria-label="Filter by type"
+				style="width:auto"
+			>
+				<option value="" selected?={ data.RepoTabActiveType == "" }>All types</option>
+				<option value="sources" selected?={ data.RepoTabActiveType == "sources" }>Sources</option>
+				<option value="forks" selected?={ data.RepoTabActiveType == "forks" }>Forks</option>
+				<option value="templates" selected?={ data.RepoTabActiveType == "templates" }>Templates</option>
+			</select>
+			<select
+				name="status"
+				onchange="this.form.submit()"
+				class="h-9 bg-card border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-border-strong"
+				aria-label="Filter by visibility"
+				style="width:auto"
+			>
+				<option value="" selected?={ data.RepoTabActiveStatus == "" }>All visibility</option>
+				<option value="public" selected?={ data.RepoTabActiveStatus == "public" }>Public</option>
+				<option value="private" selected?={ data.RepoTabActiveStatus == "private" }>Private</option>
+			</select>
 		</form>
 
 		<!-- Language chips -->
 		if len(data.RepoTabLanguages) > 0 {
-			<div class="flex flex-wrap gap-1.5 mb-5" role="group" aria-label="Filter by language">
+			<div class="flex flex-wrap gap-1.5 mb-4" role="group" aria-label="Filter by language">
 				<a
 					href={ templ.SafeURL(repoTabURL(data, "language", "")) }
-					class={ "inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium border transition-colors", templ.KV("bg-primary text-primary-foreground border-transparent", data.RepoTabActiveLanguage == ""), templ.KV("border-border text-muted-foreground hover:text-foreground hover:border-foreground/40", data.RepoTabActiveLanguage != "") }
+					class={ "inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium border transition-colors", templ.KV("bg-foreground text-background border-transparent", data.RepoTabActiveLanguage == ""), templ.KV("border-border text-muted-foreground hover:text-foreground hover:border-foreground/40", data.RepoTabActiveLanguage != "") }
 				>
 					All
 				</a>
 				for _, lang := range data.RepoTabLanguages {
 					<a
 						href={ templ.SafeURL(repoTabURL(data, "language", lang)) }
-						class={ "inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium border transition-colors", templ.KV("bg-primary text-primary-foreground border-transparent", data.RepoTabActiveLanguage == lang), templ.KV("border-border text-muted-foreground hover:text-foreground hover:border-foreground/40", data.RepoTabActiveLanguage != lang) }
+						class={ "inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium border transition-colors", templ.KV("bg-foreground text-background border-transparent", data.RepoTabActiveLanguage == lang), templ.KV("border-border text-muted-foreground hover:text-foreground hover:border-foreground/40", data.RepoTabActiveLanguage != lang) }
 					>
 						{ lang }
 					</a>
@@ -250,86 +265,70 @@ templ userReposTab(data view.UserData) {
 			</div>
 		}
 
-		<!-- Results count -->
-		<p class="text-xs text-muted-foreground mb-3">
-			{ strconv.Itoa(len(data.RepoTabRepos)) } { pluralRepo(len(data.RepoTabRepos)) }
-		</p>
-
 		<!-- Repo list -->
 		if len(data.RepoTabRepos) > 0 {
-			<div class="rounded-md border border-border bg-card divide-y divide-border overflow-hidden">
-				for _, repo := range data.RepoTabRepos {
-					@userRepoRow(data, repo)
-				}
-			</div>
+			<section class="border border-border rounded-md bg-card overflow-hidden" aria-label="Repository list">
+				<ol class="divide-y divide-border">
+					for _, repo := range data.RepoTabRepos {
+						<li>
+							@userRepoRow(data, repo)
+						</li>
+					}
+				</ol>
+			</section>
 		} else {
-			@components.EmptyState("No repositories match your filters.")
+			<div class="border border-border rounded-md bg-card px-5 py-12 text-center text-[13px] text-muted-foreground">
+				No repositories match your filters.
+			</div>
 		}
 	</section>
 }
 
 templ userRepoRow(data view.UserData, repo model.Repository) {
-	<div class="flex items-start gap-4 px-5 py-4">
-		<div class="mt-0.5 flex-shrink-0 text-muted-foreground">
-			@repoIcon(repo.Private)
-		</div>
-		<div class="min-w-0 flex-1">
-			<div class="flex flex-wrap items-center gap-2">
-				<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-sm font-semibold hover:underline">
-					{ repo.Name }
-				</a>
+	{{ role := data.RepoTabRoles[repo.ID] }}
+	<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="block px-4 py-3 hover:bg-accent group">
+		<div class="flex items-start gap-3 mb-1.5">
+			<span class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true">
+				@repoIcon(repo.Private)
+			</span>
+			<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+				<p class="text-[13.5px] font-medium leading-snug group-hover:underline">
+					{ repo.OwnerName }/{ repo.Name }
+				</p>
 				if repo.Private {
-					@components.Badge(components.BadgeOutline) {
-						Private
-					}
+					<span class="inline-flex items-center h-[20px] px-2 rounded-full border text-[10px] font-medium bg-warning/15 text-warning border-warning/30 shrink-0">Private</span>
+				} else {
+					<span class="inline-flex items-center h-[20px] px-2 rounded-full border text-[10px] font-medium bg-success/15 text-success border-success/30 shrink-0">Public</span>
 				}
 				if repo.IsArchived {
-					@components.Badge(components.BadgeDraft) {
-						Archived
-					}
+					<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-accent text-muted-foreground">Archived</span>
 				}
 				if repo.IsTemplate {
-					@components.Badge(components.BadgeSecondary) {
-						Template
-					}
+					<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-warning/15 text-warning border-warning/30">Template</span>
 				}
 				if repo.IsFork {
-					@components.Badge(components.BadgeOutline) {
-						Fork
-					}
+					<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-accent text-muted-foreground">Fork</span>
 				}
-				<!-- Role badge for viewer -->
-				{{ role := data.RepoTabRoles[repo.ID] }}
 				if role == "owner" {
-					@components.Badge(components.BadgeDefault) {
-						Owner
-					}
+					<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-blue-500/15 text-blue-400 border-blue-500/30">Owner</span>
 				} else if role == "admin" || role == "writer" {
-					@components.Badge(components.BadgeSecondary) {
-						Maintainer
-					}
+					<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-blue-500/15 text-blue-400 border-blue-500/30">Maintainer</span>
 				} else if role == "reader" {
-					@components.Badge(components.BadgeOutline) {
-						Contributor
-					}
+					<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-[hsl(270_70%_70%)]/15 text-[hsl(270_70%_70%)] border-[hsl(270_70%_70%)]/30">Contributor</span>
 				}
-			</div>
-			if repo.Description != "" {
-				<p class="mt-1 text-xs text-muted-foreground">{ repo.Description }</p>
-			}
-			<div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-				if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
-					<span class="inline-flex items-center gap-1">
-						<span class="w-2.5 h-2.5 rounded-full bg-primary/70" aria-hidden="true"></span>
-						{ *repo.PrimaryLanguage }
-					</span>
-				}
-				<span>
-					Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ repo.UpdatedAt.Format("Jan 2, 2006") }</time>
-				</span>
 			</div>
 		</div>
-	</div>
+		<div class="pl-[27px] flex items-center gap-1.5 text-[12px] text-muted-foreground flex-wrap">
+			if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
+				<span class="inline-flex items-center gap-1">
+					<span class="w-2 h-2 rounded-full" style={ "background:" + components.LangColor(*repo.PrimaryLanguage) } aria-hidden="true"></span>
+					{ *repo.PrimaryLanguage }
+				</span>
+				<span class="opacity-50" aria-hidden="true">·</span>
+			}
+			<span>Updated <time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(repo.UpdatedAt) }</time></span>
+		</div>
+	</a>
 }
 
 func pluralRepo(n int) string {
