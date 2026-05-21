@@ -2,8 +2,11 @@ package view
 
 import (
 	"html/template"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
 // UserData holds template data for the user profile page.
@@ -13,6 +16,12 @@ type UserData struct {
 	Repos          []model.Repository
 	RecentActivity []model.Event
 	ProfileReadme  template.HTML
+	IsOwnProfile   bool
+	Tab            string // "overview" | "repositories"
+	PinnedRepos    []components.PinnedRepoData
+	Heatmap        map[time.Time]int
+	TopLangs       []components.LangBarItem
+	Orgs           []service.OrgMembership
 }
 
 // OrgData holds template data for the organization profile page.

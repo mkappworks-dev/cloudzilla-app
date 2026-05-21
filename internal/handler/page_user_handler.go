@@ -4,11 +4,14 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -57,12 +60,69 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	isOwn := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		isOwn = claims.UserID == user.ID
+	}
+
+	tab := r.URL.Query().Get("tab")
+	if tab != "repositories" {
+		tab = "overview"
+	}
+
+	var pinned []components.PinnedRepoData
+	if tab == "overview" {
+		ids, _ := h.Services.User.PinnedRepoIDs(r.Context(), user.ID)
+		for _, rid := range ids {
+			rp, err := h.Services.Repo.GetByID(r.Context(), rid)
+			if err != nil || rp == nil {
+				continue
+			}
+			lang, _ := h.Services.Language.TopLanguageFor(r.Context(), rp.OwnerName, rp.Name, rp.DefaultBranch)
+			stars, _ := h.Services.Star.GetStarCount(r.Context(), rp.ID)
+			pinned = append(pinned, components.PinnedRepoData{
+				OwnerName:     rp.OwnerName,
+				Name:          rp.Name,
+				Description:   rp.Description,
+				Language:      lang,
+				LanguageColor: components.LangColor(lang),
+				Stars:         stars,
+			})
+		}
+	}
+
+	heatmap, _ := h.Services.CommitStats.LookbackForUser(r.Context(), user.ID, 365)
+	if heatmap == nil {
+		heatmap = map[time.Time]int{}
+	}
+
+	langPcts, _ := h.Services.Language.AggregateForUser(r.Context(), user.ID, 5)
+	topLangs := make([]components.LangBarItem, 0, len(langPcts))
+	for _, p := range langPcts {
+		topLangs = append(topLangs, components.LangBarItem{
+			Name:    p.Name,
+			Percent: p.Percent,
+			Color:   components.LangColor(p.Name),
+		})
+	}
+
+	orgs, _ := h.Services.Org.ListMembershipsForUser(r.Context(), user.ID)
+	if orgs == nil {
+		orgs = []service.OrgMembership{}
+	}
+
 	h.render(w, r, pages.User(view.UserData{
 		BasePage:       basePage(r, h.Services),
 		User:           *user,
 		Repos:          repos,
 		RecentActivity: activity,
 		ProfileReadme:  profileReadme,
+		IsOwnProfile:   isOwn,
+		Tab:            tab,
+		PinnedRepos:    pinned,
+		Heatmap:        heatmap,
+		TopLangs:       topLangs,
+		Orgs:           orgs,
 	}))
 }
 
