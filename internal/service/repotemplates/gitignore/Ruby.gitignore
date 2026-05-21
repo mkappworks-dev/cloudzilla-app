@@ -1,0 +1,22 @@
+# Bundler
+/.bundle/
+/vendor/bundle
+
+# Gems
+*.gem
+
+# Logs and temp files
+/log/*
+/tmp/*
+*.log
+
+# Test / coverage
+/coverage/
+/spec/tmp/
+
+# Build output
+/pkg/
+/doc/
+
+# Env files
+.env

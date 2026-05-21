@@ -81,6 +81,39 @@ templ RepoNew(data view.RepoNewData) {
 					</label>
 				</fieldset>
 
+				<fieldset class="space-y-4 border-t border-border pt-5">
+					<legend class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2">Initialize this repository</legend>
+					<label class="flex items-start gap-3 cursor-pointer">
+						<input type="checkbox" id="repo-readme" class="mt-0.5 size-4 rounded border-input accent-foreground"/>
+						<span class="text-sm">
+							<span class="font-medium block">Add a README file</span>
+							<span class="text-muted-foreground text-[12px]">This is where you can write a long description for your project.</span>
+						</span>
+					</label>
+					<div class="flex flex-col gap-4 sm:flex-row">
+						<div class="flex-1 space-y-1.5">
+							<label for="repo-gitignore" class="block text-sm font-medium">Add .gitignore</label>
+							<select id="repo-gitignore" name="gitignore" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+								<option value="">None</option>
+								for _, g := range data.GitignoreTemplates {
+									<option value={ g }>{ g }</option>
+								}
+							</select>
+							<p class="text-[11px] text-muted-foreground">Choose which files not to track from a list of templates.</p>
+						</div>
+						<div class="flex-1 space-y-1.5">
+							<label for="repo-license" class="block text-sm font-medium">Choose a license</label>
+							<select id="repo-license" name="license" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+								<option value="">None</option>
+								for _, l := range data.LicenseTemplates {
+									<option value={ l.Key }>{ l.Name }</option>
+								}
+							</select>
+							<p class="text-[11px] text-muted-foreground">A license tells others what they can and can't do with your code.</p>
+						</div>
+					</div>
+				</fieldset>
+
 				<div id="repo-form-error" role="alert" class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2"></div>
 
 				<div class="flex items-center gap-3 pt-2">
@@ -105,6 +138,9 @@ templ RepoNew(data view.RepoNewData) {
 						const name = form.querySelector('[name=name]').value.trim();
 						const description = form.querySelector('[name=description]').value;
 						const isPrivate = form.querySelector('[name=visibility]:checked').value === 'private';
+						const addReadme = document.getElementById('repo-readme').checked;
+						const gitignore = document.getElementById('repo-gitignore').value;
+						const license = document.getElementById('repo-license').value;
 						const csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 						const me = form.dataset.username;
 						const isOrg = owner && owner !== me;
@@ -112,7 +148,14 @@ templ RepoNew(data view.RepoNewData) {
 						const res = await fetch(url, {
 							method: 'POST',
 							headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
-							body: JSON.stringify({ name: name, description: description, private: isPrivate })
+							body: JSON.stringify({
+								name: name,
+								description: description,
+								private: isPrivate,
+								add_readme: addReadme,
+								gitignore: gitignore,
+								license: license
+							})
 						});
 						if (res.ok) {
 							window.location.href = '/' + owner + '/' + name;

@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -28,8 +29,10 @@ func (h *Handler) PageNewRepo(w http.ResponseWriter, r *http.Request) {
 		orgs = []model.Organization{}
 	}
 	h.render(w, r, pages.RepoNew(view.RepoNewData{
-		BasePage:  basePage(r, h.Services),
-		OwnedOrgs: orgs,
+		BasePage:           basePage(r, h.Services),
+		OwnedOrgs:          orgs,
+		GitignoreTemplates: h.Services.Repo.ListGitignoreTemplates(),
+		LicenseTemplates:   h.Services.Repo.ListLicenseTemplates(),
 	}))
 }
 
@@ -37,6 +40,9 @@ type createRepoRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Private     bool   `json:"private"`
+	AddReadme   bool   `json:"add_readme"`
+	Gitignore   string `json:"gitignore"`
+	License     string `json:"license"`
 }
 
 func (h *Handler) ListRepos(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +89,11 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Create(r.Context(), claims.Username, req.Name, req.Description, req.Private)
+	repo, err := h.Services.Repo.Create(r.Context(), claims.Username, req.Name, req.Description, req.Private, service.RepoInitOptions{
+		AddREADME: req.AddReadme,
+		Gitignore: req.Gitignore,
+		License:   req.License,
+	})
 	if err != nil {
 		slog.Error("failed to create repo", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to create repository")
