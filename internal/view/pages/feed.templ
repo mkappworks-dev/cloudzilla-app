@@ -48,40 +48,42 @@ func activityDateKey(t time.Time) string {
 }
 
 templ Activity(data view.ActivityData) {
-	@layout.Base(data.BasePage, "Activity") {
+	@layout.Base(data.BasePage, "Activity feed") {
 		<div class="max-w-3xl mx-auto">
 			<section class="mb-6">
-				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Cloudzilla · Activity</p>
-				<h1 class="text-2xl font-semibold tracking-tight">Activity</h1>
-				<p class="mt-1 text-[13px] text-muted-foreground">Events from the people and repositories you watch.</p>
+				<h1 class="text-2xl font-semibold tracking-tight">Activity feed</h1>
+				<p class="mt-1 text-[13px] text-muted-foreground">Everything that&#39;s happened on your repos and the ones you watch.</p>
 			</section>
+			<nav class="mb-6 flex items-center gap-1 border-b border-border text-sm" aria-label="Activity scope">
+				<a href="/activity" class="px-3 py-2.5 border-b -mb-px border-foreground font-medium" aria-current="page">All activity</a>
+				<a href="/activity?filter=yours" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground">Your activity</a>
+				<a href="/activity?filter=watching" class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground">Watching</a>
+			</nav>
 			if len(data.Events) == 0 {
 				@components.EmptyStateWithHint("No activity yet.", "Watch some repositories to see events here.")
 			} else {
-				{{ seenDates := map[string]bool{} }}
-				<ol>
-					for _, e := range data.Events {
-						{{ dk := activityDateKey(e.CreatedAt) }}
-						if !seenDates[dk] {
-							{{ seenDates[dk] = true }}
-							<li class="mt-6 mb-2">
-								<h2 class="text-sm font-medium text-muted-foreground">{ activityDateLabel(e.CreatedAt) }</h2>
-							</li>
+				<section class="border border-border rounded-md bg-card overflow-hidden" aria-labelledby="feed-heading">
+					<h2 id="feed-heading" class="sr-only">Activity feed</h2>
+					{{ seenDates := map[string]bool{} }}
+					<ol class="divide-y divide-border">
+						for _, e := range data.Events {
+							{{ dk := activityDateKey(e.CreatedAt) }}
+							if !seenDates[dk] {
+								{{ seenDates[dk] = true }}
+								<li class="px-4 py-2 bg-accent/40">
+									<h3 class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{ activityDateLabel(e.CreatedAt) }</h3>
+								</li>
+							}
+							@components.ActivityRow(eventToActivityRow(e))
 						}
-						@components.ActivityRow(eventToActivityRow(e))
-					}
-				</ol>
-				{{ prevURL := "" }}
-				if data.Page > 1 {
-					{{ prevURL = "/activity?page=" + strconv.Itoa(data.Page-1) }}
-				}
-				{{ nextURL := "" }}
+					</ol>
+				</section>
 				if data.HasMore {
-					{{ nextURL = "/activity?page=" + strconv.Itoa(data.Page+1) }}
+					{{ nextURL := "/activity?page=" + strconv.Itoa(data.Page+1) }}
+					<p class="mt-6 text-center text-[12px] text-muted-foreground/70">
+						<a href={ templ.SafeURL(nextURL) } class="hover:text-foreground">Load older activity &#8594;</a>
+					</p>
 				}
-				<div class="mt-6">
-					@components.Pagination(prevURL, nextURL)
-				</div>
 			}
 		</div>
 	}

@@ -55,8 +55,8 @@ func TestActivityRow_NoSubject(t *testing.T) {
 	if !strings.Contains(s, "acme/bar") {
 		t.Errorf("expected repo name %q in output", "acme/bar")
 	}
-	if strings.Contains(s, " in ") {
-		t.Errorf("unexpected \" in \" in output when Subject is empty")
+	if !strings.Contains(s, " in ") {
+		t.Errorf("expected \" in \" before repo name when Subject is empty")
 	}
 	if strings.Contains(s, `href=""`) {
 		t.Errorf("unexpected empty href in output when Subject is empty")
