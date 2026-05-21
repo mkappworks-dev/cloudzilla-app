@@ -68,6 +68,9 @@ templ Home(data view.HomeData) {
 										<span class="text-muted-foreground text-lg font-normal"> { it.Subtitle }</span>
 									}
 								</dd>
+								if it.Detail != "" {
+									<dd class="text-[11px] text-muted-foreground/70 mt-1">{ it.Detail }</dd>
+								}
 							</div>
 						}
 					</dl>

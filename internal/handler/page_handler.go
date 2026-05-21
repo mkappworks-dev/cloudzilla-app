@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -192,11 +193,21 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			slog.Warn("home: open-issues count stat failed", "user_id", userID, "error", err)
 		}
+		privateRepos := 0
+		for _, repo := range data.Repos {
+			if repo.Private {
+				privateRepos++
+			}
+		}
+		reposDetail := ""
+		if len(data.Repos) > 0 {
+			reposDetail = fmt.Sprintf("%d private, %d public", privateRepos, len(data.Repos)-privateRepos)
+		}
 		data.Stats = []components.StatItem{
-			{Label: "Repositories", Value: countRepos},
+			{Label: "Repositories", Value: countRepos, Detail: reposDetail},
 			{Label: "Pull requests", Value: countOpenPulls, Subtitle: "open"},
-			{Label: "Issues", Value: countOpenIssues, Subtitle: "open"},
-			{Label: "Commits", Value: commitsLast7, Subtitle: "last 7 days"},
+			{Label: "Issues", Value: countOpenIssues, Subtitle: "assigned"},
+			{Label: "Commits, last 7 days", Value: commitsLast7},
 		}
 		data.BasePage = withAccountSubnav(data.BasePage, "overview", h.accountCounts(ctx, userID))
 		if heat, err := h.Services.CommitStats.LookbackForUser(ctx, userID, 365); err != nil {
