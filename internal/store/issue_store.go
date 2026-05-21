@@ -479,6 +479,24 @@ func (s *IssueStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int
 	return n, err
 }
 
+// CountDueThisWeekAssignedTo counts open issues assigned to the user whose
+// milestone has a due date within the next seven days.
+func (s *IssueStore) CountDueThisWeekAssignedTo(ctx context.Context, userID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(DISTINCT i.id)
+		 FROM issues i
+		 JOIN repositories r ON r.id = i.repo_id
+		 JOIN issue_assignees a ON a.issue_id = i.id
+		 JOIN milestones m ON m.id = i.milestone_id
+		 WHERE i.state = 'open' AND r.deleted_at IS NULL AND a.user_id = $1
+		   AND m.due_date IS NOT NULL
+		   AND m.due_date >= NOW() AND m.due_date < NOW() + INTERVAL '7 days'`,
+		userID,
+	).Scan(&n)
+	return n, err
+}
+
 type IssueListItem struct {
 	ID           int64
 	Number       int

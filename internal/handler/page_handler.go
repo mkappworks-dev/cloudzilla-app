@@ -201,6 +201,10 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			slog.Warn("home: open-issues count stat failed", "user_id", userID, "error", err)
 		}
+		countDueThisWeek, err := h.Services.Issue.CountDueThisWeekAssignedTo(ctx, userID)
+		if err != nil {
+			slog.Warn("home: issues-due-this-week count stat failed", "user_id", userID, "error", err)
+		}
 		privateRepos := 0
 		for _, repo := range data.Repos {
 			if repo.Private {
@@ -223,11 +227,17 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		} else if distinctRepos > 1 {
 			commitsDetail = fmt.Sprintf("across %d repositories", distinctRepos)
 		}
+		issuesDetail := ""
+		if countDueThisWeek == 1 {
+			issuesDetail = "1 due this week"
+		} else if countDueThisWeek > 1 {
+			issuesDetail = fmt.Sprintf("%d due this week", countDueThisWeek)
+		}
 		data.TotalRepos = countRepos
 		data.Stats = []components.StatItem{
 			{Label: "Repositories", Value: countRepos, Detail: reposDetail},
 			{Label: "Pull requests", Value: countOpenPulls, Subtitle: "open", Detail: pullsDetail},
-			{Label: "Issues", Value: countOpenIssues, Subtitle: "assigned"},
+			{Label: "Issues", Value: countOpenIssues, Subtitle: "assigned", Detail: issuesDetail},
 			{Label: "Commits, last 7 days", Value: commitsLast7, Detail: commitsDetail},
 		}
 		data.BasePage = withAccountSubnav(data.BasePage, "overview", h.accountCounts(ctx, userID))
