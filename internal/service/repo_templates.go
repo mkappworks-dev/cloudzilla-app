@@ -20,6 +20,10 @@ var gitignoreTemplates = []string{"Go", "Node", "Python", "Rust", "Java", "C++",
 
 var licenseTemplates = []License{
 	{Key: "mit", Name: "MIT License"},
+	{Key: "apache-2.0", Name: "Apache License 2.0"},
+	{Key: "gpl-3.0", Name: "GNU General Public License v3.0"},
+	{Key: "bsd-3-clause", Name: "BSD 3-Clause License"},
+	{Key: "unlicense", Name: "The Unlicense"},
 }
 
 // gitignoreFileNames maps a template name to its embed file basename.

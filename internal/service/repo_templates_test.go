@@ -16,11 +16,14 @@ func TestRepoService_ListTemplates(t *testing.T) {
 	}
 
 	lic := s.ListLicenseTemplates()
-	if len(lic) != 1 {
-		t.Fatalf("ListLicenseTemplates: want 1, got %d (%v)", len(lic), lic)
+	wantLicenses := []string{"mit", "apache-2.0", "gpl-3.0", "bsd-3-clause", "unlicense"}
+	if len(lic) != len(wantLicenses) {
+		t.Fatalf("ListLicenseTemplates: want %d, got %d (%v)", len(wantLicenses), len(lic), lic)
 	}
-	if lic[0].Key != "mit" {
-		t.Errorf("license key: want %q, got %q", "mit", lic[0].Key)
+	for i, want := range wantLicenses {
+		if lic[i].Key != want {
+			t.Errorf("license[%d] key: want %q, got %q", i, want, lic[i].Key)
+		}
 	}
 }
 
@@ -66,8 +69,8 @@ func TestRepoService_TemplateContent(t *testing.T) {
 		t.Error("licenseContent(mit): unsubstituted placeholder remains")
 	}
 
-	if _, ok := licenseContent("gpl-3.0", "Ada Lovelace"); ok {
-		t.Error("licenseContent(gpl-3.0): want not-found")
+	if _, ok := licenseContent("not-a-real-license", "Ada Lovelace"); ok {
+		t.Error("licenseContent(not-a-real-license): want not-found")
 	}
 	if _, ok := licenseContent("", "Ada Lovelace"); ok {
 		t.Error("licenseContent(empty): want not-found")
