@@ -28,9 +28,8 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
-// sshIdleTimeout closes a connection with no read/write activity for this
-// long, bounding idle and slow-loris connections. It resets on every
-// transfer, so it does not interrupt an active push.
+// sshIdleTimeout closes a connection idle this long. It resets on any
+// transfer, so it bounds slow-loris connections without cutting an active push.
 const sshIdleTimeout = 60 * time.Second
 
 type Server struct {
@@ -358,7 +357,7 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			return nil, fmt.Errorf("decode upload-pack request: %w", err)
 		}
 
-		resp, err := sess.UploadPack(context.Background(), req)
+		resp, err := sess.UploadPack(session.Context(), req)
 		if err != nil {
 			return nil, fmt.Errorf("upload-pack: %w", err)
 		}
@@ -388,11 +387,9 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			return nil, fmt.Errorf("write advertised refs: %w", err)
 		}
 
-		// Cap and count the bytes flowing in from the SSH session. The
-		// session's Close is deliberately suppressed via io.NopCloser:
-		// go-git closes the packfile reader once ingestion finishes, but
-		// sessionHandler still needs the session afterwards to write the
-		// status and exit code.
+		// io.NopCloser suppresses the session's Close: go-git closes the
+		// packfile reader after ingestion, but sessionHandler still needs
+		// the session to write status and the exit code.
 		limiter := gittransport.NewLimitedReadCloser(io.NopCloser(session), s.cfg.MaxPackBytes)
 		counter := gittransport.NewByteCounter(limiter)
 
@@ -402,7 +399,7 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 		}
 
 		start := time.Now()
-		status, err := sess.ReceivePack(context.Background(), req)
+		status, err := sess.ReceivePack(session.Context(), req)
 		if err != nil {
 			if limiter.Exceeded() {
 				return nil, fmt.Errorf("pack exceeds maximum allowed size (%d bytes)", s.cfg.MaxPackBytes)

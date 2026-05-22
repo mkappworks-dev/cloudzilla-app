@@ -3,6 +3,7 @@ package gitgc_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -70,8 +71,13 @@ func TestPrune_DryRunDeletesNothing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PlainInit: %v", err)
 	}
+	st := repo.Storer
 
-	orphan := writeObject(t, repo.Storer, plumbing.BlobObject, []byte("orphan\n"))
+	commit := writeCommit(t, st, writeTree(t, st, "f", writeObject(t, st, plumbing.BlobObject, []byte("x\n"))))
+	if err := st.SetReference(plumbing.NewHashReference("refs/heads/main", commit)); err != nil {
+		t.Fatalf("SetReference: %v", err)
+	}
+	orphan := writeObject(t, st, plumbing.BlobObject, []byte("orphan\n"))
 	ageObject(t, repoPath, orphan, time.Now().Add(-30*24*time.Hour))
 
 	res, err := gitgc.Prune(repoPath, gitgc.Options{Grace: 14 * 24 * time.Hour, DryRun: true})
@@ -82,6 +88,57 @@ func TestPrune_DryRunDeletesNothing(t *testing.T) {
 		t.Errorf("Pruned: want 1, got %d", res.Pruned)
 	}
 	assertPresent(t, repoPath, orphan)
+}
+
+func TestPrune_SkipsRepoWithNoRefs(t *testing.T) {
+	repoPath := t.TempDir()
+	repo, err := gogit.PlainInit(repoPath, true)
+	if err != nil {
+		t.Fatalf("PlainInit: %v", err)
+	}
+	orphan := writeObject(t, repo.Storer, plumbing.BlobObject, []byte("orphan\n"))
+	ageObject(t, repoPath, orphan, time.Now().Add(-30*24*time.Hour))
+
+	res, err := gitgc.Prune(repoPath, gitgc.Options{Grace: 14 * 24 * time.Hour})
+	if err != nil {
+		t.Fatalf("Prune: %v", err)
+	}
+	if !res.Skipped {
+		t.Error("Skipped: want true for a repo with no refs")
+	}
+	if res.Pruned != 0 {
+		t.Errorf("Pruned: want 0 for a skipped repo, got %d", res.Pruned)
+	}
+	assertPresent(t, repoPath, orphan)
+}
+
+func TestPrune_RejectsSymlinkedObjectsDir(t *testing.T) {
+	repoPath := t.TempDir()
+	repo, err := gogit.PlainInit(repoPath, true)
+	if err != nil {
+		t.Fatalf("PlainInit: %v", err)
+	}
+	st := repo.Storer
+	commit := writeCommit(t, st, writeTree(t, st, "f", writeObject(t, st, plumbing.BlobObject, []byte("x\n"))))
+	if err := st.SetReference(plumbing.NewHashReference("refs/heads/main", commit)); err != nil {
+		t.Fatalf("SetReference: %v", err)
+	}
+
+	// Relative, in-repo symlink: go-git's chroot resolves it (so the
+	// reachability walk still succeeds), leaving locateObjectsDir as the
+	// guard that must reject it.
+	objects := filepath.Join(repoPath, "objects")
+	if err := os.Rename(objects, filepath.Join(repoPath, "objects-real")); err != nil {
+		t.Fatalf("rename objects: %v", err)
+	}
+	if err := os.Symlink("objects-real", objects); err != nil {
+		t.Fatalf("symlink objects: %v", err)
+	}
+
+	_, err = gitgc.Prune(repoPath, gitgc.Options{Grace: 0})
+	if err == nil || !strings.Contains(err.Error(), "symlink") {
+		t.Fatalf("expected a symlink rejection error, got %v", err)
+	}
 }
 
 func writeObject(t *testing.T, st storage.Storer, typ plumbing.ObjectType, content []byte) plumbing.Hash {

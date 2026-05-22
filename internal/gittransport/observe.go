@@ -7,8 +7,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 )
 
-// ByteCounter wraps an io.ReadCloser and atomically tracks bytes read,
-// so receive-pack handlers can report pack size after a push.
+// ByteCounter wraps an io.ReadCloser and atomically tracks bytes read.
 type ByteCounter struct {
 	r io.ReadCloser
 	n int64
@@ -31,9 +30,8 @@ func (c *ByteCounter) Close() error { return c.r.Close() }
 // Bytes returns the running total; safe to call concurrently with Read.
 func (c *ByteCounter) Bytes() int64 { return atomic.LoadInt64(&c.n) }
 
-// CountRefStatus tallies per-ref outcomes from a receive-pack report so
-// the observability log can distinguish a fully-applied push from one
-// where some ref updates were rejected. A nil report yields (0, 0).
+// CountRefStatus tallies per-ref ok/failed outcomes from a receive-pack
+// report; a nil report yields (0, 0).
 func CountRefStatus(status *packp.ReportStatus) (ok, failed int) {
 	if status == nil {
 		return 0, 0

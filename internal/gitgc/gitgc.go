@@ -1,12 +1,6 @@
 // Package gitgc prunes unreferenced loose objects from bare git
-// repositories.
-//
-// receive-pack writes objects loose (see internal/gittransport) and the
-// server has no other reclaim step, so a rejected or churny push leaves
-// orphans behind. Prune is that reclaim step: it walks every ref for
-// reachability and removes loose objects that are both unreachable and
-// older than a grace period. The grace period avoids racing a push that
-// has written its objects but not yet updated its ref.
+// repositories. receive-pack writes objects loose and the server has no
+// other reclaim step, so rejected or churny pushes leave orphans behind.
 package gitgc
 
 import (
@@ -23,26 +17,29 @@ import (
 
 // Options controls a Prune run.
 type Options struct {
-	// Grace is the minimum age an unreferenced loose object must reach
-	// before it becomes eligible for removal.
-	Grace time.Duration
-	// DryRun reports what would be pruned without deleting anything.
+	// Grace spares unreferenced objects younger than this, avoiding a
+	// race with a push that wrote objects but has not updated its ref.
+	Grace  time.Duration
 	DryRun bool
 }
 
-// Result summarises a single repository's Prune run. When DryRun is set,
-// Pruned and Reclaimed report what would have been removed.
+// Result summarises a Prune run. With DryRun set, Pruned and Reclaimed
+// report what would have been removed.
 type Result struct {
 	Repo      string
 	Scanned   int   // loose objects examined
-	Pruned    int   // unreferenced, past-grace loose objects removed
-	Kept      int   // unreferenced loose objects skipped, still within grace
+	Pruned    int   // unreferenced past-grace objects removed
+	Kept      int   // unreferenced objects still within grace
 	Reclaimed int64 // bytes freed
+	// Skipped is set when the repo has no ref roots: every loose object
+	// would look unreachable, so Prune refuses rather than risk emptying
+	// the object database of a repo whose refs were lost.
+	Skipped bool
 }
 
 // Prune removes unreferenced loose objects from the bare repository at
-// repoPath. Reachability is computed from every ref; any error walking
-// it aborts the run before a single object is removed.
+// repoPath. Any error collecting refs or walking reachability aborts the
+// run before a single object is removed.
 func Prune(repoPath string, opts Options) (Result, error) {
 	res := Result{Repo: repoPath}
 
@@ -55,6 +52,10 @@ func Prune(repoPath string, opts Options) (Result, error) {
 	if err != nil {
 		return res, fmt.Errorf("collect refs: %w", err)
 	}
+	if len(roots) == 0 {
+		res.Skipped = true
+		return res, nil
+	}
 
 	reachable, err := revlist.Objects(repo.Storer, roots, nil)
 	if err != nil {
@@ -65,19 +66,24 @@ func Prune(repoPath string, opts Options) (Result, error) {
 		keep[h] = struct{}{}
 	}
 
-	objectsDir := filepath.Join(gitDir(repoPath), "objects")
+	objectsDir, err := locateObjectsDir(repoPath)
+	if err != nil {
+		return res, err
+	}
+	if objectsDir == "" {
+		return res, nil
+	}
 	cutoff := time.Now().Add(-opts.Grace)
 
 	fanout, err := os.ReadDir(objectsDir)
-	if errors.Is(err, os.ErrNotExist) {
-		return res, nil
-	}
 	if err != nil {
 		return res, fmt.Errorf("read objects dir: %w", err)
 	}
 	for _, d := range fanout {
+		// DirEntry.IsDir is false for a symlink, so a symlinked fanout
+		// dir is skipped and never descended into.
 		if !d.IsDir() || !isFanoutDir(d.Name()) {
-			continue // skip "pack", "info", and anything unexpected
+			continue
 		}
 		subDir := filepath.Join(objectsDir, d.Name())
 		entries, err := os.ReadDir(subDir)
@@ -85,7 +91,9 @@ func Prune(repoPath string, opts Options) (Result, error) {
 			return res, fmt.Errorf("read %s: %w", subDir, err)
 		}
 		for _, e := range entries {
-			if e.IsDir() || !isObjectFile(e.Name()) {
+			// Loose objects are always regular files; skipping symlinks
+			// keeps the run from being steered into deleting elsewhere.
+			if !e.Type().IsRegular() || !isObjectFile(e.Name()) {
 				continue
 			}
 			h := plumbing.NewHash(d.Name() + e.Name())
@@ -113,8 +121,8 @@ func Prune(repoPath string, opts Options) (Result, error) {
 	return res, nil
 }
 
-// refRoots returns the deduplicated set of hashes every ref points at.
-// Symbolic refs (HEAD) are skipped — their targets are themselves refs.
+// refRoots returns the deduplicated hashes every ref points at. Symbolic
+// refs (HEAD) are skipped — their targets are refs in their own right.
 func refRoots(repo *gogit.Repository) ([]plumbing.Hash, error) {
 	iter, err := repo.References()
 	if err != nil {
@@ -141,13 +149,33 @@ func refRoots(repo *gogit.Repository) ([]plumbing.Hash, error) {
 	return roots, err
 }
 
-// gitDir resolves the directory holding objects/, handling both bare
-// repositories and ones with a .git subdirectory.
-func gitDir(repoPath string) string {
-	if fi, err := os.Stat(filepath.Join(repoPath, ".git")); err == nil && fi.IsDir() {
-		return filepath.Join(repoPath, ".git")
+// locateObjectsDir returns the objects directory of the repo at
+// repoPath, or "" if it does not exist. A symlinked git dir or objects
+// dir is rejected: the GC deletes files and must not be redirected
+// outside the repository.
+func locateObjectsDir(repoPath string) (string, error) {
+	gitDir := repoPath
+	if fi, err := os.Lstat(filepath.Join(repoPath, ".git")); err == nil {
+		if fi.Mode()&os.ModeSymlink != 0 {
+			return "", errors.New(".git is a symlink; refusing to prune")
+		}
+		if fi.IsDir() {
+			gitDir = filepath.Join(repoPath, ".git")
+		}
 	}
-	return repoPath
+
+	objects := filepath.Join(gitDir, "objects")
+	fi, err := os.Lstat(objects)
+	if errors.Is(err, os.ErrNotExist) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("stat objects dir: %w", err)
+	}
+	if fi.Mode()&os.ModeSymlink != 0 {
+		return "", errors.New("objects is a symlink; refusing to prune")
+	}
+	return objects, nil
 }
 
 func isFanoutDir(name string) bool  { return len(name) == 2 && isHex(name) }

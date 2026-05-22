@@ -291,9 +291,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		body = io.NopCloser(gr)
 	}
 
-	// Cap the pack size after decompression, so the limit bounds both an
-	// oversized pack and a gzip bomb. The counter then reports the actual
-	// pack payload (not the gzipped wire bytes) for observability.
+	// Cap pack size after decompression, so the limit also bounds a gzip bomb.
 	limiter := gittransport.NewLimitedReadCloser(body, h.Cfg.Git.MaxPackBytes)
 	counter := gittransport.NewByteCounter(limiter)
 	body = counter

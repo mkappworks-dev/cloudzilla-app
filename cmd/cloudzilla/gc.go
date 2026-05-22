@@ -9,6 +9,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gitgc"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/spf13/cobra"
 )
 
@@ -20,9 +21,9 @@ func gcCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gc",
 		Short: "Prune unreferenced loose objects from repositories",
-		Long: "Removes loose objects that are unreachable from every ref and older than\n" +
-			"the grace period. Runs across all repositories under git.repos_root, or a\n" +
-			"single one with --repo. Safe to run on a schedule (e.g. cron).",
+		Long: "Removes loose objects unreachable from every ref and older than the\n" +
+			"grace period, across all repositories under git.repos_root or a single\n" +
+			"one with --repo. Safe to run on a schedule.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load(cfgFile)
 			if err != nil {
@@ -35,13 +36,18 @@ func gcCmd() *cobra.Command {
 			}
 
 			opts := gitgc.Options{Grace: grace, DryRun: dryRun}
-			var totalPruned, failures int
+			var totalPruned, skipped, failures int
 			var totalReclaimed int64
 			for _, p := range repoPaths {
 				res, err := gitgc.Prune(p, opts)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "gc %s: %v\n", p, err)
 					failures++
+					continue
+				}
+				if res.Skipped {
+					skipped++
+					fmt.Printf("%s: skipped (no refs)\n", res.Repo)
 					continue
 				}
 				fmt.Printf("%s: scanned=%d pruned=%d kept=%d reclaimed=%s\n",
@@ -54,8 +60,9 @@ func gcCmd() *cobra.Command {
 			if dryRun {
 				verb = "would prune"
 			}
-			fmt.Printf("total: %s %d objects across %d repositories, %s reclaimed\n",
-				verb, totalPruned, len(repoPaths)-failures, formatBytes(totalReclaimed))
+			fmt.Printf("total: %s %d objects, %s reclaimed (%d ok, %d skipped, %d failed)\n",
+				verb, totalPruned, formatBytes(totalReclaimed),
+				len(repoPaths)-skipped-failures, skipped, failures)
 			if failures > 0 {
 				return fmt.Errorf("%d repositories failed", failures)
 			}
@@ -70,12 +77,19 @@ func gcCmd() *cobra.Command {
 }
 
 // resolveRepos returns the bare-repo paths to prune: a single owner/name
-// when repoArg is set, otherwise every <owner>/<repo>.git under root.
+// when repoArg is set, otherwise every <owner>/<repo>.git under root. An
+// unreadable owner directory is skipped rather than failing the run.
 func resolveRepos(root, repoArg string) ([]string, error) {
 	if repoArg != "" {
 		parts := strings.Split(repoArg, "/")
-		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		if len(parts) != 2 {
 			return nil, fmt.Errorf("--repo must be in owner/name form, got %q", repoArg)
+		}
+		if err := service.ValidateName(parts[0]); err != nil {
+			return nil, fmt.Errorf("invalid owner in --repo: %w", err)
+		}
+		if err := service.ValidateName(parts[1]); err != nil {
+			return nil, fmt.Errorf("invalid repo in --repo: %w", err)
 		}
 		return []string{filepath.Join(root, parts[0], parts[1]+".git")}, nil
 	}
@@ -89,20 +103,21 @@ func resolveRepos(root, repoArg string) ([]string, error) {
 		if !owner.IsDir() {
 			continue
 		}
-		repos, err := os.ReadDir(filepath.Join(root, owner.Name()))
+		ownerDir := filepath.Join(root, owner.Name())
+		repos, err := os.ReadDir(ownerDir)
 		if err != nil {
-			return nil, fmt.Errorf("read %s: %w", owner.Name(), err)
+			fmt.Fprintf(os.Stderr, "gc: skipping %s: %v\n", ownerDir, err)
+			continue
 		}
 		for _, repo := range repos {
 			if repo.IsDir() && strings.HasSuffix(repo.Name(), ".git") {
-				paths = append(paths, filepath.Join(root, owner.Name(), repo.Name()))
+				paths = append(paths, filepath.Join(ownerDir, repo.Name()))
 			}
 		}
 	}
 	return paths, nil
 }
 
-// formatBytes renders a byte count in binary units.
 func formatBytes(n int64) string {
 	const unit = 1024
 	if n < unit {
