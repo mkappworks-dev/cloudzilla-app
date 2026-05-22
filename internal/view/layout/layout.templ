@@ -213,21 +213,23 @@ templ Base(base view.BasePage, title string) {
 				{ children... }
 			</main>
 
-			<footer role="contentinfo" class="mt-20 pt-6 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground max-w-[1400px] mx-auto px-6 pb-6">
-				<p class="font-mono">
-					cloudzilla / v0.2.0 <span aria-hidden="true">·</span>
-					<span role="status">
-						<span aria-hidden="true" class="text-success">●</span> all systems normal
-					</span>
-				</p>
-				<nav aria-label="Footer">
-					<ul class="flex gap-4 list-none">
-						<li><a href="/docs" class="hover:text-foreground">Docs</a></li>
-						<li><a href="/api" class="hover:text-foreground">API</a></li>
-						<li><a href="/changelog" class="hover:text-foreground">Changelog</a></li>
-						<li><a href="/status" class="hover:text-foreground">Status</a></li>
-					</ul>
-				</nav>
+			<footer role="contentinfo" class="mt-20 w-full max-w-[1400px] mx-auto px-6 text-[11px] text-muted-foreground">
+				<div class="border-t border-border py-6 flex items-center justify-between">
+					<p class="font-mono">
+						cloudzilla / v0.3.0 <span aria-hidden="true">·</span>
+						<span role="status">
+							<span aria-hidden="true" class="text-success">●</span> all systems normal
+						</span>
+					</p>
+					<nav aria-label="Footer">
+						<ul class="flex gap-4 list-none">
+							<li><a href="/docs" class="hover:text-foreground">Docs</a></li>
+							<li><a href="/api" class="hover:text-foreground">API</a></li>
+							<li><a href="/changelog" class="hover:text-foreground">Changelog</a></li>
+							<li><a href="/status" class="hover:text-foreground">Status</a></li>
+						</ul>
+					</nav>
+				</div>
 			</footer>
 
 			@components.CommandPalette("global-cmd") {
