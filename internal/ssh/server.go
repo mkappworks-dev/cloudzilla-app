@@ -28,6 +28,11 @@ import (
 	gossh "golang.org/x/crypto/ssh"
 )
 
+// sshIdleTimeout closes a connection with no read/write activity for this
+// long, bounding idle and slow-loris connections. It resets on every
+// transfer, so it does not interrupt an active push.
+const sshIdleTimeout = 60 * time.Second
+
 type Server struct {
 	cfg      config.GitConfig
 	services *service.Services
@@ -50,6 +55,7 @@ func New(cfg config.GitConfig, services *service.Services) *Server {
 		Handler:          s.sessionHandler,
 		PublicKeyHandler: s.publicKeyHandler,
 		HostSigners:      []ssh.Signer{hostKey},
+		IdleTimeout:      sshIdleTimeout,
 	}
 
 	return s
@@ -321,12 +327,9 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 	}
 
 	// MapLoader is keyed on ep.String() (e.g. "file:///"), not the input to NewEndpoint.
-	//
-	// TODO(thin-pack): WrapForReceive routes receive-pack onto go-git's
-	// parsed-storage path. Required because filesystem.Storage's
-	// PackfileWriter fast path can't resolve REF_DELTAs whose base lives
-	// outside the incoming pack. See docs/git-transport.md → "Thin packs"
-	// and docs/superpowers/specs/2026-05-15-git-receive-thin-pack-fix-design.md.
+	// WrapForReceive routes receive-pack onto go-git's parsed-storage
+	// path; the filesystem fast path can't resolve thin-pack REF_DELTAs.
+	// See docs/git-transport.md → "Thin packs".
 	srv := server.NewServer(server.MapLoader{
 		ep.String(): gittransport.WrapForReceive(gitRepo.Storer),
 	})
@@ -385,9 +388,13 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			return nil, fmt.Errorf("write advertised refs: %w", err)
 		}
 
-		// Count the bytes flowing in from the SSH session so we can
-		// report pack_bytes in the post-receive observability log.
-		counter := gittransport.NewByteCounter(io.NopCloser(session))
+		// Cap and count the bytes flowing in from the SSH session. The
+		// session's Close is deliberately suppressed via io.NopCloser:
+		// go-git closes the packfile reader once ingestion finishes, but
+		// sessionHandler still needs the session afterwards to write the
+		// status and exit code.
+		limiter := gittransport.NewLimitedReadCloser(io.NopCloser(session), s.cfg.MaxPackBytes)
+		counter := gittransport.NewByteCounter(limiter)
 
 		req := packp.NewReferenceUpdateRequest()
 		if err := req.Decode(counter); err != nil {
@@ -397,13 +404,19 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 		start := time.Now()
 		status, err := sess.ReceivePack(context.Background(), req)
 		if err != nil {
+			if limiter.Exceeded() {
+				return nil, fmt.Errorf("pack exceeds maximum allowed size (%d bytes)", s.cfg.MaxPackBytes)
+			}
 			return nil, fmt.Errorf("receive-pack: %w", err)
 		}
+		refsOK, refsFailed := gittransport.CountRefStatus(status)
 		slog.Info("ssh: receive-pack complete",
 			"owner", ownerName,
 			"repo", repoName,
 			"pusher", pusherName,
 			"commands", len(req.Commands),
+			"refs_ok", refsOK,
+			"refs_failed", refsFailed,
 			"pack_bytes", counter.Bytes(),
 			"duration_ms", time.Since(start).Milliseconds(),
 		)

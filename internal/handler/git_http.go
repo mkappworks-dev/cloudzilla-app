@@ -291,11 +291,11 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		body = io.NopCloser(gr)
 	}
 
-	// Count incoming pack bytes so we can report pack_bytes in the
-	// post-receive observability log line. The counter wraps the
-	// post-decompression body, so the figure reflects the actual pack
-	// payload rather than the gzipped wire bytes.
-	counter := gittransport.NewByteCounter(body)
+	// Cap the pack size after decompression, so the limit bounds both an
+	// oversized pack and a gzip bomb. The counter then reports the actual
+	// pack payload (not the gzipped wire bytes) for observability.
+	limiter := gittransport.NewLimitedReadCloser(body, h.Cfg.Git.MaxPackBytes)
+	counter := gittransport.NewByteCounter(limiter)
 	body = counter
 
 	ep, err := transport.NewEndpoint("/")
@@ -304,11 +304,9 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO(thin-pack): WrapForReceive routes receive-pack onto go-git's
-	// parsed-storage path. Required because filesystem.Storage's
-	// PackfileWriter fast path can't resolve REF_DELTAs whose base lives
-	// outside the incoming pack. See docs/git-transport.md → "Thin packs"
-	// and docs/superpowers/specs/2026-05-15-git-receive-thin-pack-fix-design.md.
+	// WrapForReceive routes receive-pack onto go-git's parsed-storage
+	// path; the filesystem fast path can't resolve thin-pack REF_DELTAs.
+	// See docs/git-transport.md → "Thin packs".
 	srv := server.NewServer(server.MapLoader{
 		ep.String(): gittransport.WrapForReceive(gitRepo.Storer),
 	})
@@ -340,15 +338,24 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	status, err := sess.ReceivePack(r.Context(), req)
 	if err != nil {
+		if limiter.Exceeded() {
+			slog.Warn("git-http: receive-pack rejected: pack too large",
+				"owner", owner, "repo", repoName, "limit_bytes", h.Cfg.Git.MaxPackBytes)
+			http.Error(w, "pack exceeds maximum allowed size", http.StatusRequestEntityTooLarge)
+			return
+		}
 		slog.Error("git-http: receive-pack failed", "owner", owner, "repo", repoName, "error", err)
 		http.Error(w, "receive-pack failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	refsOK, refsFailed := gittransport.CountRefStatus(status)
 	slog.Info("git-http: receive-pack complete",
 		"owner", owner,
 		"repo", repoName,
 		"pusher", gu.Username,
 		"commands", len(req.Commands),
+		"refs_ok", refsOK,
+		"refs_failed", refsFailed,
 		"pack_bytes", counter.Bytes(),
 		"duration_ms", time.Since(start).Milliseconds(),
 	)

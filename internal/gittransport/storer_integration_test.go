@@ -20,12 +20,13 @@ import (
 // whose storer is wrapped by WrapForReceive, and verifies the push lands
 // and links to pre-existing history.
 //
-// It does NOT reproduce the thin-pack bug. go-git's own client never emits
-// a pack with an external REF_DELTA base, so this test passes with or
-// without the wrapper. The load-bearing regression guard is the unit test
-// TestWrapForReceive_HidesPackfileWriter; end-to-end thin-pack behavior is
-// covered by manual verification with a native git client. This test only
-// confirms the wrapped storer remains a valid drop-in for receive-pack.
+// It does NOT reproduce the thin-pack bug — go-git's own client never
+// emits a pack with an external REF_DELTA base, so this test passes with
+// or without the wrapper. The bug itself is reproduced by
+// TestWrapForReceive_ResolvesThinPackRefDelta; the interface-embedding
+// invariant is guarded by TestWrapForReceive_HidesPackfileWriter. This
+// test only confirms the wrapped storer is a valid drop-in for a full
+// receive-pack session.
 func TestWrapForReceive_PushSucceedsThroughWrappedStorer(t *testing.T) {
 	// 1. Bare server repo that will receive the push.
 	serverDir := t.TempDir()

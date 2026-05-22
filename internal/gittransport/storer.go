@@ -1,11 +1,7 @@
 // Package gittransport contains transport-layer adapters around go-git's
-// receive-pack implementation.
-//
-// Today it exists for one purpose: routing the receive-pack path off
-// go-git's filesystem fast path, which cannot resolve REF_DELTA references
-// whose base lives outside the incoming thin pack. See
-// docs/git-transport.md → "Thin packs" and
-// docs/superpowers/specs/2026-05-15-git-receive-thin-pack-fix-design.md.
+// receive-pack path: a storer wrapper that forces correct thin-pack
+// handling, an incoming-pack size limiter, and a byte counter for
+// observability. See docs/git-transport.md → "Thin packs".
 package gittransport
 
 import "github.com/go-git/go-git/v5/plumbing/storer"
