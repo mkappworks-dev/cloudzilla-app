@@ -11,157 +11,208 @@ import (
 
 templ Settings(data view.SettingsData) {
 	@layout.Base(data.BasePage, "Settings") {
-		<div class="space-y-8 max-w-3xl">
+		<div class="space-y-8">
 
-			<div>
-				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5">Account</p>
-				<h1 class="text-2xl font-semibold tracking-tight">Settings</h1>
-			</div>
+			<section aria-labelledby="settings-title">
+				<h1 id="settings-title" class="text-2xl font-semibold tracking-tight">Account settings</h1>
+				<p class="mt-1 text-sm text-muted-foreground">SSH keys, access tokens, and saved replies.</p>
+			</section>
 
-			<!-- SSH Keys -->
-			@components.Card(nil) {
-				@components.CardHeader() {
-					@components.CardTitle(2) {
-						SSH keys
-					}
-					@components.CardDescription() {
-						Manage your SSH public keys for git operations.
-					}
-				}
-				@components.CardContent() {
-					<!-- Add key form -->
-					<section aria-labelledby="add-ssh-heading" class="rounded-md border border-border bg-muted/40 p-4 mb-6">
-						<h3 id="add-ssh-heading" class="text-sm font-medium mb-3">Add SSH key</h3>
-						<form id="add-ssh-key-form" hx-post="/api/user/keys" hx-target="#ssh-keys-list" hx-swap="outerHTML" data-toast="SSH key added" class="space-y-4">
-							<div class="space-y-1.5">
-								<label for="key-title" class="block text-xs font-medium">Key title</label>
-								@components.Input(templ.Attributes{
-									"id":          "key-title",
-									"type":        "text",
-									"name":        "title",
-									"placeholder": "e.g., laptop, desktop",
-									"required":    "required",
-								})
-								<p class="text-xs text-muted-foreground">A short name to help you remember this key.</p>
-							</div>
-							<div class="space-y-1.5">
-								<label for="public-key" class="block text-xs font-medium">Public key</label>
-								@components.Textarea(templ.Attributes{
-									"id":          "public-key",
-									"name":        "public_key",
-									"placeholder": "ssh-ed25519 AAAA... or ssh-rsa AAAA...",
-									"rows":        "4",
-									"required":    "required",
-									"class":       "font-mono text-xs",
-								})
-								<p class="text-xs text-muted-foreground">Paste your SSH public key (from <code class="text-[11px] bg-background border border-border rounded px-1.5 py-0.5 font-mono">~/.ssh/id_ed25519.pub</code> or similar).</p>
-							</div>
-							<div class="flex gap-2 pt-1">
-								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-									Add key
+			<div class="grid grid-cols-12 gap-8">
+
+				<aside class="col-span-12 lg:col-span-3" aria-label="Settings sections">
+					<div class="lg:sticky lg:top-4">
+						<nav class="flex flex-col gap-0.5">
+							<a href="#ssh-keys" class="block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent">SSH keys</a>
+							<a href="#tokens" class="block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Access tokens</a>
+							<a href="#replies" class="block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Saved replies</a>
+						</nav>
+					</div>
+				</aside>
+
+				<div class="col-span-12 lg:col-span-9 space-y-8">
+
+					<section id="ssh-keys" class="scroll-mt-6">
+						@components.Card(nil) {
+							@components.CardHeader() {
+								@components.CardTitle(2) {
+									SSH keys
 								}
-								@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "reset"}) {
-									Clear
+								@components.CardDescription() {
+									Manage your SSH public keys for git operations.
 								}
-							</div>
-						</form>
-					</section>
+							}
+							@components.CardContent() {
+								<section aria-labelledby="add-ssh-heading" class="rounded-md border border-border bg-muted/40 p-4 mb-6">
+									<h3 id="add-ssh-heading" class="text-sm font-medium mb-3">Add SSH key</h3>
+									<form id="add-ssh-key-form" hx-post="/api/user/keys" hx-target="#ssh-keys-list" hx-swap="outerHTML" data-toast="SSH key added" class="space-y-4">
+										<div class="space-y-1.5">
+											<label for="key-title" class="block text-xs font-medium text-muted-foreground">Key title</label>
+											@components.Input(templ.Attributes{
+												"id":          "key-title",
+												"type":        "text",
+												"name":        "title",
+												"placeholder": "e.g., laptop, desktop",
+												"required":    "required",
+											})
+											<p class="text-xs text-muted-foreground">A short name to help you remember this key.</p>
+										</div>
+										<div class="space-y-1.5">
+											<label for="public-key" class="block text-xs font-medium text-muted-foreground">Public key</label>
+											@components.Textarea(templ.Attributes{
+												"id":          "public-key",
+												"name":        "public_key",
+												"placeholder": "ssh-ed25519 AAAA... or ssh-rsa AAAA...",
+												"rows":        "4",
+												"required":    "required",
+												"class":       "font-mono text-xs",
+											})
+											<p class="text-xs text-muted-foreground">
+												Paste your SSH public key (from
+												<code class="text-[11px] bg-background border border-border rounded px-1.5 py-0.5 font-mono">~/.ssh/id_ed25519.pub</code>
+												or similar).
+											</p>
+										</div>
+										<div class="flex gap-2 pt-1">
+											@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+												Add key
+											}
+											@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "reset"}) {
+												Clear
+											}
+										</div>
+									</form>
+								</section>
 
-					<!-- Existing keys list -->
-					<div id="ssh-keys-list" class="space-y-2">
-						if len(data.SSHKeys) > 0 {
-							for _, k := range data.SSHKeys {
-								<div class="flex items-start justify-between gap-3 p-4 rounded-md border border-border" data-key-id={ strconv.FormatInt(k.ID, 10) }>
-									<div class="flex-1 min-w-0">
-										<h4 class="text-sm font-medium">{ k.Title }</h4>
-										<p class="text-xs text-muted-foreground mt-1 font-mono break-all">{ k.Fingerprint }</p>
-										<p class="text-xs text-muted-foreground mt-2">
-											Added <time datetime={ k.CreatedAt.UTC().Format(time.RFC3339) }>{ k.CreatedAt.Format("Jan 2, 2006") }</time>
-										</p>
-									</div>
-									@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-										"hx-delete":           "/api/user/keys/" + strconv.FormatInt(k.ID, 10),
-										"hx-target":           "#ssh-keys-list",
-										"hx-swap":             "outerHTML",
-										"hx-confirm":          "The " + k.Title + " key will immediately lose access. Any system using it for git operations will stop working.",
-										"data-confirm-title":  "Delete this SSH key?",
-										"data-confirm-label":  "Delete",
-										"data-confirm-danger": "true",
-										"data-toast":          "SSH key deleted",
-										"type":                "button",
-									}) {
-										Delete
+								<div id="ssh-keys-list" class="space-y-2">
+									if len(data.SSHKeys) > 0 {
+										for _, k := range data.SSHKeys {
+											<div class="flex items-start gap-3 p-4 rounded-md border border-border" data-key-id={ strconv.FormatInt(k.ID, 10) }>
+												<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground mt-0.5 shrink-0" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+												<div class="flex-1 min-w-0">
+													<p class="text-sm font-medium text-foreground">{ k.Title }</p>
+													<p class="text-xs text-muted-foreground mt-0.5 font-mono break-all">{ k.Fingerprint }</p>
+													<p class="text-xs text-muted-foreground mt-1">
+														Added <time datetime={ k.CreatedAt.UTC().Format(time.RFC3339) }>{ k.CreatedAt.Format("Jan 2, 2006") }</time>
+													</p>
+												</div>
+												@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
+													"hx-delete":           "/api/user/keys/" + strconv.FormatInt(k.ID, 10),
+													"hx-target":           "#ssh-keys-list",
+													"hx-swap":             "outerHTML",
+													"hx-confirm":          "The " + k.Title + " key will immediately lose access. Any system using it for git operations will stop working.",
+													"data-confirm-title":  "Delete this SSH key?",
+													"data-confirm-label":  "Delete",
+													"data-confirm-danger": "true",
+													"data-toast":          "SSH key deleted",
+													"type":                "button",
+												}) {
+													Delete
+												}
+											</div>
+										}
+									} else {
+										<div class="text-center py-8 border border-dashed border-border rounded-md bg-muted/30">
+											<p class="text-sm text-muted-foreground">No SSH keys yet. Add one above to get started.</p>
+										</div>
 									}
 								</div>
+
+								<aside aria-labelledby="ssh-howto-heading" class="mt-6 rounded-md border border-border bg-muted/40 p-4">
+									<h3 id="ssh-howto-heading" class="text-sm font-medium mb-3">Getting started with SSH</h3>
+									<ol class="space-y-2 text-sm text-muted-foreground">
+										<li>
+											<span class="font-mono text-foreground/70 mr-2">1.</span>
+											Generate a key:
+											<code class="text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1">ssh-keygen -t ed25519</code>
+										</li>
+										<li>
+											<span class="font-mono text-foreground/70 mr-2">2.</span>
+											Copy your public key:
+											<code class="text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1">cat ~/.ssh/id_ed25519.pub</code>
+										</li>
+										<li>
+											<span class="font-mono text-foreground/70 mr-2">3.</span>
+											Paste it above and save.
+										</li>
+										<li>
+											<span class="font-mono text-foreground/70 mr-2">4.</span>
+											Clone via SSH:
+											<code class="text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1">git clone ssh://git@localhost:2222/owner/repo.git</code>
+										</li>
+									</ol>
+								</aside>
 							}
-						} else {
-							<div class="text-center py-8 border border-dashed border-border rounded-md bg-muted/30">
-								<p class="text-sm text-muted-foreground">No SSH keys yet. Add one above to get started.</p>
-							</div>
 						}
-					</div>
-				}
-			}
+					</section>
 
-			<!-- Getting started callout -->
-			<aside aria-labelledby="ssh-howto-heading" class="rounded-md border border-border bg-muted/40 p-5">
-				<h2 id="ssh-howto-heading" class="text-sm font-medium mb-3">Getting started with SSH</h2>
-				<ol class="space-y-2 text-sm text-muted-foreground">
-					<li>
-						<span class="font-mono text-foreground/70 mr-2">1.</span>
-						Generate a key:
-						<code class="text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1">ssh-keygen -t ed25519</code>
-					</li>
-					<li>
-						<span class="font-mono text-foreground/70 mr-2">2.</span>
-						Copy your public key:
-						<code class="text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1">cat ~/.ssh/id_ed25519.pub</code>
-					</li>
-					<li>
-						<span class="font-mono text-foreground/70 mr-2">3.</span>
-						Paste it above and save.
-					</li>
-					<li>
-						<span class="font-mono text-foreground/70 mr-2">4.</span>
-						Clone via SSH:
-						<code class="text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1">git clone ssh://git@localhost:2222/owner/repo.git</code>
-					</li>
-				</ol>
-			</aside>
+					<section id="tokens" class="scroll-mt-6">
+						@components.Card(nil) {
+							@components.CardHeader() {
+								@components.CardTitle(2) {
+									Personal access tokens
+								}
+								@components.CardDescription() {
+									Create tokens to authenticate git push/pull and API requests over HTTPS.
+								}
+							}
+							@components.CardFooter() {
+								@components.LinkButton("/settings/tokens", components.ButtonDefault, components.ButtonSizeSM, nil) {
+									Manage access tokens
+								}
+							}
+						}
+					</section>
 
-			<!-- Personal access tokens -->
-			@components.Card(nil) {
-				@components.CardHeader() {
-					@components.CardTitle(2) {
-						Personal access tokens
-					}
-					@components.CardDescription() {
-						Create tokens to authenticate git push/pull and API requests over HTTPS.
-					}
-				}
-				@components.CardFooter() {
-					@components.LinkButton("/settings/tokens", components.ButtonDefault, components.ButtonSizeSM, nil) {
-						Manage access tokens
-					}
-				}
-			}
+					<section id="replies" class="scroll-mt-6">
+						@components.Card(nil) {
+							@components.CardHeader() {
+								@components.CardTitle(2) {
+									Saved replies
+								}
+								@components.CardDescription() {
+									Manage reusable comment snippets for issues and pull requests.
+								}
+							}
+							@components.CardFooter() {
+								@components.LinkButton("/settings/replies", components.ButtonDefault, components.ButtonSizeSM, nil) {
+									Manage saved replies
+								}
+							}
+						}
+					</section>
 
-			<!-- Saved replies -->
-			@components.Card(nil) {
-				@components.CardHeader() {
-					@components.CardTitle(2) {
-						Saved replies
+				</div>
+			</div>
+
+			<script>
+				(function () {
+					var nav = document.querySelector('aside[aria-label="Settings sections"] nav');
+					if (!nav) return;
+					var links = Array.prototype.slice.call(nav.querySelectorAll('a[href^="#"]'));
+					var targets = links
+						.map(function (l) { return { link: l, el: document.getElementById(l.getAttribute('href').slice(1)) }; })
+						.filter(function (t) { return t.el; });
+					if (!targets.length) return;
+					function update() {
+						var active = targets[0];
+						for (var i = 0; i < targets.length; i++) {
+							if (targets[i].el.getBoundingClientRect().top <= 120) active = targets[i];
+						}
+						links.forEach(function (l) {
+							var on = l === active.link;
+							l.classList.toggle('bg-accent', on);
+							l.classList.toggle('text-foreground', on);
+							l.classList.toggle('font-medium', on);
+							l.classList.toggle('text-muted-foreground', !on);
+						});
 					}
-					@components.CardDescription() {
-						Manage reusable comment snippets for issues and pull requests.
-					}
-				}
-				@components.CardFooter() {
-					@components.LinkButton("/settings/replies", components.ButtonDefault, components.ButtonSizeSM, nil) {
-						Manage saved replies
-					}
-				}
-			}
+					update();
+					window.addEventListener('scroll', update, { passive: true });
+					window.addEventListener('resize', update, { passive: true });
+				})();
+			</script>
+
 		</div>
 	}
 }

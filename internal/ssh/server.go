@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -19,12 +20,17 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
-	gossh "golang.org/x/crypto/ssh"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	gossh "golang.org/x/crypto/ssh"
 )
+
+// sshIdleTimeout closes a connection idle this long. It resets on any
+// transfer, so it bounds slow-loris connections without cutting an active push.
+const sshIdleTimeout = 60 * time.Second
 
 type Server struct {
 	cfg      config.GitConfig
@@ -48,6 +54,8 @@ func New(cfg config.GitConfig, services *service.Services) *Server {
 		Handler:          s.sessionHandler,
 		PublicKeyHandler: s.publicKeyHandler,
 		HostSigners:      []ssh.Signer{hostKey},
+		IdleTimeout:      sshIdleTimeout,
+		MaxTimeout:       cfg.SSHMaxSession,
 	}
 
 	return s
@@ -186,6 +194,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	}
 
 	var pusherName string
+	var pusherID int64
 
 	if dkVal != nil {
 		dk := dkVal.(*model.DeployKey)
@@ -207,6 +216,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	} else {
 		user := userVal.(*model.User)
 		pusherName = user.Username
+		pusherID = user.ID
 
 		if gitCmd == "git-upload-pack" {
 			if !s.services.Repo.CanRead(ctx, repo, &user.ID) {
@@ -237,7 +247,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		return
 	}
 
-	commands, err := s.execGitService(session, gitCmd, gitRepo)
+	commands, err := s.execGitService(session, gitCmd, gitRepo, owner, repoName, pusherName)
 	if err != nil {
 		fmt.Fprintf(session, "error: %v\n", err)
 		session.Exit(1)
@@ -280,6 +290,18 @@ func (s *Server) sessionHandler(session ssh.Session) {
 			})
 		}
 
+		// Record push activity-feed events (one per updated branch).
+		// Deploy-key pushes have no human actor, so they are skipped.
+		if dkVal == nil {
+			repoID := repo.ID
+			repoName, ownerName := repo.Name, repo.OwnerName
+			concurrency.Go("event.record.push", func() {
+				for _, ps := range s.services.Repo.PushSummaries(gitRepo, commands) {
+					s.services.Event.RecordPush(context.Background(), pusherID, pusherName, &repoID, repoName, ownerName, ps)
+				}
+			})
+		}
+
 		concurrency.Go("repo.on_post_receive", func() {
 			bg, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 			defer cancel()
@@ -311,15 +333,20 @@ func isForcePushSSH(gitRepo *gogit.Repository, cmd *packp.Command) bool {
 }
 
 // execGitService runs the git pack protocol over the SSH session and returns
-// the pushed commands (non-nil only for git-receive-pack).
-func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.Repository) ([]*packp.Command, error) {
+// the commands go-git applied (non-nil only for git-receive-pack).
+func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.Repository, ownerName, repoName, pusherName string) ([]*packp.Command, error) {
 	ep, err := transport.NewEndpoint("/")
 	if err != nil {
 		return nil, fmt.Errorf("create endpoint: %w", err)
 	}
 
 	// MapLoader is keyed on ep.String() (e.g. "file:///"), not the input to NewEndpoint.
-	srv := server.NewServer(server.MapLoader{ep.String(): gitRepo.Storer})
+	// WrapForReceive routes receive-pack onto go-git's parsed-storage
+	// path; the filesystem fast path can't resolve thin-pack REF_DELTAs.
+	// See docs/git-transport.md → "Thin packs".
+	srv := server.NewServer(server.MapLoader{
+		ep.String(): gittransport.WrapForReceive(gitRepo.Storer),
+	})
 
 	if svc == "git-upload-pack" {
 		sess, err := srv.NewUploadPackSession(ep, nil)
@@ -345,7 +372,7 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			return nil, fmt.Errorf("decode upload-pack request: %w", err)
 		}
 
-		resp, err := sess.UploadPack(context.Background(), req)
+		resp, err := sess.UploadPack(session.Context(), req)
 		if err != nil {
 			return nil, fmt.Errorf("upload-pack: %w", err)
 		}
@@ -375,15 +402,36 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			return nil, fmt.Errorf("write advertised refs: %w", err)
 		}
 
+		// io.NopCloser suppresses the session's Close: go-git closes the
+		// packfile reader after ingestion, but sessionHandler still needs
+		// the session to write status and the exit code.
+		limiter := gittransport.NewLimitedReadCloser(io.NopCloser(session), s.cfg.MaxPackBytes)
+		counter := gittransport.NewByteCounter(limiter)
+
 		req := packp.NewReferenceUpdateRequest()
-		if err := req.Decode(session); err != nil {
+		if err := req.Decode(counter); err != nil {
 			return nil, fmt.Errorf("decode receive-pack request: %w", err)
 		}
 
-		status, err := sess.ReceivePack(context.Background(), req)
+		start := time.Now()
+		status, err := sess.ReceivePack(session.Context(), req)
 		if err != nil {
+			if limiter.Exceeded() {
+				return nil, fmt.Errorf("pack exceeds maximum allowed size (%d bytes)", s.cfg.MaxPackBytes)
+			}
 			return nil, fmt.Errorf("receive-pack: %w", err)
 		}
+		refsOK, refsFailed := gittransport.CountRefStatus(status)
+		slog.Info("ssh: receive-pack complete",
+			"owner", ownerName,
+			"repo", repoName,
+			"pusher", pusherName,
+			"commands", len(req.Commands),
+			"refs_ok", refsOK,
+			"refs_failed", refsFailed,
+			"pack_bytes", counter.Bytes(),
+			"duration_ms", time.Since(start).Milliseconds(),
+		)
 
 		if status != nil {
 			if err := status.Encode(session); err != nil {
@@ -391,6 +439,6 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			}
 		}
 
-		return req.Commands, nil
+		return gittransport.AppliedCommands(status, req.Commands), nil
 	}
 }

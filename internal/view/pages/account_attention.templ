@@ -1,0 +1,119 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ AccountAttention(data view.AttentionData) {
+	@layout.Base(data.BasePage, "Needs your attention") {
+		<div class="space-y-5" x-data="{ q: '', openMenu: null }">
+			<section class="mb-2">
+				<h1 class="text-2xl font-semibold tracking-tight">Needs your attention</h1>
+				if data.Total > 0 {
+					<p class="mt-1 text-[13px] text-muted-foreground">{ strconv.Itoa(data.Total) } { pluralizeAttention(data.Total) } · { attentionSortCaption(data.Sort) }</p>
+				}
+			</section>
+			@components.TabBar(attentionKindTabs(data))
+			<div class="flex items-center gap-2 flex-wrap">
+				<div class="relative flex-1 min-w-[240px]">
+					<label for="attn-filter" class="sr-only">Filter attention items</label>
+					<input id="attn-filter" type="search" placeholder="Filter items…" autocomplete="off" x-model="q" class="w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground"/>
+					<svg class="absolute left-2.5 top-2.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+						<circle cx="11" cy="11" r="7"></circle>
+						<path d="M21 21l-4.3-4.3"></path>
+					</svg>
+				</div>
+				@repoFilterMenu("sort", attentionSortLabel(data.Sort), "Sort attention items", "Sort by", attentionSortMenu(data))
+			</div>
+			if len(data.Items) > 0 {
+				<ul class="border border-border rounded-md bg-card overflow-hidden">
+					for _, item := range data.Items {
+						<li class="border-b border-border last:border-b-0" data-name={ item.RepoName + " " + item.Title } x-show="!q || $el.dataset.name.toLowerCase().includes(q.toLowerCase())">
+							@components.AttentionRow(item)
+						</li>
+					}
+				</ul>
+			} else {
+				@components.EmptyState("Nothing needs your attention right now.")
+			}
+		</div>
+	}
+}
+
+func attentionSortURL(kind, sortBy string) string {
+	u := "/attention?kind=" + kind
+	if sortBy != "" && sortBy != "overdue" {
+		u += "&sort=" + sortBy
+	}
+	return u
+}
+
+func attentionSortOptions() []repoDropdownOption {
+	return []repoDropdownOption{
+		{"overdue", "Sort: most overdue"},
+		{"newest", "Newest"},
+		{"oldest", "Oldest"},
+	}
+}
+
+func attentionSortLabel(sortBy string) string {
+	for _, o := range attentionSortOptions() {
+		if o.Value == sortBy {
+			return o.Label
+		}
+	}
+	return "Sort: most overdue"
+}
+
+func attentionSortCaption(sortBy string) string {
+	switch sortBy {
+	case "newest":
+		return "newest first"
+	case "oldest":
+		return "oldest first"
+	default:
+		return "most overdue first"
+	}
+}
+
+func attentionSortMenu(data view.AttentionData) []repoMenuItem {
+	items := make([]repoMenuItem, 0, 3)
+	for _, o := range attentionSortOptions() {
+		items = append(items, repoMenuItem{
+			Label:  o.Label,
+			URL:    attentionSortURL(data.Kind, o.Value),
+			Active: data.Sort == o.Value,
+		})
+	}
+	return items
+}
+
+func attentionKindTabs(data view.AttentionData) []components.Tab {
+	kinds := []struct{ Label, Kind string }{
+		{"All", "all"},
+		{"Mentions", "mentions"},
+		{"Reviews", "reviews"},
+		{"Assigned", "assigned"},
+	}
+	tabs := make([]components.Tab, 0, len(kinds))
+	for _, k := range kinds {
+		tabs = append(tabs, components.Tab{
+			Label:    k.Label,
+			URL:      attentionSortURL(k.Kind, data.Sort),
+			IsActive: data.Kind == k.Kind,
+			Count:    data.Counts[k.Kind],
+		})
+	}
+	return tabs
+}
+
+func pluralizeAttention(n int) string {
+	if n == 1 {
+		return "item"
+	}
+	return "items"
+}

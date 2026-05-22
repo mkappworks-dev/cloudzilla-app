@@ -47,6 +47,20 @@ These mockup classes correspond to components in `internal/view/components/`. Us
 | `badge`, `badge--open`, `badge--closed`, `badge--merged`, `badge--draft` | `components.Badge` (variant prop carries the state) |
 | `skip-link` (link element only) | already in layout |
 
+## Language chip classes (`lbl-*`)
+
+The mockup uses `.lbl` (base chip) and `.lbl-blue`, `.lbl-green`, `.lbl-amber`, `.lbl-purple` colour variants for language chips on gist rows. These are small inline pills (10px, 1px-7px padding, pill shape). Render them with inline Tailwind — no separate component, just a `<span>` with the classes below.
+
+| Mockup class | Tailwind replacement |
+|---|---|
+| `lbl` (base, no colour) | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border border-border bg-accent text-muted-foreground whitespace-nowrap` |
+| `lbl-blue` | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-primary/15 text-primary border-primary/30 whitespace-nowrap` |
+| `lbl-green` | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-success/15 text-success border-success/30 whitespace-nowrap` |
+| `lbl-amber` | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-warning/15 text-warning border-warning/30 whitespace-nowrap` |
+| `lbl-purple` | `inline-flex items-center text-[10px] leading-none px-1.5 py-0.5 rounded-full border bg-[hsl(270_70%_50%/0.15)] text-[hsl(270_70%_70%)] border-[hsl(270_70%_50%/0.30)] whitespace-nowrap` |
+
+In templ files, pass the correct Tailwind string through a helper (e.g. `gistLanguage(filenames)` returns `(label, chipClass string)`). Use `chipClass` as the class attribute on the `<span>`.
+
 ## Promoted utility classes (no shadcn equivalent)
 
 These classes get added to `tailwind/input.css` as project-level utilities in Task 3. They are used **by their original names** in templ files.

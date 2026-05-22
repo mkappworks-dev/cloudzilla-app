@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -17,6 +19,16 @@ import (
 
 type createCommentRequest struct {
 	Body string `json:"body"`
+}
+
+// commentEventBody trims a comment body to a short snippet for the activity feed.
+func commentEventBody(body string) string {
+	const max = 280
+	r := []rune(strings.TrimSpace(body))
+	if len(r) <= max {
+		return string(r)
+	}
+	return string(r[:max]) + "…"
 }
 
 func (h *Handler) ListIssueComments(w http.ResponseWriter, r *http.Request) {
@@ -110,9 +122,18 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func() {
+	concurrency.Go("notify.issue_comment", func() {
 		h.Services.Notification.NotifyIssueComment(r.Context(), *repo, *issue, claims.UserID, claims.Username)
-	}()
+	})
+
+	repoID := repo.ID
+	concurrency.Go("event.record.issue_comment", func() {
+		h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventComment, map[string]any{
+			"number": issue.Number,
+			"kind":   "issue",
+			"body":   commentEventBody(body),
+		})
+	})
 
 	if r.Header.Get("HX-Request") == "true" {
 		h.render(w, r, fragments.Comment(view.CommentFragData{
@@ -186,9 +207,18 @@ func (h *Handler) CreatePullComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func() {
+	concurrency.Go("notify.pr_comment", func() {
 		h.Services.Notification.NotifyPRComment(r.Context(), *repo, *pull, claims.UserID, claims.Username)
-	}()
+	})
+
+	repoID := repo.ID
+	concurrency.Go("event.record.pr_comment", func() {
+		h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventComment, map[string]any{
+			"number": pull.Number,
+			"kind":   "pull",
+			"body":   commentEventBody(body),
+		})
+	})
 
 	if r.Header.Get("HX-Request") == "true" {
 		toast(w, "success", "Comment added")

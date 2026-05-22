@@ -16,12 +16,25 @@ type UserData struct {
 	Repos          []model.Repository
 	RecentActivity []model.Event
 	ProfileReadme  template.HTML
-	IsOwnProfile   bool
-	Tab            string // "overview" | "repositories"
-	PinnedRepos    []components.PinnedRepoData
-	Heatmap        map[time.Time]int
-	TopLangs       []components.LangBarItem
-	Orgs           []service.OrgMembership
+
+	// Overview tab
+	IsOwnProfile bool
+	Tab          string // "overview" | "repositories"
+	PinnedRepos  []components.PinnedRepoData
+	Heatmap      map[time.Time]int
+	TopLangs     []components.LangBarItem
+	Orgs         []service.OrgMembership
+
+	// Repositories tab — populated only when ?tab=repositories
+	RepoTabRepos          []model.Repository
+	RepoTabRoles          map[int64]string        // viewer's role per repo ID
+	RepoTabLanguages      []string                // distinct primary languages for filter chips
+	RepoTabStars          map[int64]int           // star count per repo ID
+	RepoTabTopics         map[int64][]model.Topic // up to 3 topics per repo ID
+	RepoTabActiveQuery    string
+	RepoTabActiveType     string // "sources" | "forks" | "templates" | ""
+	RepoTabActiveLanguage string
+	RepoTabActiveStatus   string // "public" | "private" | ""
 }
 
 // OrgData holds template data for the organization profile page.

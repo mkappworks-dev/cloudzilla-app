@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -47,12 +48,16 @@ func (s *GistStore) Create(ctx context.Context, g *model.Gist, files []model.Gis
 
 func (s *GistStore) Get(ctx context.Context, id string) (*model.Gist, []model.GistFile, error) {
 	g := &model.Gist{}
+	var forkedFrom sql.NullString
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, owner_id, owner_name, description, public, created_at, updated_at FROM gists WHERE id = $1`,
+		`SELECT id, owner_id, owner_name, description, public, forked_from_id, created_at, updated_at FROM gists WHERE id = $1`,
 		id,
-	).Scan(&g.ID, &g.OwnerID, &g.OwnerName, &g.Description, &g.Public, &g.CreatedAt, &g.UpdatedAt)
+	).Scan(&g.ID, &g.OwnerID, &g.OwnerName, &g.Description, &g.Public, &forkedFrom, &g.CreatedAt, &g.UpdatedAt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("gist get: %w", err)
+	}
+	if forkedFrom.Valid {
+		g.ForkedFromID = &forkedFrom.String
 	}
 
 	rows, err := s.db.QueryContext(ctx,
@@ -80,7 +85,7 @@ func (s *GistStore) Get(ctx context.Context, id string) (*model.Gist, []model.Gi
 func (s *GistStore) ListByOwner(ctx context.Context, ownerID int64, page, pageSize int) ([]model.Gist, error) {
 	offset := (page - 1) * pageSize
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, owner_id, owner_name, description, public, created_at, updated_at
+		`SELECT id, owner_id, owner_name, description, public, forked_from_id, created_at, updated_at
          FROM gists WHERE owner_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
 		ownerID, pageSize, offset,
 	)
@@ -94,26 +99,12 @@ func (s *GistStore) ListByOwner(ctx context.Context, ownerID int64, page, pageSi
 func (s *GistStore) ListPublicByOwner(ctx context.Context, ownerID int64, page, pageSize int) ([]model.Gist, error) {
 	offset := (page - 1) * pageSize
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, owner_id, owner_name, description, public, created_at, updated_at
+		`SELECT id, owner_id, owner_name, description, public, forked_from_id, created_at, updated_at
          FROM gists WHERE owner_id = $1 AND public = true ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
 		ownerID, pageSize, offset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("gist list public by owner: %w", err)
-	}
-	defer rows.Close()
-	return scanGists(rows)
-}
-
-func (s *GistStore) ListPublic(ctx context.Context, page, pageSize int) ([]model.Gist, error) {
-	offset := (page - 1) * pageSize
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, owner_id, owner_name, description, public, created_at, updated_at
-         FROM gists WHERE public = true ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-		pageSize, offset,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("gist list public: %w", err)
 	}
 	defer rows.Close()
 	return scanGists(rows)
@@ -164,6 +155,25 @@ func (s *GistStore) CountByOwner(ctx context.Context, ownerID int64) (int, error
 	return n, err
 }
 
+// CountPublic counts all public gists instance-wide, matching the "Public" tab on /gists.
+func (s *GistStore) CountPublic(ctx context.Context) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM gists WHERE public = true`,
+	).Scan(&n)
+	return n, err
+}
+
+// CountPrivateByOwner counts a single owner's private gists, matching the "Private" tab on /gists.
+func (s *GistStore) CountPrivateByOwner(ctx context.Context, ownerID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM gists WHERE owner_id = $1 AND public = false`,
+		ownerID,
+	).Scan(&n)
+	return n, err
+}
+
 func (s *GistStore) Delete(ctx context.Context, id string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM gists WHERE id = $1`, id)
 	return err
@@ -173,10 +183,106 @@ func scanGists(rows *sql.Rows) ([]model.Gist, error) {
 	var gists []model.Gist
 	for rows.Next() {
 		var g model.Gist
-		if err := rows.Scan(&g.ID, &g.OwnerID, &g.OwnerName, &g.Description, &g.Public, &g.CreatedAt, &g.UpdatedAt); err != nil {
+		var forkedFrom sql.NullString
+		if err := rows.Scan(&g.ID, &g.OwnerID, &g.OwnerName, &g.Description, &g.Public, &forkedFrom, &g.CreatedAt, &g.UpdatedAt); err != nil {
 			return nil, err
+		}
+		if forkedFrom.Valid {
+			g.ForkedFromID = &forkedFrom.String
 		}
 		gists = append(gists, g)
 	}
 	return gists, rows.Err()
+}
+
+// gistOrderBy maps a sort key to a fixed ORDER BY clause. prefix is the column
+// qualifier ("g." for the joined query, "" otherwise). The result is composed
+// only from constants — never caller input — so it is safe to concatenate.
+func gistOrderBy(prefix, sortBy string) string {
+	switch sortBy {
+	case "created":
+		return prefix + "created_at DESC"
+	case "name":
+		return "lower(" + prefix + "description) ASC, " + prefix + "updated_at DESC"
+	default:
+		return prefix + "updated_at DESC"
+	}
+}
+
+func (s *GistStore) ListWithCounts(ctx context.Context, ownerFilter, sortBy string, page, pageSize int) ([]model.GistListRow, error) {
+	offset := (page - 1) * pageSize
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT g.id, g.owner_id, g.owner_name, g.description, g.public,
+		       g.created_at, g.updated_at,
+		       (SELECT COUNT(*) FROM gist_files WHERE gist_id = g.id) AS file_count,
+		       (SELECT COUNT(*) FROM gist_stars  WHERE gist_id = g.id) AS star_count,
+		       (SELECT COUNT(*) FROM gists        WHERE forked_from_id = g.id) AS fork_count
+		FROM gists g
+		JOIN users u ON u.id = g.owner_id
+		WHERE g.public = true AND ($1 = '' OR u.username = $1)
+		ORDER BY `+gistOrderBy("g.", sortBy)+`
+		LIMIT $2 OFFSET $3`,
+		ownerFilter, pageSize, offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("gist list with counts: %w", err)
+	}
+	defer rows.Close()
+
+	var result []model.GistListRow
+	for rows.Next() {
+		var row model.GistListRow
+		if err := rows.Scan(
+			&row.ID, &row.OwnerID, &row.OwnerName, &row.Description, &row.Public,
+			&row.CreatedAt, &row.UpdatedAt,
+			&row.FileCount, &row.StarCount, &row.ForkCount,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, row)
+	}
+	return result, rows.Err()
+}
+
+// LoadFilenames batches gist_files lookups to avoid an N+1 in list views.
+func (s *GistStore) LoadFilenames(ctx context.Context, gistIDs []string) (map[string][]string, error) {
+	if len(gistIDs) == 0 {
+		return map[string][]string{}, nil
+	}
+	placeholders := make([]string, len(gistIDs))
+	args := make([]any, len(gistIDs))
+	for i, id := range gistIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	q := `SELECT gist_id, filename FROM gist_files WHERE gist_id IN (` +
+		strings.Join(placeholders, ",") + `) ORDER BY id`
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("load filenames: %w", err)
+	}
+	defer rows.Close()
+	result := make(map[string][]string, len(gistIDs))
+	for rows.Next() {
+		var gistID, filename string
+		if err := rows.Scan(&gistID, &filename); err != nil {
+			return nil, err
+		}
+		result[gistID] = append(result[gistID], filename)
+	}
+	return result, rows.Err()
+}
+
+func (s *GistStore) ListPrivateByOwner(ctx context.Context, ownerID int64, sortBy string, page, pageSize int) ([]model.Gist, error) {
+	offset := (page - 1) * pageSize
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, owner_id, owner_name, description, public, forked_from_id, created_at, updated_at
+         FROM gists WHERE owner_id = $1 AND public = false ORDER BY `+gistOrderBy("", sortBy)+` LIMIT $2 OFFSET $3`,
+		ownerID, pageSize, offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("gist list private by owner: %w", err)
+	}
+	defer rows.Close()
+	return scanGists(rows)
 }

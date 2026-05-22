@@ -27,9 +27,9 @@ type DiscussionsData struct {
 	AnsweredCount    int
 	ClosedCount      int
 	CanWrite         bool
-	Labels       map[int64][]model.Label
-	ReplyCounts  map[int64]int
-	Participants map[int64][]string
+	Labels           map[int64][]model.Label
+	ReplyCounts      map[int64]int
+	Participants     map[int64][]string
 }
 
 type DiscussionDetailData struct {
@@ -61,10 +61,22 @@ type DiscussionNewData struct {
 	Error            string
 }
 
+type GistListItem struct {
+	model.GistListRow
+	LanguageLabel string
+	LanguageClass string
+}
+
 type GistsData struct {
 	BasePage
-	Gists []model.Gist
-	Page  int
+	Gists               []GistListItem
+	Page                int
+	HasNext             bool
+	Tab                 string // "public" or "private"
+	Sort                string // "updated" | "created" | "name"
+	PrivateTabAvailable bool
+	PublicCount         int // all public gists instance-wide
+	PrivateCount        int // viewer's own private gists
 }
 
 type GistDetailData struct {

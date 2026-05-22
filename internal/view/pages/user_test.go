@@ -73,20 +73,20 @@ func TestUser_OverviewOtherProfile(t *testing.T) {
 	}
 }
 
-// Repositories tab must render the repo table; overview-only sections like the
+// Repositories tab must render the repo list; overview-only sections like the
 // heatmap heading must not appear.
 func TestUser_RepositoriesTabShowsTable(t *testing.T) {
 	data := view.UserData{
 		User: model.User{ID: 1, Username: "alice"},
 		Tab:  "repositories",
-		Repos: []model.Repository{
+		RepoTabRepos: []model.Repository{
 			{ID: 1, OwnerName: "alice", Name: "demo", UpdatedAt: time.Now()},
 		},
 	}
 	out := renderUser(t, data)
 
 	if !strings.Contains(out, "demo") {
-		t.Errorf("repo table missing repo name\n--- output ---\n%s", out)
+		t.Errorf("repo list missing repo name\n--- output ---\n%s", out)
 	}
 	if strings.Contains(out, "contributions in the last year") {
 		t.Errorf("repositories tab should not render the heatmap heading\n--- output ---\n%s", out)

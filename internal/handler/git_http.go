@@ -19,6 +19,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
@@ -279,16 +280,21 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Handle gzip-encoded bodies
-	body := io.Reader(r.Body)
+	body := io.ReadCloser(r.Body)
 	if r.Header.Get("Content-Encoding") == "gzip" {
-		gr, err := gzip.NewReader(body)
+		gr, err := gzip.NewReader(r.Body)
 		if err != nil {
 			http.Error(w, "failed to decompress", http.StatusBadRequest)
 			return
 		}
 		defer gr.Close()
-		body = gr
+		body = io.NopCloser(gr)
 	}
+
+	// Cap pack size after decompression, so the limit also bounds a gzip bomb.
+	limiter := gittransport.NewLimitedReadCloser(body, h.Cfg.Git.MaxPackBytes)
+	counter := gittransport.NewByteCounter(limiter)
+	body = counter
 
 	ep, err := transport.NewEndpoint("/")
 	if err != nil {
@@ -296,7 +302,12 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	srv := server.NewServer(server.MapLoader{ep.String(): gitRepo.Storer})
+	// WrapForReceive routes receive-pack onto go-git's parsed-storage
+	// path; the filesystem fast path can't resolve thin-pack REF_DELTAs.
+	// See docs/git-transport.md → "Thin packs".
+	srv := server.NewServer(server.MapLoader{
+		ep.String(): gittransport.WrapForReceive(gitRepo.Storer),
+	})
 	sess, err := srv.NewReceivePackSession(ep, nil)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -322,21 +333,43 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	start := time.Now()
 	status, err := sess.ReceivePack(r.Context(), req)
 	if err != nil {
+		if limiter.Exceeded() {
+			slog.Warn("git-http: receive-pack rejected: pack too large",
+				"owner", owner, "repo", repoName, "limit_bytes", h.Cfg.Git.MaxPackBytes)
+			http.Error(w, "pack exceeds maximum allowed size", http.StatusRequestEntityTooLarge)
+			return
+		}
 		slog.Error("git-http: receive-pack failed", "owner", owner, "repo", repoName, "error", err)
 		http.Error(w, "receive-pack failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	refsOK, refsFailed := gittransport.CountRefStatus(status)
+	slog.Info("git-http: receive-pack complete",
+		"owner", owner,
+		"repo", repoName,
+		"pusher", gu.Username,
+		"commands", len(req.Commands),
+		"refs_ok", refsOK,
+		"refs_failed", refsFailed,
+		"pack_bytes", counter.Bytes(),
+		"duration_ms", time.Since(start).Milliseconds(),
+	)
 
 	w.Header().Set("Content-Type", "application/x-git-receive-pack-result")
 	if status != nil {
 		status.Encode(w) //nolint:errcheck
 	}
 
+	// Run side effects only for refs go-git applied — a per-ref failure
+	// surfaces in status, not as a ReceivePack error.
+	commands := gittransport.AppliedCommands(status, req.Commands)
+
 	// Enforce branch protection rules before dispatching webhooks.
 	// If protection rejects the push, rollback the ref to its previous value.
-	for _, cmd := range req.Commands {
+	for _, cmd := range commands {
 		if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
 			continue
 		}
@@ -358,7 +391,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 
 	// Dispatch push webhooks for each updated branch
 	pusherName := gu.Username
-	for _, cmd := range req.Commands {
+	for _, cmd := range commands {
 		if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
 			continue
 		}
@@ -373,7 +406,18 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	commands := req.Commands
+	// Record push activity-feed events (one per updated branch).
+	// Pushes with no human actor are skipped, matching the SSH path.
+	if pusherName != "" {
+		pusherID := gu.ID
+		repoID := repo.ID
+		concurrency.Go("event.record.push", func() {
+			for _, ps := range h.Services.Repo.PushSummaries(gitRepo, commands) {
+				h.Services.Event.RecordPush(context.Background(), pusherID, pusherName, &repoID, repoName, owner, ps)
+			}
+		})
+	}
+
 	concurrency.Go("repo.on_post_receive", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()

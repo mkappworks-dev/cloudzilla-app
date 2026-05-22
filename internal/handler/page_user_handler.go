@@ -4,6 +4,8 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -32,8 +34,10 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var viewerID *int64
+	var viewerUserID int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		viewerID = &claims.UserID
+		viewerUserID = claims.UserID
 	}
 	repos, err := h.Services.Repo.ListByOwnerVisibleTo(r.Context(), username, viewerID)
 	if err != nil {
@@ -130,7 +134,7 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		orgs = []service.OrgMembership{}
 	}
 
-	h.render(w, r, pages.User(view.UserData{
+	data := view.UserData{
 		BasePage:       basePage(r, h.Services),
 		User:           *user,
 		Repos:          repos,
@@ -142,7 +146,119 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		Heatmap:        heatmap,
 		TopLangs:       topLangs,
 		Orgs:           orgs,
-	}))
+	}
+
+	if tab == "repositories" {
+		data = h.buildRepoTabData(r, data, repos, user.ID, viewerUserID)
+	}
+
+	h.render(w, r, pages.User(data))
+}
+
+func (h *Handler) buildRepoTabData(r *http.Request, data view.UserData, allRepos []model.Repository, profileOwnerID, viewerUserID int64) view.UserData {
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	repoType := r.URL.Query().Get("type")
+	langFilter := r.URL.Query().Get("language")
+	statusFilter := r.URL.Query().Get("status")
+
+	seen := map[string]struct{}{}
+	var languages []string
+	for _, repo := range allRepos {
+		if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
+			lang := *repo.PrimaryLanguage
+			if _, ok := seen[lang]; !ok {
+				seen[lang] = struct{}{}
+				languages = append(languages, lang)
+			}
+		}
+	}
+	sort.Strings(languages)
+
+	roleMap := make(map[int64]string)
+	if viewerUserID != 0 {
+		perms, err := h.Services.Repo.ListPermissionsByUser(r.Context(), viewerUserID)
+		if err != nil {
+			slog.Warn("user profile repos tab: failed to load viewer permissions", "viewer_id", viewerUserID, "error", err)
+		}
+		for _, p := range perms {
+			roleMap[p.RepoID] = string(p.Role)
+		}
+	}
+
+	filtered := make([]model.Repository, 0, len(allRepos))
+	for _, repo := range allRepos {
+		if q != "" {
+			lq := strings.ToLower(q)
+			if !strings.Contains(strings.ToLower(repo.Name), lq) && !strings.Contains(strings.ToLower(repo.Description), lq) {
+				continue
+			}
+		}
+		switch repoType {
+		case "sources":
+			if repo.IsFork || repo.IsTemplate {
+				continue
+			}
+		case "forks":
+			if !repo.IsFork {
+				continue
+			}
+		case "templates":
+			if !repo.IsTemplate {
+				continue
+			}
+		}
+		switch statusFilter {
+		case "public":
+			if repo.Private {
+				continue
+			}
+		case "private":
+			if !repo.Private {
+				continue
+			}
+		}
+		if langFilter != "" {
+			if repo.PrimaryLanguage == nil || *repo.PrimaryLanguage != langFilter {
+				continue
+			}
+		}
+		filtered = append(filtered, repo)
+	}
+
+	// Inject owner role: viewer == profile owner → "owner".
+	for _, repo := range filtered {
+		if repo.OwnerID == viewerUserID {
+			roleMap[repo.ID] = "owner"
+		}
+	}
+
+	repoIDs := make([]int64, len(filtered))
+	for i, repo := range filtered {
+		repoIDs[i] = repo.ID
+	}
+
+	starCounts, err := h.Services.Star.CountByRepoIDs(r.Context(), repoIDs)
+	if err != nil {
+		slog.Warn("user profile repos tab: failed to load star counts", "error", err)
+		starCounts = map[int64]int{}
+	}
+
+	topicMap, err := h.Services.Topic.ListByRepoIDs(r.Context(), repoIDs)
+	if err != nil {
+		slog.Warn("user profile repos tab: failed to load topics", "error", err)
+		topicMap = map[int64][]model.Topic{}
+	}
+
+	data.RepoTabRepos = filtered
+	data.RepoTabRoles = roleMap
+	data.RepoTabLanguages = languages
+	data.RepoTabStars = starCounts
+	data.RepoTabTopics = topicMap
+	data.RepoTabActiveQuery = q
+	data.RepoTabActiveType = repoType
+	data.RepoTabActiveLanguage = langFilter
+	data.RepoTabActiveStatus = statusFilter
+	return data
 }
 
 func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *model.Organization) {

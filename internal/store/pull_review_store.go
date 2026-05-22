@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -131,6 +132,30 @@ func (s *PullReviewStore) ListPullIDsAwaitingReviewer(ctx context.Context, revie
 		ids = append(ids, id)
 	}
 	return ids, rows.Err()
+}
+
+// ListPendingReviewsForReviewer maps pull_id → created_at; MIN guards against future duplicate rows.
+func (s *PullReviewStore) ListPendingReviewsForReviewer(ctx context.Context, reviewerID int64) (map[int64]time.Time, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT pull_id, MIN(created_at) FROM pull_reviews
+		 WHERE author_id = $1 AND state = 'pending'
+		 GROUP BY pull_id`,
+		reviewerID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("pull reviews pending for reviewer: %w", err)
+	}
+	defer rows.Close()
+	m := make(map[int64]time.Time)
+	for rows.Next() {
+		var pullID int64
+		var requestedAt time.Time
+		if err := rows.Scan(&pullID, &requestedAt); err != nil {
+			return nil, err
+		}
+		m[pullID] = requestedAt
+	}
+	return m, rows.Err()
 }
 
 func (s *PullReviewStore) RequestReview(ctx context.Context, pullID, repoID, reviewerID int64, reviewerName string) error {

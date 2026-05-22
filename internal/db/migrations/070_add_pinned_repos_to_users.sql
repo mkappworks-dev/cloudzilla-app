@@ -1,4 +1,4 @@
--- 067_add_pinned_repos_to_users.sql
+-- 070_add_pinned_repos_to_users.sql
 -- Pinned repository IDs are stored as a BIGINT[] column on users so the
 -- profile page reads them in a single query alongside the user. Ordering
 -- in the array is preserved as the pin order.

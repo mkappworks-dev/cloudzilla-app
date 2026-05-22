@@ -12,9 +12,9 @@
 
 **Goal:** Reshape `feed.templ` to match the activity-feed mockup and serve it at `/activity`; create `/stars` (cross-repo starred-repos page); reshape `user.templ`'s repositories tab; add `repositories.primary_language` so language-filter chips have a source column.
 
-**Architecture:** One migration (`057_add_repo_primary_language.sql`) adds `repositories.primary_language`, populated on push by extending Phase 1's `RepoService.OnPostReceive`. The account-level pages built by the account-navigation feature render under **`AccountSubnav`** (5 pill tabs: Overview / Repositories / Gists / Pull requests / Issues). `/activity` and `/stars` are **not** among those five tabs — they render under the standard global header without an active subnav tab. Adding Activity/Stars as `AccountSubnav` tabs is a deliberate follow-up, out of scope here.
+**Architecture:** One migration (`066_add_repo_primary_language.sql`) adds `repositories.primary_language`, populated on push by extending Phase 1's `RepoService.OnPostReceive`. The account-level pages built by the account-navigation feature render under **`AccountSubnav`** (5 pill tabs: Overview / Repositories / Gists / Pull requests / Issues). `/activity` and `/stars` are **not** among those five tabs — they render under the standard global header without an active subnav tab. Adding Activity/Stars as `AccountSubnav` tabs is a deliberate follow-up, out of scope here.
 
-**Prerequisites:** Phase 7 merged; the account-navigation feature merged.
+**Prerequisites:** Account-navigation feature merged (PR #41) — provides `AccountSubnav`, the `/repos` / `/pulls` / `/issues` routes, and the cross-repo store/service methods this plan references. Phase 7 (gists) is soft-sequenced after this phase but has **no code dependency** with Phase 8; the two branches touch disjoint files (only [internal/router/router.go](internal/router/router.go) sees additive edits in both) and can be developed in parallel worktrees.
 
 **Spec:** [2026-05-14-ui-overhaul-design.md](../specs/2026-05-14-ui-overhaul-design.md)
 
@@ -36,7 +36,11 @@ Do **not** re-implement any of the following — they exist on the merged featur
 
 ## Migration numbering
 
-054 = Phase 1, 055 = Phase 3, 056 = Phase 7, **057 = Phase 8**, 058 = Phase 9. The account-navigation feature added **no** migration (it reused `permissions`, `pull_reviews`, `mentions`, `comments`, `pull_assignees`, `issue_assignees`), so this numbering is unchanged. Phase 8's migration shrinks to a single column add. (Note: the standalone `2026-05-15-contributor-stats-sha-dedup` plan also claims `056` — a pre-existing collision with Phase 7 that must be resolved when those plans are scheduled; it does not affect Phase 8.)
+> **Reverified 2026-05-20 against `main`.** `main` has migrations through **064**; slots 056–064 are taken by unrelated features (`add_website_license_to_repos`, `add_project_status`, `add_repo_feature_toggles`, `create_pull_events`, `create_pull_issue_links`, `add_priority_to_issues`, `global_discussion_categories`, `create_discussion_labels`, `polymorphic_reactions`). The original plan's "054 = Phase 1, 056 = Phase 7, 057 = Phase 8" mapping is **stale** — those slots have been used by other work.
+>
+> **Phase 7's branch** (`feat/ui-overhaul-phase-7-gists`) has already claimed **065** (`gist_stars`). **Phase 8** therefore claims **066** (`add_repo_primary_language`). The account-navigation feature added no migration (it reused existing tables), so it didn't consume a slot.
+>
+> Re-verify with `ls internal/db/migrations/` immediately before authoring Task 2 — if any other migration has landed on `main` in the interim, bump to the next free slot and update every reference in this plan.
 
 ---
 
@@ -46,10 +50,10 @@ Do **not** re-implement any of the following — they exist on the merged featur
 
 ---
 
-### Task 2: Migration 057 — `repositories.primary_language`
+### Task 2: Migration 066 — `repositories.primary_language`
 
 **Files:**
-- Create: `internal/db/migrations/057_add_repo_primary_language.sql`
+- Create: `internal/db/migrations/066_add_repo_primary_language.sql`
 - Modify: `internal/model/repo.go` (add `PrimaryLanguage *string` field, `db:"primary_language"`)
 - Modify: `internal/store/repo_store.go` (add `UpdatePrimaryLanguage`)
 - Modify: `internal/service/repo_service.go` (extend `OnPostReceive`)
@@ -57,7 +61,7 @@ Do **not** re-implement any of the following — they exist on the merged featur
 - [ ] **Step 1: Write the migration**
 
 ```sql
--- 057_add_repo_primary_language.sql
+-- 066_add_repo_primary_language.sql
 -- Cached primary language per repo, for the language-filter chips on /stars
 -- and the user repositories tab. Populated on push by RepoService.OnPostReceive.
 
@@ -87,8 +91,8 @@ In Phase 1's `RepoService.OnPostReceive`, after the stats refresh, call the lang
 ```bash
 make migrate
 go build ./...
-git add internal/db/migrations/057_add_repo_primary_language.sql internal/model/repo.go internal/store/repo_store.go internal/service/repo_service.go
-git commit -m "feat(db): migration 057 — repositories.primary_language + push-hook population"
+git add internal/db/migrations/066_add_repo_primary_language.sql internal/model/repo.go internal/store/repo_store.go internal/service/repo_service.go
+git commit -m "feat(db): migration 066 — repositories.primary_language + push-hook population"
 ```
 
 ---
@@ -310,7 +314,7 @@ Tests + lint + templ regen + visual sweep across `/activity`, `/stars`, and `/{u
 
 ## Self-review checklist
 
-- [ ] Migration **057** adds only `repositories.primary_language` (table name `repositories`, not `repos`). The `pull_review_requests` table and `mentions.ref_id`/`ref_type` columns from the original plan are **not** created — review-requests use `pull_reviews`, mentions use `mentions`+`comments` (both delivered by the account-navigation feature).
+- [ ] Migration **066** adds only `repositories.primary_language` (table name `repositories`, not `repos`). The `pull_review_requests` table and `mentions.ref_id`/`ref_type` columns from the original plan are **not** created — review-requests use `pull_reviews`, mentions use `mentions`+`comments` (both delivered by the account-navigation feature).
 - [ ] No SQL references the non-existent `repo_collaborators` table; visibility/role joins use `permissions` (migration 006).
 - [ ] `repositories.primary_language` is populated by `RepoService.OnPostReceive` — TODO-guarded if Phase 1's `LanguageService` is not yet merged.
 - [ ] `/activity` and `/stars` render under the standard global header — they are NOT `AccountSubnav` tabs (`AccountSubnav` has exactly: Overview, Repositories, Gists, Pull requests, Issues). Adding them as tabs is a noted follow-up, not done here.

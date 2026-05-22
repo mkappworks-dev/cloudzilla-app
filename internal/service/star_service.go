@@ -40,6 +40,10 @@ func (s *StarService) GetStarCount(ctx context.Context, repoID int64) (int, erro
 	return s.stars.CountByRepo(ctx, repoID)
 }
 
+func (s *StarService) CountByRepoIDs(ctx context.Context, repoIDs []int64) (map[int64]int, error) {
+	return s.stars.CountByRepoIDs(ctx, repoIDs)
+}
+
 func (s *StarService) IsStarred(ctx context.Context, repoID, userID int64) (bool, error) {
 	return s.stars.IsStarred(ctx, userID, repoID)
 }

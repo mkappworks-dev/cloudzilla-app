@@ -265,6 +265,10 @@ func (s *IssueService) CountOpenAssignedTo(ctx context.Context, userID int64) (i
 	return s.issues.CountOpenAssignedTo(ctx, userID)
 }
 
+func (s *IssueService) CountDueThisWeekAssignedTo(ctx context.Context, userID int64) (int, error) {
+	return s.issues.CountDueThisWeekAssignedTo(ctx, userID)
+}
+
 func (s *IssueService) CountOpen(ctx context.Context, repoID int64) (int, error) {
 	return s.issues.CountOpen(ctx, repoID)
 }
@@ -286,6 +290,12 @@ func (s *IssueService) ListForUser(ctx context.Context, userID int64, mode, stat
 	default:
 		return s.issues.ListForUser(ctx, userID, "assigned", state)
 	}
+}
+
+// CountsForUser returns issue counts keyed "<filter>:<state>" for every
+// filter/state combination shown in the account issues tab bar.
+func (s *IssueService) CountsForUser(ctx context.Context, userID int64) (map[string]int, error) {
+	return s.issues.CountsForUser(ctx, userID)
 }
 
 func (s *IssueService) LinkedPRs(ctx context.Context, owner, repoName string, issueNumber int) ([]model.PullRequest, error) {
