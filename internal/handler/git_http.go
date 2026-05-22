@@ -19,6 +19,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
@@ -279,16 +280,23 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Handle gzip-encoded bodies
-	body := io.Reader(r.Body)
+	body := io.ReadCloser(r.Body)
 	if r.Header.Get("Content-Encoding") == "gzip" {
-		gr, err := gzip.NewReader(body)
+		gr, err := gzip.NewReader(r.Body)
 		if err != nil {
 			http.Error(w, "failed to decompress", http.StatusBadRequest)
 			return
 		}
 		defer gr.Close()
-		body = gr
+		body = io.NopCloser(gr)
 	}
+
+	// Count incoming pack bytes so we can report pack_bytes in the
+	// post-receive observability log line. The counter wraps the
+	// post-decompression body, so the figure reflects the actual pack
+	// payload rather than the gzipped wire bytes.
+	counter := gittransport.NewByteCounter(body)
+	body = counter
 
 	ep, err := transport.NewEndpoint("/")
 	if err != nil {
@@ -296,7 +304,14 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	srv := server.NewServer(server.MapLoader{ep.String(): gitRepo.Storer})
+	// TODO(thin-pack): WrapForReceive routes receive-pack onto go-git's
+	// parsed-storage path. Required because filesystem.Storage's
+	// PackfileWriter fast path can't resolve REF_DELTAs whose base lives
+	// outside the incoming pack. See docs/git-transport.md → "Thin packs"
+	// and docs/superpowers/specs/2026-05-15-git-receive-thin-pack-fix-design.md.
+	srv := server.NewServer(server.MapLoader{
+		ep.String(): gittransport.WrapForReceive(gitRepo.Storer),
+	})
 	sess, err := srv.NewReceivePackSession(ep, nil)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -322,12 +337,21 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	start := time.Now()
 	status, err := sess.ReceivePack(r.Context(), req)
 	if err != nil {
 		slog.Error("git-http: receive-pack failed", "owner", owner, "repo", repoName, "error", err)
 		http.Error(w, "receive-pack failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	slog.Info("git-http: receive-pack complete",
+		"owner", owner,
+		"repo", repoName,
+		"pusher", gu.Username,
+		"commands", len(req.Commands),
+		"pack_bytes", counter.Bytes(),
+		"duration_ms", time.Since(start).Milliseconds(),
+	)
 
 	w.Header().Set("Content-Type", "application/x-git-receive-pack-result")
 	if status != nil {
