@@ -11,7 +11,6 @@ type (
 	RenderedComment           = view.RenderedComment
 	RenderedLineComment       = view.RenderedLineComment
 	HomeData                  = view.HomeData
-	FeedData                  = view.FeedData
 	LoginData                 = view.LoginData
 	UserData                  = view.UserData
 	OrgData                   = view.OrgData
@@ -95,4 +94,5 @@ type (
 	ExploreData               = view.ExploreData
 	DependenciesData          = view.DependenciesData
 	ActionsData               = view.ActionsData
+	AttentionData             = view.AttentionData
 )

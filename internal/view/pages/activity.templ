@@ -1,0 +1,164 @@
+package pages
+
+import (
+	"encoding/json"
+	"log/slog"
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+func eventToActivityRow(e model.Event) components.ActivityRowData {
+	repoPath := ""
+	if e.OwnerName != "" && e.RepoName != "" {
+		repoPath = e.OwnerName + "/" + e.RepoName
+	}
+
+	var m map[string]any
+	if len(e.Payload) > 0 {
+		if err := json.Unmarshal(e.Payload, &m); err != nil {
+			slog.Warn("activity: event payload unmarshal failed",
+				"event_id", e.ID, "event_type", e.EventType, "error", err)
+		}
+	}
+
+	strVal := func(key string) string {
+		if m == nil {
+			return ""
+		}
+		v, _ := m[key].(string)
+		return v
+	}
+	intVal := func(key string) int {
+		if m == nil {
+			return 0
+		}
+		f, _ := m[key].(float64)
+		return int(f)
+	}
+
+	var ref, refURL, title, branch, quote string
+	var commits []components.CommitLine
+	var commitTotal int
+
+	switch e.EventType {
+	case model.EventPROpened, model.EventPRMerged, model.EventPRClosed:
+		n := intVal("number")
+		if n > 0 {
+			ns := strconv.Itoa(n)
+			ref = "#" + ns
+			refURL = "/" + repoPath + "/pulls/" + ns
+		}
+		if e.EventType == model.EventPROpened {
+			title = strVal("title")
+		}
+	case model.EventIssueOpened, model.EventIssueClosed:
+		n := intVal("number")
+		if n > 0 {
+			ns := strconv.Itoa(n)
+			ref = "#" + ns
+			refURL = "/" + repoPath + "/issues/" + ns
+		}
+		if e.EventType == model.EventIssueOpened {
+			title = strVal("title")
+		}
+	case model.EventReleasePublished:
+		ref = strVal("tag")
+		title = strVal("name")
+		if ref != "" {
+			refURL = "/" + repoPath + "/releases/tag/" + ref
+		}
+	case model.EventPush:
+		branch = strVal("branch")
+		commitTotal = intVal("commit_total")
+		if raw, ok := m["commits"].([]any); ok {
+			for _, item := range raw {
+				cm, _ := item.(map[string]any)
+				if cm == nil {
+					continue
+				}
+				sha, _ := cm["sha"].(string)
+				msg, _ := cm["message"].(string)
+				commits = append(commits, components.CommitLine{SHA: sha, Message: msg})
+			}
+		}
+	case model.EventComment:
+		if n := intVal("number"); n > 0 {
+			ns := strconv.Itoa(n)
+			ref = "#" + ns
+			if strVal("kind") == "pull" {
+				refURL = "/" + repoPath + "/pulls/" + ns
+			} else {
+				refURL = "/" + repoPath + "/issues/" + ns
+			}
+		}
+		quote = strVal("body")
+	}
+
+	kind := e.EventType
+	if kind == model.EventReleasePublished {
+		kind = "release"
+	}
+
+	return components.ActivityRowData{
+		Kind:        kind,
+		Actor:       e.ActorName,
+		RepoName:    repoPath,
+		Ref:         ref,
+		RefURL:      refURL,
+		Title:       title,
+		When:        relativeTime(e.CreatedAt),
+		Branch:      branch,
+		Commits:     commits,
+		CommitTotal: commitTotal,
+		Quote:       quote,
+	}
+}
+
+templ activityScopeTab(label, value, current, href string, counts map[string]int, key string) {
+	if value == current {
+		<a href={ templ.SafeURL(href) } class="px-3 py-2.5 border-b -mb-px border-foreground font-medium inline-flex items-center gap-1.5" aria-current="page">
+			{ label }
+			@tabCountBadge(counts, key)
+		</a>
+	} else {
+		<a href={ templ.SafeURL(href) } class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">
+			{ label }
+			@tabCountBadge(counts, key)
+		</a>
+	}
+}
+
+templ Activity(data view.ActivityData) {
+	@layout.Base(data.BasePage, "Activity feed") {
+		<section class="mb-6">
+			<h1 class="text-2xl font-semibold tracking-tight">Activity feed</h1>
+			<p class="mt-1 text-[13px] text-muted-foreground">Everything that&#39;s happened on your repos and the ones you watch.</p>
+		</section>
+		<nav class="mb-6 flex items-center gap-1 border-b border-border text-sm" aria-label="Activity scope">
+			@activityScopeTab("All activity", "all", data.Filter, "/activity", data.ScopeCounts, "all")
+			@activityScopeTab("Your activity", "yours", data.Filter, "/activity?filter=yours", data.ScopeCounts, "yours")
+			@activityScopeTab("Watching", "watching", data.Filter, "/activity?filter=watching", data.ScopeCounts, "watching")
+		</nav>
+		if data.LoadFailed {
+			@components.EmptyStateWithHint("We couldn't load your activity.", "Refresh the page to try again.")
+		} else if len(data.Events) == 0 {
+			@components.EmptyStateWithHint("No activity yet.", "Watch some repositories to see events here.")
+		} else {
+			<section class="border border-border rounded-md bg-card overflow-hidden" aria-labelledby="feed-heading">
+				<h2 id="feed-heading" class="sr-only">Activity feed</h2>
+				<ol class="divide-y divide-border">
+					for _, e := range data.Events {
+						@components.ActivityRow(eventToActivityRow(e))
+					}
+				</ol>
+			</section>
+			<div class="mt-6">
+				@components.Pagination(data.PrevURL, data.NextURL)
+			</div>
+		}
+	}
+}

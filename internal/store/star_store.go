@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -39,6 +40,35 @@ func (s *StarStore) CountByRepo(ctx context.Context, repoID int64) (int, error) 
 	return count, nil
 }
 
+func (s *StarStore) CountByRepoIDs(ctx context.Context, repoIDs []int64) (map[int64]int, error) {
+	if len(repoIDs) == 0 {
+		return map[int64]int{}, nil
+	}
+	placeholders := make([]string, len(repoIDs))
+	args := make([]any, len(repoIDs))
+	for i, id := range repoIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	q := `SELECT repo_id, COUNT(*) FROM stars WHERE repo_id IN (` +
+		strings.Join(placeholders, ",") + `) GROUP BY repo_id`
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("star count by repo ids: %w", err)
+	}
+	defer rows.Close()
+	result := make(map[int64]int, len(repoIDs))
+	for rows.Next() {
+		var repoID int64
+		var count int
+		if err := rows.Scan(&repoID, &count); err != nil {
+			return nil, err
+		}
+		result[repoID] = count
+	}
+	return result, rows.Err()
+}
+
 func (s *StarStore) IsStarred(ctx context.Context, userID, repoID int64) (bool, error) {
 	var exists bool
 	err := s.db.QueryRowContext(ctx,
@@ -50,7 +80,7 @@ func (s *StarStore) IsStarred(ctx context.Context, userID, repoID int64) (bool, 
 
 func (s *StarStore) ListByUser(ctx context.Context, userID int64) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at
+		`SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at, r.primary_language
 		 FROM repositories r JOIN stars st ON r.id = st.repo_id
 		 WHERE st.user_id = $1 AND r.private = false
 		 ORDER BY st.created_at DESC`,
@@ -82,11 +112,15 @@ func scanRepos(rows *sql.Rows) ([]model.Repository, error) {
 	for rows.Next() {
 		var r model.Repository
 		var orgID sql.NullInt64
-		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt); err != nil {
+		var primaryLang sql.NullString
+		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt, &primaryLang); err != nil {
 			return nil, err
 		}
 		if orgID.Valid {
 			r.OrgID = orgID.Int64
+		}
+		if primaryLang.Valid {
+			r.PrimaryLanguage = &primaryLang.String
 		}
 		repos = append(repos, r)
 	}

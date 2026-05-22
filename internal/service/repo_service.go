@@ -50,12 +50,24 @@ type RepoService struct {
 	commitStats      *CommitStatsService
 	contributorStats *ContributorStatsService
 	code             *CodeService
+	language         *LanguageService
+	pulls            *store.PullStore
 	cfg              config.GitConfig
 }
 
 // The code service may be nil in tests that do not exercise contributor queries.
 func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, commitStats *CommitStatsService, contributorStats *ContributorStatsService, code *CodeService, cfg config.GitConfig) *RepoService {
 	return &RepoService{repos: repos, users: users, orgs: orgs, commitStats: commitStats, contributorStats: contributorStats, code: code, cfg: cfg}
+}
+
+func (s *RepoService) WithLanguageService(lang *LanguageService) *RepoService {
+	s.language = lang
+	return s
+}
+
+func (s *RepoService) WithPullStore(pulls *store.PullStore) *RepoService {
+	s.pulls = pulls
+	return s
 }
 
 func (s *RepoService) TopContributors(ctx context.Context, owner, name, ref string, limit int) ([]ContributorStat, error) {
@@ -168,7 +180,98 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 			}
 		}
 	}
+
+	if s.pulls != nil {
+		for _, cmd := range commands {
+			if cmd == nil || !strings.HasPrefix(cmd.Name.String(), "refs/heads/") || cmd.Action() == packp.Delete {
+				continue
+			}
+			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
+			if err := s.pulls.UpdateHeadSHAByBranch(ctx, repo.ID, branch, cmd.New.String()); err != nil {
+				slog.Warn("post-receive: update PR head sha failed",
+					"repo_id", repo.ID, "branch", branch, "error", err)
+			}
+		}
+	}
+
+	if s.language != nil && repo.OwnerName != "" && repo.DefaultBranch != "" {
+		comp, err := s.language.Composition(ctx, repo.OwnerName, repo.Name, repo.DefaultBranch)
+		if err != nil {
+			slog.Warn("post-receive: language composition failed", "repo_id", repo.ID, "error", err)
+		} else {
+			top := ""
+			if len(comp) > 0 {
+				topBytes := int64(0)
+				for lang, b := range comp {
+					if b > topBytes {
+						top, topBytes = lang, b
+					}
+				}
+			}
+			if err := s.repos.UpdatePrimaryLanguage(ctx, repo.ID, top); err != nil {
+				slog.Error("post-receive: update primary language failed", "repo_id", repo.ID, "error", err)
+			}
+		}
+	}
+
 	return nil
+}
+
+const (
+	pushSummaryCommitCap = 3  // commits listed per push activity row
+	pushSummaryWalkCap   = 50 // bounds the walk so a new-branch push doesn't count all of history
+)
+
+// PushSummaries walks the commits introduced by each updated branch and returns
+// one summary per branch, for recording push activity-feed events.
+func (s *RepoService) PushSummaries(gitRepo *gogit.Repository, commands []*packp.Command) []model.PushSummary {
+	if gitRepo == nil {
+		return nil
+	}
+	var summaries []model.PushSummary
+	for _, cmd := range commands {
+		if cmd == nil || !strings.HasPrefix(cmd.Name.String(), "refs/heads/") || cmd.Action() == packp.Delete {
+			continue
+		}
+		iter, err := gitRepo.Log(&gogit.LogOptions{From: cmd.New})
+		if err != nil {
+			slog.Warn("push summary: log iter failed", "ref", cmd.Name.String(), "error", err)
+			continue
+		}
+		var commits []model.CommitSummary
+		total := 0
+		walkErr := iter.ForEach(func(c *object.Commit) error {
+			if c.Hash == cmd.Old || total >= pushSummaryWalkCap {
+				return storer.ErrStop
+			}
+			total++
+			if len(commits) < pushSummaryCommitCap {
+				commits = append(commits, model.CommitSummary{
+					SHA:     c.Hash.String()[:7],
+					Message: commitSubject(c.Message),
+				})
+			}
+			return nil
+		})
+		iter.Close()
+		if walkErr != nil {
+			slog.Warn("push summary: commit walk failed", "ref", cmd.Name.String(), "error", walkErr)
+		}
+		if total == 0 {
+			continue
+		}
+		summaries = append(summaries, model.PushSummary{
+			Branch:      strings.TrimPrefix(cmd.Name.String(), "refs/heads/"),
+			CommitTotal: total,
+			Commits:     commits,
+		})
+	}
+	return summaries
+}
+
+func commitSubject(message string) string {
+	line, _, _ := strings.Cut(message, "\n")
+	return strings.TrimSpace(line)
 }
 
 func (s *RepoService) Create(ctx context.Context, ownerUsername, name, description string, private bool) (*model.Repository, error) {
@@ -341,6 +444,10 @@ func (s *RepoService) IsOwner(ctx context.Context, repo *model.Repository, userI
 		return true
 	}
 	return s.isOrgOwner(ctx, repo, userID)
+}
+
+func (s *RepoService) ListPermissionsByUser(ctx context.Context, userID int64) ([]model.Permission, error) {
+	return s.repos.ListPermissionsByUser(ctx, userID)
 }
 
 func (s *RepoService) ListCollaborators(ctx context.Context, repoID int64) ([]model.Permission, error) {

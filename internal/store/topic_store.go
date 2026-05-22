@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -69,6 +70,37 @@ func (s *TopicStore) ListByRepo(ctx context.Context, repoID int64) ([]model.Topi
 	}
 	defer rows.Close()
 	return scanTopics(rows)
+}
+
+// ListByRepoIDs batch-fetches topics for multiple repos. Returns a map of repoID → topics.
+func (s *TopicStore) ListByRepoIDs(ctx context.Context, repoIDs []int64) (map[int64][]model.Topic, error) {
+	if len(repoIDs) == 0 {
+		return map[int64][]model.Topic{}, nil
+	}
+	placeholders := make([]string, len(repoIDs))
+	args := make([]any, len(repoIDs))
+	for i, id := range repoIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	q := `SELECT rt.repo_id, t.id, t.name FROM topics t
+	      JOIN repo_topics rt ON t.id = rt.topic_id
+	      WHERE rt.repo_id IN (` + strings.Join(placeholders, ",") + `) ORDER BY t.name`
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("topic list by repo ids: %w", err)
+	}
+	defer rows.Close()
+	result := make(map[int64][]model.Topic, len(repoIDs))
+	for rows.Next() {
+		var repoID int64
+		var t model.Topic
+		if err := rows.Scan(&repoID, &t.ID, &t.Name); err != nil {
+			return nil, err
+		}
+		result[repoID] = append(result[repoID], t)
+	}
+	return result, rows.Err()
 }
 
 // ListReposByTopic returns public repos tagged with a given topic name, paginated.

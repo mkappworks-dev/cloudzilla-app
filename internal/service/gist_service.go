@@ -121,32 +121,40 @@ func (s *GistService) Update(ctx context.Context, gistID string, requesterID int
 	return s.gists.Update(ctx, g, files)
 }
 
-func (s *GistService) ListWithCounts(ctx context.Context, ownerFilter string, page, pageSize int) ([]model.GistListRow, error) {
+func (s *GistService) ListWithCounts(ctx context.Context, ownerFilter, sortBy string, page, pageSize int) ([]model.GistListRow, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return s.gists.ListWithCounts(ctx, ownerFilter, page, pageSize)
+	return s.gists.ListWithCounts(ctx, ownerFilter, sortBy, page, pageSize)
 }
 
 func (s *GistService) LoadFilenames(ctx context.Context, gistIDs []string) (map[string][]string, error) {
 	return s.gists.LoadFilenames(ctx, gistIDs)
 }
 
-func (s *GistService) ListPrivateByOwner(ctx context.Context, ownerID int64, page, pageSize int) ([]model.Gist, error) {
+func (s *GistService) ListPrivateByOwner(ctx context.Context, ownerID int64, sortBy string, page, pageSize int) ([]model.Gist, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	return s.gists.ListPrivateByOwner(ctx, ownerID, page, pageSize)
+	return s.gists.ListPrivateByOwner(ctx, ownerID, sortBy, page, pageSize)
 }
 
 func (s *GistService) CountByUser(ctx context.Context, userID int64) (int, error) {
 	return s.gists.CountByOwner(ctx, userID)
+}
+
+func (s *GistService) CountPublic(ctx context.Context) (int, error) {
+	return s.gists.CountPublic(ctx)
+}
+
+func (s *GistService) CountPrivateByUser(ctx context.Context, userID int64) (int, error) {
+	return s.gists.CountPrivateByOwner(ctx, userID)
 }
 
 func (s *GistService) Delete(ctx context.Context, gistID string, requesterID int64) error {

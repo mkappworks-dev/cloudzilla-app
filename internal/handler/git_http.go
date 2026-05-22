@@ -406,6 +406,18 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	// Record push activity-feed events (one per updated branch).
+	// Pushes with no human actor are skipped, matching the SSH path.
+	if pusherName != "" {
+		pusherID := gu.ID
+		repoID := repo.ID
+		concurrency.Go("event.record.push", func() {
+			for _, ps := range h.Services.Repo.PushSummaries(gitRepo, commands) {
+				h.Services.Event.RecordPush(context.Background(), pusherID, pusherName, &repoID, repoName, owner, ps)
+			}
+		})
+	}
+
 	concurrency.Go("repo.on_post_receive", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()

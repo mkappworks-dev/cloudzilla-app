@@ -200,31 +200,52 @@ func TestPullStore_ListOpen_ReturnsOpenPRs(t *testing.T) {
 	}
 }
 
-// TestPullStore_ListLinkedToIssue_ReturnsMatchingPRs verifies that ListLinkedToIssue
-// returns only PRs whose title or body mentions the issue number (e.g. "#3"),
-// and excludes PRs that do not mention it.
+// TestPullStore_ListLinkedToIssue_ReturnsMatchingPRs verifies that
+// ListLinkedToIssue returns the PRs explicitly linked to an issue via the
+// pull_issue_links table, and excludes PRs that are not linked. (Explicit
+// links are distinct from #N references parsed out of a PR body.)
 func TestPullStore_ListLinkedToIssue_ReturnsMatchingPRs(t *testing.T) {
 	ps, repoID, ownerID := seedPullDeps(t)
 	ctx := context.Background()
+	db := testutil.OpenTestDB(t)
 
-	mentioningTitle := &model.PullRequest{
-		RepoID: repoID, AuthorID: ownerID,
-		Title: "Fix #3 crash on startup", Body: "no ref here",
-		HeadBranch: "fix-3", BaseBranch: "main", State: model.PRStateOpen,
+	// ListLinkedToIssue joins issues by repo + number, so issue #3 must exist.
+	var issueID int64
+	if err := db.QueryRowContext(ctx,
+		`INSERT INTO issues (repo_id, number, author_id, title, body, state)
+		 VALUES ($1, 3, $2, 'crash on startup', '', 'open') RETURNING id`,
+		repoID, ownerID,
+	).Scan(&issueID); err != nil {
+		t.Fatalf("insert issue: %v", err)
 	}
-	mentioningBody := &model.PullRequest{
+
+	linkedA := &model.PullRequest{
 		RepoID: repoID, AuthorID: ownerID,
-		Title: "Unrelated work", Body: "Closes #3 by rewriting the init path.",
-		HeadBranch: "unrelated", BaseBranch: "main", State: model.PRStateOpen,
+		Title: "Fix the startup crash", Body: "",
+		HeadBranch: "fix-a", BaseBranch: "main", State: model.PRStateOpen,
 	}
-	unrelated := &model.PullRequest{
+	linkedB := &model.PullRequest{
 		RepoID: repoID, AuthorID: ownerID,
-		Title: "Update README", Body: "No issue refs.",
+		Title: "Rewrite the init path", Body: "",
+		HeadBranch: "fix-b", BaseBranch: "main", State: model.PRStateOpen,
+	}
+	unlinked := &model.PullRequest{
+		RepoID: repoID, AuthorID: ownerID,
+		Title: "Update README", Body: "",
 		HeadBranch: "readme", BaseBranch: "main", State: model.PRStateOpen,
 	}
-	for _, pr := range []*model.PullRequest{mentioningTitle, mentioningBody, unrelated} {
+	for _, pr := range []*model.PullRequest{linkedA, linkedB, unlinked} {
 		if err := ps.Create(ctx, pr); err != nil {
 			t.Fatalf("Create: %v", err)
+		}
+	}
+
+	for _, pr := range []*model.PullRequest{linkedA, linkedB} {
+		if _, err := db.ExecContext(ctx,
+			`INSERT INTO pull_issue_links (pull_id, issue_id) VALUES ($1, $2)`,
+			pr.ID, issueID,
+		); err != nil {
+			t.Fatalf("link pull %d to issue: %v", pr.ID, err)
 		}
 	}
 
@@ -236,8 +257,8 @@ func TestPullStore_ListLinkedToIssue_ReturnsMatchingPRs(t *testing.T) {
 		t.Errorf("want 2 linked PRs, got %d", len(linked))
 	}
 	for _, pr := range linked {
-		if pr.ID == unrelated.ID {
-			t.Error("unrelated PR must not appear in linked results")
+		if pr.ID == unlinked.ID {
+			t.Error("unlinked PR must not appear in linked results")
 		}
 	}
 }

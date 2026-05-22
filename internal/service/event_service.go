@@ -22,8 +22,7 @@ func NewEventService(events *store.EventStore, users *store.UserStore, repos *st
 	return &EventService{events: events, users: users, repos: repos}
 }
 
-// Record marshals the payload map and inserts the event asynchronously.
-// Callers should invoke as: go services.Event.Record(ctx, ...)
+// Record inserts an activity event; marshal and DB errors are logged, not returned.
 func (s *EventService) Record(ctx context.Context, actorID int64, actorName string, repoID *int64, repoName, ownerName, eventType string, payload map[string]any) {
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -43,15 +42,38 @@ func (s *EventService) Record(ctx context.Context, actorID int64, actorName stri
 	}
 }
 
-// Feed returns a paginated list of events for a user's personalised feed.
-func (s *EventService) Feed(ctx context.Context, userID, page, pageSize int) ([]model.Event, error) {
+// RecordPush records a push activity event for a single branch update.
+func (s *EventService) RecordPush(ctx context.Context, actorID int64, actorName string, repoID *int64, repoName, ownerName string, summary model.PushSummary) {
+	s.Record(ctx, actorID, actorName, repoID, repoName, ownerName, model.EventPush, map[string]any{
+		"branch":       summary.Branch,
+		"commit_total": summary.CommitTotal,
+		"commits":      summary.Commits,
+	})
+}
+
+// Feed returns a paginated list of events for a user's activity feed.
+// filter selects the scope: "yours" (events the user performed),
+// "watching" (events from watched repos), or "all"/"" (the full personalised feed).
+func (s *EventService) Feed(ctx context.Context, userID int, filter string, page, pageSize int) ([]model.Event, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 30
 	}
-	return s.events.ListForFeed(ctx, int64(userID), page, pageSize)
+	switch filter {
+	case "yours":
+		return s.events.ListOwnActivity(ctx, int64(userID), page, pageSize)
+	case "watching":
+		return s.events.ListWatching(ctx, int64(userID), page, pageSize)
+	default:
+		return s.events.ListForFeed(ctx, int64(userID), page, pageSize)
+	}
+}
+
+// FeedCounts returns event totals keyed "all", "yours", "watching".
+func (s *EventService) FeedCounts(ctx context.Context, userID int) (map[string]int, error) {
+	return s.events.FeedCounts(ctx, int64(userID))
 }
 
 // RepoActivity returns paginated public activity for a repo.
