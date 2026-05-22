@@ -92,6 +92,10 @@ func (s *CommentService) CountByPullIDs(ctx context.Context, pullIDs []int64) (m
 	return s.comments.CountByPullIDs(ctx, pullIDs)
 }
 
+func (s *CommentService) CountByIssueIDs(ctx context.Context, issueIDs []int64) (map[int64]int, error) {
+	return s.comments.CountByIssueIDs(ctx, issueIDs)
+}
+
 // processMentions extracts @mentions from the comment body, fires notifications,
 // and persists mention rows. Errors are silently dropped (best-effort).
 // subjectNumber is the repo-scoped display number (issue.Number or pull.Number),

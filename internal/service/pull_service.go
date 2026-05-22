@@ -366,6 +366,12 @@ func (s *PullService) ListForUser(ctx context.Context, userID int64, mode, state
 	}
 }
 
+// CountsForUser returns the PR count for every /pulls filter tab, keyed
+// "mode:state" (e.g. "created:open") across all four filters and both states.
+func (s *PullService) CountsForUser(ctx context.Context, userID int64) (map[string]int, error) {
+	return s.pulls.CountsForUser(ctx, userID)
+}
+
 // SuggestReviewers returns up to limit candidate reviewers for a PR between base and head.
 // Preference order: (1) CODEOWNERS matches on the repo's default branch; (2) top contributors by commit count.
 func (s *PullService) SuggestReviewers(ctx context.Context, owner, repoName, base, head string, limit int) ([]model.User, error) {

@@ -78,6 +78,15 @@ type HomeData struct {
 	LoadWarnings []string
 }
 
+type AttentionData struct {
+	BasePage
+	Items  []service.AttentionItem
+	Kind   string         // active filter: "all" | "mentions" | "reviews" | "assigned"
+	Sort   string         // "overdue" | "newest" | "oldest"
+	Counts map[string]int // keys: "all", "mentions", "reviews", "assigned"
+	Total  int
+}
+
 type ActivityData struct {
 	BasePage
 	Username string
@@ -88,15 +97,28 @@ type ActivityData struct {
 
 type AccountReposData struct {
 	BasePage
-	Repos  []model.Repository
-	Filter string // "all" | "owned" | "collaborator"
+	Repos        []model.Repository
+	Filter       string // "all" | "owned" | "collaborator" | "forks"
+	TypeCounts   map[string]int // repo count per type tab
+	Language     string // selected language filter; "" = all
+	Languages    []string
+	Sort         string // "updated" | "name" | "stars" | "created"
+	StarCounts   map[int64]int
+	CommitCounts map[int64]int
+	Topics       map[int64][]model.Topic
+	UserID       int64
+	Total        int // repos owned or collaborated on, before filtering
+	Page         int
+	TotalPages   int
 }
 
 type AccountPullsData struct {
 	BasePage
 	Pulls         []store.PullListItem
-	Filter        string // "created" | "assigned" | "review_requested" | "mentioned"
-	State         string // "open" | "closed"
+	Filter        string         // "created" | "assigned" | "review_requested" | "mentioned"
+	State         string         // "open" | "closed"
+	Sort          string         // "newest" | "oldest" | "updated" | "comments"
+	Counts        map[string]int // PR count per tab, keyed "filter:state"
 	PullComments  map[int64]int
 	PullLabels    map[int64][]model.Label
 	PullCI        map[int64]service.CIChecks
@@ -105,9 +127,13 @@ type AccountPullsData struct {
 
 type AccountIssuesData struct {
 	BasePage
-	Issues []store.IssueListItem
-	Filter string // "assigned" | "created" | "mentioned"
-	State  string // "open" | "closed"
+	Issues        []store.IssueListItem
+	Filter        string // "assigned" | "created" | "mentioned"
+	State         string // "open" | "closed"
+	Sort          string // "newest" | "oldest" | "updated" | "comments"
+	IssueComments map[int64]int
+	IssueLabels   map[int64][]model.Label
+	Counts        map[string]int // keyed "<filter>:<state>", e.g. "assigned:open"
 }
 
 type AccountStarsData struct {

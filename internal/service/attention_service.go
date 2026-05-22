@@ -13,19 +13,21 @@ type AttentionKind string
 
 const (
 	AttentionIssueAssigned     AttentionKind = "issue_assigned"
+	AttentionPRAssigned        AttentionKind = "pr_assigned"
 	AttentionPRReviewRequested AttentionKind = "pr_review_requested"
 	AttentionMention           AttentionKind = "mention"
 )
 
 type AttentionItem struct {
-	Kind      AttentionKind
-	RefID     int64
-	RepoName  string // "owner/name"
-	Title     string
-	Number    int
-	UpdatedAt time.Time
-	URL       string
-	Actor     string // author username; empty when lookup fails
+	Kind         AttentionKind
+	RefID        int64
+	RepoName     string // "owner/name"
+	Title        string
+	Number       int
+	UpdatedAt    time.Time
+	WaitingSince time.Time // when this item started needing the user
+	URL          string
+	Actor        string // author username; empty when lookup fails
 }
 
 // AttentionService surfaces open items that need the user's attention across
@@ -58,33 +60,39 @@ func (s *AttentionService) ForUser(ctx context.Context, userID int64) ([]Attenti
 	var out []AttentionItem
 	var authorIDs []int64 // parallel to out; authorIDs[i] is the author of out[i]
 
-	appendIssue := func(i store.IssueListItem, kind AttentionKind, url string) {
+	appendIssue := func(i store.IssueListItem, kind AttentionKind, url string, waitingSince time.Time) {
 		out = append(out, AttentionItem{
-			Kind:      kind,
-			RefID:     i.ID,
-			RepoName:  i.RepoFullName,
-			Title:     i.Title,
-			Number:    i.Number,
-			UpdatedAt: i.UpdatedAt,
-			URL:       url,
+			Kind:         kind,
+			RefID:        i.ID,
+			RepoName:     i.RepoFullName,
+			Title:        i.Title,
+			Number:       i.Number,
+			UpdatedAt:    i.UpdatedAt,
+			WaitingSince: waitingSince,
+			URL:          url,
 		})
 		authorIDs = append(authorIDs, i.AuthorID)
 	}
 
-	appendPull := func(p store.PullListItem, kind AttentionKind, url string) {
+	appendPull := func(p store.PullListItem, kind AttentionKind, url string, waitingSince time.Time) {
 		out = append(out, AttentionItem{
-			Kind:      kind,
-			RefID:     p.ID,
-			RepoName:  p.RepoFullName,
-			Title:     p.Title,
-			Number:    p.Number,
-			UpdatedAt: p.UpdatedAt,
-			URL:       url,
+			Kind:         kind,
+			RefID:        p.ID,
+			RepoName:     p.RepoFullName,
+			Title:        p.Title,
+			Number:       p.Number,
+			UpdatedAt:    p.UpdatedAt,
+			WaitingSince: waitingSince,
+			URL:          url,
 		})
 		authorIDs = append(authorIDs, p.AuthorID)
 	}
 
 	// --- assigned issues ---
+	issueAssignedAt, err := s.issues.AssignedAtForUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 	issues, err := s.issues.ListOpenAssignedToUser(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -93,7 +101,8 @@ func (s *AttentionService) ForUser(ctx context.Context, userID int64) ([]Attenti
 		if i.AuthorID == userID {
 			continue
 		}
-		appendIssue(i, AttentionIssueAssigned, fmt.Sprintf("/%s/issues/%d", i.RepoFullName, i.Number))
+		ws := issueAssignedAt[i.ID]
+		appendIssue(i, AttentionIssueAssigned, fmt.Sprintf("/%s/issues/%d", i.RepoFullName, i.Number), ws)
 	}
 
 	if s.pulls == nil || s.pullReview == nil || s.mention == nil {
@@ -106,47 +115,76 @@ func (s *AttentionService) ForUser(ctx context.Context, userID int64) ([]Attenti
 		return out, nil
 	}
 
-	// --- pending PR reviews ---
-	reviewPullIDs, err := s.pullReview.ListPullIDsAwaitingReviewer(ctx, userID)
+	// --- assigned PRs ---
+	pullAssignedAt, err := s.pulls.AssignedAtForUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	if len(reviewPullIDs) > 0 {
+	assignedPulls, err := s.pulls.ListForUser(ctx, userID, "assigned", "open")
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range assignedPulls {
+		ws := pullAssignedAt[p.ID]
+		appendPull(p, AttentionPRAssigned, fmt.Sprintf("/%s/pulls/%d", p.RepoFullName, p.Number), ws)
+	}
+
+	// --- pending PR reviews ---
+	reviewTimes, err := s.pullReview.ListPendingReviewsForReviewer(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if len(reviewTimes) > 0 {
+		reviewPullIDs := make([]int64, 0, len(reviewTimes))
+		for id := range reviewTimes {
+			reviewPullIDs = append(reviewPullIDs, id)
+		}
 		prs, err := s.pulls.ListByIDs(ctx, userID, reviewPullIDs, "open")
 		if err != nil {
 			return nil, err
 		}
 		for _, p := range prs {
-			appendPull(p, AttentionPRReviewRequested, fmt.Sprintf("/%s/pulls/%d", p.RepoFullName, p.Number))
+			ws := reviewTimes[p.ID]
+			appendPull(p, AttentionPRReviewRequested, fmt.Sprintf("/%s/pulls/%d", p.RepoFullName, p.Number), ws)
 		}
 	}
 
 	// --- mentions ---
-	mentionPullIDs, err := s.mention.ListPullIDsMentioning(ctx, userID)
+	mentionPullTimes, err := s.mention.ListPullIDsMentioningWithTime(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	if len(mentionPullIDs) > 0 {
+	if len(mentionPullTimes) > 0 {
+		mentionPullIDs := make([]int64, 0, len(mentionPullTimes))
+		for id := range mentionPullTimes {
+			mentionPullIDs = append(mentionPullIDs, id)
+		}
 		prs, err := s.pulls.ListByIDs(ctx, userID, mentionPullIDs, "open")
 		if err != nil {
 			return nil, err
 		}
 		for _, p := range prs {
-			appendPull(p, AttentionMention, fmt.Sprintf("/%s/pulls/%d", p.RepoFullName, p.Number))
+			ws := mentionPullTimes[p.ID]
+			appendPull(p, AttentionMention, fmt.Sprintf("/%s/pulls/%d", p.RepoFullName, p.Number), ws)
 		}
 	}
 
-	mentionIssueIDs, err := s.mention.ListIssueIDsMentioning(ctx, userID)
+	mentionIssueTimes, err := s.mention.ListIssueIDsMentioningWithTime(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	if len(mentionIssueIDs) > 0 {
-		issues, err := s.issues.ListByIDs(ctx, userID, mentionIssueIDs, "open")
+	if len(mentionIssueTimes) > 0 {
+		mentionIssueIDs := make([]int64, 0, len(mentionIssueTimes))
+		for id := range mentionIssueTimes {
+			mentionIssueIDs = append(mentionIssueIDs, id)
+		}
+		is, err := s.issues.ListByIDs(ctx, userID, mentionIssueIDs, "open")
 		if err != nil {
 			return nil, err
 		}
-		for _, i := range issues {
-			appendIssue(i, AttentionMention, fmt.Sprintf("/%s/issues/%d", i.RepoFullName, i.Number))
+		for _, i := range is {
+			ws := mentionIssueTimes[i.ID]
+			appendIssue(i, AttentionMention, fmt.Sprintf("/%s/issues/%d", i.RepoFullName, i.Number), ws)
 		}
 	}
 
@@ -155,8 +193,38 @@ func (s *AttentionService) ForUser(ctx context.Context, userID int64) ([]Attenti
 	return out, nil
 }
 
-// sortAttentionPaired sorts both slices together by UpdatedAt descending,
-// keeping authorIDs[i] as the author of out[i] after the sort.
+// CountForUser returns the total number of open attention items for userID:
+// issues and PRs assigned to or mentioning them, plus PRs awaiting their review.
+// The issue and PR counts each resolve in a single folded query.
+func (s *AttentionService) CountForUser(ctx context.Context, userID int64) (int, error) {
+	ic, err := s.issues.CountsForUser(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	total := ic["assigned:open"] + ic["mentioned:open"]
+
+	if s.pulls == nil || s.pullReview == nil {
+		return total, nil
+	}
+
+	pc, err := s.pulls.CountsForUser(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	total += pc["assigned:open"] + pc["mentioned:open"]
+
+	rn, err := s.pullReview.CountPendingForReviewer(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	total += rn
+
+	return total, nil
+}
+
+// sortAttentionPaired sorts both slices together by WaitingSince ascending
+// (oldest waiting = most overdue first), keeping authorIDs[i] as the author of
+// out[i] after the sort.
 func sortAttentionPaired(items []AttentionItem, authorIDs []int64) ([]AttentionItem, []int64) {
 	type pair struct {
 		item     AttentionItem
@@ -166,7 +234,9 @@ func sortAttentionPaired(items []AttentionItem, authorIDs []int64) ([]AttentionI
 	for i := range items {
 		pairs[i] = pair{items[i], authorIDs[i]}
 	}
-	sort.Slice(pairs, func(i, j int) bool { return pairs[i].item.UpdatedAt.After(pairs[j].item.UpdatedAt) })
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].item.WaitingSince.Before(pairs[j].item.WaitingSince)
+	})
 	for i := range pairs {
 		items[i] = pairs[i].item
 		authorIDs[i] = pairs[i].authorID

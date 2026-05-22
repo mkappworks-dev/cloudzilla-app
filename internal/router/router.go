@@ -92,6 +92,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Get("/repos", h.PageAccountRepos)
 	r.With(authMW).Get("/pulls", h.PageAccountPulls)
 	r.With(authMW).Get("/issues", h.PageAccountIssues)
+	r.With(authMW).Get("/attention", h.PageAttention)
 	r.With(authMW).Get("/stars", h.PageAccountStars)
 
 	// Topic explore page

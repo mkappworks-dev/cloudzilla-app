@@ -18,6 +18,7 @@ type PullListItem struct {
 	AuthorID     int64
 	RepoFullName string // "<owner_username>/<repo_name>"
 	UpdatedAt    time.Time
+	CreatedAt    time.Time
 }
 
 // PullStore provides database operations for pull requests.
@@ -406,6 +407,39 @@ func (s *PullStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int,
 	return n, err
 }
 
+// CountsForUser returns pull-request counts for every account-pulls tab in a
+// single round-trip, keyed "<filter>:<state>". The query is composed only from
+// in-code constants — never caller input — so the concatenation is injection-safe.
+func (s *PullStore) CountsForUser(ctx context.Context, userID int64) (map[string]int, error) {
+	const vis = `(NOT r.private OR r.owner_id = $1
+	              OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))`
+	const (
+		created         = `p.author_id = $1`
+		assigned        = `EXISTS (SELECT 1 FROM pull_assignees pa WHERE pa.pull_id = p.id AND pa.user_id = $1)`
+		reviewRequested = `EXISTS (SELECT 1 FROM pull_reviews prv WHERE prv.pull_id = p.id AND prv.author_id = $1 AND prv.state = 'pending')`
+		mentioned       = `EXISTS (SELECT 1 FROM mentions m JOIN comments c ON c.id = m.comment_id WHERE c.pull_id = p.id AND m.user_id = $1)`
+	)
+	sub := func(state, cond string) string {
+		return `(SELECT COUNT(*) FROM pull_requests p JOIN repositories r ON r.id = p.repo_id
+		         WHERE r.deleted_at IS NULL AND p.state = '` + state + `' AND ` + cond + ` AND ` + vis + `)`
+	}
+	q := `SELECT ` +
+		sub("open", created) + `, ` + sub("closed", created) + `, ` +
+		sub("open", assigned) + `, ` + sub("closed", assigned) + `, ` +
+		sub("open", reviewRequested) + `, ` + sub("closed", reviewRequested) + `, ` +
+		sub("open", mentioned) + `, ` + sub("closed", mentioned)
+	var co, cc, ao, ac, ro, rc, mo, mc int
+	if err := s.db.QueryRowContext(ctx, q, userID).Scan(&co, &cc, &ao, &ac, &ro, &rc, &mo, &mc); err != nil {
+		return nil, fmt.Errorf("pull counts for user: %w", err)
+	}
+	return map[string]int{
+		"created:open": co, "created:closed": cc,
+		"assigned:open": ao, "assigned:closed": ac,
+		"review_requested:open": ro, "review_requested:closed": rc,
+		"mentioned:open": mo, "mentioned:closed": mc,
+	}, nil
+}
+
 func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNumber int) ([]model.PullRequest, error) {
 	// Explicit links from the pull_issue_links table — the same set the issue
 	// sidebar's link/unlink dropdown writes to.
@@ -429,6 +463,34 @@ func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNu
 	return scanPullRows(rows)
 }
 
+// AssignedAtForUser returns a map of pull_id → assignment created_at for all
+// open PRs assigned to userID. Used alongside ListForUser("assigned") to
+// populate WaitingSince without changing the shared PullListItem type.
+func (s *PullStore) AssignedAtForUser(ctx context.Context, userID int64) (map[int64]time.Time, error) {
+	const q = `
+		SELECT pa.pull_id, pa.created_at
+		FROM pull_assignees pa
+		JOIN pull_requests p  ON p.id = pa.pull_id
+		JOIN repositories r   ON r.id = p.repo_id
+		WHERE pa.user_id = $1 AND p.state = 'open' AND r.deleted_at IS NULL
+	`
+	rows, err := s.db.QueryContext(ctx, q, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	m := make(map[int64]time.Time)
+	for rows.Next() {
+		var id int64
+		var t time.Time
+		if err := rows.Scan(&id, &t); err != nil {
+			return nil, err
+		}
+		m[id] = t
+	}
+	return m, rows.Err()
+}
+
 // mode is "created" or "assigned"; state is "open" or "closed". For "review_requested" and "mentioned", use ListByIDs.
 func (s *PullStore) ListForUser(ctx context.Context, userID int64, mode, state string) ([]PullListItem, error) {
 	join, cond := "", ""
@@ -440,7 +502,7 @@ func (s *PullStore) ListForUser(ctx context.Context, userID int64, mode, state s
 		cond = `p.author_id = $1`
 	}
 	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.author_id,
-	             u.username || '/' || r.name AS repo_full_name, p.updated_at
+	             u.username || '/' || r.name AS repo_full_name, p.updated_at, p.created_at
 	      FROM pull_requests p
 	      JOIN repositories r ON r.id = p.repo_id
 	      JOIN users u        ON u.id = r.owner_id
@@ -464,7 +526,7 @@ func (s *PullStore) ListByIDs(ctx context.Context, userID int64, ids []int64, st
 		args = append(args, id)
 	}
 	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.author_id,
-	             u.username || '/' || r.name AS repo_full_name, p.updated_at
+	             u.username || '/' || r.name AS repo_full_name, p.updated_at, p.created_at
 	      FROM pull_requests p
 	      JOIN repositories r ON r.id = p.repo_id
 	      JOIN users u        ON u.id = r.owner_id
@@ -485,7 +547,7 @@ func (s *PullStore) scanPullListItems(ctx context.Context, q string, args ...any
 	out := []PullListItem{}
 	for rows.Next() {
 		var it PullListItem
-		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt); err != nil {
+		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt, &it.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, it)

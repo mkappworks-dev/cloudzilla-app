@@ -2,6 +2,7 @@ package pages
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -10,7 +11,7 @@ import (
 
 templ AccountIssues(data view.AccountIssuesData) {
 	@layout.Base(data.BasePage, "Issues") {
-		<div class="space-y-5">
+		<div class="space-y-5" x-data="{ q: '', openMenu: null }">
 			<section class="mb-6">
 				<h1 class="text-2xl font-semibold tracking-tight">Issues</h1>
 				<p class="mt-1 text-[13px] text-muted-foreground">Issues that involve you across every repository.</p>
@@ -18,28 +19,44 @@ templ AccountIssues(data view.AccountIssuesData) {
 			@components.Tabs("Issue filter") {
 				@components.TabLink("/issues?filter=assigned&state="+data.State, data.Filter == "assigned") {
 					Assigned
+					@tabCountBadge(data.Counts["assigned:"+data.State])
 				}
 				@components.TabLink("/issues?filter=created&state="+data.State, data.Filter == "created") {
 					Created by you
+					@tabCountBadge(data.Counts["created:"+data.State])
 				}
 				@components.TabLink("/issues?filter=mentioned&state="+data.State, data.Filter == "mentioned") {
 					Mentioned
+					@tabCountBadge(data.Counts["mentioned:"+data.State])
 				}
 				<span class="ml-auto inline-flex items-center">
 					@components.TabLink("/issues?filter="+data.Filter+"&state=open", data.State == "open") {
 						Open
+						@tabCountBadge(data.Counts[data.Filter+":open"])
 					}
 					@components.TabLink("/issues?filter="+data.Filter+"&state=closed", data.State == "closed") {
 						Closed
+						@tabCountBadge(data.Counts[data.Filter+":closed"])
 					}
 				</span>
 			}
+			<div class="flex items-center gap-2 flex-wrap">
+				<div class="relative flex-1 min-w-[240px]">
+					<label for="issue-filter" class="sr-only">Filter issues</label>
+					<input id="issue-filter" type="search" placeholder="Filter issues…" autocomplete="off" x-model="q" class="w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground"/>
+					<svg class="absolute left-2.5 top-2.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+						<circle cx="11" cy="11" r="7"></circle>
+						<path d="M21 21l-4.3-4.3"></path>
+					</svg>
+				</div>
+				@repoFilterMenu("sort", issuesSortLabel(data.Sort), "Sort issues", "Sort by", issuesSortMenu(data))
+			</div>
 			if len(data.Issues) > 0 {
 				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="myissue-list">
 					<h2 id="myissue-list" class="sr-only">Your issues</h2>
 					<ol class="divide-y divide-border">
 						for _, is := range data.Issues {
-							<li>
+							<li data-name={ is.RepoFullName + " " + is.Title } x-show="!q || $el.dataset.name.toLowerCase().includes(q.toLowerCase())">
 								<a
 									href={ templ.SafeURL(fmt.Sprintf("/%s/issues/%d", is.RepoFullName, is.Number)) }
 									class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100"
@@ -53,10 +70,32 @@ templ AccountIssues(data view.AccountIssuesData) {
 											@issueStateBadge(is.State)
 										</div>
 									</div>
-									<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground pl-[27px] min-w-0 flex-wrap">
-										<span class="font-mono">{ fmt.Sprintf("#%d", is.Number) }</span>
-										<span class="opacity-50" aria-hidden="true">·</span>
-										<time>{ relativeTime(is.UpdatedAt) }</time>
+									<div class="flex items-center justify-between gap-3 pl-[27px]">
+										<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+											<span class="font-mono">{ fmt.Sprintf("#%d", is.Number) }</span>
+											<span class="opacity-50" aria-hidden="true">·</span>
+											<span class="inline-flex items-center justify-center h-4 w-4 rounded-full border border-border bg-muted text-[8px] font-medium uppercase text-muted-foreground select-none" aria-hidden="true">{ pullInitials(is.AuthorName) }</span>
+											<span>{ is.AuthorName }</span>
+											<span class="opacity-50" aria-hidden="true">·</span>
+											<time>{ relativeTime(is.UpdatedAt) }</time>
+											if len(data.IssueLabels[is.ID]) > 0 {
+												<span class="opacity-50 mx-0.5" aria-hidden="true">·</span>
+												for _, lbl := range data.IssueLabels[is.ID] {
+													@pullLabelPill(lbl)
+												}
+											}
+										</div>
+										<div class="flex items-center gap-3 text-[12px] text-muted-foreground shrink-0">
+											if is.Priority != nil {
+												@issuePriorityPill(*is.Priority)
+											}
+											if data.IssueComments[is.ID] > 0 {
+												<span class="inline-flex items-center gap-1">
+													<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
+													{ fmt.Sprintf("%d", data.IssueComments[is.ID]) }
+												</span>
+											}
+										</div>
 									</div>
 								</a>
 							</li>
@@ -68,6 +107,44 @@ templ AccountIssues(data view.AccountIssuesData) {
 			}
 		</div>
 	}
+}
+
+func issuesSortURL(filter, state, sortBy string) string {
+	u := "/issues?filter=" + filter + "&state=" + state
+	if sortBy != "" && sortBy != "newest" {
+		u += "&sort=" + sortBy
+	}
+	return u
+}
+
+func issuesSortOptions() []repoDropdownOption {
+	return []repoDropdownOption{
+		{"newest", "Sort: newest"},
+		{"oldest", "Oldest"},
+		{"updated", "Recently updated"},
+		{"comments", "Most commented"},
+	}
+}
+
+func issuesSortLabel(sortBy string) string {
+	for _, o := range issuesSortOptions() {
+		if o.Value == sortBy {
+			return o.Label
+		}
+	}
+	return "Sort: newest"
+}
+
+func issuesSortMenu(data view.AccountIssuesData) []repoMenuItem {
+	items := make([]repoMenuItem, 0, 3)
+	for _, o := range issuesSortOptions() {
+		items = append(items, repoMenuItem{
+			Label:  o.Label,
+			URL:    issuesSortURL(data.Filter, data.State, o.Value),
+			Active: data.Sort == o.Value,
+		})
+	}
+	return items
 }
 
 templ issueStateIcon(state string) {
@@ -93,5 +170,20 @@ templ issueStateBadge(state string) {
 		@components.Badge(components.BadgeSuccess) {
 			Open
 		}
+	}
+}
+
+templ tabCountBadge(n int) {
+	<span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label={ strconv.Itoa(n) + " items" }>{ strconv.Itoa(n) }</span>
+}
+
+templ issuePriorityPill(p string) {
+	switch p {
+		case "P0":
+			<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-destructive/10 text-destructive border-destructive/30 whitespace-nowrap">P0</span>
+		case "P1":
+			<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border bg-blue-500/10 text-blue-500 border-blue-500/30 whitespace-nowrap">P1</span>
+		default:
+			<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-accent text-muted-foreground whitespace-nowrap">{ p }</span>
 	}
 }

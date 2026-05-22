@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -131,6 +132,44 @@ func (s *PullReviewStore) ListPullIDsAwaitingReviewer(ctx context.Context, revie
 		ids = append(ids, id)
 	}
 	return ids, rows.Err()
+}
+
+// CountPendingForReviewer returns the number of distinct PRs awaiting review
+// from the given reviewer. Cheap COUNT used for nav badges.
+func (s *PullReviewStore) CountPendingForReviewer(ctx context.Context, reviewerID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(DISTINCT pull_id) FROM pull_reviews WHERE author_id = $1 AND state = 'pending'`,
+		reviewerID,
+	).Scan(&n)
+	return n, err
+}
+
+// ListPendingReviewsForReviewer returns a map of pull_id → created_at for every
+// pending review request targeting the given reviewer. The earliest row per pull
+// is used when duplicates exist (ON CONFLICT DO NOTHING means there is at most one,
+// but MIN guards against any future relaxation).
+func (s *PullReviewStore) ListPendingReviewsForReviewer(ctx context.Context, reviewerID int64) (map[int64]time.Time, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT pull_id, MIN(created_at) FROM pull_reviews
+		 WHERE author_id = $1 AND state = 'pending'
+		 GROUP BY pull_id`,
+		reviewerID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("pull reviews pending for reviewer: %w", err)
+	}
+	defer rows.Close()
+	m := make(map[int64]time.Time)
+	for rows.Next() {
+		var pullID int64
+		var requestedAt time.Time
+		if err := rows.Scan(&pullID, &requestedAt); err != nil {
+			return nil, err
+		}
+		m[pullID] = requestedAt
+	}
+	return m, rows.Err()
 }
 
 func (s *PullReviewStore) RequestReview(ctx context.Context, pullID, repoID, reviewerID int64, reviewerName string) error {

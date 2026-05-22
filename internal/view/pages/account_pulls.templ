@@ -13,7 +13,7 @@ import (
 
 templ AccountPulls(data view.AccountPullsData) {
 	@layout.Base(data.BasePage, "Pull requests") {
-		<div class="space-y-5">
+		<div class="space-y-5" x-data="{ q: '', openMenu: null }">
 			<section class="mb-6">
 				<h1 class="text-2xl font-semibold tracking-tight">Pull requests</h1>
 				<p class="mt-1 text-[13px] text-muted-foreground">Across every repository you own or collaborate on.</p>
@@ -21,31 +21,48 @@ templ AccountPulls(data view.AccountPullsData) {
 			@components.Tabs("PR filter") {
 				@components.TabLink("/pulls?filter=created&state="+data.State, data.Filter == "created") {
 					Created by you
+					@tabCountBadge(data.Counts["created:"+data.State])
 				}
 				@components.TabLink("/pulls?filter=assigned&state="+data.State, data.Filter == "assigned") {
 					Assigned
+					@tabCountBadge(data.Counts["assigned:"+data.State])
 				}
 				@components.TabLink("/pulls?filter=review_requested&state="+data.State, data.Filter == "review_requested") {
 					Review requests
+					@tabCountBadge(data.Counts["review_requested:"+data.State])
 				}
 				@components.TabLink("/pulls?filter=mentioned&state="+data.State, data.Filter == "mentioned") {
 					Mentioned
+					@tabCountBadge(data.Counts["mentioned:"+data.State])
 				}
 				<span class="ml-auto inline-flex items-center">
 					@components.TabLink("/pulls?filter="+data.Filter+"&state=open", data.State == "open") {
 						Open
+						@tabCountBadge(data.Counts[data.Filter+":open"])
 					}
 					@components.TabLink("/pulls?filter="+data.Filter+"&state=closed", data.State == "closed") {
 						Closed
+						@tabCountBadge(data.Counts[data.Filter+":closed"])
 					}
 				</span>
 			}
+			<div class="flex items-center gap-2 flex-wrap">
+				<div class="relative flex-1 min-w-[240px]">
+					<label for="pr-filter" class="sr-only">Filter pull requests</label>
+					<input id="pr-filter" type="search" placeholder="Filter pull requests…" autocomplete="off" x-model="q" class="w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground"/>
+					<svg class="absolute left-2.5 top-2.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+						<circle cx="11" cy="11" r="7"></circle>
+						<path d="M21 21l-4.3-4.3"></path>
+					</svg>
+				</div>
+				@repoFilterMenu("sort", pullsSortLabel(data.Sort), "Sort pull requests", "Sort by", pullsSortMenu(data))
+			</div>
 			if len(data.Pulls) > 0 {
 				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="mypr-list">
 					<h2 id="mypr-list" class="sr-only">Your pull requests</h2>
 					<ol class="divide-y divide-border">
 						for _, pr := range data.Pulls {
-							<li>
+							<li data-name={ pr.RepoFullName + " " + pr.Title } x-show="!q || $el.dataset.name.toLowerCase().includes(q.toLowerCase())">
 								<a
 									href={ templ.SafeURL(fmt.Sprintf("/%s/pulls/%d", pr.RepoFullName, pr.Number)) }
 									class="group relative block px-4 py-3 transition-[padding] hover:bg-accent hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-foreground before:opacity-0 before:transition-opacity hover:before:opacity-100"
@@ -96,6 +113,44 @@ templ AccountPulls(data view.AccountPullsData) {
 			}
 		</div>
 	}
+}
+
+func pullsSortURL(filter, state, sortBy string) string {
+	u := "/pulls?filter=" + filter + "&state=" + state
+	if sortBy != "" && sortBy != "newest" {
+		u += "&sort=" + sortBy
+	}
+	return u
+}
+
+func pullsSortOptions() []repoDropdownOption {
+	return []repoDropdownOption{
+		{"newest", "Sort: newest"},
+		{"oldest", "Oldest"},
+		{"updated", "Recently updated"},
+		{"comments", "Most commented"},
+	}
+}
+
+func pullsSortLabel(sortBy string) string {
+	for _, o := range pullsSortOptions() {
+		if o.Value == sortBy {
+			return o.Label
+		}
+	}
+	return "Sort: newest"
+}
+
+func pullsSortMenu(data view.AccountPullsData) []repoMenuItem {
+	items := make([]repoMenuItem, 0, 3)
+	for _, o := range pullsSortOptions() {
+		items = append(items, repoMenuItem{
+			Label:  o.Label,
+			URL:    pullsSortURL(data.Filter, data.State, o.Value),
+			Active: data.Sort == o.Value,
+		})
+	}
+	return items
 }
 
 templ pullLabelPill(lbl model.Label) {

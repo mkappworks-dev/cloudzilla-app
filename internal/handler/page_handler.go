@@ -181,6 +181,11 @@ func (h *Handler) accountCounts(ctx context.Context, userID int64) map[string]in
 	} else {
 		logFail("issues", err)
 	}
+	if n, err := h.Services.Attention.CountForUser(ctx, userID); err == nil {
+		counts["attention"] = n
+	} else {
+		logFail("attention", err)
+	}
 	return counts
 }
 

@@ -94,4 +94,5 @@ type (
 	ExploreData               = view.ExploreData
 	DependenciesData          = view.DependenciesData
 	ActionsData               = view.ActionsData
+	AttentionData             = view.AttentionData
 )

@@ -503,8 +503,39 @@ type IssueListItem struct {
 	Title        string
 	State        string
 	AuthorID     int64
+	AuthorName   string
+	Priority     *string
 	RepoFullName string // "<owner_username>/<repo_name>"
 	UpdatedAt    time.Time
+	CreatedAt    time.Time
+}
+
+// AssignedAtForUser returns a map of issue_id → assignment created_at for all
+// open issues assigned to userID. Used alongside ListOpenAssignedToUser to
+// populate WaitingSince without changing the shared IssueListItem type.
+func (s *IssueStore) AssignedAtForUser(ctx context.Context, userID int64) (map[int64]time.Time, error) {
+	const q = `
+		SELECT a.issue_id, a.created_at
+		FROM issue_assignees a
+		JOIN issues i         ON i.id = a.issue_id
+		JOIN repositories r   ON r.id = i.repo_id
+		WHERE a.user_id = $1 AND i.state = 'open' AND r.deleted_at IS NULL
+	`
+	rows, err := s.db.QueryContext(ctx, q, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	m := make(map[int64]time.Time)
+	for rows.Next() {
+		var id int64
+		var t time.Time
+		if err := rows.Scan(&id, &t); err != nil {
+			return nil, err
+		}
+		m[id] = t
+	}
+	return m, rows.Err()
 }
 
 func (s *IssueStore) ListOpenAssignedToUser(ctx context.Context, userID int64) ([]IssueListItem, error) {
@@ -547,10 +578,12 @@ func (s *IssueStore) ListForUser(ctx context.Context, userID int64, mode, state 
 		cond = `i.author_id = $1`
 	}
 	q := `SELECT DISTINCT i.id, i.number, i.title, i.state, i.author_id,
-	             u.username || '/' || r.name AS repo_full_name, i.updated_at
+	             au.username AS author_name, i.priority,
+	             u.username || '/' || r.name AS repo_full_name, i.updated_at, i.created_at
 	      FROM issues i
 	      JOIN repositories r ON r.id = i.repo_id
 	      JOIN users u        ON u.id = r.owner_id
+	      JOIN users au       ON au.id = i.author_id
 	      ` + join + `
 	      WHERE r.deleted_at IS NULL AND i.state = $2 AND ` + cond + `
 	        AND (NOT r.private OR r.owner_id = $1
@@ -571,16 +604,48 @@ func (s *IssueStore) ListByIDs(ctx context.Context, userID int64, ids []int64, s
 		args = append(args, id)
 	}
 	q := `SELECT DISTINCT i.id, i.number, i.title, i.state, i.author_id,
-	             u.username || '/' || r.name AS repo_full_name, i.updated_at
+	             au.username AS author_name, i.priority,
+	             u.username || '/' || r.name AS repo_full_name, i.updated_at, i.created_at
 	      FROM issues i
 	      JOIN repositories r ON r.id = i.repo_id
 	      JOIN users u        ON u.id = r.owner_id
+	      JOIN users au       ON au.id = i.author_id
 	      WHERE r.deleted_at IS NULL AND i.state = $2
 	        AND i.id IN (` + strings.Join(placeholders, ",") + `)
 	        AND (NOT r.private OR r.owner_id = $1
 	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
 	      ORDER BY i.updated_at DESC LIMIT 100`
 	return s.scanIssueListItems(ctx, q, args...)
+}
+
+// CountsForUser returns issue counts for every account-issues tab in a single
+// round-trip, keyed "<filter>:<state>". The query is composed only from in-code
+// constants — never caller input — so the concatenation is injection-safe.
+func (s *IssueStore) CountsForUser(ctx context.Context, userID int64) (map[string]int, error) {
+	const vis = `(NOT r.private OR r.owner_id = $1
+	              OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))`
+	const (
+		assigned  = `EXISTS (SELECT 1 FROM issue_assignees ia WHERE ia.issue_id = i.id AND ia.user_id = $1)`
+		created   = `i.author_id = $1`
+		mentioned = `EXISTS (SELECT 1 FROM mentions m JOIN comments c ON c.id = m.comment_id WHERE c.issue_id = i.id AND m.user_id = $1)`
+	)
+	sub := func(state, cond string) string {
+		return `(SELECT COUNT(*) FROM issues i JOIN repositories r ON r.id = i.repo_id
+		         WHERE r.deleted_at IS NULL AND i.state = '` + state + `' AND ` + cond + ` AND ` + vis + `)`
+	}
+	q := `SELECT ` +
+		sub("open", assigned) + `, ` + sub("closed", assigned) + `, ` +
+		sub("open", created) + `, ` + sub("closed", created) + `, ` +
+		sub("open", mentioned) + `, ` + sub("closed", mentioned)
+	var ao, ac, co, cc, mo, mc int
+	if err := s.db.QueryRowContext(ctx, q, userID).Scan(&ao, &ac, &co, &cc, &mo, &mc); err != nil {
+		return nil, fmt.Errorf("issue counts for user: %w", err)
+	}
+	return map[string]int{
+		"assigned:open": ao, "assigned:closed": ac,
+		"created:open": co, "created:closed": cc,
+		"mentioned:open": mo, "mentioned:closed": mc,
+	}, nil
 }
 
 func (s *IssueStore) scanIssueListItems(ctx context.Context, q string, args ...any) ([]IssueListItem, error) {
@@ -592,8 +657,12 @@ func (s *IssueStore) scanIssueListItems(ctx context.Context, q string, args ...a
 	out := []IssueListItem{}
 	for rows.Next() {
 		var it IssueListItem
-		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt); err != nil {
+		var priority sql.NullString
+		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.AuthorName, &priority, &it.RepoFullName, &it.UpdatedAt, &it.CreatedAt); err != nil {
 			return nil, err
+		}
+		if priority.Valid {
+			it.Priority = &priority.String
 		}
 		out = append(out, it)
 	}

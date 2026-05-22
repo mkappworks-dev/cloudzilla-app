@@ -292,6 +292,12 @@ func (s *IssueService) ListForUser(ctx context.Context, userID int64, mode, stat
 	}
 }
 
+// CountsForUser returns issue counts keyed "<filter>:<state>" for every
+// filter/state combination shown in the account issues tab bar.
+func (s *IssueService) CountsForUser(ctx context.Context, userID int64) (map[string]int, error) {
+	return s.issues.CountsForUser(ctx, userID)
+}
+
 func (s *IssueService) LinkedPRs(ctx context.Context, owner, repoName string, issueNumber int) ([]model.PullRequest, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
