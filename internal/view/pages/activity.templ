@@ -12,7 +12,10 @@ import (
 )
 
 func eventToActivityRow(e model.Event) components.ActivityRowData {
-	repoPath := e.OwnerName + "/" + e.RepoName
+	repoPath := ""
+	if e.OwnerName != "" && e.RepoName != "" {
+		repoPath = e.OwnerName + "/" + e.RepoName
+	}
 
 	var m map[string]any
 	if len(e.Payload) > 0 {
@@ -115,16 +118,16 @@ func eventToActivityRow(e model.Event) components.ActivityRowData {
 	}
 }
 
-templ activityScopeTab(label, value, current, href string, count int) {
+templ activityScopeTab(label, value, current, href string, counts map[string]int, key string) {
 	if value == current {
 		<a href={ templ.SafeURL(href) } class="px-3 py-2.5 border-b -mb-px border-foreground font-medium inline-flex items-center gap-1.5" aria-current="page">
 			{ label }
-			@tabCountBadge(count)
+			@tabCountBadge(counts, key)
 		</a>
 	} else {
 		<a href={ templ.SafeURL(href) } class="px-3 py-2.5 border-b -mb-px border-transparent text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5">
 			{ label }
-			@tabCountBadge(count)
+			@tabCountBadge(counts, key)
 		</a>
 	}
 }
@@ -136,9 +139,9 @@ templ Activity(data view.ActivityData) {
 			<p class="mt-1 text-[13px] text-muted-foreground">Everything that&#39;s happened on your repos and the ones you watch.</p>
 		</section>
 		<nav class="mb-6 flex items-center gap-1 border-b border-border text-sm" aria-label="Activity scope">
-			@activityScopeTab("All activity", "all", data.Filter, "/activity", data.ScopeCounts["all"])
-			@activityScopeTab("Your activity", "yours", data.Filter, "/activity?filter=yours", data.ScopeCounts["yours"])
-			@activityScopeTab("Watching", "watching", data.Filter, "/activity?filter=watching", data.ScopeCounts["watching"])
+			@activityScopeTab("All activity", "all", data.Filter, "/activity", data.ScopeCounts, "all")
+			@activityScopeTab("Your activity", "yours", data.Filter, "/activity?filter=yours", data.ScopeCounts, "yours")
+			@activityScopeTab("Watching", "watching", data.Filter, "/activity?filter=watching", data.ScopeCounts, "watching")
 		</nav>
 		if data.LoadFailed {
 			@components.EmptyStateWithHint("We couldn't load your activity.", "Refresh the page to try again.")

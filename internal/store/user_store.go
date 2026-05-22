@@ -329,8 +329,7 @@ func (s *UserStore) GetManyByUsernames(ctx context.Context, usernames []string) 
 	return scanFullUsers(rows)
 }
 
-// UsernamesByIDs returns a map of id→username for the given IDs (one query).
-// Missing IDs are simply absent from the map.
+// UsernamesByIDs maps id→username; missing IDs are absent.
 func (s *UserStore) UsernamesByIDs(ctx context.Context, ids []int64) (map[int64]string, error) {
 	if len(ids) == 0 {
 		return map[int64]string{}, nil

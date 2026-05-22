@@ -63,10 +63,9 @@ func (s *CommitStatusService) GetCombined(ctx context.Context, owner, repoName, 
 // CIChecks holds the required and passing check counts for a PR.
 type CIChecks struct{ Required, Passing int }
 
-// CountsByPullIDs returns CI check counts for multiple PRs in a bounded number of SQL queries.
-// PRs with empty HeadSHA are omitted from the result map.
+// CountsByPullIDs omits PRs with an empty HeadSHA from the result map.
 func (s *CommitStatusService) CountsByPullIDs(ctx context.Context, pullIDs []int64) (map[int64]CIChecks, error) {
-	if s.pulls == nil || s.protections == nil {
+	if s.pulls == nil || s.protections == nil || s.repos == nil {
 		return map[int64]CIChecks{}, nil
 	}
 	prs, err := s.pulls.GetManyByIDs(ctx, pullIDs)
@@ -74,7 +73,6 @@ func (s *CommitStatusService) CountsByPullIDs(ctx context.Context, pullIDs []int
 		return nil, fmt.Errorf("ci counts: load prs: %w", err)
 	}
 
-	// Collect unique repo IDs so we can resolve owner names once.
 	repoIDSet := make(map[int64]struct{}, len(prs))
 	for _, pr := range prs {
 		repoIDSet[pr.RepoID] = struct{}{}

@@ -19,24 +19,24 @@ templ AccountIssues(data view.AccountIssuesData) {
 			@components.Tabs("Issue filter") {
 				@components.TabLink("/issues?filter=assigned&state="+data.State, data.Filter == "assigned") {
 					Assigned
-					@tabCountBadge(data.Counts["assigned:"+data.State])
+					@tabCountBadge(data.Counts, "assigned:"+data.State)
 				}
 				@components.TabLink("/issues?filter=created&state="+data.State, data.Filter == "created") {
 					Created by you
-					@tabCountBadge(data.Counts["created:"+data.State])
+					@tabCountBadge(data.Counts, "created:"+data.State)
 				}
 				@components.TabLink("/issues?filter=mentioned&state="+data.State, data.Filter == "mentioned") {
 					Mentioned
-					@tabCountBadge(data.Counts["mentioned:"+data.State])
+					@tabCountBadge(data.Counts, "mentioned:"+data.State)
 				}
 				<span class="ml-auto inline-flex items-center">
 					@components.TabLink("/issues?filter="+data.Filter+"&state=open", data.State == "open") {
 						Open
-						@tabCountBadge(data.Counts[data.Filter+":open"])
+						@tabCountBadge(data.Counts, data.Filter+":open")
 					}
 					@components.TabLink("/issues?filter="+data.Filter+"&state=closed", data.State == "closed") {
 						Closed
-						@tabCountBadge(data.Counts[data.Filter+":closed"])
+						@tabCountBadge(data.Counts, data.Filter+":closed")
 					}
 				</span>
 			}
@@ -173,8 +173,11 @@ templ issueStateBadge(state string) {
 	}
 }
 
-templ tabCountBadge(n int) {
-	<span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label={ strconv.Itoa(n) + " items" }>{ strconv.Itoa(n) }</span>
+// A nil counts map means the count query failed; render no badge rather than 0.
+templ tabCountBadge(counts map[string]int, key string) {
+	if counts != nil {
+		<span class="ml-0.5 text-[11px] text-muted-foreground font-mono" aria-label={ strconv.Itoa(counts[key]) + " items" }>{ strconv.Itoa(counts[key]) }</span>
+	}
 }
 
 templ issuePriorityPill(p string) {

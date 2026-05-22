@@ -284,7 +284,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 
 		// Record push activity-feed events (one per updated branch).
 		// Deploy-key pushes have no human actor, so they are skipped.
-		if pusherName != "" {
+		if dkVal == nil {
 			repoID := repo.ID
 			repoName, ownerName := repo.Name, repo.OwnerName
 			concurrency.Go("event.record.push", func() {

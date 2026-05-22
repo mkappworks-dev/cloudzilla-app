@@ -101,13 +101,15 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 	if n, err := h.Services.Gist.CountPublic(ctx); err == nil {
 		data.PublicCount = n
 	} else {
-		slog.Warn("gists: public count failed; showing 0", "error", err)
+		slog.Warn("gists: public count failed; hiding badge", "error", err)
+		data.PublicCount = -1
 	}
 	if signedIn {
 		if n, err := h.Services.Gist.CountPrivateByUser(ctx, claims.UserID); err == nil {
 			data.PrivateCount = n
 		} else {
-			slog.Warn("gists: private count failed; showing 0", "user_id", claims.UserID, "error", err)
+			slog.Warn("gists: private count failed; hiding badge", "user_id", claims.UserID, "error", err)
+			data.PrivateCount = -1
 		}
 		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
 	}

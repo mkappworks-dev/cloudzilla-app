@@ -2,6 +2,7 @@ package pages
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -62,9 +63,13 @@ templ Home(data view.HomeData) {
 							<div class={ "p-5", templ.KV("border-l border-border", i > 0) }>
 								<dt class="text-[11px] font-mono text-muted-foreground uppercase tracking-wider mb-2">{ it.Label }</dt>
 								<dd class="text-2xl font-medium tracking-tight">
-									{ strconv.Itoa(it.Value) }
-									if it.Subtitle != "" {
-										<span class="text-muted-foreground text-lg font-normal"> { it.Subtitle }</span>
+									if it.Unavailable {
+										<span class="text-muted-foreground">—</span>
+									} else {
+										{ strconv.Itoa(it.Value) }
+										if it.Subtitle != "" {
+											<span class="text-muted-foreground text-lg font-normal"> { it.Subtitle }</span>
+										}
 									}
 								</dd>
 								if it.Detail != "" {
@@ -577,23 +582,22 @@ func repoSortLabel(sort string) string {
 // year together, so changing one control never resets the others. Each param
 // is omitted at its default to keep unchanged URLs clean.
 func homeURL(sort, filter string, year int) string {
-	q := ""
+	q := url.Values{}
 	if sort != "" && sort != "updated" {
-		q += "&repo_sort=" + sort
+		q.Set("repo_sort", sort)
 	}
 	if filter != "" && filter != "all" {
-		q += "&repo_filter=" + filter
+		q.Set("repo_filter", filter)
 	}
 	if year != 0 && year != time.Now().UTC().Year() {
-		q += "&year=" + strconv.Itoa(year)
+		q.Set("year", strconv.Itoa(year))
 	}
-	if q == "" {
+	if len(q) == 0 {
 		return "/"
 	}
-	return "/?" + q[1:]
+	return "/?" + q.Encode()
 }
 
-// Returns a Tailwind color class for the language dot. Unknown languages get a neutral dot.
 func languageDotClass(lang string) string {
 	switch lang {
 	case "Go":

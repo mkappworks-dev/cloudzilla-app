@@ -25,11 +25,11 @@ func applyHomeRepoFilter(repos []model.Repository, filter string) []model.Reposi
 	for _, r := range repos {
 		switch filter {
 		case "sources":
-			if r.ForkOfID == nil && !r.IsTemplate {
+			if !r.IsFork && !r.IsTemplate {
 				out = append(out, r)
 			}
 		case "forks":
-			if r.ForkOfID != nil {
+			if r.IsFork {
 				out = append(out, r)
 			}
 		case "templates":
@@ -262,6 +262,7 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		commitsLast7, err := h.Services.CommitStats.CommitsForUserSince(ctx, userID, 7)
+		commitsFailed := err != nil
 		if err != nil {
 			statFailed("commits-last-7 stat", err)
 		}
@@ -270,10 +271,12 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 			statFailed("distinct-repos-7 stat", err)
 		}
 		countRepos, err := h.Services.Repo.CountForUser(ctx, userID)
+		reposFailed := err != nil
 		if err != nil {
 			statFailed("repo count stat", err)
 		}
 		countOpenPulls, err := h.Services.Pull.CountOpenAssignedTo(ctx, userID)
+		pullsFailed := err != nil
 		if err != nil {
 			statFailed("open-pulls count stat", err)
 		}
@@ -282,6 +285,7 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 			statFailed("awaiting-review count stat", err)
 		}
 		countOpenIssues, err := h.Services.Issue.CountOpenAssignedTo(ctx, userID)
+		issuesFailed := err != nil
 		if err != nil {
 			statFailed("open-issues count stat", err)
 		}
@@ -319,10 +323,10 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		}
 		data.TotalRepos = countRepos
 		data.Stats = []components.StatItem{
-			{Label: "Repositories", Value: countRepos, Detail: reposDetail},
-			{Label: "Pull requests", Value: countOpenPulls, Subtitle: "open", Detail: pullsDetail},
-			{Label: "Issues", Value: countOpenIssues, Subtitle: "assigned", Detail: issuesDetail},
-			{Label: "Commits, last 7 days", Value: commitsLast7, Detail: commitsDetail},
+			{Label: "Repositories", Value: countRepos, Detail: reposDetail, Unavailable: reposFailed},
+			{Label: "Pull requests", Value: countOpenPulls, Subtitle: "open", Detail: pullsDetail, Unavailable: pullsFailed},
+			{Label: "Issues", Value: countOpenIssues, Subtitle: "assigned", Detail: issuesDetail, Unavailable: issuesFailed},
+			{Label: "Commits, last 7 days", Value: commitsLast7, Detail: commitsDetail, Unavailable: commitsFailed},
 		}
 		data.BasePage = withAccountSubnav(data.BasePage, "overview", h.accountCounts(ctx, userID))
 		heatmapYear := time.Now().UTC().Year()

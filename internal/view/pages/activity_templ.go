@@ -20,7 +20,10 @@ import (
 )
 
 func eventToActivityRow(e model.Event) components.ActivityRowData {
-	repoPath := e.OwnerName + "/" + e.RepoName
+	repoPath := ""
+	if e.OwnerName != "" && e.RepoName != "" {
+		repoPath = e.OwnerName + "/" + e.RepoName
+	}
 
 	var m map[string]any
 	if len(e.Payload) > 0 {
@@ -123,7 +126,7 @@ func eventToActivityRow(e model.Event) components.ActivityRowData {
 	}
 }
 
-func activityScopeTab(label, value, current, href string, count int) templ.Component {
+func activityScopeTab(label, value, current, href string, counts map[string]int, key string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -152,7 +155,7 @@ func activityScopeTab(label, value, current, href string, count int) templ.Compo
 			var templ_7745c5c3_Var2 templ.SafeURL
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 120, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 123, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -165,13 +168,13 @@ func activityScopeTab(label, value, current, href string, count int) templ.Compo
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 121, Col: 10}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 124, Col: 10}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = tabCountBadge(count).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = tabCountBadge(counts, key).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -187,7 +190,7 @@ func activityScopeTab(label, value, current, href string, count int) templ.Compo
 			var templ_7745c5c3_Var4 templ.SafeURL
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 125, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 128, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -200,13 +203,13 @@ func activityScopeTab(label, value, current, href string, count int) templ.Compo
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 126, Col: 10}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 129, Col: 10}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = tabCountBadge(count).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = tabCountBadge(counts, key).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -256,15 +259,15 @@ func Activity(data view.ActivityData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = activityScopeTab("All activity", "all", data.Filter, "/activity", data.ScopeCounts["all"]).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = activityScopeTab("All activity", "all", data.Filter, "/activity", data.ScopeCounts, "all").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = activityScopeTab("Your activity", "yours", data.Filter, "/activity?filter=yours", data.ScopeCounts["yours"]).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = activityScopeTab("Your activity", "yours", data.Filter, "/activity?filter=yours", data.ScopeCounts, "yours").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = activityScopeTab("Watching", "watching", data.Filter, "/activity?filter=watching", data.ScopeCounts["watching"]).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = activityScopeTab("Watching", "watching", data.Filter, "/activity?filter=watching", data.ScopeCounts, "watching").Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

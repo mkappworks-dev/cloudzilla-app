@@ -84,7 +84,7 @@ func AccountPulls(data view.AccountPullsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = tabCountBadge(data.Counts["created:"+data.State]).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = tabCountBadge(data.Counts, "created:"+data.State).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -114,7 +114,7 @@ func AccountPulls(data view.AccountPullsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = tabCountBadge(data.Counts["assigned:"+data.State]).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = tabCountBadge(data.Counts, "assigned:"+data.State).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -144,7 +144,7 @@ func AccountPulls(data view.AccountPullsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = tabCountBadge(data.Counts["review_requested:"+data.State]).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = tabCountBadge(data.Counts, "review_requested:"+data.State).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -174,7 +174,7 @@ func AccountPulls(data view.AccountPullsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = tabCountBadge(data.Counts["mentioned:"+data.State]).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = tabCountBadge(data.Counts, "mentioned:"+data.State).Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -204,7 +204,7 @@ func AccountPulls(data view.AccountPullsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = tabCountBadge(data.Counts[data.Filter+":open"]).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = tabCountBadge(data.Counts, data.Filter+":open").Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -230,7 +230,7 @@ func AccountPulls(data view.AccountPullsData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = tabCountBadge(data.Counts[data.Filter+":closed"]).Render(ctx, templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = tabCountBadge(data.Counts, data.Filter+":closed").Render(ctx, templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

@@ -68,10 +68,7 @@ const pullInvolvementEvents = `
       AND (r.private = false OR r.owner_id = $1
            OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))`
 
-// ListForFeed returns paginated events for a user's personalised feed:
-// events from repos the user watches (non-ignoring) or owns, plus events on
-// issues and pull requests the user is involved in (author, assignee,
-// requested reviewer, or mentioned).
+// ListForFeed returns the user's personalised feed: watched/owned repos plus involved issues and PRs.
 func (s *EventStore) ListForFeed(ctx context.Context, userID int64, page, pageSize int) ([]model.Event, error) {
 	offset := (page - 1) * pageSize
 	if offset < 0 {

@@ -56,7 +56,6 @@ func (s *TopicService) ListByRepo(ctx context.Context, repoID int64) ([]model.To
 	return s.topics.ListByRepo(ctx, repoID)
 }
 
-// ListByRepoIDs batch-fetches topics for multiple repos.
 func (s *TopicService) ListByRepoIDs(ctx context.Context, repoIDs []int64) (map[int64][]model.Topic, error) {
 	return s.topics.ListByRepoIDs(ctx, repoIDs)
 }

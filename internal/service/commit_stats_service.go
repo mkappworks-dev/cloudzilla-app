@@ -155,7 +155,6 @@ func (s *CommitStatsService) HeatmapForYear(ctx context.Context, userID int64, y
 	return out, total, nil
 }
 
-// CommitYearsForUser lists the calendar years the user has commit activity in, most recent first.
 func (s *CommitStatsService) CommitYearsForUser(ctx context.Context, userID int64) ([]int, error) {
 	return s.stats.YearsForUser(ctx, userID)
 }

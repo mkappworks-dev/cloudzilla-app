@@ -13,9 +13,7 @@ import (
 	"time"
 )
 
-// `counts` is day → commit-count. Missing days render as zero. Renders one
-// calendar year with month labels on top; the grid fills its container and
-// cells stay square. The month row shares the column template so labels align.
+// `counts` is day → commit-count (missing days = zero); renders one calendar year.
 func Heatmap(counts map[time.Time]int, year int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -44,7 +42,7 @@ func Heatmap(counts map[time.Time]int, year int) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(heatmapYearAriaLabel(counts, year))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 12, Col: 64}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 10, Col: 64}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
@@ -62,7 +60,7 @@ func Heatmap(counts map[time.Time]int, year int) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 15, Col: 42}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 13, Col: 42}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -103,7 +101,7 @@ func Heatmap(counts map[time.Time]int, year int) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(heatmapTitle(day, counts[day]))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 20, Col: 120}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 18, Col: 120}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 			if templ_7745c5c3_Err != nil {
@@ -153,7 +151,7 @@ func HeatmapLarge(counts map[time.Time]int, today time.Time, weeks int) templ.Co
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(heatmapAriaLabel(counts, weeks))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 30, Col: 61}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 28, Col: 61}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 		if templ_7745c5c3_Err != nil {
@@ -189,7 +187,7 @@ func HeatmapLarge(counts map[time.Time]int, today time.Time, weeks int) templ.Co
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(heatmapTitle(day, counts[day]))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 32, Col: 105}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/heatmap.templ`, Line: 30, Col: 105}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 			if templ_7745c5c3_Err != nil {
@@ -251,7 +249,6 @@ func heatmapYearAriaLabel(counts map[time.Time]int, year int) string {
 
 // heatmapMonthLabels returns one entry per week column — twelve month
 // abbreviations spread evenly across the columns, "" for every other column.
-// Even spacing keeps the labels aligned with the mockup's layout.
 func heatmapMonthLabels(year int) []string {
 	weeks := len(heatmapYearDays(year)) / 7
 	labels := make([]string, weeks)

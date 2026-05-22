@@ -21,28 +21,28 @@ templ AccountPulls(data view.AccountPullsData) {
 			@components.Tabs("PR filter") {
 				@components.TabLink("/pulls?filter=created&state="+data.State, data.Filter == "created") {
 					Created by you
-					@tabCountBadge(data.Counts["created:"+data.State])
+					@tabCountBadge(data.Counts, "created:"+data.State)
 				}
 				@components.TabLink("/pulls?filter=assigned&state="+data.State, data.Filter == "assigned") {
 					Assigned
-					@tabCountBadge(data.Counts["assigned:"+data.State])
+					@tabCountBadge(data.Counts, "assigned:"+data.State)
 				}
 				@components.TabLink("/pulls?filter=review_requested&state="+data.State, data.Filter == "review_requested") {
 					Review requests
-					@tabCountBadge(data.Counts["review_requested:"+data.State])
+					@tabCountBadge(data.Counts, "review_requested:"+data.State)
 				}
 				@components.TabLink("/pulls?filter=mentioned&state="+data.State, data.Filter == "mentioned") {
 					Mentioned
-					@tabCountBadge(data.Counts["mentioned:"+data.State])
+					@tabCountBadge(data.Counts, "mentioned:"+data.State)
 				}
 				<span class="ml-auto inline-flex items-center">
 					@components.TabLink("/pulls?filter="+data.Filter+"&state=open", data.State == "open") {
 						Open
-						@tabCountBadge(data.Counts[data.Filter+":open"])
+						@tabCountBadge(data.Counts, data.Filter+":open")
 					}
 					@components.TabLink("/pulls?filter="+data.Filter+"&state=closed", data.State == "closed") {
 						Closed
-						@tabCountBadge(data.Counts[data.Filter+":closed"])
+						@tabCountBadge(data.Counts, data.Filter+":closed")
 					}
 				</span>
 			}

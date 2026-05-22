@@ -5,9 +5,7 @@ import (
 	"time"
 )
 
-// `counts` is day → commit-count. Missing days render as zero. Renders one
-// calendar year with month labels on top; the grid fills its container and
-// cells stay square. The month row shares the column template so labels align.
+// `counts` is day → commit-count (missing days = zero); renders one calendar year.
 templ Heatmap(counts map[time.Time]int, year int) {
 	<div role="img" aria-label={ heatmapYearAriaLabel(counts, year) } class="w-full">
 		<div class="grid grid-flow-col gap-[2px] mb-1 text-[10px] leading-none text-muted-foreground" style="grid-auto-columns: minmax(0, 1fr);">
@@ -77,7 +75,6 @@ func heatmapYearAriaLabel(counts map[time.Time]int, year int) string {
 
 // heatmapMonthLabels returns one entry per week column — twelve month
 // abbreviations spread evenly across the columns, "" for every other column.
-// Even spacing keeps the labels aligned with the mockup's layout.
 func heatmapMonthLabels(year int) []string {
 	weeks := len(heatmapYearDays(year)) / 7
 	labels := make([]string, weeks)

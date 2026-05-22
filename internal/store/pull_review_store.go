@@ -134,21 +134,7 @@ func (s *PullReviewStore) ListPullIDsAwaitingReviewer(ctx context.Context, revie
 	return ids, rows.Err()
 }
 
-// CountPendingForReviewer returns the number of distinct PRs awaiting review
-// from the given reviewer. Cheap COUNT used for nav badges.
-func (s *PullReviewStore) CountPendingForReviewer(ctx context.Context, reviewerID int64) (int, error) {
-	var n int
-	err := s.db.QueryRowContext(ctx,
-		`SELECT COUNT(DISTINCT pull_id) FROM pull_reviews WHERE author_id = $1 AND state = 'pending'`,
-		reviewerID,
-	).Scan(&n)
-	return n, err
-}
-
-// ListPendingReviewsForReviewer returns a map of pull_id → created_at for every
-// pending review request targeting the given reviewer. The earliest row per pull
-// is used when duplicates exist (ON CONFLICT DO NOTHING means there is at most one,
-// but MIN guards against any future relaxation).
+// ListPendingReviewsForReviewer maps pull_id → created_at; MIN guards against future duplicate rows.
 func (s *PullReviewStore) ListPendingReviewsForReviewer(ctx context.Context, reviewerID int64) (map[int64]time.Time, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT pull_id, MIN(created_at) FROM pull_reviews

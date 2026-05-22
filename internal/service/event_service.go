@@ -22,8 +22,7 @@ func NewEventService(events *store.EventStore, users *store.UserStore, repos *st
 	return &EventService{events: events, users: users, repos: repos}
 }
 
-// Record marshals the payload map and inserts the event asynchronously.
-// Callers should invoke as: go services.Event.Record(ctx, ...)
+// Record inserts an activity event; marshal and DB errors are logged, not returned.
 func (s *EventService) Record(ctx context.Context, actorID int64, actorName string, repoID *int64, repoName, ownerName, eventType string, payload map[string]any) {
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -44,7 +43,6 @@ func (s *EventService) Record(ctx context.Context, actorID int64, actorName stri
 }
 
 // RecordPush records a push activity event for a single branch update.
-// Invoke as: go services.Event.RecordPush(ctx, ...)
 func (s *EventService) RecordPush(ctx context.Context, actorID int64, actorName string, repoID *int64, repoName, ownerName string, summary model.PushSummary) {
 	s.Record(ctx, actorID, actorName, repoID, repoName, ownerName, model.EventPush, map[string]any{
 		"branch":       summary.Branch,
@@ -73,8 +71,7 @@ func (s *EventService) Feed(ctx context.Context, userID int, filter string, page
 	}
 }
 
-// FeedCounts returns the total event count for each activity-feed scope,
-// keyed "all", "yours", and "watching" — one per scope tab on /activity.
+// FeedCounts returns event totals keyed "all", "yours", "watching".
 func (s *EventService) FeedCounts(ctx context.Context, userID int) (map[string]int, error) {
 	return s.events.FeedCounts(ctx, int64(userID))
 }

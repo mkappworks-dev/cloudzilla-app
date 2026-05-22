@@ -319,15 +319,15 @@ func (s *PullService) CountOpenAssignedTo(ctx context.Context, userID int64) (in
 	return s.pulls.CountOpenAssignedTo(ctx, userID)
 }
 
+// CountAwaitingReview counts open PRs with a pending review request for the
+// user. It must exclude merged/closed PRs, so it reads the state-filtered
+// folded count rather than counting raw pending-review rows.
 func (s *PullService) CountAwaitingReview(ctx context.Context, userID int64) (int, error) {
-	if s.reviewStore == nil {
-		return 0, nil
-	}
-	ids, err := s.reviewStore.ListPullIDsAwaitingReviewer(ctx, userID)
+	counts, err := s.pulls.CountsForUser(ctx, userID)
 	if err != nil {
 		return 0, err
 	}
-	return len(ids), nil
+	return counts["review_requested:open"], nil
 }
 
 func (s *PullService) WithReviewerDeps(contribStats *store.ContributorStatsStore, userStore *store.UserStore) *PullService {

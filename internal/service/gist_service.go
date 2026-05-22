@@ -149,12 +149,10 @@ func (s *GistService) CountByUser(ctx context.Context, userID int64) (int, error
 	return s.gists.CountByOwner(ctx, userID)
 }
 
-// CountPublic returns the number of public gists across the instance.
 func (s *GistService) CountPublic(ctx context.Context) (int, error) {
 	return s.gists.CountPublic(ctx)
 }
 
-// CountPrivateByUser returns the number of private gists owned by userID.
 func (s *GistService) CountPrivateByUser(ctx context.Context, userID int64) (int, error) {
 	return s.gists.CountPrivateByOwner(ctx, userID)
 }

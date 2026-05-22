@@ -82,7 +82,6 @@ func (h *Handler) buildRepoTabData(r *http.Request, data view.UserData, allRepos
 	langFilter := r.URL.Query().Get("language")
 	statusFilter := r.URL.Query().Get("status")
 
-	// Collect language chips from the unfiltered list.
 	seen := map[string]struct{}{}
 	var languages []string
 	for _, repo := range allRepos {
@@ -96,7 +95,6 @@ func (h *Handler) buildRepoTabData(r *http.Request, data view.UserData, allRepos
 	}
 	sort.Strings(languages)
 
-	// Batch-resolve viewer roles.
 	roleMap := make(map[int64]string)
 	if viewerUserID != 0 {
 		perms, err := h.Services.Repo.ListPermissionsByUser(r.Context(), viewerUserID)
@@ -108,7 +106,6 @@ func (h *Handler) buildRepoTabData(r *http.Request, data view.UserData, allRepos
 		}
 	}
 
-	// Apply filters.
 	filtered := make([]model.Repository, 0, len(allRepos))
 	for _, repo := range allRepos {
 		if q != "" {
@@ -119,11 +116,11 @@ func (h *Handler) buildRepoTabData(r *http.Request, data view.UserData, allRepos
 		}
 		switch repoType {
 		case "sources":
-			if repo.ForkOfID != nil || repo.IsTemplate {
+			if repo.IsFork || repo.IsTemplate {
 				continue
 			}
 		case "forks":
-			if repo.ForkOfID == nil {
+			if !repo.IsFork {
 				continue
 			}
 		case "templates":
@@ -156,7 +153,6 @@ func (h *Handler) buildRepoTabData(r *http.Request, data view.UserData, allRepos
 		}
 	}
 
-	// Collect IDs of the filtered repos for batch lookups.
 	repoIDs := make([]int64, len(filtered))
 	for i, repo := range filtered {
 		repoIDs[i] = repo.ID

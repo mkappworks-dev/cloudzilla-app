@@ -31,8 +31,7 @@ type AttentionItem struct {
 	Actor        string // author username; empty when lookup fails
 }
 
-// AttentionService surfaces open items that need the user's attention across
-// assigned issues, pending PR reviews, and mentions.
+// AttentionService surfaces open items needing the user's attention.
 type AttentionService struct {
 	issues     *store.IssueStore
 	pulls      *store.PullStore
@@ -61,7 +60,17 @@ func (s *AttentionService) ForUser(ctx context.Context, userID int64) ([]Attenti
 	var out []AttentionItem
 	var authorIDs []int64 // parallel to out; authorIDs[i] is the author of out[i]
 
+	// An issue/PR can match several sources (assigned, review-requested,
+	// mentioned); seen* dedups so each surfaces once, keyed by the first match.
+	seenIssue := map[int64]bool{}
+	seenPull := map[int64]bool{}
+
 	appendIssue := func(i store.IssueListItem, kind AttentionKind, url string, waitingSince time.Time) {
+		// Skip items the user authored (no self-attention) or already surfaced.
+		if i.AuthorID == userID || seenIssue[i.ID] {
+			return
+		}
+		seenIssue[i.ID] = true
 		out = append(out, AttentionItem{
 			Kind:         kind,
 			RefID:        i.ID,
@@ -76,6 +85,11 @@ func (s *AttentionService) ForUser(ctx context.Context, userID int64) ([]Attenti
 	}
 
 	appendPull := func(p store.PullListItem, kind AttentionKind, url string, waitingSince time.Time) {
+		// Skip items the user authored (no self-attention) or already surfaced.
+		if p.AuthorID == userID || seenPull[p.ID] {
+			return
+		}
+		seenPull[p.ID] = true
 		out = append(out, AttentionItem{
 			Kind:         kind,
 			RefID:        p.ID,
@@ -89,7 +103,6 @@ func (s *AttentionService) ForUser(ctx context.Context, userID int64) ([]Attenti
 		authorIDs = append(authorIDs, p.AuthorID)
 	}
 
-	// --- assigned issues ---
 	issueAssignedAt, err := s.issues.AssignedAtForUser(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -99,9 +112,6 @@ func (s *AttentionService) ForUser(ctx context.Context, userID int64) ([]Attenti
 		return nil, err
 	}
 	for _, i := range issues {
-		if i.AuthorID == userID {
-			continue
-		}
 		ws := issueAssignedAt[i.ID]
 		appendIssue(i, AttentionIssueAssigned, fmt.Sprintf("/%s/issues/%d", i.RepoFullName, i.Number), ws)
 	}
@@ -116,7 +126,6 @@ func (s *AttentionService) ForUser(ctx context.Context, userID int64) ([]Attenti
 		return out, nil
 	}
 
-	// --- assigned PRs ---
 	pullAssignedAt, err := s.pulls.AssignedAtForUser(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -130,7 +139,6 @@ func (s *AttentionService) ForUser(ctx context.Context, userID int64) ([]Attenti
 		appendPull(p, AttentionPRAssigned, fmt.Sprintf("/%s/pulls/%d", p.RepoFullName, p.Number), ws)
 	}
 
-	// --- pending PR reviews ---
 	reviewTimes, err := s.pullReview.ListPendingReviewsForReviewer(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -150,7 +158,6 @@ func (s *AttentionService) ForUser(ctx context.Context, userID int64) ([]Attenti
 		}
 	}
 
-	// --- mentions ---
 	mentionPullTimes, err := s.mention.ListPullIDsMentioningWithTime(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -194,33 +201,14 @@ func (s *AttentionService) ForUser(ctx context.Context, userID int64) ([]Attenti
 	return out, nil
 }
 
-// CountForUser returns the total number of open attention items for userID:
-// issues and PRs assigned to or mentioning them, plus PRs awaiting their review.
-// The issue and PR counts each resolve in a single folded query.
+// CountForUser counts the deduplicated attention set, so the badge always
+// matches the number of rows ForUser renders.
 func (s *AttentionService) CountForUser(ctx context.Context, userID int64) (int, error) {
-	ic, err := s.issues.CountsForUser(ctx, userID)
+	items, err := s.ForUser(ctx, userID)
 	if err != nil {
 		return 0, err
 	}
-	total := ic["assigned:open"] + ic["mentioned:open"]
-
-	if s.pulls == nil || s.pullReview == nil {
-		return total, nil
-	}
-
-	pc, err := s.pulls.CountsForUser(ctx, userID)
-	if err != nil {
-		return 0, err
-	}
-	total += pc["assigned:open"] + pc["mentioned:open"]
-
-	rn, err := s.pullReview.CountPendingForReviewer(ctx, userID)
-	if err != nil {
-		return 0, err
-	}
-	total += rn
-
-	return total, nil
+	return len(items), nil
 }
 
 // sortAttentionPaired sorts both slices together by WaitingSince ascending
