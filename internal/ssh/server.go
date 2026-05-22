@@ -186,6 +186,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	}
 
 	var pusherName string
+	var pusherID int64
 
 	if dkVal != nil {
 		dk := dkVal.(*model.DeployKey)
@@ -207,6 +208,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	} else {
 		user := userVal.(*model.User)
 		pusherName = user.Username
+		pusherID = user.ID
 
 		if gitCmd == "git-upload-pack" {
 			if !s.services.Repo.CanRead(ctx, repo, &user.ID) {
@@ -277,6 +279,18 @@ func (s *Server) sessionHandler(session ssh.Session) {
 			repoID := repo.ID
 			concurrency.Go("webhook.dispatch.push", func() {
 				s.services.Webhook.Dispatch(repoID, "push", payload)
+			})
+		}
+
+		// Record push activity-feed events (one per updated branch).
+		// Deploy-key pushes have no human actor, so they are skipped.
+		if pusherName != "" {
+			repoID := repo.ID
+			repoName, ownerName := repo.Name, repo.OwnerName
+			concurrency.Go("event.record.push", func() {
+				for _, ps := range s.services.Repo.PushSummaries(gitRepo, commands) {
+					s.services.Event.RecordPush(context.Background(), pusherID, pusherName, &repoID, repoName, ownerName, ps)
+				}
 			})
 		}
 

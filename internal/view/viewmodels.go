@@ -89,10 +89,14 @@ type AttentionData struct {
 
 type ActivityData struct {
 	BasePage
-	Username string
-	Events   []model.Event
-	Page     int
-	HasMore  bool
+	Username    string
+	Events      []model.Event
+	Filter      string         // "all" | "yours" | "watching"
+	ScopeCounts map[string]int // total events per scope, keyed "all"|"yours"|"watching"
+	Page        int
+	HasMore     bool
+	PrevURL     string
+	NextURL     string
 }
 
 type AccountReposData struct {

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -17,6 +18,16 @@ import (
 
 type createCommentRequest struct {
 	Body string `json:"body"`
+}
+
+// commentEventBody trims a comment body to a short snippet for the activity feed.
+func commentEventBody(body string) string {
+	const max = 280
+	r := []rune(strings.TrimSpace(body))
+	if len(r) <= max {
+		return string(r)
+	}
+	return string(r[:max]) + "…"
 }
 
 func (h *Handler) ListIssueComments(w http.ResponseWriter, r *http.Request) {
@@ -114,6 +125,13 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 		h.Services.Notification.NotifyIssueComment(r.Context(), *repo, *issue, claims.UserID, claims.Username)
 	}()
 
+	repoID := repo.ID
+	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventComment, map[string]any{
+		"number": issue.Number,
+		"kind":   "issue",
+		"body":   commentEventBody(body),
+	})
+
 	if r.Header.Get("HX-Request") == "true" {
 		h.render(w, r, fragments.Comment(view.CommentFragData{
 			Comment: view.RenderedComment{Comment: *comment, BodyHTML: renderMentionsHTML(markdown.Render(comment.Body))},
@@ -189,6 +207,13 @@ func (h *Handler) CreatePullComment(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		h.Services.Notification.NotifyPRComment(r.Context(), *repo, *pull, claims.UserID, claims.Username)
 	}()
+
+	repoID := repo.ID
+	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventComment, map[string]any{
+		"number": pull.Number,
+		"kind":   "pull",
+		"body":   commentEventBody(body),
+	})
 
 	if r.Header.Get("HX-Request") == "true" {
 		toast(w, "success", "Comment added")

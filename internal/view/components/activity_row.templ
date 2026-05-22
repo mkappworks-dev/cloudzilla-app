@@ -1,13 +1,25 @@
 package components
 
+import "strconv"
+
+// CommitLine is one commit shown in a push activity row.
+type CommitLine struct {
+	SHA     string
+	Message string
+}
+
 type ActivityRowData struct {
-	Kind     string // "pr_opened", "pr_merged", "pr_closed", "issue_opened", "issue_closed", "star", "release", "fork", "member_added"
-	Actor    string
-	RepoName string // "owner/repo"
-	Ref      string // "#341" — inline on line 1; empty for star/fork/member
-	RefURL   string // link target for Ref
-	Title    string // line-2 subject text; empty when unavailable
-	When     string // pre-formatted relative
+	Kind        string // "pr_opened", "pr_merged", "pr_closed", "issue_opened", "issue_closed", "comment", "push", "star", "release", "fork", "member_added"
+	Actor       string
+	RepoName    string // "owner/repo"
+	Ref         string // "#341" — inline on line 1; empty for star/fork/member/push
+	RefURL      string // link target for Ref
+	Title       string // line-2 subject text; empty when unavailable
+	When        string // pre-formatted relative
+	Branch      string       // push: branch name
+	Commits     []CommitLine // push: up to 3 commit summaries
+	CommitTotal int          // push: total commits in the push
+	Quote       string       // comment: body snippet
 }
 
 templ ActivityRow(a ActivityRowData) {
@@ -16,21 +28,50 @@ templ ActivityRow(a ActivityRowData) {
 		<div class="min-w-0 flex-1">
 			<p class="text-[13px]">
 				<a href={ templ.SafeURL("/" + a.Actor) } class="font-medium hover:underline">{ a.Actor }</a>
-				<span class="text-muted-foreground">{ " " + activityVerb(a.Kind) }</span>
-				if a.Ref != "" {
-					<span class="text-muted-foreground">{ " " }</span><a href={ templ.SafeURL(a.RefURL) } class="font-mono hover:underline text-primary">{ a.Ref }</a>
+				if a.Kind == "push" {
+					<span class="text-muted-foreground">{ " pushed " }</span><span class="font-mono">{ commitCountLabel(a.CommitTotal) }</span><span class="text-muted-foreground">{ " to " }</span><span class="font-mono text-muted-foreground">{ a.Branch }</span>
+				} else {
+					<span class="text-muted-foreground">{ " " + activityVerb(a.Kind) }</span>
+					if a.Ref != "" {
+						<span class="text-muted-foreground">{ " " }</span><a href={ templ.SafeURL(a.RefURL) } class="font-mono hover:underline text-primary">{ a.Ref }</a>
+					}
 				}
 				if a.RepoName != "" {
 					<span class="text-muted-foreground">{ " in " }</span><a href={ templ.SafeURL("/" + a.RepoName) } class="font-mono text-muted-foreground hover:underline">{ a.RepoName }</a>
 				}
 			</p>
-			if a.Title != "" {
+			if a.Kind == "push" && len(a.Commits) > 0 {
+				<ul class="mt-1 text-[12.5px] text-muted-foreground space-y-0.5">
+					for _, c := range a.Commits {
+						<li class="truncate"><span class="font-mono text-[11px] text-muted-foreground/70 mr-1">{ c.SHA }</span>{ c.Message }</li>
+					}
+					if a.CommitTotal > len(a.Commits) {
+						<li class="text-[11px] text-muted-foreground/70">{ moreCommitsLabel(a.CommitTotal - len(a.Commits)) }</li>
+					}
+				</ul>
+			} else if a.Kind == "comment" && a.Quote != "" {
+				<blockquote class="mt-1 pl-3 border-l border-border text-[12.5px] text-muted-foreground italic">{ "“" + a.Quote + "”" }</blockquote>
+			} else if a.Title != "" {
 				<p class="mt-0.5 text-[12.5px] text-muted-foreground truncate">{ a.Title }</p>
 			}
 			<p class="mt-1 text-[11px] text-muted-foreground/70"><time>{ a.When }</time></p>
 		</div>
 		@activityIcon(a.Kind)
 	</li>
+}
+
+func commitCountLabel(n int) string {
+	if n == 1 {
+		return "1 commit"
+	}
+	return strconv.Itoa(n) + " commits"
+}
+
+func moreCommitsLabel(n int) string {
+	if n == 1 {
+		return "and 1 more commit"
+	}
+	return "and " + strconv.Itoa(n) + " more commits"
 }
 
 func actorInitials(name string) string {
@@ -47,6 +88,8 @@ func actorInitials(name string) string {
 
 func activityVerb(kind string) string {
 	switch kind {
+	case "push":
+		return "pushed"
 	case "pr_opened":
 		return "opened"
 	case "pr_merged":
@@ -104,6 +147,10 @@ templ activityIcon(kind string) {
 	case "release", "release_published":
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-muted-foreground" aria-hidden="true">
 			<path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line>
+		</svg>
+	case "push":
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-1 text-muted-foreground" aria-hidden="true">
+			<circle cx="12" cy="12" r="3"></circle><line x1="3" y1="12" x2="9" y2="12"></line><line x1="15" y1="12" x2="21" y2="12"></line>
 		</svg>
 	default:
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-1 text-muted-foreground" aria-hidden="true">

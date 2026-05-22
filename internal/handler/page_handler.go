@@ -361,7 +361,7 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 			data.AttentionActive = attnActive
 			data.AttentionCounts = counts
 		}
-		if feed, err := h.Services.Event.Feed(ctx, int(userID), 1, 10); err != nil {
+		if feed, err := h.Services.Event.Feed(ctx, int(userID), "all", 1, 10); err != nil {
 			slog.Warn("home: activity feed failed", "user_id", userID, "error", err)
 		} else {
 			data.Activity = feed
