@@ -56,3 +56,53 @@ func TestContributorStatsStore_UpsertAndList(t *testing.T) {
 		t.Errorf("expected 1 row with 5 commits, got %+v", rows)
 	}
 }
+
+func TestContributorStatsStore_AttemptIngest_DedupesBySha(t *testing.T) {
+	dsn := os.Getenv("TEST_DATABASE_DSN")
+	if dsn == "" {
+		t.Skip("TEST_DATABASE_DSN not set; skipping integration test")
+	}
+	db := openTestDBCommitStats(t)
+	defer db.Close()
+
+	s := store.NewContributorStatsStore(db)
+	ctx := context.Background()
+	suffix := fmt.Sprintf("cci_%d", os.Getpid())
+
+	var userID int64
+	if err := db.QueryRowContext(ctx,
+		`INSERT INTO users (username, email, password_hash, is_superadmin) VALUES ($1, $2, 'x', false) RETURNING id`,
+		suffix, suffix+"@test.invalid",
+	).Scan(&userID); err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+	var repoID int64
+	if err := db.QueryRowContext(ctx,
+		`INSERT INTO repositories (owner_id, owner_name, name, description, private, default_branch) VALUES ($1, $2, $3, '', false, 'main') RETURNING id`,
+		userID, suffix, "repo_"+suffix,
+	).Scan(&repoID); err != nil {
+		t.Fatalf("insert repo: %v", err)
+	}
+	t.Cleanup(func() {
+		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
+	})
+
+	week := time.Date(2026, 5, 11, 0, 0, 0, 0, time.UTC)
+	sha := "abc123def4567890"
+
+	inserted, err := s.AttemptIngest(ctx, repoID, sha, userID, week, 10, 5)
+	if err != nil {
+		t.Fatalf("first AttemptIngest: %v", err)
+	}
+	if !inserted {
+		t.Fatalf("first AttemptIngest: expected inserted=true, got false")
+	}
+
+	inserted2, err := s.AttemptIngest(ctx, repoID, sha, userID, week, 99, 99)
+	if err != nil {
+		t.Fatalf("second AttemptIngest: %v", err)
+	}
+	if inserted2 {
+		t.Fatalf("second AttemptIngest: expected inserted=false on conflict, got true")
+	}
+}

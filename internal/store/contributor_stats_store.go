@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 )
 
@@ -46,6 +47,24 @@ func (s *ContributorStatsStore) AddDelta(ctx context.Context, repoID, userID int
 	`
 	_, err := s.db.ExecContext(ctx, q, repoID, userID, MondayUTC(week), commits, additions, deletions)
 	return err
+}
+
+func (s *ContributorStatsStore) AttemptIngest(ctx context.Context, repoID int64, sha string, userID int64, week time.Time, additions, deletions int) (bool, error) {
+	const q = `
+		INSERT INTO contributor_commits_ingested (repo_id, sha, user_id, week, additions, deletions)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (repo_id, sha) DO NOTHING
+		RETURNING 1
+	`
+	var one int
+	err := s.db.QueryRowContext(ctx, q, repoID, sha, userID, MondayUTC(week), additions, deletions).Scan(&one)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (s *ContributorStatsStore) ListForRepo(ctx context.Context, repoID int64) ([]ContributorWeekStat, error) {
