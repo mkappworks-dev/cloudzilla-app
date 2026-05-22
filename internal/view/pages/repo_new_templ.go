@@ -14,6 +14,12 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
+// repoNewSelectOption is one entry in a repoNewCustomSelect popup.
+type repoNewSelectOption struct {
+	Value string
+	Label string
+}
+
 func RepoNew(data view.RepoNewData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -39,6 +45,9 @@ func RepoNew(data view.RepoNewData) templ.Component {
 		if data.CurrentUser != nil {
 			me = data.CurrentUser.Username
 		}
+		ownerOpts := repoNewOwnerOpts(data)
+		giOpts := repoNewGitignoreOpts(data.GitignoreTemplates)
+		licOpts := repoNewLicenseOpts(data)
 		templ_7745c5c3_Var2 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
@@ -51,137 +60,48 @@ func RepoNew(data view.RepoNewData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-2xl mx-auto space-y-6\"><section aria-labelledby=\"rn-title\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2\">Cloudzilla · New</p><h1 id=\"rn-title\" class=\"text-2xl font-semibold tracking-tight\">Create a new repository</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">A repository contains all project files, including the revision history.</p></section><form id=\"repo-form\" class=\"space-y-5 rounded-md border border-border bg-card p-6\" data-username=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<section class=\"mb-6\"><h1 class=\"text-2xl font-semibold tracking-tight\">New repository</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">A repository contains all of your project's files, revision history, and collaborators.</p></section><div class=\"grid lg:grid-cols-[1fr_280px] gap-8\"><div class=\"min-w-0\"><form id=\"repo-form\" class=\"border border-border rounded-lg bg-card p-6 space-y-6\" data-username=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(me)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 23, Col: 104}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 31, Col: 105}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><div class=\"flex items-end gap-2\"><div class=\"space-y-1.5\"><label for=\"repo-owner\" class=\"block text-sm font-medium\">Owner</label> <select id=\"repo-owner\" name=\"owner\" class=\"flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"><div class=\"grid grid-cols-[1fr_auto_2fr] gap-3 items-end\"><div><label for=\"repo-owner-btn\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Owner *</label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if data.CurrentUser != nil {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<option value=\"")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var4 string
-				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.CurrentUser.Username)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 29, Col: 49}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\">")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var5 string
-				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.CurrentUser.Username)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 29, Col: 79}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</option> ")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			}
-			for _, o := range data.OwnedOrgs {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<option value=\"")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var6 string
-				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(o.Name)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 32, Col: 30}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\">")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var7 string
-				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(o.Name)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 32, Col: 41}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</option>")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</select></div><span class=\"text-muted-foreground pb-2 text-lg\" aria-hidden=\"true\">/</span><div class=\"flex-1 space-y-1.5\"><label for=\"repo-name\" class=\"block text-sm font-medium\">Repository name <span class=\"text-destructive\" aria-hidden=\"true\">*</span></label>")
+			templ_7745c5c3_Err = repoNewCustomSelect("repo-owner", "owner", ownerOpts, repoNewSelectOption{Value: me, Label: me}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.Input(templ.Attributes{
-				"type":        "text",
-				"id":          "repo-name",
-				"name":        "name",
-				"required":    "required",
-				"pattern":     "[A-Za-z0-9._-]+",
-				"placeholder": "my-awesome-project",
-				"class":       "font-mono",
-			}).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div><span class=\"text-muted-foreground/70 pb-2.5\" aria-hidden=\"true\">/</span><div><label for=\"repo-name\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Repository name *</label> <input id=\"repo-name\" name=\"name\" type=\"text\" required pattern=\"[A-Za-z0-9._-]+\" placeholder=\"my-new-repo\" autofocus class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-none focus:border-ring\"></div></div><p class=\"text-[12px] text-muted-foreground/70 -mt-3\">Great repository names are short and memorable. Need inspiration? <span class=\"font-mono\">turbo-octo-meme</span>.</p><div><label for=\"repo-description\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Description <span class=\"text-muted-foreground/70 font-normal\">(optional)</span></label> <textarea id=\"repo-description\" name=\"description\" rows=\"2\" placeholder=\"A short description of your project\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-ring\"></textarea></div><fieldset><legend class=\"text-[12px] font-medium text-muted-foreground mb-2\">Visibility</legend> <label class=\"border border-border rounded-md p-3 flex items-start gap-3 mb-2 cursor-pointer hover:bg-accent\"><input type=\"radio\" name=\"visibility\" value=\"public\" checked class=\"mt-0.5 accent-[hsl(var(--ring))]\"><div><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"2\" y1=\"12\" x2=\"22\" y2=\"12\"></line><path d=\"M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z\"></path></svg> Public</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground/70\">Anyone on the internet can see this repository. You choose who can commit.</p></div></label> <label class=\"border border-border rounded-md p-3 flex items-start gap-3 cursor-pointer hover:bg-accent\"><input type=\"radio\" name=\"visibility\" value=\"private\" class=\"mt-0.5 accent-[hsl(var(--ring))]\"><div><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\" ry=\"2\"></rect><path d=\"M7 11V7a5 5 0 0110 0v4\"></path></svg> Private</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground/70\">You choose who can see and commit to this repository.</p></div></label></fieldset><div class=\"space-y-3\"><p class=\"text-[12px] font-medium text-muted-foreground\">Initialize this repository with</p><label class=\"flex items-start gap-2 text-[13px]\"><input type=\"checkbox\" id=\"repo-readme\" checked class=\"mt-0.5 accent-[hsl(var(--ring))]\"> <span>Add a README — describes your project at a glance.</span></label><div><label for=\"repo-gitignore-btn\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Add .gitignore <span class=\"text-muted-foreground/70 font-normal\">(optional)</span></label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</div></div><p class=\"text-[11px] text-muted-foreground -mt-3\">Great repository names are short and memorable. Letters, numbers, dots, dashes, and underscores only.</p><div class=\"space-y-1.5\"><label for=\"repo-description\" class=\"block text-sm font-medium\">Description <span class=\"text-muted-foreground font-normal\">(optional)</span></label>")
+			templ_7745c5c3_Err = repoNewCustomSelect("repo-gitignore", "gitignore", giOpts, repoNewSelectOption{Value: "", Label: "None"}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.Input(templ.Attributes{
-				"type":        "text",
-				"id":          "repo-description",
-				"name":        "description",
-				"placeholder": "Short description of the project",
-			}).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<p class=\"mt-1 text-[12px] text-muted-foreground/70\">Choose which files Git should ignore, from a template.</p></div><div><label for=\"repo-license-btn\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Choose a license <span class=\"text-muted-foreground/70 font-normal\">(optional)</span></label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div><fieldset class=\"space-y-3 border-t border-border pt-5\"><legend class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2\">Visibility</legend> <label class=\"flex items-start gap-3 cursor-pointer\">")
+			templ_7745c5c3_Err = repoNewCustomSelect("repo-license", "license", licOpts, repoNewSelectOption{Value: "", Label: "None"}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.Radio(templ.Attributes{"name": "visibility", "value": "public", "checked": "checked", "class": "mt-0.5"}).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<p class=\"mt-1 text-[12px] text-muted-foreground/70\">Sets the terms under which others may reuse your code.</p></div></div><div id=\"repo-form-error\" role=\"alert\" class=\"hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2\"></div><div class=\"flex items-center justify-end gap-2 pt-2 border-t border-border\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<span class=\"text-sm\"><span class=\"font-medium block\">Public</span> <span class=\"text-muted-foreground text-[12px]\">Anyone on the internet can see this repository. You choose who can commit.</span></span></label> <label class=\"flex items-start gap-3 cursor-pointer\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = components.Radio(templ.Attributes{"name": "visibility", "value": "private", "class": "mt-0.5"}).Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<span class=\"text-sm\"><span class=\"font-medium block\">Private</span> <span class=\"text-muted-foreground text-[12px]\">You choose who can see and commit to this repository.</span></span></label></fieldset><div id=\"repo-form-error\" role=\"alert\" class=\"hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2\"></div><div class=\"flex items-center gap-3 pt-2\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Var8 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var4 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -193,17 +113,17 @@ func RepoNew(data view.RepoNewData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "Create repository")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "Cancel")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var8), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.LinkButton("/", components.ButtonOutline, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var4), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var9 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var5 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -215,28 +135,201 @@ func RepoNew(data view.RepoNewData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "Cancel")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "Create repository")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.LinkButton("/", components.ButtonGhost, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var9), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</div></form><script>\n\t\t\t\t(function() {\n\t\t\t\t\tconst form = document.getElementById('repo-form');\n\t\t\t\t\tconst errBox = document.getElementById('repo-form-error');\n\t\t\t\t\tform.addEventListener('submit', async function(e) {\n\t\t\t\t\t\te.preventDefault();\n\t\t\t\t\t\terrBox.classList.add('hidden');\n\t\t\t\t\t\tconst ownerSel = form.querySelector('[name=owner]');\n\t\t\t\t\t\tconst owner = ownerSel ? ownerSel.value : '';\n\t\t\t\t\t\tconst name = form.querySelector('[name=name]').value.trim();\n\t\t\t\t\t\tconst description = form.querySelector('[name=description]').value;\n\t\t\t\t\t\tconst isPrivate = form.querySelector('[name=visibility]:checked').value === 'private';\n\t\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\t\tconst me = form.dataset.username;\n\t\t\t\t\t\tconst isOrg = owner && owner !== me;\n\t\t\t\t\t\tconst url = isOrg ? ('/api/orgs/' + encodeURIComponent(owner) + '/repos') : '/api/repos/';\n\t\t\t\t\t\tconst res = await fetch(url, {\n\t\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\t\tbody: JSON.stringify({ name: name, description: description, private: isPrivate })\n\t\t\t\t\t\t});\n\t\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\t\twindow.location.href = '/' + owner + '/' + name;\n\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t}\n\t\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\t\tlet msg = text;\n\t\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\t\terrBox.textContent = msg || ('Failed to create repository (HTTP ' + res.status + ')');\n\t\t\t\t\t\terrBox.classList.remove('hidden');\n\t\t\t\t\t});\n\t\t\t\t})();\n\t\t\t</script></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></form></div><aside class=\"space-y-6\" aria-label=\"About repositories\"><section aria-labelledby=\"rn-about\"><h2 id=\"rn-about\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">About repositories</h2><p class=\"text-[13px] text-muted-foreground/70 leading-relaxed\">A repository is the home for one project — its code, full revision history, issues, and pull requests. Start it empty, or seed it with a README, .gitignore, and license below.</p></section><section aria-labelledby=\"rn-tips\" class=\"border-t border-border pt-5\"><h2 id=\"rn-tips\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Good to know</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground/70 leading-relaxed\"><li>Repository names must be unique within the owner account or organization.</li><li>Visibility can be switched between public and private later in repository settings.</li><li>Adding a README lets you clone a working copy right away — an empty repo only shows setup instructions.</li><li>A license sets the terms for how others may reuse your code; you can add one later too.</li></ul></section></aside></div><p class=\"mt-6 text-[12.5px] text-muted-foreground/70 text-center\">Want to import an existing repository instead? <a href=\"#\" class=\"text-primary hover:underline\">Import a repository →</a></p><script>\n\t\t\t(function() {\n\t\t\t\tconst form = document.getElementById('repo-form');\n\t\t\t\tconst errBox = document.getElementById('repo-form-error');\n\t\t\t\tform.addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\terrBox.classList.add('hidden');\n\t\t\t\t\tconst ownerSel = form.querySelector('[name=owner]');\n\t\t\t\t\tconst owner = ownerSel ? ownerSel.value : '';\n\t\t\t\t\tconst name = form.querySelector('[name=name]').value.trim();\n\t\t\t\t\tconst description = form.querySelector('[name=description]').value;\n\t\t\t\t\tconst isPrivate = form.querySelector('[name=visibility]:checked').value === 'private';\n\t\t\t\t\tconst addReadme = document.getElementById('repo-readme').checked;\n\t\t\t\t\tconst gitignore = document.getElementById('repo-gitignore').value;\n\t\t\t\t\tconst license = document.getElementById('repo-license').value;\n\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\tconst me = form.dataset.username;\n\t\t\t\t\tconst isOrg = owner && owner !== me;\n\t\t\t\t\tconst url = isOrg ? ('/api/orgs/' + encodeURIComponent(owner) + '/repos') : '/api/repos/';\n\t\t\t\t\tconst res = await fetch(url, {\n\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\tbody: JSON.stringify({\n\t\t\t\t\t\t\tname: name,\n\t\t\t\t\t\t\tdescription: description,\n\t\t\t\t\t\t\tprivate: isPrivate,\n\t\t\t\t\t\t\tadd_readme: addReadme,\n\t\t\t\t\t\t\tgitignore: gitignore,\n\t\t\t\t\t\t\tlicense: license\n\t\t\t\t\t\t})\n\t\t\t\t\t});\n\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\twindow.location.href = '/' + owner + '/' + name;\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\tlet msg = text;\n\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\terrBox.textContent = msg || ('Failed to create repository (HTTP ' + res.status + ')');\n\t\t\t\t\terrBox.classList.remove('hidden');\n\t\t\t\t});\n\t\t\t})();\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = layout.Base(data.BasePage, "New Repository").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layout.Base(data.BasePage, "New repository").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		return nil
 	})
+}
+
+// repoNewCustomSelect is a custom Alpine-driven dropdown matching the app's
+// popup chrome (vs. browser-native <select> chrome). The hidden input keeps
+// the value submittable by the form's JS handler (which reads .value by id).
+func repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial repoNewSelectOption) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var6 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var6 == nil {
+			templ_7745c5c3_Var6 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div x-data=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var7 string
+		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ open: false, value: '" + initial.Value + "', label: '" + initial.Label + "' }")
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 181, Col: 96}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" @click.away=\"open = false\" class=\"relative\"><input type=\"hidden\" id=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var8 string
+		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 182, Col: 30}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" name=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var9 string
+		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 182, Col: 44}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" value=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var10 string
+		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(initial.Value)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 182, Col: 68}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" x-bind:value=\"value\"> <button type=\"button\" id=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var11 string
+		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(id + "-btn")
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 183, Col: 40}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" @click=\"open = !open\" :aria-expanded=\"open ? 'true' : 'false'\" aria-haspopup=\"listbox\" class=\"w-full flex items-center justify-between bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground hover:border-border-strong focus:outline-none focus:border-ring\"><span x-text=\"label\" class=\"truncate text-left\"></span> <svg class=\"text-muted-foreground shrink-0 ml-2\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 10l5 5 5-5\"></path></svg></button><ul x-show=\"open\" x-cloak role=\"listbox\" class=\"absolute z-20 left-0 right-0 top-full mt-1 bg-card border border-border-strong rounded-md shadow-lg p-1 max-h-60 overflow-y-auto\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		for _, opt := range options {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<li><button type=\"button\" data-value=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var12 string
+			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(opt.Value)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 190, Col: 49}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" data-label=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var13 string
+			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(opt.Label)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 190, Col: 74}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" @click=\"value=$el.dataset.value; label=$el.dataset.label; open=false\" :class=\"{ 'bg-accent text-foreground': value === $el.dataset.value }\" :aria-selected=\"value === $el.dataset.value ? 'true' : 'false'\" role=\"option\" class=\"w-full text-left px-2 py-1.5 text-[13px] rounded hover:bg-accent\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var14 string
+			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(opt.Label)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 191, Col: 17}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</button></li>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</ul></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func repoNewOwnerOpts(data view.RepoNewData) []repoNewSelectOption {
+	var opts []repoNewSelectOption
+	if data.CurrentUser != nil {
+		opts = append(opts, repoNewSelectOption{Value: data.CurrentUser.Username, Label: data.CurrentUser.Username})
+	}
+	for _, o := range data.OwnedOrgs {
+		opts = append(opts, repoNewSelectOption{Value: o.Name, Label: o.Name})
+	}
+	return opts
+}
+
+func repoNewGitignoreOpts(templates []string) []repoNewSelectOption {
+	opts := []repoNewSelectOption{{Value: "", Label: "None"}}
+	for _, g := range templates {
+		opts = append(opts, repoNewSelectOption{Value: g, Label: g})
+	}
+	return opts
+}
+
+func repoNewLicenseOpts(data view.RepoNewData) []repoNewSelectOption {
+	opts := []repoNewSelectOption{{Value: "", Label: "None"}}
+	for _, l := range data.LicenseTemplates {
+		opts = append(opts, repoNewSelectOption{Value: l.Key, Label: l.Name})
+	}
+	return opts
 }
 
 var _ = templruntime.GeneratedTemplate

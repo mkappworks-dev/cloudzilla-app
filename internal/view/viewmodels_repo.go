@@ -55,7 +55,9 @@ type NewFileData struct {
 // RepoNewData holds template data for the new repository form page.
 type RepoNewData struct {
 	BasePage
-	OwnedOrgs []model.Organization
+	OwnedOrgs          []model.Organization
+	GitignoreTemplates []string
+	LicenseTemplates   []service.License
 }
 
 type ReleaseView struct {

@@ -16,6 +16,7 @@ templ User(data view.UserData) {
 		<div class="space-y-8">
 
 			<!-- Profile header -->
+			<!-- Follow / Share intentionally omitted: Cloudzilla has no follow system. -->
 			<section class="flex flex-wrap items-start gap-5 pb-6 border-b border-border" aria-labelledby="profile-name">
 				@components.Avatar(data.User.Username, components.AvatarSizeLG, data.User.Username)
 				<div class="min-w-0 flex-1">
@@ -44,18 +45,13 @@ templ User(data view.UserData) {
 							</div>
 						}
 					</dl>
-					<nav aria-label="Profile sections" class="mt-4 flex flex-wrap gap-1.5">
-						@components.LinkButton("/"+data.User.Username+"/stars", components.ButtonOutline, components.ButtonSizeSM, nil) {
-							Starred repos
-						}
-						@components.LinkButton("/"+data.User.Username+"/gists", components.ButtonOutline, components.ButtonSizeSM, nil) {
-							Gists
-						}
-					</nav>
 				</div>
-				if data.BasePage.CurrentUser != nil && data.BasePage.CurrentUser.UserID == data.User.ID {
-					<div class="flex-shrink-0">
-						@components.LinkButton("/new", components.ButtonDefault, components.ButtonSizeSM, nil) {
+				if data.IsOwnProfile {
+					<div class="flex-shrink-0 flex items-center gap-2">
+						@components.LinkButton("/settings/profile", components.ButtonOutline, components.ButtonSizeSM, nil) {
+							Edit profile
+						}
+						@components.LinkButton("/repos/new", components.ButtonDefault, components.ButtonSizeSM, nil) {
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
 							New repository
 						}
@@ -63,128 +59,122 @@ templ User(data view.UserData) {
 				}
 			</section>
 
-			if data.ProfileReadme != "" {
-				<article class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="profile-readme-heading">
-					<header class="px-5 py-3 border-b border-border bg-muted flex items-center gap-2">
-						<svg class="text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-						<h2 id="profile-readme-heading" class="text-[13px] font-medium">{ data.User.Username }/README.md</h2>
-					</header>
-					<div class="prose prose-sm max-w-none dark:prose-invert px-7 py-6">
-						@templ.Raw(string(data.ProfileReadme))
+			<!-- Profile tabs -->
+			<nav aria-label="Profile sections" class="flex flex-wrap items-center gap-1 text-sm -mt-2">
+				@profileTab(data.Tab == "overview", "/"+data.User.Username, "Overview")
+				@profileTab(data.Tab == "repositories", "/"+data.User.Username+"?tab=repositories", "Repositories", len(data.Repos))
+				@profileTab(false, "/"+data.User.Username+"/stars", "Stars")
+				@profileTab(false, "/"+data.User.Username+"/gists", "Gists")
+			</nav>
+
+			if data.Tab == "overview" {
+				<div class="grid gap-8 lg:grid-cols-[1fr_240px]">
+					<div class="min-w-0 space-y-8">
+
+						if data.ProfileReadme != "" {
+							<article class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="profile-readme-heading">
+								<header class="px-5 py-3 border-b border-border bg-muted flex items-center gap-2">
+									<svg class="text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+									<h2 id="profile-readme-heading" class="text-[13px] font-medium">{ data.User.Username }/README.md</h2>
+								</header>
+								<div class="prose prose-sm max-w-none dark:prose-invert px-7 py-6">
+									@templ.Raw(string(data.ProfileReadme))
+								</div>
+							</article>
+						}
+
+						if len(data.PinnedRepos) > 0 {
+							<section aria-labelledby="pinned-heading">
+								<h2 id="pinned-heading" class="text-sm font-semibold tracking-tight mb-3">Pinned</h2>
+								<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+									for _, p := range data.PinnedRepos {
+										@components.PinnedRepo(p)
+									}
+								</div>
+							</section>
+						}
+
+						<section aria-labelledby="contrib-heading">
+							<h2 id="contrib-heading" class="text-sm font-semibold tracking-tight mb-3">
+								{ strconv.Itoa(totalContributions(data.Heatmap)) } contributions in the last year
+							</h2>
+							<div class="rounded-md border border-border bg-card p-5 overflow-x-auto">
+								@components.HeatmapLarge(data.Heatmap, time.Now(), 52)
+							</div>
+						</section>
+
+						if len(data.RecentActivity) > 0 {
+							<section aria-labelledby="activity-heading">
+								<h2 id="activity-heading" class="text-sm font-semibold tracking-tight mb-3">Recent activity</h2>
+								<ul class="divide-y divide-border rounded-md border border-border bg-card overflow-hidden">
+									for _, ev := range data.RecentActivity {
+										@components.ActivityRow(eventToActivityRow(ev))
+									}
+								</ul>
+							</section>
+						}
+
 					</div>
-				</article>
+
+					<aside class="space-y-6 text-[12.5px]">
+						if len(data.Orgs) > 0 {
+							<section aria-labelledby="orgs-heading">
+								<h2 id="orgs-heading" class="font-mono uppercase tracking-wider text-[10px] text-muted-foreground mb-2">Organizations</h2>
+								<div class="flex flex-wrap gap-1.5">
+									for _, m := range data.Orgs {
+										<a href={ templ.SafeURL("/" + m.Org.Name) } title={ m.Org.Name } class="hover:opacity-80">
+											@components.Avatar(m.Org.Name, components.AvatarSizeDefault, m.Org.Name)
+										</a>
+									}
+								</div>
+							</section>
+						}
+						if len(data.TopLangs) > 0 {
+							<section aria-labelledby="langs-heading">
+								<h2 id="langs-heading" class="font-mono uppercase tracking-wider text-[10px] text-muted-foreground mb-2">Top languages</h2>
+								@components.LanguagesBar(data.TopLangs)
+							</section>
+						}
+					</aside>
+				</div>
 			}
 
-			<!-- Tab strip -->
-			@userProfileTabs(data)
+			if data.Tab == "repositories" {
+				@userReposTab(data)
+			}
 
 		</div>
 	}
 }
 
-templ userProfileTabs(data view.UserData) {
-	{{ isReposTab := data.RepoTabRoles != nil }}
-	<div>
-		<nav class="flex gap-0 border-b border-border mb-6 -mt-4" aria-label="Profile tabs">
-			<a
-				href={ templ.SafeURL("/" + data.User.Username) }
-				class={ "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors", templ.KV("border-foreground text-foreground", !isReposTab), templ.KV("border-transparent text-muted-foreground hover:text-foreground hover:border-border", isReposTab) }
-				aria-current={ templ.KV("page", !isReposTab) }
-			>
-				Overview
-			</a>
-			<a
-				href={ templ.SafeURL("/" + data.User.Username + "?tab=repositories") }
-				class={ "inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors", templ.KV("border-foreground text-foreground", isReposTab), templ.KV("border-transparent text-muted-foreground hover:text-foreground hover:border-border", !isReposTab) }
-				aria-current={ templ.KV("page", isReposTab) }
-			>
-				Repositories
-				<span class="inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded-full bg-muted text-muted-foreground text-[11px] font-mono">{ strconv.Itoa(len(data.Repos)) }</span>
-			</a>
-		</nav>
-		if isReposTab {
-			@userReposTab(data)
-		} else {
-			@userOverviewTab(data)
-		}
-	</div>
+templ profileTab(active bool, href, label string, counts ...int) {
+	if active {
+		<a href={ templ.SafeURL(href) } aria-current="page" class="px-3 py-1.5 rounded-md bg-accent font-medium text-foreground inline-flex items-center gap-1.5">
+			{ label }
+			for _, c := range counts {
+				if c > 0 {
+					<span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">{ strconv.Itoa(c) }</span>
+				}
+			}
+		</a>
+	} else {
+		<a href={ templ.SafeURL(href) } class="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1.5">
+			{ label }
+			for _, c := range counts {
+				if c > 0 {
+					<span class="font-mono text-[11px] text-muted-foreground/70 ml-0.5">{ strconv.Itoa(c) }</span>
+				}
+			}
+		</a>
+	}
 }
 
-templ userOverviewTab(data view.UserData) {
-	<section aria-labelledby="repos-heading">
-		<h2 id="repos-heading" class="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider font-mono">
-			Repositories
-			<span class="ml-1 text-foreground/80" aria-label={ "Total: " + strconv.Itoa(len(data.Repos)) }>{ strconv.Itoa(len(data.Repos)) }</span>
-		</h2>
-
-		if len(data.Repos) > 0 {
-			<div class="rounded-md border border-border bg-card overflow-hidden">
-				@components.Table(nil) {
-					@components.TableCaption(templ.Attributes{"class": "sr-only"}) {
-						Repositories owned by { data.User.Username }
-					}
-					@components.TableHeader() {
-						@components.TableRow(false) {
-							@components.TableHead(templ.Attributes{"scope": "col", "class": "w-10"}) {
-								<span class="sr-only">Visibility</span>
-							}
-							@components.TableHead(templ.Attributes{"scope": "col"}) {
-								Name
-							}
-							@components.TableHead(templ.Attributes{"scope": "col", "class": "text-right"}) {
-								Updated
-							}
-						}
-					}
-					@components.TableBody() {
-						for _, repo := range data.Repos {
-							@components.TableRow(true) {
-								@components.TableCell(templ.Attributes{"class": "w-10"}) {
-									@repoIcon(repo.Private)
-								}
-								@components.TableRowHead(nil) {
-									<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-sm hover:underline font-medium">
-										{ repo.Name }
-									</a>
-									if repo.Private {
-										<span class="ml-2 align-middle">
-											@components.Badge(components.BadgeOutline) {
-												Private
-											}
-										</span>
-									}
-									if repo.IsArchived {
-										<span class="ml-2 align-middle">
-											@components.Badge(components.BadgeDraft) {
-												Archived
-											}
-										</span>
-									}
-									if repo.IsFork {
-										<span class="ml-2 align-middle">
-											@components.Badge(components.BadgeOutline) {
-												Fork
-											}
-										</span>
-									}
-									if repo.Description != "" {
-										<p class="text-[12px] text-muted-foreground mt-0.5 font-normal">{ repo.Description }</p>
-									}
-								}
-								@components.TableCell(templ.Attributes{"class": "text-right text-xs text-muted-foreground font-mono whitespace-nowrap"}) {
-									<time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>
-										{ repo.UpdatedAt.Format("Jan 2, 2006") }
-									</time>
-								}
-							}
-						}
-					}
-				}
-			</div>
-		} else {
-			@components.EmptyState("No repositories.")
-		}
-	</section>
+func totalContributions(counts map[time.Time]int) int {
+	total := 0
+	for _, n := range counts {
+		total += n
+	}
+	return total
 }
 
 templ userReposTab(data view.UserData) {
@@ -198,7 +188,7 @@ templ userReposTab(data view.UserData) {
 				</p>
 			</div>
 			if data.BasePage.CurrentUser != nil && data.BasePage.CurrentUser.UserID == data.User.ID {
-				<a href="/new" class="h-9 px-4 rounded-md font-medium text-sm inline-flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 shrink-0">
+				<a href="/repos/new" class="h-9 px-4 rounded-md font-medium text-sm inline-flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 shrink-0">
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
 					New repository
 				</a>

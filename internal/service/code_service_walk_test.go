@@ -16,13 +16,10 @@ import (
 	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
 )
 
-// newTestRepoWithFiles initializes a bare repo at <root>/<owner>/<name>.git
-// and seeds it with a single commit containing the given files
-// (path → content). Returns the CodeService configured to read from `root`.
-// Mirrors newTestRepoWithCommits in code_service_log_test.go.
-func newTestRepoWithFiles(t *testing.T, owner, name string, files map[string]string) *CodeService {
+// newTestRepoWithFilesAt seeds a bare repo at <root>/<owner>/<name>.git with
+// `files` (path → content) under a single commit on master. Caller owns `root`.
+func newTestRepoWithFilesAt(t *testing.T, root, owner, name string, files map[string]string) string {
 	t.Helper()
-	root := t.TempDir()
 
 	bareDir := filepath.Join(root, owner, name+".git")
 	if err := os.MkdirAll(filepath.Dir(bareDir), 0o755); err != nil {
@@ -82,6 +79,16 @@ func newTestRepoWithFiles(t *testing.T, owner, name string, files map[string]str
 		t.Fatalf("set HEAD: %v", err)
 	}
 
+	return bareDir
+}
+
+// newTestRepoWithFiles allocates a fresh tempdir, seeds one bare repo, and
+// returns the CodeService configured for that root. Mirrors
+// newTestRepoWithCommits in code_service_log_test.go.
+func newTestRepoWithFiles(t *testing.T, owner, name string, files map[string]string) *CodeService {
+	t.Helper()
+	root := t.TempDir()
+	newTestRepoWithFilesAt(t, root, owner, name, files)
 	return NewCodeService(czconfig.GitConfig{ReposRoot: root})
 }
 

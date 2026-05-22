@@ -18,8 +18,18 @@ import (
 var (
 	ErrRegistrationDisabled = errors.New("registration is disabled")
 	ErrLoginDisabled        = errors.New("login is currently disabled")
+	ErrPinLimit             = errors.New("pin limit reached (6)")
+	ErrUsernameTaken        = errors.New("username is already taken")
+	ErrInvalidUsername      = errors.New("username must be 1-39 chars, alphanumeric, dash or underscore")
+	ErrEmailTaken           = errors.New("email is already taken")
+	ErrInvalidEmail         = errors.New("email must be a valid address")
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
+	usernameRe              = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$`)
+	emailRe                 = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 )
+
+// MaxPinnedRepos is the per-user cap on pinned repositories.
+const MaxPinnedRepos = 6
 
 // UserService manages user account operations including authentication and profile updates.
 type UserService struct {
@@ -147,6 +157,34 @@ func (s *UserService) UpdateEmailPrefs(ctx context.Context, userID int64, emailN
 	return s.store.UpdateEmailPrefs(ctx, userID, emailNotifications, emailDigest)
 }
 
+// UpdateNotificationPrefs saves the granular notification toggles.
+func (s *UserService) UpdateNotificationPrefs(ctx context.Context, userID int64, p store.NotificationPrefs) error {
+	return s.store.UpdateNotificationPrefs(ctx, userID, p)
+}
+
+// UpdateProfile validates and saves profile fields. Changing username or email
+// is checked against syntax + uniqueness; other fields are stored as-is.
+func (s *UserService) UpdateProfile(ctx context.Context, userID int64, name, username, email, bio, company, location string) error {
+	if !usernameRe.MatchString(username) {
+		return ErrInvalidUsername
+	}
+	if existing, err := s.store.GetByUsername(ctx, username); err == nil && existing.ID != userID {
+		return ErrUsernameTaken
+	}
+	if !emailRe.MatchString(email) {
+		return ErrInvalidEmail
+	}
+	if existing, err := s.store.GetByEmail(ctx, email); err == nil && existing.ID != userID {
+		return ErrEmailTaken
+	}
+	return s.store.UpdateProfile(ctx, userID, strings.TrimSpace(name), username, email, strings.TrimSpace(bio), strings.TrimSpace(company), strings.TrimSpace(location))
+}
+
+// DeleteUser removes the user account. Related rows are removed via DB cascades.
+func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
+	return s.store.DeleteByID(ctx, userID)
+}
+
 // ListUsersForDigest returns users with email notifications enabled for the given digest mode.
 func (s *UserService) ListUsersForDigest(ctx context.Context, digestMode string) ([]model.User, error) {
 	return s.store.ListUsersForDigest(ctx, digestMode)
@@ -160,6 +198,50 @@ func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (s
 		return "", fmt.Errorf("get user: %w", err)
 	}
 	return s.generateJWT(u)
+}
+
+// PinnedRepoIDs returns the user's pinned repo IDs in pin order.
+func (s *UserService) PinnedRepoIDs(ctx context.Context, userID int64) ([]int64, error) {
+	return s.store.GetPinnedRepoIDs(ctx, userID)
+}
+
+// PinRepo appends repoID to the user's pinned list. It is idempotent (pinning
+// an already-pinned repo is a no-op) and returns ErrPinLimit if the user
+// already has MaxPinnedRepos distinct pins.
+func (s *UserService) PinRepo(ctx context.Context, userID, repoID int64) error {
+	ids, err := s.store.GetPinnedRepoIDs(ctx, userID)
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		if id == repoID {
+			return nil
+		}
+	}
+	if len(ids) >= MaxPinnedRepos {
+		return ErrPinLimit
+	}
+	ids = append(ids, repoID)
+	return s.store.SetPinnedRepoIDs(ctx, userID, ids)
+}
+
+// UnpinRepo removes repoID from the user's pinned list. Removing a repo that
+// is not pinned is a no-op.
+func (s *UserService) UnpinRepo(ctx context.Context, userID, repoID int64) error {
+	ids, err := s.store.GetPinnedRepoIDs(ctx, userID)
+	if err != nil {
+		return err
+	}
+	out := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		if id != repoID {
+			out = append(out, id)
+		}
+	}
+	if len(out) == len(ids) {
+		return nil
+	}
+	return s.store.SetPinnedRepoIDs(ctx, userID, out)
 }
 
 func (s *UserService) generateJWT(u *model.User) (string, error) {

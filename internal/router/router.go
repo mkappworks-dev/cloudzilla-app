@@ -59,11 +59,14 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/register", h.PageRegister)
 	r.With(optAuthMW).Post("/register", h.PageRegisterSubmit)
 	r.With(optAuthMW).Post("/login", h.PageLoginSubmit)
-	r.With(authMW).Get("/new", h.PageNewRepo)
 	r.With(authMW).Get("/settings", h.PageSettings)
-	r.With(authMW).Get("/settings/notifications", h.PageNotificationSettings)
+	r.With(authMW).Post("/settings/profile", h.UpdateProfile)
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
-	r.With(authMW).Get("/settings/oauth-apps", h.PageOAuthApps)
+	r.With(authMW).Post("/settings/export", h.RequestExport)
+	r.With(authMW).Post("/settings/delete-account", h.DeleteAccount)
+	r.With(authMW).Get("/organizations", h.PageOrganizations)
+	r.With(authMW).Get("/organizations/new", h.PageNewOrganization)
+	r.With(authMW).Post("/organizations/new", h.CreateOrganization)
 	r.With(authMW).Get("/notifications", h.PageNotifications)
 	r.With(authMW).Get("/activity", h.PageActivity)
 
@@ -89,6 +92,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Account-level cross-repo pages
 	r.With(authMW).Get("/repos", h.PageAccountRepos)
+	r.With(authMW).Get("/repos/new", h.PageNewRepo)
 	r.With(authMW).Get("/pulls", h.PageAccountPulls)
 	r.With(authMW).Get("/issues", h.PageAccountIssues)
 	r.With(authMW).Get("/attention", h.PageAttention)
@@ -177,6 +181,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Use(optAuthMW)
 		r.Get("/{username}", h.GetUser)
 		r.Get("/{username}/repos", h.ListUserRepos)
+		r.With(authMW).Post("/{id}/pinned-repos/{repoID}", h.PinRepo)
+		r.With(authMW).Delete("/{id}/pinned-repos/{repoID}", h.UnpinRepo)
 	})
 
 	// Org routes
@@ -453,7 +459,6 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	})
 
 	// Personal Access Token routes
-	r.With(authMW).Get("/settings/tokens", h.PageTokens)
 	r.Route("/api/user/tokens", func(r chi.Router) {
 		r.Use(authMW, apiBodyLimit)
 		r.Post("/", h.CreateToken)
@@ -468,8 +473,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Delete("/authorizations/{id}", h.RevokeOAuthAuthorization)
 	})
 
-	// Saved replies routes
-	r.With(authMW).Get("/settings/replies", h.PageSavedReplies)
+	// Saved replies API (consumed by the comment composer)
 	r.Route("/api/user/replies", func(r chi.Router) {
 		r.Use(authMW, apiBodyLimit)
 		r.Get("/", h.ListSavedRepliesFragment)
@@ -479,8 +483,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	})
 
 	// Security / TOTP routes
-	r.With(authMW).Get("/settings/security", h.PageSecuritySettings)
-	r.With(authMW).Post("/settings/security/setup", h.PageSecuritySettingsSetup)
+	r.With(authMW).Post("/settings/security/setup", h.SetupTOTP)
 	r.With(authMW).Post("/api/user/totp/enable", h.EnableTOTP)
 	r.With(authMW).Post("/api/user/totp/disable", h.DisableTOTP)
 

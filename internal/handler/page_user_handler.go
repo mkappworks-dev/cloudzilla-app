@@ -6,11 +6,14 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -61,15 +64,91 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	isOwn := false
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		isOwn = claims.UserID == user.ID
+	}
+
+	tab := r.URL.Query().Get("tab")
+	if tab != "repositories" {
+		tab = "overview"
+	}
+
+	var pinned []components.PinnedRepoData
+	if tab == "overview" {
+		ids, err := h.Services.User.PinnedRepoIDs(r.Context(), user.ID)
+		if err != nil {
+			slog.Warn("user profile: failed to load pinned repositories", "username", username, "error", err)
+			ids = nil
+		}
+		for _, rid := range ids {
+			rp, err := h.Services.Repo.GetByID(r.Context(), rid)
+			if err != nil || rp == nil {
+				continue
+			}
+			if !h.Services.Repo.CanRead(r.Context(), rp, viewerID) {
+				continue
+			}
+			lang, _ := h.Services.Language.TopLanguageFor(r.Context(), rp.OwnerName, rp.Name, rp.DefaultBranch)
+			stars, _ := h.Services.Star.GetStarCount(r.Context(), rp.ID)
+			pinned = append(pinned, components.PinnedRepoData{
+				OwnerName:     rp.OwnerName,
+				Name:          rp.Name,
+				Description:   rp.Description,
+				Language:      lang,
+				LanguageColor: components.LangColor(lang),
+				Stars:         stars,
+			})
+		}
+	}
+
+	heatmap, err := h.Services.CommitStats.LookbackForUser(r.Context(), user.ID, 365)
+	if err != nil {
+		slog.Warn("user profile: failed to load commit heatmap", "username", username, "error", err)
+		heatmap = nil
+	}
+	if heatmap == nil {
+		heatmap = map[time.Time]int{}
+	}
+
+	langPcts, err := h.Services.Language.AggregateForUser(r.Context(), user.ID, 5)
+	if err != nil {
+		slog.Warn("user profile: failed to load language stats", "username", username, "error", err)
+		langPcts = nil
+	}
+	topLangs := make([]components.LangBarItem, 0, len(langPcts))
+	for _, p := range langPcts {
+		topLangs = append(topLangs, components.LangBarItem{
+			Name:    p.Name,
+			Percent: p.Percent,
+			Color:   components.LangColor(p.Name),
+		})
+	}
+
+	orgs, err := h.Services.Org.ListMembershipsForUser(r.Context(), user.ID)
+	if err != nil {
+		slog.Warn("user profile: failed to load organization memberships", "username", username, "error", err)
+		orgs = nil
+	}
+	if orgs == nil {
+		orgs = []service.OrgMembership{}
+	}
+
 	data := view.UserData{
 		BasePage:       basePage(r, h.Services),
 		User:           *user,
 		Repos:          repos,
 		RecentActivity: activity,
 		ProfileReadme:  profileReadme,
+		IsOwnProfile:   isOwn,
+		Tab:            tab,
+		PinnedRepos:    pinned,
+		Heatmap:        heatmap,
+		TopLangs:       topLangs,
+		Orgs:           orgs,
 	}
 
-	if r.URL.Query().Get("tab") == "repositories" {
+	if tab == "repositories" {
 		data = h.buildRepoTabData(r, data, repos, user.ID, viewerUserID)
 	}
 
@@ -187,8 +266,16 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		viewerID = &claims.UserID
 	}
-	repos, _ := h.Services.Org.ListReposVisibleTo(r.Context(), org.ID, viewerID)
-	members, _ := h.Services.Org.ListMembers(r.Context(), org.ID)
+	repos, err := h.Services.Org.ListReposVisibleTo(r.Context(), org.ID, viewerID)
+	if err != nil {
+		slog.Warn("org profile: failed to load repositories", "org", org.Name, "error", err)
+		repos = nil
+	}
+	members, err := h.Services.Org.ListMembers(r.Context(), org.ID)
+	if err != nil {
+		slog.Warn("org profile: failed to load members", "org", org.Name, "error", err)
+		members = nil
+	}
 	if repos == nil {
 		repos = []model.Repository{}
 	}
@@ -207,6 +294,40 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 		Repos:     repos,
 		Members:   members,
 		CanManage: canManage,
+	}))
+}
+
+// PageOrganizations renders the organizations listing page at /organizations.
+func (h *Handler) PageOrganizations(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	memberships, err := h.Services.Org.ListMembershipsForUser(r.Context(), claims.UserID)
+	if err != nil {
+		slog.Warn("organizations: failed to load memberships", "user_id", claims.UserID, "error", err)
+		memberships = nil
+	}
+
+	entries := make([]view.OrgListEntry, 0, len(memberships))
+	for _, m := range memberships {
+		count, err := h.Services.Org.CountMembers(r.Context(), m.Org.ID)
+		if err != nil {
+			slog.Warn("organizations: failed to count members", "org_id", m.Org.ID, "error", err)
+			count = 0
+		}
+		entries = append(entries, view.OrgListEntry{
+			Org:         m.Org,
+			Role:        m.Role,
+			MemberCount: count,
+		})
+	}
+
+	h.render(w, r, pages.Organizations(view.OrgListData{
+		BasePage: basePage(r, h.Services),
+		Entries:  entries,
 	}))
 }
 
@@ -230,7 +351,11 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, _ := h.Services.Org.ListMembers(r.Context(), org.ID)
+	members, err := h.Services.Org.ListMembers(r.Context(), org.ID)
+	if err != nil {
+		slog.Warn("org settings: failed to load members", "org", org.Name, "error", err)
+		members = nil
+	}
 	if members == nil {
 		members = []model.OrgMember{}
 	}

@@ -104,6 +104,18 @@ func (s *OrgStore) ListMembers(ctx context.Context, orgID int64) ([]model.OrgMem
 	return members, rows.Err()
 }
 
+func (s *OrgStore) CountMembers(ctx context.Context, orgID int64) (int, error) {
+	var c int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM org_members WHERE org_id = $1`,
+		orgID,
+	).Scan(&c)
+	if err != nil {
+		return 0, fmt.Errorf("org count members: %w", err)
+	}
+	return c, nil
+}
+
 func (s *OrgStore) UpdateMemberRole(ctx context.Context, orgID, userID int64, role model.OrgRole) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE org_members SET role = $1 WHERE org_id = $2 AND user_id = $3`,

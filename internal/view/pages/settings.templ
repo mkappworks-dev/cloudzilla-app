@@ -10,209 +10,500 @@ import (
 )
 
 templ Settings(data view.SettingsData) {
-	@layout.Base(data.BasePage, "Settings") {
-		<div class="space-y-8">
-
-			<section aria-labelledby="settings-title">
-				<h1 id="settings-title" class="text-2xl font-semibold tracking-tight">Account settings</h1>
-				<p class="mt-1 text-sm text-muted-foreground">SSH keys, access tokens, and saved replies.</p>
-			</section>
-
-			<div class="grid grid-cols-12 gap-8">
-
-				<aside class="col-span-12 lg:col-span-3" aria-label="Settings sections">
-					<div class="lg:sticky lg:top-4">
-						<nav class="flex flex-col gap-0.5">
-							<a href="#ssh-keys" class="block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent">SSH keys</a>
-							<a href="#tokens" class="block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Access tokens</a>
-							<a href="#replies" class="block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Saved replies</a>
-						</nav>
-					</div>
-				</aside>
-
-				<div class="col-span-12 lg:col-span-9 space-y-8">
-
-					<section id="ssh-keys" class="scroll-mt-6">
-						@components.Card(nil) {
-							@components.CardHeader() {
-								@components.CardTitle(2) {
-									SSH keys
-								}
-								@components.CardDescription() {
-									Manage your SSH public keys for git operations.
-								}
-							}
-							@components.CardContent() {
-								<section aria-labelledby="add-ssh-heading" class="rounded-md border border-border bg-muted/40 p-4 mb-6">
-									<h3 id="add-ssh-heading" class="text-sm font-medium mb-3">Add SSH key</h3>
-									<form id="add-ssh-key-form" hx-post="/api/user/keys" hx-target="#ssh-keys-list" hx-swap="outerHTML" data-toast="SSH key added" class="space-y-4">
-										<div class="space-y-1.5">
-											<label for="key-title" class="block text-xs font-medium text-muted-foreground">Key title</label>
-											@components.Input(templ.Attributes{
-												"id":          "key-title",
-												"type":        "text",
-												"name":        "title",
-												"placeholder": "e.g., laptop, desktop",
-												"required":    "required",
-											})
-											<p class="text-xs text-muted-foreground">A short name to help you remember this key.</p>
-										</div>
-										<div class="space-y-1.5">
-											<label for="public-key" class="block text-xs font-medium text-muted-foreground">Public key</label>
-											@components.Textarea(templ.Attributes{
-												"id":          "public-key",
-												"name":        "public_key",
-												"placeholder": "ssh-ed25519 AAAA... or ssh-rsa AAAA...",
-												"rows":        "4",
-												"required":    "required",
-												"class":       "font-mono text-xs",
-											})
-											<p class="text-xs text-muted-foreground">
-												Paste your SSH public key (from
-												<code class="text-[11px] bg-background border border-border rounded px-1.5 py-0.5 font-mono">~/.ssh/id_ed25519.pub</code>
-												or similar).
-											</p>
-										</div>
-										<div class="flex gap-2 pt-1">
-											@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-												Add key
-											}
-											@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "reset"}) {
-												Clear
-											}
-										</div>
-									</form>
-								</section>
-
-								<div id="ssh-keys-list" class="space-y-2">
-									if len(data.SSHKeys) > 0 {
-										for _, k := range data.SSHKeys {
-											<div class="flex items-start gap-3 p-4 rounded-md border border-border" data-key-id={ strconv.FormatInt(k.ID, 10) }>
-												<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground mt-0.5 shrink-0" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
-												<div class="flex-1 min-w-0">
-													<p class="text-sm font-medium text-foreground">{ k.Title }</p>
-													<p class="text-xs text-muted-foreground mt-0.5 font-mono break-all">{ k.Fingerprint }</p>
-													<p class="text-xs text-muted-foreground mt-1">
-														Added <time datetime={ k.CreatedAt.UTC().Format(time.RFC3339) }>{ k.CreatedAt.Format("Jan 2, 2006") }</time>
-													</p>
-												</div>
-												@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-													"hx-delete":           "/api/user/keys/" + strconv.FormatInt(k.ID, 10),
-													"hx-target":           "#ssh-keys-list",
-													"hx-swap":             "outerHTML",
-													"hx-confirm":          "The " + k.Title + " key will immediately lose access. Any system using it for git operations will stop working.",
-													"data-confirm-title":  "Delete this SSH key?",
-													"data-confirm-label":  "Delete",
-													"data-confirm-danger": "true",
-													"data-toast":          "SSH key deleted",
-													"type":                "button",
-												}) {
-													Delete
-												}
-											</div>
-										}
-									} else {
-										<div class="text-center py-8 border border-dashed border-border rounded-md bg-muted/30">
-											<p class="text-sm text-muted-foreground">No SSH keys yet. Add one above to get started.</p>
-										</div>
-									}
-								</div>
-
-								<aside aria-labelledby="ssh-howto-heading" class="mt-6 rounded-md border border-border bg-muted/40 p-4">
-									<h3 id="ssh-howto-heading" class="text-sm font-medium mb-3">Getting started with SSH</h3>
-									<ol class="space-y-2 text-sm text-muted-foreground">
-										<li>
-											<span class="font-mono text-foreground/70 mr-2">1.</span>
-											Generate a key:
-											<code class="text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1">ssh-keygen -t ed25519</code>
-										</li>
-										<li>
-											<span class="font-mono text-foreground/70 mr-2">2.</span>
-											Copy your public key:
-											<code class="text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1">cat ~/.ssh/id_ed25519.pub</code>
-										</li>
-										<li>
-											<span class="font-mono text-foreground/70 mr-2">3.</span>
-											Paste it above and save.
-										</li>
-										<li>
-											<span class="font-mono text-foreground/70 mr-2">4.</span>
-											Clone via SSH:
-											<code class="text-xs bg-background border border-border rounded px-1.5 py-0.5 font-mono ml-1">git clone ssh://git@localhost:2222/owner/repo.git</code>
-										</li>
-									</ol>
-								</aside>
-							}
-						}
-					</section>
-
-					<section id="tokens" class="scroll-mt-6">
-						@components.Card(nil) {
-							@components.CardHeader() {
-								@components.CardTitle(2) {
-									Personal access tokens
-								}
-								@components.CardDescription() {
-									Create tokens to authenticate git push/pull and API requests over HTTPS.
-								}
-							}
-							@components.CardFooter() {
-								@components.LinkButton("/settings/tokens", components.ButtonDefault, components.ButtonSizeSM, nil) {
-									Manage access tokens
-								}
-							}
-						}
-					</section>
-
-					<section id="replies" class="scroll-mt-6">
-						@components.Card(nil) {
-							@components.CardHeader() {
-								@components.CardTitle(2) {
-									Saved replies
-								}
-								@components.CardDescription() {
-									Manage reusable comment snippets for issues and pull requests.
-								}
-							}
-							@components.CardFooter() {
-								@components.LinkButton("/settings/replies", components.ButtonDefault, components.ButtonSizeSM, nil) {
-									Manage saved replies
-								}
-							}
-						}
-					</section>
-
-				</div>
+	@layout.Base(data.BasePage, "Account settings") {
+		<section class="mb-8" aria-labelledby="settings-title">
+			<h1 id="settings-title" class="text-2xl font-semibold tracking-tight">Account settings</h1>
+			<p class="mt-1 text-[13px] text-muted-foreground">Profile, security, notifications, and personal access tokens.</p>
+		</section>
+		if data.ProfileError != "" {
+			<div class="mb-6 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-4 py-2 text-[13px]">{ settingsErrorMessage(data.ProfileError) }</div>
+		}
+		<div class="grid grid-cols-12 gap-8">
+			<aside class="col-span-12 lg:col-span-3" aria-label="Settings sections">
+				<nav class="lg:sticky lg:top-4 flex flex-col gap-0.5 text-[13px]">
+					@settingsNavLink("#profile", "Profile", true)
+					@settingsNavLink("#security", "Security", false)
+					@settingsNavLink("#ssh-keys", "SSH keys", false)
+					@settingsNavLink("#tokens", "Access tokens", false)
+					@settingsNavLink("#notifications", "Notifications", false)
+					@settingsNavLink("#sessions", "Sessions", false)
+					@settingsNavLink("#emails", "Emails", false)
+					<p class="font-mono text-[10px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-muted-foreground">Danger zone</p>
+					<a href="#delete" class="block px-3 py-1.5 rounded text-[13px] text-destructive hover:bg-destructive/10">Delete account</a>
+				</nav>
+			</aside>
+			<div class="col-span-12 lg:col-span-9 space-y-8">
+				@settingsProfileSection(data)
+				@settingsSecuritySection(data)
+				@settingsSSHKeysSection(data)
+				@settingsTokensSection(data)
+				@settingsNotificationsSection(data)
+				@settingsSessionsSection(data)
+				@settingsEmailsSection(data)
+				@settingsDangerSection(data)
 			</div>
-
-			<script>
-				(function () {
-					var nav = document.querySelector('aside[aria-label="Settings sections"] nav');
-					if (!nav) return;
-					var links = Array.prototype.slice.call(nav.querySelectorAll('a[href^="#"]'));
-					var targets = links
-						.map(function (l) { return { link: l, el: document.getElementById(l.getAttribute('href').slice(1)) }; })
-						.filter(function (t) { return t.el; });
-					if (!targets.length) return;
-					function update() {
-						var active = targets[0];
-						for (var i = 0; i < targets.length; i++) {
-							if (targets[i].el.getBoundingClientRect().top <= 120) active = targets[i];
-						}
-						links.forEach(function (l) {
-							var on = l === active.link;
-							l.classList.toggle('bg-accent', on);
-							l.classList.toggle('text-foreground', on);
-							l.classList.toggle('font-medium', on);
-							l.classList.toggle('text-muted-foreground', !on);
-						});
-					}
-					update();
-					window.addEventListener('scroll', update, { passive: true });
-					window.addEventListener('resize', update, { passive: true });
-				})();
-			</script>
-
 		</div>
+		<script>
+			(function () {
+				var links = Array.prototype.slice.call(
+					document.querySelectorAll('aside[aria-label="Settings sections"] a[href^="#"]')
+				);
+				var pairs = links.map(function (l) {
+					return { link: l, el: document.getElementById(l.getAttribute('href').slice(1)) };
+				}).filter(function (p) { return p.el; });
+				if (!pairs.length) return;
+				function setActive(active) {
+					links.forEach(function (l) {
+						var on = l === active.link;
+						l.classList.toggle('bg-accent', on);
+						l.classList.toggle('text-foreground', on);
+						l.classList.toggle('font-medium', on);
+						l.classList.toggle('text-muted-foreground', !on && !l.classList.contains('text-destructive'));
+					});
+				}
+				function spy() {
+					var y = window.scrollY + 80;
+					var best = pairs[0];
+					for (var i = 0; i < pairs.length; i++) {
+						if (pairs[i].el.offsetTop <= y) best = pairs[i];
+					}
+					setActive(best);
+				}
+				spy();
+				window.addEventListener('scroll', spy, { passive: true });
+			})();
+		</script>
 	}
 }
+
+templ settingsNavLink(href, label string, active bool) {
+	if active {
+		<a href={ templ.SafeURL(href) } class="block px-3 py-1.5 rounded bg-accent text-foreground font-medium">{ label }</a>
+	} else {
+		<a href={ templ.SafeURL(href) } class="block px-3 py-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent">{ label }</a>
+	}
+}
+
+templ settingsProfileSection(data view.SettingsData) {
+	<section id="profile" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
+		<h2 class="text-base font-semibold tracking-tight mb-1">Profile</h2>
+		<p class="text-[12.5px] text-muted-foreground mb-6">How others see you across Cloudzilla.</p>
+		<form method="POST" action="/settings/profile" data-toast="Profile saved" class="space-y-5">
+			<div class="flex items-start gap-4 mb-2">
+				<div class="h-16 w-16 rounded-full grid place-items-center text-base font-semibold shrink-0 bg-muted border border-border">
+					{ avatarInitials(data.User.Name, data.User.Username) }
+				</div>
+				<div class="space-y-2">
+					<button type="button" disabled class="h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed">Upload new picture</button>
+					<p class="text-[11.5px] text-muted-foreground">PNG or JPG, max 2 MB. (Coming soon.)</p>
+				</div>
+			</div>
+			<div>
+				<label for="acct-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Name</label>
+				<input id="acct-name" name="name" type="text" value={ data.User.Name } class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+			</div>
+			<div>
+				<label for="acct-username" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Username</label>
+				<input id="acct-username" name="username" type="text" value={ data.User.Username } required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"/>
+				<p class="mt-1 text-[11.5px] text-muted-foreground">Changing this will break links to your profile.</p>
+			</div>
+			<div>
+				<label for="acct-email" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Email</label>
+				<input id="acct-email" name="email" type="email" value={ data.User.Email } required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"/>
+				<p class="mt-1 text-[11.5px] text-muted-foreground">Used for sign-in and notifications.</p>
+			</div>
+			<div>
+				<label for="acct-bio" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Bio</label>
+				<textarea id="acct-bio" name="bio" rows="3" placeholder="A short description of yourself" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring">{ data.User.Bio }</textarea>
+			</div>
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+				<div>
+					<label for="acct-company" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Company</label>
+					<input id="acct-company" name="company" type="text" value={ data.User.Company } placeholder="@mkappworks" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+				</div>
+				<div>
+					<label for="acct-location" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Location</label>
+					<input id="acct-location" name="location" type="text" value={ data.User.Location } placeholder="Colombo, Sri Lanka" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+				</div>
+			</div>
+			<div class="flex items-center justify-end gap-2">
+				<button type="reset" class="h-9 px-4 text-sm rounded-md border border-border hover:bg-muted text-foreground">Cancel</button>
+				<button type="submit" class="h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Save profile</button>
+			</div>
+		</form>
+	</section>
+}
+
+templ settingsSecuritySection(data view.SettingsData) {
+	<section id="security" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
+		<h2 class="text-base font-semibold tracking-tight mb-1">Security</h2>
+		<p class="text-[12.5px] text-muted-foreground mb-6">Password and two-factor authentication.</p>
+		if len(data.BackupCodes) > 0 {
+			<div class="mb-6 border border-warning/40 bg-warning/10 rounded-md p-4">
+				<p class="text-[13.5px] font-medium text-warning mb-2">Save your backup codes</p>
+				<p class="text-[12px] text-warning mb-3">Each code can be used once if you lose access to your authenticator. They will not be shown again.</p>
+				<div class="grid grid-cols-2 gap-2 font-mono text-[12.5px]">
+					for _, code := range data.BackupCodes {
+						<div class="bg-background border border-warning/40 rounded px-3 py-1.5 text-center tracking-widest text-foreground">{ code }</div>
+					}
+				</div>
+			</div>
+		}
+		<ul class="divide-y divide-border">
+			<li class="py-4 flex items-start justify-between gap-4">
+				<div class="min-w-0">
+					<p class="text-[13.5px] font-medium">Password</p>
+					<p class="mt-0.5 text-[12.5px] text-muted-foreground">Use a strong, unique password for your account.</p>
+				</div>
+				<button type="button" disabled class="h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed shrink-0">Change password</button>
+			</li>
+			<li class="py-4">
+				<div class="flex items-start justify-between gap-4">
+					<div class="min-w-0">
+						<p class="text-[13.5px] font-medium inline-flex items-center gap-2">
+							Two-factor authentication
+							if data.TOTPEnabled {
+								<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Enabled</span>
+							} else {
+								<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground">Disabled</span>
+							}
+						</p>
+						<p class="mt-0.5 text-[12.5px] text-muted-foreground">TOTP via authenticator app (Google Authenticator, 1Password, Authy).</p>
+					</div>
+				</div>
+				if data.TOTPEnabled {
+					<form method="POST" action="/api/user/totp/disable" data-toast="Two-factor authentication disabled" class="mt-4 flex items-end gap-3">
+						<div>
+							<label for="totp-disable-code" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Verification code</label>
+							<input id="totp-disable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:border-ring"/>
+						</div>
+						<button type="submit" class="h-9 px-4 text-sm rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10">Disable 2FA</button>
+					</form>
+				} else if data.TOTPPendingSecret != "" {
+					<div class="mt-4 space-y-4">
+						<div class="flex gap-6 items-start">
+							<img src={ "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" + data.TOTPOTPAuthURL } alt="TOTP QR Code" class="border border-border rounded-md"/>
+							<div class="flex-1 min-w-0">
+								<p class="text-[12.5px] font-medium mb-1">Or enter this key manually</p>
+								<code class="block bg-muted border border-border rounded px-3 py-2 text-[12.5px] font-mono tracking-widest break-all text-foreground">{ data.TOTPPendingSecret }</code>
+							</div>
+						</div>
+						<form method="POST" action="/api/user/totp/enable" data-toast="Two-factor authentication enabled" class="flex items-end gap-3">
+							<input type="hidden" name="secret" value={ data.TOTPPendingSecret }/>
+							<div>
+								<label for="totp-enable-code" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Enter the 6-digit code from your app</label>
+								<input id="totp-enable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:border-ring"/>
+							</div>
+							<button type="submit" class="h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Verify &amp; enable</button>
+						</form>
+					</div>
+				} else {
+					<form method="POST" action="/settings/security/setup" class="mt-3">
+						<button type="submit" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground">Set up 2FA</button>
+					</form>
+				}
+			</li>
+		</ul>
+	</section>
+}
+
+templ settingsSSHKeysSection(data view.SettingsData) {
+	<section id="ssh-keys" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
+		<div class="flex items-start justify-between gap-4 mb-6">
+			<div class="min-w-0">
+				<h2 class="text-base font-semibold tracking-tight mb-1">SSH keys</h2>
+				<p class="text-[12.5px] text-muted-foreground">Used for git push/pull over SSH.</p>
+			</div>
+			<button
+				type="button"
+				onclick="document.getElementById('add-ssh-key-dialog').showModal()"
+				class="h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0"
+			>
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+				Add SSH key
+			</button>
+		</div>
+		<div id="ssh-keys-list" class="space-y-2 mb-4">
+			if len(data.SSHKeys) > 0 {
+				for _, k := range data.SSHKeys {
+					<div class="flex items-center gap-3 border border-border rounded-md p-3" data-key-id={ strconv.FormatInt(k.ID, 10) }>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+						<div class="min-w-0 flex-1">
+							<p class="text-[13.5px] font-medium">{ k.Title }</p>
+							<p class="text-[11.5px] text-muted-foreground font-mono break-all">{ k.Fingerprint }</p>
+							<p class="text-[11.5px] text-muted-foreground mt-0.5">
+								Added <time datetime={ k.CreatedAt.UTC().Format(time.RFC3339) }>{ k.CreatedAt.Format("Jan 2, 2006") }</time>
+							</p>
+						</div>
+						<button
+							type="button"
+							hx-delete={ "/api/user/keys/" + strconv.FormatInt(k.ID, 10) }
+							hx-target="#ssh-keys-list"
+							hx-swap="outerHTML"
+							hx-confirm={ "The " + k.Title + " key will immediately lose access. Any system using it for git operations will stop working." }
+							data-confirm-title="Remove this SSH key?"
+							data-confirm-label="Remove"
+							data-confirm-danger="true"
+							data-toast="SSH key removed"
+							class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0"
+						>Remove</button>
+					</div>
+				}
+			} else {
+				<div class="text-center py-6 border border-dashed border-border rounded-md text-[13px] text-muted-foreground">No SSH keys yet.</div>
+			}
+		</div>
+		@settingsAddSSHKeyDialog()
+	</section>
+}
+
+templ settingsAddSSHKeyDialog() {
+	@components.Dialog("add-ssh-key-dialog") {
+		<form
+			id="add-ssh-key-form"
+			hx-post="/api/user/keys"
+			hx-target="#ssh-keys-list"
+			hx-swap="outerHTML"
+			data-toast="SSH key added"
+			hx-on::after-request="if(event.detail.successful){this.closest('dialog').close(); this.reset();}"
+		>
+			@components.DialogHeader() {
+				@components.DialogTitle("add-ssh-key-dialog") {
+					Add SSH key
+				}
+				@components.DialogDescription() {
+					A key gives any system holding the private half full git access to your repos.
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-4">
+					<div>
+						<label for="key-title" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Title</label>
+						<input id="key-title" name="title" type="text" required placeholder="e.g. laptop" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+					</div>
+					<div>
+						<label for="public-key" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Public key</label>
+						<textarea id="public-key" name="public_key" rows="5" required placeholder="ssh-ed25519 AAAA…" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-none focus:border-ring"></textarea>
+					</div>
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Add key</button>
+			}
+		</form>
+	}
+}
+
+templ settingsTokensSection(data view.SettingsData) {
+	<section id="tokens" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
+		<div class="flex items-start justify-between gap-4 mb-6">
+			<div class="min-w-0">
+				<h2 class="text-base font-semibold tracking-tight mb-1">Personal access tokens</h2>
+				<p class="text-[12.5px] text-muted-foreground">For scripts and integrations that need to act on your behalf.</p>
+			</div>
+			<button
+				type="button"
+				onclick="document.getElementById('generate-token-dialog').showModal()"
+				class="h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0"
+			>
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+				Generate token
+			</button>
+		</div>
+		if data.NewToken != "" {
+			<div class="mb-6 border border-success/40 bg-success/10 rounded-md p-4">
+				<p class="font-semibold text-success mb-2 text-[13px]">Your new token — copy it now, it won't be shown again:</p>
+				<code class="block bg-background border border-success/40 rounded px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground">{ data.NewToken }</code>
+			</div>
+		}
+		<div id="tokens-list" class="space-y-2 mb-4">
+			if len(data.Tokens) > 0 {
+				for _, t := range data.Tokens {
+					<div class="flex items-center gap-3 border border-border rounded-md p-3">
+						<span class="h-2 w-2 rounded-full bg-success shrink-0" aria-label="Active"></span>
+						<div class="min-w-0 flex-1">
+							<p class="text-[13.5px] font-medium">{ t.Name }</p>
+							<p class="text-[12px] text-muted-foreground">
+								scopes:
+								if len(t.Scopes) > 0 {
+									for i, s := range t.Scopes {
+										if i > 0 {
+											{ ", " }
+										}
+										<span class="font-mono">{ s }</span>
+									}
+								} else {
+									<span class="font-mono">none</span>
+								}
+								if t.ExpiresAt != nil {
+									{ " · expires " }
+									<time datetime={ t.ExpiresAt.UTC().Format(time.RFC3339) }>{ t.ExpiresAt.Format("Jan 2, 2006") }</time>
+								} else {
+									{ " · no expiry" }
+								}
+							</p>
+						</div>
+						<span class="text-[11px] text-muted-foreground font-mono">…{ t.LastEight }</span>
+						<button
+							type="button"
+							hx-delete={ "/api/user/tokens/" + strconv.FormatInt(t.ID, 10) }
+							hx-target="#tokens-list"
+							hx-swap="outerHTML"
+							hx-confirm={ "The " + t.Name + " token will immediately lose access. Any script or integration using it will stop working." }
+							data-confirm-title="Revoke this token?"
+							data-confirm-label="Revoke"
+							data-confirm-danger="true"
+							data-toast="Token revoked"
+							class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0"
+						>Revoke</button>
+					</div>
+				}
+			} else {
+				<div class="text-center py-6 border border-dashed border-border rounded-md text-[13px] text-muted-foreground">No tokens yet.</div>
+			}
+		</div>
+		@settingsGenerateTokenDialog()
+	</section>
+}
+
+templ settingsGenerateTokenDialog() {
+	@components.Dialog("generate-token-dialog") {
+		<form method="POST" action="/api/user/tokens" data-toast="Token generated">
+			@components.DialogHeader() {
+				@components.DialogTitle("generate-token-dialog") {
+					Generate personal access token
+				}
+				@components.DialogDescription() {
+					Treat tokens like passwords — they grant API and git access on your behalf.
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-4">
+					<div>
+						<label for="token-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Name</label>
+						<input id="token-name" name="name" type="text" required placeholder="e.g. CI deploy" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+					</div>
+					<fieldset>
+						<legend class="block text-[12px] font-medium text-muted-foreground mb-1.5">Scopes</legend>
+						<div class="space-y-1.5 text-[13px]">
+							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="repo:read"/> <span><strong class="font-mono">repo:read</strong> — read repositories, code, issues, PRs</span></label>
+							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="repo:write"/> <span><strong class="font-mono">repo:write</strong> — push to repositories</span></label>
+							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="issues:write"/> <span><strong class="font-mono">issues:write</strong> — create and update issues</span></label>
+							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="pulls:write"/> <span><strong class="font-mono">pulls:write</strong> — create and update pull requests</span></label>
+						</div>
+					</fieldset>
+					<div>
+						<label for="token-expires" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Expiration (optional)</label>
+						<input id="token-expires" name="expires_at" type="date" class="bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+						<p class="text-[11px] text-muted-foreground mt-1">Leave blank for a non-expiring token.</p>
+					</div>
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Generate token</button>
+			}
+		</form>
+	}
+}
+
+templ settingsNotificationsSection(data view.SettingsData) {
+	<section id="notifications" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
+		<h2 class="text-base font-semibold tracking-tight mb-1">Notifications</h2>
+		<p class="text-[12.5px] text-muted-foreground mb-6">How and when you hear about activity. Changes save automatically.</p>
+		<form
+			hx-post="/settings/notifications"
+			hx-trigger="change"
+			hx-swap="none"
+			data-toast="Notification preferences saved"
+			class="divide-y divide-border"
+		>
+			@settingsToggle("notify_pr_review", "Pull requests where I'm requested as a reviewer", "Email me when someone requests my review.", data.User.NotifyPRReview)
+			@settingsToggle("notify_issue_assigned", "Issues assigned to me", "Email me when an issue is assigned to my account.", data.User.NotifyIssueAssigned)
+			@settingsToggle("notify_mention", "Mentions in comments and discussions", "Email me when someone @-mentions me.", data.User.NotifyMention)
+			@settingsToggle("notify_watched", "Activity on repositories I watch", "Email summary of pushes, releases, and issues.", data.User.NotifyWatched)
+			@settingsToggle("notify_weekly_digest", "Weekly digest of my work", "A Monday morning summary of last week's activity.", data.User.NotifyWeeklyDigest)
+		</form>
+	</section>
+}
+
+templ settingsSessionsSection(data view.SettingsData) {
+	<section id="sessions" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
+		<h2 class="text-base font-semibold tracking-tight mb-1">Sessions</h2>
+		<p class="text-[12.5px] text-muted-foreground mb-6">Browsers and clients signed in to your account.</p>
+		<ul class="divide-y divide-border">
+			<li class="py-3 flex items-center gap-3">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+				<div class="min-w-0 flex-1">
+					<p class="text-[13.5px] font-medium">This browser <span class="ml-2 text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Current</span></p>
+					<p class="text-[12px] text-muted-foreground">Cloudzilla uses a single JWT cookie per browser. Sign out to end this session.</p>
+				</div>
+			</li>
+		</ul>
+		<p class="mt-4 text-[12px] text-muted-foreground">Multi-device session tracking is coming soon.</p>
+	</section>
+}
+
+templ settingsEmailsSection(data view.SettingsData) {
+	<section id="emails" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
+		<h2 class="text-base font-semibold tracking-tight mb-1">Emails</h2>
+		<p class="text-[12.5px] text-muted-foreground mb-6">Addresses associated with your account.</p>
+		<ul class="divide-y divide-border">
+			<li class="py-3 flex items-center gap-3">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg>
+				<div class="min-w-0 flex-1">
+					<p class="text-[13.5px] font-medium font-mono">{ data.User.Email }</p>
+					<p class="text-[12px] text-muted-foreground">Used for sign-in and notifications.</p>
+				</div>
+				<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Primary</span>
+			</li>
+		</ul>
+		<p class="mt-4 text-[12px] text-muted-foreground">Adding additional email addresses is coming soon.</p>
+	</section>
+}
+
+templ settingsDangerSection(data view.SettingsData) {
+	<section id="danger" class="border border-destructive/40 rounded-lg bg-card p-6 scroll-mt-6">
+		<h2 class="text-base font-semibold tracking-tight mb-1 text-destructive">Danger zone</h2>
+		<p class="text-[12.5px] text-muted-foreground mb-6">Irreversible. Export what you want to keep first.</p>
+		<ul class="divide-y divide-border">
+			<li class="py-4 flex items-start justify-between gap-4">
+				<div class="min-w-0">
+					<p class="text-[13.5px] font-medium">Export your data</p>
+					<p class="mt-0.5 text-[12.5px] text-muted-foreground">Download everything you've created on Cloudzilla as a zip.</p>
+				</div>
+				<form method="POST" action="/settings/export" data-toast="Export requested" class="shrink-0">
+					<button type="submit" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground">Request export</button>
+				</form>
+			</li>
+			<li id="delete" class="py-4 flex items-start justify-between gap-4">
+				<div class="min-w-0">
+					<p class="text-[13.5px] font-medium">Delete account</p>
+					<p class="mt-0.5 text-[12.5px] text-muted-foreground">Permanently remove your account, repositories, gists, and history.</p>
+				</div>
+				<form
+					method="POST"
+					action="/settings/delete-account"
+					class="shrink-0 flex items-center gap-2"
+					onsubmit={ confirmDeleteAccount(data.User.Username) }
+				>
+					<input
+						type="text"
+						name="confirm_username"
+						placeholder="type your username"
+						required
+						autocomplete="off"
+						class="h-8 w-44 bg-background border border-border rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-none focus:border-ring"
+					/>
+					<button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete account</button>
+				</form>
+			</li>
+		</ul>
+	</section>
+}
+
+script confirmDeleteAccount(username string) {
+	return confirm("Permanently delete @" + username + "? This cannot be undone.");
+}
+

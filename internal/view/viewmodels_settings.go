@@ -2,10 +2,21 @@ package view
 
 import "github.com/mkappworks-dev/cloudzilla-app/internal/model"
 
-// SettingsData holds template data for the user account settings page.
+// SettingsData holds template data for the consolidated user account settings page.
+// All sections (profile, security, SSH keys, tokens, notifications, sessions, emails, danger)
+// render from a single page handler.
 type SettingsData struct {
 	BasePage
-	SSHKeys []model.SSHKey
+	User              model.User
+	SSHKeys           []model.SSHKey
+	Tokens            []model.AccessToken
+	TOTPEnabled       bool
+	TOTPPendingSecret string
+	TOTPOTPAuthURL    string
+	BackupCodes       []string
+	NewToken          string
+	ProfileSaved      bool
+	ProfileError      string
 }
 
 // NotificationsData holds template data for the notifications page.
@@ -48,14 +59,6 @@ type SSHKeysFragData struct {
 	SSHKeys []model.SSHKey
 }
 
-// Tokens page
-// TokensData holds template data for the personal access tokens page.
-type TokensData struct {
-	BasePage
-	Tokens   []model.AccessToken
-	NewToken string // raw token, shown only once after creation
-}
-
 // Tokens list fragment
 // TokensListFragData holds template data for the PAT list HTMX fragment.
 type TokensListFragData struct {
@@ -83,15 +86,6 @@ type SSOSettingsData struct {
 	Success    string
 }
 
-// Notification settings page
-// NotificationSettingsData holds template data for the notification preferences page.
-type NotificationSettingsData struct {
-	BasePage
-	EmailNotifications bool
-	EmailDigest        string
-}
-
-// OAuth Apps pages
 // OAuthAuthorizeData holds template data for the OAuth authorization consent page.
 type OAuthAuthorizeData struct {
 	BasePage
@@ -99,11 +93,4 @@ type OAuthAuthorizeData struct {
 	Scopes      []string
 	RedirectURI string
 	State       string
-}
-
-// OAuthAppsData holds template data for the OAuth applications management page.
-type OAuthAppsData struct {
-	BasePage
-	Apps           []model.OAuthApp
-	Authorizations []model.OAuthAuthorization
 }

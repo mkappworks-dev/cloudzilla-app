@@ -277,7 +277,7 @@ func SavedRepliesPicker(data view.SavedRepliesPickerFragData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<p class=\"px-4 py-3 text-sm text-muted-foreground\">No saved replies. <a href=\"/settings/replies\" class=\"text-foreground hover:underline\">Create one</a>.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<p class=\"px-4 py-3 text-sm text-muted-foreground\">No saved replies.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

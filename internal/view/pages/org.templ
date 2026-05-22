@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"strconv"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -8,71 +10,105 @@ import (
 
 templ Org(data view.OrgData) {
 	@layout.Base(data.BasePage, data.Org.Name) {
-		<div class="space-y-6">
-			@components.Card(nil) {
-				@components.CardContent() {
-					<div class="flex justify-between items-start">
-						<div>
-							<h1 class="text-3xl font-bold">{ data.Org.Name }</h1>
-							if data.Org.DisplayName != "" {
-								<p class="text-muted-foreground text-lg mt-1">{ data.Org.DisplayName }</p>
-							}
-							if data.Org.Description != "" {
-								<p class="text-muted-foreground mt-2">{ data.Org.Description }</p>
-							}
-						</div>
-						if data.CanManage {
-							@components.LinkButton("/orgs/"+data.Org.Name+"/settings", components.ButtonSecondary, components.ButtonSizeSM, nil) {
-								Settings
-							}
+		<div class="space-y-8">
+
+			<!-- Org header -->
+			<section class="flex flex-wrap items-start gap-5 pb-6 border-b border-border" aria-labelledby="org-name">
+				@components.Avatar(data.Org.Name, components.AvatarSizeLG, data.Org.Name)
+				<div class="min-w-0 flex-1">
+					<h1 id="org-name" class="text-2xl font-semibold tracking-tight">{ data.Org.Name }</h1>
+					if data.Org.DisplayName != "" {
+						<p class="mt-0.5 text-sm text-muted-foreground">{ data.Org.DisplayName }</p>
+					}
+					if data.Org.Description != "" {
+						<p class="mt-1.5 text-sm text-muted-foreground max-w-2xl">{ data.Org.Description }</p>
+					}
+					<p class="mt-3 text-xs text-muted-foreground font-mono">
+						{ orgRepoLabel(len(data.Repos)) } · { memberCountLabel(len(data.Members)) }
+					</p>
+				</div>
+				if data.CanManage {
+					<div class="flex-shrink-0 flex items-center gap-2">
+						@components.LinkButton("/orgs/"+data.Org.Name+"/settings", components.ButtonOutline, components.ButtonSizeSM, nil) {
+							Settings
+						}
+						@components.LinkButton("/repos/new", components.ButtonDefault, components.ButtonSizeSM, nil) {
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
+							New repository
 						}
 					</div>
 				}
-			}
-			<div class="grid grid-cols-3 gap-6">
-				<div class="col-span-2 space-y-4">
-					<h2 class="text-xl font-semibold">Repositories</h2>
-					if len(data.Repos) > 0 {
-						<div class="space-y-2">
-							for _, repo := range data.Repos {
-								<a href={ templ.SafeURL("/" + data.Org.Name + "/" + repo.Name) } class="block rounded-md border border-border bg-card p-4 hover:border-foreground/30 hover:shadow-sm transition-all">
-									<div class="flex justify-between items-center">
-										<span class="font-medium text-foreground">{ repo.Name }</span>
-										if repo.Private {
-											@components.Badge(components.BadgeWarning) {
-												Private
+			</section>
+
+			<!-- Repositories -->
+			<section aria-labelledby="org-repos-heading">
+				<h2 id="org-repos-heading" class="text-sm font-semibold tracking-tight mb-3">
+					Repositories
+					<span class="ml-1 font-mono text-[11px] text-muted-foreground/70">{ strconv.Itoa(len(data.Repos)) }</span>
+				</h2>
+				if len(data.Repos) > 0 {
+					<ul class="divide-y divide-border rounded-md border border-border bg-card overflow-hidden">
+						for _, repo := range data.Repos {
+							<li>
+								<a href={ templ.SafeURL("/" + data.Org.Name + "/" + repo.Name) } class="flex items-start gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors">
+									<span class="mt-0.5 flex-shrink-0">
+										@repoIcon(repo.Private)
+									</span>
+									<div class="min-w-0 flex-1">
+										<div class="flex flex-wrap items-center gap-2">
+											<span class="text-sm font-medium">{ repo.Name }</span>
+											if repo.Private {
+												@components.Badge(components.BadgeOutline) {
+													Private
+												}
+											} else {
+												@components.Badge(components.BadgeOutline) {
+													Public
+												}
 											}
-										} else {
-											@components.Badge(components.BadgeSuccess) {
-												Public
-											}
+										</div>
+										if repo.Description != "" {
+											<p class="text-xs text-muted-foreground mt-0.5">{ repo.Description }</p>
 										}
 									</div>
-									if repo.Description != "" {
-										<p class="text-muted-foreground text-sm mt-1">{ repo.Description }</p>
-									}
 								</a>
-							}
-						</div>
-					} else {
-						<p class="text-muted-foreground">No repositories yet.</p>
-					}
-				</div>
-				<div class="space-y-4">
-					<h2 class="text-xl font-semibold">Members</h2>
-					<div class="rounded-md border border-border bg-card divide-y divide-border">
-						if len(data.Members) == 0 {
-							<div class="px-4 py-3 text-muted-foreground text-sm">No members.</div>
+							</li>
 						}
+					</ul>
+				} else {
+					@components.EmptyState("No repositories yet.")
+				}
+			</section>
+
+			<!-- People -->
+			<section aria-labelledby="org-people-heading">
+				<h2 id="org-people-heading" class="text-sm font-semibold tracking-tight mb-3">
+					People
+					<span class="ml-1 font-mono text-[11px] text-muted-foreground/70">{ strconv.Itoa(len(data.Members)) }</span>
+				</h2>
+				if len(data.Members) > 0 {
+					<ul class="divide-y divide-border rounded-md border border-border bg-card overflow-hidden">
 						for _, m := range data.Members {
-							<div class="px-4 py-3 flex justify-between items-center">
-								<a href={ templ.SafeURL("/" + m.Username) } class="text-foreground hover:underline">{ m.Username }</a>
-								<span class="text-xs text-muted-foreground capitalize">{ m.Role }</span>
-							</div>
+							<li class="flex items-center gap-3 px-4 py-3">
+								@components.Avatar(m.Username, components.AvatarSizeSM, m.Username)
+								<a href={ templ.SafeURL("/" + m.Username) } class="text-sm font-medium hover:underline flex-1 min-w-0">
+									{ m.Username }
+								</a>
+								<span class="text-xs text-muted-foreground capitalize">{ string(m.Role) }</span>
+							</li>
 						}
-					</div>
-				</div>
-			</div>
+					</ul>
+				} else {
+					@components.EmptyState("No members yet.")
+				}
+			</section>
 		</div>
 	}
+}
+
+func orgRepoLabel(n int) string {
+	if n == 1 {
+		return "1 repository"
+	}
+	return strconv.Itoa(n) + " repositories"
 }

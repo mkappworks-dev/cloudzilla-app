@@ -2,11 +2,14 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 // README/Markdown/configs/lockfiles are intentionally excluded — composition is about *code*.
@@ -47,6 +50,7 @@ var excludedDirs = map[string]bool{
 
 type LanguageService struct {
 	code  *CodeService
+	repos *store.RepoStore
 	cache sync.Map // key="owner/repo:ref" → cacheEntry
 }
 
@@ -62,8 +66,8 @@ const (
 	langCacheNegativeTTL = 30 * time.Second
 )
 
-func NewLanguageService(code *CodeService) *LanguageService {
-	return &LanguageService{code: code}
+func NewLanguageService(code *CodeService, repos *store.RepoStore) *LanguageService {
+	return &LanguageService{code: code, repos: repos}
 }
 
 func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref string) (map[string]int64, error) {
@@ -133,5 +137,71 @@ func (s *LanguageService) Percentages(ctx context.Context, owner, repoName, ref 
 		}
 		return out[i].Name < out[j].Name // stable tiebreak
 	})
+	return out, nil
+}
+
+// TopLanguageFor returns the language with the largest byte count in the repo's
+// default tree. Ties are broken by alphabetical order. Returns ("", nil) when
+// no recognised code is found (including repos containing only empty source
+// files or only excluded extensions like Markdown).
+func (s *LanguageService) TopLanguageFor(ctx context.Context, owner, repoName, ref string) (string, error) {
+	comp, err := s.Composition(ctx, owner, repoName, ref)
+	if err != nil {
+		return "", err
+	}
+	var top string
+	var topBytes int64
+	for name, b := range comp {
+		if b > topBytes || (b == topBytes && name < top) {
+			top = name
+			topBytes = b
+		}
+	}
+	return top, nil
+}
+
+// Per-repo failures (empty repo, bad ref) are skipped so a single broken repo
+// can't blank out the user's whole composition. limit <= 0 returns all
+// languages, sorted desc by percent.
+func (s *LanguageService) AggregateForUser(ctx context.Context, userID int64, limit int) ([]LangPercent, error) {
+	repos, err := s.repos.GetByOwnerID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	totals := make(map[string]int64)
+	for _, r := range repos {
+		comp, err := s.Composition(ctx, r.OwnerName, r.Name, r.DefaultBranch)
+		if err != nil {
+			slog.WarnContext(ctx, "language_service: composition failed for repo",
+				"owner", r.OwnerName, "name", r.Name, "ref", r.DefaultBranch, "err", err)
+			continue
+		}
+		for name, b := range comp {
+			totals[name] += b
+		}
+	}
+	var total int64
+	for _, b := range totals {
+		total += b
+	}
+	if total == 0 {
+		return nil, nil
+	}
+	out := make([]LangPercent, 0, len(totals))
+	for name, b := range totals {
+		pct := int(b * 100 / total)
+		if pct > 0 {
+			out = append(out, LangPercent{Name: name, Percent: pct})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Percent != out[j].Percent {
+			return out[i].Percent > out[j].Percent
+		}
+		return out[i].Name < out[j].Name
+	})
+	if limit > 0 && len(out) > limit {
+		out = out[:limit]
+	}
 	return out, nil
 }

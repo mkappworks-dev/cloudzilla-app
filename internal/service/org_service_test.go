@@ -4,6 +4,7 @@ package service_test
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
@@ -166,6 +167,85 @@ func TestOrgService_RemoveMember_OwnerCanRemove(t *testing.T) {
 	}
 }
 
+// TestOrgService_RemoveMember_MemberCanLeaveSelf verifies that a non-owner member can
+// remove themselves (the "leave org" flow), and that a sole owner still cannot leave.
+func TestOrgService_RemoveMember_MemberCanLeaveSelf(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	creatorID := testutil.SeedUser(t, db, suffix)
+	memberID := testutil.SeedUser(t, db, "leaver_"+suffix)
+
+	svc := service.NewOrgService(
+		store.NewOrgStore(db),
+		store.NewRepoStore(db),
+		store.NewUserStore(db),
+		config.GitConfig{},
+	)
+
+	org, err := svc.Create(context.Background(), creatorID, "testorg_leave_"+suffix, "Org", "")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if err := svc.AddMember(context.Background(), org.ID, creatorID, memberID, model.OrgRoleMember); err != nil {
+		t.Fatalf("AddMember: %v", err)
+	}
+
+	// A non-owner member removes themselves: must succeed.
+	if err := svc.RemoveMember(context.Background(), org.ID, memberID, memberID); err != nil {
+		t.Fatalf("member leaving themselves: %v", err)
+	}
+	if svc.IsMember(context.Background(), org.ID, memberID) {
+		t.Error("member must no longer belong to the org after leaving")
+	}
+
+	// The sole remaining owner attempts to leave: last-owner guard must block it.
+	if err := svc.RemoveMember(context.Background(), org.ID, creatorID, creatorID); err == nil {
+		t.Error("sole owner must not be able to leave (last-owner guard)")
+	}
+}
+
+// TestOrgService_CountMembers verifies that CountMembers reflects the creator-owner
+// after Create and increments when another member is added.
+func TestOrgService_CountMembers(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	creatorID := testutil.SeedUser(t, db, suffix)
+
+	svc := service.NewOrgService(
+		store.NewOrgStore(db),
+		store.NewRepoStore(db),
+		store.NewUserStore(db),
+		config.GitConfig{},
+	)
+
+	org, err := svc.Create(context.Background(), creatorID, "testorg_count_"+suffix, "Org", "")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	// Creator is auto-added as owner member.
+	count, err := svc.CountMembers(context.Background(), org.ID)
+	if err != nil {
+		t.Fatalf("CountMembers: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("want 1 member after Create, got %d", count)
+	}
+
+	memberID := testutil.SeedUser(t, db, "counted_"+suffix)
+	if err := svc.AddMember(context.Background(), org.ID, creatorID, memberID, model.OrgRoleMember); err != nil {
+		t.Fatalf("AddMember: %v", err)
+	}
+
+	count, err = svc.CountMembers(context.Background(), org.ID)
+	if err != nil {
+		t.Fatalf("CountMembers: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("want 2 members after AddMember, got %d", count)
+	}
+}
+
 // TestOrgService_IsOwner_MemberRole_ReturnsFalse verifies that a user with the "member"
 // role is not considered an owner.
 func TestOrgService_IsOwner_MemberRole_ReturnsFalse(t *testing.T) {
@@ -191,5 +271,46 @@ func TestOrgService_IsOwner_MemberRole_ReturnsFalse(t *testing.T) {
 
 	if svc.IsOwner(context.Background(), org.ID, memberID) {
 		t.Error("user with member role must not be IsOwner")
+	}
+}
+
+// TestOrgService_CreateRepo_WithInitFiles verifies that an org-owned repo
+// created with init options gets a seeded initial commit containing the
+// README, .gitignore, and LICENSE files.
+func TestOrgService_CreateRepo_WithInitFiles(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	creatorID := testutil.SeedUser(t, db, suffix)
+	root := t.TempDir()
+
+	svc := service.NewOrgService(
+		store.NewOrgStore(db),
+		store.NewRepoStore(db),
+		store.NewUserStore(db),
+		config.GitConfig{ReposRoot: root},
+	)
+
+	ctx := context.Background()
+	org, err := svc.Create(ctx, creatorID, "testorg_initrepo_"+suffix, "Org", "")
+	if err != nil {
+		t.Fatalf("Create org: %v", err)
+	}
+
+	repo, err := svc.CreateRepo(ctx, org.ID, creatorID, "initrepo", "an initialized project", false, service.RepoInitOptions{
+		AddREADME: true,
+		Gitignore: "Go",
+		License:   "mit",
+	})
+	if err != nil {
+		t.Fatalf("CreateRepo: %v", err)
+	}
+
+	bareDir := filepath.Join(root, org.Name, repo.Name+".git")
+	files := bareTreeFiles(t, bareDir, repo.DefaultBranch)
+
+	for _, want := range []string{"README.md", ".gitignore", "LICENSE"} {
+		if !files[want] {
+			t.Errorf("initial commit missing %s (have %v)", want, files)
+		}
 	}
 }

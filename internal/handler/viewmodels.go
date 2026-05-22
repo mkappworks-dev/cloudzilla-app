@@ -67,7 +67,6 @@ type (
 	SearchData                = view.SearchData
 	StargazersData            = view.StargazersData
 	UserStarsData             = view.UserStarsData
-	TokensData                = view.TokensData
 	TokensListFragData        = view.TokensListFragData
 	ReactionFragData          = view.ReactionFragData
 	SSHKeysFragData           = view.SSHKeysFragData
@@ -78,7 +77,6 @@ type (
 	PulseData                 = view.PulseData
 	ContributorsData          = view.ContributorsData
 	OAuthAuthorizeData        = view.OAuthAuthorizeData
-	OAuthAppsData             = view.OAuthAppsData
 	RenderedDiscussionReply   = view.RenderedDiscussionReply
 	DiscussionsData           = view.DiscussionsData
 	DiscussionDetailData      = view.DiscussionDetailData
