@@ -10,6 +10,7 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import (
 	"encoding/json"
+	"log/slog"
 	"strconv"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -23,7 +24,10 @@ func eventToActivityRow(e model.Event) components.ActivityRowData {
 
 	var m map[string]any
 	if len(e.Payload) > 0 {
-		_ = json.Unmarshal(e.Payload, &m)
+		if err := json.Unmarshal(e.Payload, &m); err != nil {
+			slog.Warn("activity: event payload unmarshal failed",
+				"event_id", e.ID, "event_type", e.EventType, "error", err)
+		}
 	}
 
 	strVal := func(key string) string {
@@ -148,7 +152,7 @@ func activityScopeTab(label, value, current, href string, count int) templ.Compo
 			var templ_7745c5c3_Var2 templ.SafeURL
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 116, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 120, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
@@ -161,7 +165,7 @@ func activityScopeTab(label, value, current, href string, count int) templ.Compo
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 117, Col: 10}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 121, Col: 10}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -183,7 +187,7 @@ func activityScopeTab(label, value, current, href string, count int) templ.Compo
 			var templ_7745c5c3_Var4 templ.SafeURL
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 121, Col: 31}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 125, Col: 31}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -196,7 +200,7 @@ func activityScopeTab(label, value, current, href string, count int) templ.Compo
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 122, Col: 10}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/activity.templ`, Line: 126, Col: 10}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -268,7 +272,12 @@ func Activity(data view.ActivityData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if len(data.Events) == 0 {
+			if data.LoadFailed {
+				templ_7745c5c3_Err = components.EmptyStateWithHint("We couldn't load your activity.", "Refresh the page to try again.").Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			} else if len(data.Events) == 0 {
 				templ_7745c5c3_Err = components.EmptyStateWithHint("No activity yet.", "Watch some repositories to see events here.").Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err

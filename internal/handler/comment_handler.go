@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -121,15 +122,17 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func() {
+	concurrency.Go("notify.issue_comment", func() {
 		h.Services.Notification.NotifyIssueComment(r.Context(), *repo, *issue, claims.UserID, claims.Username)
-	}()
+	})
 
 	repoID := repo.ID
-	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventComment, map[string]any{
-		"number": issue.Number,
-		"kind":   "issue",
-		"body":   commentEventBody(body),
+	concurrency.Go("event.record.issue_comment", func() {
+		h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventComment, map[string]any{
+			"number": issue.Number,
+			"kind":   "issue",
+			"body":   commentEventBody(body),
+		})
 	})
 
 	if r.Header.Get("HX-Request") == "true" {
@@ -204,15 +207,17 @@ func (h *Handler) CreatePullComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func() {
+	concurrency.Go("notify.pr_comment", func() {
 		h.Services.Notification.NotifyPRComment(r.Context(), *repo, *pull, claims.UserID, claims.Username)
-	}()
+	})
 
 	repoID := repo.ID
-	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventComment, map[string]any{
-		"number": pull.Number,
-		"kind":   "pull",
-		"body":   commentEventBody(body),
+	concurrency.Go("event.record.pr_comment", func() {
+		h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventComment, map[string]any{
+			"number": pull.Number,
+			"kind":   "pull",
+			"body":   commentEventBody(body),
+		})
 	})
 
 	if r.Header.Get("HX-Request") == "true" {

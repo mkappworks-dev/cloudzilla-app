@@ -16,9 +16,9 @@ type UserData struct {
 
 	// Repositories tab — populated only when ?tab=repositories
 	RepoTabRepos          []model.Repository
-	RepoTabRoles          map[int64]string     // viewer's role per repo ID
-	RepoTabLanguages      []string             // distinct primary languages for filter chips
-	RepoTabStars          map[int64]int        // star count per repo ID
+	RepoTabRoles          map[int64]string        // viewer's role per repo ID
+	RepoTabLanguages      []string                // distinct primary languages for filter chips
+	RepoTabStars          map[int64]int           // star count per repo ID
 	RepoTabTopics         map[int64][]model.Topic // up to 3 topics per repo ID
 	RepoTabActiveQuery    string
 	RepoTabActiveType     string // "sources" | "forks" | "templates" | ""

@@ -71,9 +71,9 @@ type HomeData struct {
 	Templates      []model.Repository
 	Stats          []components.StatItem
 	Heatmap        map[time.Time]int
-	HeatmapYear    int   // calendar year shown in the commit heatmap
-	HeatmapTotal   int   // commit total for HeatmapYear
-	HeatmapYears   []int // selectable years, most recent first
+	HeatmapYear    int                     // calendar year shown in the commit heatmap
+	HeatmapTotal   int                     // commit total for HeatmapYear
+	HeatmapYears   []int                   // selectable years, most recent first
 	Attention      []service.AttentionItem // top 3 preview items
 	AttentionTotal int                     // total across all kinds
 	Activity       []model.Event
@@ -93,6 +93,7 @@ type ActivityData struct {
 	BasePage
 	Username    string
 	Events      []model.Event
+	LoadFailed  bool           // feed query errored — render an error state, not the empty state
 	Filter      string         // "all" | "yours" | "watching"
 	ScopeCounts map[string]int // total events per scope, keyed "all"|"yours"|"watching"
 	Page        int
@@ -104,9 +105,9 @@ type ActivityData struct {
 type AccountReposData struct {
 	BasePage
 	Repos        []model.Repository
-	Filter       string // "all" | "owned" | "collaborator" | "forks"
+	Filter       string         // "all" | "owned" | "collaborator" | "forks"
 	TypeCounts   map[string]int // repo count per type tab
-	Language     string // selected language filter; "" = all
+	Language     string         // selected language filter; "" = all
 	Languages    []string
 	Sort         string // "updated" | "name" | "stars" | "created"
 	StarCounts   map[int64]int

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sort"
 	"time"
 
@@ -260,6 +261,7 @@ func (s *AttentionService) resolveActors(ctx context.Context, items []AttentionI
 	}
 	usernames, err := s.users.UsernamesByIDs(ctx, ids)
 	if err != nil {
+		slog.Warn("attention: actor username resolution failed", "error", err)
 		return
 	}
 	for i := range items {

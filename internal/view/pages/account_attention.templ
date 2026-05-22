@@ -92,7 +92,7 @@ func attentionKindTabs(data view.AttentionData) []components.Tab {
 	for _, k := range kinds {
 		tabs = append(tabs, components.Tab{
 			Label:    k.Label,
-			URL:      "/attention?kind=" + k.Kind,
+			URL:      attentionSortURL(k.Kind, data.Sort),
 			IsActive: data.Kind == k.Kind,
 			Count:    data.Counts[k.Kind],
 		})

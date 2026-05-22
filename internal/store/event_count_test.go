@@ -37,9 +37,9 @@ func TestEventStore_FeedCounts(t *testing.T) {
 	defer cleanup()
 
 	suffix := fmt.Sprintf("%d_%s", os.Getpid(), t.Name())
-	aliceRepo := insertRepo(t, ctx, db, aliceID, "alice", "ar_"+suffix)  // alice owns
-	bobRepo := insertRepo(t, ctx, db, bobID, "bob", "br_"+suffix)        // alice unrelated
-	watchedRepo := insertRepo(t, ctx, db, bobID, "bob", "wr_"+suffix)    // alice watches
+	aliceRepo := insertRepo(t, ctx, db, aliceID, "alice", "ar_"+suffix) // alice owns
+	bobRepo := insertRepo(t, ctx, db, bobID, "bob", "br_"+suffix)       // alice unrelated
+	watchedRepo := insertRepo(t, ctx, db, bobID, "bob", "wr_"+suffix)   // alice watches
 
 	if _, err := db.ExecContext(ctx,
 		`INSERT INTO watches (user_id, repo_id, level) VALUES ($1, $2, 'watching')`,

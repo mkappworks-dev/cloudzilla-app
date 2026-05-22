@@ -147,7 +147,9 @@ func (h *Handler) PageAccountRepos(w http.ResponseWriter, r *http.Request) {
 	// Commit counts walk git history per repo, so only do it for the page.
 	commitCounts := make(map[int64]int, len(repos))
 	for _, repo := range repos {
-		if n, cErr := h.Services.Code.CommitCount(repo.OwnerName, repo.Name, repo.DefaultBranch); cErr == nil {
+		if n, cErr := h.Services.Code.CommitCount(repo.OwnerName, repo.Name, repo.DefaultBranch); cErr != nil {
+			slog.Warn("repos: commit count failed", "repo_id", repo.ID, "error", cErr)
+		} else {
 			commitCounts[repo.ID] = n
 		}
 	}

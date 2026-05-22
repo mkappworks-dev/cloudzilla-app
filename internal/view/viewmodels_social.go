@@ -27,9 +27,9 @@ type DiscussionsData struct {
 	AnsweredCount    int
 	ClosedCount      int
 	CanWrite         bool
-	Labels       map[int64][]model.Label
-	ReplyCounts  map[int64]int
-	Participants map[int64][]string
+	Labels           map[int64][]model.Label
+	ReplyCounts      map[int64]int
+	Participants     map[int64][]string
 }
 
 type DiscussionDetailData struct {

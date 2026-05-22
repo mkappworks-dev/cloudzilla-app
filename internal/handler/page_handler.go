@@ -252,33 +252,42 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 	}
 	if claims, ok := middleware.ClaimsFromContext(ctx); ok {
 		userID := claims.UserID
+		statWarned := false
+		statFailed := func(stat string, err error) {
+			slog.Warn("home: "+stat+" failed", "user_id", userID, "error", err)
+			if !statWarned {
+				data.LoadWarnings = append(data.LoadWarnings,
+					"Some of your dashboard couldn't be loaded right now. Refresh to try again.")
+				statWarned = true
+			}
+		}
 		commitsLast7, err := h.Services.CommitStats.CommitsForUserSince(ctx, userID, 7)
 		if err != nil {
-			slog.Warn("home: commits-last-7 stat failed", "user_id", userID, "error", err)
+			statFailed("commits-last-7 stat", err)
 		}
 		distinctRepos, err := h.Services.CommitStats.DistinctReposForUserSince(ctx, userID, 7)
 		if err != nil {
-			slog.Warn("home: distinct-repos-7 stat failed", "user_id", userID, "error", err)
+			statFailed("distinct-repos-7 stat", err)
 		}
 		countRepos, err := h.Services.Repo.CountForUser(ctx, userID)
 		if err != nil {
-			slog.Warn("home: repo count stat failed", "user_id", userID, "error", err)
+			statFailed("repo count stat", err)
 		}
 		countOpenPulls, err := h.Services.Pull.CountOpenAssignedTo(ctx, userID)
 		if err != nil {
-			slog.Warn("home: open-pulls count stat failed", "user_id", userID, "error", err)
+			statFailed("open-pulls count stat", err)
 		}
 		countAwaitingReview, err := h.Services.Pull.CountAwaitingReview(ctx, userID)
 		if err != nil {
-			slog.Warn("home: awaiting-review count stat failed", "user_id", userID, "error", err)
+			statFailed("awaiting-review count stat", err)
 		}
 		countOpenIssues, err := h.Services.Issue.CountOpenAssignedTo(ctx, userID)
 		if err != nil {
-			slog.Warn("home: open-issues count stat failed", "user_id", userID, "error", err)
+			statFailed("open-issues count stat", err)
 		}
 		countDueThisWeek, err := h.Services.Issue.CountDueThisWeekAssignedTo(ctx, userID)
 		if err != nil {
-			slog.Warn("home: issues-due-this-week count stat failed", "user_id", userID, "error", err)
+			statFailed("issues-due-this-week count stat", err)
 		}
 		privateRepos := 0
 		for _, repo := range data.Repos {
@@ -322,14 +331,14 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		}
 		data.HeatmapYear = heatmapYear
 		if heat, total, err := h.Services.CommitStats.HeatmapForYear(ctx, userID, heatmapYear); err != nil {
-			slog.Warn("home: heatmap failed", "user_id", userID, "year", heatmapYear, "error", err)
+			statFailed("heatmap", err)
 		} else {
 			data.Heatmap = heat
 			data.HeatmapTotal = total
 		}
 		yearSet := map[int]bool{heatmapYear: true, time.Now().UTC().Year(): true}
 		if ys, err := h.Services.CommitStats.CommitYearsForUser(ctx, userID); err != nil {
-			slog.Warn("home: commit years failed", "user_id", userID, "error", err)
+			statFailed("commit years", err)
 		} else {
 			for _, y := range ys {
 				yearSet[y] = true
@@ -342,7 +351,7 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 		sort.Sort(sort.Reverse(sort.IntSlice(years)))
 		data.HeatmapYears = years
 		if att, err := h.Services.Attention.ForUser(ctx, userID); err != nil {
-			slog.Warn("home: attention list failed", "user_id", userID, "error", err)
+			statFailed("attention list", err)
 		} else {
 			data.AttentionTotal = len(att)
 			if len(att) > 3 {
@@ -352,7 +361,7 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if feed, err := h.Services.Event.Feed(ctx, int(userID), "all", 1, 10); err != nil {
-			slog.Warn("home: activity feed failed", "user_id", userID, "error", err)
+			statFailed("activity feed", err)
 		} else {
 			data.Activity = feed
 		}

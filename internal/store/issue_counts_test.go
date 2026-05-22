@@ -56,10 +56,10 @@ func TestIssueStore_CountsForUser(t *testing.T) {
 		}
 	}
 
-	mkIssue(1, aliceID, "open")     // created:open
-	mkIssue(2, aliceID, "closed")   // created:closed
-	assign(mkIssue(3, bobID, "open"))   // assigned:open
-	assign(mkIssue(4, bobID, "closed")) // assigned:closed
+	mkIssue(1, aliceID, "open")          // created:open
+	mkIssue(2, aliceID, "closed")        // created:closed
+	assign(mkIssue(3, bobID, "open"))    // assigned:open
+	assign(mkIssue(4, bobID, "closed"))  // assigned:closed
 	mention(mkIssue(5, bobID, "open"))   // mentioned:open
 	mention(mkIssue(6, bobID, "closed")) // mentioned:closed
 

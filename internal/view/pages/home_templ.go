@@ -325,9 +325,9 @@ func Home(data view.HomeData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var16 templ.SafeURL
-					templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(homeRepoURL(data.RepoSort, opt.Value)))
+					templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(homeURL(data.RepoSort, opt.Value, data.HeatmapYear)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/home.templ`, Line: 114, Col: 72}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/home.templ`, Line: 114, Col: 86}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 					if templ_7745c5c3_Err != nil {
@@ -415,9 +415,9 @@ func Home(data view.HomeData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var22 templ.SafeURL
-					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(homeRepoURL(opt.Value, data.RepoFilter)))
+					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(homeURL(opt.Value, data.RepoFilter, data.HeatmapYear)))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/home.templ`, Line: 150, Col: 74}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/home.templ`, Line: 150, Col: 88}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 					if templ_7745c5c3_Err != nil {
@@ -1334,7 +1334,7 @@ func heatmapYearMenu(data view.HomeData) []repoMenuItem {
 	for _, y := range data.HeatmapYears {
 		items = append(items, repoMenuItem{
 			Label:  strconv.Itoa(y),
-			URL:    "/?year=" + strconv.Itoa(y),
+			URL:    homeURL(data.RepoSort, data.RepoFilter, y),
 			Active: y == data.HeatmapYear,
 		})
 	}
@@ -1369,18 +1369,24 @@ func repoSortLabel(sort string) string {
 	}
 }
 
-func homeRepoURL(sort, filter string) string {
-	q := "?"
+// homeURL builds a "/" link preserving repo sort, repo filter, and the heatmap
+// year together, so changing one control never resets the others. Each param
+// is omitted at its default to keep unchanged URLs clean.
+func homeURL(sort, filter string, year int) string {
+	q := ""
 	if sort != "" && sort != "updated" {
-		q += "repo_sort=" + sort + "&"
+		q += "&repo_sort=" + sort
 	}
 	if filter != "" && filter != "all" {
-		q += "repo_filter=" + filter + "&"
+		q += "&repo_filter=" + filter
 	}
-	if q == "?" {
+	if year != 0 && year != time.Now().UTC().Year() {
+		q += "&year=" + strconv.Itoa(year)
+	}
+	if q == "" {
 		return "/"
 	}
-	return "/" + q[:len(q)-1]
+	return "/?" + q[1:]
 }
 
 // Returns a Tailwind color class for the language dot. Unknown languages get a neutral dot.

@@ -35,6 +35,39 @@ func (s *EventStore) Record(ctx context.Context, e *model.Event) error {
 	return nil
 }
 
+// issueInvolvementEvents / pullInvolvementEvents select event IDs for issues
+// and PRs the user ($1) is involved in (author, assignee, requested reviewer,
+// or mentioned). Both restrict results to repositories the user can read, so
+// the personalised feed never surfaces private-repo activity — including raw
+// comment-body snippets — to users without access. ListForFeed and FeedCounts
+// share these constants so their predicates cannot drift apart.
+const issueInvolvementEvents = `
+    SELECT ie.id FROM events ie
+    JOIN issues i ON i.repo_id = ie.repo_id AND i.number = (ie.payload->>'number')::int
+    JOIN repositories r ON r.id = ie.repo_id
+    WHERE (ie.event_type IN ('issue_opened', 'issue_closed')
+           OR (ie.event_type = 'comment' AND ie.payload->>'kind' = 'issue'))
+      AND (i.author_id = $1
+           OR EXISTS (SELECT 1 FROM issue_assignees ia WHERE ia.issue_id = i.id AND ia.user_id = $1)
+           OR EXISTS (SELECT 1 FROM mentions m JOIN comments c ON c.id = m.comment_id
+                      WHERE c.issue_id = i.id AND m.user_id = $1))
+      AND (r.private = false OR r.owner_id = $1
+           OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))`
+
+const pullInvolvementEvents = `
+    SELECT pe.id FROM events pe
+    JOIN pull_requests p ON p.repo_id = pe.repo_id AND p.number = (pe.payload->>'number')::int
+    JOIN repositories r ON r.id = pe.repo_id
+    WHERE (pe.event_type IN ('pr_opened', 'pr_merged', 'pr_closed')
+           OR (pe.event_type = 'comment' AND pe.payload->>'kind' = 'pull'))
+      AND (p.author_id = $1
+           OR EXISTS (SELECT 1 FROM pull_assignees pa WHERE pa.pull_id = p.id AND pa.user_id = $1)
+           OR EXISTS (SELECT 1 FROM pull_reviews prv WHERE prv.pull_id = p.id AND prv.author_id = $1)
+           OR EXISTS (SELECT 1 FROM mentions m JOIN comments c ON c.id = m.comment_id
+                      WHERE c.pull_id = p.id AND m.user_id = $1))
+      AND (r.private = false OR r.owner_id = $1
+           OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))`
+
 // ListForFeed returns paginated events for a user's personalised feed:
 // events from repos the user watches (non-ignoring) or owns, plus events on
 // issues and pull requests the user is involved in (author, assignee,
@@ -56,27 +89,8 @@ func (s *EventStore) ListForFeed(ctx context.Context, userID int64, page, pageSi
 		     UNION
 		     SELECT r.id FROM repositories r WHERE r.owner_id = $1
 		 )
-		 OR e.id IN (
-		     SELECT ie.id FROM events ie
-		     JOIN issues i ON i.repo_id = ie.repo_id AND i.number = (ie.payload->>'number')::int
-		     WHERE (ie.event_type IN ('issue_opened', 'issue_closed')
-		            OR (ie.event_type = 'comment' AND ie.payload->>'kind' = 'issue'))
-		       AND (i.author_id = $1
-		            OR EXISTS (SELECT 1 FROM issue_assignees ia WHERE ia.issue_id = i.id AND ia.user_id = $1)
-		            OR EXISTS (SELECT 1 FROM mentions m JOIN comments c ON c.id = m.comment_id
-		                       WHERE c.issue_id = i.id AND m.user_id = $1))
-		 )
-		 OR e.id IN (
-		     SELECT pe.id FROM events pe
-		     JOIN pull_requests p ON p.repo_id = pe.repo_id AND p.number = (pe.payload->>'number')::int
-		     WHERE (pe.event_type IN ('pr_opened', 'pr_merged', 'pr_closed')
-		            OR (pe.event_type = 'comment' AND pe.payload->>'kind' = 'pull'))
-		       AND (p.author_id = $1
-		            OR EXISTS (SELECT 1 FROM pull_assignees pa WHERE pa.pull_id = p.id AND pa.user_id = $1)
-		            OR EXISTS (SELECT 1 FROM pull_reviews prv WHERE prv.pull_id = p.id AND prv.author_id = $1)
-		            OR EXISTS (SELECT 1 FROM mentions m JOIN comments c ON c.id = m.comment_id
-		                       WHERE c.pull_id = p.id AND m.user_id = $1))
-		 )
+		 OR e.id IN (`+issueInvolvementEvents+`)
+		 OR e.id IN (`+pullInvolvementEvents+`)
 		 ORDER BY e.created_at DESC
 		 LIMIT $2 OFFSET $3`,
 		userID, pageSize, offset,
@@ -194,27 +208,8 @@ func (s *EventStore) FeedCounts(ctx context.Context, userID int64) (map[string]i
 		        UNION
 		        SELECT r.id FROM repositories r WHERE r.owner_id = $1
 		    )
-		    OR e.id IN (
-		        SELECT ie.id FROM events ie
-		        JOIN issues i ON i.repo_id = ie.repo_id AND i.number = (ie.payload->>'number')::int
-		        WHERE (ie.event_type IN ('issue_opened', 'issue_closed')
-		               OR (ie.event_type = 'comment' AND ie.payload->>'kind' = 'issue'))
-		          AND (i.author_id = $1
-		               OR EXISTS (SELECT 1 FROM issue_assignees ia WHERE ia.issue_id = i.id AND ia.user_id = $1)
-		               OR EXISTS (SELECT 1 FROM mentions m JOIN comments c ON c.id = m.comment_id
-		                          WHERE c.issue_id = i.id AND m.user_id = $1))
-		    )
-		    OR e.id IN (
-		        SELECT pe.id FROM events pe
-		        JOIN pull_requests p ON p.repo_id = pe.repo_id AND p.number = (pe.payload->>'number')::int
-		        WHERE (pe.event_type IN ('pr_opened', 'pr_merged', 'pr_closed')
-		               OR (pe.event_type = 'comment' AND pe.payload->>'kind' = 'pull'))
-		          AND (p.author_id = $1
-		               OR EXISTS (SELECT 1 FROM pull_assignees pa WHERE pa.pull_id = p.id AND pa.user_id = $1)
-		               OR EXISTS (SELECT 1 FROM pull_reviews prv WHERE prv.pull_id = p.id AND prv.author_id = $1)
-		               OR EXISTS (SELECT 1 FROM mentions m JOIN comments c ON c.id = m.comment_id
-		                          WHERE c.pull_id = p.id AND m.user_id = $1))
-		    )),
+		    OR e.id IN (`+issueInvolvementEvents+`)
+		    OR e.id IN (`+pullInvolvementEvents+`)),
 		   (SELECT COUNT(*) FROM events WHERE actor_id = $1),
 		   (SELECT COUNT(*) FROM events e
 		    WHERE e.repo_id IN (

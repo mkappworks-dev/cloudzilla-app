@@ -34,10 +34,12 @@ func (h *Handler) PageActivity(w http.ResponseWriter, r *http.Request) {
 	}
 
 	const pageSize = 10
+	loadFailed := false
 	events, err := h.Services.Event.Feed(r.Context(), int(claims.UserID), filter, page, pageSize+1)
 	if err != nil {
 		slog.Error("activity: failed to load events", "user_id", claims.UserID, "error", err)
 		events = []model.Event{}
+		loadFailed = true
 	}
 	if events == nil {
 		events = []model.Event{}
@@ -65,6 +67,7 @@ func (h *Handler) PageActivity(w http.ResponseWriter, r *http.Request) {
 		BasePage:    withAccountSubnav(basePage(r, h.Services), "activity", h.accountCounts(r.Context(), claims.UserID)),
 		Username:    claims.Username,
 		Events:      events,
+		LoadFailed:  loadFailed,
 		Filter:      filter,
 		ScopeCounts: scopeCounts,
 		Page:        page,

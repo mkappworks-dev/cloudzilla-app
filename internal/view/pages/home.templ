@@ -111,7 +111,7 @@ templ Home(data view.HomeData) {
 											<div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Type</div>
 											for _, opt := range repoFilterOptions() {
 												<a
-													href={ templ.SafeURL(homeRepoURL(data.RepoSort, opt.Value)) }
+													href={ templ.SafeURL(homeURL(data.RepoSort, opt.Value, data.HeatmapYear)) }
 													role="menuitem"
 													class={ "flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground", templ.KV("text-foreground font-medium", data.RepoFilter == opt.Value) }
 												>
@@ -147,7 +147,7 @@ templ Home(data view.HomeData) {
 											<div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Sort by</div>
 											for _, opt := range repoSortOptions() {
 												<a
-													href={ templ.SafeURL(homeRepoURL(opt.Value, data.RepoFilter)) }
+													href={ templ.SafeURL(homeURL(opt.Value, data.RepoFilter, data.HeatmapYear)) }
 													role="menuitem"
 													class={ "flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground", templ.KV("text-foreground font-medium", data.RepoSort == opt.Value) }
 												>
@@ -538,7 +538,7 @@ func heatmapYearMenu(data view.HomeData) []repoMenuItem {
 	for _, y := range data.HeatmapYears {
 		items = append(items, repoMenuItem{
 			Label:  strconv.Itoa(y),
-			URL:    "/?year=" + strconv.Itoa(y),
+			URL:    homeURL(data.RepoSort, data.RepoFilter, y),
 			Active: y == data.HeatmapYear,
 		})
 	}
@@ -573,18 +573,24 @@ func repoSortLabel(sort string) string {
 	}
 }
 
-func homeRepoURL(sort, filter string) string {
-	q := "?"
+// homeURL builds a "/" link preserving repo sort, repo filter, and the heatmap
+// year together, so changing one control never resets the others. Each param
+// is omitted at its default to keep unchanged URLs clean.
+func homeURL(sort, filter string, year int) string {
+	q := ""
 	if sort != "" && sort != "updated" {
-		q += "repo_sort=" + sort + "&"
+		q += "&repo_sort=" + sort
 	}
 	if filter != "" && filter != "all" {
-		q += "repo_filter=" + filter + "&"
+		q += "&repo_filter=" + filter
 	}
-	if q == "?" {
+	if year != 0 && year != time.Now().UTC().Year() {
+		q += "&year=" + strconv.Itoa(year)
+	}
+	if q == "" {
 		return "/"
 	}
-	return "/" + q[:len(q)-1]
+	return "/?" + q[1:]
 }
 
 // Returns a Tailwind color class for the language dot. Unknown languages get a neutral dot.

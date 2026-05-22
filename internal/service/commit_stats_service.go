@@ -79,7 +79,7 @@ func (s *CommitStatsService) Ingest(ctx context.Context, repoID int64, samples [
 }
 
 func (s *CommitStatsService) CommitsForUserSince(ctx context.Context, userID int64, days int) (int, error) {
-	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)
+	since := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -days+1)
 	rows, err := s.stats.ListForUserSince(ctx, userID, since)
 	if err != nil {
 		return 0, err
@@ -92,7 +92,7 @@ func (s *CommitStatsService) CommitsForUserSince(ctx context.Context, userID int
 }
 
 func (s *CommitStatsService) DistinctReposForUserSince(ctx context.Context, userID int64, days int) (int, error) {
-	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)
+	since := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -days+1)
 	return s.stats.CountDistinctReposForUserSince(ctx, userID, since)
 }
 
@@ -102,7 +102,7 @@ func (s *CommitStatsService) WeeklyForRepo(ctx context.Context, repoID int64, we
 
 // Materializes the full window with explicit zero entries so the heatmap can render a regular grid.
 func (s *CommitStatsService) LookbackForRepo(ctx context.Context, repoID int64, days int) (map[time.Time]int, error) {
-	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)
+	since := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -days+1)
 	rows, err := s.stats.ListForRepoSince(ctx, repoID, since)
 	if err != nil {
 		return nil, err
@@ -119,7 +119,7 @@ func (s *CommitStatsService) LookbackForRepo(ctx context.Context, repoID int64, 
 
 // Materializes the full window with explicit zero entries so the heatmap can render a regular grid.
 func (s *CommitStatsService) LookbackForUser(ctx context.Context, userID int64, days int) (map[time.Time]int, error) {
-	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)
+	since := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -days+1)
 	rows, err := s.stats.ListForUserSince(ctx, userID, since)
 	if err != nil {
 		return nil, err

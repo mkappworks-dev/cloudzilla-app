@@ -64,14 +64,14 @@ func TestPullStore_CountsForUser(t *testing.T) {
 		}
 	}
 
-	mkPull(1, aliceID, "open")            // created:open
-	mkPull(2, aliceID, "closed")          // created:closed
-	assign(mkPull(3, bobID, "open"))      // assigned:open
-	assign(mkPull(4, bobID, "closed"))    // assigned:closed
+	mkPull(1, aliceID, "open")                // created:open
+	mkPull(2, aliceID, "closed")              // created:closed
+	assign(mkPull(3, bobID, "open"))          // assigned:open
+	assign(mkPull(4, bobID, "closed"))        // assigned:closed
 	requestReview(mkPull(5, bobID, "open"))   // review_requested:open
 	requestReview(mkPull(6, bobID, "closed")) // review_requested:closed
-	mention(mkPull(7, bobID, "open"))     // mentioned:open
-	mention(mkPull(8, bobID, "closed"))   // mentioned:closed
+	mention(mkPull(7, bobID, "open"))         // mentioned:open
+	mention(mkPull(8, bobID, "closed"))       // mentioned:closed
 
 	got, err := store.NewPullStore(db).CountsForUser(ctx, aliceID)
 	if err != nil {

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -82,6 +83,8 @@ func (s *CommitStatusService) CountsByPullIDs(ctx context.Context, pullIDs []int
 	for repoID := range repoIDSet {
 		repo, err := s.repos.GetByID(ctx, repoID)
 		if err != nil || repo == nil {
+			slog.Warn("ci counts: repo load failed; its PRs will show no CI badge",
+				"repo_id", repoID, "error", err)
 			continue
 		}
 		repoByID[repoID] = repo
@@ -107,7 +110,10 @@ func (s *CommitStatusService) CountsByPullIDs(ctx context.Context, pullIDs []int
 		requiredContexts, cached := bpCache[k]
 		if !cached {
 			rule, err := s.protections.MatchForBranch(ctx, pr.RepoID, pr.BaseBranch)
-			if err == nil && rule != nil {
+			if err != nil {
+				slog.Warn("ci counts: branch protection lookup failed",
+					"repo_id", pr.RepoID, "branch", pr.BaseBranch, "error", err)
+			} else if rule != nil {
 				requiredContexts = []string(rule.RequireStatusChecks)
 			}
 			bpCache[k] = requiredContexts
@@ -117,6 +123,8 @@ func (s *CommitStatusService) CountsByPullIDs(ctx context.Context, pullIDs []int
 		}
 		statuses, err := s.statuses.ListBySHA(ctx, pr.RepoID, pr.HeadSHA)
 		if err != nil {
+			slog.Warn("ci counts: status lookup failed",
+				"pull_id", pr.ID, "sha", pr.HeadSHA, "error", err)
 			continue
 		}
 		passingByCtx := make(map[string]bool, len(statuses))
@@ -160,16 +168,21 @@ func (s *CommitStatusService) Counts(ctx context.Context, pullID int64) (require
 	if len(requiredContexts) == 0 {
 		return 0, 0, nil
 	}
-	headCommit, _, err := s.code.ResolveRef(repo.OwnerName, repo.Name, pr.HeadBranch)
-	if err != nil {
-		return len(requiredContexts), 0, fmt.Errorf("resolve head ref %q: %w", pr.HeadBranch, err)
+	// Prefer the cached head SHA (kept fresh on push); resolve the ref only as a fallback.
+	headSHA := pr.HeadSHA
+	if headSHA == "" {
+		headCommit, _, err := s.code.ResolveRef(repo.OwnerName, repo.Name, pr.HeadBranch)
+		if err != nil {
+			return len(requiredContexts), 0, fmt.Errorf("resolve head ref %q: %w", pr.HeadBranch, err)
+		}
+		if headCommit == nil {
+			return len(requiredContexts), 0, fmt.Errorf("resolve head ref %q: head commit not found", pr.HeadBranch)
+		}
+		headSHA = headCommit.Hash.String()
 	}
-	if headCommit == nil {
-		return len(requiredContexts), 0, fmt.Errorf("resolve head ref %q: head commit not found", pr.HeadBranch)
-	}
-	statuses, err := s.statuses.ListBySHA(ctx, repo.ID, headCommit.Hash.String())
+	statuses, err := s.statuses.ListBySHA(ctx, repo.ID, headSHA)
 	if err != nil {
-		return len(requiredContexts), 0, fmt.Errorf("list statuses for head %s: %w", headCommit.Hash.String(), err)
+		return len(requiredContexts), 0, fmt.Errorf("list statuses for head %s: %w", headSHA, err)
 	}
 	passingByCtx := make(map[string]bool, len(statuses))
 	for _, st := range statuses {
