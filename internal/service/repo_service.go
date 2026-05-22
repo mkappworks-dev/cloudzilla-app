@@ -161,7 +161,7 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 					"repo_id", repo.ID, "sha", c.SHA, "error", err)
 				continue
 			}
-			if err := s.contributorStats.IngestCommit(ctx, repo.ID, user.ID, c.AuthorTime,
+			if err := s.contributorStats.IngestCommit(ctx, repo.ID, user.ID, c.AuthorTime, c.SHA,
 				detail.TotalAdded, detail.TotalDeleted); err != nil {
 				slog.Warn("post-receive: contributor stats ingest failed",
 					"repo_id", repo.ID, "sha", c.SHA, "user_id", user.ID, "error", err)
