@@ -5,12 +5,21 @@ import (
 	"time"
 )
 
-// `counts` is day → commit-count. Missing days render as zero. `today` is the rightmost (latest) day.
-templ Heatmap(counts map[time.Time]int, today time.Time, weeks int) {
-	<div role="img" aria-label={ heatmapAriaLabel(counts, weeks) } class="inline-grid grid-flow-col gap-[2px]" style="grid-template-rows: repeat(7, 11px); grid-auto-columns: 11px;">
-		for _, day := range heatmapDays(today, weeks) {
-			<div class={ "rounded-[2px] " + heatmapCellClass(counts[day]) } title={ heatmapTitle(day, counts[day]) }></div>
-		}
+// `counts` is day → commit-count. Missing days render as zero. Renders one
+// calendar year with month labels on top; the grid fills its container and
+// cells stay square. The month row shares the column template so labels align.
+templ Heatmap(counts map[time.Time]int, year int) {
+	<div role="img" aria-label={ heatmapYearAriaLabel(counts, year) } class="w-full">
+		<div class="grid grid-flow-col gap-[2px] mb-1 text-[10px] leading-none text-muted-foreground" style="grid-auto-columns: minmax(0, 1fr);">
+			for _, label := range heatmapMonthLabels(year) {
+				<div class="whitespace-nowrap">{ label }</div>
+			}
+		</div>
+		<div class="grid grid-flow-col gap-[2px]" style="grid-template-rows: repeat(7, auto); grid-auto-columns: minmax(0, 1fr);">
+			for _, day := range heatmapYearDays(year) {
+				<div class={ "aspect-square rounded-[2px] " + heatmapCellClass(counts[day]) } title={ heatmapTitle(day, counts[day]) }></div>
+			}
+		</div>
 	</div>
 }
 
@@ -38,6 +47,45 @@ func heatmapDays(today time.Time, weeks int) []time.Time {
 		out = append(out, start.AddDate(0, 0, i))
 	}
 	return out
+}
+
+// heatmapYearDays returns every day from the Sunday on/before Jan 1 to the
+// Saturday on/after Dec 31 of the year, so the grid is whole weeks.
+func heatmapYearDays(year int) []time.Time {
+	start := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
+	for start.Weekday() != time.Sunday {
+		start = start.AddDate(0, 0, -1)
+	}
+	end := time.Date(year, time.December, 31, 0, 0, 0, 0, time.UTC)
+	for end.Weekday() != time.Saturday {
+		end = end.AddDate(0, 0, 1)
+	}
+	out := make([]time.Time, 0, 371)
+	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
+		out = append(out, d)
+	}
+	return out
+}
+
+func heatmapYearAriaLabel(counts map[time.Time]int, year int) string {
+	total := 0
+	for _, n := range counts {
+		total += n
+	}
+	return fmt.Sprintf("Commit heatmap: %d commits in %d", total, year)
+}
+
+// heatmapMonthLabels returns one entry per week column — twelve month
+// abbreviations spread evenly across the columns, "" for every other column.
+// Even spacing keeps the labels aligned with the mockup's layout.
+func heatmapMonthLabels(year int) []string {
+	weeks := len(heatmapYearDays(year)) / 7
+	labels := make([]string, weeks)
+	names := [12]string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
+	for m := 0; m < 12; m++ {
+		labels[(m*weeks+6)/12] = names[m]
+	}
+	return labels
 }
 
 func heatmapCellClass(n int) string {

@@ -63,19 +63,21 @@ type AccountSubnavInfo struct {
 
 type HomeData struct {
 	BasePage
-	Repos        []model.Repository
-	TotalRepos   int // authoritative count from DB (may exceed len(Repos) after future pagination)
-	RepoOpenPRs  map[int64]int // open PR count per repo ID; missing key → 0
-	RepoSort     string        // "updated" | "name" | "created"
-	RepoFilter   string        // "all" | "sources" | "forks" | "templates"
-	Templates    []model.Repository
-	Stats        []components.StatItem
-	Heatmap      map[time.Time]int
-	Attention        []service.AttentionItem
-	AttentionActive  string         // "assigned" | "reviews" | "mentions"
-	AttentionCounts  map[string]int // keys: "assigned", "reviews", "mentions"
-	Activity     []model.Event
-	LoadWarnings []string
+	Repos          []model.Repository
+	TotalRepos     int           // authoritative count from DB (may exceed len(Repos) after future pagination)
+	RepoOpenPRs    map[int64]int // open PR count per repo ID; missing key → 0
+	RepoSort       string        // "updated" | "name" | "created"
+	RepoFilter     string        // "all" | "sources" | "forks" | "templates"
+	Templates      []model.Repository
+	Stats          []components.StatItem
+	Heatmap        map[time.Time]int
+	HeatmapYear    int   // calendar year shown in the commit heatmap
+	HeatmapTotal   int   // commit total for HeatmapYear
+	HeatmapYears   []int // selectable years, most recent first
+	Attention      []service.AttentionItem // top 3 preview items
+	AttentionTotal int                     // total across all kinds
+	Activity       []model.Event
+	LoadWarnings   []string
 }
 
 type AttentionData struct {

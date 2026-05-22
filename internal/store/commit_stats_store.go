@@ -96,6 +96,56 @@ func (s *CommitStatsStore) ListForUserSince(ctx context.Context, userID int64, s
 	return out, rows.Err()
 }
 
+// ListForUserBetween returns commit-day rows for the user within [since, until] (inclusive).
+func (s *CommitStatsStore) ListForUserBetween(ctx context.Context, userID int64, since, until time.Time) ([]CommitDayCount, error) {
+	const q = `
+		SELECT c.repo_id, c.user_id, c.day, c.commit_count
+		FROM commit_day_counts c
+		JOIN repositories r ON r.id = c.repo_id
+		WHERE c.user_id = $1 AND c.day >= $2 AND c.day <= $3 AND r.deleted_at IS NULL
+		ORDER BY c.day ASC
+	`
+	rows, err := s.db.QueryContext(ctx, q, userID, since.UTC().Truncate(24*time.Hour), until.UTC().Truncate(24*time.Hour))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []CommitDayCount
+	for rows.Next() {
+		var c CommitDayCount
+		if err := rows.Scan(&c.RepoID, &c.UserID, &c.Day, &c.CommitCount); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+// YearsForUser returns the distinct calendar years the user has commit activity in, most recent first.
+func (s *CommitStatsStore) YearsForUser(ctx context.Context, userID int64) ([]int, error) {
+	const q = `
+		SELECT DISTINCT EXTRACT(YEAR FROM c.day)::int AS yr
+		FROM commit_day_counts c
+		JOIN repositories r ON r.id = c.repo_id
+		WHERE c.user_id = $1 AND r.deleted_at IS NULL
+		ORDER BY yr DESC
+	`
+	rows, err := s.db.QueryContext(ctx, q, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []int
+	for rows.Next() {
+		var yr int
+		if err := rows.Scan(&yr); err != nil {
+			return nil, err
+		}
+		out = append(out, yr)
+	}
+	return out, rows.Err()
+}
+
 func (s *CommitStatsStore) WeeklyForRepo(ctx context.Context, repoID int64, weeks int) ([]int, error) {
 	weeks = clampWeeks(weeks)
 	const q = `

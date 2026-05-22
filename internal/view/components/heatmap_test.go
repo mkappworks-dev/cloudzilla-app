@@ -17,7 +17,7 @@ func TestHeatmap_RendersWeeksAndCells(t *testing.T) {
 		today.AddDate(0, -1, 0): 4,
 	}
 	var buf bytes.Buffer
-	if err := Heatmap(counts, today, 52).Render(context.Background(), &buf); err != nil {
+	if err := Heatmap(counts, 2026).Render(context.Background(), &buf); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	out := buf.String()
@@ -36,7 +36,7 @@ func TestHeatmap_AriaLabelIncludesTotal(t *testing.T) {
 		today.AddDate(0, 0, -1): 4,
 	}
 	var buf bytes.Buffer
-	if err := Heatmap(counts, today, 52).Render(context.Background(), &buf); err != nil {
+	if err := Heatmap(counts, 2026).Render(context.Background(), &buf); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	if !strings.Contains(buf.String(), "7 commits") {

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -182,7 +181,7 @@ templ Home(data view.HomeData) {
 									</colgroup>
 									<thead>
 										<tr class="border-b border-border text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
-											<th scope="col" class="px-4 py-2.5 font-normal"><span class="sr-only">Visibility</span></th>
+											<th scope="col" class="border-l-2 border-l-transparent px-4 py-2.5 font-normal"><span class="sr-only">Visibility</span></th>
 											<th scope="col" class="px-4 py-2.5 font-normal">Name</th>
 											<th scope="col" class="px-4 py-2.5 font-normal">Language</th>
 											<th scope="col" class="px-4 py-2.5 font-normal text-right" abbr="Pull requests">PRs</th>
@@ -191,8 +190,8 @@ templ Home(data view.HomeData) {
 									</thead>
 									<tbody>
 										for _, repo := range data.Repos {
-											<tr class="border-b border-border last:border-0 hover:bg-muted/40 transition-colors">
-												<td class="px-4 py-3">
+											<tr class="group border-b border-border last:border-0 hover:bg-accent transition-colors">
+												<td class="border-l-2 border-l-transparent group-hover:border-l-foreground px-4 py-3 transition-colors">
 													@repoIcon(repo.Private)
 												</td>
 												<th scope="row" class="px-4 py-3 font-normal min-w-0">
@@ -235,7 +234,7 @@ templ Home(data view.HomeData) {
 								} else {
 									<span>{ strconv.Itoa(len(data.Repos)) } { pluralize(len(data.Repos), "repository", "repositories") }</span>
 								}
-								<a href="/repos" class="hover:text-foreground link">View all repositories<span aria-hidden="true"> →</span></a>
+								<a href="/repos" class="hover:text-foreground">View all repositories<span aria-hidden="true"> →</span></a>
 							</div>
 						} else {
 							@components.EmptyState("No repositories yet.")
@@ -246,50 +245,17 @@ templ Home(data view.HomeData) {
 					<section aria-labelledby="attention-heading">
 						<div class="flex items-center justify-between mb-4">
 							<h2 id="attention-heading" class="text-[13px] font-medium">Needs your attention</h2>
-							<div role="tablist" aria-label="Filter attention items" class="flex items-center gap-0.5 text-[12px]">
-								<a href="/?attn=mentions" role="tab" aria-selected={ strconv.FormatBool(data.AttentionActive == "mentions") } class={ "px-2 py-1 rounded", attentionTabClass(data.AttentionActive == "mentions") }>
-									Mentions
-									if data.AttentionCounts["mentions"] > 0 {
-										<span class="ml-1 tabular-nums">{ strconv.Itoa(data.AttentionCounts["mentions"]) }</span>
-									}
+							if data.AttentionTotal > 0 {
+								<a href="/attention" class="text-[12px] text-muted-foreground hover:text-foreground">
+									{ "View all " + strconv.Itoa(data.AttentionTotal) }<span aria-hidden="true"> →</span>
 								</a>
-								<a href="/?attn=reviews" role="tab" aria-selected={ strconv.FormatBool(data.AttentionActive == "reviews") } class={ "px-2 py-1 rounded", attentionTabClass(data.AttentionActive == "reviews") }>
-									Reviews
-									if data.AttentionCounts["reviews"] > 0 {
-										<span class="ml-1 tabular-nums">{ strconv.Itoa(data.AttentionCounts["reviews"]) }</span>
-									}
-								</a>
-								<a href="/?attn=assigned" role="tab" aria-selected={ strconv.FormatBool(data.AttentionActive == "assigned") } class={ "px-2 py-1 rounded", attentionTabClass(data.AttentionActive == "assigned") }>
-									Assigned
-									if data.AttentionCounts["assigned"] > 0 {
-										<span class="ml-1 tabular-nums">{ strconv.Itoa(data.AttentionCounts["assigned"]) }</span>
-									}
-								</a>
-							</div>
+							}
 						</div>
 						if len(data.Attention) > 0 {
-							<ul id="attention-panel" role="tabpanel" aria-labelledby="attention-heading" class="b border rounded-md surface divide-y">
+							<ul aria-labelledby="attention-heading" class="border border-border rounded-md bg-card overflow-hidden">
 								for _, item := range data.Attention {
-									<li class="b border-b last:border-0">
-										<a href={ templ.SafeURL(item.URL) } class="flex items-center gap-3 px-4 py-3 hover-row transition">
-											<span class={ "flex-shrink-0 h-4 w-4 rounded-full grid place-items-center", attentionKindColorClass(item.Kind) } aria-hidden="true">
-												@attentionKindIcon(item.Kind)
-											</span>
-											<div class="min-w-0 flex-1">
-												<p class="text-[13px] truncate">{ attentionKindLabel(item.Kind) + ": " + item.Title }</p>
-												<p class="text-[11px] fg2 mt-0.5">
-													<span class="mono">{ item.RepoName }</span>
-													<span aria-hidden="true"> · </span>
-													<span class="mono">{ "#" + strconv.Itoa(item.Number) }</span>
-													if item.Actor != "" {
-														<span aria-hidden="true"> · </span>
-														<span>{ "opened by @" + item.Actor }</span>
-													}
-													<span aria-hidden="true"> · </span>
-													<time datetime={ item.UpdatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(item.UpdatedAt) }</time>
-												</p>
-											</div>
-										</a>
+									<li class="border-b border-border last:border-b-0">
+										@components.AttentionRow(item)
 									</li>
 								}
 							</ul>
@@ -302,13 +268,16 @@ templ Home(data view.HomeData) {
 
 					<!-- Commit activity heatmap -->
 					if data.Heatmap != nil {
-						<section aria-labelledby="commits-heading">
-							<div class="flex items-center justify-between mb-4">
-								<h2 id="commits-heading" class="text-[13px] font-medium">Commit activity</h2>
-								<span class="text-[12px] text-muted-foreground">Last 52 weeks</span>
+						<section aria-labelledby="commits-heading" x-data="{ openMenu: null }">
+							<div class="flex items-start justify-between mb-4">
+								<div class="min-w-0">
+									<h2 id="commits-heading" class="text-[13px] font-medium">Commit activity</h2>
+									<p class="mt-0.5 text-[12px] text-muted-foreground">{ heatmapCountLabel(data.HeatmapTotal, data.HeatmapYear) }</p>
+								</div>
+								@repoFilterMenu("year", strconv.Itoa(data.HeatmapYear), "Select heatmap year", "Year", heatmapYearMenu(data))
 							</div>
-							<div class="border border-border rounded-md bg-card p-5 overflow-x-auto">
-								@components.Heatmap(data.Heatmap, time.Now(), 52)
+							<div class="border border-border rounded-md bg-card p-5">
+								@components.Heatmap(data.Heatmap, data.HeatmapYear)
 							</div>
 						</section>
 					}
@@ -443,50 +412,6 @@ templ repoIcon(private bool) {
 	}
 }
 
-templ attentionKindIcon(kind service.AttentionKind) {
-	switch kind {
-		case service.AttentionPRReviewRequested:
-			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-				<path d="M5 12h14M12 5l7 7-7 7"></path>
-			</svg>
-		case service.AttentionIssueAssigned:
-			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-				<circle cx="12" cy="12" r="9"></circle>
-				<path d="M12 7v5l3 2"></path>
-			</svg>
-		default:
-			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-				<circle cx="12" cy="12" r="9"></circle>
-			</svg>
-	}
-}
-
-func attentionTabClass(active bool) string {
-	if active {
-		return "bg-muted text-foreground"
-	}
-	return "text-muted-foreground hover:text-foreground"
-}
-
-func attentionKindColorClass(kind service.AttentionKind) string {
-	switch kind {
-	case service.AttentionPRReviewRequested:
-		return "text-success"
-	default:
-		return "text-muted-foreground"
-	}
-}
-
-func attentionKindLabel(kind service.AttentionKind) string {
-	switch kind {
-	case service.AttentionPRReviewRequested:
-		return "Pull request"
-	case service.AttentionMention:
-		return "Mention"
-	default:
-		return "Issue"
-	}
-}
 
 func activityDotClass(eventType string) string {
 	switch eventType {
@@ -547,22 +472,6 @@ func formatRelative(t time.Time) string {
 	}
 }
 
-func attentionRepoURL(item service.AttentionItem) string {
-	return "/" + item.RepoName
-}
-
-// Unrecognised kinds fall back to the repo root so a new constant can't ship 404 links.
-func attentionItemURL(item service.AttentionItem) string {
-	switch item.Kind {
-	case service.AttentionPRReviewRequested:
-		return "/" + item.RepoName + "/pulls/" + strconv.Itoa(item.Number)
-	case service.AttentionIssueAssigned, service.AttentionMention:
-		return "/" + item.RepoName + "/issues/" + strconv.Itoa(item.Number)
-	default:
-		return "/" + item.RepoName
-	}
-}
-
 // Lossy: event types without a clear TimelineEntryKind fall through to TimelineEntryComment.
 func eventTimelineKind(eventType string) components.TimelineEntryKind {
 	switch eventType {
@@ -597,6 +506,43 @@ func pluralize(n int, singular, plural string) string {
 type repoDropdownOption struct {
 	Value string
 	Label string
+}
+
+func heatmapCountLabel(total, year int) string {
+	y := strconv.Itoa(year)
+	switch {
+	case total == 0:
+		return "No commits in " + y
+	case total == 1:
+		return "1 commit in " + y
+	default:
+		return commaInt(total) + " commits in " + y
+	}
+}
+
+// commaInt formats a non-negative integer with thousands separators.
+func commaInt(n int) string {
+	s := strconv.Itoa(n)
+	out := ""
+	for i, c := range s {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			out += ","
+		}
+		out += string(c)
+	}
+	return out
+}
+
+func heatmapYearMenu(data view.HomeData) []repoMenuItem {
+	items := make([]repoMenuItem, 0, len(data.HeatmapYears))
+	for _, y := range data.HeatmapYears {
+		items = append(items, repoMenuItem{
+			Label:  strconv.Itoa(y),
+			URL:    "/?year=" + strconv.Itoa(y),
+			Active: y == data.HeatmapYear,
+		})
+	}
+	return items
 }
 
 func repoSortOptions() []repoDropdownOption {

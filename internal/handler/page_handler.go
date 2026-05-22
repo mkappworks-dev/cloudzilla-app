@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"sort"
+	"strconv"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -314,52 +316,40 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 			{Label: "Commits, last 7 days", Value: commitsLast7, Detail: commitsDetail},
 		}
 		data.BasePage = withAccountSubnav(data.BasePage, "overview", h.accountCounts(ctx, userID))
-		if heat, err := h.Services.CommitStats.LookbackForUser(ctx, userID, 365); err != nil {
-			slog.Warn("home: heatmap lookback failed", "user_id", userID, "error", err)
+		heatmapYear := time.Now().UTC().Year()
+		if y, perr := strconv.Atoi(r.URL.Query().Get("year")); perr == nil && y >= 2000 && y <= heatmapYear {
+			heatmapYear = y
+		}
+		data.HeatmapYear = heatmapYear
+		if heat, total, err := h.Services.CommitStats.HeatmapForYear(ctx, userID, heatmapYear); err != nil {
+			slog.Warn("home: heatmap failed", "user_id", userID, "year", heatmapYear, "error", err)
 		} else {
 			data.Heatmap = heat
+			data.HeatmapTotal = total
 		}
+		yearSet := map[int]bool{heatmapYear: true, time.Now().UTC().Year(): true}
+		if ys, err := h.Services.CommitStats.CommitYearsForUser(ctx, userID); err != nil {
+			slog.Warn("home: commit years failed", "user_id", userID, "error", err)
+		} else {
+			for _, y := range ys {
+				yearSet[y] = true
+			}
+		}
+		years := make([]int, 0, len(yearSet))
+		for y := range yearSet {
+			years = append(years, y)
+		}
+		sort.Sort(sort.Reverse(sort.IntSlice(years)))
+		data.HeatmapYears = years
 		if att, err := h.Services.Attention.ForUser(ctx, userID); err != nil {
 			slog.Warn("home: attention list failed", "user_id", userID, "error", err)
 		} else {
-			attnActive := r.URL.Query().Get("attn")
-			if attnActive != "reviews" && attnActive != "mentions" {
-				attnActive = "assigned"
+			data.AttentionTotal = len(att)
+			if len(att) > 3 {
+				data.Attention = att[:3]
+			} else {
+				data.Attention = att
 			}
-			counts := map[string]int{"assigned": 0, "reviews": 0, "mentions": 0}
-			for _, item := range att {
-				switch item.Kind {
-				case service.AttentionIssueAssigned:
-					counts["assigned"]++
-				case service.AttentionPRReviewRequested:
-					counts["reviews"]++
-				case service.AttentionMention:
-					counts["mentions"]++
-				}
-			}
-			var filtered []service.AttentionItem
-			for _, item := range att {
-				switch attnActive {
-				case "assigned":
-					if item.Kind == service.AttentionIssueAssigned {
-						filtered = append(filtered, item)
-					}
-				case "reviews":
-					if item.Kind == service.AttentionPRReviewRequested {
-						filtered = append(filtered, item)
-					}
-				case "mentions":
-					if item.Kind == service.AttentionMention {
-						filtered = append(filtered, item)
-					}
-				}
-			}
-			if len(filtered) > 20 {
-				filtered = filtered[:20]
-			}
-			data.Attention = filtered
-			data.AttentionActive = attnActive
-			data.AttentionCounts = counts
 		}
 		if feed, err := h.Services.Event.Feed(ctx, int(userID), "all", 1, 10); err != nil {
 			slog.Warn("home: activity feed failed", "user_id", userID, "error", err)

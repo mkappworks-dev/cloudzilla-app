@@ -133,3 +133,29 @@ func (s *CommitStatsService) LookbackForUser(ctx context.Context, userID int64, 
 	}
 	return out, nil
 }
+
+// HeatmapForYear returns a day→commit-count map covering the given calendar year
+// (zeros materialized so the grid is regular) plus the year's commit total.
+func (s *CommitStatsService) HeatmapForYear(ctx context.Context, userID int64, year int) (map[time.Time]int, int, error) {
+	start := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(year, time.December, 31, 0, 0, 0, 0, time.UTC)
+	rows, err := s.stats.ListForUserBetween(ctx, userID, start, end)
+	if err != nil {
+		return nil, 0, err
+	}
+	out := make(map[time.Time]int, 366)
+	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
+		out[d] = 0
+	}
+	total := 0
+	for _, r := range rows {
+		out[r.Day.UTC().Truncate(24*time.Hour)] += r.CommitCount
+		total += r.CommitCount
+	}
+	return out, total, nil
+}
+
+// CommitYearsForUser lists the calendar years the user has commit activity in, most recent first.
+func (s *CommitStatsService) CommitYearsForUser(ctx context.Context, userID int64) ([]int, error) {
+	return s.stats.YearsForUser(ctx, userID)
+}
