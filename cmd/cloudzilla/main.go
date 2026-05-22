@@ -27,6 +27,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: config.yaml)")
 
 	rootCmd.AddCommand(migrateCmd())
+	rootCmd.AddCommand(gcCmd())
 }
 
 func migrateCmd() *cobra.Command {
