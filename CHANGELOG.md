@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/mkappworks-dev/cloudzilla-app/compare/v0.3.0...v0.4.0) (2026-05-22)
+
+
+### Features
+
+* **ui:** UI overhaul phase 7 — gists ([#43](https://github.com/mkappworks-dev/cloudzilla-app/issues/43)) ([90504f3](https://github.com/mkappworks-dev/cloudzilla-app/commit/90504f3f6ef5acbdf8ad216fdec6b2de85d37465))
+* **ui:** UI overhaul phase 8 — dashboard ([#44](https://github.com/mkappworks-dev/cloudzilla-app/issues/44)) ([bdcee6b](https://github.com/mkappworks-dev/cloudzilla-app/commit/bdcee6b8067d45fb34f2ddfe26ef9bcbff1fcd6c))
+
+
+### Bug Fixes
+
+* accept thin packs in git receive-pack (HTTP + SSH) ([#47](https://github.com/mkappworks-dev/cloudzilla-app/issues/47)) ([52a6f21](https://github.com/mkappworks-dev/cloudzilla-app/commit/52a6f2137a858b82ef1861491da37ac0ff0dc570))
+
 ## [0.3.0](https://github.com/mkappworks-dev/cloudzilla-app/compare/v0.2.0...v0.3.0) (2026-05-20)
 
 
