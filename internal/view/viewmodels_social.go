@@ -73,7 +73,10 @@ type GistsData struct {
 	Page                int
 	HasNext             bool
 	Tab                 string // "public" or "private"
+	Sort                string // "updated" | "created" | "name"
 	PrivateTabAvailable bool
+	PublicCount         int // all public gists instance-wide
+	PrivateCount        int // viewer's own private gists
 }
 
 type GistDetailData struct {
