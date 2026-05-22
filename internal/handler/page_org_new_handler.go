@@ -12,6 +12,10 @@ import (
 )
 
 // PageNewOrganization renders the form for creating a new organization.
+//
+// Renders with the bare global header — no AccountSubnav. Orgs aren't a
+// subnav-level concept (no "Organizations" tab exists), and dropping the
+// chrome keeps the form focused on the single task.
 func (h *Handler) PageNewOrganization(w http.ResponseWriter, r *http.Request) {
 	if _, ok := middleware.ClaimsFromContext(r.Context()); !ok {
 		http.Redirect(w, r, "/login", http.StatusFound)

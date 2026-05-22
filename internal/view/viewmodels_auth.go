@@ -32,18 +32,6 @@ type InviteData struct {
 	Error      string
 }
 
-// SecurityPageData is the view model for GET /settings/security.
-// SecurityPageData holds template data for the user security settings page.
-type SecurityPageData struct {
-	BasePage
-	TOTPEnabled bool
-	TOTPSecret  string   // pending secret, shown only before first verification
-	OTPAuthURL  string   // otpauth:// URL for QR code (shown only when setting up)
-	BackupCodes []string // raw backup codes, shown only once after enable
-	Error       string
-	Success     string
-}
-
 // TOTPVerifyPageData is the view model for GET /auth/2fa.
 // TOTPVerifyPageData holds template data for the TOTP verification page.
 type TOTPVerifyPageData struct {

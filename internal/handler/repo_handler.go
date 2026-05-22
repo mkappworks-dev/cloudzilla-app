@@ -23,13 +23,14 @@ func (h *Handler) PageNewRepo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	orgs, err := h.Services.Org.ListOwnedByUser(r.Context(), claims.UserID)
+	ctx := r.Context()
+	orgs, err := h.Services.Org.ListOwnedByUser(ctx, claims.UserID)
 	if err != nil {
 		slog.Error("list owned orgs", "error", err)
 		orgs = []model.Organization{}
 	}
 	h.render(w, r, pages.RepoNew(view.RepoNewData{
-		BasePage:           basePage(r, h.Services),
+		BasePage:           withAccountSubnav(basePage(r, h.Services), "repositories", h.accountCounts(ctx, claims.UserID)),
 		OwnedOrgs:          orgs,
 		GitignoreTemplates: h.Services.Repo.ListGitignoreTemplates(),
 		LicenseTemplates:   h.Services.Repo.ListLicenseTemplates(),

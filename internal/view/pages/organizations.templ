@@ -11,7 +11,7 @@ import (
 
 templ Organizations(data view.OrgListData) {
 	@layout.Base(data.BasePage, "Organizations") {
-		<div class="space-y-8 max-w-3xl">
+		<div class="space-y-8">
 
 			<div class="flex flex-wrap items-start justify-between gap-3">
 				<div>
@@ -24,8 +24,24 @@ templ Organizations(data view.OrgListData) {
 				}
 			</div>
 
-			if len(data.Entries) > 0 {
+			if data.CurrentUser != nil || len(data.Entries) > 0 {
 				<ul class="divide-y divide-border rounded-md border border-border bg-card overflow-hidden">
+					if data.CurrentUser != nil {
+						<li class="flex items-center gap-4 px-4 py-3.5">
+							@components.Avatar(data.CurrentUser.Username, components.AvatarSizeLG, data.CurrentUser.Username)
+							<div class="min-w-0 flex-1">
+								<div class="flex flex-wrap items-center gap-2">
+									<a href={ templ.SafeURL("/" + data.CurrentUser.Username) } class="text-sm font-medium hover:underline">
+										{ data.CurrentUser.Username }
+									</a>
+									@components.Badge(components.BadgeOutline) {
+										Personal
+									}
+								</div>
+								<p class="text-xs text-muted-foreground mt-0.5">Your personal account</p>
+							</div>
+						</li>
+					}
 					for _, e := range data.Entries {
 						@orgListRow(e, viewerUsername(data))
 					}
@@ -45,20 +61,15 @@ templ orgListRow(e view.OrgListEntry, viewerUsername string) {
 				<a href={ templ.SafeURL("/" + e.Org.Name) } class="text-sm font-medium hover:underline">
 					{ e.Org.Name }
 				</a>
-				if e.Role == model.OrgRoleOwner {
-					@components.Badge(components.BadgeDefault) {
+				@components.Badge(components.BadgeOutline) {
+					if e.Role == model.OrgRoleOwner {
 						Owner
-					}
-				} else {
-					@components.Badge(components.BadgeOutline) {
+					} else {
 						Member
 					}
 				}
 			</div>
-			if e.Org.DisplayName != "" {
-				<p class="text-xs text-muted-foreground mt-0.5">{ e.Org.DisplayName }</p>
-			}
-			<p class="text-xs text-muted-foreground mt-0.5">{ memberCountLabel(e.MemberCount) }</p>
+			<p class="text-xs text-muted-foreground mt-0.5">{ orgRowSubtitle(e) }</p>
 		</div>
 		<div class="flex-shrink-0">
 			if e.Role == model.OrgRoleOwner {
@@ -89,6 +100,17 @@ func memberCountLabel(n int) string {
 		return "1 member"
 	}
 	return strconv.Itoa(n) + " members"
+}
+
+// orgRowSubtitle returns a single-line subtitle for the org list row.
+// Prepends the display name when present so the reader gets a human-readable
+// label before the bare member count.
+func orgRowSubtitle(e view.OrgListEntry) string {
+	base := memberCountLabel(e.MemberCount)
+	if e.Org.DisplayName != "" {
+		return e.Org.DisplayName + " · " + base
+	}
+	return base
 }
 
 func viewerUsername(data view.OrgListData) string {

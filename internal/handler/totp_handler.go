@@ -14,69 +14,31 @@ import (
 
 const totpPendingCookieName = "cz_totp_pending"
 
-// PageSecuritySettings renders GET /settings/security.
-func (h *Handler) PageSecuritySettings(w http.ResponseWriter, r *http.Request) {
+// SetupTOTP handles POST /settings/security/setup. Generates a TOTP secret,
+// stores it as pending, and redirects back to /settings#security where the
+// QR code + verify form is rendered inline by the consolidated settings page.
+func (h *Handler) SetupTOTP(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	enabled, secret, err := h.Services.TOTP.GetUserTOTPState(r.Context(), claims.UserID)
+	secret, _, err := h.Services.TOTP.Generate(claims.Username, "Cloudzilla")
 	if err != nil {
-		http.Error(w, "failed to load security settings", http.StatusInternalServerError)
+		http.Redirect(w, r, "/settings?profile_error=totp_setup_failed#security", http.StatusSeeOther)
 		return
 	}
-
-	data := view.SecurityPageData{
-		BasePage:    basePage(r, h.Services),
-		TOTPEnabled: enabled,
-	}
-
-	// If TOTP is not yet enabled but a pending secret exists, show the QR setup UI.
-	if !enabled && secret.Valid && secret.String != "" {
-		data.TOTPSecret = secret.String
-		data.OTPAuthURL = h.Services.TOTP.BuildOTPAuthURL(claims.Username, "Cloudzilla", secret.String)
-	}
-
-	h.render(w, r, pages.Security(data))
-}
-
-// PageSecuritySettingsSetup handles POST /settings/security/setup.
-// It generates a new TOTP secret, stores it as pending, and re-renders the page
-// showing the QR code + manual entry key.
-func (h *Handler) PageSecuritySettingsSetup(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	secret, otpAuthURL, err := h.Services.TOTP.Generate(claims.Username, "Cloudzilla")
-	if err != nil {
-		h.render(w, r, pages.Security(view.SecurityPageData{
-			BasePage: basePage(r, h.Services),
-			Error:    "Failed to generate secret. Please try again.",
-		}))
-		return
-	}
-
 	if err := h.Services.TOTP.StoreSecret(r.Context(), claims.UserID, secret); err != nil {
-		h.render(w, r, pages.Security(view.SecurityPageData{
-			BasePage: basePage(r, h.Services),
-			Error:    "Failed to save secret. Please try again.",
-		}))
+		http.Redirect(w, r, "/settings?profile_error=totp_setup_failed#security", http.StatusSeeOther)
 		return
 	}
-
-	h.render(w, r, pages.Security(view.SecurityPageData{
-		BasePage:   basePage(r, h.Services),
-		TOTPSecret: secret,
-		OTPAuthURL: otpAuthURL,
-	}))
+	http.Redirect(w, r, "/settings#security", http.StatusSeeOther)
 }
 
-// EnableTOTP handles POST /api/user/totp/enable (form: secret, code).
+// EnableTOTP handles POST /api/user/totp/enable (form: secret, code). On success
+// the freshly-generated backup codes are stashed in a short-lived cookie so the
+// settings page can show them exactly once.
 func (h *Handler) EnableTOTP(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -87,32 +49,25 @@ func (h *Handler) EnableTOTP(w http.ResponseWriter, r *http.Request) {
 	secret := r.FormValue("secret")
 	code := r.FormValue("code")
 	if secret == "" || code == "" {
-		h.render(w, r, pages.Security(view.SecurityPageData{
-			BasePage:   basePage(r, h.Services),
-			TOTPSecret: secret,
-			OTPAuthURL: h.Services.TOTP.BuildOTPAuthURL(claims.Username, "Cloudzilla", secret),
-			Error:      "Secret and code are required.",
-		}))
+		http.Redirect(w, r, "/settings?profile_error=totp_missing_fields#security", http.StatusSeeOther)
 		return
 	}
 
 	rawCodes, err := h.Services.TOTP.Enable(r.Context(), claims.UserID, secret, code)
 	if err != nil {
-		h.render(w, r, pages.Security(view.SecurityPageData{
-			BasePage:   basePage(r, h.Services),
-			TOTPSecret: secret,
-			OTPAuthURL: h.Services.TOTP.BuildOTPAuthURL(claims.Username, "Cloudzilla", secret),
-			Error:      "Invalid verification code. Please try again.",
-		}))
+		http.Redirect(w, r, "/settings?profile_error=totp_invalid_code#security", http.StatusSeeOther)
 		return
 	}
 
-	h.render(w, r, pages.Security(view.SecurityPageData{
-		BasePage:    basePage(r, h.Services),
-		TOTPEnabled: true,
-		BackupCodes: rawCodes,
-		Success:     "Two-factor authentication has been enabled. Save your backup codes now — they will not be shown again.",
-	}))
+	http.SetCookie(w, &http.Cookie{
+		Name:     backupCodesCookieName,
+		Value:    strings.Join(rawCodes, ","),
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   h.Cfg.Auth.CookieSecure,
+		MaxAge:   300,
+	})
+	http.Redirect(w, r, "/settings#security", http.StatusSeeOther)
 }
 
 // DisableTOTP handles POST /api/user/totp/disable (form: code).
@@ -125,27 +80,15 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 
 	code := r.FormValue("code")
 	if code == "" {
-		h.render(w, r, pages.Security(view.SecurityPageData{
-			BasePage:    basePage(r, h.Services),
-			TOTPEnabled: true,
-			Error:       "Verification code is required.",
-		}))
+		http.Redirect(w, r, "/settings?profile_error=totp_missing_code#security", http.StatusSeeOther)
 		return
 	}
 
 	if err := h.Services.TOTP.Disable(r.Context(), claims.UserID, code); err != nil {
-		h.render(w, r, pages.Security(view.SecurityPageData{
-			BasePage:    basePage(r, h.Services),
-			TOTPEnabled: true,
-			Error:       "Invalid code. Please try again.",
-		}))
+		http.Redirect(w, r, "/settings?profile_error=totp_invalid_code#security", http.StatusSeeOther)
 		return
 	}
-
-	h.render(w, r, pages.Security(view.SecurityPageData{
-		BasePage: basePage(r, h.Services),
-		Success:  "Two-factor authentication has been disabled.",
-	}))
+	http.Redirect(w, r, "/settings#security", http.StatusSeeOther)
 }
 
 // PageTOTPVerify renders GET /auth/2fa — the 6-digit input page.

@@ -12,101 +12,128 @@ templ NewOrganization(data view.NewOrganizationData) {
 		{{ me = data.CurrentUser.Username }}
 	}
 	@layout.Base(data.BasePage, "New Organization") {
-		<div class="max-w-2xl mx-auto space-y-6">
+		<div class="space-y-6">
 
 			<section aria-labelledby="no-title">
-				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Cloudzilla · New</p>
+				<p class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2">
+					<a href="/organizations" class="hover:underline">Organizations</a> · New
+				</p>
 				<h1 id="no-title" class="text-2xl font-semibold tracking-tight">Tell us about your organization</h1>
 				<p class="mt-1 text-[13px] text-muted-foreground">Set up an organization to collaborate on repositories with your team.</p>
 			</section>
 
-			<form method="post" action="/organizations/new" class="space-y-5 rounded-md border border-border bg-card p-6">
-				if data.Error != "" {
-					<div role="alert" class="text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2">{ data.Error }</div>
-				}
+			<div class="grid lg:grid-cols-[1fr_280px] gap-8">
+				<div class="min-w-0">
+					<form method="post" action="/organizations/new" x-data="{ name: '', tos: false }" class="space-y-5 rounded-md border border-border bg-card p-6">
+						if data.Error != "" {
+							<div role="alert" class="text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2">{ data.Error }</div>
+						}
 
-				<div class="space-y-1.5">
-					<label for="org-name" class="block text-sm font-medium">
-						Organization name <span class="text-destructive" aria-hidden="true">*</span>
-					</label>
-					@components.Input(templ.Attributes{
-						"type":        "text",
-						"id":          "org-name",
-						"name":        "name",
-						"required":    "required",
-						"pattern":     "[A-Za-z0-9._-]+",
-						"value":       data.Name,
-						"placeholder": "my-organization",
-						"class":       "font-mono",
-					})
-					<p class="text-[11px] text-muted-foreground">Letters, numbers, dots, dashes, and underscores only.</p>
+						<div class="space-y-1.5">
+							<label for="org-name" class="block text-sm font-medium">
+								Organization name <span class="text-destructive" aria-hidden="true">*</span>
+							</label>
+							@components.Input(templ.Attributes{
+								"type":          "text",
+								"id":            "org-name",
+								"name":          "name",
+								"required":      "required",
+								"pattern":       "[A-Za-z0-9._-]+",
+								"value":         data.Name,
+								"placeholder":   "my-organization",
+								"class":         "font-mono",
+								"x-model.fill":  "name",
+							})
+							<p class="text-[11px] text-muted-foreground">This will be the URL: <span class="font-mono">cloudzilla.dev/<span class="text-foreground">my-organization</span></span>. Letters, numbers, dots, dashes, and underscores only.</p>
+						</div>
+
+						<div class="space-y-1.5">
+							<label for="org-description" class="block text-sm font-medium">
+								Description <span class="text-muted-foreground font-normal">(optional)</span>
+							</label>
+							@components.Input(templ.Attributes{
+								"type":        "text",
+								"id":          "org-description",
+								"name":        "description",
+								"value":       data.Description,
+								"placeholder": "What is this organization for?",
+							})
+						</div>
+
+						<fieldset class="space-y-3 border-t border-border pt-5">
+							<legend class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2">This organization belongs to</legend>
+							<label class="flex items-start gap-3 cursor-pointer">
+								@components.Radio(templ.Attributes{"value": "personal", "checked": "checked", "class": "mt-0.5"})
+								<span class="text-sm">
+									<span class="font-medium block">My personal account ({ me })</span>
+									<span class="text-muted-foreground text-[12px]">You will be the owner of this organization.</span>
+								</span>
+							</label>
+							<label class="flex items-start gap-3">
+								@components.Radio(templ.Attributes{"value": "enterprise", "disabled": "disabled", "class": "mt-0.5"})
+								<span class="text-sm">
+									<span class="font-medium block text-muted-foreground">An enterprise account</span>
+									<span class="text-muted-foreground text-[12px]">Not available.</span>
+								</span>
+							</label>
+						</fieldset>
+
+						<fieldset class="space-y-3 border-t border-border pt-5">
+							<legend class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2">Plan</legend>
+							<label class="flex items-start gap-3 cursor-pointer">
+								@components.Radio(templ.Attributes{"value": "free", "checked": "checked", "class": "mt-0.5"})
+								<span class="text-sm">
+									<span class="font-medium block">Free</span>
+									<span class="text-muted-foreground text-[12px]">Unlimited public and private repositories.</span>
+								</span>
+							</label>
+							<label class="flex items-start gap-3">
+								@components.Radio(templ.Attributes{"value": "team", "disabled": "disabled", "class": "mt-0.5"})
+								<span class="text-sm">
+									<span class="font-medium block text-muted-foreground">Team</span>
+									<span class="text-muted-foreground text-[12px]">Billing not yet supported.</span>
+								</span>
+							</label>
+						</fieldset>
+
+						<div class="border-t border-border pt-5">
+							<label class="flex items-start gap-3 cursor-pointer">
+								@components.Checkbox(templ.Attributes{"name": "accept_tos", "id": "accept-tos", "required": "required", "class": "mt-0.5", "x-model": "tos"})
+								<span class="text-sm">I understand I'm responsible for this organization's content and conduct, and I agree to the <a href="#" class="text-primary hover:underline">Cloudzilla Terms of Service</a>.</span>
+							</label>
+						</div>
+
+						<div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
+							@components.LinkButton("/organizations", components.ButtonOutline, components.ButtonSizeDefault, nil) {
+								Cancel
+							}
+							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
+								"type":      "submit",
+								":disabled": "!name.trim() || !tos",
+								":class":    "(!name.trim() || !tos) ? 'opacity-50 cursor-not-allowed' : ''",
+							}) {
+								Create organization
+							}
+						</div>
+					</form>
 				</div>
 
-				<div class="space-y-1.5">
-					<label for="org-description" class="block text-sm font-medium">
-						Description <span class="text-muted-foreground font-normal">(optional)</span>
-					</label>
-					@components.Input(templ.Attributes{
-						"type":        "text",
-						"id":          "org-description",
-						"name":        "description",
-						"value":       data.Description,
-						"placeholder": "Short description of the organization",
-					})
-				</div>
-
-				<fieldset class="space-y-3 border-t border-border pt-5">
-					<legend class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2">This organization belongs to</legend>
-					<label class="flex items-start gap-3 cursor-pointer">
-						@components.Radio(templ.Attributes{"value": "personal", "checked": "checked", "class": "mt-0.5"})
-						<span class="text-sm">
-							<span class="font-medium block">My personal account ({ me })</span>
-							<span class="text-muted-foreground text-[12px]">You will be the owner of this organization.</span>
-						</span>
-					</label>
-					<label class="flex items-start gap-3">
-						@components.Radio(templ.Attributes{"value": "enterprise", "disabled": "disabled", "class": "mt-0.5"})
-						<span class="text-sm">
-							<span class="font-medium block text-muted-foreground">An enterprise account</span>
-							<span class="text-muted-foreground text-[12px]">Not available.</span>
-						</span>
-					</label>
-				</fieldset>
-
-				<fieldset class="space-y-3 border-t border-border pt-5">
-					<legend class="font-mono text-[11px] text-muted-foreground uppercase tracking-wider px-2 -ml-2">Plan</legend>
-					<label class="flex items-start gap-3 cursor-pointer">
-						@components.Radio(templ.Attributes{"value": "free", "checked": "checked", "class": "mt-0.5"})
-						<span class="text-sm">
-							<span class="font-medium block">Free</span>
-							<span class="text-muted-foreground text-[12px]">Unlimited public and private repositories.</span>
-						</span>
-					</label>
-					<label class="flex items-start gap-3">
-						@components.Radio(templ.Attributes{"value": "team", "disabled": "disabled", "class": "mt-0.5"})
-						<span class="text-sm">
-							<span class="font-medium block text-muted-foreground">Team</span>
-							<span class="text-muted-foreground text-[12px]">Billing not yet supported.</span>
-						</span>
-					</label>
-				</fieldset>
-
-				<div class="border-t border-border pt-5">
-					<label class="flex items-start gap-3 cursor-pointer">
-						@components.Checkbox(templ.Attributes{"name": "accept_tos", "id": "accept-tos", "required": "required", "class": "mt-0.5"})
-						<span class="text-sm">I have read and agree to the Terms of Service.</span>
-					</label>
-				</div>
-
-				<div class="flex items-center gap-3 pt-2">
-					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-						Create organization
-					}
-					@components.LinkButton("/settings/organizations", components.ButtonGhost, components.ButtonSizeDefault, nil) {
-						Cancel
-					}
-				</div>
-			</form>
+				<aside class="space-y-6" aria-label="About organizations">
+					<section aria-labelledby="no-about">
+						<h2 id="no-about" class="text-[12px] font-medium text-muted-foreground mb-2">About organizations</h2>
+						<p class="text-[13px] text-muted-foreground leading-relaxed">An organization is a shared account where multiple people own and manage repositories together. Access is granted at the organization level, so you set permissions in one place instead of per repository.</p>
+					</section>
+					<section aria-labelledby="no-tips" class="border-t border-border pt-5">
+						<h2 id="no-tips" class="text-[12px] font-medium text-muted-foreground mb-2">Good to know</h2>
+						<ul class="space-y-2 text-[13px] text-muted-foreground leading-relaxed">
+							<li>Organization names must be unique across Cloudzilla and form the URL of every repository under the organization.</li>
+							<li>You'll be the owner with full admin rights, and can promote others to owner later from organization settings.</li>
+							<li>Once the organization exists you can create repositories under it.</li>
+							<li>Visibility (public/private) is set per repository, not at the organization level.</li>
+						</ul>
+					</section>
+				</aside>
+			</div>
 		</div>
 	}
 }

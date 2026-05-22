@@ -22,13 +22,6 @@ type ReactionFragData struct {
 	LoggedIn  bool
 }
 
-// Saved replies settings page
-// SavedRepliesData holds template data for the saved replies settings page.
-type SavedRepliesData struct {
-	BasePage
-	Replies []model.SavedReply
-}
-
 // Saved replies HTMX list fragment
 // SavedRepliesFragData holds template data for the saved replies list HTMX fragment.
 type SavedRepliesFragData struct {

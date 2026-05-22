@@ -230,7 +230,7 @@ func User(data view.UserData) templ.Component {
 					}
 					return nil
 				})
-				templ_7745c5c3_Err = components.LinkButton("/new", components.ButtonDefault, components.ButtonSizeSM, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var10), templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = components.LinkButton("/repos/new", components.ButtonDefault, components.ButtonSizeSM, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var10), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -643,7 +643,7 @@ func userReposTab(data view.UserData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if data.BasePage.CurrentUser != nil && data.BasePage.CurrentUser.UserID == data.User.ID {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "<a href=\"/new\" class=\"h-9 px-4 rounded-md font-medium text-sm inline-flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M12 5v14M5 12h14\"></path></svg> New repository</a>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "<a href=\"/repos/new\" class=\"h-9 px-4 rounded-md font-medium text-sm inline-flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M12 5v14M5 12h14\"></path></svg> New repository</a>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

@@ -4,27 +4,8 @@ import (
 	"net/http"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
-
-func (h *Handler) PageNotificationSettings(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-	user, err := h.Services.User.GetByID(r.Context(), claims.UserID)
-	if err != nil {
-		http.Error(w, "user not found", http.StatusInternalServerError)
-		return
-	}
-	h.render(w, r, pages.NotificationSettings(view.NotificationSettingsData{
-		BasePage:           basePage(r, h.Services),
-		EmailNotifications: user.EmailNotifications,
-		EmailDigest:        user.EmailDigest,
-	}))
-}
 
 func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
@@ -36,15 +17,20 @@ func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusBadRequest, "bad request")
 		return
 	}
-	emailNotifications := r.FormValue("email_notifications") == "on"
-	emailDigest := r.FormValue("email_digest")
-	allowed := map[string]bool{"immediate": true, "daily": true, "weekly": true, "never": true}
-	if !allowed[emailDigest] {
-		emailDigest = "immediate"
+	prefs := store.NotificationPrefs{
+		PRReview:      r.FormValue("notify_pr_review") == "on",
+		IssueAssigned: r.FormValue("notify_issue_assigned") == "on",
+		Mention:       r.FormValue("notify_mention") == "on",
+		Watched:       r.FormValue("notify_watched") == "on",
+		WeeklyDigest:  r.FormValue("notify_weekly_digest") == "on",
 	}
-	if err := h.Services.User.UpdateEmailPrefs(r.Context(), claims.UserID, emailNotifications, emailDigest); err != nil {
+	if err := h.Services.User.UpdateNotificationPrefs(r.Context(), claims.UserID, prefs); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to update preferences")
 		return
 	}
-	http.Redirect(w, r, "/settings/notifications", http.StatusSeeOther)
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	http.Redirect(w, r, "/settings#notifications", http.StatusSeeOther)
 }

@@ -51,7 +51,7 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"max-w-2xl mx-auto space-y-6\"><section aria-labelledby=\"no-title\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2\">Cloudzilla · New</p><h1 id=\"no-title\" class=\"text-2xl font-semibold tracking-tight\">Tell us about your organization</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">Set up an organization to collaborate on repositories with your team.</p></section><form method=\"post\" action=\"/organizations/new\" class=\"space-y-5 rounded-md border border-border bg-card p-6\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"space-y-6\"><section aria-labelledby=\"no-title\"><p class=\"font-mono text-[11px] text-muted-foreground uppercase tracking-wider mb-2\"><a href=\"/organizations\" class=\"hover:underline\">Organizations</a> · New</p><h1 id=\"no-title\" class=\"text-2xl font-semibold tracking-tight\">Tell us about your organization</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">Set up an organization to collaborate on repositories with your team.</p></section><div class=\"grid lg:grid-cols-[1fr_280px] gap-8\"><div class=\"min-w-0\"><form method=\"post\" action=\"/organizations/new\" x-data=\"{ name: '', tos: false }\" class=\"space-y-5 rounded-md border border-border bg-card p-6\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -63,7 +63,7 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_organization.templ`, Line: 25, Col: 136}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_organization.templ`, Line: 29, Col: 138}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -79,19 +79,20 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			templ_7745c5c3_Err = components.Input(templ.Attributes{
-				"type":        "text",
-				"id":          "org-name",
-				"name":        "name",
-				"required":    "required",
-				"pattern":     "[A-Za-z0-9._-]+",
-				"value":       data.Name,
-				"placeholder": "my-organization",
-				"class":       "font-mono",
+				"type":         "text",
+				"id":           "org-name",
+				"name":         "name",
+				"required":     "required",
+				"pattern":      "[A-Za-z0-9._-]+",
+				"value":        data.Name,
+				"placeholder":  "my-organization",
+				"class":        "font-mono",
+				"x-model.fill": "name",
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<p class=\"text-[11px] text-muted-foreground\">Letters, numbers, dots, dashes, and underscores only.</p></div><div class=\"space-y-1.5\"><label for=\"org-description\" class=\"block text-sm font-medium\">Description <span class=\"text-muted-foreground font-normal\">(optional)</span></label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<p class=\"text-[11px] text-muted-foreground\">This will be the URL: <span class=\"font-mono\">cloudzilla.dev/<span class=\"text-foreground\">my-organization</span></span>. Letters, numbers, dots, dashes, and underscores only.</p></div><div class=\"space-y-1.5\"><label for=\"org-description\" class=\"block text-sm font-medium\">Description <span class=\"text-muted-foreground font-normal\">(optional)</span></label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -100,7 +101,7 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 				"id":          "org-description",
 				"name":        "description",
 				"value":       data.Description,
-				"placeholder": "Short description of the organization",
+				"placeholder": "What is this organization for?",
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -120,7 +121,7 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(me)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_organization.templ`, Line: 63, Col: 64}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/new_organization.templ`, Line: 68, Col: 66}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -154,11 +155,11 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.Checkbox(templ.Attributes{"name": "accept_tos", "id": "accept-tos", "required": "required", "class": "mt-0.5"}).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.Checkbox(templ.Attributes{"name": "accept_tos", "id": "accept-tos", "required": "required", "class": "mt-0.5", "x-model": "tos"}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<span class=\"text-sm\">I have read and agree to the Terms of Service.</span></label></div><div class=\"flex items-center gap-3 pt-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<span class=\"text-sm\">I understand I'm responsible for this organization's content and conduct, and I agree to the <a href=\"#\" class=\"text-primary hover:underline\">Cloudzilla Terms of Service</a>.</span></label></div><div class=\"flex items-center justify-end gap-2 pt-2 border-t border-border\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -174,13 +175,13 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "Create organization")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "Cancel")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.LinkButton("/organizations", components.ButtonOutline, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -196,17 +197,21 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "Cancel")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "Create organization")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.LinkButton("/settings/organizations", components.ButtonGhost, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var6), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
+				"type":      "submit",
+				":disabled": "!name.trim() || !tos",
+				":class":    "(!name.trim() || !tos) ? 'opacity-50 cursor-not-allowed' : ''",
+			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var6), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div></form></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div></form></div><aside class=\"space-y-6\" aria-label=\"About organizations\"><section aria-labelledby=\"no-about\"><h2 id=\"no-about\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">About organizations</h2><p class=\"text-[13px] text-muted-foreground leading-relaxed\">An organization is a shared account where multiple people own and manage repositories together. Access is granted at the organization level, so you set permissions in one place instead of per repository.</p></section><section aria-labelledby=\"no-tips\" class=\"border-t border-border pt-5\"><h2 id=\"no-tips\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Good to know</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground leading-relaxed\"><li>Organization names must be unique across Cloudzilla and form the URL of every repository under the organization.</li><li>You'll be the owner with full admin rights, and can promote others to owner later from organization settings.</li><li>Once the organization exists you can create repositories under it.</li><li>Visibility (public/private) is set per repository, not at the organization level.</li></ul></section></aside></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

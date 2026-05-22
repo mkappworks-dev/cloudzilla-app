@@ -122,30 +122,6 @@ func (h *Handler) TokenEndpoint(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// PageOAuthApps renders the user's registered apps and granted authorizations.
-func (h *Handler) PageOAuthApps(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-	apps, err := h.Services.OAuthApp.ListByOwner(r.Context(), claims.UserID)
-	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	auths, err := h.Services.OAuthApp.ListAuthorizationsByUser(r.Context(), claims.UserID)
-	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	h.render(w, r, pages.OAuthApps(view.OAuthAppsData{
-		BasePage:       basePage(r, h.Services),
-		Apps:           apps,
-		Authorizations: auths,
-	}))
-}
-
 // CreateOAuthApp handles POST /api/oauth/apps.
 func (h *Handler) CreateOAuthApp(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())

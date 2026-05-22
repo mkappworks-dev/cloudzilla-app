@@ -297,7 +297,7 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	}))
 }
 
-// PageOrganizations renders the organizations listing page at /settings/organizations.
+// PageOrganizations renders the organizations listing page at /organizations.
 func (h *Handler) PageOrganizations(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
