@@ -4,6 +4,7 @@ import (
 	"io"
 	"sync/atomic"
 
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 )
 
@@ -44,4 +45,30 @@ func CountRefStatus(status *packp.ReportStatus) (ok, failed int) {
 		}
 	}
 	return ok, failed
+}
+
+// AppliedCommands returns the subset of commands that the receive-pack
+// report did not mark as failed. go-git reports a per-ref failure (a
+// create-race, a storer error) only in status, not as a ReceivePack
+// error, so callers must filter before running push side effects.
+func AppliedCommands(status *packp.ReportStatus, commands []*packp.Command) []*packp.Command {
+	if status == nil {
+		return commands
+	}
+	failed := make(map[plumbing.ReferenceName]struct{})
+	for _, cs := range status.CommandStatuses {
+		if cs.Error() != nil {
+			failed[cs.ReferenceName] = struct{}{}
+		}
+	}
+	if len(failed) == 0 {
+		return commands
+	}
+	applied := make([]*packp.Command, 0, len(commands))
+	for _, c := range commands {
+		if _, bad := failed[c.Name]; !bad {
+			applied = append(applied, c)
+		}
+	}
+	return applied
 }

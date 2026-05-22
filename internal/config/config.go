@@ -53,6 +53,10 @@ type GitConfig struct {
 	// MaxPackBytes caps the post-decompression size of a pushed pack on
 	// both transports. Zero disables the cap.
 	MaxPackBytes int64 `mapstructure:"max_pack_bytes"`
+	// SSHMaxSession is the absolute lifetime of an SSH connection — a
+	// backstop against slow-trickle connections that defeat the idle
+	// timeout. Zero disables it.
+	SSHMaxSession time.Duration `mapstructure:"ssh_max_session"`
 }
 
 // OAuthConfig holds Google OAuth provider settings.
@@ -93,6 +97,7 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("git.ssh_port", 2222)
 	v.SetDefault("git.ssh_host_key", "./cloudzilla_host_key")
 	v.SetDefault("git.max_pack_bytes", int64(2)<<30)
+	v.SetDefault("git.ssh_max_session", "2h")
 	v.SetDefault("oauth.google_client_id", "")
 	v.SetDefault("oauth.google_client_secret", "")
 	v.SetDefault("oauth.google_redirect_url", "http://localhost:8080/auth/google/callback")

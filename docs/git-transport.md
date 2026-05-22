@@ -103,7 +103,10 @@ git:
   repos_root: ./git-repos
   ssh_port: 2222 # SSH server port
   ssh_host_key: ./cloudzilla_host_key # Host key file (auto-generated if missing)
+  ssh_max_session: 2h # Absolute connection lifetime (0 disables)
 ```
+
+A connection idle for 60s is closed; `ssh_max_session` is the absolute cap that also bounds a slow client trickling bytes to defeat the idle timeout.
 
 ### SSH Git Operations
 

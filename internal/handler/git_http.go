@@ -363,9 +363,13 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		status.Encode(w) //nolint:errcheck
 	}
 
+	// Run side effects only for refs go-git applied — a per-ref failure
+	// surfaces in status, not as a ReceivePack error.
+	commands := gittransport.AppliedCommands(status, req.Commands)
+
 	// Enforce branch protection rules before dispatching webhooks.
 	// If protection rejects the push, rollback the ref to its previous value.
-	for _, cmd := range req.Commands {
+	for _, cmd := range commands {
 		if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
 			continue
 		}
@@ -387,7 +391,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 
 	// Dispatch push webhooks for each updated branch
 	pusherName := gu.Username
-	for _, cmd := range req.Commands {
+	for _, cmd := range commands {
 		if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
 			continue
 		}
@@ -402,7 +406,6 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	commands := req.Commands
 	concurrency.Go("repo.on_post_receive", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()

@@ -55,6 +55,7 @@ func New(cfg config.GitConfig, services *service.Services) *Server {
 		PublicKeyHandler: s.publicKeyHandler,
 		HostSigners:      []ssh.Signer{hostKey},
 		IdleTimeout:      sshIdleTimeout,
+		MaxTimeout:       cfg.SSHMaxSession,
 	}
 
 	return s
@@ -318,7 +319,7 @@ func isForcePushSSH(gitRepo *gogit.Repository, cmd *packp.Command) bool {
 }
 
 // execGitService runs the git pack protocol over the SSH session and returns
-// the pushed commands (non-nil only for git-receive-pack).
+// the commands go-git applied (non-nil only for git-receive-pack).
 func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.Repository, ownerName, repoName, pusherName string) ([]*packp.Command, error) {
 	ep, err := transport.NewEndpoint("/")
 	if err != nil {
@@ -424,6 +425,6 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			}
 		}
 
-		return req.Commands, nil
+		return gittransport.AppliedCommands(status, req.Commands), nil
 	}
 }
