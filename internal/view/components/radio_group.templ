@@ -23,7 +23,7 @@ package components
 // directly — RadioGroup is for the inline cases where a fieldset would feel
 // heavy.
 templ RadioGroup(ariaLabel string, attrs templ.Attributes) {
-	<div role="radiogroup" aria-label={ ariaLabel } class="grid gap-2" { attrs... }>
+	<div role="radiogroup" aria-label={ ariaLabel } { withClass("grid gap-2", attrs)... }>
 		{ children... }
 	</div>
 }

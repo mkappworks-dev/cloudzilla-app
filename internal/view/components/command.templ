@@ -139,8 +139,7 @@ templ CommandItem(href string, attrs templ.Attributes) {
 		<a
 			href={ templ.SafeURL(href) }
 			data-command-item
-			class="flex items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-none"
-			{ attrs... }
+			{ withClass("flex items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-none", attrs)... }
 		>
 			{ children... }
 		</a>
@@ -148,8 +147,7 @@ templ CommandItem(href string, attrs templ.Attributes) {
 		<button
 			type="button"
 			data-command-item
-			class="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-none"
-			{ attrs... }
+			{ withClass("flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-none", attrs)... }
 		>
 			{ children... }
 		</button>

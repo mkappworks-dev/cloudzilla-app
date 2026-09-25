@@ -25,7 +25,7 @@ package components
 // Table is the root <table> element. Wrap in an overflow-x container yourself
 // if your table is wider than the viewport — this component does not add scroll affordances.
 templ Table(attrs templ.Attributes) {
-	<table class="w-full caption-bottom text-sm" { attrs... }>
+	<table { withClass("w-full caption-bottom text-sm", attrs)... }>
 		{ children... }
 	</table>
 }
@@ -71,7 +71,7 @@ templ TableRow(hoverable bool) {
 //
 // Wrap the visible label in a <span class="sr-only"> if the column is icon-only.
 templ TableHead(attrs templ.Attributes) {
-	<th class="h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider [&:has([role=checkbox])]:pr-0" { attrs... }>
+	<th { withClass("h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider [&:has([role=checkbox])]:pr-0", attrs)... }>
 		{ children... }
 	</th>
 }
@@ -79,7 +79,7 @@ templ TableHead(attrs templ.Attributes) {
 // TableCell renders a <td>. To mark a row-header cell instead (recommended for
 // the primary identifying column of each row), use TableRowHead.
 templ TableCell(attrs templ.Attributes) {
-	<td class="p-4 align-middle [&:has([role=checkbox])]:pr-0" { attrs... }>
+	<td { withClass("p-4 align-middle [&:has([role=checkbox])]:pr-0", attrs)... }>
 		{ children... }
 	</td>
 }
@@ -88,7 +88,7 @@ templ TableCell(attrs templ.Attributes) {
 // cell of each row (typically the leftmost meaningful column, like the repo name
 // or PR title). Screen readers will announce this cell as the row's label.
 templ TableRowHead(attrs templ.Attributes) {
-	<th scope="row" class="p-4 align-middle font-normal text-left" { attrs... }>
+	<th scope="row" { withClass("p-4 align-middle font-normal text-left", attrs)... }>
 		{ children... }
 	</th>
 }
@@ -97,7 +97,7 @@ templ TableRowHead(attrs templ.Attributes) {
 // contents — required by WCAG for non-trivial tables. Use `class="sr-only"`
 // via attrs to hide it visually while keeping it for screen readers.
 templ TableCaption(attrs templ.Attributes) {
-	<caption class="mt-4 text-sm text-muted-foreground" { attrs... }>
+	<caption { withClass("mt-4 text-sm text-muted-foreground", attrs)... }>
 		{ children... }
 	</caption>
 }

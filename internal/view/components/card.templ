@@ -3,7 +3,7 @@ package components
 // Card renders a bordered container with the page's `card` background.
 // Compose with CardHeader, CardTitle, CardDescription, CardContent, CardFooter.
 templ Card(attrs templ.Attributes) {
-	<div class="rounded-lg border border-border bg-card text-card-foreground" { attrs... }>
+	<div { withClass("rounded-lg border border-border bg-card text-card-foreground", attrs)... }>
 		{ children... }
 	</div>
 }

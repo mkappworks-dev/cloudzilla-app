@@ -40,12 +40,11 @@ templ Refs(data view.RefsData) {
 								<div class="flex items-center gap-3 ml-4 shrink-0">
 									<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commits/"+b.Name) } class="text-xs text-muted-foreground hover:text-foreground">commits</a>
 									if data.CanWrite && !b.IsDefault {
-										@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+										@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
 											"hx-delete":  "/api/repos/"+data.Owner+"/"+data.RepoName+"/branches?name="+b.Name,
 											"hx-target":  "#branches-list",
 											"hx-swap":    "outerHTML",
 											"hx-confirm": "Delete branch '"+b.Name+"'?",
-											"class":      "text-destructive hover:bg-destructive/10 border-destructive/40",
 											"type":       "button",
 											"aria-label": "Delete branch "+b.Name,
 										}) {
@@ -103,12 +102,11 @@ templ Refs(data view.RefsData) {
 								<div class="flex items-center gap-3 ml-4 shrink-0">
 									<a href={ templ.SafeURL("/"+data.Owner+"/"+data.RepoName+"/commits/"+t.Name) } class="text-xs text-muted-foreground hover:text-foreground">commits</a>
 									if data.CanWrite {
-										@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+										@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
 											"hx-delete":  "/api/repos/"+data.Owner+"/"+data.RepoName+"/tags?name="+t.Name,
 											"hx-target":  "#tags-list",
 											"hx-swap":    "outerHTML",
 											"hx-confirm": "Delete tag '"+t.Name+"'?",
-											"class":      "text-destructive hover:bg-destructive/10 border-destructive/40",
 											"type":       "button",
 											"aria-label": "Delete tag "+t.Name,
 										}) {

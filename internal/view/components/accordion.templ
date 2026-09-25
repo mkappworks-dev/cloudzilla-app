@@ -5,7 +5,7 @@ package components
 // give every AccordionItem the same `name` attribute via attrs — supported
 // natively in modern browsers (Chrome 120+, Safari 17+, Firefox 129+).
 templ Accordion(attrs templ.Attributes) {
-	<div class="rounded-md border border-border bg-card divide-y divide-border overflow-hidden" { attrs... }>
+	<div { withClass("rounded-md border border-border bg-card divide-y divide-border overflow-hidden", attrs)... }>
 		{ children... }
 	</div>
 }
@@ -16,7 +16,7 @@ templ Accordion(attrs templ.Attributes) {
 // Pass `name` via attrs (e.g. {"name": "faq"}) to enable single-open mode
 // across sibling items.
 templ AccordionItem(attrs templ.Attributes) {
-	<details class="group" { attrs... }>
+	<details { withClass("group", attrs)... }>
 		{ children... }
 	</details>
 }

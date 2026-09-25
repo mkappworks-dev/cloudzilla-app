@@ -14,8 +14,7 @@ package components
 templ Checkbox(attrs templ.Attributes) {
 	<input
 		type="checkbox"
-		class="h-4 w-4 shrink-0 rounded border border-input bg-transparent accent-foreground checked:bg-primary checked:border-primary disabled:cursor-not-allowed disabled:opacity-50"
-		{ attrs... }
+		{ withClass("h-4 w-4 shrink-0 rounded border border-input bg-transparent accent-foreground checked:bg-primary checked:border-primary disabled:cursor-not-allowed disabled:opacity-50", attrs)... }
 	/>
 }
 
@@ -37,8 +36,7 @@ templ Switch(attrs templ.Attributes) {
 		<input
 			type="checkbox"
 			role="switch"
-			class="peer sr-only"
-			{ attrs... }
+			{ withClass("peer sr-only", attrs)... }
 		/>
 		<span
 			aria-hidden="true"
@@ -68,7 +66,6 @@ templ Switch(attrs templ.Attributes) {
 templ Radio(attrs templ.Attributes) {
 	<input
 		type="radio"
-		class="h-4 w-4 shrink-0 border border-input bg-transparent accent-foreground checked:border-primary disabled:cursor-not-allowed disabled:opacity-50"
-		{ attrs... }
+		{ withClass("h-4 w-4 shrink-0 border border-input bg-transparent accent-foreground checked:border-primary disabled:cursor-not-allowed disabled:opacity-50", attrs)... }
 	/>
 }

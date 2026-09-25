@@ -11,9 +11,8 @@ package components
 //	@components.Skeleton(templ.Attributes{"class": "h-8 w-8 rounded-full"})
 templ Skeleton(attrs templ.Attributes) {
 	<div
-		class="animate-pulse rounded-md bg-muted motion-reduce:animate-none"
 		aria-hidden="true"
-		{ attrs... }
+		{ withClass("animate-pulse rounded-md bg-muted motion-reduce:animate-none", attrs)... }
 	></div>
 }
 

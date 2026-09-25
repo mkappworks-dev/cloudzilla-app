@@ -31,8 +31,7 @@ func toggleVariantClass(v ToggleVariant) string {
 templ Toggle(variant ToggleVariant, size ButtonSize, attrs templ.Attributes) {
 	<button
 		type="button"
-		class={ "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", toggleVariantClass(variant), buttonSizeClass(size) }
-		{ attrs... }
+		{ withClass(templ.Classes("inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", toggleVariantClass(variant), buttonSizeClass(size)).String(), attrs)... }
 	>
 		{ children... }
 	</button>
