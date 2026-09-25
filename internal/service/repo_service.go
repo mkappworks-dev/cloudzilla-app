@@ -47,7 +47,6 @@ type RepoService struct {
 	repos            *store.RepoStore
 	users            *store.UserStore
 	orgs             *store.OrgStore
-	commitStats      *CommitStatsService
 	contributorStats *ContributorStatsService
 	code             *CodeService
 	language         *LanguageService
@@ -56,8 +55,8 @@ type RepoService struct {
 }
 
 // The code service may be nil in tests that do not exercise contributor queries.
-func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, commitStats *CommitStatsService, contributorStats *ContributorStatsService, code *CodeService, cfg config.GitConfig) *RepoService {
-	return &RepoService{repos: repos, users: users, orgs: orgs, commitStats: commitStats, contributorStats: contributorStats, code: code, cfg: cfg}
+func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, contributorStats *ContributorStatsService, code *CodeService, cfg config.GitConfig) *RepoService {
+	return &RepoService{repos: repos, users: users, orgs: orgs, contributorStats: contributorStats, code: code, cfg: cfg}
 }
 
 func (s *RepoService) WithLanguageService(lang *LanguageService) *RepoService {
@@ -92,7 +91,7 @@ type postReceiveCommit struct {
 
 // Dedupes commits shared across multiple updated branches; returns an aggregate error only when every walk fails so a stuck repo doesn't go silent.
 func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository, gitRepo *gogit.Repository, commands []*packp.Command) error {
-	if s.commitStats == nil || gitRepo == nil || repo == nil {
+	if s.contributorStats == nil || gitRepo == nil || repo == nil {
 		return nil
 	}
 	seen := make(map[plumbing.Hash]struct{})
@@ -143,14 +142,6 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 	}
 	if len(commits) == 0 {
 		return nil
-	}
-
-	samples := make([]CommitSample, len(commits))
-	for i, c := range commits {
-		samples[i] = CommitSample{AuthorEmail: c.AuthorEmail, Time: c.AuthorTime}
-	}
-	if err := s.commitStats.Ingest(ctx, repo.ID, samples); err != nil {
-		return fmt.Errorf("commit stats ingest (repo_id=%d, samples=%d): %w", repo.ID, len(samples), err)
 	}
 
 	if s.contributorStats != nil && s.code != nil && repo.OwnerName != "" {

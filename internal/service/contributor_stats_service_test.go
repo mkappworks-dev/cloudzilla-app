@@ -3,7 +3,6 @@ package service_test
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -11,6 +10,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 func openTestDBContributorStatsService(t *testing.T) *sql.DB {
@@ -38,7 +38,7 @@ func TestContributorStatsService_IngestCommit_IsIdempotentBySha(t *testing.T) {
 	svc := service.NewContributorStatsService(statsStore, userStore)
 
 	ctx := context.Background()
-	suffix := fmt.Sprintf("ccis_%d", os.Getpid())
+	suffix := "ccis_" + testutil.UniqueSuffix(t)
 
 	var userID int64
 	if err := db.QueryRowContext(ctx,
@@ -79,5 +79,15 @@ func TestContributorStatsService_IngestCommit_IsIdempotentBySha(t *testing.T) {
 	if rows[0].Commits != 1 || rows[0].Additions != 50 || rows[0].Deletions != 10 {
 		t.Errorf("idempotency violated: got commits=%d additions=%d deletions=%d, want 1/50/10",
 			rows[0].Commits, rows[0].Additions, rows[0].Deletions)
+	}
+
+	var dayCount int
+	if err := db.QueryRowContext(ctx,
+		`SELECT COALESCE(SUM(commit_count), 0) FROM commit_day_counts WHERE repo_id = $1`, repoID,
+	).Scan(&dayCount); err != nil {
+		t.Fatalf("query day counts: %v", err)
+	}
+	if dayCount != 1 {
+		t.Errorf("day counts: want sum 1, got %d", dayCount)
 	}
 }

@@ -78,10 +78,6 @@ func (s *ContributorStatsStore) AddDelta(ctx context.Context, repoID, userID int
 	return addDelta(ctx, s.db, repoID, userID, MondayUTC(week), commits, additions, deletions)
 }
 
-func (s *ContributorStatsStore) AttemptIngest(ctx context.Context, repoID int64, sha string, userID int64, week time.Time, additions, deletions int) (bool, error) {
-	return attemptIngest(ctx, s.db, repoID, userID, sha, MondayUTC(week), additions, deletions)
-}
-
 // The SHA claim and both aggregate increments share one transaction, so a crash between them can't leave a claimed-but-uncounted commit.
 func (s *ContributorStatsStore) IngestCommitTx(ctx context.Context, repoID, userID int64, sha string, when time.Time, additions, deletions int) error {
 	tx, err := s.db.BeginTx(ctx, nil)

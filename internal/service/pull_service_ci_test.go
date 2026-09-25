@@ -114,7 +114,7 @@ func TestPullService_ListWithCIStatus(t *testing.T) {
 
 	repoSvc := service.NewRepoService(
 		store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db),
-		nil, nil, nil, czconfig.GitConfig{},
+		nil, nil, czconfig.GitConfig{},
 	)
 	pullStore := store.NewPullStore(db)
 	svc := service.NewPullService(pullStore, store.NewRepoStore(db), repoSvc)
