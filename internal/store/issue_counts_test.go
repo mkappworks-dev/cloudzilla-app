@@ -6,12 +6,12 @@ package store_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 func TestIssueStore_CountsForUser(t *testing.T) {
@@ -22,7 +22,7 @@ func TestIssueStore_CountsForUser(t *testing.T) {
 	aliceID, bobID, cleanup := seedTwoUsers(t, ctx, "isscnt")
 	defer cleanup()
 
-	suffix := fmt.Sprintf("%d_%s", os.Getpid(), t.Name())
+	suffix := testutil.UniqueSuffix(t)
 	repoID := insertRepo(t, ctx, db, aliceID, "alice", "icr_"+suffix)
 
 	mkIssue := func(number int, authorID int64, state string) int64 {

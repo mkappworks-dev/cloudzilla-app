@@ -3,7 +3,6 @@ package service_test
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -11,6 +10,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 // openTestDBCommitStatsService opens an integration-test DB connection if
@@ -38,8 +38,7 @@ func TestCommitStatsService_Ingest_AggregatesPerDay(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Unique suffix avoids collisions across parallel test runs.
-	suffix := fmt.Sprintf("%d", os.Getpid())
+	suffix := testutil.UniqueSuffix(t)
 
 	// Seed: one user.
 	var userID int64

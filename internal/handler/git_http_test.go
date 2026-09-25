@@ -18,6 +18,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 // newBrokenGitHandler builds a Handler backed by a broken DB.
@@ -188,7 +189,7 @@ func TestGitInfoRefs_UnknownRepo_404(t *testing.T) {
 // (prompts the git CLI to ask for credentials).
 func TestGitInfoRefs_PrivateRepo_UploadPack_NoAuth_401(t *testing.T) {
 	h, db := newRealGitHandler(t)
-	suffix := fmt.Sprintf("%d_priv", os.Getpid())
+	suffix := testutil.UniqueSuffix(t) + "_priv"
 	ownerID, ownerName := seedGitUser(t, db, suffix)
 	_, repoName := seedGitRepo(t, db, ownerID, ownerName, suffix, true)
 
@@ -210,7 +211,7 @@ func TestGitInfoRefs_PrivateRepo_UploadPack_NoAuth_401(t *testing.T) {
 // requires authentication for push (receive-pack) — read-public does not imply write-public.
 func TestGitInfoRefs_PublicRepo_ReceivePack_NoAuth_401(t *testing.T) {
 	h, db := newRealGitHandler(t)
-	suffix := fmt.Sprintf("%d_pub", os.Getpid())
+	suffix := testutil.UniqueSuffix(t) + "_pub"
 	ownerID, ownerName := seedGitUser(t, db, suffix)
 	_, repoName := seedGitRepo(t, db, ownerID, ownerName, suffix, false)
 
@@ -230,7 +231,7 @@ func TestGitInfoRefs_PublicRepo_ReceivePack_NoAuth_401(t *testing.T) {
 // A public repo is used so the request can reach the service-param check.
 func TestGitInfoRefs_InvalidService_400(t *testing.T) {
 	h, db := newRealGitHandler(t)
-	suffix := fmt.Sprintf("%d_svc", os.Getpid())
+	suffix := testutil.UniqueSuffix(t) + "_svc"
 	ownerID, ownerName := seedGitUser(t, db, suffix)
 	_, repoName := seedGitRepo(t, db, ownerID, ownerName, suffix, false)
 

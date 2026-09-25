@@ -2,12 +2,12 @@ package store_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 func TestContributorStatsStore_UpsertAndList(t *testing.T) {
@@ -20,7 +20,7 @@ func TestContributorStatsStore_UpsertAndList(t *testing.T) {
 
 	s := store.NewContributorStatsStore(db)
 	ctx := context.Background()
-	suffix := fmt.Sprintf("cws_%d", os.Getpid())
+	suffix := "cws_" + testutil.UniqueSuffix(t)
 
 	var userID int64
 	if err := db.QueryRowContext(ctx,
