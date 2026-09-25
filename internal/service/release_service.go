@@ -21,16 +21,19 @@ var ErrReleaseTagInUse = errors.New("a release already exists for this tag")
 // ErrInvalidTagName is returned when the tag string isn't safe to land in git
 // storage as a ref. We refuse these up-front rather than relying on go-git's
 // looser plumbing checks.
-var ErrInvalidTagName = errors.New(`tag name must match ^[A-Za-z0-9._/-]{1,255}$ and contain no ".."`)
+var ErrInvalidTagName = errors.New(`tag name must match ^[A-Za-z0-9._/-]{1,255}$ and be a valid git ref name`)
 
 // tagNamePattern excludes '@' to keep clear of reflog syntax.
 var tagNamePattern = regexp.MustCompile(`^[A-Za-z0-9._/-]{1,255}$`)
 
-// validTagName reports whether tagName is safe to use as a git tag ref. Beyond
-// the character allowlist it rejects "..", which in a tag like "../etc/passwd"
-// would escape refs/tags/ when written to git storage.
+// Beyond the charset, git ref rules forbid "..", "//", leading/trailing "/" and a leading "."; ".." in particular would let "../etc/passwd" escape refs/tags/.
 func validTagName(tagName string) bool {
-	return tagNamePattern.MatchString(tagName) && !strings.Contains(tagName, "..")
+	return tagNamePattern.MatchString(tagName) &&
+		!strings.Contains(tagName, "..") &&
+		!strings.Contains(tagName, "//") &&
+		!strings.HasPrefix(tagName, "/") &&
+		!strings.HasSuffix(tagName, "/") &&
+		!strings.HasPrefix(tagName, ".")
 }
 
 type ReleaseService struct {
