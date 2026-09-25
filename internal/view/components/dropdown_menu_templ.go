@@ -29,7 +29,9 @@ const (
 //	    @components.DropdownMenuLabel() { "Signed in as Daisy" }
 //	    @components.DropdownMenuSeparator()
 //	    @components.DropdownMenuLink("/settings", nil) { "Settings" }
-//	    @components.DropdownMenuLink("/logout", nil) { "Sign out" }
+//	    <form method="POST" action="/api/auth/logout" class="contents">
+//	      @components.DropdownMenuItem(templ.Attributes{"type": "submit"}) { "Sign out" }
+//	    </form>
 //	  }
 //	}
 func DropdownMenu() templ.Component {
@@ -255,7 +257,7 @@ func DropdownMenuLink(href string, attrs templ.Attributes) templ.Component {
 		var templ_7745c5c3_Var6 templ.SafeURL
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/dropdown_menu.templ`, Line: 100, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/dropdown_menu.templ`, Line: 102, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
