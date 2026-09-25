@@ -66,7 +66,6 @@ type (
 	LineCommentFormFragData   = view.LineCommentFormFragData
 	SearchData                = view.SearchData
 	StargazersData            = view.StargazersData
-	UserStarsData             = view.UserStarsData
 	TokensListFragData        = view.TokensListFragData
 	ReactionFragData          = view.ReactionFragData
 	SSHKeysFragData           = view.SSHKeysFragData
@@ -85,7 +84,6 @@ type (
 	GistDetailData            = view.GistDetailData
 	GistNewData               = view.GistNewData
 	GistEditData              = view.GistEditData
-	UserGistsData             = view.UserGistsData
 	RepoTopicsFragData        = view.RepoTopicsFragData
 	TopicData                 = view.TopicData
 	CodeSearchData            = view.CodeSearchData

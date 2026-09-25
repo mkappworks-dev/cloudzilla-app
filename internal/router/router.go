@@ -61,6 +61,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Post("/login", h.PageLoginSubmit)
 	r.With(authMW).Get("/settings", h.PageSettings)
 	r.With(authMW).Post("/settings/profile", h.UpdateProfile)
+	r.With(authMW).Post("/settings/profile-readme", h.UpdateProfileReadme)
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
 	r.With(authMW).Post("/settings/export", h.RequestExport)
 	r.With(authMW).Post("/settings/delete-account", h.DeleteAccount)
@@ -103,7 +104,6 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	r.With(optAuthMW).Get("/{owner}", h.PageUser)
 	r.With(authMW).Get("/orgs/{org}/settings", h.PageOrgSettings)
-	r.With(optAuthMW).Get("/{owner}/gists", h.PageUserGists)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
 	r.With(authMW).Post("/{owner}/{repo}/settings/general", h.UpdateRepoGeneral)
@@ -113,7 +113,6 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Get("/{owner}/{repo}/releases/new", h.PageReleaseNew)
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases/tag/{tagName}", h.PageReleaseDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/stargazers", h.PageStargazers)
-	r.With(optAuthMW).Get("/{owner}/stars", h.PageUserStars)
 	r.With(optAuthMW).Get("/{owner}/{repo}/milestones", h.PageMilestones)
 	r.With(authMW).Get("/{owner}/{repo}/milestones/new", h.PageNewMilestone)
 	r.With(authMW).Post("/{owner}/{repo}/milestones/new", h.PageNewMilestoneSubmit)
@@ -193,8 +192,12 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Get("/{org}/members", h.ListOrgMembers)
 		r.With(authMW).Post("/{org}/members", h.AddOrgMember)
 		r.With(authMW).Delete("/{org}/members/{username}", h.RemoveOrgMember)
+		r.With(authMW).Post("/{org}/members/{username}/role", h.UpdateOrgMemberRole)
 		r.With(authMW).Post("/{org}/repos", h.CreateOrgRepo)
 		r.With(authMW).Post("/{org}/transfer", h.TransferOrg)
+		r.With(authMW).Post("/{org}/profile", h.UpdateOrgProfile)
+		r.With(authMW).Post("/{org}/repo-defaults", h.UpdateOrgRepoDefaults)
+		r.With(authMW).Post("/{org}/delete", h.DeleteOrg)
 	})
 
 	// Repo routes

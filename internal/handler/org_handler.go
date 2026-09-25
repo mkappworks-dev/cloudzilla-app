@@ -132,6 +132,7 @@ func (h *Handler) AddOrgMember(w http.ResponseWriter, r *http.Request) {
 			OrgName:   orgName,
 			Members:   members,
 			CanManage: canManage,
+			ViewerID:  claims.UserID,
 		}))
 		return
 	}
@@ -175,10 +176,203 @@ func (h *Handler) RemoveOrgMember(w http.ResponseWriter, r *http.Request) {
 			OrgName:   orgName,
 			Members:   members,
 			CanManage: canManage,
+			ViewerID:  claims.UserID,
 		}))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// UpdateOrgMemberRole changes a member's role from a <select hx-post>
+// dropdown. Owner-only. Renders the updated members list fragment on success
+// so HTMX swaps it in place.
+func (h *Handler) UpdateOrgMemberRole(w http.ResponseWriter, r *http.Request) {
+	orgName := chi.URLParam(r, "org")
+	targetUsername := chi.URLParam(r, "username")
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	org, err := h.Services.Org.Get(r.Context(), orgName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "org not found")
+		return
+	}
+
+	target, err := h.Services.User.GetByUsername(r.Context(), targetUsername)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "user not found")
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
+
+	role := model.OrgRole(r.FormValue("role"))
+	if err := h.Services.Org.UpdateMemberRole(r.Context(), org.ID, claims.UserID, target.ID, role); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	members, _ := h.Services.Org.ListMembers(r.Context(), org.ID)
+	if members == nil {
+		members = []model.OrgMember{}
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		h.render(w, r, fragments.OrgMembers(view.OrgMembersFragData{
+			OrgName:   orgName,
+			Members:   members,
+			CanManage: true,
+			ViewerID:  claims.UserID,
+		}))
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// UpdateOrgRepoDefaults persists the org's default repository visibility +
+// branch name. Owner-only. Applied to new repos created under the org.
+func (h *Handler) UpdateOrgRepoDefaults(w http.ResponseWriter, r *http.Request) {
+	orgName := chi.URLParam(r, "org")
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	org, err := h.Services.Org.Get(r.Context(), orgName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "org not found")
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
+
+	if err := h.Services.Org.UpdateRepoDefaults(
+		r.Context(),
+		org.ID,
+		claims.UserID,
+		r.FormValue("default_repo_visibility"),
+		r.FormValue("default_branch_name"),
+	); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	h.Services.AuditLog.Record(
+		r.Context(), r,
+		claims.UserID, claims.Username,
+		model.AuditActionOrgDefaultsUpdate, model.AuditTargetOrg,
+		org.ID, org.Name,
+		map[string]any{
+			"default_repo_visibility": r.FormValue("default_repo_visibility"),
+			"default_branch_name":     r.FormValue("default_branch_name"),
+		},
+	)
+
+	http.Redirect(w, r, "/orgs/"+orgName+"/settings#repo-defaults", http.StatusSeeOther)
+}
+
+// DeleteOrg permanently removes an organization. Browser form submission
+// (POST /api/orgs/{org}/delete) with a confirm_name field that must match the
+// org's slug — protects against accidental deletes from middle-clicked links
+// or stray bots. Refuses if the org still has any repositories.
+func (h *Handler) DeleteOrg(w http.ResponseWriter, r *http.Request) {
+	orgName := chi.URLParam(r, "org")
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	org, err := h.Services.Org.Get(r.Context(), orgName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "org not found")
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
+
+	if r.FormValue("confirm_name") != org.Name {
+		writeError(w, http.StatusUnprocessableEntity, "confirmation name does not match")
+		return
+	}
+
+	if err := h.Services.Org.Delete(r.Context(), org.ID, claims.UserID); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	// Record after delete: the org row is gone, so target_id refers to a no-longer-
+	// existing row. That's intentional — the audit row still names what was deleted.
+	h.Services.AuditLog.Record(
+		r.Context(), r,
+		claims.UserID, claims.Username,
+		model.AuditActionOrgDelete, model.AuditTargetOrg,
+		org.ID, org.Name, nil,
+	)
+
+	http.Redirect(w, r, "/organizations", http.StatusSeeOther)
+}
+
+// UpdateOrgProfile persists the General-section fields submitted from the
+// organization settings page. Requires owner privileges.
+func (h *Handler) UpdateOrgProfile(w http.ResponseWriter, r *http.Request) {
+	orgName := chi.URLParam(r, "org")
+
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	org, err := h.Services.Org.Get(r.Context(), orgName)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "org not found")
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid form")
+		return
+	}
+
+	if err := h.Services.Org.UpdateProfile(
+		r.Context(),
+		org.ID,
+		claims.UserID,
+		r.FormValue("display_name"),
+		r.FormValue("description"),
+		r.FormValue("website"),
+		r.FormValue("location"),
+		r.FormValue("contact_email"),
+	); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	h.Services.AuditLog.Record(
+		r.Context(), r,
+		claims.UserID, claims.Username,
+		model.AuditActionOrgProfileUpdate, model.AuditTargetOrg,
+		org.ID, org.Name, nil,
+	)
+
+	http.Redirect(w, r, "/orgs/"+orgName+"/settings", http.StatusSeeOther)
 }
 
 func (h *Handler) TransferOrg(w http.ResponseWriter, r *http.Request) {
@@ -199,6 +393,13 @@ func (h *Handler) TransferOrg(w http.ResponseWriter, r *http.Request) {
 	newOwner := r.FormValue("new_owner")
 	if newOwner == "" {
 		writeError(w, http.StatusBadRequest, "new_owner is required")
+		return
+	}
+	// confirm_name is set by the dialog form to require a typed org-name match
+	// before transferring. If absent (older callers), we accept the request for
+	// backwards-compat.
+	if cn := r.FormValue("confirm_name"); cn != "" && cn != org.Name {
+		writeError(w, http.StatusUnprocessableEntity, "confirmation name does not match")
 		return
 	}
 

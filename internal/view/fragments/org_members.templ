@@ -1,31 +1,75 @@
 package fragments
 
-import "github.com/mkappworks-dev/cloudzilla-app/internal/view"
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
 
 templ OrgMembers(data view.OrgMembersFragData) {
-	<div id="org-members-list" class="divide-y divide-border border border-border rounded-lg">
+	<div id="org-members-list" class="divide-y divide-border border border-border rounded-md">
 		if len(data.Members) > 0 {
-			for _, member := range data.Members {
-				<div class="px-4 py-3 flex justify-between items-center">
-					<div>
-						<a href={ templ.SafeURL("/" + member.Username) } class="text-foreground hover:underline font-medium">{ member.Username }</a>
-						<span class="ml-2 text-xs text-muted-foreground capitalize">{ string(member.Role) }</span>
-					</div>
-					if data.CanManage {
-						<button
-							hx-delete={ "/api/orgs/" + data.OrgName + "/members/" + member.Username }
-							hx-target="#org-members-list"
-							hx-swap="outerHTML"
-							hx-confirm={ "Remove " + member.Username + " from this organization?" }
-							class="text-xs text-destructive hover:underline"
-						>
-							Remove
-						</button>
-					}
-				</div>
+			for _, m := range data.Members {
+				@orgMemberRow(data.OrgName, m, data.ViewerID, data.CanManage)
 			}
 		} else {
 			<div class="px-4 py-3 text-muted-foreground text-sm">No members yet.</div>
+		}
+	</div>
+}
+
+templ orgMemberRow(orgName string, m model.OrgMember, viewerID int64, canManage bool) {
+	{{ isSelf := m.UserID == viewerID }}
+	<div class="px-4 py-3 flex items-center gap-3" data-org-member-row data-username={ m.Username } data-role={ string(m.Role) }>
+		@components.Avatar(m.Username, components.AvatarSizeDefault, m.Username)
+		<div class="min-w-0 flex-1">
+			<div class="flex items-center gap-2">
+				<a href={ templ.SafeURL("/" + m.Username) } class="text-[13.5px] font-medium hover:underline">{ m.Username }</a>
+				if isSelf {
+					@components.Badge(components.BadgeOutline) {
+						You
+					}
+				}
+			</div>
+			<p class="text-[11.5px] text-muted-foreground font-mono">
+				{ "@" + m.Username }
+			</p>
+		</div>
+		if canManage && !isSelf {
+			<select
+				name="role"
+				hx-post={ "/api/orgs/" + orgName + "/members/" + m.Username + "/role" }
+				hx-trigger="change"
+				hx-target="#org-members-list"
+				hx-swap="outerHTML"
+				hx-include="this"
+				data-toast="Member role updated"
+				class="flex h-8 rounded-md border border-input bg-transparent px-2 text-[12px] shadow-sm w-[110px]"
+			>
+				<option value="owner" selected?={ m.Role == model.OrgRoleOwner }>Owner</option>
+				<option value="member" selected?={ m.Role == model.OrgRoleMember }>Member</option>
+			</select>
+			<button
+				type="button"
+				hx-delete={ "/api/orgs/" + orgName + "/members/" + m.Username }
+				hx-target="#org-members-list"
+				hx-swap="outerHTML"
+				hx-confirm={ m.Username + " will lose access to all repos in " + orgName + ". You can invite them back later." }
+				data-confirm-title={ "Remove " + m.Username + " from this organization?" }
+				data-confirm-label="Remove"
+				data-confirm-danger="true"
+				data-toast="Member removed"
+				class="h-8 px-2.5 text-[12px] rounded-md border border-border hover:bg-accent text-destructive shrink-0"
+			>
+				Remove
+			</button>
+		} else {
+			<span class="text-[12px] text-muted-foreground capitalize w-[110px] text-center">{ string(m.Role) }</span>
+			if isSelf {
+				<button type="button" disabled title="You can't remove yourself" class="h-8 px-2.5 text-[12px] rounded-md border border-border text-muted-foreground opacity-60 shrink-0 cursor-not-allowed">
+					Remove
+				</button>
+			}
 		}
 	</div>
 }

@@ -121,6 +121,21 @@
 
 [x-cloak] { display: none !important; }
 
+/* Row-card hover accent: a 2px left bar slides in on hover, used for
+   tabular lists (repos, stars, gists) where the whole row is a link. */
+.row-card { position: relative; transition: padding-left 120ms; }
+.row-card::before {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px;
+  width: 2px; background: hsl(var(--foreground));
+  opacity: 0; transition: opacity 120ms; border-radius: 2px;
+}
+.row-card:hover::before { opacity: 1; }
+.row-card:hover { padding-left: 18px; }
+@media (prefers-reduced-motion: reduce) {
+  .row-card, .row-card:hover { transition: none; padding-left: 0; }
+  .row-card::before { transition: none; }
+}
+
 /* PR diff viewer (see internal/view/pages/pr_files.templ).
  * Toggling unified/split and hide-whitespace is JS-driven; these rules
  * react to the #diff-root[data-view] / .hide-ws state set by that script. */

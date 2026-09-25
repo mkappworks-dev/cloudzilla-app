@@ -272,44 +272,6 @@ func (h *Handler) DeleteGist(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// PageUserGists renders a user's gist listing.
-func (h *Handler) PageUserGists(w http.ResponseWriter, r *http.Request) {
-	username := chi.URLParam(r, "owner")
-	page := 1
-	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
-		page = p
-	}
-
-	user, err := h.Services.User.GetByUsername(r.Context(), username)
-	if err != nil {
-		http.Error(w, "user not found", http.StatusNotFound)
-		return
-	}
-
-	// Determine whether the viewer is the owner (can see private gists).
-	isOwner := false
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		isOwner = claims.UserID == user.ID
-	}
-
-	var gists []model.Gist
-	if isOwner {
-		gists, _ = h.Services.Gist.ListByOwner(r.Context(), user.ID, page, 20)
-	} else {
-		gists, _ = h.Services.Gist.ListPublicByOwner(r.Context(), user.ID, page, 20)
-	}
-	if gists == nil {
-		gists = []model.Gist{}
-	}
-
-	h.render(w, r, pages.UserGists(view.UserGistsData{
-		BasePage:    basePage(r, h.Services),
-		ProfileUser: *user,
-		Gists:       gists,
-		Page:        page,
-	}))
-}
-
 // AddFileFragment returns an HTMX fragment for a new gist file row.
 func (h *Handler) AddFileFragment(w http.ResponseWriter, r *http.Request) {
 	idx, _ := strconv.Atoi(r.URL.Query().Get("index"))

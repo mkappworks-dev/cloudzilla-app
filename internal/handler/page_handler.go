@@ -89,6 +89,7 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 
 // The repo-switcher list is best-effort: a failed lookup leaves it empty.
 func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model.Repository, active string, canManage bool) BasePage {
+	base.OwnerContext = repo.OwnerName
 	base.RepoSubnav = &view.RepoSubnavInfo{
 		OwnerName:        repo.OwnerName,
 		RepoName:         repo.Name,

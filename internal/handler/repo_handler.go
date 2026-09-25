@@ -29,11 +29,37 @@ func (h *Handler) PageNewRepo(w http.ResponseWriter, r *http.Request) {
 		slog.Error("list owned orgs", "error", err)
 		orgs = []model.Organization{}
 	}
+	q := r.URL.Query()
+	defaultPrivate := q.Get("visibility") == "private"
+	initReadme := q.Get("init_readme") == "1" || q.Get("init_readme") == "true"
+
+	// ?owner=mkappworks-dev preselects the dropdown when the user arrived from
+	// that org's profile. Only honored when it matches the viewer or an org
+	// they own — otherwise silently ignored so a crafted link can't trick
+	// users into creating a repo under the wrong namespace.
+	var defaultOwner string
+	if reqOwner := q.Get("owner"); reqOwner != "" {
+		if reqOwner == claims.Username {
+			defaultOwner = reqOwner
+		} else {
+			for _, o := range orgs {
+				if o.Name == reqOwner {
+					defaultOwner = reqOwner
+					break
+				}
+			}
+		}
+	}
+
 	h.render(w, r, pages.RepoNew(view.RepoNewData{
 		BasePage:           withAccountSubnav(basePage(r, h.Services), "repositories", h.accountCounts(ctx, claims.UserID)),
 		OwnedOrgs:          orgs,
 		GitignoreTemplates: h.Services.Repo.ListGitignoreTemplates(),
 		LicenseTemplates:   h.Services.Repo.ListLicenseTemplates(),
+		DefaultName:        q.Get("name"),
+		DefaultPrivate:     defaultPrivate,
+		DefaultInitReadme:  initReadme,
+		DefaultOwner:       defaultOwner,
 	}))
 }
 
