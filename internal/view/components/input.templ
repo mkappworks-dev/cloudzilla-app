@@ -8,7 +8,7 @@ package components
 // placeholder, required, autocomplete, aria-*, hx-*, etc.
 templ Input(attrs templ.Attributes) {
 	<input
-		{ withClass("flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50", attrs)... }
+		{ withClass(attrs, "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50")... }
 	/>
 }
 
@@ -22,7 +22,7 @@ templ SearchInput(attrs templ.Attributes, kbdHint string) {
 		<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
 		<input
 			type="search"
-			{ withClass(templ.Classes("flex h-9 w-full rounded-md border border-input bg-transparent pl-8 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50", templ.KV("pr-12", kbdHint != ""), templ.KV("pr-3", kbdHint == "")).String(), attrs)... }
+			{ withClass(attrs, "flex h-9 w-full rounded-md border border-input bg-transparent pl-8 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50", templ.KV("pr-12", kbdHint != ""), templ.KV("pr-3", kbdHint == ""))... }
 		/>
 		if kbdHint != "" {
 			<kbd class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground font-mono" aria-hidden="true">{ kbdHint }</kbd>
@@ -33,6 +33,6 @@ templ SearchInput(attrs templ.Attributes, kbdHint string) {
 // Textarea renders a styled textarea. As with Input, the caller provides the <label>.
 templ Textarea(attrs templ.Attributes) {
 	<textarea
-		{ withClass("flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50", attrs)... }
+		{ withClass(attrs, "flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50")... }
 	></textarea>
 }

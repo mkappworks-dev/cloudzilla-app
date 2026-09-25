@@ -42,7 +42,7 @@ func Skeleton(attrs templ.Attributes) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass("animate-pulse rounded-md bg-muted motion-reduce:animate-none", attrs))
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "animate-pulse rounded-md bg-muted motion-reduce:animate-none"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

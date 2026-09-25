@@ -90,7 +90,7 @@ func Button(variant ButtonVariant, size ButtonSize, attrs templ.Attributes) temp
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(templ.Classes("inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none", buttonVariantClass(variant), buttonSizeClass(size)).String(), attrs))
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none", buttonVariantClass(variant), buttonSizeClass(size)))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -148,7 +148,7 @@ func LinkButton(href string, variant ButtonVariant, size ButtonSize, attrs templ
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(templ.Classes("inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors", buttonVariantClass(variant), buttonSizeClass(size)).String(), attrs))
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors", buttonVariantClass(variant), buttonSizeClass(size)))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

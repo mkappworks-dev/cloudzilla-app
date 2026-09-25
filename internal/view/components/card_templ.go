@@ -35,7 +35,7 @@ func Card(attrs templ.Attributes) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass("rounded-lg border border-border bg-card text-card-foreground", attrs))
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "rounded-lg border border-border bg-card text-card-foreground"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

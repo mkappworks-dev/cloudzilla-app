@@ -59,7 +59,7 @@ func buttonSizeClass(s ButtonSize) string {
 
 templ Button(variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
 	<button
-		{ withClass(templ.Classes("inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none", buttonVariantClass(variant), buttonSizeClass(size)).String(), attrs)... }
+		{ withClass(attrs, "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none", buttonVariantClass(variant), buttonSizeClass(size))... }
 	>
 		{ children... }
 	</button>
@@ -68,7 +68,7 @@ templ Button(variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
 templ LinkButton(href string, variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
 	<a
 		href={ templ.SafeURL(href) }
-		{ withClass(templ.Classes("inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors", buttonVariantClass(variant), buttonSizeClass(size)).String(), attrs)... }
+		{ withClass(attrs, "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors", buttonVariantClass(variant), buttonSizeClass(size))... }
 	>
 		{ children... }
 	</a>

@@ -57,7 +57,7 @@ func Table(attrs templ.Attributes) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass("w-full caption-bottom text-sm", attrs))
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "w-full caption-bottom text-sm"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -275,7 +275,7 @@ func TableHead(attrs templ.Attributes) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass("h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider [&:has([role=checkbox])]:pr-0", attrs))
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "h-10 px-4 text-left align-middle text-[11px] font-medium text-muted-foreground font-mono uppercase tracking-wider [&:has([role=checkbox])]:pr-0"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -322,7 +322,7 @@ func TableCell(attrs templ.Attributes) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass("p-4 align-middle [&:has([role=checkbox])]:pr-0", attrs))
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "p-4 align-middle [&:has([role=checkbox])]:pr-0"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -370,7 +370,7 @@ func TableRowHead(attrs templ.Attributes) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass("p-4 align-middle font-normal text-left", attrs))
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "p-4 align-middle font-normal text-left"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -418,7 +418,7 @@ func TableCaption(attrs templ.Attributes) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass("mt-4 text-sm text-muted-foreground", attrs))
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "mt-4 text-sm text-muted-foreground"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

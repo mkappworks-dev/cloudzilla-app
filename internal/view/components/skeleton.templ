@@ -12,7 +12,7 @@ package components
 templ Skeleton(attrs templ.Attributes) {
 	<div
 		aria-hidden="true"
-		{ withClass("animate-pulse rounded-md bg-muted motion-reduce:animate-none", attrs)... }
+		{ withClass(attrs, "animate-pulse rounded-md bg-muted motion-reduce:animate-none")... }
 	></div>
 }
 

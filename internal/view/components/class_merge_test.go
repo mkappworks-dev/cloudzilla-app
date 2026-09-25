@@ -25,8 +25,6 @@ func classTokens(html string) map[string]int {
 
 var duplicateClassAttr = regexp.MustCompile(`<[^>]*\sclass="[^"]*"[^>]*\sclass="`)
 
-// Browsers keep the first of duplicate attributes, so a caller's class only
-// applies if the component folds it into its own class attribute.
 func TestComponents_MergeCallerClass(t *testing.T) {
 	type build func(attrs templ.Attributes) templ.Component
 	cases := []struct {
@@ -61,7 +59,7 @@ func TestComponents_MergeCallerClass(t *testing.T) {
 		{"TableCaption", func(a templ.Attributes) templ.Component { return TableCaption(a) }, "mt-4"},
 		{"Toggle", func(a templ.Attributes) templ.Component { return Toggle(ToggleDefault, ButtonSizeSM, a) }, "inline-flex"},
 	}
-	merged := func(token string) *regexp.Regexp {
+	defaultThenCallerPattern := func(token string) *regexp.Regexp {
 		return regexp.MustCompile(`class="(?:[^"]*\s)?` + regexp.QuoteMeta(token) + `(?:\s[^"]*)?\szz-caller"`)
 	}
 	for _, tc := range cases {
@@ -75,7 +73,7 @@ func TestComponents_MergeCallerClass(t *testing.T) {
 			if duplicateClassAttr.MatchString(out) {
 				t.Errorf("element has two class attributes: %s", out)
 			}
-			if !merged(tc.defaultToken).MatchString(out) {
+			if !defaultThenCallerPattern(tc.defaultToken).MatchString(out) {
 				t.Errorf("want one class attribute holding %q then %q, got %s", tc.defaultToken, "zz-caller", out)
 			}
 			if attrs["class"] != "zz-caller" {
@@ -96,20 +94,18 @@ func TestComponents_MergeCallerClass(t *testing.T) {
 }
 
 func TestWithClass_NoCallerClass(t *testing.T) {
-	got := withClass("a b", templ.Attributes{"id": "x"})
+	got := withClass(templ.Attributes{"id": "x"}, "a b")
 	if got["class"] != "a b" {
 		t.Errorf("class = %q, want %q", got["class"], "a b")
 	}
 	if got["id"] != "x" {
 		t.Errorf("id dropped: %v", got)
 	}
-	if got := withClass("a b", nil); got["class"] != "a b" {
+	if got := withClass(nil, "a b"); got["class"] != "a b" {
 		t.Errorf("nil attrs: class = %q, want %q", got["class"], "a b")
 	}
 }
 
-// Equal-specificity utilities resolve by stylesheet order, not attribute
-// order, so a caller's override only wins if the conflicting default is dropped.
 func TestWithClass_CallerWinsConflicts(t *testing.T) {
 	cases := []struct {
 		base, caller string
@@ -122,31 +118,29 @@ func TestWithClass_CallerWinsConflicts(t *testing.T) {
 		{"h-8 px-3 text-[13px]", "text-xs", []string{"h-8", "px-3", "text-xs"}, []string{"text-[13px]"}},
 	}
 	for _, tc := range cases {
-		got := strings.Fields(withClass(tc.base, templ.Attributes{"class": tc.caller})["class"].(string))
+		got := strings.Fields(withClass(templ.Attributes{"class": tc.caller}, tc.base)["class"].(string))
 		has := map[string]bool{}
 		for _, c := range got {
 			has[c] = true
 		}
 		for _, w := range tc.want {
 			if !has[w] {
-				t.Errorf("withClass(%q, %q) = %q: missing %q", tc.base, tc.caller, got, w)
+				t.Errorf("withClass(caller %q, base %q) = %q: missing %q", tc.caller, tc.base, got, w)
 			}
 		}
 		for _, d := range tc.drop {
 			if has[d] {
-				t.Errorf("withClass(%q, %q) = %q: kept conflicting default %q", tc.base, tc.caller, got, d)
+				t.Errorf("withClass(caller %q, base %q) = %q: kept conflicting default %q", tc.caller, tc.base, got, d)
 			}
 		}
 	}
 }
 
-// tailwind-merge-go builds its result from a Go map, so its class order is
-// random; rendered HTML must not change between identical requests.
 func TestWithClass_StableOrder(t *testing.T) {
 	base := "rounded-md border border-border bg-card divide-y divide-border overflow-hidden w-full text-sm"
 	want := "rounded-md border border-border bg-card divide-y divide-border overflow-hidden text-sm w-40 zz-caller"
 	for i := 0; i < 50; i++ {
-		if got := withClass(base, templ.Attributes{"class": "w-40 zz-caller"})["class"]; got != want {
+		if got := withClass(templ.Attributes{"class": "w-40 zz-caller"}, base)["class"]; got != want {
 			t.Fatalf("run %d: class = %q, want %q", i, got, want)
 		}
 	}

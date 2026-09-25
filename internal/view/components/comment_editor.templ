@@ -2,7 +2,7 @@ package components
 
 templ CommentEditor(attrs templ.Attributes) {
 	<section class="mt-6" aria-label="Add a comment">
-		<form { withClass("rounded-md border border-border bg-card overflow-hidden", attrs)... }>
+		<form { withClass(attrs, "rounded-md border border-border bg-card overflow-hidden")... }>
 			{ children... }
 		</form>
 	</section>

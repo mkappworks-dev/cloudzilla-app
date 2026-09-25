@@ -44,7 +44,7 @@ func Checkbox(attrs templ.Attributes) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass("h-4 w-4 shrink-0 rounded border border-input bg-transparent accent-foreground checked:bg-primary checked:border-primary disabled:cursor-not-allowed disabled:opacity-50", attrs))
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "h-4 w-4 shrink-0 rounded border border-input bg-transparent accent-foreground checked:bg-primary checked:border-primary disabled:cursor-not-allowed disabled:opacity-50"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -94,7 +94,7 @@ func Switch(attrs templ.Attributes) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass("peer sr-only", attrs))
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "peer sr-only"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -149,7 +149,7 @@ func Radio(attrs templ.Attributes) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass("h-4 w-4 shrink-0 border border-input bg-transparent accent-foreground checked:border-primary disabled:cursor-not-allowed disabled:opacity-50", attrs))
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "h-4 w-4 shrink-0 border border-input bg-transparent accent-foreground checked:border-primary disabled:cursor-not-allowed disabled:opacity-50"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

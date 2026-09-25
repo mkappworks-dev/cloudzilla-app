@@ -10,7 +10,7 @@ package components
 templ Label(forID string, required bool, attrs templ.Attributes) {
 	<label
 		for={ forID }
-		{ withClass("text-[13px] font-medium leading-none text-foreground", attrs)... }
+		{ withClass(attrs, "text-[13px] font-medium leading-none text-foreground")... }
 	>
 		{ children... }
 		if required {
