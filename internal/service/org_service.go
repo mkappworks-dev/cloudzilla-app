@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -108,7 +109,28 @@ func (s *OrgService) UpdateProfile(ctx context.Context, orgID, requestingUserID 
 	if !s.IsOwner(ctx, orgID, requestingUserID) {
 		return fmt.Errorf("only org owners can edit organization settings")
 	}
+	website, err := normalizeWebsite(website)
+	if err != nil {
+		return err
+	}
 	return s.orgs.UpdateProfile(ctx, orgID, displayName, description, website, location, contactEmail)
+}
+
+// normalizeWebsite prefixes a bare host with https:// and rejects every other
+// scheme: the value renders as a link on the public org page.
+func normalizeWebsite(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", nil
+	}
+	if !strings.Contains(raw, "://") {
+		raw = "https://" + raw
+	}
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return "", fmt.Errorf("website must be an http or https URL")
+	}
+	return u.String(), nil
 }
 
 func (s *OrgService) ListMembers(ctx context.Context, orgID int64) ([]model.OrgMember, error) {

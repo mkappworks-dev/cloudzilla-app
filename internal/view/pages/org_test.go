@@ -69,3 +69,14 @@ func TestOrg_ShowAllRepos(t *testing.T) {
 		t.Error("repositories view missing repo")
 	}
 }
+
+// Websites saved before validation existed can still hold a javascript: URL.
+func TestOrg_UnsafeWebsiteNotLinked(t *testing.T) {
+	data := orgFixture()
+	data.Org.Website = "javascript:alert(1)"
+	out := renderOrg(t, data)
+
+	if strings.Contains(out, `href="javascript:`) {
+		t.Error("org page links a javascript: website")
+	}
+}

@@ -314,3 +314,48 @@ func TestOrgService_CreateRepo_WithInitFiles(t *testing.T) {
 		}
 	}
 }
+
+// The website renders as a clickable link on the public org page, so a
+// javascript: URL saved here would run in every visitor's browser.
+func TestOrgService_UpdateProfile_RejectsNonHTTPWebsite(t *testing.T) {
+	svc, ownerID := newOrgSvc(t)
+	ctx := context.Background()
+	org, err := svc.Create(ctx, ownerID, "testorg_"+testutil.UniqueSuffix(t), "", "")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	for _, website := range []string{"javascript:alert(1)", "JavaScript:alert(1)", "data:text/html,hi", "https://"} {
+		if err := svc.UpdateProfile(ctx, org.ID, ownerID, "", "", website, "", ""); err == nil {
+			t.Errorf("UpdateProfile(website=%q) = nil error, want rejection", website)
+		}
+	}
+	got, err := svc.Get(ctx, org.Name)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got.Website != "" {
+		t.Errorf("stored website = %q after rejected updates, want empty", got.Website)
+	}
+}
+
+// A bare host would otherwise render as a relative link to /{host}.
+func TestOrgService_UpdateProfile_BareHostGetsHTTPS(t *testing.T) {
+	svc, ownerID := newOrgSvc(t)
+	ctx := context.Background()
+	org, err := svc.Create(ctx, ownerID, "testorg_"+testutil.UniqueSuffix(t), "", "")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	if err := svc.UpdateProfile(ctx, org.ID, ownerID, "", "", "acme.dev", "", ""); err != nil {
+		t.Fatalf("UpdateProfile: %v", err)
+	}
+	got, err := svc.Get(ctx, org.Name)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got.Website != "https://acme.dev" {
+		t.Errorf("stored website = %q, want %q", got.Website, "https://acme.dev")
+	}
+}
