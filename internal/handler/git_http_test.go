@@ -34,7 +34,7 @@ func newBrokenGitHandler() *Handler {
 	}
 	cfg := &config.Config{}
 	svc := &service.Services{
-		Repo:        service.NewRepoService(stores.Repo, stores.User, stores.Org, nil, nil, nil, cfg.Git),
+		Repo:        service.NewRepoService(stores.Repo, stores.User, stores.Org, nil, nil, cfg.Git),
 		AccessToken: service.NewAccessTokenService(stores.AccessToken, stores.User),
 	}
 	return New(svc, cfg)
@@ -72,7 +72,7 @@ func newRealGitHandler(t *testing.T) (*Handler, *sql.DB) {
 		AuditLog:    store.NewAuditLogStore(db),
 	}
 	svc := &service.Services{
-		Repo:        service.NewRepoService(stores.Repo, stores.User, stores.Org, nil, nil, nil, cfg.Git),
+		Repo:        service.NewRepoService(stores.Repo, stores.User, stores.Org, nil, nil, cfg.Git),
 		AccessToken: service.NewAccessTokenService(stores.AccessToken, stores.User),
 		User:        service.NewUserService(stores.User, authCfg),
 		SiteSetting: service.NewSiteSettingService(stores.SiteSetting, stores.User),

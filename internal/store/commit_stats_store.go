@@ -34,15 +34,19 @@ func (s *CommitStatsStore) UpsertCount(ctx context.Context, repoID, userID int64
 }
 
 // Additive on conflict so successive pushes to the same day accumulate.
-func (s *CommitStatsStore) AddCount(ctx context.Context, repoID, userID int64, day time.Time, delta int) error {
+func addCount(ctx context.Context, db dbtx, repoID, userID int64, day time.Time, delta int) error {
 	const q = `
 		INSERT INTO commit_day_counts (repo_id, user_id, day, commit_count, updated_at)
 		VALUES ($1, $2, $3, $4, NOW())
 		ON CONFLICT (repo_id, user_id, day)
 		DO UPDATE SET commit_count = commit_day_counts.commit_count + EXCLUDED.commit_count, updated_at = NOW()
 	`
-	_, err := s.db.ExecContext(ctx, q, repoID, userID, day.UTC().Truncate(24*time.Hour), delta)
+	_, err := db.ExecContext(ctx, q, repoID, userID, day.UTC().Truncate(24*time.Hour), delta)
 	return err
+}
+
+func (s *CommitStatsStore) AddCount(ctx context.Context, repoID, userID int64, day time.Time, delta int) error {
+	return addCount(ctx, s.db, repoID, userID, day, delta)
 }
 
 // Backfill uses this to skip repos already populated and avoid double-counting against AddCount.

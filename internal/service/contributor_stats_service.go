@@ -78,6 +78,6 @@ func (s *ContributorStatsService) ForRepo(ctx context.Context, repoID int64) ([]
 	return out, nil
 }
 
-func (s *ContributorStatsService) IngestCommit(ctx context.Context, repoID, userID int64, when time.Time, additions, deletions int) error {
-	return s.stats.AddDelta(ctx, repoID, userID, store.MondayUTC(when), 1, additions, deletions)
+func (s *ContributorStatsService) IngestCommit(ctx context.Context, repoID, userID int64, when time.Time, sha string, additions, deletions int) error {
+	return s.stats.IngestCommitTx(ctx, repoID, userID, sha, when, additions, deletions)
 }

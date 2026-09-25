@@ -225,6 +225,10 @@ func TestReleaseService_Create_RejectsInvalidTagName(t *testing.T) {
 
 	cases := []string{
 		"../etc/passwd",
+		"/abs",
+		"trailing/",
+		"double//slash",
+		".hidden",
 		"has spaces",
 		"semicolon;injected",
 		"unicode-✨-tag",
