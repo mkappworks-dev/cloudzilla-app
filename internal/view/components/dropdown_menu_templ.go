@@ -8,30 +8,15 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// DropdownMenuAlign controls which edge of the trigger the menu pops out from.
 type DropdownMenuAlign string
 
 const (
-	DropdownAlignStart DropdownMenuAlign = "start" // left edge of trigger
-	DropdownAlignEnd   DropdownMenuAlign = "end"   // right edge of trigger (default for nav menus)
+	DropdownAlignStart DropdownMenuAlign = "start"
+	DropdownAlignEnd   DropdownMenuAlign = "end"
 )
 
-// DropdownMenu is the Alpine.js-backed root. It establishes an `open` scope
-// that DropdownMenuTrigger and DropdownMenuContent both read.
-//
-// Example:
-//
-//	@components.DropdownMenu() {
-//	  @components.DropdownMenuTrigger(templ.Attributes{"aria-label": "Account"}) {
-//	    @components.Avatar(name, components.AvatarSizeDefault, "")
-//	  }
-//	  @components.DropdownMenuContent(components.DropdownAlignEnd) {
-//	    @components.DropdownMenuLabel() { "Signed in as Daisy" }
-//	    @components.DropdownMenuSeparator()
-//	    @components.DropdownMenuLink("/settings", nil) { "Settings" }
-//	    @components.DropdownMenuLink("/logout", nil) { "Sign out" }
-//	  }
-//	}
+// Trigger, Content, Item and Link read or write the Alpine `open` scope
+// declared here, so they only work nested inside it.
 func DropdownMenu() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -69,8 +54,7 @@ func DropdownMenu() templ.Component {
 	})
 }
 
-// DropdownMenuTrigger is the button that opens/closes the menu.
-// Pass styling via attrs — e.g. templ.Attributes{"class": "h-7 w-7 ..."}.
+// Has no base classes, unlike its siblings: callers style it entirely via attrs.
 func DropdownMenuTrigger(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -116,7 +100,6 @@ func DropdownMenuTrigger(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// DropdownMenuContent is the floating panel. Hidden until `open` is true.
 func DropdownMenuContent(align DropdownMenuAlign) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -169,7 +152,6 @@ func DropdownMenuContent(align DropdownMenuAlign) templ.Component {
 	})
 }
 
-// DropdownMenuItem is a button-style row. Use for actions that don't navigate (e.g. logout POST forms).
 func DropdownMenuItem(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -215,7 +197,6 @@ func DropdownMenuItem(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// DropdownMenuLink is the anchor-style row. Use for navigation entries.
 func DropdownMenuLink(href string, attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -244,7 +225,7 @@ func DropdownMenuLink(href string, attrs templ.Attributes) templ.Component {
 		var templ_7745c5c3_Var6 templ.SafeURL
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/dropdown_menu.templ`, Line: 89, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/dropdown_menu.templ`, Line: 70, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -274,7 +255,6 @@ func DropdownMenuLink(href string, attrs templ.Attributes) templ.Component {
 	})
 }
 
-// DropdownMenuLabel renders a small section heading inside the menu.
 func DropdownMenuLabel() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -312,7 +292,6 @@ func DropdownMenuLabel() templ.Component {
 	})
 }
 
-// DropdownMenuSeparator is a thin divider between item groups.
 func DropdownMenuSeparator() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -342,7 +321,6 @@ func DropdownMenuSeparator() templ.Component {
 	})
 }
 
-// DropdownMenuShortcut renders a right-aligned keyboard hint inside an item.
 func DropdownMenuShortcut() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

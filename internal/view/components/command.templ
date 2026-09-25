@@ -1,27 +1,9 @@
 package components
 
-// CommandPalette renders a ⌘K / Ctrl-K search dialog.
-//
-// It is a native <dialog>, so the browser handles backdrop + ESC + focus trap.
-// Cmd/Ctrl-K is wired up globally to open the first .command-palette on the page.
-//
-// Children are CommandGroup + CommandItem elements. The client-side script
-// filters items by substring match against their textContent and supports
-// arrow-key navigation, with Enter activating the highlighted item.
-//
-// Example:
-//
-//	@components.CommandPalette("global-cmd") {
-//	  @components.CommandGroup("Navigation") {
-//	    @components.CommandItem("/issues") { "Issues" }
-//	    @components.CommandItem("/pulls")  { "Pull requests" }
-//	  }
-//	  @components.CommandGroup("Account") {
-//	    @components.CommandItem("/settings") { "Settings" }
-//	  }
-//	}
-//
-// To open programmatically: document.getElementById("global-cmd").showModal()
+// A native <dialog>, so the browser supplies the backdrop, ESC and focus trap.
+// The command-palette class is CommandKHook's selector, not styling. Only
+// CommandGroup/CommandItem children are filtered: the script finds them by
+// their data-command-* attributes.
 templ CommandPalette(id string) {
 	<dialog
 		id={ id }
@@ -86,7 +68,6 @@ templ CommandPalette(id string) {
 						var t = (el.textContent || '').toLowerCase();
 						el.hidden = q.length > 0 && t.indexOf(q) === -1;
 					});
-					// Hide groups that have no visible items.
 					groups.forEach(function(g){
 						var any = g.querySelector('[data-command-item]:not([hidden])');
 						g.hidden = !any;
@@ -124,7 +105,6 @@ templ CommandPalette(id string) {
 	</dialog>
 }
 
-// CommandGroup is a labeled section inside a CommandPalette.
 templ CommandGroup(heading string) {
 	<div data-command-group class="mb-1 last:mb-0">
 		<div class="px-2 py-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{ heading }</div>
@@ -132,8 +112,7 @@ templ CommandGroup(heading string) {
 	</div>
 }
 
-// CommandItem is a single row in a CommandGroup. Pass `href` to make it a link;
-// pass empty `href` together with attrs (e.g. {"onclick": "..."}) for an action.
+// An empty href renders a <button>; attach its action via attrs (e.g. onclick).
 templ CommandItem(href string, attrs templ.Attributes) {
 	if href != "" {
 		<a
@@ -154,14 +133,12 @@ templ CommandItem(href string, attrs templ.Attributes) {
 	}
 }
 
-// CommandShortcut renders a right-aligned keyboard hint inside an item.
 templ CommandShortcut() {
 	<span class="ml-auto text-[11px] tracking-wider text-muted-foreground">{ children... }</span>
 }
 
-// CommandKHook registers a global ⌘K / Ctrl-K listener that opens the first
-// CommandPalette on the page. Render it once near the end of <body>, alongside
-// ToastContainer.
+// Render once per page: a second copy adds a second listener, and the two
+// toggles cancel out so ⌘K appears to do nothing.
 templ CommandKHook() {
 	<script>
 		(function(){

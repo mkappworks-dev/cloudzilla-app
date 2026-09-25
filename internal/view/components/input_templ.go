@@ -8,12 +8,7 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Input renders a styled text input. The caller is responsible for the surrounding
-// <label> — pass `id` via attrs and reference it with `for=` on a sibling <label>,
-// OR provide an `aria-label` via attrs for icon-only / clearly-positioned inputs.
-//
-// `attrs` is any combination of standard input attributes: type, name, id, value,
-// placeholder, required, autocomplete, aria-*, hx-*, etc.
+// Caller supplies the accessible name: a <label for=> matching attrs["id"], or an aria-label in attrs.
 func Input(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -51,11 +46,7 @@ func Input(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// SearchInput renders a search-styled input with a leading magnifying-glass icon
-// and an optional trailing keyboard-shortcut hint. Always pair with a <label>
-// (use class="sr-only" if you want a visually-hidden label).
-//
-// `kbdHint` is the text shown in the right-side <kbd> (e.g. "⌘K"). Pass "" to omit.
+// Always pair with a <label> (class="sr-only" to hide it visually).
 func SearchInput(attrs templ.Attributes, kbdHint string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -97,7 +88,7 @@ func SearchInput(attrs templ.Attributes, kbdHint string) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(kbdHint)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/input.templ`, Line: 28, Col: 182}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/input.templ`, Line: 19, Col: 182}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -116,7 +107,7 @@ func SearchInput(attrs templ.Attributes, kbdHint string) templ.Component {
 	})
 }
 
-// Textarea renders a styled textarea. As with Input, the caller provides the <label>.
+// Caller provides the <label>, as with Input.
 func Textarea(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

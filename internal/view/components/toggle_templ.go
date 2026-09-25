@@ -8,12 +8,11 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// ToggleVariant controls the visual style of a Toggle.
 type ToggleVariant string
 
 const (
-	ToggleDefault ToggleVariant = "default" // ghost background, hover tint
-	ToggleOutline ToggleVariant = "outline" // bordered, transparent bg
+	ToggleDefault ToggleVariant = "default"
+	ToggleOutline ToggleVariant = "outline"
 )
 
 func toggleVariantClass(v ToggleVariant) string {
@@ -23,19 +22,8 @@ func toggleVariantClass(v ToggleVariant) string {
 	return "hover:bg-muted hover:text-muted-foreground data-[state=on]:bg-accent data-[state=on]:text-accent-foreground"
 }
 
-// Toggle renders a stateful pressed/unpressed button — visually similar to a
-// Button but communicates a binary on/off state via `aria-pressed`.
-//
-// The caller controls the state by setting `aria-pressed="true|false"` and
-// `data-state="on|off"` via attrs. For HTMX-driven toggles (e.g. star/watch),
-// have the server return the swapped element with the new state.
-//
-//	@components.Toggle(components.ToggleOutline, components.ButtonSizeSM, templ.Attributes{
-//	  "aria-pressed": "true",
-//	  "data-state":   "on",
-//	  "hx-post":      "/api/repos/owner/name/star",
-//	  "hx-swap":      "outerHTML",
-//	}) { "Star" }
+// Holds no state: the caller sets aria-pressed (screen readers) and data-state (styling) via
+// attrs and keeps them in sync; for HTMX toggles the server swaps in the element with the new state.
 func Toggle(variant ToggleVariant, size ButtonSize, attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

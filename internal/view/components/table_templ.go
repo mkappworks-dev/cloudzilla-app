@@ -8,30 +8,9 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Table components — thin shadcn-style wrappers around native HTML table elements.
-// Always render real <table>/<thead>/<tbody>/<tr>/<th>/<td> so screen readers get
-// proper row/column semantics — never fake tables with grid/flex.
-//
-// Typical usage:
-//
-//	@components.Table() {
-//	  @components.TableCaption() { "Repositories owned by mkappworks" }
-//	  @components.TableHeader() {
-//	    @components.TableRow(false) {
-//	      @components.TableHead(templ.Attributes{"scope": "col"}) { "Name" }
-//	      @components.TableHead(templ.Attributes{"scope": "col"}) { "Updated" }
-//	    }
-//	  }
-//	  @components.TableBody() {
-//	    @components.TableRow(true) {
-//	      @components.TableCell(templ.Attributes{"scope": "row"}) { "cloudzilla" }
-//	      @components.TableCell(nil) { "2h ago" }
-//	    }
-//	  }
-//	}
+// Never fake tables with grid/flex: screen readers need the native row/column semantics.
 
-// Table is the root <table> element. Wrap in an overflow-x container yourself
-// if your table is wider than the viewport — this component does not add scroll affordances.
+// Adds no horizontal scroll; wrap tables wider than the viewport in an overflow-x container.
 func Table(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -77,7 +56,6 @@ func Table(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// TableHeader wraps <thead>.
 func TableHeader() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -115,7 +93,6 @@ func TableHeader() templ.Component {
 	})
 }
 
-// TableBody wraps <tbody>.
 func TableBody() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -153,7 +130,6 @@ func TableBody() templ.Component {
 	})
 }
 
-// TableFooter wraps <tfoot> — for totals/summary rows.
 func TableFooter() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -191,8 +167,6 @@ func TableFooter() templ.Component {
 	})
 }
 
-// TableRow renders a <tr>. `hoverable` enables the hover background — set to false
-// for header rows or summary rows where hover would be confusing.
 func TableRow(hoverable bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -245,11 +219,8 @@ func TableRow(hoverable bool) templ.Component {
 	})
 }
 
-// TableHead renders a <th>. Pass `scope` via attrs:
-//
-//	@TableHead(templ.Attributes{"scope": "col"}) { "Name" }
-//
-// Wrap the visible label in a <span class="sr-only"> if the column is icon-only.
+// scope is not defaulted; pass {"scope": "col"} via attrs. Icon-only columns
+// still need a text label in a <span class="sr-only">.
 func TableHead(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -295,8 +266,6 @@ func TableHead(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// TableCell renders a <td>. To mark a row-header cell instead (recommended for
-// the primary identifying column of each row), use TableRowHead.
 func TableCell(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -342,9 +311,8 @@ func TableCell(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// TableRowHead renders a <th scope="row"> — use this for the primary identifying
-// cell of each row (typically the leftmost meaningful column, like the repo name
-// or PR title). Screen readers will announce this cell as the row's label.
+// Use instead of TableCell for each row's identifying cell (repo name, PR title):
+// screen readers announce it as the row's label.
 func TableRowHead(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -390,9 +358,8 @@ func TableRowHead(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// TableCaption wraps <caption>. Provides a short description of the table's
-// contents — required by WCAG for non-trivial tables. Use `class="sr-only"`
-// via attrs to hide it visually while keeping it for screen readers.
+// Give non-trivial tables a caption so screen readers can name them; pass
+// class "sr-only" via attrs to hide it visually.
 func TableCaption(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

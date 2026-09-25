@@ -8,20 +8,7 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Select renders a styled native <select> with a chevron indicator overlay.
-// Pass attributes via templ.Attributes — typically `name`, `id`, `required`,
-// `aria-*`, `hx-*`. The caller provides <option> children.
-//
 // Always pair with a <label for="..."> (visible or class="sr-only").
-//
-// Example:
-//
-//	<label for="role" class="text-sm">Role</label>
-//	@components.Select(templ.Attributes{"id": "role", "name": "role"}) {
-//	  <option value="reader">Reader</option>
-//	  <option value="writer" selected>Writer</option>
-//	  <option value="admin">Admin</option>
-//	}
 func Select(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

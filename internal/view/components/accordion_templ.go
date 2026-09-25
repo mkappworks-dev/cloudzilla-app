@@ -8,10 +8,6 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Accordion wraps a stack of AccordionItems. Allow multiple items open at once
-// by default (since each is a standalone <details>). For single-open behavior
-// give every AccordionItem the same `name` attribute via attrs — supported
-// natively in modern browsers (Chrome 120+, Safari 17+, Firefox 129+).
 func Accordion(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -57,11 +53,9 @@ func Accordion(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// AccordionItem renders one collapsible section using the native <details>/<summary>
-// elements — keyboard accessible, no JS required.
-//
-// Pass `name` via attrs (e.g. {"name": "faq"}) to enable single-open mode
-// across sibling items.
+// Native <details>/<summary> gives keyboard access with no JS. Items open
+// independently; give siblings the same `name` via attrs for single-open
+// (native in Chrome 120+, Safari 17.2+, Firefox 130+).
 func AccordionItem(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -107,8 +101,6 @@ func AccordionItem(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// AccordionTrigger is the clickable header. Renders as <summary> so it's the
-// focusable handle for the disclosure. The chevron auto-rotates when open.
 func AccordionTrigger() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -146,7 +138,6 @@ func AccordionTrigger() templ.Component {
 	})
 }
 
-// AccordionContent is the revealed body region under an AccordionTrigger.
 func AccordionContent() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

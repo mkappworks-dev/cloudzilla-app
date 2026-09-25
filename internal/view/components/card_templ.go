@@ -8,8 +8,6 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Card renders a bordered container with the page's `card` background.
-// Compose with CardHeader, CardTitle, CardDescription, CardContent, CardFooter.
 func Card(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -55,7 +53,6 @@ func Card(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// CardHeader renders the top section of a Card (typically title + description + actions).
 func CardHeader() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -93,8 +90,7 @@ func CardHeader() templ.Component {
 	})
 }
 
-// CardTitle is the primary heading inside a CardHeader.
-// Use level=2 for sections inside a page, level=3 for nested cards. Defaults to 2.
+// Only level 3 (nested cards) renders <h3>; every other value renders <h2>.
 func CardTitle(level int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -147,7 +143,6 @@ func CardTitle(level int) templ.Component {
 	})
 }
 
-// CardDescription is the secondary descriptive text under a CardTitle.
 func CardDescription() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -185,7 +180,6 @@ func CardDescription() templ.Component {
 	})
 }
 
-// CardContent is the main body region of a Card.
 func CardContent() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -223,7 +217,6 @@ func CardContent() templ.Component {
 	})
 }
 
-// CardFooter is the bottom action region of a Card.
 func CardFooter() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

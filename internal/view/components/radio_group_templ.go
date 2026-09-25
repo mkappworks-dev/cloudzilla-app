@@ -8,28 +8,7 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// RadioGroup wraps a set of related Radio inputs (defined in checkbox.templ).
-// It applies `role="radiogroup"` and an `aria-label` so screen readers announce
-// the group as one unit. Each child <label> should contain its own Radio.
-//
-//	@components.RadioGroup("Merge strategy", nil) {
-//	  <label class="flex items-center gap-2">
-//	    @components.Radio(templ.Attributes{"name": "strategy", "value": "ff", "checked": "checked"})
-//	    <span class="text-sm">Fast-forward</span>
-//	  </label>
-//	  <label class="flex items-center gap-2">
-//	    @components.Radio(templ.Attributes{"name": "strategy", "value": "merge"})
-//	    <span class="text-sm">Merge commit</span>
-//	  </label>
-//	  <label class="flex items-center gap-2">
-//	    @components.Radio(templ.Attributes{"name": "strategy", "value": "squash"})
-//	    <span class="text-sm">Squash</span>
-//	  </label>
-//	}
-//
-// For form semantics in pages without an aria-label use a <fieldset> + <legend>
-// directly — RadioGroup is for the inline cases where a fieldset would feel
-// heavy.
+// For inline groups where a <fieldset> + <legend> would feel heavy; prefer the fieldset for form sections.
 func RadioGroup(ariaLabel string, attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -58,7 +37,7 @@ func RadioGroup(ariaLabel string, attrs templ.Attributes) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(ariaLabel)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/radio_group.templ`, Line: 26, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/radio_group.templ`, Line: 5, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {

@@ -8,28 +8,10 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// CommandPalette renders a ⌘K / Ctrl-K search dialog.
-//
-// It is a native <dialog>, so the browser handles backdrop + ESC + focus trap.
-// Cmd/Ctrl-K is wired up globally to open the first .command-palette on the page.
-//
-// Children are CommandGroup + CommandItem elements. The client-side script
-// filters items by substring match against their textContent and supports
-// arrow-key navigation, with Enter activating the highlighted item.
-//
-// Example:
-//
-//	@components.CommandPalette("global-cmd") {
-//	  @components.CommandGroup("Navigation") {
-//	    @components.CommandItem("/issues") { "Issues" }
-//	    @components.CommandItem("/pulls")  { "Pull requests" }
-//	  }
-//	  @components.CommandGroup("Account") {
-//	    @components.CommandItem("/settings") { "Settings" }
-//	  }
-//	}
-//
-// To open programmatically: document.getElementById("global-cmd").showModal()
+// A native <dialog>, so the browser supplies the backdrop, ESC and focus trap.
+// The command-palette class is CommandKHook's selector, not styling. Only
+// CommandGroup/CommandItem children are filtered: the script finds them by
+// their data-command-* attributes.
 func CommandPalette(id string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -58,7 +40,7 @@ func CommandPalette(id string) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/command.templ`, Line: 27, Col: 9}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/command.templ`, Line: 9, Col: 9}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
@@ -72,7 +54,7 @@ func CommandPalette(id string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div data-command-empty class=\"hidden p-8 text-center text-sm text-muted-foreground\">No results found.</div></div><script>\n\t\t\t(function(){\n\t\t\t\tvar dlg = document.currentScript.closest('dialog');\n\t\t\t\tif (!dlg || dlg.dataset.cmdInit === '1') return;\n\t\t\t\tdlg.dataset.cmdInit = '1';\n\n\t\t\t\tvar input = dlg.querySelector('[data-command-input]');\n\t\t\t\tvar listEl = dlg.querySelector('[data-command-list]');\n\t\t\t\tvar emptyEl = dlg.querySelector('[data-command-empty]');\n\t\t\t\tvar items = function(){\n\t\t\t\t\treturn Array.prototype.slice.call(listEl.querySelectorAll('[data-command-item]:not([hidden])'));\n\t\t\t\t};\n\t\t\t\tvar allItems = Array.prototype.slice.call(listEl.querySelectorAll('[data-command-item]'));\n\t\t\t\tvar groups = Array.prototype.slice.call(listEl.querySelectorAll('[data-command-group]'));\n\t\t\t\tvar activeIdx = 0;\n\n\t\t\t\tfunction setActive(i){\n\t\t\t\t\tvar visible = items();\n\t\t\t\t\tif (visible.length === 0) { activeIdx = -1; return; }\n\t\t\t\t\tif (i < 0) i = visible.length - 1;\n\t\t\t\t\tif (i >= visible.length) i = 0;\n\t\t\t\t\tactiveIdx = i;\n\t\t\t\t\tvisible.forEach(function(el, idx){\n\t\t\t\t\t\tif (idx === activeIdx) {\n\t\t\t\t\t\t\tel.setAttribute('data-active', 'true');\n\t\t\t\t\t\t\tel.scrollIntoView({block: 'nearest'});\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tel.removeAttribute('data-active');\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t}\n\n\t\t\t\tfunction filter(q){\n\t\t\t\t\tq = (q || '').trim().toLowerCase();\n\t\t\t\t\tallItems.forEach(function(el){\n\t\t\t\t\t\tvar t = (el.textContent || '').toLowerCase();\n\t\t\t\t\t\tel.hidden = q.length > 0 && t.indexOf(q) === -1;\n\t\t\t\t\t});\n\t\t\t\t\t// Hide groups that have no visible items.\n\t\t\t\t\tgroups.forEach(function(g){\n\t\t\t\t\t\tvar any = g.querySelector('[data-command-item]:not([hidden])');\n\t\t\t\t\t\tg.hidden = !any;\n\t\t\t\t\t});\n\t\t\t\t\tvar visible = items();\n\t\t\t\t\temptyEl.classList.toggle('hidden', visible.length > 0);\n\t\t\t\t\tsetActive(0);\n\t\t\t\t}\n\n\t\t\t\tinput.addEventListener('input', function(e){ filter(e.target.value); });\n\n\t\t\t\tdlg.addEventListener('keydown', function(e){\n\t\t\t\t\tif (e.key === 'ArrowDown') { e.preventDefault(); setActive(activeIdx + 1); }\n\t\t\t\t\telse if (e.key === 'ArrowUp') { e.preventDefault(); setActive(activeIdx - 1); }\n\t\t\t\t\telse if (e.key === 'Enter') {\n\t\t\t\t\t\tvar visible = items();\n\t\t\t\t\t\tif (activeIdx >= 0 && visible[activeIdx]) {\n\t\t\t\t\t\t\te.preventDefault();\n\t\t\t\t\t\t\tvisible[activeIdx].click();\n\t\t\t\t\t\t\tdlg.close();\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t});\n\n\t\t\t\tdlg.addEventListener('close', function(){\n\t\t\t\t\tinput.value = '';\n\t\t\t\t\tfilter('');\n\t\t\t\t});\n\n\t\t\t\tdlg.addEventListener('cancel', function(){ /* let ESC default close */ });\n\n\t\t\t\tfilter('');\n\t\t\t})();\n\t\t</script></dialog>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div data-command-empty class=\"hidden p-8 text-center text-sm text-muted-foreground\">No results found.</div></div><script>\n\t\t\t(function(){\n\t\t\t\tvar dlg = document.currentScript.closest('dialog');\n\t\t\t\tif (!dlg || dlg.dataset.cmdInit === '1') return;\n\t\t\t\tdlg.dataset.cmdInit = '1';\n\n\t\t\t\tvar input = dlg.querySelector('[data-command-input]');\n\t\t\t\tvar listEl = dlg.querySelector('[data-command-list]');\n\t\t\t\tvar emptyEl = dlg.querySelector('[data-command-empty]');\n\t\t\t\tvar items = function(){\n\t\t\t\t\treturn Array.prototype.slice.call(listEl.querySelectorAll('[data-command-item]:not([hidden])'));\n\t\t\t\t};\n\t\t\t\tvar allItems = Array.prototype.slice.call(listEl.querySelectorAll('[data-command-item]'));\n\t\t\t\tvar groups = Array.prototype.slice.call(listEl.querySelectorAll('[data-command-group]'));\n\t\t\t\tvar activeIdx = 0;\n\n\t\t\t\tfunction setActive(i){\n\t\t\t\t\tvar visible = items();\n\t\t\t\t\tif (visible.length === 0) { activeIdx = -1; return; }\n\t\t\t\t\tif (i < 0) i = visible.length - 1;\n\t\t\t\t\tif (i >= visible.length) i = 0;\n\t\t\t\t\tactiveIdx = i;\n\t\t\t\t\tvisible.forEach(function(el, idx){\n\t\t\t\t\t\tif (idx === activeIdx) {\n\t\t\t\t\t\t\tel.setAttribute('data-active', 'true');\n\t\t\t\t\t\t\tel.scrollIntoView({block: 'nearest'});\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tel.removeAttribute('data-active');\n\t\t\t\t\t\t}\n\t\t\t\t\t});\n\t\t\t\t}\n\n\t\t\t\tfunction filter(q){\n\t\t\t\t\tq = (q || '').trim().toLowerCase();\n\t\t\t\t\tallItems.forEach(function(el){\n\t\t\t\t\t\tvar t = (el.textContent || '').toLowerCase();\n\t\t\t\t\t\tel.hidden = q.length > 0 && t.indexOf(q) === -1;\n\t\t\t\t\t});\n\t\t\t\t\tgroups.forEach(function(g){\n\t\t\t\t\t\tvar any = g.querySelector('[data-command-item]:not([hidden])');\n\t\t\t\t\t\tg.hidden = !any;\n\t\t\t\t\t});\n\t\t\t\t\tvar visible = items();\n\t\t\t\t\temptyEl.classList.toggle('hidden', visible.length > 0);\n\t\t\t\t\tsetActive(0);\n\t\t\t\t}\n\n\t\t\t\tinput.addEventListener('input', function(e){ filter(e.target.value); });\n\n\t\t\t\tdlg.addEventListener('keydown', function(e){\n\t\t\t\t\tif (e.key === 'ArrowDown') { e.preventDefault(); setActive(activeIdx + 1); }\n\t\t\t\t\telse if (e.key === 'ArrowUp') { e.preventDefault(); setActive(activeIdx - 1); }\n\t\t\t\t\telse if (e.key === 'Enter') {\n\t\t\t\t\t\tvar visible = items();\n\t\t\t\t\t\tif (activeIdx >= 0 && visible[activeIdx]) {\n\t\t\t\t\t\t\te.preventDefault();\n\t\t\t\t\t\t\tvisible[activeIdx].click();\n\t\t\t\t\t\t\tdlg.close();\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t});\n\n\t\t\t\tdlg.addEventListener('close', function(){\n\t\t\t\t\tinput.value = '';\n\t\t\t\t\tfilter('');\n\t\t\t\t});\n\n\t\t\t\tdlg.addEventListener('cancel', function(){ /* let ESC default close */ });\n\n\t\t\t\tfilter('');\n\t\t\t})();\n\t\t</script></dialog>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -80,7 +62,6 @@ func CommandPalette(id string) templ.Component {
 	})
 }
 
-// CommandGroup is a labeled section inside a CommandPalette.
 func CommandGroup(heading string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -109,7 +90,7 @@ func CommandGroup(heading string) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(heading)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/command.templ`, Line: 130, Col: 107}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/command.templ`, Line: 110, Col: 107}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -131,8 +112,7 @@ func CommandGroup(heading string) templ.Component {
 	})
 }
 
-// CommandItem is a single row in a CommandGroup. Pass `href` to make it a link;
-// pass empty `href` together with attrs (e.g. {"onclick": "..."}) for an action.
+// An empty href renders a <button>; attach its action via attrs (e.g. onclick).
 func CommandItem(href string, attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -162,7 +142,7 @@ func CommandItem(href string, attrs templ.Attributes) templ.Component {
 			var templ_7745c5c3_Var6 templ.SafeURL
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/command.templ`, Line: 140, Col: 29}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/command.templ`, Line: 119, Col: 29}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -214,7 +194,6 @@ func CommandItem(href string, attrs templ.Attributes) templ.Component {
 	})
 }
 
-// CommandShortcut renders a right-aligned keyboard hint inside an item.
 func CommandShortcut() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -252,9 +231,8 @@ func CommandShortcut() templ.Component {
 	})
 }
 
-// CommandKHook registers a global ⌘K / Ctrl-K listener that opens the first
-// CommandPalette on the page. Render it once near the end of <body>, alongside
-// ToastContainer.
+// Render once per page: a second copy adds a second listener, and the two
+// toggles cancel out so ⌘K appears to do nothing.
 func CommandKHook() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
