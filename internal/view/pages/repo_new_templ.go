@@ -16,8 +16,9 @@ import (
 
 // repoNewSelectOption is one entry in a repoNewCustomSelect popup.
 type repoNewSelectOption struct {
-	Value string
-	Label string
+	Value      string
+	Label      string
+	Visibility string // owner options only: the owner's default repo visibility
 }
 
 func RepoNew(data view.RepoNewData) templ.Component {
@@ -71,7 +72,7 @@ func RepoNew(data view.RepoNewData) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(me)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 33, Col: 105}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 34, Col: 105}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -92,7 +93,7 @@ func RepoNew(data view.RepoNewData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.DefaultName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 43, Col: 148}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 44, Col: 148}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 			if templ_7745c5c3_Err != nil {
@@ -237,7 +238,7 @@ func repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ open: false, value: '" + initial.Value + "', label: '" + initial.Label + "' }")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 183, Col: 96}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 184, Col: 96}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 		if templ_7745c5c3_Err != nil {
@@ -250,7 +251,7 @@ func repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial
 		var templ_7745c5c3_Var9 string
 		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 184, Col: 30}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 185, Col: 30}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 		if templ_7745c5c3_Err != nil {
@@ -263,7 +264,7 @@ func repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 184, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 185, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 		if templ_7745c5c3_Err != nil {
@@ -276,7 +277,7 @@ func repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(initial.Value)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 184, Col: 68}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 185, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 		if templ_7745c5c3_Err != nil {
@@ -289,7 +290,7 @@ func repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial
 		var templ_7745c5c3_Var12 string
 		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(id + "-btn")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 185, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 186, Col: 40}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 		if templ_7745c5c3_Err != nil {
@@ -307,7 +308,7 @@ func repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(opt.Value)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 192, Col: 49}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 195, Col: 28}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 			if templ_7745c5c3_Err != nil {
@@ -320,31 +321,54 @@ func repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.ResolveAttributeValue(opt.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 192, Col: 74}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 196, Col: 28}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "\" @click=\"value=$el.dataset.value; label=$el.dataset.label; open=false\" :class=\"{ 'bg-accent text-foreground': value === $el.dataset.value }\" :aria-selected=\"value === $el.dataset.value ? 'true' : 'false'\" role=\"option\" class=\"w-full text-left px-2 py-1.5 text-[13px] rounded hover:bg-accent\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var15 string
-			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(opt.Label)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 193, Col: 17}
+			if opt.Visibility != "" {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, " data-visibility=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var15 string
+				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(opt.Visibility)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 198, Col: 39}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, " @click=\"value=$el.dataset.value; label=$el.dataset.label; open=false; if ($el.dataset.visibility) { const r = $el.closest('form').querySelector('input[name=visibility][value=' + $el.dataset.visibility + ']'); if (r) r.checked = true }\" :class=\"{ 'bg-accent text-foreground': value === $el.dataset.value }\" :aria-selected=\"value === $el.dataset.value ? 'true' : 'false'\" role=\"option\" class=\"w-full text-left px-2 py-1.5 text-[13px] rounded hover:bg-accent\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</button></li>")
+			var templ_7745c5c3_Var16 string
+			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(opt.Label)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 202, Col: 17}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</button></li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "</ul></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</ul></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -355,10 +379,14 @@ func repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial
 func repoNewOwnerOpts(data view.RepoNewData) []repoNewSelectOption {
 	var opts []repoNewSelectOption
 	if data.CurrentUser != nil {
-		opts = append(opts, repoNewSelectOption{Value: data.CurrentUser.Username, Label: data.CurrentUser.Username})
+		opts = append(opts, repoNewSelectOption{Value: data.CurrentUser.Username, Label: data.CurrentUser.Username, Visibility: "public"})
 	}
 	for _, o := range data.OwnedOrgs {
-		opts = append(opts, repoNewSelectOption{Value: o.Name, Label: o.Name})
+		vis := "private"
+		if o.DefaultRepoVisibility == "public" {
+			vis = "public"
+		}
+		opts = append(opts, repoNewSelectOption{Value: o.Name, Label: o.Name, Visibility: vis})
 	}
 	return opts
 }

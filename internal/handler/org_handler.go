@@ -408,7 +408,8 @@ func (h *Handler) TransferOrg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/orgs/"+orgName+"/settings", http.StatusSeeOther)
+	// The requester is now a member and can no longer open the settings page.
+	http.Redirect(w, r, "/"+orgName, http.StatusSeeOther)
 }
 
 func (h *Handler) CreateOrgRepo(w http.ResponseWriter, r *http.Request) {

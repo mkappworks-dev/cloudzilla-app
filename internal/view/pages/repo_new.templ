@@ -8,8 +8,9 @@ import (
 
 // repoNewSelectOption is one entry in a repoNewCustomSelect popup.
 type repoNewSelectOption struct {
-	Value string
-	Label string
+	Value      string
+	Label      string
+	Visibility string // owner options only: the owner's default repo visibility
 }
 
 templ RepoNew(data view.RepoNewData) {
@@ -189,7 +190,15 @@ templ repoNewCustomSelect(id, name string, options []repoNewSelectOption, initia
 		<ul x-show="open" x-cloak role="listbox" class="absolute z-20 left-0 right-0 top-full mt-1 bg-card border border-border-strong rounded-md shadow-lg p-1 max-h-60 overflow-y-auto">
 			for _, opt := range options {
 				<li>
-					<button type="button" data-value={ opt.Value } data-label={ opt.Label } @click="value=$el.dataset.value; label=$el.dataset.label; open=false" :class="{ 'bg-accent text-foreground': value === $el.dataset.value }" :aria-selected="value === $el.dataset.value ? 'true' : 'false'" role="option" class="w-full text-left px-2 py-1.5 text-[13px] rounded hover:bg-accent">
+					<button
+						type="button"
+						data-value={ opt.Value }
+						data-label={ opt.Label }
+						if opt.Visibility != "" {
+							data-visibility={ opt.Visibility }
+						}
+						@click="value=$el.dataset.value; label=$el.dataset.label; open=false; if ($el.dataset.visibility) { const r = $el.closest('form').querySelector('input[name=visibility][value=' + $el.dataset.visibility + ']'); if (r) r.checked = true }"
+						:class="{ 'bg-accent text-foreground': value === $el.dataset.value }" :aria-selected="value === $el.dataset.value ? 'true' : 'false'" role="option" class="w-full text-left px-2 py-1.5 text-[13px] rounded hover:bg-accent">
 						{ opt.Label }
 					</button>
 				</li>
@@ -201,10 +210,14 @@ templ repoNewCustomSelect(id, name string, options []repoNewSelectOption, initia
 func repoNewOwnerOpts(data view.RepoNewData) []repoNewSelectOption {
 	var opts []repoNewSelectOption
 	if data.CurrentUser != nil {
-		opts = append(opts, repoNewSelectOption{Value: data.CurrentUser.Username, Label: data.CurrentUser.Username})
+		opts = append(opts, repoNewSelectOption{Value: data.CurrentUser.Username, Label: data.CurrentUser.Username, Visibility: "public"})
 	}
 	for _, o := range data.OwnedOrgs {
-		opts = append(opts, repoNewSelectOption{Value: o.Name, Label: o.Name})
+		vis := "private"
+		if o.DefaultRepoVisibility == "public" {
+			vis = "public"
+		}
+		opts = append(opts, repoNewSelectOption{Value: o.Name, Label: o.Name, Visibility: vis})
 	}
 	return opts
 }

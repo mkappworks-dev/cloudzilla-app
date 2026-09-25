@@ -30,7 +30,6 @@ func (h *Handler) PageNewRepo(w http.ResponseWriter, r *http.Request) {
 		orgs = []model.Organization{}
 	}
 	q := r.URL.Query()
-	defaultPrivate := q.Get("visibility") == "private"
 	initReadme := q.Get("init_readme") == "1" || q.Get("init_readme") == "true"
 
 	// ?owner=mkappworks-dev preselects the dropdown when the user arrived from
@@ -38,17 +37,28 @@ func (h *Handler) PageNewRepo(w http.ResponseWriter, r *http.Request) {
 	// they own — otherwise silently ignored so a crafted link can't trick
 	// users into creating a repo under the wrong namespace.
 	var defaultOwner string
+	var ownerOrg *model.Organization
 	if reqOwner := q.Get("owner"); reqOwner != "" {
 		if reqOwner == claims.Username {
 			defaultOwner = reqOwner
 		} else {
-			for _, o := range orgs {
+			for i, o := range orgs {
 				if o.Name == reqOwner {
 					defaultOwner = reqOwner
+					ownerOrg = &orgs[i]
 					break
 				}
 			}
 		}
+	}
+
+	var defaultPrivate bool
+	switch q.Get("visibility") {
+	case "private":
+		defaultPrivate = true
+	case "public":
+	default:
+		defaultPrivate = ownerOrg != nil && ownerOrg.DefaultRepoVisibility != "public"
 	}
 
 	h.render(w, r, pages.RepoNew(view.RepoNewData{
