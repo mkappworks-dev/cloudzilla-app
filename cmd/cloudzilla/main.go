@@ -28,6 +28,7 @@ func init() {
 
 	rootCmd.AddCommand(migrateCmd())
 	rootCmd.AddCommand(gcCmd())
+	rootCmd.AddCommand(statsCmd())
 }
 
 func migrateCmd() *cobra.Command {
