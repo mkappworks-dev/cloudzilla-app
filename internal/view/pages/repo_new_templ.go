@@ -350,7 +350,7 @@ func repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, " @click=\"value=$el.dataset.value; label=$el.dataset.label; open=false; if ($el.dataset.visibility) { const r = $el.closest('form').querySelector('input[name=visibility][value=' + $el.dataset.visibility + ']'); if (r) r.checked = true }\" :class=\"{ 'bg-accent text-foreground': value === $el.dataset.value }\" :aria-selected=\"value === $el.dataset.value ? 'true' : 'false'\" role=\"option\" class=\"w-full text-left px-2 py-1.5 text-[13px] rounded hover:bg-accent\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, " @click=\"if ($el.dataset.visibility && value !== $el.dataset.value) { const r = $el.closest('form').querySelector('input[name=visibility][value=' + $el.dataset.visibility + ']'); if (r) r.checked = true }; value=$el.dataset.value; label=$el.dataset.label; open=false\" :class=\"{ 'bg-accent text-foreground': value === $el.dataset.value }\" :aria-selected=\"value === $el.dataset.value ? 'true' : 'false'\" role=\"option\" class=\"w-full text-left px-2 py-1.5 text-[13px] rounded hover:bg-accent\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

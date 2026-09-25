@@ -33,6 +33,7 @@ func newOrgTestRouter(t *testing.T, db *sql.DB) (http.Handler, *service.Services
 	r := chi.NewRouter()
 	r.Post("/api/orgs/{org}/transfer", h.TransferOrg)
 	r.Get("/repos/new", h.PageNewRepo)
+	r.Post("/api/orgs/{org}/repos", h.CreateOrgRepo)
 	unauthorized := func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) }
 	return middleware.Auth(testJWTSecret, testCookieName, nil, nil, unauthorized)(r), svc
 }
@@ -110,5 +111,49 @@ func TestPageNewRepo_OwnerOrgDefaultVisibility(t *testing.T) {
 	}
 	if checkedPrivateRadio.MatchString(get("?owner=" + org.Name)) {
 		t.Error("public-by-default org: Private radio preselected")
+	}
+}
+
+// API callers that omit "private" get the org's default visibility.
+func TestCreateOrgRepo_OmittedPrivateUsesOrgDefault(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	router, svc := newOrgTestRouter(t, db)
+	ctx := context.Background()
+
+	org, err := svc.Org.Create(ctx, ownerID, "testorg_"+suffix, "", "")
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	create := func(body string) *http.Response {
+		req := httptest.NewRequest(http.MethodPost, "/api/orgs/"+org.Name+"/repos", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, ownerID, "testuser_"+suffix))
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+		if rr.Code != http.StatusCreated {
+			t.Fatalf("POST %s: want 201, got %d: %s", body, rr.Code, rr.Body.String())
+		}
+		return rr.Result()
+	}
+	isPrivate := func(name string) bool {
+		repo, err := svc.Repo.Get(ctx, org.Name, name)
+		if err != nil {
+			t.Fatalf("get %s: %v", name, err)
+		}
+		return repo.Private
+	}
+
+	if err := svc.Org.UpdateRepoDefaults(ctx, org.ID, ownerID, "private", "main"); err != nil {
+		t.Fatalf("UpdateRepoDefaults: %v", err)
+	}
+	create(`{"name":"omitted"}`)
+	if !isPrivate("omitted") {
+		t.Error("private-by-default org: repo created without \"private\" is public")
+	}
+	create(`{"name":"explicit","private":false}`)
+	if isPrivate("explicit") {
+		t.Error("explicit \"private\": false ignored")
 	}
 }

@@ -27,7 +27,7 @@ type addOrgMemberRequest struct {
 type createOrgRepoRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	Private     bool   `json:"private"`
+	Private     *bool  `json:"private"` // nil: use the org's default visibility
 	AddReadme   bool   `json:"add_readme"`
 	Gitignore   string `json:"gitignore"`
 	License     string `json:"license"`
@@ -432,7 +432,11 @@ func (h *Handler) CreateOrgRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Org.CreateRepo(r.Context(), org.ID, claims.UserID, req.Name, req.Description, req.Private, service.RepoInitOptions{
+	private := org.DefaultRepoVisibility != "public"
+	if req.Private != nil {
+		private = *req.Private
+	}
+	repo, err := h.Services.Org.CreateRepo(r.Context(), org.ID, claims.UserID, req.Name, req.Description, private, service.RepoInitOptions{
 		AddREADME: req.AddReadme,
 		Gitignore: req.Gitignore,
 		License:   req.License,
