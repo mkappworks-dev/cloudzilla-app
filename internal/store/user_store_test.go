@@ -5,7 +5,6 @@ package store_test
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"testing"
 
@@ -39,7 +38,7 @@ func openStoreDB(t *testing.T) *sql.DB {
 func TestUserStore_Create_AssignsID(t *testing.T) {
 	db := openStoreDB(t)
 	s := store.NewUserStore(db)
-	suffix := fmt.Sprintf("%d_crt", os.Getpid())
+	suffix := testutil.UniqueSuffix(t) + "_crt"
 
 	u := &model.User{
 		Username:     "storeuser_" + suffix,
@@ -153,7 +152,7 @@ func TestUserStore_GetByEmail_Unknown_Error(t *testing.T) {
 func TestUserStore_Create_DuplicateUsername_Error(t *testing.T) {
 	db := openStoreDB(t)
 	s := store.NewUserStore(db)
-	suffix := fmt.Sprintf("%d_dup", os.Getpid())
+	suffix := testutil.UniqueSuffix(t) + "_dup"
 
 	u1 := &model.User{
 		Username:     "dupuser_" + suffix,

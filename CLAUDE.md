@@ -1,139 +1,74 @@
-# CLAUDE.md — Cloudzilla Developer Guide
+# CLAUDE.md — Cloudzilla
 
 > ⚠️ **Alpha**: APIs, project structure, and conventions may change.
 
-## Architecture
+Self-hosted git forge. Go (chi, sqlx, go-git, cobra) + PostgreSQL; UI is server-rendered [Templ](https://templ.guide/) with HTMX, Alpine.js, and Tailwind. Git transport (HTTP smart protocol + SSH) is pure Go — no `git` binary.
 
-- **Backend**: Go 1.26+, chi router, sqlx, go-git, cobra CLI
-- **Frontend**: [Templ](https://templ.guide/) (type-safe Go HTML components), HTMX for partial updates, Alpine.js for client-side interactivity, Tailwind CSS
-- **DB**: PostgreSQL
-- **Pattern**: Stores → Services → Handlers (strict layer separation)
-- **Rendering**: Server-driven; Templ compiles to Go. Alpine.js + HTMX handle the small amount of client-side behavior.
-- **Git Transport**: HTTP smart protocol + SSH server (both pure Go, no git binary required)
-- **SSH Auth**: Public key auth via stored SSH keys
+## Layering
 
-## Project Layout
+Stores → Services → Handlers, strictly:
 
-- `cmd/server/` — HTTP server entrypoint
-- `cmd/cloudzilla/` — Admin CLI (cobra)
-- `internal/config/` — Config loading (viper + YAML)
-- `internal/db/` — DB connection + migration runner
-- `internal/model/` — Data structs (db + json tags)
-- `internal/store/` — Raw SQL queries (sqlx)
-- `internal/service/` — Business logic (calls stores)
-- `internal/handler/` — HTTP handlers (calls services + renders templates)
-- `internal/middleware/` — Auth, logger, CORS
-- `internal/router/` — chi route registration
-- `internal/ssh/` — SSH server for git operations (gliderlabs/ssh)
-- `internal/view/` — Templ components (compiled to `_templ.go`)
-  - `layout/` base layout, `pages/` page components, `fragments/` HTMX fragments
-- `internal/db/migrations/` — SQL files, embedded via `//go:embed migrations/*.sql` from `internal/db/migrate.go`
-- `cmd/server/frontend/static/` — `main.css` (compiled Tailwind), `mermaid.min.js`
-- `cmd/server/frontend/` — `htmx.min.js` (served at `/htmx.min.js`), `alpine.min.js` (served at `/alpine.min.js`)
-- `tailwind/` — `input.css`, `tailwind.config.js`
+- `internal/store/` holds raw SQL; `internal/service/` holds business logic; `internal/handler/` calls services only.
+- `context.Context` is the first arg of every store and service method.
+- Handlers render with `h.render(w, r, component)` — a page from `internal/view/pages/` or a fragment from `internal/view/fragments/`. HTMX requests are detected with `r.Header.Get("HX-Request") == "true"`. JSON APIs use `writeJSON(w, status, v)`.
+- View-model structs live in `internal/view/viewmodels_*.go`; pages embed `BasePage` from `basePage(r, h.Services)`.
 
-## Dev Commands
+## Commands
 
-```bash
-make setup-tailwind     # Download Tailwind CLI (one-time)
-make download-mermaid   # Download mermaid.min.js (auto-runs in build/dev)
-make download-htmx      # Download htmx.min.js (auto-runs in build/dev)
-make build-css          # Compile Tailwind → static/main.css
-make dev                # Run server + Tailwind watch
-make migrate            # Run DB migrations
-make build              # Build Go binary (embedded templates + CSS)
-make lint               # Lint Go code
-go test ./...           # Run Go tests
-```
+Targets live in the `Makefile` (`dev`, `build`, `migrate`, `lint`, `test`, `test-integration`). Integration tests need `TEST_DATABASE_DSN`; `make test-integration` starts the test DB and sets it.
 
-## Code Conventions
+## Templ
 
-### Comments
+- Edit `.templ` files, then run `make generate-templ`. `_templ.go` files are generated output — regenerate them, keep hands off.
+- Keep `{{if}}` inside `class`/`style` attributes on one line: VS Code's HTML formatter splits the string literal and breaks the comparison.
+- Use `templ.Raw(...)` only for trusted HTML such as rendered Markdown.
 
-- Default to **no comment**. Add one only when the _why_ is non-obvious: a hidden constraint, a subtle invariant, a workaround for a specific bug, or behavior that would surprise a reader.
-- Do **not** narrate _what_ the code does — names and types already do that.
-- Do **not** reference the current task, PR, or recent commit ("added for X flow", "see issue #123"). Those belong in the commit message.
-- Single-line `// ...` is the default; multi-line block comments and multi-paragraph docstrings are usually a sign the comment is over-explaining.
-- When editing existing code, prefer **deleting** stale or explanatory comments over preserving them.
+## CSS
 
-### Go Handlers
+Tailwind utilities only. When adding a template directory, extend the `content` glob in `tailwind/tailwind.config.js`.
 
-- **Page handlers** fetch data and call `h.render(page, data)` to render full pages
-- **HTMX handlers** check `r.Header.Get("HX-Request") == "true"` and call `h.renderFragment(name, data)`
-- **API handlers** return JSON via `writeJSON(w, status, v)`
-- Handlers call services only, never stores directly
-- `context.Context` is the first arg of every service/store method
-- JWT read from `Authorization: Bearer` header OR `cz_token` httpOnly cookie
+## Adding a feature
 
-### Templates (Templ)
+1. Migration in `internal/db/migrations/` (next sequential number).
+2. Model in `internal/model/`.
+3. Store method; wire into `Stores` in `internal/store/stores.go`.
+4. Service method; wire into `Services` in `internal/service/services.go`.
+5. Handler in `internal/handler/` (full pages go in `page_*_handler.go`).
+6. View-model in `internal/view/viewmodels_*.go`; Templ component in `internal/view/`.
+7. Route in `internal/router/router.go`. A route reachable before setup completes must also be added to the path check in `internal/middleware/setup.go`.
 
-- **Layout**: `layout.Base(title, unreadCount, user)` in `internal/view/layout/`
-- **Pages** live in `internal/view/pages/`; call `layout.Base(...)` with content as child
-- **Fragments** in `internal/view/fragments/`; rendered via `component.Render(ctx, w)`
-- HTMX attrs go on HTML elements: `hx-post`, `hx-target`, `hx-swap`
-- Templ auto-escapes output; use `templ.Raw(...)` only for trusted HTML (e.g. rendered Markdown)
-- After editing `.templ` files run `~/go/bin/templ generate`
-- **Never manually edit `_templ.go` files** — they are generated
-- **Keep `{{if}}` inside `class`/`style` attributes on one line** — VS Code's HTML formatter splits string literals and breaks template comparisons
+## PostgreSQL
 
-### CSS (Tailwind)
+Get new IDs via `RETURNING id` + `QueryRowContext().Scan()`. Nullable FKs use `sql.NullInt64`. Batch `IN (...)` is built with `strings.Join` over numbered `$N` params.
 
-- Tailwind utilities only; no custom CSS
-- Build: `make build-css` (runs before `make dev` and `make build`)
-- Config in `tailwind/tailwind.config.js` — update `content` glob when adding template dirs
-- Output: `cmd/server/frontend/static/main.css` (gitignored)
+## Comments
 
-## Adding a New Feature
+Write a comment only for the _why_ the code can't show: a hidden constraint, an invariant, a workaround, a surprise. One line by default. Task, PR, and history context goes in the commit message. When editing, delete stale comments.
 
-1. Add SQL migration in `internal/db/migrations/` (next sequential number)
-2. Add/update model struct in `internal/model/`
-3. Add store method in `internal/store/` — wire into `Stores` struct in `stores.go`
-4. Add service method in `internal/service/` — wire into `Services` struct in `services.go`
-5. Add handler in `internal/handler/` (extend `page_handler.go` for new page data)
-6. Add view-model struct to `internal/handler/viewmodels.go`
-7. Register route in `internal/router/router.go`; add page name to `pageNames` slice if new page
-8. If route must be accessible pre-setup (e.g. public assets), add to allowlist in `middleware/setup.go`
-9. Add/update Templ component in `internal/view/`; run `templ generate`
-10. Add Tailwind classes; add fragments if using HTMX swaps
+## Subsystem docs
 
-## Authentication Flow
+Read the matching doc before working in an area:
 
-1. **Form login**: POST `/login` → `User.Authenticate()` → httpOnly cookie → redirect `/`
-2. **API login**: POST `/api/auth/login` (JSON) → JWT in cookie + JSON body
-3. **Protected pages**: `optAuthMW` reads cookie, injects claims into context
-4. **HTMX**: browser auto-includes cookie (same-origin)
-5. **Google OAuth**: `GET /auth/google` → callback upserts user (links by `oauth_id` then email) → `cz_token` cookie. Config: `oauth.google_client_id/secret/redirect_url`. Missing client_id → 501.
+- [git-transport](./docs/git-transport.md) — HTTP/SSH endpoints, SSH key auth, `CanRead`/`CanWrite`/`CanManage`/`IsOwner`
+- [access-control](./docs/access-control.md) — instance/org/repo roles, setup flow, invite tokens, login + Google OAuth
+- [api-reference](./docs/api-reference.md) — JSON API endpoints
+- [configuration](./docs/configuration.md) — config keys and `CZ_*` env vars
+- [deployment](./docs/deployment.md) — Docker, bootstrap
+- [code-browser](./docs/code-browser.md) — `CodeService`, ref resolution, `ErrEmptyRepo` → 404
+- [pr-merge](./docs/pr-merge.md) — `ff`/`merge`/`squash`, conflict detection
+- [organizations](./docs/organizations.md) — `OrgService`; `/{owner}` resolves user first, then org
+- [webhooks](./docs/webhooks.md) — events, HMAC signing, fire-and-forget `Dispatch`
+- [notifications](./docs/notifications.md) — types; skipped when `actorID == authorID`
+- [ui-overhaul-class-map](./docs/ui-overhaul-class-map.md) — mockup → shadcn class map; the source of truth when porting UI
+- [ROADMAP](./docs/ROADMAP.md) and [plans](./docs/superpowers/plans/) — phase status and per-phase plans
 
-## PostgreSQL Notes
+## Branches
 
-- `$N` numbered placeholders (not `?`)
-- `BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY` (not `INTEGER ... AUTOINCREMENT`)
-- `TIMESTAMPTZ NOT NULL DEFAULT NOW()` (not `DATETIME ... DEFAULT CURRENT_TIMESTAMP`)
-- `INSERT ... ON CONFLICT DO NOTHING` (not `INSERT OR IGNORE`)
-- No `LastInsertId()` — use `RETURNING id` with `QueryRowContext().Scan()`
-- Nullable FK: `sql.NullInt64` (see `repo_store.go`)
-- Batch `IN (...)`: `strings.Join` with numbered `$N` params
+`<type>/<slug>`, where `type` is `feat`, `fix` (or `bug`), or `tech`. Prefix the slug with `phase-<n>-` when the work belongs to a roadmap phase — e.g. `feat/phase-12.3-discussions`, `fix/contributor-stats-sha-dedup`.
 
-## Subsystem Docs
+Worktrees go in `.worktrees/<type>+<slug>` (gitignored), mirroring the branch: `git worktree add .worktrees/fix+foo -b fix/foo`.
 
-Detailed APIs, endpoint tables, and flows live under `docs/`. Read these before working in the matching area:
+## Pull requests
 
-- [docs/git-transport.md](./docs/git-transport.md) — HTTP/SSH endpoints, SSH auth, permission rules (`CanRead`/`CanWrite`/`CanManage`/`IsOwner`)
-- [docs/access-control.md](./docs/access-control.md) — Instance/org/repo role tables, setup flow, invite tokens
-- [docs/htmx-patterns.md](./docs/htmx-patterns.md) — HTMX handler example, template parse order, FuncMap helpers
-- [docs/code-browser.md](./docs/code-browser.md) — `CodeService` API, ref resolution priority. `ErrEmptyRepo` sentinel → 404 when repo has no commits
-- [docs/pr-merge.md](./docs/pr-merge.md) — `ff` / `merge` / `squash` strategies. `mergeTreesNoConflict` detects file-level conflicts and hides merge buttons
-- [docs/organizations.md](./docs/organizations.md) — `OrgService` API. `/{owner}` route checks user first, falls back to org
-- [docs/webhooks.md](./docs/webhooks.md) — Events, HMAC-SHA256 signing, `Dispatch` is fire-and-forget
-- [docs/notifications.md](./docs/notifications.md) — Notification types. Never fire when `actorID == authorID`
-- [docs/deployment.md](./docs/deployment.md) — Docker, env vars (`CZ_DATABASE_DSN`, `CZ_AUTH_JWT_SECRET`, `CZ_GIT_REPOS_ROOT`, `CZ_GIT_SSH_HOST_KEY`), bootstrap
-- [docs/ROADMAP.md](./docs/ROADMAP.md) — Phase status, milestone structure, planned work
-- [docs/superpowers/plans/](./docs/superpowers/plans/) — Per-phase implementation plans
-
-## Branch Naming
-
-```
-<type>/phase-<number>-<slug>
-```
-
-`type` is `feat`, `bug`, or `tech`. Example: `feat/phase-12.3-discussions`.
+- Title: Conventional Commits, enforced by `.github/workflows/pr-title-lint.yml` — e.g. `feat(ui): UI overhaul phase 8 — dashboard`.
+- Body: fill in [`.github/pull_request_template.md`](./.github/pull_request_template.md), ticking only the checklist items that apply.

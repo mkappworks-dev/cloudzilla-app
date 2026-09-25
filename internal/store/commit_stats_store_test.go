@@ -3,13 +3,13 @@ package store_test
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 // openTestDBCommitStats opens an integration-test DB connection if
@@ -38,8 +38,7 @@ func TestCommitStatsStore_UpsertAndListForUser(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Unique suffix avoids collisions across parallel test runs.
-	suffix := fmt.Sprintf("%d", os.Getpid())
+	suffix := testutil.UniqueSuffix(t)
 
 	// Seed: one user.
 	var userID int64
@@ -122,7 +121,7 @@ func TestCommitStatsStore_AddCount_Additive(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	suffix := fmt.Sprintf("addct_%d", os.Getpid())
+	suffix := "addct_" + testutil.UniqueSuffix(t)
 
 	var userID int64
 	if err := db.QueryRowContext(ctx,

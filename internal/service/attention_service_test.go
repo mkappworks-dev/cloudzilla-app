@@ -3,13 +3,13 @@ package service_test
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 func openAttentionTestDB(t *testing.T) *sql.DB {
@@ -36,7 +36,7 @@ func TestAttentionService_ForUser(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	suffix := fmt.Sprintf("%d", os.Getpid())
+	suffix := testutil.UniqueSuffix(t)
 
 	// Seed alice (assignee/viewer).
 	var aliceID int64
