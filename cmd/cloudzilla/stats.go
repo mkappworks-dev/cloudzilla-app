@@ -45,7 +45,7 @@ func statsBackfillCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			defer database.Close()
+			defer func() { _ = database.Close() }()
 
 			stores := store.New(database)
 			code := service.NewCodeService(cfg.Git)

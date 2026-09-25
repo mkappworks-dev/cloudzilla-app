@@ -31,7 +31,7 @@ func openTestDBContributorStatsService(t *testing.T) *sql.DB {
 
 func TestContributorStatsService_IngestCommit_IsIdempotentBySha(t *testing.T) {
 	db := openTestDBContributorStatsService(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	statsStore := store.NewContributorStatsStore(db)
 	userStore := store.NewUserStore(db)
@@ -48,7 +48,7 @@ func TestContributorStatsService_IngestCommit_IsIdempotentBySha(t *testing.T) {
 		t.Fatalf("insert user: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
+		_, _ = db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
 	})
 
 	var repoID int64

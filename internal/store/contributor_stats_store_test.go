@@ -62,7 +62,7 @@ func TestContributorStatsStore_IngestCommitTx_DedupesBothAggregates(t *testing.T
 		t.Skip("TEST_DATABASE_DSN not set; skipping integration test")
 	}
 	db := openTestDBCommitStats(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	s := store.NewContributorStatsStore(db)
 	ctx := context.Background()
@@ -83,7 +83,7 @@ func TestContributorStatsStore_IngestCommitTx_DedupesBothAggregates(t *testing.T
 		t.Fatalf("insert repo: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
+		_, _ = db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
 	})
 
 	when := time.Date(2026, 5, 13, 10, 0, 0, 0, time.UTC)

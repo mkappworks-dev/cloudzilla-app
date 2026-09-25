@@ -24,7 +24,7 @@ func TestBackfillRepoStats_DryRunThenApply(t *testing.T) {
 	).Scan(&userID); err != nil {
 		t.Fatalf("insert user: %v", err)
 	}
-	t.Cleanup(func() { db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID) })
+	t.Cleanup(func() { _, _ = db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID) })
 	var repoID int64
 	if err := db.QueryRowContext(ctx,
 		`INSERT INTO repositories (owner_id, owner_name, name, description, private, default_branch) VALUES ($1, $2, $3, '', false, 'main') RETURNING id`,

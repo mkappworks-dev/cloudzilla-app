@@ -84,7 +84,7 @@ func (s *ContributorStatsStore) IngestCommitTx(ctx context.Context, repoID, user
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if err := ingestCommit(ctx, tx, repoID, CommitIngestRow{UserID: userID, SHA: sha, When: when, Additions: additions, Deletions: deletions}); err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func (s *ContributorStatsStore) RebuildRepoStats(ctx context.Context, repoID int
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	for _, table := range []string{"commits_ingested", "contributor_week_stats", "commit_day_counts"} {
 		if _, err := tx.ExecContext(ctx, `DELETE FROM `+table+` WHERE repo_id = $1`, repoID); err != nil {
 			return err
