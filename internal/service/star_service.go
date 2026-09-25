@@ -63,3 +63,7 @@ func (s *StarService) ListByUser(ctx context.Context, username string) ([]model.
 	}
 	return s.stars.ListByUser(ctx, user.ID)
 }
+
+func (s *StarService) CountByUser(ctx context.Context, userID int64) (int, error) {
+	return s.stars.CountByUser(ctx, userID)
+}

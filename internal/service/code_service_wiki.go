@@ -487,15 +487,29 @@ func wikiMutateTree(
 	return nil
 }
 
-// wikiCommit writes filename/content into the bare repo as a new commit on
-// the default (main) branch, preserving all other files from HEAD.
+// wikiCommit writes filename/content into the bare wiki repo as a new commit
+// on the wiki's main branch, preserving all other files from HEAD. Thin shim
+// over commitSingleFile that hard-codes the wiki's "main" branch convention.
 func wikiCommit(repo *gogit.Repository, filename string, content []byte, authorName, authorEmail, message string) error {
+	return commitSingleFile(repo, plumbing.NewBranchReferenceName("main"), authorName, authorEmail, message, filename, content)
+}
+
+// commitSingleFile writes filename/content into the bare repo as a new commit
+// on branchRef, preserving all other files from the current branch tip. When
+// branchRef does not yet exist (empty repo), the commit becomes the initial
+// commit on that branch and HEAD is pointed at it.
+func commitSingleFile(
+	repo *gogit.Repository,
+	branchRef plumbing.ReferenceName,
+	authorName, authorEmail, message string,
+	filename string,
+	content []byte,
+) error {
 	now := time.Now()
 	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
 
 	storer := repo.Storer
 
-	// Build blob object for the new file content.
 	blobObj := storer.NewEncodedObject()
 	blobObj.SetType(plumbing.BlobObject)
 	blobObj.SetSize(int64(len(content)))
@@ -514,12 +528,10 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, authorN
 		return err
 	}
 
-	// Load existing tree entries from HEAD (if any commits exist).
 	entries := []object.TreeEntry{}
 	var parentHashes []plumbing.Hash
-	head, headErr := repo.Head()
-	if headErr == nil {
-		parentCommit, err := repo.CommitObject(head.Hash())
+	if branchHead, herr := storer.Reference(branchRef); herr == nil {
+		parentCommit, err := repo.CommitObject(branchHead.Hash())
 		if err != nil {
 			return err
 		}
@@ -535,7 +547,6 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, authorN
 		}
 	}
 
-	// Append / replace the target file entry.
 	entries = append(entries, object.TreeEntry{
 		Name: filename,
 		Mode: filemode.Regular,
@@ -543,7 +554,6 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, authorN
 	})
 	sort.Slice(entries, func(i, j int) bool { return entries[i].Name < entries[j].Name })
 
-	// Write the tree object.
 	treeObj := storer.NewEncodedObject()
 	tree := object.Tree{Entries: entries}
 	if err := tree.Encode(treeObj); err != nil {
@@ -554,7 +564,6 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, authorN
 		return err
 	}
 
-	// Write the commit object.
 	commitObj := storer.NewEncodedObject()
 	commit := object.Commit{
 		Author:       sig,
@@ -571,16 +580,14 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, authorN
 		return err
 	}
 
-	// Advance HEAD / main ref.
-	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName("main"), commitHash)
+	ref := plumbing.NewHashReference(branchRef, commitHash)
 	if err := storer.SetReference(ref); err != nil {
 		return err
 	}
 
-	mainBranch := plumbing.NewBranchReferenceName("main")
 	headRef, headErr := storer.Reference(plumbing.HEAD)
-	if headErr != nil || headRef.Type() == plumbing.HashReference || headRef.Target() != mainBranch {
-		symRef := plumbing.NewSymbolicReference(plumbing.HEAD, mainBranch)
+	if headErr != nil || headRef.Type() == plumbing.HashReference || headRef.Target() != branchRef {
+		symRef := plumbing.NewSymbolicReference(plumbing.HEAD, branchRef)
 		if err := storer.SetReference(symRef); err != nil {
 			return fmt.Errorf("set symbolic HEAD: %w", err)
 		}
