@@ -32,7 +32,7 @@ func newRepoSvc(t *testing.T) (*service.RepoService, string, string) {
 		store.NewRepoStore(db),
 		store.NewUserStore(db),
 		store.NewOrgStore(db),
-		nil, nil, nil,
+		nil, nil,
 		config.GitConfig{ReposRoot: root},
 	)
 	return svc, ownerName, root
