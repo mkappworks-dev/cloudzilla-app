@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -58,5 +59,9 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   -1,
 	})
+	if strings.Contains(r.Header.Get("Accept"), "text/html") {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }

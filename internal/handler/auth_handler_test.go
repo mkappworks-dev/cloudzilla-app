@@ -180,6 +180,35 @@ func TestLogout_ClearsCookie(t *testing.T) {
 	}
 }
 
+// The Sign out menu item is a plain form POST; a 204 would leave the browser
+// on a page that still looks signed in.
+func TestLogout_BrowserFormRedirectsHome(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	h := newAuthHandler(db)
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/logout", strings.NewReader("csrf_token=x"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.AddCookie(&http.Cookie{Name: testCookieName, Value: "sometoken"})
+	rr := httptest.NewRecorder()
+	h.Logout(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("want 303, got %d", rr.Code)
+	}
+	if loc := rr.Header().Get("Location"); loc != "/" {
+		t.Errorf("Location = %q, want %q", loc, "/")
+	}
+	cleared := false
+	for _, c := range rr.Result().Cookies() {
+		if c.Name == testCookieName && c.MaxAge < 0 {
+			cleared = true
+		}
+	}
+	if !cleared {
+		t.Error("auth cookie not cleared")
+	}
+}
+
 // TestLogout_NoExistingCookie_204 verifies that Logout returns HTTP 204 even when
 // the request has no auth cookie (idempotent logout).
 func TestLogout_NoExistingCookie_204(t *testing.T) {

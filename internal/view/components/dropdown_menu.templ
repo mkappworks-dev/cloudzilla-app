@@ -74,14 +74,24 @@ templ DropdownMenuContent(align DropdownMenuAlign) {
 // DropdownMenuItem is a button-style row. Use for actions that don't navigate (e.g. logout POST forms).
 templ DropdownMenuItem(attrs templ.Attributes) {
 	<button
-		type="button"
 		role="menuitem"
 		x-on:click="open = false"
 		class="flex w-full items-center gap-2 px-2 py-1.5 rounded-sm text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:opacity-50 disabled:pointer-events-none"
-		{ attrs... }
+		{ withDefaultButtonType(attrs)... }
 	>
 		{ children... }
 	</button>
+}
+
+// withDefaultButtonType sets type="button" unless the caller chose a type:
+// browsers keep the first of duplicate attributes, so the default can't
+// simply precede the spread.
+func withDefaultButtonType(attrs templ.Attributes) templ.Attributes {
+	out := templ.Attributes{"type": "button"}
+	for k, v := range attrs {
+		out[k] = v
+	}
+	return out
 }
 
 // DropdownMenuLink is the anchor-style row. Use for navigation entries.

@@ -191,11 +191,11 @@ func DropdownMenuItem(attrs templ.Attributes) templ.Component {
 			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<button type=\"button\" role=\"menuitem\" x-on:click=\"open = false\" class=\"flex w-full items-center gap-2 px-2 py-1.5 rounded-sm text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:opacity-50 disabled:pointer-events-none\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<button role=\"menuitem\" x-on:click=\"open = false\" class=\"flex w-full items-center gap-2 px-2 py-1.5 rounded-sm text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:opacity-50 disabled:pointer-events-none\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, attrs)
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withDefaultButtonType(attrs))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -213,6 +213,17 @@ func DropdownMenuItem(attrs templ.Attributes) templ.Component {
 		}
 		return nil
 	})
+}
+
+// withDefaultButtonType sets type="button" unless the caller chose a type:
+// browsers keep the first of duplicate attributes, so the default can't
+// simply precede the spread.
+func withDefaultButtonType(attrs templ.Attributes) templ.Attributes {
+	out := templ.Attributes{"type": "button"}
+	for k, v := range attrs {
+		out[k] = v
+	}
+	return out
 }
 
 // DropdownMenuLink is the anchor-style row. Use for navigation entries.
@@ -244,7 +255,7 @@ func DropdownMenuLink(href string, attrs templ.Attributes) templ.Component {
 		var templ_7745c5c3_Var6 templ.SafeURL
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/dropdown_menu.templ`, Line: 90, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/dropdown_menu.templ`, Line: 100, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
