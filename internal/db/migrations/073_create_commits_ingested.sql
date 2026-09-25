@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS contributor_commits_ingested (
+CREATE TABLE IF NOT EXISTS commits_ingested (
     repo_id BIGINT NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
     sha TEXT NOT NULL,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -9,5 +9,5 @@ CREATE TABLE IF NOT EXISTS contributor_commits_ingested (
     PRIMARY KEY (repo_id, sha)
 );
 
-CREATE INDEX IF NOT EXISTS idx_contributor_commits_repo_user_week
-    ON contributor_commits_ingested (repo_id, user_id, week);
+CREATE INDEX IF NOT EXISTS idx_commits_ingested_repo_user_week
+    ON commits_ingested (repo_id, user_id, week);
