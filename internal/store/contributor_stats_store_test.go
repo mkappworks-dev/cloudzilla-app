@@ -2,12 +2,12 @@ package store_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 func TestContributorStatsStore_UpsertAndList(t *testing.T) {
@@ -20,7 +20,7 @@ func TestContributorStatsStore_UpsertAndList(t *testing.T) {
 
 	s := store.NewContributorStatsStore(db)
 	ctx := context.Background()
-	suffix := fmt.Sprintf("cws_%d", os.Getpid())
+	suffix := "cws_" + testutil.UniqueSuffix(t)
 
 	var userID int64
 	if err := db.QueryRowContext(ctx,
@@ -57,9 +57,8 @@ func TestContributorStatsStore_UpsertAndList(t *testing.T) {
 	}
 }
 
-func TestContributorStatsStore_AttemptIngest_DedupesBySha(t *testing.T) {
-	dsn := os.Getenv("TEST_DATABASE_DSN")
-	if dsn == "" {
+func TestContributorStatsStore_IngestCommitTx_DedupesBothAggregates(t *testing.T) {
+	if os.Getenv("TEST_DATABASE_DSN") == "" {
 		t.Skip("TEST_DATABASE_DSN not set; skipping integration test")
 	}
 	db := openTestDBCommitStats(t)
@@ -67,7 +66,7 @@ func TestContributorStatsStore_AttemptIngest_DedupesBySha(t *testing.T) {
 
 	s := store.NewContributorStatsStore(db)
 	ctx := context.Background()
-	suffix := fmt.Sprintf("cci_%d", os.Getpid())
+	suffix := "cci_" + testutil.UniqueSuffix(t)
 
 	var userID int64
 	if err := db.QueryRowContext(ctx,
@@ -87,22 +86,31 @@ func TestContributorStatsStore_AttemptIngest_DedupesBySha(t *testing.T) {
 		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
 	})
 
-	week := time.Date(2026, 5, 11, 0, 0, 0, 0, time.UTC)
-	sha := "abc123def4567890"
+	when := time.Date(2026, 5, 13, 10, 0, 0, 0, time.UTC)
+	sha := "deadbeefcafe0001"
 
-	inserted, err := s.AttemptIngest(ctx, repoID, sha, userID, week, 10, 5)
-	if err != nil {
-		t.Fatalf("first AttemptIngest: %v", err)
+	if err := s.IngestCommitTx(ctx, repoID, userID, sha, when, 40, 8); err != nil {
+		t.Fatalf("first IngestCommitTx: %v", err)
 	}
-	if !inserted {
-		t.Fatalf("first AttemptIngest: expected inserted=true, got false")
+	if err := s.IngestCommitTx(ctx, repoID, userID, sha, when, 40, 8); err != nil {
+		t.Fatalf("second IngestCommitTx: %v", err)
 	}
 
-	inserted2, err := s.AttemptIngest(ctx, repoID, sha, userID, week, 99, 99)
+	weekRows, err := s.ListForRepo(ctx, repoID)
 	if err != nil {
-		t.Fatalf("second AttemptIngest: %v", err)
+		t.Fatalf("ListForRepo: %v", err)
 	}
-	if inserted2 {
-		t.Fatalf("second AttemptIngest: expected inserted=false on conflict, got true")
+	if len(weekRows) != 1 || weekRows[0].Commits != 1 || weekRows[0].Additions != 40 || weekRows[0].Deletions != 8 {
+		t.Fatalf("week stats: want 1 row 1/40/8, got %+v", weekRows)
+	}
+
+	var dayRows, dayCount int
+	if err := db.QueryRowContext(ctx,
+		`SELECT COUNT(*), COALESCE(SUM(commit_count), 0) FROM commit_day_counts WHERE repo_id = $1`, repoID,
+	).Scan(&dayRows, &dayCount); err != nil {
+		t.Fatalf("query day counts: %v", err)
+	}
+	if dayRows != 1 || dayCount != 1 {
+		t.Fatalf("day counts: want 1 row summing to 1, got rows=%d sum=%d", dayRows, dayCount)
 	}
 }
