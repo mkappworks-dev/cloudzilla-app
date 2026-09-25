@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	"strings"
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
@@ -61,6 +62,53 @@ func (s *OrgService) Create(ctx context.Context, creatorUserID int64, name, disp
 
 func (s *OrgService) Get(ctx context.Context, name string) (*model.Organization, error) {
 	return s.orgs.GetByName(ctx, name)
+}
+
+// ErrOrgHasRepos is returned when a delete is attempted on an org that still
+// has repositories. Repos must be transferred or deleted first to avoid the
+// FK cascade silently wiping shared data.
+var ErrOrgHasRepos = errors.New("organization still has repositories")
+
+// UpdateRepoDefaults persists the org's default repository visibility and
+// branch name. Requires the caller to be an owner. Validates inputs.
+func (s *OrgService) UpdateRepoDefaults(ctx context.Context, orgID, requestingUserID int64, visibility, branchName string) error {
+	if !s.IsOwner(ctx, orgID, requestingUserID) {
+		return fmt.Errorf("only org owners can edit repository defaults")
+	}
+	switch visibility {
+	case "public", "private":
+	default:
+		return fmt.Errorf("default visibility must be public or private")
+	}
+	if branchName == "" || strings.ContainsAny(branchName, " \t\n") {
+		return fmt.Errorf("default branch name cannot be empty or contain whitespace")
+	}
+	return s.orgs.UpdateRepoDefaults(ctx, orgID, visibility, branchName)
+}
+
+// Delete permanently removes an organization. Requires the caller to be an
+// owner and the org to have zero repositories.
+func (s *OrgService) Delete(ctx context.Context, orgID, requestingUserID int64) error {
+	if !s.IsOwner(ctx, orgID, requestingUserID) {
+		return fmt.Errorf("only org owners can delete an organization")
+	}
+	repos, err := s.repos.GetByOrgID(ctx, orgID)
+	if err != nil {
+		return fmt.Errorf("check org repos: %w", err)
+	}
+	if len(repos) > 0 {
+		return ErrOrgHasRepos
+	}
+	return s.orgs.Delete(ctx, orgID)
+}
+
+// UpdateProfile persists edits to the org's profile fields. Requires the
+// caller to be an owner.
+func (s *OrgService) UpdateProfile(ctx context.Context, orgID, requestingUserID int64, displayName, description, website, location, contactEmail string) error {
+	if !s.IsOwner(ctx, orgID, requestingUserID) {
+		return fmt.Errorf("only org owners can edit organization settings")
+	}
+	return s.orgs.UpdateProfile(ctx, orgID, displayName, description, website, location, contactEmail)
 }
 
 func (s *OrgService) ListMembers(ctx context.Context, orgID int64) ([]model.OrgMember, error) {
@@ -132,6 +180,47 @@ func (s *OrgService) AddMember(ctx context.Context, orgID, requestingUserID, tar
 	return s.orgs.AddMember(ctx, orgID, targetUserID, role)
 }
 
+// UpdateMemberRole changes a member's role. Requires the caller to be an
+// owner. Refuses to demote the last remaining owner to prevent locking
+// everyone out of the org.
+func (s *OrgService) UpdateMemberRole(ctx context.Context, orgID, requestingUserID, targetUserID int64, role model.OrgRole) error {
+	if !s.IsOwner(ctx, orgID, requestingUserID) {
+		return fmt.Errorf("only org owners can change member roles")
+	}
+	switch role {
+	case model.OrgRoleOwner, model.OrgRoleMember:
+	default:
+		return fmt.Errorf("role must be owner or member")
+	}
+
+	target, err := s.orgs.GetMember(ctx, orgID, targetUserID)
+	if err != nil {
+		return fmt.Errorf("member not found")
+	}
+	if target.Role == role {
+		return nil // no-op, idempotent
+	}
+
+	// Prevent demoting the last owner.
+	if target.Role == model.OrgRoleOwner && role == model.OrgRoleMember {
+		members, err := s.orgs.ListMembers(ctx, orgID)
+		if err != nil {
+			return err
+		}
+		ownerCount := 0
+		for _, m := range members {
+			if m.Role == model.OrgRoleOwner {
+				ownerCount++
+			}
+		}
+		if ownerCount <= 1 {
+			return fmt.Errorf("cannot demote the last owner")
+		}
+	}
+
+	return s.orgs.UpdateMemberRole(ctx, orgID, targetUserID, role)
+}
+
 func (s *OrgService) RemoveMember(ctx context.Context, orgID, requestingUserID, targetUserID int64) error {
 	// A member may always remove themselves ("leave"); otherwise only owners may remove members.
 	if requestingUserID != targetUserID && !s.IsOwner(ctx, orgID, requestingUserID) {
@@ -174,6 +263,10 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 		return nil, fmt.Errorf("org not found: %w", err)
 	}
 
+	defaultBranch := org.DefaultBranchName
+	if defaultBranch == "" {
+		defaultBranch = "main"
+	}
 	r := &model.Repository{
 		OwnerID:       requestingUserID,
 		OwnerName:     org.Name,
@@ -181,7 +274,7 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 		Name:          name,
 		Description:   description,
 		Private:       private,
-		DefaultBranch: "main",
+		DefaultBranch: defaultBranch,
 	}
 	if err := s.repos.CreateWithOwnerName(ctx, r); err != nil {
 		return nil, fmt.Errorf("create org repo: %w", err)
