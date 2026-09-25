@@ -7,6 +7,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -19,10 +20,8 @@ func renderOrg(t *testing.T, data view.OrgData) string {
 	return sb.String()
 }
 
-// The org detail page must render the header, the Repositories and People
-// sections, and the contained repo and member.
-func TestOrg_RendersHeaderAndSections(t *testing.T) {
-	data := view.OrgData{
+func orgFixture() view.OrgData {
+	return view.OrgData{
 		Org: model.Organization{ID: 1, Name: "acme", DisplayName: "Acme Inc"},
 		Repos: []model.Repository{
 			{ID: 1, OwnerName: "acme", Name: "rocket"},
@@ -30,20 +29,43 @@ func TestOrg_RendersHeaderAndSections(t *testing.T) {
 		Members: []model.OrgMember{
 			{ID: 1, OrgID: 1, UserID: 7, Username: "alice", Role: model.OrgRoleOwner},
 		},
+		MemberCount: 1,
+		RecentRepos: []components.PinnedRepoData{{OwnerName: "acme", Name: "rocket"}},
 	}
-	out := renderOrg(t, data)
+}
+
+func TestOrg_RendersHeaderAndSections(t *testing.T) {
+	out := renderOrg(t, orgFixture())
 
 	for _, want := range []string{
-		"acme",
-		"rocket",
+		"Acme Inc",
+		"@acme",
+		"acme/rocket",
 		"alice",
-		"Repositories",
+		"Recently updated",
 		"People",
-		"1 repository",
-		"1 member",
+		`href="/acme?tab=repositories"`,
 	} {
 		if !strings.Contains(out, want) {
-			t.Errorf("org detail page missing %q\n--- output ---\n%s", want, out)
+			t.Errorf("org detail page missing %q", want)
 		}
+	}
+}
+
+// ?tab=repositories is the only place an org's full repo list is reachable,
+// so it must swap the "Recently updated" teaser for the full list.
+func TestOrg_ShowAllRepos(t *testing.T) {
+	data := orgFixture()
+	data.ShowAllRepos = true
+	out := renderOrg(t, data)
+
+	if !strings.Contains(out, `>Repositories</h2>`) {
+		t.Error("repositories view missing Repositories heading")
+	}
+	if strings.Contains(out, "Recently updated") {
+		t.Error("repositories view still shows the Recently updated teaser")
+	}
+	if !strings.Contains(out, "acme/rocket") {
+		t.Error("repositories view missing repo")
 	}
 }

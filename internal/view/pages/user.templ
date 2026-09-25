@@ -282,7 +282,11 @@ templ userReposTab(data view.UserData) {
 			<div class="min-w-0">
 				<h2 id="repos-tab-heading" class="text-2xl font-semibold tracking-tight">Repositories</h2>
 				<p class="mt-1 text-[13px] text-muted-foreground">
-					{ strconv.Itoa(data.ReposTotal) } { pluralRepo(data.ReposTotal) } you own or collaborate on.
+					if data.IsOwnProfile {
+						{ strconv.Itoa(data.ReposTotal) } { pluralRepo(data.ReposTotal) } you own or collaborate on.
+					} else {
+						{ strconv.Itoa(data.ReposTotal) } { pluralRepo(data.ReposTotal) } by { data.User.Username }.
+					}
 				</p>
 			</div>
 			if data.BasePage.CurrentUser != nil && data.BasePage.CurrentUser.UserID == data.User.ID {

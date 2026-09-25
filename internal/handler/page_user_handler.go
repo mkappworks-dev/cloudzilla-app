@@ -195,7 +195,7 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		StarsTotal:               starsTotal,
 		GistsTotal:               gistsTotal,
 	}
-	data.BasePage.OwnerContext = user.Username
+	data.OwnerContext = user.Username
 
 	switch tab {
 	case "repositories":
@@ -451,18 +451,24 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	}
 
 	memberCount := len(members)
+	showAllRepos := r.URL.Query().Get("tab") == "repositories"
 
-	// Pinned repos: until we have org-level pin storage, surface the four
-	// most-starred public repos so the section still feels curated.
-	pinned := buildOrgPinned(r.Context(), h, org.Name, repos, 4)
+	var pinned, recent []components.PinnedRepoData
+	if showAllRepos {
+		recent = buildOrgRecent(r.Context(), h, org.Name, repos, nil, len(repos))
+	} else {
+		// Pinned repos: until we have org-level pin storage, surface the four
+		// most-starred public repos so the section still feels curated.
+		pinned = buildOrgPinned(r.Context(), h, org.Name, repos, 4)
 
-	// Recently updated repos for the "Recently updated" list — exclude the
-	// ones we already showed as pinned.
-	pinnedKeys := map[string]struct{}{}
-	for _, p := range pinned {
-		pinnedKeys[p.OwnerName+"/"+p.Name] = struct{}{}
+		// Recently updated repos for the "Recently updated" list — exclude the
+		// ones we already showed as pinned.
+		pinnedKeys := map[string]struct{}{}
+		for _, p := range pinned {
+			pinnedKeys[p.OwnerName+"/"+p.Name] = struct{}{}
+		}
+		recent = buildOrgRecent(r.Context(), h, org.Name, repos, pinnedKeys, 4)
 	}
-	recent := buildOrgRecent(r.Context(), h, org.Name, repos, pinnedKeys, 4)
 
 	// Top languages aggregated from each repo's primary_language column.
 	topLangs := aggregateOrgLanguages(repos, 5)
@@ -471,7 +477,7 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	// org, mirroring the user-profile convention.
 	var profileReadme template.HTML
 	for _, repo := range repos {
-		if repo.Name == org.Name && !repo.Private {
+		if !showAllRepos && repo.Name == org.Name && !repo.Private {
 			profileReadme = h.Services.Code.GetProfileReadme(org.Name, org.Name, repo.DefaultBranch)
 			break
 		}
@@ -489,6 +495,7 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 		ProfileReadme: profileReadme,
 		PinnedRepos:   pinned,
 		RecentRepos:   recent,
+		ShowAllRepos:  showAllRepos,
 		TopLangs:      topLangs,
 		ViewerRole:    viewerRole,
 		ViewerJoined:  viewerJoined,

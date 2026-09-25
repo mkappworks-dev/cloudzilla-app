@@ -130,8 +130,13 @@ templ Org(data view.OrgData) {
 					if len(data.RecentRepos) > 0 {
 						<section aria-labelledby="recent-heading">
 							<div class="flex items-baseline justify-between mb-3">
-								<h2 id="recent-heading" class="text-sm font-semibold tracking-tight">Recently updated</h2>
-								<a href={ templ.SafeURL("/" + data.Org.Name + "?tab=repositories") } class="text-[12px] text-primary hover:underline">All repositories →</a>
+								if data.ShowAllRepos {
+									<h2 id="recent-heading" class="text-sm font-semibold tracking-tight">Repositories</h2>
+									<a href={ templ.SafeURL("/" + data.Org.Name) } class="text-[12px] text-primary hover:underline">← Overview</a>
+								} else {
+									<h2 id="recent-heading" class="text-sm font-semibold tracking-tight">Recently updated</h2>
+									<a href={ templ.SafeURL("/" + data.Org.Name + "?tab=repositories") } class="text-[12px] text-primary hover:underline">All repositories →</a>
+								}
 							</div>
 							<ul class="divide-y divide-border rounded-md border border-border bg-card overflow-hidden">
 								for _, repo := range data.RecentRepos {

@@ -84,6 +84,7 @@ type OrgData struct {
 	ProfileReadme template.HTML
 	PinnedRepos   []components.PinnedRepoData
 	RecentRepos   []components.PinnedRepoData
+	ShowAllRepos  bool // ?tab=repositories: RecentRepos holds every visible repo
 	TopLangs      []components.LangBarItem
 	ViewerRole    *model.OrgRole // nil if the viewer is not a member
 	ViewerJoined  *time.Time     // nil if the viewer is not a member
@@ -127,4 +128,3 @@ type NewOrganizationData struct {
 	Name        string // preserved on validation-error re-render
 	Description string // preserved on re-render
 }
-
