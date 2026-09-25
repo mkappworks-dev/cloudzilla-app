@@ -111,6 +111,26 @@ func ingestCommit(ctx context.Context, db dbtx, repoID int64, r CommitIngestRow)
 	return addCount(ctx, db, repoID, r.UserID, r.When, 1)
 }
 
+// Replaces all of a repo's stats in one transaction so readers never see a half-rebuilt repo.
+func (s *ContributorStatsStore) RebuildRepoStats(ctx context.Context, repoID int64, rows []CommitIngestRow) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, table := range []string{"commits_ingested", "contributor_week_stats", "commit_day_counts"} {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM `+table+` WHERE repo_id = $1`, repoID); err != nil {
+			return err
+		}
+	}
+	for _, r := range rows {
+		if err := ingestCommit(ctx, tx, repoID, r); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 func (s *ContributorStatsStore) ListForRepo(ctx context.Context, repoID int64) ([]ContributorWeekStat, error) {
 	const q = `
 		SELECT c.user_id, u.username, c.week, c.commits, c.additions, c.deletions
