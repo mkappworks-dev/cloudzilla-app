@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 )
 
@@ -32,8 +33,33 @@ func (s *ContributorStatsStore) UpsertStats(ctx context.Context, repoID, userID 
 	return err
 }
 
+// dbtx lets one query body serve both autocommit (*sql.DB) and transactional (*sql.Tx) callers.
+type dbtx interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+// Reports whether this caller claimed the SHA; a false return means another writer already counted it.
+func attemptIngest(ctx context.Context, db dbtx, repoID, userID int64, sha string, week time.Time, additions, deletions int) (bool, error) {
+	const q = `
+		INSERT INTO commits_ingested (repo_id, sha, user_id, week, additions, deletions)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (repo_id, sha) DO NOTHING
+		RETURNING 1
+	`
+	var one int
+	err := db.QueryRowContext(ctx, q, repoID, sha, userID, week, additions, deletions).Scan(&one)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // Additive on conflict so concurrent pushes to the same week accumulate without a read-modify-write race.
-func (s *ContributorStatsStore) AddDelta(ctx context.Context, repoID, userID int64, week time.Time, commits, additions, deletions int) error {
+func addDelta(ctx context.Context, db dbtx, repoID, userID int64, week time.Time, commits, additions, deletions int) error {
 	const q = `
 		INSERT INTO contributor_week_stats (repo_id, user_id, week, commits, additions, deletions, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, NOW())
@@ -44,8 +70,65 @@ func (s *ContributorStatsStore) AddDelta(ctx context.Context, repoID, userID int
 			deletions=contributor_week_stats.deletions + EXCLUDED.deletions,
 			updated_at=NOW()
 	`
-	_, err := s.db.ExecContext(ctx, q, repoID, userID, MondayUTC(week), commits, additions, deletions)
+	_, err := db.ExecContext(ctx, q, repoID, userID, week, commits, additions, deletions)
 	return err
+}
+
+func (s *ContributorStatsStore) AddDelta(ctx context.Context, repoID, userID int64, week time.Time, commits, additions, deletions int) error {
+	return addDelta(ctx, s.db, repoID, userID, MondayUTC(week), commits, additions, deletions)
+}
+
+// The SHA claim and both aggregate increments share one transaction, so a crash between them can't leave a claimed-but-uncounted commit.
+func (s *ContributorStatsStore) IngestCommitTx(ctx context.Context, repoID, userID int64, sha string, when time.Time, additions, deletions int) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	if err := ingestCommit(ctx, tx, repoID, CommitIngestRow{UserID: userID, SHA: sha, When: when, Additions: additions, Deletions: deletions}); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+type CommitIngestRow struct {
+	UserID    int64
+	SHA       string
+	When      time.Time
+	Additions int
+	Deletions int
+}
+
+func ingestCommit(ctx context.Context, db dbtx, repoID int64, r CommitIngestRow) error {
+	week := MondayUTC(r.When)
+	claimed, err := attemptIngest(ctx, db, repoID, r.UserID, r.SHA, week, r.Additions, r.Deletions)
+	if err != nil || !claimed {
+		return err
+	}
+	if err := addDelta(ctx, db, repoID, r.UserID, week, 1, r.Additions, r.Deletions); err != nil {
+		return err
+	}
+	return addCount(ctx, db, repoID, r.UserID, r.When, 1)
+}
+
+// Replaces all of a repo's stats in one transaction so readers never see a half-rebuilt repo.
+func (s *ContributorStatsStore) RebuildRepoStats(ctx context.Context, repoID int64, rows []CommitIngestRow) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	for _, table := range []string{"commits_ingested", "contributor_week_stats", "commit_day_counts"} {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM `+table+` WHERE repo_id = $1`, repoID); err != nil {
+			return err
+		}
+	}
+	for _, r := range rows {
+		if err := ingestCommit(ctx, tx, repoID, r); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 func (s *ContributorStatsStore) ListForRepo(ctx context.Context, repoID int64) ([]ContributorWeekStat, error) {

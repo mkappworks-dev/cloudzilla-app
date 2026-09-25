@@ -124,8 +124,8 @@ func SeedRepo(t *testing.T, db *sql.DB, ownerID int64, ownerName, suffix string)
 	return repoID
 }
 
-// UniqueSuffix returns a unique string suitable for use in test data names,
-// derived from the test name and process ID to avoid collisions across parallel runs.
+// The counter keeps names unique across tests and -count iterations within one
+// process; the PID separates the concurrent per-package test processes.
 func UniqueSuffix(t *testing.T) string {
 	t.Helper()
 	return fmt.Sprintf("%d_%d", os.Getpid(), suffixCounter.Add(1))

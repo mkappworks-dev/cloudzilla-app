@@ -131,7 +131,7 @@ func TestSuggestReviewers_FallsBackToContributors(t *testing.T) {
 	userStore := store.NewUserStore(db)
 	repoSvc := service.NewRepoService(
 		repoStore, userStore, store.NewOrgStore(db),
-		nil, nil, nil, czconfig.GitConfig{},
+		nil, nil, czconfig.GitConfig{},
 	)
 
 	// No CodeService — forces the contributor fallback.
@@ -183,7 +183,7 @@ func TestSuggestReviewers_PrefersCodeOwners(t *testing.T) {
 	userStore := store.NewUserStore(db)
 	repoSvc := service.NewRepoService(
 		repoStore, userStore, store.NewOrgStore(db),
-		nil, nil, nil, czconfig.GitConfig{},
+		nil, nil, czconfig.GitConfig{},
 	)
 
 	// Update the repo's default_branch to "main" so GetCodeOwners reads from the right ref.

@@ -3,8 +3,6 @@ package service_test
 import (
 	"context"
 	"database/sql"
-	"fmt"
-	"os"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -116,7 +114,7 @@ func TestIsOwner_NonOwner_False(t *testing.T) {
 // is granted CanWrite but not CanManage or IsOwner.
 func TestCanWrite_WriterRole_Allowed(t *testing.T) {
 	db := testutil.OpenTestDB(t)
-	suffix := fmt.Sprintf("%d_%d", os.Getpid(), 1)
+	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, "owner_"+suffix)
 	userID := testutil.SeedUser(t, db, "writer_"+suffix)
 	ownerName := "testuser_owner_" + suffix
@@ -150,7 +148,7 @@ func TestCanWrite_WriterRole_Allowed(t *testing.T) {
 // CanRead on a private repo but not CanWrite.
 func TestCanWrite_ReaderRole_Denied(t *testing.T) {
 	db := testutil.OpenTestDB(t)
-	suffix := fmt.Sprintf("%d_%d", os.Getpid(), 2)
+	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, "owner2_"+suffix)
 	userID := testutil.SeedUser(t, db, "reader2_"+suffix)
 	ownerName := "testuser_owner2_" + suffix
@@ -182,7 +180,7 @@ func TestCanWrite_ReaderRole_Denied(t *testing.T) {
 // CanWrite and CanManage, but not IsOwner (admin ≠ repo owner).
 func TestCanManage_AdminRole_Allowed(t *testing.T) {
 	db := testutil.OpenTestDB(t)
-	suffix := fmt.Sprintf("%d_%d", os.Getpid(), 3)
+	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, "owner3_"+suffix)
 	userID := testutil.SeedUser(t, db, "admin3_"+suffix)
 	ownerName := "testuser_owner3_" + suffix
@@ -216,7 +214,7 @@ func TestCanManage_AdminRole_Allowed(t *testing.T) {
 // for a private repository is denied read access.
 func TestCanRead_PrivateRepo_NoPermission_Denied(t *testing.T) {
 	db := testutil.OpenTestDB(t)
-	suffix := fmt.Sprintf("%d_%d", os.Getpid(), 4)
+	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, "owner4_"+suffix)
 	userID := testutil.SeedUser(t, db, "stranger_"+suffix)
 	ownerName := "testuser_owner4_" + suffix
@@ -242,7 +240,6 @@ func newPermSvc(_ interface{}) *service.RepoService {
 		store.NewOrgStore(db),
 		nil,
 		nil,
-		nil,
 		config.GitConfig{},
 	)
 }
@@ -253,7 +250,6 @@ func newPermSvcDB(db *sql.DB) *service.RepoService {
 		store.NewRepoStore(db),
 		store.NewUserStore(db),
 		store.NewOrgStore(db),
-		nil,
 		nil,
 		nil,
 		config.GitConfig{},

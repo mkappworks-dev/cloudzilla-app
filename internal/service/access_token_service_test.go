@@ -2,8 +2,6 @@ package service_test
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -18,7 +16,7 @@ import (
 func newAccessTokenSvc(t *testing.T) (*service.AccessTokenService, int64) {
 	t.Helper()
 	db := testutil.OpenTestDB(t)
-	suffix := fmt.Sprintf("%d_%d", os.Getpid(), 10)
+	suffix := testutil.UniqueSuffix(t)
 	userID := testutil.SeedUser(t, db, suffix)
 	svc := service.NewAccessTokenService(
 		store.NewAccessTokenStore(db),
@@ -118,7 +116,7 @@ func TestAccessToken_Validate_Expired_Fails(t *testing.T) {
 // in the future is accepted by Validate.
 func TestAccessToken_Validate_FutureExpiry_Passes(t *testing.T) {
 	db := testutil.OpenTestDB(t)
-	suffix := fmt.Sprintf("%d_expok", os.Getpid())
+	suffix := testutil.UniqueSuffix(t) + "_expok"
 	userID := testutil.SeedUser(t, db, suffix)
 	svc2 := service.NewAccessTokenService(store.NewAccessTokenStore(db), store.NewUserStore(db))
 	future := time.Now().Add(24 * time.Hour)

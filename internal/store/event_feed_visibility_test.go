@@ -6,13 +6,12 @@ package store_test
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"os"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 // A user assigned to an issue is "involved" in it, so its events reach their
@@ -25,7 +24,7 @@ func TestEventStore_FeedExcludesUnreadablePrivateRepos(t *testing.T) {
 	aliceID, bobID, cleanup := seedTwoUsers(t, ctx, "feedvis")
 	defer cleanup()
 
-	suffix := fmt.Sprintf("%d_%s", os.Getpid(), t.Name())
+	suffix := testutil.UniqueSuffix(t)
 	mkRepo := func(name string, private bool) int64 {
 		var id int64
 		if err := db.QueryRowContext(ctx,

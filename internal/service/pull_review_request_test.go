@@ -36,7 +36,7 @@ func newReviewRequestFixture(t *testing.T) (
 
 	repoSvc := service.NewRepoService(
 		store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db),
-		nil, nil, nil, config.GitConfig{},
+		nil, nil, config.GitConfig{},
 	)
 	pullSvc := service.NewPullService(store.NewPullStore(db), store.NewRepoStore(db), repoSvc)
 
@@ -124,7 +124,7 @@ func TestRequestReviewers_DoesNotClobberExistingReview(t *testing.T) {
 
 	repoSvc := service.NewRepoService(
 		store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db),
-		nil, nil, nil, config.GitConfig{},
+		nil, nil, config.GitConfig{},
 	)
 	pullSvc := service.NewPullService(store.NewPullStore(db), store.NewRepoStore(db), repoSvc)
 

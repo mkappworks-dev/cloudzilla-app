@@ -8,7 +8,6 @@ package service_test
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -16,6 +15,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 func openCommitsForUserSinceTestDB(t *testing.T) *sql.DB {
@@ -39,7 +39,7 @@ func TestCommitStatsService_CommitsForUserSince(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	suffix := fmt.Sprintf("%d", os.Getpid())
+	suffix := testutil.UniqueSuffix(t)
 
 	var aliceID int64
 	if err := db.QueryRowContext(ctx,

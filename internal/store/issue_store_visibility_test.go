@@ -3,12 +3,12 @@ package store_test
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 func openTestDB(t *testing.T) *sql.DB {
@@ -33,8 +33,7 @@ func TestListIssues_VisibilityFilter(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Use a unique suffix to avoid collisions across test runs.
-	suffix := fmt.Sprintf("%d", os.Getpid())
+	suffix := testutil.UniqueSuffix(t)
 
 	// Create owner user.
 	var ownerID int64

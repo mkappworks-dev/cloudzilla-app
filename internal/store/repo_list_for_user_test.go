@@ -5,13 +5,12 @@ package store_test
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 func repoIDsOf(repos []model.Repository) []int64 {
@@ -30,7 +29,7 @@ func TestRepoStore_ListForUser(t *testing.T) {
 	aliceID, bobID, cleanup := seedTwoUsers(t, ctx, "listforuser")
 	defer cleanup()
 
-	suffix := fmt.Sprintf("%d", os.Getpid())
+	suffix := testutil.UniqueSuffix(t)
 
 	// Repo A: owned by alice.
 	var repoA int64

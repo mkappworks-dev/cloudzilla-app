@@ -2,12 +2,11 @@ package store_test
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 func TestPullReviewStore_ListPullIDsAwaitingReviewer(t *testing.T) {
@@ -18,7 +17,7 @@ func TestPullReviewStore_ListPullIDsAwaitingReviewer(t *testing.T) {
 	aliceID, bobID, cleanup := seedTwoUsers(t, ctx, "reviewreq")
 	defer cleanup()
 
-	suffix := fmt.Sprintf("%d", os.Getpid())
+	suffix := testutil.UniqueSuffix(t)
 
 	// alice owns the repo; bob is requested as reviewer.
 	var repoID int64

@@ -6,13 +6,12 @@ package store_test
 import (
 	"context"
 	"database/sql"
-	"fmt"
-	"os"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 func insertRepo(t *testing.T, ctx context.Context, db *sql.DB, ownerID int64, ownerName, name string) int64 {
@@ -36,7 +35,7 @@ func TestEventStore_FeedCounts(t *testing.T) {
 	aliceID, bobID, cleanup := seedTwoUsers(t, ctx, "evtfeed")
 	defer cleanup()
 
-	suffix := fmt.Sprintf("%d_%s", os.Getpid(), t.Name())
+	suffix := testutil.UniqueSuffix(t)
 	aliceRepo := insertRepo(t, ctx, db, aliceID, "alice", "ar_"+suffix) // alice owns
 	bobRepo := insertRepo(t, ctx, db, bobID, "bob", "br_"+suffix)       // alice unrelated
 	watchedRepo := insertRepo(t, ctx, db, bobID, "bob", "wr_"+suffix)   // alice watches

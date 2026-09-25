@@ -4,13 +4,12 @@ package store_test
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 func TestMentionStore_Lookup(t *testing.T) {
@@ -21,7 +20,7 @@ func TestMentionStore_Lookup(t *testing.T) {
 	aliceID, _, cleanup := seedTwoUsers(t, ctx, "mention")
 	defer cleanup()
 
-	suffix := fmt.Sprintf("%d", os.Getpid())
+	suffix := testutil.UniqueSuffix(t)
 
 	var repoID int64
 	if err := db.QueryRowContext(ctx,

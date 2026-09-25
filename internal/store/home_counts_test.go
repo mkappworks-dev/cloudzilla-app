@@ -5,18 +5,16 @@ package store_test
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 func seedTwoUsers(t *testing.T, ctx context.Context, prefix string) (aliceID, bobID int64, cleanup func()) {
 	t.Helper()
-	suffix := fmt.Sprintf("%s_%d_%s", prefix, os.Getpid(), t.Name())
-	suffix = strings.NewReplacer("/", "_", " ", "_").Replace(suffix)
+	suffix := prefix + "_" + testutil.UniqueSuffix(t)
 	db := openTestDB(t)
 	t.Cleanup(func() { db.Close() })
 
@@ -49,7 +47,7 @@ func TestRepoStore_CountForUser(t *testing.T) {
 	aliceID, bobID, cleanup := seedTwoUsers(t, ctx, "repocnt")
 	defer cleanup()
 
-	suffix := fmt.Sprintf("%d", os.Getpid())
+	suffix := testutil.UniqueSuffix(t)
 
 	// alice owns 2 live repos + 1 soft-deleted; bob owns 1.
 	for i, name := range []string{"a1", "a2"} {
@@ -104,7 +102,7 @@ func TestPullStore_CountOpenAssignedTo(t *testing.T) {
 	aliceID, bobID, cleanup := seedTwoUsers(t, ctx, "pullassigned")
 	defer cleanup()
 
-	suffix := fmt.Sprintf("%d", os.Getpid())
+	suffix := testutil.UniqueSuffix(t)
 
 	var repoID int64
 	if err := db.QueryRowContext(ctx,
@@ -176,7 +174,7 @@ func TestIssueStore_CountOpenAssignedTo(t *testing.T) {
 	aliceID, bobID, cleanup := seedTwoUsers(t, ctx, "issueassigned")
 	defer cleanup()
 
-	suffix := fmt.Sprintf("%d", os.Getpid())
+	suffix := testutil.UniqueSuffix(t)
 
 	var repoID int64
 	if err := db.QueryRowContext(ctx,
