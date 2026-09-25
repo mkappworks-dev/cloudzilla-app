@@ -149,6 +149,39 @@ func (s *CommentStore) CountByPullIDs(ctx context.Context, pullIDs []int64) (map
 	return result, rows.Err()
 }
 
+// Issues with no comments are absent from the returned map.
+func (s *CommentStore) CountByIssueIDs(ctx context.Context, issueIDs []int64) (map[int64]int, error) {
+	if len(issueIDs) == 0 {
+		return map[int64]int{}, nil
+	}
+	placeholders := make([]string, len(issueIDs))
+	args := make([]any, len(issueIDs))
+	for i, id := range issueIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	query := fmt.Sprintf(
+		`SELECT issue_id, COUNT(*) FROM comments
+		 WHERE issue_id IN (%s) GROUP BY issue_id`,
+		strings.Join(placeholders, ","),
+	)
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("comment count by issue ids: %w", err)
+	}
+	defer rows.Close()
+	result := make(map[int64]int)
+	for rows.Next() {
+		var issueID int64
+		var count int
+		if err := rows.Scan(&issueID, &count); err != nil {
+			return nil, err
+		}
+		result[issueID] = count
+	}
+	return result, rows.Err()
+}
+
 func (s *CommentStore) Delete(ctx context.Context, id int64) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM comments WHERE id = $1`, id)
 	return err

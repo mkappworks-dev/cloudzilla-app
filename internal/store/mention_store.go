@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 // MentionStore provides database operations for @mention records.
@@ -75,4 +76,41 @@ func (s *MentionStore) listMentionTargetIDs(ctx context.Context, userID int64, c
 		ids = append(ids, id)
 	}
 	return ids, rows.Err()
+}
+
+// ListPullIDsMentioningWithTime returns a map of pull_id → earliest comment
+// created_at for pull comments that mention userID.
+func (s *MentionStore) ListPullIDsMentioningWithTime(ctx context.Context, userID int64) (map[int64]time.Time, error) {
+	return s.listMentionTargetIDsWithTime(ctx, userID, "c.pull_id")
+}
+
+// ListIssueIDsMentioningWithTime returns a map of issue_id → earliest comment
+// created_at for issue comments that mention userID.
+func (s *MentionStore) ListIssueIDsMentioningWithTime(ctx context.Context, userID int64) (map[int64]time.Time, error) {
+	return s.listMentionTargetIDsWithTime(ctx, userID, "c.issue_id")
+}
+
+// listMentionTargetIDsWithTime returns, per target, the earliest comment
+// created_at among all mentions of userID (oldest mention = longest waiting).
+func (s *MentionStore) listMentionTargetIDsWithTime(ctx context.Context, userID int64, col string) (map[int64]time.Time, error) {
+	q := `SELECT ` + col + `, MIN(c.created_at)
+	      FROM mentions m
+	      JOIN comments c ON c.id = m.comment_id
+	      WHERE m.user_id = $1 AND ` + col + ` IS NOT NULL
+	      GROUP BY ` + col
+	rows, err := s.db.QueryContext(ctx, q, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	m := make(map[int64]time.Time)
+	for rows.Next() {
+		var id int64
+		var t time.Time
+		if err := rows.Scan(&id, &t); err != nil {
+			return nil, err
+		}
+		m[id] = t
+	}
+	return m, rows.Err()
 }

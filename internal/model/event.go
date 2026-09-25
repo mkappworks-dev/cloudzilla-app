@@ -4,6 +4,7 @@ import "time"
 
 const (
 	EventPush             = "push"
+	EventComment          = "comment"
 	EventIssueOpened      = "issue_opened"
 	EventIssueClosed      = "issue_closed"
 	EventPROpened         = "pr_opened"
@@ -14,6 +15,19 @@ const (
 	EventReleasePublished = "release_published"
 	EventMemberAdded      = "member_added"
 )
+
+// CommitSummary is one commit shown inside a push activity event.
+type CommitSummary struct {
+	SHA     string `json:"sha"`
+	Message string `json:"message"`
+}
+
+// PushSummary describes the commits pushed to a single branch.
+type PushSummary struct {
+	Branch      string          `json:"branch"`
+	CommitTotal int             `json:"commit_total"`
+	Commits     []CommitSummary `json:"commits"`
+}
 
 type Event struct {
 	ID        int64     `db:"id"         json:"id"`

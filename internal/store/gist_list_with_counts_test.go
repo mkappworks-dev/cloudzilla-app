@@ -47,7 +47,7 @@ func TestGistStore_ListWithCounts(t *testing.T) {
 		t.Fatalf("lookup alice username: %v", err)
 	}
 
-	rows, err := gs.ListWithCounts(ctx, aliceUsername, 1, 50)
+	rows, err := gs.ListWithCounts(ctx, aliceUsername, "", 1, 50)
 	if err != nil {
 		t.Fatalf("ListWithCounts: %v", err)
 	}
@@ -109,7 +109,7 @@ func TestGistStore_ListPrivateByOwner(t *testing.T) {
 		t.Fatalf("create public gist: %v", err)
 	}
 
-	rows, err := gs.ListPrivateByOwner(ctx, aliceID, 1, 20)
+	rows, err := gs.ListPrivateByOwner(ctx, aliceID, "", 1, 20)
 	if err != nil {
 		t.Fatalf("ListPrivateByOwner: %v", err)
 	}

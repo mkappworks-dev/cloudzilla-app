@@ -153,6 +153,17 @@ func (s *PullService) Create(ctx context.Context, owner, repoName string, author
 	if err := s.pulls.Create(ctx, pr); err != nil {
 		return nil, err
 	}
+	if s.code != nil {
+		if headCommit, _, resolveErr := s.code.ResolveRef(owner, repoName, head); resolveErr == nil && headCommit != nil {
+			if shaErr := s.pulls.UpdateHeadSHA(ctx, pr.ID, headCommit.Hash.String()); shaErr == nil {
+				pr.HeadSHA = headCommit.Hash.String()
+			} else {
+				slog.Warn("pr create: update head sha failed", "pull_id", pr.ID, "error", shaErr)
+			}
+		} else if resolveErr != nil {
+			slog.Warn("pr create: resolve head ref failed", "pull_id", pr.ID, "head", head, "error", resolveErr)
+		}
+	}
 	return pr, nil
 }
 
@@ -300,8 +311,23 @@ func (s *PullService) CountOpen(ctx context.Context, repoID int64) (int, error) 
 	return s.pulls.CountOpen(ctx, repoID)
 }
 
+func (s *PullService) CountOpenByRepoIDs(ctx context.Context, repoIDs []int64) (map[int64]int, error) {
+	return s.pulls.CountOpenByRepoIDs(ctx, repoIDs)
+}
+
 func (s *PullService) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
 	return s.pulls.CountOpenAssignedTo(ctx, userID)
+}
+
+// CountAwaitingReview counts open PRs with a pending review request for the
+// user. It must exclude merged/closed PRs, so it reads the state-filtered
+// folded count rather than counting raw pending-review rows.
+func (s *PullService) CountAwaitingReview(ctx context.Context, userID int64) (int, error) {
+	counts, err := s.pulls.CountsForUser(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	return counts["review_requested:open"], nil
 }
 
 func (s *PullService) WithReviewerDeps(contribStats *store.ContributorStatsStore, userStore *store.UserStore) *PullService {
@@ -338,6 +364,12 @@ func (s *PullService) ListForUser(ctx context.Context, userID int64, mode, state
 	default:
 		return s.pulls.ListForUser(ctx, userID, "created", state)
 	}
+}
+
+// CountsForUser returns the PR count for every /pulls filter tab, keyed
+// "mode:state" (e.g. "created:open") across all four filters and both states.
+func (s *PullService) CountsForUser(ctx context.Context, userID int64) (map[string]int, error) {
+	return s.pulls.CountsForUser(ctx, userID)
 }
 
 // SuggestReviewers returns up to limit candidate reviewers for a PR between base and head.

@@ -191,19 +191,23 @@ func toggleTopicEdit(repoID int64) templ.ComponentScript {
 
 func saveTopics(owner string, repo string, repoID int64) templ.ComponentScript {
 	return templ.ComponentScript{
-		Name: `__templ_saveTopics_e152`,
-		Function: `function __templ_saveTopics_e152(owner, repo, repoID){var raw = document.getElementById('topic-input-' + repoID).value;
+		Name: `__templ_saveTopics_309a`,
+		Function: `function __templ_saveTopics_309a(owner, repo, repoID){var raw = document.getElementById('topic-input-' + repoID).value;
 	var topics = raw.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
+	var csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
 	fetch('/api/repos/' + owner + '/' + repo + '/topics', {
 		method: 'PUT',
-		headers: {'Content-Type': 'application/json', 'HX-Request': 'true'},
+		headers: {'Content-Type': 'application/json', 'HX-Request': 'true', 'X-CSRF-Token': csrf},
 		body: JSON.stringify({ topics: topics })
-	}).then(function(r) { return r.text(); }).then(function(html) {
+	}).then(function(r) {
+		if (!r.ok) { throw new Error('HTTP ' + r.status); }
+		return r.text();
+	}).then(function(html) {
 		document.getElementById('repo-topics').outerHTML = html;
 	}).catch(function(err) { alert('Failed to save topics: ' + err); });
 }`,
-		Call:       templ.SafeScript(`__templ_saveTopics_e152`, owner, repo, repoID),
-		CallInline: templ.SafeScriptInline(`__templ_saveTopics_e152`, owner, repo, repoID),
+		Call:       templ.SafeScript(`__templ_saveTopics_309a`, owner, repo, repoID),
+		CallInline: templ.SafeScriptInline(`__templ_saveTopics_309a`, owner, repo, repoID),
 	}
 }
 

@@ -57,6 +57,41 @@ git push origin main
 
 ---
 
+## Thin packs
+
+Native `git push` produces *thin packs* by default — packs whose objects may be encoded as deltas against base objects already on the server. The server is expected to "fix" the thin pack by appending the missing bases.
+
+Cloudzilla's transport is pure-Go and uses `go-git`'s `server.ReceivePack`. go-git's filesystem-backed storer takes a fast path inside `packfile.UpdateObjectStorage` that runs the pack parser **without** access to the storage, so REF_DELTAs whose base is only on disk (not in the pack) cannot be resolved. The receive fails with `reference delta not found` and a 500 is returned to the client.
+
+To work around this without giving up the "no git binary required" invariant, both transports route the storer through `gittransport.WrapForReceive` before handing it to `server.NewServer`. The wrapper hides the storer's `PackfileWriter` method via interface-embedding, which forces `UpdateObjectStorage` onto its slower `NewParserWithStorage` branch. That parser *can* see the storage, so external delta bases are resolved correctly.
+
+**Trade-off:** received objects land loose under `objects/xx/yyy…` rather than packed. Native git treats this as routine; reclaim unreferenced loose objects with `cloudzilla gc` (see [Maintenance](#maintenance)).
+
+**Observability:** each receive-pack that completes emits an `INFO` log line — `git-http: receive-pack complete` over HTTP, `ssh: receive-pack complete` over SSH — with `pack_bytes`, `duration_ms`, and `refs_ok`/`refs_failed` counts. "Complete" means the pack was ingested without a transport error; `refs_failed > 0` flags a push where some ref updates were rejected.
+
+**Size limit:** the post-decompression pack size is capped by `git.max_pack_bytes` (default 2 GiB; `0` disables). Enforcing it after gzip inflation bounds both an oversized pack and a decompression bomb. An over-limit push is rejected — HTTP `413`, SSH error — rather than parsed in full.
+
+**See also:** [`docs/superpowers/specs/2026-05-15-git-receive-thin-pack-fix-design.md`](./superpowers/specs/2026-05-15-git-receive-thin-pack-fix-design.md).
+
+---
+
+## Maintenance
+
+### Loose-object GC
+
+receive-pack writes objects loose (see [Thin packs](#thin-packs)); rejected or churny pushes leave unreferenced objects that nothing reclaims automatically. The `cloudzilla gc` command prunes them:
+
+```bash
+cloudzilla gc                    # prune every repository under git.repos_root
+cloudzilla gc --repo owner/name  # prune a single repository
+cloudzilla gc --dry-run          # report what would be pruned, delete nothing
+cloudzilla gc --grace 336h       # change the age threshold (default 14 days)
+```
+
+A loose object is removed only when it is unreachable from every ref **and** older than `--grace`. The grace period avoids racing a push that has written objects but not yet updated its ref. Packed objects are never touched. Safe to run on a schedule (e.g. cron).
+
+---
+
 ## SSH Server
 
 ### Configuration
@@ -68,7 +103,10 @@ git:
   repos_root: ./git-repos
   ssh_port: 2222 # SSH server port
   ssh_host_key: ./cloudzilla_host_key # Host key file (auto-generated if missing)
+  ssh_max_session: 2h # Absolute connection lifetime (0 disables)
 ```
+
+A connection idle for 60s is closed; `ssh_max_session` is the absolute cap that also bounds a slow client trickling bytes to defeat the idle timeout.
 
 ### SSH Git Operations
 

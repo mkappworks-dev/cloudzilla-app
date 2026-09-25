@@ -18,6 +18,7 @@ type PullListItem struct {
 	AuthorID     int64
 	RepoFullName string // "<owner_username>/<repo_name>"
 	UpdatedAt    time.Time
+	CreatedAt    time.Time
 }
 
 // PullStore provides database operations for pull requests.
@@ -43,14 +44,18 @@ func (s *PullStore) Create(ctx context.Context, pr *model.PullRequest) error {
 
 	var mergedAt, closedAt, draftAt sql.NullTime
 	var autoMergeStrategy sql.NullString
+	var headSHAOut sql.NullString
 	err = s.db.QueryRowContext(ctx,
-		`INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch, is_draft)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		 RETURNING id, created_at, updated_at, merged_at, closed_at, is_draft, draft_at, auto_merge_enabled, auto_merge_strategy`,
+		`INSERT INTO pull_requests (repo_id, number, author_id, title, body, state, head_branch, base_branch, is_draft, head_sha)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		 RETURNING id, created_at, updated_at, merged_at, closed_at, is_draft, draft_at, auto_merge_enabled, auto_merge_strategy, head_sha`,
 		pr.RepoID, pr.Number, pr.AuthorID, pr.Title, pr.Body,
-		string(pr.State), pr.HeadBranch, pr.BaseBranch, pr.IsDraft,
+		string(pr.State), pr.HeadBranch, pr.BaseBranch, pr.IsDraft, sql.NullString{String: pr.HeadSHA, Valid: pr.HeadSHA != ""},
 	).Scan(&pr.ID, &pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
-		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy)
+		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHAOut)
+	if headSHAOut.Valid {
+		pr.HeadSHA = headSHAOut.String
+	}
 	if err != nil {
 		return fmt.Errorf("pr create: %w", err)
 	}
@@ -74,7 +79,7 @@ func (s *PullStore) List(ctx context.Context, repoID int64) ([]model.PullRequest
 		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
 		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
 		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
-		        pr.auto_merge_enabled, pr.auto_merge_strategy
+		        pr.auto_merge_enabled, pr.auto_merge_strategy, pr.head_sha
 		 FROM pull_requests pr
 		 LEFT JOIN users u ON u.id = pr.author_id
 		 WHERE pr.repo_id = $1 ORDER BY pr.number DESC`,
@@ -90,17 +95,17 @@ func (s *PullStore) List(ctx context.Context, repoID int64) ([]model.PullRequest
 func (s *PullStore) GetByNumber(ctx context.Context, repoID int64, number int) (*model.PullRequest, error) {
 	pr := &model.PullRequest{}
 	var mergedAt, closedAt, draftAt sql.NullTime
-	var autoMergeStrategy sql.NullString
+	var autoMergeStrategy, headSHA sql.NullString
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy
+		        auto_merge_enabled, auto_merge_strategy, head_sha
 		 FROM pull_requests WHERE repo_id = $1 AND number = $2`,
 		repoID, number,
 	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
 		&pr.State, &pr.HeadBranch, &pr.BaseBranch,
 		&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
-		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy)
+		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA)
 	if err != nil {
 		return nil, fmt.Errorf("pr get: %w", err)
 	}
@@ -115,6 +120,9 @@ func (s *PullStore) GetByNumber(ctx context.Context, repoID int64, number int) (
 	}
 	if autoMergeStrategy.Valid {
 		pr.AutoMergeStrategy = autoMergeStrategy.String
+	}
+	if headSHA.Valid {
+		pr.HeadSHA = headSHA.String
 	}
 	return pr, nil
 }
@@ -196,7 +204,7 @@ func (s *PullStore) ListByState(ctx context.Context, repoID int64, state model.P
 		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
 		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
 		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
-		        pr.auto_merge_enabled, pr.auto_merge_strategy
+		        pr.auto_merge_enabled, pr.auto_merge_strategy, pr.head_sha
 		 FROM pull_requests pr
 		 LEFT JOIN users u ON u.id = pr.author_id
 		 WHERE pr.repo_id = $1 AND ($2 = '' OR pr.state = $2)
@@ -215,7 +223,7 @@ func (s *PullStore) ListOpen(ctx context.Context, repoID int64) ([]model.PullReq
 		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
 		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
 		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
-		        pr.auto_merge_enabled, pr.auto_merge_strategy
+		        pr.auto_merge_enabled, pr.auto_merge_strategy, pr.head_sha
 		 FROM pull_requests pr
 		 LEFT JOIN users u ON u.id = pr.author_id
 		 WHERE pr.repo_id = $1 AND pr.state = 'open' ORDER BY pr.number DESC`,
@@ -231,17 +239,17 @@ func (s *PullStore) ListOpen(ctx context.Context, repoID int64) ([]model.PullReq
 func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, error) {
 	pr := &model.PullRequest{}
 	var mergedAt, closedAt, draftAt sql.NullTime
-	var autoMergeStrategy sql.NullString
+	var autoMergeStrategy, headSHA sql.NullString
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, repo_id, number, author_id, title, body, state, head_branch, base_branch,
 		        created_at, updated_at, merged_at, closed_at, is_draft, draft_at,
-		        auto_merge_enabled, auto_merge_strategy
+		        auto_merge_enabled, auto_merge_strategy, head_sha
 		 FROM pull_requests WHERE id = $1`,
 		id,
 	).Scan(&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.Title, &pr.Body,
 		&pr.State, &pr.HeadBranch, &pr.BaseBranch,
 		&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
-		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy)
+		&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA)
 	if err != nil {
 		return nil, fmt.Errorf("pr get by id: %w", err)
 	}
@@ -257,6 +265,9 @@ func (s *PullStore) GetByID(ctx context.Context, id int64) (*model.PullRequest, 
 	if autoMergeStrategy.Valid {
 		pr.AutoMergeStrategy = autoMergeStrategy.String
 	}
+	if headSHA.Valid {
+		pr.HeadSHA = headSHA.String
+	}
 	return pr, nil
 }
 
@@ -265,12 +276,12 @@ func scanPullRows(rows *sql.Rows) ([]model.PullRequest, error) {
 	for rows.Next() {
 		var pr model.PullRequest
 		var mergedAt, closedAt, draftAt sql.NullTime
-		var autoMergeStrategy sql.NullString
+		var autoMergeStrategy, headSHA sql.NullString
 		if err := rows.Scan(
 			&pr.ID, &pr.RepoID, &pr.Number, &pr.AuthorID, &pr.AuthorName, &pr.Title, &pr.Body,
 			&pr.State, &pr.HeadBranch, &pr.BaseBranch,
 			&pr.CreatedAt, &pr.UpdatedAt, &mergedAt, &closedAt,
-			&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy,
+			&pr.IsDraft, &draftAt, &pr.AutoMergeEnabled, &autoMergeStrategy, &headSHA,
 		); err != nil {
 			return nil, err
 		}
@@ -285,6 +296,9 @@ func scanPullRows(rows *sql.Rows) ([]model.PullRequest, error) {
 		}
 		if autoMergeStrategy.Valid {
 			pr.AutoMergeStrategy = autoMergeStrategy.String
+		}
+		if headSHA.Valid {
+			pr.HeadSHA = headSHA.String
 		}
 		prs = append(prs, pr)
 	}
@@ -350,6 +364,35 @@ func (s *PullStore) CountOpen(ctx context.Context, repoID int64) (int, error) {
 	return n, err
 }
 
+func (s *PullStore) CountOpenByRepoIDs(ctx context.Context, repoIDs []int64) (map[int64]int, error) {
+	if len(repoIDs) == 0 {
+		return map[int64]int{}, nil
+	}
+	placeholders := make([]string, len(repoIDs))
+	args := make([]any, len(repoIDs))
+	for i, id := range repoIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	q := `SELECT repo_id, COUNT(*) FROM pull_requests WHERE state = 'open' AND repo_id IN (` +
+		strings.Join(placeholders, ",") + `) GROUP BY repo_id`
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("pr count open by repo ids: %w", err)
+	}
+	defer rows.Close()
+	result := make(map[int64]int, len(repoIDs))
+	for rows.Next() {
+		var repoID int64
+		var count int
+		if err := rows.Scan(&repoID, &count); err != nil {
+			return nil, err
+		}
+		result[repoID] = count
+	}
+	return result, rows.Err()
+}
+
 // Soft-deleted repos are excluded so the count matches the heatmap's visibility rule.
 func (s *PullStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int, error) {
 	var n int
@@ -364,6 +407,39 @@ func (s *PullStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int,
 	return n, err
 }
 
+// CountsForUser returns pull-request counts for every account-pulls tab in a
+// single round-trip, keyed "<filter>:<state>". The query is composed only from
+// in-code constants — never caller input — so the concatenation is injection-safe.
+func (s *PullStore) CountsForUser(ctx context.Context, userID int64) (map[string]int, error) {
+	const vis = `(NOT r.private OR r.owner_id = $1
+	              OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))`
+	const (
+		created         = `p.author_id = $1`
+		assigned        = `EXISTS (SELECT 1 FROM pull_assignees pa WHERE pa.pull_id = p.id AND pa.user_id = $1)`
+		reviewRequested = `EXISTS (SELECT 1 FROM pull_reviews prv WHERE prv.pull_id = p.id AND prv.author_id = $1 AND prv.state = 'pending')`
+		mentioned       = `EXISTS (SELECT 1 FROM mentions m JOIN comments c ON c.id = m.comment_id WHERE c.pull_id = p.id AND m.user_id = $1)`
+	)
+	sub := func(state, cond string) string {
+		return `(SELECT COUNT(*) FROM pull_requests p JOIN repositories r ON r.id = p.repo_id
+		         WHERE r.deleted_at IS NULL AND p.state = '` + state + `' AND ` + cond + ` AND ` + vis + `)`
+	}
+	q := `SELECT ` +
+		sub("open", created) + `, ` + sub("closed", created) + `, ` +
+		sub("open", assigned) + `, ` + sub("closed", assigned) + `, ` +
+		sub("open", reviewRequested) + `, ` + sub("closed", reviewRequested) + `, ` +
+		sub("open", mentioned) + `, ` + sub("closed", mentioned)
+	var co, cc, ao, ac, ro, rc, mo, mc int
+	if err := s.db.QueryRowContext(ctx, q, userID).Scan(&co, &cc, &ao, &ac, &ro, &rc, &mo, &mc); err != nil {
+		return nil, fmt.Errorf("pull counts for user: %w", err)
+	}
+	return map[string]int{
+		"created:open": co, "created:closed": cc,
+		"assigned:open": ao, "assigned:closed": ac,
+		"review_requested:open": ro, "review_requested:closed": rc,
+		"mentioned:open": mo, "mentioned:closed": mc,
+	}, nil
+}
+
 func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNumber int) ([]model.PullRequest, error) {
 	// Explicit links from the pull_issue_links table — the same set the issue
 	// sidebar's link/unlink dropdown writes to.
@@ -371,7 +447,7 @@ func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNu
 		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
 		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
 		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
-		        pr.auto_merge_enabled, pr.auto_merge_strategy
+		        pr.auto_merge_enabled, pr.auto_merge_strategy, pr.head_sha
 		 FROM pull_requests pr
 		 LEFT JOIN users u ON u.id = pr.author_id
 		 JOIN pull_issue_links pil ON pil.pull_id = pr.id
@@ -387,6 +463,34 @@ func (s *PullStore) ListLinkedToIssue(ctx context.Context, repoID int64, issueNu
 	return scanPullRows(rows)
 }
 
+// AssignedAtForUser returns a map of pull_id → assignment created_at for all
+// open PRs assigned to userID. Used alongside ListForUser("assigned") to
+// populate WaitingSince without changing the shared PullListItem type.
+func (s *PullStore) AssignedAtForUser(ctx context.Context, userID int64) (map[int64]time.Time, error) {
+	const q = `
+		SELECT pa.pull_id, pa.created_at
+		FROM pull_assignees pa
+		JOIN pull_requests p  ON p.id = pa.pull_id
+		JOIN repositories r   ON r.id = p.repo_id
+		WHERE pa.user_id = $1 AND p.state = 'open' AND r.deleted_at IS NULL
+	`
+	rows, err := s.db.QueryContext(ctx, q, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	m := make(map[int64]time.Time)
+	for rows.Next() {
+		var id int64
+		var t time.Time
+		if err := rows.Scan(&id, &t); err != nil {
+			return nil, err
+		}
+		m[id] = t
+	}
+	return m, rows.Err()
+}
+
 // mode is "created" or "assigned"; state is "open" or "closed". For "review_requested" and "mentioned", use ListByIDs.
 func (s *PullStore) ListForUser(ctx context.Context, userID int64, mode, state string) ([]PullListItem, error) {
 	join, cond := "", ""
@@ -398,7 +502,7 @@ func (s *PullStore) ListForUser(ctx context.Context, userID int64, mode, state s
 		cond = `p.author_id = $1`
 	}
 	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.author_id,
-	             u.username || '/' || r.name AS repo_full_name, p.updated_at
+	             u.username || '/' || r.name AS repo_full_name, p.updated_at, p.created_at
 	      FROM pull_requests p
 	      JOIN repositories r ON r.id = p.repo_id
 	      JOIN users u        ON u.id = r.owner_id
@@ -422,7 +526,7 @@ func (s *PullStore) ListByIDs(ctx context.Context, userID int64, ids []int64, st
 		args = append(args, id)
 	}
 	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.author_id,
-	             u.username || '/' || r.name AS repo_full_name, p.updated_at
+	             u.username || '/' || r.name AS repo_full_name, p.updated_at, p.created_at
 	      FROM pull_requests p
 	      JOIN repositories r ON r.id = p.repo_id
 	      JOIN users u        ON u.id = r.owner_id
@@ -443,10 +547,54 @@ func (s *PullStore) scanPullListItems(ctx context.Context, q string, args ...any
 	out := []PullListItem{}
 	for rows.Next() {
 		var it PullListItem
-		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt); err != nil {
+		if err := rows.Scan(&it.ID, &it.Number, &it.Title, &it.State, &it.AuthorID, &it.RepoFullName, &it.UpdatedAt, &it.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, it)
 	}
 	return out, rows.Err()
+}
+
+func (s *PullStore) UpdateHeadSHA(ctx context.Context, pullID int64, sha string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE pull_requests SET head_sha = $2 WHERE id = $1`,
+		pullID, sha,
+	)
+	return err
+}
+
+func (s *PullStore) UpdateHeadSHAByBranch(ctx context.Context, repoID int64, headBranch, sha string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE pull_requests SET head_sha = $3 WHERE repo_id = $1 AND head_branch = $2 AND state = 'open'`,
+		repoID, headBranch, sha,
+	)
+	return err
+}
+
+// GetManyByIDs fetches full PullRequest rows by a set of IDs. Used for batching CI-check lookups.
+func (s *PullStore) GetManyByIDs(ctx context.Context, ids []int64) ([]model.PullRequest, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	placeholders := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT pr.id, pr.repo_id, pr.number, pr.author_id, COALESCE(u.username, '') AS author_name,
+		        pr.title, pr.body, pr.state, pr.head_branch, pr.base_branch,
+		        pr.created_at, pr.updated_at, pr.merged_at, pr.closed_at, pr.is_draft, pr.draft_at,
+		        pr.auto_merge_enabled, pr.auto_merge_strategy, pr.head_sha
+		 FROM pull_requests pr
+		 LEFT JOIN users u ON u.id = pr.author_id
+		 WHERE pr.id IN (`+strings.Join(placeholders, ",")+`)`,
+		args...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("pr get many by ids: %w", err)
+	}
+	defer rows.Close()
+	return scanPullRows(rows)
 }

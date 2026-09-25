@@ -63,38 +63,90 @@ type AccountSubnavInfo struct {
 
 type HomeData struct {
 	BasePage
-	Repos        []model.Repository
-	Templates    []model.Repository
-	Stats        []components.StatItem
-	Heatmap      map[time.Time]int
-	Attention    []service.AttentionItem
-	Activity     []model.Event
-	LoadWarnings []string
+	Repos          []model.Repository
+	TotalRepos     int           // authoritative count from DB (may exceed len(Repos) after future pagination)
+	RepoOpenPRs    map[int64]int // open PR count per repo ID; missing key → 0
+	RepoSort       string        // "updated" | "name" | "created"
+	RepoFilter     string        // "all" | "sources" | "forks" | "templates"
+	Templates      []model.Repository
+	Stats          []components.StatItem
+	Heatmap        map[time.Time]int
+	HeatmapYear    int                     // calendar year shown in the commit heatmap
+	HeatmapTotal   int                     // commit total for HeatmapYear
+	HeatmapYears   []int                   // selectable years, most recent first
+	Attention      []service.AttentionItem // top 3 preview items
+	AttentionTotal int                     // total across all kinds
+	Activity       []model.Event
+	LoadWarnings   []string
 }
 
-type FeedData struct {
+type AttentionData struct {
 	BasePage
+	Items  []service.AttentionItem
+	Kind   string         // active filter: "all" | "mentions" | "reviews" | "assigned"
+	Sort   string         // "overdue" | "newest" | "oldest"
+	Counts map[string]int // keys: "all", "mentions", "reviews", "assigned"
+	Total  int
+}
+
+type ActivityData struct {
+	BasePage
+	Username    string
 	Events      []model.Event
+	LoadFailed  bool           // feed query errored — render an error state, not the empty state
+	Filter      string         // "all" | "yours" | "watching"
+	ScopeCounts map[string]int // total events per scope, keyed "all"|"yours"|"watching"
 	Page        int
-	HasNextPage bool
+	HasMore     bool
+	PrevURL     string
+	NextURL     string
 }
 
 type AccountReposData struct {
 	BasePage
-	Repos  []model.Repository
-	Filter string // "all" | "owned" | "collaborator"
+	Repos        []model.Repository
+	Filter       string         // "all" | "owned" | "collaborator" | "forks"
+	TypeCounts   map[string]int // repo count per type tab
+	Language     string         // selected language filter; "" = all
+	Languages    []string
+	Sort         string // "updated" | "name" | "stars" | "created"
+	StarCounts   map[int64]int
+	CommitCounts map[int64]int
+	Topics       map[int64][]model.Topic
+	UserID       int64
+	Total        int // repos owned or collaborated on, before filtering
+	Page         int
+	TotalPages   int
 }
 
 type AccountPullsData struct {
 	BasePage
-	Pulls  []store.PullListItem
-	Filter string // "created" | "assigned" | "review_requested" | "mentioned"
-	State  string // "open" | "closed"
+	Pulls         []store.PullListItem
+	Filter        string         // "created" | "assigned" | "review_requested" | "mentioned"
+	State         string         // "open" | "closed"
+	Sort          string         // "newest" | "oldest" | "updated" | "comments"
+	Counts        map[string]int // PR count per tab, keyed "filter:state"
+	PullComments  map[int64]int
+	PullLabels    map[int64][]model.Label
+	PullCI        map[int64]service.CIChecks
+	PullReviewers map[int64][]model.PullReview
 }
 
 type AccountIssuesData struct {
 	BasePage
-	Issues []store.IssueListItem
-	Filter string // "assigned" | "created" | "mentioned"
-	State  string // "open" | "closed"
+	Issues        []store.IssueListItem
+	Filter        string // "assigned" | "created" | "mentioned"
+	State         string // "open" | "closed"
+	Sort          string // "newest" | "oldest" | "updated" | "comments"
+	IssueComments map[int64]int
+	IssueLabels   map[int64][]model.Label
+	Counts        map[string]int // keyed "<filter>:<state>", e.g. "assigned:open"
+}
+
+type AccountStarsData struct {
+	BasePage
+	Username  string
+	Stars     []model.Repository
+	Language  string   // active language chip (empty == all)
+	Languages []string // distinct primary_language values for chip rendering
 }

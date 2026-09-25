@@ -37,3 +37,6 @@ Thumbs.db
 
 # Superpowers brainstorm sessions
 .superpowers/
+
+# Integration-test scratch repos
+internal/handler/testuser_*/

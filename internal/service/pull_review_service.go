@@ -47,6 +47,10 @@ func (s *PullReviewService) SubmitReview(ctx context.Context, owner, repoName st
 	return r, nil
 }
 
+func (s *PullReviewService) ListReviewersByPullIDs(ctx context.Context, pullIDs []int64) (map[int64][]model.PullReview, error) {
+	return s.reviews.ListByPullIDs(ctx, pullIDs)
+}
+
 func (s *PullReviewService) CanMerge(ctx context.Context, pullID int64) (bool, string, error) {
 	blocked, err := s.reviews.HasChangesRequested(ctx, pullID)
 	if err != nil {

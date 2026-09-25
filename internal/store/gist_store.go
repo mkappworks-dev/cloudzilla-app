@@ -155,6 +155,25 @@ func (s *GistStore) CountByOwner(ctx context.Context, ownerID int64) (int, error
 	return n, err
 }
 
+// CountPublic counts all public gists instance-wide, matching the "Public" tab on /gists.
+func (s *GistStore) CountPublic(ctx context.Context) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM gists WHERE public = true`,
+	).Scan(&n)
+	return n, err
+}
+
+// CountPrivateByOwner counts a single owner's private gists, matching the "Private" tab on /gists.
+func (s *GistStore) CountPrivateByOwner(ctx context.Context, ownerID int64) (int, error) {
+	var n int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM gists WHERE owner_id = $1 AND public = false`,
+		ownerID,
+	).Scan(&n)
+	return n, err
+}
+
 func (s *GistStore) Delete(ctx context.Context, id string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM gists WHERE id = $1`, id)
 	return err
@@ -176,7 +195,21 @@ func scanGists(rows *sql.Rows) ([]model.Gist, error) {
 	return gists, rows.Err()
 }
 
-func (s *GistStore) ListWithCounts(ctx context.Context, ownerFilter string, page, pageSize int) ([]model.GistListRow, error) {
+// gistOrderBy maps a sort key to a fixed ORDER BY clause. prefix is the column
+// qualifier ("g." for the joined query, "" otherwise). The result is composed
+// only from constants — never caller input — so it is safe to concatenate.
+func gistOrderBy(prefix, sortBy string) string {
+	switch sortBy {
+	case "created":
+		return prefix + "created_at DESC"
+	case "name":
+		return "lower(" + prefix + "description) ASC, " + prefix + "updated_at DESC"
+	default:
+		return prefix + "updated_at DESC"
+	}
+}
+
+func (s *GistStore) ListWithCounts(ctx context.Context, ownerFilter, sortBy string, page, pageSize int) ([]model.GistListRow, error) {
 	offset := (page - 1) * pageSize
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT g.id, g.owner_id, g.owner_name, g.description, g.public,
@@ -187,7 +220,7 @@ func (s *GistStore) ListWithCounts(ctx context.Context, ownerFilter string, page
 		FROM gists g
 		JOIN users u ON u.id = g.owner_id
 		WHERE g.public = true AND ($1 = '' OR u.username = $1)
-		ORDER BY g.updated_at DESC
+		ORDER BY `+gistOrderBy("g.", sortBy)+`
 		LIMIT $2 OFFSET $3`,
 		ownerFilter, pageSize, offset,
 	)
@@ -240,11 +273,11 @@ func (s *GistStore) LoadFilenames(ctx context.Context, gistIDs []string) (map[st
 	return result, rows.Err()
 }
 
-func (s *GistStore) ListPrivateByOwner(ctx context.Context, ownerID int64, page, pageSize int) ([]model.Gist, error) {
+func (s *GistStore) ListPrivateByOwner(ctx context.Context, ownerID int64, sortBy string, page, pageSize int) ([]model.Gist, error) {
 	offset := (page - 1) * pageSize
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, description, public, forked_from_id, created_at, updated_at
-         FROM gists WHERE owner_id = $1 AND public = false ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+         FROM gists WHERE owner_id = $1 AND public = false ORDER BY `+gistOrderBy("", sortBy)+` LIMIT $2 OFFSET $3`,
 		ownerID, pageSize, offset,
 	)
 	if err != nil {

@@ -65,7 +65,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
 	r.With(authMW).Get("/settings/oauth-apps", h.PageOAuthApps)
 	r.With(authMW).Get("/notifications", h.PageNotifications)
-	r.With(authMW).Get("/feed", h.PageFeed)
+	r.With(authMW).Get("/activity", h.PageActivity)
 
 	// OAuth 2.0 authorization code flow
 	r.With(optAuthMW).Get("/oauth/authorize", h.PageOAuthAuthorize)
@@ -91,6 +91,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Get("/repos", h.PageAccountRepos)
 	r.With(authMW).Get("/pulls", h.PageAccountPulls)
 	r.With(authMW).Get("/issues", h.PageAccountIssues)
+	r.With(authMW).Get("/attention", h.PageAttention)
+	r.With(authMW).Get("/stars", h.PageAccountStars)
 
 	// Topic explore page
 	r.With(optAuthMW).Get("/topic/{name}", h.PageTopic)

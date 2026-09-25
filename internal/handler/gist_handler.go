@@ -28,6 +28,12 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 	if tab != "private" {
 		tab = "public"
 	}
+	sortBy := r.URL.Query().Get("sort")
+	switch sortBy {
+	case "created", "name":
+	default:
+		sortBy = "updated"
+	}
 
 	ctx := r.Context()
 	claims, signedIn := middleware.ClaimsFromContext(ctx)
@@ -38,7 +44,7 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 
 	var rows []model.GistListRow
 	if tab == "private" && signedIn {
-		privateGists, err := h.Services.Gist.ListPrivateByOwner(ctx, claims.UserID, page, gistsPerPage)
+		privateGists, err := h.Services.Gist.ListPrivateByOwner(ctx, claims.UserID, sortBy, page, gistsPerPage)
 		if err != nil {
 			slog.Error("gists: failed to load private gists", "user_id", claims.UserID, "page", page, "error", err)
 			http.Error(w, "Failed to load gists", http.StatusInternalServerError)
@@ -49,7 +55,7 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		var err error
-		rows, err = h.Services.Gist.ListWithCounts(ctx, "", page, gistsPerPage)
+		rows, err = h.Services.Gist.ListWithCounts(ctx, "", sortBy, page, gistsPerPage)
 		if err != nil {
 			slog.Error("gists: failed to load public gists", "page", page, "error", err)
 			http.Error(w, "Failed to load gists", http.StatusInternalServerError)
@@ -89,9 +95,22 @@ func (h *Handler) PageGists(w http.ResponseWriter, r *http.Request) {
 		Page:                page,
 		HasNext:             hasNext,
 		Tab:                 tab,
+		Sort:                sortBy,
 		PrivateTabAvailable: signedIn,
 	}
+	if n, err := h.Services.Gist.CountPublic(ctx); err == nil {
+		data.PublicCount = n
+	} else {
+		slog.Warn("gists: public count failed; hiding badge", "error", err)
+		data.PublicCount = -1
+	}
 	if signedIn {
+		if n, err := h.Services.Gist.CountPrivateByUser(ctx, claims.UserID); err == nil {
+			data.PrivateCount = n
+		} else {
+			slog.Warn("gists: private count failed; hiding badge", "user_id", claims.UserID, "error", err)
+			data.PrivateCount = -1
+		}
 		data.BasePage = withAccountSubnav(data.BasePage, "gists", h.accountCounts(ctx, claims.UserID))
 	}
 	h.render(w, r, pages.Gists(data))

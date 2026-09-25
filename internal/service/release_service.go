@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -17,13 +18,20 @@ import (
 // the requested tag in the repository.
 var ErrReleaseTagInUse = errors.New("a release already exists for this tag")
 
-// ErrInvalidTagName is returned when the tag string contains characters that
-// would land in git storage but aren't safe ASCII identifiers. We refuse
-// these up-front rather than relying on go-git's looser plumbing checks.
-var ErrInvalidTagName = errors.New("tag name must match ^[A-Za-z0-9._/-]{1,255}$")
+// ErrInvalidTagName is returned when the tag string isn't safe to land in git
+// storage as a ref. We refuse these up-front rather than relying on go-git's
+// looser plumbing checks.
+var ErrInvalidTagName = errors.New(`tag name must match ^[A-Za-z0-9._/-]{1,255}$ and contain no ".."`)
 
 // tagNamePattern excludes '@' to keep clear of reflog syntax.
 var tagNamePattern = regexp.MustCompile(`^[A-Za-z0-9._/-]{1,255}$`)
+
+// validTagName reports whether tagName is safe to use as a git tag ref. Beyond
+// the character allowlist it rejects "..", which in a tag like "../etc/passwd"
+// would escape refs/tags/ when written to git storage.
+func validTagName(tagName string) bool {
+	return tagNamePattern.MatchString(tagName) && !strings.Contains(tagName, "..")
+}
 
 type ReleaseService struct {
 	releases *store.ReleaseStore
@@ -38,7 +46,7 @@ func NewReleaseService(releases *store.ReleaseStore, repos *store.RepoStore, cod
 // Create creates the tag on the tip of target (default branch when unset) when
 // the tag does not yet exist.
 func (s *ReleaseService) Create(ctx context.Context, owner, repoName, tagName, target, name, body string, isPrerelease, isDraft bool, authorID int64) (*model.Release, error) {
-	if !tagNamePattern.MatchString(tagName) {
+	if !validTagName(tagName) {
 		return nil, ErrInvalidTagName
 	}
 
@@ -160,7 +168,7 @@ func (s *ReleaseService) GetLatest(ctx context.Context, owner, repoName string) 
 }
 
 func (s *ReleaseService) Update(ctx context.Context, owner, repoName string, id int64, tagName, name, body string, isPrerelease, isDraft bool) (*model.Release, error) {
-	if !tagNamePattern.MatchString(tagName) {
+	if !validTagName(tagName) {
 		return nil, ErrInvalidTagName
 	}
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)

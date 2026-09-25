@@ -12,7 +12,7 @@ import (
 
 templ Gists(data view.GistsData) {
 	@layout.Base(data.BasePage, "Explore Gists") {
-		<div class="space-y-5">
+		<div class="space-y-5" x-data="{ q: '', openMenu: null }">
 
 			<section class="flex flex-wrap items-start justify-between gap-4" aria-labelledby="gists-title">
 				<div class="min-w-0">
@@ -20,7 +20,7 @@ templ Gists(data view.GistsData) {
 					<p class="mt-0.5 text-[13px] text-muted-foreground">Snippets, scratch notes, and standalone files — public and discoverable.</p>
 				</div>
 				if data.CurrentUser != nil {
-					@components.LinkButton("/gists/new", components.ButtonSuccess, components.ButtonSizeDefault, nil) {
+					@components.LinkButton("/gists/new", components.ButtonDefault, components.ButtonSizeDefault, nil) {
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
 							<path d="M12 5v14M5 12h14"></path>
 						</svg>
@@ -31,10 +31,22 @@ templ Gists(data view.GistsData) {
 
 			if data.PrivateTabAvailable {
 				@components.TabBar([]components.Tab{
-					{Label: "Public", URL: "/gists?tab=public", IsActive: data.Tab == "public", Count: -1},
-					{Label: "Private", URL: "/gists?tab=private", IsActive: data.Tab == "private", Count: -1},
+					{Label: "Public", URL: "/gists?tab=public", IsActive: data.Tab == "public", Count: data.PublicCount},
+					{Label: "Private", URL: "/gists?tab=private", IsActive: data.Tab == "private", Count: data.PrivateCount},
 				})
 			}
+
+			<div class="flex items-center gap-2 flex-wrap">
+				<div class="relative flex-1 min-w-[240px]">
+					<label for="gist-filter" class="sr-only">Filter gists</label>
+					<input id="gist-filter" type="search" placeholder="Filter gists…" autocomplete="off" x-model="q" class="w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground"/>
+					<svg class="absolute left-2.5 top-2.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+						<circle cx="11" cy="11" r="7"></circle>
+						<path d="M21 21l-4.3-4.3"></path>
+					</svg>
+				</div>
+				@repoFilterMenu("sort", gistsSortLabel(data.Sort), "Sort gists", "Sort by", gistsSortMenu(data))
+			</div>
 
 			if len(data.Gists) > 0 {
 				<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="gist-list">
@@ -47,7 +59,7 @@ templ Gists(data view.GistsData) {
 					</h2>
 					<ol class="divide-y divide-border">
 						for _, g := range data.Gists {
-							<li>
+							<li data-name={ g.Description + " " + g.OwnerName } x-show="!q || $el.dataset.name.toLowerCase().includes(q.toLowerCase())">
 								<a href={ templ.SafeURL("/gists/" + g.ID) } class="relative block px-4 py-3 hover:bg-accent group transition-[padding] hover:pl-[18px] before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2px] before:bg-foreground before:opacity-0 hover:before:opacity-100 before:transition-opacity before:rounded-sm">
 									<div class="flex items-start gap-3 mb-1.5">
 										if g.Public {
@@ -123,11 +135,11 @@ templ Gists(data view.GistsData) {
 
 				{{ gistPrev := "" }}
 				if data.Page > 1 {
-					{{ gistPrev = "?tab=" + data.Tab + "&page=" + strconv.Itoa(data.Page-1) }}
+					{{ gistPrev = "?tab=" + data.Tab + "&page=" + strconv.Itoa(data.Page-1) + gistsSortSuffix(data.Sort) }}
 				}
 				{{ gistNext := "" }}
 				if data.HasNext {
-					{{ gistNext = "?tab=" + data.Tab + "&page=" + strconv.Itoa(data.Page+1) }}
+					{{ gistNext = "?tab=" + data.Tab + "&page=" + strconv.Itoa(data.Page+1) + gistsSortSuffix(data.Sort) }}
 				}
 				@components.Pagination(gistPrev, gistNext)
 			} else {
@@ -135,4 +147,48 @@ templ Gists(data view.GistsData) {
 			}
 		</div>
 	}
+}
+
+func gistsSortSuffix(sortBy string) string {
+	if sortBy != "" && sortBy != "updated" {
+		return "&sort=" + sortBy
+	}
+	return ""
+}
+
+func gistsSortURL(tab, sortBy string) string {
+	u := "/gists?tab=" + tab
+	if sortBy != "" && sortBy != "updated" {
+		u += "&sort=" + sortBy
+	}
+	return u
+}
+
+func gistsSortOptions() []repoDropdownOption {
+	return []repoDropdownOption{
+		{"updated", "Sort: recently updated"},
+		{"created", "Recently created"},
+		{"name", "Name"},
+	}
+}
+
+func gistsSortLabel(sortBy string) string {
+	for _, o := range gistsSortOptions() {
+		if o.Value == sortBy {
+			return o.Label
+		}
+	}
+	return "Sort: recently updated"
+}
+
+func gistsSortMenu(data view.GistsData) []repoMenuItem {
+	items := make([]repoMenuItem, 0, 3)
+	for _, o := range gistsSortOptions() {
+		items = append(items, repoMenuItem{
+			Label:  o.Label,
+			URL:    gistsSortURL(data.Tab, o.Value),
+			Active: data.Sort == o.Value,
+		})
+	}
+	return items
 }

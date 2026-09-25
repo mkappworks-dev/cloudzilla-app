@@ -3,9 +3,11 @@ package components
 import "strconv"
 
 type StatItem struct {
-	Label    string
-	Value    int
-	Subtitle string // rendered below the value if non-empty
+	Label       string
+	Value       int
+	Subtitle    string // qualifier shown next to the value (e.g. "open")
+	Detail      string // smaller detail line shown below (e.g. "3 private, 11 public")
+	Unavailable bool   // stat query failed; render "—" instead of a misleading 0
 }
 
 templ StatStrip(items []StatItem) {
@@ -13,9 +15,18 @@ templ StatStrip(items []StatItem) {
 		for _, it := range items {
 			<div class="rounded-md border border-border bg-card p-3">
 				<dt class="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">{ it.Label }</dt>
-				<dd class="text-2xl font-semibold tracking-tight mt-1">{ strconv.Itoa(it.Value) }</dd>
-				if it.Subtitle != "" {
-					<dd class="text-xs text-muted-foreground/70">{ it.Subtitle }</dd>
+				<dd class="text-2xl font-semibold tracking-tight mt-1">
+					if it.Unavailable {
+						<span class="text-muted-foreground">—</span>
+					} else {
+						{ strconv.Itoa(it.Value) }
+						if it.Subtitle != "" {
+							<span class="text-muted-foreground text-lg font-normal">{ " " + it.Subtitle }</span>
+						}
+					}
+				</dd>
+				if it.Detail != "" {
+					<dd class="text-[11px] text-muted-foreground/70 mt-1">{ it.Detail }</dd>
 				}
 			</div>
 		}

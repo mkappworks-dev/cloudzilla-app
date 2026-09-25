@@ -79,7 +79,7 @@ func (s *CommitStatsService) Ingest(ctx context.Context, repoID int64, samples [
 }
 
 func (s *CommitStatsService) CommitsForUserSince(ctx context.Context, userID int64, days int) (int, error) {
-	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)
+	since := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -days+1)
 	rows, err := s.stats.ListForUserSince(ctx, userID, since)
 	if err != nil {
 		return 0, err
@@ -91,13 +91,18 @@ func (s *CommitStatsService) CommitsForUserSince(ctx context.Context, userID int
 	return total, nil
 }
 
+func (s *CommitStatsService) DistinctReposForUserSince(ctx context.Context, userID int64, days int) (int, error) {
+	since := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -days+1)
+	return s.stats.CountDistinctReposForUserSince(ctx, userID, since)
+}
+
 func (s *CommitStatsService) WeeklyForRepo(ctx context.Context, repoID int64, weeks int) ([]int, error) {
 	return s.stats.WeeklyForRepo(ctx, repoID, weeks)
 }
 
 // Materializes the full window with explicit zero entries so the heatmap can render a regular grid.
 func (s *CommitStatsService) LookbackForRepo(ctx context.Context, repoID int64, days int) (map[time.Time]int, error) {
-	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)
+	since := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -days+1)
 	rows, err := s.stats.ListForRepoSince(ctx, repoID, since)
 	if err != nil {
 		return nil, err
@@ -114,7 +119,7 @@ func (s *CommitStatsService) LookbackForRepo(ctx context.Context, repoID int64, 
 
 // Materializes the full window with explicit zero entries so the heatmap can render a regular grid.
 func (s *CommitStatsService) LookbackForUser(ctx context.Context, userID int64, days int) (map[time.Time]int, error) {
-	since := time.Now().UTC().Truncate(24 * time.Hour).AddDate(0, 0, -days+1)
+	since := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -days+1)
 	rows, err := s.stats.ListForUserSince(ctx, userID, since)
 	if err != nil {
 		return nil, err
@@ -127,4 +132,29 @@ func (s *CommitStatsService) LookbackForUser(ctx context.Context, userID int64, 
 		out[r.Day.UTC().Truncate(24*time.Hour)] = r.CommitCount
 	}
 	return out, nil
+}
+
+// HeatmapForYear returns a day→commit-count map covering the given calendar year
+// (zeros materialized so the grid is regular) plus the year's commit total.
+func (s *CommitStatsService) HeatmapForYear(ctx context.Context, userID int64, year int) (map[time.Time]int, int, error) {
+	start := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(year, time.December, 31, 0, 0, 0, 0, time.UTC)
+	rows, err := s.stats.ListForUserBetween(ctx, userID, start, end)
+	if err != nil {
+		return nil, 0, err
+	}
+	out := make(map[time.Time]int, 366)
+	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
+		out[d] = 0
+	}
+	total := 0
+	for _, r := range rows {
+		out[r.Day.UTC().Truncate(24*time.Hour)] += r.CommitCount
+		total += r.CommitCount
+	}
+	return out, total, nil
+}
+
+func (s *CommitStatsService) CommitYearsForUser(ctx context.Context, userID int64) ([]int, error) {
+	return s.stats.YearsForUser(ctx, userID)
 }

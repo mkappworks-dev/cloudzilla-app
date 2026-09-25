@@ -1,6 +1,11 @@
 package pages
 
 import (
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -8,42 +13,415 @@ import (
 
 templ AccountRepos(data view.AccountReposData) {
 	@layout.Base(data.BasePage, "Repositories") {
-		<div class="space-y-5">
-			<div class="min-w-0">
-				<h1 id="repos-title" class="text-2xl font-semibold tracking-tight">Repositories</h1>
+		<div x-data="{ q: '', openMenu: null }">
+			<section class="mb-6 flex flex-wrap items-start justify-between gap-4" aria-labelledby="repos-title">
+				<div class="min-w-0">
+					<h1 id="repos-title" class="text-2xl font-semibold tracking-tight">Repositories</h1>
+					<p class="mt-1 text-[13px] text-muted-foreground">{ reposSubtitle(data.Total) }</p>
+				</div>
+				@components.LinkButton("/repos/new", components.ButtonDefault, components.ButtonSizeDefault, nil) {
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+						<path d="M12 5v14M5 12h14"></path>
+					</svg>
+					New repository
+				}
+			</section>
+			<div class="mb-4">
+				@components.TabBar(repoTypeTabs(data))
 			</div>
-			@components.Tabs("Repository filter") {
-				@components.TabLink("/repos?filter=all", data.Filter == "all") {
-					All
-				}
-				@components.TabLink("/repos?filter=owned", data.Filter == "owned") {
-					Owned
-				}
-				@components.TabLink("/repos?filter=collaborator", data.Filter == "collaborator") {
-					Collaborator
-				}
-			}
+			<div class="flex items-center gap-2 mb-4 flex-wrap">
+				<div class="relative flex-1 min-w-[240px]">
+					<label for="repo-filter" class="sr-only">Filter repositories</label>
+					<input
+						id="repo-filter"
+						type="search"
+						placeholder="Filter by name…"
+						autocomplete="off"
+						x-model="q"
+						class="w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md text-foreground placeholder:text-muted-foreground"
+					/>
+					<svg class="absolute left-2.5 top-2.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+						<circle cx="11" cy="11" r="7"></circle>
+						<path d="M21 21l-4.3-4.3"></path>
+					</svg>
+				</div>
+				@repoFilterMenu("language", reposLanguageLabel(data.Language), "Filter by language", "Language", repoLanguageMenu(data))
+				@repoFilterMenu("sort", reposSortLabel(data.Sort), "Sort repositories", "Sort by", repoSortMenu(data))
+			</div>
 			if len(data.Repos) > 0 {
-				<ol class="rounded-md border border-border bg-card divide-y divide-border overflow-hidden">
-					for _, repo := range data.Repos {
-						<li>
-							<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="block px-4 py-3 hover:bg-muted/50">
-								<div class="text-[13px] font-medium">
-									<span class="text-muted-foreground">{ repo.OwnerName }/</span><span class="hover:underline">{ repo.Name }</span>
-									if repo.Private {
-										<span class="ml-1.5 text-[11px] text-muted-foreground">Private</span>
-									}
-								</div>
-								if repo.Description != "" {
-									<div class="mt-1 text-[12px] text-muted-foreground">{ repo.Description }</div>
-								}
-							</a>
-						</li>
-					}
-				</ol>
+				<section class="border border-border rounded-md bg-card overflow-hidden" aria-labelledby="repo-list">
+					<h2 id="repo-list" class="sr-only">Repositories</h2>
+					<ol class="divide-y divide-border">
+						for _, repo := range data.Repos {
+							<li data-name={ strings.ToLower(repo.OwnerName + "/" + repo.Name) } x-show="!q || $el.dataset.name.includes(q.toLowerCase())">
+								<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="group relative block py-3 pr-4 pl-4 hover:pl-[18px] transition-[padding] duration-[120ms] hover:bg-muted before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-sm before:bg-foreground before:opacity-0 before:transition-opacity before:duration-[120ms] hover:before:opacity-100">
+									<div class="flex items-start gap-3 mb-1.5">
+										<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true" focusable="false">
+											<path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"></path>
+											<path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"></path>
+										</svg>
+										<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
+											<p class="text-[13.5px] font-medium leading-snug group-hover:underline">{ repo.OwnerName }/{ repo.Name }</p>
+											@repoVisibilityBadge(repo.Private)
+											if repo.IsTemplate {
+												@repoLabel("template", "Template")
+											}
+											if repo.IsArchived {
+												@repoLabel("plain", "Archived")
+											}
+										</div>
+									</div>
+									<div class="flex items-center justify-between gap-3 pl-[27px]">
+										<div class="flex items-center gap-1.5 text-[12px] text-muted-foreground min-w-0 flex-wrap">
+											<span class={ repoRoleColorClass(repo.OwnerID, data.UserID) }>{ repoRoleLabel(repo.OwnerID, data.UserID) }</span>
+											<span class="opacity-50" aria-hidden="true">·</span>
+											if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
+												<span class="inline-flex items-center gap-1">
+													<span class={ "w-2 h-2 rounded-full", languageColorClass(*repo.PrimaryLanguage) } aria-hidden="true"></span>
+													{ *repo.PrimaryLanguage }
+												</span>
+												<span class="opacity-50" aria-hidden="true">·</span>
+											}
+											<span>{ "Updated " }<time datetime={ repo.UpdatedAt.UTC().Format(time.RFC3339) }>{ compactRelative(repo.UpdatedAt) }</time></span>
+											if len(data.Topics[repo.ID]) > 0 {
+												<span class="opacity-50" aria-hidden="true">·</span>
+												for _, t := range data.Topics[repo.ID] {
+													@repoLabel("plain", t.Name)
+												}
+											}
+										</div>
+										<div class="flex items-center gap-3 text-[12px] shrink-0 text-muted-foreground">
+											<span class="inline-flex items-center gap-1" title={ statTitle(data.StarCounts[repo.ID], "star") }>
+												<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+													<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+												</svg>
+												{ strconv.Itoa(data.StarCounts[repo.ID]) }
+											</span>
+											<span class="inline-flex items-center gap-1" title={ statTitle(repo.ForkCount, "fork") }>
+												<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+													<circle cx="6" cy="3" r="3"></circle>
+													<circle cx="18" cy="6" r="3"></circle>
+													<circle cx="6" cy="21" r="3"></circle>
+													<path d="M6 6v9a6 6 0 006 6v0M9 6h6a3 3 0 003-3"></path>
+												</svg>
+												{ strconv.Itoa(repo.ForkCount) }
+											</span>
+											<span class="inline-flex items-center gap-1" title={ statTitle(data.CommitCounts[repo.ID], "commit") }>
+												<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
+													<circle cx="12" cy="12" r="3"></circle>
+													<line x1="3" y1="12" x2="9" y2="12"></line>
+													<line x1="15" y1="12" x2="21" y2="12"></line>
+												</svg>
+												{ strconv.Itoa(data.CommitCounts[repo.ID]) }
+											</span>
+										</div>
+									</div>
+								</a>
+							</li>
+						}
+					</ol>
+				</section>
 			} else {
-				@components.EmptyState("No repositories.")
+				@components.EmptyState(reposEmptyMessage(data.Filter != "all" || data.Language != ""))
+			}
+			if data.TotalPages > 1 {
+				<nav class="mt-6 flex items-center justify-between text-[12px]" aria-label="Pagination">
+					if data.Page > 1 {
+						<a href={ templ.SafeURL(reposURL(data.Filter, data.Language, data.Sort, data.Page-1)) } class="h-8 px-3 border border-border rounded-md hover:bg-muted text-muted-foreground inline-flex items-center gap-1.5">← Newer</a>
+					} else {
+						<span class="h-8 px-3 border border-border rounded-md text-muted-foreground/40 inline-flex items-center gap-1.5" aria-disabled="true">← Newer</span>
+					}
+					<span class="font-mono text-muted-foreground/70">page { strconv.Itoa(data.Page) } of { strconv.Itoa(data.TotalPages) }</span>
+					if data.Page < data.TotalPages {
+						<a href={ templ.SafeURL(reposURL(data.Filter, data.Language, data.Sort, data.Page+1)) } class="h-8 px-3 border border-border rounded-md hover:bg-muted text-muted-foreground inline-flex items-center gap-1.5">Older →</a>
+					} else {
+						<span class="h-8 px-3 border border-border rounded-md text-muted-foreground/40 inline-flex items-center gap-1.5" aria-disabled="true">Older →</span>
+					}
+				</nav>
 			}
 		</div>
+	}
+}
+
+// repoMenuItem is one selectable row in a filter dropdown.
+type repoMenuItem struct {
+	Label  string
+	URL    string
+	Active bool
+}
+
+// repoFilterMenu renders a select-styled trigger that opens a custom dropdown
+// panel. key scopes it within the page-level `openMenu` Alpine state.
+templ repoFilterMenu(key, triggerLabel, ariaLabel, header string, items []repoMenuItem) {
+	<div class="relative" x-on:click.outside={ "openMenu === '" + key + "' && (openMenu = null)" }>
+		<button
+			type="button"
+			x-on:click={ "openMenu = (openMenu === '" + key + "' ? null : '" + key + "')" }
+			:aria-expanded={ "openMenu === '" + key + "' ? 'true' : 'false'" }
+			aria-haspopup="menu"
+			aria-label={ ariaLabel }
+			class="h-9 px-2.5 text-[13px] bg-background border border-border rounded-md text-foreground inline-flex items-center gap-1.5"
+		>
+			<span>{ triggerLabel }</span>
+			<svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+				<path d="M7 10l5 5 5-5"></path>
+			</svg>
+		</button>
+		<div
+			x-show={ "openMenu === '" + key + "'" }
+			x-cloak
+			x-transition.opacity.duration.100ms
+			role="menu"
+			aria-label={ ariaLabel }
+			class="absolute right-0 top-full mt-1.5 z-50 min-w-[200px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
+		>
+			<div class="px-2 pt-1 pb-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{ header }</div>
+			for _, it := range items {
+				<a
+					href={ templ.SafeURL(it.URL) }
+					role="menuitem"
+					class={ "flex items-center justify-between px-2.5 py-1.5 rounded-md text-[13px] hover:bg-accent hover:text-foreground", templ.KV("text-foreground font-medium", it.Active), templ.KV("text-muted-foreground", !it.Active) }
+				>
+					{ it.Label }
+					if it.Active {
+						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+							<polyline points="20 6 9 17 4 12"></polyline>
+						</svg>
+					}
+				</a>
+			}
+		</div>
+	</div>
+}
+
+templ repoVisibilityBadge(private bool) {
+	if private {
+		<span class="inline-flex items-center shrink-0 h-[20px] px-2 rounded-full border text-[10px] font-medium bg-warning/15 text-warning border-warning/30">Private</span>
+	} else {
+		<span class="inline-flex items-center shrink-0 h-[20px] px-2 rounded-full border text-[10px] font-medium bg-success/15 text-success border-success/30">Public</span>
+	}
+}
+
+templ repoLabel(variant, text string) {
+	<span class={ "inline-flex items-center text-[10px] leading-[1.4] px-[7px] py-px rounded-full border whitespace-nowrap", repoLabelClass(variant) }>
+		{ text }
+	</span>
+}
+
+func repoRoleLabel(ownerID, userID int64) string {
+	if ownerID == userID {
+		return "Owner"
+	}
+	return "Collaborator"
+}
+
+// repoRoleColorClass tints the role text — blue for the owner, purple for a
+// collaborator — and bolds it so it reads clearly against the meta line.
+func repoRoleColorClass(ownerID, userID int64) string {
+	if ownerID == userID {
+		return "text-[#93c5fd] font-medium"
+	}
+	return "text-[#c084fc] font-medium"
+}
+
+func reposSubtitle(total int) string {
+	if total == 1 {
+		return "1 repository you own or collaborate on."
+	}
+	return strconv.Itoa(total) + " repositories you own or collaborate on."
+}
+
+func reposEmptyMessage(filtered bool) string {
+	if filtered {
+		return "No repositories match these filters."
+	}
+	return "No repositories yet."
+}
+
+func statTitle(n int, noun string) string {
+	if n == 1 {
+		return "1 " + noun
+	}
+	return strconv.Itoa(n) + " " + noun + "s"
+}
+
+// compactRelative renders a short "2h ago" / "3w ago" style duration.
+func compactRelative(t time.Time) string {
+	d := time.Since(t)
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		return strconv.Itoa(int(d/time.Minute)) + "m ago"
+	case d < 24*time.Hour:
+		return strconv.Itoa(int(d/time.Hour)) + "h ago"
+	case d < 7*24*time.Hour:
+		return strconv.Itoa(int(d/(24*time.Hour))) + "d ago"
+	case d < 30*24*time.Hour:
+		return strconv.Itoa(int(d/(7*24*time.Hour))) + "w ago"
+	case d < 365*24*time.Hour:
+		return strconv.Itoa(int(d/(30*24*time.Hour))) + "mo ago"
+	default:
+		return strconv.Itoa(int(d/(365*24*time.Hour))) + "y ago"
+	}
+}
+
+func repoLabelClass(variant string) string {
+	switch variant {
+	case "template":
+		return "bg-warning/15 text-warning border-warning/30"
+	default:
+		return "bg-muted text-muted-foreground border-border"
+	}
+}
+
+// reposURL builds a /repos link, omitting params left at their defaults.
+func reposURL(filter, language, sortBy string, page int) string {
+	v := url.Values{}
+	if filter != "" && filter != "all" {
+		v.Set("filter", filter)
+	}
+	if language != "" {
+		v.Set("language", language)
+	}
+	if sortBy != "" && sortBy != "updated" {
+		v.Set("sort", sortBy)
+	}
+	if page > 1 {
+		v.Set("page", strconv.Itoa(page))
+	}
+	if len(v) == 0 {
+		return "/repos"
+	}
+	return "/repos?" + v.Encode()
+}
+
+func reposTypeOptions() []repoDropdownOption {
+	return []repoDropdownOption{
+		{"all", "All types"},
+		{"owned", "Owned"},
+		{"collaborator", "Collaborator"},
+		{"forks", "Forks"},
+	}
+}
+
+func reposSortOptions() []repoDropdownOption {
+	return []repoDropdownOption{
+		{"updated", "Sort: last updated"},
+		{"name", "Name"},
+		{"stars", "Stars"},
+		{"created", "Created"},
+	}
+}
+
+func reposSortLabel(sortBy string) string {
+	for _, o := range reposSortOptions() {
+		if o.Value == sortBy {
+			return o.Label
+		}
+	}
+	return "Sort: last updated"
+}
+
+func reposLanguageLabel(language string) string {
+	if language == "" {
+		return "All languages"
+	}
+	return language
+}
+
+func repoTypeTabs(data view.AccountReposData) []components.Tab {
+	tabs := make([]components.Tab, 0, 4)
+	for _, o := range reposTypeOptions() {
+		tabs = append(tabs, components.Tab{
+			Label:    o.Label,
+			URL:      reposURL(o.Value, data.Language, data.Sort, 1),
+			IsActive: data.Filter == o.Value,
+			Count:    data.TypeCounts[o.Value],
+		})
+	}
+	return tabs
+}
+
+func repoSortMenu(data view.AccountReposData) []repoMenuItem {
+	items := make([]repoMenuItem, 0, 4)
+	for _, o := range reposSortOptions() {
+		items = append(items, repoMenuItem{
+			Label:  o.Label,
+			URL:    reposURL(data.Filter, data.Language, o.Value, 1),
+			Active: data.Sort == o.Value,
+		})
+	}
+	return items
+}
+
+func repoLanguageMenu(data view.AccountReposData) []repoMenuItem {
+	items := []repoMenuItem{{
+		Label:  "All languages",
+		URL:    reposURL(data.Filter, "", data.Sort, 1),
+		Active: data.Language == "",
+	}}
+	for _, lang := range data.Languages {
+		items = append(items, repoMenuItem{
+			Label:  lang,
+			URL:    reposURL(data.Filter, lang, data.Sort, 1),
+			Active: data.Language == lang,
+		})
+	}
+	return items
+}
+
+// languageColorClass returns a Tailwind background class carrying the
+// GitHub-Linguist brand color for a language's dot.
+func languageColorClass(lang string) string {
+	switch lang {
+	case "Go":
+		return "bg-[#00ADD8]"
+	case "TypeScript":
+		return "bg-[#3178C6]"
+	case "JavaScript":
+		return "bg-[#F1E05A]"
+	case "Python":
+		return "bg-[#3572A5]"
+	case "Rust":
+		return "bg-[#DEA584]"
+	case "Ruby":
+		return "bg-[#701516]"
+	case "Java":
+		return "bg-[#B07219]"
+	case "Kotlin":
+		return "bg-[#A97BFF]"
+	case "C":
+		return "bg-[#555555]"
+	case "C++":
+		return "bg-[#F34B7D]"
+	case "C#":
+		return "bg-[#178600]"
+	case "Shell", "Bash":
+		return "bg-[#89E051]"
+	case "HTML":
+		return "bg-[#E34C26]"
+	case "CSS":
+		return "bg-[#563D7C]"
+	case "PHP":
+		return "bg-[#4F5D95]"
+	case "Swift":
+		return "bg-[#F05138]"
+	case "Scala":
+		return "bg-[#C22D40]"
+	case "Elixir":
+		return "bg-[#6E4A7E]"
+	case "Haskell":
+		return "bg-[#5E5086]"
+	case "Dart":
+		return "bg-[#00B4AB]"
+	case "Lua":
+		return "bg-[#000080]"
+	case "SQL", "PLpgSQL":
+		return "bg-[#E38C00]"
+	case "Vue":
+		return "bg-[#41B883]"
+	default:
+		return "bg-muted-foreground"
 	}
 }

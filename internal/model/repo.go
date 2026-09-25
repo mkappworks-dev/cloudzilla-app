@@ -28,8 +28,9 @@ type Repository struct {
 	IsArchived       bool       `db:"is_archived"    json:"is_archived"`
 	ArchivedAt       *time.Time `db:"archived_at"    json:"archived_at,omitempty"`
 	IsTemplate       bool       `db:"is_template"    json:"is_template"`
-	DeletedAt        *time.Time `db:"deleted_at"     json:"deleted_at,omitempty"`
-	DeletedBy        *int64     `db:"deleted_by"     json:"deleted_by,omitempty"`
+	DeletedAt        *time.Time `db:"deleted_at"        json:"deleted_at,omitempty"`
+	DeletedBy        *int64     `db:"deleted_by"        json:"deleted_by,omitempty"`
+	PrimaryLanguage  *string    `db:"primary_language"  json:"primary_language,omitempty"`
 }
 
 // RepositoryWithStats augments a Repository with an aggregated star count for
