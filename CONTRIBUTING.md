@@ -61,7 +61,7 @@ Refer to the [README](README.md) for full setup instructions.
 
 **Quick start:**
 
-- Go 1.23 or later
+- Go 1.27 or later
 - PostgreSQL running locally
 - Install dependencies and start the dev server:
 
