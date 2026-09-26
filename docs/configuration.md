@@ -13,6 +13,7 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `server.base_url`            | `http://localhost:8080`                      | `CZ_SERVER_BASE_URL`            | Public base URL (used for CORS, OAuth, emails)  |
 | `server.read_timeout`        | `15s`                                        | `CZ_SERVER_READ_TIMEOUT`        | HTTP read timeout                               |
 | `server.write_timeout`       | `15s`                                        | `CZ_SERVER_WRITE_TIMEOUT`       | HTTP write timeout                              |
+| `server.trusted_proxies`     | _(empty)_                                    | `CZ_SERVER_TRUSTED_PROXIES`     | Comma-separated reverse-proxy IPs/CIDRs whose `X-Forwarded-For` is believed |
 | `database.dsn`               | `postgres://cloudzilla:cloudzilla@...`       | `CZ_DATABASE_DSN`               | PostgreSQL connection string                    |
 | `database.max_open_conns`    | `10`                                         | `CZ_DATABASE_MAX_OPEN_CONNS`    | Max open DB connections                         |
 | `database.max_idle_conns`    | `5`                                          | `CZ_DATABASE_MAX_IDLE_CONNS`    | Max idle DB connections                         |

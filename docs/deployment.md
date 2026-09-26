@@ -61,6 +61,10 @@ Then open `http://localhost:8080` — the first request redirects to `/setup` wh
 
 The SSH host key is auto-generated into the named volume on first boot — no manual `ssh-keygen` step needed.
 
+### Behind a reverse proxy
+
+Set `server.trusted_proxies` (`CZ_SERVER_TRUSTED_PROXIES`) to the proxy's IP or CIDR, e.g. `CZ_SERVER_TRUSTED_PROXIES=172.16.0.0/12` for a Docker network. `X-Forwarded-For` is ignored from any other peer, because clients can forge it. Without this setting, audit-log IPs show only the proxy's address.
+
 ### Upgrading
 
 Migration `074_users_email_case_insensitive` refuses to run while two accounts have emails that differ only by case. Its error names their user IDs; change or merge those accounts, then restart.

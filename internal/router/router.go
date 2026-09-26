@@ -13,12 +13,17 @@ import (
 )
 
 // New registers all application routes and returns the configured chi router.
-func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Handler {
+func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.Handler, error) {
+	trustedProxies, err := middleware.ParseTrustedProxies(cfg.Server.TrustedProxies)
+	if err != nil {
+		return nil, err
+	}
 	r := chi.NewRouter()
 	h := handler.New(services, cfg)
 
 	// Global middleware
 	r.Use(chiMiddleware.RequestID)
+	r.Use(middleware.ClientIP(trustedProxies))
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(middleware.Logger)
 	r.Use(middleware.CORS(cfg.Server.BaseURL))
@@ -510,5 +515,5 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		_, _ = w.Write(faviconBytes)
 	})
 
-	return r
+	return r, nil
 }
