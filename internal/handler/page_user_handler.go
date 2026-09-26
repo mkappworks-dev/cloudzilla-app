@@ -67,6 +67,7 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		Repos:          repos,
 		RecentActivity: activity,
 		ProfileReadme:  profileReadme,
+		IsOwnProfile:   viewerID != nil && *viewerID == user.ID,
 	}
 
 	if r.URL.Query().Get("tab") == "repositories" {
