@@ -1,19 +1,26 @@
-package model
+package model_test
 
 import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-func TestUser_JSON_OmitsPrivateFields(t *testing.T) {
-	b, err := json.Marshal(User{PasswordHash: "hash", KeepEmailPrivate: true})
+// json:"-" is the only guard for preferences on any path that writes a model.User as JSON.
+func TestUser_JSONOmitsPreferences(t *testing.T) {
+	b, err := json.Marshal(model.User{})
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-	for _, key := range []string{"password_hash", "PasswordHash", "keep_email_private", "KeepEmailPrivate"} {
-		if strings.Contains(string(b), `"`+key+`"`) {
-			t.Errorf("User JSON must not expose %q: %s", key, b)
+	var got map[string]any
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	for key := range got {
+		if strings.HasPrefix(key, "email_") || strings.HasPrefix(key, "notify_") || key == "keep_email_private" {
+			t.Errorf("model.User JSON exposes preference %q", key)
 		}
 	}
 }

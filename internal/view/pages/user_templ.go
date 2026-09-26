@@ -100,7 +100,7 @@ func User(data view.UserData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if data.User.Email != "" {
+			if data.IsOwnProfile && data.User.Email != "" {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div class=\"inline-flex items-center gap-1.5\"><dt class=\"sr-only\">Email</dt><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z\"></path><polyline points=\"22 6 12 13 2 6\"></polyline></svg><dd>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err

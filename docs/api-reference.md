@@ -69,10 +69,12 @@ Deploy keys authenticate via SSH using the key's MD5 fingerprint. A `read_only` 
 
 ## Users
 
-| Method | Path                         | Auth | Description              |
-| ------ | ---------------------------- | ---- | ------------------------ |
-| GET    | `/api/users/:username`       | --   | Get user profile         |
-| GET    | `/api/users/:username/repos` | --   | List user's repositories |
+| Method | Path                         | Auth | Description                 |
+| ------ | ---------------------------- | ---- | --------------------------- |
+| GET    | `/api/users/:username`       | --   | Get a user's public profile |
+| GET    | `/api/users/:username/repos` | --   | List user's repositories    |
+
+Public user objects — returned here and by `/api/repos/:owner/:repo/stargazers` (JSON only with `HX-Request: true`; otherwise it renders the stargazers page) — contain only `id`, `username`, `bio`, `avatar_url`, and `created_at`. Email addresses and notification preferences are never returned.
 
 ## Repositories
 

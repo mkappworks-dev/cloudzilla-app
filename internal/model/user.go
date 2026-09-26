@@ -21,7 +21,7 @@ type User struct {
 	TOTPBackupCodes []string       `db:"-"                json:"-"`
 	CreatedAt          time.Time      `db:"created_at"          json:"created_at"`
 	UpdatedAt          time.Time      `db:"updated_at"          json:"updated_at"`
-	EmailNotifications bool           `db:"email_notifications" json:"email_notifications"`
-	EmailDigest        string         `db:"email_digest"        json:"email_digest"`
+	EmailNotifications bool           `db:"email_notifications" json:"-"`
+	EmailDigest        string         `db:"email_digest"        json:"-"`
 	KeepEmailPrivate   bool           `db:"keep_email_private"  json:"-"`
 }
