@@ -1,39 +1,21 @@
 package components
 
-// DropdownMenuAlign controls which edge of the trigger the menu pops out from.
 type DropdownMenuAlign string
 
 const (
-	DropdownAlignStart DropdownMenuAlign = "start" // left edge of trigger
-	DropdownAlignEnd   DropdownMenuAlign = "end"   // right edge of trigger (default for nav menus)
+	DropdownAlignStart DropdownMenuAlign = "start"
+	DropdownAlignEnd   DropdownMenuAlign = "end"
 )
 
-// DropdownMenu is the Alpine.js-backed root. It establishes an `open` scope
-// that DropdownMenuTrigger and DropdownMenuContent both read.
-//
-// Example:
-//
-//	@components.DropdownMenu() {
-//	  @components.DropdownMenuTrigger(templ.Attributes{"aria-label": "Account"}) {
-//	    @components.Avatar(name, components.AvatarSizeDefault, "")
-//	  }
-//	  @components.DropdownMenuContent(components.DropdownAlignEnd) {
-//	    @components.DropdownMenuLabel() { "Signed in as Daisy" }
-//	    @components.DropdownMenuSeparator()
-//	    @components.DropdownMenuLink("/settings", nil) { "Settings" }
-//	    <form method="POST" action="/api/auth/logout" class="contents">
-//	      @components.DropdownMenuItem(templ.Attributes{"type": "submit"}) { "Sign out" }
-//	    </form>
-//	  }
-//	}
+// Trigger, Content, Item and Link read or write the Alpine `open` scope
+// declared here, so they only work nested inside it.
 templ DropdownMenu() {
 	<div x-data="{ open: false }" class="relative inline-block">
 		{ children... }
 	</div>
 }
 
-// DropdownMenuTrigger is the button that opens/closes the menu.
-// Pass styling via attrs — e.g. templ.Attributes{"class": "h-7 w-7 ..."}.
+// Has no base classes, unlike its siblings: callers style it entirely via attrs.
 templ DropdownMenuTrigger(attrs templ.Attributes) {
 	<button
 		type="button"
@@ -48,7 +30,6 @@ templ DropdownMenuTrigger(attrs templ.Attributes) {
 	</button>
 }
 
-// DropdownMenuContent is the floating panel. Hidden until `open` is true.
 templ DropdownMenuContent(align DropdownMenuAlign) {
 	if align == DropdownAlignEnd {
 		<div
@@ -73,13 +54,11 @@ templ DropdownMenuContent(align DropdownMenuAlign) {
 	}
 }
 
-// DropdownMenuItem is a button-style row. Use for actions that don't navigate (e.g. logout POST forms).
 templ DropdownMenuItem(attrs templ.Attributes) {
 	<button
 		role="menuitem"
 		x-on:click="open = false"
-		class="flex w-full items-center gap-2 px-2 py-1.5 rounded-sm text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:opacity-50 disabled:pointer-events-none"
-		{ withDefaultButtonType(attrs)... }
+		{ withClass(withDefaultButtonType(attrs), "flex w-full items-center gap-2 px-2 py-1.5 rounded-sm text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:opacity-50 disabled:pointer-events-none")... }
 	>
 		{ children... }
 	</button>
@@ -96,32 +75,27 @@ func withDefaultButtonType(attrs templ.Attributes) templ.Attributes {
 	return out
 }
 
-// DropdownMenuLink is the anchor-style row. Use for navigation entries.
 templ DropdownMenuLink(href string, attrs templ.Attributes) {
 	<a
 		href={ templ.SafeURL(href) }
 		role="menuitem"
 		x-on:click="open = false"
-		class="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none"
-		{ attrs... }
+		{ withClass(attrs, "flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none")... }
 	>
 		{ children... }
 	</a>
 }
 
-// DropdownMenuLabel renders a small section heading inside the menu.
 templ DropdownMenuLabel() {
 	<div class="px-2 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
 		{ children... }
 	</div>
 }
 
-// DropdownMenuSeparator is a thin divider between item groups.
 templ DropdownMenuSeparator() {
 	<div role="separator" class="my-1 h-px bg-border"></div>
 }
 
-// DropdownMenuShortcut renders a right-aligned keyboard hint inside an item.
 templ DropdownMenuShortcut() {
 	<span class="ml-auto text-[11px] tracking-wider text-muted-foreground">{ children... }</span>
 }

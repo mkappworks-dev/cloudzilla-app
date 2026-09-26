@@ -8,17 +8,7 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Checkbox renders a styled native <input type="checkbox">.
-// Caller is responsible for the surrounding <label> — typically wrap both
-// the Checkbox and the visible label text in a single <label> so the click
-// target is the entire row.
-//
-// Example:
-//
-//	<label class="flex items-center gap-2 cursor-pointer">
-//	  @components.Checkbox(templ.Attributes{"name": "private", "id": "private", "checked": "checked"})
-//	  <span class="text-sm">Make repository private</span>
-//	</label>
+// Renders no <label>: callers wrap the input and its text in one <label> so the whole row is the click target.
 func Checkbox(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -40,11 +30,11 @@ func Checkbox(attrs templ.Attributes) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<input type=\"checkbox\" class=\"h-4 w-4 shrink-0 rounded border border-input bg-transparent accent-foreground checked:bg-primary checked:border-primary disabled:cursor-not-allowed disabled:opacity-50\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<input type=\"checkbox\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, attrs)
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "h-4 w-4 shrink-0 rounded border border-input bg-transparent accent-foreground checked:bg-primary checked:border-primary disabled:cursor-not-allowed disabled:opacity-50"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -56,19 +46,7 @@ func Checkbox(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// Switch renders a toggle-style checkbox with a sliding visual indicator.
-// Like Checkbox, wrap the whole thing in a <label> for click semantics.
-//
-// Uses the native <input type="checkbox" role="switch"> for accessibility —
-// screen readers announce it as "switch" and report on/off state via the
-// `checked` attribute.
-//
-// Example:
-//
-//	<label class="flex items-center gap-3 cursor-pointer">
-//	  @components.Switch(templ.Attributes{"name": "notifications", "checked": "checked"})
-//	  <span class="text-sm">Email notifications</span>
-//	</label>
+// A native checkbox so screen readers announce a switch and read on/off from `checked`. Wrap in a <label>, as with Checkbox.
 func Switch(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -90,11 +68,11 @@ func Switch(attrs templ.Attributes) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<span class=\"relative inline-flex items-center\"><input type=\"checkbox\" role=\"switch\" class=\"peer sr-only\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<span class=\"relative inline-flex items-center\"><input type=\"checkbox\" role=\"switch\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, attrs)
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "peer sr-only"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -106,24 +84,7 @@ func Switch(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// Radio renders a styled native <input type="radio">.
-// Same wrapping pattern as Checkbox — combine multiple Radios under a shared
-// `name` attribute, each wrapped in its own <label>, ideally inside a
-// <fieldset> with a <legend> describing the group.
-//
-// Example:
-//
-//	<fieldset class="space-y-2">
-//	  <legend class="text-sm font-medium">Visibility</legend>
-//	  <label class="flex items-center gap-2">
-//	    @components.Radio(templ.Attributes{"name": "vis", "value": "public", "checked": "checked"})
-//	    <span class="text-sm">Public</span>
-//	  </label>
-//	  <label class="flex items-center gap-2">
-//	    @components.Radio(templ.Attributes{"name": "vis", "value": "private"})
-//	    <span class="text-sm">Private</span>
-//	  </label>
-//	</fieldset>
+// Wrap each in its own <label>, as with Checkbox, and group them in a <fieldset> + <legend> (or RadioGroup).
 func Radio(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -145,11 +106,11 @@ func Radio(attrs templ.Attributes) templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<input type=\"radio\" class=\"h-4 w-4 shrink-0 border border-input bg-transparent accent-foreground checked:border-primary disabled:cursor-not-allowed disabled:opacity-50\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<input type=\"radio\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, attrs)
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "h-4 w-4 shrink-0 border border-input bg-transparent accent-foreground checked:border-primary disabled:cursor-not-allowed disabled:opacity-50"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

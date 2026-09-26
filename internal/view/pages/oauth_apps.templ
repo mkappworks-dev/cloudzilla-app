@@ -65,13 +65,12 @@ templ OAuthApps(data view.OAuthAppsData) {
 										<p class="text-[13px] font-medium">{ app.Name }</p>
 										<p class="mt-0.5 font-mono text-[11px] text-muted-foreground truncate">Client ID: { app.ClientID }</p>
 									</div>
-									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+									@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
 										"hx-delete":  "/api/oauth/apps/" + strconv.FormatInt(app.ID, 10),
 										"hx-confirm": "Delete this application?",
 										"hx-target":  "closest li",
 										"hx-swap":    "outerHTML",
 										"type":       "button",
-										"class":      "text-destructive border-destructive/40 hover:bg-destructive/10",
 									}) {
 										Delete
 									}
@@ -95,13 +94,12 @@ templ OAuthApps(data view.OAuthAppsData) {
 										<p class="text-[13px]">App ID <span class="font-mono">{ strconv.FormatInt(auth.AppID, 10) }</span></p>
 										<p class="mt-0.5 font-mono text-[11px] text-muted-foreground">Scopes: { strings.Join(auth.Scopes, " ") }</p>
 									</div>
-									@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+									@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
 										"hx-delete":  "/api/oauth/authorizations/" + strconv.FormatInt(auth.ID, 10),
 										"hx-confirm": "Revoke access?",
 										"hx-target":  "closest li",
 										"hx-swap":    "outerHTML",
 										"type":       "button",
-										"class":      "text-destructive border-destructive/40 hover:bg-destructive/10",
 									}) {
 										Revoke
 									}

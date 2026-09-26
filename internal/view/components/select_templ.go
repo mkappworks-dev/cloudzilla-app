@@ -8,20 +8,7 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Select renders a styled native <select> with a chevron indicator overlay.
-// Pass attributes via templ.Attributes — typically `name`, `id`, `required`,
-// `aria-*`, `hx-*`. The caller provides <option> children.
-//
 // Always pair with a <label for="..."> (visible or class="sr-only").
-//
-// Example:
-//
-//	<label for="role" class="text-sm">Role</label>
-//	@components.Select(templ.Attributes{"id": "role", "name": "role"}) {
-//	  <option value="reader">Reader</option>
-//	  <option value="writer" selected>Writer</option>
-//	  <option value="admin">Admin</option>
-//	}
 func Select(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -43,11 +30,11 @@ func Select(attrs templ.Attributes) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"relative\"><select class=\"appearance-none flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-50\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"relative\"><select")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, attrs)
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "appearance-none flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-50"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
