@@ -187,22 +187,13 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 	}
 
 	if s.language != nil && repo.OwnerName != "" && repo.DefaultBranch != "" {
-		comp, err := s.language.Composition(ctx, repo.OwnerName, repo.Name, repo.DefaultBranch)
+		// A page view before this push may have cached the old tree; the column would keep it until the next push.
+		s.language.InvalidateRepo(repo.OwnerName, repo.Name)
+		top, err := s.language.TopLanguageFor(ctx, repo.OwnerName, repo.Name, repo.DefaultBranch)
 		if err != nil {
 			slog.Warn("post-receive: language composition failed", "repo_id", repo.ID, "error", err)
-		} else {
-			top := ""
-			if len(comp) > 0 {
-				topBytes := int64(0)
-				for lang, b := range comp {
-					if b > topBytes {
-						top, topBytes = lang, b
-					}
-				}
-			}
-			if err := s.repos.UpdatePrimaryLanguage(ctx, repo.ID, top); err != nil {
-				slog.Error("post-receive: update primary language failed", "repo_id", repo.ID, "error", err)
-			}
+		} else if err := s.repos.UpdatePrimaryLanguage(ctx, repo.ID, top); err != nil {
+			slog.Error("post-receive: update primary language failed", "repo_id", repo.ID, "error", err)
 		}
 	}
 

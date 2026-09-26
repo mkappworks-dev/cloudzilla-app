@@ -8,7 +8,12 @@ import (
 	"strings"
 	"testing"
 
+	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -270,5 +275,88 @@ func TestLanguageService_AggregateForOrg_ViewerVisibility(t *testing.T) {
 	}
 	if want := []LangPercent{{Name: "Go", Percent: 66}, {Name: "Python", Percent: 33}}; !reflect.DeepEqual(owner, want) {
 		t.Errorf("owner: got %+v, want %+v", owner, want)
+	}
+}
+
+func TestLanguageService_PrimaryLanguage_EmptyColumnFallsBack(t *testing.T) {
+	t.Parallel()
+	code := newTestRepoWithFiles(t, "dave", "app", map[string]string{"main.go": "package main\n"})
+	svc := NewLanguageService(code, nil, nil)
+
+	empty, rust := "", "Rust"
+	for _, tc := range []struct {
+		name   string
+		column *string
+		want   string
+	}{
+		{"nil column", nil, "Go"},
+		{"empty column", &empty, "Go"},
+		{"set column", &rust, "Rust"},
+	} {
+		repo := &model.Repository{OwnerName: "dave", Name: "app", PrimaryLanguage: tc.column}
+		if got := svc.PrimaryLanguage(context.Background(), repo); got != tc.want {
+			t.Errorf("%s: PrimaryLanguage = %q, want %q", tc.name, got, tc.want)
+		}
+	}
+}
+
+// A page view before the push caches the README-only tree; the push must not store that stale result.
+func TestRepoService_OnPostReceive_PrimaryLanguageFromPushedTree(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	owner := "testuser_" + suffix
+
+	root := t.TempDir()
+	bareDir := newTestRepoWithFilesAt(t, root, owner, "pushed", map[string]string{"README.md": "# pushed\n"})
+	seedLangRepo(t, db, ownerID, owner, "pushed", false)
+
+	code := NewCodeService(config.GitConfig{ReposRoot: root})
+	users := store.NewUserStore(db)
+	repoSvc := NewRepoService(store.NewRepoStore(db), users, store.NewOrgStore(db),
+		NewContributorStatsService(store.NewContributorStatsStore(db), users), code, config.GitConfig{ReposRoot: root})
+	langSvc := NewLanguageService(code, repoSvc, nil)
+	repoSvc.WithLanguageService(langSvc)
+
+	if pcts, err := langSvc.Percentages(ctx, owner, "pushed", "master"); err != nil || len(pcts) != 0 {
+		t.Fatalf("pre-push Percentages = %+v, %v; want none", pcts, err)
+	}
+
+	gitRepo, err := gogit.PlainOpen(bareDir)
+	if err != nil {
+		t.Fatalf("open bare: %v", err)
+	}
+	branch := plumbing.NewBranchReferenceName("master")
+	before, err := gitRepo.Reference(branch, true)
+	if err != nil {
+		t.Fatalf("resolve master: %v", err)
+	}
+	if err := code.CommitFile(owner, "pushed", "master", "main.go", []byte("package main\n"), "Tester", "tester@example.com", "add main"); err != nil {
+		t.Fatalf("commit main.go: %v", err)
+	}
+	after, err := gitRepo.Reference(branch, true)
+	if err != nil {
+		t.Fatalf("resolve master after commit: %v", err)
+	}
+
+	repo, err := repoSvc.Get(ctx, owner, "pushed")
+	if err != nil {
+		t.Fatalf("get repo: %v", err)
+	}
+	cmds := []*packp.Command{{Name: branch, Old: before.Hash(), New: after.Hash()}}
+	if err := repoSvc.OnPostReceive(ctx, repo, gitRepo, cmds); err != nil {
+		t.Fatalf("OnPostReceive: %v", err)
+	}
+
+	var got sql.NullString
+	if err := db.QueryRowContext(ctx, `SELECT primary_language FROM repositories WHERE id = $1`, repo.ID).Scan(&got); err != nil {
+		t.Fatalf("read primary_language: %v", err)
+	}
+	if got.String != "Go" {
+		t.Errorf("primary_language after push = %q, want %q", got.String, "Go")
+	}
+	if pcts, err := langSvc.Percentages(ctx, owner, "pushed", "master"); err != nil || langNames(pcts) != "Go" {
+		t.Errorf("post-push Percentages = %+v, %v; want Go", pcts, err)
 	}
 }

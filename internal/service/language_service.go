@@ -106,6 +106,17 @@ func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref 
 	return comp, nil
 }
 
+// Drops every ref, not just the default branch: one push can move several.
+func (s *LanguageService) InvalidateRepo(owner, repoName string) {
+	prefix := owner + "/" + repoName + ":"
+	s.cache.Range(func(k, _ any) bool {
+		if strings.HasPrefix(k.(string), prefix) {
+			s.cache.Delete(k)
+		}
+		return true
+	})
+}
+
 // Percent is an integer; sum may be ≤ 100 due to rounding.
 type LangPercent struct {
 	Name    string
@@ -141,10 +152,11 @@ func (s *LanguageService) TopLanguageFor(ctx context.Context, owner, repoName, r
 	return top, nil
 }
 
-// PrimaryLanguage prefers the column cached at push time; repos not pushed
-// since the column was added have it nil, so those fall back to a tree walk.
+// PrimaryLanguage prefers the column written at push time. Nil and "" both fall
+// back to a cached tree walk, so a column a push left empty heals on view;
+// README-only repos pay that walk.
 func (s *LanguageService) PrimaryLanguage(ctx context.Context, repo *model.Repository) string {
-	if repo.PrimaryLanguage != nil {
+	if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
 		return *repo.PrimaryLanguage
 	}
 	lang, err := s.TopLanguageFor(ctx, repo.OwnerName, repo.Name, repo.DefaultBranch)
