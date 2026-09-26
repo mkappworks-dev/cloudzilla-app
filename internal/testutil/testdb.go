@@ -150,7 +150,7 @@ func SeedInvitation(t *testing.T, db *sql.DB, email string, expiresAt time.Time)
 		t.Fatalf("SeedInvitation: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM invitations WHERE id = $1`, id)
+		Exec(t, db, `DELETE FROM invitations WHERE id = $1`, id)
 	})
 	return id, token
 }

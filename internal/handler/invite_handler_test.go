@@ -157,7 +157,7 @@ func TestPageInviteSubmit_Success_ClaimsInvitation(t *testing.T) {
 	email := "invitee_" + suffix + "@test.invalid"
 	id, token := testutil.SeedInvitation(t, db, email, time.Now().UTC().Add(time.Hour))
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE email = $1`, email)
+		testutil.Exec(t, db, `DELETE FROM users WHERE email = $1`, email)
 	})
 
 	form := url.Values{"username": {"invitee_" + suffix}, "password": {"password123"}}
@@ -207,7 +207,7 @@ func TestPageInviteSubmit_ConcurrentSubmits_OneAccount(t *testing.T) {
 	email := "invitee_" + suffix + "@test.invalid"
 	_, token := testutil.SeedInvitation(t, db, email, time.Now().UTC().Add(time.Hour))
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE email = $1`, email)
+		testutil.Exec(t, db, `DELETE FROM users WHERE email = $1`, email)
 	})
 
 	const submits = 5
