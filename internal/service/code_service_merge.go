@@ -346,7 +346,7 @@ func mergeTreesNoConflict(repo *gogit.Repository, mergeBase, base, head *object.
 }
 
 // ThreeWayMergePullRequest creates a merge commit combining head into base.
-func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head, authorName, authorEmail string) error {
+func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head string, author GitAuthor) error {
 	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
 	if err != nil {
 		return err
@@ -379,7 +379,7 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head, auth
 	}
 
 	now := time.Now()
-	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
+	sig := author.signature(now)
 	commit := &object.Commit{
 		Author:       sig,
 		Committer:    sig,
@@ -400,7 +400,7 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head, auth
 }
 
 // SquashMergePullRequest creates a single squash commit on base incorporating all head changes.
-func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head, authorName, authorEmail string) error {
+func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string, author GitAuthor) error {
 	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
 	if err != nil {
 		return err
@@ -434,7 +434,7 @@ func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head, author
 	}
 
 	now := time.Now()
-	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
+	sig := author.signature(now)
 	commit := &object.Commit{
 		Author:       sig,
 		Committer:    sig,
@@ -456,7 +456,7 @@ func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head, author
 
 // ApplySuggestion replaces targetLine (1-based) in filePath on branch with the replacement
 // text and creates a new commit on that branch.
-func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, targetLine int, replacement, authorName, authorEmail string) error {
+func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, targetLine int, replacement string, author GitAuthor) error {
 	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
 	if err != nil {
 		return err
@@ -520,7 +520,7 @@ func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, 
 
 	// Create new commit.
 	now := time.Now()
-	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
+	sig := author.signature(now)
 	commit := &object.Commit{
 		Author:       sig,
 		Committer:    sig,

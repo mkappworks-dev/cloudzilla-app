@@ -157,19 +157,19 @@ func (s *UserService) UpdateKeepEmailPrivate(ctx context.Context, userID int64, 
 	return s.store.UpdateKeepEmailPrivate(ctx, userID, keep)
 }
 
-func (s *UserService) NoreplyEmail(u *model.User) string {
+func (s *UserService) NoreplyEmail(_ context.Context, u *model.User) string {
 	return noreplyEmail(s.noreplyHost, u)
 }
 
-func (s *UserService) CommitAuthor(ctx context.Context, userID int64) (name, email string, err error) {
+func (s *UserService) CommitAuthor(ctx context.Context, userID int64) (GitAuthor, error) {
 	u, err := s.store.GetByID(ctx, userID)
 	if err != nil {
-		return "", "", err
+		return GitAuthor{}, err
 	}
 	if u.KeepEmailPrivate || u.Email == "" {
-		return u.Username, s.NoreplyEmail(u), nil
+		return GitAuthor{Name: u.Username, Email: s.NoreplyEmail(ctx, u)}, nil
 	}
-	return u.Username, u.Email, nil
+	return GitAuthor{Name: u.Username, Email: u.Email}, nil
 }
 
 // ListUsersForDigest returns users with email notifications enabled for the given digest mode.

@@ -36,6 +36,8 @@ type updatePRRequest struct {
 	AutoMergeStrategy string  `json:"auto_merge_strategy"` // "ff" | "merge" | "squash"
 }
 
+var autoMergeAuthor = service.GitAuthor{Name: "auto-merge", Email: "auto-merge@localhost"}
+
 func (h *Handler) ListPulls(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repo := chi.URLParam(r, "repo")
@@ -322,7 +324,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnprocessableEntity, "merge blocked: "+err.Error())
 			return
 		}
-		authorName, authorEmail, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
+		author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to load user")
 			return
@@ -331,9 +333,9 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		head := existingPR.HeadBranch
 		switch mergeStrategy {
 		case "merge":
-			err = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, base, head, authorName, authorEmail)
+			err = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, base, head, author)
 		case "squash":
-			err = h.Services.Code.SquashMergePullRequest(owner, repoName, base, head, authorName, authorEmail)
+			err = h.Services.Code.SquashMergePullRequest(owner, repoName, base, head, author)
 		default:
 			err = h.Services.Code.MergePullRequest(owner, repoName, base, head)
 		}
@@ -431,9 +433,9 @@ func (h *Handler) tryAutoMerge(owner, repoName string, pullID int64) {
 	var mergeErr error
 	switch pr.AutoMergeStrategy {
 	case "merge":
-		mergeErr = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, "auto-merge", "auto-merge@localhost")
+		mergeErr = h.Services.Code.ThreeWayMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, autoMergeAuthor)
 	case "squash":
-		mergeErr = h.Services.Code.SquashMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, "auto-merge", "auto-merge@localhost")
+		mergeErr = h.Services.Code.SquashMergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch, autoMergeAuthor)
 	default: // "ff"
 		mergeErr = h.Services.Code.MergePullRequest(owner, repoName, pr.BaseBranch, pr.HeadBranch)
 	}

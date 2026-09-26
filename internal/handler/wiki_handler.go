@@ -233,7 +233,7 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 	message := r.FormValue("message")
 	newSlug := r.FormValue("new_slug")
 
-	authorName, authorEmail, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
+	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to load user")
 		return
@@ -254,7 +254,7 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		renameMsg := "Rename " + slug + " to " + newSlug
-		if err := h.Services.Code.WikiPageRename(owner, repoName, slug, newSlug, authorName, authorEmail, renameMsg); err != nil {
+		if err := h.Services.Code.WikiPageRename(owner, repoName, slug, newSlug, author, renameMsg); err != nil {
 			if errors.Is(err, service.ErrWikiPageExists) {
 				writeError(w, http.StatusConflict, "a page with that name already exists")
 				return
@@ -270,7 +270,7 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 		slug = newSlug
 	}
 
-	if err := h.Services.Code.WikiPageSave(owner, repoName, slug, content, authorName, authorEmail, message); err != nil {
+	if err := h.Services.Code.WikiPageSave(owner, repoName, slug, content, author, message); err != nil {
 		slog.Error("failed to save wiki page", "owner", owner, "repo", repoName, "slug", slug, "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to save wiki page")
 		return
@@ -323,13 +323,13 @@ func (h *Handler) WikiSetPageOrder(w http.ResponseWriter, r *http.Request) {
 		slugs = append(slugs, s)
 	}
 
-	authorName, authorEmail, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
+	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to load user")
 		return
 	}
 
-	if err := h.Services.Code.WikiPageSetOrder(owner, repoName, slugs, authorName, authorEmail); err != nil {
+	if err := h.Services.Code.WikiPageSetOrder(owner, repoName, slugs, author); err != nil {
 		slog.Error("failed to set wiki page order", "owner", owner, "repo", repoName, "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to set wiki page order")
 		return
@@ -369,13 +369,13 @@ func (h *Handler) DeleteWikiPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authorName, authorEmail, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
+	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to load user")
 		return
 	}
 
-	if err := h.Services.Code.WikiPageDelete(owner, repoName, slug, authorName, authorEmail); err != nil {
+	if err := h.Services.Code.WikiPageDelete(owner, repoName, slug, author); err != nil {
 		slog.Error("failed to delete wiki page", "owner", owner, "repo", repoName, "slug", slug, "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to delete wiki page")
 		return

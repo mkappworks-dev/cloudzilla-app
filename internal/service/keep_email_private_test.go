@@ -49,7 +49,7 @@ func TestRepoService_TopContributors_MergesAUsersAuthorEmails(t *testing.T) {
 		{"Stranger", "stranger_" + suffix + "@test.invalid", "d.txt"},
 	}
 	for _, c := range commits {
-		if err := code.CommitFile(username, repoName, "main", c.path, []byte(c.path), c.name, c.email, "Add "+c.path); err != nil {
+		if err := code.CommitFile(username, repoName, "main", c.path, []byte(c.path), service.GitAuthor{Name: c.name, Email: c.email}, "Add "+c.path); err != nil {
 			t.Fatalf("commit %s: %v", c.path, err)
 		}
 	}
@@ -88,24 +88,24 @@ func TestUserService_CommitAuthor_FollowsKeepEmailPrivate(t *testing.T) {
 		t.Fatal("keep_email_private must default to true")
 	}
 
-	name, email, err := svc.CommitAuthor(ctx, userID)
+	author, err := svc.CommitAuthor(ctx, userID)
 	if err != nil {
 		t.Fatalf("CommitAuthor: %v", err)
 	}
-	wantNoreply := fmt.Sprintf("%d+%s@users.noreply.git.example.com", userID, username)
-	if name != username || email != wantNoreply {
-		t.Errorf("private: got %q <%s>, want %q <%s>", name, email, username, wantNoreply)
+	want := service.GitAuthor{Name: username, Email: fmt.Sprintf("%d+%s@users.noreply.git.example.com", userID, username)}
+	if author != want {
+		t.Errorf("private: got %+v, want %+v", author, want)
 	}
 
 	if err := svc.UpdateKeepEmailPrivate(ctx, userID, false); err != nil {
 		t.Fatalf("UpdateKeepEmailPrivate: %v", err)
 	}
-	_, email, err = svc.CommitAuthor(ctx, userID)
+	author, err = svc.CommitAuthor(ctx, userID)
 	if err != nil {
 		t.Fatalf("CommitAuthor: %v", err)
 	}
-	if want := username + "@test.invalid"; email != want {
-		t.Errorf("public: got <%s>, want <%s>", email, want)
+	if want := (service.GitAuthor{Name: username, Email: username + "@test.invalid"}); author != want {
+		t.Errorf("public: got %+v, want %+v", author, want)
 	}
 }
 

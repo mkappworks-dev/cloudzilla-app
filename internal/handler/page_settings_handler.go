@@ -35,7 +35,7 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		BasePage:         basePage(r, h.Services),
 		SSHKeys:          keys,
 		Email:            user.Email,
-		NoreplyEmail:     h.Services.User.NoreplyEmail(user),
+		NoreplyEmail:     h.Services.User.NoreplyEmail(r.Context(), user),
 		KeepEmailPrivate: user.KeepEmailPrivate,
 	}))
 }

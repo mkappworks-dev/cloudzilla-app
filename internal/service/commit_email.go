@@ -8,7 +8,9 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
@@ -17,6 +19,15 @@ const (
 	noreplyDomainPrefix = "users.noreply."
 	defaultNoreplyHost  = "localhost"
 )
+
+type GitAuthor struct {
+	Name  string
+	Email string
+}
+
+func (a GitAuthor) signature(when time.Time) object.Signature {
+	return object.Signature{Name: a.Name, Email: a.Email, When: when}
+}
 
 func noreplyHostFromBaseURL(baseURL string) string {
 	u, err := url.Parse(baseURL)

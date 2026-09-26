@@ -218,20 +218,19 @@ func (s *CodeService) WikiPageGet(owner, repoName, slug string) (content string,
 }
 
 // WikiPageSetOrder errors when the wiki repo does not yet exist.
-func (s *CodeService) WikiPageSetOrder(owner, repoName string, orderedSlugs []string, authorName, authorEmail string) error {
+func (s *CodeService) WikiPageSetOrder(owner, repoName string, orderedSlugs []string, author GitAuthor) error {
 	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
 	if err != nil {
 		return fmt.Errorf("wiki open: %w", err)
 	}
 	content := strings.Join(orderedSlugs, "\n")
-	return wikiCommit(repo, ".order", []byte(content), authorName, authorEmail, "Reorder wiki pages")
+	return wikiCommit(repo, ".order", []byte(content), author, "Reorder wiki pages")
 }
 
 // WikiPageSave creates or updates a wiki page in the bare repo, creating the
 // repo itself (with an initial empty commit) if it does not yet exist.
-// authorName and authorEmail are used for the git commit signature.
 // message is the commit message; if empty, a default is used.
-func (s *CodeService) WikiPageSave(owner, repoName, slug, content, authorName, authorEmail, message string) error {
+func (s *CodeService) WikiPageSave(owner, repoName, slug, content string, author GitAuthor, message string) error {
 	if message == "" {
 		message = "Update " + slug
 	}
@@ -248,12 +247,12 @@ func (s *CodeService) WikiPageSave(owner, repoName, slug, content, authorName, a
 
 	// Build the new tree by reading the current HEAD tree (if any) and
 	// inserting / replacing the target file, then writing a new commit.
-	return wikiCommit(repo, slug+".md", []byte(content), authorName, authorEmail, message)
+	return wikiCommit(repo, slug+".md", []byte(content), author, message)
 }
 
 // WikiPageRename rewrites .order in the same commit so the user-defined
 // sidebar position is preserved across the rename.
-func (s *CodeService) WikiPageRename(owner, repoName, oldSlug, newSlug, authorName, authorEmail, message string) error {
+func (s *CodeService) WikiPageRename(owner, repoName, oldSlug, newSlug string, author GitAuthor, message string) error {
 	wPath := s.wikiPath(owner, repoName)
 	repo, err := gogit.PlainOpen(wPath)
 	if err != nil {
@@ -312,12 +311,12 @@ func (s *CodeService) WikiPageRename(owner, repoName, oldSlug, newSlug, authorNa
 		}
 		return out, blobs, nil
 	}
-	return wikiMutateTree(repo, parentCommit, authorName, authorEmail, message, mutate)
+	return wikiMutateTree(repo, parentCommit, author, message, mutate)
 }
 
 // WikiPageDelete strips the slug from .order in the same commit so the
 // sidebar order doesn't drift toward a dead entry.
-func (s *CodeService) WikiPageDelete(owner, repoName, slug, authorName, authorEmail string) error {
+func (s *CodeService) WikiPageDelete(owner, repoName, slug string, author GitAuthor) error {
 	wPath := s.wikiPath(owner, repoName)
 	repo, err := gogit.PlainOpen(wPath)
 	if err != nil {
@@ -359,7 +358,7 @@ func (s *CodeService) WikiPageDelete(owner, repoName, slug, authorName, authorEm
 		}
 		return out, blobs, nil
 	}
-	if err := wikiMutateTree(repo, parentCommit, authorName, authorEmail, "Delete "+slug, mutate); err != nil {
+	if err := wikiMutateTree(repo, parentCommit, author, "Delete "+slug, mutate); err != nil {
 		if errors.Is(err, errWikiNoChange) {
 			return nil
 		}
@@ -392,7 +391,8 @@ type blobWrite struct {
 func wikiMutateTree(
 	repo *gogit.Repository,
 	parentCommit *object.Commit,
-	authorName, authorEmail, message string,
+	author GitAuthor,
+	message string,
 	mutate func([]object.TreeEntry) ([]object.TreeEntry, []blobWrite, error),
 ) error {
 	parentTree, err := parentCommit.Tree()
@@ -449,7 +449,7 @@ func wikiMutateTree(
 	}
 
 	now := time.Now()
-	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
+	sig := author.signature(now)
 	commitObj := stor.NewEncodedObject()
 	commit := object.Commit{
 		Author:       sig,
@@ -489,9 +489,9 @@ func wikiMutateTree(
 
 // wikiCommit writes filename/content into the bare repo as a new commit on
 // the default (main) branch, preserving all other files from HEAD.
-func wikiCommit(repo *gogit.Repository, filename string, content []byte, authorName, authorEmail, message string) error {
+func wikiCommit(repo *gogit.Repository, filename string, content []byte, author GitAuthor, message string) error {
 	now := time.Now()
-	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
+	sig := author.signature(now)
 
 	storer := repo.Storer
 

@@ -384,7 +384,7 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authorName, authorEmail, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
+	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to load user")
 		return
@@ -392,7 +392,7 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 	if err := h.Services.Code.ApplySuggestion(
 		owner, repoName, pr.HeadBranch, comment.Path,
 		comment.Line, comment.SuggestionBody,
-		authorName, authorEmail,
+		author,
 	); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to apply suggestion: "+err.Error())
 		return

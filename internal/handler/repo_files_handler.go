@@ -177,13 +177,13 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		message = "Create " + path
 	}
 
-	authorName, authorEmail, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
+	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
 	if err != nil {
 		http.Error(w, "failed to load user", http.StatusInternalServerError)
 		return
 	}
 
-	if err := h.Services.Code.CommitFile(owner, repoName, ref, path, content, authorName, authorEmail, message); err != nil {
+	if err := h.Services.Code.CommitFile(owner, repoName, ref, path, content, author, message); err != nil {
 		slog.Error("commit file failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
