@@ -17,6 +17,12 @@ var (
 	ErrEmailTaken    = errors.New("email already registered")
 )
 
+// Postgres's default names for the inline UNIQUE columns in 001_create_users.sql.
+const (
+	usersUsernameKey = "users_username_key"
+	usersEmailKey    = "users_email_key"
+)
+
 // UserStore provides database operations for user accounts.
 type UserStore struct {
 	db *sql.DB
@@ -72,13 +78,12 @@ func insertUser(ctx context.Context, db dbtx, u *model.User) error {
 		u.Username, u.Email, u.PasswordHash, u.Bio, u.AvatarURL, u.IsInvited,
 	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
-		// Postgres's default names for the inline UNIQUE columns in 001_create_users.sql.
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			switch pgErr.ConstraintName {
-			case "users_username_key":
+			case usersUsernameKey:
 				return ErrUsernameTaken
-			case "users_email_key":
+			case usersEmailKey:
 				return ErrEmailTaken
 			}
 		}
