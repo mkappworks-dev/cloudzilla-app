@@ -2,6 +2,8 @@ package pages_test
 
 import (
 	"context"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -85,5 +87,38 @@ func TestUser_RepositoriesTabShowsTable(t *testing.T) {
 	}
 	if strings.Contains(out, "contributions in the last year") {
 		t.Errorf("repositories tab should not render the heatmap heading\n--- output ---\n%s", out)
+	}
+}
+
+// The hover accent bar is built from utilities; a revert to the deleted .row-card rule would render unstyled rows.
+func TestUser_RowCardsUseTailwindUtilities(t *testing.T) {
+	repo := model.Repository{ID: 1, OwnerName: "alice", Name: "demo", UpdatedAt: time.Now()}
+	for _, tc := range []struct {
+		tab  string
+		data view.UserData
+		href string
+	}{
+		{"repositories", view.UserData{RepoTabRepos: []model.Repository{repo}}, "/alice/demo"},
+		{"stars", view.UserData{StarredRepos: []model.Repository{repo}}, "/alice/demo"},
+		{"gists", view.UserData{GistsTabItems: []view.GistTabItem{{Gist: model.Gist{ID: "g1", CreatedAt: time.Now(), UpdatedAt: time.Now()}}}}, "/gists/g1"},
+	} {
+		tc.data.User = model.User{ID: 1, Username: "alice"}
+		tc.data.Tab = tc.tab
+		out := renderUser(t, tc.data)
+
+		m := regexp.MustCompile(`<a href="` + regexp.QuoteMeta(tc.href) + `" class="([^"]*)"`).FindStringSubmatch(out)
+		if m == nil {
+			t.Errorf("%s tab: no row anchor for %s", tc.tab, tc.href)
+			continue
+		}
+		classes := strings.Fields(m[1])
+		for _, want := range []string{"hover:pl-[18px]", "motion-reduce:hover:pl-4", "before:bg-foreground", "hover:before:opacity-100"} {
+			if !slices.Contains(classes, want) {
+				t.Errorf("%s tab: row anchor lacks %q (classes %q)", tc.tab, want, m[1])
+			}
+		}
+		if slices.Contains(classes, "row-card") {
+			t.Errorf("%s tab: row anchor still uses the removed row-card class", tc.tab)
+		}
 	}
 }
