@@ -11,11 +11,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// PageNewOrganization renders the form for creating a new organization.
-//
-// Renders with the bare global header — no AccountSubnav. Orgs aren't a
-// subnav-level concept (no "Organizations" tab exists), and dropping the
-// chrome keeps the form focused on the single task.
+// No AccountSubnav: orgs have no subnav tab, and the bare header keeps the form focused.
 func (h *Handler) PageNewOrganization(w http.ResponseWriter, r *http.Request) {
 	if _, ok := middleware.ClaimsFromContext(r.Context()); !ok {
 		http.Redirect(w, r, "/login", http.StatusFound)
@@ -26,7 +22,6 @@ func (h *Handler) PageNewOrganization(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-// CreateOrganization handles the new-organization form POST.
 func (h *Handler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {

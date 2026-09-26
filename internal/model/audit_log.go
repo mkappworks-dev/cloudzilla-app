@@ -24,10 +24,9 @@ type AuditFilter struct {
 	ActorID    *int64
 	Action     string
 	TargetType string
-	TargetID   *int64 // when set, restricts to entries for one specific target
+	TargetID   *int64
 }
 
-// Common target_type constants.
 const (
 	AuditTargetOrg  = "org"
 	AuditTargetRepo = "repo"

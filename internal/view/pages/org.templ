@@ -14,7 +14,6 @@ templ Org(data view.OrgData) {
 	@layout.Base(data.BasePage, data.Org.Name) {
 		<div class="space-y-8">
 
-			<!-- Org header -->
 			<section class="flex flex-wrap items-start gap-6 pb-6 border-b border-border" aria-labelledby="org-name">
 				@components.Avatar(data.Org.Name, components.AvatarSizeLG, data.Org.Name)
 				<div class="min-w-0 flex-1">
@@ -96,7 +95,6 @@ templ Org(data view.OrgData) {
 				</div>
 			</section>
 
-			<!-- Main grid: README + Pinned + Recent on the left, sidebar on the right -->
 			<div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
 
 				<div class="space-y-8 min-w-0">
@@ -242,7 +240,6 @@ templ Org(data view.OrgData) {
 	}
 }
 
-// orgRoleDisplay returns a human label for the OrgRole shown in badges.
 func orgRoleDisplay(role model.OrgRole) string {
 	switch role {
 	case model.OrgRoleOwner:
@@ -253,8 +250,6 @@ func orgRoleDisplay(role model.OrgRole) string {
 	return string(role)
 }
 
-// displayHost strips the scheme + trailing slash from a URL so the link
-// label reads as a plain hostname (e.g. "stitch.dev" instead of "https://stitch.dev/").
 func displayHost(raw string) string {
 	s := raw
 	for _, prefix := range []string{"https://", "http://"} {

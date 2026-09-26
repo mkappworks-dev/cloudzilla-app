@@ -429,3 +429,68 @@ func TestOrgService_RepoHighlights(t *testing.T) {
 		t.Errorf("all recent = %v, want %v", cards(all.Recent), want)
 	}
 }
+
+func TestOrgService_ListMembershipsForUser_OwnedAndMember(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	aliceID := testutil.SeedUser(t, db, "alice_"+suffix)
+	bobID := testutil.SeedUser(t, db, "bob_"+suffix)
+	carolID := testutil.SeedUser(t, db, "carol_"+suffix)
+
+	svc := service.NewOrgService(
+		store.NewOrgStore(db),
+		store.NewRepoStore(db),
+		store.NewUserStore(db),
+		config.GitConfig{},
+	)
+	ctx := context.Background()
+
+	ownedOrg, err := svc.Create(ctx, aliceID, "testorg_owned_"+suffix, "", "")
+	if err != nil {
+		t.Fatalf("Create owned org: %v", err)
+	}
+	memberOrg, err := svc.Create(ctx, bobID, "testorg_member_"+suffix, "", "")
+	if err != nil {
+		t.Fatalf("Create member org: %v", err)
+	}
+	if err := svc.AddMember(ctx, memberOrg.ID, bobID, aliceID, model.OrgRoleMember); err != nil {
+		t.Fatalf("AddMember: %v", err)
+	}
+	unrelatedOrg, err := svc.Create(ctx, carolID, "testorg_unrelated_"+suffix, "", "")
+	if err != nil {
+		t.Fatalf("Create unrelated org: %v", err)
+	}
+
+	memberships, err := svc.ListMembershipsForUser(ctx, aliceID)
+	if err != nil {
+		t.Fatalf("ListMembershipsForUser: %v", err)
+	}
+	roles := map[int64]model.OrgRole{}
+	for _, m := range memberships {
+		roles[m.Org.ID] = m.Role
+	}
+	if len(roles) != 2 {
+		t.Fatalf("want 2 orgs (owned + member), got %d: %+v", len(roles), memberships)
+	}
+	if got := roles[ownedOrg.ID]; got != model.OrgRoleOwner {
+		t.Errorf("owned org role = %q, want %q", got, model.OrgRoleOwner)
+	}
+	if got := roles[memberOrg.ID]; got != model.OrgRoleMember {
+		t.Errorf("member org role = %q, want %q", got, model.OrgRoleMember)
+	}
+	if _, ok := roles[unrelatedOrg.ID]; ok {
+		t.Errorf("unrelated org %q must not be listed", unrelatedOrg.Name)
+	}
+
+	owned, err := svc.ListOwnedByUser(ctx, aliceID)
+	if err != nil {
+		t.Fatalf("ListOwnedByUser: %v", err)
+	}
+	if len(owned) != 1 || owned[0].ID != ownedOrg.ID {
+		t.Errorf("ListOwnedByUser = %+v, want only %q", owned, ownedOrg.Name)
+	}
+
+	if c, err := svc.CountMembers(ctx, memberOrg.ID); err != nil || c != 2 {
+		t.Errorf("CountMembers(member org) = %d, err=%v; want 2", c, err)
+	}
+}

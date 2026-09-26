@@ -358,9 +358,6 @@ func memberCountLabel(n int) string {
 	return strconv.Itoa(n) + " members"
 }
 
-// orgRowSubtitle returns a single-line subtitle for the org list row.
-// Prepends the display name when present so the reader gets a human-readable
-// label before the bare member count.
 func orgRowSubtitle(e view.OrgListEntry) string {
 	base := memberCountLabel(e.MemberCount)
 	if e.Org.DisplayName != "" {

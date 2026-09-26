@@ -15,7 +15,6 @@ templ OrgSettings(data view.OrgSettingsData) {
 	@layout.Base(data.BasePage, data.Org.Name+" — Settings") {
 		<div class="space-y-8">
 
-			<!-- Header with text breadcrumb + back link -->
 			<section class="flex flex-wrap items-start justify-between gap-4">
 				<div class="min-w-0">
 					<p class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground mb-1 inline-flex items-center gap-2">
@@ -54,7 +53,6 @@ templ OrgSettings(data view.OrgSettingsData) {
 
 				<div class="col-span-12 lg:col-span-9 space-y-10">
 
-					<!-- General -->
 					<section id="general" class="rounded-md border border-border bg-card p-6">
 						<h2 class="text-base font-semibold tracking-tight mb-1">General</h2>
 						<p class="text-[12.5px] text-muted-foreground mb-6">How { data.Org.Name } appears across Cloudzilla.</p>
@@ -146,7 +144,6 @@ templ OrgSettings(data view.OrgSettingsData) {
 						</form>
 					</section>
 
-					<!-- Members -->
 					<section id="members" class="rounded-md border border-border bg-card p-6">
 						<div class="flex items-start justify-between gap-4 mb-4">
 							<div class="min-w-0">
@@ -187,8 +184,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 							<select
 								id="org-member-filter-role"
 								data-org-member-filter-role
-								class="flex h-9 rounded-md border border-border bg-background px-3 text-[13px] shadow-sm"
-								style="width:160px"
+								class="flex h-9 w-40 rounded-md border border-border bg-background px-3 text-[13px] shadow-sm"
 							>
 								<option value="">All roles</option>
 								<option value="owner">Owners</option>
@@ -204,9 +200,6 @@ templ OrgSettings(data view.OrgSettingsData) {
 						})
 
 						<script>
-							// Client-side filter for the member list — purely visual. Hides
-							// rows whose username doesn't match the search or whose role
-							// doesn't match the selector. Re-applied after each HTMX swap.
 							(function() {
 								function applyFilter(scope) {
 									var root = scope || document;
@@ -236,7 +229,6 @@ templ OrgSettings(data view.OrgSettingsData) {
 						</script>
 					</section>
 
-					<!-- Teams (placeholder UI) -->
 					<section id="teams" class="rounded-md border border-border bg-card p-6">
 						<div class="flex items-start justify-between gap-4 mb-4">
 							<div>
@@ -254,7 +246,6 @@ templ OrgSettings(data view.OrgSettingsData) {
 						@components.EmptyStateWithHint("Teams aren't wired up yet.", "Group your members into teams in a future release; the surface lives here.")
 					</section>
 
-					<!-- Repository defaults (placeholder form) -->
 					<section id="repo-defaults" class="rounded-md border border-border bg-card p-6">
 						<h2 class="text-base font-semibold tracking-tight mb-1">Repository defaults</h2>
 						<p class="text-[12.5px] text-muted-foreground mb-6">Applied to new repositories created under { data.Org.Name }.</p>
@@ -290,7 +281,6 @@ templ OrgSettings(data view.OrgSettingsData) {
 						</form>
 					</section>
 
-					<!-- Webhooks (placeholder UI) -->
 					<section id="webhooks" class="rounded-md border border-border bg-card p-6">
 						<div class="flex items-start justify-between gap-4 mb-4">
 							<div>
@@ -308,7 +298,6 @@ templ OrgSettings(data view.OrgSettingsData) {
 						@components.EmptyStateWithHint("Org-level webhooks aren't wired up yet.", "Per-repo webhooks already work — find them in each repository's settings.")
 					</section>
 
-					<!-- Audit log -->
 					<section id="audit" class="rounded-md border border-border bg-card p-6">
 						<h2 class="text-base font-semibold tracking-tight mb-1">Audit log</h2>
 						<p class="text-[12.5px] text-muted-foreground mb-6">Recent admin actions on { data.Org.Name } — profile edits, repository defaults, ownership transfers.</p>
@@ -338,7 +327,6 @@ templ OrgSettings(data view.OrgSettingsData) {
 						}
 					</section>
 
-					<!-- Danger zone -->
 					<section id="danger" class="rounded-md border border-destructive/40 bg-card p-6">
 						<h2 class="text-base font-semibold tracking-tight mb-1 text-destructive">Danger zone</h2>
 						<p class="text-[12.5px] text-muted-foreground mb-6">Irreversible operations that affect everyone in the org.</p>
@@ -574,8 +562,6 @@ templ orgDeleteDialog(orgName string, memberCount int) {
 	}
 }
 
-// defaultBranchOrFallback returns the org's stored default branch name, or
-// "main" if it hasn't been set (e.g. orgs created before migration 071).
 func defaultBranchOrFallback(name string) string {
 	if name == "" {
 		return "main"
@@ -583,10 +569,7 @@ func defaultBranchOrFallback(name string) string {
 	return name
 }
 
-// viewerUserID extracts the signed-in viewer's user ID from BasePage, or 0
-// when the page is being viewed by an unauthenticated user (shouldn't happen
-// for org settings, which is gated behind authMW + owner check — but kept
-// defensive so the template doesn't panic if the chain ever changes).
+// Org settings is auth-gated, but a nil check keeps the template from panicking if that ever changes.
 func viewerUserID(base view.BasePage) int64 {
 	if base.CurrentUser == nil {
 		return 0
@@ -594,9 +577,6 @@ func viewerUserID(base view.BasePage) int64 {
 	return base.CurrentUser.UserID
 }
 
-// auditActionClass returns Tailwind utility classes for the colored pill that
-// labels an audit entry's action. Different action families get different
-// hues so the log is scannable.
 func auditActionClass(action string) string {
 	switch action {
 	case model.AuditActionOrgDelete:
@@ -613,8 +593,6 @@ func auditActionClass(action string) string {
 	return "bg-accent text-muted-foreground border-border"
 }
 
-// auditActionVerb maps an action constant to a short past-tense verb phrase
-// so the log row reads like a sentence ("@malith updated org-settings on …").
 func auditActionVerb(action string) string {
 	switch action {
 	case model.AuditActionOrgProfileUpdate:
