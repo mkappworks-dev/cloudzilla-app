@@ -77,8 +77,24 @@ func (s *UserService) GetByUsername(ctx context.Context, username string) (*mode
 	return s.store.GetByUsername(ctx, username)
 }
 
-func (s *UserService) MarkInvited(ctx context.Context, userID int64) error {
-	return s.store.MarkInvited(ctx, userID)
+// CreateFromInvitation creates the invitee's account and redeems inv atomically.
+// It returns ErrInvitationUnusable if inv was redeemed, expired, or its email
+// registered since it was loaded.
+func (s *UserService) CreateFromInvitation(ctx context.Context, inv *model.Invitation, username, password string) (*model.User, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("hash password: %w", err)
+	}
+	u := &model.User{
+		Username:     username,
+		Email:        inv.Email,
+		PasswordHash: string(hash),
+		IsInvited:    true,
+	}
+	if err := s.store.CreateFromInvitation(ctx, u, inv.ID); err != nil {
+		return nil, err
+	}
+	return u, nil
 }
 
 func (s *UserService) AuthenticateOAuth(ctx context.Context, provider, oauthID, email, name, avatarURL string, allowRegistration, allowLogin bool) (*model.User, string, error) {

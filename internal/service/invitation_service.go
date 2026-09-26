@@ -47,10 +47,6 @@ func (s *InvitationService) GetUsable(ctx context.Context, token string) (*model
 	return s.store.GetUsableByToken(ctx, token)
 }
 
-func (s *InvitationService) Accept(ctx context.Context, id int64) error {
-	return s.store.MarkAccepted(ctx, id)
-}
-
 func (s *InvitationService) List(ctx context.Context) ([]model.Invitation, error) {
 	return s.store.ListAll(ctx)
 }

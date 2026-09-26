@@ -165,7 +165,7 @@ Superadmin generates token link → shares manually. No SMTP required.
 1. Superadmin POSTs `email` to `/api/admin/invitations` → 32-byte hex token, 7-day expiry
 2. Admin panel displays `/invite/{token}` link for copying
 3. Recipient visits link → form with `email` pre-filled (read-only)
-4. On submit: user created, `is_invited = TRUE` set, JWT cookie set → redirect `/`
+4. On submit: one transaction claims the invite (`accepted_at`) and creates the user with `is_invited = TRUE`, JWT cookie set → redirect `/`
 
 `is_invited` users always bypass `allow_registration` and `allow_login` checks.
 

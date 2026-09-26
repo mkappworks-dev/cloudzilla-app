@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -78,18 +77,6 @@ func (s *InvitationStore) ListAll(ctx context.Context) ([]model.Invitation, erro
 		invs = append(invs, inv)
 	}
 	return invs, rows.Err()
-}
-
-func (s *InvitationStore) MarkAccepted(ctx context.Context, id int64) error {
-	now := time.Now().UTC()
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE invitations SET accepted_at = $1 WHERE id = $2`,
-		now, id,
-	)
-	if err != nil {
-		return fmt.Errorf("invitation mark accepted: %w", err)
-	}
-	return nil
 }
 
 func (s *InvitationStore) Delete(ctx context.Context, id int64) error {

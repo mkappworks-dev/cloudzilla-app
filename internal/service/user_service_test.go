@@ -7,10 +7,12 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -74,6 +76,32 @@ func TestUserService_Create_DuplicateUsername_ReturnsErrUsernameTaken(t *testing
 	_, err := svc.Create(context.Background(), "testuser_"+suffix, "dupname_"+suffix+"@example.com", "pass")
 	if !errors.Is(err, service.ErrUsernameTaken) {
 		t.Errorf("want ErrUsernameTaken, got %v", err)
+	}
+}
+
+// Covers the submit that loses a race: the invite was usable when the page
+// loaded but was claimed before this Create ran.
+func TestUserService_CreateFromInvitation_ClaimedInvitation_CreatesNoUser(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	email := "claimed_" + suffix + "@test.invalid"
+	id, _ := testutil.SeedInvitation(t, db, email, time.Now().UTC().Add(time.Hour))
+	if _, err := db.ExecContext(context.Background(), `UPDATE invitations SET accepted_at = NOW() WHERE id = $1`, id); err != nil {
+		t.Fatalf("accept invitation: %v", err)
+	}
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+
+	_, err := svc.CreateFromInvitation(context.Background(), &model.Invitation{ID: id, Email: email}, "claimed_"+suffix, "pass")
+
+	if !errors.Is(err, service.ErrInvitationUnusable) {
+		t.Errorf("want ErrInvitationUnusable, got %v", err)
+	}
+	var n int
+	if err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM users WHERE email = $1`, email).Scan(&n); err != nil {
+		t.Fatalf("count users: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("a claimed invitation must not create a user; found %d", n)
 	}
 }
 

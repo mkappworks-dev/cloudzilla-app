@@ -28,11 +28,48 @@ func NewUserStore(database *sql.DB) *UserStore {
 }
 
 func (s *UserStore) Create(ctx context.Context, u *model.User) error {
-	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO users (username, email, password_hash, bio, avatar_url)
-		 VALUES ($1, $2, $3, $4, $5)
+	return insertUser(ctx, s.db, u)
+}
+
+// CreateFromInvitation claims the invitation and inserts u in one transaction,
+// so a failed insert leaves the invite usable and concurrent submits can't
+// both redeem it.
+func (s *UserStore) CreateFromInvitation(ctx context.Context, u *model.User, invitationID int64) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("user create from invitation: begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	res, err := tx.ExecContext(ctx,
+		`UPDATE invitations SET accepted_at = NOW() WHERE id = $1 AND `+usableInvitationCond,
+		invitationID,
+	)
+	if err != nil {
+		return fmt.Errorf("user create from invitation: claim: %w", err)
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return fmt.Errorf("user create from invitation: claim: %w", err)
+	} else if n == 0 {
+		return ErrInvitationUnusable
+	}
+
+	if err := insertUser(ctx, tx, u); err != nil {
+		// The email was registered after the claim; same rule as usableInvitationCond.
+		if errors.Is(err, ErrEmailTaken) {
+			return ErrInvitationUnusable
+		}
+		return err
+	}
+	return tx.Commit()
+}
+
+func insertUser(ctx context.Context, db dbtx, u *model.User) error {
+	err := db.QueryRowContext(ctx,
+		`INSERT INTO users (username, email, password_hash, bio, avatar_url, is_invited)
+		 VALUES ($1, $2, $3, $4, $5, $6)
 		 RETURNING id, created_at, updated_at`,
-		u.Username, u.Email, u.PasswordHash, u.Bio, u.AvatarURL,
+		u.Username, u.Email, u.PasswordHash, u.Bio, u.AvatarURL, u.IsInvited,
 	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		// Postgres's default names for the inline UNIQUE columns in 001_create_users.sql.
@@ -189,14 +226,6 @@ func (s *UserStore) LinkSSO(ctx context.Context, userID int64, provider, ssoID s
 	)
 	if err != nil {
 		return fmt.Errorf("user link sso: %w", err)
-	}
-	return nil
-}
-
-func (s *UserStore) MarkInvited(ctx context.Context, userID int64) error {
-	_, err := s.db.ExecContext(ctx, `UPDATE users SET is_invited = TRUE WHERE id = $1`, userID)
-	if err != nil {
-		return fmt.Errorf("user mark invited: %w", err)
 	}
 	return nil
 }

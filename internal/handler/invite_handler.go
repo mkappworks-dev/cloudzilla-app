@@ -39,23 +39,14 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the user (bypasses allow_registration)
-	user, err := h.Services.User.Create(r.Context(), username, inv.Email, password)
-	if err != nil {
+	if _, err := h.Services.User.CreateFromInvitation(r.Context(), inv, username, password); err != nil {
+		if errors.Is(err, service.ErrInvitationUnusable) {
+			h.renderInvalidInvitation(w, r)
+			return
+		}
 		slog.Warn("invite: create user failed", "invitation_id", inv.ID, "error", err)
 		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: createAccountErrorMessage(err)}))
 		return
-	}
-
-	// Mark user as invited so they can always log in
-	// We need store access via a service method or expose MarkInvited via UserService
-	if err := h.Services.User.MarkInvited(r.Context(), user.ID); err != nil {
-		// Non-fatal — log but continue
-		_ = err
-	}
-
-	// Accept the invitation
-	if err := h.Services.Invitation.Accept(r.Context(), inv.ID); err != nil {
-		_ = err
 	}
 
 	// Authenticate and set cookie (bypasses allow_login)
