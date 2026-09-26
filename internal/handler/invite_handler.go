@@ -9,6 +9,8 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
+const invalidInvitationMessage = "This invitation link is no longer valid. Ask an administrator for a new one."
+
 func (h *Handler) PageInvite(w http.ResponseWriter, r *http.Request) {
 	token := chi.URLParam(r, "token")
 
@@ -19,7 +21,7 @@ func (h *Handler) PageInvite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Invitation.Validate(inv); err != nil {
-		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: err.Error()}))
+		h.renderInvalidInvitation(w, r)
 		return
 	}
 
@@ -36,7 +38,7 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Invitation.Validate(inv); err != nil {
-		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: err.Error()}))
+		h.renderInvalidInvitation(w, r)
 		return
 	}
 
@@ -85,4 +87,10 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+// The invitation is withheld: an accepted invite's email is now a registered
+// account's, and the link is unauthenticated.
+func (h *Handler) renderInvalidInvitation(w http.ResponseWriter, r *http.Request) {
+	h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Error: invalidInvitationMessage}))
 }

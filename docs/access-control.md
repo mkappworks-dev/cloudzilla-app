@@ -169,6 +169,8 @@ Superadmin generates token link → shares manually. No SMTP required.
 
 `is_invited` users always bypass `allow_registration` and `allow_login` checks.
 
+Accepted invitations stay in the table, so `/invite/{token}` for an accepted or expired invite renders a generic "no longer valid" message without the invitation — its email now belongs to a registered account.
+
 ---
 
 ## Full Endpoint Authorization Matrix
