@@ -22,7 +22,7 @@ func (s *DependencyStore) Replace(ctx context.Context, repoID int64, deps []mode
 	if err != nil {
 		return fmt.Errorf("dependency replace begin tx: %w", err)
 	}
-	defer tx.Rollback() //nolint:errcheck
+	defer tx.Rollback()
 
 	if _, err := tx.ExecContext(ctx, `DELETE FROM repo_dependencies WHERE repo_id = $1`, repoID); err != nil {
 		return fmt.Errorf("dependency replace delete: %w", err)

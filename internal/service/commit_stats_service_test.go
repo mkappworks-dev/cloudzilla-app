@@ -2,39 +2,16 @@ package service_test
 
 import (
 	"context"
-	"database/sql"
-	"os"
 	"testing"
 	"time"
 
-	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-// openTestDBCommitStatsService opens an integration-test DB connection if
-// TEST_DATABASE_DSN is set; otherwise it skips the test. Mirrors the helper
-// used by other integration tests.
-func openTestDBCommitStatsService(t *testing.T) *sql.DB {
-	t.Helper()
-	dsn := os.Getenv("TEST_DATABASE_DSN")
-	if dsn == "" {
-		t.Skip("TEST_DATABASE_DSN not set; skipping integration test")
-	}
-	db, err := sql.Open("pgx", dsn)
-	if err != nil {
-		t.Fatalf("open test db: %v", err)
-	}
-	if err := db.Ping(); err != nil {
-		t.Fatalf("ping test db: %v", err)
-	}
-	return db
-}
-
 func TestCommitStatsService_Ingest_AggregatesPerDay(t *testing.T) {
-	db := openTestDBCommitStatsService(t)
-	defer db.Close()
+	db := testutil.OpenTestDB(t)
 
 	ctx := context.Background()
 
@@ -65,8 +42,7 @@ func TestCommitStatsService_Ingest_AggregatesPerDay(t *testing.T) {
 
 	// Cleanup via user cascade.
 	t.Cleanup(func() {
-		bg := context.Background()
-		db.ExecContext(bg, `DELETE FROM users WHERE id = $1`, userID)
+		testutil.Exec(t, db, `DELETE FROM users WHERE id = $1`, userID)
 	})
 
 	users := store.NewUserStore(db)

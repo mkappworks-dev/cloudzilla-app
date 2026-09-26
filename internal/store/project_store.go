@@ -274,7 +274,7 @@ func (s *ProjectStore) MoveCard(ctx context.Context, projectID, cardID, newColum
 	if err != nil {
 		return fmt.Errorf("begin move: %w", err)
 	}
-	defer tx.Rollback() //nolint:errcheck
+	defer tx.Rollback()
 
 	var destExists bool
 	if err := tx.QueryRowContext(ctx,
