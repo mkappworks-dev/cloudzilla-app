@@ -155,7 +155,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 									} else {
 										people.
 									}
-									Owners can manage everything; members can contribute to repos.
+									Owners create repositories and manage the org; members need a collaborator role on each repository they work on.
 								</p>
 							</div>
 							<button
@@ -267,7 +267,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 									"value": defaultBranchOrFallback(data.Org.DefaultBranchName),
 									"class": "font-mono",
 								})
-								<p class="mt-1 text-[11.5px] text-muted-foreground">Used as the initial branch when a member creates a repo here.</p>
+								<p class="mt-1 text-[11.5px] text-muted-foreground">Used as the initial branch when an owner creates a repo here.</p>
 							</div>
 
 							<div class="flex items-center justify-end gap-2">
@@ -446,7 +446,7 @@ templ orgInviteMemberDialog(orgName string) {
 							<option value="member" selected>Member</option>
 							<option value="owner">Owner</option>
 						</select>
-						<p class="mt-1 text-[11.5px] text-muted-foreground">Owners can manage settings, members, and ownership. Members can create and contribute to repos.</p>
+						<p class="mt-1 text-[11.5px] text-muted-foreground">Owners can create repositories and manage settings, members, and ownership. Members need a collaborator role on each repository they work on.</p>
 					</div>
 				</div>
 			}
@@ -523,13 +523,13 @@ templ orgDeleteDialog(orgName string, memberCount int) {
 					<span class="text-destructive">{ "Delete " + orgName }</span>
 				}
 				@components.DialogDescription() {
-					This removes the organization,
+					This removes the organization and
 					if memberCount == 1 {
-						{ " 1 member row, " }
+						{ "its 1 member row." }
 					} else {
-						{ " all " + strconv.Itoa(memberCount) + " member rows, " }
+						{ "all " + strconv.Itoa(memberCount) + " member rows." }
 					}
-					and the org's audit history. It cannot be undone.
+					It cannot be undone. Audit log entries about the org are kept, and the deletion is recorded.
 				}
 			}
 			@components.DialogBody() {

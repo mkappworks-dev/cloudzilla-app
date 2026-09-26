@@ -435,7 +435,9 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	}
 
 	memberCount := len(members)
-	showAllRepos := r.URL.Query().Get("tab") == "repositories"
+	tab := r.URL.Query().Get("tab")
+	showAllRepos := tab == "repositories"
+	showAllPeople := tab == "people"
 
 	var pinned, recent []components.PinnedRepoData
 	featuredLimit, recentLimit := 4, 4
@@ -460,7 +462,7 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	// org, mirroring the user-profile convention.
 	var profileReadme template.HTML
 	for _, repo := range repos {
-		if !showAllRepos && repo.Name == org.Name && !repo.Private {
+		if !showAllRepos && !showAllPeople && repo.Name == org.Name && !repo.Private {
 			profileReadme = h.Services.Code.GetProfileReadme(org.Name, org.Name, repo.DefaultBranch)
 			break
 		}
@@ -479,6 +481,7 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 		PinnedRepos:   pinned,
 		RecentRepos:   recent,
 		ShowAllRepos:  showAllRepos,
+		ShowAllPeople: showAllPeople,
 		TopLangs:      langBarItems(langPcts),
 		ViewerRole:    viewerRole,
 		ViewerJoined:  viewerJoined,

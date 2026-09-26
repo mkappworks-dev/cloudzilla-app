@@ -2,6 +2,7 @@ package pages_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -78,5 +79,51 @@ func TestOrg_UnsafeWebsiteNotLinked(t *testing.T) {
 
 	if strings.Contains(out, `href="javascript:`) {
 		t.Error("org page links a javascript: website")
+	}
+}
+
+func orgWithMembers(n int) view.OrgData {
+	data := orgFixture()
+	data.Members = make([]model.OrgMember, n)
+	for i := range data.Members {
+		data.Members[i] = model.OrgMember{ID: int64(i + 1), OrgID: 1, UserID: int64(i + 1), Username: fmt.Sprintf("user%02d", i+1), Role: model.OrgRoleMember}
+	}
+	data.MemberCount = n
+	return data
+}
+
+// No /orgs/{org}/people route exists; "View all" must land on the org page's people tab.
+func TestOrg_ViewAllPeopleLinksToPeopleTab(t *testing.T) {
+	out := renderOrg(t, orgWithMembers(13))
+
+	if !strings.Contains(out, `href="/acme?tab=people"`) {
+		t.Error("people sidebar missing View all link to ?tab=people")
+	}
+	if strings.Contains(out, "/orgs/acme/people") {
+		t.Error("people sidebar still links to the nonexistent /orgs/acme/people")
+	}
+	if strings.Contains(out, "user13") {
+		t.Error("overview sidebar should cap avatars at 12")
+	}
+}
+
+func TestOrg_ShowAllPeople(t *testing.T) {
+	data := orgWithMembers(13)
+	data.ShowAllPeople = true
+	out := renderOrg(t, data)
+
+	if !strings.Contains(out, `id="all-people-heading"`) {
+		t.Error("people view missing People list")
+	}
+	for _, want := range []string{`href="/user01"`, `href="/user13"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("people view missing member link %s", want)
+		}
+	}
+	if strings.Contains(out, "Recently updated") {
+		t.Error("people view still shows the Recently updated teaser")
+	}
+	if strings.Contains(out, `href="/acme?tab=people"`) {
+		t.Error("people view links to itself")
 	}
 }

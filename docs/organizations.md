@@ -19,6 +19,7 @@ An org always keeps at least one owner: removing or demoting the last owner is r
 | `/organizations/new`      | Required   | Create-org form (`name`, `description`, `accept_tos`); the terms checkbox is enforced server-side                               |
 | `/{org}`                  | Optional   | Org profile: header, README, most-starred and recently updated repos, people, top languages                                     |
 | `/{org}?tab=repositories` | Optional   | Every org repo the viewer can see                                                                                               |
+| `/{org}?tab=people`       | Optional   | Every org member with their role; the profile sidebar shows the first 12                                                        |
 | `/orgs/{org}/settings`    | Owner only | General (profile), Members, Repository defaults, Audit log, Danger zone (transfer, delete); Teams and Webhooks are placeholders |
 | `/repos/new?owner={org}`  | Required   | New-repo form with the org preselected, if you own it, and its default visibility                                               |
 

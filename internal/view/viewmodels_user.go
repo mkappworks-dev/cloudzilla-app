@@ -85,6 +85,7 @@ type OrgData struct {
 	PinnedRepos   []components.PinnedRepoData
 	RecentRepos   []components.PinnedRepoData
 	ShowAllRepos  bool // ?tab=repositories: RecentRepos holds every visible repo
+	ShowAllPeople bool // ?tab=people
 	TopLangs      []components.LangBarItem
 	ViewerRole    *model.OrgRole // nil if the viewer is not a member
 	ViewerJoined  *time.Time     // nil if the viewer is not a member

@@ -98,82 +98,84 @@ templ Org(data view.OrgData) {
 			<div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8">
 
 				<div class="space-y-8 min-w-0">
+					if data.ShowAllPeople {
+						@orgPeopleList(data)
+					} else {
+						if data.ProfileReadme != "" {
+							<article class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="org-readme-heading">
+								<header class="px-5 py-3 border-b border-border bg-muted flex items-center gap-2">
+									<svg class="text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+									<h2 id="org-readme-heading" class="text-[13px] font-medium">{ data.Org.Name }/README.md</h2>
+								</header>
+								<div class="prose prose-sm max-w-none dark:prose-invert px-7 py-6">
+									@templ.Raw(string(data.ProfileReadme))
+								</div>
+							</article>
+						}
 
-					if data.ProfileReadme != "" {
-						<article class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="org-readme-heading">
-							<header class="px-5 py-3 border-b border-border bg-muted flex items-center gap-2">
-								<svg class="text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-								<h2 id="org-readme-heading" class="text-[13px] font-medium">{ data.Org.Name }/README.md</h2>
-							</header>
-							<div class="prose prose-sm max-w-none dark:prose-invert px-7 py-6">
-								@templ.Raw(string(data.ProfileReadme))
-							</div>
-						</article>
-					}
+						if len(data.PinnedRepos) > 0 {
+							<section aria-labelledby="pinned-heading">
+								<div class="flex items-baseline justify-between mb-3">
+									<h2 id="pinned-heading" class="text-sm font-semibold tracking-tight">Pinned repositories</h2>
+									<a href={ templ.SafeURL("/" + data.Org.Name + "?tab=repositories") } class="text-[12px] text-primary hover:underline">View all { strconv.Itoa(len(data.Repos)) } →</a>
+								</div>
+								<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+									for _, p := range data.PinnedRepos {
+										@components.PinnedRepo(p)
+									}
+								</div>
+							</section>
+						}
 
-					if len(data.PinnedRepos) > 0 {
-						<section aria-labelledby="pinned-heading">
-							<div class="flex items-baseline justify-between mb-3">
-								<h2 id="pinned-heading" class="text-sm font-semibold tracking-tight">Pinned repositories</h2>
-								<a href={ templ.SafeURL("/" + data.Org.Name + "?tab=repositories") } class="text-[12px] text-primary hover:underline">View all { strconv.Itoa(len(data.Repos)) } →</a>
-							</div>
-							<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-								for _, p := range data.PinnedRepos {
-									@components.PinnedRepo(p)
-								}
-							</div>
-						</section>
-					}
-
-					if len(data.RecentRepos) > 0 {
-						<section aria-labelledby="recent-heading">
-							<div class="flex items-baseline justify-between mb-3">
-								if data.ShowAllRepos {
-									<h2 id="recent-heading" class="text-sm font-semibold tracking-tight">Repositories</h2>
-									<a href={ templ.SafeURL("/" + data.Org.Name) } class="text-[12px] text-primary hover:underline">← Overview</a>
-								} else {
-									<h2 id="recent-heading" class="text-sm font-semibold tracking-tight">Recently updated</h2>
-									<a href={ templ.SafeURL("/" + data.Org.Name + "?tab=repositories") } class="text-[12px] text-primary hover:underline">All repositories →</a>
-								}
-							</div>
-							<ul class="divide-y divide-border rounded-md border border-border bg-card overflow-hidden">
-								for _, repo := range data.RecentRepos {
-									<li>
-										<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="flex items-start gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors">
-											<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground mt-1 shrink-0" aria-hidden="true"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"></path><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"></path></svg>
-											<div class="min-w-0 flex-1">
-												<div class="flex items-center gap-2">
-													<span class="text-[13.5px] font-medium">{ repo.OwnerName }/{ repo.Name }</span>
-												</div>
-												if repo.Description != "" {
-													<p class="text-xs text-muted-foreground line-clamp-1 mt-0.5">{ repo.Description }</p>
-												}
-												<div class="mt-1.5 flex items-center gap-3 text-[11.5px] text-muted-foreground">
-													if repo.Language != "" {
-														<span class="inline-flex items-center gap-1">
-															<span class="w-2 h-2 rounded-full" style={ "background:" + repo.LanguageColor }></span>
-															{ repo.Language }
-														</span>
+						if len(data.RecentRepos) > 0 {
+							<section aria-labelledby="recent-heading">
+								<div class="flex items-baseline justify-between mb-3">
+									if data.ShowAllRepos {
+										<h2 id="recent-heading" class="text-sm font-semibold tracking-tight">Repositories</h2>
+										<a href={ templ.SafeURL("/" + data.Org.Name) } class="text-[12px] text-primary hover:underline">← Overview</a>
+									} else {
+										<h2 id="recent-heading" class="text-sm font-semibold tracking-tight">Recently updated</h2>
+										<a href={ templ.SafeURL("/" + data.Org.Name + "?tab=repositories") } class="text-[12px] text-primary hover:underline">All repositories →</a>
+									}
+								</div>
+								<ul class="divide-y divide-border rounded-md border border-border bg-card overflow-hidden">
+									for _, repo := range data.RecentRepos {
+										<li>
+											<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="flex items-start gap-3 px-4 py-3.5 hover:bg-accent/50 transition-colors">
+												<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground mt-1 shrink-0" aria-hidden="true"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"></path><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"></path></svg>
+												<div class="min-w-0 flex-1">
+													<div class="flex items-center gap-2">
+														<span class="text-[13.5px] font-medium">{ repo.OwnerName }/{ repo.Name }</span>
+													</div>
+													if repo.Description != "" {
+														<p class="text-xs text-muted-foreground line-clamp-1 mt-0.5">{ repo.Description }</p>
 													}
-													if repo.Stars > 0 {
-														<span class="inline-flex items-center gap-1">
-															<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-															{ strconv.Itoa(repo.Stars) }
-														</span>
-													}
+													<div class="mt-1.5 flex items-center gap-3 text-[11.5px] text-muted-foreground">
+														if repo.Language != "" {
+															<span class="inline-flex items-center gap-1">
+																<span class="w-2 h-2 rounded-full" style={ "background:" + repo.LanguageColor }></span>
+																{ repo.Language }
+															</span>
+														}
+														if repo.Stars > 0 {
+															<span class="inline-flex items-center gap-1">
+																<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+																{ strconv.Itoa(repo.Stars) }
+															</span>
+														}
+													</div>
 												</div>
-											</div>
-										</a>
-									</li>
-								}
-							</ul>
-						</section>
-					}
+											</a>
+										</li>
+									}
+								</ul>
+							</section>
+						}
 
-					if data.ProfileReadme == "" && len(data.PinnedRepos) == 0 && len(data.RecentRepos) == 0 {
-						@components.EmptyStateWithHint("No public repositories yet.", "Once members push their first repo, it'll show up here.")
+						if data.ProfileReadme == "" && len(data.PinnedRepos) == 0 && len(data.RecentRepos) == 0 {
+							@components.EmptyStateWithHint("No public repositories yet.", "Public repositories created in this organization show up here.")
+						}
 					}
-
 				</div>
 
 				<aside class="space-y-7">
@@ -182,8 +184,8 @@ templ Org(data view.OrgData) {
 							<h2 id="people-heading" class="font-mono uppercase tracking-wider text-[10px] text-muted-foreground">
 								People <span class="text-muted-foreground/70">· { strconv.Itoa(data.MemberCount) }</span>
 							</h2>
-							if data.MemberCount > 12 {
-								<a href={ templ.SafeURL("/orgs/" + data.Org.Name + "/people") } class="text-[11px] text-primary hover:underline">View all</a>
+							if data.MemberCount > 12 && !data.ShowAllPeople {
+								<a href={ templ.SafeURL("/" + data.Org.Name + "?tab=people") } class="text-[11px] text-primary hover:underline">View all</a>
 							}
 						</div>
 						if len(data.Members) > 0 {
@@ -238,6 +240,28 @@ templ Org(data view.OrgData) {
 			</div>
 		</div>
 	}
+}
+
+templ orgPeopleList(data view.OrgData) {
+	<section aria-labelledby="all-people-heading">
+		<div class="flex items-baseline justify-between mb-3">
+			<h2 id="all-people-heading" class="text-sm font-semibold tracking-tight">People</h2>
+			<a href={ templ.SafeURL("/" + data.Org.Name) } class="text-[12px] text-primary hover:underline">← Overview</a>
+		</div>
+		<ul class="divide-y divide-border rounded-md border border-border bg-card overflow-hidden">
+			for _, m := range data.Members {
+				<li>
+					<a href={ templ.SafeURL("/" + m.Username) } class="flex items-center gap-3 px-4 py-3 hover:bg-accent/50 transition-colors">
+						@components.Avatar(m.Username, components.AvatarSizeDefault, m.Username)
+						<span class="min-w-0 flex-1 truncate text-[13.5px] font-medium">{ m.Username }</span>
+						@components.Badge(components.BadgeOutline) {
+							{ orgRoleDisplay(m.Role) }
+						}
+					</a>
+				</li>
+			}
+		</ul>
+	</section>
 }
 
 func orgRoleDisplay(role model.OrgRole) string {
