@@ -127,7 +127,7 @@ func TestCanWrite_WriterRole_Allowed(t *testing.T) {
 		t.Fatalf("add writer permission: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(),
+		testutil.Exec(t, db,
 			`DELETE FROM permissions WHERE user_id = $1 AND repo_id = $2`, userID, repoID)
 	})
 
@@ -161,7 +161,7 @@ func TestCanWrite_ReaderRole_Denied(t *testing.T) {
 		t.Fatalf("add reader permission: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(),
+		testutil.Exec(t, db,
 			`DELETE FROM permissions WHERE user_id = $1 AND repo_id = $2`, userID, repoID)
 	})
 
@@ -193,7 +193,7 @@ func TestCanManage_AdminRole_Allowed(t *testing.T) {
 		t.Fatalf("add admin permission: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(),
+		testutil.Exec(t, db,
 			`DELETE FROM permissions WHERE user_id = $1 AND repo_id = $2`, userID, repoID)
 	})
 

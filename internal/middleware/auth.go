@@ -2,10 +2,13 @@ package middleware
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
@@ -63,7 +66,7 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 			if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
 				token, user, err := patValidator.Validate(r.Context(), tokenStr)
 				if err == nil {
-					go patValidator.UpdateLastUsed(context.Background(), token.ID)
+					touchLastUsed(patValidator, token.ID)
 					claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin}
 					ctx := context.WithValue(r.Context(), claimsKey, claims)
 					next.ServeHTTP(w, r.WithContext(ctx))
@@ -117,7 +120,7 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 				if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
 					pat, user, err := patValidator.Validate(r.Context(), tokenStr)
 					if err == nil {
-						go patValidator.UpdateLastUsed(context.Background(), pat.ID)
+						touchLastUsed(patValidator, pat.ID)
 						claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin}
 						ctx := context.WithValue(r.Context(), claimsKey, claims)
 						r = r.WithContext(ctx)
@@ -176,6 +179,16 @@ func claimsFromMap(m jwt.MapClaims) (Claims, bool) {
 		c.IsSuperadmin = v
 	}
 	return c, true
+}
+
+func touchLastUsed(v PATValidator, tokenID int64) {
+	concurrency.Go("access_token.update_last_used", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := v.UpdateLastUsed(ctx, tokenID); err != nil {
+			slog.Warn("access token last_used update failed", "token_id", tokenID, "error", err)
+		}
+	})
 }
 
 func extractToken(r *http.Request, cookieName string) string {

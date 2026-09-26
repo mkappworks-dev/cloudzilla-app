@@ -13,6 +13,7 @@ type UserData struct {
 	Repos          []model.Repository
 	RecentActivity []model.Event
 	ProfileReadme  template.HTML
+	IsOwnProfile   bool
 
 	// Repositories tab — populated only when ?tab=repositories
 	RepoTabRepos          []model.Repository

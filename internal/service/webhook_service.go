@@ -163,7 +163,7 @@ func (s *WebhookService) deliver(wh model.Webhook, event string, payload []byte)
 		}
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	d.ResponseCode = resp.StatusCode
 	if logErr := s.webhooks.LogDelivery(ctx, d); logErr != nil {
 		return
@@ -252,7 +252,7 @@ func (s *WebhookService) retryDeliver(ctx context.Context, wh model.Webhook, d m
 		}
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		if retryErr := s.webhooks.UpdateDeliveryRetry(ctx, d.ID, nil, newAttempt, resp.StatusCode, ""); retryErr != nil {

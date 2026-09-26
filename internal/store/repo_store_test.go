@@ -91,7 +91,7 @@ func TestRepoStore_AddPermission_ThenGet(t *testing.T) {
 	repoID := testutil.SeedRepo(t, db, ownerID, ownerName, suffix)
 	collaboratorID := testutil.SeedUser(t, db, "collab_"+suffix)
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(),
+		testutil.Exec(t, db,
 			`DELETE FROM permissions WHERE user_id = $1 AND repo_id = $2`, collaboratorID, repoID)
 	})
 
@@ -119,7 +119,7 @@ func TestRepoStore_AddPermission_Upsert(t *testing.T) {
 	repoID := testutil.SeedRepo(t, db, ownerID, ownerName, suffix)
 	collaboratorID := testutil.SeedUser(t, db, "upsert_"+suffix)
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(),
+		testutil.Exec(t, db,
 			`DELETE FROM permissions WHERE user_id = $1 AND repo_id = $2`, collaboratorID, repoID)
 	})
 
@@ -158,7 +158,7 @@ func TestRepoStore_CreateWithOwnerName_AssignsID(t *testing.T) {
 		t.Fatalf("CreateWithOwnerName: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM repositories WHERE id = $1`, r.ID)
+		testutil.Exec(t, db, `DELETE FROM repositories WHERE id = $1`, r.ID)
 	})
 
 	if r.ID == 0 {

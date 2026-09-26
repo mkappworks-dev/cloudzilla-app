@@ -161,7 +161,7 @@ func flattenTree(tree *object.Tree) (map[string]mergeFile, error) {
 	result := make(map[string]mergeFile)
 	iter := tree.Files()
 	err := iter.ForEach(func(f *object.File) error {
-		result[f.Name] = mergeFile{hash: f.Blob.Hash, mode: f.Mode}
+		result[f.Name] = mergeFile{hash: f.Hash, mode: f.Mode}
 		return nil
 	})
 	return result, err

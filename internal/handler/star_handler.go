@@ -89,7 +89,11 @@ func (h *Handler) ListStargazers(w http.ResponseWriter, r *http.Request) {
 	starCount, _ := h.Services.Star.GetStarCount(r.Context(), repo.ID)
 
 	if r.Header.Get("HX-Request") == "true" {
-		writeJSON(w, http.StatusOK, stargazers)
+		out := make([]publicUser, len(stargazers))
+		for i, u := range stargazers {
+			out[i] = newPublicUser(u)
+		}
+		writeJSON(w, http.StatusOK, out)
 		return
 	}
 

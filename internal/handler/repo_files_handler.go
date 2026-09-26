@@ -153,7 +153,7 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 
 	// An uploaded file, when present, takes precedence over the textarea.
 	if file, header, ferr := r.FormFile("file"); ferr == nil {
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		data, rerr := io.ReadAll(io.LimitReader(file, maxUploadBytes))
 		if rerr != nil {
 			http.Error(w, "failed to read uploaded file", http.StatusInternalServerError)
