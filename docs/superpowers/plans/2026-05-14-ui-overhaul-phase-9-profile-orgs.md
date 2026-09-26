@@ -2,6 +2,25 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+## Deviations from plan
+
+The tasks below are the original plan. What shipped differs as follows.
+
+- **Migrations are 070–072 and 074–077, not 067:** 070 pinned repos, 071 user profile fields, 072 per-type notification prefs, 074 org profile fields, 075 org repo defaults, 076 drops the unbacked notification toggles, 077 widens the `notifications.type` CHECK to accept `pr_review`, `mention` and `discussion_reply`. Why: main took 065–069 and 073 while the branch was open; the old CHECK predated those three types, so every insert of them failed and the per-type toggles had nothing to deliver.
+- **Org listing is at `/organizations`, not `/settings/organizations`** (the old path 301s there). Why: the account-settings sidebar it was to live under went away with the single settings page, so it sits beside `/organizations/new`.
+- **New-repo page moved from `/new` to `/repos/new`** (`/new` 301s, query kept). Why: it groups under `/repos` the way `/organizations/new` groups under `/organizations`.
+- **Org `contact_email` kept** (074; edited in org settings, shown on the org page), though Task 7 dropped it. Why: the org settings overhaul added the column Task 7 said was missing. The new-org form still omits it.
+- **New-repo owner picker lists only orgs the user owns** (`OrgService.ListOwnedByUser`, not `ListForUser`). Why: `CreateRepo` is owner-only, so a member org would fail on submit.
+- **License templates are MIT (existing), Apache-2.0, BSD-3-Clause, GPL-3.0 and Unlicense; `bsl-1.1` dropped.** Why: BSL 1.1 needs per-project parameters (licensor, change date, change license), so it cannot be a fill-in template.
+- **Account settings consolidated into one tabbed page at `/settings`**, pulled forward from Phase 10. Saved replies and OAuth apps are sections; data export, sessions and emails are marked "Coming soon". `/settings/{security,notifications,tokens,replies,oauth-apps}` 301 to their `#section`. Why: the new profile fields and notification prefs needed an edit surface, and Phase 10 already planned the single page.
+- **Profile tabs are Overview / Repositories / Stars / Gists** (`?tab=`); `/{user}/stars` and `/{user}/gists` 301 to their tab. Why: Cloudzilla has no user-level projects or packages, and the tabs replace the standalone stars and gists pages.
+- **Pins resolve through `UserService.PinnedRepos(ctx, userID, viewerID)`, not `PinnedRepoIDs`.** It drops deleted repos and ones the viewer cannot read; `PinRepo` returns `ErrRepoNotFound` (404) for those, and the six-pin limit counts only pins the owner can still see, pruning the rest. Why: when only the handler filtered pins, the limit still counted deleted and unreadable repos, so pinning failed while the profile showed free slots.
+- **Language stats count only repos the viewer can read** (`LanguageService.AggregateForUser(ctx, username, viewerID, limit)`, not `(ctx, userID, limit)`; orgs use `AggregateForOrg` over the cached `primary_language`). Why: aggregating every owned repo let private code shape what visitors saw.
+- **Profile README has an inline editor** for the profile owner (`POST /settings/profile-readme` commits to the `{user}/{user}` repo). Why: owners can edit the README where it renders instead of cloning and pushing.
+- **Username is read-only in settings.** Why: bare repos live at `<repos_root>/<owner>/<repo>.git` and every URL is keyed by username, so a rename would orphan both.
+- **Email prefs are a master switch, digest frequency, and two per-type toggles** (mentions, reviews on my PRs). Migration 076 drops the other 072 toggles (issue assigned, watched repos, weekly digest). Why: no sender read them, so they changed nothing.
+- **Org default repo visibility is `private`** (075), and the new-repo form preselects the chosen owner's default. Why: a new org repo stays unexposed until someone chooses public.
+
 **Goal:** Reshape `user.templ` overview tab (profile mockup), reshape `org.templ` listing/detail to match `mockups/organizations.html`, add `new_organization` page + route (not currently routed), port `repo_new.templ`. Add pinned-repos data model. Add `PinnedRepo` component.
 
 **Architecture:** Pinned repos stored as `users.pinned_repo_ids BIGINT[]` (recommended per spec) — small additive migration. Profile uses the `Heatmap` component from Phase 1 with 52 weeks of repo-scoped commit data for the profile owner.
