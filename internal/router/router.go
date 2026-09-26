@@ -3,6 +3,7 @@ package router
 import (
 	"io/fs"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -10,6 +11,13 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+)
+
+// Account creation is rate limited per client IP so /register can't be used to
+// probe many emails for existing accounts.
+const (
+	accountCreationLimit  = 10
+	accountCreationWindow = 15 * time.Minute
 )
 
 // New registers all application routes and returns the configured chi router.
@@ -45,7 +53,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 
 	// Invite routes
 	r.Get("/invite/{token}", h.PageInvite)
-	r.Post("/invite/{token}", h.PageInviteSubmit)
+	r.With(middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/invite/{token}", h.PageInviteSubmit)
 
 	// Admin routes
 	r.With(authMW, superadminMW).Get("/admin/settings", h.PageAdminSettings)
@@ -62,7 +70,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(optAuthMW).Get("/explore", h.PageExplore)
 	r.With(optAuthMW).Get("/login", h.PageLogin)
 	r.With(optAuthMW).Get("/register", h.PageRegister)
-	r.With(optAuthMW).Post("/register", h.PageRegisterSubmit)
+	r.With(optAuthMW, middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/register", h.PageRegisterSubmit)
 	r.With(optAuthMW).Post("/login", h.PageLoginSubmit)
 	r.With(authMW).Get("/new", h.PageNewRepo)
 	r.With(authMW).Get("/settings", h.PageSettings)

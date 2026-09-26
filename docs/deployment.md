@@ -63,7 +63,7 @@ The SSH host key is auto-generated into the named volume on first boot — no ma
 
 ### Behind a reverse proxy
 
-Set `server.trusted_proxies` (`CZ_SERVER_TRUSTED_PROXIES`) to the proxy's IP or CIDR, e.g. `CZ_SERVER_TRUSTED_PROXIES=172.16.0.0/12` for a Docker network. `X-Forwarded-For` is ignored from any other peer, because clients can forge it. Without this setting, audit-log IPs show only the proxy's address.
+Set `server.trusted_proxies` (`CZ_SERVER_TRUSTED_PROXIES`) to the proxy's IP or CIDR, e.g. `CZ_SERVER_TRUSTED_PROXIES=172.16.0.0/12` for a Docker network. `X-Forwarded-For` is ignored from any other peer, because clients can forge it. Without this setting, audit-log IPs and the per-IP limit on account creation (10 attempts per 15 minutes on `/register` and `/invite/{token}`) see only the proxy's address, so every client shares one budget.
 
 ### Upgrading
 
