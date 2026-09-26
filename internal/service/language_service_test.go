@@ -13,7 +13,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -27,8 +26,8 @@ func TestLanguageService_Composition(t *testing.T) {
 		"static/index.js": "console.log('hi');\n\n",           // 20 bytes JS
 	}
 	code := newTestRepoWithFiles(t, "alice", "lang", files)
-	// repos is nil on purpose: only AggregateForUser may touch it, and a
-	// per-repo method that starts to would panic here.
+	// repos is nil on purpose: only AggregateForUser and PrimaryLanguage's
+	// write-back may touch it, and another method that starts to would panic here.
 	svc := NewLanguageService(code, nil)
 
 	comp, err := svc.Composition(context.Background(), "alice", "lang", "")
@@ -279,24 +278,61 @@ func TestLanguageService_AggregateForOrg_ViewerVisibility(t *testing.T) {
 	}
 }
 
-func TestLanguageService_PrimaryLanguage_EmptyColumnFallsBack(t *testing.T) {
-	t.Parallel()
-	code := newTestRepoWithFiles(t, "dave", "app", map[string]string{"main.go": "package main\n"})
-	svc := NewLanguageService(code, nil)
+func TestLanguageService_PrimaryLanguage_FillsEmptyColumn(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	owner := "testuser_" + suffix
 
-	empty, rust := "", "Rust"
+	code := newTestRepoWithFiles(t, owner, "app", map[string]string{"main.go": "package main\n"})
+	newTestRepoWithFilesAt(t, code.cfg.ReposRoot, owner, "docs", map[string]string{"README.md": "# docs\n"})
+	seedLangRepo(t, db, ownerID, owner, "app", false)
+	seedLangRepo(t, db, ownerID, owner, "docs", false)
+	repoSvc := NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, code, config.GitConfig{ReposRoot: code.cfg.ReposRoot})
+	svc := NewLanguageService(code, repoSvc)
+
+	null := sql.NullString{}
+	text := func(s string) sql.NullString { return sql.NullString{String: s, Valid: true} }
 	for _, tc := range []struct {
-		name   string
-		column *string
-		want   string
+		name, repo  string
+		column      sql.NullString
+		staleColumn bool // the page loaded the row before a push filled it
+		want        string
+		wantStored  sql.NullString
 	}{
-		{"nil column", nil, "Go"},
-		{"empty column", &empty, "Go"},
-		{"set column", &rust, "Rust"},
+		{"nil column", "app", null, false, "Go", text("Go")},
+		{"empty column", "app", text(""), false, "Go", text("Go")},
+		{"set column", "app", text("Rust"), false, "Rust", text("Rust")},
+		{"filled after load", "app", text("Rust"), true, "Go", text("Rust")},
+		{"no code", "docs", null, false, "", null},
 	} {
-		repo := &model.Repository{OwnerName: "dave", Name: "app", PrimaryLanguage: tc.column}
-		if got := svc.PrimaryLanguage(context.Background(), repo); got != tc.want {
+		if _, err := db.ExecContext(ctx,
+			`UPDATE repositories SET primary_language = $3 WHERE owner_name = $1 AND name = $2`,
+			owner, tc.repo, tc.column,
+		); err != nil {
+			t.Fatalf("%s: set column: %v", tc.name, err)
+		}
+		byName, err := repoSvc.Get(ctx, owner, tc.repo)
+		if err != nil {
+			t.Fatalf("%s: get repo: %v", tc.name, err)
+		}
+		repo, err := repoSvc.GetByID(ctx, byName.ID)
+		if err != nil {
+			t.Fatalf("%s: get repo by id: %v", tc.name, err)
+		}
+		if tc.staleColumn {
+			repo.PrimaryLanguage = nil
+		}
+		if got := svc.PrimaryLanguage(ctx, repo); got != tc.want {
 			t.Errorf("%s: PrimaryLanguage = %q, want %q", tc.name, got, tc.want)
+		}
+		var stored sql.NullString
+		if err := db.QueryRowContext(ctx, `SELECT primary_language FROM repositories WHERE id = $1`, repo.ID).Scan(&stored); err != nil {
+			t.Fatalf("%s: read column: %v", tc.name, err)
+		}
+		if stored != tc.wantStored {
+			t.Errorf("%s: stored primary_language = %+v, want %+v", tc.name, stored, tc.wantStored)
 		}
 	}
 }

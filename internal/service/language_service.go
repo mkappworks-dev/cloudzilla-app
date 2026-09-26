@@ -151,16 +151,20 @@ func (s *LanguageService) TopLanguageFor(ctx context.Context, owner, repoName, r
 	return top, nil
 }
 
-// PrimaryLanguage prefers the column written at push time. Nil and "" both fall
-// back to a cached tree walk, so a column a push left empty heals on view;
-// README-only repos pay that walk.
+// PrimaryLanguage prefers the column written at push time. Nil and "" fall back
+// to a cached tree walk and store its result, so forks and older rows no push
+// filled heal for column-only readers like org cards. README-only repos store
+// nothing and keep walking.
 func (s *LanguageService) PrimaryLanguage(ctx context.Context, repo *model.Repository) string {
 	if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
 		return *repo.PrimaryLanguage
 	}
 	lang, err := s.TopLanguageFor(ctx, repo.OwnerName, repo.Name, repo.DefaultBranch)
-	if err != nil {
+	if err != nil || lang == "" {
 		return ""
+	}
+	if err := s.repos.FillPrimaryLanguage(ctx, repo.ID, lang); err != nil {
+		slog.WarnContext(ctx, "language_service: store primary language failed", "repo_id", repo.ID, "err", err)
 	}
 	return lang
 }

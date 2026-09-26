@@ -415,6 +415,21 @@ func (s *RepoStore) UpdatePrimaryLanguage(ctx context.Context, repoID int64, lan
 	return nil
 }
 
+// FillPrimaryLanguage never overwrites a set column, so a value computed from
+// an older tree can't clobber one a push wrote meanwhile. It leaves updated_at
+// alone so a page view can't reorder recently-updated lists.
+func (s *RepoStore) FillPrimaryLanguage(ctx context.Context, repoID int64, lang string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET primary_language = $2
+		 WHERE id = $1 AND (primary_language IS NULL OR primary_language = '')`,
+		repoID, lang,
+	)
+	if err != nil {
+		return fmt.Errorf("fill repo primary language: %w", err)
+	}
+	return nil
+}
+
 func (s *RepoStore) UpdateMeta(ctx context.Context, repoID int64, description, website, license string) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE repositories SET description = $1, website = $2, license = $3, updated_at = $4 WHERE id = $5`,
