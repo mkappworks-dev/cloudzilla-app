@@ -3,6 +3,7 @@ package handler_test
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -15,11 +16,30 @@ import (
 
 var dbErrorFragments = []string{"duplicate key", "SQLSTATE", "users_username_key", "users_email_key", "user create"}
 
-func postRegister(t *testing.T, db *sql.DB, username, email string) string {
+// enableRegistration turns allow_registration on for the test and restores the
+// previous value, or its absence, afterwards.
+func enableRegistration(t *testing.T, db *sql.DB) {
 	t.Helper()
-	if err := store.NewSiteSettingStore(db).Set(context.Background(), "allow_registration", "true"); err != nil {
+	settings := store.NewSiteSettingStore(db)
+	prev, err := settings.Get(context.Background(), "allow_registration")
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM site_settings WHERE key = 'allow_registration'`) })
+	case err != nil:
+		t.Fatalf("read allow_registration: %v", err)
+	default:
+		t.Cleanup(func() {
+			testutil.Exec(t, db, `UPDATE site_settings SET value = $1 WHERE key = 'allow_registration'`, prev)
+		})
+	}
+	if err := settings.Set(context.Background(), "allow_registration", "true"); err != nil {
 		t.Fatalf("enable registration: %v", err)
 	}
+}
+
+func postRegister(t *testing.T, db *sql.DB, username, email string) string {
+	t.Helper()
+	enableRegistration(t, db)
 	form := url.Values{"username": {username}, "email": {email}, "password": {"password123"}}
 	req := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
