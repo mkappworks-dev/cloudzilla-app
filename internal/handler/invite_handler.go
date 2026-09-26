@@ -42,7 +42,7 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 			h.renderInvalidInvitation(w, r)
 			return
 		}
-		slog.Warn("invite: create user failed", "invitation_id", inv.ID, "error", err)
+		logCreateAccountFailure(r.Context(), "invite: create user failed", err, "invitation_id", inv.ID)
 		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: createAccountErrorMessage(err)}))
 		return
 	}

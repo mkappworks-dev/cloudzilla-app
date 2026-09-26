@@ -1,9 +1,12 @@
 package handler_test
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -14,7 +17,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-var dbErrorFragments = []string{"duplicate key", "SQLSTATE", "users_username_key", "users_email_key", "user create"}
+var dbErrorFragments = []string{"duplicate key", "SQLSTATE", "users_username_key", "users_email_key", "user create", "byte sequence"}
 
 // enableRegistration turns allow_registration on for the test and restores the
 // previous value, or its absence, afterwards.
@@ -80,5 +83,57 @@ func TestPageRegisterSubmit_UsernameTaken_SaysUsernameTaken(t *testing.T) {
 	assertNoDBErrorText(t, body)
 	if !strings.Contains(body, "username is already taken") {
 		t.Errorf("want username-taken message; body:\n%s", body)
+	}
+}
+
+// captureLogs routes slog to a buffer for the rest of the test.
+func captureLogs(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&buf, nil)))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+	return &buf
+}
+
+func loggedLevel(t *testing.T, logs *bytes.Buffer, msg string) string {
+	t.Helper()
+	for _, line := range strings.Split(strings.TrimSpace(logs.String()), "\n") {
+		var rec struct{ Level, Msg string }
+		if err := json.Unmarshal([]byte(line), &rec); err == nil && rec.Msg == msg {
+			return rec.Level
+		}
+	}
+	t.Fatalf("no %q log record in:\n%s", msg, logs.String())
+	return ""
+}
+
+func TestPageRegisterSubmit_UsernameTaken_LogsAtInfo(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	testutil.SeedUser(t, db, suffix)
+	logs := captureLogs(t)
+
+	postRegister(t, db, "testuser_"+suffix, "fresh_"+suffix+"@test.invalid")
+
+	if got := loggedLevel(t, logs, "register: create user failed"); got != "INFO" {
+		t.Errorf("a taken username is a user mistake; want INFO, got %s", got)
+	}
+}
+
+// A NUL byte is rejected by Postgres itself, standing in for any unexpected DB failure.
+func TestPageRegisterSubmit_DBFailure_GenericErrorLoggedAtError(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	logs := captureLogs(t)
+
+	body := postRegister(t, db, "nul\x00_"+suffix, "nul_"+suffix+"@test.invalid")
+
+	assertNoDBErrorText(t, body)
+	if !strings.Contains(body, "Could not create account") {
+		t.Errorf("want generic create-account error; body:\n%s", body)
+	}
+	if got := loggedLevel(t, logs, "register: create user failed"); got != "ERROR" {
+		t.Errorf("an unexpected failure must be logged at ERROR, got %s", got)
 	}
 }

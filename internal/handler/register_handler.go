@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -56,7 +57,7 @@ func (h *Handler) PageRegisterSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := h.Services.User.Create(r.Context(), username, email, password); err != nil {
-		slog.Warn("register: create user failed", "error", err)
+		logCreateAccountFailure(r.Context(), "register: create user failed", err)
 		renderError(createAccountErrorMessage(err))
 		return
 	}
@@ -87,4 +88,13 @@ func createAccountErrorMessage(err error) string {
 		return "That username is already taken"
 	}
 	return "Could not create account. If you already have one, sign in instead."
+}
+
+// Taken usernames and emails are user mistakes, so they log below Error.
+func logCreateAccountFailure(ctx context.Context, msg string, err error, args ...any) {
+	level := slog.LevelError
+	if errors.Is(err, service.ErrUsernameTaken) || errors.Is(err, service.ErrEmailTaken) {
+		level = slog.LevelInfo
+	}
+	slog.Log(ctx, level, msg, append(args, "error", err)...)
 }
