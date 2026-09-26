@@ -8,15 +8,8 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Skeleton renders a pulsing placeholder block while real content loads.
-// Pass sizing via `class` in attrs (e.g. {"class": "h-4 w-32"}). The pulse
-// animation respects `prefers-reduced-motion`.
-//
-// Typical HTMX usage: render Skeletons in the initial response, then let an
-// `hx-trigger="load"` swap replace them with the real content.
-//
-//	@components.Skeleton(templ.Attributes{"class": "h-4 w-32"})
-//	@components.Skeleton(templ.Attributes{"class": "h-8 w-8 rounded-full"})
+// Skeleton has no default size: pass height/width via the class in attrs, or it
+// renders zero-height.
 func Skeleton(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -38,11 +31,11 @@ func Skeleton(attrs templ.Attributes) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"animate-pulse rounded-md bg-muted motion-reduce:animate-none\" aria-hidden=\"true\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div aria-hidden=\"true\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, attrs)
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "animate-pulse rounded-md bg-muted motion-reduce:animate-none"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -54,9 +47,6 @@ func Skeleton(attrs templ.Attributes) templ.Component {
 	})
 }
 
-// SkeletonText renders a stack of pulsing lines mimicking a paragraph.
-// `lines` is the number of bars; the last bar is shorter to look like a paragraph
-// ending mid-line.
 func SkeletonText(lines int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context

@@ -8,13 +8,7 @@ package components
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-// Label renders a styled <label> bound to a form control via `for=forID`.
-// Pass `required=true` to append a small red asterisk after the label text.
-//
-// Example:
-//
-//	@components.Label("repo-name", true, nil) { "Repository name" }
-//	@components.Input(templ.Attributes{"id": "repo-name", "name": "name", "required": true})
+// The asterisk is aria-hidden: also set `required` on the control so assistive tech announces it.
 func Label(forID string, required bool, attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -43,17 +37,17 @@ func Label(forID string, required bool, attrs templ.Attributes) templ.Component 
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(forID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/label.templ`, Line: 12, Col: 13}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/label.templ`, Line: 6, Col: 13}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"text-[13px] font-medium leading-none text-foreground\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, attrs)
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "text-[13px] font-medium leading-none text-foreground"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

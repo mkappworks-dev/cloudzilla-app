@@ -10,9 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -178,6 +180,111 @@ func TestLogout_ClearsCookie(t *testing.T) {
 	if !found {
 		t.Errorf("expected cookie %q in logout response", testCookieName)
 	}
+}
+
+func assertAuthCookieCleared(t *testing.T, rr *httptest.ResponseRecorder) {
+	t.Helper()
+	for _, c := range rr.Result().Cookies() {
+		if c.Name == testCookieName && c.MaxAge < 0 {
+			return
+		}
+	}
+	t.Error("auth cookie not cleared")
+}
+
+// The Sign out menu item is a plain form POST; a 204 would leave the browser
+// on a page that still looks signed in.
+func TestLogout_BrowserFormRedirectsHome(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	h := newAuthHandler(db)
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/logout", strings.NewReader("csrf_token=x"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: testCookieName, Value: "sometoken"})
+	rr := httptest.NewRecorder()
+	h.Logout(rr, req)
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("want 303, got %d", rr.Code)
+	}
+	if loc := rr.Header().Get("Location"); loc != "/" {
+		t.Errorf("Location = %q, want %q", loc, "/")
+	}
+	assertAuthCookieCleared(t, rr)
+}
+
+func TestLogout_HTMXFormPostGetsHXRedirect(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	h := newAuthHandler(db)
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/logout", nil)
+	req.Header.Set("HX-Request", "true")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: testCookieName, Value: "sometoken"})
+	rr := httptest.NewRecorder()
+	h.Logout(rr, req)
+
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("want 204, got %d", rr.Code)
+	}
+	if got := rr.Header().Get("HX-Redirect"); got != "/" {
+		t.Errorf("HX-Redirect = %q, want %q", got, "/")
+	}
+	if loc := rr.Header().Get("Location"); loc != "" {
+		t.Errorf("Location = %q, want none", loc)
+	}
+	assertAuthCookieCleared(t, rr)
+}
+
+// The Sign out form reaches Logout only if its script-injected csrf_token validates.
+func TestLogout_FormPostThroughCSRF(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	r := chi.NewRouter()
+	r.Use(middleware.CSRF(false))
+	r.Post("/api/auth/logout", newAuthHandler(db).Logout)
+
+	pageLoad := httptest.NewRecorder()
+	r.ServeHTTP(pageLoad, httptest.NewRequest(http.MethodGet, "/", nil))
+	var csrfToken string
+	for _, c := range pageLoad.Result().Cookies() {
+		if c.Name == "csrf_token" {
+			csrfToken = c.Value
+		}
+	}
+	if csrfToken == "" {
+		t.Fatal("no csrf_token cookie issued")
+	}
+
+	post := func(body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/logout", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.AddCookie(&http.Cookie{Name: "csrf_token", Value: csrfToken})
+		req.AddCookie(&http.Cookie{Name: testCookieName, Value: "sometoken"})
+		rr := httptest.NewRecorder()
+		r.ServeHTTP(rr, req)
+		return rr
+	}
+
+	t.Run("valid token", func(t *testing.T) {
+		rr := post("csrf_token=" + csrfToken)
+		if rr.Code != http.StatusSeeOther {
+			t.Fatalf("want 303, got %d: %s", rr.Code, rr.Body.String())
+		}
+		if loc := rr.Header().Get("Location"); loc != "/" {
+			t.Errorf("Location = %q, want %q", loc, "/")
+		}
+		assertAuthCookieCleared(t, rr)
+	})
+
+	t.Run("missing token", func(t *testing.T) {
+		rr := post("")
+		if rr.Code != http.StatusForbidden {
+			t.Fatalf("want 403, got %d", rr.Code)
+		}
+		for _, c := range rr.Result().Cookies() {
+			if c.Name == testCookieName {
+				t.Errorf("rejected request still touched the auth cookie: %+v", c)
+			}
+		}
+	})
 }
 
 // TestLogout_NoExistingCookie_204 verifies that Logout returns HTTP 204 even when

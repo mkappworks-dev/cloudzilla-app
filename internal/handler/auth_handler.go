@@ -58,5 +58,14 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   -1,
 	})
-	w.WriteHeader(http.StatusNoContent)
+	switch {
+	// Checked first: HTMX form posts send the form Content-Type too, and XHR follows a 303 silently.
+	case r.Header.Get("HX-Request") == "true":
+		w.Header().Set("HX-Redirect", "/")
+		w.WriteHeader(http.StatusNoContent)
+	case r.Header.Get("Content-Type") == "application/x-www-form-urlencoded":
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	default:
+		w.WriteHeader(http.StatusNoContent)
+	}
 }

@@ -9,7 +9,7 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | Method | Path                    | Auth | Description                                                     |
 | ------ | ----------------------- | ---- | --------------------------------------------------------------- |
 | POST   | `/api/auth/login`       | --   | Login; sets `cz_token` cookie and returns token in body         |
-| POST   | `/api/auth/logout`      | --   | Clears the auth cookie                                          |
+| POST   | `/api/auth/logout`      | --   | Clears auth cookie; 204, or form 303/HTMX `HX-Redirect` to `/`  |
 | GET    | `/auth/google`          | --   | Begin Google OAuth flow (redirects to Google)                   |
 | GET    | `/auth/google/callback` | --   | Google OAuth callback; sets `cz_token` cookie, redirects to `/` |
 | POST   | `/auth/ldap`            | --   | LDAP login (username + password)                                |
