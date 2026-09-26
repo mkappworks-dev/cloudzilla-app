@@ -3,20 +3,34 @@ package view
 import "github.com/mkappworks-dev/cloudzilla-app/internal/model"
 
 // SettingsData holds template data for the consolidated user account settings page.
-// All sections (profile, security, SSH keys, tokens, notifications, sessions, emails, danger)
-// render from a single page handler.
 type SettingsData struct {
 	BasePage
-	User              model.User
-	SSHKeys           []model.SSHKey
-	Tokens            []model.AccessToken
-	TOTPEnabled       bool
-	TOTPPendingSecret string
-	TOTPOTPAuthURL    string
-	BackupCodes       []string
-	NewToken          string
-	ProfileSaved      bool
-	ProfileError      string
+	User                model.User
+	SSHKeys             []model.SSHKey
+	Tokens              []model.AccessToken
+	SavedReplies        []model.SavedReply
+	OAuthApps           []model.OAuthApp
+	OAuthAuthorizations []model.OAuthAuthorization
+	TOTPEnabled         bool
+	TOTPPendingSecret   string
+	TOTPOTPAuthURL      string
+	BackupCodes         []string
+	NewToken            string
+	ProfileSaved        bool
+	ProfileError        string
+}
+
+// OAuthAppsFragData holds template data for the OAuth apps list HTMX fragment.
+type OAuthAppsFragData struct {
+	Apps []model.OAuthApp
+	// Set only when rendering the create response: the store keeps a bcrypt hash, so this is the one chance to show it.
+	NewClientSecret string
+	NewClientID     string
+}
+
+// OAuthAuthorizationsFragData holds template data for the authorized OAuth apps HTMX fragment.
+type OAuthAuthorizationsFragData struct {
+	Authorizations []model.OAuthAuthorization
 }
 
 // NotificationsData holds template data for the notifications page.

@@ -346,14 +346,16 @@ The profile, repo-defaults, and delete endpoints are browser form posts: they re
 
 ## OAuth Apps
 
-| Method | Path                            | Auth     | Description                         |
-| ------ | ------------------------------- | -------- | ----------------------------------- |
-| GET    | `/oauth/authorize`              | Optional | OAuth authorization page            |
-| POST   | `/oauth/authorize`              | Required | Confirm authorization grant         |
-| POST   | `/oauth/token`                  | --       | Exchange auth code for access token |
-| POST   | `/api/oauth/apps`               | Required | Register an OAuth application       |
-| DELETE | `/api/oauth/apps/:id`           | Required | Delete an OAuth application         |
-| DELETE | `/api/oauth/authorizations/:id` | Required | Revoke an OAuth authorization       |
+| Method | Path                            | Auth     | Description                                |
+| ------ | ------------------------------- | -------- | ------------------------------------------ |
+| GET    | `/oauth/authorize`              | Optional | OAuth authorization page                   |
+| POST   | `/oauth/authorize`              | Required | Confirm authorization grant                |
+| POST   | `/oauth/token`                  | --       | Exchange auth code for access token        |
+| POST   | `/api/oauth/apps`               | Required | Register an OAuth application (HTMX-aware) |
+| DELETE | `/api/oauth/apps/:id`           | Required | Delete an OAuth application (HTMX-aware)   |
+| DELETE | `/api/oauth/authorizations/:id` | Required | Revoke an OAuth authorization (HTMX-aware) |
+
+Registering an app returns `client_secret` once; only its bcrypt hash is stored. JSON callers get it in the body; HTMX form posts (`name`, `homepage_url`, `redirect_uri`, `description`) get the apps-list fragment with the secret revealed.
 
 ## Instance Admin (superadmin only)
 

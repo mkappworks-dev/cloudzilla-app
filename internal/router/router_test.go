@@ -83,3 +83,15 @@ func TestLegacyPageRedirects(t *testing.T) {
 		}
 	})
 }
+
+func TestSettingsExportStubRemoved(t *testing.T) {
+	cfg := &config.Config{
+		Server: config.ServerConfig{BaseURL: "http://localhost:8080"},
+		Auth:   config.AuthConfig{JWTSecret: "test-router-secret-32bytes-min!!", CookieName: "cz_token_test"},
+	}
+	routes := router.New(&service.Services{}, cfg, fstest.MapFS{}).(chi.Routes)
+	rctx := chi.NewRouteContext()
+	if routes.Match(rctx, http.MethodPost, "/settings/export") {
+		t.Errorf("POST /settings/export is still routed (pattern %q)", rctx.RoutePattern())
+	}
+}

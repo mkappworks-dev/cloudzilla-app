@@ -7,6 +7,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
@@ -14,7 +15,7 @@ templ Settings(data view.SettingsData) {
 	@layout.Base(data.BasePage, "Account settings") {
 		<section class="mb-8" aria-labelledby="settings-title">
 			<h1 id="settings-title" class="text-2xl font-semibold tracking-tight">Account settings</h1>
-			<p class="mt-1 text-[13px] text-muted-foreground">Profile, security, notifications, and personal access tokens.</p>
+			<p class="mt-1 text-[13px] text-muted-foreground">Profile, security, access tokens, OAuth apps, notifications, and saved replies.</p>
 		</section>
 		if data.ProfileError != "" {
 			<div class="mb-6 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-4 py-2 text-[13px]">{ settingsErrorMessage(data.ProfileError) }</div>
@@ -26,7 +27,9 @@ templ Settings(data view.SettingsData) {
 					@settingsNavLink("#security", "Security", false)
 					@settingsNavLink("#ssh-keys", "SSH keys", false)
 					@settingsNavLink("#tokens", "Access tokens", false)
+					@settingsNavLink("#oauth-apps", "OAuth apps", false)
 					@settingsNavLink("#notifications", "Notifications", false)
+					@settingsNavLink("#saved-replies", "Saved replies", false)
 					@settingsNavLink("#sessions", "Sessions", false)
 					@settingsNavLink("#emails", "Emails", false)
 					<p class="font-mono text-[10px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-muted-foreground">Danger zone</p>
@@ -38,7 +41,9 @@ templ Settings(data view.SettingsData) {
 				@settingsSecuritySection(data)
 				@settingsSSHKeysSection(data)
 				@settingsTokensSection(data)
+				@settingsOAuthAppsSection(data)
 				@settingsNotificationsSection(data)
+				@settingsSavedRepliesSection(data)
 				@settingsSessionsSection(data)
 				@settingsEmailsSection(data)
 				@settingsDangerSection(data)
@@ -409,6 +414,78 @@ templ settingsGenerateTokenDialog() {
 	}
 }
 
+templ settingsOAuthAppsSection(data view.SettingsData) {
+	<section id="oauth-apps" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
+		<div class="flex items-start justify-between gap-4 mb-6">
+			<div class="min-w-0">
+				<h2 class="text-base font-semibold tracking-tight mb-1">OAuth applications</h2>
+				<p class="text-[12.5px] text-muted-foreground">Applications you've registered to call the Cloudzilla API on behalf of other users.</p>
+			</div>
+			<button
+				type="button"
+				onclick="document.getElementById('register-oauth-app-dialog').showModal()"
+				class="h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0"
+			>
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+				Register app
+			</button>
+		</div>
+		<div class="mb-6">
+			@fragments.OAuthAppsList(view.OAuthAppsFragData{Apps: data.OAuthApps})
+		</div>
+		<h3 class="text-[13.5px] font-medium mb-1">Authorized applications</h3>
+		<p class="text-[12.5px] text-muted-foreground mb-3">Applications you've allowed to access your account.</p>
+		@fragments.OAuthAuthorizationsList(view.OAuthAuthorizationsFragData{Authorizations: data.OAuthAuthorizations})
+		@settingsRegisterOAuthAppDialog()
+	</section>
+}
+
+templ settingsRegisterOAuthAppDialog() {
+	@components.Dialog("register-oauth-app-dialog") {
+		<form
+			hx-post="/api/oauth/apps"
+			hx-target="#oauth-apps-list"
+			hx-swap="outerHTML"
+			data-toast="Application registered"
+			hx-on::after-request="if(event.detail.successful){this.closest('dialog').close(); this.reset();}"
+		>
+			@components.DialogHeader() {
+				@components.DialogTitle("register-oauth-app-dialog") {
+					Register OAuth application
+				}
+				@components.DialogDescription() {
+					You'll get a client ID and a client secret. The secret is shown once.
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-4">
+					<div>
+						<label for="oauth-app-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Application name</label>
+						<input id="oauth-app-name" name="name" type="text" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+					</div>
+					<div>
+						<label for="oauth-app-homepage" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Homepage URL</label>
+						<input id="oauth-app-homepage" name="homepage_url" type="url" placeholder="https://example.com" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+					</div>
+					<div>
+						<label for="oauth-app-redirect" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Redirect URI</label>
+						<input id="oauth-app-redirect" name="redirect_uri" type="url" placeholder="https://example.com/callback" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"/>
+						<p class="text-[11px] text-muted-foreground mt-1">Leave blank to accept any redirect URI.</p>
+					</div>
+					<div>
+						<label for="oauth-app-desc" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Description (optional)</label>
+						<textarea id="oauth-app-desc" name="description" rows="3" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"></textarea>
+					</div>
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Register app</button>
+			}
+		</form>
+	}
+}
+
 templ settingsNotificationsSection(data view.SettingsData) {
 	<section id="notifications" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
 		<h2 class="text-base font-semibold tracking-tight mb-1">Notifications</h2>
@@ -439,30 +516,103 @@ templ settingsNotificationsSection(data view.SettingsData) {
 	</section>
 }
 
+templ settingsSavedRepliesSection(data view.SettingsData) {
+	<section id="saved-replies" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
+		<div class="flex items-start justify-between gap-4 mb-6">
+			<div class="min-w-0">
+				<h2 class="text-base font-semibold tracking-tight mb-1">Saved replies</h2>
+				<p class="text-[12.5px] text-muted-foreground">Reusable snippets you can insert into issue and pull request comments.</p>
+			</div>
+			<button
+				type="button"
+				onclick="document.getElementById('new-saved-reply-dialog').showModal()"
+				class="h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0"
+			>
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+				New reply
+			</button>
+		</div>
+		@fragments.SavedRepliesList(view.SavedRepliesFragData{Replies: data.SavedReplies})
+		@settingsNewSavedReplyDialog()
+	</section>
+}
+
+templ settingsNewSavedReplyDialog() {
+	@components.Dialog("new-saved-reply-dialog") {
+		<form
+			hx-post="/api/user/replies"
+			hx-target="#saved-replies-list"
+			hx-swap="outerHTML"
+			data-toast="Saved reply added"
+			hx-on::after-request="if(event.detail.successful){this.closest('dialog').close(); this.reset();}"
+		>
+			@components.DialogHeader() {
+				@components.DialogTitle("new-saved-reply-dialog") {
+					New saved reply
+				}
+				@components.DialogDescription() {
+					Pick it from the saved replies menu when writing a comment.
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-4">
+					<div>
+						<label for="reply-title" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Title</label>
+						<input id="reply-title" name="title" type="text" required placeholder="e.g. Thanks for the report" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+					</div>
+					<div>
+						<label for="reply-body" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Content</label>
+						<textarea id="reply-body" name="body" rows="5" required placeholder="Your reusable comment text…" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"></textarea>
+					</div>
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Add reply</button>
+			}
+		</form>
+	}
+}
+
 templ settingsSessionsSection(data view.SettingsData) {
 	<section id="sessions" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
-		<h2 class="text-base font-semibold tracking-tight mb-1">Sessions</h2>
-		<p class="text-[12.5px] text-muted-foreground mb-6">Browsers and clients signed in to your account.</p>
+		<div class="flex items-start justify-between gap-4 mb-6">
+			<div class="min-w-0">
+				<h2 class="text-base font-semibold tracking-tight mb-1 inline-flex items-center gap-2">
+					Sessions
+					@comingSoonBadge()
+				</h2>
+				<p class="text-[12.5px] text-muted-foreground">Browsers and clients signed in to your account.</p>
+			</div>
+			@comingSoonButton("Sign out other sessions")
+		</div>
 		<ul class="divide-y divide-border">
 			<li class="py-3 flex items-center gap-3">
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg>
 				<div class="min-w-0 flex-1">
 					<p class="text-[13.5px] font-medium">This browser <span class="ml-2 text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Current</span></p>
 					<p class="text-[12px] text-muted-foreground">Cloudzilla uses a single JWT cookie per browser. Sign out to end this session.</p>
 				</div>
 			</li>
 		</ul>
-		<p class="mt-4 text-[12px] text-muted-foreground">Multi-device session tracking is coming soon.</p>
 	</section>
 }
 
 templ settingsEmailsSection(data view.SettingsData) {
 	<section id="emails" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
-		<h2 class="text-base font-semibold tracking-tight mb-1">Emails</h2>
-		<p class="text-[12.5px] text-muted-foreground mb-6">Addresses associated with your account.</p>
+		<div class="flex items-start justify-between gap-4 mb-6">
+			<div class="min-w-0">
+				<h2 class="text-base font-semibold tracking-tight mb-1 inline-flex items-center gap-2">
+					Emails
+					@comingSoonBadge()
+				</h2>
+				<p class="text-[12.5px] text-muted-foreground">Addresses associated with your account.</p>
+			</div>
+			@comingSoonButton("Add email")
+		</div>
 		<ul class="divide-y divide-border">
 			<li class="py-3 flex items-center gap-3">
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><path d="M4 4h16v16H4z"></path><path d="M22 6l-10 7L2 6"></path></svg>
 				<div class="min-w-0 flex-1">
 					<p class="text-[13.5px] font-medium font-mono">{ data.User.Email }</p>
 					<p class="text-[12px] text-muted-foreground">Used for sign-in and notifications.</p>
@@ -470,23 +620,23 @@ templ settingsEmailsSection(data view.SettingsData) {
 				<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Primary</span>
 			</li>
 		</ul>
-		<p class="mt-4 text-[12px] text-muted-foreground">Adding additional email addresses is coming soon.</p>
 	</section>
 }
 
 templ settingsDangerSection(data view.SettingsData) {
 	<section id="danger" class="border border-destructive/40 rounded-lg bg-card p-6 scroll-mt-6">
 		<h2 class="text-base font-semibold tracking-tight mb-1 text-destructive">Danger zone</h2>
-		<p class="text-[12.5px] text-muted-foreground mb-6">Irreversible. Export what you want to keep first.</p>
+		<p class="text-[12.5px] text-muted-foreground mb-6">Irreversible. Clone any repositories you want to keep first.</p>
 		<ul class="divide-y divide-border">
-			<li class="py-4 flex items-start justify-between gap-4">
+			<li id="export" class="py-4 flex items-start justify-between gap-4">
 				<div class="min-w-0">
-					<p class="text-[13.5px] font-medium">Export your data</p>
+					<p class="text-[13.5px] font-medium inline-flex items-center gap-2">
+						Export your data
+						@comingSoonBadge()
+					</p>
 					<p class="mt-0.5 text-[12.5px] text-muted-foreground">Download everything you've created on Cloudzilla as a zip.</p>
 				</div>
-				<form method="POST" action="/settings/export" data-toast="Export requested" class="shrink-0">
-					<button type="submit" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground">Request export</button>
-				</form>
+				@comingSoonButton("Request export")
 			</li>
 			<li id="delete" class="py-4 flex items-start justify-between gap-4">
 				<div class="min-w-0">
@@ -514,7 +664,14 @@ templ settingsDangerSection(data view.SettingsData) {
 	</section>
 }
 
+templ comingSoonBadge() {
+	<span class="text-[10px] font-normal px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground">Coming soon</span>
+}
+
+templ comingSoonButton(label string) {
+	<button type="button" disabled class="h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed shrink-0">{ label }</button>
+}
+
 script confirmDeleteAccount(username string) {
 	return confirm("Permanently delete @" + username + "? This cannot be undone.");
 }
-

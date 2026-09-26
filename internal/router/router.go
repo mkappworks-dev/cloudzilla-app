@@ -63,7 +63,6 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Post("/settings/profile", h.UpdateProfile)
 	r.With(authMW).Post("/settings/profile-readme", h.UpdateProfileReadme)
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
-	r.With(authMW).Post("/settings/export", h.RequestExport)
 	r.With(authMW).Post("/settings/delete-account", h.DeleteAccount)
 	r.With(authMW).Get("/organizations", h.PageOrganizations)
 	r.With(authMW).Get("/organizations/new", h.PageNewOrganization)

@@ -1,0 +1,92 @@
+package fragments
+
+import (
+	"strconv"
+	"strings"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+)
+
+templ OAuthAppsList(data view.OAuthAppsFragData) {
+	<div id="oauth-apps-list" class="space-y-2">
+		if data.NewClientSecret != "" {
+			<div role="status" class="mb-4 border border-success/40 bg-success/10 rounded-md p-4">
+				<p class="font-semibold text-success mb-2 text-[13px]">Copy the client secret now — it won't be shown again.</p>
+				<dl class="space-y-2 text-[12px]">
+					<div>
+						<dt class="text-muted-foreground mb-1">Client ID</dt>
+						<dd><code class="block bg-background border border-success/40 rounded px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground">{ data.NewClientID }</code></dd>
+					</div>
+					<div>
+						<dt class="text-muted-foreground mb-1">Client secret</dt>
+						<dd><code class="block bg-background border border-success/40 rounded px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground">{ data.NewClientSecret }</code></dd>
+					</div>
+				</dl>
+			</div>
+		}
+		if len(data.Apps) > 0 {
+			for _, app := range data.Apps {
+				<div class="flex items-center gap-3 border border-border rounded-md p-3" data-app-id={ strconv.FormatInt(app.ID, 10) }>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground shrink-0" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
+					<div class="min-w-0 flex-1">
+						<p class="text-[13.5px] font-medium">{ app.Name }</p>
+						<p class="text-[11.5px] text-muted-foreground font-mono break-all">Client ID: { app.ClientID }</p>
+						if len(app.RedirectURIs) > 0 {
+							<p class="text-[11.5px] text-muted-foreground font-mono break-all mt-0.5">Redirect: { strings.Join(app.RedirectURIs, ", ") }</p>
+						}
+					</div>
+					<button
+						type="button"
+						hx-delete={ "/api/oauth/apps/" + strconv.FormatInt(app.ID, 10) }
+						hx-target="#oauth-apps-list"
+						hx-swap="outerHTML"
+						hx-confirm={ app.Name + " and every token it has issued will stop working." }
+						data-confirm-title="Delete this application?"
+						data-confirm-label="Delete"
+						data-confirm-danger="true"
+						data-toast="Application deleted"
+						class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0"
+					>Delete</button>
+				</div>
+			}
+		} else {
+			<div class="text-center py-6 border border-dashed border-border rounded-md text-[13px] text-muted-foreground">No applications registered yet.</div>
+		}
+	</div>
+}
+
+templ OAuthAuthorizationsList(data view.OAuthAuthorizationsFragData) {
+	<div id="oauth-authorizations-list" class="space-y-2">
+		if len(data.Authorizations) > 0 {
+			for _, auth := range data.Authorizations {
+				<div class="flex items-center gap-3 border border-border rounded-md p-3">
+					<div class="min-w-0 flex-1">
+						<p class="text-[13.5px] font-medium">App ID <span class="font-mono">{ strconv.FormatInt(auth.AppID, 10) }</span></p>
+						<p class="text-[12px] text-muted-foreground">
+							scopes:
+							if len(auth.Scopes) > 0 {
+								<span class="font-mono">{ strings.Join(auth.Scopes, ", ") }</span>
+							} else {
+								<span class="font-mono">none</span>
+							}
+						</p>
+					</div>
+					<button
+						type="button"
+						hx-delete={ "/api/oauth/authorizations/" + strconv.FormatInt(auth.ID, 10) }
+						hx-target="#oauth-authorizations-list"
+						hx-swap="outerHTML"
+						hx-confirm="The application will lose access to your account immediately."
+						data-confirm-title="Revoke access?"
+						data-confirm-label="Revoke"
+						data-confirm-danger="true"
+						data-toast="Access revoked"
+						class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0"
+					>Revoke</button>
+				</div>
+			}
+		} else {
+			<div class="text-center py-6 border border-dashed border-border rounded-md text-[13px] text-muted-foreground">No applications have been authorized.</div>
+		}
+	</div>
+}

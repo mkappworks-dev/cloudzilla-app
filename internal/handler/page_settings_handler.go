@@ -13,9 +13,8 @@ import (
 
 const backupCodesCookieName = "cz_backup_codes"
 
-// PageSettings renders the consolidated account settings page.
-// It loads profile, SSH keys, access tokens, notification prefs, TOTP state,
-// and any one-shot data (backup codes after enabling 2FA, new-token reveal).
+// PageSettings renders the consolidated account settings page, including
+// one-shot data (backup codes after enabling 2FA, new-token reveal).
 func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -36,15 +35,21 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		keys = []model.SSHKey{}
 	}
 	tokens, _ := h.Services.AccessToken.List(ctx, claims.UserID)
+	replies, _ := h.Services.SavedReply.List(ctx, claims.UserID)
+	apps, _ := h.Services.OAuthApp.ListByOwner(ctx, claims.UserID)
+	auths, _ := h.Services.OAuthApp.ListAuthorizationsByUser(ctx, claims.UserID)
 
 	enabled, secret, _ := h.Services.TOTP.GetUserTOTPState(ctx, claims.UserID)
 	data := view.SettingsData{
-		BasePage:    withAccountSubnav(basePage(r, h.Services), "settings", h.accountCounts(ctx, claims.UserID)),
-		User:        *user,
-		SSHKeys:     keys,
-		Tokens:      tokens,
-		TOTPEnabled: enabled,
-		NewToken:    r.URL.Query().Get("new_token"),
+		BasePage:            withAccountSubnav(basePage(r, h.Services), "settings", h.accountCounts(ctx, claims.UserID)),
+		User:                *user,
+		SSHKeys:             keys,
+		Tokens:              tokens,
+		SavedReplies:        replies,
+		OAuthApps:           apps,
+		OAuthAuthorizations: auths,
+		TOTPEnabled:         enabled,
+		NewToken:            r.URL.Query().Get("new_token"),
 	}
 	if !enabled && secret.Valid && secret.String != "" {
 		data.TOTPPendingSecret = secret.String
@@ -126,16 +131,6 @@ func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		Name: h.Cfg.Auth.CookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure,
 	})
 	http.Redirect(w, r, "/", http.StatusSeeOther)
-}
-
-// RequestExport handles POST /settings/export. For now this is a no-op stub
-// that just acknowledges the request — actual archive generation is future work.
-func (h *Handler) RequestExport(w http.ResponseWriter, r *http.Request) {
-	if _, ok := middleware.ClaimsFromContext(r.Context()); !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-	http.Redirect(w, r, "/settings?profile_saved=1#delete", http.StatusSeeOther)
 }
 
 // PageNotifications renders the in-app notifications page.

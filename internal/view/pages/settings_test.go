@@ -108,3 +108,108 @@ func TestSettings_DigestSelectLabelsEveryMode(t *testing.T) {
 		}
 	}
 }
+
+func renderSettings(t *testing.T, data view.SettingsData) string {
+	t.Helper()
+	var sb strings.Builder
+	if err := pages.Settings(data).Render(context.Background(), &sb); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	return sb.String()
+}
+
+// sectionHTML returns the element opened by id="<id>" up to its closing tag.
+func sectionHTML(t *testing.T, out, id, closeTag string) string {
+	t.Helper()
+	start := strings.Index(out, `id="`+id+`"`)
+	if start < 0 {
+		t.Fatalf("settings page missing id=%q", id)
+	}
+	rest := out[start:]
+	end := strings.Index(rest, closeTag)
+	if end < 0 {
+		t.Fatalf("id=%q has no %s", id, closeTag)
+	}
+	return rest[:end]
+}
+
+func TestSettings_SavedRepliesSectionListsReplies(t *testing.T) {
+	out := renderSettings(t, view.SettingsData{
+		User:         model.User{ID: 42, Username: "alice"},
+		SavedReplies: []model.SavedReply{{ID: 7, Title: "Thanks", Body: "Thanks for the report!"}},
+	})
+	if !strings.Contains(out, `href="#saved-replies"`) {
+		t.Error("settings nav missing saved replies link")
+	}
+	section := sectionHTML(t, out, "saved-replies", "</section>")
+	for _, want := range []string{
+		"Thanks for the report!",
+		`hx-post="/api/user/replies"`,
+		`hx-patch="/api/user/replies/7"`,
+		`hx-delete="/api/user/replies/7"`,
+	} {
+		if !strings.Contains(section, want) {
+			t.Errorf("saved replies section missing %s", want)
+		}
+	}
+}
+
+func TestSettings_OAuthAppsSectionListsAppsWithoutSecrets(t *testing.T) {
+	const secretHash = "$2a$10$storedbcrypthash"
+	out := renderSettings(t, view.SettingsData{
+		User:                model.User{ID: 42, Username: "alice"},
+		OAuthApps:           []model.OAuthApp{{ID: 3, Name: "CI bot", ClientID: "c0ffee", ClientSecret: secretHash}},
+		OAuthAuthorizations: []model.OAuthAuthorization{{ID: 9, AppID: 5, Scopes: []string{"repo:read"}}},
+	})
+	if !strings.Contains(out, `href="#oauth-apps"`) {
+		t.Error("settings nav missing OAuth apps link")
+	}
+	section := sectionHTML(t, out, "oauth-apps", "</section>")
+	for _, want := range []string{
+		"CI bot",
+		"c0ffee",
+		"repo:read",
+		`hx-post="/api/oauth/apps"`,
+		`hx-delete="/api/oauth/apps/3"`,
+		`hx-delete="/api/oauth/authorizations/9"`,
+	} {
+		if !strings.Contains(section, want) {
+			t.Errorf("OAuth apps section missing %s", want)
+		}
+	}
+	if strings.Contains(out, secretHash) {
+		t.Error("settings page renders the stored client secret")
+	}
+	if strings.Contains(section, "Copy the client secret now") {
+		t.Error("settings page shows a client-secret reveal outside the create response")
+	}
+}
+
+func TestSettings_UnbuiltSectionsAreDisabled(t *testing.T) {
+	out := renderSettings(t, view.SettingsData{User: model.User{ID: 42, Username: "alice", Email: "alice@example.com"}})
+	for _, s := range []struct{ id, closeTag string }{
+		{"export", "</li>"},
+		{"sessions", "</section>"},
+		{"emails", "</section>"},
+	} {
+		html := sectionHTML(t, out, s.id, s.closeTag)
+		if !strings.Contains(html, "Coming soon") {
+			t.Errorf("%s: missing Coming soon label", s.id)
+		}
+		if strings.Contains(html, "<form") {
+			t.Errorf("%s: renders a form", s.id)
+		}
+		buttons := strings.Count(html, "<button")
+		if buttons == 0 {
+			t.Errorf("%s: no control rendered", s.id)
+		}
+		if disabled := strings.Count(html, "<button type=\"button\" disabled"); disabled != buttons {
+			t.Errorf("%s: %d of %d buttons are disabled", s.id, disabled, buttons)
+		}
+	}
+	for _, leak := range []string{"/settings/export", "Export requested"} {
+		if strings.Contains(out, leak) {
+			t.Errorf("settings page still references %q", leak)
+		}
+	}
+}
