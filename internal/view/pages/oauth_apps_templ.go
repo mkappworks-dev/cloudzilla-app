@@ -108,13 +108,12 @@ func OAuthApps(data view.OAuthAppsData) templ.Component {
 						}
 						return nil
 					})
-					templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+					templ_7745c5c3_Err = components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
 						"hx-delete":  "/api/oauth/apps/" + strconv.FormatInt(app.ID, 10),
 						"hx-confirm": "Delete this application?",
 						"hx-target":  "closest li",
 						"hx-swap":    "outerHTML",
 						"type":       "button",
-						"class":      "text-destructive border-destructive/40 hover:bg-destructive/10",
 					}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var5), templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -151,7 +150,7 @@ func OAuthApps(data view.OAuthAppsData) templ.Component {
 					var templ_7745c5c3_Var6 string
 					templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.FormatInt(auth.AppID, 10))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 95, Col: 99}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 94, Col: 99}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 					if templ_7745c5c3_Err != nil {
@@ -164,7 +163,7 @@ func OAuthApps(data view.OAuthAppsData) templ.Component {
 					var templ_7745c5c3_Var7 string
 					templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(strings.Join(auth.Scopes, " "))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 96, Col: 112}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/oauth_apps.templ`, Line: 95, Col: 112}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 					if templ_7745c5c3_Err != nil {
@@ -192,13 +191,12 @@ func OAuthApps(data view.OAuthAppsData) templ.Component {
 						}
 						return nil
 					})
-					templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
+					templ_7745c5c3_Err = components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
 						"hx-delete":  "/api/oauth/authorizations/" + strconv.FormatInt(auth.ID, 10),
 						"hx-confirm": "Revoke access?",
 						"hx-target":  "closest li",
 						"hx-swap":    "outerHTML",
 						"type":       "button",
-						"class":      "text-destructive border-destructive/40 hover:bg-destructive/10",
 					}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var8), templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err

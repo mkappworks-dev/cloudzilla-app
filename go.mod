@@ -5,6 +5,7 @@ go 1.26
 toolchain go1.26.1
 
 require (
+	github.com/Oudwins/tailwind-merge-go v0.2.3
 	github.com/a-h/templ v0.3.1020
 	github.com/gliderlabs/ssh v0.3.8
 	github.com/go-chi/chi/v5 v5.2.5

@@ -1,24 +1,10 @@
 package components
 
-// Select renders a styled native <select> with a chevron indicator overlay.
-// Pass attributes via templ.Attributes — typically `name`, `id`, `required`,
-// `aria-*`, `hx-*`. The caller provides <option> children.
-//
 // Always pair with a <label for="..."> (visible or class="sr-only").
-//
-// Example:
-//
-//	<label for="role" class="text-sm">Role</label>
-//	@components.Select(templ.Attributes{"id": "role", "name": "role"}) {
-//	  <option value="reader">Reader</option>
-//	  <option value="writer" selected>Writer</option>
-//	  <option value="admin">Admin</option>
-//	}
 templ Select(attrs templ.Attributes) {
 	<div class="relative">
 		<select
-			class="appearance-none flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
-			{ attrs... }
+			{ withClass(attrs, "appearance-none flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-8 py-1 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-50")... }
 		>
 			{ children... }
 		</select>

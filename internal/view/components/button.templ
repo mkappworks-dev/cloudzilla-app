@@ -3,15 +3,15 @@ package components
 type ButtonVariant string
 
 const (
-	ButtonDefault     ButtonVariant = "default"     // primary action — solid foreground bg
-	ButtonOutline     ButtonVariant = "outline"     // bordered, transparent bg
-	ButtonGhost       ButtonVariant = "ghost"       // no border, hover bg only
-	ButtonSecondary   ButtonVariant = "secondary"   // muted solid bg
-	ButtonDestructive ButtonVariant = "destructive" // red, for delete-style actions
-	// Bordered destructive variant — stays visually secondary next to a primary button.
+	ButtonDefault     ButtonVariant = "default"
+	ButtonOutline     ButtonVariant = "outline"
+	ButtonGhost       ButtonVariant = "ghost"
+	ButtonSecondary   ButtonVariant = "secondary"
+	ButtonDestructive ButtonVariant = "destructive"
+	// Keeps a destructive action visually secondary next to a primary button.
 	ButtonDestructiveOutline ButtonVariant = "destructive-outline"
-	ButtonSuccess            ButtonVariant = "success" // green, e.g. merge actions
-	ButtonLink               ButtonVariant = "link"    // text-only, underline on hover
+	ButtonSuccess            ButtonVariant = "success"
+	ButtonLink               ButtonVariant = "link"
 )
 
 type ButtonSize string
@@ -39,7 +39,7 @@ func buttonVariantClass(v ButtonVariant) string {
 		return "bg-success text-success-foreground hover:bg-success/90"
 	case ButtonLink:
 		return "text-foreground underline-offset-4 hover:underline"
-	default: // ButtonDefault
+	default:
 		return "bg-primary text-primary-foreground hover:bg-primary/90"
 	}
 }
@@ -59,8 +59,7 @@ func buttonSizeClass(s ButtonSize) string {
 
 templ Button(variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
 	<button
-		class={ "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none", buttonVariantClass(variant), buttonSizeClass(size) }
-		{ attrs... }
+		{ withClass(attrs, "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none", buttonVariantClass(variant), buttonSizeClass(size))... }
 	>
 		{ children... }
 	</button>
@@ -69,8 +68,7 @@ templ Button(variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
 templ LinkButton(href string, variant ButtonVariant, size ButtonSize, attrs templ.Attributes) {
 	<a
 		href={ templ.SafeURL(href) }
-		class={ "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors", buttonVariantClass(variant), buttonSizeClass(size) }
-		{ attrs... }
+		{ withClass(attrs, "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors", buttonVariantClass(variant), buttonSizeClass(size))... }
 	>
 		{ children... }
 	</a>
