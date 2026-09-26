@@ -31,7 +31,7 @@ func (s *MentionStore) CreateBatch(ctx context.Context, commentID int64, userIDs
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback() //nolint:errcheck
+	defer tx.Rollback()
 	stmt, err := tx.PrepareContext(ctx,
 		`INSERT INTO mentions (comment_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
 	)

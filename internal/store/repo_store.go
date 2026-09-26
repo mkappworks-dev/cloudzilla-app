@@ -584,7 +584,7 @@ func (s *RepoStore) PurgeExpired(ctx context.Context, before time.Time) ([]model
 	if err != nil {
 		return nil, fmt.Errorf("purge expired begin tx: %w", err)
 	}
-	defer tx.Rollback() //nolint:errcheck
+	defer tx.Rollback()
 
 	rows, err := tx.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch,

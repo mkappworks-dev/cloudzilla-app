@@ -187,10 +187,10 @@ func runEmailDigest(ctx context.Context, svc *service.Services) {
 
 func buildDigestBody(u model.User, notifs []model.Notification) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("<h2>Hello %s,</h2><p>Here are your unread notifications:</p><ul>", html.EscapeString(u.Username)))
+	fmt.Fprintf(&sb, "<h2>Hello %s,</h2><p>Here are your unread notifications:</p><ul>", html.EscapeString(u.Username))
 	for _, n := range notifs {
-		sb.WriteString(fmt.Sprintf("<li><a href=\"%s\">%s/%s #%d</a> — %s by %s</li>",
-			n.SubjectURL, html.EscapeString(n.OwnerName), html.EscapeString(n.RepoName), n.SubjectID, string(n.Type), html.EscapeString(n.ActorName)))
+		fmt.Fprintf(&sb, "<li><a href=\"%s\">%s/%s #%d</a> — %s by %s</li>",
+			n.SubjectURL, html.EscapeString(n.OwnerName), html.EscapeString(n.RepoName), n.SubjectID, string(n.Type), html.EscapeString(n.ActorName))
 	}
 	sb.WriteString("</ul>")
 	return sb.String()

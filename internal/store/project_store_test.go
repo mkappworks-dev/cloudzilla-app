@@ -79,6 +79,9 @@ func readPositions(t *testing.T, db *sql.DB, columnID int64) []struct {
 		}
 		out = append(out, r)
 	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("read positions: %v", err)
+	}
 	return out
 }
 

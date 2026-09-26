@@ -13,32 +13,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-// newNotifSvc builds a NotificationService backed by the test database.
-// Returns the service, a repo seeded for the given owner, and the ownerID.
-func newNotifSvc(t *testing.T) (*service.NotificationService, model.Repository, int64) {
-	t.Helper()
-	db := testutil.OpenTestDB(t)
-	suffix := testutil.UniqueSuffix(t)
-	ownerID := testutil.SeedUser(t, db, suffix)
-	ownerName := "testuser_" + suffix
-	repoID := testutil.SeedRepo(t, db, ownerID, ownerName, suffix)
-
-	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
-	emailSvc := service.NewEmailService(config.SMTPConfig{})
-	svc := service.NewNotificationService(
-		store.NewNotificationStore(db),
-		store.NewWatchStore(db),
-		emailSvc,
-		userSvc,
-	)
-	repo := model.Repository{
-		ID:        repoID,
-		Name:      "testrepo_" + suffix,
-		OwnerName: ownerName,
-	}
-	return svc, repo, ownerID
-}
-
 // TestNotification_MarkRead_RemovesFromUnread verifies that MarkRead transitions a specific
 // notification from unread to read, reducing the unread count.
 func TestNotification_MarkRead_RemovesFromUnread(t *testing.T) {
