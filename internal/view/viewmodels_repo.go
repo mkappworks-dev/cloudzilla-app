@@ -55,7 +55,19 @@ type NewFileData struct {
 // RepoNewData holds template data for the new repository form page.
 type RepoNewData struct {
 	BasePage
-	OwnedOrgs []model.Organization
+	OwnedOrgs          []model.Organization
+	GitignoreTemplates []string
+	LicenseTemplates   []service.License
+
+	// Prefill values read from query params (e.g. the profile-README CTA links
+	// here with ?name=foo&visibility=public&init_readme=1).
+	DefaultName       string
+	DefaultPrivate    bool
+	DefaultInitReadme bool
+	// DefaultOwner preselects the owner dropdown. Empty falls back to the
+	// signed-in user. Used by org pages that link here with ?owner=stitch-labs
+	// so the new repo lands under the org the user came from.
+	DefaultOwner string
 }
 
 type ReleaseView struct {

@@ -1,0 +1,33 @@
+package components
+
+import "fmt"
+
+type PinnedRepoData struct {
+	OwnerName     string
+	Name          string
+	Description   string
+	Language      string
+	LanguageColor string
+	Stars         int
+}
+
+templ PinnedRepo(d PinnedRepoData) {
+	<a href={ templ.SafeURL("/" + d.OwnerName + "/" + d.Name) } class="block rounded-md border border-border bg-card p-4 hover:border-border-strong">
+		<div class="flex items-center gap-2">
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-muted-foreground"><path d="M9 12l2 2 4-4"/></svg>
+			<span class="text-sm font-medium truncate">{ d.OwnerName + "/" + d.Name }</span>
+		</div>
+		if d.Description != "" {
+			<p class="text-xs text-muted-foreground mt-2 line-clamp-2">{ d.Description }</p>
+		}
+		<div class="flex items-center gap-3 mt-2 text-[11px] text-muted-foreground">
+			if d.Language != "" {
+				<span class="flex items-center gap-1">
+					<span class="inline-block w-2 h-2 rounded-full" style={ "background-color: " + d.LanguageColor }></span>
+					{ d.Language }
+				</span>
+			}
+			<span>{ fmt.Sprintf("★ %d", d.Stars) }</span>
+		</div>
+	</a>
+}

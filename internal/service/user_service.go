@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -18,12 +20,20 @@ import (
 var (
 	ErrRegistrationDisabled = errors.New("registration is disabled")
 	ErrLoginDisabled        = errors.New("login is currently disabled")
+	ErrPinLimit             = errors.New("pin limit reached (6)")
+	ErrRepoNotFound         = errors.New("repository not found")
+	ErrEmailTaken           = errors.New("email is already taken")
+	ErrInvalidEmail         = errors.New("email must be a valid address")
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
+	emailRe                 = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 )
+
+const MaxPinnedRepos = 6
 
 // UserService manages user account operations including authentication and profile updates.
 type UserService struct {
 	store *store.UserStore
+	repos *RepoService
 	cfg   config.AuthConfig
 }
 
@@ -142,9 +152,27 @@ func (s *UserService) GetManyByUsernames(ctx context.Context, usernames []string
 	return s.store.GetManyByUsernames(ctx, usernames)
 }
 
-// UpdateEmailPrefs saves the user's email notification preferences.
-func (s *UserService) UpdateEmailPrefs(ctx context.Context, userID int64, emailNotifications bool, emailDigest string) error {
-	return s.store.UpdateEmailPrefs(ctx, userID, emailNotifications, emailDigest)
+func (s *UserService) UpdateNotificationPrefs(ctx context.Context, userID int64, p model.NotificationPrefs) error {
+	if !slices.Contains(model.EmailDigestModes, p.EmailDigest) {
+		p.EmailDigest = model.EmailDigestImmediate
+	}
+	return s.store.UpdateNotificationPrefs(ctx, userID, p)
+}
+
+// Username is deliberately not editable: repo owner names, on-disk repo paths, and JWT claims key off it.
+func (s *UserService) UpdateProfile(ctx context.Context, userID int64, name, email, bio, company, location string) error {
+	if !emailRe.MatchString(email) {
+		return ErrInvalidEmail
+	}
+	if existing, err := s.store.GetByEmail(ctx, email); err == nil && existing.ID != userID {
+		return ErrEmailTaken
+	}
+	return s.store.UpdateProfile(ctx, userID, strings.TrimSpace(name), email, strings.TrimSpace(bio), strings.TrimSpace(company), strings.TrimSpace(location))
+}
+
+// DeleteUser removes the user account. Related rows are removed via DB cascades.
+func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
+	return s.store.DeleteByID(ctx, userID)
 }
 
 // ListUsersForDigest returns users with email notifications enabled for the given digest mode.
@@ -160,6 +188,85 @@ func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (s
 		return "", fmt.Errorf("get user: %w", err)
 	}
 	return s.generateJWT(u)
+}
+
+// Required by PinRepo and PinnedRepos, which apply repo visibility.
+func (s *UserService) WithRepoService(repos *RepoService) *UserService {
+	s.repos = repos
+	return s
+}
+
+// PinnedRepos returns the pins viewerID can read, in pin order. Stored IDs of
+// deleted repos are skipped rather than erroring, since deletion doesn't unpin.
+func (s *UserService) PinnedRepos(ctx context.Context, userID int64, viewerID *int64) ([]model.Repository, error) {
+	ids, err := s.store.GetPinnedRepoIDs(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	visible, _, err := s.splitPins(ctx, ids, viewerID)
+	return visible, err
+}
+
+// splitPins returns the pins viewerID can read, in pin order, and the IDs of
+// the rest.
+func (s *UserService) splitPins(ctx context.Context, ids []int64, viewerID *int64) ([]model.Repository, []int64, error) {
+	visible := make([]model.Repository, 0, len(ids))
+	var hidden []int64
+	for _, id := range ids {
+		repo, err := s.repos.GetByID(ctx, id)
+		if errors.Is(err, sql.ErrNoRows) {
+			hidden = append(hidden, id)
+			continue
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		if s.repos.CanRead(ctx, repo, viewerID) {
+			visible = append(visible, *repo)
+		} else {
+			hidden = append(hidden, id)
+		}
+	}
+	return visible, hidden, nil
+}
+
+// PinRepo is idempotent. The limit counts only pins the user can still see —
+// the same set their profile shows — and pinning prunes the rest, so deleted
+// or now-unreadable repos don't hold slots the UI reports as free.
+func (s *UserService) PinRepo(ctx context.Context, userID, repoID int64) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrRepoNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if !s.repos.CanRead(ctx, repo, &userID) {
+		return ErrRepoNotFound
+	}
+	ids, err := s.store.GetPinnedRepoIDs(ctx, userID)
+	if err != nil {
+		return err
+	}
+	// Checked before the store locks the row so the lock never waits on repo
+	// lookups; a pin landing in between was checked by its own request.
+	_, stale, err := s.splitPins(ctx, ids, &userID)
+	if err != nil {
+		return err
+	}
+	pinned, err := s.store.AddPinnedRepo(ctx, userID, repoID, stale, MaxPinnedRepos)
+	if err != nil {
+		return err
+	}
+	if !pinned {
+		return ErrPinLimit
+	}
+	return nil
+}
+
+// UnpinRepo is a no-op when repoID is not pinned.
+func (s *UserService) UnpinRepo(ctx context.Context, userID, repoID int64) error {
+	return s.store.RemovePinnedRepo(ctx, userID, repoID)
 }
 
 func (s *UserService) generateJWT(u *model.User) (string, error) {

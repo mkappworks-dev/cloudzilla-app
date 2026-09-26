@@ -47,17 +47,18 @@ templ Base(base view.BasePage, title string) {
 					</a>
 
 					if base.CurrentUser != nil {
+						{{ workspaceName := workspaceContextName(base) }}
 						<svg class="text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true" focusable="false"><path d="M16 4L8 20"/></svg>
 
 						@components.DropdownMenu() {
 							@components.DropdownMenuTrigger(templ.Attributes{
 								"class":      "flex items-center gap-2 -ml-1 px-2 h-7 rounded-md hover:bg-accent text-sm font-medium",
-								"aria-label": "Switch account or organization, current: " + base.CurrentUser.Username,
+								"aria-label": "Switch account or organization, current: " + workspaceName,
 							}) {
 								<span class="inline-grid place-items-center h-5 w-5 rounded bg-accent border border-border text-[10px] font-medium" aria-hidden="true">
-									{ firstInitial(base.CurrentUser.Username) }
+									{ firstInitial(workspaceName) }
 								</span>
-								<span class="font-medium">{ base.CurrentUser.Username }</span>
+								<span class="font-medium">{ workspaceName }</span>
 								<svg class="text-muted-foreground" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"/></svg>
 							}
 							@components.DropdownMenuContent(components.DropdownAlignStart) {
@@ -81,6 +82,10 @@ templ Base(base view.BasePage, title string) {
 									}
 								}
 								@components.DropdownMenuSeparator()
+								@components.DropdownMenuLink("/organizations/new", nil) {
+									<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+									{ "New organization" }
+								}
 								@components.DropdownMenuLink("/organizations", nil) {
 									<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M3 21h18M3 7h18M5 21V7l7-4 7 4v14"/></svg>
 									{ "Your organizations" }
@@ -165,7 +170,7 @@ templ Base(base view.BasePage, title string) {
 											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
 											{ "Your profile" }
 										}
-										@components.DropdownMenuLink("/"+base.CurrentUser.Username+"/stars", nil) {
+										@components.DropdownMenuLink("/"+base.CurrentUser.Username+"?tab=stars", nil) {
 											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
 											{ "Your stars" }
 										}
@@ -241,7 +246,7 @@ templ Base(base view.BasePage, title string) {
 						{ "Explore" }
 					}
 					if base.CurrentUser != nil {
-						@components.CommandItem("/new", nil) {
+						@components.CommandItem("/repos/new", nil) {
 							{ "New repository" }
 						}
 						@components.CommandItem("/notifications", nil) {
@@ -254,10 +259,10 @@ templ Base(base view.BasePage, title string) {
 						@components.CommandItem("/"+base.CurrentUser.Username, nil) {
 							{ "Your profile" }
 						}
-						@components.CommandItem("/"+base.CurrentUser.Username+"/gists", nil) {
+						@components.CommandItem("/"+base.CurrentUser.Username+"?tab=gists", nil) {
 							{ "Your gists" }
 						}
-						@components.CommandItem("/"+base.CurrentUser.Username+"/stars", nil) {
+						@components.CommandItem("/"+base.CurrentUser.Username+"?tab=stars", nil) {
 							{ "Your stars" }
 						}
 						@components.CommandItem("/settings", nil) {
@@ -375,6 +380,20 @@ templ Base(base view.BasePage, title string) {
 			</script>
 		</body>
 	</html>
+}
+
+// workspaceContextName labels the topbar's workspace switcher trigger.
+func workspaceContextName(base view.BasePage) string {
+	if base.OwnerContext != "" {
+		return base.OwnerContext
+	}
+	if base.RepoSubnav != nil && base.RepoSubnav.OwnerName != "" {
+		return base.RepoSubnav.OwnerName
+	}
+	if base.CurrentUser != nil {
+		return base.CurrentUser.Username
+	}
+	return ""
 }
 
 // firstInitial returns the single-letter avatar fallback used by the workspace

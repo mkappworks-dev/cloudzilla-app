@@ -157,6 +157,10 @@ func (s *GistService) CountPrivateByUser(ctx context.Context, userID int64) (int
 	return s.gists.CountPrivateByOwner(ctx, userID)
 }
 
+func (s *GistService) CountPublicByOwner(ctx context.Context, ownerID int64) (int, error) {
+	return s.gists.CountPublicByOwner(ctx, ownerID)
+}
+
 func (s *GistService) Delete(ctx context.Context, gistID string, requesterID int64) error {
 	g, _, err := s.gists.Get(ctx, gistID)
 	if err != nil {

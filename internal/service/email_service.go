@@ -13,11 +13,15 @@ import (
 // EmailService sends transactional emails via SMTP. Email is skipped when SMTP host is empty.
 type EmailService struct {
 	cfg config.SMTPConfig
+	// Tests swap send to observe what SendNotification lets through.
+	send func(to, subject, htmlBody string) error
 }
 
 // NewEmailService creates an EmailService from the given SMTP configuration.
 func NewEmailService(cfg config.SMTPConfig) *EmailService {
-	return &EmailService{cfg: cfg}
+	s := &EmailService{cfg: cfg}
+	s.send = s.Send
+	return s
 }
 
 func (s *EmailService) Send(to, subject, htmlBody string) error {
@@ -32,11 +36,25 @@ func (s *EmailService) Send(to, subject, htmlBody string) error {
 }
 
 func (s *EmailService) SendNotification(ctx context.Context, user *model.User, notif *model.Notification) error {
-	if !user.EmailNotifications || user.Email == "" {
+	if !wantsEmail(user, notif.Type, model.EmailDigestImmediate) {
 		return nil
 	}
 	subject, body := formatNotifEmail(notif)
-	return s.Send(user.Email, subject, body)
+	return s.send(user.Email, subject, body)
+}
+
+// The immediate path and the digest job share this gate so the per-type toggles apply to both.
+func wantsEmail(u *model.User, t model.NotificationType, digestMode string) bool {
+	if !u.EmailNotifications || u.Email == "" || u.EmailDigest != digestMode {
+		return false
+	}
+	switch t {
+	case model.NotifMention:
+		return u.NotifyMention
+	case model.NotifPRReview:
+		return u.NotifyPRReview
+	}
+	return true
 }
 
 func formatNotifEmail(n *model.Notification) (subject, body string) {

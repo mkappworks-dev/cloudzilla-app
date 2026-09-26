@@ -123,7 +123,7 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	concurrency.Go("notify.issue_comment", func() {
-		h.Services.Notification.NotifyIssueComment(r.Context(), *repo, *issue, claims.UserID, claims.Username)
+		h.Services.Notification.NotifyIssueComment(context.WithoutCancel(r.Context()), *repo, *issue, claims.UserID, claims.Username)
 	})
 
 	repoID := repo.ID
@@ -208,7 +208,7 @@ func (h *Handler) CreatePullComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	concurrency.Go("notify.pr_comment", func() {
-		h.Services.Notification.NotifyPRComment(r.Context(), *repo, *pull, claims.UserID, claims.Username)
+		h.Services.Notification.NotifyPRComment(context.WithoutCancel(r.Context()), *repo, *pull, claims.UserID, claims.Username)
 	})
 
 	repoID := repo.ID

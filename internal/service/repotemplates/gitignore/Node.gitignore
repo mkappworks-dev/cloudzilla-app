@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+build/
+.next/
+out/
+
+# Coverage
+coverage/
+
+# Caches
+.npm
+.eslintcache
+
+# Env files
+.env
+.env.local
+.env.*.local

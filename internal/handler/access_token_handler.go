@@ -9,28 +9,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
-
-func (h *Handler) PageTokens(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	tokens, err := h.Services.AccessToken.List(r.Context(), claims.UserID)
-	if err != nil || tokens == nil {
-		tokens = nil
-	}
-
-	data := view.TokensData{
-		BasePage: basePage(r, h.Services),
-		Tokens:   tokens,
-		NewToken: r.URL.Query().Get("new_token"),
-	}
-	h.render(w, r, pages.Tokens(data))
-}
 
 func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
@@ -66,7 +45,7 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/settings/tokens?new_token="+rawToken, http.StatusSeeOther)
+	http.Redirect(w, r, "/settings?new_token="+rawToken+"#tokens", http.StatusSeeOther)
 }
 
 func (h *Handler) DeleteToken(w http.ResponseWriter, r *http.Request) {

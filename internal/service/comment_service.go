@@ -14,6 +14,7 @@ type CommentService struct {
 	mentions *store.MentionStore
 	users    *UserService
 	notifs   *NotificationService
+	repos    *RepoService
 }
 
 // NewCommentService creates a CommentService backed by the given stores.
@@ -22,12 +23,14 @@ func NewCommentService(
 	mentions *store.MentionStore,
 	users *UserService,
 	notifs *NotificationService,
+	repos *RepoService,
 ) *CommentService {
 	return &CommentService{
 		comments: comments,
 		mentions: mentions,
 		users:    users,
 		notifs:   notifs,
+		repos:    repos,
 	}
 }
 
@@ -114,13 +117,16 @@ func (s *CommentService) processMentions(ctx context.Context, repo model.Reposit
 		if u.ID == actorID {
 			continue // no self-notifications
 		}
+		if !s.repos.CanRead(ctx, &repo, &u.ID) {
+			continue
+		}
 		var subjectURL string
 		if c.IssueID != nil {
 			subjectURL = fmt.Sprintf("/%s/%s/issues/%d", repo.OwnerName, repo.Name, subjectNumber)
 		} else if c.PullID != nil {
 			subjectURL = fmt.Sprintf("/%s/%s/pulls/%d", repo.OwnerName, repo.Name, subjectNumber)
 		}
-		s.notifs.NotifyMention(ctx, repo, actorID, actorName, u.ID, subjectURL)
+		s.notifs.NotifyMention(ctx, repo, actorID, actorName, u.ID, subjectNumber, subjectURL)
 		userIDs = append(userIDs, u.ID)
 	}
 	_ = s.mentions.CreateBatch(ctx, c.ID, userIDs)

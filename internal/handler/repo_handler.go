@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -22,14 +23,53 @@ func (h *Handler) PageNewRepo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	orgs, err := h.Services.Org.ListOwnedByUser(r.Context(), claims.UserID)
+	ctx := r.Context()
+	orgs, err := h.Services.Org.ListOwnedByUser(ctx, claims.UserID)
 	if err != nil {
 		slog.Error("list owned orgs", "error", err)
 		orgs = []model.Organization{}
 	}
+	q := r.URL.Query()
+	initReadme := q.Get("init_readme") == "1" || q.Get("init_readme") == "true"
+
+	// ?owner=mkappworks-dev preselects the dropdown when the user arrived from
+	// that org's profile. Only honored when it matches the viewer or an org
+	// they own — otherwise silently ignored so a crafted link can't trick
+	// users into creating a repo under the wrong namespace.
+	var defaultOwner string
+	var ownerOrg *model.Organization
+	if reqOwner := q.Get("owner"); reqOwner != "" {
+		if reqOwner == claims.Username {
+			defaultOwner = reqOwner
+		} else {
+			for i, o := range orgs {
+				if o.Name == reqOwner {
+					defaultOwner = reqOwner
+					ownerOrg = &orgs[i]
+					break
+				}
+			}
+		}
+	}
+
+	var defaultPrivate bool
+	switch q.Get("visibility") {
+	case "private":
+		defaultPrivate = true
+	case "public":
+	default:
+		defaultPrivate = ownerOrg != nil && ownerOrg.DefaultRepoVisibility != "public"
+	}
+
 	h.render(w, r, pages.RepoNew(view.RepoNewData{
-		BasePage:  basePage(r, h.Services),
-		OwnedOrgs: orgs,
+		BasePage:           withAccountSubnav(basePage(r, h.Services), "repositories", h.accountCounts(ctx, claims.UserID)),
+		OwnedOrgs:          orgs,
+		GitignoreTemplates: h.Services.Repo.ListGitignoreTemplates(),
+		LicenseTemplates:   h.Services.Repo.ListLicenseTemplates(),
+		DefaultName:        q.Get("name"),
+		DefaultPrivate:     defaultPrivate,
+		DefaultInitReadme:  initReadme,
+		DefaultOwner:       defaultOwner,
 	}))
 }
 
@@ -37,6 +77,9 @@ type createRepoRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Private     bool   `json:"private"`
+	AddReadme   bool   `json:"add_readme"`
+	Gitignore   string `json:"gitignore"`
+	License     string `json:"license"`
 }
 
 func (h *Handler) ListRepos(w http.ResponseWriter, r *http.Request) {
@@ -83,10 +126,14 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Create(r.Context(), claims.Username, req.Name, req.Description, req.Private)
+	repo, err := h.Services.Repo.Create(r.Context(), claims.Username, req.Name, req.Description, req.Private, service.RepoInitOptions{
+		AddREADME: req.AddReadme,
+		Gitignore: req.Gitignore,
+		License:   req.License,
+	})
 	if err != nil {
 		slog.Error("failed to create repo", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to create repository")
+		writeError(w, http.StatusUnprocessableEntity, "failed to create repository")
 		return
 	}
 

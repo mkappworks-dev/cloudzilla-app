@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -122,30 +123,6 @@ func (h *Handler) TokenEndpoint(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// PageOAuthApps renders the user's registered apps and granted authorizations.
-func (h *Handler) PageOAuthApps(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-	apps, err := h.Services.OAuthApp.ListByOwner(r.Context(), claims.UserID)
-	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	auths, err := h.Services.OAuthApp.ListAuthorizationsByUser(r.Context(), claims.UserID)
-	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	h.render(w, r, pages.OAuthApps(view.OAuthAppsData{
-		BasePage:       basePage(r, h.Services),
-		Apps:           apps,
-		Authorizations: auths,
-	}))
-}
-
 // CreateOAuthApp handles POST /api/oauth/apps.
 func (h *Handler) CreateOAuthApp(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
@@ -153,13 +130,25 @@ func (h *Handler) CreateOAuthApp(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
+	isHTMX := r.Header.Get("HX-Request") == "true"
 	var req struct {
 		Name         string   `json:"name"`
 		HomepageURL  string   `json:"homepage_url"`
 		Description  string   `json:"description"`
 		RedirectURIs []string `json:"redirect_uris"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if isHTMX {
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form data")
+			return
+		}
+		req.Name = strings.TrimSpace(r.FormValue("name"))
+		req.HomepageURL = strings.TrimSpace(r.FormValue("homepage_url"))
+		req.Description = r.FormValue("description")
+		if uri := strings.TrimSpace(r.FormValue("redirect_uri")); uri != "" {
+			req.RedirectURIs = []string{uri}
+		}
+	} else if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON")
 		return
 	}
@@ -170,6 +159,16 @@ func (h *Handler) CreateOAuthApp(w http.ResponseWriter, r *http.Request) {
 	app, rawSecret, err := h.Services.OAuthApp.CreateApp(r.Context(), claims.UserID, req.Name, req.HomepageURL, req.Description, req.RedirectURIs)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to create app")
+		return
+	}
+	if isHTMX {
+		apps, _ := h.Services.OAuthApp.ListByOwner(r.Context(), claims.UserID)
+		w.Header().Set("Cache-Control", "no-store")
+		h.render(w, r, fragments.OAuthAppsList(view.OAuthAppsFragData{
+			Apps:            apps,
+			NewClientID:     app.ClientID,
+			NewClientSecret: rawSecret,
+		}))
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]any{
@@ -194,6 +193,11 @@ func (h *Handler) DeleteOAuthApp(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to delete app")
 		return
 	}
+	if r.Header.Get("HX-Request") == "true" {
+		apps, _ := h.Services.OAuthApp.ListByOwner(r.Context(), claims.UserID)
+		h.render(w, r, fragments.OAuthAppsList(view.OAuthAppsFragData{Apps: apps}))
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -211,6 +215,11 @@ func (h *Handler) RevokeOAuthAuthorization(w http.ResponseWriter, r *http.Reques
 	}
 	if err := h.Services.OAuthApp.RevokeAccess(r.Context(), id, claims.UserID); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to revoke authorization")
+		return
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		auths, _ := h.Services.OAuthApp.ListAuthorizationsByUser(r.Context(), claims.UserID)
+		h.render(w, r, fragments.OAuthAuthorizationsList(view.OAuthAuthorizationsFragData{Authorizations: auths}))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

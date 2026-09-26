@@ -2,20 +2,33 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
+	"net/url"
 	"path/filepath"
+	"sort"
+	"strings"
+	"time"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
+
+// ErrOrgNameTaken indicates the requested organization name is already in use
+// (by another organization or a user account).
+var ErrOrgNameTaken = errors.New("organization name is already taken")
 
 // OrgService manages organization creation, membership, and ownership transfers.
 type OrgService struct {
 	orgs  *store.OrgStore
 	repos *store.RepoStore
 	users *store.UserStore
+	stars *store.StarStore
 	cfg   config.GitConfig
 }
 
@@ -24,10 +37,15 @@ func NewOrgService(orgs *store.OrgStore, repos *store.RepoStore, users *store.Us
 	return &OrgService{orgs: orgs, repos: repos, users: users, cfg: cfg}
 }
 
+func (s *OrgService) WithStarStore(stars *store.StarStore) *OrgService {
+	s.stars = stars
+	return s
+}
+
 func (s *OrgService) Create(ctx context.Context, creatorUserID int64, name, displayName, description string) (*model.Organization, error) {
 	// Check name not already used by a user
 	if _, err := s.users.GetByUsername(ctx, name); err == nil {
-		return nil, fmt.Errorf("name already taken by a user account")
+		return nil, fmt.Errorf("%w: conflicts with a user account", ErrOrgNameTaken)
 	}
 
 	org := &model.Organization{
@@ -36,6 +54,10 @@ func (s *OrgService) Create(ctx context.Context, creatorUserID int64, name, disp
 		Description: description,
 	}
 	if err := s.orgs.Create(ctx, org); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, ErrOrgNameTaken
+		}
 		return nil, fmt.Errorf("create org: %w", err)
 	}
 
@@ -48,6 +70,68 @@ func (s *OrgService) Create(ctx context.Context, creatorUserID int64, name, disp
 
 func (s *OrgService) Get(ctx context.Context, name string) (*model.Organization, error) {
 	return s.orgs.GetByName(ctx, name)
+}
+
+// ErrOrgHasRepos is returned when a delete is attempted on an org that still
+// has repositories. Repos must be transferred or deleted first to avoid the
+// FK cascade silently wiping shared data.
+var ErrOrgHasRepos = errors.New("organization still has repositories")
+
+func (s *OrgService) UpdateRepoDefaults(ctx context.Context, orgID, requestingUserID int64, visibility, branchName string) error {
+	if !s.IsOwner(ctx, orgID, requestingUserID) {
+		return fmt.Errorf("only org owners can edit repository defaults")
+	}
+	switch visibility {
+	case "public", "private":
+	default:
+		return fmt.Errorf("default visibility must be public or private")
+	}
+	if branchName == "" || strings.ContainsAny(branchName, " \t\n") {
+		return fmt.Errorf("default branch name cannot be empty or contain whitespace")
+	}
+	return s.orgs.UpdateRepoDefaults(ctx, orgID, visibility, branchName)
+}
+
+func (s *OrgService) Delete(ctx context.Context, orgID, requestingUserID int64) error {
+	if !s.IsOwner(ctx, orgID, requestingUserID) {
+		return fmt.Errorf("only org owners can delete an organization")
+	}
+	repos, err := s.repos.GetByOrgID(ctx, orgID)
+	if err != nil {
+		return fmt.Errorf("check org repos: %w", err)
+	}
+	if len(repos) > 0 {
+		return ErrOrgHasRepos
+	}
+	return s.orgs.Delete(ctx, orgID)
+}
+
+func (s *OrgService) UpdateProfile(ctx context.Context, orgID, requestingUserID int64, displayName, description, website, location, contactEmail string) error {
+	if !s.IsOwner(ctx, orgID, requestingUserID) {
+		return fmt.Errorf("only org owners can edit organization settings")
+	}
+	website, err := normalizeWebsite(website)
+	if err != nil {
+		return err
+	}
+	return s.orgs.UpdateProfile(ctx, orgID, displayName, description, website, location, contactEmail)
+}
+
+// normalizeWebsite prefixes a bare host with https:// and rejects every other
+// scheme: the value renders as a link on the public org page.
+func normalizeWebsite(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", nil
+	}
+	if !strings.Contains(raw, "://") {
+		raw = "https://" + raw
+	}
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return "", fmt.Errorf("website must be an http or https URL")
+	}
+	return u.String(), nil
 }
 
 func (s *OrgService) ListMembers(ctx context.Context, orgID int64) ([]model.OrgMember, error) {
@@ -94,6 +178,10 @@ func (s *OrgService) ListMembershipsForUser(ctx context.Context, userID int64) (
 	return out, nil
 }
 
+func (s *OrgService) CountMembers(ctx context.Context, orgID int64) (int, error) {
+	return s.orgs.CountMembers(ctx, orgID)
+}
+
 func (s *OrgService) IsOwner(ctx context.Context, orgID, userID int64) bool {
 	m, err := s.orgs.GetMember(ctx, orgID, userID)
 	if err != nil {
@@ -114,8 +202,47 @@ func (s *OrgService) AddMember(ctx context.Context, orgID, requestingUserID, tar
 	return s.orgs.AddMember(ctx, orgID, targetUserID, role)
 }
 
-func (s *OrgService) RemoveMember(ctx context.Context, orgID, requestingUserID, targetUserID int64) error {
+// Refuses to demote the last owner: an org with no owner cannot be managed or deleted.
+func (s *OrgService) UpdateMemberRole(ctx context.Context, orgID, requestingUserID, targetUserID int64, role model.OrgRole) error {
 	if !s.IsOwner(ctx, orgID, requestingUserID) {
+		return fmt.Errorf("only org owners can change member roles")
+	}
+	switch role {
+	case model.OrgRoleOwner, model.OrgRoleMember:
+	default:
+		return fmt.Errorf("role must be owner or member")
+	}
+
+	target, err := s.orgs.GetMember(ctx, orgID, targetUserID)
+	if err != nil {
+		return fmt.Errorf("member not found")
+	}
+	if target.Role == role {
+		return nil
+	}
+
+	if target.Role == model.OrgRoleOwner && role == model.OrgRoleMember {
+		members, err := s.orgs.ListMembers(ctx, orgID)
+		if err != nil {
+			return err
+		}
+		ownerCount := 0
+		for _, m := range members {
+			if m.Role == model.OrgRoleOwner {
+				ownerCount++
+			}
+		}
+		if ownerCount <= 1 {
+			return fmt.Errorf("cannot demote the last owner")
+		}
+	}
+
+	return s.orgs.UpdateMemberRole(ctx, orgID, targetUserID, role)
+}
+
+func (s *OrgService) RemoveMember(ctx context.Context, orgID, requestingUserID, targetUserID int64) error {
+	// A member may always remove themselves ("leave"); otherwise only owners may remove members.
+	if requestingUserID != targetUserID && !s.IsOwner(ctx, orgID, requestingUserID) {
 		return fmt.Errorf("only org owners can remove members")
 	}
 
@@ -142,7 +269,7 @@ func (s *OrgService) RemoveMember(ctx context.Context, orgID, requestingUserID, 
 	return s.orgs.RemoveMember(ctx, orgID, targetUserID)
 }
 
-func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int64, name, description string, private bool) (*model.Repository, error) {
+func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int64, name, description string, private bool, init RepoInitOptions) (*model.Repository, error) {
 	if err := ValidateName(name); err != nil {
 		return nil, fmt.Errorf("invalid repository name: %w", err)
 	}
@@ -155,6 +282,10 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 		return nil, fmt.Errorf("org not found: %w", err)
 	}
 
+	defaultBranch := org.DefaultBranchName
+	if defaultBranch == "" {
+		defaultBranch = "main"
+	}
 	r := &model.Repository{
 		OwnerID:       requestingUserID,
 		OwnerName:     org.Name,
@@ -162,7 +293,7 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 		Name:          name,
 		Description:   description,
 		Private:       private,
-		DefaultBranch: "main",
+		DefaultBranch: defaultBranch,
 	}
 	if err := s.repos.CreateWithOwnerName(ctx, r); err != nil {
 		return nil, fmt.Errorf("create org repo: %w", err)
@@ -171,6 +302,21 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 	repoPath := filepath.Join(s.cfg.ReposRoot, org.Name, name+".git")
 	if _, err := gogit.PlainInit(repoPath, true); err != nil {
 		return nil, fmt.Errorf("git init bare: %w", err)
+	}
+
+	if init.any() {
+		// The DB row and bare repo already exist. A failure here leaves a valid
+		// empty repo the user can still push to, so we log and return success
+		// rather than 500-ing on already-created state.
+		sig := object.Signature{
+			Name:  org.Name,
+			Email: org.Name + "@users.noreply.localhost",
+			When:  time.Now().UTC(),
+		}
+		if err := seedInitialCommit(repoPath, r.DefaultBranch, sig, init, org.Name, name, description); err != nil {
+			slog.Error("seed initial commit for new org repo failed; repo created empty",
+				"repo_id", r.ID, "org", org.Name, "name", name, "error", err)
+		}
 	}
 
 	return r, nil
@@ -207,6 +353,62 @@ func (s *OrgService) ListReposVisibleTo(ctx context.Context, orgID int64, viewer
 		}
 	}
 	return visible, nil
+}
+
+type OrgRepoHighlights struct {
+	Featured []model.RepositoryWithStats
+	Recent   []model.RepositoryWithStats
+}
+
+// RepoHighlights ranks the repos the caller already filtered for the viewer.
+// Orgs have no pin storage, so Featured stands in with the most-starred public
+// repos until an org equivalent of users.pinned_repo_ids exists. Recent is
+// newest-updated first and skips anything already featured.
+func (s *OrgService) RepoHighlights(ctx context.Context, repos []model.Repository, featuredLimit, recentLimit int) (*OrgRepoHighlights, error) {
+	ids := make([]int64, len(repos))
+	for i, r := range repos {
+		ids[i] = r.ID
+	}
+	stars, err := s.stars.CountByRepoIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	withStars := make([]model.RepositoryWithStats, len(repos))
+	for i, r := range repos {
+		withStars[i] = model.RepositoryWithStats{Repository: r, StarCount: stars[r.ID]}
+	}
+
+	byStars := make([]model.RepositoryWithStats, 0, len(withStars))
+	for _, r := range withStars {
+		if !r.Private {
+			byStars = append(byStars, r)
+		}
+	}
+	sort.SliceStable(byStars, func(i, j int) bool {
+		if byStars[i].StarCount != byStars[j].StarCount {
+			return byStars[i].StarCount > byStars[j].StarCount
+		}
+		return byStars[i].UpdatedAt.After(byStars[j].UpdatedAt)
+	})
+	featured := byStars[:min(featuredLimit, len(byStars))]
+
+	featuredIDs := make(map[int64]bool, len(featured))
+	for _, r := range featured {
+		featuredIDs[r.ID] = true
+	}
+	sort.SliceStable(withStars, func(i, j int) bool {
+		return withStars[i].UpdatedAt.After(withStars[j].UpdatedAt)
+	})
+	recent := make([]model.RepositoryWithStats, 0, min(recentLimit, len(withStars)))
+	for _, r := range withStars {
+		if len(recent) >= recentLimit {
+			break
+		}
+		if !featuredIDs[r.ID] {
+			recent = append(recent, r)
+		}
+	}
+	return &OrgRepoHighlights{Featured: featured, Recent: recent}, nil
 }
 
 // TransferOrg transfers ownership of an org from the requesting user to another user.

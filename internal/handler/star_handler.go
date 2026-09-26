@@ -142,27 +142,6 @@ func (h *Handler) PageStargazers(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-func (h *Handler) PageUserStars(w http.ResponseWriter, r *http.Request) {
-	username := chi.URLParam(r, "owner")
-
-	user, err := h.Services.User.GetByUsername(r.Context(), username)
-	if err != nil {
-		http.Error(w, "user not found", http.StatusNotFound)
-		return
-	}
-
-	repos, _ := h.Services.Star.ListByUser(r.Context(), username)
-	if repos == nil {
-		repos = []model.Repository{}
-	}
-
-	h.render(w, r, pages.UserStars(view.UserStarsData{
-		BasePage:    basePage(r, h.Services),
-		ProfileUser: *user,
-		Repos:       repos,
-	}))
-}
-
 func (h *Handler) renderStarButtonFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, userID int64) {
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {

@@ -36,6 +36,7 @@ func newCommentSvc(t *testing.T) (*service.CommentService, model.Repository, mod
 		store.NewMentionStore(db),
 		userSvc,
 		notifSvc,
+		service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
 	)
 
 	repo := model.Repository{
@@ -166,5 +167,65 @@ func TestCommentService_Delete_RemovesComment(t *testing.T) {
 	_, err = svc.GetByID(context.Background(), c.ID)
 	if err == nil {
 		t.Error("GetByID must return an error after the comment is deleted")
+	}
+}
+
+func TestCommentService_CreateForIssue_MentionsNotifyOnlyUsersWhoCanReadRepo(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	ownerName := "testuser_" + suffix
+	repoID := testutil.SeedRepo(t, db, ownerID, ownerName, suffix)
+	readerID := testutil.SeedUser(t, db, "reader_"+suffix)
+	outsiderID := testutil.SeedUser(t, db, "outsider_"+suffix)
+	ctx := context.Background()
+
+	if _, err := db.ExecContext(ctx, `UPDATE repositories SET private = true WHERE id = $1`, repoID); err != nil {
+		t.Fatalf("make repo private: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO permissions (user_id, repo_id, role) VALUES ($1, $2, 'reader')`, readerID, repoID); err != nil {
+		t.Fatalf("grant reader: %v", err)
+	}
+
+	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	notifSvc := service.NewNotificationService(store.NewNotificationStore(db), store.NewWatchStore(db), service.NewEmailService(config.SMTPConfig{}), userSvc)
+	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{})
+	svc := service.NewCommentService(store.NewCommentStore(db), store.NewMentionStore(db), userSvc, notifSvc, repoSvc)
+	mentions := store.NewMentionStore(db)
+
+	issue := &model.Issue{RepoID: repoID, AuthorID: ownerID, Title: "Mention test", State: model.IssueStateOpen, Visibility: "public"}
+	if err := store.NewIssueStore(db).Create(ctx, issue); err != nil {
+		t.Fatalf("seed issue: %v", err)
+	}
+	repo := model.Repository{ID: repoID, OwnerID: ownerID, Name: "testrepo_" + suffix, OwnerName: ownerName, Private: true}
+
+	body := "cc @testuser_reader_" + suffix + " @testuser_outsider_" + suffix
+	if _, err := svc.CreateForIssue(ctx, repo, issue.ID, issue.Number, ownerID, ownerName, body); err != nil {
+		t.Fatalf("CreateForIssue: %v", err)
+	}
+
+	readerNotifs, err := notifSvc.List(ctx, readerID)
+	if err != nil {
+		t.Fatalf("List reader: %v", err)
+	}
+	if len(readerNotifs) != 1 || readerNotifs[0].Type != model.NotifMention {
+		t.Fatalf("reader notifications = %+v, want one mention", readerNotifs)
+	}
+	if readerNotifs[0].SubjectID != int64(issue.Number) {
+		t.Errorf("mention SubjectID = %d, want issue number %d", readerNotifs[0].SubjectID, issue.Number)
+	}
+	if ids, err := mentions.ListIssueIDsMentioning(ctx, readerID); err != nil || len(ids) != 1 {
+		t.Errorf("reader mention rows = %v (err %v), want the issue", ids, err)
+	}
+
+	outsiderNotifs, err := notifSvc.List(ctx, outsiderID)
+	if err != nil {
+		t.Fatalf("List outsider: %v", err)
+	}
+	if len(outsiderNotifs) != 0 {
+		t.Errorf("user without read access got notifications: %+v", outsiderNotifs)
+	}
+	if ids, err := mentions.ListIssueIDsMentioning(ctx, outsiderID); err != nil || len(ids) != 0 {
+		t.Errorf("outsider mention rows = %v (err %v), want none", ids, err)
 	}
 }

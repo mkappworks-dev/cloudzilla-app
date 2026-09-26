@@ -231,7 +231,7 @@ func OAuthAuthorize(data view.OAuthAuthorizeData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</span>. You can revoke this app's access at any time from your <a href=\"/settings/oauth-apps\" class=\"hover:text-foreground hover:underline\">connected apps</a> settings.</p></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</span>. You can revoke this app's access at any time from your account settings.</p></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

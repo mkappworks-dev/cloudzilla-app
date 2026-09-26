@@ -5,17 +5,31 @@ import "time"
 type NotificationType string
 
 const (
-	NotifIssueComment  NotificationType = "issue_comment"
-	NotifPRComment     NotificationType = "pr_comment"
-	NotifIssueClosed   NotificationType = "issue_closed"
-	NotifIssueReopened NotificationType = "issue_reopened"
-	NotifPRMerged      NotificationType = "pr_merged"
-	NotifPRClosed      NotificationType = "pr_closed"
-	NotifPROpened      NotificationType = "pr_opened"
-	NotifPRReview      NotificationType = "pr_review"
-	NotifMention            NotificationType = "mention"
-	NotifDiscussionReply    NotificationType = "discussion_reply"
+	NotifIssueComment    NotificationType = "issue_comment"
+	NotifPRComment       NotificationType = "pr_comment"
+	NotifIssueClosed     NotificationType = "issue_closed"
+	NotifIssueReopened   NotificationType = "issue_reopened"
+	NotifPRMerged        NotificationType = "pr_merged"
+	NotifPRClosed        NotificationType = "pr_closed"
+	NotifPROpened        NotificationType = "pr_opened"
+	NotifPRReview        NotificationType = "pr_review"
+	NotifMention         NotificationType = "mention"
+	NotifDiscussionReply NotificationType = "discussion_reply"
 )
+
+// AllNotificationTypes must list every NotificationType and stay in step with the notifications_type_check constraint.
+var AllNotificationTypes = []NotificationType{
+	NotifIssueComment,
+	NotifPRComment,
+	NotifIssueClosed,
+	NotifIssueReopened,
+	NotifPRMerged,
+	NotifPRClosed,
+	NotifPROpened,
+	NotifPRReview,
+	NotifMention,
+	NotifDiscussionReply,
+}
 
 type Notification struct {
 	ID         int64            `db:"id"          json:"id"`

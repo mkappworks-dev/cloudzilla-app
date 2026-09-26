@@ -201,31 +201,39 @@ Superadmin generates token link → shares manually. No SMTP required.
 
 ### User-Scoped Endpoints (Own Data Only)
 
-| Method                | Path                             | Auth   | AuthZ                     | Handler                  |
-| --------------------- | -------------------------------- | ------ | ------------------------- | ------------------------ |
-| GET                   | `/settings`                      | authMW | Own user                  | PageSettings             |
-| GET/POST              | `/settings/notifications`        | authMW | Own user                  | PageNotificationSettings |
-| GET                   | `/settings/security`             | authMW | Own user                  | PageSecuritySettings     |
-| POST                  | `/api/user/totp/enable`          | authMW | Own user (claims.UserID)  | EnableTOTP               |
-| POST                  | `/api/user/totp/disable`         | authMW | Own user (claims.UserID)  | DisableTOTP              |
-| GET/POST/DELETE       | `/api/user/keys`                 | authMW | Own user (claims.UserID)  | SSH key CRUD             |
-| GET/POST/DELETE       | `/api/user/tokens`               | authMW | Own user (claims.UserID)  | Token CRUD               |
-| GET/POST/PATCH/DELETE | `/api/user/replies`              | authMW | Own user (claims.UserID)  | Saved reply CRUD         |
-| POST/DELETE           | `/api/oauth/apps`                | authMW | Own user (claims.UserID)  | OAuth app CRUD           |
-| DELETE                | `/api/oauth/authorizations/{id}` | authMW | Own user (claims.UserID)  | RevokeOAuthAuthorization |
-| POST/PATCH/DELETE     | `/api/gists`                     | authMW | Own gist (service checks) | Gist CRUD                |
+| Method                | Path                                    | Auth   | AuthZ                                                                          | Handler                    |
+| --------------------- | --------------------------------------- | ------ | ------------------------------------------------------------------------------ | -------------------------- |
+| GET                   | `/settings`                             | authMW | Own user                                                                       | PageSettings               |
+| POST                  | `/settings/profile`                     | authMW | Own user                                                                       | UpdateProfile              |
+| POST                  | `/settings/profile-readme`              | authMW | Own user                                                                       | UpdateProfileReadme        |
+| POST                  | `/settings/notifications`               | authMW | Own user                                                                       | UpdateNotificationSettings |
+| POST                  | `/settings/delete-account`              | authMW | Own user                                                                       | DeleteAccount              |
+| POST                  | `/settings/security/setup`              | authMW | Own user                                                                       | SetupTOTP                  |
+| POST                  | `/api/user/totp/enable`                 | authMW | Own user (claims.UserID)                                                       | EnableTOTP                 |
+| POST                  | `/api/user/totp/disable`                | authMW | Own user (claims.UserID)                                                       | DisableTOTP                |
+| GET/POST/DELETE       | `/api/user/keys`                        | authMW | Own user (claims.UserID)                                                       | SSH key CRUD               |
+| POST/DELETE           | `/api/user/tokens`                      | authMW | Own user (claims.UserID)                                                       | Token create/revoke        |
+| GET/POST/PATCH/DELETE | `/api/user/replies`                     | authMW | Own user (claims.UserID)                                                       | Saved reply CRUD           |
+| POST/DELETE           | `/api/users/{id}/pinned-repos/{repoID}` | authMW | Own user (`{id}` = claims.UserID, else 403); POST needs repo read access (404) | PinRepo / UnpinRepo        |
+| POST/DELETE           | `/api/oauth/apps`                       | authMW | Own user (claims.UserID)                                                       | OAuth app CRUD             |
+| DELETE                | `/api/oauth/authorizations/{id}`        | authMW | Own user (claims.UserID)                                                       | RevokeOAuthAuthorization   |
+| POST/PATCH/DELETE     | `/api/gists`                            | authMW | Own gist (service checks)                                                      | Gist CRUD                  |
 
 ### Organization Endpoints
 
-| Method | Path                                 | Auth      | AuthZ                  | Handler         |
-| ------ | ------------------------------------ | --------- | ---------------------- | --------------- |
-| GET    | `/api/orgs/{org}`                    | optAuthMW | Public                 | GetOrg          |
-| GET    | `/api/orgs/{org}/members`            | optAuthMW | Public                 | ListOrgMembers  |
-| POST   | `/api/orgs`                          | authMW    | Any authenticated user | CreateOrg       |
-| POST   | `/api/orgs/{org}/members`            | authMW    | Org owner (service)    | AddOrgMember    |
-| DELETE | `/api/orgs/{org}/members/{username}` | authMW    | Org owner (service)    | RemoveOrgMember |
-| POST   | `/api/orgs/{org}/repos`              | authMW    | Org owner (service)    | CreateOrgRepo   |
-| POST   | `/api/orgs/{org}/transfer`           | authMW    | Org owner (service)    | TransferOrg     |
+| Method | Path                                      | Auth      | AuthZ                        | Handler               |
+| ------ | ----------------------------------------- | --------- | ---------------------------- | --------------------- |
+| GET    | `/api/orgs/{org}`                         | optAuthMW | Public                       | GetOrg                |
+| GET    | `/api/orgs/{org}/members`                 | optAuthMW | Public                       | ListOrgMembers        |
+| POST   | `/api/orgs`                               | authMW    | Any authenticated user       | CreateOrg             |
+| POST   | `/api/orgs/{org}/members`                 | authMW    | Org owner (service)          | AddOrgMember          |
+| DELETE | `/api/orgs/{org}/members/{username}`      | authMW    | Org owner, or self (service) | RemoveOrgMember       |
+| POST   | `/api/orgs/{org}/members/{username}/role` | authMW    | Org owner (service)          | UpdateOrgMemberRole   |
+| POST   | `/api/orgs/{org}/repos`                   | authMW    | Org owner (service)          | CreateOrgRepo         |
+| POST   | `/api/orgs/{org}/transfer`                | authMW    | Org owner (service)          | TransferOrg           |
+| POST   | `/api/orgs/{org}/profile`                 | authMW    | Org owner (service)          | UpdateOrgProfile      |
+| POST   | `/api/orgs/{org}/repo-defaults`           | authMW    | Org owner (service)          | UpdateOrgRepoDefaults |
+| POST   | `/api/orgs/{org}/delete`                  | authMW    | Org owner (service)          | DeleteOrg             |
 
 ### Repository Endpoints — Read
 

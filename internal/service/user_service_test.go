@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -180,5 +181,76 @@ func TestUserService_GenerateTokenForUser_ReturnsNonEmptyToken(t *testing.T) {
 	}
 	if token == "" {
 		t.Error("GenerateTokenForUser must return a non-empty JWT token")
+	}
+}
+
+func TestUserService_UpdateProfile_LeavesUsernameUnchanged(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	ctx := context.Background()
+
+	newEmail := "profile_" + suffix + "@test.invalid"
+	if err := svc.UpdateProfile(ctx, userID, "New Name", newEmail, "bio", "Acme", "Colombo"); err != nil {
+		t.Fatalf("UpdateProfile: %v", err)
+	}
+
+	u, err := svc.GetByID(ctx, userID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if want := "testuser_" + suffix; u.Username != want {
+		t.Errorf("username = %q, want %q", u.Username, want)
+	}
+	if u.Name != "New Name" || u.Email != newEmail || u.Bio != "bio" || u.Company != "Acme" || u.Location != "Colombo" {
+		t.Errorf("profile fields not saved: name=%q email=%q bio=%q company=%q location=%q", u.Name, u.Email, u.Bio, u.Company, u.Location)
+	}
+}
+
+func TestUserService_UpdateNotificationPrefs_RoundTrips(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	userID := testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	ctx := context.Background()
+
+	for _, want := range []model.NotificationPrefs{
+		{EmailNotifications: false, EmailDigest: model.EmailDigestWeekly, NotifyPRReview: false, NotifyMention: true},
+		{EmailNotifications: true, EmailDigest: model.EmailDigestDaily, NotifyPRReview: true, NotifyMention: false},
+	} {
+		if err := svc.UpdateNotificationPrefs(ctx, userID, want); err != nil {
+			t.Fatalf("UpdateNotificationPrefs(%+v): %v", want, err)
+		}
+		u, err := svc.GetByID(ctx, userID)
+		if err != nil {
+			t.Fatalf("GetByID: %v", err)
+		}
+		got := model.NotificationPrefs{
+			EmailNotifications: u.EmailNotifications,
+			EmailDigest:        u.EmailDigest,
+			NotifyPRReview:     u.NotifyPRReview,
+			NotifyMention:      u.NotifyMention,
+		}
+		if got != want {
+			t.Errorf("saved prefs = %+v, want %+v", got, want)
+		}
+	}
+}
+
+func TestUserService_UpdateNotificationPrefs_UnknownDigestFallsBackToImmediate(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	userID := testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	ctx := context.Background()
+
+	if err := svc.UpdateNotificationPrefs(ctx, userID, model.NotificationPrefs{EmailNotifications: true, EmailDigest: "hourly"}); err != nil {
+		t.Fatalf("UpdateNotificationPrefs: %v", err)
+	}
+	u, err := svc.GetByID(ctx, userID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if u.EmailDigest != model.EmailDigestImmediate {
+		t.Errorf("email_digest = %q, want %q", u.EmailDigest, model.EmailDigestImmediate)
 	}
 }

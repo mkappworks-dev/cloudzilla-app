@@ -1,112 +1,613 @@
 package pages
 
 import (
+	"strconv"
+	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ OrgSettings(data view.OrgSettingsData) {
 	@layout.Base(data.BasePage, data.Org.Name+" — Settings") {
-		<div class="space-y-6">
-			<div class="flex justify-between items-center">
-				<h1 class="text-2xl font-semibold tracking-tight">
-					<a href={ templ.SafeURL("/" + data.Org.Name) } class="text-foreground hover:underline">{ data.Org.Name }</a>
-					<span class="text-muted-foreground"> / Settings</span>
-				</h1>
-			</div>
-			@components.Card(nil) {
-				@components.CardHeader() {
-					@components.CardTitle(2) {
-						Members
-					}
-					@components.CardDescription() {
-						Manage organization membership and roles.
-					}
+		<div class="space-y-8">
+
+			<section class="flex flex-wrap items-start justify-between gap-4">
+				<div class="min-w-0">
+					<p class="font-mono text-[11px] uppercase tracking-wider text-muted-foreground mb-1 inline-flex items-center gap-2">
+						<a href="/organizations" class="hover:text-foreground">Organizations</a>
+						<span class="opacity-40" aria-hidden="true">/</span>
+						<a href={ templ.SafeURL("/" + data.Org.Name) } class="hover:text-foreground">{ data.Org.Name }</a>
+						<span class="opacity-40" aria-hidden="true">/</span>
+						<span class="text-foreground">Manage</span>
+					</p>
+					<h1 class="text-2xl font-semibold tracking-tight">Manage { data.Org.Name }</h1>
+					<p class="mt-1 text-[13px] text-muted-foreground">Members, repository defaults, webhooks, and danger zone.</p>
+				</div>
+				@components.LinkButton("/"+data.Org.Name, components.ButtonOutline, components.ButtonSizeSM, nil) {
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+					Back to organization
 				}
-				@components.CardContent() {
-					<form hx-post={ "/api/orgs/" + data.Org.Name + "/members" } hx-target="#org-members-list" hx-swap="outerHTML" data-toast="Member added" class="flex gap-2 mb-4">
-						<label for="org-member-username" class="sr-only">Username</label>
-						@components.Input(templ.Attributes{
-							"id":          "org-member-username",
-							"type":        "text",
-							"name":        "username",
-							"placeholder": "Username",
-							"required":    "required",
-							"class":       "flex-1",
-						})
-						<label for="org-member-role" class="sr-only">Role</label>
-						<select id="org-member-role" name="role" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
-							<option value="member">Member</option>
-							<option value="owner">Owner</option>
-						</select>
-						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-							Add Member
-						}
-					</form>
-					<div id="org-members-list" class="divide-y divide-border border border-border rounded-md">
-						if len(data.Members) == 0 {
-							<div class="px-4 py-3 text-muted-foreground text-sm">No members yet.</div>
-						}
-						for _, m := range data.Members {
-							<div class="px-4 py-3 flex justify-between items-center">
-								<div>
-									<a href={ templ.SafeURL("/" + m.Username) } class="text-foreground hover:underline font-medium">{ m.Username }</a>
-									<span class="ml-2 text-xs text-muted-foreground capitalize">{ m.Role }</span>
+			</section>
+
+			<div class="grid grid-cols-12 gap-8">
+
+				<aside class="col-span-12 lg:col-span-3" aria-label="Settings sections">
+					<nav class="lg:sticky lg:top-4 flex flex-col gap-0.5 text-[13px]">
+						<a href="#general" class="px-2.5 py-1.5 rounded-md bg-accent text-foreground font-medium" aria-current="true">General</a>
+						<a href="#members" class="px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent flex items-center">
+							Members <span class="ml-auto font-mono text-[11px] text-muted-foreground/70">{ strconv.Itoa(data.MemberCount) }</span>
+						</a>
+						<a href="#teams" class="px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent">Teams</a>
+						<a href="#repo-defaults" class="px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent">Repository defaults</a>
+						<a href="#webhooks" class="px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent">Webhooks</a>
+						<a href="#audit" class="px-2.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent">Audit log</a>
+						<p class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mt-4 mb-1 px-2.5">Danger zone</p>
+						<a href="#transfer" class="px-2.5 py-1.5 rounded-md text-destructive hover:bg-accent">Transfer ownership</a>
+						<a href="#delete" class="px-2.5 py-1.5 rounded-md text-destructive hover:bg-accent">Delete organization</a>
+					</nav>
+				</aside>
+
+				<div class="col-span-12 lg:col-span-9 space-y-10">
+
+					<section id="general" class="rounded-md border border-border bg-card p-6">
+						<h2 class="text-base font-semibold tracking-tight mb-1">General</h2>
+						<p class="text-[12.5px] text-muted-foreground mb-6">How { data.Org.Name } appears across Cloudzilla.</p>
+
+						<form method="POST" action={ templ.SafeURL("/api/orgs/" + data.Org.Name + "/profile") } class="space-y-5" data-toast="Organization saved">
+							<div class="flex items-start gap-4">
+								@components.Avatar(data.Org.Name, components.AvatarSizeLG, data.Org.Name)
+								<div class="space-y-2">
+									<button type="button" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent" disabled aria-disabled="true" title="Avatar uploads land in a follow-up phase">Upload new picture</button>
+									<p class="text-[11.5px] text-muted-foreground">Square PNG or JPG, max 2 MB.</p>
 								</div>
-								@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-									"hx-delete":           "/api/orgs/" + data.Org.Name + "/members/" + m.Username,
-									"hx-target":           "#org-members-list",
-									"hx-swap":             "outerHTML",
-									"hx-confirm":          m.Username + " will lose access to " + data.Org.Name + ". You can add them back later.",
-									"data-confirm-title":  "Remove " + m.Username + " from this organization?",
-									"data-confirm-label":  "Remove",
-									"data-confirm-danger": "true",
-									"data-toast":          "Member removed",
-									"type":                "button",
-								}) {
-									Remove
+							</div>
+
+							<div>
+								<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-display-name">Display name</label>
+								@components.Input(templ.Attributes{
+									"id":    "org-display-name",
+									"type":  "text",
+									"name":  "display_name",
+									"value": data.Org.DisplayName,
+								})
+							</div>
+
+							<div>
+								<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-slug">URL slug</label>
+								<div class="flex items-center gap-2">
+									<span class="text-[13px] text-muted-foreground font-mono">cloudzilla.dev/</span>
+									@components.Input(templ.Attributes{
+										"id":       "org-slug",
+										"type":     "text",
+										"value":    data.Org.Name,
+										"disabled": "disabled",
+										"class":    "font-mono",
+									})
+								</div>
+								<p class="mt-1 text-[11.5px] text-muted-foreground">Renaming an org is a follow-up phase.</p>
+							</div>
+
+							<div>
+								<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-description">Description</label>
+								<textarea id="org-description" name="description" rows="3" class="w-full bg-background border border-input rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring">{ data.Org.Description }</textarea>
+							</div>
+
+							<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+								<div>
+									<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-website">Website</label>
+									@components.Input(templ.Attributes{
+										"id":          "org-website",
+										"type":        "url",
+										"name":        "website",
+										"value":       data.Org.Website,
+										"placeholder": "https://example.com",
+										"class":       "font-mono",
+									})
+								</div>
+								<div>
+									<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-location">Location</label>
+									@components.Input(templ.Attributes{
+										"id":          "org-location",
+										"type":        "text",
+										"name":        "location",
+										"value":       data.Org.Location,
+										"placeholder": "City · Remote",
+									})
+								</div>
+							</div>
+
+							<div>
+								<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-contact-email">Contact email</label>
+								@components.Input(templ.Attributes{
+									"id":          "org-contact-email",
+									"type":        "email",
+									"name":        "contact_email",
+									"value":       data.Org.ContactEmail,
+									"placeholder": "hello@example.com",
+									"class":       "font-mono",
+								})
+								<p class="mt-1 text-[11.5px] text-muted-foreground">Shown on the public organization profile.</p>
+							</div>
+
+							<div class="flex items-center justify-end gap-2">
+								@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "reset"}) {
+									Cancel
+								}
+								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+									Save changes
 								}
 							</div>
-						}
-					</div>
-				}
-			}
-			@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
-				@components.CardHeader() {
-					@components.CardTitle(2) {
-						<span class="text-destructive">Transfer Ownership</span>
-					}
-					@components.CardDescription() {
-						Transfer ownership of this organization to another member. You will be demoted to member.
-					}
-				}
-				@components.CardContent() {
-					<form method="POST" action={ templ.SafeURL("/api/orgs/" + data.Org.Name + "/transfer") } data-toast="Organization transferred">
-						<div class="flex gap-3">
-							<label for="org-transfer-new-owner" class="sr-only">New owner username</label>
-							@components.Input(templ.Attributes{
-								"id":          "org-transfer-new-owner",
-								"type":        "text",
-								"name":        "new_owner",
-								"placeholder": "New owner username",
-								"required":    "required",
-								"class":       "flex-1",
-							})
-							@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
-								"type":                "submit",
-								"data-confirm-action":  "true",
-								"data-confirm-title":   "Transfer this organization?",
-								"data-confirm-msg":     data.Org.Name + " will be transferred to another user. You will be demoted to member and lose owner access.",
-								"data-confirm-label":   "Transfer",
-								"data-confirm-danger":  "true",
+						</form>
+					</section>
+
+					<section id="members" class="rounded-md border border-border bg-card p-6">
+						<div class="flex items-start justify-between gap-4 mb-4">
+							<div class="min-w-0">
+								<h2 class="text-base font-semibold tracking-tight mb-1">Members</h2>
+								<p class="text-[12.5px] text-muted-foreground">
+									{ strconv.Itoa(data.MemberCount) }
+									if data.MemberCount == 1 {
+										person.
+									} else {
+										people.
+									}
+									Owners create repositories and manage the org; members need a collaborator role on each repository they work on.
+								</p>
+							</div>
+							<button
+								type="button"
+								onclick="document.getElementById('invite-member-dialog').showModal()"
+								class="h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0"
+							>
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+								Invite member
+							</button>
+						</div>
+
+						<div class="flex items-center gap-2 mb-3" data-org-member-filter>
+							<div class="relative flex-1">
+								<label for="org-member-filter-input" class="sr-only">Filter members</label>
+								<input
+									id="org-member-filter-input"
+									type="search"
+									placeholder="Filter by name or @handle…"
+									data-org-member-filter-input
+									class="w-full bg-background border border-border rounded-md pl-8 pr-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"
+								/>
+								<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+							</div>
+							<label for="org-member-filter-role" class="sr-only">Filter by role</label>
+							<select
+								id="org-member-filter-role"
+								data-org-member-filter-role
+								class="flex h-9 w-40 rounded-md border border-border bg-background px-3 text-[13px] shadow-sm"
+							>
+								<option value="">All roles</option>
+								<option value="owner">Owners</option>
+								<option value="member">Members</option>
+							</select>
+						</div>
+
+						@fragments.OrgMembers(view.OrgMembersFragData{
+							OrgName:   data.Org.Name,
+							Members:   data.Members,
+							CanManage: true,
+							ViewerID:  viewerUserID(data.BasePage),
+						})
+
+						<script>
+							(function() {
+								function applyFilter(scope) {
+									var root = scope || document;
+									var qEl = root.querySelector('[data-org-member-filter-input]');
+									var rEl = root.querySelector('[data-org-member-filter-role]');
+									if (!qEl || !rEl) return;
+									var q = (qEl.value || '').trim().toLowerCase();
+									var r = rEl.value || '';
+									document.querySelectorAll('[data-org-member-row]').forEach(function(row) {
+										var name = (row.getAttribute('data-username') || '').toLowerCase();
+										var role = row.getAttribute('data-role') || '';
+										var matchName = q === '' || name.indexOf(q) !== -1;
+										var matchRole = r === '' || role === r;
+										row.style.display = (matchName && matchRole) ? '' : 'none';
+									});
+								}
+								document.addEventListener('input', function(e) {
+									if (e.target.matches('[data-org-member-filter-input]')) applyFilter();
+								});
+								document.addEventListener('change', function(e) {
+									if (e.target.matches('[data-org-member-filter-role]')) applyFilter();
+								});
+								document.body.addEventListener('htmx:afterSwap', function(e) {
+									if (e.target && e.target.id === 'org-members-list') applyFilter();
+								});
+							})();
+						</script>
+					</section>
+
+					<section id="teams" class="rounded-md border border-border bg-card p-6">
+						<div class="flex items-start justify-between gap-4 mb-4">
+							<div>
+								<h2 class="text-base font-semibold tracking-tight mb-1">Teams</h2>
+								<p class="text-[12.5px] text-muted-foreground">Group members and grant batch access to repositories.</p>
+							</div>
+							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
+								"type":     "button",
+								"disabled": "disabled",
+								"title":    "Teams arrive in a follow-up phase",
 							}) {
-								Transfer
+								New team
 							}
 						</div>
-					</form>
-				}
-			}
+						@components.EmptyStateWithHint("Teams aren't wired up yet.", "Group your members into teams in a future release; the surface lives here.")
+					</section>
+
+					<section id="repo-defaults" class="rounded-md border border-border bg-card p-6">
+						<h2 class="text-base font-semibold tracking-tight mb-1">Repository defaults</h2>
+						<p class="text-[12.5px] text-muted-foreground mb-6">Applied to new repositories created under { data.Org.Name }.</p>
+
+						<form method="POST" action={ templ.SafeURL("/api/orgs/" + data.Org.Name + "/repo-defaults") } class="space-y-5" data-toast="Repository defaults saved">
+							<div>
+								<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-default-visibility">Default visibility</label>
+								<select id="org-default-visibility" name="default_repo_visibility" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+									<option value="private" selected?={ data.Org.DefaultRepoVisibility != "public" }>Private</option>
+									<option value="public" selected?={ data.Org.DefaultRepoVisibility == "public" }>Public</option>
+								</select>
+							</div>
+							<div>
+								<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-default-branch">Default branch name</label>
+								@components.Input(templ.Attributes{
+									"id":    "org-default-branch",
+									"type":  "text",
+									"name":  "default_branch_name",
+									"value": defaultBranchOrFallback(data.Org.DefaultBranchName),
+									"class": "font-mono",
+								})
+								<p class="mt-1 text-[11.5px] text-muted-foreground">Used as the initial branch when an owner creates a repo here.</p>
+							</div>
+
+							<div class="flex items-center justify-end gap-2">
+								@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"type": "reset"}) {
+									Cancel
+								}
+								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+									Save changes
+								}
+							</div>
+						</form>
+					</section>
+
+					<section id="webhooks" class="rounded-md border border-border bg-card p-6">
+						<div class="flex items-start justify-between gap-4 mb-4">
+							<div>
+								<h2 class="text-base font-semibold tracking-tight mb-1">Webhooks</h2>
+								<p class="text-[12.5px] text-muted-foreground">Receive HTTP POSTs for org-wide events. Signed with HMAC-SHA256.</p>
+							</div>
+							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
+								"type":     "button",
+								"disabled": "disabled",
+								"title":    "Org-level webhooks arrive in a follow-up phase",
+							}) {
+								Add webhook
+							}
+						</div>
+						@components.EmptyStateWithHint("Org-level webhooks aren't wired up yet.", "Per-repo webhooks already work — find them in each repository's settings.")
+					</section>
+
+					<section id="audit" class="rounded-md border border-border bg-card p-6">
+						<h2 class="text-base font-semibold tracking-tight mb-1">Audit log</h2>
+						<p class="text-[12.5px] text-muted-foreground mb-6">Recent admin actions on { data.Org.Name } — profile edits and repository-default changes.</p>
+
+						if len(data.AuditEntries) > 0 {
+							<ul class="divide-y divide-border border border-border rounded-md font-mono text-[12px]">
+								for _, e := range data.AuditEntries {
+									<li class="py-2.5 px-4 flex items-center gap-3">
+										<time datetime={ e.CreatedAt.UTC().Format(time.RFC3339) } class="text-muted-foreground shrink-0 w-32">
+											{ e.CreatedAt.Format("2006-01-02 15:04") }
+										</time>
+										<span class={ "shrink-0 px-2 py-0.5 rounded-full text-[10px] border " + auditActionClass(e.Action) }>{ e.Action }</span>
+										<span class="truncate text-muted-foreground">
+											if e.ActorName != "" {
+												<a href={ templ.SafeURL("/" + e.ActorName) } class="text-foreground hover:underline">{ "@" + e.ActorName }</a>
+											} else {
+												<span class="text-foreground">system</span>
+											}
+											{ " " + auditActionVerb(e.Action) + " " }
+											<span class="text-foreground">{ e.TargetName }</span>
+										</span>
+									</li>
+								}
+							</ul>
+						} else {
+							@components.EmptyStateWithHint("No org-scoped events yet.", "Profile saves, repo-default changes, and deletes will land here as you make them.")
+						}
+					</section>
+
+					<section id="danger" class="rounded-md border border-destructive/40 bg-card p-6">
+						<h2 class="text-base font-semibold tracking-tight mb-1 text-destructive">Danger zone</h2>
+						<p class="text-[12.5px] text-muted-foreground mb-6">Irreversible operations that affect everyone in the org.</p>
+
+						<ul class="divide-y divide-border">
+							<li id="transfer" class="py-4 flex items-start justify-between gap-4">
+								<div class="min-w-0">
+									<p class="text-[13.5px] font-medium">Transfer ownership</p>
+									<p class="mt-0.5 text-[12.5px] text-muted-foreground">Hand over { data.Org.Name } to another user. You'll be downgraded to Member.</p>
+								</div>
+								<button
+									type="button"
+									onclick="document.getElementById('transfer-org-dialog').showModal()"
+									class="h-9 px-4 text-sm rounded-md font-medium border border-border bg-transparent hover:bg-accent text-destructive shrink-0"
+								>
+									Transfer
+								</button>
+							</li>
+							<li id="delete" class="py-4 flex items-start justify-between gap-4">
+								<div class="min-w-0">
+									<p class="text-[13.5px] font-medium">Delete organization</p>
+									if data.RepoCount > 0 {
+										<p class="mt-0.5 text-[12.5px] text-muted-foreground">
+											{ data.Org.Name } still has { strconv.Itoa(data.RepoCount) }
+											if data.RepoCount == 1 {
+												repository.
+											} else {
+												repositories.
+											}
+											Delete or transfer
+											if data.RepoCount == 1 {
+												it
+											} else {
+												them
+											}
+											first — deleting the org cascades through every repo, issue, PR, and comment.
+										</p>
+									} else {
+										<p class="mt-0.5 text-[12.5px] text-muted-foreground">
+											No repositories remain. Deletion is permanent and removes all member rows and metadata.
+										</p>
+									}
+								</div>
+								if data.RepoCount > 0 {
+									<button
+										type="button"
+										disabled
+										title="Remove all repositories first"
+										class="h-9 px-4 text-sm rounded-md font-medium bg-destructive text-destructive-foreground opacity-60 cursor-not-allowed shrink-0"
+									>
+										Delete organization
+									</button>
+								} else {
+									<button
+										type="button"
+										onclick="document.getElementById('delete-org-dialog').showModal()"
+										class="h-9 px-4 text-sm rounded-md font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 shrink-0"
+									>
+										Delete organization
+									</button>
+								}
+							</li>
+						</ul>
+					</section>
+
+				</div>
+
+			</div>
 		</div>
+
+		@orgInviteMemberDialog(data.Org.Name)
+		@orgTransferDialog(data.Org.Name)
+		if data.RepoCount == 0 {
+			@orgDeleteDialog(data.Org.Name, data.MemberCount)
+		}
 	}
 }
+
+templ orgInviteMemberDialog(orgName string) {
+	@components.Dialog("invite-member-dialog") {
+		<form
+			hx-post={ "/api/orgs/" + orgName + "/members" }
+			hx-target="#org-members-list"
+			hx-swap="outerHTML"
+			data-toast="Member invited"
+			hx-on::after-request="if(event.detail.successful){this.closest('dialog').close(); this.reset();}"
+		>
+			@components.DialogHeader() {
+				@components.DialogTitle("invite-member-dialog") {
+					{ "Invite member to " + orgName }
+				}
+				@components.DialogDescription() {
+					By @handle. They'll get access to org-wide resources immediately. If you also want them on a team, add them there afterward.
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-4">
+					<div>
+						<label for="invite-username" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Username</label>
+						<input
+							id="invite-username"
+							name="username"
+							type="text"
+							required
+							autocomplete="off"
+							placeholder="@handle"
+							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"
+						/>
+					</div>
+					<div>
+						<label for="invite-role" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Role</label>
+						<select
+							id="invite-role"
+							name="role"
+							class="w-full h-9 rounded-md border border-input bg-background px-3 text-[13px] shadow-sm"
+						>
+							<option value="member" selected>Member</option>
+							<option value="owner">Owner</option>
+						</select>
+						<p class="mt-1 text-[11.5px] text-muted-foreground">Owners can create repositories and manage settings, members, and ownership. Members need a collaborator role on each repository they work on.</p>
+					</div>
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Send invitation</button>
+			}
+		</form>
+	}
+}
+
+templ orgTransferDialog(orgName string) {
+	@components.Dialog("transfer-org-dialog") {
+		<form
+			method="POST"
+			action={ templ.SafeURL("/api/orgs/" + orgName + "/transfer") }
+			data-toast="Organization transferred"
+		>
+			@components.DialogHeader() {
+				@components.DialogTitle("transfer-org-dialog") {
+					<span class="text-destructive">{ "Transfer " + orgName }</span>
+				}
+				@components.DialogDescription() {
+					Ownership moves to the new user immediately. You'll be downgraded to Member and lose owner access.
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-4">
+					<div>
+						<label for="transfer-new-owner" class="block text-[12px] font-medium text-muted-foreground mb-1.5">New owner username</label>
+						<input
+							id="transfer-new-owner"
+							name="new_owner"
+							type="text"
+							required
+							autocomplete="off"
+							placeholder="@handle"
+							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"
+						/>
+					</div>
+					<div>
+						<label for="transfer-confirm" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+							Type <span class="font-mono text-foreground">{ orgName }</span> to confirm
+						</label>
+						<input
+							id="transfer-confirm"
+							name="confirm_name"
+							type="text"
+							required
+							pattern={ orgName }
+							autocomplete="off"
+							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"
+						/>
+					</div>
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Transfer ownership</button>
+			}
+		</form>
+	}
+}
+
+templ orgDeleteDialog(orgName string, memberCount int) {
+	@components.Dialog("delete-org-dialog") {
+		<form
+			method="POST"
+			action={ templ.SafeURL("/api/orgs/" + orgName + "/delete") }
+			data-toast="Organization deleted"
+		>
+			@components.DialogHeader() {
+				@components.DialogTitle("delete-org-dialog") {
+					<span class="text-destructive">{ "Delete " + orgName }</span>
+				}
+				@components.DialogDescription() {
+					This removes the organization and
+					if memberCount == 1 {
+						{ "its 1 member row." }
+					} else {
+						{ "all " + strconv.Itoa(memberCount) + " member rows." }
+					}
+					It cannot be undone. Audit log entries about the org are kept, and the deletion is recorded.
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-4">
+					<div>
+						<label for="delete-confirm" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+							Type <span class="font-mono text-foreground">{ orgName }</span> to confirm
+						</label>
+						<input
+							id="delete-confirm"
+							name="confirm_name"
+							type="text"
+							required
+							pattern={ orgName }
+							autocomplete="off"
+							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"
+						/>
+					</div>
+					<label class="flex items-start gap-2 text-[12.5px] text-muted-foreground">
+						<input type="checkbox" required class="mt-0.5"/>
+						<span>I understand this is permanent and cannot be recovered, even by support.</span>
+					</label>
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete organization permanently</button>
+			}
+		</form>
+	}
+}
+
+func defaultBranchOrFallback(name string) string {
+	if name == "" {
+		return "main"
+	}
+	return name
+}
+
+// Org settings is auth-gated, but a nil check keeps the template from panicking if that ever changes.
+func viewerUserID(base view.BasePage) int64 {
+	if base.CurrentUser == nil {
+		return 0
+	}
+	return base.CurrentUser.UserID
+}
+
+func auditActionClass(action string) string {
+	switch action {
+	case model.AuditActionOrgDelete:
+		return "bg-destructive/15 text-destructive border-destructive/30"
+	case model.AuditActionOrgProfileUpdate, model.AuditActionOrgDefaultsUpdate:
+		return "bg-accent text-foreground border-border"
+	case model.AuditActionRepoCreate:
+		return "bg-success/15 text-success border-success/30"
+	case model.AuditActionRepoDelete:
+		return "bg-destructive/15 text-destructive border-destructive/30"
+	case model.AuditActionRepoTransfer:
+		return "bg-primary/15 text-primary border-primary/30"
+	}
+	return "bg-accent text-muted-foreground border-border"
+}
+
+func auditActionVerb(action string) string {
+	switch action {
+	case model.AuditActionOrgProfileUpdate:
+		return "updated profile on"
+	case model.AuditActionOrgDefaultsUpdate:
+		return "updated repository defaults on"
+	case model.AuditActionOrgDelete:
+		return "deleted"
+	case model.AuditActionRepoCreate:
+		return "created"
+	case model.AuditActionRepoDelete:
+		return "deleted"
+	case model.AuditActionRepoTransfer:
+		return "transferred"
+	}
+	return "acted on"
+}
+

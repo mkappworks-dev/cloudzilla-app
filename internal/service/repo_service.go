@@ -15,6 +15,7 @@ import (
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
+	gitconfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
@@ -186,22 +187,13 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 	}
 
 	if s.language != nil && repo.OwnerName != "" && repo.DefaultBranch != "" {
-		comp, err := s.language.Composition(ctx, repo.OwnerName, repo.Name, repo.DefaultBranch)
+		// A page view before this push may have cached the old tree; the column would keep it until the next push.
+		s.language.InvalidateRepo(ctx, repo.OwnerName, repo.Name)
+		top, err := s.language.TopLanguageFor(ctx, repo.OwnerName, repo.Name, repo.DefaultBranch)
 		if err != nil {
 			slog.Warn("post-receive: language composition failed", "repo_id", repo.ID, "error", err)
-		} else {
-			top := ""
-			if len(comp) > 0 {
-				topBytes := int64(0)
-				for lang, b := range comp {
-					if b > topBytes {
-						top, topBytes = lang, b
-					}
-				}
-			}
-			if err := s.repos.UpdatePrimaryLanguage(ctx, repo.ID, top); err != nil {
-				slog.Error("post-receive: update primary language failed", "repo_id", repo.ID, "error", err)
-			}
+		} else if err := s.repos.UpdatePrimaryLanguage(ctx, repo.ID, top); err != nil {
+			slog.Error("post-receive: update primary language failed", "repo_id", repo.ID, "error", err)
 		}
 	}
 
@@ -265,7 +257,17 @@ func commitSubject(message string) string {
 	return strings.TrimSpace(line)
 }
 
-func (s *RepoService) Create(ctx context.Context, ownerUsername, name, description string, private bool) (*model.Repository, error) {
+type RepoInitOptions struct {
+	AddREADME bool
+	Gitignore string // gitignore template name, "" = none
+	License   string // license key, "" = none
+}
+
+func (o RepoInitOptions) any() bool {
+	return o.AddREADME || o.Gitignore != "" || o.License != ""
+}
+
+func (s *RepoService) Create(ctx context.Context, ownerUsername, name, description string, private bool, init RepoInitOptions) (*model.Repository, error) {
 	if err := ValidateName(name); err != nil {
 		return nil, fmt.Errorf("invalid repository name: %w", err)
 	}
@@ -292,7 +294,116 @@ func (s *RepoService) Create(ctx context.Context, ownerUsername, name, descripti
 		return nil, fmt.Errorf("git init bare: %w", err)
 	}
 
+	if init.any() {
+		// The DB row and bare repo already exist. A failure here leaves a valid
+		// empty repo the user can still push to, so we log and return success
+		// rather than 500-ing on already-created state.
+		email := owner.Email
+		if email == "" {
+			email = owner.Username + "@users.noreply.localhost"
+		}
+		sig := object.Signature{Name: owner.Username, Email: email, When: time.Now().UTC()}
+		if err := seedInitialCommit(repoPath, r.DefaultBranch, sig, init, owner.Username, name, description); err != nil {
+			slog.Error("seed initial commit for new repo failed; repo created empty",
+				"repo_id", r.ID, "owner", ownerUsername, "name", name, "error", err)
+		}
+	}
+
 	return r, nil
+}
+
+func seedInitialCommit(bareDir, defaultBranch string, sig object.Signature, init RepoInitOptions, ownerName, repoName, description string) error {
+	files := map[string]string{}
+
+	if init.AddREADME {
+		readme := "# " + repoName + "\n"
+		if d := strings.TrimSpace(description); d != "" {
+			readme += "\n" + d + "\n"
+		}
+		files["README.md"] = readme
+	}
+	if init.Gitignore != "" {
+		if content, ok := gitignoreContent(init.Gitignore); ok {
+			files[".gitignore"] = content
+		} else {
+			return fmt.Errorf("unknown gitignore template %q", init.Gitignore)
+		}
+	}
+	if init.License != "" {
+		if content, ok := licenseContent(init.License, ownerName); ok {
+			files["LICENSE"] = content
+		} else {
+			return fmt.Errorf("unknown license %q", init.License)
+		}
+	}
+	if len(files) == 0 {
+		return nil
+	}
+
+	workDir, err := os.MkdirTemp("", "cz-repo-init-*")
+	if err != nil {
+		return fmt.Errorf("mkdir temp worktree: %w", err)
+	}
+	defer func() { _ = os.RemoveAll(workDir) }()
+
+	work, err := gogit.PlainInit(workDir, false)
+	if err != nil {
+		return fmt.Errorf("git init worktree: %w", err)
+	}
+	wt, err := work.Worktree()
+	if err != nil {
+		return fmt.Errorf("worktree: %w", err)
+	}
+
+	for relPath, content := range files {
+		full := filepath.Join(workDir, relPath)
+		if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+			return fmt.Errorf("write %s: %w", relPath, err)
+		}
+		if _, err := wt.Add(relPath); err != nil {
+			return fmt.Errorf("add %s: %w", relPath, err)
+		}
+	}
+
+	if _, err := wt.Commit("Initial commit", &gogit.CommitOptions{Author: &sig, Committer: &sig}); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+
+	branch := defaultBranch
+	if branch == "" {
+		branch = "main"
+	}
+
+	if _, err := work.CreateRemote(&gitconfig.RemoteConfig{
+		Name: "bare",
+		URLs: []string{bareDir},
+	}); err != nil {
+		return fmt.Errorf("create remote: %w", err)
+	}
+	// Resolve the worktree's actual HEAD branch rather than assuming go-git's
+	// PlainInit default ("master"), so the push survives a go-git default change.
+	headRefAfterCommit, err := work.Head()
+	if err != nil {
+		return fmt.Errorf("resolve worktree HEAD: %w", err)
+	}
+	refSpec := gitconfig.RefSpec(headRefAfterCommit.Name().String() + ":" + plumbing.NewBranchReferenceName(branch).String())
+	if err := work.Push(&gogit.PushOptions{
+		RemoteName: "bare",
+		RefSpecs:   []gitconfig.RefSpec{refSpec},
+	}); err != nil {
+		return fmt.Errorf("push to bare: %w", err)
+	}
+
+	bare, err := gogit.PlainOpen(bareDir)
+	if err != nil {
+		return fmt.Errorf("open bare: %w", err)
+	}
+	headRef := plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.NewBranchReferenceName(branch))
+	if err := bare.Storer.SetReference(headRef); err != nil {
+		return fmt.Errorf("set bare HEAD: %w", err)
+	}
+
+	return nil
 }
 
 func (s *RepoService) List(ctx context.Context) ([]model.Repository, error) {
@@ -313,6 +424,10 @@ func (s *RepoService) ListForUser(ctx context.Context, userID int64, scope strin
 
 func (s *RepoService) GetByID(ctx context.Context, id int64) (*model.Repository, error) {
 	return s.repos.GetByID(ctx, id)
+}
+
+func (s *RepoService) FillPrimaryLanguage(ctx context.Context, repoID int64, lang string) error {
+	return s.repos.FillPrimaryLanguage(ctx, repoID, lang)
 }
 
 func (s *RepoService) Get(ctx context.Context, owner, name string) (*model.Repository, error) {
