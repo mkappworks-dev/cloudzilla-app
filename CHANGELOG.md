@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.4.0](https://github.com/mkappworks-dev/cloudzilla-app/compare/v0.3.0...v0.4.0) (2026-09-26)
+
+
+### Features
+
+* **settings:** keep commit author email private by default ([#56](https://github.com/mkappworks-dev/cloudzilla-app/issues/56)) ([2c97530](https://github.com/mkappworks-dev/cloudzilla-app/commit/2c97530da056e17e57d01979a74e90bc23cb2075))
+* **ui:** UI overhaul phase 7 — gists ([#43](https://github.com/mkappworks-dev/cloudzilla-app/issues/43)) ([90504f3](https://github.com/mkappworks-dev/cloudzilla-app/commit/90504f3f6ef5acbdf8ad216fdec6b2de85d37465))
+* **ui:** UI overhaul phase 8 — dashboard ([#44](https://github.com/mkappworks-dev/cloudzilla-app/issues/44)) ([bdcee6b](https://github.com/mkappworks-dev/cloudzilla-app/commit/bdcee6b8067d45fb34f2ddfe26ef9bcbff1fcd6c))
+
+
+### Bug Fixes
+
+* accept thin packs in git receive-pack (HTTP + SSH) ([#47](https://github.com/mkappworks-dev/cloudzilla-app/issues/47)) ([52a6f21](https://github.com/mkappworks-dev/cloudzilla-app/commit/52a6f2137a858b82ef1861491da37ac0ff0dc570))
+* **api:** stop serving users' emails and email settings to other people ([#53](https://github.com/mkappworks-dev/cloudzilla-app/issues/53)) ([34b4384](https://github.com/mkappworks-dev/cloudzilla-app/commit/34b43849e44ed0a82145e89f543aa1dd5289d6ed))
+* **auth:** let the account menu's Sign out submit and redirect home ([#51](https://github.com/mkappworks-dev/cloudzilla-app/issues/51)) ([45f1f7f](https://github.com/mkappworks-dev/cloudzilla-app/commit/45f1f7f5dfa27c2983522bfbb8cc6cea93a38066))
+* **stats:** dedupe commit stats per SHA and add stats backfill command ([#48](https://github.com/mkappworks-dev/cloudzilla-app/issues/48)) ([f890283](https://github.com/mkappworks-dev/cloudzilla-app/commit/f890283495ef1e6b6f3171d5dde8628de4412122))
+* **ui:** callers' classes reach component elements ([#50](https://github.com/mkappworks-dev/cloudzilla-app/issues/50)) ([efa2bfc](https://github.com/mkappworks-dev/cloudzilla-app/commit/efa2bfc0049acaaf83a99a4e2c490dfe0d483323))
+* **ui:** let callers override type on CommandItem, Toggle and DropdownMenuTrigger ([#52](https://github.com/mkappworks-dev/cloudzilla-app/issues/52)) ([16297fe](https://github.com/mkappworks-dev/cloudzilla-app/commit/16297fec07f3b9a9800e85bf1da3fef7d7ac94b1))
+
+
+### Technical
+
+* lint backlog ([#55](https://github.com/mkappworks-dev/cloudzilla-app/issues/55)) ([5b937d9](https://github.com/mkappworks-dev/cloudzilla-app/commit/5b937d909032dc3fc743142fd7a8b27492ab0317))
+
+
+### Tests
+
+* use UniqueSuffix for test data names so -count&gt;1 passes ([#49](https://github.com/mkappworks-dev/cloudzilla-app/issues/49)) ([180db1d](https://github.com/mkappworks-dev/cloudzilla-app/commit/180db1d9e672b08a8ea9fd1728ff2358e352e731))
+
 ## [0.3.0](https://github.com/mkappworks-dev/cloudzilla-app/compare/v0.2.0...v0.3.0) (2026-05-20)
 
 
