@@ -55,3 +55,32 @@ func TestDropdownMenuItem_TypeAndClassOverride(t *testing.T) {
 		t.Errorf("caller class missing from %q", classes[0][1])
 	}
 }
+
+func renderMenuTrigger(t *testing.T, attrs templ.Attributes) string {
+	t.Helper()
+	var buf bytes.Buffer
+	if err := DropdownMenuTrigger(attrs).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	return buf.String()
+}
+
+func TestDropdownMenuTrigger_TypeOverride(t *testing.T) {
+	out := renderMenuTrigger(t, templ.Attributes{"type": "submit"})
+	if n := strings.Count(out, "type="); n != 1 {
+		t.Fatalf("want exactly one type attribute, got %d in %s", n, out)
+	}
+	if !strings.Contains(out, `type="submit"`) {
+		t.Errorf("want type=\"submit\", got %s", out)
+	}
+}
+
+func TestDropdownMenuTrigger_DefaultTypeButton(t *testing.T) {
+	out := renderMenuTrigger(t, nil)
+	if n := strings.Count(out, "type="); n != 1 {
+		t.Fatalf("want exactly one type attribute, got %d in %s", n, out)
+	}
+	if !strings.Contains(out, `type="button"`) {
+		t.Errorf("want default type=\"button\", got %s", out)
+	}
+}
