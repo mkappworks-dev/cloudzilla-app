@@ -1,6 +1,7 @@
 package components
 
 import (
+	"maps"
 	"strings"
 
 	twmerge "github.com/Oudwins/tailwind-merge-go"
@@ -12,14 +13,19 @@ import (
 // silently discard the caller's.
 func withClass(attrs templ.Attributes, base ...any) templ.Attributes {
 	defaults := templ.Classes(base...).String()
-	out := make(templ.Attributes, len(attrs)+1)
-	for k, v := range attrs {
-		out[k] = v
-	}
+	out := withDefaults(attrs, nil)
 	out["class"] = defaults
 	if extra, ok := attrs["class"].(string); ok && strings.TrimSpace(extra) != "" {
 		out["class"] = mergeClasses(defaults + " " + extra)
 	}
+	return out
+}
+
+// Defaults can't be literal attributes ahead of a spread; see withClass.
+func withDefaults(attrs, defaults templ.Attributes) templ.Attributes {
+	out := make(templ.Attributes, len(defaults)+len(attrs))
+	maps.Copy(out, defaults)
+	maps.Copy(out, attrs)
 	return out
 }
 
