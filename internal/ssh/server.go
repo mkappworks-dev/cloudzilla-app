@@ -140,15 +140,13 @@ func (s *Server) publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 func (s *Server) sessionHandler(session ssh.Session) {
 	cmd := session.Command()
 	if len(cmd) == 0 {
-		fmt.Fprintf(session, "no git command provided\n")
-		session.Exit(1)
+		exitWithError(session, "no git command provided\n")
 		return
 	}
 
 	gitCmd := cmd[0]
 	if gitCmd != "git-upload-pack" && gitCmd != "git-receive-pack" {
-		fmt.Fprintf(session, "unsupported git command: %s\n", gitCmd)
-		session.Exit(1)
+		exitWithError(session, "unsupported git command: %s\n", gitCmd)
 		return
 	}
 
@@ -160,8 +158,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 			repoPath = repoPath + ".git"
 		}
 	} else {
-		fmt.Fprintf(session, "git command requires repository path\n")
-		session.Exit(1)
+		exitWithError(session, "git command requires repository path\n")
 		return
 	}
 
@@ -169,8 +166,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	dkVal := session.Context().Value("cloudzilla_deploy_key")
 
 	if userVal == nil && dkVal == nil {
-		fmt.Fprintf(session, "authentication required\n")
-		session.Exit(1)
+		exitWithError(session, "authentication required\n")
 		return
 	}
 
@@ -178,8 +174,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	pathParts = strings.TrimSuffix(pathParts, ".git")
 	parts := strings.Split(pathParts, "/")
 	if len(parts) != 2 {
-		fmt.Fprintf(session, "invalid repository path format\n")
-		session.Exit(1)
+		exitWithError(session, "invalid repository path format\n")
 		return
 	}
 
@@ -188,8 +183,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	ctx := session.Context()
 	repo, err := s.services.Repo.Get(ctx, owner, repoName)
 	if err != nil {
-		fmt.Fprintf(session, "repository not found\n")
-		session.Exit(1)
+		exitWithError(session, "repository not found\n")
 		return
 	}
 
@@ -201,15 +195,13 @@ func (s *Server) sessionHandler(session ssh.Session) {
 
 		// Enforce repo binding — deploy key is scoped to one repo
 		if repo.ID != dk.RepoID {
-			fmt.Fprintf(session, "deploy key not authorized for this repository\n")
-			session.Exit(1)
+			exitWithError(session, "deploy key not authorized for this repository\n")
 			return
 		}
 
 		// Enforce read-only restriction
 		if gitCmd == "git-receive-pack" && dk.ReadOnly {
-			fmt.Fprintf(session, "deploy key is read-only\n")
-			session.Exit(1)
+			exitWithError(session, "deploy key is read-only\n")
 			return
 		}
 		// pusherName stays "" for deploy key pushes
@@ -220,37 +212,32 @@ func (s *Server) sessionHandler(session ssh.Session) {
 
 		if gitCmd == "git-upload-pack" {
 			if !s.services.Repo.CanRead(ctx, repo, &user.ID) {
-				fmt.Fprintf(session, "access denied\n")
-				session.Exit(1)
+				exitWithError(session, "access denied\n")
 				return
 			}
 		} else {
 			if !s.services.Repo.CanWrite(ctx, repo, user.ID) {
-				fmt.Fprintf(session, "access denied\n")
-				session.Exit(1)
+				exitWithError(session, "access denied\n")
 				return
 			}
 		}
 	}
 
 	if gitCmd == "git-receive-pack" && repo.IsArchived {
-		fmt.Fprintf(session, "Repository is archived and read-only.\n")
-		session.Exit(1)
+		exitWithError(session, "Repository is archived and read-only.\n")
 		return
 	}
 
 	diskRepoPath := filepath.Join(s.cfg.ReposRoot, owner, repoName+".git")
 	gitRepo, err := gogit.PlainOpen(diskRepoPath)
 	if err != nil {
-		fmt.Fprintf(session, "failed to open repository\n")
-		session.Exit(1)
+		exitWithError(session, "failed to open repository\n")
 		return
 	}
 
 	commands, err := s.execGitService(session, gitCmd, gitRepo, owner, repoName, pusherName)
 	if err != nil {
-		fmt.Fprintf(session, "error: %v\n", err)
-		session.Exit(1)
+		exitWithError(session, "error: %v\n", err)
 		return
 	}
 
@@ -270,8 +257,8 @@ func (s *Server) sessionHandler(session ssh.Session) {
 				// Rollback the ref to its previous value
 				ref := plumbing.NewHashReference(cmd.Name, cmd.Old)
 				_ = gitRepo.Storer.SetReference(ref)
-				fmt.Fprintf(session.Stderr(), "error: push rejected: %v\n", err)
-				session.Exit(1)
+				_, _ = fmt.Fprintf(session.Stderr(), "error: push rejected: %v\n", err)
+				_ = session.Exit(1)
 				return
 			}
 		}
@@ -312,7 +299,14 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		})
 	}
 
-	session.Exit(0)
+	_ = session.Exit(0)
+}
+
+// exitWithError reports a failure to the client and ends the session with status 1.
+// Write and Exit fail only once the client has gone, so their errors are dropped.
+func exitWithError(session ssh.Session, format string, args ...any) {
+	_, _ = fmt.Fprintf(session, format, args...)
+	_ = session.Exit(1)
 }
 
 // isForcePushSSH returns true when the push is non-fast-forward (old commit is not an ancestor of new).

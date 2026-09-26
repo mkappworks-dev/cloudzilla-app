@@ -64,11 +64,15 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	client := cfg.Client(context.Background(), token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
-	if err != nil || resp.StatusCode != http.StatusOK {
+	if err != nil {
 		http.Error(w, "failed to fetch user info", http.StatusBadGateway)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		http.Error(w, "failed to fetch user info", http.StatusBadGateway)
+		return
+	}
 
 	var info struct {
 		ID      string `json:"id"`

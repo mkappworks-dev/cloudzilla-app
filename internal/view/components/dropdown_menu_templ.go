@@ -76,11 +76,11 @@ func DropdownMenuTrigger(attrs templ.Attributes) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<button type=\"button\" x-on:click=\"open = !open\" x-on:click.outside=\"open = false\" x-on:keydown.escape.window=\"open = false\" :aria-expanded=\"open ? 'true' : 'false'\" aria-haspopup=\"menu\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<button x-on:click=\"open = !open\" x-on:click.outside=\"open = false\" x-on:keydown.escape.window=\"open = false\" :aria-expanded=\"open ? 'true' : 'false'\" aria-haspopup=\"menu\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, attrs)
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withDefaults(attrs, templ.Attributes{"type": "button"}))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -226,7 +226,7 @@ func DropdownMenuLink(href string, attrs templ.Attributes) templ.Component {
 		var templ_7745c5c3_Var6 templ.SafeURL
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/dropdown_menu.templ`, Line: 70, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/dropdown_menu.templ`, Line: 69, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {

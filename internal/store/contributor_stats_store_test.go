@@ -15,8 +15,7 @@ func TestContributorStatsStore_UpsertAndList(t *testing.T) {
 	if dsn == "" {
 		t.Skip("TEST_DATABASE_DSN not set; skipping integration test")
 	}
-	db := openTestDBCommitStats(t)
-	defer db.Close()
+	db := testutil.OpenTestDB(t)
 
 	s := store.NewContributorStatsStore(db)
 	ctx := context.Background()
@@ -37,7 +36,7 @@ func TestContributorStatsStore_UpsertAndList(t *testing.T) {
 		t.Fatalf("insert repo: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
+		testutil.Exec(t, db, `DELETE FROM users WHERE id = $1`, userID)
 	})
 
 	week := time.Date(2026, 5, 11, 0, 0, 0, 0, time.UTC)
@@ -61,8 +60,7 @@ func TestContributorStatsStore_IngestCommitTx_DedupesBothAggregates(t *testing.T
 	if os.Getenv("TEST_DATABASE_DSN") == "" {
 		t.Skip("TEST_DATABASE_DSN not set; skipping integration test")
 	}
-	db := openTestDBCommitStats(t)
-	defer func() { _ = db.Close() }()
+	db := testutil.OpenTestDB(t)
 
 	s := store.NewContributorStatsStore(db)
 	ctx := context.Background()

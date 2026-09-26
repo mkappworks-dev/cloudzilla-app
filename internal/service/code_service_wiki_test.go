@@ -3,7 +3,6 @@ package service
 import (
 	"reflect"
 	"testing"
-	"time"
 
 	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
 )
@@ -48,11 +47,10 @@ func TestWikiPageListMeta(t *testing.T) {
 		t.Errorf("Home Title = %q, want %q", pages[1].Title, "Hello")
 	}
 
-	zero := time.Time{}
-	if pages[0].UpdatedAt == zero {
+	if pages[0].UpdatedAt.IsZero() {
 		t.Errorf("Architecture UpdatedAt is zero")
 	}
-	if pages[1].UpdatedAt == zero {
+	if pages[1].UpdatedAt.IsZero() {
 		t.Errorf("Home UpdatedAt is zero")
 	}
 }

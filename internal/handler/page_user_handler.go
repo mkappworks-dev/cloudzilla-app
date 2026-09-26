@@ -77,10 +77,7 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	isOwn := false
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		isOwn = claims.UserID == user.ID
-	}
+	isOwn := viewerID != nil && *viewerID == user.ID
 
 	tab := r.URL.Query().Get("tab")
 	switch tab {

@@ -403,17 +403,6 @@ func parsePipfile(content string) ([]model.RepoDependency, error) {
 	return deps, nil
 }
 
-func stripAssign(trimmed, key string) (string, bool) {
-	if !strings.HasPrefix(trimmed, key) {
-		return "", false
-	}
-	rest := strings.TrimSpace(trimmed[len(key):])
-	if !strings.HasPrefix(rest, "=") {
-		return "", false
-	}
-	return strings.TrimSpace(rest[1:]), true
-}
-
 func findArrayEnd(s string) int {
 	quote := byte(0)
 	for i := 0; i < len(s); i++ {

@@ -49,7 +49,7 @@ func TestCommitStatsService_CommitsForUserSince(t *testing.T) {
 	).Scan(&aliceID); err != nil {
 		t.Fatalf("insert alice: %v", err)
 	}
-	defer db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, aliceID)
+	defer testutil.Exec(t, db, `DELETE FROM users WHERE id = $1`, aliceID)
 
 	var repoID int64
 	if err := db.QueryRowContext(ctx,

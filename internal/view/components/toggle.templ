@@ -18,8 +18,7 @@ func toggleVariantClass(v ToggleVariant) string {
 // attrs and keeps them in sync; for HTMX toggles the server swaps in the element with the new state.
 templ Toggle(variant ToggleVariant, size ButtonSize, attrs templ.Attributes) {
 	<button
-		type="button"
-		{ withClass(attrs, "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", toggleVariantClass(variant), buttonSizeClass(size))... }
+		{ withClass(withDefaults(attrs, templ.Attributes{"type": "button"}), "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring", toggleVariantClass(variant), buttonSizeClass(size))... }
 	>
 		{ children... }
 	</button>
