@@ -14,6 +14,8 @@
 | SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys` | Git SSH transport             |
 | TOTP 2FA              | 6-digit code after password login                  | `POST /auth/2fa/verify`       |
 
+Emails match case-insensitively everywhere: login, OAuth/LDAP/SAML account linking, and invites. The `users_email_lower_key` index enforces it.
+
 ### JWT Claims
 
 All authenticated requests carry JWT claims in context:

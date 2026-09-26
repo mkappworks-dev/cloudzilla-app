@@ -17,10 +17,12 @@ var (
 	ErrEmailTaken    = errors.New("email already registered")
 )
 
-// Postgres's default names for the inline UNIQUE columns in 001_create_users.sql.
+// The first two are Postgres's default names for the inline UNIQUE columns in
+// 001_create_users.sql; the last is the index from 074.
 const (
-	usersUsernameKey = "users_username_key"
-	usersEmailKey    = "users_email_key"
+	usersUsernameKey   = "users_username_key"
+	usersEmailKey      = "users_email_key"
+	usersEmailLowerKey = "users_email_lower_key"
 )
 
 // UserStore provides database operations for user accounts.
@@ -83,7 +85,7 @@ func insertUser(ctx context.Context, db dbtx, u *model.User) error {
 			switch pgErr.ConstraintName {
 			case usersUsernameKey:
 				return ErrUsernameTaken
-			case usersEmailKey:
+			case usersEmailKey, usersEmailLowerKey:
 				return ErrEmailTaken
 			}
 		}
@@ -129,7 +131,7 @@ func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, 
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
 		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
-		 FROM users WHERE email = $1`,
+		 FROM users WHERE lower(email) = lower($1)`,
 		email,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
@@ -146,7 +148,7 @@ func (s *UserStore) GetByEmailWithRole(ctx context.Context, email string) (*mode
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
 		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
-		 FROM users WHERE email = $1`,
+		 FROM users WHERE lower(email) = lower($1)`,
 		email,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
@@ -271,7 +273,7 @@ func (s *UserStore) GetByEmailWithTOTP(ctx context.Context, email string) (*mode
 		        is_superadmin, is_invited, totp_secret, totp_enabled,
 		        totp_backup_codes::text,
 		        created_at, updated_at, email_notifications, email_digest
-		 FROM users WHERE email = $1`,
+		 FROM users WHERE lower(email) = lower($1)`,
 		email,
 	).Scan(
 		&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,

@@ -117,6 +117,31 @@ func TestUserService_Create_DuplicateEmail_ReturnsErrEmailTaken(t *testing.T) {
 	}
 }
 
+func TestUserService_Create_EmailDiffersOnlyByCase_ReturnsErrEmailTaken(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	testutil.SeedUser(t, db, suffix)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE username = $1`, "caseemail_"+suffix) })
+
+	_, err := svc.Create(context.Background(), "caseemail_"+suffix, "TestUser_"+suffix+"@Test.Invalid", "pass")
+	if !errors.Is(err, service.ErrEmailTaken) {
+		t.Errorf("want ErrEmailTaken, got %v", err)
+	}
+}
+
+func TestUserService_Authenticate_EmailInOtherCase_ReturnsToken(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	_, email := testutil.SeedUserWithPassword(t, db, suffix, "correctpassword")
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+
+	if _, _, err := svc.Authenticate(context.Background(), strings.ToUpper(email), "correctpassword"); err != nil {
+		t.Errorf("login must ignore email case: %v", err)
+	}
+}
+
 // TestUserService_Authenticate_CorrectPassword_ReturnsToken verifies that Authenticate
 // returns a non-empty JWT and the correct user when given valid credentials.
 func TestUserService_Authenticate_CorrectPassword_ReturnsToken(t *testing.T) {

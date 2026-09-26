@@ -60,3 +60,7 @@ docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli migrate
 Then open `http://localhost:8080` — the first request redirects to `/setup` where you create the superadmin account via the web wizard.
 
 The SSH host key is auto-generated into the named volume on first boot — no manual `ssh-keygen` step needed.
+
+### Upgrading
+
+Migration `074_users_email_case_insensitive` refuses to run while two accounts have emails that differ only by case. Its error names their user IDs; change or merge those accounts, then restart.
