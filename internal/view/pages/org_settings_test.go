@@ -28,6 +28,7 @@ func TestOrgSettings_CopyMatchesPermissions(t *testing.T) {
 		"members can contribute",
 		"when a member creates",
 		"audit history",
+		"ownership transfers",
 	} {
 		if strings.Contains(out, stale) {
 			t.Errorf("org settings still says %q", stale)
@@ -36,6 +37,7 @@ func TestOrgSettings_CopyMatchesPermissions(t *testing.T) {
 	for _, want := range []string{
 		"when an owner creates a repo here",
 		"Audit log entries about the org are kept",
+		"profile edits and repository-default changes",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("org settings missing %q", want)

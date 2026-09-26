@@ -300,7 +300,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 
 					<section id="audit" class="rounded-md border border-border bg-card p-6">
 						<h2 class="text-base font-semibold tracking-tight mb-1">Audit log</h2>
-						<p class="text-[12.5px] text-muted-foreground mb-6">Recent admin actions on { data.Org.Name } — profile edits, repository defaults, ownership transfers.</p>
+						<p class="text-[12.5px] text-muted-foreground mb-6">Recent admin actions on { data.Org.Name } — profile edits and repository-default changes.</p>
 
 						if len(data.AuditEntries) > 0 {
 							<ul class="divide-y divide-border border border-border rounded-md font-mono text-[12px]">
