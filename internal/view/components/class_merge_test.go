@@ -5,6 +5,7 @@ import (
 	"context"
 	"maps"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -88,6 +89,50 @@ func TestComponents_MergeCallerClass(t *testing.T) {
 			want["zz-caller"]++
 			if got := classTokens(out); !maps.Equal(got, want) {
 				t.Errorf("a non-conflicting caller class changed the defaults:\n got %v\nwant %v", got, want)
+			}
+		})
+	}
+}
+
+var typeAttr = regexp.MustCompile(`\stype="([^"]*)"`)
+
+func TestComponents_CallerTypeReplacesButtonDefault(t *testing.T) {
+	type build func(attrs templ.Attributes) templ.Component
+	cases := []struct {
+		name   string
+		render build
+	}{
+		{"CommandItemButton", func(a templ.Attributes) templ.Component { return CommandItem("", a) }},
+		{"DropdownMenuItem", func(a templ.Attributes) templ.Component { return DropdownMenuItem(a) }},
+		{"DropdownMenuTrigger", func(a templ.Attributes) templ.Component { return DropdownMenuTrigger(a) }},
+		{"Toggle", func(a templ.Attributes) templ.Component { return Toggle(ToggleDefault, ButtonSizeSM, a) }},
+	}
+	typeValues := func(html string) []string {
+		var got []string
+		for _, m := range typeAttr.FindAllStringSubmatch(html, -1) {
+			got = append(got, m[1])
+		}
+		return got
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			render := func(attrs templ.Attributes) string {
+				var buf bytes.Buffer
+				if err := tc.render(attrs).Render(context.Background(), &buf); err != nil {
+					t.Fatalf("render: %v", err)
+				}
+				return buf.String()
+			}
+			if got := typeValues(render(nil)); !slices.Equal(got, []string{"button"}) {
+				t.Errorf("no caller type: type attributes = %q, want [button]", got)
+			}
+			out := render(templ.Attributes{"type": "submit", "class": "zz-caller"})
+			if got := typeValues(out); !slices.Equal(got, []string{"submit"}) {
+				t.Errorf("caller type: type attributes = %q, want [submit]", got)
+			}
+			classes := classAttr.FindAllStringSubmatch(out, -1)
+			if len(classes) != 1 || !slices.Contains(strings.Fields(classes[0][1]), "zz-caller") {
+				t.Errorf("want one class attribute holding zz-caller, got %s", out)
 			}
 		})
 	}

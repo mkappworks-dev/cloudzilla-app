@@ -124,9 +124,8 @@ templ CommandItem(href string, attrs templ.Attributes) {
 		</a>
 	} else {
 		<button
-			type="button"
 			data-command-item
-			{ withClass(attrs, "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-none")... }
+			{ withClass(withDefaults(attrs, templ.Attributes{"type": "button"}), "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-none")... }
 		>
 			{ children... }
 		</button>
