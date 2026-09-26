@@ -168,3 +168,53 @@ func TestCreateIssueComment_ValidAuth_201(t *testing.T) {
 		t.Error("created comment must have non-zero ID")
 	}
 }
+
+// httptest.NewRecorder never cancels the request context; a real server does
+// once the handler returns, which is what the fire-and-forget notify must survive.
+func TestCreateIssueComment_NotifiesAuthorAfterRequestEnds(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	authorID := testutil.SeedUser(t, db, suffix)
+	authorName := "testuser_" + suffix
+	commenterID := testutil.SeedUser(t, db, suffix+"_commenter")
+	repoID := testutil.SeedRepo(t, db, authorID, authorName, suffix)
+	issueNumber := seedIssueForComment(t, db, repoID, authorID)
+
+	srv := httptest.NewServer(commentRouterWithAuth(newCommentHandler(db)))
+	t.Cleanup(srv.Close)
+
+	req, err := http.NewRequest(http.MethodPost,
+		srv.URL+"/api/repos/"+authorName+"/testrepo_"+suffix+"/issues/"+itoa(issueNumber)+"/comments",
+		commentBody("Looks good"))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, commenterID, "testuser_"+suffix+"_commenter"))
+	resp, err := srv.Client().Do(req)
+	if err != nil {
+		t.Fatalf("post comment: %v", err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("want 201, got %d", resp.StatusCode)
+	}
+
+	notifs := store.NewNotificationStore(db)
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		list, err := notifs.ListByUser(context.Background(), authorID)
+		if err != nil {
+			t.Fatalf("list notifications: %v", err)
+		}
+		for _, n := range list {
+			if n.Type == model.NotifIssueComment && n.RepoID == repoID && n.ActorID == commenterID {
+				return
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("issue author got no comment notification after the request finished")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
