@@ -19,7 +19,6 @@ type UserData struct {
 	ProfileReadmeRaw string
 	ReadmeError      string
 
-	// Overview tab
 	IsOwnProfile bool
 	Tab          string // "overview" | "repositories" | "stars" | "gists"
 	PinnedRepos  []components.PinnedRepoData
@@ -32,8 +31,6 @@ type UserData struct {
 	HasProfileRepo           bool
 	ProfileRepoDefaultBranch string
 
-	// PinnedRepoIDs is the set of currently-pinned repo IDs, for fast lookup
-	// from the pin-management modal.
 	PinnedRepoIDs map[int64]bool
 
 	// Tab nav counters (always populated)

@@ -70,7 +70,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Get("/notifications", h.PageNotifications)
 	r.With(authMW).Get("/activity", h.PageActivity)
 
-	// Pages moved by the UI overhaul; 301s keep old bookmarks and links working.
+	// Old URLs of moved pages; 301s keep bookmarks and links working.
 	r.With(authMW).Get("/new", handler.MovedPermanently("/repos/new", ""))
 	r.With(authMW).Get("/settings/organizations", handler.MovedPermanently("/organizations", ""))
 	r.With(authMW).Get("/settings/security", handler.MovedPermanently("/settings", "security"))
@@ -487,7 +487,6 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Delete("/authorizations/{id}", h.RevokeOAuthAuthorization)
 	})
 
-	// Saved replies API (consumed by the comment composer)
 	r.Route("/api/user/replies", func(r chi.Router) {
 		r.Use(authMW, apiBodyLimit)
 		r.Get("/", h.ListSavedRepliesFragment)

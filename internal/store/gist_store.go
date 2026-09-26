@@ -164,7 +164,6 @@ func (s *GistStore) CountPublic(ctx context.Context) (int, error) {
 	return n, err
 }
 
-// CountPublicByOwner counts a single owner's public gists, used for non-owner profile views.
 func (s *GistStore) CountPublicByOwner(ctx context.Context, ownerID int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,

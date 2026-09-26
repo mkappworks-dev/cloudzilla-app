@@ -10,7 +10,6 @@ import (
 //go:embed repotemplates/gitignore/*.gitignore repotemplates/licenses/*.txt
 var repoTemplateFS embed.FS
 
-// License describes a license template offered on the new-repo form.
 type License struct {
 	Key  string // embed file basename, e.g. "mit"
 	Name string // display name, e.g. "MIT License"
@@ -38,14 +37,10 @@ var gitignoreFileNames = map[string]string{
 	"Ruby":   "Ruby",
 }
 
-// ListGitignoreTemplates returns the available .gitignore template names.
 func (s *RepoService) ListGitignoreTemplates() []string { return gitignoreTemplates }
 
-// ListLicenseTemplates returns the available license templates.
 func (s *RepoService) ListLicenseTemplates() []License { return licenseTemplates }
 
-// gitignoreContent returns the .gitignore body for the named template.
-// Returns ("", false) for an unknown or empty name.
 func gitignoreContent(name string) (string, bool) {
 	file, ok := gitignoreFileNames[name]
 	if !ok {
@@ -58,9 +53,6 @@ func gitignoreContent(name string) (string, bool) {
 	return string(b), true
 }
 
-// licenseContent returns the license body for the given key with the [year]
-// and [fullname] placeholders substituted. Returns ("", false) for an unknown
-// or empty key.
 func licenseContent(key, ownerName string) (string, bool) {
 	known := false
 	for _, l := range licenseTemplates {

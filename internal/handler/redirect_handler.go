@@ -7,7 +7,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// MovedPermanently 301s to path#fragment, carrying the request's query along.
 func MovedPermanently(path, fragment string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		target := url.URL{Path: path, RawQuery: r.URL.Query().Encode(), Fragment: fragment}
@@ -15,7 +14,6 @@ func MovedPermanently(path, fragment string) http.HandlerFunc {
 	}
 }
 
-// MovedToProfileTab 301s /{owner}/<tab> to /{owner}?tab=<tab>, carrying the request's query along.
 func MovedToProfileTab(tab string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()

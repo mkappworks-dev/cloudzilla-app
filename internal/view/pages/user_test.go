@@ -21,8 +21,6 @@ func renderUser(t *testing.T, data view.UserData) string {
 	return sb.String()
 }
 
-// Overview tab on own profile must surface pinned repos, the contributions
-// heatmap, and the Edit-profile entry point.
 func TestUser_OverviewOwnProfile(t *testing.T) {
 	data := view.UserData{
 		User: model.User{
@@ -54,7 +52,6 @@ func TestUser_OverviewOwnProfile(t *testing.T) {
 	}
 }
 
-// On someone else's profile, the Edit-profile button must not render.
 func TestUser_OverviewOtherProfile(t *testing.T) {
 	data := view.UserData{
 		User: model.User{
@@ -73,8 +70,6 @@ func TestUser_OverviewOtherProfile(t *testing.T) {
 	}
 }
 
-// Repositories tab must render the repo list; overview-only sections like the
-// heatmap heading must not appear.
 func TestUser_RepositoriesTabShowsTable(t *testing.T) {
 	data := view.UserData{
 		User: model.User{ID: 1, Username: "alice"},

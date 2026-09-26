@@ -118,7 +118,6 @@ func renderSettings(t *testing.T, data view.SettingsData) string {
 	return sb.String()
 }
 
-// sectionHTML returns the element opened by id="<id>" up to its closing tag.
 func sectionHTML(t *testing.T, out, id, closeTag string) string {
 	t.Helper()
 	start := strings.Index(out, `id="`+id+`"`)

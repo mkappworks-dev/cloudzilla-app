@@ -199,9 +199,7 @@ func (s *CodeService) GetProfileReadme(ownerName, repoName, defaultBranch string
 	return template.HTML(markdown.Render(string(raw)))
 }
 
-// GetProfileReadmeRaw returns the unrendered Markdown of README.md from the
-// root of the given repo's default branch. Returns ("", nil) when the repo,
-// commit, or README does not exist so callers can render an empty editor.
+// GetProfileReadmeRaw returns ("", nil) for a missing repo, commit, or README so callers can render an empty editor.
 func (s *CodeService) GetProfileReadmeRaw(ownerName, repoName, defaultBranch string) (string, error) {
 	raw, err := s.GetRawBlob(ownerName, repoName, defaultBranch, "README.md")
 	if err != nil {

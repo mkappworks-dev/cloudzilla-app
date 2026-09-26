@@ -403,9 +403,11 @@ templ userStarsTab(data view.UserData) {
 	</section>
 }
 
+const rowCardClass = "group relative block px-4 py-3 hover:bg-accent hover:pl-[18px] transition-[padding-left] duration-[120ms] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-[2px] before:bg-foreground before:opacity-0 before:transition-opacity before:duration-[120ms] hover:before:opacity-100 motion-reduce:transition-none motion-reduce:hover:pl-4 motion-reduce:before:transition-none"
+
 templ userStarRow(data view.UserData, repo model.Repository) {
 	{{ stars := data.RepoTabStars[repo.ID] }}
-	<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="row-card block px-4 py-3 hover:bg-accent group">
+	<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class={ rowCardClass }>
 		<div class="flex items-start gap-3 mb-1.5">
 			<span class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true">
 				@repoIcon(repo.Private)
@@ -483,7 +485,7 @@ templ userGistsTab(data view.UserData) {
 }
 
 templ userGistRow(g view.GistTabItem) {
-	<a href={ templ.SafeURL("/gists/" + g.ID) } class="row-card block px-4 py-3 hover:bg-accent group">
+	<a href={ templ.SafeURL("/gists/" + g.ID) } class={ rowCardClass }>
 		<div class="flex items-start gap-3 mb-1.5">
 			<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="13" y2="17"></line></svg>
 			<div class="min-w-0 flex-1 flex items-center gap-2 flex-wrap">
@@ -542,7 +544,7 @@ templ profilePagination(page, totalPages int, baseURL string) {
 templ userRepoRow(data view.UserData, repo model.Repository) {
 	{{ role := data.RepoTabRoles[repo.ID] }}
 	{{ stars := data.RepoTabStars[repo.ID] }}
-	<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="row-card block px-4 py-3 hover:bg-accent group">
+	<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class={ rowCardClass }>
 		<div class="flex items-start gap-3 mb-1.5">
 			<span class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true">
 				@repoIcon(repo.Private)

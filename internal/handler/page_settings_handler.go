@@ -13,8 +13,6 @@ import (
 
 const backupCodesCookieName = "cz_backup_codes"
 
-// PageSettings renders the consolidated account settings page, including
-// one-shot data (backup codes after enabling 2FA, new-token reveal).
 func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -107,8 +105,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/settings?profile_saved=1#profile", http.StatusSeeOther)
 }
 
-// DeleteAccount handles POST /settings/delete-account. Requires the form field
-// `confirm_username` to match the user's current username, as a paranoia guard.
+// DeleteAccount handles POST /settings/delete-account.
 func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {

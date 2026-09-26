@@ -13,8 +13,7 @@ import (
 
 const maxProfileReadmeBytes = 200 * 1024
 
-// UpdateProfileReadme handles POST /settings/profile-readme — the inline
-// editor on the user's own profile page.
+// UpdateProfileReadme handles POST /settings/profile-readme.
 func (h *Handler) UpdateProfileReadme(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {

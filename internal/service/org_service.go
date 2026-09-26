@@ -355,7 +355,6 @@ func (s *OrgService) ListReposVisibleTo(ctx context.Context, orgID int64, viewer
 	return visible, nil
 }
 
-// OrgRepoHighlights are the repo cards on an org's overview.
 type OrgRepoHighlights struct {
 	Featured []model.RepositoryWithStats
 	Recent   []model.RepositoryWithStats

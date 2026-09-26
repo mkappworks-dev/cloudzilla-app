@@ -487,9 +487,6 @@ func wikiMutateTree(
 	return nil
 }
 
-// wikiCommit writes filename/content into the bare wiki repo as a new commit
-// on the wiki's main branch, preserving all other files from HEAD. Thin shim
-// over commitSingleFile that hard-codes the wiki's "main" branch convention.
 func wikiCommit(repo *gogit.Repository, filename string, content []byte, authorName, authorEmail, message string) error {
 	return commitSingleFile(repo, plumbing.NewBranchReferenceName("main"), authorName, authorEmail, message, filename, content)
 }

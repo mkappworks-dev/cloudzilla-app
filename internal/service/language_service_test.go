@@ -118,7 +118,6 @@ func TestLanguageService_Composition_CachesResults(t *testing.T) {
 func TestLanguageService_TopLanguageFor(t *testing.T) {
 	t.Parallel()
 
-	// Go content is much larger than Python.
 	bigGo := make([]byte, 500)
 	for i := range bigGo {
 		bigGo[i] = 'a'

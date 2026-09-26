@@ -1363,10 +1363,7 @@ func Base(base view.BasePage, title string) templ.Component {
 	})
 }
 
-// workspaceContextName picks the label shown in the topbar's workspace switcher.
-// Prefers the explicit OwnerContext (set on `/{owner}` pages), then the repo
-// owner (`/{owner}/{repo}` and below), and finally falls back to the logged-in
-// user's name.
+// workspaceContextName labels the topbar's workspace switcher trigger.
 func workspaceContextName(base view.BasePage) string {
 	if base.OwnerContext != "" {
 		return base.OwnerContext

@@ -19,8 +19,6 @@ func renderNewOrganization(t *testing.T, data view.NewOrganizationData) string {
 	return sb.String()
 }
 
-// The form must expose the name input, TOS checkbox, submit button, and the
-// decorative Enterprise/Team options must be disabled.
 func TestNewOrganization_RendersForm(t *testing.T) {
 	data := view.NewOrganizationData{
 		BasePage: view.BasePage{
@@ -41,14 +39,11 @@ func TestNewOrganization_RendersForm(t *testing.T) {
 		}
 	}
 
-	// Both decorative alternative options must be disabled.
 	if strings.Count(out, "disabled") < 2 {
 		t.Errorf("expected Enterprise and Team radios to be disabled\n--- output ---\n%s", out)
 	}
 }
 
-// An error must render in a role="alert" element, and the submitted Name and
-// Description values must be preserved on the re-render.
 func TestNewOrganization_ShowsError(t *testing.T) {
 	data := view.NewOrganizationData{
 		BasePage: view.BasePage{

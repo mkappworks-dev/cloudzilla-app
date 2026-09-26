@@ -28,7 +28,6 @@ var (
 	emailRe                 = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 )
 
-// MaxPinnedRepos is the per-user cap on pinned repositories.
 const MaxPinnedRepos = 6
 
 // UserService manages user account operations including authentication and profile updates.
@@ -251,8 +250,7 @@ func (s *UserService) PinRepo(ctx context.Context, userID, repoID int64) error {
 	return s.store.SetPinnedRepoIDs(ctx, userID, append(ids, repoID))
 }
 
-// UnpinRepo removes repoID from the user's pinned list. Removing a repo that
-// is not pinned is a no-op.
+// UnpinRepo is a no-op when repoID is not pinned.
 func (s *UserService) UnpinRepo(ctx context.Context, userID, repoID int64) error {
 	ids, err := s.store.GetPinnedRepoIDs(ctx, userID)
 	if err != nil {

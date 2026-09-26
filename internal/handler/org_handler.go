@@ -183,9 +183,6 @@ func (h *Handler) RemoveOrgMember(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// UpdateOrgMemberRole changes a member's role from a <select hx-post>
-// dropdown. Owner-only. Renders the updated members list fragment on success
-// so HTMX swaps it in place.
 func (h *Handler) UpdateOrgMemberRole(w http.ResponseWriter, r *http.Request) {
 	orgName := chi.URLParam(r, "org")
 	targetUsername := chi.URLParam(r, "username")
@@ -236,8 +233,6 @@ func (h *Handler) UpdateOrgMemberRole(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// UpdateOrgRepoDefaults persists the org's default repository visibility +
-// branch name. Owner-only. Applied to new repos created under the org.
 func (h *Handler) UpdateOrgRepoDefaults(w http.ResponseWriter, r *http.Request) {
 	orgName := chi.URLParam(r, "org")
 
@@ -283,10 +278,6 @@ func (h *Handler) UpdateOrgRepoDefaults(w http.ResponseWriter, r *http.Request) 
 	http.Redirect(w, r, "/orgs/"+orgName+"/settings#repo-defaults", http.StatusSeeOther)
 }
 
-// DeleteOrg permanently removes an organization. Browser form submission
-// (POST /api/orgs/{org}/delete) with a confirm_name field that must match the
-// org's slug — protects against accidental deletes from middle-clicked links
-// or stray bots. Refuses if the org still has any repositories.
 func (h *Handler) DeleteOrg(w http.ResponseWriter, r *http.Request) {
 	orgName := chi.URLParam(r, "org")
 
@@ -329,8 +320,6 @@ func (h *Handler) DeleteOrg(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/organizations", http.StatusSeeOther)
 }
 
-// UpdateOrgProfile persists the General-section fields submitted from the
-// organization settings page. Requires owner privileges.
 func (h *Handler) UpdateOrgProfile(w http.ResponseWriter, r *http.Request) {
 	orgName := chi.URLParam(r, "org")
 
@@ -395,9 +384,7 @@ func (h *Handler) TransferOrg(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "new_owner is required")
 		return
 	}
-	// confirm_name is set by the dialog form to require a typed org-name match
-	// before transferring. If absent (older callers), we accept the request for
-	// backwards-compat.
+	// An absent confirm_name is accepted so API callers that predate the dialog keep working.
 	if cn := r.FormValue("confirm_name"); cn != "" && cn != org.Name {
 		writeError(w, http.StatusUnprocessableEntity, "confirmation name does not match")
 		return

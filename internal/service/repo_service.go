@@ -266,8 +266,6 @@ func commitSubject(message string) string {
 	return strings.TrimSpace(line)
 }
 
-// RepoInitOptions controls which starter files are committed to a new repo.
-// The zero value means "create an empty bare repo".
 type RepoInitOptions struct {
 	AddREADME bool
 	Gitignore string // gitignore template name, "" = none
@@ -323,11 +321,6 @@ func (s *RepoService) Create(ctx context.Context, ownerUsername, name, descripti
 	return r, nil
 }
 
-// seedInitialCommit creates the first commit (README/.gitignore/LICENSE) on a
-// freshly-PlainInit'd bare repo via a temp worktree, and points the bare repo's
-// HEAD at defaultBranch. ownerName is used for the license [fullname]
-// substitution. Returns an error the caller should log (not fail on), since the
-// bare repo already exists and remains usable when seeding fails.
 func seedInitialCommit(bareDir, defaultBranch string, sig object.Signature, init RepoInitOptions, ownerName, repoName, description string) error {
 	files := map[string]string{}
 

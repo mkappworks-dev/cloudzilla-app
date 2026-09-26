@@ -1,8 +1,5 @@
 package service_test
 
-// Integration tests for RepoService.Create with repository initialization.
-// All tests require TEST_DATABASE_DSN and skip otherwise.
-
 import (
 	"context"
 	"path/filepath"
@@ -18,9 +15,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-// newRepoSvc builds a RepoService backed by the test database with a
-// per-test ReposRoot, seeding an owner user. Returns the service, owner
-// username, and the filesystem ReposRoot.
 func newRepoSvc(t *testing.T) (*service.RepoService, string, string) {
 	t.Helper()
 	db := testutil.OpenTestDB(t)
@@ -38,8 +32,6 @@ func newRepoSvc(t *testing.T) (*service.RepoService, string, string) {
 	return svc, ownerName, root
 }
 
-// bareTreeFiles opens the bare repo at bareDir, resolves branch, and returns
-// the set of file paths in that branch's tree.
 func bareTreeFiles(t *testing.T, bareDir, branch string) map[string]bool {
 	t.Helper()
 	repo, err := gogit.PlainOpen(bareDir)
@@ -90,7 +82,6 @@ func TestRepoService_Create_WithInitFiles(t *testing.T) {
 		}
 	}
 
-	// Bare HEAD must point at the default branch.
 	bare, err := gogit.PlainOpen(bareDir)
 	if err != nil {
 		t.Fatalf("open bare: %v", err)

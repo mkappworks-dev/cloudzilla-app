@@ -458,8 +458,6 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 		langPcts = nil
 	}
 
-	// Profile README — render the README.md from the repo named after the
-	// org, mirroring the user-profile convention.
 	var profileReadme template.HTML
 	for _, repo := range repos {
 		if !showAllRepos && !showAllPeople && repo.Name == org.Name && !repo.Private {

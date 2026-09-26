@@ -2,7 +2,7 @@ package view
 
 import "github.com/mkappworks-dev/cloudzilla-app/internal/model"
 
-// SettingsData holds template data for the consolidated user account settings page.
+// SettingsData holds template data for the user account settings page.
 type SettingsData struct {
 	BasePage
 	User                model.User

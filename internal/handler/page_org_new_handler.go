@@ -40,7 +40,6 @@ func (h *Handler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 		h.renderNewOrgError(w, r, name, description, "You must accept the terms of service.")
 		return
 	}
-	// Name must be filesystem/URL-safe.
 	if err := service.ValidateName(name); err != nil {
 		h.renderNewOrgError(w, r, name, description, "Invalid organization name: "+err.Error())
 		return

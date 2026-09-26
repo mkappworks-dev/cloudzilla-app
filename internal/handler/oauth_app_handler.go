@@ -123,8 +123,7 @@ func (h *Handler) TokenEndpoint(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// CreateOAuthApp handles POST /api/oauth/apps. HTMX form posts get the apps
-// list back with the raw client secret; JSON callers get it in the body.
+// CreateOAuthApp handles POST /api/oauth/apps.
 func (h *Handler) CreateOAuthApp(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {

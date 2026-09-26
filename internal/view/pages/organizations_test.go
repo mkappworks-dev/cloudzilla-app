@@ -19,8 +19,6 @@ func renderOrganizations(t *testing.T, data view.OrgListData) string {
 	return sb.String()
 }
 
-// The listing must show each org with its role badge, member count, and the
-// New-organization CTA.
 func TestOrganizations_RendersEntries(t *testing.T) {
 	data := view.OrgListData{
 		Entries: []view.OrgListEntry{
@@ -53,7 +51,6 @@ func TestOrganizations_RendersEntries(t *testing.T) {
 	}
 }
 
-// With no memberships the empty state must render.
 func TestOrganizations_EmptyState(t *testing.T) {
 	out := renderOrganizations(t, view.OrgListData{})
 

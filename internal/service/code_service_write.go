@@ -13,10 +13,6 @@ import (
 // after themselves; callers map this to a redirect to the create-repo flow.
 var ErrProfileRepoMissing = errors.New("profile repo does not exist")
 
-// SaveProfileReadme writes README.md to the root of the user's profile repo
-// (owner/repoName.git) on defaultBranch. message defaults to "Update profile
-// README" when empty. Errors are wrapped with context so handler logs locate
-// the failing stage.
 func (s *CodeService) SaveProfileReadme(owner, repoName, defaultBranch, content, authorName, authorEmail, message string) error {
 	if strings.TrimSpace(defaultBranch) == "" {
 		defaultBranch = "main"

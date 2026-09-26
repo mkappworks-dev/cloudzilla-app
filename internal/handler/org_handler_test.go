@@ -1,7 +1,5 @@
 package handler_test
 
-// Integration tests for org handlers. All tests require TEST_DATABASE_DSN and skip otherwise.
-
 import (
 	"context"
 	"database/sql"
@@ -70,7 +68,6 @@ func TestTransferOrg_RedirectsToOrgPage(t *testing.T) {
 
 var checkedPrivateRadio = regexp.MustCompile(`<input type="radio" name="visibility" value="private" checked`)
 
-// Arriving from an org page (?owner=org) must preselect the org's default visibility.
 func TestPageNewRepo_OwnerOrgDefaultVisibility(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
@@ -114,7 +111,6 @@ func TestPageNewRepo_OwnerOrgDefaultVisibility(t *testing.T) {
 	}
 }
 
-// API callers that omit "private" get the org's default visibility.
 func TestCreateOrgRepo_OmittedPrivateUsesOrgDefault(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)

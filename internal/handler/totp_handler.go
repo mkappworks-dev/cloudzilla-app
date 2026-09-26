@@ -14,9 +14,7 @@ import (
 
 const totpPendingCookieName = "cz_totp_pending"
 
-// SetupTOTP handles POST /settings/security/setup. Generates a TOTP secret,
-// stores it as pending, and redirects back to /settings#security where the
-// QR code + verify form is rendered inline by the consolidated settings page.
+// SetupTOTP handles POST /settings/security/setup.
 func (h *Handler) SetupTOTP(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {

@@ -49,8 +49,6 @@ func (s *OrgStore) GetByID(ctx context.Context, id int64) (*model.Organization, 
 	return o, nil
 }
 
-// UpdateRepoDefaults persists the org's repository default values (visibility +
-// branch name). Validation lives in the service layer.
 func (s *OrgStore) UpdateRepoDefaults(ctx context.Context, id int64, visibility, branchName string) error {
 	res, err := s.db.ExecContext(ctx,
 		`UPDATE organizations
@@ -86,8 +84,7 @@ func (s *OrgStore) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-// UpdateProfile updates the org's editable profile fields. Returns sql.ErrNoRows
-// when no row matches the id.
+// UpdateProfile returns sql.ErrNoRows when no row matches id.
 func (s *OrgStore) UpdateProfile(ctx context.Context, id int64, displayName, description, website, location, contactEmail string) error {
 	res, err := s.db.ExecContext(ctx,
 		`UPDATE organizations

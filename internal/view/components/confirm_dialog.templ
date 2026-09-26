@@ -96,8 +96,6 @@ templ ConfirmDialog() {
 				document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: msg } }));
 			});
 
-			// htmx fires responseError on any 4xx/5xx response — surface it as an error toast
-			// so failed requests are never silent.
 			document.body.addEventListener('htmx:responseError', function (e) {
 				var xhr = e.detail && e.detail.xhr;
 				if (!xhr) return;
