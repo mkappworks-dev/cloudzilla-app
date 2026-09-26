@@ -36,10 +36,10 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 ## Personal Access Tokens
 
-| Method | Path                   | Auth     | Description                                                                                                                                                 |
-| ------ | ---------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, `scopes[]`, optional `expires_at` form fields); redirects to `/settings?new_token=czp_...#tokens`, the only time the raw token is shown |
-| DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                                                                                          |
+| Method | Path                   | Auth     | Description                                                                                                                                                        |
+| ------ | ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, repeated `scopes`, optional `expires_at` form fields); redirects to `/settings?new_token=czp_...#tokens`, the only time the raw token is shown |
+| DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                                                                                                 |
 
 Raw token format: `czp_<32-byte hex>`. Use as `Authorization: Bearer czp_<token>`. Only the SHA-256 hash is stored; the raw value cannot be recovered after creation.
 
