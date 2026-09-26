@@ -203,20 +203,31 @@ func (s *UserService) PinnedRepos(ctx context.Context, userID int64, viewerID *i
 	if err != nil {
 		return nil, err
 	}
-	out := make([]model.Repository, 0, len(ids))
+	visible, _, err := s.splitPins(ctx, ids, viewerID)
+	return visible, err
+}
+
+// splitPins returns the pins viewerID can read, in pin order, and the IDs of
+// the rest.
+func (s *UserService) splitPins(ctx context.Context, ids []int64, viewerID *int64) ([]model.Repository, []int64, error) {
+	visible := make([]model.Repository, 0, len(ids))
+	var hidden []int64
 	for _, id := range ids {
 		repo, err := s.repos.GetByID(ctx, id)
 		if errors.Is(err, sql.ErrNoRows) {
+			hidden = append(hidden, id)
 			continue
 		}
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if s.repos.CanRead(ctx, repo, viewerID) {
-			out = append(out, *repo)
+			visible = append(visible, *repo)
+		} else {
+			hidden = append(hidden, id)
 		}
 	}
-	return out, nil
+	return visible, hidden, nil
 }
 
 // PinRepo is idempotent. The limit counts only pins the user can still see —
@@ -233,39 +244,29 @@ func (s *UserService) PinRepo(ctx context.Context, userID, repoID int64) error {
 	if !s.repos.CanRead(ctx, repo, &userID) {
 		return ErrRepoNotFound
 	}
-	pinned, err := s.PinnedRepos(ctx, userID, &userID)
-	if err != nil {
-		return err
-	}
-	ids := make([]int64, 0, len(pinned)+1)
-	for _, p := range pinned {
-		if p.ID == repoID {
-			return nil
-		}
-		ids = append(ids, p.ID)
-	}
-	if len(ids) >= MaxPinnedRepos {
-		return ErrPinLimit
-	}
-	return s.store.SetPinnedRepoIDs(ctx, userID, append(ids, repoID))
-}
-
-// UnpinRepo is a no-op when repoID is not pinned.
-func (s *UserService) UnpinRepo(ctx context.Context, userID, repoID int64) error {
 	ids, err := s.store.GetPinnedRepoIDs(ctx, userID)
 	if err != nil {
 		return err
 	}
-	out := make([]int64, 0, len(ids))
-	for _, id := range ids {
-		if id != repoID {
-			out = append(out, id)
-		}
+	// Checked before the store locks the row so the lock never waits on repo
+	// lookups; a pin landing in between was checked by its own request.
+	_, stale, err := s.splitPins(ctx, ids, &userID)
+	if err != nil {
+		return err
 	}
-	if len(out) == len(ids) {
-		return nil
+	pinned, err := s.store.AddPinnedRepo(ctx, userID, repoID, stale, MaxPinnedRepos)
+	if err != nil {
+		return err
 	}
-	return s.store.SetPinnedRepoIDs(ctx, userID, out)
+	if !pinned {
+		return ErrPinLimit
+	}
+	return nil
+}
+
+// UnpinRepo is a no-op when repoID is not pinned.
+func (s *UserService) UnpinRepo(ctx context.Context, userID, repoID int64) error {
+	return s.store.RemovePinnedRepo(ctx, userID, repoID)
 }
 
 func (s *UserService) generateJWT(u *model.User) (string, error) {

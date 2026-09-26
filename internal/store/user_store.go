@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -487,13 +488,53 @@ func parsePGInt64Array(s string) ([]int64, error) {
 	return out, nil
 }
 
-func (s *UserStore) SetPinnedRepoIDs(ctx context.Context, userID int64, ids []int64) error {
-	_, err := s.db.ExecContext(ctx,
+// AddPinnedRepo drops the prune IDs and appends repoID under a row lock, so
+// overlapping pins can't overwrite each other. It reports false, changing
+// nothing, when the pins left after pruning already number limit.
+func (s *UserStore) AddPinnedRepo(ctx context.Context, userID, repoID int64, prune []int64, limit int) (bool, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("user add pinned repo: begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	var raw string
+	if err := tx.QueryRowContext(ctx,
+		`SELECT pinned_repo_ids::text FROM users WHERE id = $1 FOR UPDATE`, userID,
+	).Scan(&raw); err != nil {
+		return false, fmt.Errorf("user add pinned repo: lock: %w", err)
+	}
+	ids, err := parsePGInt64Array(raw)
+	if err != nil {
+		return false, fmt.Errorf("user add pinned repo: parse: %w", err)
+	}
+	if slices.Contains(ids, repoID) {
+		return true, nil
+	}
+	ids = slices.DeleteFunc(ids, func(id int64) bool { return slices.Contains(prune, id) })
+	if len(ids) >= limit {
+		return false, nil
+	}
+	if _, err := tx.ExecContext(ctx,
 		`UPDATE users SET pinned_repo_ids = $2::bigint[], updated_at = NOW() WHERE id = $1`,
-		userID, formatPGInt64Array(ids),
+		userID, formatPGInt64Array(append(ids, repoID)),
+	); err != nil {
+		return false, fmt.Errorf("user add pinned repo: update: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("user add pinned repo: commit: %w", err)
+	}
+	return true, nil
+}
+
+func (s *UserStore) RemovePinnedRepo(ctx context.Context, userID, repoID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users SET pinned_repo_ids = array_remove(pinned_repo_ids, $2::bigint), updated_at = NOW()
+		 WHERE id = $1 AND $2::bigint = ANY(pinned_repo_ids)`,
+		userID, repoID,
 	)
 	if err != nil {
-		return fmt.Errorf("user set pinned repo ids: %w", err)
+		return fmt.Errorf("user remove pinned repo: %w", err)
 	}
 	return nil
 }

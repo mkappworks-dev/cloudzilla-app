@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
+	"sync"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
@@ -83,6 +85,93 @@ func TestUserService_PinUnpin(t *testing.T) {
 	}
 	if err := svc.PinRepo(ctx, userID, repoIDs[6]); !errors.Is(err, service.ErrPinLimit) {
 		t.Fatalf("7th pin: want ErrPinLimit, got %v", err)
+	}
+}
+
+// runTogether starts every call at once and returns their errors in order.
+func runTogether(calls ...func() error) []error {
+	errs := make([]error, len(calls))
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for i, call := range calls {
+		wg.Go(func() {
+			<-start
+			errs[i] = call()
+		})
+	}
+	close(start)
+	wg.Wait()
+	return errs
+}
+
+func sortedPins(t *testing.T, users *store.UserStore, userID int64) []int64 {
+	t.Helper()
+	ids, err := users.GetPinnedRepoIDs(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("GetPinnedRepoIDs: %v", err)
+	}
+	slices.Sort(ids)
+	return ids
+}
+
+// The pin modal fires one request per checkbox without waiting for the last.
+func TestUserService_PinRepo_ConcurrentPinsAreNotLost(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	repoIDs := seedPinRepos(t, db, userID, "testuser_"+suffix, suffix, service.MaxPinnedRepos+2)
+	svc, users := newPinService(db)
+
+	calls := make([]func() error, len(repoIDs))
+	for i, id := range repoIDs {
+		calls[i] = func() error { return svc.PinRepo(ctx, userID, id) }
+	}
+	var won []int64
+	for i, err := range runTogether(calls...) {
+		switch {
+		case err == nil:
+			won = append(won, repoIDs[i])
+		case !errors.Is(err, service.ErrPinLimit):
+			t.Fatalf("pin %d: %v", repoIDs[i], err)
+		}
+	}
+	if len(won) != service.MaxPinnedRepos {
+		t.Errorf("%d pins succeeded, want exactly %d", len(won), service.MaxPinnedRepos)
+	}
+	if got := sortedPins(t, users, userID); !slices.Equal(got, won) {
+		t.Errorf("stored pins %v, want every successful pin %v", got, won)
+	}
+}
+
+func TestUserService_ConcurrentPinAndUnpin(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	repoIDs := seedPinRepos(t, db, userID, "testuser_"+suffix, suffix, service.MaxPinnedRepos)
+	svc, users := newPinService(db)
+	half := service.MaxPinnedRepos / 2
+	for _, id := range repoIDs[:half] {
+		if err := svc.PinRepo(ctx, userID, id); err != nil {
+			t.Fatalf("pin %d: %v", id, err)
+		}
+	}
+
+	var calls []func() error
+	for i := range half {
+		unpin, pin := repoIDs[i], repoIDs[half+i]
+		calls = append(calls,
+			func() error { return svc.UnpinRepo(ctx, userID, unpin) },
+			func() error { return svc.PinRepo(ctx, userID, pin) })
+	}
+	for i, err := range runTogether(calls...) {
+		if err != nil {
+			t.Fatalf("call %d: %v", i, err)
+		}
+	}
+	if got, want := sortedPins(t, users, userID), repoIDs[half:]; !slices.Equal(got, want) {
+		t.Errorf("stored pins %v, want %v", got, want)
 	}
 }
 
