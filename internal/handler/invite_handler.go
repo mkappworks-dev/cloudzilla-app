@@ -13,8 +13,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-const invalidInvitationMessage = "This invitation link is no longer valid. Ask an administrator for a new one."
-
 func (h *Handler) PageInvite(w http.ResponseWriter, r *http.Request) {
 	inv, ok := h.usableInvitation(w, r)
 	if !ok {
@@ -87,5 +85,5 @@ func (h *Handler) usableInvitation(w http.ResponseWriter, r *http.Request) (*mod
 // The invitation is withheld: its email may belong to a registered account,
 // and the link is unauthenticated.
 func (h *Handler) renderInvalidInvitation(w http.ResponseWriter, r *http.Request) {
-	h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Error: invalidInvitationMessage}))
+	h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services)}))
 }

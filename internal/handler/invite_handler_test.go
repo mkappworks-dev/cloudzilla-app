@@ -79,7 +79,12 @@ func assertInvalidInvitationPage(t *testing.T, body, hiddenEmail string) {
 	if !strings.Contains(body, "no longer valid") {
 		t.Errorf("want generic invalid-invitation message; body:\n%s", body)
 	}
+	if strings.Contains(body, inviteWelcome) {
+		t.Error("unusable invitation must not welcome the visitor to finish signing up")
+	}
 }
+
+const inviteWelcome = "Finish setting up your account"
 
 func TestPageInvite_UsableInvitation_PrefillsEmail(t *testing.T) {
 	db := testutil.OpenTestDB(t)
@@ -93,6 +98,9 @@ func TestPageInvite_UsableInvitation_PrefillsEmail(t *testing.T) {
 	}
 	if !strings.Contains(body, `name="username"`) {
 		t.Error("usable invitation must render the sign-up form")
+	}
+	if !strings.Contains(body, inviteWelcome) {
+		t.Error("usable invitation must welcome the invitee")
 	}
 }
 
