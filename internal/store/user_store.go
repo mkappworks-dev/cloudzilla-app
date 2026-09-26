@@ -4,10 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+)
+
+var (
+	ErrUsernameTaken = errors.New("username already taken")
+	ErrEmailTaken    = errors.New("email already registered")
 )
 
 // UserStore provides database operations for user accounts.
@@ -28,6 +35,16 @@ func (s *UserStore) Create(ctx context.Context, u *model.User) error {
 		u.Username, u.Email, u.PasswordHash, u.Bio, u.AvatarURL,
 	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
+		// Postgres's default names for the inline UNIQUE columns in 001_create_users.sql.
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			switch pgErr.ConstraintName {
+			case "users_username_key":
+				return ErrUsernameTaken
+			case "users_email_key":
+				return ErrEmailTaken
+			}
+		}
 		return fmt.Errorf("user create: %w", err)
 	}
 	return nil

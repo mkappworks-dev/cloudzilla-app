@@ -4,6 +4,7 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -61,6 +62,30 @@ func TestUserService_Create_AssignsID(t *testing.T) {
 	}
 	if u.ID == 0 {
 		t.Error("Create must return a user with non-zero ID")
+	}
+}
+
+func TestUserService_Create_DuplicateUsername_ReturnsErrUsernameTaken(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	testutil.SeedUser(t, db, suffix)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+
+	_, err := svc.Create(context.Background(), "testuser_"+suffix, "dupname_"+suffix+"@example.com", "pass")
+	if !errors.Is(err, service.ErrUsernameTaken) {
+		t.Errorf("want ErrUsernameTaken, got %v", err)
+	}
+}
+
+func TestUserService_Create_DuplicateEmail_ReturnsErrEmailTaken(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	testutil.SeedUser(t, db, suffix)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+
+	_, err := svc.Create(context.Background(), "dupemail_"+suffix, "testuser_"+suffix+"@test.invalid", "pass")
+	if !errors.Is(err, service.ErrEmailTaken) {
+		t.Errorf("want ErrEmailTaken, got %v", err)
 	}
 }
 

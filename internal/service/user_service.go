@@ -18,6 +18,8 @@ import (
 var (
 	ErrRegistrationDisabled = errors.New("registration is disabled")
 	ErrLoginDisabled        = errors.New("login is currently disabled")
+	ErrUsernameTaken        = store.ErrUsernameTaken
+	ErrEmailTaken           = store.ErrEmailTaken
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
 )
 
