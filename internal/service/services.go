@@ -76,7 +76,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Repo:             repoSvc,
 		Issue:            NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention),
 		Pull:             pullSvc,
-		Comment:          NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc),
+		Comment:          NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc, repoSvc),
 		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),
 		Code:             code,
 		Org:              NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git),

@@ -245,3 +245,35 @@ func TestNotification_List_ReturnsCreatedNotifications(t *testing.T) {
 		t.Error("List must return at least the notification we just created")
 	}
 }
+
+func TestNotification_NotifyDiscussionReply_NotifiesDiscussionAuthor(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	// Seeded first so its cleanup runs after the repo's cascade removes notifications referencing it.
+	actorID := testutil.SeedUser(t, db, "actor_"+suffix)
+	authorID := testutil.SeedUser(t, db, suffix)
+	ownerName := "testuser_" + suffix
+	repoID := testutil.SeedRepo(t, db, authorID, ownerName, suffix)
+
+	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	svc := service.NewNotificationService(store.NewNotificationStore(db), store.NewWatchStore(db), service.NewEmailService(config.SMTPConfig{}), userSvc)
+	ctx := context.Background()
+	repo := model.Repository{ID: repoID, Name: "testrepo_" + suffix, OwnerName: ownerName}
+
+	svc.NotifyDiscussionReply(ctx, repo, model.Discussion{AuthorID: authorID, Number: 7}, actorID, "actor_"+suffix)
+
+	got, err := svc.List(ctx, authorID)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("got %d notifications, want 1 discussion_reply", len(got))
+	}
+	n := got[0]
+	if n.Type != model.NotifDiscussionReply || n.SubjectID != 7 || n.ActorID != actorID {
+		t.Errorf("notification = %+v, want discussion_reply #7 from actor %d", n, actorID)
+	}
+	if want := "/" + ownerName + "/testrepo_" + suffix + "/discussions/7"; n.SubjectURL != want {
+		t.Errorf("SubjectURL = %q, want %q", n.SubjectURL, want)
+	}
+}

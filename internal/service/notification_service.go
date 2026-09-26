@@ -172,7 +172,7 @@ func (s *NotificationService) NotifyPRReview(ctx context.Context, repo model.Rep
 
 // NotifyMention fires a mention notification for mentionedUserID.
 // Silent if actorID == mentionedUserID.
-func (s *NotificationService) NotifyMention(ctx context.Context, repo model.Repository, actorID int64, actorName string, mentionedUserID int64, subjectURL string) {
+func (s *NotificationService) NotifyMention(ctx context.Context, repo model.Repository, actorID int64, actorName string, mentionedUserID int64, subjectNumber int, subjectURL string) {
 	if actorID == mentionedUserID {
 		return
 	}
@@ -184,6 +184,7 @@ func (s *NotificationService) NotifyMention(ctx context.Context, repo model.Repo
 		RepoID:     repo.ID,
 		RepoName:   repo.Name,
 		OwnerName:  repo.OwnerName,
+		SubjectID:  int64(subjectNumber),
 		SubjectURL: subjectURL,
 	}
 	if err := s.notifs.Create(ctx, n); err != nil {
@@ -234,5 +235,9 @@ func (s *NotificationService) NotifyDiscussionReply(ctx context.Context, repo mo
 		SubjectID:  int64(discussion.Number),
 		SubjectURL: fmt.Sprintf("/%s/%s/discussions/%d", repo.OwnerName, repo.Name, discussion.Number),
 	}
-	_ = s.notifs.Create(ctx, n)
+	if err := s.notifs.Create(ctx, n); err != nil {
+		slog.Error("NotifyDiscussionReply: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
+	} else {
+		s.sendEmailAsync(*n)
+	}
 }

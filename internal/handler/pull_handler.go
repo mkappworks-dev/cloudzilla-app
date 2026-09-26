@@ -363,7 +363,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 
 	go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload(state, *repo, *pr))
 	go func() {
-		h.Services.Notification.NotifyPRStateChange(r.Context(), *repo, *pr, claims.UserID, claims.Username)
+		h.Services.Notification.NotifyPRStateChange(context.WithoutCancel(r.Context()), *repo, *pr, claims.UserID, claims.Username)
 	}()
 	evType := model.EventPRClosed
 	if pr.State == model.PRStateMerged {

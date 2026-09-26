@@ -37,7 +37,7 @@ func notifIcon(t model.NotificationType) string {
 func notifTitle(n model.Notification) string {
 	switch n.Type {
 	case model.NotifPRReview:
-		return "@" + n.ActorName + " requested your review on PR #" + strconv.FormatInt(n.SubjectID, 10)
+		return "@" + n.ActorName + " reviewed PR #" + strconv.FormatInt(n.SubjectID, 10)
 	case model.NotifMention:
 		return "@" + n.ActorName + " mentioned you"
 	case model.NotifPRMerged:

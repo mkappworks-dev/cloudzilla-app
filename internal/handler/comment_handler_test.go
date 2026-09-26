@@ -42,7 +42,7 @@ func newCommentHandler(db *sql.DB) *handler.Handler {
 		User:         userSvc,
 		Repo:         repoSvc,
 		Issue:        issueSvc,
-		Comment:      service.NewCommentService(store.NewCommentStore(db), store.NewMentionStore(db), userSvc, notifSvc),
+		Comment:      service.NewCommentService(store.NewCommentStore(db), store.NewMentionStore(db), userSvc, notifSvc, repoSvc),
 		Notification: notifSvc,
 		SiteSetting:  service.NewSiteSettingService(store.NewSiteSettingStore(db), store.NewUserStore(db)),
 		AuditLog:     service.NewAuditService(store.NewAuditLogStore(db)),
