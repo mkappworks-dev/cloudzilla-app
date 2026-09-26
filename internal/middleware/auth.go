@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -13,11 +14,20 @@ type contextKey string
 
 const claimsKey contextKey = "claims"
 
-// Claims holds the authenticated user's identity extracted from a JWT or PAT.
+// Claims holds the authenticated user's identity extracted from a JWT, PAT or OAuth-app token.
 type Claims struct {
 	UserID       int64
 	Username     string
 	IsSuperadmin bool
+	// Scoped marks a delegated credential (an OAuth-app token) limited to Scopes.
+	// First-party sessions and PATs are unscoped and act with the user's full access.
+	Scoped bool
+	Scopes []string
+}
+
+// HasScope reports whether the credential grants scope. Unscoped credentials grant every scope.
+func (c Claims) HasScope(scope string) bool {
+	return !c.Scoped || slices.Contains(c.Scopes, scope)
 }
 
 // PATValidator is implemented by AccessTokenService. Defined here to avoid import cycle.
@@ -27,11 +37,10 @@ type PATValidator interface {
 	UpdateLastUsed(ctx context.Context, tokenID int64) error
 }
 
-// OAuthUserIDResolver resolves a raw OAuth bearer token to a user ID.
+// OAuthTokenResolver resolves a raw OAuth-app bearer token to its user and granted scopes.
 // Implemented by OAuthAppService; defined here to avoid import cycle.
-// OAuthUserIDResolver resolves an OAuth access token to an internal user ID.
-type OAuthUserIDResolver interface {
-	ResolveOAuthUserID(ctx context.Context, rawToken string) (int64, error)
+type OAuthTokenResolver interface {
+	ResolveOAuthToken(ctx context.Context, rawToken string) (*model.User, []string, error)
 }
 
 // ClaimsFromContext extracts the authenticated user claims from a request context.
@@ -42,7 +51,7 @@ func ClaimsFromContext(ctx context.Context) (Claims, bool) {
 
 // Auth returns middleware that requires a valid JWT cookie, Bearer token, or PAT.
 // onUnauthorized handles unauthenticated requests (redirect to /login for HTML, JSON 401 for API).
-func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthUserIDResolver, onUnauthorized http.HandlerFunc) func(http.Handler) http.Handler {
+func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthTokenResolver, onUnauthorized http.HandlerFunc) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenStr := extractToken(r, cookieName)
@@ -51,13 +60,14 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 				return
 			}
 
-			if oauthResolver != nil && !strings.HasPrefix(tokenStr, "czp_") {
-				if uid, err := oauthResolver.ResolveOAuthUserID(r.Context(), tokenStr); err == nil {
-					claims := Claims{UserID: uid}
-					ctx := context.WithValue(r.Context(), claimsKey, claims)
-					next.ServeHTTP(w, r.WithContext(ctx))
+			if claims, ok := resolveOAuthClaims(r, oauthResolver, tokenStr); ok {
+				if !scopeAllows(claims, r) {
+					writeInsufficientScope(w, r)
 					return
 				}
+				ctx := context.WithValue(r.Context(), claimsKey, claims)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
 			}
 
 			if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
@@ -100,19 +110,19 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 }
 
 // OptionalAuth returns middleware that reads auth credentials if present but allows unauthenticated requests.
-func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthUserIDResolver) func(http.Handler) http.Handler {
+func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthTokenResolver) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenStr := extractToken(r, cookieName)
 			if tokenStr != "" {
-				if oauthResolver != nil && !strings.HasPrefix(tokenStr, "czp_") {
-					if uid, err := oauthResolver.ResolveOAuthUserID(r.Context(), tokenStr); err == nil {
-						claims := Claims{UserID: uid}
-						ctx := context.WithValue(r.Context(), claimsKey, claims)
-						r = r.WithContext(ctx)
-						next.ServeHTTP(w, r)
+				if claims, ok := resolveOAuthClaims(r, oauthResolver, tokenStr); ok {
+					if !scopeAllows(claims, r) {
+						writeInsufficientScope(w, r)
 						return
 					}
+					ctx := context.WithValue(r.Context(), claimsKey, claims)
+					next.ServeHTTP(w, r.WithContext(ctx))
+					return
 				}
 				if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
 					pat, user, err := patValidator.Validate(r.Context(), tokenStr)
@@ -143,6 +153,19 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// resolveOAuthClaims returns scoped claims when tokenStr is a live OAuth-app token.
+// IsSuperadmin stays false: instance-admin power is never delegated to an app.
+func resolveOAuthClaims(r *http.Request, resolver OAuthTokenResolver, tokenStr string) (Claims, bool) {
+	if resolver == nil || strings.HasPrefix(tokenStr, "czp_") {
+		return Claims{}, false
+	}
+	user, scopes, err := resolver.ResolveOAuthToken(r.Context(), tokenStr)
+	if err != nil {
+		return Claims{}, false
+	}
+	return Claims{UserID: user.ID, Username: user.Username, Scoped: true, Scopes: scopes}, true
 }
 
 // RequireSuperadmin returns middleware that calls onForbidden if the authenticated user is not a superadmin.
