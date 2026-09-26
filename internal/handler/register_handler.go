@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -53,7 +56,8 @@ func (h *Handler) PageRegisterSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := h.Services.User.Create(r.Context(), username, email, password); err != nil {
-		renderError("Failed to create account: " + err.Error())
+		slog.Warn("register: create user failed", "error", err)
+		renderError(createAccountErrorMessage(err))
 		return
 	}
 
@@ -74,4 +78,13 @@ func (h *Handler) PageRegisterSubmit(w http.ResponseWriter, r *http.Request) {
 	})
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+// Usernames are public, but an email conflict gets the generic message so the
+// form doesn't confirm which addresses have accounts.
+func createAccountErrorMessage(err error) string {
+	if errors.Is(err, service.ErrUsernameTaken) {
+		return "That username is already taken"
+	}
+	return "Could not create account. If you already have one, sign in instead."
 }

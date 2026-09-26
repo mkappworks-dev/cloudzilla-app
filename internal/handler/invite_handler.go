@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -53,7 +54,8 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 	// Create the user (bypasses allow_registration)
 	user, err := h.Services.User.Create(r.Context(), username, inv.Email, password)
 	if err != nil {
-		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: "Failed to create account: " + err.Error()}))
+		slog.Warn("invite: create user failed", "invitation_id", inv.ID, "error", err)
+		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: createAccountErrorMessage(err)}))
 		return
 	}
 

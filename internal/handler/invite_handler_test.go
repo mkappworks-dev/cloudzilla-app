@@ -125,3 +125,24 @@ func TestPageInvite_UnusableInvitation_HidesEmail(t *testing.T) {
 		}
 	}
 }
+
+func TestPageInviteSubmit_UsernameTaken_FriendlyError(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	testutil.SeedUser(t, db, suffix)
+	token := seedInvitation(t, db, "invitee_"+suffix+"@test.invalid", time.Now().UTC().Add(time.Hour), false)
+
+	form := url.Values{"username": {"testuser_" + suffix}, "password": {"password123"}}
+	rr := httptest.NewRecorder()
+	inviteRouter(newInviteHandler(db)).ServeHTTP(rr, inviteRequest(http.MethodPost, token, form))
+
+	body := rr.Body.String()
+	for _, leak := range []string{"duplicate key", "SQLSTATE", "users_username_key"} {
+		if strings.Contains(body, leak) {
+			t.Errorf("body must not contain DB error text %q", leak)
+		}
+	}
+	if !strings.Contains(body, "username is already taken") {
+		t.Errorf("want username-taken message; body:\n%s", body)
+	}
+}
