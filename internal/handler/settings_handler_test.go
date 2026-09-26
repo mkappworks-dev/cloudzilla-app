@@ -65,10 +65,18 @@ func TestUpdateNotificationSettings_SavesFormFields(t *testing.T) {
 		}
 	}
 
-	post(url.Values{"email_notifications": {"on"}, "email_digest": {"weekly"}, "notify_mention": {"on"}})
-	want := model.NotificationPrefs{EmailNotifications: true, EmailDigest: model.EmailDigestWeekly, NotifyMention: true}
+	for _, mode := range model.EmailDigestModes {
+		post(url.Values{"email_notifications": {"on"}, "email_digest": {mode}, "notify_pr_review": {"on"}, "notify_mention": {"on"}})
+		want := model.NotificationPrefs{EmailNotifications: true, EmailDigest: mode, NotifyPRReview: true, NotifyMention: true}
+		if got := saved(); got != want {
+			t.Errorf("digest %s, all on: prefs = %+v, want %+v", mode, got, want)
+		}
+	}
+
+	post(url.Values{"email_digest": {"daily"}, "notify_pr_review": {"on"}})
+	want := model.NotificationPrefs{EmailDigest: model.EmailDigestDaily, NotifyPRReview: true}
 	if got := saved(); got != want {
-		t.Errorf("after first save: prefs = %+v, want %+v", got, want)
+		t.Errorf("only pr review on: prefs = %+v, want %+v", got, want)
 	}
 
 	// Browsers omit unchecked checkboxes but always submit the select.
@@ -76,6 +84,12 @@ func TestUpdateNotificationSettings_SavesFormFields(t *testing.T) {
 	want = model.NotificationPrefs{EmailDigest: model.EmailDigestWeekly}
 	if got := saved(); got != want {
 		t.Errorf("after unchecking all: prefs = %+v, want %+v", got, want)
+	}
+
+	post(url.Values{"email_digest": {"hourly"}})
+	want = model.NotificationPrefs{EmailDigest: model.EmailDigestImmediate}
+	if got := saved(); got != want {
+		t.Errorf("unknown digest mode: prefs = %+v, want %+v", got, want)
 	}
 }
 

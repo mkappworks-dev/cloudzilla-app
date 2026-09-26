@@ -34,46 +34,51 @@ func TestSettings_ProfileFormDoesNotSubmitUsername(t *testing.T) {
 }
 
 func TestSettings_NotificationsSectionRendersEmailPrefs(t *testing.T) {
-	var sb strings.Builder
-	data := view.SettingsData{User: model.User{
-		ID:                 42,
-		Username:           "alice",
-		Email:              "alice@example.com",
-		EmailNotifications: true,
-		EmailDigest:        model.EmailDigestWeekly,
-		NotifyMention:      true,
-	}}
-	if err := pages.Settings(data).Render(context.Background(), &sb); err != nil {
-		t.Fatalf("render: %v", err)
-	}
-	out := sb.String()
+	for _, u := range []model.User{
+		{EmailNotifications: true, EmailDigest: model.EmailDigestWeekly, NotifyMention: true},
+		{EmailNotifications: false, EmailDigest: model.EmailDigestDaily, NotifyPRReview: true},
+	} {
+		u.ID, u.Username, u.Email = 42, "alice", "alice@example.com"
+		out := renderSettings(t, view.SettingsData{User: u})
 
-	start := strings.Index(out, `hx-post="/settings/notifications"`)
-	if start < 0 {
-		t.Fatal("settings page missing notifications form")
-	}
-	form := out[start:]
-	form = form[:strings.Index(form, "</form>")]
+		start := strings.Index(out, `hx-post="/settings/notifications"`)
+		if start < 0 {
+			t.Fatal("settings page missing notifications form")
+		}
+		form := out[start:]
+		form = form[:strings.Index(form, "</form>")]
 
-	for _, name := range []string{"email_notifications", "email_digest", "notify_mention", "notify_pr_review"} {
-		if !strings.Contains(form, `name="`+name+`"`) {
-			t.Errorf("notifications form missing %s", name)
+		for _, name := range []string{"notify_issue_assigned", "notify_watched", "notify_weekly_digest"} {
+			if strings.Contains(form, name) {
+				t.Errorf("notifications form still renders removed pref %s", name)
+			}
+		}
+		if !strings.Contains(form, `<option value="`+u.EmailDigest+`" selected>`) {
+			t.Errorf("digest select does not preselect the saved mode %q", u.EmailDigest)
+		}
+		for name, on := range map[string]bool{
+			"email_notifications": u.EmailNotifications,
+			"notify_pr_review":    u.NotifyPRReview,
+			"notify_mention":      u.NotifyMention,
+		} {
+			checked, found := checkboxChecked(form, name)
+			if !found {
+				t.Errorf("notifications form missing %s", name)
+			} else if checked != on {
+				t.Errorf("%s: checked = %v, want %v", name, checked, on)
+			}
 		}
 	}
-	for _, name := range []string{"notify_issue_assigned", "notify_watched", "notify_weekly_digest"} {
-		if strings.Contains(form, name) {
-			t.Errorf("notifications form still renders removed pref %s", name)
-		}
+}
+
+func checkboxChecked(html, name string) (checked, found bool) {
+	i := strings.Index(html, `name="`+name+`"`)
+	if i < 0 {
+		return false, false
 	}
-	if !strings.Contains(form, `<option value="weekly" selected>`) {
-		t.Error("digest select does not preselect the saved mode")
-	}
-	if !strings.Contains(form, `name="notify_mention" checked`) {
-		t.Error("notify_mention toggle not checked for a user who has it on")
-	}
-	if strings.Contains(form, `name="notify_pr_review" checked`) {
-		t.Error("notify_pr_review toggle checked for a user who has it off")
-	}
+	tag := html[strings.LastIndex(html[:i], "<"):]
+	tag = tag[:strings.Index(tag, ">")]
+	return strings.Contains(tag, " checked"), true
 }
 
 func TestSettings_ProfileErrorShowsSpecificMessage(t *testing.T) {
