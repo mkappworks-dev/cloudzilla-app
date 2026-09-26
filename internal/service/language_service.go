@@ -51,7 +51,6 @@ var excludedDirs = map[string]bool{
 type LanguageService struct {
 	code  *CodeService
 	repos *RepoService
-	orgs  *OrgService
 	cache sync.Map // key="owner/repo:ref" → cacheEntry
 }
 
@@ -67,8 +66,8 @@ const (
 	langCacheNegativeTTL = 30 * time.Second
 )
 
-func NewLanguageService(code *CodeService, repos *RepoService, orgs *OrgService) *LanguageService {
-	return &LanguageService{code: code, repos: repos, orgs: orgs}
+func NewLanguageService(code *CodeService, repos *RepoService) *LanguageService {
+	return &LanguageService{code: code, repos: repos}
 }
 
 func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref string) (map[string]int64, error) {
@@ -189,20 +188,16 @@ func (s *LanguageService) AggregateForUser(ctx context.Context, username string,
 	return rankLanguages(totals, limit), nil
 }
 
-// Counts each visible repo's cached primary language instead of walking every
-// tree, so the org page stays one query.
-func (s *LanguageService) AggregateForOrg(ctx context.Context, orgID int64, viewerID *int64, limit int) ([]LangPercent, error) {
-	repos, err := s.orgs.ListReposVisibleTo(ctx, orgID, viewerID)
-	if err != nil {
-		return nil, err
-	}
+// AggregateForOrg counts the cached primary language of repos the caller
+// already filtered for the viewer, rather than walking every tree.
+func (s *LanguageService) AggregateForOrg(ctx context.Context, repos []model.Repository, limit int) []LangPercent {
 	counts := make(map[string]int64)
 	for _, r := range repos {
 		if r.PrimaryLanguage != nil && *r.PrimaryLanguage != "" {
 			counts[*r.PrimaryLanguage]++
 		}
 	}
-	return rankLanguages(counts, limit), nil
+	return rankLanguages(counts, limit)
 }
 
 // rankLanguages keeps the top limit languages by weight (all when limit <= 0)

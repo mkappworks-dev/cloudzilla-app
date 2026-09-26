@@ -25,7 +25,7 @@ An org always keeps at least one owner: removing or demoting the last owner is r
 
 The `/{owner}` route first checks if `owner` is a user; if not, falls back to org lookup. Org profile and user profile share the same URL pattern.
 
-The profile README is the `README.md` of the org's public repo named after the org (`{org}/{org}`), mirroring the user-profile convention. Org owners see every org repo; other viewers see public repos plus private ones where they hold a collaborator role. The repo cards and the top-languages bar follow the same visibility; languages count each visible repo's cached `primary_language` (`LanguageService.AggregateForOrg`).
+The profile README is the `README.md` of the org's public repo named after the org (`{org}/{org}`), mirroring the user-profile convention. Org owners see every org repo; other viewers see public repos plus private ones where they hold a collaborator role. The repo cards and the top-languages bar follow the same visibility; languages count each visible repo's cached `primary_language` (`LanguageService.AggregateForOrg`, over the same filtered list as the cards).
 
 ## Profile
 

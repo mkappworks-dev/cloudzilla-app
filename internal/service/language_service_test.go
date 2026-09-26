@@ -27,9 +27,9 @@ func TestLanguageService_Composition(t *testing.T) {
 		"static/index.js": "console.log('hi');\n\n",           // 20 bytes JS
 	}
 	code := newTestRepoWithFiles(t, "alice", "lang", files)
-	// repos and orgs are nil on purpose: only the aggregates may touch them, and
-	// a per-repo method that starts to would panic here.
-	svc := NewLanguageService(code, nil, nil)
+	// repos is nil on purpose: only AggregateForUser may touch it, and a
+	// per-repo method that starts to would panic here.
+	svc := NewLanguageService(code, nil)
 
 	comp, err := svc.Composition(context.Background(), "alice", "lang", "")
 	if err != nil {
@@ -59,7 +59,7 @@ func TestLanguageService_Percentages_SortedDesc(t *testing.T) {
 		"app.py":          "print('hi')\n",
 	}
 	code := newTestRepoWithFiles(t, "bob", "pct", files)
-	svc := NewLanguageService(code, nil, nil)
+	svc := NewLanguageService(code, nil)
 
 	pcts, err := svc.Percentages(context.Background(), "bob", "pct", "")
 	if err != nil {
@@ -92,7 +92,7 @@ func TestLanguageService_Composition_CachesResults(t *testing.T) {
 		"main.go": "package main\n",
 	}
 	code := newTestRepoWithFiles(t, "carol", "cache", files)
-	svc := NewLanguageService(code, nil, nil)
+	svc := NewLanguageService(code, nil)
 
 	first, err := svc.Composition(context.Background(), "carol", "cache", "")
 	if err != nil {
@@ -132,7 +132,7 @@ func TestLanguageService_TopLanguageFor(t *testing.T) {
 		"app.py":  "print('hi')\n",
 	}
 	code := newTestRepoWithFiles(t, "alice", "demo", files)
-	svc := NewLanguageService(code, nil, nil)
+	svc := NewLanguageService(code, nil)
 
 	top, err := svc.TopLanguageFor(context.Background(), "alice", "demo", "")
 	if err != nil {
@@ -147,7 +147,7 @@ func TestLanguageService_TopLanguageFor(t *testing.T) {
 		"README.md": "just docs\n",
 	}
 	emptyCode := newTestRepoWithFiles(t, "alice", "empty", emptyFiles)
-	emptySvc := NewLanguageService(emptyCode, nil, nil)
+	emptySvc := NewLanguageService(emptyCode, nil)
 	top, err = emptySvc.TopLanguageFor(context.Background(), "alice", "empty", "")
 	if err != nil {
 		t.Fatalf("TopLanguageFor empty: %v", err)
@@ -211,7 +211,7 @@ func TestLanguageService_AggregateForUser_ViewerVisibility(t *testing.T) {
 	seedLangRepo(t, db, ownerID, owner, "secret", true)
 
 	repoSvc := NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, code, config.GitConfig{ReposRoot: code.cfg.ReposRoot})
-	svc := NewLanguageService(code, repoSvc, nil)
+	svc := NewLanguageService(code, repoSvc)
 
 	for _, tc := range []struct {
 		name   string
@@ -259,29 +259,30 @@ func TestLanguageService_AggregateForOrg_ViewerVisibility(t *testing.T) {
 		}
 	}
 
-	svc := NewLanguageService(nil, nil, orgSvc)
+	svc := NewLanguageService(nil, nil)
 
-	visitor, err := svc.AggregateForOrg(ctx, org.ID, &visitorID, 5)
-	if err != nil {
-		t.Fatalf("visitor: %v", err)
-	}
-	if want := []LangPercent{{Name: "Go", Percent: 100}}; !reflect.DeepEqual(visitor, want) {
-		t.Errorf("visitor: got %+v, want %+v", visitor, want)
-	}
-
-	owner, err := svc.AggregateForOrg(ctx, org.ID, &ownerID, 5)
-	if err != nil {
-		t.Fatalf("owner: %v", err)
-	}
-	if want := []LangPercent{{Name: "Go", Percent: 66}, {Name: "Python", Percent: 33}}; !reflect.DeepEqual(owner, want) {
-		t.Errorf("owner: got %+v, want %+v", owner, want)
+	for _, tc := range []struct {
+		name   string
+		viewer *int64
+		want   []LangPercent
+	}{
+		{"visitor", &visitorID, []LangPercent{{Name: "Go", Percent: 100}}},
+		{"owner", &ownerID, []LangPercent{{Name: "Go", Percent: 66}, {Name: "Python", Percent: 33}}},
+	} {
+		repos, err := orgSvc.ListReposVisibleTo(ctx, org.ID, tc.viewer)
+		if err != nil {
+			t.Fatalf("%s: ListReposVisibleTo: %v", tc.name, err)
+		}
+		if got := svc.AggregateForOrg(ctx, repos, 5); !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s: got %+v, want %+v", tc.name, got, tc.want)
+		}
 	}
 }
 
 func TestLanguageService_PrimaryLanguage_EmptyColumnFallsBack(t *testing.T) {
 	t.Parallel()
 	code := newTestRepoWithFiles(t, "dave", "app", map[string]string{"main.go": "package main\n"})
-	svc := NewLanguageService(code, nil, nil)
+	svc := NewLanguageService(code, nil)
 
 	empty, rust := "", "Rust"
 	for _, tc := range []struct {
@@ -316,7 +317,7 @@ func TestRepoService_OnPostReceive_PrimaryLanguageFromPushedTree(t *testing.T) {
 	users := store.NewUserStore(db)
 	repoSvc := NewRepoService(store.NewRepoStore(db), users, store.NewOrgStore(db),
 		NewContributorStatsService(store.NewContributorStatsStore(db), users), code, config.GitConfig{ReposRoot: root})
-	langSvc := NewLanguageService(code, repoSvc, nil)
+	langSvc := NewLanguageService(code, repoSvc)
 	repoSvc.WithLanguageService(langSvc)
 
 	if pcts, err := langSvc.Percentages(ctx, owner, "pushed", "master"); err != nil || len(pcts) != 0 {

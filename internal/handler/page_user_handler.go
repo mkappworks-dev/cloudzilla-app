@@ -449,12 +449,6 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 		recent = repoCards(highlights.Recent)
 	}
 
-	langPcts, err := h.Services.Language.AggregateForOrg(r.Context(), org.ID, viewerID, 5)
-	if err != nil {
-		slog.Warn("org profile: failed to load language stats", "org", org.Name, "error", err)
-		langPcts = nil
-	}
-
 	var profileReadme template.HTML
 	for _, repo := range repos {
 		if !showAllRepos && !showAllPeople && repo.Name == org.Name && !repo.Private {
@@ -477,7 +471,7 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 		RecentRepos:   recent,
 		ShowAllRepos:  showAllRepos,
 		ShowAllPeople: showAllPeople,
-		TopLangs:      langBarItems(langPcts),
+		TopLangs:      langBarItems(h.Services.Language.AggregateForOrg(r.Context(), repos, 5)),
 		ViewerRole:    viewerRole,
 		ViewerJoined:  viewerJoined,
 	}))
