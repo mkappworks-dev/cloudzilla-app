@@ -71,6 +71,18 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Get("/notifications", h.PageNotifications)
 	r.With(authMW).Get("/activity", h.PageActivity)
 
+	// Pages moved by the UI overhaul; 301s keep old bookmarks and links working.
+	r.With(authMW).Get("/new", handler.MovedPermanently("/repos/new", ""))
+	r.With(authMW).Get("/settings/organizations", handler.MovedPermanently("/organizations", ""))
+	r.With(authMW).Get("/settings/security", handler.MovedPermanently("/settings", "security"))
+	r.With(authMW).Get("/settings/notifications", handler.MovedPermanently("/settings", "notifications"))
+	r.With(authMW).Get("/settings/tokens", handler.MovedPermanently("/settings", "tokens"))
+	r.With(authMW).Get("/settings/replies", handler.MovedPermanently("/settings", "saved-replies"))
+	r.With(authMW).Get("/settings/oauth-apps", handler.MovedPermanently("/settings", "oauth-apps"))
+	// Like the pages they replace, these shadow repos named "gists" or "stars".
+	r.Get("/{owner}/gists", handler.MovedToProfileTab("gists"))
+	r.Get("/{owner}/stars", handler.MovedToProfileTab("stars"))
+
 	// OAuth 2.0 authorization code flow
 	r.With(optAuthMW).Get("/oauth/authorize", h.PageOAuthAuthorize)
 	r.With(authMW).Post("/oauth/authorize", h.ConfirmAuthorize)
