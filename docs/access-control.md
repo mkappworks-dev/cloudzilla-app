@@ -204,6 +204,7 @@ Superadmin generates token link → shares manually. No SMTP required.
 | Method                | Path                             | Auth   | AuthZ                     | Handler                  |
 | --------------------- | -------------------------------- | ------ | ------------------------- | ------------------------ |
 | GET                   | `/settings`                      | authMW | Own user                  | PageSettings             |
+| POST                  | `/settings/email`                | authMW | Own user (claims.UserID)  | UpdateEmailSettings      |
 | GET/POST              | `/settings/notifications`        | authMW | Own user                  | PageNotificationSettings |
 | GET                   | `/settings/security`             | authMW | Own user                  | PageSecuritySettings     |
 | POST                  | `/api/user/totp/enable`          | authMW | Own user (claims.UserID)  | EnableTOTP               |

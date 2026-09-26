@@ -48,3 +48,21 @@ func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Requ
 	}
 	http.Redirect(w, r, "/settings/notifications", http.StatusSeeOther)
 }
+
+func (h *Handler) UpdateEmailSettings(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		writeError(w, http.StatusBadRequest, "bad request")
+		return
+	}
+	keep := r.FormValue("keep_email_private") == "on"
+	if err := h.Services.User.UpdateKeepEmailPrivate(r.Context(), claims.UserID, keep); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update email settings")
+		return
+	}
+	http.Redirect(w, r, "/settings#email", http.StatusSeeOther)
+}

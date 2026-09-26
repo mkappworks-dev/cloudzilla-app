@@ -23,4 +23,5 @@ type User struct {
 	UpdatedAt          time.Time      `db:"updated_at"          json:"updated_at"`
 	EmailNotifications bool           `db:"email_notifications" json:"-"`
 	EmailDigest        string         `db:"email_digest"        json:"-"`
+	KeepEmailPrivate   bool           `db:"keep_email_private"  json:"-"`
 }

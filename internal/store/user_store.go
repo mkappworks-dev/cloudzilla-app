@@ -20,13 +20,39 @@ func NewUserStore(database *sql.DB) *UserStore {
 	return &UserStore{db: database}
 }
 
+// Every query that loads a full model.User selects userColumns and scans with
+// scanUser, so a new users column is added in exactly these two places.
+const userColumns = `id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
+	is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest, keep_email_private`
+
+type rowScanner interface {
+	Scan(dest ...any) error
+}
+
+// extra receives any columns the query selects after userColumns.
+func scanUser(row rowScanner, u *model.User, extra ...any) error {
+	dest := []any{&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
+		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.KeepEmailPrivate}
+	return row.Scan(append(dest, extra...)...)
+}
+
+// filter is the SQL that follows "FROM users".
+func (s *UserStore) queryUser(ctx context.Context, filter string, args ...any) (*model.User, error) {
+	u := &model.User{}
+	if err := scanUser(s.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users `+filter, args...), u); err != nil {
+		return nil, err
+	}
+	return u, nil
+}
+
 func (s *UserStore) Create(ctx context.Context, u *model.User) error {
-	err := s.db.QueryRowContext(ctx,
+	err := scanUser(s.db.QueryRowContext(ctx,
 		`INSERT INTO users (username, email, password_hash, bio, avatar_url)
 		 VALUES ($1, $2, $3, $4, $5)
-		 RETURNING id, created_at, updated_at`,
+		 RETURNING `+userColumns,
 		u.Username, u.Email, u.PasswordHash, u.Bio, u.AvatarURL,
-	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
+	), u)
 	if err != nil {
 		return fmt.Errorf("user create: %w", err)
 	}
@@ -34,15 +60,7 @@ func (s *UserStore) Create(ctx context.Context, u *model.User) error {
 }
 
 func (s *UserStore) GetByID(ctx context.Context, id int64) (*model.User, error) {
-	u := &model.User{}
-	err := s.db.QueryRowContext(ctx,
-		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
-		 FROM users WHERE id = $1`,
-		id,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
-		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
+	u, err := s.queryUser(ctx, `WHERE id = $1`, id)
 	if err != nil {
 		return nil, fmt.Errorf("user get by id: %w", err)
 	}
@@ -50,15 +68,7 @@ func (s *UserStore) GetByID(ctx context.Context, id int64) (*model.User, error) 
 }
 
 func (s *UserStore) GetByUsername(ctx context.Context, username string) (*model.User, error) {
-	u := &model.User{}
-	err := s.db.QueryRowContext(ctx,
-		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
-		 FROM users WHERE username = $1`,
-		username,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
-		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
+	u, err := s.queryUser(ctx, `WHERE username = $1`, username)
 	if err != nil {
 		return nil, fmt.Errorf("user get by username: %w", err)
 	}
@@ -66,15 +76,7 @@ func (s *UserStore) GetByUsername(ctx context.Context, username string) (*model.
 }
 
 func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, error) {
-	u := &model.User{}
-	err := s.db.QueryRowContext(ctx,
-		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
-		 FROM users WHERE email = $1`,
-		email,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
-		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
+	u, err := s.queryUser(ctx, `WHERE email = $1`, email)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email: %w", err)
 	}
@@ -83,15 +85,7 @@ func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, 
 
 // GetByEmailWithRole fetches a user by email including is_superadmin and is_invited columns.
 func (s *UserStore) GetByEmailWithRole(ctx context.Context, email string) (*model.User, error) {
-	u := &model.User{}
-	err := s.db.QueryRowContext(ctx,
-		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
-		 FROM users WHERE email = $1`,
-		email,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
-		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
+	u, err := s.queryUser(ctx, `WHERE email = $1`, email)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email with role: %w", err)
 	}
@@ -99,15 +93,7 @@ func (s *UserStore) GetByEmailWithRole(ctx context.Context, email string) (*mode
 }
 
 func (s *UserStore) GetByOAuthID(ctx context.Context, provider, oauthID string) (*model.User, error) {
-	u := &model.User{}
-	err := s.db.QueryRowContext(ctx,
-		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
-		 FROM users WHERE oauth_provider = $1 AND oauth_id = $2 LIMIT 1`,
-		provider, oauthID,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
-		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
+	u, err := s.queryUser(ctx, `WHERE oauth_provider = $1 AND oauth_id = $2 LIMIT 1`, provider, oauthID)
 	if err != nil {
 		return nil, fmt.Errorf("user get by oauth id: %w", err)
 	}
@@ -127,15 +113,12 @@ func (s *UserStore) LinkOAuth(ctx context.Context, userID int64, provider, oauth
 
 func (s *UserStore) CreateOAuthUser(ctx context.Context, username, email, provider, oauthID, avatarURL string) (*model.User, error) {
 	u := &model.User{}
-	err := s.db.QueryRowContext(ctx,
+	err := scanUser(s.db.QueryRowContext(ctx,
 		`INSERT INTO users (username, email, password_hash, oauth_provider, oauth_id, avatar_url)
 		 VALUES ($1, $2, '', $3, $4, $5)
-		 RETURNING id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		           is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest`,
+		 RETURNING `+userColumns,
 		username, email, provider, oauthID, avatarURL,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
-		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
+	), u)
 	if err != nil {
 		return nil, fmt.Errorf("user create oauth: %w", err)
 	}
@@ -186,50 +169,30 @@ func (s *UserStore) MarkInvited(ctx context.Context, userID int64) error {
 
 // GetByIDWithTOTP fetches a user by ID including TOTP columns.
 func (s *UserStore) GetByIDWithTOTP(ctx context.Context, id int64) (*model.User, error) {
-	u := &model.User{}
-	var backupCodesStr sql.NullString
-	err := s.db.QueryRowContext(ctx,
-		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, totp_secret, totp_enabled,
-		        totp_backup_codes::text,
-		        created_at, updated_at, email_notifications, email_digest
-		 FROM users WHERE id = $1`,
-		id,
-	).Scan(
-		&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
-		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.TOTPSecret, &u.TOTPEnabled, &backupCodesStr,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest,
-	)
+	u, err := s.queryUserWithTOTP(ctx, `WHERE id = $1`, id)
 	if err != nil {
 		return nil, fmt.Errorf("user get by id with totp: %w", err)
-	}
-	if backupCodesStr.Valid && backupCodesStr.String != "" {
-		jsonBytes := postgresArrayToJSON(backupCodesStr.String)
-		_ = json.Unmarshal(jsonBytes, &u.TOTPBackupCodes)
 	}
 	return u, nil
 }
 
 // GetByEmailWithTOTP fetches a user by email including TOTP fields.
 func (s *UserStore) GetByEmailWithTOTP(ctx context.Context, email string) (*model.User, error) {
-	u := &model.User{}
-	var backupCodesStr sql.NullString
-	err := s.db.QueryRowContext(ctx,
-		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, totp_secret, totp_enabled,
-		        totp_backup_codes::text,
-		        created_at, updated_at, email_notifications, email_digest
-		 FROM users WHERE email = $1`,
-		email,
-	).Scan(
-		&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
-		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.TOTPSecret, &u.TOTPEnabled, &backupCodesStr,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest,
-	)
+	u, err := s.queryUserWithTOTP(ctx, `WHERE email = $1`, email)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email with totp: %w", err)
+	}
+	return u, nil
+}
+
+func (s *UserStore) queryUserWithTOTP(ctx context.Context, filter string, args ...any) (*model.User, error) {
+	u := &model.User{}
+	var backupCodesStr sql.NullString
+	err := scanUser(s.db.QueryRowContext(ctx,
+		`SELECT `+userColumns+`, totp_secret, totp_enabled, totp_backup_codes::text FROM users `+filter, args...),
+		u, &u.TOTPSecret, &u.TOTPEnabled, &backupCodesStr)
+	if err != nil {
+		return nil, err
 	}
 	if backupCodesStr.Valid && backupCodesStr.String != "" {
 		jsonBytes := postgresArrayToJSON(backupCodesStr.String)
@@ -292,12 +255,21 @@ func (s *UserStore) UpdateEmailPrefs(ctx context.Context, userID int64, emailNot
 	return err
 }
 
+func (s *UserStore) UpdateKeepEmailPrivate(ctx context.Context, userID int64, keep bool) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users SET keep_email_private=$1, updated_at=NOW() WHERE id=$2`,
+		keep, userID,
+	)
+	if err != nil {
+		return fmt.Errorf("user update keep email private: %w", err)
+	}
+	return nil
+}
+
 // ListUsersForDigest returns users who have email notifications enabled with the given digest mode.
 func (s *UserStore) ListUsersForDigest(ctx context.Context, digestMode string) ([]model.User, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
-		 FROM users WHERE email_notifications = TRUE AND email_digest = $1`,
+		`SELECT `+userColumns+` FROM users WHERE email_notifications = TRUE AND email_digest = $1`,
 		digestMode,
 	)
 	if err != nil {
@@ -318,9 +290,7 @@ func (s *UserStore) GetManyByUsernames(ctx context.Context, usernames []string) 
 		placeholders[i] = fmt.Sprintf("$%d", i+1)
 		args[i] = u
 	}
-	q := `SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-	             is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
-	      FROM users WHERE username IN (` + strings.Join(placeholders, ",") + `)`
+	q := `SELECT ` + userColumns + ` FROM users WHERE username IN (` + strings.Join(placeholders, ",") + `)`
 	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("user get many by usernames: %w", err)
@@ -369,9 +339,7 @@ func (s *UserStore) GetManyByIDs(ctx context.Context, ids []int64) ([]model.User
 		placeholders[i] = fmt.Sprintf("$%d", i+1)
 		args[i] = id
 	}
-	q := `SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-	             is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
-	      FROM users WHERE id IN (` + strings.Join(placeholders, ",") + `)`
+	q := `SELECT ` + userColumns + ` FROM users WHERE id IN (` + strings.Join(placeholders, ",") + `)`
 	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("user get many by ids: %w", err)
@@ -384,9 +352,7 @@ func scanFullUsers(rows *sql.Rows) ([]model.User, error) {
 	var users []model.User
 	for rows.Next() {
 		var u model.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
-			&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-			&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest); err != nil {
+		if err := scanUser(rows, &u); err != nil {
 			return nil, err
 		}
 		users = append(users, u)

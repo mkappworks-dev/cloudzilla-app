@@ -37,7 +37,7 @@ func (s *CommitStatsService) Ingest(ctx context.Context, repoID int64, samples [
 	for _, c := range samples {
 		userID, ok := cache[c.AuthorEmail]
 		if !ok {
-			u, err := s.users.GetByEmail(ctx, c.AuthorEmail)
+			u, err := userByAuthorEmail(ctx, s.users, c.AuthorEmail)
 			if err != nil {
 				if !errors.Is(err, sql.ErrNoRows) {
 					slog.Warn("commit stats: user lookup failed", "email", c.AuthorEmail, "error", err)

@@ -15,7 +15,7 @@ templ Settings(data view.SettingsData) {
 
 			<section aria-labelledby="settings-title">
 				<h1 id="settings-title" class="text-2xl font-semibold tracking-tight">Account settings</h1>
-				<p class="mt-1 text-sm text-muted-foreground">SSH keys, access tokens, and saved replies.</p>
+				<p class="mt-1 text-sm text-muted-foreground">Email privacy, SSH keys, access tokens, and saved replies.</p>
 			</section>
 
 			<div class="grid grid-cols-12 gap-8">
@@ -23,6 +23,7 @@ templ Settings(data view.SettingsData) {
 				<aside class="col-span-12 lg:col-span-3" aria-label="Settings sections">
 					<div class="lg:sticky lg:top-4">
 						<nav class="flex flex-col gap-0.5">
+							<a href="#email" class="block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Email</a>
 							<a href="#ssh-keys" class="block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent">SSH keys</a>
 							<a href="#tokens" class="block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Access tokens</a>
 							<a href="#replies" class="block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent">Saved replies</a>
@@ -31,6 +32,53 @@ templ Settings(data view.SettingsData) {
 				</aside>
 
 				<div class="col-span-12 lg:col-span-9 space-y-8">
+
+					<section id="email" class="scroll-mt-6">
+						@components.Card(nil) {
+							@components.CardHeader() {
+								@components.CardTitle(2) {
+									Email
+								}
+								@components.CardDescription() {
+									Choose the author email on commits you make in the web UI.
+								}
+							}
+							@components.CardContent() {
+								<form id="email-settings-form" method="POST" action="/settings/email" data-toast="Email preference saved" class="space-y-4">
+									<label class="flex items-start gap-3 cursor-pointer">
+										if data.KeepEmailPrivate {
+											@components.Checkbox(templ.Attributes{"id": "keep_email_private", "name": "keep_email_private", "checked": "checked", "class": "mt-0.5", "aria-describedby": "keep-email-private-help"})
+										} else {
+											@components.Checkbox(templ.Attributes{"id": "keep_email_private", "name": "keep_email_private", "class": "mt-0.5", "aria-describedby": "keep-email-private-help"})
+										}
+										<span class="text-sm">
+											<span class="font-medium block">Keep my email address private</span>
+											<span id="keep-email-private-help" class="text-muted-foreground text-[12px] block mt-0.5">
+												File edits, wiki changes, merges, and applied suggestions are authored as
+												<code class="text-[11px] bg-muted border border-border rounded px-1.5 py-0.5 font-mono break-words">{ data.NoreplyEmail }</code>
+												instead of
+												if data.Email != "" {
+													<code class="text-[11px] bg-muted border border-border rounded px-1.5 py-0.5 font-mono break-words">{ data.Email }</code>.
+												} else {
+													your account email.
+												}
+												Commit authors are visible to anyone who can read the repository.
+											</span>
+										</span>
+									</label>
+									<p class="text-[12px] text-muted-foreground">
+										Commits you push keep the email your git client sets. To keep those private too, run
+										<code class="mt-1.5 block w-fit max-w-full text-[11px] bg-muted border border-border rounded px-1.5 py-0.5 font-mono break-words">git config --global user.email { data.NoreplyEmail }</code>
+									</p>
+									<div>
+										@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+											Save
+										}
+									</div>
+								</form>
+							}
+						}
+					</section>
 
 					<section id="ssh-keys" class="scroll-mt-6">
 						@components.Card(nil) {
