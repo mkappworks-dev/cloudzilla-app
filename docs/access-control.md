@@ -201,22 +201,23 @@ Superadmin generates token link → shares manually. No SMTP required.
 
 ### User-Scoped Endpoints (Own Data Only)
 
-| Method                | Path                             | Auth   | AuthZ                     | Handler                    |
-| --------------------- | -------------------------------- | ------ | ------------------------- | -------------------------- |
-| GET                   | `/settings`                      | authMW | Own user                  | PageSettings               |
-| POST                  | `/settings/profile`              | authMW | Own user                  | UpdateProfile              |
-| POST                  | `/settings/profile-readme`       | authMW | Own user                  | UpdateProfileReadme        |
-| POST                  | `/settings/notifications`        | authMW | Own user                  | UpdateNotificationSettings |
-| POST                  | `/settings/delete-account`       | authMW | Own user                  | DeleteAccount              |
-| POST                  | `/settings/security/setup`       | authMW | Own user                  | SetupTOTP                  |
-| POST                  | `/api/user/totp/enable`          | authMW | Own user (claims.UserID)  | EnableTOTP                 |
-| POST                  | `/api/user/totp/disable`         | authMW | Own user (claims.UserID)  | DisableTOTP                |
-| GET/POST/DELETE       | `/api/user/keys`                 | authMW | Own user (claims.UserID)  | SSH key CRUD               |
-| POST/DELETE           | `/api/user/tokens`               | authMW | Own user (claims.UserID)  | Token create/revoke        |
-| GET/POST/PATCH/DELETE | `/api/user/replies`              | authMW | Own user (claims.UserID)  | Saved reply CRUD           |
-| POST/DELETE           | `/api/oauth/apps`                | authMW | Own user (claims.UserID)  | OAuth app CRUD             |
-| DELETE                | `/api/oauth/authorizations/{id}` | authMW | Own user (claims.UserID)  | RevokeOAuthAuthorization   |
-| POST/PATCH/DELETE     | `/api/gists`                     | authMW | Own gist (service checks) | Gist CRUD                  |
+| Method                | Path                                    | Auth   | AuthZ                                                                          | Handler                    |
+| --------------------- | --------------------------------------- | ------ | ------------------------------------------------------------------------------ | -------------------------- |
+| GET                   | `/settings`                             | authMW | Own user                                                                       | PageSettings               |
+| POST                  | `/settings/profile`                     | authMW | Own user                                                                       | UpdateProfile              |
+| POST                  | `/settings/profile-readme`              | authMW | Own user                                                                       | UpdateProfileReadme        |
+| POST                  | `/settings/notifications`               | authMW | Own user                                                                       | UpdateNotificationSettings |
+| POST                  | `/settings/delete-account`              | authMW | Own user                                                                       | DeleteAccount              |
+| POST                  | `/settings/security/setup`              | authMW | Own user                                                                       | SetupTOTP                  |
+| POST                  | `/api/user/totp/enable`                 | authMW | Own user (claims.UserID)                                                       | EnableTOTP                 |
+| POST                  | `/api/user/totp/disable`                | authMW | Own user (claims.UserID)                                                       | DisableTOTP                |
+| GET/POST/DELETE       | `/api/user/keys`                        | authMW | Own user (claims.UserID)                                                       | SSH key CRUD               |
+| POST/DELETE           | `/api/user/tokens`                      | authMW | Own user (claims.UserID)                                                       | Token create/revoke        |
+| GET/POST/PATCH/DELETE | `/api/user/replies`                     | authMW | Own user (claims.UserID)                                                       | Saved reply CRUD           |
+| POST/DELETE           | `/api/users/{id}/pinned-repos/{repoID}` | authMW | Own user (`{id}` = claims.UserID, else 403); POST needs repo read access (404) | PinRepo / UnpinRepo        |
+| POST/DELETE           | `/api/oauth/apps`                       | authMW | Own user (claims.UserID)                                                       | OAuth app CRUD             |
+| DELETE                | `/api/oauth/authorizations/{id}`        | authMW | Own user (claims.UserID)                                                       | RevokeOAuthAuthorization   |
+| POST/PATCH/DELETE     | `/api/gists`                            | authMW | Own gist (service checks)                                                      | Gist CRUD                  |
 
 ### Organization Endpoints
 
