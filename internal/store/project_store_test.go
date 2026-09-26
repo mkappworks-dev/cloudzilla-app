@@ -34,9 +34,9 @@ func seedProjectWithColumns(t *testing.T, db *sql.DB, repoID int64, colNames []s
 		}
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM project_cards WHERE column_id IN (SELECT id FROM project_columns WHERE project_id = $1)`, projectID)
-		db.ExecContext(context.Background(), `DELETE FROM project_columns WHERE project_id = $1`, projectID)
-		db.ExecContext(context.Background(), `DELETE FROM projects WHERE id = $1`, projectID)
+		testutil.Exec(t, db, `DELETE FROM project_cards WHERE column_id IN (SELECT id FROM project_columns WHERE project_id = $1)`, projectID)
+		testutil.Exec(t, db, `DELETE FROM project_columns WHERE project_id = $1`, projectID)
+		testutil.Exec(t, db, `DELETE FROM projects WHERE id = $1`, projectID)
 	})
 	return projectID, colIDs
 }
@@ -359,7 +359,7 @@ func seedNamedProject(t *testing.T, db *sql.DB, repoID int64, name string) int64
 	).Scan(&id); err != nil {
 		t.Fatalf("seed project %q: %v", name, err)
 	}
-	t.Cleanup(func() { db.ExecContext(context.Background(), `DELETE FROM projects WHERE id = $1`, id) })
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM projects WHERE id = $1`, id) })
 	return id
 }
 
@@ -373,7 +373,7 @@ func seedIssueRow(t *testing.T, db *sql.DB, repoID, authorID int64, number int, 
 	).Scan(&id); err != nil {
 		t.Fatalf("seed issue: %v", err)
 	}
-	t.Cleanup(func() { db.ExecContext(context.Background(), `DELETE FROM issues WHERE id = $1`, id) })
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM issues WHERE id = $1`, id) })
 	return id
 }
 
@@ -388,7 +388,7 @@ func seedPullRow(t *testing.T, db *sql.DB, repoID, authorID int64, number int, s
 	).Scan(&id); err != nil {
 		t.Fatalf("seed pull: %v", err)
 	}
-	t.Cleanup(func() { db.ExecContext(context.Background(), `DELETE FROM pull_requests WHERE id = $1`, id) })
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM pull_requests WHERE id = $1`, id) })
 	return id
 }
 

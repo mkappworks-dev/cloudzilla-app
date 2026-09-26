@@ -49,7 +49,7 @@ func TestUserStore_Create_AssignsID(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, u.ID)
+		testutil.Exec(t, db, `DELETE FROM users WHERE id = $1`, u.ID)
 	})
 
 	if u.ID == 0 {
@@ -163,7 +163,7 @@ func TestUserStore_Create_DuplicateUsername_Error(t *testing.T) {
 		t.Fatalf("first Create: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, u1.ID)
+		testutil.Exec(t, db, `DELETE FROM users WHERE id = $1`, u1.ID)
 	})
 
 	u2 := &model.User{
@@ -173,6 +173,6 @@ func TestUserStore_Create_DuplicateUsername_Error(t *testing.T) {
 	}
 	if err := s.Create(context.Background(), u2); err == nil {
 		t.Error("Create with duplicate username must return an error")
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, u2.ID)
+		testutil.Exec(t, db, `DELETE FROM users WHERE id = $1`, u2.ID)
 	}
 }
