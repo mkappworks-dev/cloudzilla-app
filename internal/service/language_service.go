@@ -107,7 +107,7 @@ func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref 
 }
 
 // Drops every ref, not just the default branch: one push can move several.
-func (s *LanguageService) InvalidateRepo(owner, repoName string) {
+func (s *LanguageService) InvalidateRepo(ctx context.Context, owner, repoName string) {
 	prefix := owner + "/" + repoName + ":"
 	s.cache.Range(func(k, _ any) bool {
 		if strings.HasPrefix(k.(string), prefix) {
