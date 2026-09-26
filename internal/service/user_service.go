@@ -19,12 +19,9 @@ var (
 	ErrRegistrationDisabled = errors.New("registration is disabled")
 	ErrLoginDisabled        = errors.New("login is currently disabled")
 	ErrPinLimit             = errors.New("pin limit reached (6)")
-	ErrUsernameTaken        = errors.New("username is already taken")
-	ErrInvalidUsername      = errors.New("username must be 1-39 chars, alphanumeric, dash or underscore")
 	ErrEmailTaken           = errors.New("email is already taken")
 	ErrInvalidEmail         = errors.New("email must be a valid address")
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
-	usernameRe              = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$`)
 	emailRe                 = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 )
 
@@ -162,22 +159,15 @@ func (s *UserService) UpdateNotificationPrefs(ctx context.Context, userID int64,
 	return s.store.UpdateNotificationPrefs(ctx, userID, p)
 }
 
-// UpdateProfile validates and saves profile fields. Changing username or email
-// is checked against syntax + uniqueness; other fields are stored as-is.
-func (s *UserService) UpdateProfile(ctx context.Context, userID int64, name, username, email, bio, company, location string) error {
-	if !usernameRe.MatchString(username) {
-		return ErrInvalidUsername
-	}
-	if existing, err := s.store.GetByUsername(ctx, username); err == nil && existing.ID != userID {
-		return ErrUsernameTaken
-	}
+// Username is deliberately not editable: repo owner names, on-disk repo paths, and JWT claims key off it.
+func (s *UserService) UpdateProfile(ctx context.Context, userID int64, name, email, bio, company, location string) error {
 	if !emailRe.MatchString(email) {
 		return ErrInvalidEmail
 	}
 	if existing, err := s.store.GetByEmail(ctx, email); err == nil && existing.ID != userID {
 		return ErrEmailTaken
 	}
-	return s.store.UpdateProfile(ctx, userID, strings.TrimSpace(name), username, email, strings.TrimSpace(bio), strings.TrimSpace(company), strings.TrimSpace(location))
+	return s.store.UpdateProfile(ctx, userID, strings.TrimSpace(name), email, strings.TrimSpace(bio), strings.TrimSpace(company), strings.TrimSpace(location))
 }
 
 // DeleteUser removes the user account. Related rows are removed via DB cascades.

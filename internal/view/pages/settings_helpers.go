@@ -4,10 +4,10 @@ import "strings"
 
 func settingsErrorMessage(code string) string {
 	switch code {
-	case "invalid_username":
-		return "Username must be 1-39 characters, alphanumeric, dash, or underscore."
-	case "username_taken":
-		return "That username is already taken."
+	case "invalid_email":
+		return "Enter a valid email address."
+	case "email_taken":
+		return "That email is already in use."
 	case "update_failed":
 		return "Couldn't save your profile. Please try again."
 	case "delete_confirm_mismatch":

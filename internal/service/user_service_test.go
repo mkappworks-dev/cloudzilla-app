@@ -182,3 +182,27 @@ func TestUserService_GenerateTokenForUser_ReturnsNonEmptyToken(t *testing.T) {
 		t.Error("GenerateTokenForUser must return a non-empty JWT token")
 	}
 }
+
+func TestUserService_UpdateProfile_LeavesUsernameUnchanged(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	ctx := context.Background()
+
+	newEmail := "profile_" + suffix + "@test.invalid"
+	if err := svc.UpdateProfile(ctx, userID, "New Name", newEmail, "bio", "Acme", "Colombo"); err != nil {
+		t.Fatalf("UpdateProfile: %v", err)
+	}
+
+	u, err := svc.GetByID(ctx, userID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if want := "testuser_" + suffix; u.Username != want {
+		t.Errorf("username = %q, want %q", u.Username, want)
+	}
+	if u.Name != "New Name" || u.Email != newEmail || u.Bio != "bio" || u.Company != "Acme" || u.Location != "Colombo" {
+		t.Errorf("profile fields not saved: name=%q email=%q bio=%q company=%q location=%q", u.Name, u.Email, u.Bio, u.Company, u.Location)
+	}
+}

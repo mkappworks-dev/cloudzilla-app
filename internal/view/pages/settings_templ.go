@@ -290,20 +290,20 @@ func settingsProfileSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"acct-username\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Username</label> <input id=\"acct-username\" name=\"username\" type=\"text\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"acct-username\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Username</label> <input id=\"acct-username\" type=\"text\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var12 string
 		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.User.Username)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 107, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 107, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" required class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring\"><p class=\"mt-1 text-[11.5px] text-muted-foreground\">Changing this will break links to your profile.</p></div><div><label for=\"acct-email\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Email</label> <input id=\"acct-email\" name=\"email\" type=\"email\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" readonly class=\"w-full bg-muted/50 border border-border rounded-md px-3 py-2 text-[13px] font-mono text-muted-foreground focus:outline-none\"><p class=\"mt-1 text-[11.5px] text-muted-foreground\">Usernames can't be changed.</p></div><div><label for=\"acct-email\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Email</label> <input id=\"acct-email\" name=\"email\" type=\"email\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

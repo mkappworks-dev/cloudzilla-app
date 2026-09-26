@@ -292,14 +292,12 @@ func (s *UserStore) SetBackupCodes(ctx context.Context, userID int64, codeHashes
 	return nil
 }
 
-// UpdateProfile saves the user's profile fields: name, username, email, bio, company, location.
-// Returns an error if the new username or email collides at the DB level.
-func (s *UserStore) UpdateProfile(ctx context.Context, userID int64, name, username, email, bio, company, location string) error {
+func (s *UserStore) UpdateProfile(ctx context.Context, userID int64, name, email, bio, company, location string) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE users
-		   SET name=$1, username=$2, email=$3, bio=$4, company=$5, location=$6, updated_at=NOW()
-		 WHERE id=$7`,
-		name, username, email, bio, company, location, userID,
+		   SET name=$1, email=$2, bio=$3, company=$4, location=$5, updated_at=NOW()
+		 WHERE id=$6`,
+		name, email, bio, company, location, userID,
 	)
 	if err != nil {
 		return fmt.Errorf("user update profile: %w", err)

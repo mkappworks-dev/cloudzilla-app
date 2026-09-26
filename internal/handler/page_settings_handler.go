@@ -83,7 +83,6 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		r.Context(),
 		claims.UserID,
 		r.FormValue("name"),
-		strings.TrimSpace(r.FormValue("username")),
 		strings.TrimSpace(r.FormValue("email")),
 		r.FormValue("bio"),
 		r.FormValue("company"),
@@ -91,10 +90,6 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		switch err {
-		case service.ErrInvalidUsername:
-			http.Redirect(w, r, "/settings?profile_error=invalid_username#profile", http.StatusSeeOther)
-		case service.ErrUsernameTaken:
-			http.Redirect(w, r, "/settings?profile_error=username_taken#profile", http.StatusSeeOther)
 		case service.ErrInvalidEmail:
 			http.Redirect(w, r, "/settings?profile_error=invalid_email#profile", http.StatusSeeOther)
 		case service.ErrEmailTaken:

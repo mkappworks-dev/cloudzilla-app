@@ -104,8 +104,8 @@ templ settingsProfileSection(data view.SettingsData) {
 			</div>
 			<div>
 				<label for="acct-username" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Username</label>
-				<input id="acct-username" name="username" type="text" value={ data.User.Username } required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"/>
-				<p class="mt-1 text-[11.5px] text-muted-foreground">Changing this will break links to your profile.</p>
+				<input id="acct-username" type="text" value={ data.User.Username } readonly class="w-full bg-muted/50 border border-border rounded-md px-3 py-2 text-[13px] font-mono text-muted-foreground focus:outline-none"/>
+				<p class="mt-1 text-[11.5px] text-muted-foreground">Usernames can't be changed.</p>
 			</div>
 			<div>
 				<label for="acct-email" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Email</label>
