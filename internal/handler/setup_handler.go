@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -33,7 +34,8 @@ func (h *Handler) PageSetupSubmit(w http.ResponseWriter, r *http.Request) {
 
 	_, err := h.Services.User.CreateSuperadmin(r.Context(), username, email, password)
 	if err != nil {
-		h.render(w, r, pages.Setup(view.SetupData{Error: "Failed to create admin account: " + err.Error()}))
+		slog.Error("setup: create superadmin failed", "error", err)
+		h.render(w, r, pages.Setup(view.SetupData{Error: "Could not create the admin account. Check the server logs."}))
 		return
 	}
 

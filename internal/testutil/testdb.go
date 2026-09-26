@@ -4,12 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
+	"github.com/mkappworks-dev/cloudzilla-app/internal/db"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -30,6 +33,41 @@ func OpenTestDB(t *testing.T) *sql.DB {
 	}
 	t.Cleanup(func() { db.Close() })
 	return db
+}
+
+// OpenFreshTestDB opens the test database with a new, fully migrated schema
+// first on its search_path, for tests that need tables no other test writes to
+// (such as an empty users table). The schema is dropped when the test ends.
+func OpenFreshTestDB(t *testing.T) *sql.DB {
+	t.Helper()
+	admin := OpenTestDB(t)
+	schema := "test_" + UniqueSuffix(t)
+	Exec(t, admin, `CREATE SCHEMA `+schema)
+	t.Cleanup(func() { Exec(t, admin, `DROP SCHEMA `+schema+` CASCADE`) })
+
+	fresh, err := sql.Open("pgx", withSearchPath(os.Getenv("TEST_DATABASE_DSN"), schema))
+	if err != nil {
+		t.Fatalf("open fresh test db: %v", err)
+	}
+	t.Cleanup(func() { fresh.Close() })
+	if err := db.Migrate(fresh); err != nil {
+		t.Fatalf("migrate fresh test db: %v", err)
+	}
+	return fresh
+}
+
+func withSearchPath(dsn, schema string) string {
+	if !strings.Contains(dsn, "://") {
+		return dsn + " search_path=" + schema
+	}
+	u, err := url.Parse(dsn)
+	if err != nil {
+		return dsn
+	}
+	q := u.Query()
+	q.Set("search_path", schema)
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 // Exec runs a statement against the test database, failing the test if it errors.
