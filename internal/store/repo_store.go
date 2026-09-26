@@ -415,13 +415,14 @@ func (s *RepoStore) UpdatePrimaryLanguage(ctx context.Context, repoID int64, lan
 	return nil
 }
 
-// FillPrimaryLanguage never overwrites a set column, so a value computed from
-// an older tree can't clobber one a push wrote meanwhile. It leaves updated_at
-// alone so a page view can't reorder recently-updated lists.
+// FillPrimaryLanguage writes only a NULL column, so a value computed from an
+// older tree can't clobber one a push wrote meanwhile, including a push's ''
+// for "no code". It leaves updated_at alone so a page view can't reorder
+// recently-updated lists.
 func (s *RepoStore) FillPrimaryLanguage(ctx context.Context, repoID int64, lang string) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE repositories SET primary_language = $2
-		 WHERE id = $1 AND (primary_language IS NULL OR primary_language = '')`,
+		 WHERE id = $1 AND primary_language IS NULL`,
 		repoID, lang,
 	)
 	if err != nil {

@@ -152,9 +152,10 @@ func (s *LanguageService) TopLanguageFor(ctx context.Context, owner, repoName, r
 }
 
 // PrimaryLanguage prefers the column written at push time. Nil and "" fall back
-// to a cached tree walk and store its result, so forks and older rows no push
-// filled heal for column-only readers like org cards. README-only repos store
-// nothing and keep walking.
+// to a cached tree walk; only a NULL column stores its result, so forks and
+// older rows no push filled heal for column-only readers like org cards, while
+// a push's "" is never replaced by a walk of an older tree. README-only repos
+// store nothing and keep walking.
 func (s *LanguageService) PrimaryLanguage(ctx context.Context, repo *model.Repository) string {
 	if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
 		return *repo.PrimaryLanguage

@@ -297,14 +297,15 @@ func TestLanguageService_PrimaryLanguage_FillsEmptyColumn(t *testing.T) {
 	for _, tc := range []struct {
 		name, repo  string
 		column      sql.NullString
-		staleColumn bool // the page loaded the row before a push filled it
+		staleColumn bool // the page loaded the row before a push wrote it
 		want        string
 		wantStored  sql.NullString
 	}{
 		{"nil column", "app", null, false, "Go", text("Go")},
-		{"empty column", "app", text(""), false, "Go", text("Go")},
+		{"empty column", "app", text(""), false, "Go", text("")},
 		{"set column", "app", text("Rust"), false, "Rust", text("Rust")},
 		{"filled after load", "app", text("Rust"), true, "Go", text("Rust")},
+		{"emptied after load", "app", text(""), true, "Go", text("")},
 		{"no code", "docs", null, false, "", null},
 	} {
 		if _, err := db.ExecContext(ctx,
