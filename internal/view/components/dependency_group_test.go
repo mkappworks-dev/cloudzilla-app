@@ -18,7 +18,9 @@ func TestDependencyGroup_RendersRows(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	DependencyGroup(d).Render(context.Background(), &buf)
+	if err := DependencyGroup(d).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
 	out := buf.String()
 
 	for _, want := range []string{

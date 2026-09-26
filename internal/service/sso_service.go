@@ -166,7 +166,7 @@ func bindLDAP(addr, dn, password string, useTLS bool) error {
 	if err != nil {
 		return fmt.Errorf("ldap dial: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
 
 	req := encodeLDAPBindRequest(1, dn, password)
@@ -929,7 +929,7 @@ func (s *SSOService) SAMLAuthnRequestURL(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("saml authn request deflate init: %w", err)
 	}
 	if _, err := fw.Write([]byte(xmlStr)); err != nil {
-		fw.Close()
+		_ = fw.Close()
 		return "", fmt.Errorf("saml authn request deflate write: %w", err)
 	}
 	if err := fw.Close(); err != nil {

@@ -33,8 +33,7 @@ func seedTwoUsers(t *testing.T, ctx context.Context, prefix string) (aliceID, bo
 		t.Fatalf("insert bob: %v", err)
 	}
 	cleanup = func() {
-		bg := context.Background()
-		db.ExecContext(bg, `DELETE FROM users WHERE id IN ($1, $2)`, aliceID, bobID)
+		testutil.DeleteUsers(t, db, aliceID, bobID)
 	}
 	return aliceID, bobID, cleanup
 }
