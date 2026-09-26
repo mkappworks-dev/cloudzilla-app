@@ -60,7 +60,7 @@ func (h *Handler) UpdateEmailSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	keep := r.FormValue("keep_email_private") == "on"
-	if err := h.Services.User.SetKeepEmailPrivate(r.Context(), claims.UserID, keep); err != nil {
+	if err := h.Services.User.UpdateKeepEmailPrivate(r.Context(), claims.UserID, keep); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to update email settings")
 		return
 	}

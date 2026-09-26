@@ -13,12 +13,15 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
-const noreplyDomainPrefix = "users.noreply."
+const (
+	noreplyDomainPrefix = "users.noreply."
+	defaultNoreplyHost  = "localhost"
+)
 
 func noreplyHostFromBaseURL(baseURL string) string {
 	u, err := url.Parse(baseURL)
 	if err != nil || u.Hostname() == "" {
-		return "localhost"
+		return defaultNoreplyHost
 	}
 	return u.Hostname()
 }

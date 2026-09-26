@@ -24,9 +24,9 @@ func (s *UserStore) Create(ctx context.Context, u *model.User) error {
 	err := s.db.QueryRowContext(ctx,
 		`INSERT INTO users (username, email, password_hash, bio, avatar_url)
 		 VALUES ($1, $2, $3, $4, $5)
-		 RETURNING id, created_at, updated_at`,
+		 RETURNING id, created_at, updated_at, keep_email_private`,
 		u.Username, u.Email, u.PasswordHash, u.Bio, u.AvatarURL,
-	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt, &u.KeepEmailPrivate)
 	if err != nil {
 		return fmt.Errorf("user create: %w", err)
 	}

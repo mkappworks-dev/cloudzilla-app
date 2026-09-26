@@ -30,11 +30,10 @@ type UserService struct {
 
 // NewUserService creates a UserService backed by the given user store and auth config.
 func NewUserService(s *store.UserStore, cfg config.AuthConfig) *UserService {
-	return &UserService{store: s, cfg: cfg, noreplyHost: "localhost"}
+	return &UserService{store: s, cfg: cfg, noreplyHost: defaultNoreplyHost}
 }
 
-// WithBaseURL sets the host used in noreply commit addresses.
-func (s *UserService) WithBaseURL(baseURL string) *UserService {
+func (s *UserService) WithNoreplyHostFrom(baseURL string) *UserService {
 	s.noreplyHost = noreplyHostFromBaseURL(baseURL)
 	return s
 }
@@ -154,7 +153,7 @@ func (s *UserService) UpdateEmailPrefs(ctx context.Context, userID int64, emailN
 	return s.store.UpdateEmailPrefs(ctx, userID, emailNotifications, emailDigest)
 }
 
-func (s *UserService) SetKeepEmailPrivate(ctx context.Context, userID int64, keep bool) error {
+func (s *UserService) UpdateKeepEmailPrivate(ctx context.Context, userID int64, keep bool) error {
 	return s.store.UpdateKeepEmailPrivate(ctx, userID, keep)
 }
 
@@ -162,7 +161,6 @@ func (s *UserService) NoreplyEmail(u *model.User) string {
 	return noreplyEmail(s.noreplyHost, u)
 }
 
-// CommitAuthor returns the git author for commits the user makes through the web UI.
 func (s *UserService) CommitAuthor(ctx context.Context, userID int64) (name, email string, err error) {
 	u, err := s.store.GetByID(ctx, userID)
 	if err != nil {
