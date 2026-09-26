@@ -57,12 +57,14 @@ Deploy keys authenticate via SSH using the key's MD5 fingerprint. A `read_only` 
 
 | Method | Path                                  | Auth     | Description                                                                                           |
 | ------ | ------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
-| GET    | `/api/users/:username`                | --       | Get user profile                                                                                      |
+| GET    | `/api/users/:username`                | --       | Get a user's public profile                                                                           |
 | GET    | `/api/users/:username/repos`          | --       | List user's repositories                                                                              |
 | POST   | `/api/users/:id/pinned-repos/:repoID` | Required | Pin a repo to the profile; idempotent; 422 past 6 pins; 404 if the repo is not readable by the caller |
 | DELETE | `/api/users/:id/pinned-repos/:repoID` | Required | Unpin a repo from the profile; no-op if it is not pinned                                              |
 
 `:id` is a numeric user ID and must be the caller's own (403 otherwise). Both pin endpoints return `{"ok": true}`.
+
+Public user objects — returned by `GET /api/users/:username` and by `/api/repos/:owner/:repo/stargazers` (JSON only with `HX-Request: true`; otherwise it renders the stargazers page) — contain only `id`, `username`, `bio`, `avatar_url`, and `created_at`. Email addresses and notification preferences are never returned.
 
 ## Repositories
 

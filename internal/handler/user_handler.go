@@ -5,11 +5,32 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
+
+// model.User carries the email; this is all anyone else may see.
+type publicUser struct {
+	ID        int64     `json:"id"`
+	Username  string    `json:"username"`
+	Bio       string    `json:"bio"`
+	AvatarURL string    `json:"avatar_url"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func newPublicUser(u model.User) publicUser {
+	return publicUser{
+		ID:        u.ID,
+		Username:  u.Username,
+		Bio:       u.Bio,
+		AvatarURL: u.AvatarURL,
+		CreatedAt: u.CreatedAt,
+	}
+}
 
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "username")
@@ -18,7 +39,7 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "user not found")
 		return
 	}
-	writeJSON(w, http.StatusOK, user)
+	writeJSON(w, http.StatusOK, newPublicUser(*user))
 }
 
 func (h *Handler) PinRepo(w http.ResponseWriter, r *http.Request) {

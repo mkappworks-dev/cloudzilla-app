@@ -24,10 +24,10 @@ type User struct {
 	TOTPBackupCodes    []string       `db:"-"                json:"-"`
 	CreatedAt          time.Time      `db:"created_at"          json:"created_at"`
 	UpdatedAt          time.Time      `db:"updated_at"          json:"updated_at"`
-	EmailNotifications bool           `db:"email_notifications" json:"email_notifications"`
-	EmailDigest        string         `db:"email_digest"        json:"email_digest"`
-	NotifyPRReview     bool           `db:"notify_pr_review"    json:"notify_pr_review"`
-	NotifyMention      bool           `db:"notify_mention"      json:"notify_mention"`
+	EmailNotifications bool           `db:"email_notifications" json:"-"`
+	EmailDigest        string         `db:"email_digest"        json:"-"`
+	NotifyPRReview     bool           `db:"notify_pr_review"    json:"-"`
+	NotifyMention      bool           `db:"notify_mention"      json:"-"`
 }
 
 const (
