@@ -1,6 +1,17 @@
 package pages
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+)
+
+var emailDigestLabels = map[string]string{
+	model.EmailDigestImmediate: "Immediately",
+	model.EmailDigestDaily:     "Daily digest",
+	model.EmailDigestWeekly:    "Weekly digest",
+	model.EmailDigestNever:     "Never",
+}
 
 func settingsErrorMessage(code string) string {
 	switch code {

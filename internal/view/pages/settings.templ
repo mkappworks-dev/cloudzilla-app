@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -417,13 +418,23 @@ templ settingsNotificationsSection(data view.SettingsData) {
 			hx-trigger="change"
 			hx-swap="none"
 			data-toast="Notification preferences saved"
-			class="divide-y divide-border"
 		>
-			@settingsToggle("notify_pr_review", "Pull requests where I'm requested as a reviewer", "Email me when someone requests my review.", data.User.NotifyPRReview)
-			@settingsToggle("notify_issue_assigned", "Issues assigned to me", "Email me when an issue is assigned to my account.", data.User.NotifyIssueAssigned)
-			@settingsToggle("notify_mention", "Mentions in comments and discussions", "Email me when someone @-mentions me.", data.User.NotifyMention)
-			@settingsToggle("notify_watched", "Activity on repositories I watch", "Email summary of pushes, releases, and issues.", data.User.NotifyWatched)
-			@settingsToggle("notify_weekly_digest", "Weekly digest of my work", "A Monday morning summary of last week's activity.", data.User.NotifyWeeklyDigest)
+			@settingsToggle("email_notifications", "Email notifications", "Send email when something happens that needs your attention.", data.User.EmailNotifications)
+			<div class="flex items-start justify-between gap-4 py-3 border-b border-border last:border-b-0">
+				<span class="min-w-0">
+					<label for="email_digest" class="block text-sm font-medium text-foreground">Delivery</label>
+					<span class="block text-xs text-muted-foreground mt-0.5">Send each email right away, or a digest of your unread notifications, watched repositories included, at 08:00 UTC (weekly on Mondays).</span>
+				</span>
+				<div class="w-40 shrink-0">
+					@components.Select(templ.Attributes{"id": "email_digest", "name": "email_digest"}) {
+						for _, mode := range model.EmailDigestModes {
+							<option value={ mode } selected?={ data.User.EmailDigest == mode }>{ emailDigestLabels[mode] }</option>
+						}
+					}
+				</div>
+			</div>
+			@settingsToggle("notify_pr_review", "Reviews on my pull requests", "Email me when someone reviews a pull request I opened.", data.User.NotifyPRReview)
+			@settingsToggle("notify_mention", "Mentions in comments", "Email me when someone @-mentions me in an issue or pull request comment.", data.User.NotifyMention)
 		</form>
 	</section>
 }

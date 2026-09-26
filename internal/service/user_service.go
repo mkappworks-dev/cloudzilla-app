@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -149,13 +150,10 @@ func (s *UserService) GetManyByUsernames(ctx context.Context, usernames []string
 	return s.store.GetManyByUsernames(ctx, usernames)
 }
 
-// UpdateEmailPrefs saves the user's email notification preferences.
-func (s *UserService) UpdateEmailPrefs(ctx context.Context, userID int64, emailNotifications bool, emailDigest string) error {
-	return s.store.UpdateEmailPrefs(ctx, userID, emailNotifications, emailDigest)
-}
-
-// UpdateNotificationPrefs saves the granular notification toggles.
-func (s *UserService) UpdateNotificationPrefs(ctx context.Context, userID int64, p store.NotificationPrefs) error {
+func (s *UserService) UpdateNotificationPrefs(ctx context.Context, userID int64, p model.NotificationPrefs) error {
+	if !slices.Contains(model.EmailDigestModes, p.EmailDigest) {
+		p.EmailDigest = model.EmailDigestImmediate
+	}
 	return s.store.UpdateNotificationPrefs(ctx, userID, p)
 }
 

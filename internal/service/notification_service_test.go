@@ -13,32 +13,6 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-// newNotifSvc builds a NotificationService backed by the test database.
-// Returns the service, a repo seeded for the given owner, and the ownerID.
-func newNotifSvc(t *testing.T) (*service.NotificationService, model.Repository, int64) {
-	t.Helper()
-	db := testutil.OpenTestDB(t)
-	suffix := testutil.UniqueSuffix(t)
-	ownerID := testutil.SeedUser(t, db, suffix)
-	ownerName := "testuser_" + suffix
-	repoID := testutil.SeedRepo(t, db, ownerID, ownerName, suffix)
-
-	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
-	emailSvc := service.NewEmailService(config.SMTPConfig{})
-	svc := service.NewNotificationService(
-		store.NewNotificationStore(db),
-		store.NewWatchStore(db),
-		emailSvc,
-		userSvc,
-	)
-	repo := model.Repository{
-		ID:        repoID,
-		Name:      "testrepo_" + suffix,
-		OwnerName: ownerName,
-	}
-	return svc, repo, ownerID
-}
-
 // TestNotification_MarkRead_RemovesFromUnread verifies that MarkRead transitions a specific
 // notification from unread to read, reducing the unread count.
 func TestNotification_MarkRead_RemovesFromUnread(t *testing.T) {
@@ -243,6 +217,59 @@ func TestNotification_List_ReturnsCreatedNotifications(t *testing.T) {
 	}
 	if len(notifs) == 0 {
 		t.Error("List must return at least the notification we just created")
+	}
+}
+
+func TestNotification_ListUnreadForDigest_SkipsTypesToggledOff(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	actorID := testutil.SeedUser(t, db, "actor_"+suffix)
+	ownerName := "testuser_" + suffix
+	repoID := testutil.SeedRepo(t, db, userID, ownerName, suffix)
+
+	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	notifStore := store.NewNotificationStore(db)
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewEmailService(config.SMTPConfig{}), userSvc)
+	ctx := context.Background()
+
+	prefs := model.NotificationPrefs{EmailNotifications: true, EmailDigest: model.EmailDigestDaily, NotifyPRReview: true, NotifyMention: false}
+	if err := userSvc.UpdateNotificationPrefs(ctx, userID, prefs); err != nil {
+		t.Fatalf("UpdateNotificationPrefs: %v", err)
+	}
+	for i, typ := range []model.NotificationType{model.NotifMention, model.NotifPRReview, model.NotifIssueComment} {
+		n := &model.Notification{
+			UserID:    userID,
+			ActorID:   actorID,
+			ActorName: "actor_" + suffix,
+			Type:      typ,
+			RepoID:    repoID,
+			RepoName:  "testrepo_" + suffix,
+			OwnerName: ownerName,
+			SubjectID: int64(i + 1),
+		}
+		if err := notifStore.Create(ctx, n); err != nil {
+			t.Fatalf("seed %s notification: %v", typ, err)
+		}
+	}
+
+	u, err := userSvc.GetByID(ctx, userID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	got, err := svc.ListUnreadForDigest(ctx, u, model.EmailDigestDaily)
+	if err != nil {
+		t.Fatalf("ListUnreadForDigest: %v", err)
+	}
+	types := map[model.NotificationType]bool{}
+	for _, n := range got {
+		types[n.Type] = true
+	}
+	if types[model.NotifMention] {
+		t.Error("digest includes a mention although notify_mention is off")
+	}
+	if len(got) != 2 || !types[model.NotifPRReview] || !types[model.NotifIssueComment] {
+		t.Errorf("digest types = %v, want pr_review and issue_comment", types)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -48,7 +49,7 @@ func (s *NotificationService) fanOutToWatchers(ctx context.Context, n *model.Not
 func (s *NotificationService) sendEmailAsync(notif model.Notification) {
 	go func() {
 		u, err := s.userSvc.GetByID(context.Background(), notif.UserID)
-		if err != nil || u.EmailDigest != "immediate" {
+		if err != nil {
 			return
 		}
 		if err := s.emailSvc.SendNotification(context.Background(), u, &notif); err != nil {
@@ -61,9 +62,12 @@ func (s *NotificationService) List(ctx context.Context, userID int64) ([]model.N
 	return s.notifs.ListByUser(ctx, userID)
 }
 
-// ListUnreadByUser returns all unread notifications for a user.
-func (s *NotificationService) ListUnreadByUser(ctx context.Context, userID int64) ([]model.Notification, error) {
-	return s.notifs.ListUnreadByUser(ctx, userID)
+func (s *NotificationService) ListUnreadForDigest(ctx context.Context, u *model.User, mode string) ([]model.Notification, error) {
+	notifs, err := s.notifs.ListUnreadByUser(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(notifs, func(n model.Notification) bool { return !wantsEmail(u, n.Type, mode) }), nil
 }
 
 func (s *NotificationService) CountUnread(ctx context.Context, userID int64) (int, error) {

@@ -163,9 +163,9 @@ func runEmailDigest(ctx context.Context, svc *service.Services) {
 		case <-timer.C:
 		}
 		today := time.Now().UTC().Weekday()
-		modes := []string{"daily"}
+		modes := []string{model.EmailDigestDaily}
 		if today == time.Monday {
-			modes = append(modes, "weekly")
+			modes = append(modes, model.EmailDigestWeekly)
 		}
 		for _, mode := range modes {
 			users, err := svc.User.ListUsersForDigest(ctx, mode)
@@ -173,7 +173,7 @@ func runEmailDigest(ctx context.Context, svc *service.Services) {
 				continue
 			}
 			for _, u := range users {
-				notifs, err := svc.Notification.ListUnreadByUser(ctx, u.ID)
+				notifs, err := svc.Notification.ListUnreadForDigest(ctx, &u, mode)
 				if err != nil || len(notifs) == 0 {
 					continue
 				}

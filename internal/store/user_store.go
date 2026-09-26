@@ -39,12 +39,12 @@ func (s *UserStore) GetByID(ctx context.Context, id int64) (*model.User, error) 
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
-		        notify_pr_review, notify_issue_assigned, notify_mention, notify_watched, notify_weekly_digest
+		        notify_pr_review, notify_mention
 		 FROM users WHERE id = $1`,
 		id,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Name, &u.Bio, &u.Company, &u.Location, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyIssueAssigned, &u.NotifyMention, &u.NotifyWatched, &u.NotifyWeeklyDigest)
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyMention)
 	if err != nil {
 		return nil, fmt.Errorf("user get by id: %w", err)
 	}
@@ -56,12 +56,12 @@ func (s *UserStore) GetByUsername(ctx context.Context, username string) (*model.
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
-		        notify_pr_review, notify_issue_assigned, notify_mention, notify_watched, notify_weekly_digest
+		        notify_pr_review, notify_mention
 		 FROM users WHERE username = $1`,
 		username,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Name, &u.Bio, &u.Company, &u.Location, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyIssueAssigned, &u.NotifyMention, &u.NotifyWatched, &u.NotifyWeeklyDigest)
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyMention)
 	if err != nil {
 		return nil, fmt.Errorf("user get by username: %w", err)
 	}
@@ -73,12 +73,12 @@ func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, 
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
-		        notify_pr_review, notify_issue_assigned, notify_mention, notify_watched, notify_weekly_digest
+		        notify_pr_review, notify_mention
 		 FROM users WHERE email = $1`,
 		email,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Name, &u.Bio, &u.Company, &u.Location, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyIssueAssigned, &u.NotifyMention, &u.NotifyWatched, &u.NotifyWeeklyDigest)
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyMention)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email: %w", err)
 	}
@@ -91,12 +91,12 @@ func (s *UserStore) GetByEmailWithRole(ctx context.Context, email string) (*mode
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
-		        notify_pr_review, notify_issue_assigned, notify_mention, notify_watched, notify_weekly_digest
+		        notify_pr_review, notify_mention
 		 FROM users WHERE email = $1`,
 		email,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Name, &u.Bio, &u.Company, &u.Location, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyIssueAssigned, &u.NotifyMention, &u.NotifyWatched, &u.NotifyWeeklyDigest)
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyMention)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email with role: %w", err)
 	}
@@ -108,12 +108,12 @@ func (s *UserStore) GetByOAuthID(ctx context.Context, provider, oauthID string) 
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
-		        notify_pr_review, notify_issue_assigned, notify_mention, notify_watched, notify_weekly_digest
+		        notify_pr_review, notify_mention
 		 FROM users WHERE oauth_provider = $1 AND oauth_id = $2 LIMIT 1`,
 		provider, oauthID,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Name, &u.Bio, &u.Company, &u.Location, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyIssueAssigned, &u.NotifyMention, &u.NotifyWatched, &u.NotifyWeeklyDigest)
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyMention)
 	if err != nil {
 		return nil, fmt.Errorf("user get by oauth id: %w", err)
 	}
@@ -138,11 +138,11 @@ func (s *UserStore) CreateOAuthUser(ctx context.Context, username, email, provid
 		 VALUES ($1, $2, '', $3, $4, $5)
 		 RETURNING id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 		           is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
-		        notify_pr_review, notify_issue_assigned, notify_mention, notify_watched, notify_weekly_digest`,
+		        notify_pr_review, notify_mention`,
 		username, email, provider, oauthID, avatarURL,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Name, &u.Bio, &u.Company, &u.Location, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyIssueAssigned, &u.NotifyMention, &u.NotifyWatched, &u.NotifyWeeklyDigest)
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyMention)
 	if err != nil {
 		return nil, fmt.Errorf("user create oauth: %w", err)
 	}
@@ -200,14 +200,14 @@ func (s *UserStore) GetByIDWithTOTP(ctx context.Context, id int64) (*model.User,
 		        is_superadmin, is_invited, totp_secret, totp_enabled,
 		        totp_backup_codes::text,
 		        created_at, updated_at, email_notifications, email_digest,
-		        notify_pr_review, notify_issue_assigned, notify_mention, notify_watched, notify_weekly_digest
+		        notify_pr_review, notify_mention
 		 FROM users WHERE id = $1`,
 		id,
 	).Scan(
 		&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Name, &u.Bio, &u.Company, &u.Location, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
 		&u.TOTPSecret, &u.TOTPEnabled, &backupCodesStr,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyIssueAssigned, &u.NotifyMention, &u.NotifyWatched, &u.NotifyWeeklyDigest,
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyMention,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user get by id with totp: %w", err)
@@ -228,14 +228,14 @@ func (s *UserStore) GetByEmailWithTOTP(ctx context.Context, email string) (*mode
 		        is_superadmin, is_invited, totp_secret, totp_enabled,
 		        totp_backup_codes::text,
 		        created_at, updated_at, email_notifications, email_digest,
-		        notify_pr_review, notify_issue_assigned, notify_mention, notify_watched, notify_weekly_digest
+		        notify_pr_review, notify_mention
 		 FROM users WHERE email = $1`,
 		email,
 	).Scan(
 		&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Name, &u.Bio, &u.Company, &u.Location, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
 		&u.TOTPSecret, &u.TOTPEnabled, &backupCodesStr,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyIssueAssigned, &u.NotifyMention, &u.NotifyWatched, &u.NotifyWeeklyDigest,
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyMention,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email with totp: %w", err)
@@ -314,24 +314,12 @@ func (s *UserStore) DeleteByID(ctx context.Context, userID int64) error {
 	return nil
 }
 
-// NotificationPrefs is the set of granular email notification toggles
-// surfaced on /settings#notifications.
-type NotificationPrefs struct {
-	PRReview      bool
-	IssueAssigned bool
-	Mention       bool
-	Watched       bool
-	WeeklyDigest  bool
-}
-
-// UpdateNotificationPrefs saves the user's granular notification toggles.
-func (s *UserStore) UpdateNotificationPrefs(ctx context.Context, userID int64, p NotificationPrefs) error {
+func (s *UserStore) UpdateNotificationPrefs(ctx context.Context, userID int64, p model.NotificationPrefs) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE users
-		   SET notify_pr_review=$1, notify_issue_assigned=$2, notify_mention=$3,
-		       notify_watched=$4, notify_weekly_digest=$5, updated_at=NOW()
-		 WHERE id=$6`,
-		p.PRReview, p.IssueAssigned, p.Mention, p.Watched, p.WeeklyDigest, userID,
+		   SET email_notifications=$1, email_digest=$2, notify_pr_review=$3, notify_mention=$4, updated_at=NOW()
+		 WHERE id=$5`,
+		p.EmailNotifications, p.EmailDigest, p.NotifyPRReview, p.NotifyMention, userID,
 	)
 	if err != nil {
 		return fmt.Errorf("user update notification prefs: %w", err)
@@ -339,21 +327,12 @@ func (s *UserStore) UpdateNotificationPrefs(ctx context.Context, userID int64, p
 	return nil
 }
 
-// UpdateEmailPrefs saves the user's email notification preferences.
-func (s *UserStore) UpdateEmailPrefs(ctx context.Context, userID int64, emailNotifications bool, emailDigest string) error {
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE users SET email_notifications=$1, email_digest=$2, updated_at=NOW() WHERE id=$3`,
-		emailNotifications, emailDigest, userID,
-	)
-	return err
-}
-
 // ListUsersForDigest returns users who have email notifications enabled with the given digest mode.
 func (s *UserStore) ListUsersForDigest(ctx context.Context, digestMode string) ([]model.User, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
-		        notify_pr_review, notify_issue_assigned, notify_mention, notify_watched, notify_weekly_digest
+		        notify_pr_review, notify_mention
 		 FROM users WHERE email_notifications = TRUE AND email_digest = $1`,
 		digestMode,
 	)
@@ -377,7 +356,7 @@ func (s *UserStore) GetManyByUsernames(ctx context.Context, usernames []string) 
 	}
 	q := `SELECT id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 	             is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
-		        notify_pr_review, notify_issue_assigned, notify_mention, notify_watched, notify_weekly_digest
+		        notify_pr_review, notify_mention
 	      FROM users WHERE username IN (` + strings.Join(placeholders, ",") + `)`
 	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
@@ -429,7 +408,7 @@ func (s *UserStore) GetManyByIDs(ctx context.Context, ids []int64) ([]model.User
 	}
 	q := `SELECT id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 	             is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
-		        notify_pr_review, notify_issue_assigned, notify_mention, notify_watched, notify_weekly_digest
+		        notify_pr_review, notify_mention
 	      FROM users WHERE id IN (` + strings.Join(placeholders, ",") + `)`
 	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
@@ -445,7 +424,7 @@ func scanFullUsers(rows *sql.Rows) ([]model.User, error) {
 		var u model.User
 		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Name, &u.Bio, &u.Company, &u.Location, &u.AvatarURL,
 			&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-			&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyIssueAssigned, &u.NotifyMention, &u.NotifyWatched, &u.NotifyWeeklyDigest); err != nil {
+			&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.NotifyPRReview, &u.NotifyMention); err != nil {
 			return nil, err
 		}
 		users = append(users, u)
