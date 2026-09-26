@@ -57,14 +57,16 @@ type Services struct {
 // New constructs and wires all services from the given stores and configuration.
 func New(stores *store.Stores, cfg *config.Config) *Services {
 	code := NewCodeService(cfg.Git)
-	languageSvc := NewLanguageService(code, stores.Repo)
 	index := NewIndexService(stores.CodeSearch, code)
 	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
 	contributorStatsSvc := NewContributorStatsService(stores.ContributorStats, stores.User)
 	attentionSvc := NewAttentionService(stores.Issue).WithPullDeps(stores.Pull, stores.PullReview, stores.Mention).WithUserStore(stores.User)
-	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, contributorStatsSvc, code, cfg.Git).WithLanguageService(languageSvc).WithPullStore(stores.Pull)
+	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, contributorStatsSvc, code, cfg.Git).WithPullStore(stores.Pull)
+	orgSvc := NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git).WithStarStore(stores.Star)
+	languageSvc := NewLanguageService(code, repoSvc, orgSvc)
+	repoSvc.WithLanguageService(languageSvc)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
-	userSvc := NewUserService(stores.User, cfg.Auth)
+	userSvc := NewUserService(stores.User, cfg.Auth).WithRepoService(repoSvc)
 	emailSvc := NewEmailService(cfg.SMTP)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
@@ -79,7 +81,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Comment:          NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc, repoSvc),
 		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),
 		Code:             code,
-		Org:              NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git),
+		Org:              orgSvc,
 		Webhook:          NewWebhookService(stores.Webhook),
 		Notification:     notifSvc,
 		SiteSetting:      siteSettingSvc,

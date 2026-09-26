@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // README/Markdown/configs/lockfiles are intentionally excluded — composition is about *code*.
@@ -50,7 +50,8 @@ var excludedDirs = map[string]bool{
 
 type LanguageService struct {
 	code  *CodeService
-	repos *store.RepoStore
+	repos *RepoService
+	orgs  *OrgService
 	cache sync.Map // key="owner/repo:ref" → cacheEntry
 }
 
@@ -66,8 +67,8 @@ const (
 	langCacheNegativeTTL = 30 * time.Second
 )
 
-func NewLanguageService(code *CodeService, repos *store.RepoStore) *LanguageService {
-	return &LanguageService{code: code, repos: repos}
+func NewLanguageService(code *CodeService, repos *RepoService, orgs *OrgService) *LanguageService {
+	return &LanguageService{code: code, repos: repos, orgs: orgs}
 }
 
 func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref string) (map[string]int64, error) {
@@ -117,27 +118,7 @@ func (s *LanguageService) Percentages(ctx context.Context, owner, repoName, ref 
 	if err != nil {
 		return nil, err
 	}
-	var total int64
-	for _, b := range comp {
-		total += b
-	}
-	if total == 0 {
-		return nil, nil
-	}
-	out := make([]LangPercent, 0, len(comp))
-	for name, b := range comp {
-		pct := int(b * 100 / total)
-		if pct > 0 {
-			out = append(out, LangPercent{Name: name, Percent: pct})
-		}
-	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Percent != out[j].Percent {
-			return out[i].Percent > out[j].Percent
-		}
-		return out[i].Name < out[j].Name // stable tiebreak
-	})
-	return out, nil
+	return rankLanguages(comp, 0), nil
 }
 
 // TopLanguageFor returns the language with the largest byte count in the repo's
@@ -160,11 +141,24 @@ func (s *LanguageService) TopLanguageFor(ctx context.Context, owner, repoName, r
 	return top, nil
 }
 
-// Per-repo failures (empty repo, bad ref) are skipped so a single broken repo
-// can't blank out the user's whole composition. limit <= 0 returns all
-// languages, sorted desc by percent.
-func (s *LanguageService) AggregateForUser(ctx context.Context, userID int64, limit int) ([]LangPercent, error) {
-	repos, err := s.repos.GetByOwnerID(ctx, userID)
+// PrimaryLanguage prefers the column cached at push time; repos not pushed
+// since the column was added have it nil, so those fall back to a tree walk.
+func (s *LanguageService) PrimaryLanguage(ctx context.Context, repo *model.Repository) string {
+	if repo.PrimaryLanguage != nil {
+		return *repo.PrimaryLanguage
+	}
+	lang, err := s.TopLanguageFor(ctx, repo.OwnerName, repo.Name, repo.DefaultBranch)
+	if err != nil {
+		return ""
+	}
+	return lang
+}
+
+// Only repos viewerID can read count, so private code never shapes a visitor's
+// view. Per-repo failures (empty repo, bad ref) are skipped so one broken repo
+// can't blank out the whole composition. limit <= 0 returns all languages.
+func (s *LanguageService) AggregateForUser(ctx context.Context, username string, viewerID *int64, limit int) ([]LangPercent, error) {
+	repos, err := s.repos.ListByOwnerVisibleTo(ctx, username, viewerID)
 	if err != nil {
 		return nil, err
 	}
@@ -180,17 +174,51 @@ func (s *LanguageService) AggregateForUser(ctx context.Context, userID int64, li
 			totals[name] += b
 		}
 	}
+	return rankLanguages(totals, limit), nil
+}
+
+// Counts each visible repo's cached primary language instead of walking every
+// tree, so the org page stays one query.
+func (s *LanguageService) AggregateForOrg(ctx context.Context, orgID int64, viewerID *int64, limit int) ([]LangPercent, error) {
+	repos, err := s.orgs.ListReposVisibleTo(ctx, orgID, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	counts := make(map[string]int64)
+	for _, r := range repos {
+		if r.PrimaryLanguage != nil && *r.PrimaryLanguage != "" {
+			counts[*r.PrimaryLanguage]++
+		}
+	}
+	return rankLanguages(counts, limit), nil
+}
+
+// rankLanguages keeps the top limit languages by weight (all when limit <= 0)
+// and computes percentages over the kept ones only, so a top-N bar fills to
+// ~100% instead of leaving the dropped tail as a gap.
+func rankLanguages(weights map[string]int64, limit int) []LangPercent {
+	names := make([]string, 0, len(weights))
+	for name, w := range weights {
+		if w > 0 {
+			names = append(names, name)
+		}
+	}
+	sort.Slice(names, func(i, j int) bool {
+		if weights[names[i]] != weights[names[j]] {
+			return weights[names[i]] > weights[names[j]]
+		}
+		return names[i] < names[j]
+	})
+	if limit > 0 && len(names) > limit {
+		names = names[:limit]
+	}
 	var total int64
-	for _, b := range totals {
-		total += b
+	for _, name := range names {
+		total += weights[name]
 	}
-	if total == 0 {
-		return nil, nil
-	}
-	out := make([]LangPercent, 0, len(totals))
-	for name, b := range totals {
-		pct := int(b * 100 / total)
-		if pct > 0 {
+	out := make([]LangPercent, 0, len(names))
+	for _, name := range names {
+		if pct := int(weights[name] * 100 / total); pct > 0 {
 			out = append(out, LangPercent{Name: name, Percent: pct})
 		}
 	}
@@ -200,8 +228,5 @@ func (s *LanguageService) AggregateForUser(ctx context.Context, userID int64, li
 		}
 		return out[i].Name < out[j].Name
 	})
-	if limit > 0 && len(out) > limit {
-		out = out[:limit]
-	}
-	return out, nil
+	return out
 }

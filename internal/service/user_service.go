@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"regexp"
@@ -20,6 +21,7 @@ var (
 	ErrRegistrationDisabled = errors.New("registration is disabled")
 	ErrLoginDisabled        = errors.New("login is currently disabled")
 	ErrPinLimit             = errors.New("pin limit reached (6)")
+	ErrRepoNotFound         = errors.New("repository not found")
 	ErrEmailTaken           = errors.New("email is already taken")
 	ErrInvalidEmail         = errors.New("email must be a valid address")
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
@@ -32,6 +34,7 @@ const MaxPinnedRepos = 6
 // UserService manages user account operations including authentication and profile updates.
 type UserService struct {
 	store *store.UserStore
+	repos *RepoService
 	cfg   config.AuthConfig
 }
 
@@ -188,29 +191,64 @@ func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (s
 	return s.generateJWT(u)
 }
 
-// PinnedRepoIDs returns the user's pinned repo IDs in pin order.
-func (s *UserService) PinnedRepoIDs(ctx context.Context, userID int64) ([]int64, error) {
-	return s.store.GetPinnedRepoIDs(ctx, userID)
+// Required by PinRepo and PinnedRepos, which apply repo visibility.
+func (s *UserService) WithRepoService(repos *RepoService) *UserService {
+	s.repos = repos
+	return s
 }
 
-// PinRepo appends repoID to the user's pinned list. It is idempotent (pinning
-// an already-pinned repo is a no-op) and returns ErrPinLimit if the user
-// already has MaxPinnedRepos distinct pins.
-func (s *UserService) PinRepo(ctx context.Context, userID, repoID int64) error {
+// PinnedRepos returns the pins viewerID can read, in pin order. Stored IDs of
+// deleted repos are skipped rather than erroring, since deletion doesn't unpin.
+func (s *UserService) PinnedRepos(ctx context.Context, userID int64, viewerID *int64) ([]model.Repository, error) {
 	ids, err := s.store.GetPinnedRepoIDs(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]model.Repository, 0, len(ids))
+	for _, id := range ids {
+		repo, err := s.repos.GetByID(ctx, id)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if s.repos.CanRead(ctx, repo, viewerID) {
+			out = append(out, *repo)
+		}
+	}
+	return out, nil
+}
+
+// PinRepo is idempotent. The limit counts only pins the user can still see —
+// the same set their profile shows — and pinning prunes the rest, so deleted
+// or now-unreadable repos don't hold slots the UI reports as free.
+func (s *UserService) PinRepo(ctx context.Context, userID, repoID int64) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrRepoNotFound
+	}
 	if err != nil {
 		return err
 	}
-	for _, id := range ids {
-		if id == repoID {
+	if !s.repos.CanRead(ctx, repo, &userID) {
+		return ErrRepoNotFound
+	}
+	pinned, err := s.PinnedRepos(ctx, userID, &userID)
+	if err != nil {
+		return err
+	}
+	ids := make([]int64, 0, len(pinned)+1)
+	for _, p := range pinned {
+		if p.ID == repoID {
 			return nil
 		}
+		ids = append(ids, p.ID)
 	}
 	if len(ids) >= MaxPinnedRepos {
 		return ErrPinLimit
 	}
-	ids = append(ids, repoID)
-	return s.store.SetPinnedRepoIDs(ctx, userID, ids)
+	return s.store.SetPinnedRepoIDs(ctx, userID, append(ids, repoID))
 }
 
 // UnpinRepo removes repoID from the user's pinned list. Removing a repo that

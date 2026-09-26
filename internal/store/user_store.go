@@ -503,7 +503,6 @@ func (s *UserStore) SetPinnedRepoIDs(ctx context.Context, userID int64, ids []in
 	return nil
 }
 
-// GetPinnedRepoIDs returns the user's pinned repo IDs in pin order.
 func (s *UserStore) GetPinnedRepoIDs(ctx context.Context, userID int64) ([]int64, error) {
 	var raw string
 	err := s.db.QueryRowContext(ctx,

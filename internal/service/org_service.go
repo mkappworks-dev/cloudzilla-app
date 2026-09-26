@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/url"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -27,12 +28,18 @@ type OrgService struct {
 	orgs  *store.OrgStore
 	repos *store.RepoStore
 	users *store.UserStore
+	stars *store.StarStore
 	cfg   config.GitConfig
 }
 
 // NewOrgService creates an OrgService backed by the given stores and git config.
 func NewOrgService(orgs *store.OrgStore, repos *store.RepoStore, users *store.UserStore, cfg config.GitConfig) *OrgService {
 	return &OrgService{orgs: orgs, repos: repos, users: users, cfg: cfg}
+}
+
+func (s *OrgService) WithStarStore(stars *store.StarStore) *OrgService {
+	s.stars = stars
+	return s
 }
 
 func (s *OrgService) Create(ctx context.Context, creatorUserID int64, name, displayName, description string) (*model.Organization, error) {
@@ -356,6 +363,63 @@ func (s *OrgService) ListReposVisibleTo(ctx context.Context, orgID int64, viewer
 		}
 	}
 	return visible, nil
+}
+
+// OrgRepoHighlights are the repo cards on an org's overview.
+type OrgRepoHighlights struct {
+	Featured []model.RepositoryWithStats
+	Recent   []model.RepositoryWithStats
+}
+
+// RepoHighlights ranks the repos the caller already filtered for the viewer.
+// Orgs have no pin storage, so Featured stands in with the most-starred public
+// repos until an org equivalent of users.pinned_repo_ids exists. Recent is
+// newest-updated first and skips anything already featured.
+func (s *OrgService) RepoHighlights(ctx context.Context, repos []model.Repository, featuredLimit, recentLimit int) (*OrgRepoHighlights, error) {
+	ids := make([]int64, len(repos))
+	for i, r := range repos {
+		ids[i] = r.ID
+	}
+	stars, err := s.stars.CountByRepoIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	withStars := make([]model.RepositoryWithStats, len(repos))
+	for i, r := range repos {
+		withStars[i] = model.RepositoryWithStats{Repository: r, StarCount: stars[r.ID]}
+	}
+
+	byStars := make([]model.RepositoryWithStats, 0, len(withStars))
+	for _, r := range withStars {
+		if !r.Private {
+			byStars = append(byStars, r)
+		}
+	}
+	sort.SliceStable(byStars, func(i, j int) bool {
+		if byStars[i].StarCount != byStars[j].StarCount {
+			return byStars[i].StarCount > byStars[j].StarCount
+		}
+		return byStars[i].UpdatedAt.After(byStars[j].UpdatedAt)
+	})
+	featured := byStars[:min(featuredLimit, len(byStars))]
+
+	featuredIDs := make(map[int64]bool, len(featured))
+	for _, r := range featured {
+		featuredIDs[r.ID] = true
+	}
+	sort.SliceStable(withStars, func(i, j int) bool {
+		return withStars[i].UpdatedAt.After(withStars[j].UpdatedAt)
+	})
+	recent := make([]model.RepositoryWithStats, 0, min(recentLimit, len(withStars)))
+	for _, r := range withStars {
+		if len(recent) >= recentLimit {
+			break
+		}
+		if !featuredIDs[r.ID] {
+			recent = append(recent, r)
+		}
+	}
+	return &OrgRepoHighlights{Featured: featured, Recent: recent}, nil
 }
 
 // TransferOrg transfers ownership of an org from the requesting user to another user.

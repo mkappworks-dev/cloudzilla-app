@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -98,30 +97,23 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 	var pinned []components.PinnedRepoData
 	pinnedIDs := map[int64]bool{}
 	if tab == "overview" {
-		ids, err := h.Services.User.PinnedRepoIDs(r.Context(), user.ID)
+		pinnedRepos, err := h.Services.User.PinnedRepos(r.Context(), user.ID, viewerID)
 		if err != nil {
 			slog.Warn("user profile: failed to load pinned repositories", "username", username, "error", err)
-			ids = nil
+			pinnedRepos = nil
 		}
-		for _, rid := range ids {
-			pinnedIDs[rid] = true
-			rp, err := h.Services.Repo.GetByID(r.Context(), rid)
-			if err != nil || rp == nil {
-				continue
-			}
-			if !h.Services.Repo.CanRead(r.Context(), rp, viewerID) {
-				continue
-			}
-			lang, _ := h.Services.Language.TopLanguageFor(r.Context(), rp.OwnerName, rp.Name, rp.DefaultBranch)
-			stars, _ := h.Services.Star.GetStarCount(r.Context(), rp.ID)
-			pinned = append(pinned, components.PinnedRepoData{
-				OwnerName:     rp.OwnerName,
-				Name:          rp.Name,
-				Description:   rp.Description,
-				Language:      lang,
-				LanguageColor: components.LangColor(lang),
-				Stars:         stars,
-			})
+		ids := make([]int64, len(pinnedRepos))
+		for i, rp := range pinnedRepos {
+			ids[i] = rp.ID
+		}
+		stars, err := h.Services.Star.CountByRepoIDs(r.Context(), ids)
+		if err != nil {
+			slog.Warn("user profile: failed to load pinned star counts", "username", username, "error", err)
+			stars = map[int64]int{}
+		}
+		for _, rp := range pinnedRepos {
+			pinnedIDs[rp.ID] = true
+			pinned = append(pinned, repoCard(rp, h.Services.Language.PrimaryLanguage(r.Context(), &rp), stars[rp.ID]))
 		}
 	}
 
@@ -134,18 +126,10 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		heatmap = map[time.Time]int{}
 	}
 
-	langPcts, err := h.Services.Language.AggregateForUser(r.Context(), user.ID, 5)
+	langPcts, err := h.Services.Language.AggregateForUser(r.Context(), user.Username, viewerID, 5)
 	if err != nil {
 		slog.Warn("user profile: failed to load language stats", "username", username, "error", err)
 		langPcts = nil
-	}
-	topLangs := make([]components.LangBarItem, 0, len(langPcts))
-	for _, p := range langPcts {
-		topLangs = append(topLangs, components.LangBarItem{
-			Name:    p.Name,
-			Percent: p.Percent,
-			Color:   components.LangColor(p.Name),
-		})
 	}
 
 	orgs, err := h.Services.Org.ListMembershipsForUser(r.Context(), user.ID)
@@ -187,7 +171,7 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		PinnedRepos:              pinned,
 		PinnedRepoIDs:            pinnedIDs,
 		Heatmap:                  heatmap,
-		TopLangs:                 topLangs,
+		TopLangs:                 langBarItems(langPcts),
 		Orgs:                     orgs,
 		HasProfileRepo:           hasProfileRepo,
 		ProfileRepoDefaultBranch: profileRepoDefaultBranch,
@@ -454,24 +438,23 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	showAllRepos := r.URL.Query().Get("tab") == "repositories"
 
 	var pinned, recent []components.PinnedRepoData
+	featuredLimit, recentLimit := 4, 4
 	if showAllRepos {
-		recent = buildOrgRecent(r.Context(), h, org.Name, repos, nil, len(repos))
+		featuredLimit, recentLimit = 0, len(repos)
+	}
+	highlights, err := h.Services.Org.RepoHighlights(r.Context(), repos, featuredLimit, recentLimit)
+	if err != nil {
+		slog.Warn("org profile: failed to rank repositories", "org", org.Name, "error", err)
 	} else {
-		// Pinned repos: until we have org-level pin storage, surface the four
-		// most-starred public repos so the section still feels curated.
-		pinned = buildOrgPinned(r.Context(), h, org.Name, repos, 4)
-
-		// Recently updated repos for the "Recently updated" list — exclude the
-		// ones we already showed as pinned.
-		pinnedKeys := map[string]struct{}{}
-		for _, p := range pinned {
-			pinnedKeys[p.OwnerName+"/"+p.Name] = struct{}{}
-		}
-		recent = buildOrgRecent(r.Context(), h, org.Name, repos, pinnedKeys, 4)
+		pinned = repoCards(highlights.Featured)
+		recent = repoCards(highlights.Recent)
 	}
 
-	// Top languages aggregated from each repo's primary_language column.
-	topLangs := aggregateOrgLanguages(repos, 5)
+	langPcts, err := h.Services.Language.AggregateForOrg(r.Context(), org.ID, viewerID, 5)
+	if err != nil {
+		slog.Warn("org profile: failed to load language stats", "org", org.Name, "error", err)
+		langPcts = nil
+	}
 
 	// Profile README — render the README.md from the repo named after the
 	// org, mirroring the user-profile convention.
@@ -496,125 +479,43 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 		PinnedRepos:   pinned,
 		RecentRepos:   recent,
 		ShowAllRepos:  showAllRepos,
-		TopLangs:      topLangs,
+		TopLangs:      langBarItems(langPcts),
 		ViewerRole:    viewerRole,
 		ViewerJoined:  viewerJoined,
 	}))
 }
 
-// buildOrgPinned returns up to `limit` PinnedRepoData built from the org's
-// most-starred public repos. Stars and primary language are fetched per repo.
-func buildOrgPinned(ctx context.Context, h *Handler, orgName string, repos []model.Repository, limit int) []components.PinnedRepoData {
-	type scored struct {
-		repo  model.Repository
-		stars int
+func repoCard(repo model.Repository, lang string, stars int) components.PinnedRepoData {
+	return components.PinnedRepoData{
+		OwnerName:     repo.OwnerName,
+		Name:          repo.Name,
+		Description:   repo.Description,
+		Language:      lang,
+		LanguageColor: components.LangColor(lang),
+		Stars:         stars,
 	}
-	candidates := make([]scored, 0, len(repos))
-	for _, repo := range repos {
-		if repo.Private {
-			continue
-		}
-		stars, _ := h.Services.Star.GetStarCount(ctx, repo.ID)
-		candidates = append(candidates, scored{repo: repo, stars: stars})
-	}
-	sort.Slice(candidates, func(i, j int) bool {
-		if candidates[i].stars != candidates[j].stars {
-			return candidates[i].stars > candidates[j].stars
-		}
-		return candidates[i].repo.UpdatedAt.After(candidates[j].repo.UpdatedAt)
-	})
-	if len(candidates) > limit {
-		candidates = candidates[:limit]
-	}
-	out := make([]components.PinnedRepoData, 0, len(candidates))
-	for _, c := range candidates {
+}
+
+// Org cards read only the cached column: the repositories tab renders every
+// repo, and a tree walk per uncached repo would stall the page.
+func repoCards(repos []model.RepositoryWithStats) []components.PinnedRepoData {
+	out := make([]components.PinnedRepoData, 0, len(repos))
+	for _, r := range repos {
 		lang := ""
-		if c.repo.PrimaryLanguage != nil {
-			lang = *c.repo.PrimaryLanguage
+		if r.PrimaryLanguage != nil {
+			lang = *r.PrimaryLanguage
 		}
-		out = append(out, components.PinnedRepoData{
-			OwnerName:     orgName,
-			Name:          c.repo.Name,
-			Description:   c.repo.Description,
-			Language:      lang,
-			LanguageColor: components.LangColor(lang),
-			Stars:         c.stars,
-		})
+		out = append(out, repoCard(r.Repository, lang, r.StarCount))
 	}
 	return out
 }
 
-// buildOrgRecent returns up to `limit` PinnedRepoData for the org's most
-// recently updated repos, skipping any already surfaced in `exclude`.
-func buildOrgRecent(ctx context.Context, h *Handler, orgName string, repos []model.Repository, exclude map[string]struct{}, limit int) []components.PinnedRepoData {
-	sorted := make([]model.Repository, len(repos))
-	copy(sorted, repos)
-	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].UpdatedAt.After(sorted[j].UpdatedAt)
-	})
-	out := make([]components.PinnedRepoData, 0, limit)
-	for _, repo := range sorted {
-		if _, skip := exclude[orgName+"/"+repo.Name]; skip {
-			continue
-		}
-		stars, _ := h.Services.Star.GetStarCount(ctx, repo.ID)
-		lang := ""
-		if repo.PrimaryLanguage != nil {
-			lang = *repo.PrimaryLanguage
-		}
-		out = append(out, components.PinnedRepoData{
-			OwnerName:     orgName,
-			Name:          repo.Name,
-			Description:   repo.Description,
-			Language:      lang,
-			LanguageColor: components.LangColor(lang),
-			Stars:         stars,
-		})
-		if len(out) >= limit {
-			break
-		}
-	}
-	return out
-}
-
-// aggregateOrgLanguages computes the percentage breakdown of primary languages
-// across the org's repos. Uses each repo's primary_language column rather than
-// per-file byte counts so the result is one cheap query slice.
-func aggregateOrgLanguages(repos []model.Repository, limit int) []components.LangBarItem {
-	counts := map[string]int{}
-	total := 0
-	for _, repo := range repos {
-		if repo.PrimaryLanguage == nil || *repo.PrimaryLanguage == "" {
-			continue
-		}
-		counts[*repo.PrimaryLanguage]++
-		total++
-	}
-	if total == 0 {
-		return nil
-	}
-	type kv struct {
-		Name  string
-		Count int
-	}
-	pairs := make([]kv, 0, len(counts))
-	for name, c := range counts {
-		pairs = append(pairs, kv{Name: name, Count: c})
-	}
-	sort.Slice(pairs, func(i, j int) bool {
-		if pairs[i].Count != pairs[j].Count {
-			return pairs[i].Count > pairs[j].Count
-		}
-		return pairs[i].Name < pairs[j].Name
-	})
-	if len(pairs) > limit {
-		pairs = pairs[:limit]
-	}
-	out := make([]components.LangBarItem, 0, len(pairs))
-	for _, p := range pairs {
+func langBarItems(pcts []service.LangPercent) []components.LangBarItem {
+	out := make([]components.LangBarItem, 0, len(pcts))
+	for _, p := range pcts {
 		out = append(out, components.LangBarItem{
 			Name:    p.Name,
-			Percent: int(float64(p.Count) / float64(total) * 100.0),
+			Percent: p.Percent,
 			Color:   components.LangColor(p.Name),
 		})
 	}

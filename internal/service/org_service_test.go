@@ -4,8 +4,11 @@ package service_test
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -357,5 +360,72 @@ func TestOrgService_UpdateProfile_BareHostGetsHTTPS(t *testing.T) {
 	}
 	if got.Website != "https://acme.dev" {
 		t.Errorf("stored website = %q, want %q", got.Website, "https://acme.dev")
+	}
+}
+
+func TestOrgService_RepoHighlights(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	stargazers := make([]int64, 5)
+	for i := range stargazers {
+		stargazers[i] = testutil.SeedUser(t, db, fmt.Sprintf("%s_star%d", suffix, i))
+	}
+
+	now := time.Now()
+	specs := []struct {
+		name    string
+		private bool
+		stars   int
+		age     time.Duration
+	}{
+		{"popular", false, 2, 3 * time.Hour},
+		{"fresh", false, 0, 1 * time.Hour},
+		{"secret", true, 5, 0},
+		{"liked", false, 1, 2 * time.Hour},
+		{"stale", false, 0, 4 * time.Hour},
+	}
+	repos := make([]model.Repository, len(specs))
+	for i, sp := range specs {
+		id := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix+"_"+sp.name)
+		for _, uid := range stargazers[:sp.stars] {
+			if _, err := db.ExecContext(ctx, `INSERT INTO stars (user_id, repo_id) VALUES ($1, $2)`, uid, id); err != nil {
+				t.Fatalf("star %s: %v", sp.name, err)
+			}
+		}
+		repos[i] = model.Repository{ID: id, Name: sp.name, Private: sp.private, UpdatedAt: now.Add(-sp.age)}
+	}
+
+	svc := service.NewOrgService(store.NewOrgStore(db), store.NewRepoStore(db), store.NewUserStore(db), config.GitConfig{}).
+		WithStarStore(store.NewStarStore(db))
+	cards := func(rs []model.RepositoryWithStats) []string {
+		out := make([]string, len(rs))
+		for i, r := range rs {
+			out[i] = fmt.Sprintf("%s:%d", r.Name, r.StarCount)
+		}
+		return out
+	}
+
+	got, err := svc.RepoHighlights(ctx, repos, 2, 2)
+	if err != nil {
+		t.Fatalf("RepoHighlights: %v", err)
+	}
+	if want := []string{"popular:2", "liked:1"}; !reflect.DeepEqual(cards(got.Featured), want) {
+		t.Errorf("featured = %v, want %v (most-starred public repos)", cards(got.Featured), want)
+	}
+	if want := []string{"secret:5", "fresh:0"}; !reflect.DeepEqual(cards(got.Recent), want) {
+		t.Errorf("recent = %v, want %v (newest first, featured skipped)", cards(got.Recent), want)
+	}
+
+	all, err := svc.RepoHighlights(ctx, repos, 0, len(repos))
+	if err != nil {
+		t.Fatalf("RepoHighlights all: %v", err)
+	}
+	if len(all.Featured) != 0 {
+		t.Errorf("featured with limit 0 = %v, want none", cards(all.Featured))
+	}
+	if want := []string{"secret:5", "fresh:0", "liked:1", "popular:2", "stale:0"}; !reflect.DeepEqual(cards(all.Recent), want) {
+		t.Errorf("all recent = %v, want %v", cards(all.Recent), want)
 	}
 }
