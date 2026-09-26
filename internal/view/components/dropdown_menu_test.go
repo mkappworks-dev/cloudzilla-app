@@ -3,6 +3,7 @@ package components
 import (
 	"bytes"
 	"context"
+	"slices"
 	"strings"
 	"testing"
 
@@ -18,8 +19,6 @@ func renderMenuItem(t *testing.T, attrs templ.Attributes) string {
 	return buf.String()
 }
 
-// Browsers keep the first of duplicate attributes, so a caller's type must
-// replace the default rather than follow it.
 func TestDropdownMenuItem_TypeOverride(t *testing.T) {
 	out := renderMenuItem(t, templ.Attributes{"type": "submit"})
 	if n := strings.Count(out, "type="); n != 1 {
@@ -32,7 +31,27 @@ func TestDropdownMenuItem_TypeOverride(t *testing.T) {
 
 func TestDropdownMenuItem_DefaultTypeButton(t *testing.T) {
 	out := renderMenuItem(t, nil)
+	if n := strings.Count(out, "type="); n != 1 {
+		t.Fatalf("want exactly one type attribute, got %d in %s", n, out)
+	}
 	if !strings.Contains(out, `type="button"`) {
 		t.Errorf("want default type=\"button\", got %s", out)
+	}
+}
+
+func TestDropdownMenuItem_TypeAndClassOverride(t *testing.T) {
+	out := renderMenuItem(t, templ.Attributes{"type": "submit", "class": "text-destructive"})
+	if n := strings.Count(out, "type="); n != 1 {
+		t.Fatalf("want exactly one type attribute, got %d in %s", n, out)
+	}
+	if !strings.Contains(out, `type="submit"`) {
+		t.Errorf("want type=\"submit\", got %s", out)
+	}
+	classes := classAttr.FindAllStringSubmatch(out, -1)
+	if len(classes) != 1 {
+		t.Fatalf("want exactly one class attribute, got %d in %s", len(classes), out)
+	}
+	if !slices.Contains(strings.Fields(classes[0][1]), "text-destructive") {
+		t.Errorf("caller class missing from %q", classes[0][1])
 	}
 }

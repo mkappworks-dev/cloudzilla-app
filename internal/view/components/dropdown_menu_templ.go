@@ -152,6 +152,7 @@ func DropdownMenuContent(align DropdownMenuAlign) templ.Component {
 	})
 }
 
+// Defaults to type="button", so an item that submits its enclosing form (e.g. the account menu's Sign out) must pass {"type": "submit"}.
 func DropdownMenuItem(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -177,7 +178,7 @@ func DropdownMenuItem(attrs templ.Attributes) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(withDefaultButtonType(attrs), "flex w-full items-center gap-2 px-2 py-1.5 rounded-sm text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:opacity-50 disabled:pointer-events-none"))
+		templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(withDefaults(attrs, templ.Attributes{"type": "button"}), "flex w-full items-center gap-2 px-2 py-1.5 rounded-sm text-left hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:opacity-50 disabled:pointer-events-none"))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -195,17 +196,6 @@ func DropdownMenuItem(attrs templ.Attributes) templ.Component {
 		}
 		return nil
 	})
-}
-
-// withDefaultButtonType sets type="button" unless the caller chose a type:
-// browsers keep the first of duplicate attributes, so the default can't
-// simply precede the spread.
-func withDefaultButtonType(attrs templ.Attributes) templ.Attributes {
-	out := templ.Attributes{"type": "button"}
-	for k, v := range attrs {
-		out[k] = v
-	}
-	return out
 }
 
 func DropdownMenuLink(href string, attrs templ.Attributes) templ.Component {
@@ -236,7 +226,7 @@ func DropdownMenuLink(href string, attrs templ.Attributes) templ.Component {
 		var templ_7745c5c3_Var6 templ.SafeURL
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(href))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/dropdown_menu.templ`, Line: 80, Col: 28}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/dropdown_menu.templ`, Line: 70, Col: 28}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
