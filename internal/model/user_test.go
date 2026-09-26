@@ -8,7 +8,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-// Login serializes the full model.User, so preference fields must stay out of its JSON form.
+// json:"-" is the only guard for preferences on any path that writes a model.User as JSON.
 func TestUser_JSONOmitsNotificationPreferences(t *testing.T) {
 	b, err := json.Marshal(model.User{})
 	if err != nil {

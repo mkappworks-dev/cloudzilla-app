@@ -8,7 +8,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-// publicUser is the user shape served to anyone but that user; model.User carries their email.
+// model.User carries the email; this is all anyone else may see.
 type publicUser struct {
 	ID        int64     `json:"id"`
 	Username  string    `json:"username"`
