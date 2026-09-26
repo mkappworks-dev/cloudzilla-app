@@ -120,7 +120,7 @@ make docker-down        # Stop and remove containers
 
 ### Local Development
 
-**Prerequisites:** Go 1.26+, PostgreSQL 14+ (or Docker, for the Postgres step below)
+**Prerequisites:** Go 1.27+, PostgreSQL 14+ (or Docker, for the Postgres step below)
 
 ```bash
 go mod tidy
