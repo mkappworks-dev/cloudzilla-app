@@ -322,8 +322,11 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnprocessableEntity, "merge blocked: "+err.Error())
 			return
 		}
-		authorName := claims.Username
-		authorEmail := claims.Username + "@localhost"
+		authorName, authorEmail, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to load user")
+			return
+		}
 		base := existingPR.BaseBranch
 		head := existingPR.HeadBranch
 		switch mergeStrategy {

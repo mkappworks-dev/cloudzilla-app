@@ -5,7 +5,10 @@ import "github.com/mkappworks-dev/cloudzilla-app/internal/model"
 // SettingsData holds template data for the user account settings page.
 type SettingsData struct {
 	BasePage
-	SSHKeys []model.SSHKey
+	SSHKeys          []model.SSHKey
+	Email            string
+	NoreplyEmail     string
+	KeepEmailPrivate bool
 }
 
 // NotificationsData holds template data for the notifications page.

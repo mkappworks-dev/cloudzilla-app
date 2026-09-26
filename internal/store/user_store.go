@@ -37,12 +37,12 @@ func (s *UserStore) GetByID(ctx context.Context, id int64) (*model.User, error) 
 	u := &model.User{}
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
+		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest, keep_email_private
 		 FROM users WHERE id = $1`,
 		id,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.KeepEmailPrivate)
 	if err != nil {
 		return nil, fmt.Errorf("user get by id: %w", err)
 	}
@@ -53,12 +53,12 @@ func (s *UserStore) GetByUsername(ctx context.Context, username string) (*model.
 	u := &model.User{}
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
+		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest, keep_email_private
 		 FROM users WHERE username = $1`,
 		username,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.KeepEmailPrivate)
 	if err != nil {
 		return nil, fmt.Errorf("user get by username: %w", err)
 	}
@@ -69,12 +69,12 @@ func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, 
 	u := &model.User{}
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
+		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest, keep_email_private
 		 FROM users WHERE email = $1`,
 		email,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.KeepEmailPrivate)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email: %w", err)
 	}
@@ -86,12 +86,12 @@ func (s *UserStore) GetByEmailWithRole(ctx context.Context, email string) (*mode
 	u := &model.User{}
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
+		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest, keep_email_private
 		 FROM users WHERE email = $1`,
 		email,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.KeepEmailPrivate)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email with role: %w", err)
 	}
@@ -102,12 +102,12 @@ func (s *UserStore) GetByOAuthID(ctx context.Context, provider, oauthID string) 
 	u := &model.User{}
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
+		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest, keep_email_private
 		 FROM users WHERE oauth_provider = $1 AND oauth_id = $2 LIMIT 1`,
 		provider, oauthID,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.KeepEmailPrivate)
 	if err != nil {
 		return nil, fmt.Errorf("user get by oauth id: %w", err)
 	}
@@ -131,11 +131,11 @@ func (s *UserStore) CreateOAuthUser(ctx context.Context, username, email, provid
 		`INSERT INTO users (username, email, password_hash, oauth_provider, oauth_id, avatar_url)
 		 VALUES ($1, $2, '', $3, $4, $5)
 		 RETURNING id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		           is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest`,
+		           is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest, keep_email_private`,
 		username, email, provider, oauthID, avatarURL,
 	).Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest)
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.KeepEmailPrivate)
 	if err != nil {
 		return nil, fmt.Errorf("user create oauth: %w", err)
 	}
@@ -192,14 +192,14 @@ func (s *UserStore) GetByIDWithTOTP(ctx context.Context, id int64) (*model.User,
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
 		        is_superadmin, is_invited, totp_secret, totp_enabled,
 		        totp_backup_codes::text,
-		        created_at, updated_at, email_notifications, email_digest
+		        created_at, updated_at, email_notifications, email_digest, keep_email_private
 		 FROM users WHERE id = $1`,
 		id,
 	).Scan(
 		&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
 		&u.TOTPSecret, &u.TOTPEnabled, &backupCodesStr,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest,
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.KeepEmailPrivate,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user get by id with totp: %w", err)
@@ -219,14 +219,14 @@ func (s *UserStore) GetByEmailWithTOTP(ctx context.Context, email string) (*mode
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
 		        is_superadmin, is_invited, totp_secret, totp_enabled,
 		        totp_backup_codes::text,
-		        created_at, updated_at, email_notifications, email_digest
+		        created_at, updated_at, email_notifications, email_digest, keep_email_private
 		 FROM users WHERE email = $1`,
 		email,
 	).Scan(
 		&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
 		&u.TOTPSecret, &u.TOTPEnabled, &backupCodesStr,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest,
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.KeepEmailPrivate,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email with totp: %w", err)
@@ -292,11 +292,22 @@ func (s *UserStore) UpdateEmailPrefs(ctx context.Context, userID int64, emailNot
 	return err
 }
 
+func (s *UserStore) UpdateKeepEmailPrivate(ctx context.Context, userID int64, keep bool) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users SET keep_email_private=$1, updated_at=NOW() WHERE id=$2`,
+		keep, userID,
+	)
+	if err != nil {
+		return fmt.Errorf("user update keep email private: %w", err)
+	}
+	return nil
+}
+
 // ListUsersForDigest returns users who have email notifications enabled with the given digest mode.
 func (s *UserStore) ListUsersForDigest(ctx context.Context, digestMode string) ([]model.User, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
+		        is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest, keep_email_private
 		 FROM users WHERE email_notifications = TRUE AND email_digest = $1`,
 		digestMode,
 	)
@@ -319,7 +330,7 @@ func (s *UserStore) GetManyByUsernames(ctx context.Context, usernames []string) 
 		args[i] = u
 	}
 	q := `SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-	             is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
+	             is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest, keep_email_private
 	      FROM users WHERE username IN (` + strings.Join(placeholders, ",") + `)`
 	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
@@ -370,7 +381,7 @@ func (s *UserStore) GetManyByIDs(ctx context.Context, ids []int64) ([]model.User
 		args[i] = id
 	}
 	q := `SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-	             is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest
+	             is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest, keep_email_private
 	      FROM users WHERE id IN (` + strings.Join(placeholders, ",") + `)`
 	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
@@ -386,7 +397,7 @@ func scanFullUsers(rows *sql.Rows) ([]model.User, error) {
 		var u model.User
 		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
 			&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-			&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest); err != nil {
+			&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.KeepEmailPrivate); err != nil {
 			return nil, err
 		}
 		users = append(users, u)

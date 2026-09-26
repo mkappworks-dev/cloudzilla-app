@@ -17,6 +17,12 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, err := h.Services.User.GetByID(r.Context(), claims.UserID)
+	if err != nil {
+		http.Error(w, "failed to load user", http.StatusInternalServerError)
+		return
+	}
+
 	keys, err := h.Services.SSHKey.ListByUser(r.Context(), claims.UserID)
 	if err != nil {
 		keys = []model.SSHKey{}
@@ -26,8 +32,11 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.Settings(view.SettingsData{
-		BasePage: basePage(r, h.Services),
-		SSHKeys:  keys,
+		BasePage:         basePage(r, h.Services),
+		SSHKeys:          keys,
+		Email:            user.Email,
+		NoreplyEmail:     h.Services.User.NoreplyEmail(user),
+		KeepEmailPrivate: user.KeepEmailPrivate,
 	}))
 }
 

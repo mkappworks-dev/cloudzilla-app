@@ -146,7 +146,7 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 
 	if s.contributorStats != nil && s.code != nil && repo.OwnerName != "" {
 		for _, c := range commits {
-			user, err := s.users.GetByEmail(ctx, c.AuthorEmail)
+			user, err := userByAuthorEmail(ctx, s.users, c.AuthorEmail)
 			if errors.Is(err, sql.ErrNoRows) {
 				continue
 			}
