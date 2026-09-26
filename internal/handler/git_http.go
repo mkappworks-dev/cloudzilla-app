@@ -204,7 +204,7 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "failed to decompress", http.StatusBadRequest)
 			return
 		}
-		defer gr.Close()
+		defer func() { _ = gr.Close() }()
 		body = gr
 	}
 
@@ -287,7 +287,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "failed to decompress", http.StatusBadRequest)
 			return
 		}
-		defer gr.Close()
+		defer func() { _ = gr.Close() }()
 		body = io.NopCloser(gr)
 	}
 

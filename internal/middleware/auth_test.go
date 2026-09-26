@@ -69,16 +69,6 @@ func (s *stubPAT) Validate(_ context.Context, _ string) (*model.AccessToken, *mo
 }
 func (s *stubPAT) UpdateLastUsed(_ context.Context, _ int64) error { return nil }
 
-// stubOAuth is a test implementation of OAuthUserIDResolver.
-type stubOAuth struct {
-	uid int64
-	err error
-}
-
-func (s *stubOAuth) ResolveOAuthUserID(_ context.Context, _ string) (int64, error) {
-	return s.uid, s.err
-}
-
 // okHandler is a trivial 200 handler used as the wrapped next handler in middleware tests.
 func okHandler(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }
 

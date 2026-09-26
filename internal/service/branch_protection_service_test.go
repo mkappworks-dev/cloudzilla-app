@@ -207,8 +207,8 @@ func TestCheckMerge_SufficientReviews_Passes(t *testing.T) {
 		t.Fatalf("seed PR: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM pull_reviews WHERE pull_id = $1`, prID)
-		db.ExecContext(context.Background(), `DELETE FROM pull_requests WHERE id = $1`, prID)
+		testutil.Exec(t, db, `DELETE FROM pull_reviews WHERE pull_id = $1`, prID)
+		testutil.Exec(t, db, `DELETE FROM pull_requests WHERE id = $1`, prID)
 	})
 
 	reviewerID := testutil.SeedUser(t, db, "reviewer_"+suffix)
@@ -294,7 +294,7 @@ func TestCheckMerge_StatusCheckFailed_ReturnsError(t *testing.T) {
 		t.Fatalf("seed commit status: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(),
+		testutil.Exec(t, db,
 			`DELETE FROM commit_statuses WHERE repo_id = $1 AND sha = $2`, repoID, headSHA)
 	})
 
@@ -341,7 +341,7 @@ func TestCheckMerge_AllStatusChecksPassing_Passes(t *testing.T) {
 		}
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(),
+		testutil.Exec(t, db,
 			`DELETE FROM commit_statuses WHERE repo_id = $1 AND sha = $2`, repoID, headSHA)
 	})
 
