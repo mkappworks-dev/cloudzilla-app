@@ -195,7 +195,7 @@ func TestCreateIssueComment_NotifiesAuthorAfterRequestEnds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("post comment: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("want 201, got %d", resp.StatusCode)
 	}

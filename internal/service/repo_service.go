@@ -344,7 +344,7 @@ func seedInitialCommit(bareDir, defaultBranch string, sig object.Signature, init
 	if err != nil {
 		return fmt.Errorf("mkdir temp worktree: %w", err)
 	}
-	defer os.RemoveAll(workDir)
+	defer func() { _ = os.RemoveAll(workDir) }()
 
 	work, err := gogit.PlainInit(workDir, false)
 	if err != nil {
