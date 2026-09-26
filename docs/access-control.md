@@ -169,7 +169,7 @@ Superadmin generates token link → shares manually. No SMTP required.
 
 `is_invited` users always bypass `allow_registration` and `allow_login` checks.
 
-Accepted invitations stay in the table, so `/invite/{token}` for an accepted or expired invite renders a generic "no longer valid" message without the invitation — its email now belongs to a registered account.
+An invite is usable only while unaccepted, unexpired, and no account has its email (case-insensitive). Every other token, unknown ones included, gets the same generic "no longer valid" page without the invitation, because accepted invitations stay in the table and their email now belongs to a registered account.
 
 ---
 

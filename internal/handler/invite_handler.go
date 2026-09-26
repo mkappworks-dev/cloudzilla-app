@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -13,16 +16,8 @@ import (
 const invalidInvitationMessage = "This invitation link is no longer valid. Ask an administrator for a new one."
 
 func (h *Handler) PageInvite(w http.ResponseWriter, r *http.Request) {
-	token := chi.URLParam(r, "token")
-
-	inv, err := h.Services.Invitation.GetByToken(r.Context(), token)
-	if err != nil {
-		http.Error(w, "invitation not found", http.StatusNotFound)
-		return
-	}
-
-	if err := h.Services.Invitation.Validate(inv); err != nil {
-		h.renderInvalidInvitation(w, r)
+	inv, ok := h.usableInvitation(w, r)
+	if !ok {
 		return
 	}
 
@@ -30,16 +25,8 @@ func (h *Handler) PageInvite(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
-	token := chi.URLParam(r, "token")
-
-	inv, err := h.Services.Invitation.GetByToken(r.Context(), token)
-	if err != nil {
-		http.Error(w, "invitation not found", http.StatusNotFound)
-		return
-	}
-
-	if err := h.Services.Invitation.Validate(inv); err != nil {
-		h.renderInvalidInvitation(w, r)
+	inv, ok := h.usableInvitation(w, r)
+	if !ok {
 		return
 	}
 
@@ -91,8 +78,23 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// The invitation is withheld: an accepted invite's email is now a registered
-// account's, and the link is unauthenticated.
+// usableInvitation writes the response itself when it returns false.
+func (h *Handler) usableInvitation(w http.ResponseWriter, r *http.Request) (*model.Invitation, bool) {
+	inv, err := h.Services.Invitation.GetUsable(r.Context(), chi.URLParam(r, "token"))
+	if errors.Is(err, service.ErrInvitationUnusable) {
+		h.renderInvalidInvitation(w, r)
+		return nil, false
+	}
+	if err != nil {
+		slog.Error("invite: invitation lookup failed", "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return nil, false
+	}
+	return inv, true
+}
+
+// The invitation is withheld: its email may belong to a registered account,
+// and the link is unauthenticated.
 func (h *Handler) renderInvalidInvitation(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Error: invalidInvitationMessage}))
 }

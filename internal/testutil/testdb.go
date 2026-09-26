@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"golang.org/x/crypto/bcrypt"
@@ -93,6 +94,26 @@ func SeedSuperadmin(t *testing.T, db *sql.DB, suffix string) int64 {
 		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, id)
 	})
 	return id
+}
+
+// SeedInvitation inserts an invitation for email, sent by a fresh superadmin,
+// and returns its ID and token. Both rows are deleted when the test ends.
+func SeedInvitation(t *testing.T, db *sql.DB, email string, expiresAt time.Time) (id int64, token string) {
+	t.Helper()
+	inviterID := SeedSuperadmin(t, db, UniqueSuffix(t))
+	token = "testinvite_" + UniqueSuffix(t)
+	err := db.QueryRowContext(context.Background(),
+		`INSERT INTO invitations (token, email, invited_by_id, expires_at)
+		 VALUES ($1, $2, $3, $4) RETURNING id`,
+		token, email, inviterID, expiresAt,
+	).Scan(&id)
+	if err != nil {
+		t.Fatalf("SeedInvitation: %v", err)
+	}
+	t.Cleanup(func() {
+		db.ExecContext(context.Background(), `DELETE FROM invitations WHERE id = $1`, id)
+	})
+	return id, token
 }
 
 // SeedRepo inserts a test repository owned by ownerID and returns the repo ID.

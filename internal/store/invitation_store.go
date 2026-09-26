@@ -3,11 +3,19 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
+
+var ErrInvitationUnusable = errors.New("invitation is not usable")
+
+// An invite whose email already has an account is unusable: its page would
+// show that account's email to whoever holds the link.
+const usableInvitationCond = `accepted_at IS NULL AND expires_at > NOW()
+	AND NOT EXISTS (SELECT 1 FROM users WHERE lower(users.email) = lower(invitations.email))`
 
 // InvitationStore provides database operations for user invite tokens.
 type InvitationStore struct {
@@ -31,20 +39,18 @@ func (s *InvitationStore) Create(ctx context.Context, inv *model.Invitation) err
 	return nil
 }
 
-func (s *InvitationStore) GetByToken(ctx context.Context, token string) (*model.Invitation, error) {
+func (s *InvitationStore) GetUsableByToken(ctx context.Context, token string) (*model.Invitation, error) {
 	inv := &model.Invitation{}
-	var acceptedAt sql.NullTime
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, token, email, invited_by_id, expires_at, accepted_at, created_at
-		 FROM invitations WHERE token = $1`,
+		`SELECT id, token, email, invited_by_id, expires_at, created_at
+		 FROM invitations WHERE token = $1 AND `+usableInvitationCond,
 		token,
-	).Scan(&inv.ID, &inv.Token, &inv.Email, &inv.InvitedByID, &inv.ExpiresAt, &acceptedAt, &inv.CreatedAt)
-	if err != nil {
-		return nil, fmt.Errorf("invitation get by token: %w", err)
+	).Scan(&inv.ID, &inv.Token, &inv.Email, &inv.InvitedByID, &inv.ExpiresAt, &inv.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrInvitationUnusable
 	}
-	if acceptedAt.Valid {
-		t := acceptedAt.Time
-		inv.AcceptedAt = &t
+	if err != nil {
+		return nil, fmt.Errorf("invitation get usable by token: %w", err)
 	}
 	return inv, nil
 }
