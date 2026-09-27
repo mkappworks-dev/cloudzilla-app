@@ -49,16 +49,14 @@ func (h *Handler) UpdateProfileReadme(w http.ResponseWriter, r *http.Request) {
 
 	message := strings.TrimSpace(r.FormValue("message"))
 
-	authorName := user.Name
-	if strings.TrimSpace(authorName) == "" {
-		authorName = user.Username
-	}
-	authorEmail := user.Email
-	if authorEmail == "" {
-		authorEmail = user.Username + "@noreply.cloudzilla"
+	author, err := h.Services.User.CommitAuthor(r.Context(), user.ID)
+	if err != nil {
+		slog.Error("failed to resolve profile README author", "username", user.Username, "error", err)
+		redirectReadmeError(w, r, user.Username, "save_failed")
+		return
 	}
 
-	if err := h.Services.Code.SaveProfileReadme(user.Username, user.Username, repo.DefaultBranch, content, authorName, authorEmail, message); err != nil {
+	if err := h.Services.Code.SaveProfileReadme(user.Username, user.Username, repo.DefaultBranch, content, author, message); err != nil {
 		if errors.Is(err, service.ErrProfileRepoMissing) {
 			http.Redirect(w, r, "/repos/new?name="+url.QueryEscape(user.Username)+"&visibility=public&init_readme=1", http.StatusSeeOther)
 			return

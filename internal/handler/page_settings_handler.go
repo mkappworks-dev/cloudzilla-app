@@ -48,6 +48,7 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		OAuthAuthorizations: auths,
 		TOTPEnabled:         enabled,
 		NewToken:            r.URL.Query().Get("new_token"),
+		NoreplyEmail:        h.Services.User.NoreplyEmail(ctx, user),
 	}
 	if !enabled && secret.Valid && secret.String != "" {
 		data.TOTPPendingSecret = secret.String

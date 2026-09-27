@@ -28,6 +28,7 @@ type User struct {
 	EmailDigest        string         `db:"email_digest"        json:"-"`
 	NotifyPRReview     bool           `db:"notify_pr_review"    json:"-"`
 	NotifyMention      bool           `db:"notify_mention"      json:"-"`
+	KeepEmailPrivate   bool           `db:"keep_email_private"  json:"-"`
 }
 
 const (

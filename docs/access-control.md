@@ -207,6 +207,7 @@ Superadmin generates token link → shares manually. No SMTP required.
 | POST                  | `/settings/profile`                     | authMW | Own user                                                                       | UpdateProfile              |
 | POST                  | `/settings/profile-readme`              | authMW | Own user                                                                       | UpdateProfileReadme        |
 | POST                  | `/settings/notifications`               | authMW | Own user                                                                       | UpdateNotificationSettings |
+| POST                  | `/settings/email`                       | authMW | Own user                                                                       | UpdateEmailSettings        |
 | POST                  | `/settings/delete-account`              | authMW | Own user                                                                       | DeleteAccount              |
 | POST                  | `/settings/security/setup`              | authMW | Own user                                                                       | SetupTOTP                  |
 | POST                  | `/api/user/totp/enable`                 | authMW | Own user (claims.UserID)                                                       | EnableTOTP                 |

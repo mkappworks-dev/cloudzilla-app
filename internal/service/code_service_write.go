@@ -13,7 +13,7 @@ import (
 // after themselves; callers map this to a redirect to the create-repo flow.
 var ErrProfileRepoMissing = errors.New("profile repo does not exist")
 
-func (s *CodeService) SaveProfileReadme(owner, repoName, defaultBranch, content, authorName, authorEmail, message string) error {
+func (s *CodeService) SaveProfileReadme(owner, repoName, defaultBranch, content string, author GitAuthor, message string) error {
 	if strings.TrimSpace(defaultBranch) == "" {
 		defaultBranch = "main"
 	}
@@ -30,7 +30,7 @@ func (s *CodeService) SaveProfileReadme(owner, repoName, defaultBranch, content,
 	}
 
 	branchRef := plumbing.NewBranchReferenceName(defaultBranch)
-	if err := commitSingleFile(repo, branchRef, authorName, authorEmail, message, "README.md", []byte(content)); err != nil {
+	if err := commitSingleFile(repo, branchRef, author, message, "README.md", []byte(content)); err != nil {
 		return fmt.Errorf("profile readme commit: %w", err)
 	}
 	return nil

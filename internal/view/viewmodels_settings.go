@@ -16,6 +16,7 @@ type SettingsData struct {
 	TOTPOTPAuthURL      string
 	BackupCodes         []string
 	NewToken            string
+	NoreplyEmail        string
 	ProfileSaved        bool
 	ProfileError        string
 }

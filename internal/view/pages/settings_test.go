@@ -2,6 +2,7 @@ package pages_test
 
 import (
 	"context"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -194,7 +195,6 @@ func TestSettings_UnbuiltSectionsAreDisabled(t *testing.T) {
 	for _, s := range []struct{ id, closeTag string }{
 		{"export", "</li>"},
 		{"sessions", "</section>"},
-		{"emails", "</section>"},
 	} {
 		html := sectionHTML(t, out, s.id, s.closeTag)
 		if !strings.Contains(html, "Coming soon") {
@@ -214,6 +214,29 @@ func TestSettings_UnbuiltSectionsAreDisabled(t *testing.T) {
 	for _, leak := range []string{"/settings/export", "Export requested"} {
 		if strings.Contains(out, leak) {
 			t.Errorf("settings page still references %q", leak)
+		}
+	}
+}
+
+func TestSettings_EmailSectionPrivacyToggle(t *testing.T) {
+	for _, keep := range []bool{true, false} {
+		out := renderSettings(t, view.SettingsData{
+			User:         model.User{ID: 42, Username: "alice", Email: "alice@example.com", KeepEmailPrivate: keep},
+			NoreplyEmail: "42+alice@users.noreply.example.com",
+		})
+		html := sectionHTML(t, out, "email", "</section>")
+		if !strings.Contains(html, `hx-post="/settings/email"`) {
+			t.Errorf("keep=%v: email form does not post to /settings/email", keep)
+		}
+		if !strings.Contains(html, "42+alice@users.noreply.example.com") {
+			t.Errorf("keep=%v: noreply address not shown", keep)
+		}
+		checked := regexp.MustCompile(`<input[^>]*name="keep_email_private"[^>]*checked`).MatchString(html)
+		if checked != keep {
+			t.Errorf("keep=%v: toggle checked = %v", keep, checked)
+		}
+		if !strings.Contains(html, `<button type="button" disabled`) || !strings.Contains(html, "Coming soon") {
+			t.Errorf("keep=%v: Add email must stay a disabled coming-soon control", keep)
 		}
 	}
 }

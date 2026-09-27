@@ -32,14 +32,20 @@ const MaxPinnedRepos = 6
 
 // UserService manages user account operations including authentication and profile updates.
 type UserService struct {
-	store *store.UserStore
-	repos *RepoService
-	cfg   config.AuthConfig
+	store       *store.UserStore
+	repos       *RepoService
+	cfg         config.AuthConfig
+	noreplyHost string
 }
 
 // NewUserService creates a UserService backed by the given user store and auth config.
 func NewUserService(s *store.UserStore, cfg config.AuthConfig) *UserService {
-	return &UserService{store: s, cfg: cfg}
+	return &UserService{store: s, cfg: cfg, noreplyHost: defaultNoreplyHost}
+}
+
+func (s *UserService) WithNoreplyHostFrom(baseURL string) *UserService {
+	s.noreplyHost = noreplyHostFromBaseURL(baseURL)
+	return s
 }
 
 func (s *UserService) Create(ctx context.Context, username, email, password string) (*model.User, error) {
@@ -173,6 +179,25 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int64, name, ema
 // DeleteUser removes the user account. Related rows are removed via DB cascades.
 func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
 	return s.store.DeleteByID(ctx, userID)
+}
+
+func (s *UserService) UpdateKeepEmailPrivate(ctx context.Context, userID int64, keep bool) error {
+	return s.store.UpdateKeepEmailPrivate(ctx, userID, keep)
+}
+
+func (s *UserService) NoreplyEmail(_ context.Context, u *model.User) string {
+	return noreplyEmail(s.noreplyHost, u)
+}
+
+func (s *UserService) CommitAuthor(ctx context.Context, userID int64) (GitAuthor, error) {
+	u, err := s.store.GetByID(ctx, userID)
+	if err != nil {
+		return GitAuthor{}, err
+	}
+	if u.KeepEmailPrivate || u.Email == "" {
+		return GitAuthor{Name: u.Username, Email: s.NoreplyEmail(ctx, u)}, nil
+	}
+	return GitAuthor{Name: u.Username, Email: u.Email}, nil
 }
 
 // ListUsersForDigest returns users with email notifications enabled for the given digest mode.

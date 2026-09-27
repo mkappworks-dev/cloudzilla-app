@@ -360,7 +360,7 @@ func TestLanguageService_PrimaryLanguage_NameReusedAfterTransfer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create old repo: %v", err)
 	}
-	if err := code.CommitFile(alice, "foo", old.DefaultBranch, "main.go", []byte("package main\n"), "Tester", "tester@example.com", "add main"); err != nil {
+	if err := code.CommitFile(alice, "foo", old.DefaultBranch, "main.go", []byte("package main\n"), GitAuthor{Name: "Tester", Email: "tester@example.com"}, "add main"); err != nil {
 		t.Fatalf("commit main.go: %v", err)
 	}
 	if pcts, err := svc.AggregateForUser(ctx, alice, nil, 0); err != nil || langNames(pcts) != "Go" {
@@ -422,7 +422,7 @@ func TestRepoService_OnPostReceive_PrimaryLanguageFromPushedTree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve master: %v", err)
 	}
-	if err := code.CommitFile(owner, "pushed", "master", "main.go", []byte("package main\n"), "Tester", "tester@example.com", "add main"); err != nil {
+	if err := code.CommitFile(owner, "pushed", "master", "main.go", []byte("package main\n"), GitAuthor{Name: "Tester", Email: "tester@example.com"}, "add main"); err != nil {
 		t.Fatalf("commit main.go: %v", err)
 	}
 	after, err := gitRepo.Reference(branch, true)

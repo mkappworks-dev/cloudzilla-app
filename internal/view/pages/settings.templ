@@ -31,7 +31,7 @@ templ Settings(data view.SettingsData) {
 					@settingsNavLink("#notifications", "Notifications", false)
 					@settingsNavLink("#saved-replies", "Saved replies", false)
 					@settingsNavLink("#sessions", "Sessions", false)
-					@settingsNavLink("#emails", "Emails", false)
+					@settingsNavLink("#email", "Email", false)
 					<p class="font-mono text-[10px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-muted-foreground">Danger zone</p>
 					<a href="#delete" class="block px-3 py-1.5 rounded text-[13px] text-destructive hover:bg-destructive/10">Delete account</a>
 				</nav>
@@ -599,18 +599,18 @@ templ settingsSessionsSection(data view.SettingsData) {
 }
 
 templ settingsEmailsSection(data view.SettingsData) {
-	<section id="emails" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
+	<section id="email" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
 		<div class="flex items-start justify-between gap-4 mb-6">
 			<div class="min-w-0">
-				<h2 class="text-base font-semibold tracking-tight mb-1 inline-flex items-center gap-2">
-					Emails
-					@comingSoonBadge()
-				</h2>
-				<p class="text-[12.5px] text-muted-foreground">Addresses associated with your account.</p>
+				<h2 class="text-base font-semibold tracking-tight mb-1">Email</h2>
+				<p class="text-[12.5px] text-muted-foreground">Your address, and the author email on commits you make in the web UI.</p>
 			</div>
-			@comingSoonButton("Add email")
+			<span class="inline-flex items-center gap-2 shrink-0">
+				@comingSoonBadge()
+				@comingSoonButton("Add email")
+			</span>
 		</div>
-		<ul class="divide-y divide-border">
+		<ul class="divide-y divide-border mb-4">
 			<li class="py-3 flex items-center gap-3">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><path d="M4 4h16v16H4z"></path><path d="M22 6l-10 7L2 6"></path></svg>
 				<div class="min-w-0 flex-1">
@@ -620,6 +620,40 @@ templ settingsEmailsSection(data view.SettingsData) {
 				<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Primary</span>
 			</li>
 		</ul>
+		<form
+			id="email-settings-form"
+			method="POST"
+			action="/settings/email"
+			hx-post="/settings/email"
+			hx-trigger="change"
+			hx-swap="none"
+			data-toast="Email preference saved"
+		>
+			<label class="flex items-start justify-between gap-4 py-3 border-t border-border cursor-pointer">
+				<span class="min-w-0">
+					<span class="block text-sm font-medium text-foreground">Keep my email address private</span>
+					<span id="keep-email-private-help" class="block text-xs text-muted-foreground mt-0.5">
+						File edits, wiki changes, merges, applied suggestions, and profile README edits are authored as
+						<code class="text-[11px] bg-muted border border-border rounded px-1.5 py-0.5 font-mono break-words">{ data.NoreplyEmail }</code>
+						instead of your account email. Commit authors are visible to anyone who can read the repository.
+					</span>
+				</span>
+				<span class="relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5">
+					<input id="keep_email_private" type="checkbox" name="keep_email_private" checked?={ data.User.KeepEmailPrivate } aria-describedby="keep-email-private-help" class="peer sr-only"/>
+					<span class="absolute inset-0 rounded-full border border-border bg-muted transition-colors peer-checked:bg-success peer-checked:border-success"></span>
+					<span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform peer-checked:bg-background peer-checked:translate-x-4"></span>
+				</span>
+			</label>
+			<noscript>
+				@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
+					Save
+				}
+			</noscript>
+		</form>
+		<p class="text-[12px] text-muted-foreground mt-3">
+			Commits you push keep the email your git client sets. To keep those private too, run
+			<code class="mt-1.5 block w-fit max-w-full text-[11px] bg-muted border border-border rounded px-1.5 py-0.5 font-mono break-words">git config --global user.email { data.NoreplyEmail }</code>
+		</p>
 	</section>
 }
 

@@ -66,7 +66,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	languageSvc := NewLanguageService(code, repoSvc)
 	repoSvc.WithLanguageService(languageSvc)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
-	userSvc := NewUserService(stores.User, cfg.Auth).WithRepoService(repoSvc)
+	userSvc := NewUserService(stores.User, cfg.Auth).WithRepoService(repoSvc).WithNoreplyHostFrom(cfg.Server.BaseURL)
 	emailSvc := NewEmailService(cfg.SMTP)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)

@@ -30,7 +30,7 @@ func BackfillRepoStats(ctx context.Context, stats *store.ContributorStatsStore, 
 	for _, c := range walked {
 		uid, resolved := emailToUser[c.AuthorEmail]
 		if !resolved {
-			u, err := users.GetByEmail(ctx, c.AuthorEmail)
+			u, err := userByAuthorEmail(ctx, users, c.AuthorEmail)
 			if err != nil && !errors.Is(err, sql.ErrNoRows) {
 				return BackfillReport{}, err
 			}
