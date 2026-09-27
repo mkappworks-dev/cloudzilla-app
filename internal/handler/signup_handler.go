@@ -120,30 +120,9 @@ func (h *Handler) registrationOpen(w http.ResponseWriter, r *http.Request) bool 
 // usableSignup writes the response itself when it returns false.
 func (h *Handler) usableSignup(w http.ResponseWriter, r *http.Request) (*model.SignupToken, bool) {
 	signup, err := h.Services.Signup.GetUsable(r.Context(), chi.URLParam(r, "token"))
-	if errors.Is(err, service.ErrSignupTokenUnusable) {
-		h.renderInvalidSignupLink(w, r)
-		return nil, false
-	}
-	if err != nil {
-		slog.Error("signup: link lookup failed", "error", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return nil, false
-	}
-	return signup, true
+	return signup, h.linkLookupOK(w, r, err, service.ErrSignupTokenUnusable, h.renderInvalidSignupLink, "signup")
 }
 
 func (h *Handler) renderInvalidSignupLink(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, pages.RegisterComplete(view.RegisterCompleteData{BasePage: basePage(r, h.Services)}))
-}
-
-func (h *Handler) setAuthCookie(w http.ResponseWriter, token string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     h.Cfg.Auth.CookieName,
-		Value:    token,
-		HttpOnly: true,
-		Secure:   h.Cfg.Auth.CookieSecure,
-		Path:     "/",
-		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
-		SameSite: http.SameSiteLaxMode,
-	})
 }

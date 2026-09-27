@@ -3,7 +3,6 @@ package handler
 import (
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -49,15 +48,7 @@ func (h *Handler) PageSetupSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     h.Cfg.Auth.CookieName,
-		Value:    token,
-		HttpOnly: true,
-		Secure:   h.Cfg.Auth.CookieSecure,
-		Path:     "/",
-		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
-		SameSite: http.SameSiteLaxMode,
-	})
+	h.setAuthCookie(w, token)
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

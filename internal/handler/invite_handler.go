@@ -2,9 +2,7 @@ package handler
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -58,15 +56,7 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     h.Cfg.Auth.CookieName,
-		Value:    jwtToken,
-		HttpOnly: true,
-		Secure:   h.Cfg.Auth.CookieSecure,
-		Path:     "/",
-		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
-		SameSite: http.SameSiteLaxMode,
-	})
+	h.setAuthCookie(w, jwtToken)
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
@@ -74,16 +64,7 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 // usableInvitation writes the response itself when it returns false.
 func (h *Handler) usableInvitation(w http.ResponseWriter, r *http.Request) (*model.Invitation, bool) {
 	inv, err := h.Services.Invitation.GetUsable(r.Context(), chi.URLParam(r, "token"))
-	if errors.Is(err, service.ErrInvitationUnusable) {
-		h.renderInvalidInvitation(w, r)
-		return nil, false
-	}
-	if err != nil {
-		slog.Error("invite: invitation lookup failed", "error", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return nil, false
-	}
-	return inv, true
+	return inv, h.linkLookupOK(w, r, err, service.ErrInvitationUnusable, h.renderInvalidInvitation, "invite")
 }
 
 // The invitation is withheld: its email may belong to a registered account,
