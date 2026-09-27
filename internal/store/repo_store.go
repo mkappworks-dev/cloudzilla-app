@@ -3,11 +3,24 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
+
+// ErrRepoNameInUse signals a unique violation on (owner_id, name).
+var ErrRepoNameInUse = errors.New("repository name already in use")
+
+func repoWriteErr(op string, err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return ErrRepoNameInUse
+	}
+	return fmt.Errorf("%s: %w", op, err)
+}
 
 // RepoStore provides database operations for repositories and their permissions.
 type RepoStore struct {
@@ -44,7 +57,7 @@ func (s *RepoStore) CreateWithOwnerName(ctx context.Context, r *model.Repository
 		r.OwnerID, r.OwnerName, orgID, r.Name, r.Description, r.Private, r.DefaultBranch, now, now,
 	).Scan(&r.ID)
 	if err != nil {
-		return fmt.Errorf("repo create with owner name: %w", err)
+		return repoWriteErr("repo create with owner name", err)
 	}
 	r.CreatedAt = now
 	r.UpdatedAt = now
@@ -201,7 +214,7 @@ func (s *RepoStore) UpdateOwner(ctx context.Context, repoID, newOwnerID int64, n
 		newOwnerID, newOwnerName, time.Now().UTC(), repoID,
 	)
 	if err != nil {
-		return fmt.Errorf("update repo owner: %w", err)
+		return repoWriteErr("update repo owner", err)
 	}
 	return nil
 }
@@ -303,7 +316,7 @@ func (s *RepoStore) Fork(ctx context.Context, orig *model.Repository, newOwnerID
 		r.OwnerID, r.OwnerName, r.Name, r.Description, r.Private, r.DefaultBranch, orig.ID, now, now,
 	).Scan(&r.ID)
 	if err != nil {
-		return nil, fmt.Errorf("repo fork: %w", err)
+		return nil, repoWriteErr("repo fork", err)
 	}
 	r.CreatedAt = now
 	r.UpdatedAt = now

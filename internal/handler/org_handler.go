@@ -434,6 +434,10 @@ func (h *Handler) CreateOrgRepo(w http.ResponseWriter, r *http.Request) {
 		Gitignore: req.Gitignore,
 		License:   req.License,
 	})
+	if errors.Is(err, service.ErrRepoNameTaken) {
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
 	if err != nil {
 		slog.Error("failed to create org repo", "org", orgName, "error", err)
 		writeError(w, http.StatusUnprocessableEntity, "failed to create repository")

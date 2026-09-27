@@ -205,3 +205,40 @@ func TestCreateOrgRepo_OmittedPrivateUsesOrgDefault(t *testing.T) {
 		t.Error("explicit \"private\": false ignored")
 	}
 }
+
+// A directory left without a row must read as a taken name, not as a failure
+// that leaves a row bound to it.
+func TestCreateOrgRepo_LeftoverDir_422(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	router, svc := newOrgTestRouter(t, db)
+	ctx := context.Background()
+
+	org, err := svc.Org.Create(ctx, ownerID, "testorg_"+suffix, "", "")
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
+	post := func() *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/api/orgs/"+org.Name+"/repos", strings.NewReader(`{"name":"left"}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, ownerID, "testuser_"+suffix))
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+		return rr
+	}
+
+	if rr := post(); rr.Code != http.StatusCreated {
+		t.Fatalf("first create: want 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+	testutil.Exec(t, db, `DELETE FROM repositories WHERE owner_name = $1 AND name = 'left'`, org.Name)
+
+	rr := post()
+	if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), "already exists") {
+		t.Errorf("create over leftover dir: want 422 naming the conflict, got %d: %s", rr.Code, rr.Body.String())
+	}
+	if _, err := svc.Repo.Get(ctx, org.Name, "left"); err == nil {
+		t.Error("a row was bound to the leftover dir")
+	}
+}

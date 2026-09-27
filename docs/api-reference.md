@@ -96,6 +96,8 @@ Public user objects — returned by `GET /api/users/:username` and by `/api/repo
 
 Repository creation (here and under `/api/orgs/:org/repos`) accepts optional init options that seed an initial commit: `add_readme` (bool), `gitignore` (`Go`, `Node`, `Python`, `Rust`, `Java`, `C++`, `Ruby`), and `license` (`mit`, `apache-2.0`, `gpl-3.0`, `bsd-3-clause`, `unlicense`). An unknown template name leaves the repository empty rather than failing the request.
 
+Creating a repository (here, under `/api/orgs/:org/repos`, or from a template) with a name already used in that namespace returns 422 `a repository with that name already exists` and creates nothing. A directory left on disk without a repository row counts as used, so a new repository never takes over an earlier holder's data; a fork skips such names the same way it skips existing repositories.
+
 ## Issues
 
 | Method | Path                                                  | Auth     | Description                              |

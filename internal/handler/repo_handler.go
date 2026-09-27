@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -131,6 +132,10 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 		Gitignore: req.Gitignore,
 		License:   req.License,
 	})
+	if errors.Is(err, service.ErrRepoNameTaken) {
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
 	if err != nil {
 		slog.Error("failed to create repo", "error", err)
 		writeError(w, http.StatusUnprocessableEntity, "failed to create repository")

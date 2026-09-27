@@ -315,6 +315,10 @@ func (s *RepoService) Create(ctx context.Context, ownerUsername, name, descripti
 		return nil, fmt.Errorf("owner not found: %w", err)
 	}
 
+	repoPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, ownerUsername, name)
+	if err != nil {
+		return nil, err
+	}
 	r := &model.Repository{
 		OwnerID:       owner.ID,
 		OwnerName:     ownerUsername,
@@ -324,11 +328,11 @@ func (s *RepoService) Create(ctx context.Context, ownerUsername, name, descripti
 		DefaultBranch: "main",
 	}
 	if err := s.repos.CreateWithOwnerName(ctx, r); err != nil {
-		return nil, err
+		abandonNewRepo(ctx, s.repos, 0, repoPath)
+		return nil, repoNameErr("create repo", err)
 	}
-
-	repoPath := filepath.Join(s.cfg.ReposRoot, ownerUsername, name+".git")
 	if _, err := gogit.PlainInit(repoPath, true); err != nil {
+		abandonNewRepo(ctx, s.repos, r.ID, repoPath)
 		return nil, fmt.Errorf("git init bare: %w", err)
 	}
 
@@ -624,34 +628,30 @@ func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName stri
 		return nil, fmt.Errorf("access denied")
 	}
 
-	// Determine fork name (avoid collision)
-	forkName := originalName
-	for i := 1; ; i++ {
-		_, err := s.repos.GetByOwnerName(ctx, actorUsername, forkName)
-		if err != nil {
-			break // name is available
+	var forkName, dstPath string
+	for i := 0; ; i++ {
+		forkName = originalName
+		if i > 0 {
+			forkName = fmt.Sprintf("%s-%d", originalName, i)
 		}
-		forkName = fmt.Sprintf("%s-%d", originalName, i)
+		dstPath, err = claimRepo(ctx, s.repos, s.cfg.ReposRoot, actorUsername, forkName)
+		if !errors.Is(err, ErrRepoNameTaken) {
+			break
+		}
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	forked, err := s.repos.Fork(ctx, orig, actorID, actorUsername, forkName)
 	if err != nil {
-		return nil, fmt.Errorf("fork db record: %w", err)
+		abandonNewRepo(ctx, s.repos, 0, dstPath)
+		return nil, repoNameErr("fork db record", err)
 	}
 
-	// Copy the bare git repo directory
-	srcPath := filepath.Join(s.cfg.ReposRoot, originalOwner, originalName+".git")
-	dstDir := filepath.Join(s.cfg.ReposRoot, actorUsername)
-	dstPath := filepath.Join(dstDir, forkName+".git")
-
-	if err := os.MkdirAll(dstDir, 0755); err != nil {
-		_ = s.repos.DecrementForkCount(ctx, orig.ID)
-		return nil, fmt.Errorf("create owner dir: %w", err)
-	}
-
+	srcPath, _ := repoDirs(s.cfg.ReposRoot, originalOwner, originalName)
 	if err := copyDir(srcPath, dstPath); err != nil {
-		// Rollback DB record
-		_, _ = ctx, forked // best effort
+		abandonNewRepo(ctx, s.repos, forked.ID, dstPath)
 		return nil, fmt.Errorf("copy git dir: %w", err)
 	}
 
@@ -801,6 +801,9 @@ func (s *RepoService) UpdateVisibility(ctx context.Context, repoID, userID int64
 }
 
 func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, newOwnerID int64, newOwnerUsername, newName, description string) (*model.Repository, error) {
+	if err := ValidateName(newName); err != nil {
+		return nil, fmt.Errorf("invalid repository name: %w", err)
+	}
 	tmpl, err := s.repos.GetByID(ctx, templateRepoID)
 	if err != nil {
 		return nil, fmt.Errorf("template repo not found: %w", err)
@@ -815,6 +818,10 @@ func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, ne
 		return nil, fmt.Errorf("template repo is archived")
 	}
 
+	dstPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, newOwnerUsername, newName)
+	if err != nil {
+		return nil, err
+	}
 	newRepo := &model.Repository{
 		OwnerID:       newOwnerID,
 		OwnerName:     newOwnerUsername,
@@ -824,28 +831,19 @@ func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, ne
 		DefaultBranch: tmpl.DefaultBranch,
 	}
 	if err := s.repos.CreateWithOwnerName(ctx, newRepo); err != nil {
-		return nil, fmt.Errorf("create repo from template: %w", err)
+		abandonNewRepo(ctx, s.repos, 0, dstPath)
+		return nil, repoNameErr("create repo from template", err)
 	}
 
-	srcPath := filepath.Join(s.cfg.ReposRoot, tmpl.OwnerName, tmpl.Name+".git")
-	dstDir := filepath.Join(s.cfg.ReposRoot, newOwnerUsername)
-	dstPath := filepath.Join(dstDir, newName+".git")
-
-	if err := os.MkdirAll(dstDir, 0755); err != nil {
-		_ = s.repos.DeleteByID(ctx, newRepo.ID)
-		return nil, fmt.Errorf("create owner dir: %w", err)
-	}
-
+	srcPath, _ := repoDirs(s.cfg.ReposRoot, tmpl.OwnerName, tmpl.Name)
 	if _, statErr := os.Stat(srcPath); statErr == nil {
 		if err := copyDir(srcPath, dstPath); err != nil {
-			_ = s.repos.DeleteByID(ctx, newRepo.ID)
+			abandonNewRepo(ctx, s.repos, newRepo.ID, dstPath)
 			return nil, fmt.Errorf("copy template git dir: %w", err)
 		}
-	} else {
-		if _, err := gogit.PlainInit(dstPath, true); err != nil {
-			_ = s.repos.DeleteByID(ctx, newRepo.ID)
-			return nil, fmt.Errorf("git init bare for template copy: %w", err)
-		}
+	} else if _, err := gogit.PlainInit(dstPath, true); err != nil {
+		abandonNewRepo(ctx, s.repos, newRepo.ID, dstPath)
+		return nil, fmt.Errorf("git init bare for template copy: %w", err)
 	}
 
 	return newRepo, nil
@@ -954,6 +952,11 @@ func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, 
 
 	oldGitDir, oldWikiDir := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
 	newGitDir, newWikiDir := repoDirs(s.cfg.ReposRoot, newOwnerUsername, repo.Name)
+	// os.Rename refuses an existing dir, but a repo without a wiki skips the
+	// wiki move and would pick up whatever wiki waits at the new path.
+	if pathTaken(newGitDir) || pathTaken(newWikiDir) {
+		return ErrRepoNameTaken
+	}
 
 	if err := os.MkdirAll(filepath.Dir(newGitDir), 0755); err != nil {
 		return fmt.Errorf("create owner dir: %w", err)
@@ -965,7 +968,7 @@ func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, 
 
 	if err := s.repos.UpdateOwner(ctx, repo.ID, newOwner.ID, newOwnerUsername); err != nil {
 		revertDirs(moved)
-		return fmt.Errorf("update repo owner: %w", err)
+		return repoNameErr("update repo owner", err)
 	}
 	return nil
 }

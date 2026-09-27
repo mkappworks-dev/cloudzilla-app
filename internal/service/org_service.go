@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -291,6 +290,10 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 	if defaultBranch == "" {
 		defaultBranch = "main"
 	}
+	repoPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, org.Name, name)
+	if err != nil {
+		return nil, err
+	}
 	r := &model.Repository{
 		OwnerID:       requestingUserID,
 		OwnerName:     org.Name,
@@ -301,11 +304,11 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 		DefaultBranch: defaultBranch,
 	}
 	if err := s.repos.CreateWithOwnerName(ctx, r); err != nil {
-		return nil, fmt.Errorf("create org repo: %w", err)
+		abandonNewRepo(ctx, s.repos, 0, repoPath)
+		return nil, repoNameErr("create org repo", err)
 	}
-
-	repoPath := filepath.Join(s.cfg.ReposRoot, org.Name, name+".git")
 	if _, err := gogit.PlainInit(repoPath, true); err != nil {
+		abandonNewRepo(ctx, s.repos, r.ID, repoPath)
 		return nil, fmt.Errorf("git init bare: %w", err)
 	}
 

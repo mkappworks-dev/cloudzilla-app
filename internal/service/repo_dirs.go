@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -9,13 +11,71 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
+
+// ErrRepoNameTaken also covers a directory on disk with no row, so a create
+// cannot tell the two apart.
+var ErrRepoNameTaken = errors.New("a repository with that name already exists")
 
 // Every lifecycle step moves both dirs together: a wiki left behind is served
 // to the next repo that takes the name.
 func repoDirs(root, owner, name string) (gitDir, wikiDir string) {
 	base := filepath.Join(root, owner, name)
 	return base + ".git", base + ".wiki.git"
+}
+
+// A path that cannot be checked counts as taken.
+func pathTaken(path string) bool {
+	_, err := os.Lstat(path)
+	return !errors.Is(err, fs.ErrNotExist)
+}
+
+// claimRepo reserves owner/name for a new row. os.Mkdir fails on an existing
+// path, so the row never adopts data an earlier holder of the name left on
+// disk; the wiki path is checked too because wikis are created lazily.
+func claimRepo(ctx context.Context, repos *store.RepoStore, root, owner, name string) (string, error) {
+	if _, err := repos.GetByOwnerName(ctx, owner, name); err == nil {
+		return "", ErrRepoNameTaken
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return "", err
+	}
+	gitDir, wikiDir := repoDirs(root, owner, name)
+	if err := os.MkdirAll(filepath.Dir(gitDir), 0o755); err != nil {
+		return "", fmt.Errorf("create owner dir: %w", err)
+	}
+	if pathTaken(wikiDir) {
+		return "", ErrRepoNameTaken
+	}
+	if err := os.Mkdir(gitDir, 0o755); err != nil {
+		if errors.Is(err, fs.ErrExist) {
+			return "", ErrRepoNameTaken
+		}
+		return "", fmt.Errorf("create repo dir: %w", err)
+	}
+	return gitDir, nil
+}
+
+// Handlers show ErrRepoNameTaken's message, so it is returned unwrapped.
+func repoNameErr(op string, err error) error {
+	if errors.Is(err, store.ErrRepoNameInUse) {
+		return ErrRepoNameTaken
+	}
+	return fmt.Errorf("%s: %w", op, err)
+}
+
+// abandonNewRepo undoes a create that failed after claimRepo. It ignores the
+// request's cancellation: a row left behind would outlive its directory.
+func abandonNewRepo(ctx context.Context, repos *store.RepoStore, repoID int64, gitDir string) {
+	if repoID != 0 {
+		if err := repos.DeleteByID(context.WithoutCancel(ctx), repoID); err != nil {
+			slog.Error("delete row of failed repo create", "repo_id", repoID, "error", err)
+		}
+	}
+	if err := os.RemoveAll(gitDir); err != nil {
+		slog.Error("remove dir of failed repo create", "path", gitDir, "error", err)
+	}
 }
 
 func deletedSuffix(now time.Time) string {

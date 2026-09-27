@@ -112,6 +112,34 @@ func TestCreateRepo_ValidAuth_201(t *testing.T) {
 	}
 }
 
+func TestCreateRepo_TakenName_422(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	cfg := &config.Config{
+		Auth: config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: 24 * time.Hour, CookieName: testCookieName},
+		Git:  config.GitConfig{ReposRoot: t.TempDir()},
+	}
+	router := repoAPIRouterWithAuth(handler.New(service.New(store.New(db), cfg), cfg))
+	token := makeIssueJWT(t, ownerID, "testuser_"+suffix)
+	post := func() *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/api/repos", repoCreateBody("taken", "", false))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+		return rr
+	}
+
+	if rr := post(); rr.Code != http.StatusCreated {
+		t.Fatalf("first create: want 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+	rr := post()
+	if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), "already exists") {
+		t.Errorf("second create: want 422 naming the conflict, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
 // TestGetRepo_ExistingRepo_200 verifies that GET /api/repos/{owner}/{repo} returns
 // HTTP 200 with the repository details for a known owner/repo combination.
 func TestGetRepo_ExistingRepo_200(t *testing.T) {
