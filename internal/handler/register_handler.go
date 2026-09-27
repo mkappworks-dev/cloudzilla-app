@@ -24,6 +24,10 @@ func (h *Handler) PageRegister(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
+	if h.Services.Signup.Enabled() {
+		h.render(w, r, pages.RegisterEmail(view.RegisterEmailData{BasePage: basePage(r, h.Services)}))
+		return
+	}
 	h.render(w, r, pages.Register(view.RegisterData{BasePage: basePage(r, h.Services)}))
 }
 
@@ -31,6 +35,10 @@ func (h *Handler) PageRegister(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageRegisterSubmit(w http.ResponseWriter, r *http.Request) {
 	if !h.Services.SiteSetting.AllowRegistration(r.Context()) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if h.Services.Signup.Enabled() {
+		h.requestSignup(w, r)
 		return
 	}
 

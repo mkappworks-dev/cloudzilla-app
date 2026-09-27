@@ -19,9 +19,9 @@ import (
 
 var dbErrorFragments = []string{"duplicate key", "SQLSTATE", "users_username_key", "users_email_key", "user create", "byte sequence"}
 
-// enableRegistration turns allow_registration on for the test and restores the
+// setAllowRegistration sets allow_registration for the test and restores the
 // previous value, or its absence, afterwards.
-func enableRegistration(t *testing.T, db *sql.DB) {
+func setAllowRegistration(t *testing.T, db *sql.DB, value string) {
 	t.Helper()
 	settings := store.NewSiteSettingStore(db)
 	prev, err := settings.Get(context.Background(), "allow_registration")
@@ -35,9 +35,14 @@ func enableRegistration(t *testing.T, db *sql.DB) {
 			testutil.Exec(t, db, `UPDATE site_settings SET value = $1 WHERE key = 'allow_registration'`, prev)
 		})
 	}
-	if err := settings.Set(context.Background(), "allow_registration", "true"); err != nil {
-		t.Fatalf("enable registration: %v", err)
+	if err := settings.Set(context.Background(), "allow_registration", value); err != nil {
+		t.Fatalf("set allow_registration: %v", err)
 	}
+}
+
+func enableRegistration(t *testing.T, db *sql.DB) {
+	t.Helper()
+	setAllowRegistration(t, db, "true")
 }
 
 func postRegister(t *testing.T, db *sql.DB, username, email string) string {
