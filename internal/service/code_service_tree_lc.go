@@ -59,7 +59,7 @@ func (s *CodeService) ListEntriesWithLastCommit(ctx context.Context, owner, repo
 		}
 	}
 
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (s *CodeService) LastCommitForPath(ctx context.Context, owner, repoName, re
 	if ref == "HEAD" {
 		ref = ""
 	}
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}

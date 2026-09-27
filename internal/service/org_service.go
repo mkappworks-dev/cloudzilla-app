@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
@@ -157,6 +156,10 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 	if err != nil {
 		return nil, fmt.Errorf("org not found: %w", err)
 	}
+	repoPath, err := RepoDir(s.cfg.ReposRoot, org.Name, name+".git")
+	if err != nil {
+		return nil, err
+	}
 
 	r := &model.Repository{
 		OwnerID:       requestingUserID,
@@ -171,7 +174,6 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 		return nil, fmt.Errorf("create org repo: %w", err)
 	}
 
-	repoPath := filepath.Join(s.cfg.ReposRoot, org.Name, name+".git")
 	if _, err := gogit.PlainInit(repoPath, true); err != nil {
 		return nil, fmt.Errorf("git init bare: %w", err)
 	}

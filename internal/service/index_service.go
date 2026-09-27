@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -35,8 +34,7 @@ func NewIndexService(codeSearch *store.CodeSearchStore, code *CodeService) *Inde
 // IndexRepo walks all blobs on the repository's default branch and upserts them
 // into the code search index. Binary files are skipped.
 func (s *IndexService) IndexRepo(ctx context.Context, repo *model.Repository) error {
-	repoPath := s.code.repoPath(repo.OwnerName, repo.Name)
-	gitRepo, err := gogit.PlainOpen(repoPath)
+	gitRepo, err := s.code.openRepo(repo.OwnerName, repo.Name)
 	if err != nil {
 		return fmt.Errorf("index repo open: %w", err)
 	}

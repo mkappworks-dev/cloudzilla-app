@@ -45,7 +45,7 @@ func weekStart(t time.Time) time.Time {
 // ref must be the repo's default branch — relying on the bare repo's symbolic
 // HEAD is unsafe because it can point at a branch that no longer exists.
 func (s *CodeService) GetContributors(owner, repoName, ref string) ([]ContributorStat, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (s *CodeService) GetContributors(owner, repoName, ref string) ([]Contributo
 
 // GetCommitActivity returns last 52 weeks of commit totals, newest last.
 func (s *CodeService) GetCommitActivity(owner, repoName string) ([]WeeklyActivity, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func (s *CodeService) GetCommitActivity(owner, repoName string) ([]WeeklyActivit
 
 // GetCodeFrequency returns last 52 weeks of additions and deletions, newest last.
 func (s *CodeService) GetCodeFrequency(owner, repoName string) ([]CodeFrequencyWeek, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}

@@ -214,7 +214,10 @@ func TestListEntriesWithLastCommit_Cached(t *testing.T) {
 	// file. If the cache fires, the next call must still return the stale
 	// (one-entry) listing — proving a real cache hit, not just a recompute
 	// returning the same answer.
-	bareDir := svc.repoPath("bob", "demo")
+	bareDir, err := svc.repoPath("bob", "demo")
+	if err != nil {
+		t.Fatalf("repo path: %v", err)
+	}
 	cloneDir := t.TempDir()
 	clone, err := gogit.PlainClone(cloneDir, false, &gogit.CloneOptions{URL: bareDir})
 	if err != nil {

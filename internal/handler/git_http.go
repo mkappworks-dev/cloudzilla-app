@@ -7,7 +7,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -107,7 +106,11 @@ func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	repoPath := filepath.Join(h.Cfg.Git.ReposRoot, owner, repoName+".git")
+	repoPath, err := service.RepoDir(h.Cfg.Git.ReposRoot, owner, repoName+".git")
+	if err != nil {
+		http.Error(w, "repository not found", http.StatusNotFound)
+		return
+	}
 	gitRepo, err := gogit.PlainOpen(repoPath)
 	if err != nil {
 		http.Error(w, "failed to open repository", http.StatusInternalServerError)
@@ -189,7 +192,11 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoPath := filepath.Join(h.Cfg.Git.ReposRoot, owner, repoName+".git")
+	repoPath, err := service.RepoDir(h.Cfg.Git.ReposRoot, owner, repoName+".git")
+	if err != nil {
+		http.Error(w, "repository not found", http.StatusNotFound)
+		return
+	}
 	gitRepo, err := gogit.PlainOpen(repoPath)
 	if err != nil {
 		http.Error(w, "failed to open repository", http.StatusInternalServerError)
@@ -272,7 +279,11 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoPath := filepath.Join(h.Cfg.Git.ReposRoot, owner, repoName+".git")
+	repoPath, err := service.RepoDir(h.Cfg.Git.ReposRoot, owner, repoName+".git")
+	if err != nil {
+		http.Error(w, "repository not found", http.StatusNotFound)
+		return
+	}
 	gitRepo, err := gogit.PlainOpen(repoPath)
 	if err != nil {
 		http.Error(w, "failed to open repository", http.StatusInternalServerError)

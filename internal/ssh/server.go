@@ -10,7 +10,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -228,7 +227,11 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		return
 	}
 
-	diskRepoPath := filepath.Join(s.cfg.ReposRoot, owner, repoName+".git")
+	diskRepoPath, err := service.RepoDir(s.cfg.ReposRoot, owner, repoName+".git")
+	if err != nil {
+		exitWithError(session, "repository not found\n")
+		return
+	}
 	gitRepo, err := gogit.PlainOpen(diskRepoPath)
 	if err != nil {
 		exitWithError(session, "failed to open repository\n")

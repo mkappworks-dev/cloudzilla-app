@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"sync"
 
@@ -66,19 +65,35 @@ func NewCodeService(cfg config.GitConfig) *CodeService {
 	return &CodeService{cfg: cfg}
 }
 
-func (s *CodeService) repoPath(owner, repoName string) string {
-	return filepath.Join(s.cfg.ReposRoot, owner, repoName+".git")
+func (s *CodeService) repoPath(owner, repoName string) (string, error) {
+	return RepoDir(s.cfg.ReposRoot, owner, repoName+".git")
 }
 
 // wikiPath returns the filesystem path of the wiki bare repo.
-func (s *CodeService) wikiPath(owner, repoName string) string {
-	return filepath.Join(s.cfg.ReposRoot, owner, repoName+".wiki.git")
+func (s *CodeService) wikiPath(owner, repoName string) (string, error) {
+	return RepoDir(s.cfg.ReposRoot, owner, repoName+".wiki.git")
+}
+
+func (s *CodeService) openRepo(owner, repoName string) (*gogit.Repository, error) {
+	return openRepoAt(s.repoPath(owner, repoName))
+}
+
+func (s *CodeService) openWiki(owner, repoName string) (*gogit.Repository, error) {
+	return openRepoAt(s.wikiPath(owner, repoName))
+}
+
+// An unsafe path names no repository, so callers' not-exists handling covers it.
+func openRepoAt(path string, err error) (*gogit.Repository, error) {
+	if err != nil {
+		return nil, gogit.ErrRepositoryNotExists
+	}
+	return gogit.PlainOpen(path)
 }
 
 // ResolveRef resolves a ref string to a commit. Priority: branch → tag → SHA → HEAD.
 // Returns ErrEmptyRepo if the repo has no commits.
 func (s *CodeService) ResolveRef(owner, repoName, ref string) (*object.Commit, string, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, "", err
 	}

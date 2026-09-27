@@ -51,7 +51,7 @@ func checkFastForward(repo *gogit.Repository, baseCommit, headCommit *object.Com
 
 // GetPullDiff returns the diff between base and head branches, plus whether FF merge is possible.
 func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffResult, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffRe
 
 // MergePullRequest performs a fast-forward merge of head into base.
 func (s *CodeService) MergePullRequest(owner, repoName, base, head string) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -347,7 +347,7 @@ func mergeTreesNoConflict(repo *gogit.Repository, mergeBase, base, head *object.
 
 // ThreeWayMergePullRequest creates a merge commit combining head into base.
 func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head string, author GitAuthor) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -401,7 +401,7 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head strin
 
 // SquashMergePullRequest creates a single squash commit on base incorporating all head changes.
 func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string, author GitAuthor) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -457,7 +457,7 @@ func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string,
 // ApplySuggestion replaces targetLine (1-based) in filePath on branch with the replacement
 // text and creates a new commit on that branch.
 func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, targetLine int, replacement string, author GitAuthor) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
 	}

@@ -3,12 +3,11 @@ package service
 import (
 	"context"
 
-	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 func (s *CodeService) WalkTree(ctx context.Context, owner, repoName, ref string, fn func(path string, size int64) error) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
 	}

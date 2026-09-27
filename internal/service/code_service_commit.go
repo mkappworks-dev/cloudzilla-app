@@ -82,7 +82,7 @@ type CommitDetail struct {
 
 // GetCommits returns a paginated commit log for the given ref.
 func (s *CodeService) GetCommits(owner, repoName, ref string, page, pageSize int) (*CommitLog, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func (s *CodeService) GetCommits(owner, repoName, ref string, page, pageSize int
 
 // GetCommit returns a single commit with full diff.
 func (s *CodeService) GetCommit(owner, repoName, sha string) (*CommitDetail, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
