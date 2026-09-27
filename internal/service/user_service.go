@@ -194,10 +194,7 @@ func (s *UserService) CommitAuthor(ctx context.Context, userID int64) (GitAuthor
 	if err != nil {
 		return GitAuthor{}, err
 	}
-	if u.KeepEmailPrivate || u.Email == "" {
-		return GitAuthor{Name: u.Username, Email: s.NoreplyEmail(ctx, u)}, nil
-	}
-	return GitAuthor{Name: u.Username, Email: u.Email}, nil
+	return commitAuthorFor(s.noreplyHost, u), nil
 }
 
 // ListUsersForDigest returns users with email notifications enabled for the given digest mode.

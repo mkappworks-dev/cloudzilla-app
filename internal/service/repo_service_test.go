@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -120,5 +121,47 @@ func TestRepoService_Create_NoInit(t *testing.T) {
 	defer iter.Close()
 	if _, err := iter.Next(); err == nil {
 		t.Error("empty repo should have no commits")
+	}
+}
+
+func TestRepoService_Create_InitCommitAuthorFollowsKeepEmailPrivate(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	owner := "testuser_" + suffix
+	root := t.TempDir()
+	svc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil,
+		config.GitConfig{ReposRoot: root}).WithNoreplyHostFrom("https://git.example.com")
+	ctx := context.Background()
+
+	initAuthor := func(name string) string {
+		t.Helper()
+		repo, err := svc.Create(ctx, owner, name, "", false, service.RepoInitOptions{AddREADME: true})
+		if err != nil {
+			t.Fatalf("Create %s: %v", name, err)
+		}
+		bare, err := gogit.PlainOpen(filepath.Join(root, owner, name+".git"))
+		if err != nil {
+			t.Fatalf("open bare: %v", err)
+		}
+		ref, err := bare.Reference(plumbing.NewBranchReferenceName(repo.DefaultBranch), true)
+		if err != nil {
+			t.Fatalf("resolve %s: %v", repo.DefaultBranch, err)
+		}
+		c, err := bare.CommitObject(ref.Hash())
+		if err != nil {
+			t.Fatalf("load commit: %v", err)
+		}
+		return c.Author.Email
+	}
+
+	if got, want := initAuthor("private_by_default"), fmt.Sprintf("%d+%s@users.noreply.git.example.com", userID, owner); got != want {
+		t.Errorf("default: init commit author = %q, want %q", got, want)
+	}
+	if _, err := db.Exec(`UPDATE users SET keep_email_private = FALSE WHERE id = $1`, userID); err != nil {
+		t.Fatalf("turn setting off: %v", err)
+	}
+	if got, want := initAuthor("public_email"), owner+"@test.invalid"; got != want {
+		t.Errorf("setting off: init commit author = %q, want %q", got, want)
 	}
 }

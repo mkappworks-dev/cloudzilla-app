@@ -48,6 +48,7 @@ func ValidateName(name string) error {
 type RepoService struct {
 	repos            *store.RepoStore
 	users            *store.UserStore
+	noreplyHost      string
 	orgs             *store.OrgStore
 	contributorStats *ContributorStatsService
 	code             *CodeService
@@ -58,7 +59,12 @@ type RepoService struct {
 
 // The code service may be nil in tests that do not exercise contributor queries.
 func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, contributorStats *ContributorStatsService, code *CodeService, cfg config.GitConfig) *RepoService {
-	return &RepoService{repos: repos, users: users, orgs: orgs, contributorStats: contributorStats, code: code, cfg: cfg}
+	return &RepoService{repos: repos, users: users, orgs: orgs, contributorStats: contributorStats, code: code, cfg: cfg, noreplyHost: defaultNoreplyHost}
+}
+
+func (s *RepoService) WithNoreplyHostFrom(baseURL string) *RepoService {
+	s.noreplyHost = noreplyHostFromBaseURL(baseURL)
+	return s
 }
 
 func (s *RepoService) WithLanguageService(lang *LanguageService) *RepoService {
@@ -331,11 +337,7 @@ func (s *RepoService) Create(ctx context.Context, ownerUsername, name, descripti
 		// The DB row and bare repo already exist. A failure here leaves a valid
 		// empty repo the user can still push to, so we log and return success
 		// rather than 500-ing on already-created state.
-		email := owner.Email
-		if email == "" {
-			email = owner.Username + "@users.noreply.localhost"
-		}
-		sig := object.Signature{Name: owner.Username, Email: email, When: time.Now().UTC()}
+		sig := commitAuthorFor(s.noreplyHost, owner).signature(time.Now().UTC())
 		if err := seedInitialCommit(repoPath, r.DefaultBranch, sig, init, owner.Username, name, description); err != nil {
 			slog.Error("seed initial commit for new repo failed; repo created empty",
 				"repo_id", r.ID, "owner", ownerUsername, "name", name, "error", err)
