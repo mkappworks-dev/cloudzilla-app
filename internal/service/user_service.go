@@ -21,6 +21,7 @@ import (
 var (
 	ErrRegistrationDisabled = errors.New("registration is disabled")
 	ErrLoginDisabled        = errors.New("login is currently disabled")
+	ErrOAuthEmailUnverified = errors.New("the email address on this account has not been verified by the sign-in provider")
 	ErrPinLimit             = errors.New("pin limit reached (6)")
 	ErrRepoNotFound         = errors.New("repository not found")
 	ErrEmailTaken           = errors.New("email is already taken")
@@ -115,9 +116,19 @@ func (s *UserService) MarkInvited(ctx context.Context, userID int64) error {
 	return s.store.MarkInvited(ctx, userID)
 }
 
-func (s *UserService) AuthenticateOAuth(ctx context.Context, provider, oauthID, email, name, avatarURL string, allowRegistration, allowLogin bool) (*model.User, string, error) {
+// OAuthIdentity is what an OAuth provider asserts about the person signing in.
+type OAuthIdentity struct {
+	Provider      string
+	ID            string
+	Email         string
+	EmailVerified bool
+	Name          string
+	AvatarURL     string
+}
+
+func (s *UserService) AuthenticateOAuth(ctx context.Context, id OAuthIdentity, allowRegistration, allowLogin bool) (*model.User, string, error) {
 	// 1. Look up by OAuth ID
-	if u, err := s.store.GetByOAuthID(ctx, provider, oauthID); err == nil {
+	if u, err := s.store.GetByOAuthID(ctx, id.Provider, id.ID); err == nil {
 		if !u.IsSuperadmin && !u.IsInvited && !allowLogin {
 			return nil, "", ErrLoginDisabled
 		}
@@ -125,12 +136,17 @@ func (s *UserService) AuthenticateOAuth(ctx context.Context, provider, oauthID, 
 		return u, token, err
 	}
 
+	// An unverified provider email is only a claim: linking on it hands the matching account to whoever typed the address.
+	if !id.EmailVerified {
+		return nil, "", ErrOAuthEmailUnverified
+	}
+
 	// 2. Look up by email — link existing account
-	if u, err := s.store.GetByEmailWithRole(ctx, email); err == nil {
+	if u, err := s.store.GetByEmailWithRole(ctx, id.Email); err == nil {
 		if !u.IsSuperadmin && !u.IsInvited && !allowLogin {
 			return nil, "", ErrLoginDisabled
 		}
-		if err := s.store.LinkOAuth(ctx, u.ID, provider, oauthID); err != nil {
+		if err := s.store.LinkOAuth(ctx, u.ID, id.Provider, id.ID); err != nil {
 			return nil, "", err
 		}
 		token, err := s.generateJWT(u)
@@ -141,11 +157,11 @@ func (s *UserService) AuthenticateOAuth(ctx context.Context, provider, oauthID, 
 	if !allowRegistration {
 		return nil, "", ErrRegistrationDisabled
 	}
-	username := s.uniqueUsername(ctx, email, name)
+	username := s.uniqueUsername(ctx, id.Email, id.Name)
 	if err := ValidateUsername(username); err != nil {
 		return nil, "", err
 	}
-	u, err := s.store.CreateOAuthUser(ctx, username, email, provider, oauthID, avatarURL)
+	u, err := s.store.CreateOAuthUser(ctx, username, id.Email, id.Provider, id.ID, id.AvatarURL)
 	if err != nil {
 		return nil, "", err
 	}

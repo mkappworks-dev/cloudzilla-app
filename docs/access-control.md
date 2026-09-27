@@ -169,6 +169,15 @@ Superadmin generates token link → shares manually. No SMTP required.
 
 `is_invited` users always bypass `allow_registration` and `allow_login` checks.
 
+## Google OAuth Sign-in
+
+`UserService.AuthenticateOAuth` resolves a Google login in this order:
+
+1. An account already linked to the Google ID (`oauth_provider`, `oauth_id`) signs in.
+2. Otherwise Google must report the email as verified (`verified_email` from the userinfo endpoint). If it doesn't, the callback re-renders the login page with a 403 and nothing is linked or created (`ErrOAuthEmailUnverified`).
+3. An account with exactly that email gets the Google ID linked and signs in.
+4. Otherwise a new account is created, subject to `allow_registration`.
+
 ## Usernames
 
 Every account-creating path (setup, registration, invite, Google OAuth, LDAP/SAML) runs `service.ValidateUsername`: 1-39 letters, digits, `-` or `_`, starting with a letter or digit. Setup, registration and invites reject anything else. Google OAuth derives the username from the display name (falling back to the email's local part, then `user`) by dropping other characters and appending a number on collision; LDAP/SAML replace other characters with `_`.

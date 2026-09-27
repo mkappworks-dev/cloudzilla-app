@@ -4,6 +4,7 @@ package service_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 	"testing"
@@ -180,7 +181,9 @@ func TestUserService_AuthenticateOAuth_DerivesValidUsername(t *testing.T) {
 	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
 	for _, name := range append([]string{"-_Bob", strings.Repeat("Long Name ", 10)}, testutil.HostileNames...) {
 		suffix := testutil.UniqueSuffix(t)
-		u, _, err := svc.AuthenticateOAuth(context.Background(), "google", "g_"+suffix, "oauth_"+suffix+"@example.com", name, "", true, true)
+		u, _, err := svc.AuthenticateOAuth(context.Background(), service.OAuthIdentity{
+			Provider: "google", ID: "g_" + suffix, Email: "oauth_" + suffix + "@example.com", EmailVerified: true, Name: name,
+		}, true, true)
 		if err != nil {
 			t.Fatalf("AuthenticateOAuth(%q): %v", name, err)
 		}
@@ -188,6 +191,65 @@ func TestUserService_AuthenticateOAuth_DerivesValidUsername(t *testing.T) {
 		if err := service.ValidateUsername(u.Username); err != nil {
 			t.Errorf("display name %q produced invalid username %q", name, u.Username)
 		}
+	}
+}
+
+func linkedOAuthID(t *testing.T, db *sql.DB, userID int64) string {
+	t.Helper()
+	var oauthID string
+	if err := db.QueryRowContext(context.Background(), `SELECT oauth_id FROM users WHERE id = $1`, userID).Scan(&oauthID); err != nil {
+		t.Fatalf("read oauth_id: %v", err)
+	}
+	return oauthID
+}
+
+func TestUserService_AuthenticateOAuth_UnverifiedEmailNeitherLinksNorCreates(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	suffix := testutil.UniqueSuffix(t)
+	victimID, victimEmail := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+
+	for _, email := range []string{victimEmail, "unverified_" + suffix + "@example.com"} {
+		u, _, err := svc.AuthenticateOAuth(context.Background(), service.OAuthIdentity{
+			Provider: "google", ID: "g_unverified_" + suffix, Email: email, Name: "Mallory",
+		}, true, true)
+		if !errors.Is(err, service.ErrOAuthEmailUnverified) {
+			t.Errorf("unverified %s: err = %v, want ErrOAuthEmailUnverified", email, err)
+		}
+		if u != nil {
+			t.Errorf("unverified %s signed in as user %d", email, u.ID)
+		}
+	}
+	if got := linkedOAuthID(t, db, victimID); got != "" {
+		t.Errorf("victim's account was linked to Google ID %q", got)
+	}
+	var created int
+	if err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM users WHERE email = $1`, "unverified_"+suffix+"@example.com").Scan(&created); err != nil {
+		t.Fatal(err)
+	}
+	if created != 0 {
+		t.Errorf("an account was created for the unverified email")
+	}
+}
+
+func TestUserService_AuthenticateOAuth_VerifiedEmailLinksAndLinkedIDSkipsTheCheck(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	suffix := testutil.UniqueSuffix(t)
+	userID, email := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	id := service.OAuthIdentity{Provider: "google", ID: "g_verified_" + suffix, Email: email, EmailVerified: true}
+
+	u, _, err := svc.AuthenticateOAuth(context.Background(), id, true, true)
+	if err != nil || u.ID != userID {
+		t.Fatalf("verified login = (%v, %v), want user %d", u, err, userID)
+	}
+	if got := linkedOAuthID(t, db, userID); got != id.ID {
+		t.Fatalf("oauth_id = %q, want %q", got, id.ID)
+	}
+
+	id.EmailVerified = false
+	if u, _, err := svc.AuthenticateOAuth(context.Background(), id, true, true); err != nil || u.ID != userID {
+		t.Errorf("already-linked login with an unverified email = (%v, %v), want user %d", u, err, userID)
 	}
 }
 
