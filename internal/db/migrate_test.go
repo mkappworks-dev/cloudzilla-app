@@ -44,3 +44,14 @@ func TestEmailCaseMigration_CaseVariantEmails_FailsNamingUserIDs(t *testing.T) {
 		t.Errorf("error must not include the email addresses: %v", err)
 	}
 }
+
+func TestSignupTokensMigration_OneRowPerEmailIgnoringCase(t *testing.T) {
+	db := testutil.OpenFreshTestDB(t)
+	testutil.Exec(t, db, `INSERT INTO signup_tokens (token_hash, email, expires_at) VALUES ('h1', 'a@test.invalid', NOW())`)
+
+	_, err := db.Exec(`INSERT INTO signup_tokens (token_hash, email, expires_at) VALUES ('h2', 'A@Test.Invalid', NOW())`)
+
+	if err == nil {
+		t.Error("want a unique violation for an email that differs only by case")
+	}
+}
