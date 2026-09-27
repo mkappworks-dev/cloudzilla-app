@@ -98,3 +98,51 @@ func TestNewIssueAndPullPages_PrivateRepoOwner_RendersForm(t *testing.T) {
 		})
 	}
 }
+
+var writeGatedNewPageCases = []struct{ method, page string }{
+	{http.MethodGet, "/discussions/new"},
+	{http.MethodPost, "/discussions/new"},
+	{http.MethodGet, "/milestones/new"},
+	{http.MethodPost, "/milestones/new"},
+}
+
+// These pages need write access, but a 403 for a private repo against a 404
+// for a missing one would confirm that the private repo exists.
+func TestWriteGatedNewPages_PrivateRepoNonReader_LooksLikeMissingRepo(t *testing.T) {
+	for _, tc := range writeGatedNewPageCases {
+		t.Run(tc.method+tc.page, func(t *testing.T) {
+			db := testutil.OpenTestDB(t)
+			repo := seedPrivateRepo(t, db)
+			token := outsiderToken(t, db)
+			missingPath := "/nobody_" + testutil.UniqueSuffix(t) + "/norepo"
+
+			private := requestPage(t, db, tc.method, repo.path+tc.page, token)
+			missing := requestPage(t, db, tc.method, missingPath+tc.page, token)
+
+			if private.Code != http.StatusNotFound {
+				t.Errorf("want 404, got %d", private.Code)
+			}
+			if private.Code != missing.Code || private.Body.String() != missing.Body.String() {
+				t.Errorf("private repo response (%d) must match a missing repo's (%d)", private.Code, missing.Code)
+			}
+		})
+	}
+}
+
+func TestWriteGatedNewPages_PublicRepoNonWriter_Forbidden(t *testing.T) {
+	for _, tc := range writeGatedNewPageCases {
+		t.Run(tc.method+tc.page, func(t *testing.T) {
+			db := testutil.OpenTestDB(t)
+			suffix := testutil.UniqueSuffix(t)
+			ownerID := testutil.SeedUser(t, db, suffix)
+			testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+			path := "/testuser_" + suffix + "/testrepo_" + suffix + tc.page
+
+			rr := requestPage(t, db, tc.method, path, outsiderToken(t, db))
+
+			if rr.Code != http.StatusForbidden {
+				t.Errorf("want 403, got %d", rr.Code)
+			}
+		})
+	}
+}

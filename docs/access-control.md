@@ -245,7 +245,7 @@ Superadmin generates token link → shares manually. No SMTP required.
 | GET    | `/{owner}/{repo}/hooks`                          | optAuthMW | CanManage (handler)  | ListWebhooks      |
 | GET    | `/{owner}/{repo}/collaborators`                  | optAuthMW | Public list          | ListCollaborators |
 
-The new-issue and new-PR pages (`/{owner}/{repo}/issues/new`, `/{owner}/{repo}/pulls/new`, GET and POST) use `authMW` plus a handler `CanRead` check. Non-readers get 404, not 403, so the response doesn't confirm that a private repo exists.
+The new issue, PR, discussion and milestone pages (`/{owner}/{repo}/{issues,pulls,discussions,milestones}/new`, GET and POST) use `authMW` plus a handler `CanRead` check. Non-readers get the same 404 as a missing repo, not a 403, so the response doesn't confirm that a private repo exists. The discussion and milestone pages then require `CanWrite` and return 403 to readers without it.
 
 ### Repository Endpoints — Write (Require CanWrite)
 

@@ -36,7 +36,9 @@ func newFormHandler(t *testing.T, db *sql.DB) *handler.Handler {
 
 func formRouter(h *handler.Handler) http.Handler {
 	r := chi.NewRouter()
+	r.Get("/{owner}/{repo}/discussions/new", h.PageNewDiscussion)
 	r.Post("/{owner}/{repo}/discussions/new", h.PageNewDiscussionSubmit)
+	r.Get("/{owner}/{repo}/milestones/new", h.PageNewMilestone)
 	r.Post("/{owner}/{repo}/milestones/new", h.PageNewMilestoneSubmit)
 	r.Get("/{owner}/{repo}/issues/new", h.PageNewIssue)
 	r.Post("/{owner}/{repo}/issues/new", h.PageNewIssueSubmit)

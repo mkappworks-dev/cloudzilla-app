@@ -82,14 +82,18 @@ func (h *Handler) PageNewMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok || !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+		h.NotFound(w, r)
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
@@ -115,7 +119,7 @@ func (h *Handler) PageNewMilestoneSubmit(w http.ResponseWriter, r *http.Request)
 	repoName := chi.URLParam(r, "repo")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
+	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
 		h.NotFound(w, r)
 		return
 	}
