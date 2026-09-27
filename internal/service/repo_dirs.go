@@ -12,12 +12,17 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 // ErrRepoNameTaken also covers a directory on disk with no row, so a create
 // cannot tell the two apart.
 var ErrRepoNameTaken = errors.New("a repository with that name already exists")
+
+// ErrOwnsOrgRepos: an org repo's owner_id is the member who created it, so
+// deleting that member's account would cascade the repo out of the org.
+var ErrOwnsOrgRepos = errors.New("delete the organization repositories you created first")
 
 // Every lifecycle step moves both dirs together: a wiki left behind is served
 // to the next repo that takes the name.
@@ -135,4 +140,45 @@ func removeDeletedDirs(root, owner, name string) {
 			}
 		}
 	}
+}
+
+// DeleteWithOwner runs deleteOwner, whose row delete cascades to every repo
+// ownerID owns, with the owner's personal repo dirs moved aside first. A
+// failed delete puts them back; a successful one removes them, so no dir
+// outlives its row at a path the freed name hands to its next holder.
+func (s *RepoService) DeleteWithOwner(ctx context.Context, ownerID int64, deleteOwner func() error) error {
+	repos, err := s.repos.ListAllByOwnerID(ctx, ownerID)
+	if err != nil {
+		return err
+	}
+	var personal []model.Repository
+	var dirs []string
+	for _, r := range repos {
+		if r.OrgID != 0 {
+			if r.DeletedAt == nil {
+				return ErrOwnsOrgRepos
+			}
+			// Its .deleted copies can't be told apart from those of another
+			// member's same-named org repo, so they stay where nothing serves them.
+			continue
+		}
+		personal = append(personal, r)
+		gitDir, wikiDir := repoDirs(s.cfg.ReposRoot, r.OwnerName, r.Name)
+		dirs = append(dirs, gitDir, wikiDir)
+	}
+
+	moved, err := renameDirs(movesAside(deletedSuffix(time.Now()), dirs...))
+	if err != nil {
+		return fmt.Errorf("move repos aside: %w", err)
+	}
+	if err := deleteOwner(); err != nil {
+		revertDirs(moved)
+		return err
+	}
+	// With the rows gone PurgeExpired can never find these, and there is
+	// nothing left to restore them into.
+	for _, r := range personal {
+		removeDeletedDirs(s.cfg.ReposRoot, r.OwnerName, r.Name)
+	}
+	return nil
 }

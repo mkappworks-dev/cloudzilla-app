@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -122,7 +124,13 @@ func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.Services.User.DeleteUser(r.Context(), claims.UserID); err != nil {
-		http.Redirect(w, r, "/settings?profile_error=delete_failed#delete", http.StatusSeeOther)
+		code := "delete_failed"
+		if errors.Is(err, service.ErrOwnsOrgRepos) {
+			code = "delete_org_repos"
+		} else {
+			slog.Error("delete account failed", "user_id", claims.UserID, "error", err)
+		}
+		http.Redirect(w, r, "/settings?profile_error="+code+"#delete", http.StatusSeeOther)
 		return
 	}
 	http.SetCookie(w, &http.Cookie{

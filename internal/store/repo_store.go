@@ -149,6 +149,34 @@ func (s *RepoStore) GetByOwnerID(ctx context.Context, ownerID int64) ([]model.Re
 	return scanRepoRows(rows)
 }
 
+// ListAllByOwnerID includes soft-deleted repos, which deleting the owner
+// cascades away too. Only the fields that locate a repo on disk are set.
+func (s *RepoStore) ListAllByOwnerID(ctx context.Context, ownerID int64) ([]model.Repository, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, owner_name, org_id, name, deleted_at FROM repositories WHERE owner_id = $1`,
+		ownerID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("repo list all by owner: %w", err)
+	}
+	defer rows.Close()
+	var repos []model.Repository
+	for rows.Next() {
+		r := model.Repository{OwnerID: ownerID}
+		var orgID sql.NullInt64
+		var deletedAt sql.NullTime
+		if err := rows.Scan(&r.ID, &r.OwnerName, &orgID, &r.Name, &deletedAt); err != nil {
+			return nil, err
+		}
+		r.OrgID = orgID.Int64
+		if deletedAt.Valid {
+			r.DeletedAt = &deletedAt.Time
+		}
+		repos = append(repos, r)
+	}
+	return repos, rows.Err()
+}
+
 func (s *RepoStore) GetByOrgID(ctx context.Context, orgID int64) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,

@@ -206,9 +206,11 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int64, name, ema
 	return s.store.UpdateProfile(ctx, userID, strings.TrimSpace(name), email, strings.TrimSpace(bio), strings.TrimSpace(company), strings.TrimSpace(location))
 }
 
-// DeleteUser removes the user account. Related rows are removed via DB cascades.
+// Related rows go via DB cascades; repo directories via DeleteWithOwner.
 func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
-	return s.store.DeleteByID(ctx, userID)
+	return s.repos.DeleteWithOwner(ctx, userID, func() error {
+		return s.store.DeleteByID(ctx, userID)
+	})
 }
 
 func (s *UserService) UpdateKeepEmailPrivate(ctx context.Context, userID int64, keep bool) error {
@@ -242,7 +244,8 @@ func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (s
 	return s.generateJWT(u)
 }
 
-// Required by PinRepo and PinnedRepos, which apply repo visibility.
+// Required by PinRepo and PinnedRepos, which apply repo visibility, and by
+// DeleteUser, which removes the user's repo directories.
 func (s *UserService) WithRepoService(repos *RepoService) *UserService {
 	s.repos = repos
 	return s

@@ -89,7 +89,7 @@ Org members do not get implicit access to private repos. They must be added as e
 
 ### Organization Repo Ownership
 
-For org repos, `owner_id` points to the org entity. Access is determined by `org_members`:
+For org repos, `org_id` points to the org and `owner_id` to the member who created the repo, who keeps owner-level access to it. Everyone else's access is determined by `org_members`:
 
 | Org Role | Create repos | Manage repos | Transfer repos | Delete repos | Appoint admins |
 | -------- | :----------: | :----------: | :------------: | :----------: | :------------: |
@@ -172,6 +172,17 @@ Superadmin generates token link → shares manually. No SMTP required.
 ## Usernames
 
 Every account-creating path (setup, registration, invite, Google OAuth, LDAP/SAML) runs `service.ValidateUsername`: 1-39 letters, digits, `-` or `_`, starting with a letter or digit. Setup, registration and invites reject anything else. Google OAuth derives the username from the display name (falling back to the email's local part, then `user`) by dropping other characters and appending a number on collision; LDAP/SAML replace other characters with `_`.
+
+## Account Deletion
+
+`POST /settings/delete-account` calls `UserService.DeleteUser`, which deletes the user row; the database cascades to the user's repositories (soft-deleted ones included), gists, keys, tokens, stars and activity. Around that delete, `RepoService.DeleteWithOwner` handles the repo directories:
+
+1. It refuses (`ErrOwnsOrgRepos`, shown as `delete_org_repos`) while the user is `owner_id` of a live org repo, because the cascade would remove the repo from the org. The user deletes those repos first.
+2. It renames each personal repo's `<name>.git` and `<name>.wiki.git` to `.deleted.<unix_ts>`.
+3. If the row delete fails (for example because the user authored issues or comments in other people's repos), it renames them back.
+4. Once the row is gone, it removes those directories and any soft-deleted copies, which `PurgeExpired` can no longer find.
+
+The freed username can then be registered or taken as an org name. Repo creation refuses any name whose directory still exists, so nothing the old account left on disk is ever served under the new owner.
 
 ---
 
