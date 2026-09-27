@@ -500,12 +500,7 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	issue, err := h.Services.Issue.Create(r.Context(), owner, repoName, claims.UserID, title, body, vis)
 	if err != nil {
-		if msg := createFormErrorMessage(err); msg != "" {
-			renderErr(msg)
-			return
-		}
-		slog.Error("new issue: create failed", "owner", owner, "repo", repoName, "error", err)
-		renderErr("Could not create the issue. Please try again.")
+		renderErr(createFailedMessage(err, "issue", "owner", owner, "repo", repoName))
 		return
 	}
 

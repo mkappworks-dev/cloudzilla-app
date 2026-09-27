@@ -39,7 +39,7 @@ func (h *Handler) PageSetupSubmit(w http.ResponseWriter, r *http.Request) {
 	_, err := h.Services.User.CreateSuperadmin(r.Context(), username, email, password)
 	if err != nil {
 		slog.Error("setup: create superadmin failed", "error", err)
-		h.render(w, r, pages.Setup(view.SetupData{Error: "Could not create the admin account. Check the server logs for details."}))
+		h.render(w, r, pages.Setup(view.SetupData{Error: "Could not create the admin account. Check the server logs."}))
 		return
 	}
 

@@ -98,6 +98,7 @@ func seedSignedInUser(t *testing.T, db *sql.DB) signedInUser {
 }
 
 type seededRepo struct {
+	id         int64
 	path, name string
 	owner      signedInUser
 }
@@ -111,7 +112,7 @@ func seedOwnedRepo(t *testing.T, db *sql.DB, private bool) seededRepo {
 		testutil.Exec(t, db, `UPDATE repositories SET private = true WHERE id = $1`, repoID)
 	}
 	name := "testrepo_" + suffix // testutil.SeedRepo's naming
-	return seededRepo{path: "/" + owner.name + "/" + name, name: name, owner: owner}
+	return seededRepo{id: repoID, path: "/" + owner.name + "/" + name, name: name, owner: owner}
 }
 
 // openSchemalessDB connects to the test database with a search_path that has

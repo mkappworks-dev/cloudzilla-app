@@ -1,13 +1,10 @@
 package handler
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -47,23 +44,4 @@ func (h *Handler) Forbidden(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusForbidden)
 	h.render(w, r, pages.Forbidden(basePage(r, h.Services)))
-}
-
-// createFormErrorMessage returns page text for the create-form errors a user
-// can act on, or "" when err is internal: store and driver errors carry
-// constraint names and SQLSTATEs, so callers log them and show a generic message.
-func createFormErrorMessage(err error) string {
-	if errors.Is(err, service.ErrTitleTooLong) {
-		return fmt.Sprintf("Title is too long (maximum %d characters)", service.MaxTitleLen)
-	}
-	return ""
-}
-
-// passwordLengthMessage returns page text for a password bcrypt can't hash, or
-// "" when its length is fine.
-func passwordLengthMessage(password string) string {
-	if len(password) > service.MaxPasswordBytes {
-		return fmt.Sprintf("Password is too long (maximum %d bytes)", service.MaxPasswordBytes)
-	}
-	return ""
 }

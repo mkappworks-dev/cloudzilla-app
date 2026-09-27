@@ -102,7 +102,7 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 			BasePage:   basePage(r, h.Services),
 			LDAPConfig: ldapCfg,
 			SAMLConfig: samlCfg,
-			Error:      "Could not save the SSO configuration. Check the server logs for details.",
+			Error:      "Could not save the SSO configuration. Check the server logs.",
 		}))
 		return
 	}

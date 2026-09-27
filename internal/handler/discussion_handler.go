@@ -420,12 +420,7 @@ func (h *Handler) PageNewDiscussionSubmit(w http.ResponseWriter, r *http.Request
 
 	d, err := h.Services.Discussion.Create(r.Context(), owner, repoName, claims.UserID, claims.Username, categoryID, title, body)
 	if err != nil {
-		if msg := createFormErrorMessage(err); msg != "" {
-			renderErr(msg)
-			return
-		}
-		slog.Error("new discussion: create failed", "owner", owner, "repo", repoName, "error", err)
-		renderErr("Could not create the discussion. Please try again.")
+		renderErr(createFailedMessage(err, "discussion", "owner", owner, "repo", repoName))
 		return
 	}
 	http.Redirect(w, r, "/"+owner+"/"+repoName+"/discussions/"+strconv.Itoa(d.Number), http.StatusSeeOther)
