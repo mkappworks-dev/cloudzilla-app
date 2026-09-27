@@ -65,64 +65,58 @@ func (s *UserStore) Create(ctx context.Context, u *model.User) error {
 	return insertUser(ctx, s.db, u)
 }
 
-// CreateFromInvitation claims the invitation and inserts u in one transaction,
-// so a failed insert leaves the invite usable and concurrent submits can't
-// both redeem it.
 func (s *UserStore) CreateFromInvitation(ctx context.Context, u *model.User, invitationID int64) error {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("user create from invitation: begin: %w", err)
-	}
-	defer tx.Rollback()
-
-	res, err := tx.ExecContext(ctx,
-		`UPDATE invitations SET accepted_at = NOW() WHERE id = $1 AND `+usableInvitationCond,
-		invitationID,
-	)
-	if err != nil {
-		return fmt.Errorf("user create from invitation: claim: %w", err)
-	}
-	if n, err := res.RowsAffected(); err != nil {
-		return fmt.Errorf("user create from invitation: claim: %w", err)
-	} else if n == 0 {
-		return ErrInvitationUnusable
-	}
-
-	if err := insertUser(ctx, tx, u); err != nil {
-		// The email was registered after the claim; same rule as usableInvitationCond.
-		if errors.Is(err, ErrEmailTaken) {
+	return s.insertClaimed(ctx, u, ErrInvitationUnusable, func(tx *sql.Tx) error {
+		res, err := tx.ExecContext(ctx,
+			`UPDATE invitations SET accepted_at = NOW() WHERE id = $1 AND `+usableInvitationCond,
+			invitationID,
+		)
+		if err != nil {
+			return fmt.Errorf("user create from invitation: claim: %w", err)
+		}
+		if n, err := res.RowsAffected(); err != nil {
+			return fmt.Errorf("user create from invitation: claim: %w", err)
+		} else if n == 0 {
 			return ErrInvitationUnusable
 		}
-		return err
-	}
-	return tx.Commit()
+		return nil
+	})
 }
 
-// CreateFromSignupToken claims the signup link and inserts u with the link's
-// email in one transaction, so a failed insert leaves the link usable and
-// concurrent submits can't both redeem it.
+// CreateFromSignupToken inserts u with the email of the link it claims.
 func (s *UserStore) CreateFromSignupToken(ctx context.Context, u *model.User, tokenHash string) error {
+	return s.insertClaimed(ctx, u, ErrSignupTokenUnusable, func(tx *sql.Tx) error {
+		err := tx.QueryRowContext(ctx,
+			`UPDATE signup_tokens SET used_at = NOW() WHERE token_hash = $1 AND `+usableSignupTokenCond+` RETURNING email`,
+			tokenHash,
+		).Scan(&u.Email)
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrSignupTokenUnusable
+		}
+		if err != nil {
+			return fmt.Errorf("user create from signup token: claim: %w", err)
+		}
+		return nil
+	})
+}
+
+// insertClaimed runs claim and inserts u in one transaction, so a failed insert
+// releases the claim and concurrent submits can't both redeem one link. An email
+// registered after the claim is reported as unusable, the rule every claim's
+// predicate already applies.
+func (s *UserStore) insertClaimed(ctx context.Context, u *model.User, unusable error, claim func(*sql.Tx) error) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("user create from signup token: begin: %w", err)
+		return fmt.Errorf("user create: begin: %w", err)
 	}
 	defer tx.Rollback()
 
-	err = tx.QueryRowContext(ctx,
-		`UPDATE signup_tokens SET used_at = NOW() WHERE token_hash = $1 AND `+usableSignupTokenCond+` RETURNING email`,
-		tokenHash,
-	).Scan(&u.Email)
-	if errors.Is(err, sql.ErrNoRows) {
-		return ErrSignupTokenUnusable
+	if err := claim(tx); err != nil {
+		return err
 	}
-	if err != nil {
-		return fmt.Errorf("user create from signup token: claim: %w", err)
-	}
-
 	if err := insertUser(ctx, tx, u); err != nil {
-		// The email was registered after the claim; same rule as usableSignupTokenCond.
 		if errors.Is(err, ErrEmailTaken) {
-			return ErrSignupTokenUnusable
+			return unusable
 		}
 		return err
 	}

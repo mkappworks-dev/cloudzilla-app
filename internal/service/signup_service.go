@@ -13,7 +13,6 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const signupLinkTTL = 24 * time.Hour
@@ -75,11 +74,11 @@ func (s *SignupService) GetUsable(ctx context.Context, token string) (*model.Sig
 // ErrSignupTokenUnusable if the link was used, expired, or its email
 // registered since it was loaded.
 func (s *SignupService) Complete(ctx context.Context, token, username, password string) (*model.User, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := hashPassword(password)
 	if err != nil {
-		return nil, fmt.Errorf("hash password: %w", err)
+		return nil, err
 	}
-	u := &model.User{Username: username, PasswordHash: string(hash)}
+	u := &model.User{Username: username, PasswordHash: hash}
 	if err := s.users.CreateFromSignupToken(ctx, u, hashSignupToken(token)); err != nil {
 		return nil, err
 	}

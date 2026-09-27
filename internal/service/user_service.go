@@ -54,14 +54,14 @@ func (s *UserService) WithNoreplyHostFrom(baseURL string) *UserService {
 }
 
 func (s *UserService) Create(ctx context.Context, username, email, password string) (*model.User, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := hashPassword(password)
 	if err != nil {
-		return nil, fmt.Errorf("hash password: %w", err)
+		return nil, err
 	}
 	u := &model.User{
 		Username:     username,
 		Email:        email,
-		PasswordHash: string(hash),
+		PasswordHash: hash,
 	}
 	if err := s.store.Create(ctx, u); err != nil {
 		return nil, err
@@ -69,12 +69,20 @@ func (s *UserService) Create(ctx context.Context, username, email, password stri
 	return u, nil
 }
 
-func (s *UserService) CreateSuperadmin(ctx context.Context, username, email, password string) (*model.User, error) {
+func hashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, fmt.Errorf("hash password: %w", err)
+		return "", fmt.Errorf("hash password: %w", err)
 	}
-	return s.store.CreateSuperadmin(ctx, username, email, string(hash))
+	return string(hash), nil
+}
+
+func (s *UserService) CreateSuperadmin(ctx context.Context, username, email, password string) (*model.User, error) {
+	hash, err := hashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+	return s.store.CreateSuperadmin(ctx, username, email, hash)
 }
 
 func (s *UserService) Authenticate(ctx context.Context, email, password string) (*model.User, string, error) {
@@ -101,14 +109,14 @@ func (s *UserService) GetByUsername(ctx context.Context, username string) (*mode
 // It returns ErrInvitationUnusable if inv was redeemed, expired, or its email
 // registered since it was loaded.
 func (s *UserService) CreateFromInvitation(ctx context.Context, inv *model.Invitation, username, password string) (*model.User, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := hashPassword(password)
 	if err != nil {
-		return nil, fmt.Errorf("hash password: %w", err)
+		return nil, err
 	}
 	u := &model.User{
 		Username:     username,
 		Email:        inv.Email,
-		PasswordHash: string(hash),
+		PasswordHash: hash,
 		IsInvited:    true,
 	}
 	if err := s.store.CreateFromInvitation(ctx, u, inv.ID); err != nil {
