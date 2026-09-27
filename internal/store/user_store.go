@@ -18,7 +18,7 @@ var (
 )
 
 // The first two are Postgres's default names for the inline UNIQUE columns in
-// 001_create_users.sql; the last is the index from 074.
+// 001_create_users.sql; the last is the index from 075.
 const (
 	usersUsernameKey   = "users_username_key"
 	usersEmailKey      = "users_email_key"
