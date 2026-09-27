@@ -14,6 +14,21 @@
 | SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys` | Git SSH transport             |
 | TOTP 2FA              | 6-digit code after password login                  | `POST /auth/2fa/verify`       |
 
+### Return path after sign-in
+
+A signed-out HTML request is redirected to `/login?next=<request URI>`. Every
+sign-in route redirects to `next` on success, once `safeNextPath` accepts it:
+it must be a rooted same-site path, and it may not start with `//` or `/\` or
+contain control characters. Anything else goes to `/`.
+
+| Flow     | How `next` survives                                                     |
+| -------- | ----------------------------------------------------------------------- |
+| Password | Hidden `next` input on the login form                                   |
+| TOTP     | `/auth/2fa?next=…`, then a hidden input on the code form               |
+| LDAP     | Hidden `next` input on the LDAP form                                    |
+| Google   | `oauth_next` cookie, set by `/auth/google?next=…`                       |
+| SAML     | `RelayState`, dropped when it exceeds the binding's 80-byte limit      |
+
 ### JWT Claims
 
 All authenticated requests carry JWT claims in context:

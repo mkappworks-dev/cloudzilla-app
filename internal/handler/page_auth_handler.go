@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -13,8 +14,9 @@ import (
 
 // PageLogin renders the login form page.
 func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
+	next := r.URL.Query().Get("next")
 	if _, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, safeNextPath(next), http.StatusSeeOther)
 		return
 	}
 	ldapEnabled, samlEnabled := h.ssoEnabled(r)
@@ -23,6 +25,7 @@ func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
 		LDAPEnabled:       ldapEnabled,
 		SAMLEnabled:       samlEnabled,
 		AllowRegistration: h.Services.SiteSetting.AllowRegistration(r.Context()),
+		Next:              next,
 	}))
 }
 
@@ -30,6 +33,7 @@ func (h *Handler) PageLogin(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	password := r.FormValue("password")
+	next := r.FormValue("next")
 	ldapEnabled, samlEnabled := h.ssoEnabled(r)
 	allowReg := h.Services.SiteSetting.AllowRegistration(r.Context())
 
@@ -40,6 +44,7 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 			SAMLEnabled:       samlEnabled,
 			AllowRegistration: allowReg,
 			Error:             msg,
+			Next:              next,
 		}))
 	}
 
@@ -75,7 +80,7 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 			Expires:  time.Now().Add(5 * time.Minute),
 			SameSite: http.SameSiteLaxMode,
 		})
-		http.Redirect(w, r, "/auth/2fa", http.StatusSeeOther)
+		http.Redirect(w, r, view.WithNext("/auth/2fa", next), http.StatusSeeOther)
 		return
 	}
 
@@ -91,13 +96,16 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	h.Services.AuditLog.Record(r.Context(), r, user.ID, user.Username, model.AuditActionLogin, "user", user.ID, user.Username, nil)
 
-	http.Redirect(w, r, safeNextPath(r.URL.Query().Get("next")), http.StatusSeeOther)
+	http.Redirect(w, r, safeNextPath(next), http.StatusSeeOther)
 }
 
 // safeNextPath returns the next= query value if it is a safe same-site path, else "/".
 // Rejects schemed URLs, protocol-relative URLs, and non-rooted paths to prevent open redirects.
+// Browsers read "/\host" as "//host" and strip tabs and newlines before parsing,
+// so both are refused too.
 func safeNextPath(next string) string {
-	if next == "" || !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") {
+	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.HasPrefix(next, `/\`) ||
+		strings.ContainsFunc(next, unicode.IsControl) {
 		return "/"
 	}
 	return next
