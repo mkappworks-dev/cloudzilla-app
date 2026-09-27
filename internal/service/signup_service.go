@@ -36,7 +36,7 @@ type SignupService struct {
 	baseURL string
 }
 
-// NewSignupService creates a SignupService that builds links from baseURL.
+// baseURL is the public site URL the emailed links point at.
 func NewSignupService(tokens *store.SignupTokenStore, users *store.UserStore, mailer SignupMailer, baseURL string) *SignupService {
 	return &SignupService{tokens: tokens, users: users, mailer: mailer, baseURL: strings.TrimRight(baseURL, "/")}
 }
@@ -45,8 +45,8 @@ func (s *SignupService) Enabled() bool {
 	return s.mailer.Enabled()
 }
 
-// Request mails email a signup link, or a sign-in reminder if it already has an
-// account. It sends nothing if the address was mailed in the last 5 minutes.
+// Request sends the address a signup link, or a sign-in reminder if it already
+// has an account. It sends nothing if the address was mailed in the last 5 minutes.
 func (s *SignupService) Request(ctx context.Context, email string) error {
 	token, err := newSignupToken()
 	if err != nil {

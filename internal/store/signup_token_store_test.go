@@ -65,6 +65,26 @@ func TestSignupTokenStore_Issue_AfterWindow_ReplacesLink(t *testing.T) {
 	}
 }
 
+func TestSignupTokenStore_Issue_PrunesLinksExpiredOverADayAgo(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	stale := "stale_" + suffix + "@test.invalid"
+	email := "signup_" + suffix + "@test.invalid"
+	cleanupSignupTokens(t, db, stale)
+	cleanupSignupTokens(t, db, email)
+	testutil.Exec(t, db, `INSERT INTO signup_tokens (token_hash, email, expires_at) VALUES ($1, $2, NOW() - INTERVAL '2 days')`, "stale_"+suffix, stale)
+
+	issueSignupToken(t, store.NewSignupTokenStore(db), email, "fresh_"+suffix)
+
+	var n int
+	if err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM signup_tokens WHERE email = $1`, stale).Scan(&n); err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if n != 0 {
+		t.Error("a link expired over a day ago must be pruned")
+	}
+}
+
 func TestSignupTokenStore_GetUsableByHash(t *testing.T) {
 	cases := []struct {
 		name   string

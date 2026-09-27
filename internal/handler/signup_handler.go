@@ -36,9 +36,15 @@ func (h *Handler) requestSignup(w http.ResponseWriter, r *http.Request) {
 	h.render(w, r, pages.RegisterCheckInbox(view.RegisterCheckInboxData{BasePage: basePage(r, h.Services)}))
 }
 
+// RFC 5321 caps a path at 256 bytes, angle brackets included.
+const maxEmailBytes = 254
+
 // validEmail accepts a bare address only; refusing display names and CR/LF
 // also keeps it safe to put in the To header.
 func validEmail(s string) bool {
+	if len(s) > maxEmailBytes {
+		return false
+	}
 	a, err := mail.ParseAddress(s)
 	return err == nil && a.Name == "" && a.Address == s
 }

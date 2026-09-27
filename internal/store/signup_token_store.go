@@ -29,6 +29,10 @@ func NewSignupTokenStore(db *sql.DB) *SignupTokenStore {
 // Issue stores a link for email, replacing any earlier one. It writes nothing
 // and returns false when the address was issued a link in the last 5 minutes.
 func (s *SignupTokenStore) Issue(ctx context.Context, email, tokenHash string, expiresAt time.Time) (bool, error) {
+	// Rows for addresses that never finish signup would otherwise pile up.
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM signup_tokens WHERE expires_at < NOW() - INTERVAL '1 day'`); err != nil {
+		return false, fmt.Errorf("signup token prune: %w", err)
+	}
 	var id int64
 	err := s.db.QueryRowContext(ctx,
 		`INSERT INTO signup_tokens (token_hash, email, expires_at) VALUES ($1, $2, $3)

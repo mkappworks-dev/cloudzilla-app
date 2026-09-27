@@ -156,7 +156,8 @@ func TestPageRegisterSubmit_SignupEnabled_SameResponseForNewAndExistingEmail(t *
 }
 
 func TestPageRegisterSubmit_SignupEnabled_InvalidEmail_FormErrorAndNoMail(t *testing.T) {
-	for _, email := range []string{"", "not-an-email", "Alice <alice@test.invalid>", "a@test.invalid\r\nBcc: b@test.invalid"} {
+	tooLong := strings.Repeat("a", 64) + "@" + strings.Repeat("b", 177) + ".test.invalid"
+	for _, email := range []string{"", "not-an-email", "Alice <alice@test.invalid>", "a@test.invalid\r\nBcc: b@test.invalid", tooLong} {
 		t.Run(email, func(t *testing.T) {
 			db := testutil.OpenTestDB(t)
 			enableRegistration(t, db)
