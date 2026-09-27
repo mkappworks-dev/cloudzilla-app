@@ -306,6 +306,34 @@ func TestPageRegisterCompleteSubmit_UsernameTaken_LinkStaysUsable(t *testing.T) 
 	}
 }
 
+func TestPageRegisterCompleteSubmit_PasswordTooLong_NoAccountAndLinkStaysUsable(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	email := "signup_" + suffix + "@test.invalid"
+	cleanupSignup(t, db, email)
+	mailer := newFakeSignupMailer()
+	h := newSignupHandler(db, mailer)
+	token := requestSignupLink(t, db, h, mailer, email)
+
+	body := serveSignup(h, http.MethodPost, "/register/complete/"+token, url.Values{
+		"username": {"signup_" + suffix}, "password": {strings.Repeat("p", 73)},
+	}).Body.String()
+
+	if !strings.Contains(body, "Password is too long (maximum 72 bytes)") {
+		t.Errorf("want the password-too-long message:\n%s", body)
+	}
+	var n int
+	if err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM users WHERE username = $1`, "signup_"+suffix).Scan(&n); err != nil {
+		t.Fatalf("count users: %v", err)
+	}
+	if n != 0 {
+		t.Error("an over-long password must not create an account")
+	}
+	if rr := serveSignup(h, http.MethodGet, "/register/complete/"+token, nil); !strings.Contains(rr.Body.String(), `name="username"`) {
+		t.Error("a rejected password must leave the link usable")
+	}
+}
+
 func TestPageRegisterCompleteSubmit_ConcurrentSubmits_OneAccount(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)

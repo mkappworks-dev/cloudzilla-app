@@ -76,6 +76,10 @@ func (h *Handler) PageRegisterCompleteSubmit(w http.ResponseWriter, r *http.Requ
 		renderError("Password must be at least 8 characters")
 		return
 	}
+	if msg := passwordLengthMessage(password); msg != "" {
+		renderError(msg)
+		return
+	}
 
 	user, err := h.Services.Signup.Complete(r.Context(), chi.URLParam(r, "token"), username, password)
 	if errors.Is(err, service.ErrSignupTokenUnusable) {
