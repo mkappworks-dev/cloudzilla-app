@@ -102,19 +102,45 @@ func TestGoogleOAuthCallback_UnverifiedEmailDoesNotTakeOverAccount(t *testing.T)
 	}
 }
 
-func TestGoogleOAuthCallback_VerifiedEmailLinksAccount(t *testing.T) {
+func TestGoogleOAuthCallback_VerifiedEmailDoesNotTakeOverAccount(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	userID, email := testutil.SeedUserWithPassword(t, db, suffix, "password1")
-	t.Cleanup(func() { deleteLoginAudit(t, db, userID) })
-	fakeGoogle(t, map[string]any{"id": "g_owner_" + suffix, "email": email, "verified_email": true, "name": "Owner"})
+	fakeGoogle(t, map[string]any{"id": "g_other_" + suffix, "email": email, "verified_email": true, "name": "Other"})
 
 	rr := googleCallback(t, db)
 
+	if rr.Code != http.StatusConflict || !strings.Contains(rr.Body.String(), "already exists") {
+		t.Errorf("got %d, want 409 with the account-exists login error; body: %.300s", rr.Code, rr.Body.String())
+	}
+	if hasAuthCookie(rr) {
+		t.Error("an auth cookie was issued for another account's email")
+	}
+	if got := oauthIDOf(t, db, userID); got != "" {
+		t.Errorf("the account was linked to Google ID %q", got)
+	}
+}
+
+func TestGoogleOAuthCallback_NewVerifiedEmailSignsUp(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	email := "google_" + suffix + "@example.com"
+	fakeGoogle(t, map[string]any{"id": "g_new_" + suffix, "email": email, "verified_email": true, "name": "New " + suffix})
+
+	rr := googleCallback(t, db)
+
+	var userID int64
+	if err := db.QueryRowContext(context.Background(), `SELECT id FROM users WHERE email = $1`, email).Scan(&userID); err != nil {
+		t.Fatalf("no account created: %v", err)
+	}
+	t.Cleanup(func() {
+		deleteLoginAudit(t, db, userID)
+		testutil.DeleteUsers(t, db, userID)
+	})
 	if rr.Code != http.StatusSeeOther || !hasAuthCookie(rr) {
 		t.Fatalf("got %d (auth cookie: %v), want 303 with an auth cookie; body: %.300s", rr.Code, hasAuthCookie(rr), rr.Body.String())
 	}
-	if got := oauthIDOf(t, db, userID); got != "g_owner_"+suffix {
+	if got := oauthIDOf(t, db, userID); got != "g_new_"+suffix {
 		t.Errorf("oauth_id = %q, want the Google ID linked", got)
 	}
 }

@@ -175,8 +175,8 @@ Superadmin generates token link → shares manually. No SMTP required.
 
 1. An account already linked to the Google ID (`oauth_provider`, `oauth_id`) signs in.
 2. Otherwise Google must report the email as verified (`verified_email` from the userinfo endpoint). If it doesn't, the callback re-renders the login page with a 403 and nothing is linked or created (`ErrOAuthEmailUnverified`).
-3. An account with exactly that email gets the Google ID linked and signs in.
-4. Otherwise a new account is created, subject to `allow_registration`.
+3. If an account with exactly that email exists, the callback re-renders the login page with a 409 and links nothing (`ErrOAuthAccountExists`). Local email addresses are never verified, so anyone could register, accept an invite with, or edit their profile to that address before its owner first signs in with Google; the LDAP/SAML path refuses email matches for the same reason. The owner of the address signs in with their password instead.
+4. Otherwise a new account is created, subject to `allow_registration`, and linked to the Google ID.
 
 ## Usernames
 

@@ -22,6 +22,7 @@ var (
 	ErrRegistrationDisabled = errors.New("registration is disabled")
 	ErrLoginDisabled        = errors.New("login is currently disabled")
 	ErrOAuthEmailUnverified = errors.New("the email address on this account has not been verified by the sign-in provider")
+	ErrOAuthAccountExists   = errors.New("an account with this email already exists; sign in with your password")
 	ErrPinLimit             = errors.New("pin limit reached (6)")
 	ErrRepoNotFound         = errors.New("repository not found")
 	ErrEmailTaken           = errors.New("email is already taken")
@@ -141,19 +142,14 @@ func (s *UserService) AuthenticateOAuth(ctx context.Context, id OAuthIdentity, a
 		return nil, "", ErrOAuthEmailUnverified
 	}
 
-	// 2. Look up by email — link existing account
-	if u, err := s.store.GetByEmailWithRole(ctx, id.Email); err == nil {
-		if !u.IsSuperadmin && !u.IsInvited && !allowLogin {
-			return nil, "", ErrLoginDisabled
-		}
-		if err := s.store.LinkOAuth(ctx, u.ID, id.Provider, id.ID); err != nil {
-			return nil, "", err
-		}
-		token, err := s.generateJWT(u)
-		return u, token, err
+	// Local emails are never verified, so a matching account may belong to
+	// whoever typed the address first; SSO refuses to link on email too.
+	if _, err := s.store.GetByEmailWithRole(ctx, id.Email); err == nil {
+		return nil, "", ErrOAuthAccountExists
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return nil, "", err
 	}
 
-	// 3. Create new user
 	if !allowRegistration {
 		return nil, "", ErrRegistrationDisabled
 	}

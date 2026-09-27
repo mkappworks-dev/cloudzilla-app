@@ -232,24 +232,55 @@ func TestUserService_AuthenticateOAuth_UnverifiedEmailNeitherLinksNorCreates(t *
 	}
 }
 
-func TestUserService_AuthenticateOAuth_VerifiedEmailLinksAndLinkedIDSkipsTheCheck(t *testing.T) {
+// Local emails are unverified: anyone can register, be invited with, or
+// change their profile to someone else's address before that person first
+// signs in with Google.
+func TestUserService_AuthenticateOAuth_DoesNotLinkByEmail(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	victimEmail := "victim_" + suffix + "@example.com"
+	attacker, err := svc.Create(ctx, "atk_"+suffix, victimEmail, "attackerpass1")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, attacker.ID) })
+
+	for _, allowRegistration := range []bool{true, false} {
+		u, _, err := svc.AuthenticateOAuth(ctx, service.OAuthIdentity{
+			Provider: "google", ID: "g_victim_" + suffix, Email: victimEmail, EmailVerified: true,
+		}, allowRegistration, true)
+		if !errors.Is(err, service.ErrOAuthAccountExists) {
+			t.Errorf("allowRegistration=%v: err = %v, want ErrOAuthAccountExists", allowRegistration, err)
+		}
+		if u != nil {
+			t.Errorf("allowRegistration=%v: the victim's Google login landed in user %d", allowRegistration, u.ID)
+		}
+	}
+	if got := linkedOAuthID(t, db, attacker.ID); got != "" {
+		t.Errorf("the attacker's account was linked to Google ID %q", got)
+	}
+}
+
+func TestUserService_AuthenticateOAuth_LinkedIDSkipsTheEmailChecks(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
 	suffix := testutil.UniqueSuffix(t)
-	userID, email := testutil.SeedUserWithPassword(t, db, suffix, "password1")
-	id := service.OAuthIdentity{Provider: "google", ID: "g_verified_" + suffix, Email: email, EmailVerified: true}
+	id := service.OAuthIdentity{Provider: "google", ID: "g_linked_" + suffix, Email: "linked_" + suffix + "@example.com", EmailVerified: true}
 
 	u, _, err := svc.AuthenticateOAuth(context.Background(), id, true, true)
-	if err != nil || u.ID != userID {
-		t.Fatalf("verified login = (%v, %v), want user %d", u, err, userID)
+	if err != nil {
+		t.Fatalf("first login: %v", err)
 	}
-	if got := linkedOAuthID(t, db, userID); got != id.ID {
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, u.ID) })
+	if got := linkedOAuthID(t, db, u.ID); got != id.ID {
 		t.Fatalf("oauth_id = %q, want %q", got, id.ID)
 	}
 
 	id.EmailVerified = false
-	if u, _, err := svc.AuthenticateOAuth(context.Background(), id, true, true); err != nil || u.ID != userID {
-		t.Errorf("already-linked login with an unverified email = (%v, %v), want user %d", u, err, userID)
+	if again, _, err := svc.AuthenticateOAuth(context.Background(), id, false, true); err != nil || again.ID != u.ID {
+		t.Errorf("linked login with an unverified email = (%v, %v), want user %d", again, err, u.ID)
 	}
 }
 

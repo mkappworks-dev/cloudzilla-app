@@ -106,21 +106,26 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		AvatarURL:     info.Picture,
 	}, allowReg, allowLogin)
 	if err != nil {
+		loginError := func(status int, msg string) {
+			ldapEnabled, samlEnabled := h.ssoEnabled(r)
+			w.WriteHeader(status)
+			h.render(w, r, pages.Login(view.LoginData{
+				BasePage:          basePage(r, h.Services),
+				LDAPEnabled:       ldapEnabled,
+				SAMLEnabled:       samlEnabled,
+				AllowRegistration: allowReg,
+				Error:             msg,
+			}))
+		}
 		switch err {
 		case service.ErrRegistrationDisabled:
 			http.Error(w, "Registration is currently disabled", http.StatusForbidden)
 		case service.ErrLoginDisabled:
 			http.Error(w, "Login is currently disabled", http.StatusForbidden)
 		case service.ErrOAuthEmailUnverified:
-			ldapEnabled, samlEnabled := h.ssoEnabled(r)
-			w.WriteHeader(http.StatusForbidden)
-			h.render(w, r, pages.Login(view.LoginData{
-				BasePage:          basePage(r, h.Services),
-				LDAPEnabled:       ldapEnabled,
-				SAMLEnabled:       samlEnabled,
-				AllowRegistration: allowReg,
-				Error:             "Google hasn't verified this Google account's email address, so it can't be used to sign in. Verify the address with Google, or sign in with your password.",
-			}))
+			loginError(http.StatusForbidden, "Google hasn't verified this Google account's email address, so it can't be used to sign in. Verify the address with Google, or sign in with your password.")
+		case service.ErrOAuthAccountExists:
+			loginError(http.StatusConflict, "An account with this Google account's email address already exists. Sign in with your password.")
 		default:
 			http.Error(w, "authentication failed", http.StatusInternalServerError)
 		}
