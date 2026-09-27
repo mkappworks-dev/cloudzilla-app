@@ -7,7 +7,10 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"github.com/go-git/go-git/v5/plumbing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -49,16 +52,17 @@ var excludedDirs = map[string]bool{
 }
 
 type LanguageService struct {
-	code  *CodeService
-	repos *RepoService
-	cache sync.Map // langCacheKey → cacheEntry
+	code         *CodeService
+	repos        *RepoService
+	cache        sync.Map // langCacheKey → cacheEntry
+	cacheInserts atomic.Int64
 }
 
-// Keyed by repo ID, not owner/name: a transfer frees the name for a new repo,
-// which must not read the old repo's cached composition.
+// Keyed by commit so any new commit, pushed or made in the web UI, misses; by
+// repo ID rather than owner/name, which a transfer hands to a different repo.
 type langCacheKey struct {
 	repoID int64
-	ref    string
+	commit plumbing.Hash
 }
 
 // Negative entries (err != nil) use the shorter TTL so a permanent failure can't hammer the tree walk on every refresh.
@@ -71,6 +75,8 @@ type cacheEntry struct {
 const (
 	langCacheTTL         = 10 * time.Minute
 	langCacheNegativeTTL = 30 * time.Second
+	// Entries for superseded commits are never read again, so expired ones are swept every this many inserts.
+	langCacheSweepEvery = 1024
 )
 
 func NewLanguageService(code *CodeService, repos *RepoService) *LanguageService {
@@ -78,7 +84,15 @@ func NewLanguageService(code *CodeService, repos *RepoService) *LanguageService 
 }
 
 func (s *LanguageService) Composition(ctx context.Context, repo *model.Repository, ref string) (map[string]int64, error) {
-	key := langCacheKey{repoID: repo.ID, ref: ref}
+	// ResolveRef treats "" as HEAD; the literal "HEAD" would be tried as a branch/tag/SHA and fail.
+	if ref == "HEAD" {
+		ref = ""
+	}
+	commit, _, err := s.code.ResolveRef(repo.OwnerName, repo.Name, ref)
+	if err != nil {
+		return nil, err
+	}
+	key := langCacheKey{repoID: repo.ID, commit: commit.Hash}
 	if v, ok := s.cache.Load(key); ok {
 		e := v.(cacheEntry)
 		ttl := langCacheTTL
@@ -90,7 +104,7 @@ func (s *LanguageService) Composition(ctx context.Context, repo *model.Repositor
 		}
 	}
 	comp := make(map[string]int64)
-	err := s.code.WalkTree(ctx, repo.OwnerName, repo.Name, ref, func(path string, size int64) error {
+	err = s.code.WalkTree(ctx, commit, func(path string, size int64) error {
 		// Skip if any ancestor directory is excluded.
 		for dir := filepath.Dir(path); dir != "." && dir != "/" && dir != ""; dir = filepath.Dir(dir) {
 			if excludedDirs[filepath.Base(dir)] {
@@ -104,18 +118,23 @@ func (s *LanguageService) Composition(ctx context.Context, repo *model.Repositor
 		return nil
 	})
 	if err != nil {
-		// Eclipses any prior success; intentional so a broken ref doesn't serve pre-breakage data.
-		s.cache.Store(key, cacheEntry{err: err, cachedAt: time.Now()})
+		// A cancelled request says nothing about the commit, so it must not fail the next ones.
+		if ctx.Err() == nil {
+			s.storeEntry(key, cacheEntry{err: err, cachedAt: time.Now()})
+		}
 		return nil, err
 	}
-	s.cache.Store(key, cacheEntry{comp: comp, cachedAt: time.Now()})
+	s.storeEntry(key, cacheEntry{comp: comp, cachedAt: time.Now()})
 	return comp, nil
 }
 
-// Drops every ref, not just the default branch: one push can move several.
-func (s *LanguageService) InvalidateRepo(ctx context.Context, repoID int64) {
-	s.cache.Range(func(k, _ any) bool {
-		if k.(langCacheKey).repoID == repoID {
+func (s *LanguageService) storeEntry(key langCacheKey, e cacheEntry) {
+	s.cache.Store(key, e)
+	if s.cacheInserts.Add(1)%langCacheSweepEvery != 0 {
+		return
+	}
+	s.cache.Range(func(k, v any) bool {
+		if time.Since(v.(cacheEntry).cachedAt) >= langCacheTTL {
 			s.cache.Delete(k)
 		}
 		return true

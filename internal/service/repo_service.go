@@ -225,8 +225,6 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 	}
 
 	if s.language != nil && repo.OwnerName != "" && repo.DefaultBranch != "" {
-		// A page view before this push may have cached the old tree; the column would keep it until the next push.
-		s.language.InvalidateRepo(ctx, repo.ID)
 		top, err := s.language.TopLanguageFor(ctx, repo, repo.DefaultBranch)
 		if err != nil {
 			slog.Warn("post-receive: language composition failed", "repo_id", repo.ID, "error", err)

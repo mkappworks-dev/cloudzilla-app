@@ -97,7 +97,11 @@ func TestCodeService_WalkTree_VisitsAllBlobs(t *testing.T) {
 	svc := newTestRepoWithFiles(t, "alice", "demo", files)
 
 	seen := make(map[string]int64)
-	err := svc.WalkTree(context.Background(), "alice", "demo", "", func(path string, size int64) error {
+	commit, _, err := svc.ResolveRef("alice", "demo", "")
+	if err != nil {
+		t.Fatalf("ResolveRef: %v", err)
+	}
+	err = svc.WalkTree(context.Background(), commit, func(path string, size int64) error {
 		if _, dup := seen[path]; dup {
 			t.Errorf("path %s visited more than once", path)
 		}
@@ -137,7 +141,11 @@ func TestCodeService_WalkTree_AbortOnError(t *testing.T) {
 
 	sentinel := errors.New("stop here")
 	calls := 0
-	err := svc.WalkTree(context.Background(), "alice", "abort", "", func(path string, size int64) error {
+	commit, _, err := svc.ResolveRef("alice", "abort", "")
+	if err != nil {
+		t.Fatalf("ResolveRef: %v", err)
+	}
+	err = svc.WalkTree(context.Background(), commit, func(path string, size int64) error {
 		calls++
 		return sentinel
 	})

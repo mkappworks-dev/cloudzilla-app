@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -115,9 +116,48 @@ func TestLanguageService_Composition_CachesResults(t *testing.T) {
 	}
 	delete(first, "__sentinel__")
 
-	// Also assert the cache entry is present under the expected key.
-	if _, ok := svc.cache.Load(langCacheKey{repoID: 7}); !ok {
-		t.Errorf("expected cache entry under repo ID 7")
+	head, _, err := code.ResolveRef("carol", "cache", "")
+	if err != nil {
+		t.Fatalf("ResolveRef: %v", err)
+	}
+	if _, ok := svc.cache.Load(langCacheKey{repoID: 7, commit: head.Hash}); !ok {
+		t.Errorf("expected cache entry under repo ID 7 and the head commit")
+	}
+}
+
+// Web-UI commits (file edits, merges, profile READMEs) never run the push hook, so the cache must not rely on it.
+func TestLanguageService_Composition_SeesWebCommitWithoutInvalidation(t *testing.T) {
+	t.Parallel()
+	code := newTestRepoWithFiles(t, "dave", "webedit", map[string]string{"index.js": "console.log('hi');\n"})
+	svc := NewLanguageService(code, nil)
+	repo := &model.Repository{ID: 8, OwnerName: "dave", Name: "webedit", DefaultBranch: "master"}
+
+	if pcts, err := svc.Percentages(context.Background(), repo, repo.DefaultBranch); err != nil || langNames(pcts) != "JavaScript" {
+		t.Fatalf("before commit: Percentages = %+v, %v; want JavaScript", pcts, err)
+	}
+	if err := code.CommitFile("dave", "webedit", "master", "main.go", []byte("package main\n\nfunc main() {}\n"), GitAuthor{Name: "Tester", Email: "tester@example.com"}, "add main.go"); err != nil {
+		t.Fatalf("CommitFile: %v", err)
+	}
+	if pcts, err := svc.Percentages(context.Background(), repo, repo.DefaultBranch); err != nil || !strings.Contains(langNames(pcts), "Go") {
+		t.Errorf("after commit: Percentages = %+v, %v; want Go included", pcts, err)
+	}
+}
+
+func TestLanguageService_StoreEntry_SweepsExpiredCommits(t *testing.T) {
+	t.Parallel()
+	svc := NewLanguageService(nil, nil)
+	old := langCacheKey{repoID: 1, commit: plumbing.NewHash("1111111111111111111111111111111111111111")}
+	fresh := langCacheKey{repoID: 1, commit: plumbing.NewHash("2222222222222222222222222222222222222222")}
+	svc.cache.Store(old, cacheEntry{cachedAt: time.Now().Add(-langCacheTTL)})
+	svc.cacheInserts.Store(langCacheSweepEvery - 1)
+
+	svc.storeEntry(fresh, cacheEntry{cachedAt: time.Now()})
+
+	if _, ok := svc.cache.Load(old); ok {
+		t.Error("expired entry for a superseded commit survived the sweep")
+	}
+	if _, ok := svc.cache.Load(fresh); !ok {
+		t.Error("the entry just stored was swept")
 	}
 }
 
