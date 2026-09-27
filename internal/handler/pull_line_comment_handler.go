@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -192,25 +193,21 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch comment before deleting so we know path/line for the response
-	allBefore, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
-	var deletedComment *model.PullLineComment
-	for _, c := range allBefore {
-		if c.ID == id {
-			cc := c
-			deletedComment = &cc
-			break
-		}
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
+	_, existing, ok := h.lineCommentOnURLPull(r.Context(), owner, repoName, number, id)
+	if !ok {
+		writeError(w, http.StatusNotFound, "comment not found")
+		return
 	}
 
-	// Check: only author or repo writer may delete
-	if existing, err := h.Services.PullLineComment.GetComment(r.Context(), id); err == nil {
-		repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-		canWrite := repo != nil && h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		if existing.AuthorID != claims.UserID && !canWrite {
-			writeError(w, http.StatusForbidden, "forbidden")
-			return
-		}
+	canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	if existing.AuthorID != claims.UserID && !canWrite {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
 	}
 
 	if err := h.Services.PullLineComment.Delete(r.Context(), owner, repoName, id); err != nil {
@@ -218,9 +215,9 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Header.Get("HX-Request") == "true" && deletedComment != nil {
+	if r.Header.Get("HX-Request") == "true" {
 		allComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
-		key := fmt.Sprintf("%s:%d", deletedComment.Path, deletedComment.Line)
+		key := fmt.Sprintf("%s:%d", existing.Path, existing.Line)
 		var lineComments []RenderedLineComment
 		for _, c := range allComments {
 			if fmt.Sprintf("%s:%d", c.Path, c.Line) == key {
@@ -230,17 +227,12 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 				})
 			}
 		}
-		repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-		canWrite := false
-		if repo != nil {
-			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		}
 		h.render(w, r, fragments.LineComments(view.LineCommentsFragData{
 			Owner:      owner,
 			RepoName:   repoName,
 			PullNumber: number,
-			Path:       deletedComment.Path,
-			Line:       deletedComment.Line,
+			Path:       existing.Path,
+			Line:       existing.Line,
 			Comments:   lineComments,
 			CanWrite:   canWrite,
 		}))
@@ -292,6 +284,16 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
+	if _, _, ok := h.lineCommentOnURLPull(r.Context(), owner, repoName, number, id); !ok {
+		writeError(w, http.StatusNotFound, "comment not found")
+		return
+	}
+
 	comment, err := h.Services.PullLineComment.Update(r.Context(), id, claims.UserID, body)
 	if err != nil {
 		if err.Error() == "forbidden" {
@@ -314,11 +316,6 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 				})
 			}
 		}
-		repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-		canWrite := false
-		if repo != nil {
-			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		}
 		h.render(w, r, fragments.LineComments(view.LineCommentsFragData{
 			Owner:      owner,
 			RepoName:   repoName,
@@ -326,13 +323,12 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 			Path:       comment.Path,
 			Line:       comment.Line,
 			Comments:   lineComments,
-			CanWrite:   canWrite,
+			CanWrite:   h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID),
 		}))
 		return
 	}
 	writeJSON(w, http.StatusOK, comment)
 }
-
 
 func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
@@ -364,19 +360,13 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comment, err := h.Services.PullLineComment.GetComment(r.Context(), id)
-	if err != nil {
+	pr, comment, ok := h.lineCommentOnURLPull(r.Context(), owner, repoName, number, id)
+	if !ok {
 		writeError(w, http.StatusNotFound, "comment not found")
 		return
 	}
 	if !comment.IsSuggestion {
 		writeError(w, http.StatusUnprocessableEntity, "comment is not a suggestion")
-		return
-	}
-
-	pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "pull request not found")
 		return
 	}
 	if pr.State != "open" {
@@ -404,4 +394,19 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// lineCommentOnURLPull loads the pull request the URL names and line comment id,
+// provided the comment is on that pull request. Comment IDs are global, so without
+// this check access to one repo would reach line comments in any other.
+func (h *Handler) lineCommentOnURLPull(ctx context.Context, owner, repoName string, number int, id int64) (*model.PullRequest, *model.PullLineComment, bool) {
+	pr, err := h.Services.Pull.Get(ctx, owner, repoName, number)
+	if err != nil {
+		return nil, nil, false
+	}
+	c, err := h.Services.PullLineComment.GetComment(ctx, id)
+	if err != nil || c.RepoID != pr.RepoID || c.PullID != pr.ID {
+		return nil, nil, false
+	}
+	return pr, c, true
 }

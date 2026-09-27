@@ -170,6 +170,8 @@ Some handlers delegate authorization to the service layer (e.g., ProjectService 
 
 Signed-in repo pages load the repo with `h.readableRepo`, which gives a viewer who can't read it the same 404 as a missing repo. It runs before any `CanWrite`/`CanManage` check, so a 403 never confirms that a private repo exists.
 
+Comment and line-comment IDs are global, so routes that take one (`.../comments/{id}`, `.../line_comments/{id}`) also require it to be on the issue or pull request in the URL, and answer 404 otherwise. Without that, write access to one repo would reach comments — and, through `/apply`, suggestion content — in repos the caller cannot read.
+
 ---
 
 ## First-Run Wizard (`/setup`)
@@ -288,7 +290,10 @@ Superadmin generates token link → shares manually. No SMTP required.
 | POST              | `/api/repos/{owner}/{repo}/pulls`                         | authMW | Authenticated           | CreatePull                  |
 | PATCH             | `/api/repos/{owner}/{repo}/pulls/{number}`                | authMW | CanWrite (handler)      | UpdatePull                  |
 | POST              | `/api/repos/{owner}/{repo}/pulls/{number}/reviews`        | authMW | Authenticated (not PR author) | SubmitReview           |
-| POST/PATCH/DELETE | `.../pulls/{number}/line_comments`                        | authMW | CanWrite (handler)      | Line comment CRUD           |
+| POST              | `.../pulls/{number}/line_comments`                        | authMW | CanRead                 | CreateLineComment           |
+| PATCH             | `.../pulls/{number}/line_comments/{id}`                   | authMW | CanRead + author only   | UpdateLineComment           |
+| DELETE            | `.../pulls/{number}/line_comments/{id}`                   | authMW | CanRead + (author OR CanWrite) | DeleteLineComment    |
+| POST              | `.../pulls/{number}/line_comments/{id}/apply`             | authMW | CanWrite                | ApplySuggestion             |
 | POST              | `/api/repos/{owner}/{repo}/labels`                        | authMW | CanWrite (handler)      | CreateLabel                 |
 | DELETE            | `/api/repos/{owner}/{repo}/labels/{id}`                   | authMW | CanWrite (handler)      | DeleteLabel                 |
 | POST/DELETE       | `.../issues/{number}/labels/{labelID}`                    | authMW | CanWrite (handler)      | Add/RemoveIssueLabel        |
