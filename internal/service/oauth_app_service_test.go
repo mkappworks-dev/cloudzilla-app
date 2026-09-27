@@ -4,6 +4,7 @@ package service_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"slices"
 	"strings"
@@ -193,9 +194,8 @@ func TestOAuthApp_AuthorizeAndExchange_FullFlow(t *testing.T) {
 	}
 }
 
-// TestOAuthApp_ExchangeCode_WrongSecret_Fails verifies that ExchangeCode rejects
-// an incorrect client secret even when the code itself is valid.
-func TestOAuthApp_ExchangeCode_WrongSecret_Fails(t *testing.T) {
+// An unknown client_id and a wrong secret must be indistinguishable to the caller.
+func TestOAuthApp_ExchangeCode_BadClientCredentials_InvalidClient(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
@@ -207,7 +207,7 @@ func TestOAuthApp_ExchangeCode_WrongSecret_Fails(t *testing.T) {
 		store.NewUserStore(db),
 	)
 
-	app, _, err := svc.CreateApp(context.Background(), ownerID, "Secret App", "", "", []string{testRedirectURI})
+	app, secret, err := svc.CreateApp(context.Background(), ownerID, "Secret App", "", "", []string{testRedirectURI})
 	if err != nil {
 		t.Fatalf("CreateApp: %v", err)
 	}
@@ -216,9 +216,44 @@ func TestOAuthApp_ExchangeCode_WrongSecret_Fails(t *testing.T) {
 		t.Fatalf("Authorize: %v", err)
 	}
 
-	_, err = svc.ExchangeCode(context.Background(), app.ClientID, "wrongsecret", code, testRedirectURI)
-	if err == nil {
-		t.Error("ExchangeCode must fail with wrong client_secret")
+	for _, creds := range [][2]string{{app.ClientID, "wrongsecret"}, {"no-such-client-" + suffix, secret}, {"", ""}} {
+		_, err = svc.ExchangeCode(context.Background(), creds[0], creds[1], code, testRedirectURI)
+		if !errors.Is(err, service.ErrInvalidClient) {
+			t.Errorf("ExchangeCode(client_id %q): want ErrInvalidClient, got %v", creds[0], err)
+		}
+	}
+}
+
+// A stored hash bcrypt can't parse is a server fault, not the client's.
+func TestOAuthApp_ExchangeCode_MalformedStoredSecret_NotInvalidClient(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	svc := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db), store.NewUserStore(db))
+
+	app := &model.OAuthApp{OwnerID: ownerID, Name: "Corrupt App", ClientID: "corrupt_" + suffix, ClientSecret: "not-a-bcrypt-hash"}
+	if err := store.NewOAuthAppStore(db).Create(context.Background(), app); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	_, err := svc.ExchangeCode(context.Background(), app.ClientID, "anything", "code", testRedirectURI)
+	if err == nil || errors.Is(err, service.ErrInvalidClient) || errors.Is(err, service.ErrInvalidGrant) {
+		t.Errorf("want an internal error, got %v", err)
+	}
+}
+
+// A store failure is neither the client's nor the grant's fault.
+func TestOAuthApp_ExchangeCode_StoreError_NotClientOrGrantError(t *testing.T) {
+	db, err := sql.Open("pgx", "postgres://unused")
+	if err != nil {
+		t.Fatalf("sql.Open: %v", err)
+	}
+	db.Close()
+	svc := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db), nil)
+
+	_, err = svc.ExchangeCode(context.Background(), "client", "secret", "code", testRedirectURI)
+	if err == nil || errors.Is(err, service.ErrInvalidClient) || errors.Is(err, service.ErrInvalidGrant) {
+		t.Errorf("want an internal error, got %v", err)
 	}
 }
 
@@ -343,8 +378,8 @@ func TestOAuthApp_ExchangeCode_OtherAppsCode_Fails(t *testing.T) {
 	}
 
 	_, err = svc.ExchangeCode(ctx, attacker.ClientID, attackerSecret, code, testRedirectURI)
-	if err == nil || !strings.Contains(err.Error(), "invalid or expired") {
-		t.Fatalf("want invalid or expired error, got %v", err)
+	if !errors.Is(err, service.ErrInvalidGrant) {
+		t.Fatalf("want ErrInvalidGrant, got %v", err)
 	}
 	if _, err := svc.ExchangeCode(ctx, victim.ClientID, victimSecret, code, testRedirectURI); err != nil {
 		t.Errorf("the issuing app must still redeem its code: %v", err)
@@ -371,11 +406,14 @@ func TestOAuthApp_ExchangeCode_RedirectURIMustMatch(t *testing.T) {
 	}
 
 	for _, uri := range []string{other, ""} {
-		if _, err := svc.ExchangeCode(ctx, app.ClientID, secret, code, uri); err == nil {
-			t.Errorf("ExchangeCode with redirect_uri %q must fail", uri)
+		if _, err := svc.ExchangeCode(ctx, app.ClientID, secret, code, uri); !errors.Is(err, service.ErrInvalidGrant) {
+			t.Errorf("ExchangeCode with redirect_uri %q: want ErrInvalidGrant, got %v", uri, err)
 		}
 	}
 	if _, err := svc.ExchangeCode(ctx, app.ClientID, secret, code, testRedirectURI); err != nil {
 		t.Errorf("ExchangeCode with the authorized redirect_uri: %v", err)
+	}
+	if _, err := svc.ExchangeCode(ctx, app.ClientID, secret, code, testRedirectURI); !errors.Is(err, service.ErrInvalidGrant) {
+		t.Errorf("replayed code: want ErrInvalidGrant, got %v", err)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -29,6 +30,13 @@ var ErrInvalidScope = errors.New("invalid scope")
 
 // ErrInvalidRedirectURI is returned when an app is registered without a usable redirect URI.
 var ErrInvalidRedirectURI = errors.New("invalid redirect_uri")
+
+// ErrInvalidClient is returned when a token request's client_id is unknown or its secret is wrong.
+var ErrInvalidClient = errors.New("invalid client credentials")
+
+// ErrInvalidGrant is returned when an authorization code is unknown, expired, already
+// redeemed, or was issued to another app or redirect_uri.
+var ErrInvalidGrant = errors.New("invalid or expired authorization code")
 
 // NewOAuthAppService creates an OAuthAppService backed by the given stores.
 func NewOAuthAppService(apps *store.OAuthAppStore, auths *store.OAuthAuthorizationStore, users *store.UserStore) *OAuthAppService {
@@ -144,13 +152,21 @@ func (s *OAuthAppService) Authorize(ctx context.Context, appID, userID int64, re
 }
 
 // ExchangeCode redeems a code issued to clientID for redirectURI and returns a raw bearer token.
+// It returns ErrInvalidClient or ErrInvalidGrant for the caller's mistakes; any other error is internal.
 func (s *OAuthAppService) ExchangeCode(ctx context.Context, clientID, clientSecret, code, redirectURI string) (token string, err error) {
 	app, err := s.apps.GetByClientID(ctx, clientID)
-	if err != nil {
-		return "", fmt.Errorf("app not found")
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrInvalidClient
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(app.ClientSecret), []byte(clientSecret)); err != nil {
-		return "", fmt.Errorf("invalid client_secret")
+	if err != nil {
+		return "", err
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(app.ClientSecret), []byte(clientSecret))
+	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+		return "", ErrInvalidClient
+	}
+	if err != nil {
+		return "", fmt.Errorf("oauth app %d client_secret hash: %w", app.ID, err)
 	}
 	tokenBytes := make([]byte, 20)
 	if _, err := rand.Read(tokenBytes); err != nil {
@@ -158,7 +174,11 @@ func (s *OAuthAppService) ExchangeCode(ctx context.Context, clientID, clientSecr
 	}
 	rawToken := hex.EncodeToString(tokenBytes)
 	tokenHash := sha256HexOf(rawToken)
-	if _, err := s.auths.ExchangeCode(ctx, app.ID, code, redirectURI, tokenHash); err != nil {
+	_, err = s.auths.ExchangeCode(ctx, app.ID, code, redirectURI, tokenHash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrInvalidGrant
+	}
+	if err != nil {
 		return "", err
 	}
 	return rawToken, nil
