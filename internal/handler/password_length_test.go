@@ -42,7 +42,7 @@ func TestPageRegisterSubmit_PasswordLength(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			db := openSchemalessDB(t)
 
-			body := submitForm(t, newFormHandler(t, db), "/register", "", url.Values{
+			body := submitForm(t, newPageHandler(t, db), "/register", "", url.Values{
 				"username": {"newuser"}, "email": {"newuser@test.invalid"}, "password": {tc.password},
 			})
 
@@ -56,7 +56,7 @@ func TestPageSetupSubmit_PasswordLength(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			db := openSchemalessDB(t)
 
-			body := submitForm(t, newFormHandler(t, db), "/setup", "", url.Values{
+			body := submitForm(t, newPageHandler(t, db), "/setup", "", url.Values{
 				"username": {"admin"}, "email": {"admin@test.invalid"}, "password": {tc.password},
 			})
 
@@ -90,7 +90,7 @@ func TestPageInviteSubmit_PasswordTooLong_SaysSo(t *testing.T) {
 	suffix := testutil.UniqueSuffix(t)
 	token := seedOpenInvitation(t, db, "invitee_"+suffix+"@test.invalid")
 
-	body := submitForm(t, newFormHandler(t, db), "/invite/"+token, "", url.Values{
+	body := submitForm(t, newPageHandler(t, db), "/invite/"+token, "", url.Values{
 		"username": {"invitee_" + suffix}, "password": {strings.Repeat("p", 73)},
 	})
 
