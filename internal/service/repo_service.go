@@ -684,19 +684,26 @@ func (s *RepoService) UpdateVisibility(ctx context.Context, repoID, userID int64
 	return s.repos.UpdateVisibility(ctx, repoID, private)
 }
 
+var (
+	// ErrTemplateNotFound also covers private repos, so it never confirms one exists.
+	ErrTemplateNotFound = errors.New("template repo not found")
+	ErrNotTemplate      = errors.New("repository is not a template")
+	ErrTemplateArchived = errors.New("template repo is archived")
+)
+
 func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, newOwnerID int64, newOwnerUsername, newName, description string) (*model.Repository, error) {
 	tmpl, err := s.repos.GetByID(ctx, templateRepoID)
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && tmpl.Private) {
+		return nil, ErrTemplateNotFound
+	}
 	if err != nil {
-		return nil, fmt.Errorf("template repo not found: %w", err)
+		return nil, fmt.Errorf("get template repo: %w", err)
 	}
 	if !tmpl.IsTemplate {
-		return nil, fmt.Errorf("repository is not a template")
-	}
-	if tmpl.Private {
-		return nil, fmt.Errorf("template repo must be public")
+		return nil, ErrNotTemplate
 	}
 	if tmpl.IsArchived {
-		return nil, fmt.Errorf("template repo is archived")
+		return nil, ErrTemplateArchived
 	}
 
 	newRepo := &model.Repository{

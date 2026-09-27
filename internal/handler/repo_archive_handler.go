@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -18,9 +19,8 @@ func (h *Handler) ArchiveRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if err := h.Services.Repo.Archive(r.Context(), repo.ID, claims.UserID); err != nil {
@@ -43,9 +43,8 @@ func (h *Handler) UnarchiveRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if err := h.Services.Repo.Unarchive(r.Context(), repo.ID, claims.UserID); err != nil {
@@ -68,9 +67,8 @@ func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if err := h.Services.Repo.Delete(r.Context(), repo.ID, claims.UserID); err != nil {
@@ -92,9 +90,8 @@ func (h *Handler) SetRepoTemplate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -137,8 +134,16 @@ func (h *Handler) CreateFromTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repo, err := h.Services.Repo.CreateFromTemplate(r.Context(), templateRepoID, claims.UserID, claims.Username, newName, description)
-	if err != nil {
+	switch {
+	case errors.Is(err, service.ErrTemplateNotFound):
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	case errors.Is(err, service.ErrNotTemplate), errors.Is(err, service.ErrTemplateArchived):
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	case err != nil:
+		slog.Error("create repo from template failed", "template_repo_id", templateRepoID, "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to create repository")
 		return
 	}
 	http.Redirect(w, r, "/"+claims.Username+"/"+repo.Name, http.StatusSeeOther)
