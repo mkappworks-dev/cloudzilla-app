@@ -79,3 +79,33 @@ func formatNotifEmail(n *model.Notification) (subject, body string) {
 	}
 	return subject, body
 }
+
+func (s *EmailService) Enabled() bool {
+	return s.cfg.Host != ""
+}
+
+func (s *EmailService) SendSignupLink(to, link string) error {
+	subject, body := signupLinkEmail(link)
+	return s.Send(to, subject, body)
+}
+
+func (s *EmailService) SendAccountExists(to, loginURL string) error {
+	subject, body := accountExistsEmail(loginURL)
+	return s.Send(to, subject, body)
+}
+
+func signupLinkEmail(link string) (subject, body string) {
+	return "Finish creating your Cloudzilla account", fmt.Sprintf(
+		`<p>Someone asked to create a Cloudzilla account with this email address.</p>`+
+			`<p><a href="%s">Choose a username and password</a> to finish. The link works once and expires in 24 hours.</p>`+
+			`<p>If this wasn't you, ignore this email.</p>`,
+		html.EscapeString(link))
+}
+
+func accountExistsEmail(loginURL string) (subject, body string) {
+	return "You already have a Cloudzilla account", fmt.Sprintf(
+		`<p>Someone asked to create a Cloudzilla account with this email address, but it already has one.</p>`+
+			`<p><a href="%s">Sign in</a> instead.</p>`+
+			`<p>If this wasn't you, ignore this email.</p>`,
+		html.EscapeString(loginURL))
+}
