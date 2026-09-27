@@ -45,7 +45,7 @@ Request → RequestID → Recoverer → Logger → CORS → CSRF → RequireSetu
 - **authMW**: Reads JWT from `Authorization: Bearer` header OR `cz_token` httpOnly cookie. Also accepts PATs and OAuth tokens. Returns 401 if missing/invalid. An OAuth token without a scope for the route gets 403 (see [OAuth App Scopes](#oauth-app-scopes)).
 - **optAuthMW**: Same as authMW but allows unauthenticated requests through. Claims may be nil. An OAuth token is still refused with 403 on routes its scopes don't cover — it is never silently downgraded to anonymous.
 - **superadminMW**: Requires `claims.IsSuperadmin == true`. Returns 403 otherwise.
-- **CSRF**: Double-submit cookie pattern. Skips git transport, Bearer-auth, and safe methods (GET/HEAD/OPTIONS).
+- **CSRF**: Double-submit cookie pattern. Skips git transport, Bearer-auth, `POST /oauth/token` (client-secret auth), and safe methods (GET/HEAD/OPTIONS).
 
 ### OAuth App Scopes
 
