@@ -23,7 +23,10 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-const testJWTSecret = "test-router-secret-32bytes-min!!"
+const (
+	testJWTSecret   = "test-router-secret-32bytes-min!!"
+	testRedirectURI = "https://client.example/cb"
+)
 
 func newTestRouter(t *testing.T) (http.Handler, *service.Services, *sql.DB) {
 	t.Helper()
@@ -55,15 +58,15 @@ func makeJWT(t *testing.T, userID int64, username string) string {
 func grantOAuthToken(t *testing.T, svc *service.Services, userID int64, scopes ...string) string {
 	t.Helper()
 	ctx := context.Background()
-	app, secret, err := svc.OAuthApp.CreateApp(ctx, userID, "Scope Test App", "", "", nil)
+	app, secret, err := svc.OAuthApp.CreateApp(ctx, userID, "Scope Test App", "", "", []string{testRedirectURI})
 	if err != nil {
 		t.Fatalf("CreateApp: %v", err)
 	}
-	code, err := svc.OAuthApp.Authorize(ctx, app.ID, userID, "", scopes, app)
+	code, err := svc.OAuthApp.Authorize(ctx, app.ID, userID, testRedirectURI, scopes, app)
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
-	token, err := svc.OAuthApp.ExchangeCode(ctx, app.ClientID, secret, code)
+	token, err := svc.OAuthApp.ExchangeCode(ctx, app.ClientID, secret, code, testRedirectURI)
 	if err != nil {
 		t.Fatalf("ExchangeCode: %v", err)
 	}
