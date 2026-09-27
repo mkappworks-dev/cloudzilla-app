@@ -6,7 +6,7 @@
 
 The tasks below are the original plan. What shipped differs as follows.
 
-- **Migrations are 070–072 and 074–077, not 067:** 070 pinned repos, 071 user profile fields, 072 per-type notification prefs, 074 org profile fields, 075 org repo defaults, 076 drops the unbacked notification toggles, 077 widens the `notifications.type` CHECK to accept `pr_review`, `mention` and `discussion_reply`. Why: main took 065–069 and 073 while the branch was open; the old CHECK predated those three types, so every insert of them failed and the per-type toggles had nothing to deliver.
+- **Migrations are 070–072 and 075–078, not 067:** 070 pinned repos, 071 user profile fields, 072 per-type notification prefs, 075 org profile fields, 076 org repo defaults, 077 drops the unbacked notification toggles, 078 widens the `notifications.type` CHECK to accept `pr_review`, `mention` and `discussion_reply`. Why: main took 065–069, 073 and 074 while the branch was open (each renumbering is idempotent, so databases that applied the old names just re-run them); the old CHECK predated those three types, so every insert of them failed and the per-type toggles had nothing to deliver.
 - **Org listing is at `/organizations`, not `/settings/organizations`** (the old path 301s there). Why: the account-settings sidebar it was to live under went away with the single settings page, so it sits beside `/organizations/new`.
 - **New-repo page moved from `/new` to `/repos/new`** (`/new` 301s, query kept). Why: it groups under `/repos` the way `/organizations/new` groups under `/organizations`.
 - **Org `contact_email` kept** (074; edited in org settings, shown on the org page), though Task 7 dropped it. Why: the org settings overhaul added the column Task 7 said was missing. The new-org form still omits it.
@@ -19,8 +19,8 @@ The tasks below are the original plan. What shipped differs as follows.
 - **Language stats count only repos the viewer can read** (`LanguageService.AggregateForUser(ctx, username, viewerID, limit)`, not `(ctx, userID, limit)`; orgs use `AggregateForOrg(ctx, repos, limit)` over the cached `primary_language` of the repos the org page already filtered). Why: aggregating every owned repo let private code shape what visitors saw.
 - **Profile README has an inline editor** for the profile owner (`POST /settings/profile-readme` commits to the `{user}/{user}` repo). Why: owners can edit the README where it renders instead of cloning and pushing.
 - **Username is read-only in settings.** Why: bare repos live at `<repos_root>/<owner>/<repo>.git` and every URL is keyed by username, so a rename would orphan both.
-- **Email prefs are a master switch, digest frequency, and two per-type toggles** (mentions, reviews on my PRs). Migration 076 drops the other 072 toggles (issue assigned, watched repos, weekly digest). Why: no sender read them, so they changed nothing.
-- **Org default repo visibility is `private`** (075), and the new-repo form preselects the chosen owner's default. Why: a new org repo stays unexposed until someone chooses public.
+- **Email prefs are a master switch, digest frequency, and two per-type toggles** (mentions, reviews on my PRs). Migration 077 drops the other 072 toggles (issue assigned, watched repos, weekly digest). Why: no sender read them, so they changed nothing.
+- **Org default repo visibility is `private`** (076), and the new-repo form preselects the chosen owner's default. Why: a new org repo stays unexposed until someone chooses public.
 
 **Goal:** Reshape `user.templ` overview tab (profile mockup), reshape `org.templ` listing/detail to match `mockups/organizations.html`, add `new_organization` page + route (not currently routed), port `repo_new.templ`. Add pinned-repos data model. Add `PinnedRepo` component.
 
