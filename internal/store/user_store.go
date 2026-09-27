@@ -79,6 +79,20 @@ func (s *UserStore) GetByUsername(ctx context.Context, username string) (*model.
 	return u, nil
 }
 
+// OwnerNameTaken: users and organizations share the /{owner} namespace.
+func (s *UserStore) OwnerNameTaken(ctx context.Context, name string) (bool, error) {
+	var taken bool
+	err := s.db.QueryRowContext(ctx,
+		`SELECT EXISTS (SELECT 1 FROM users WHERE username = $1)
+		     OR EXISTS (SELECT 1 FROM organizations WHERE name = $1)`,
+		name,
+	).Scan(&taken)
+	if err != nil {
+		return false, fmt.Errorf("owner name taken: %w", err)
+	}
+	return taken, nil
+}
+
 func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	u, err := s.queryUser(ctx, `WHERE email = $1`, email)
 	if err != nil {

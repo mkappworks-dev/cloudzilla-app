@@ -67,7 +67,10 @@ func TestUniqueUsername_SuffixStaysWithinLimit(t *testing.T) {
 	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE username = $1`, taken) })
 
 	svc := NewUserService(store.NewUserStore(db), config.AuthConfig{})
-	got := svc.uniqueUsername(context.Background(), "x@test.invalid", taken+"yyy")
+	got, err := svc.uniqueUsername(context.Background(), "x@test.invalid", taken+"yyy")
+	if err != nil {
+		t.Fatalf("uniqueUsername: %v", err)
+	}
 	if got == taken || ValidateUsername(got) != nil {
 		t.Errorf("uniqueUsername = %q, want a free valid username", got)
 	}
@@ -86,5 +89,22 @@ func TestFindOrProvisionUser_SanitizesHostileSSOName(t *testing.T) {
 		if err := ValidateUsername(u.Username); err != nil {
 			t.Errorf("SSO name %q provisioned invalid username %q", name, u.Username)
 		}
+	}
+}
+
+func TestFindOrProvisionUser_RefusesAnOrgName(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	name := "ssoorg" + strings.ReplaceAll(suffix, "_", "")
+	testutil.Exec(t, db, `INSERT INTO organizations (name) VALUES ($1)`, name)
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE name = $1`, name) })
+
+	svc := NewSSOService(store.NewSSOStore(db), store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}, nil)
+	u, _, err := svc.findOrProvisionUser(context.Background(), "ldap", "cn=sso_"+suffix, name, "sso_"+suffix+"@test.invalid", true)
+	if u != nil {
+		testutil.DeleteUsers(t, db, u.ID)
+	}
+	if !errors.Is(err, ErrUsernameTaken) {
+		t.Errorf("err = %v, want ErrUsernameTaken", err)
 	}
 }

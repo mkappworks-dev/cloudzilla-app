@@ -829,7 +829,7 @@ func (s *SSOService) findOrProvisionUser(ctx context.Context, provider, ssoID, u
 	}
 
 	safeUsername := sanitizeUsername(username)
-	if err := ValidateUsername(safeUsername); err != nil {
+	if err := usernameAvailable(ctx, s.users, safeUsername); err != nil {
 		return nil, "", err
 	}
 	u, err = s.store.ProvisionSSOUser(ctx, safeUsername, email, provider, ssoID)

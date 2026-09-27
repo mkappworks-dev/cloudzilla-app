@@ -284,6 +284,50 @@ func TestUserService_AuthenticateOAuth_LinkedIDSkipsTheEmailChecks(t *testing.T)
 	}
 }
 
+// /{owner} resolves a user before an org, so a user holding an org's name
+// hides the org and its repos behind the user's.
+func TestUserService_AccountCreation_RefusesOrgNames(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	users := store.NewUserStore(db)
+	auth := config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}
+	svc := service.NewUserService(users, auth)
+	suffix := testutil.UniqueSuffix(t)
+	orgs := service.NewOrgService(store.NewOrgStore(db), store.NewRepoStore(db), users, config.GitConfig{ReposRoot: t.TempDir()})
+	name := "acme" + strings.ReplaceAll(suffix, "_", "")
+	org, err := orgs.Create(ctx, testutil.SeedUser(t, db, suffix), name, "", "")
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
+
+	if _, err := svc.Create(ctx, name, "reg_"+suffix+"@example.com", "password1"); !errors.Is(err, service.ErrUsernameTaken) {
+		t.Errorf("Create: err = %v, want ErrUsernameTaken", err)
+	}
+	if _, err := svc.CreateSuperadmin(ctx, name, "admin_"+suffix+"@example.com", "password1"); !errors.Is(err, service.ErrUsernameTaken) {
+		t.Errorf("CreateSuperadmin: err = %v, want ErrUsernameTaken", err)
+	}
+	u, _, err := svc.AuthenticateOAuth(ctx, service.OAuthIdentity{
+		Provider: "google", ID: "g_" + suffix, Email: "google_" + suffix + "@example.com", EmailVerified: true, Name: name,
+	}, true, true)
+	if err != nil {
+		t.Fatalf("AuthenticateOAuth: %v", err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, u.ID) })
+	if u.Username == name {
+		t.Errorf("Google sign-up derived the org's name %q", name)
+	}
+
+	var n int
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM users WHERE username = $1`, name).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 0 {
+		testutil.Exec(t, db, `DELETE FROM users WHERE username = $1`, name)
+		t.Errorf("%d users took the org's name", n)
+	}
+}
+
 // TestUserService_GetByUsername_ReturnsUser verifies that GetByUsername finds a previously
 // created user by their exact username.
 func TestUserService_GetByUsername_ReturnsUser(t *testing.T) {

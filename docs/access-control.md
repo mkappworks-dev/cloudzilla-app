@@ -182,6 +182,8 @@ Superadmin generates token link → shares manually. No SMTP required.
 
 Every account-creating path (setup, registration, invite, Google OAuth, LDAP/SAML) runs `service.ValidateUsername`: 1-39 letters, digits, `-` or `_`, starting with a letter or digit. Setup, registration and invites reject anything else. Google OAuth derives the username from the display name (falling back to the email's local part, then `user`) by dropping other characters and appending a number on collision; LDAP/SAML replace other characters with `_`.
 
+Users and organizations share one namespace (`/{owner}` and `<repos_root>/<owner>/`). Every account-creating path refuses a name an organization holds with `ErrUsernameTaken`, as `OrgService.Create` refuses a user's name with `ErrOrgNameTaken`; Google OAuth moves on to the next numbered candidate instead. Triggers from migration 079 enforce the same rule in the database, so two concurrent creates cannot both take a name.
+
 ## Account Deletion
 
 `POST /settings/delete-account` calls `UserService.DeleteUser`, which deletes the user row; the database cascades to the user's repositories (soft-deleted ones included), gists, keys, tokens, stars and activity. Around that delete, `RepoService.DeleteWithOwner` handles the repo directories:

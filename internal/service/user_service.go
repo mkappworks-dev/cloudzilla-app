@@ -28,6 +28,7 @@ var (
 	ErrEmailTaken           = errors.New("email is already taken")
 	ErrInvalidEmail         = errors.New("email must be a valid address")
 	ErrInvalidUsername      = errors.New("username must be 1-39 chars, alphanumeric, dash or underscore, starting with a letter or number")
+	ErrUsernameTaken        = errors.New("that name is already taken by a user or an organization")
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
 	usernameRe              = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$`)
 	emailRe                 = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
@@ -42,6 +43,22 @@ const (
 func ValidateUsername(username string) error {
 	if !usernameRe.MatchString(username) {
 		return ErrInvalidUsername
+	}
+	return nil
+}
+
+// Users and orgs share /{owner}, so every account-creating path runs this;
+// migration 079's triggers back it up against a concurrent insert.
+func usernameAvailable(ctx context.Context, users *store.UserStore, username string) error {
+	if err := ValidateUsername(username); err != nil {
+		return err
+	}
+	taken, err := users.OwnerNameTaken(ctx, username)
+	if err != nil {
+		return err
+	}
+	if taken {
+		return ErrUsernameTaken
 	}
 	return nil
 }
@@ -65,7 +82,7 @@ func (s *UserService) WithNoreplyHostFrom(baseURL string) *UserService {
 }
 
 func (s *UserService) Create(ctx context.Context, username, email, password string) (*model.User, error) {
-	if err := ValidateUsername(username); err != nil {
+	if err := usernameAvailable(ctx, s.store, username); err != nil {
 		return nil, err
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -84,7 +101,7 @@ func (s *UserService) Create(ctx context.Context, username, email, password stri
 }
 
 func (s *UserService) CreateSuperadmin(ctx context.Context, username, email, password string) (*model.User, error) {
-	if err := ValidateUsername(username); err != nil {
+	if err := usernameAvailable(ctx, s.store, username); err != nil {
 		return nil, err
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -153,8 +170,8 @@ func (s *UserService) AuthenticateOAuth(ctx context.Context, id OAuthIdentity, a
 	if !allowRegistration {
 		return nil, "", ErrRegistrationDisabled
 	}
-	username := s.uniqueUsername(ctx, id.Email, id.Name)
-	if err := ValidateUsername(username); err != nil {
+	username, err := s.uniqueUsername(ctx, id.Email, id.Name)
+	if err != nil {
 		return nil, "", err
 	}
 	u, err := s.store.CreateOAuthUser(ctx, username, id.Email, id.Provider, id.ID, id.AvatarURL)
@@ -165,7 +182,7 @@ func (s *UserService) AuthenticateOAuth(ctx context.Context, id OAuthIdentity, a
 	return u, token, err
 }
 
-func (s *UserService) uniqueUsername(ctx context.Context, email, name string) string {
+func (s *UserService) uniqueUsername(ctx context.Context, email, name string) (string, error) {
 	base := usernameBase(name)
 	if base == "" {
 		local, _, _ := strings.Cut(email, "@")
@@ -176,8 +193,11 @@ func (s *UserService) uniqueUsername(ctx context.Context, email, name string) st
 	}
 	candidate := base
 	for i := 2; ; i++ {
-		if _, err := s.store.GetByUsername(ctx, candidate); err != nil {
-			return candidate
+		switch err := usernameAvailable(ctx, s.store, candidate); {
+		case err == nil:
+			return candidate, nil
+		case !errors.Is(err, ErrUsernameTaken):
+			return "", err
 		}
 		suffix := strconv.Itoa(i)
 		candidate = base[:min(len(base), maxUsernameLength-len(suffix))] + suffix

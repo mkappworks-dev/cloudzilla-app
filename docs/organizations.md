@@ -23,7 +23,7 @@ An org always keeps at least one owner: removing or demoting the last owner is r
 | `/orgs/{org}/settings`    | Owner only | General (profile), Members, Repository defaults, Audit log, Danger zone (transfer, delete); Teams and Webhooks are placeholders |
 | `/repos/new?owner={org}`  | Required   | New-repo form with the org preselected, if you own it, and its default visibility                                               |
 
-The `/{owner}` route first checks if `owner` is a user; if not, falls back to org lookup. Org profile and user profile share the same URL pattern.
+The `/{owner}` route first checks if `owner` is a user; if not, falls back to org lookup. Org profile and user profile share the same URL pattern, so a name belongs to a user or an org, never both: org creation refuses a user's name, every account-creating path refuses an org's name, and database triggers enforce both directions (see [access-control](./access-control.md#usernames)).
 
 The profile README is the `README.md` of the org's public repo named after the org (`{org}/{org}`), mirroring the user-profile convention. Org owners see every org repo; other viewers see public repos plus private ones where they hold a collaborator role. The repo cards and the top-languages bar follow the same visibility; languages count each visible repo's cached `primary_language` (`LanguageService.AggregateForOrg`, over the same filtered list as the cards).
 
