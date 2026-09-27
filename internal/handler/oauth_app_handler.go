@@ -41,11 +41,7 @@ func (h *Handler) PageOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 
 	_, loggedIn := middleware.ClaimsFromContext(r.Context())
 	if !loggedIn {
-		next := r.URL.RequestURI()
-		if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") {
-			next = "/"
-		}
-		http.Redirect(w, r, "/login?next="+url.QueryEscape(next), http.StatusSeeOther)
+		h.Unauthorized(w, r)
 		return
 	}
 

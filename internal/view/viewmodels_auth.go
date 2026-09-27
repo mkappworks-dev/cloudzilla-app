@@ -9,6 +9,9 @@ type LoginData struct {
 	LDAPEnabled       bool
 	SAMLEnabled       bool
 	AllowRegistration bool
+	// Next is the unvalidated return path; handlers run it through safeNextPath
+	// before redirecting.
+	Next string
 }
 
 // RegisterData holds template data for the public registration page.
@@ -49,4 +52,5 @@ type SecurityPageData struct {
 type TOTPVerifyPageData struct {
 	BasePage
 	Error string
+	Next  string
 }
