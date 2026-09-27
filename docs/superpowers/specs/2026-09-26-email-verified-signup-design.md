@@ -44,7 +44,7 @@ What `Request` sends:
 
 ## Data
 
-Migration `076_signup_tokens.sql`:
+Migration `077_signup_tokens.sql`:
 
 ```sql
 CREATE TABLE IF NOT EXISTS signup_tokens (

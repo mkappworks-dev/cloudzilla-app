@@ -38,7 +38,7 @@
 ### Task 1: `signup_tokens` table and store
 
 **Files:**
-- Create: `internal/db/migrations/076_signup_tokens.sql`
+- Create: `internal/db/migrations/077_signup_tokens.sql`
 - Create: `internal/model/signup_token.go`
 - Create: `internal/store/signup_token_store.go`
 - Modify: `internal/store/stores.go` (add the `SignupToken` field and constructor call)
@@ -197,7 +197,7 @@ func TestSignupTokenStore_GetUsableByHash_UnknownHash(t *testing.T) {
 Run: `go test ./internal/store ./internal/db -run 'SignupToken' -count=1`
 Expected: build failure (`undefined: store.NewSignupTokenStore`), or the migration test failing with `relation "signup_tokens" does not exist`.
 
-- [ ] **Step 4: Write the migration** — create `internal/db/migrations/076_signup_tokens.sql`:
+- [ ] **Step 4: Write the migration** — create `internal/db/migrations/077_signup_tokens.sql`:
 
 ```sql
 -- Links for email-first signup. Only each token's SHA-256 is stored; the raw
@@ -308,7 +308,7 @@ func (s *SignupTokenStore) GetUsableByHash(ctx context.Context, tokenHash string
 - [ ] **Step 8: Apply the migration and run the tests**
 
 Run: `CZ_DATABASE_DSN="$TEST_DATABASE_DSN" go run ./cmd/cloudzilla migrate`
-Expected: `applied migration file=076_signup_tokens.sql`
+Expected: `applied migration file=077_signup_tokens.sql`
 
 Run: `go test ./internal/store ./internal/db -count=1`
 Expected: `ok` for both packages.
@@ -316,7 +316,7 @@ Expected: `ok` for both packages.
 - [ ] **Step 9: Commit**
 
 ```bash
-git add internal/db/migrations/076_signup_tokens.sql internal/model/signup_token.go internal/store/signup_token_store.go internal/store/signup_token_store_test.go internal/store/stores.go internal/db/migrate_test.go
+git add internal/db/migrations/077_signup_tokens.sql internal/model/signup_token.go internal/store/signup_token_store.go internal/store/signup_token_store_test.go internal/store/stores.go internal/db/migrate_test.go
 git commit -m "feat(signup): store hashed, throttled signup links" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
