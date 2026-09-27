@@ -23,7 +23,7 @@ import (
 type linkSanitizer struct{}
 
 func (t *linkSanitizer) Transform(doc *ast.Document, _ text.Reader, _ parser.Context) {
-	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
@@ -75,20 +75,21 @@ func (r *mermaidRenderer) renderFencedCode(w util.BufWriter, source []byte, node
 		buf.Write(line.Value(source))
 	}
 
+	// Write errors stick to the bufio-backed w and surface from goldmark's final Flush.
 	if lang == "mermaid" {
-		w.WriteString(`<pre class="mermaid">`)
+		_, _ = w.WriteString(`<pre class="mermaid">`)
 		template.HTMLEscape(w, buf.Bytes())
-		w.WriteString("</pre>\n")
+		_, _ = w.WriteString("</pre>\n")
 	} else {
 		if lang != "" {
-			w.WriteString(`<pre><code class="language-`)
-			w.WriteString(template.HTMLEscapeString(lang))
-			w.WriteString(`">`)
+			_, _ = w.WriteString(`<pre><code class="language-`)
+			_, _ = w.WriteString(template.HTMLEscapeString(lang))
+			_, _ = w.WriteString(`">`)
 		} else {
-			w.WriteString("<pre><code>")
+			_, _ = w.WriteString("<pre><code>")
 		}
 		template.HTMLEscape(w, buf.Bytes())
-		w.WriteString("</code></pre>\n")
+		_, _ = w.WriteString("</code></pre>\n")
 	}
 	return ast.WalkSkipChildren, nil
 }

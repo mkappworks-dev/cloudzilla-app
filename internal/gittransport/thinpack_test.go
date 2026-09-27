@@ -60,7 +60,7 @@ func TestWrapForReceive_ResolvesThinPackRefDelta(t *testing.T) {
 		if err != nil {
 			t.Fatalf("open resolved object: %v", err)
 		}
-		defer r.Close()
+		defer func() { _ = r.Close() }()
 		got, err := io.ReadAll(r)
 		if err != nil {
 			t.Fatalf("read resolved object: %v", err)

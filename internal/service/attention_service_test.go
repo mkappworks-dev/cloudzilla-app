@@ -60,10 +60,7 @@ func TestAttentionService_ForUser(t *testing.T) {
 		t.Fatalf("insert bob: %v", err)
 	}
 
-	// Defer cleanup; cascades delete issues + issue_assignees + repositories.
-	defer func() {
-		db.ExecContext(ctx, `DELETE FROM users WHERE id IN ($1, $2)`, aliceID, bobID)
-	}()
+	defer testutil.DeleteUsers(t, db, aliceID, bobID)
 
 	// Seed repo owned by bob.
 	var repoID int64

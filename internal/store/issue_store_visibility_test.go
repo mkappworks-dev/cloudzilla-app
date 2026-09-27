@@ -123,8 +123,8 @@ func TestListIssues_VisibilityFilter(t *testing.T) {
 	}
 
 	// Cleanup.
-	db.ExecContext(ctx, `DELETE FROM issues WHERE repo_id = $1`, repoID)
-	db.ExecContext(ctx, `DELETE FROM permissions WHERE repo_id = $1`, repoID)
-	db.ExecContext(ctx, `DELETE FROM repositories WHERE id = $1`, repoID)
-	db.ExecContext(ctx, `DELETE FROM users WHERE id IN ($1, $2)`, ownerID, nonMemberID)
+	testutil.Exec(t, db, `DELETE FROM issues WHERE repo_id = $1`, repoID)
+	testutil.Exec(t, db, `DELETE FROM permissions WHERE repo_id = $1`, repoID)
+	testutil.Exec(t, db, `DELETE FROM repositories WHERE id = $1`, repoID)
+	testutil.Exec(t, db, `DELETE FROM users WHERE id IN ($1, $2)`, ownerID, nonMemberID)
 }

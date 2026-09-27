@@ -104,7 +104,7 @@ func seedIssue(t *testing.T, db *sql.DB, repoID, authorID int64) int64 {
 		t.Fatalf("seedIssue: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM issues WHERE id = $1`, id)
+		testutil.Exec(t, db, `DELETE FROM issues WHERE id = $1`, id)
 	})
 	return id
 }
@@ -124,7 +124,7 @@ func seedMilestone(t *testing.T, db *sql.DB, repoID int64) int64 {
 		t.Fatalf("seedMilestone: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM milestones WHERE id = $1`, id)
+		testutil.Exec(t, db, `DELETE FROM milestones WHERE id = $1`, id)
 	})
 	return id
 }

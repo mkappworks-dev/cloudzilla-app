@@ -49,7 +49,7 @@ func TestUserStore_Create_AssignsID(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, u.ID)
+		testutil.Exec(t, db, `DELETE FROM users WHERE id = $1`, u.ID)
 	})
 
 	if u.ID == 0 {
@@ -163,7 +163,7 @@ func TestUserStore_Create_DuplicateUsername_Error(t *testing.T) {
 		t.Fatalf("first Create: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, u1.ID)
+		testutil.Exec(t, db, `DELETE FROM users WHERE id = $1`, u1.ID)
 	})
 
 	u2 := &model.User{
@@ -173,6 +173,26 @@ func TestUserStore_Create_DuplicateUsername_Error(t *testing.T) {
 	}
 	if err := s.Create(context.Background(), u2); err == nil {
 		t.Error("Create with duplicate username must return an error")
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, u2.ID)
+		testutil.Exec(t, db, `DELETE FROM users WHERE id = $1`, u2.ID)
+	}
+}
+
+func TestSSOStore_GetUserBySSO_LoadsPreferences(t *testing.T) {
+	db := openStoreDB(t)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	ssoID := "sso_" + suffix
+	if err := store.NewUserStore(db).LinkSSO(ctx, userID, "saml", ssoID); err != nil {
+		t.Fatalf("LinkSSO: %v", err)
+	}
+
+	u, err := store.NewSSOStore(db).GetUserBySSO(ctx, "saml", ssoID)
+	if err != nil {
+		t.Fatalf("GetUserBySSO: %v", err)
+	}
+	if u.ID != userID || !u.KeepEmailPrivate || u.EmailDigest != "immediate" {
+		t.Errorf("got id=%d keep_email_private=%v email_digest=%q; want id=%d, true, \"immediate\"",
+			u.ID, u.KeepEmailPrivate, u.EmailDigest, userID)
 	}
 }

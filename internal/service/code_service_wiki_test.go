@@ -3,10 +3,11 @@ package service
 import (
 	"reflect"
 	"testing"
-	"time"
 
 	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
 )
+
+var wikiTestAuthor = GitAuthor{Name: "Tester", Email: "tester@example.com"}
 
 func TestWikiPageListMeta(t *testing.T) {
 	t.Parallel()
@@ -17,10 +18,10 @@ func TestWikiPageListMeta(t *testing.T) {
 	owner := "alice"
 	repo := "testrepo"
 
-	if err := svc.WikiPageSave(owner, repo, "Home", "# Hello\n\nSome content here.\n", "Tester", "tester@example.com", "add Home"); err != nil {
+	if err := svc.WikiPageSave(owner, repo, "Home", "# Hello\n\nSome content here.\n", wikiTestAuthor, "add Home"); err != nil {
 		t.Fatalf("WikiPageSave Home: %v", err)
 	}
-	if err := svc.WikiPageSave(owner, repo, "Architecture", "No heading here.\n\nJust plain text.\n", "Tester", "tester@example.com", "add Architecture"); err != nil {
+	if err := svc.WikiPageSave(owner, repo, "Architecture", "No heading here.\n\nJust plain text.\n", wikiTestAuthor, "add Architecture"); err != nil {
 		t.Fatalf("WikiPageSave Architecture: %v", err)
 	}
 
@@ -48,11 +49,10 @@ func TestWikiPageListMeta(t *testing.T) {
 		t.Errorf("Home Title = %q, want %q", pages[1].Title, "Hello")
 	}
 
-	zero := time.Time{}
-	if pages[0].UpdatedAt == zero {
+	if pages[0].UpdatedAt.IsZero() {
 		t.Errorf("Architecture UpdatedAt is zero")
 	}
-	if pages[1].UpdatedAt == zero {
+	if pages[1].UpdatedAt.IsZero() {
 		t.Errorf("Home UpdatedAt is zero")
 	}
 }
@@ -82,11 +82,11 @@ func TestWikiPageRename(t *testing.T) {
 	repo := "wikirepo"
 	content := "# My Page\n\nContent here.\n"
 
-	if err := svc.WikiPageSave(owner, repo, "OldName", content, "Tester", "tester@example.com", "add OldName"); err != nil {
+	if err := svc.WikiPageSave(owner, repo, "OldName", content, wikiTestAuthor, "add OldName"); err != nil {
 		t.Fatalf("WikiPageSave: %v", err)
 	}
 
-	if err := svc.WikiPageRename(owner, repo, "OldName", "NewName", "Tester", "tester@example.com", "Rename OldName to NewName"); err != nil {
+	if err := svc.WikiPageRename(owner, repo, "OldName", "NewName", wikiTestAuthor, "Rename OldName to NewName"); err != nil {
 		t.Fatalf("WikiPageRename: %v", err)
 	}
 
@@ -109,15 +109,15 @@ func TestWikiPageRename(t *testing.T) {
 		t.Error("OldName still present after rename")
 	}
 
-	if err := svc.WikiPageSave(owner, repo, "Existing", "# Existing\n", "Tester", "tester@example.com", "add Existing"); err != nil {
+	if err := svc.WikiPageSave(owner, repo, "Existing", "# Existing\n", wikiTestAuthor, "add Existing"); err != nil {
 		t.Fatalf("WikiPageSave Existing: %v", err)
 	}
-	err = svc.WikiPageRename(owner, repo, "NewName", "Existing", "Tester", "tester@example.com", "")
+	err = svc.WikiPageRename(owner, repo, "NewName", "Existing", wikiTestAuthor, "")
 	if err == nil {
 		t.Error("expected error on collision, got nil")
 	}
 
-	err = svc.WikiPageRename(owner, repo, "DoesNotExist", "Whatever", "Tester", "tester@example.com", "")
+	err = svc.WikiPageRename(owner, repo, "DoesNotExist", "Whatever", wikiTestAuthor, "")
 	if err == nil {
 		t.Error("expected error for missing source page, got nil")
 	}
@@ -185,15 +185,15 @@ func TestWikiPageRename_RewritesOrder(t *testing.T) {
 	owner := "dave"
 	repo := "renameorder"
 	for _, slug := range []string{"Alpha", "Beta", "Gamma"} {
-		if err := svc.WikiPageSave(owner, repo, slug, "# "+slug+"\n", "Tester", "tester@example.com", "add "+slug); err != nil {
+		if err := svc.WikiPageSave(owner, repo, slug, "# "+slug+"\n", wikiTestAuthor, "add "+slug); err != nil {
 			t.Fatalf("WikiPageSave %s: %v", slug, err)
 		}
 	}
-	if err := svc.WikiPageSetOrder(owner, repo, []string{"Gamma", "Alpha", "Beta"}, "Tester", "tester@example.com"); err != nil {
+	if err := svc.WikiPageSetOrder(owner, repo, []string{"Gamma", "Alpha", "Beta"}, wikiTestAuthor); err != nil {
 		t.Fatalf("WikiPageSetOrder: %v", err)
 	}
 
-	if err := svc.WikiPageRename(owner, repo, "Alpha", "Aardvark", "Tester", "tester@example.com", ""); err != nil {
+	if err := svc.WikiPageRename(owner, repo, "Alpha", "Aardvark", wikiTestAuthor, ""); err != nil {
 		t.Fatalf("WikiPageRename: %v", err)
 	}
 
@@ -215,15 +215,15 @@ func TestWikiPageDelete_StripsOrder(t *testing.T) {
 	owner := "eve"
 	repo := "deleteorder"
 	for _, slug := range []string{"Alpha", "Beta", "Gamma"} {
-		if err := svc.WikiPageSave(owner, repo, slug, "# "+slug+"\n", "Tester", "tester@example.com", "add "+slug); err != nil {
+		if err := svc.WikiPageSave(owner, repo, slug, "# "+slug+"\n", wikiTestAuthor, "add "+slug); err != nil {
 			t.Fatalf("WikiPageSave %s: %v", slug, err)
 		}
 	}
-	if err := svc.WikiPageSetOrder(owner, repo, []string{"Gamma", "Alpha", "Beta"}, "Tester", "tester@example.com"); err != nil {
+	if err := svc.WikiPageSetOrder(owner, repo, []string{"Gamma", "Alpha", "Beta"}, wikiTestAuthor); err != nil {
 		t.Fatalf("WikiPageSetOrder: %v", err)
 	}
 
-	if err := svc.WikiPageDelete(owner, repo, "Alpha", "Tester", "tester@example.com"); err != nil {
+	if err := svc.WikiPageDelete(owner, repo, "Alpha", wikiTestAuthor); err != nil {
 		t.Fatalf("WikiPageDelete: %v", err)
 	}
 
@@ -247,7 +247,7 @@ func TestWikiPageSetOrder(t *testing.T) {
 	repo := "wikisetorder"
 
 	for _, slug := range []string{"Alpha", "Beta", "Gamma"} {
-		if err := svc.WikiPageSave(owner, repo, slug, "# "+slug+"\n", "Tester", "tester@example.com", "add "+slug); err != nil {
+		if err := svc.WikiPageSave(owner, repo, slug, "# "+slug+"\n", wikiTestAuthor, "add "+slug); err != nil {
 			t.Fatalf("WikiPageSave %s: %v", slug, err)
 		}
 	}
@@ -260,7 +260,7 @@ func TestWikiPageSetOrder(t *testing.T) {
 		t.Fatalf("initial order = %v, want [Alpha Beta Gamma]", slugs)
 	}
 
-	if err := svc.WikiPageSetOrder(owner, repo, []string{"Gamma", "Alpha", "Beta"}, "Tester", "tester@example.com"); err != nil {
+	if err := svc.WikiPageSetOrder(owner, repo, []string{"Gamma", "Alpha", "Beta"}, wikiTestAuthor); err != nil {
 		t.Fatalf("WikiPageSetOrder: %v", err)
 	}
 	slugs, err = svc.WikiPageList(owner, repo)
@@ -271,7 +271,7 @@ func TestWikiPageSetOrder(t *testing.T) {
 		t.Errorf("after SetOrder = %v, want [Gamma Alpha Beta]", slugs)
 	}
 
-	if err := svc.WikiPageSetOrder(owner, repo, []string{"Beta", "Gamma", "Alpha"}, "Tester", "tester@example.com"); err != nil {
+	if err := svc.WikiPageSetOrder(owner, repo, []string{"Beta", "Gamma", "Alpha"}, wikiTestAuthor); err != nil {
 		t.Fatalf("WikiPageSetOrder second call: %v", err)
 	}
 	slugs, _ = svc.WikiPageList(owner, repo)
@@ -279,7 +279,7 @@ func TestWikiPageSetOrder(t *testing.T) {
 		t.Errorf("after second SetOrder = %v, want [Beta Gamma Alpha]", slugs)
 	}
 
-	if err := svc.WikiPageSetOrder("nobody", "norepo", []string{"X"}, "Tester", "tester@example.com"); err == nil {
+	if err := svc.WikiPageSetOrder("nobody", "norepo", []string{"X"}, wikiTestAuthor); err == nil {
 		t.Error("expected error for missing wiki repo, got nil")
 	}
 }

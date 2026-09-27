@@ -2,39 +2,15 @@ package store_test
 
 import (
 	"context"
-	"database/sql"
-	"os"
 	"testing"
 	"time"
 
-	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-// openTestDBCommitStats opens an integration-test DB connection if
-// TEST_DATABASE_DSN is set; otherwise it skips the test. Mirrors the
-// helper used by issue_store_visibility_test.go but uses a unique name
-// so both files can live in the same test package.
-func openTestDBCommitStats(t *testing.T) *sql.DB {
-	t.Helper()
-	dsn := os.Getenv("TEST_DATABASE_DSN")
-	if dsn == "" {
-		t.Skip("TEST_DATABASE_DSN not set; skipping integration test")
-	}
-	db, err := sql.Open("pgx", dsn)
-	if err != nil {
-		t.Fatalf("open test db: %v", err)
-	}
-	if err := db.Ping(); err != nil {
-		t.Fatalf("ping test db: %v", err)
-	}
-	return db
-}
-
 func TestCommitStatsStore_UpsertAndListForUser(t *testing.T) {
-	db := openTestDBCommitStats(t)
-	defer db.Close()
+	db := testutil.OpenTestDB(t)
 
 	ctx := context.Background()
 
@@ -66,8 +42,7 @@ func TestCommitStatsStore_UpsertAndListForUser(t *testing.T) {
 	// ON DELETE CASCADE on both repo_id and user_id, and repositories
 	// cascades from users, so a single DELETE FROM users tears it all down.
 	t.Cleanup(func() {
-		bg := context.Background()
-		db.ExecContext(bg, `DELETE FROM users WHERE id = $1`, userID)
+		testutil.Exec(t, db, `DELETE FROM users WHERE id = $1`, userID)
 	})
 
 	today := time.Now().UTC().Truncate(24 * time.Hour)
@@ -117,8 +92,7 @@ func TestCommitStatsStore_UpsertAndListForUser(t *testing.T) {
 // AddCount must accumulate across calls so successive pushes on a single day
 // don't overwrite one another (the bug fixed alongside #8).
 func TestCommitStatsStore_AddCount_Additive(t *testing.T) {
-	db := openTestDBCommitStats(t)
-	defer db.Close()
+	db := testutil.OpenTestDB(t)
 
 	ctx := context.Background()
 	suffix := "addct_" + testutil.UniqueSuffix(t)
@@ -140,7 +114,7 @@ func TestCommitStatsStore_AddCount_Additive(t *testing.T) {
 		t.Fatalf("insert repo: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
+		testutil.Exec(t, db, `DELETE FROM users WHERE id = $1`, userID)
 	})
 
 	s := store.NewCommitStatsStore(db)

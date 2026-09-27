@@ -15,7 +15,9 @@ func TestBlameRow_RendersAllFields(t *testing.T) {
 		CommittedAt: time.Now(), CommitURL: "/x/y/commit/abc1234",
 	}
 	var buf bytes.Buffer
-	BlameRow(line).Render(context.Background(), &buf)
+	if err := BlameRow(line).Render(context.Background(), &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
 	out := buf.String()
 	for _, s := range []string{"alice", "abc1234", "42", "package foo"} {
 		if !strings.Contains(out, s) {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
@@ -30,6 +31,50 @@ func OpenTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
+// Exec runs a statement against the test database, failing the test if it errors.
+func Exec(t *testing.T, db *sql.DB, query string, args ...any) {
+	t.Helper()
+	if _, err := db.ExecContext(context.Background(), query, args...); err != nil {
+		t.Errorf("exec %q: %v", query, err)
+	}
+}
+
+// DeleteUsers deletes users along with the repositories they own. The repositories
+// go first, in their own statement: Postgres runs the NO ACTION checks on issue,
+// pull and comment authors before the owner cascade would have removed those rows.
+func DeleteUsers(t *testing.T, db *sql.DB, ids ...int64) {
+	t.Helper()
+	Exec(t, db, `DELETE FROM repositories WHERE owner_id = ANY($1)`, ids)
+	Exec(t, db, `DELETE FROM users WHERE id = ANY($1)`, ids)
+}
+
+var seededUsers sync.Map // *testing.T -> *userSweep
+
+type userSweep struct {
+	mu  sync.Mutex
+	ids []int64
+}
+
+// deleteLast deletes a seeded user after t's other cleanups: users often author
+// rows in repositories seeded after them, which have to go first. Only the first
+// user seeded in t registers a cleanup, and cleanups run last-in first-out.
+func deleteLast(t *testing.T, db *sql.DB, id int64) {
+	v, loaded := seededUsers.LoadOrStore(t, &userSweep{})
+	sweep := v.(*userSweep)
+	sweep.mu.Lock()
+	sweep.ids = append(sweep.ids, id)
+	sweep.mu.Unlock()
+	if loaded {
+		return
+	}
+	t.Cleanup(func() {
+		seededUsers.Delete(t)
+		sweep.mu.Lock()
+		defer sweep.mu.Unlock()
+		DeleteUsers(t, db, sweep.ids...)
+	})
+}
+
 // SeedUser inserts a test user with the given suffix and returns the user's ID.
 // The user is deleted automatically when the test ends.
 func SeedUser(t *testing.T, db *sql.DB, suffix string) int64 {
@@ -45,9 +90,7 @@ func SeedUser(t *testing.T, db *sql.DB, suffix string) int64 {
 	if err != nil {
 		t.Fatalf("SeedUser: %v", err)
 	}
-	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, id)
-	})
+	deleteLast(t, db, id)
 	return id
 }
 
@@ -69,9 +112,7 @@ func SeedUserWithPassword(t *testing.T, db *sql.DB, suffix, password string) (id
 	if err != nil {
 		t.Fatalf("SeedUserWithPassword: %v", err)
 	}
-	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, id)
-	})
+	deleteLast(t, db, id)
 	return id, email
 }
 
@@ -89,9 +130,7 @@ func SeedSuperadmin(t *testing.T, db *sql.DB, suffix string) int64 {
 	if err != nil {
 		t.Fatalf("SeedSuperadmin: %v", err)
 	}
-	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, id)
-	})
+	deleteLast(t, db, id)
 	return id
 }
 
@@ -118,8 +157,8 @@ func SeedRepo(t *testing.T, db *sql.DB, ownerID int64, ownerName, suffix string)
 		t.Fatalf("SeedRepo permission: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM permissions WHERE repo_id = $1`, repoID)
-		db.ExecContext(context.Background(), `DELETE FROM repositories WHERE id = $1`, repoID)
+		Exec(t, db, `DELETE FROM permissions WHERE repo_id = $1`, repoID)
+		Exec(t, db, `DELETE FROM repositories WHERE id = $1`, repoID)
 	})
 	return repoID
 }

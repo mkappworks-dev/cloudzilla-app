@@ -1,0 +1,18 @@
+version: "2"
+
+# errcheck exclusions cover database/sql cleanup idioms only. Anywhere else, check
+# the error, or discard it with `_ =` where nothing can act on it.
+linters:
+  enable:
+    - rowserrcheck
+  settings:
+    errcheck:
+      exclude-functions:
+        # Iteration errors surface through rows.Err(), which rowserrcheck enforces.
+        - (*database/sql.Rows).Close
+        # Deferred after Commit, where it only reports sql.ErrTxDone.
+        - (*database/sql.Tx).Rollback
+        # A Tx's Commit or Rollback closes its prepared statements anyway.
+        - (*database/sql.Stmt).Close
+        # Closes the connection pool at process or test exit.
+        - (*database/sql.DB).Close

@@ -102,7 +102,7 @@ func seedGitUser(t *testing.T, db *sql.DB, suffix string) (int64, string) {
 		t.Fatalf("seedGitUser: %v", err)
 	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, id)
+		testutil.Exec(t, db, `DELETE FROM users WHERE id = $1`, id)
 	})
 	return id, username
 }
@@ -120,13 +120,15 @@ func seedGitRepo(t *testing.T, db *sql.DB, ownerID int64, ownerName, suffix stri
 	if err != nil {
 		t.Fatalf("seedGitRepo: %v", err)
 	}
-	db.ExecContext(context.Background(),
+	if _, err := db.ExecContext(context.Background(),
 		`INSERT INTO permissions (user_id, repo_id, role) VALUES ($1, $2, 'owner')`,
 		ownerID, repoID,
-	)
+	); err != nil {
+		t.Fatalf("seedGitRepo permission: %v", err)
+	}
 	t.Cleanup(func() {
-		db.ExecContext(context.Background(), `DELETE FROM permissions WHERE repo_id = $1`, repoID)
-		db.ExecContext(context.Background(), `DELETE FROM repositories WHERE id = $1`, repoID)
+		testutil.Exec(t, db, `DELETE FROM permissions WHERE repo_id = $1`, repoID)
+		testutil.Exec(t, db, `DELETE FROM repositories WHERE id = $1`, repoID)
 	})
 	return repoID, repoName
 }

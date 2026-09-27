@@ -44,6 +44,19 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 Raw token format: `czp_<32-byte hex>`. Use as `Authorization: Bearer czp_<token>`. Only the SHA-256 hash is stored; the raw value cannot be recovered after creation.
 
+## Commit Email Privacy
+
+| Method | Path              | Auth     | Description                                                                                             |
+| ------ | ----------------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| POST   | `/settings/email` | Required | Form: `keep_email_private=on` turns the setting on, omitting it turns it off. Redirects to `/settings#email` |
+
+Commits made through the web UI (new files, wiki edits, merge and squash merges, applied suggestions) are authored as `<username> <email>`, where the email comes from `UserService.CommitAuthor`:
+
+- Setting on (the default for every user), or no account email: `<user id>+<username>@users.noreply.<host>`, with `<host>` taken from `server.base_url`.
+- Setting off: the account email.
+
+Commits pushed over git keep whatever author the client set. Contributor stats resolve a noreply author back to its user when both the id and username match, under any host, so commits made before a `base_url` change stay credited. Legacy `username@localhost` authors are not resolved.
+
 ## Deploy Keys
 
 | Method | Path                               | Auth      | Description                                         |
