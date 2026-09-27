@@ -3,14 +3,15 @@ package middleware
 import (
 	"math"
 	"net/http"
+	"net/netip"
 	"strconv"
 	"sync"
 	"time"
 )
 
-// RateLimit allows each client IP limit requests per fixed window on the routes
-// it wraps. Counts live in this process, so each instance of a multi-instance
-// deployment enforces its own budget.
+// RateLimit allows each client IPv4 address or IPv6 /64 limit requests per
+// fixed window on the routes it wraps. Counts live in this process, so each
+// instance of a multi-instance deployment enforces its own budget.
 func RateLimit(limit int, window time.Duration) func(http.Handler) http.Handler {
 	return newRateLimiter(limit, window, time.Now).middleware
 }
@@ -36,13 +37,26 @@ func newRateLimiter(limit int, window time.Duration, now func() time.Time) *rate
 
 func (l *rateLimiter) middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if wait, ok := l.allow(RemoteIP(r)); !ok {
+		if wait, ok := l.allow(rateLimitKey(r)); !ok {
 			w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(wait.Seconds()))))
 			http.Error(w, "Too many attempts. Try again later.", http.StatusTooManyRequests)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// An IPv6 /64 is one subscriber, who could otherwise rotate through its addresses.
+func rateLimitKey(r *http.Request) string {
+	ip := RemoteIP(r)
+	addr, err := netip.ParseAddr(ip)
+	if err != nil {
+		return ip
+	}
+	if addr = addr.Unmap(); addr.Is4() {
+		return addr.String()
+	}
+	return netip.PrefixFrom(addr, 64).Masked().String()
 }
 
 // allow reports whether key may proceed, or how long until its window resets.
