@@ -19,12 +19,8 @@ func (h *Handler) AddPullReviewer(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	authRepo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 
@@ -85,12 +81,7 @@ func (h *Handler) RemovePullReviewer(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 

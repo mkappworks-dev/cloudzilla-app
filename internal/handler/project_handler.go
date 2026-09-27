@@ -177,10 +177,9 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, project)
 }
 
-// repoProject resolves the project ID in the URL through the URL's repo. The
-// project services authorize by project ID alone, so without the repo match a
-// caller could reach a private repo's project through any repo they can read.
-func (h *Handler) repoProject(w http.ResponseWriter, r *http.Request) (int64, bool) {
+// The project services authorize against the project's own repo, so a project
+// from another repo must 404 here or their 403 would confirm that it exists.
+func (h *Handler) projectIDInRepo(w http.ResponseWriter, r *http.Request) (int64, bool) {
 	repo, ok := h.readableRepoJSON(w, r, chi.URLParam(r, "owner"), chi.URLParam(r, "repo"))
 	if !ok {
 		return 0, false
@@ -204,7 +203,7 @@ func (h *Handler) DeleteProject(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, ok := h.repoProject(w, r)
+	projectID, ok := h.projectIDInRepo(w, r)
 	if !ok {
 		return
 	}
@@ -225,7 +224,7 @@ func (h *Handler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, ok := h.repoProject(w, r)
+	projectID, ok := h.projectIDInRepo(w, r)
 	if !ok {
 		return
 	}
@@ -252,7 +251,7 @@ func (h *Handler) CreateColumn(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, ok := h.repoProject(w, r)
+	projectID, ok := h.projectIDInRepo(w, r)
 	if !ok {
 		return
 	}
@@ -279,7 +278,7 @@ func (h *Handler) DeleteColumn(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, ok := h.repoProject(w, r)
+	projectID, ok := h.projectIDInRepo(w, r)
 	if !ok {
 		return
 	}
@@ -301,7 +300,7 @@ func (h *Handler) CreateCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, ok := h.repoProject(w, r)
+	projectID, ok := h.projectIDInRepo(w, r)
 	if !ok {
 		return
 	}
@@ -337,7 +336,7 @@ func (h *Handler) MoveCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, ok := h.repoProject(w, r)
+	projectID, ok := h.projectIDInRepo(w, r)
 	if !ok {
 		return
 	}
@@ -371,7 +370,7 @@ func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, ok := h.repoProject(w, r)
+	projectID, ok := h.projectIDInRepo(w, r)
 	if !ok {
 		return
 	}

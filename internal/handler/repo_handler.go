@@ -112,13 +112,8 @@ func (h *Handler) ListCollaborators(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 
@@ -140,13 +135,8 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 
@@ -229,13 +219,8 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 

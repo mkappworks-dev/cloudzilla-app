@@ -24,16 +24,12 @@ func (h *Handler) issueWriteContext(w http.ResponseWriter, r *http.Request) (own
 	}
 	owner = chi.URLParam(r, "owner")
 	repoName = chi.URLParam(r, "repo")
-	if repo, found = h.readableRepoJSON(w, r, owner, repoName); !found {
+	if repo, found = h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !found {
 		return
 	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid issue number")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 	return owner, repoName, number, repo, claims.UserID, true

@@ -110,7 +110,7 @@ Org members do not get implicit access to private repos. They must be added as e
 | Repo owner               |      Yes      |      Yes       |     Yes      |            Yes             |   Yes    |  Yes   |
 | Org owner (org repos)    |      Yes      |      Yes       |     Yes      |            Yes             |   Yes    |  Yes   |
 
-**Manage** includes: collaborator CRUD, branch protection, deploy keys, topics, wiki deletion, discussion categories, webhook CRUD, repo settings page access.
+**Manage** includes: collaborator CRUD, branch protection, deploy keys, topics, wiki deletion, webhook CRUD, repo settings page access.
 
 **Transfer/Delete** (owner-only) includes: repo transfer, archive, unarchive, template toggle, soft-delete/restore.
 
@@ -175,7 +175,9 @@ A 403 for a private repo, next to a 404 for a missing one, confirms that the pri
 
 - Signed-in HTML repo pages load the repo with `h.readableRepo`, which renders the missing repo's 404 page.
 - Every `/api/repos/{owner}/{repo}/…` and `/fragments/{owner}/{repo}/…` route starts with `h.readableRepoJSON`, which answers `404 {"error":"repo not found"}` in both cases. It runs before sub-resource lookups, body validation, and any `CanWrite`/`CanManage`/`IsOwner` check, including checks made in a service. `TestRepoAPI_PrivateRepoNonReader_LooksLikeMissingRepo` walks the router and holds every such route to this.
-- Project board routes also require the project to belong to the URL's repo (`h.repoProject`): the project services authorize by project ID alone.
+- Project board routes also require the project to belong to the URL's repo (`h.projectIDInRepo`). The project services authorize against the project's own repo, so their 403 would otherwise confirm that another repo's project ID exists.
+- Line comment update, delete and apply-suggestion only act on a comment in the URL's repo (and, for apply, the URL's pull request).
+- `POST /api/repos/from-template` answers a private repo's ID with the same 404 as a missing ID, before checking that it is a template.
 - `POST /api/repos/{owner}/{repo}/restore` targets a soft-deleted repo, which `readableRepoJSON` can't see. A caller who may not restore it gets the same 404 as when no deleted repo exists.
 
 ---
@@ -291,7 +293,7 @@ Every row checks `readableRepoJSON` first.
 
 | Method            | Path                                                      | Auth   | AuthZ Check                                  | Handler                     |
 | ----------------- | --------------------------------------------------------- | ------ | -------------------------------------------- | --------------------------- |
-| POST              | `/api/repos/{owner}/{repo}/issues`                        | authMW | readableRepoJSON                             | CreateIssue                 |
+| POST              | `/api/repos/{owner}/{repo}/issues`                        | authMW | readableRepoJSON (private issue: CanWrite in service) | CreateIssue        |
 | PATCH             | `/api/repos/{owner}/{repo}/issues/{number}`               | authMW | CanWrite (handler)                           | UpdateIssue                 |
 | PATCH             | `.../issues/{number}/{title,body}`, POST `.../priority`   | authMW | CanWrite (handler)                           | EditIssueTitle / EditIssueBody / SetIssuePriority |
 | POST              | `/api/repos/{owner}/{repo}/issues/{number}/comments`      | authMW | readableRepoJSON (CanManage if locked)       | CreateIssueComment          |
@@ -300,12 +302,12 @@ Every row checks `readableRepoJSON` first.
 | DELETE            | `.../{issues,pulls}/{number}/comments/{id}`               | authMW | Author OR CanWrite                           | DeleteComment               |
 | POST              | `/api/repos/{owner}/{repo}/pulls`                         | authMW | readableRepoJSON (+ service)                 | CreatePull                  |
 | PATCH             | `/api/repos/{owner}/{repo}/pulls/{number}`                | authMW | CanWrite (handler)                           | UpdatePull                  |
-| POST              | `/api/repos/{owner}/{repo}/pulls/{number}/reviews`        | authMW | readableRepoJSON (not PR author)             | SubmitReview                |
+| POST              | `/api/repos/{owner}/{repo}/pulls/{number}/reviews`        | authMW | CanWrite (handler); not PR author (service)  | SubmitReview                |
 | POST/DELETE       | `.../pulls/{number}/reviewers`                            | authMW | CanWrite (handler)                           | Add/RemovePullReviewer      |
 | POST              | `.../pulls/{number}/line_comments`                        | authMW | readableRepoJSON                             | CreateLineComment           |
-| PATCH             | `.../pulls/{number}/line_comments/{id}`                   | authMW | Author only                                  | UpdateLineComment           |
-| DELETE            | `.../pulls/{number}/line_comments/{id}`                   | authMW | Author OR CanWrite                           | DeleteLineComment           |
-| POST              | `.../pulls/{number}/line_comments/{id}/apply`             | authMW | CanWrite (handler)                           | ApplySuggestion             |
+| PATCH             | `.../pulls/{number}/line_comments/{id}`                   | authMW | Author only; comment in this repo            | UpdateLineComment           |
+| DELETE            | `.../pulls/{number}/line_comments/{id}`                   | authMW | Author OR CanWrite; comment in this repo     | DeleteLineComment           |
+| POST              | `.../pulls/{number}/line_comments/{id}/apply`             | authMW | CanWrite (handler); suggestion on this PR    | ApplySuggestion             |
 | POST/DELETE       | `.../{issues,pulls}/{number}/linked-*/{number}`           | authMW | CanWrite (handler)                           | Link/UnlinkIssuePull, Link/UnlinkPullIssue |
 | POST              | `/api/repos/{owner}/{repo}/labels`                        | authMW | CanWrite (handler)                           | CreateLabel                 |
 | DELETE            | `/api/repos/{owner}/{repo}/labels/{id}`                   | authMW | CanWrite (handler)                           | DeleteLabel                 |
@@ -325,6 +327,7 @@ Every row checks `readableRepoJSON` first.
 | PATCH             | `.../discussions/{number}`                                | authMW | CanWrite (handler)                           | MarkAnswer                  |
 | DELETE            | `.../discussions/{number}/replies/{id}`                   | authMW | CanWrite (handler)                           | DeleteDiscussionReply       |
 | POST              | `/api/repos/{owner}/{repo}/fork`                          | authMW | readableRepoJSON                             | ForkRepo                    |
+| POST              | `/api/repos/from-template`                                | authMW | Public, non-archived template (service)      | CreateFromTemplate          |
 | POST/DELETE       | `/api/repos/{owner}/{repo}/star`                          | authMW | readableRepoJSON                             | StarRepo / UnstarRepo       |
 | PUT/DELETE        | `/api/repos/{owner}/{repo}/watch`                         | authMW | readableRepoJSON                             | WatchRepo / UnwatchRepo     |
 | POST              | `.../comments/{id}/reactions`, `.../discussions/{number}/reactions`, `.../replies/{id}/reactions` | authMW | readableRepoJSON | Toggle*Reaction |
@@ -356,13 +359,12 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | POST              | `/api/repos/{owner}/{repo}/restore`       | authMW | OwnerID + superadmin (service); 404 otherwise | RestoreRepo |
 | PATCH             | `/api/repos/{owner}/{repo}/template`      | authMW | IsOwner (service)              | SetRepoTemplate         |
 | DELETE            | `/api/repos/{owner}/{repo}/wiki/{slug}`   | authMW | CanManage (handler)            | DeleteWikiPage          |
-| POST/DELETE       | `.../discussions/categories`              | authMW | CanManage (handler)            | DiscussionCategory CRUD |
 | GET               | `/{owner}/{repo}/settings`                | authMW | readableRepo + CanManage       | PageRepoSettings        |
 | POST              | `/{owner}/{repo}/settings/{general,features,visibility}` | authMW | readableRepo + CanManage (service) | UpdateRepoGeneral / Features / Visibility |
 
 ### Repository Endpoints — Service-Layer Auth (Project Board)
 
-`CreateProject` checks `readableRepoJSON`; the other rows resolve the project through `repoProject` (readable repo that owns the project, else 404) before the service check.
+`CreateProject` checks `readableRepoJSON`; the other rows resolve the project through `projectIDInRepo` (readable repo that owns the project, else 404) before the service check.
 
 | Method | Path                                | Auth   | AuthZ Check         | Handler → Service |
 | ------ | ----------------------------------- | ------ | ------------------- | ----------------- |

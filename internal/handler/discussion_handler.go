@@ -558,12 +558,7 @@ func (h *Handler) MarkAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "write access required")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -718,12 +713,7 @@ func (h *Handler) DeleteDiscussionReply(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "write access required")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 

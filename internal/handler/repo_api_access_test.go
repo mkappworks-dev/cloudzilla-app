@@ -6,8 +6,10 @@ package handler_test
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -144,8 +146,9 @@ func TestRepoAPI_PrivateRepoAnonymous_LooksLikeMissingRepo(t *testing.T) {
 	}
 }
 
-// Routes that need more than read access.
-var repoAPIWriteCases = []repoPageCase{
+type repoAPICase struct{ method, path string }
+
+var repoAPIWriteCases = []repoAPICase{
 	{http.MethodPatch, ""},
 	{http.MethodPost, "/labels"},
 	{http.MethodPost, "/milestones"},
@@ -174,8 +177,8 @@ func TestRepoAPI_ReaderWithoutWriteAccess_Forbidden(t *testing.T) {
 
 	for label, repo := range map[string]seededRepo{"public": public, "private": private} {
 		for _, tc := range repoAPIWriteCases {
-			t.Run(label+" "+tc.method+tc.page, func(t *testing.T) {
-				rr := requestAPI(api, tc.method, "/api/repos"+repo.path+tc.page, reader.token)
+			t.Run(label+" "+tc.method+tc.path, func(t *testing.T) {
+				rr := requestAPI(api, tc.method, "/api/repos"+repo.path+tc.path, reader.token)
 
 				if rr.Code != http.StatusForbidden {
 					t.Errorf("want 403, got %d %s", rr.Code, rr.Body.String())
@@ -242,9 +245,7 @@ func TestRepoAPI_RestoreDeletedRepo_NonOwner_LooksLikeMissingRepo(t *testing.T) 
 	}
 }
 
-// Project services authorize by project ID alone, so the URL's repo must own
-// the project or any readable repo would open a private repo's project.
-func TestRepoAPI_ProjectThroughAnotherRepo_NotFound(t *testing.T) {
+func TestRepoAPI_ProjectThroughAnotherRepo_LooksLikeMissingProject(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	api := newAPIRouter(t, db)
 	private := seedOwnedRepo(t, db, true)
@@ -261,17 +262,85 @@ func TestRepoAPI_ProjectThroughAnotherRepo_NotFound(t *testing.T) {
 	}
 	id := strconv.FormatInt(project.ID, 10)
 
-	for _, tc := range []repoPageCase{
-		{http.MethodPatch, "/projects/" + id},
-		{http.MethodDelete, "/projects/" + id},
-		{http.MethodPost, "/projects/" + id + "/columns"},
+	for _, tc := range []repoAPICase{
+		{http.MethodPatch, "/projects/%s"},
+		{http.MethodDelete, "/projects/%s"},
+		{http.MethodPost, "/projects/%s/columns"},
 	} {
-		t.Run(tc.method+tc.page, func(t *testing.T) {
-			rr := requestAPI(api, tc.method, "/api/repos"+public.path+tc.page, stranger)
+		t.Run(tc.method+tc.path, func(t *testing.T) {
+			other := requestAPI(api, tc.method, "/api/repos"+public.path+fmt.Sprintf(tc.path, id), stranger)
+			missing := requestAPI(api, tc.method, "/api/repos"+public.path+fmt.Sprintf(tc.path, "0"), stranger)
 
-			if rr.Code != http.StatusNotFound {
-				t.Errorf("want 404, got %d %s", rr.Code, rr.Body.String())
+			if other.Code != http.StatusNotFound || other.Body.String() != missing.Body.String() {
+				t.Errorf("another repo's project (%d %s) must look like a missing one (%d %s)",
+					other.Code, other.Body.String(), missing.Code, missing.Body.String())
 			}
 		})
+	}
+}
+
+func seedOpenPull(t *testing.T, db *sql.DB, repo seededRepo) int64 {
+	t.Helper()
+	var id int64
+	err := db.QueryRow(
+		`INSERT INTO pull_requests (repo_id, number, author_id, title, state, head_branch, base_branch)
+		 VALUES ($1, 1, $2, 'change', 'open', 'feature', 'main') RETURNING id`,
+		repo.id, repo.owner.id,
+	).Scan(&id)
+	if err != nil {
+		t.Fatalf("seed pull: %v", err)
+	}
+	return id
+}
+
+func TestRepoAPI_ApplySuggestionFromAnotherRepo_NotFound(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	api := newAPIRouter(t, db)
+	private := seedOwnedRepo(t, db, true)
+	own := seedOwnedRepo(t, db, false)
+	seedOpenPull(t, db, own)
+
+	var suggestionID int64
+	err := db.QueryRow(
+		`INSERT INTO pull_line_comments (pull_id, repo_id, author_id, author_name, path, diff_side, line, body, is_suggestion, suggestion_body)
+		 VALUES ($1, $2, $3, $4, 'secret.txt', 'right', 1, 'try this', true, 'private contents') RETURNING id`,
+		seedOpenPull(t, db, private), private.id, private.owner.id, private.owner.name,
+	).Scan(&suggestionID)
+	if err != nil {
+		t.Fatalf("seed suggestion: %v", err)
+	}
+
+	path := "/api/repos" + own.path + "/pulls/1/line_comments/" + strconv.FormatInt(suggestionID, 10) + "/apply"
+	rr := requestAPI(api, http.MethodPost, path, own.owner.token)
+
+	if want := `{"error":"comment not found"}` + "\n"; rr.Code != http.StatusNotFound || rr.Body.String() != want {
+		t.Errorf("want 404 %s, got %d %s", want, rr.Code, rr.Body.String())
+	}
+}
+
+func TestRepoAPI_CreateFromPrivateRepo_LooksLikeMissingTemplate(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	api := newAPIRouter(t, db)
+	plain := seedOwnedRepo(t, db, true)
+	template := seedOwnedRepo(t, db, true)
+	testutil.Exec(t, db, `UPDATE repositories SET is_template = true WHERE id = $1`, template.id)
+	token := seedSignedInUser(t, db).token
+
+	createFrom := func(templateID int64) *httptest.ResponseRecorder {
+		return postForm(t, api, token, "/api/repos/from-template", url.Values{
+			"template_repo_id": {strconv.FormatInt(templateID, 10)},
+			"name":             {"copy_" + testutil.UniqueSuffix(t)},
+		})
+	}
+	missing := createFrom(1 << 62)
+	if missing.Code != http.StatusNotFound {
+		t.Fatalf("missing template: want 404, got %d %s", missing.Code, missing.Body.String())
+	}
+
+	for label, id := range map[string]int64{"private repo": plain.id, "private template": template.id} {
+		if rr := createFrom(id); rr.Code != missing.Code || rr.Body.String() != missing.Body.String() {
+			t.Errorf("%s response (%d %s) must match a missing template's (%d %s)",
+				label, rr.Code, rr.Body.String(), missing.Code, missing.Body.String())
+		}
 	}
 }

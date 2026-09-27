@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -52,10 +53,8 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, component templ
 	}
 }
 
-// readableRepoJSON is readableRepo for the JSON API, where the caller may be
-// anonymous. It must run before anything that answers differently for a repo
-// that exists (a 403, a sub-resource 404, body validation), or that answer
-// would confirm a private repo exists.
+// readableRepoJSON is readableRepo with a JSON 404, for API and fragment routes.
+// It must run before anything that would answer an existing repo differently.
 func (h *Handler) readableRepoJSON(w http.ResponseWriter, r *http.Request, owner, repoName string) (*model.Repository, bool) {
 	var viewerID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
@@ -64,6 +63,26 @@ func (h *Handler) readableRepoJSON(w http.ResponseWriter, r *http.Request, owner
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
 		writeError(w, http.StatusNotFound, "repo not found")
+		return nil, false
+	}
+	return repo, true
+}
+
+func (h *Handler) writableRepoJSON(w http.ResponseWriter, r *http.Request, owner, repoName string, userID int64) (*model.Repository, bool) {
+	return h.permittedRepoJSON(w, r, owner, repoName, userID, h.Services.Repo.CanWrite)
+}
+
+func (h *Handler) manageableRepoJSON(w http.ResponseWriter, r *http.Request, owner, repoName string, userID int64) (*model.Repository, bool) {
+	return h.permittedRepoJSON(w, r, owner, repoName, userID, h.Services.Repo.CanManage)
+}
+
+func (h *Handler) permittedRepoJSON(w http.ResponseWriter, r *http.Request, owner, repoName string, userID int64, permitted func(context.Context, *model.Repository, int64) bool) (*model.Repository, bool) {
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
+		return nil, false
+	}
+	if !permitted(r.Context(), repo, userID) {
+		writeError(w, http.StatusForbidden, "forbidden")
 		return nil, false
 	}
 	return repo, true

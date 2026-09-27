@@ -64,12 +64,7 @@ func (h *Handler) CreateLabel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -141,12 +136,7 @@ func (h *Handler) DeleteLabel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -198,12 +188,7 @@ func (h *Handler) AddIssueLabel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -241,12 +226,7 @@ func (h *Handler) RemoveIssueLabel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -284,12 +264,7 @@ func (h *Handler) AddPullLabel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -328,12 +303,7 @@ func (h *Handler) RemovePullLabel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -439,12 +409,7 @@ func (h *Handler) AddDiscussionLabel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -482,12 +447,7 @@ func (h *Handler) RemoveDiscussionLabel(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 

@@ -37,8 +37,12 @@ func (h *Handler) releaseStatus(ctx context.Context, owner, repoName string, rel
 func (h *Handler) releaseWriteContext(w http.ResponseWriter, r *http.Request) (owner, repoName string, release *model.Release, canWrite bool, ok bool) {
 	owner = chi.URLParam(r, "owner")
 	repoName = chi.URLParam(r, "repo")
-	repo, found := h.readableRepoJSON(w, r, owner, repoName)
+	claims, found := middleware.ClaimsFromContext(r.Context())
 	if !found {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	if _, found = h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !found {
 		return
 	}
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
@@ -46,23 +50,12 @@ func (h *Handler) releaseWriteContext(w http.ResponseWriter, r *http.Request) (o
 		writeError(w, http.StatusBadRequest, "invalid release id")
 		return
 	}
-	claims, found := middleware.ClaimsFromContext(r.Context())
-	if !found {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
-		return
-	}
-	canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-	if !canWrite {
-		writeError(w, http.StatusForbidden, "forbidden")
-		return
-	}
 	release, err = h.Services.Release.GetByID(r.Context(), owner, repoName, id)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "release not found")
 		return
 	}
-	ok = true
-	return
+	return owner, repoName, release, true, true
 }
 
 func (h *Handler) ReleaseTitleSection(w http.ResponseWriter, r *http.Request) {
@@ -479,12 +472,7 @@ func (h *Handler) CreateRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -591,12 +579,7 @@ func (h *Handler) UpdateRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -656,12 +639,7 @@ func (h *Handler) DeleteRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 

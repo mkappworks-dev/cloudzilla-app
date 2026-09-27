@@ -51,13 +51,8 @@ func (h *Handler) ListDeployKeys(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -79,13 +74,8 @@ func (h *Handler) AddDeployKey(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -142,13 +132,8 @@ func (h *Handler) DeleteDeployKey(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 

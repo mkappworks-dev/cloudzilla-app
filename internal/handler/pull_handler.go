@@ -105,7 +105,6 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 	repoID := repo.ID
 	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventPROpened, map[string]any{"number": pr.Number, "title": pr.Title})
 
-	// Auto-assign code owners based on CODEOWNERS file.
 	go func(owner, repoName string, pr *model.PullRequest, defaultBranch string) {
 		diff, err := h.Services.Code.GetPullDiff(owner, repoName, pr.BaseBranch, pr.HeadBranch)
 		if err != nil {
@@ -142,12 +141,8 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 

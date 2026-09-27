@@ -220,12 +220,7 @@ func (h *Handler) CreateMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -295,12 +290,7 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -385,12 +375,7 @@ func (h *Handler) DeleteMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -419,12 +404,7 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -503,12 +483,7 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -766,12 +741,7 @@ func (h *Handler) milestoneWriteContext(w http.ResponseWriter, r *http.Request, 
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return nil, false
 	}
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
-	if !ok {
-		return nil, false
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return nil, false
 	}
 	m, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number)

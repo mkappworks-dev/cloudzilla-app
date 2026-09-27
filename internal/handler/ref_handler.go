@@ -20,12 +20,8 @@ func (h *Handler) CreateBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 
@@ -73,12 +69,8 @@ func (h *Handler) DeleteBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 
@@ -127,12 +119,8 @@ func (h *Handler) CreateTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 
@@ -179,12 +167,8 @@ func (h *Handler) DeleteTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 

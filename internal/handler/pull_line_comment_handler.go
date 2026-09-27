@@ -192,13 +192,14 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Check: only author or repo writer may delete
-	if existing, err := h.Services.PullLineComment.GetComment(r.Context(), id); err == nil {
-		canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		if existing.AuthorID != claims.UserID && !canWrite {
-			writeError(w, http.StatusForbidden, "forbidden")
-			return
-		}
+	existing, err := h.Services.PullLineComment.GetComment(r.Context(), id)
+	if err != nil || existing.RepoID != repo.ID {
+		writeError(w, http.StatusNotFound, "comment not found")
+		return
+	}
+	if existing.AuthorID != claims.UserID && !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
 	}
 
 	if err := h.Services.PullLineComment.Delete(r.Context(), owner, repoName, id); err != nil {
@@ -281,6 +282,11 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if existing, err := h.Services.PullLineComment.GetComment(r.Context(), id); err != nil || existing.RepoID != repo.ID {
+		writeError(w, http.StatusNotFound, "comment not found")
+		return
+	}
+
 	comment, err := h.Services.PullLineComment.Update(r.Context(), id, claims.UserID, body)
 	if err != nil {
 		if err.Error() == "forbidden" {
@@ -328,7 +334,7 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
 	if !ok {
 		return
 	}
@@ -343,24 +349,18 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "pull request not found")
 		return
 	}
-
 	comment, err := h.Services.PullLineComment.GetComment(r.Context(), id)
-	if err != nil {
+	if err != nil || comment.RepoID != repo.ID || comment.PullID != pr.ID {
 		writeError(w, http.StatusNotFound, "comment not found")
 		return
 	}
 	if !comment.IsSuggestion {
 		writeError(w, http.StatusUnprocessableEntity, "comment is not a suggestion")
-		return
-	}
-
-	pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "pull request not found")
 		return
 	}
 	if pr.State != "open" {
