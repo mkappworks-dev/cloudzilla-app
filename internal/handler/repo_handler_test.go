@@ -4,10 +4,13 @@ package handler_test
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -207,5 +210,41 @@ func TestListUserRepos_ReturnsRepos(t *testing.T) {
 	body := strings.TrimSpace(rr.Body.String())
 	if !strings.HasPrefix(body, "[") {
 		t.Errorf("want JSON array, got: %s", body)
+	}
+}
+
+func TestRestoreRepo_NameTaken_422(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	owner := "testuser_" + suffix
+	root := t.TempDir()
+	cfg := &config.Config{
+		Auth: config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: 24 * time.Hour, CookieName: testCookieName},
+		Git:  config.GitConfig{ReposRoot: root},
+	}
+	services := service.New(store.New(db), cfg)
+	repo, err := services.Repo.Create(ctx, owner, "back", "", false, service.RepoInitOptions{})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if err := services.Repo.Delete(ctx, repo.ID, ownerID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	if err := os.Mkdir(filepath.Join(root, owner, "back.git"), 0o755); err != nil {
+		t.Fatalf("occupy the name: %v", err)
+	}
+
+	r := chi.NewRouter()
+	r.Post("/api/repos/{owner}/{repo}/restore", handler.New(services, cfg).RestoreRepo)
+	router := middleware.Auth(testJWTSecret, testCookieName, nil, nil, func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) })(r)
+	req := httptest.NewRequest(http.MethodPost, "/api/repos/"+owner+"/back/restore", nil)
+	req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, ownerID, owner))
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), "already exists") {
+		t.Errorf("want 422 naming the conflict, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
