@@ -98,6 +98,8 @@ Repository creation (here and under `/api/orgs/:org/repos`) accepts optional ini
 
 Creating a repository (here, under `/api/orgs/:org/repos`, or from a template) with a name already used in that namespace returns 422 `a repository with that name already exists` and creates nothing. A directory left on disk without a repository row counts as used, so a new repository never takes over an earlier holder's data; a fork skips such names the same way it skips existing repositories.
 
+Names ending in `.wiki` (in any case) are reserved, because `<name>.wiki.git` is the wiki of repository `<name>`: creating one returns 422 `invalid repository name: names ending in .wiki are reserved for wikis`, and a fork of such a repository gets a `-1` suffix. A `<name>.wiki` repository created before the reservation still works, but while it exists, even soft-deleted, `<name>` cannot be created in or transferred into its namespace (422 `a repository with that name already exists` on create), it cannot be transferred into a namespace that holds `<name>`, and an existing `<name>` has no wiki.
+
 Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` and `<name>.wiki.git.deleted.<unix_ts>`, with the same second stored in `deleted_at`. Restore and the 30-day purge act only on the copy whose suffix matches the row, never on another soft-deleted repository of the same name (org repos are unique per creator, so several can exist). Restore returns an error while another repository holds the name.
 
 ## Issues
@@ -273,7 +275,7 @@ Valid `state` values: `pending`, `success`, `failure`, `error`. Combined state u
 | POST   | `/api/repos/:owner/:repo/wiki/:slug` | Required | Create or update a wiki page |
 | DELETE | `/api/repos/:owner/:repo/wiki/:slug` | Required | Delete a wiki page           |
 
-Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`) that moves with the repository when it is deleted, restored, purged or transferred. Page content is Markdown.
+Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`) that moves with the repository when it is deleted, restored, purged or transferred. Page content is Markdown. When a repository named `<repo>.wiki` from before that suffix was reserved holds the path, `<repo>`'s wiki pages return 404 and the directory stays with `<repo>.wiki`.
 
 ## Discussions
 

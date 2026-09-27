@@ -569,3 +569,185 @@ func TestRepoService_Transfer_RefusesLeftoverWiki(t *testing.T) {
 		t.Error("repo dir moved despite the refusal")
 	}
 }
+
+// legacyWikiRepo stands in for a repo named <name>.wiki created before the
+// suffix was reserved: its git dir is <name>'s wiki path.
+func (e repoDirsEnv) legacyWikiRepo(t *testing.T, owner, name string) (int64, string) {
+	t.Helper()
+	ctx := context.Background()
+	repo, err := e.repos.Create(ctx, owner, "tmp"+testutil.UniqueSuffix(t), "", false, service.RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatalf("create stand-in: %v", err)
+	}
+	fromDir, _ := e.dirs(owner, repo.Name)
+	toDir, _ := e.dirs(owner, name+".wiki")
+	if err := os.Rename(fromDir, toDir); err != nil {
+		t.Fatalf("rename stand-in: %v", err)
+	}
+	testutil.Exec(t, e.db, `UPDATE repositories SET name = $1 WHERE id = $2`, name+".wiki", repo.ID)
+	return repo.ID, headOf(t, toDir)
+}
+
+func TestRepoService_WikiSuffixIsReserved(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	userID, user := env.seedUser(t)
+	org := env.createOrg(t, userID)
+	if _, err := env.repos.Create(ctx, user, "foo", "", true, service.RepoInitOptions{AddREADME: true}); err != nil {
+		t.Fatalf("Create foo: %v", err)
+	}
+	tmpl, err := env.repos.Create(ctx, user, "tmpl", "", false, service.RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatalf("create template: %v", err)
+	}
+	if err := env.repos.SetTemplate(ctx, tmpl.ID, userID, true); err != nil {
+		t.Fatalf("SetTemplate: %v", err)
+	}
+
+	for _, name := range []string{"foo.wiki", "Foo.WIKI", "bar.wiki"} {
+		creates := map[string]func() error{
+			"Create": func() error {
+				_, err := env.repos.Create(ctx, user, name, "", true, service.RepoInitOptions{})
+				return err
+			},
+			"CreateFromTemplate": func() error {
+				_, err := env.repos.CreateFromTemplate(ctx, tmpl.ID, userID, user, name, "")
+				return err
+			},
+			"OrgService.CreateRepo": func() error {
+				_, err := env.orgs.CreateRepo(ctx, org.ID, userID, name, "", true, service.RepoInitOptions{})
+				return err
+			},
+		}
+		for via, create := range creates {
+			if err := create(); !errors.Is(err, service.ErrRepoNameReserved) {
+				t.Errorf("%s %q: want ErrRepoNameReserved, got %v", via, name, err)
+			}
+		}
+		if n := env.rowCount(t, user, name) + env.rowCount(t, org.Name, name); n != 0 {
+			t.Errorf("%q: %d rows stored", name, n)
+		}
+	}
+	if err := env.code.WikiPageSave(user, "foo", "Home", "foo's wiki", dirsTestAuthor, ""); err != nil {
+		t.Fatalf("save foo's wiki: %v", err)
+	}
+	if n := env.rowCount(t, user, "foo.wiki"); n != 0 {
+		t.Errorf("foo's wiki became a repository")
+	}
+}
+
+func TestRepoService_LegacyWikiNamedRepo_KeepsItsDirFromItsPartner(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	aliceID, alice := env.seedUser(t)
+	_, bob := env.seedUser(t)
+
+	partnerOf := func(t *testing.T, name string) (*model.Repository, func(step string)) {
+		t.Helper()
+		if _, err := env.repos.Create(ctx, alice, name, "", true, service.RepoInitOptions{AddREADME: true}); err != nil {
+			t.Fatalf("Create %s: %v", name, err)
+		}
+		_, legacyHead := env.legacyWikiRepo(t, alice, name)
+		_, legacyDir := env.dirs(alice, name)
+		repo, err := env.repos.Get(ctx, alice, name)
+		if err != nil {
+			t.Fatalf("Get %s: %v", name, err)
+		}
+		return repo, func(step string) {
+			t.Helper()
+			if !pathExists(legacyDir) {
+				t.Fatalf("%s moved the git dir of repo %s.wiki", step, name)
+			}
+			if got := headOf(t, legacyDir); got != legacyHead {
+				t.Errorf("after %s, repo %s.wiki holds %s, want %s", step, name, got, legacyHead)
+			}
+		}
+	}
+
+	t.Run("wiki", func(t *testing.T) {
+		repo, _ := partnerOf(t, "served")
+		if env.repos.WikiEnabled(ctx, repo) {
+			t.Error("the wiki is served from repo served.wiki")
+		}
+		if _, err := env.repos.Create(ctx, alice, "plain", "", true, service.RepoInitOptions{}); err != nil {
+			t.Fatalf("Create plain: %v", err)
+		}
+		plain, err := env.repos.Get(ctx, alice, "plain")
+		if err != nil {
+			t.Fatalf("Get plain: %v", err)
+		}
+		if !env.repos.WikiEnabled(ctx, plain) {
+			t.Error("a repo without a .wiki partner has no wiki")
+		}
+	})
+	t.Run("transfer", func(t *testing.T) {
+		repo, wantIntact := partnerOf(t, "given")
+		if err := env.repos.TransferRepo(ctx, repo, aliceID, bob); err != nil {
+			t.Fatalf("TransferRepo: %v", err)
+		}
+		wantIntact("transfer")
+		if _, bobWiki := env.dirs(bob, "given"); pathExists(bobWiki) {
+			t.Error("repo given.wiki arrived at bob's wiki path")
+		}
+	})
+	t.Run("delete", func(t *testing.T) {
+		repo, wantIntact := partnerOf(t, "dropped")
+		if err := env.repos.Delete(ctx, repo.ID, aliceID); err != nil {
+			t.Fatalf("Delete: %v", err)
+		}
+		wantIntact("delete")
+	})
+}
+
+func TestRepoService_WikiPartnersCannotShareANamespace(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	attackerID, attacker := env.seedUser(t)
+	_, victim := env.seedUser(t)
+	if _, err := env.repos.Create(ctx, victim, "foo", "", true, service.RepoInitOptions{AddREADME: true}); err != nil {
+		t.Fatalf("Create victim/foo: %v", err)
+	}
+	legacyID, _ := env.legacyWikiRepo(t, attacker, "foo")
+	legacy, err := env.repos.GetByID(ctx, legacyID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+
+	if err := env.repos.TransferRepo(ctx, legacy, attackerID, victim); !errors.Is(err, service.ErrRepoNameTaken) {
+		t.Errorf("transfer foo.wiki beside foo: want ErrRepoNameTaken, got %v", err)
+	}
+	if n := env.rowCount(t, victim, "foo.wiki"); n != 0 {
+		t.Error("repo foo.wiki moved into the victim's namespace")
+	}
+
+	// A soft-deleted foo.wiki would take foo's wiki path back on restore.
+	if err := env.repos.Delete(ctx, legacyID, attackerID); err != nil {
+		t.Fatalf("Delete foo.wiki: %v", err)
+	}
+	if _, err := env.repos.Create(ctx, attacker, "foo", "", true, service.RepoInitOptions{}); !errors.Is(err, service.ErrRepoNameTaken) {
+		t.Errorf("create foo beside a deleted foo.wiki: want ErrRepoNameTaken, got %v", err)
+	}
+	victimFoo, err := env.repos.Get(ctx, victim, "foo")
+	if err != nil {
+		t.Fatalf("Get victim/foo: %v", err)
+	}
+	if err := env.repos.TransferRepo(ctx, victimFoo, victimFoo.OwnerID, attacker); !errors.Is(err, service.ErrRepoNameTaken) {
+		t.Errorf("transfer foo beside a deleted foo.wiki: want ErrRepoNameTaken, got %v", err)
+	}
+}
+
+func TestRepoService_Fork_SkipsAReservedName(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	_, owner := env.seedUser(t)
+	userID, user := env.seedUser(t)
+	env.legacyWikiRepo(t, owner, "docs")
+
+	forked, err := env.repos.Fork(ctx, owner, "docs.wiki", userID, user)
+	if err != nil {
+		t.Fatalf("Fork: %v", err)
+	}
+	if forked.Name != "docs.wiki-1" {
+		t.Errorf("fork named %q, want docs.wiki-1", forked.Name)
+	}
+}

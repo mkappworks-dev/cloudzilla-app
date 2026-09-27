@@ -434,7 +434,7 @@ func (h *Handler) CreateOrgRepo(w http.ResponseWriter, r *http.Request) {
 		Gitignore: req.Gitignore,
 		License:   req.License,
 	})
-	if errors.Is(err, service.ErrRepoNameTaken) {
+	if errors.Is(err, service.ErrRepoNameTaken) || errors.Is(err, service.ErrRepoNameReserved) {
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}

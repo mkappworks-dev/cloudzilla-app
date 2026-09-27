@@ -304,7 +304,7 @@ func (o RepoInitOptions) any() bool {
 }
 
 func (s *RepoService) Create(ctx context.Context, ownerUsername, name, description string, private bool, init RepoInitOptions) (*model.Repository, error) {
-	if err := ValidateName(name); err != nil {
+	if err := ValidateRepoName(name); err != nil {
 		return nil, fmt.Errorf("invalid repository name: %w", err)
 	}
 
@@ -633,7 +633,7 @@ func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName stri
 			forkName = fmt.Sprintf("%s-%d", originalName, i)
 		}
 		dstPath, err = claimRepo(ctx, s.repos, s.cfg.ReposRoot, actorUsername, forkName)
-		if !errors.Is(err, ErrRepoNameTaken) {
+		if !errors.Is(err, ErrRepoNameTaken) && !errors.Is(err, ErrRepoNameReserved) {
 			break
 		}
 	}
@@ -799,7 +799,7 @@ func (s *RepoService) UpdateVisibility(ctx context.Context, repoID, userID int64
 }
 
 func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, newOwnerID int64, newOwnerUsername, newName, description string) (*model.Repository, error) {
-	if err := ValidateName(newName); err != nil {
+	if err := ValidateRepoName(newName); err != nil {
 		return nil, fmt.Errorf("invalid repository name: %w", err)
 	}
 	tmpl, err := s.repos.GetByID(ctx, templateRepoID)
@@ -871,8 +871,16 @@ func (s *RepoService) Delete(ctx context.Context, repoID, userID int64) error {
 	// deleted_at carries the suffix's second so Restore and purge find this
 	// row's copy among other holders' copies of the name.
 	now := time.Now()
-	gitDir, wikiDir := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
-	moved, err := renameDirs(movesAside(deletedSuffix(now), gitDir, wikiDir))
+	gitDir, _ := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
+	dirs := []string{gitDir}
+	wikiDir, err := s.ownWikiDir(ctx, repo.OwnerName, repo.Name)
+	if err != nil {
+		return err
+	}
+	if wikiDir != "" {
+		dirs = append(dirs, wikiDir)
+	}
+	moved, err := renameDirs(movesAside(deletedSuffix(now), dirs...))
 	if err != nil {
 		return fmt.Errorf("rename git dir for soft delete: %w", err)
 	}
@@ -954,18 +962,31 @@ func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, 
 		return fmt.Errorf("new owner must be a different user")
 	}
 
-	oldGitDir, oldWikiDir := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
+	oldGitDir, _ := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
+	oldWikiDir, err := s.ownWikiDir(ctx, repo.OwnerName, repo.Name)
+	if err != nil {
+		return err
+	}
 	newGitDir, newWikiDir := repoDirs(s.cfg.ReposRoot, newOwnerUsername, repo.Name)
 	// os.Rename refuses an existing dir, but a repo without a wiki skips the
 	// wiki move and would pick up whatever wiki waits at the new path.
 	if pathTaken(newGitDir) || pathTaken(newWikiDir) {
 		return ErrRepoNameTaken
 	}
+	if held, err := s.repos.NameHeld(ctx, newOwnerUsername, wikiPartner(repo.Name)); err != nil {
+		return err
+	} else if held {
+		return ErrRepoNameTaken
+	}
 
 	if err := os.MkdirAll(filepath.Dir(newGitDir), 0755); err != nil {
 		return fmt.Errorf("create owner dir: %w", err)
 	}
-	moved, err := renameDirs([]dirMove{{from: oldGitDir, to: newGitDir}, {from: oldWikiDir, to: newWikiDir}})
+	moves := []dirMove{{from: oldGitDir, to: newGitDir}}
+	if oldWikiDir != "" {
+		moves = append(moves, dirMove{from: oldWikiDir, to: newWikiDir})
+	}
+	moved, err := renameDirs(moves)
 	if err != nil {
 		return fmt.Errorf("move git dir: %w", err)
 	}

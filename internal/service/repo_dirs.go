@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -24,11 +25,67 @@ var ErrRepoNameTaken = errors.New("a repository with that name already exists")
 // deleting that member's account would cascade the repo out of the org.
 var ErrOwnsOrgRepos = errors.New("delete the organization repositories you created first")
 
+// ErrRepoNameReserved: repo <x>.wiki's git dir would be repo <x>'s wiki dir.
+var ErrRepoNameReserved = errors.New("names ending in .wiki are reserved for wikis")
+
+const wikiSuffix = ".wiki"
+
+// Case-insensitive because the filesystem may be.
+func isWikiName(name string) bool {
+	return strings.HasSuffix(strings.ToLower(name), wikiSuffix)
+}
+
+// ValidateRepoName is ValidateName plus the names a new repo may not take.
+// Git access keeps using ValidateName: repos created before the reservation
+// still need to be reachable.
+func ValidateRepoName(name string) error {
+	if err := ValidateName(name); err != nil {
+		return err
+	}
+	if isWikiName(name) {
+		return ErrRepoNameReserved
+	}
+	return nil
+}
+
+// wikiPartner is the name whose dirs overlap name's: <x> and <x>.wiki.
+func wikiPartner(name string) string {
+	if isWikiName(name) {
+		return name[:len(name)-len(wikiSuffix)]
+	}
+	return name + wikiSuffix
+}
+
 // Every lifecycle step moves both dirs together: a wiki left behind is served
 // to the next repo that takes the name.
 func repoDirs(root, owner, name string) (gitDir, wikiDir string) {
 	base := filepath.Join(root, owner, name)
 	return base + ".git", base + ".wiki.git"
+}
+
+// ownWikiDir is "" when a repo named <name>.wiki, possible only from before
+// the reservation, holds owner/name's wiki path as its git dir (or will on
+// restore): owner/name must then neither serve nor move that path.
+func (s *RepoService) ownWikiDir(ctx context.Context, owner, name string) (string, error) {
+	held, err := s.repos.NameHeld(ctx, owner, name+wikiSuffix)
+	if err != nil || held {
+		return "", err
+	}
+	_, wikiDir := repoDirs(s.cfg.ReposRoot, owner, name)
+	return wikiDir, nil
+}
+
+// WikiEnabled fails closed when the wiki path cannot be checked.
+func (s *RepoService) WikiEnabled(ctx context.Context, repo *model.Repository) bool {
+	if !repo.AllowWiki {
+		return false
+	}
+	wikiDir, err := s.ownWikiDir(ctx, repo.OwnerName, repo.Name)
+	if err != nil {
+		slog.Error("check wiki path", "repo_id", repo.ID, "error", err)
+		return false
+	}
+	return wikiDir != ""
 }
 
 // A path that cannot be checked counts as taken.
@@ -41,10 +98,18 @@ func pathTaken(path string) bool {
 // path, so the row never adopts data an earlier holder of the name left on
 // disk; the wiki path is checked too because wikis are created lazily.
 func claimRepo(ctx context.Context, repos *store.RepoStore, root, owner, name string) (string, error) {
+	if isWikiName(name) {
+		return "", ErrRepoNameReserved
+	}
 	if _, err := repos.GetByOwnerName(ctx, owner, name); err == nil {
 		return "", ErrRepoNameTaken
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return "", err
+	}
+	if held, err := repos.NameHeld(ctx, owner, wikiPartner(name)); err != nil {
+		return "", err
+	} else if held {
+		return "", ErrRepoNameTaken
 	}
 	gitDir, wikiDir := repoDirs(root, owner, name)
 	if err := os.MkdirAll(filepath.Dir(gitDir), 0o755); err != nil {
