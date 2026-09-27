@@ -1,11 +1,14 @@
 package handler_test
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -96,8 +99,6 @@ func cleanupSignup(t *testing.T, db *sql.DB, email string) {
 }
 
 // requestSignupLink submits /register for email and returns the token from the emailed link.
-//
-//nolint:unused // consumed by the register-complete tests landing next
 func requestSignupLink(t *testing.T, db *sql.DB, h *handler.Handler, mailer *fakeSignupMailer, email string) string {
 	t.Helper()
 	enableRegistration(t, db)
@@ -168,5 +169,191 @@ func TestPageRegisterSubmit_SignupEnabled_InvalidEmail_FormErrorAndNoMail(t *tes
 			}
 			mailer.assertNoneSent(t)
 		})
+	}
+}
+
+func completeForm(username string) url.Values {
+	return url.Values{"username": {username}, "password": {"password123"}}
+}
+
+func TestPageRegisterComplete_UsableLink_ShowsFormWithEmail(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	email := "signup_" + testutil.UniqueSuffix(t) + "@test.invalid"
+	cleanupSignup(t, db, email)
+	mailer := newFakeSignupMailer()
+	h := newSignupHandler(db, mailer)
+	token := requestSignupLink(t, db, h, mailer, email)
+
+	body := serveSignup(h, http.MethodGet, "/register/complete/"+token, nil).Body.String()
+
+	if !strings.Contains(body, `value="`+email+`"`) || !strings.Contains(body, `name="username"`) {
+		t.Errorf("want the completion form for %s:\n%s", email, body)
+	}
+}
+
+func assertInvalidSignupLinkPage(t *testing.T, body, hiddenEmail string) {
+	t.Helper()
+	if !strings.Contains(body, "This link is no longer valid") {
+		t.Errorf("want the invalid-link page:\n%s", body)
+	}
+	if strings.Contains(body, `name="username"`) {
+		t.Error("an unusable link must not render the form")
+	}
+	if hiddenEmail != "" && strings.Contains(strings.ToLower(body), strings.ToLower(hiddenEmail)) {
+		t.Errorf("an unusable link must not show its email:\n%s", body)
+	}
+}
+
+func TestPageRegisterComplete_UnusableLink_GenericPage(t *testing.T) {
+	cases := []struct {
+		name  string
+		spoil func(t *testing.T, db *sql.DB, suffix, email string)
+	}{
+		{"used", func(t *testing.T, db *sql.DB, _, email string) {
+			testutil.Exec(t, db, `UPDATE signup_tokens SET used_at = NOW() WHERE lower(email) = lower($1)`, email)
+		}},
+		{"expired", func(t *testing.T, db *sql.DB, _, email string) {
+			testutil.Exec(t, db, `UPDATE signup_tokens SET expires_at = NOW() - INTERVAL '1 minute' WHERE lower(email) = lower($1)`, email)
+		}},
+		{"email registered since", func(t *testing.T, db *sql.DB, suffix, _ string) {
+			testutil.SeedUser(t, db, suffix)
+		}},
+	}
+	for _, tc := range cases {
+		for _, method := range []string{http.MethodGet, http.MethodPost} {
+			t.Run(tc.name+"/"+method, func(t *testing.T) {
+				db := testutil.OpenTestDB(t)
+				suffix := testutil.UniqueSuffix(t)
+				email := "testuser_" + suffix + "@test.invalid"
+				cleanupSignup(t, db, email)
+				mailer := newFakeSignupMailer()
+				h := newSignupHandler(db, mailer)
+				token := requestSignupLink(t, db, h, mailer, email)
+				tc.spoil(t, db, suffix, email)
+
+				var form url.Values
+				if method == http.MethodPost {
+					form = completeForm("signup_" + suffix)
+				}
+				body := serveSignup(h, method, "/register/complete/"+token, form).Body.String()
+
+				assertInvalidSignupLinkPage(t, body, email)
+			})
+		}
+	}
+}
+
+func TestPageRegisterComplete_UnknownToken_GenericPage(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	enableRegistration(t, db)
+
+	body := serveSignup(newSignupHandler(db, newFakeSignupMailer()), http.MethodGet, "/register/complete/nope"+testutil.UniqueSuffix(t), nil).Body.String()
+
+	assertInvalidSignupLinkPage(t, body, "")
+}
+
+func TestPageRegisterCompleteSubmit_CreatesAccountAndSignsIn(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	email := "signup_" + suffix + "@test.invalid"
+	cleanupSignup(t, db, email)
+	mailer := newFakeSignupMailer()
+	h := newSignupHandler(db, mailer)
+	token := requestSignupLink(t, db, h, mailer, email)
+
+	rr := serveSignup(h, http.MethodPost, "/register/complete/"+token, completeForm("signup_"+suffix))
+
+	if rr.Code != http.StatusSeeOther || rr.Header().Get("Location") != "/" {
+		t.Fatalf("want 303 to /, got %d %q: %s", rr.Code, rr.Header().Get("Location"), rr.Body)
+	}
+	var signedIn bool
+	for _, c := range rr.Result().Cookies() {
+		signedIn = signedIn || (c.Name == testCookieName && c.Value != "")
+	}
+	if !signedIn {
+		t.Error("completing signup must sign the user in")
+	}
+	var invited bool
+	if err := db.QueryRowContext(context.Background(), `SELECT is_invited FROM users WHERE username = $1 AND email = $2`, "signup_"+suffix, email).Scan(&invited); err != nil {
+		t.Fatalf("read user: %v", err)
+	}
+	if invited {
+		t.Error("a self-registered account must not be marked invited")
+	}
+
+	replay := serveSignup(h, http.MethodPost, "/register/complete/"+token, completeForm("signup2_"+suffix))
+	assertInvalidSignupLinkPage(t, replay.Body.String(), email)
+}
+
+func TestPageRegisterCompleteSubmit_UsernameTaken_LinkStaysUsable(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	testutil.SeedUser(t, db, suffix)
+	email := "signup_" + suffix + "@test.invalid"
+	cleanupSignup(t, db, email)
+	mailer := newFakeSignupMailer()
+	h := newSignupHandler(db, mailer)
+	token := requestSignupLink(t, db, h, mailer, email)
+
+	body := serveSignup(h, http.MethodPost, "/register/complete/"+token, completeForm("testuser_"+suffix)).Body.String()
+
+	assertNoDBErrorText(t, body)
+	if !strings.Contains(body, "username is already taken") {
+		t.Errorf("want the username-taken message:\n%s", body)
+	}
+	if rr := serveSignup(h, http.MethodGet, "/register/complete/"+token, nil); !strings.Contains(rr.Body.String(), `name="username"`) {
+		t.Error("a failed create must leave the link usable")
+	}
+}
+
+func TestPageRegisterCompleteSubmit_ConcurrentSubmits_OneAccount(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	email := "signup_" + suffix + "@test.invalid"
+	cleanupSignup(t, db, email)
+	mailer := newFakeSignupMailer()
+	h := newSignupHandler(db, mailer)
+	token := requestSignupLink(t, db, h, mailer, email)
+
+	const submits = 5
+	results := make(chan *httptest.ResponseRecorder, submits)
+	var wg sync.WaitGroup
+	for i := range submits {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			results <- serveSignup(h, http.MethodPost, "/register/complete/"+token, completeForm(fmt.Sprintf("signup_%s_%d", suffix, i)))
+		}()
+	}
+	wg.Wait()
+	close(results)
+
+	created := 0
+	for rr := range results {
+		if rr.Code == http.StatusSeeOther {
+			created++
+			continue
+		}
+		assertInvalidSignupLinkPage(t, rr.Body.String(), "")
+	}
+	if created != 1 {
+		t.Errorf("want exactly 1 account, got %d", created)
+	}
+}
+
+func TestPageRegisterComplete_RegistrationClosed_RedirectsToLogin(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	email := "signup_" + testutil.UniqueSuffix(t) + "@test.invalid"
+	cleanupSignup(t, db, email)
+	mailer := newFakeSignupMailer()
+	h := newSignupHandler(db, mailer)
+	token := requestSignupLink(t, db, h, mailer, email)
+	setAllowRegistration(t, db, "false")
+
+	for _, method := range []string{http.MethodGet, http.MethodPost} {
+		rr := serveSignup(newSignupHandler(db, mailer), method, "/register/complete/"+token, completeForm("signup_x"))
+		if rr.Code != http.StatusSeeOther || rr.Header().Get("Location") != "/login" {
+			t.Errorf("%s: want 303 to /login, got %d %q", method, rr.Code, rr.Header().Get("Location"))
+		}
 	}
 }

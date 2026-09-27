@@ -71,6 +71,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(optAuthMW).Get("/login", h.PageLogin)
 	r.With(optAuthMW).Get("/register", h.PageRegister)
 	r.With(optAuthMW, middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/register", h.PageRegisterSubmit)
+	r.Get("/register/complete/{token}", h.PageRegisterComplete)
+	r.With(middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/register/complete/{token}", h.PageRegisterCompleteSubmit)
 	r.With(optAuthMW).Post("/login", h.PageLoginSubmit)
 	r.With(authMW).Get("/new", h.PageNewRepo)
 	r.With(authMW).Get("/settings", h.PageSettings)
