@@ -27,7 +27,7 @@ Cloudzilla is configured via a YAML config file, environment variables, or a com
 | `oauth.google_client_id`     | `""`                                         | `CZ_OAUTH_GOOGLE_CLIENT_ID`     | Google OAuth client ID (empty = disabled)       |
 | `oauth.google_client_secret` | `""`                                         | `CZ_OAUTH_GOOGLE_CLIENT_SECRET` | Google OAuth client secret                      |
 | `oauth.google_redirect_url`  | `http://localhost:8080/auth/google/callback` | `CZ_OAUTH_GOOGLE_REDIRECT_URL`  | OAuth redirect URI (must match Google Console)  |
-| `smtp.host`                  | `""`                                         | `CZ_SMTP_HOST`                  | SMTP server host (empty = email disabled)       |
+| `smtp.host`                  | `""`                                         | `CZ_SMTP_HOST`                  | SMTP server host (empty = email disabled). Also enables email-verified signup. |
 | `smtp.port`                  | `587`                                        | `CZ_SMTP_PORT`                  | SMTP server port                                |
 | `smtp.username`              | `""`                                         | `CZ_SMTP_USERNAME`              | SMTP username                                   |
 | `smtp.password`              | `""`                                         | `CZ_SMTP_PASSWORD`              | SMTP password                                   |

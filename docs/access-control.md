@@ -173,6 +173,17 @@ Superadmin generates token link → shares manually. No SMTP required.
 
 An invite is usable only while unaccepted, unexpired, and no account has its email (case-insensitive). Every other token, unknown ones included, gets the same generic "no longer valid" page without the invitation, because accepted invitations stay in the table and their email now belongs to a registered account.
 
+## Self-Service Signup
+
+With `smtp.host` set, `/register` asks only for an email and always answers "Check your inbox", mailing in the background:
+
+- New address: a single-use link to `/register/complete/{token}` (24 hours) where the owner picks a username and password.
+- Address with an account: a "you already have an account — sign in" email.
+
+The response never reveals whether an address has an account. Links are stored as SHA-256 hashes in `signup_tokens` (one per address; a new request replaces it), and an address gets at most one email per 5 minutes. `POST /register` and `POST /register/complete/{token}` are also limited to 10 per client IP per 15 minutes. Closing `allow_registration` stops outstanding links.
+
+Without SMTP, `/register` is the classic username/email/password form, which still reveals whether an email is registered.
+
 ---
 
 ## Full Endpoint Authorization Matrix
