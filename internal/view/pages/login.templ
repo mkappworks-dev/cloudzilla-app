@@ -26,6 +26,13 @@ templ authCardHero(eyebrow, heading, sub string) {
 	</div>
 }
 
+// nextInput carries the post-sign-in return path through a sign-in form.
+templ nextInput(next string) {
+	if next != "" {
+		<input type="hidden" name="next" value={ next }/>
+	}
+}
+
 templ Login(data view.LoginData) {
 	@layout.Base(data.BasePage, "Sign in") {
 		<div class="max-w-md mx-auto mt-12 rounded-md border border-border bg-card p-6">
@@ -36,6 +43,7 @@ templ Login(data view.LoginData) {
 				</div>
 			}
 			<form method="POST" action="/login" class="space-y-4">
+				@nextInput(data.Next)
 				<div class="space-y-1.5">
 					<label for="email" class="block text-sm font-medium">Email</label>
 					@components.Input(templ.Attributes{
@@ -65,7 +73,7 @@ templ Login(data view.LoginData) {
 				<span class="flex-1 h-px border-t border-border"></span>
 			</div>
 
-			@components.LinkButton("/auth/google", components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"class": "w-full gap-3"}) {
+			@components.LinkButton(view.WithNext("/auth/google", data.Next), components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"class": "w-full gap-3"}) {
 				<svg class="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
 					<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"></path>
 					<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"></path>
@@ -83,7 +91,7 @@ templ Login(data view.LoginData) {
 				</div>
 				<div class="space-y-3">
 					if data.SAMLEnabled {
-						@components.LinkButton("/auth/saml", components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"class": "w-full gap-3"}) {
+						@components.LinkButton(view.WithNext("/auth/saml", data.Next), components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"class": "w-full gap-3"}) {
 							Sign in with SAML SSO
 						}
 					}
@@ -94,6 +102,7 @@ templ Login(data view.LoginData) {
 							</summary>
 							<div class="p-4 border-t border-border space-y-3">
 								<form method="POST" action="/auth/ldap" class="space-y-3">
+									@nextInput(data.Next)
 									<div class="space-y-1.5">
 										<label for="ldap-username" class="block text-xs font-medium">Username</label>
 										@components.Input(templ.Attributes{

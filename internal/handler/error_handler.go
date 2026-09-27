@@ -2,9 +2,9 @@ package handler
 
 import (
 	"net/http"
-	"net/url"
 	"strings"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -32,8 +32,7 @@ func (h *Handler) Unauthorized(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	next := r.URL.RequestURI()
-	http.Redirect(w, r, "/login?next="+url.QueryEscape(next), http.StatusSeeOther)
+	http.Redirect(w, r, view.WithNext("/login", r.URL.RequestURI()), http.StatusSeeOther)
 }
 
 // Forbidden renders the branded 403 page for HTML or a JSON error for API requests.

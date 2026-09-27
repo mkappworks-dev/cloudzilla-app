@@ -81,6 +81,7 @@ func TestLineComment_MustBelongToURLPull(t *testing.T) {
 		{"apply another pull's suggestion", "POST", fmt.Sprintf("%s/line_comments/%d/apply", pullA1, onA2), http.StatusNotFound},
 		{"edit own comment under an unreadable repo's pull", "PATCH", fmt.Sprintf("%s/line_comments/%d", pullB1, onA1), http.StatusNotFound},
 		{"edit own comment on a repo no longer readable", "PATCH", fmt.Sprintf("%s/line_comments/%d", pullB1, attackerOnB), http.StatusNotFound},
+		{"edit own comment under another pull", "PATCH", fmt.Sprintf("%s/line_comments/%d", pullA1, onA2), http.StatusNotFound},
 		{"apply own pull's suggestion", "POST", fmt.Sprintf("%s/line_comments/%d/apply", pullA1, onA1), http.StatusNoContent},
 		{"edit own comment on own pull", "PATCH", fmt.Sprintf("%s/line_comments/%d", pullA1, onA1), http.StatusOK},
 		// Deletes last, so a regression that deletes a comment cannot mask the cases above.
