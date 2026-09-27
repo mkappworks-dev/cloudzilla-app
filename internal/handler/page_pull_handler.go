@@ -152,6 +152,14 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		h.NotFound(w, r)
+		return
+	}
 
 	templateBody, _ := h.Services.Code.GetPRTemplate(owner, repoName, repo.DefaultBranch)
 	refs, _ := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch)
@@ -212,7 +220,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
+	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
 		h.NotFound(w, r)
 		return
 	}

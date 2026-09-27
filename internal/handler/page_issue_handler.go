@@ -313,6 +313,14 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		h.NotFound(w, r)
+		return
+	}
 
 	templates, _ := h.Services.Code.GetIssueTemplates(owner, repoName, repo.DefaultBranch)
 
@@ -464,7 +472,7 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 		h.NotFound(w, r)
 		return
 	}
-	if !repo.AllowIssues {
+	if !repo.AllowIssues || !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
 		h.NotFound(w, r)
 		return
 	}

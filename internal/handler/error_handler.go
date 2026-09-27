@@ -53,11 +53,8 @@ func (h *Handler) Forbidden(w http.ResponseWriter, r *http.Request) {
 // can act on, or "" when err is internal: store and driver errors carry
 // constraint names and SQLSTATEs, so callers log them and show a generic message.
 func createFormErrorMessage(err error) string {
-	switch {
-	case errors.Is(err, service.ErrTitleTooLong):
+	if errors.Is(err, service.ErrTitleTooLong) {
 		return fmt.Sprintf("Title is too long (maximum %d characters)", service.MaxTitleLen)
-	case errors.Is(err, service.ErrPullForbidden):
-		return "You don't have access to open pull requests on this repository"
 	}
 	return ""
 }
