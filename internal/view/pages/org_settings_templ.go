@@ -164,7 +164,7 @@ func OrgSettings(data view.OrgSettingsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<div class=\"space-y-2\"><button type=\"button\" class=\"h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent\" disabled aria-disabled=\"true\" title=\"Avatar uploads land in a follow-up phase\">Upload new picture</button><p class=\"text-[11.5px] text-muted-foreground\">Square PNG or JPG, max 2 MB.</p></div></div><div><label class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\" for=\"org-display-name\">Display name</label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<div class=\"space-y-2\"><button type=\"button\" class=\"h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent\" disabled aria-disabled=\"true\" title=\"Avatar uploads aren't available yet\">Upload new picture</button><p class=\"text-[11.5px] text-muted-foreground\">Square PNG or JPG, max 2 MB.</p></div></div><div><label class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\" for=\"org-display-name\">Display name</label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -177,7 +177,7 @@ func OrgSettings(data view.OrgSettingsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div><div><label class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\" for=\"org-slug\">URL slug</label><div class=\"flex items-center gap-2\"><span class=\"text-[13px] text-muted-foreground font-mono\">cloudzilla.dev/</span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div><div><label class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\" for=\"org-slug\">URL slug</label><div class=\"flex items-center gap-2\"><span class=\"text-[13px] text-muted-foreground font-mono\">/</span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -191,7 +191,7 @@ func OrgSettings(data view.OrgSettingsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div><p class=\"mt-1 text-[11.5px] text-muted-foreground\">Renaming an org is a follow-up phase.</p></div><div><label class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\" for=\"org-description\">Description</label> <textarea id=\"org-description\" name=\"description\" rows=\"3\" class=\"w-full bg-background border border-input rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div><p class=\"mt-1 text-[11.5px] text-muted-foreground\">Organization names can't be changed yet.</p></div><div><label class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\" for=\"org-description\">Description</label> <textarea id=\"org-description\" name=\"description\" rows=\"3\" class=\"w-full bg-background border border-input rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -362,7 +362,7 @@ func OrgSettings(data view.OrgSettingsData) templ.Component {
 			templ_7745c5c3_Err = components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
 				"type":     "button",
 				"disabled": "disabled",
-				"title":    "Teams arrive in a follow-up phase",
+				"title":    "Teams aren't available yet",
 			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var14), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -508,7 +508,7 @@ func OrgSettings(data view.OrgSettingsData) templ.Component {
 			templ_7745c5c3_Err = components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
 				"type":     "button",
 				"disabled": "disabled",
-				"title":    "Org-level webhooks arrive in a follow-up phase",
+				"title":    "Org-level webhooks aren't available yet",
 			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var19), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err

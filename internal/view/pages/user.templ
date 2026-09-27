@@ -186,7 +186,7 @@ templ User(data view.UserData) {
 
 						<section aria-labelledby="contrib-heading">
 							<h2 id="contrib-heading" class="text-sm font-semibold tracking-tight mb-3">
-								{ strconv.Itoa(totalContributions(data.Heatmap)) } contributions in the last year
+								{ contributionsHeading(totalContributions(data.Heatmap)) }
 							</h2>
 							<div class="rounded-md border border-border bg-card p-5 overflow-x-auto">
 								@components.HeatmapLarge(data.Heatmap, time.Now(), 52)
@@ -265,6 +265,13 @@ templ profileTab(active bool, href, label string, counts ...int) {
 			}
 		</a>
 	}
+}
+
+func contributionsHeading(n int) string {
+	if n == 1 {
+		return "1 contribution in the last year"
+	}
+	return strconv.Itoa(n) + " contributions in the last year"
 }
 
 func totalContributions(counts map[time.Time]int) int {

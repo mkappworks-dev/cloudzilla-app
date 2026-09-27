@@ -85,14 +85,14 @@ func RepoNew(data view.RepoNewData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div><span class=\"text-muted-foreground/70 pb-2.5\" aria-hidden=\"true\">/</span><div><label for=\"repo-name\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Repository name *</label> <input id=\"repo-name\" name=\"name\" type=\"text\" required pattern=\"[A-Za-z0-9._-]+\" placeholder=\"my-new-repo\" autofocus value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div><span class=\"text-muted-foreground/70 pb-2.5\" aria-hidden=\"true\">/</span><div><label for=\"repo-name\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Repository name *</label> <input id=\"repo-name\" name=\"name\" type=\"text\" required pattern=\"[A-Za-z0-9._\\-]+\" placeholder=\"my-new-repo\" autofocus value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.DefaultName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 43, Col: 148}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 43, Col: 149}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 			if templ_7745c5c3_Err != nil {

@@ -40,7 +40,7 @@ templ RepoNew(data view.RepoNewData) {
 						<span class="text-muted-foreground/70 pb-2.5" aria-hidden="true">/</span>
 						<div>
 							<label for="repo-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository name *</label>
-							<input id="repo-name" name="name" type="text" required pattern="[A-Za-z0-9._-]+" placeholder="my-new-repo" autofocus value={ data.DefaultName } class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-none focus:border-ring"/>
+							<input id="repo-name" name="name" type="text" required pattern="[A-Za-z0-9._\-]+" placeholder="my-new-repo" autofocus value={ data.DefaultName } class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-none focus:border-ring"/>
 						</div>
 					</div>
 					<p class="text-[12px] text-muted-foreground/70 -mt-3">Great repository names are short and memorable. Need inspiration? <span class="font-mono">turbo-octo-meme</span>.</p>

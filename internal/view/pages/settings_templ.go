@@ -360,7 +360,7 @@ func settingsProfileSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" placeholder=\"@mkappworks\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"acct-location\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Location</label> <input id=\"acct-location\" name=\"location\" type=\"text\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" placeholder=\"Company or @organization\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"acct-location\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Location</label> <input id=\"acct-location\" name=\"location\" type=\"text\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -373,7 +373,7 @@ func settingsProfileSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\" placeholder=\"Colombo, Sri Lanka\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div></div><div class=\"flex items-center justify-end gap-2\"><button type=\"reset\" class=\"h-9 px-4 text-sm rounded-md border border-border hover:bg-muted text-foreground\">Cancel</button> <button type=\"submit\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90\">Save profile</button></div></form></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\" placeholder=\"City, Country\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div></div><div class=\"flex items-center justify-end gap-2\"><button type=\"reset\" class=\"h-9 px-4 text-sm rounded-md border border-border hover:bg-muted text-foreground\">Cancel</button> <button type=\"submit\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90\">Save profile</button></div></form></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -83,7 +83,7 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 				"id":           "org-name",
 				"name":         "name",
 				"required":     "required",
-				"pattern":      "[A-Za-z0-9._-]+",
+				"pattern":      "[A-Za-z0-9._\\-]+",
 				"value":        data.Name,
 				"placeholder":  "my-organization",
 				"class":        "font-mono",
@@ -92,7 +92,7 @@ func NewOrganization(data view.NewOrganizationData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<p class=\"text-[11px] text-muted-foreground\">This will be the URL: <span class=\"font-mono\">cloudzilla.dev/<span class=\"text-foreground\">my-organization</span></span>. Letters, numbers, dots, dashes, and underscores only.</p></div><div class=\"space-y-1.5\"><label for=\"org-description\" class=\"block text-sm font-medium\">Description <span class=\"text-muted-foreground font-normal\">(optional)</span></label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<p class=\"text-[11px] text-muted-foreground\">This will be the URL: <span class=\"font-mono\">/<span class=\"text-foreground\">my-organization</span></span>. Letters, numbers, dots, dashes, and underscores only.</p></div><div class=\"space-y-1.5\"><label for=\"org-description\" class=\"block text-sm font-medium\">Description <span class=\"text-muted-foreground font-normal\">(optional)</span></label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

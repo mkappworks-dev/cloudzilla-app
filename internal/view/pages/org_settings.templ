@@ -61,7 +61,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 							<div class="flex items-start gap-4">
 								@components.Avatar(data.Org.Name, components.AvatarSizeLG, data.Org.Name)
 								<div class="space-y-2">
-									<button type="button" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent" disabled aria-disabled="true" title="Avatar uploads land in a follow-up phase">Upload new picture</button>
+									<button type="button" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-accent" disabled aria-disabled="true" title="Avatar uploads aren't available yet">Upload new picture</button>
 									<p class="text-[11.5px] text-muted-foreground">Square PNG or JPG, max 2 MB.</p>
 								</div>
 							</div>
@@ -79,7 +79,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 							<div>
 								<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-slug">URL slug</label>
 								<div class="flex items-center gap-2">
-									<span class="text-[13px] text-muted-foreground font-mono">cloudzilla.dev/</span>
+									<span class="text-[13px] text-muted-foreground font-mono">/</span>
 									@components.Input(templ.Attributes{
 										"id":       "org-slug",
 										"type":     "text",
@@ -88,7 +88,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 										"class":    "font-mono",
 									})
 								</div>
-								<p class="mt-1 text-[11.5px] text-muted-foreground">Renaming an org is a follow-up phase.</p>
+								<p class="mt-1 text-[11.5px] text-muted-foreground">Organization names can't be changed yet.</p>
 							</div>
 
 							<div>
@@ -238,7 +238,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
 								"type":     "button",
 								"disabled": "disabled",
-								"title":    "Teams arrive in a follow-up phase",
+								"title":    "Teams aren't available yet",
 							}) {
 								New team
 							}
@@ -290,7 +290,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{
 								"type":     "button",
 								"disabled": "disabled",
-								"title":    "Org-level webhooks arrive in a follow-up phase",
+								"title":    "Org-level webhooks aren't available yet",
 							}) {
 								Add webhook
 							}

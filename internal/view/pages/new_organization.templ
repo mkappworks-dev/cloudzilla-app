@@ -38,13 +38,13 @@ templ NewOrganization(data view.NewOrganizationData) {
 								"id":            "org-name",
 								"name":          "name",
 								"required":      "required",
-								"pattern":       "[A-Za-z0-9._-]+",
+								"pattern":       "[A-Za-z0-9._\\-]+",
 								"value":         data.Name,
 								"placeholder":   "my-organization",
 								"class":         "font-mono",
 								"x-model.fill":  "name",
 							})
-							<p class="text-[11px] text-muted-foreground">This will be the URL: <span class="font-mono">cloudzilla.dev/<span class="text-foreground">my-organization</span></span>. Letters, numbers, dots, dashes, and underscores only.</p>
+							<p class="text-[11px] text-muted-foreground">This will be the URL: <span class="font-mono">/<span class="text-foreground">my-organization</span></span>. Letters, numbers, dots, dashes, and underscores only.</p>
 						</div>
 
 						<div class="space-y-1.5">

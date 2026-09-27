@@ -125,11 +125,11 @@ templ settingsProfileSection(data view.SettingsData) {
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 				<div>
 					<label for="acct-company" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Company</label>
-					<input id="acct-company" name="company" type="text" value={ data.User.Company } placeholder="@mkappworks" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+					<input id="acct-company" name="company" type="text" value={ data.User.Company } placeholder="Company or @organization" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
 				</div>
 				<div>
 					<label for="acct-location" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Location</label>
-					<input id="acct-location" name="location" type="text" value={ data.User.Location } placeholder="Colombo, Sri Lanka" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+					<input id="acct-location" name="location" type="text" value={ data.User.Location } placeholder="City, Country" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
 				</div>
 			</div>
 			<div class="flex items-center justify-end gap-2">
