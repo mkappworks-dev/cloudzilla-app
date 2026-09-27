@@ -72,3 +72,17 @@ Worktrees go in `.worktrees/<type>+<slug>` (gitignored), mirroring the branch: `
 
 - Title: Conventional Commits, enforced by `.github/workflows/pr-title-lint.yml` — e.g. `feat(ui): UI overhaul phase 8 — dashboard`.
 - Body: fill in [`.github/pull_request_template.md`](./.github/pull_request_template.md), ticking only the checklist items that apply.
+
+## Agent skills
+
+### Issue tracker
+
+Local markdown: one directory per feature under `.scratch/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default role names, recorded as each issue file's `Status:` line. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
