@@ -33,6 +33,9 @@ func TestScopeAllows(t *testing.T) {
 		{"create issue with pulls:write", "POST", "/api/repos/alice/proj/issues", []string{pulls}, false},
 		{"review PR with pulls:write", "POST", "/api/repos/alice/proj/pulls/3/reviews", []string{pulls}, true},
 		{"review PR with issues:write", "POST", "/api/repos/alice/proj/pulls/3/reviews", []string{issues}, false},
+		{"apply suggestion with pulls:write", "POST", "/api/repos/alice/proj/pulls/3/line_comments/9/apply", []string{pulls}, false},
+		{"apply suggestion with repo:write", "POST", "/api/repos/alice/proj/pulls/3/line_comments/9/apply", []string{write}, true},
+		{"edit line comment with pulls:write", "PATCH", "/api/repos/alice/proj/pulls/3/line_comments/9", []string{pulls}, true},
 		{"create release with issues:write", "POST", "/api/repos/alice/proj/releases", []string{issues}, false},
 		{"create release with repo:write", "POST", "/api/repos/alice/proj/releases", []string{write}, true},
 		{"create repo with repo:write", "POST", "/api/repos", []string{write}, true},
@@ -45,9 +48,20 @@ func TestScopeAllows(t *testing.T) {
 		{"create branch with repo:write", "POST", "/api/repos/alice/proj/branches", []string{write}, true},
 		{"transfer with repo:write", "POST", "/api/repos/alice/proj/transfer", []string{write}, false},
 		{"delete with repo:write", "POST", "/api/repos/alice/proj/delete", []string{write}, false},
+		{"unarchive with repo:write", "POST", "/api/repos/alice/proj/unarchive", []string{write}, false},
+		{"set topics with repo:write", "PUT", "/api/repos/alice/proj/topics", []string{write}, false},
+		{"read topics with repo:read", "GET", "/api/repos/alice/proj/topics", []string{read}, false},
+		{"unlisted repo sub-resource read", "GET", "/api/repos/alice/proj/mirror", []string{read, write}, false},
+		{"unlisted repo sub-resource write", "POST", "/api/repos/alice/proj/mirror", []string{read, write}, false},
+		{"create from template with repo:write", "POST", "/api/repos/from-template", []string{write}, true},
+		{"read from-template path", "GET", "/api/repos/from-template", []string{read}, false},
 		{"encoded slash cannot hide an admin path", "POST", "/api/repos/alice%2Fx/proj/hooks", []string{write}, false},
 		{"user profile with repo:read", "GET", "/api/users/alice", []string{read}, true},
-		{"org read with repo:read", "GET", "/api/orgs/acme/members", []string{read}, true},
+		{"user repos with repo:read", "GET", "/api/users/alice/repos", []string{read}, true},
+		{"unlisted user sub-resource", "GET", "/api/users/alice/keys", []string{read, write}, false},
+		{"org with repo:read", "GET", "/api/orgs/acme", []string{read}, true},
+		{"org members with repo:read", "GET", "/api/orgs/acme/members", []string{read}, true},
+		{"unlisted org sub-resource", "GET", "/api/orgs/acme/settings", []string{read, write}, false},
 		{"create org repo with repo:write", "POST", "/api/orgs/acme/repos", []string{write}, true},
 		{"add org member with repo:write", "POST", "/api/orgs/acme/members", []string{write}, false},
 		{"create org with repo:write", "POST", "/api/orgs", []string{write}, false},
@@ -78,7 +92,6 @@ func TestScopeAllows(t *testing.T) {
 	}
 }
 
-// First-party credentials carry no scopes and must keep full access.
 func TestScopeAllows_UnscopedClaimsAllowEverything(t *testing.T) {
 	for _, target := range []string{"/settings/notifications", "/api/repos/alice/proj/hooks", "/alice"} {
 		req := httptest.NewRequest(http.MethodPost, target, nil)

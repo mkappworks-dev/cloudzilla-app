@@ -49,21 +49,26 @@ Request → RequestID → Recoverer → Logger → CORS → CSRF → RequireSetu
 
 ### OAuth App Scopes
 
-An OAuth-app token acts as the user who granted it, but only on routes its scopes admit. Enforcement is a path allow-list in `internal/middleware/scope.go`, applied by both `authMW` and `optAuthMW`: any route not listed there is closed to OAuth tokens, so new routes are safe by default. Scopes only narrow access — the handler's own `CanRead`/`CanWrite`/`CanManage` checks against the user still apply.
+An OAuth-app token acts as the user who granted it, but only on routes its scopes admit. Enforcement is a path allow-list in `internal/middleware/scope.go`, applied by both `authMW` and `optAuthMW`: a route it doesn't list — including any new route — is closed to OAuth tokens. Scopes only narrow access; the handler's own `CanRead`/`CanWrite`/`CanManage` checks against the user still apply.
 
-| Scope          | Admits                                                                                              |
-| -------------- | --------------------------------------------------------------------------------------------------- |
-| `repo:read`    | `GET`/`HEAD` on `/api/repos/**`, `/api/orgs/**`, `/api/users/**`; git clone/fetch over HTTP          |
-| `repo:write`   | Everything `repo:read` does, plus writes on `/api/repos/**`, `POST /api/orgs/{org}/repos`, git push |
-| `issues:write` | Reads as `repo:read`, plus writes on `/api/repos/{owner}/{repo}/issues/**`                          |
-| `pulls:write`  | Reads as `repo:read`, plus writes on `/api/repos/{owner}/{repo}/pulls/**`                           |
+Open routes:
 
-Closed to OAuth tokens whatever their scopes:
+- `/api/repos` (list, create), `POST /api/repos/from-template`, `/api/repos/{owner}/{repo}` (read only — `PATCH` changes settings).
+- Content sub-resources of `/api/repos/{owner}/{repo}`: `issues`, `pulls`, `labels`, `milestones`, `releases`, `statuses`, `commits`, `branches` (not `branches/protections`), `tags`, `comments`, `stargazers`, `star`, `watch`, `fork`, `projects`, `wiki`, `discussions`. A few of these `GET`s return HTML fragments (e.g. the watch button, issue title/body sections) carrying the same data as the JSON.
+- `GET /api/orgs/{org}`, `GET /api/orgs/{org}/members`, `POST /api/orgs/{org}/repos`.
+- `GET /api/users/{username}`, `GET /api/users/{username}/repos`.
+- Git smart-HTTP: `info/refs`, `git-upload-pack`, `git-receive-pack`.
 
-- Every HTML page and fragment (`/{owner}`, `/settings/*`, `/oauth/authorize`, …) — this is what keeps a user's email, shown on their own profile, away from apps.
-- Account APIs: `/api/user/*` (SSH keys, PATs, TOTP, saved replies), `/api/oauth/*`, `/api/admin/*`, `/api/notifications/*`, `/api/gists`, `/api/markdown/preview`.
-- Repo administration: `PATCH /api/repos/{owner}/{repo}` and the `hooks`, `collaborators`, `keys`, `topics`, `branches/protections`, `transfer`, `archive`, `unarchive`, `restore`, `delete` and `template` sub-resources.
-- Org administration: `POST /api/orgs` and org member/transfer writes.
+| Scope          | Admits on the open routes                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------- |
+| `repo:read`    | `GET`/`HEAD`; git clone/fetch                                                                           |
+| `repo:write`   | Everything, including creating repos, merging, applying suggestions, and git push                      |
+| `issues:write` | Reads, plus writes under `.../issues/**`                                                                |
+| `pulls:write`  | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, and applying a suggestion |
+
+Merging and enabling auto-merge are requests to `PATCH .../pulls/{number}`, so `UpdatePull` checks `claims.HasScope(repo:write)` itself; applying a suggestion is refused by path. `UpdateComment`/`DeleteComment` require the comment to belong to the issue or pull request in the URL, so neither `issues:write` nor `pulls:write` reaches the other's comments.
+
+Everything else is closed whatever the scopes, notably: HTML pages and `/fragments/*` (which is what keeps a user's email, shown on their own profile, away from apps); `/api/user/*` (SSH keys, PATs, TOTP, saved replies), `/api/oauth/*`, `/api/admin/*`, `/api/notifications/*`, `/api/gists`, `/api/markdown/preview`; repo administration (`hooks`, `collaborators`, `keys`, `topics`, `transfer`, `archive`, `unarchive`, `restore`, `delete`, `template`, branch protections, settings); and org administration.
 
 A refused request gets `403` with `{"error":"insufficient_scope"}` and `WWW-Authenticate: Bearer error="insufficient_scope", scope="<narrowest scope that would admit it>"` (the `scope` attribute is omitted on closed routes). Unknown scopes are rejected at `/oauth/authorize` with `400`. PAT scopes are recorded but not yet enforced; PATs remain unscoped.
 

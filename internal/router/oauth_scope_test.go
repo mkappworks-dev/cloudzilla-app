@@ -5,6 +5,8 @@ package router_test
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -23,7 +25,7 @@ import (
 
 const testJWTSecret = "test-router-secret-32bytes-min!!"
 
-func newTestRouter(t *testing.T) (http.Handler, *service.Services) {
+func newTestRouter(t *testing.T) (http.Handler, *service.Services, *sql.DB) {
 	t.Helper()
 	db := testutil.OpenTestDB(t)
 	cfg := &config.Config{
@@ -32,7 +34,7 @@ func newTestRouter(t *testing.T) (http.Handler, *service.Services) {
 		Git:    config.GitConfig{ReposRoot: t.TempDir()},
 	}
 	svc := service.New(store.New(db), cfg)
-	return router.New(svc, cfg, fstest.MapFS{}), svc
+	return router.New(svc, cfg, fstest.MapFS{}), svc, db
 }
 
 func makeJWT(t *testing.T, userID int64, username string) string {
@@ -69,8 +71,7 @@ func grantOAuthToken(t *testing.T, svc *service.Services, userID int64, scopes .
 }
 
 func TestOAuthTokenScopes_ThroughRouter(t *testing.T) {
-	h, svc := newTestRouter(t)
-	db := testutil.OpenTestDB(t)
+	h, svc, db := newTestRouter(t)
 	suffix := testutil.UniqueSuffix(t)
 	userID := testutil.SeedUser(t, db, suffix)
 	username := "testuser_" + suffix
@@ -80,6 +81,8 @@ func TestOAuthTokenScopes_ThroughRouter(t *testing.T) {
 
 	readTok := grantOAuthToken(t, svc, userID, model.ScopeRepoRead)
 	issuesTok := grantOAuthToken(t, svc, userID, model.ScopeIssuesWrite)
+	pullsTok := grantOAuthToken(t, svc, userID, model.ScopePullsWrite)
+	writeTok := grantOAuthToken(t, svc, userID, model.ScopeRepoWrite)
 	allTok := grantOAuthToken(t, svc, userID, model.ScopeRepoRead, model.ScopeRepoWrite, model.ScopeIssuesWrite, model.ScopePullsWrite)
 	session := makeJWT(t, userID, username)
 
@@ -97,6 +100,11 @@ func TestOAuthTokenScopes_ThroughRouter(t *testing.T) {
 		// A malformed body gets past the scope gate and is rejected by the handler.
 		{"create issue with issues:write", issuesTok, "POST", repoPath + "/issues", "{", http.StatusBadRequest},
 		{"create release with issues:write", issuesTok, "POST", repoPath + "/releases", "{", http.StatusForbidden},
+		{"merge PR with pulls:write", pullsTok, "PATCH", repoPath + "/pulls/999", `{"state":"merged"}`, http.StatusForbidden},
+		{"enable auto-merge with pulls:write", pullsTok, "PATCH", repoPath + "/pulls/999", `{"auto_merge":"enable"}`, http.StatusForbidden},
+		// Past the scope checks, the missing pull request is reported.
+		{"merge PR with repo:write", writeTok, "PATCH", repoPath + "/pulls/999", `{"state":"merged"}`, http.StatusNotFound},
+		{"apply suggestion with pulls:write", pullsTok, "POST", repoPath + "/pulls/1/line_comments/1/apply", "", http.StatusForbidden},
 		{"update repo settings with every scope", allTok, "PATCH", repoPath, "{}", http.StatusForbidden},
 		{"add webhook with every scope", allTok, "POST", repoPath + "/hooks", "{}", http.StatusForbidden},
 		{"own profile page with every scope", allTok, "GET", "/" + username, "", http.StatusForbidden},
@@ -133,8 +141,7 @@ func TestOAuthTokenScopes_ThroughRouter(t *testing.T) {
 // The profile page shows the owner's email to a first-party session; an OAuth
 // token for the same user must not reach it.
 func TestOAuthToken_CannotReadOwnEmailFromProfile(t *testing.T) {
-	h, svc := newTestRouter(t)
-	db := testutil.OpenTestDB(t)
+	h, svc, db := newTestRouter(t)
 	suffix := testutil.UniqueSuffix(t)
 	userID := testutil.SeedUser(t, db, suffix)
 	username := "testuser_" + suffix
@@ -157,5 +164,58 @@ func TestOAuthToken_CannotReadOwnEmailFromProfile(t *testing.T) {
 	}
 	if strings.Contains(rr.Body.String(), email) {
 		t.Error("OAuth token read the user's email from the profile page")
+	}
+}
+
+// UpdateComment and DeleteComment serve both the issue and pull route trees, so
+// the comment must belong to the issue or pull the URL names; otherwise a token
+// scoped to one could edit the other's comments.
+func TestOAuthToken_CommentMustBelongToURLParent(t *testing.T) {
+	h, svc, db := newTestRouter(t)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	username := "testuser_" + suffix
+	repoName := "testrepo_" + suffix
+	testutil.SeedRepo(t, db, userID, username, suffix)
+	repo, err := svc.Repo.Get(ctx, username, repoName)
+	if err != nil {
+		t.Fatalf("Repo.Get: %v", err)
+	}
+	issue, err := svc.Issue.Create(ctx, username, repoName, userID, "an issue", "", "public")
+	if err != nil {
+		t.Fatalf("Issue.Create: %v", err)
+	}
+	comment, err := svc.Comment.CreateForIssue(ctx, *repo, issue.ID, issue.Number, userID, username, "original")
+	if err != nil {
+		t.Fatalf("CreateForIssue: %v", err)
+	}
+	pullsTok := grantOAuthToken(t, svc, userID, model.ScopePullsWrite)
+	issuesTok := grantOAuthToken(t, svc, userID, model.ScopeIssuesWrite)
+	base := "/api/repos/" + username + "/" + repoName
+
+	tests := []struct {
+		name   string
+		token  string
+		method string
+		path   string
+		want   int
+	}{
+		{"edit issue comment via pulls path", pullsTok, "PATCH", fmt.Sprintf("%s/pulls/%d/comments/%d", base, issue.Number, comment.ID), http.StatusNotFound},
+		{"edit issue comment under another issue number", issuesTok, "PATCH", fmt.Sprintf("%s/issues/%d/comments/%d", base, issue.Number+1, comment.ID), http.StatusNotFound},
+		{"edit issue comment via its own issue", issuesTok, "PATCH", fmt.Sprintf("%s/issues/%d/comments/%d", base, issue.Number, comment.ID), http.StatusOK},
+		// Last, so a regression that deletes the comment cannot mask the cases above.
+		{"delete issue comment via pulls path", pullsTok, "DELETE", fmt.Sprintf("%s/pulls/%d/comments/%d", base, issue.Number, comment.ID), http.StatusNotFound},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, strings.NewReader(`{"body":"edited"}`))
+			req.Header.Set("Authorization", "Bearer "+tt.token)
+			rr := httptest.NewRecorder()
+			h.ServeHTTP(rr, req)
+			if rr.Code != tt.want {
+				t.Errorf("want %d, got %d: %s", tt.want, rr.Code, rr.Body.String())
+			}
+		})
 	}
 }

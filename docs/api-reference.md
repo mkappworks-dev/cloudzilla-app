@@ -357,14 +357,14 @@ See [access-control.md](access-control.md) for the full permission model. `CanMa
 
 `/oauth/authorize` takes `client_id`, `redirect_uri`, `state`, and a space-delimited `scope`; an unknown scope returns `400`. `/oauth/token` exchanges `code` (with `grant_type=authorization_code`, `client_id`, `client_secret`) for `{"access_token": "...", "token_type": "bearer"}`.
 
-| Scope          | Grants                                                                                     |
-| -------------- | ------------------------------------------------------------------------------------------ |
-| `repo:read`    | Read `/api/repos/**`, `/api/orgs/**`, `/api/users/**`; git clone/fetch                     |
-| `repo:write`   | `repo:read`, plus repo content writes (issues, pulls, releases, branches, statuses, …), creating repos, git push |
-| `issues:write` | Reads, plus writes under `/api/repos/:owner/:repo/issues/**`                               |
-| `pulls:write`  | Reads, plus writes under `/api/repos/:owner/:repo/pulls/**`                                |
+| Scope          | Grants                                                                                         |
+| -------------- | ---------------------------------------------------------------------------------------------- |
+| `repo:read`    | Read repos, issues, pulls, releases, orgs and user profiles; git clone/fetch                   |
+| `repo:write`   | `repo:read`, plus repo content writes, creating repos, merging, git push                       |
+| `issues:write` | Reads, plus writes under `/api/repos/:owner/:repo/issues/**`                                   |
+| `pulls:write`  | Reads, plus writes under `/api/repos/:owner/:repo/pulls/**`, except merging and applying suggestions |
 
-No scope admits HTML pages, `/api/user/*`, `/api/oauth/*`, `/api/admin/*`, `/api/notifications/*`, `/api/gists`, or repo/org administration (settings, hooks, collaborators, deploy keys, topics, branch protections, transfer, archive, delete). A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` with a `WWW-Authenticate: Bearer error="insufficient_scope", scope="..."` header naming the scope to request. Full rules: [access-control](./access-control.md#oauth-app-scopes).
+A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` with a `WWW-Authenticate: Bearer error="insufficient_scope", scope="..."` header naming the scope to request. Only listed routes are open to OAuth tokens; account, admin and repo-administration endpoints and HTML pages never are. Route list: [access-control](./access-control.md#oauth-app-scopes).
 
 ## Instance Admin (superadmin only)
 

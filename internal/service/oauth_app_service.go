@@ -87,7 +87,7 @@ func (s *OAuthAppService) IsRedirectURIAllowed(app *model.OAuthApp, redirectURI 
 
 // ParseScopes splits a space-delimited OAuth scope parameter, dropping duplicates.
 // It returns ErrInvalidScope if any scope is unknown.
-func (s *OAuthAppService) ParseScopes(param string) ([]string, error) {
+func (s *OAuthAppService) ParseScopes(_ context.Context, param string) ([]string, error) {
 	return validateScopes(strings.Fields(param))
 }
 

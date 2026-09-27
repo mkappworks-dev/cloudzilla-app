@@ -22,7 +22,7 @@ func (h *Handler) PageOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown client_id", http.StatusBadRequest)
 		return
 	}
-	scopes, err := h.Services.OAuthApp.ParseScopes(r.URL.Query().Get("scope"))
+	scopes, err := h.Services.OAuthApp.ParseScopes(r.Context(), r.URL.Query().Get("scope"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

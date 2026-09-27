@@ -63,13 +63,7 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 				return
 			}
 
-			if claims, ok := resolveOAuthClaims(r, oauthResolver, tokenStr); ok {
-				if !scopeAllows(claims, r) {
-					writeInsufficientScope(w, r)
-					return
-				}
-				ctx := context.WithValue(r.Context(), claimsKey, claims)
-				next.ServeHTTP(w, r.WithContext(ctx))
+			if serveOAuth(w, r, next, oauthResolver, tokenStr) {
 				return
 			}
 
@@ -118,13 +112,7 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenStr := extractToken(r, cookieName)
 			if tokenStr != "" {
-				if claims, ok := resolveOAuthClaims(r, oauthResolver, tokenStr); ok {
-					if !scopeAllows(claims, r) {
-						writeInsufficientScope(w, r)
-						return
-					}
-					ctx := context.WithValue(r.Context(), claimsKey, claims)
-					next.ServeHTTP(w, r.WithContext(ctx))
+				if serveOAuth(w, r, next, oauthResolver, tokenStr) {
 					return
 				}
 				if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
@@ -158,17 +146,28 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 	}
 }
 
-// resolveOAuthClaims returns scoped claims when tokenStr is a live OAuth-app token.
+// serveOAuth handles r when tokenStr is a live OAuth-app token, reporting whether it did.
+// A token lacking scope for r is refused rather than passed on as anonymous.
 // IsSuperadmin stays false: instance-admin power is never delegated to an app.
-func resolveOAuthClaims(r *http.Request, resolver OAuthTokenResolver, tokenStr string) (Claims, bool) {
+func serveOAuth(w http.ResponseWriter, r *http.Request, next http.Handler, resolver OAuthTokenResolver, tokenStr string) bool {
 	if resolver == nil || strings.HasPrefix(tokenStr, "czp_") {
-		return Claims{}, false
+		return false
 	}
 	user, scopes, err := resolver.ResolveOAuthToken(r.Context(), tokenStr)
 	if err != nil {
-		return Claims{}, false
+		return false
 	}
-	return Claims{UserID: user.ID, Username: user.Username, Scoped: true, Scopes: scopes}, true
+	claims := Claims{UserID: user.ID, Username: user.Username, Scoped: true, Scopes: scopes}
+	if !scopeAllows(claims, r) {
+		var hint string
+		if accepted := acceptedScopes(r); len(accepted) > 0 {
+			hint = accepted[0]
+		}
+		WriteInsufficientScope(w, hint)
+		return true
+	}
+	next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), claimsKey, claims)))
+	return true
 }
 
 // RequireSuperadmin returns middleware that calls onForbidden if the authenticated user is not a superadmin.

@@ -229,14 +229,14 @@ func TestOAuthApp_Authorize_UnknownScope_Error(t *testing.T) {
 
 func TestOAuthApp_ParseScopes(t *testing.T) {
 	svc := service.NewOAuthAppService(nil, nil, nil)
-	got, err := svc.ParseScopes(" repo:read  issues:write repo:read ")
+	got, err := svc.ParseScopes(context.Background(), " repo:read  issues:write repo:read ")
 	if err != nil {
 		t.Fatalf("ParseScopes: %v", err)
 	}
 	if want := []string{model.ScopeRepoRead, model.ScopeIssuesWrite}; !slices.Equal(got, want) {
 		t.Errorf("want %v, got %v", want, got)
 	}
-	if _, err := svc.ParseScopes("repo:read user"); !errors.Is(err, service.ErrInvalidScope) {
+	if _, err := svc.ParseScopes(context.Background(), "repo:read user"); !errors.Is(err, service.ErrInvalidScope) {
 		t.Errorf("want ErrInvalidScope for unknown scope, got %v", err)
 	}
 }

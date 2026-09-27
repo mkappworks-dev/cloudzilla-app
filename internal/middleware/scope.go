@@ -17,24 +17,31 @@ var (
 	pullScopes  = []string{model.ScopePullsWrite, model.ScopeRepoWrite}
 )
 
-// Repo sub-resources that administer the repo rather than its content. No scope
-// admits them, so a delegated app cannot change who has access or where data flows.
-var repoAdminResources = map[string]bool{
-	"hooks":         true,
-	"collaborators": true,
-	"keys":          true,
-	"topics":        true,
-	"transfer":      true,
-	"archive":       true,
-	"unarchive":     true,
-	"restore":       true,
-	"delete":        true,
-	"template":      true,
+// Sub-resources of /api/repos/{owner}/{repo} that hold repository content.
+// Everything else there administers the repo (hooks, collaborators, keys,
+// topics, transfer, delete, …) and stays closed to scoped tokens.
+var repoContentResources = map[string]bool{
+	"issues":      true,
+	"pulls":       true,
+	"labels":      true,
+	"milestones":  true,
+	"releases":    true,
+	"statuses":    true,
+	"commits":     true,
+	"branches":    true,
+	"tags":        true,
+	"comments":    true,
+	"stargazers":  true,
+	"star":        true,
+	"watch":       true,
+	"fork":        true,
+	"projects":    true,
+	"wiki":        true,
+	"discussions": true,
 }
 
 // acceptedScopes returns the scopes, any one of which admits a scoped token to r.
-// It is an allow-list: a route not matched here returns nil and is closed to
-// scoped tokens, which keeps new routes safe by default.
+// Only routes matched here are open to scoped tokens; nil means closed.
 func acceptedScopes(r *http.Request) []string {
 	// Split the path chi routes on, so an encoded "%2F" cannot shift segments
 	// between what the router matches and what this policy sees.
@@ -49,15 +56,15 @@ func acceptedScopes(r *http.Request) []string {
 		switch seg[1] {
 		case "repos":
 			return repoAPIScopes(seg[2:], read)
-		case "orgs":
-			if read {
+		case "orgs": // /api/orgs/{org}, /members, /repos
+			switch {
+			case read && (len(seg) == 3 || len(seg) == 4 && seg[3] == "members"):
 				return readScopes
-			}
-			if len(seg) == 4 && seg[3] == "repos" {
+			case !read && len(seg) == 4 && seg[3] == "repos":
 				return writeScopes
 			}
-		case "users":
-			if read {
+		case "users": // /api/users/{username}, /repos
+			if read && (len(seg) == 3 || len(seg) == 4 && seg[3] == "repos") {
 				return readScopes
 			}
 		}
@@ -68,26 +75,39 @@ func acceptedScopes(r *http.Request) []string {
 
 // repoAPIScopes handles /api/repos/{rest...}.
 func repoAPIScopes(rest []string, read bool) []string {
-	if len(rest) >= 3 && isRepoAdminPath(rest[2:]) {
+	switch {
+	case len(rest) == 0: // list or create repos
+		if read {
+			return readScopes
+		}
+		return writeScopes
+	case len(rest) == 1:
+		if !read && rest[0] == "from-template" {
+			return writeScopes
+		}
+		return nil
+	case len(rest) == 2: // the repo itself; PATCH changes its settings
+		if read {
+			return readScopes
+		}
+		return nil
+	}
+
+	sub := rest[2:]
+	if !repoContentResources[sub[0]] || sub[0] == "branches" && len(sub) >= 2 && sub[1] == "protections" {
 		return nil
 	}
 	switch {
 	case read:
 		return readScopes
-	case len(rest) <= 1: // create repo, create from template
-		return writeScopes
-	case len(rest) == 2: // PATCH repo settings
-		return nil
-	case rest[2] == "issues":
+	case sub[0] == "issues":
 		return issueScopes
-	case rest[2] == "pulls":
+	case sub[0] == "pulls" && len(sub) == 5 && sub[2] == "line_comments" && sub[4] == "apply":
+		return writeScopes // applying a suggestion commits to the head branch
+	case sub[0] == "pulls":
 		return pullScopes
 	}
 	return writeScopes
-}
-
-func isRepoAdminPath(sub []string) bool {
-	return repoAdminResources[sub[0]] || (sub[0] == "branches" && len(sub) >= 2 && sub[1] == "protections")
 }
 
 // gitTransportScopes handles /{owner}/{repo}/info/refs, git-upload-pack and git-receive-pack.
@@ -106,16 +126,16 @@ func gitTransportScopes(r *http.Request, seg []string) []string {
 	return nil
 }
 
-// scopeAllows reports whether c may make request r.
 func scopeAllows(c Claims, r *http.Request) bool {
 	return !c.Scoped || slices.ContainsFunc(acceptedScopes(r), c.HasScope)
 }
 
-// writeInsufficientScope answers a scoped token that lacks the scope for r (RFC 6750 §3.1).
-func writeInsufficientScope(w http.ResponseWriter, r *http.Request) {
+// WriteInsufficientScope refuses a scoped token (RFC 6750 §3.1). scope names the
+// scope to request, or is "" when no scope would admit the request.
+func WriteInsufficientScope(w http.ResponseWriter, scope string) {
 	challenge := `Bearer error="insufficient_scope"`
-	if accepted := acceptedScopes(r); len(accepted) > 0 {
-		challenge += `, scope="` + accepted[0] + `"`
+	if scope != "" {
+		challenge += `, scope="` + scope + `"`
 	}
 	w.Header().Set("WWW-Authenticate", challenge)
 	w.Header().Set("Content-Type", "application/json")
