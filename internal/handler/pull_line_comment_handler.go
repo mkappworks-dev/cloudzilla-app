@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -181,19 +182,8 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch comment before deleting so we know path/line for the response
-	allBefore, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
-	var deletedComment *model.PullLineComment
-	for _, c := range allBefore {
-		if c.ID == id {
-			cc := c
-			deletedComment = &cc
-			break
-		}
-	}
-
-	existing, err := h.Services.PullLineComment.GetComment(r.Context(), id)
-	if err != nil || existing.RepoID != repo.ID {
+	_, existing, ok := h.lineCommentOnURLPull(r.Context(), owner, repoName, number, id)
+	if !ok {
 		writeError(w, http.StatusNotFound, "comment not found")
 		return
 	}
@@ -208,9 +198,9 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Header.Get("HX-Request") == "true" && deletedComment != nil {
+	if r.Header.Get("HX-Request") == "true" {
 		allComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
-		key := fmt.Sprintf("%s:%d", deletedComment.Path, deletedComment.Line)
+		key := fmt.Sprintf("%s:%d", existing.Path, existing.Line)
 		var lineComments []RenderedLineComment
 		for _, c := range allComments {
 			if fmt.Sprintf("%s:%d", c.Path, c.Line) == key {
@@ -225,8 +215,8 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 			Owner:      owner,
 			RepoName:   repoName,
 			PullNumber: number,
-			Path:       deletedComment.Path,
-			Line:       deletedComment.Line,
+			Path:       existing.Path,
+			Line:       existing.Line,
 			Comments:   lineComments,
 			CanWrite:   canWrite,
 		}))
@@ -282,7 +272,7 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if existing, err := h.Services.PullLineComment.GetComment(r.Context(), id); err != nil || existing.RepoID != repo.ID {
+	if _, _, ok := h.lineCommentOnURLPull(r.Context(), owner, repoName, number, id); !ok {
 		writeError(w, http.StatusNotFound, "comment not found")
 		return
 	}
@@ -324,7 +314,6 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, comment)
 }
 
-
 func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -334,8 +323,7 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
-	if !ok {
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
@@ -349,13 +337,8 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "pull request not found")
-		return
-	}
-	comment, err := h.Services.PullLineComment.GetComment(r.Context(), id)
-	if err != nil || comment.RepoID != repo.ID || comment.PullID != pr.ID {
+	pr, comment, ok := h.lineCommentOnURLPull(r.Context(), owner, repoName, number, id)
+	if !ok {
 		writeError(w, http.StatusNotFound, "comment not found")
 		return
 	}
@@ -388,4 +371,19 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// lineCommentOnURLPull loads the pull request the URL names and line comment id,
+// provided the comment is on that pull request. Comment IDs are global, so without
+// this check access to one repo would reach line comments in any other.
+func (h *Handler) lineCommentOnURLPull(ctx context.Context, owner, repoName string, number int, id int64) (*model.PullRequest, *model.PullLineComment, bool) {
+	pr, err := h.Services.Pull.Get(ctx, owner, repoName, number)
+	if err != nil {
+		return nil, nil, false
+	}
+	c, err := h.Services.PullLineComment.GetComment(ctx, id)
+	if err != nil || c.RepoID != pr.RepoID || c.PullID != pr.ID {
+		return nil, nil, false
+	}
+	return pr, c, true
 }

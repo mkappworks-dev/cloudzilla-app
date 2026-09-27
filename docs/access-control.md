@@ -191,7 +191,7 @@ A 403 for a private repo, next to a 404 for a missing one, confirms that the pri
 - Signed-in HTML repo pages load the repo with `h.readableRepo`, which renders the missing repo's 404 page.
 - Every `/api/repos/{owner}/{repo}/…` and `/fragments/{owner}/{repo}/…` route starts with `h.readableRepoJSON`, which answers `404 {"error":"repo not found"}` in both cases. It runs before sub-resource lookups, body validation, and any `CanWrite`/`CanManage`/`IsOwner` check, including checks made in a service. `TestRepoAPI_PrivateRepoNonReader_LooksLikeMissingRepo` walks the router and holds every such route to this.
 - Project board routes also require the project to belong to the URL's repo (`h.projectIDInRepo`). The project services authorize against the project's own repo, so their 403 would otherwise confirm that another repo's project ID exists.
-- Line comment update, delete and apply-suggestion only act on a comment in the URL's repo (and, for apply, the URL's pull request).
+- Line comment update, delete and apply-suggestion only act on a comment on the URL's pull request (`h.lineCommentOnURLPull`). Line comment IDs are global, so otherwise write access to one repo would reach another's comments, and `/apply` would commit its suggestion content.
 - `POST /api/repos/from-template` answers a private repo's ID with the same 404 as a missing ID, before checking that it is a template.
 - `POST /api/repos/{owner}/{repo}/restore` targets a soft-deleted repo, which `readableRepoJSON` can't see. A caller who may not restore it gets the same 404 as when no deleted repo exists.
 
@@ -320,8 +320,8 @@ Every row checks `readableRepoJSON` first.
 | POST              | `/api/repos/{owner}/{repo}/pulls/{number}/reviews`        | authMW | CanWrite (handler); not PR author (service)  | SubmitReview                |
 | POST/DELETE       | `.../pulls/{number}/reviewers`                            | authMW | CanWrite (handler)                           | Add/RemovePullReviewer      |
 | POST              | `.../pulls/{number}/line_comments`                        | authMW | readableRepoJSON                             | CreateLineComment           |
-| PATCH             | `.../pulls/{number}/line_comments/{id}`                   | authMW | Author only; comment in this repo            | UpdateLineComment           |
-| DELETE            | `.../pulls/{number}/line_comments/{id}`                   | authMW | Author OR CanWrite; comment in this repo     | DeleteLineComment           |
+| PATCH             | `.../pulls/{number}/line_comments/{id}`                   | authMW | Author only; comment on this PR              | UpdateLineComment           |
+| DELETE            | `.../pulls/{number}/line_comments/{id}`                   | authMW | Author OR CanWrite; comment on this PR       | DeleteLineComment           |
 | POST              | `.../pulls/{number}/line_comments/{id}/apply`             | authMW | CanWrite (handler); suggestion on this PR    | ApplySuggestion             |
 | POST/DELETE       | `.../{issues,pulls}/{number}/linked-*/{number}`           | authMW | CanWrite (handler)                           | Link/UnlinkIssuePull, Link/UnlinkPullIssue |
 | POST              | `/api/repos/{owner}/{repo}/labels`                        | authMW | CanWrite (handler)                           | CreateLabel                 |
