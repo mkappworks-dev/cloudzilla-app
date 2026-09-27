@@ -355,7 +355,11 @@ See [access-control.md](access-control.md) for the full permission model. `CanMa
 | DELETE | `/api/oauth/apps/:id`           | Required | Delete an OAuth application         |
 | DELETE | `/api/oauth/authorizations/:id` | Required | Revoke an OAuth authorization       |
 
-`/oauth/authorize` takes `client_id`, `redirect_uri`, `state`, and a space-delimited `scope`; an unknown scope returns `400`. `/oauth/token` exchanges `code` (with `grant_type=authorization_code`, `client_id`, `client_secret`) for `{"access_token": "...", "token_type": "bearer"}`.
+`POST /api/oauth/apps` takes `name`, `homepage_url`, `description` and `redirect_uris`, and returns the app with its `client_secret`, shown once. At least one redirect URI is required, each an absolute `http`/`https` URL with no fragment or comma; anything else returns `400`.
+
+`/oauth/authorize` takes `client_id`, `redirect_uri`, `state`, and a space-delimited `scope`. `redirect_uri` must exactly match one the app registered; if it doesn't, or a scope is unknown, the response is `400` and nothing is redirected. Apps registered before redirect URIs were required have none, so they must be registered again. The consent page can't be framed (`X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'`). Approving redirects to `redirect_uri` with `code` and `state` added to its query, keeping any query it already has; denying adds `error=access_denied` and `state` instead.
+
+`/oauth/token` exchanges `code` (with `grant_type=authorization_code`, `client_id`, `client_secret`, and the `redirect_uri` sent to `/oauth/authorize`) for `{"access_token": "...", "token_type": "bearer"}`. A code is single-use, expires after 5 minutes, and can be redeemed only by the app it was issued to with the same `redirect_uri`; otherwise the response is `401` `invalid or expired authorization code`, and the code stays redeemable by its own app. Client credentials go in the form body (HTTP Basic is not supported); the endpoint needs no CSRF token.
 
 | Scope          | Grants                                                                                         |
 | -------------- | ---------------------------------------------------------------------------------------------- |

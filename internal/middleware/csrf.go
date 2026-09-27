@@ -39,6 +39,13 @@ func CSRF(secure bool) func(http.Handler) http.Handler {
 				return
 			}
 
+			// Skip CSRF for the OAuth token endpoint: clients call it from their own
+			// backend and authenticate with their client secret, not a cookie.
+			if r.URL.Path == "/oauth/token" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			// Skip CSRF for git smart protocol endpoints (they use their own auth)
 			if isGitEndpoint(r.URL.Path) {
 				next.ServeHTTP(w, r)

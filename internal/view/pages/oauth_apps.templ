@@ -44,7 +44,7 @@ templ OAuthApps(data view.OAuthAppsData) {
 								method: 'POST',
 								headers: {'Content-Type': 'application/json', 'X-CSRF-Token': (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || ''},
 								body: JSON.stringify({name, homepage_url: homepage, description: desc, redirect_uris: redirect ? [redirect] : []})
-							}).then(r => r.ok ? r.json() : Promise.reject()).then(d => { secret = d.client_secret; setTimeout(() => location.reload(), 5000) }).catch(() => alert('Failed to create application'))
+							}).then(r => r.ok ? r.json() : r.json().catch(() => ({})).then(e => Promise.reject(e.error))).then(d => { secret = d.client_secret; setTimeout(() => location.reload(), 5000) }).catch(e => alert(e || 'Failed to create application'))
 						"
 						class="inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 text-sm"
 					>Create application</button>
