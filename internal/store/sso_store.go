@@ -92,16 +92,10 @@ func (s *SSOStore) Upsert(ctx context.Context, provider string, config map[strin
 // GetUserBySSO looks up a user by sso_provider + sso_id.
 func (s *SSOStore) GetUserBySSO(ctx context.Context, provider, ssoID string) (*model.User, error) {
 	u := &model.User{}
-	err := s.db.QueryRowContext(ctx,
-		`SELECT id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		        is_superadmin, is_invited, created_at, updated_at
-		 FROM users WHERE sso_provider = $1 AND sso_id = $2`,
+	err := scanUser(s.db.QueryRowContext(ctx,
+		`SELECT `+userColumns+` FROM users WHERE sso_provider = $1 AND sso_id = $2`,
 		provider, ssoID,
-	).Scan(
-		&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
-		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt,
-	)
+	), u)
 	if err != nil {
 		return nil, fmt.Errorf("sso get user: %w", err)
 	}
@@ -142,17 +136,12 @@ func (s *SSOStore) MarkAssertionUsed(ctx context.Context, assertionID string, ex
 // ProvisionSSOUser creates a new user account for an SSO login.
 func (s *SSOStore) ProvisionSSOUser(ctx context.Context, username, email, ssoProvider, ssoID string) (*model.User, error) {
 	u := &model.User{}
-	err := s.db.QueryRowContext(ctx,
+	err := scanUser(s.db.QueryRowContext(ctx,
 		`INSERT INTO users (username, email, password_hash, bio, avatar_url, sso_provider, sso_id, is_invited, created_at, updated_at)
 		 VALUES ($1, $2, '', '', '', $3, $4, TRUE, NOW(), NOW())
-		 RETURNING id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-		           is_superadmin, is_invited, created_at, updated_at`,
+		 RETURNING `+userColumns,
 		username, email, ssoProvider, ssoID,
-	).Scan(
-		&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
-		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt,
-	)
+	), u)
 	if err != nil {
 		return nil, fmt.Errorf("sso provision user: %w", err)
 	}

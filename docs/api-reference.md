@@ -1,6 +1,6 @@
 # API Reference
 
-All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly cookie (`cz_token`) or an `Authorization: Bearer <token>` header. Personal access tokens (`czp_...`) are also accepted in the `Authorization` header.
+All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly cookie (`cz_token`) or an `Authorization: Bearer <token>` header. Personal access tokens (`czp_...`) are also accepted in the `Authorization` header, as are OAuth-app tokens, which are limited to the routes their scopes admit (see [OAuth Apps](#oauth-apps)).
 
 ---
 
@@ -43,6 +43,19 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                          |
 
 Raw token format: `czp_<32-byte hex>`. Use as `Authorization: Bearer czp_<token>`. Only the SHA-256 hash is stored; the raw value cannot be recovered after creation.
+
+## Commit Email Privacy
+
+| Method | Path              | Auth     | Description                                                                                             |
+| ------ | ----------------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| POST   | `/settings/email` | Required | Form: `keep_email_private=on` turns the setting on, omitting it turns it off. Redirects to `/settings#email` |
+
+Commits made through the web UI (new files, wiki edits, merge and squash merges, applied suggestions) are authored as `<username> <email>`, where the email comes from `UserService.CommitAuthor`:
+
+- Setting on (the default for every user), or no account email: `<user id>+<username>@users.noreply.<host>`, with `<host>` taken from `server.base_url`.
+- Setting off: the account email.
+
+Commits pushed over git keep whatever author the client set. Contributor stats resolve a noreply author back to its user when both the id and username match, under any host, so commits made before a `base_url` change stay credited. Legacy `username@localhost` authors are not resolved.
 
 ## Deploy Keys
 
@@ -341,6 +354,17 @@ See [access-control.md](access-control.md) for the full permission model. `CanMa
 | POST   | `/api/oauth/apps`               | Required | Register an OAuth application       |
 | DELETE | `/api/oauth/apps/:id`           | Required | Delete an OAuth application         |
 | DELETE | `/api/oauth/authorizations/:id` | Required | Revoke an OAuth authorization       |
+
+`/oauth/authorize` takes `client_id`, `redirect_uri`, `state`, and a space-delimited `scope`; an unknown scope returns `400`. `/oauth/token` exchanges `code` (with `grant_type=authorization_code`, `client_id`, `client_secret`) for `{"access_token": "...", "token_type": "bearer"}`.
+
+| Scope          | Grants                                                                                         |
+| -------------- | ---------------------------------------------------------------------------------------------- |
+| `repo:read`    | Read repos, issues, pulls, releases, orgs and user profiles; git clone/fetch                   |
+| `repo:write`   | `repo:read`, plus repo content writes, creating repos, merging, git push                       |
+| `issues:write` | Reads, plus writes under `/api/repos/:owner/:repo/issues/**`                                   |
+| `pulls:write`  | Reads, plus writes under `/api/repos/:owner/:repo/pulls/**`, except merging and applying suggestions |
+
+A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` with a `WWW-Authenticate: Bearer error="insufficient_scope", scope="..."` header naming the scope to request. Only listed routes are open to OAuth tokens; account, admin and repo-administration endpoints and HTML pages never are. Route list: [access-control](./access-control.md#oauth-app-scopes).
 
 ## Instance Admin (superadmin only)
 

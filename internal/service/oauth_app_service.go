@@ -5,8 +5,10 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -18,11 +20,15 @@ import (
 type OAuthAppService struct {
 	apps  *store.OAuthAppStore
 	auths *store.OAuthAuthorizationStore
+	users *store.UserStore
 }
 
+// ErrInvalidScope is returned when an authorization request names a scope that cannot be granted.
+var ErrInvalidScope = errors.New("invalid scope")
+
 // NewOAuthAppService creates an OAuthAppService backed by the given stores.
-func NewOAuthAppService(apps *store.OAuthAppStore, auths *store.OAuthAuthorizationStore) *OAuthAppService {
-	return &OAuthAppService{apps: apps, auths: auths}
+func NewOAuthAppService(apps *store.OAuthAppStore, auths *store.OAuthAuthorizationStore, users *store.UserStore) *OAuthAppService {
+	return &OAuthAppService{apps: apps, auths: auths, users: users}
 }
 
 func (s *OAuthAppService) CreateApp(ctx context.Context, ownerID int64, name, homepageURL, description string, redirectURIs []string) (*model.OAuthApp, string, error) {
@@ -79,11 +85,33 @@ func (s *OAuthAppService) IsRedirectURIAllowed(app *model.OAuthApp, redirectURI 
 	return slices.Contains(app.RedirectURIs, redirectURI)
 }
 
+// ParseScopes splits a space-delimited OAuth scope parameter, dropping duplicates.
+// It returns ErrInvalidScope if any scope is unknown.
+func (s *OAuthAppService) ParseScopes(_ context.Context, param string) ([]string, error) {
+	return validateScopes(strings.Fields(param))
+}
+
+func validateScopes(requested []string) ([]string, error) {
+	var scopes []string
+	for _, sc := range requested {
+		if !model.IsKnownScope(sc) {
+			return nil, fmt.Errorf("%w: %q", ErrInvalidScope, sc)
+		}
+		if !slices.Contains(scopes, sc) {
+			scopes = append(scopes, sc)
+		}
+	}
+	return scopes, nil
+}
+
 // Authorize creates an authorization code for the given user + app + scopes.
-// It validates that redirectURI is in the app's allowed list.
+// It validates that redirectURI is in the app's allowed list and that every scope is known.
 func (s *OAuthAppService) Authorize(ctx context.Context, appID, userID int64, redirectURI string, scopes []string, app *model.OAuthApp) (code string, err error) {
 	if len(app.RedirectURIs) > 0 && !slices.Contains(app.RedirectURIs, redirectURI) {
 		return "", fmt.Errorf("redirect_uri not allowed")
+	}
+	if scopes, err = validateScopes(scopes); err != nil {
+		return "", err
 	}
 	codeBytes := make([]byte, 16)
 	if _, err := rand.Read(codeBytes); err != nil {
@@ -118,14 +146,18 @@ func (s *OAuthAppService) ExchangeCode(ctx context.Context, clientID, clientSecr
 	return rawToken, nil
 }
 
-// ResolveOAuthUserID resolves a raw OAuth bearer token to a user ID.
-// Implements middleware.OAuthUserIDResolver.
-func (s *OAuthAppService) ResolveOAuthUserID(ctx context.Context, rawToken string) (int64, error) {
+// ResolveOAuthToken resolves a raw OAuth bearer token to its user and granted scopes.
+// Implements middleware.OAuthTokenResolver.
+func (s *OAuthAppService) ResolveOAuthToken(ctx context.Context, rawToken string) (*model.User, []string, error) {
 	a, err := s.auths.GetByTokenHash(ctx, sha256HexOf(rawToken))
 	if err != nil {
-		return 0, err
+		return nil, nil, err
 	}
-	return a.UserID, nil
+	user, err := s.users.GetByID(ctx, a.UserID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("oauth token user lookup: %w", err)
+	}
+	return user, a.Scopes, nil
 }
 
 func (s *OAuthAppService) RevokeAccess(ctx context.Context, authID, userID int64) error {

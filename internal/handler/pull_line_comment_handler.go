@@ -384,11 +384,15 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authorEmail := claims.Username + "@localhost"
+	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load user")
+		return
+	}
 	if err := h.Services.Code.ApplySuggestion(
 		owner, repoName, pr.HeadBranch, comment.Path,
 		comment.Line, comment.SuggestionBody,
-		claims.Username, authorEmail,
+		author,
 	); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to apply suggestion: "+err.Error())
 		return

@@ -4,9 +4,12 @@ package service_test
 
 import (
 	"context"
+	"errors"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -21,6 +24,7 @@ func newOAuthSvc(t *testing.T) (*service.OAuthAppService, int64) {
 	svc := service.NewOAuthAppService(
 		store.NewOAuthAppStore(db),
 		store.NewOAuthAuthorizationStore(db),
+		store.NewUserStore(db),
 	)
 	return svc, ownerID
 }
@@ -70,7 +74,7 @@ func TestOAuthApp_IsRedirectURIAllowed_Registered(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
-	svcLocal := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db))
+	svcLocal := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db), store.NewUserStore(db))
 	_ = svc
 
 	app, _, err := svcLocal.CreateApp(context.Background(), ownerID, "URI App", "", "",
@@ -112,6 +116,7 @@ func TestOAuthApp_AuthorizeAndExchange_FullFlow(t *testing.T) {
 	svc := service.NewOAuthAppService(
 		store.NewOAuthAppStore(db),
 		store.NewOAuthAuthorizationStore(db),
+		store.NewUserStore(db),
 	)
 
 	app, rawSecret, err := svc.CreateApp(context.Background(), ownerID,
@@ -122,7 +127,7 @@ func TestOAuthApp_AuthorizeAndExchange_FullFlow(t *testing.T) {
 
 	// Step 1: Authorize — generate an auth code.
 	code, err := svc.Authorize(context.Background(), app.ID, userID,
-		"https://example.com/cb", []string{"read"}, app)
+		"https://example.com/cb", []string{model.ScopeRepoRead}, app)
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
@@ -151,13 +156,14 @@ func TestOAuthApp_ExchangeCode_WrongSecret_Fails(t *testing.T) {
 	svc := service.NewOAuthAppService(
 		store.NewOAuthAppStore(db),
 		store.NewOAuthAuthorizationStore(db),
+		store.NewUserStore(db),
 	)
 
 	app, _, err := svc.CreateApp(context.Background(), ownerID, "Secret App", "", "", nil)
 	if err != nil {
 		t.Fatalf("CreateApp: %v", err)
 	}
-	code, err := svc.Authorize(context.Background(), app.ID, userID, "", []string{"read"}, app)
+	code, err := svc.Authorize(context.Background(), app.ID, userID, "", []string{model.ScopeRepoRead}, app)
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
@@ -168,9 +174,9 @@ func TestOAuthApp_ExchangeCode_WrongSecret_Fails(t *testing.T) {
 	}
 }
 
-// TestOAuthApp_ResolveOAuthUserID verifies that after a successful token exchange,
-// ResolveOAuthUserID maps the raw token back to the original user ID.
-func TestOAuthApp_ResolveOAuthUserID(t *testing.T) {
+// TestOAuthApp_ResolveOAuthToken verifies that after a successful token exchange,
+// ResolveOAuthToken maps the raw token back to the original user and granted scopes.
+func TestOAuthApp_ResolveOAuthToken(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
@@ -179,13 +185,14 @@ func TestOAuthApp_ResolveOAuthUserID(t *testing.T) {
 	svc := service.NewOAuthAppService(
 		store.NewOAuthAppStore(db),
 		store.NewOAuthAuthorizationStore(db),
+		store.NewUserStore(db),
 	)
 
 	app, rawSecret, err := svc.CreateApp(context.Background(), ownerID, "Resolve App", "", "", nil)
 	if err != nil {
 		t.Fatalf("CreateApp: %v", err)
 	}
-	code, err := svc.Authorize(context.Background(), app.ID, userID, "", []string{"read"}, app)
+	code, err := svc.Authorize(context.Background(), app.ID, userID, "", []string{model.ScopeRepoRead}, app)
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
@@ -194,12 +201,43 @@ func TestOAuthApp_ResolveOAuthUserID(t *testing.T) {
 		t.Fatalf("ExchangeCode: %v", err)
 	}
 
-	resolvedUID, err := svc.ResolveOAuthUserID(context.Background(), token)
+	user, scopes, err := svc.ResolveOAuthToken(context.Background(), token)
 	if err != nil {
-		t.Fatalf("ResolveOAuthUserID: %v", err)
+		t.Fatalf("ResolveOAuthToken: %v", err)
 	}
-	if resolvedUID != userID {
-		t.Errorf("want userID %d, got %d", userID, resolvedUID)
+	if user.ID != userID || user.Username != "testuser_oauth_resolve_"+suffix {
+		t.Errorf("want user %d, got %d (%q)", userID, user.ID, user.Username)
+	}
+	if !slices.Equal(scopes, []string{model.ScopeRepoRead}) {
+		t.Errorf("want scopes [%s], got %v", model.ScopeRepoRead, scopes)
+	}
+}
+
+// TestOAuthApp_Authorize_UnknownScope_Error verifies that a grant cannot be stored
+// for a scope the middleware would not recognise.
+func TestOAuthApp_Authorize_UnknownScope_Error(t *testing.T) {
+	svc, ownerID := newOAuthSvc(t)
+	app, _, err := svc.CreateApp(context.Background(), ownerID, "Scope App", "", "", nil)
+	if err != nil {
+		t.Fatalf("CreateApp: %v", err)
+	}
+	_, err = svc.Authorize(context.Background(), app.ID, ownerID, "", []string{model.ScopeRepoRead, "admin"}, app)
+	if !errors.Is(err, service.ErrInvalidScope) {
+		t.Errorf("want ErrInvalidScope, got %v", err)
+	}
+}
+
+func TestOAuthApp_ParseScopes(t *testing.T) {
+	svc := service.NewOAuthAppService(nil, nil, nil)
+	got, err := svc.ParseScopes(context.Background(), " repo:read  issues:write repo:read ")
+	if err != nil {
+		t.Fatalf("ParseScopes: %v", err)
+	}
+	if want := []string{model.ScopeRepoRead, model.ScopeIssuesWrite}; !slices.Equal(got, want) {
+		t.Errorf("want %v, got %v", want, got)
+	}
+	if _, err := svc.ParseScopes(context.Background(), "repo:read user"); !errors.Is(err, service.ErrInvalidScope) {
+		t.Errorf("want ErrInvalidScope for unknown scope, got %v", err)
 	}
 }
 
@@ -214,6 +252,7 @@ func TestOAuthApp_Authorize_DisallowedRedirectURI_Error(t *testing.T) {
 	svc := service.NewOAuthAppService(
 		store.NewOAuthAppStore(db),
 		store.NewOAuthAuthorizationStore(db),
+		store.NewUserStore(db),
 	)
 
 	app, _, err := svc.CreateApp(context.Background(), ownerID, "Strict App", "", "",
@@ -223,7 +262,7 @@ func TestOAuthApp_Authorize_DisallowedRedirectURI_Error(t *testing.T) {
 	}
 
 	_, err = svc.Authorize(context.Background(), app.ID, userID,
-		"https://attacker.example.com/steal", []string{"read"}, app)
+		"https://attacker.example.com/steal", []string{model.ScopeRepoRead}, app)
 	if err == nil {
 		t.Error("Authorize must reject a redirect URI not in the app's registered list")
 	}

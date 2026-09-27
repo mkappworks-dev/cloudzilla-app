@@ -31,6 +31,10 @@ func (h *Handler) PageSetupSubmit(w http.ResponseWriter, r *http.Request) {
 		h.render(w, r, pages.Setup(view.SetupData{Error: "All fields are required"}))
 		return
 	}
+	if msg := passwordLengthMessage(password); msg != "" {
+		h.render(w, r, pages.Setup(view.SetupData{Error: msg}))
+		return
+	}
 
 	_, err := h.Services.User.CreateSuperadmin(r.Context(), username, email, password)
 	if err != nil {

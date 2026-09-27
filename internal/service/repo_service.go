@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -77,10 +78,42 @@ func (s *RepoService) TopContributors(ctx context.Context, owner, name, ref stri
 	if err != nil {
 		return nil, err
 	}
+	if all, err = s.mergeContributorsByUser(ctx, all); err != nil {
+		return nil, err
+	}
 	if limit > 0 && len(all) > limit {
 		all = all[:limit]
 	}
 	return all, nil
+}
+
+// Git groups contributors by author email, so a user's pushed commits and their
+// noreply-authored web commits arrive as separate entries. Merged entries take the
+// username as Name because the sidebar links each avatar to "/"+Name.
+func (s *RepoService) mergeContributorsByUser(ctx context.Context, stats []ContributorStat) ([]ContributorStat, error) {
+	merged := make([]ContributorStat, 0, len(stats))
+	indexByUser := make(map[int64]int)
+	for _, c := range stats {
+		u, err := userByAuthorEmail(ctx, s.users, c.Email)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
+		if u == nil {
+			merged = append(merged, c)
+			continue
+		}
+		if i, ok := indexByUser[u.ID]; ok {
+			merged[i].Commits += c.Commits
+			merged[i].Additions += c.Additions
+			merged[i].Deletions += c.Deletions
+			continue
+		}
+		c.Name = u.Username
+		indexByUser[u.ID] = len(merged)
+		merged = append(merged, c)
+	}
+	sort.SliceStable(merged, func(i, j int) bool { return merged[i].Commits > merged[j].Commits })
+	return merged, nil
 }
 
 type postReceiveCommit struct {
@@ -146,7 +179,7 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 
 	if s.contributorStats != nil && s.code != nil && repo.OwnerName != "" {
 		for _, c := range commits {
-			user, err := s.users.GetByEmail(ctx, c.AuthorEmail)
+			user, err := userByAuthorEmail(ctx, s.users, c.AuthorEmail)
 			if errors.Is(err, sql.ErrNoRows) {
 				continue
 			}

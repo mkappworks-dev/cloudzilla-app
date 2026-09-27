@@ -16,7 +16,7 @@ import (
 
 // CommitFile commits content to filePath on branch, creating the branch if it
 // does not yet exist (e.g. the first commit in an empty repo).
-func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, content []byte, authorName, authorEmail, message string) error {
+func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, content []byte, author GitAuthor, message string) error {
 	filePath = strings.Trim(strings.ReplaceAll(filePath, "\\", "/"), "/")
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
@@ -62,7 +62,7 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 		return err
 	}
 
-	sig := object.Signature{Name: authorName, Email: authorEmail, When: time.Now()}
+	sig := author.signature(time.Now())
 	commit := object.Commit{
 		Author:       sig,
 		Committer:    sig,

@@ -27,13 +27,15 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 
 - `GetPullDiff(owner, repo, base, head)` → `*PRDiffResult`
 - `MergePullRequest(owner, repo, base, head)` → `error` (fast-forward only)
-- `ThreeWayMergePullRequest(owner, repo, base, head, authorName, authorEmail)` → `error`
-- `SquashMergePullRequest(owner, repo, base, head, authorName, authorEmail)` → `error`
+- `ThreeWayMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
+- `SquashMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
 - `checkFastForward(repo, baseCommit, headCommit)` → `bool` (private)
 - `findMergeBase(repo, a, b)` → `(*object.Commit, error)` (private; LCA via ancestor walk)
 - `mergeTreesNoConflict(repo, mergeBase, base, head)` → `(plumbing.Hash, bool, error)` (private)
 - `flattenTree(tree)` → `(map[string]mergeFile, error)` (private)
 - `buildTree(repo, files)` → `(plumbing.Hash, error)` (private; recursively encodes tree objects)
+
+`UpdatePull` gets the `GitAuthor` from `UserService.CommitAuthor`, which honours the merger's keep-email-private setting (see [api-reference](./api-reference.md#commit-email-privacy)).
 
 ## PRDiffResult Type
 

@@ -35,6 +35,10 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: "All fields are required"}))
 		return
 	}
+	if msg := passwordLengthMessage(password); msg != "" {
+		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: msg}))
+		return
+	}
 
 	// Create the user (bypasses allow_registration)
 	if _, err := h.Services.User.CreateFromInvitation(r.Context(), inv, username, password); err != nil {

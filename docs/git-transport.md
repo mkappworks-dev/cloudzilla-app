@@ -39,7 +39,8 @@ DELETE /api/user/keys/{id}
 ### Authentication
 
 - **Public repos**: No authentication required
-- **Private repos**: Requires HTTP Basic Auth or JWT cookie
+- **Private repos**: Requires HTTP Basic Auth (PAT as password) or JWT cookie
+- **OAuth-app tokens** (`Authorization: Bearer`): need `repo:read` (or any repo scope) to clone/fetch and `repo:write` to push; see [access-control](./access-control.md#oauth-app-scopes)
 - Permissions enforced: read access for clone/fetch, write access for push
 
 ### Example

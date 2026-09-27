@@ -301,12 +301,16 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 
 // PageNewIssue renders the new issue form, optionally pre-filled from an issue template.
 func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 	if !repo.AllowIssues {
@@ -327,12 +331,8 @@ func (h *Handler) PageNewIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	showForm := blank || selected != "" || len(templates) == 0
 
-	canWrite := false
-	canManage := false
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
-	}
+	canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	data := view.IssueNewData{
 		BasePage:  h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "issues", canManage),
 		Repo:      *repo,
@@ -459,9 +459,8 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	title := r.FormValue("title")
 	body := r.FormValue("body")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 	if !repo.AllowIssues {
@@ -501,7 +500,7 @@ func (h *Handler) PageNewIssueSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 	issue, err := h.Services.Issue.Create(r.Context(), owner, repoName, claims.UserID, title, body, vis)
 	if err != nil {
-		renderErr("Failed to create issue: " + err.Error())
+		renderErr(createFailedMessage(err, "issue", "owner", owner, "repo", repoName))
 		return
 	}
 

@@ -274,7 +274,7 @@ func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 
 	// The comment must belong to the repo in the URL so the path identifies a
 	// single comment unambiguously.
-	if existing, err := h.Services.Comment.GetByID(r.Context(), id); err != nil || existing.RepoID != repo.ID {
+	if existing, err := h.Services.Comment.GetByID(r.Context(), id); err != nil || existing.RepoID != repo.ID || !h.commentUnderURL(r, existing, claims.UserID) {
 		writeError(w, http.StatusNotFound, "comment not found")
 		return
 	}
@@ -322,7 +322,7 @@ func (h *Handler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	// The comment must belong to the repo in the URL — otherwise write access to
 	// any repo would authorize deleting comments in repos the caller cannot see.
 	existing, err := h.Services.Comment.GetByID(r.Context(), id)
-	if err != nil || existing.RepoID != repo.ID {
+	if err != nil || existing.RepoID != repo.ID || !h.commentUnderURL(r, existing, claims.UserID) {
 		writeError(w, http.StatusNotFound, "comment not found")
 		return
 	}
@@ -338,6 +338,23 @@ func (h *Handler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// commentUnderURL reports whether c belongs to the issue or pull request the URL
+// names. UpdateComment and DeleteComment serve both route trees, and the OAuth
+// scope gate relies on the path to tell issue comments from pull request comments.
+func (h *Handler) commentUnderURL(r *http.Request, c *model.Comment, viewerID int64) bool {
+	owner, repoName := chi.URLParam(r, "owner"), chi.URLParam(r, "repo")
+	number, err := strconv.Atoi(chi.URLParam(r, "number"))
+	if err != nil {
+		return false
+	}
+	if strings.Contains(chi.RouteContext(r.Context()).RoutePattern(), "/pulls/") {
+		pr, err := h.Services.Pull.Get(r.Context(), owner, repoName, number)
+		return err == nil && c.PullID != nil && *c.PullID == pr.ID
+	}
+	issue, err := h.Services.Issue.Get(r.Context(), owner, repoName, number, &viewerID)
+	return err == nil && c.IssueID != nil && *c.IssueID == issue.ID
 }
 
 func (h *Handler) IssueCommentsFragment(w http.ResponseWriter, r *http.Request) {
