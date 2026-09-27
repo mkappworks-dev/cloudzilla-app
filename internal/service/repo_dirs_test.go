@@ -4,9 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
+	"time"
 
 	gogit "github.com/go-git/go-git/v5"
 
@@ -90,6 +94,86 @@ func (e repoDirsEnv) rowCount(t *testing.T, owner, name string) int {
 	return n
 }
 
+// backdate moves owner/name's only soft-deleted copy, and its row's
+// deleted_at, d into the past.
+func (e repoDirsEnv) backdate(t *testing.T, repoID int64, owner, name string, d time.Duration) {
+	t.Helper()
+	gitDir, wikiDir := e.dirs(owner, name)
+	matches, _ := filepath.Glob(gitDir + ".deleted.*")
+	if len(matches) != 1 {
+		t.Fatalf("want one soft-deleted copy of %s/%s, got %v", owner, name, matches)
+	}
+	suffix := strings.TrimPrefix(matches[0], gitDir)
+	sec, err := strconv.ParseInt(strings.TrimPrefix(suffix, ".deleted."), 10, 64)
+	if err != nil {
+		t.Fatalf("parse %s: %v", suffix, err)
+	}
+	at := time.Unix(sec, 0).Add(-d)
+	for _, dir := range []string{gitDir, wikiDir} {
+		if err := os.Rename(dir+suffix, dir+".deleted."+strconv.FormatInt(at.Unix(), 10)); err != nil && !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("backdate %s: %v", filepath.Base(dir), err)
+		}
+	}
+	testutil.Exec(t, e.db, `UPDATE repositories SET deleted_at = $1 WHERE id = $2`, at, repoID)
+}
+
+type sameNameCopies struct {
+	org                   *model.Organization
+	firstID, secondID     int64
+	first, second         int64
+	firstHead, secondHead string
+}
+
+// twoDeletedCopies leaves two org owners' soft-deleted repos named "x" side by
+// side, the first deleted age earlier. repositories is unique per owner_id,
+// so only the copies' suffixes tell them apart.
+func (e repoDirsEnv) twoDeletedCopies(t *testing.T, age time.Duration) sameNameCopies {
+	t.Helper()
+	ctx := context.Background()
+	var c sameNameCopies
+	c.firstID, _ = e.seedUser(t)
+	c.secondID, _ = e.seedUser(t)
+	c.org = e.createOrg(t, c.firstID)
+	if err := e.orgs.AddMember(ctx, c.org.ID, c.firstID, c.secondID, model.OrgRoleOwner); err != nil {
+		t.Fatalf("AddMember: %v", err)
+	}
+	gitDir, _ := e.dirs(c.org.Name, "x")
+	for i, ownerID := range []int64{c.firstID, c.secondID} {
+		repo, err := e.orgs.CreateRepo(ctx, c.org.ID, ownerID, "x", fmt.Sprintf("copy %d", i), true, service.RepoInitOptions{AddREADME: true})
+		if err != nil {
+			t.Fatalf("CreateRepo copy %d: %v", i, err)
+		}
+		if err := e.code.WikiPageSave(c.org.Name, "x", "Home", fmt.Sprintf("wiki of copy %d", i), dirsTestAuthor, ""); err != nil {
+			t.Fatalf("save wiki of copy %d: %v", i, err)
+		}
+		head := headOf(t, gitDir)
+		if err := e.repos.Delete(ctx, repo.ID, ownerID); err != nil {
+			t.Fatalf("delete copy %d: %v", i, err)
+		}
+		if i == 0 {
+			e.backdate(t, repo.ID, c.org.Name, "x", age)
+			c.first, c.firstHead = repo.ID, head
+		} else {
+			c.second, c.secondHead = repo.ID, head
+		}
+	}
+	return c
+}
+
+func (e repoDirsEnv) wantLive(t *testing.T, owner, name, head, wiki string) {
+	t.Helper()
+	gitDir, _ := e.dirs(owner, name)
+	if !pathExists(gitDir) {
+		t.Fatalf("%s/%s has no repo dir", owner, name)
+	}
+	if got := headOf(t, gitDir); got != head {
+		t.Errorf("%s/%s holds %s, want %s", owner, name, got, head)
+	}
+	if got, _, _ := e.code.WikiPageGet(owner, name, "Home"); got != wiki {
+		t.Errorf("%s/%s wiki reads %q, want %q", owner, name, got, wiki)
+	}
+}
+
 func headOf(t *testing.T, gitDir string) string {
 	t.Helper()
 	repo, err := gogit.PlainOpen(gitDir)
@@ -138,6 +222,105 @@ func TestRepoService_DeleteAndRestoreMoveTheWiki(t *testing.T) {
 	}
 }
 
+func TestRepoService_RestoreTakesTheRowsOwnCopy(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	c := env.twoDeletedCopies(t, time.Hour)
+
+	if err := env.repos.Restore(context.Background(), c.first, c.firstID, false); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	env.wantLive(t, c.org.Name, "x", c.firstHead, "wiki of copy 0")
+}
+
+// Both rows would resolve to the new holder's directory.
+func TestRepoService_Restore_RefusesANameWithANewHolder(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	firstID, _ := env.seedUser(t)
+	secondID, _ := env.seedUser(t)
+	org := env.createOrg(t, firstID)
+	if err := env.orgs.AddMember(ctx, org.ID, firstID, secondID, model.OrgRoleOwner); err != nil {
+		t.Fatalf("AddMember: %v", err)
+	}
+	first, err := env.orgs.CreateRepo(ctx, org.ID, firstID, "x", "", true, service.RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatalf("CreateRepo: %v", err)
+	}
+	if err := env.repos.Delete(ctx, first.ID, firstID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	gitDir, wikiDir := env.dirs(org.Name, "x")
+	copies, _ := filepath.Glob(gitDir + ".deleted.*")
+	wikiCopies, _ := filepath.Glob(wikiDir + ".deleted.*")
+	for _, c := range append(copies, wikiCopies...) {
+		if err := os.RemoveAll(c); err != nil {
+			t.Fatalf("remove copy: %v", err)
+		}
+	}
+	if _, err := env.orgs.CreateRepo(ctx, org.ID, secondID, "x", "", true, service.RepoInitOptions{AddREADME: true}); err != nil {
+		t.Fatalf("CreateRepo by the new holder: %v", err)
+	}
+	head := headOf(t, gitDir)
+
+	if err := env.repos.Restore(ctx, first.ID, firstID, false); !errors.Is(err, service.ErrRepoNameTaken) {
+		t.Errorf("want ErrRepoNameTaken, got %v", err)
+	}
+	var live int
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM repositories WHERE owner_name = $1 AND name = 'x' AND deleted_at IS NULL`, org.Name).Scan(&live); err != nil {
+		t.Fatalf("count live rows: %v", err)
+	}
+	if live != 1 {
+		t.Errorf("want 1 live row for %s/x, got %d", org.Name, live)
+	}
+	if headOf(t, gitDir) != head {
+		t.Error("new holder's repo was modified")
+	}
+}
+
+func TestRepoService_Restore_KeepsAWikiLeftAtTheLivePath(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	ownerID, owner := env.seedUser(t)
+	repoID := env.createWithWiki(t, owner, "old")
+	if err := env.repos.Delete(ctx, repoID, ownerID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	_, wikiDir := env.dirs(owner, "old")
+	copies, _ := filepath.Glob(wikiDir + ".deleted.*")
+	if len(copies) != 1 {
+		t.Fatalf("want one wiki copy, got %v", copies)
+	}
+	// Deletes before wikis moved with their repo left the wiki here.
+	if err := os.Rename(copies[0], wikiDir); err != nil {
+		t.Fatalf("put wiki back: %v", err)
+	}
+
+	if err := env.repos.Restore(ctx, repoID, ownerID, false); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	if got, _, _ := env.code.WikiPageGet(owner, "old", "Home"); got != "wiki of "+owner+"/old" {
+		t.Errorf("wiki reads %q after restore", got)
+	}
+}
+
+func TestRepoService_PurgeExpiredLeavesOtherCopiesOfTheName(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	c := env.twoDeletedCopies(t, 31*24*time.Hour)
+
+	if err := env.repos.PurgeExpired(ctx); err != nil {
+		t.Fatalf("PurgeExpired: %v", err)
+	}
+	gitDir, _ := env.dirs(c.org.Name, "x")
+	if matches, _ := filepath.Glob(gitDir + ".deleted.*"); len(matches) != 1 {
+		t.Errorf("want only the unexpired copy left, got %v", matches)
+	}
+	if err := env.repos.Restore(ctx, c.second, c.secondID, false); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	env.wantLive(t, c.org.Name, "x", c.secondHead, "wiki of copy 1")
+}
+
 func TestRepoService_PurgeExpiredRemovesTheWiki(t *testing.T) {
 	env := newRepoDirsEnv(t)
 	ctx := context.Background()
@@ -148,7 +331,7 @@ func TestRepoService_PurgeExpiredRemovesTheWiki(t *testing.T) {
 	if err := env.repos.Delete(ctx, repoID, ownerID); err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
-	testutil.Exec(t, env.db, `UPDATE repositories SET deleted_at = NOW() - INTERVAL '31 days' WHERE id = $1`, repoID)
+	env.backdate(t, repoID, owner, "purged", 31*24*time.Hour)
 	if err := env.repos.PurgeExpired(ctx); err != nil {
 		t.Fatalf("PurgeExpired: %v", err)
 	}

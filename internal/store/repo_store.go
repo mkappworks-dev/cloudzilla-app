@@ -504,10 +504,10 @@ func (s *RepoStore) DeleteByID(ctx context.Context, id int64) error {
 	return err
 }
 
-func (s *RepoStore) Delete(ctx context.Context, repoID, deletedByID int64) error {
+func (s *RepoStore) Delete(ctx context.Context, repoID, deletedByID int64, deletedAt time.Time) error {
 	result, err := s.db.ExecContext(ctx,
-		`UPDATE repositories SET deleted_at = NOW(), deleted_by = $2, updated_at = NOW() WHERE id = $1`,
-		repoID, deletedByID,
+		`UPDATE repositories SET deleted_at = $3, deleted_by = $2, updated_at = NOW() WHERE id = $1`,
+		repoID, deletedByID, deletedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("soft delete repo: %w", err)

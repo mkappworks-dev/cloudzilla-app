@@ -124,47 +124,61 @@ func revertDirs(done []dirMove) {
 	}
 }
 
-// Matches soft-deleted copies the way Restore finds them.
-func removeDeletedDirs(root, owner, name string) {
-	gitDir, wikiDir := repoDirs(root, owner, name)
-	for _, dir := range []string{gitDir, wikiDir} {
-		pattern := dir + ".deleted.*"
-		matches, err := filepath.Glob(pattern)
-		if err != nil {
-			slog.Warn("glob deleted repo dirs failed", "pattern", pattern, "error", err)
-			continue
+// deletedCopySuffix finds the copy r's soft delete moved aside, never another
+// holder's copy of the same name. Rows deleted before deleted_at took the
+// rename's clock were stamped by the DB just after it, up to a second later.
+func deletedCopySuffix(root string, r model.Repository) (string, bool) {
+	if r.DeletedAt == nil {
+		return "", false
+	}
+	gitDir, wikiDir := repoDirs(root, r.OwnerName, r.Name)
+	for _, at := range []time.Time{*r.DeletedAt, r.DeletedAt.Add(-time.Second)} {
+		suffix := deletedSuffix(at)
+		if pathTaken(gitDir+suffix) || pathTaken(wikiDir+suffix) {
+			return suffix, true
 		}
-		for _, m := range matches {
-			if err := os.RemoveAll(m); err != nil {
-				slog.Warn("remove deleted repo dir failed", "path", m, "error", err)
-			}
+	}
+	return "", false
+}
+
+func removeDeletedCopy(root string, r model.Repository) {
+	suffix, ok := deletedCopySuffix(root, r)
+	if !ok {
+		return
+	}
+	gitDir, wikiDir := repoDirs(root, r.OwnerName, r.Name)
+	removeDirs(gitDir+suffix, wikiDir+suffix)
+}
+
+func removeDirs(dirs ...string) {
+	for _, dir := range dirs {
+		if err := os.RemoveAll(dir); err != nil {
+			slog.Warn("remove repo dir failed", "path", dir, "error", err)
 		}
 	}
 }
 
 // DeleteWithOwner runs deleteOwner, whose row delete cascades to every repo
 // ownerID owns, with the owner's personal repo dirs moved aside first. A
-// failed delete puts them back; a successful one removes them, so no dir
-// outlives its row at a path the freed name hands to its next holder.
+// failed delete puts them back; a successful one removes them and the copies
+// of the owner's soft-deleted repos, which no row is left to restore or purge.
 func (s *RepoService) DeleteWithOwner(ctx context.Context, ownerID int64, deleteOwner func() error) error {
 	repos, err := s.repos.ListAllByOwnerID(ctx, ownerID)
 	if err != nil {
 		return err
 	}
-	var personal []model.Repository
+	var softDeleted []model.Repository
 	var dirs []string
 	for _, r := range repos {
-		if r.OrgID != 0 {
-			if r.DeletedAt == nil {
-				return ErrOwnsOrgRepos
-			}
-			// Its .deleted copies can't be told apart from those of another
-			// member's same-named org repo, so they stay where nothing serves them.
-			continue
+		switch {
+		case r.DeletedAt != nil:
+			softDeleted = append(softDeleted, r)
+		case r.OrgID != 0:
+			return ErrOwnsOrgRepos
+		default:
+			gitDir, wikiDir := repoDirs(s.cfg.ReposRoot, r.OwnerName, r.Name)
+			dirs = append(dirs, gitDir, wikiDir)
 		}
-		personal = append(personal, r)
-		gitDir, wikiDir := repoDirs(s.cfg.ReposRoot, r.OwnerName, r.Name)
-		dirs = append(dirs, gitDir, wikiDir)
 	}
 
 	moved, err := renameDirs(movesAside(deletedSuffix(time.Now()), dirs...))
@@ -175,10 +189,11 @@ func (s *RepoService) DeleteWithOwner(ctx context.Context, ownerID int64, delete
 		revertDirs(moved)
 		return err
 	}
-	// With the rows gone PurgeExpired can never find these, and there is
-	// nothing left to restore them into.
-	for _, r := range personal {
-		removeDeletedDirs(s.cfg.ReposRoot, r.OwnerName, r.Name)
+	for _, m := range moved {
+		removeDirs(m.to)
+	}
+	for _, r := range softDeleted {
+		removeDeletedCopy(s.cfg.ReposRoot, r)
 	}
 	return nil
 }

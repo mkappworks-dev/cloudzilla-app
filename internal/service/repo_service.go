@@ -870,12 +870,15 @@ func (s *RepoService) Delete(ctx context.Context, repoID, userID int64) error {
 		return err
 	}
 
+	// deleted_at carries the suffix's second so Restore and purge find this
+	// row's copy among other holders' copies of the name.
+	now := time.Now()
 	gitDir, wikiDir := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
-	moved, err := renameDirs(movesAside(deletedSuffix(time.Now()), gitDir, wikiDir))
+	moved, err := renameDirs(movesAside(deletedSuffix(now), gitDir, wikiDir))
 	if err != nil {
 		return fmt.Errorf("rename git dir for soft delete: %w", err)
 	}
-	if err := s.repos.Delete(ctx, repoID, userID); err != nil {
+	if err := s.repos.Delete(ctx, repoID, userID, now); err != nil {
 		revertDirs(moved)
 		return err
 	}
@@ -891,17 +894,20 @@ func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, is
 		return fmt.Errorf("forbidden: only the original owner or a superadmin can restore a repo")
 	}
 
+	// Org repos are unique per creator, so the name may have a new holder even
+	// when this row's copy is gone; restoring beside it would share its dirs.
+	// The live wiki path is not checked: repos deleted before wikis moved with
+	// them left theirs there, and renameDirs never overwrites one.
 	gitDir, wikiDir := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
-	matches, err := filepath.Glob(gitDir + ".deleted.*")
-	if err != nil {
-		return fmt.Errorf("glob deleted git dir: %w", err)
+	_, err = s.repos.GetByOwnerName(ctx, repo.OwnerName, repo.Name)
+	switch {
+	case err == nil, pathTaken(gitDir):
+		return fmt.Errorf("restore conflict: %w", ErrRepoNameTaken)
+	case !errors.Is(err, sql.ErrNoRows):
+		return err
 	}
 	var restored []dirMove
-	if len(matches) > 0 {
-		if _, statErr := os.Stat(gitDir); statErr == nil {
-			return fmt.Errorf("restore conflict: live repo dir already exists at %s", gitDir)
-		}
-		suffix := strings.TrimPrefix(matches[len(matches)-1], gitDir)
+	if suffix, ok := deletedCopySuffix(s.cfg.ReposRoot, *repo); ok {
 		restored, err = renameDirs([]dirMove{{from: gitDir + suffix, to: gitDir}, {from: wikiDir + suffix, to: wikiDir}})
 		if err != nil {
 			return fmt.Errorf("rename git dir back on restore: %w", err)
@@ -926,7 +932,7 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 		return fmt.Errorf("purge expired repos: %w", err)
 	}
 	for _, r := range expired {
-		removeDeletedDirs(s.cfg.ReposRoot, r.OwnerName, r.Name)
+		removeDeletedCopy(s.cfg.ReposRoot, r)
 	}
 	return nil
 }

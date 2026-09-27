@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -115,4 +116,25 @@ func TestUserService_DeleteUser_RefusesWhileOwningOrgRepos(t *testing.T) {
 	if err := env.users().DeleteUser(ctx, userID); err != nil {
 		t.Errorf("DeleteUser after deleting the org repo: %v", err)
 	}
+}
+
+// With the row cascaded away nothing can restore or purge the copy, and
+// another owner's copy of the same name must survive.
+func TestUserService_DeleteUser_RemovesItsDeletedOrgRepoCopies(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	c := env.twoDeletedCopies(t, time.Hour)
+
+	if err := env.users().DeleteUser(ctx, c.firstID); err != nil {
+		t.Fatalf("DeleteUser: %v", err)
+	}
+
+	gitDir, _ := env.dirs(c.org.Name, "x")
+	if matches, _ := filepath.Glob(gitDir + ".deleted.*"); len(matches) != 1 {
+		t.Errorf("want only the other owner's copy left, got %v", matches)
+	}
+	if err := env.repos.Restore(ctx, c.second, c.secondID, false); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	env.wantLive(t, c.org.Name, "x", c.secondHead, "wiki of copy 1")
 }
