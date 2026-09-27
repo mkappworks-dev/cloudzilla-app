@@ -106,6 +106,16 @@ func TestCSRF(t *testing.T) {
 		}
 	})
 
+	t.Run("OAuth token endpoint bypasses CSRF", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/oauth/token", strings.NewReader("grant_type=authorization_code"))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+		csrf.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Errorf("/oauth/token returned %d, want 200", rec.Code)
+		}
+	})
+
 	t.Run("Bearer token bypasses CSRF", func(t *testing.T) {
 		req := httptest.NewRequest("POST", "/api/foo", nil)
 		req.Header.Set("Authorization", "Bearer valid-token-here")

@@ -26,14 +26,8 @@ func (h *Handler) SetTopics(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -79,21 +73,14 @@ func (h *Handler) GetTopicsFragment(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
 	canManage := false
-	var viewerID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		viewerID = &claims.UserID
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
 	}
 
 	topics, lerr := h.Services.Topic.ListByRepo(r.Context(), repo.ID)

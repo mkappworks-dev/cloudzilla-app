@@ -884,7 +884,7 @@ func (s *SSOService) SAMLMetadataXML(ctx context.Context) (string, error) {
 // SAMLAuthnRequestURL builds a SAML HTTP-Redirect binding AuthnRequest URL.
 // The AuthnRequest XML is deflate-compressed, base64-encoded, and appended as
 // the SAMLRequest query parameter to the IdP SSO endpoint (metadata_url).
-func (s *SSOService) SAMLAuthnRequestURL(ctx context.Context) (string, error) {
+func (s *SSOService) SAMLAuthnRequestURL(ctx context.Context, relayState string) (string, error) {
 	cfg, err := s.store.GetByProvider(ctx, "saml")
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -930,5 +930,11 @@ func (s *SSOService) SAMLAuthnRequestURL(ctx context.Context) (string, error) {
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
-	return idpSSOURL + "?SAMLRequest=" + url.QueryEscape(encoded), nil
+	authnURL := idpSSOURL + "?SAMLRequest=" + url.QueryEscape(encoded)
+	// The HTTP-Redirect binding caps RelayState at 80 bytes (SAML bindings 3.4.3);
+	// a longer one is dropped so strict IdPs don't reject the whole sign-in.
+	if relayState != "" && len(relayState) <= 80 {
+		authnURL += "&RelayState=" + url.QueryEscape(relayState)
+	}
+	return authnURL, nil
 }

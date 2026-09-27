@@ -22,13 +22,8 @@ func (h *Handler) WatchRepo(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repository not found")
-		return
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
-		writeError(w, http.StatusNotFound, "repository not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
@@ -67,13 +62,8 @@ func (h *Handler) UnwatchRepo(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repository not found")
-		return
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
-		writeError(w, http.StatusNotFound, "repository not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
@@ -96,23 +86,15 @@ func (h *Handler) GetWatchButton(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repository not found", http.StatusNotFound)
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
-	var userID *int64
 	var uid int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		uid = claims.UserID
-		userID = &uid
 	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "not found", http.StatusNotFound)
-		return
-	}
-
 	h.renderWatchButtonFragment(w, r, repo.ID, owner, repoName, uid)
 }
 

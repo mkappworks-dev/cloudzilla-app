@@ -51,14 +51,8 @@ func (h *Handler) ListDeployKeys(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -80,14 +74,8 @@ func (h *Handler) AddDeployKey(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -144,14 +132,8 @@ func (h *Handler) DeleteDeployKey(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 

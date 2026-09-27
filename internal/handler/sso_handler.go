@@ -127,12 +127,14 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) LDAPLogin(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	password := r.FormValue("password")
+	next := r.FormValue("next")
 
 	if username == "" || password == "" {
 		h.render(w, r, pages.Login(view.LoginData{
 			BasePage:    basePage(r, h.Services),
 			LDAPEnabled: true,
 			Error:       "Username and password are required.",
+			Next:        next,
 		}))
 		return
 	}
@@ -145,6 +147,7 @@ func (h *Handler) LDAPLogin(w http.ResponseWriter, r *http.Request) {
 			LDAPEnabled: ldapEnabled,
 			SAMLEnabled: samlEnabled,
 			Error:       "LDAP authentication failed. Please check your credentials.",
+			Next:        next,
 		}))
 		return
 	}
@@ -158,12 +161,12 @@ func (h *Handler) LDAPLogin(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
 		SameSite: http.SameSiteLaxMode,
 	})
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, safeNextPath(next), http.StatusSeeOther)
 }
 
 // InitiateSAML handles GET /auth/saml — redirects to the IdP SSO URL.
 func (h *Handler) InitiateSAML(w http.ResponseWriter, r *http.Request) {
-	ssoURL, err := h.Services.SSO.SAMLAuthnRequestURL(r.Context())
+	ssoURL, err := h.Services.SSO.SAMLAuthnRequestURL(r.Context(), r.URL.Query().Get("next"))
 	if err != nil {
 		http.Error(w, "SAML not configured", http.StatusServiceUnavailable)
 		return
@@ -188,6 +191,7 @@ func (h *Handler) SAMLCallback(w http.ResponseWriter, r *http.Request) {
 			LDAPEnabled: ldapEnabled,
 			SAMLEnabled: samlEnabled,
 			Error:       "SAML authentication failed.",
+			Next:        r.FormValue("RelayState"),
 		}))
 		return
 	}
@@ -201,7 +205,7 @@ func (h *Handler) SAMLCallback(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
 		SameSite: http.SameSiteLaxMode,
 	})
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, safeNextPath(r.FormValue("RelayState")), http.StatusSeeOther)
 }
 
 // SAMLMetadata handles GET /auth/saml/metadata — serves SP metadata XML.
