@@ -93,7 +93,7 @@ HTMX requests to add, remove, or change the role of a member respond with the `O
 - `AddMember(ctx, orgID, requestingUserID, targetUserID, role)` → `error` — owner-only
 - `UpdateMemberRole(ctx, orgID, requestingUserID, targetUserID, role)` → `error` — owner-only; blocks demoting the last owner
 - `RemoveMember(ctx, orgID, requestingUserID, targetUserID)` → `error` — owner-only unless removing self; blocks removing last owner
-- `CreateRepo(ctx, orgID, requestingUserID, name, description, private, init)` → `(*Repository, error)` — owner-only; sets `owner_name` to org name, `org_id` to org ID, and the default branch to the org's `default_branch_name`; `init` seeds README/.gitignore/LICENSE
+- `CreateRepo(ctx, orgID, requestingUserID, name, description, private, init)` → `(*Repository, error)` — owner-only; sets `owner_name` to org name, `org_id` to org ID, and the default branch to the org's `default_branch_name`; `init` seeds README/.gitignore/LICENSE; returns `ErrRepoNameTaken` when the org already has a repo with that name (created by any member) or a directory for it is left on disk, and `ErrRepoNameReserved` for a name ending in `.wiki`
 - `ListRepos(ctx, orgID)` → `([]Repository, error)`
 - `ListReposVisibleTo(ctx, orgID, viewerID)` → `([]Repository, error)` — all repos for org owners; public plus collaborator-accessible private repos for everyone else
 - `RepoHighlights(ctx, repos, featuredLimit, recentLimit)` → `(*OrgRepoHighlights, error)` — ranks repos the caller already filtered for the viewer: `Featured` is the most-starred public repos (orgs have no pin storage yet), `Recent` is newest-updated first and skips featured ones
