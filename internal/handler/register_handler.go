@@ -84,19 +84,28 @@ func (h *Handler) PageRegisterSubmit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+const (
+	ownerNameRule          = `can use letters, numbers, - and _, must start with a letter or number, be at most 39 characters, and can't be a reserved name like "admin".`
+	invalidUsernameMessage = "Usernames " + ownerNameRule
+	invalidOrgNameMessage  = "Organization names " + ownerNameRule
+)
+
 // Usernames are public, but an email conflict gets the generic message so the
 // form doesn't confirm which addresses have accounts.
 func createAccountErrorMessage(err error) string {
-	if errors.Is(err, service.ErrUsernameTaken) {
+	switch {
+	case errors.Is(err, service.ErrUsernameTaken):
 		return "That username is already taken"
+	case errors.Is(err, service.ErrInvalidOwnerName):
+		return invalidUsernameMessage
 	}
 	return "Could not create account. If you already have one, sign in instead."
 }
 
-// Taken usernames and emails are user mistakes, so they log below Error.
+// Invalid or taken usernames and taken emails are user mistakes, so they log below Error.
 func logCreateAccountFailure(ctx context.Context, msg string, err error, args ...any) {
 	level := slog.LevelError
-	if errors.Is(err, service.ErrUsernameTaken) || errors.Is(err, service.ErrEmailTaken) {
+	if errors.Is(err, service.ErrUsernameTaken) || errors.Is(err, service.ErrEmailTaken) || errors.Is(err, service.ErrInvalidOwnerName) {
 		level = slog.LevelInfo
 	}
 	slog.Log(ctx, level, msg, append(args, "error", err)...)

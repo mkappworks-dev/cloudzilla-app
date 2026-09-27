@@ -209,6 +209,23 @@ func TestPageInviteSubmit_UsernameTaken_FriendlyErrorAndInviteStaysUsable(t *tes
 	}
 }
 
+func TestPageInviteSubmit_InvalidUsername_ShowsRuleAndInviteStaysUsable(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	email := "invitee_" + testutil.UniqueSuffix(t) + "@test.invalid"
+	id, token := testutil.SeedInvitation(t, db, email, time.Now().UTC().Add(time.Hour))
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE email = $1`, email) })
+
+	form := url.Values{"username": {"a/b"}, "password": {"password123"}}
+	body := serveInvite(db, http.MethodPost, token, form).Body.String()
+
+	if !strings.Contains(body, usernameRuleText) {
+		t.Errorf("want the username rule; body:\n%s", body)
+	}
+	if invitationAccepted(t, db, id) {
+		t.Error("a rejected username must leave the invitation usable")
+	}
+}
+
 func TestPageInviteSubmit_ConcurrentSubmits_OneAccount(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)

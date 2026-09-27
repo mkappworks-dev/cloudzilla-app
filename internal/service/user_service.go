@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -54,6 +55,9 @@ func (s *UserService) WithNoreplyHostFrom(baseURL string) *UserService {
 }
 
 func (s *UserService) Create(ctx context.Context, username, email, password string) (*model.User, error) {
+	if err := ValidateOwnerName(username); err != nil {
+		return nil, err
+	}
 	hash, err := hashPassword(password)
 	if err != nil {
 		return nil, err
@@ -78,6 +82,9 @@ func hashPassword(password string) (string, error) {
 }
 
 func (s *UserService) CreateSuperadmin(ctx context.Context, username, email, password string) (*model.User, error) {
+	if err := ValidateOwnerName(username); err != nil {
+		return nil, err
+	}
 	hash, err := hashPassword(password)
 	if err != nil {
 		return nil, err
@@ -109,6 +116,9 @@ func (s *UserService) GetByUsername(ctx context.Context, username string) (*mode
 // It returns ErrInvitationUnusable if inv was redeemed, expired, or its email
 // registered since it was loaded.
 func (s *UserService) CreateFromInvitation(ctx context.Context, inv *model.Invitation, username, password string) (*model.User, error) {
+	if err := ValidateOwnerName(username); err != nil {
+		return nil, err
+	}
 	hash, err := hashPassword(password)
 	if err != nil {
 		return nil, err
@@ -161,20 +171,17 @@ func (s *UserService) AuthenticateOAuth(ctx context.Context, provider, oauthID, 
 }
 
 func (s *UserService) uniqueUsername(ctx context.Context, email, name string) string {
-	base := nonAlphanumRe.ReplaceAllString(strings.ToLower(strings.ReplaceAll(name, " ", "")), "")
-	if base == "" {
-		parts := strings.SplitN(email, "@", 2)
-		base = nonAlphanumRe.ReplaceAllString(strings.ToLower(parts[0]), "")
-	}
-	if base == "" {
-		base = "user"
-	}
+	fromName := nonAlphanumRe.ReplaceAllString(strings.ToLower(strings.ReplaceAll(name, " ", "")), "")
+	parts := strings.SplitN(email, "@", 2)
+	fromEmail := nonAlphanumRe.ReplaceAllString(strings.ToLower(parts[0]), "")
+	base := fitOwnerName(fromName, fitOwnerName(fromEmail, "user"))
 	candidate := base
 	for i := 2; ; i++ {
 		if _, err := s.store.GetByUsername(ctx, candidate); err != nil {
 			return candidate
 		}
-		candidate = fmt.Sprintf("%s%d", base, i)
+		suffix := strconv.Itoa(i)
+		candidate = base[:min(len(base), maxOwnerNameLen-len(suffix))] + suffix
 	}
 }
 

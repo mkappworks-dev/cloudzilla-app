@@ -81,12 +81,26 @@ func TestPageSetupSubmit_SetupComplete_RedirectsToRoot(t *testing.T) {
 	}
 }
 
+func TestPageSetupSubmit_InvalidUsername_ShowsRule(t *testing.T) {
+	db := testutil.OpenFreshTestDB(t)
+
+	form := url.Values{"username": {"admin"}, "email": {"admin@test.invalid"}, "password": {"password123"}}
+	req := httptest.NewRequest(http.MethodPost, "/setup", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	newSetupHandlerWithDB(db).PageSetupSubmit(rr, req)
+
+	if body := rr.Body.String(); !strings.Contains(body, usernameRuleText) {
+		t.Errorf("want the username rule; body:\n%s", body)
+	}
+}
+
 // A NUL byte is rejected by Postgres itself, standing in for any unexpected DB failure.
 func TestPageSetupSubmit_DBFailure_GenericError(t *testing.T) {
 	db := testutil.OpenFreshTestDB(t)
 	logs := captureLogs(t)
 
-	form := url.Values{"username": {"admin\x00"}, "email": {"admin@test.invalid"}, "password": {"password123"}}
+	form := url.Values{"username": {"siteadmin"}, "email": {"admin\x00@test.invalid"}, "password": {"password123"}}
 	req := httptest.NewRequest(http.MethodPost, "/setup", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr := httptest.NewRecorder()

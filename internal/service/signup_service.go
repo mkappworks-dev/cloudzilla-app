@@ -74,6 +74,9 @@ func (s *SignupService) GetUsable(ctx context.Context, token string) (*model.Sig
 // ErrSignupTokenUnusable if the link was used, expired, or its email
 // registered since it was loaded.
 func (s *SignupService) Complete(ctx context.Context, token, username, password string) (*model.User, error) {
+	if err := ValidateOwnerName(username); err != nil {
+		return nil, err
+	}
 	hash, err := hashPassword(password)
 	if err != nil {
 		return nil, err

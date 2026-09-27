@@ -16,6 +16,8 @@
 
 Emails match case-insensitively everywhere: login, Google OAuth linking to an existing account by email, invites, and the existing-account check that makes LDAP and SAML refuse to auto-link. The `users_email_lower_key` index enforces it.
 
+Usernames and organization names are repository path segments, so a new one must match `^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$` and not be a reserved route segment, compared case-insensitively: `activity admin api apps attention auth authorizations explore file-row fragments from-template gists invitations invite issues latest login logout new notifications oauth orgs pulls read-all register repos search settings setup stars static topic unread-count` (`service.ValidateOwnerName`, checked only on create). OAuth, LDAP and SAML usernames are fitted to the rule, falling back to `user` / `sso_user`.
+
 ### JWT Claims
 
 All authenticated requests carry JWT claims in context:

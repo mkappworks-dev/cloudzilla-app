@@ -307,6 +307,25 @@ func TestPageRegisterCompleteSubmit_UsernameTaken_LinkStaysUsable(t *testing.T) 
 	}
 }
 
+func TestPageRegisterCompleteSubmit_InvalidUsername_ShowsRuleAndLinkStaysUsable(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	email := "signup_" + testutil.UniqueSuffix(t) + "@test.invalid"
+	cleanupSignup(t, db, email)
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE lower(email) = lower($1)`, email) })
+	mailer := newFakeSignupMailer()
+	h := newSignupHandler(db, mailer)
+	token := requestSignupLink(t, db, h, mailer, email)
+
+	body := serveSignup(h, http.MethodPost, "/register/complete/"+token, completeForm("admin")).Body.String()
+
+	if !strings.Contains(body, usernameRuleText) {
+		t.Errorf("want the username rule:\n%s", body)
+	}
+	if rr := serveSignup(h, http.MethodGet, "/register/complete/"+token, nil); !strings.Contains(rr.Body.String(), `name="username"`) {
+		t.Error("a rejected username must leave the link usable")
+	}
+}
+
 func TestPageRegisterCompleteSubmit_PasswordTooLong_NoAccountAndLinkStaysUsable(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)

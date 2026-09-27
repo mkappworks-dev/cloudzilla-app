@@ -105,6 +105,63 @@ func TestUserService_CreateFromInvitation_ClaimedInvitation_CreatesNoUser(t *tes
 	}
 }
 
+func TestUserService_Create_InvalidUsername_ReturnsErrInvalidOwnerNameAndNoUser(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	cases := []struct {
+		name   string
+		create func(email string) error
+	}{
+		{"Create", func(email string) error {
+			_, err := svc.Create(context.Background(), "../x", email, "password123")
+			return err
+		}},
+		{"CreateSuperadmin", func(email string) error {
+			_, err := svc.CreateSuperadmin(context.Background(), "admin", email, "password123")
+			return err
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			email := "badname_" + tc.name + "_" + suffix + "@test.invalid"
+			t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE email = $1`, email) })
+
+			if err := tc.create(email); !errors.Is(err, service.ErrInvalidOwnerName) {
+				t.Errorf("want ErrInvalidOwnerName, got %v", err)
+			}
+			var n int
+			if err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM users WHERE email = $1`, email).Scan(&n); err != nil {
+				t.Fatalf("count users: %v", err)
+			}
+			if n != 0 {
+				t.Errorf("an invalid username must not create a user; found %d", n)
+			}
+		})
+	}
+}
+
+func TestUserService_CreateFromInvitation_InvalidUsername_InvitationStaysUsable(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	email := "badinvite_" + testutil.UniqueSuffix(t) + "@test.invalid"
+	id, _ := testutil.SeedInvitation(t, db, email, time.Now().UTC().Add(time.Hour))
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE email = $1`, email) })
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+
+	_, err := svc.CreateFromInvitation(context.Background(), &model.Invitation{ID: id, Email: email}, "a/b", "password123")
+
+	if !errors.Is(err, service.ErrInvalidOwnerName) {
+		t.Errorf("want ErrInvalidOwnerName, got %v", err)
+	}
+	var accepted bool
+	if err := db.QueryRowContext(context.Background(), `SELECT accepted_at IS NOT NULL FROM invitations WHERE id = $1`, id).Scan(&accepted); err != nil {
+		t.Fatalf("read invitation: %v", err)
+	}
+	if accepted {
+		t.Error("a rejected username must leave the invitation usable")
+	}
+}
+
 func TestUserService_Create_DuplicateEmail_ReturnsErrEmailTaken(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)

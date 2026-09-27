@@ -4,6 +4,7 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
@@ -72,6 +73,18 @@ func TestOrgService_Create_NameConflictWithUser_Error(t *testing.T) {
 	_, err := svc.Create(context.Background(), creatorID, existingUsername, "Conflict Org", "")
 	if err == nil {
 		t.Error("Create must fail when org name conflicts with an existing username")
+	}
+}
+
+func TestOrgService_Create_InvalidName_ReturnsErrInvalidOwnerName(t *testing.T) {
+	svc, creatorID := newOrgSvc(t)
+	db := testutil.OpenTestDB(t)
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE name = '..'`) })
+
+	_, err := svc.Create(context.Background(), creatorID, "..", "Dots", "")
+
+	if !errors.Is(err, service.ErrInvalidOwnerName) {
+		t.Errorf("want ErrInvalidOwnerName, got %v", err)
 	}
 }
 

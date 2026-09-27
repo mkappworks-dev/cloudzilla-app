@@ -139,3 +139,22 @@ func TestSignupService_Complete_CreatesOrdinaryUserWithLinkEmail(t *testing.T) {
 		t.Errorf("a redeemed link must be unusable; got %v", err)
 	}
 }
+
+func TestSignupService_Complete_InvalidUsername_LinkStaysUsable(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	email := "signup_" + testutil.UniqueSuffix(t) + "@test.invalid"
+	cleanupSignup(t, db, email)
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE lower(email) = lower($1)`, email) })
+	mailer := &recordingSignupMailer{}
+	svc := newSignupSvc(db, mailer)
+	token := requestLink(t, svc, mailer, email)
+
+	_, err := svc.Complete(context.Background(), token, "..", "password123")
+
+	if !errors.Is(err, service.ErrInvalidOwnerName) {
+		t.Errorf("want ErrInvalidOwnerName, got %v", err)
+	}
+	if _, err := svc.GetUsable(context.Background(), token); err != nil {
+		t.Errorf("a rejected username must leave the link usable: %v", err)
+	}
+}

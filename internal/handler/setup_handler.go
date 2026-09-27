@@ -1,9 +1,11 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -36,6 +38,10 @@ func (h *Handler) PageSetupSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err := h.Services.User.CreateSuperadmin(r.Context(), username, email, password)
+	if errors.Is(err, service.ErrInvalidOwnerName) {
+		h.render(w, r, pages.Setup(view.SetupData{Error: invalidUsernameMessage}))
+		return
+	}
 	if err != nil {
 		slog.Error("setup: create superadmin failed", "error", err)
 		h.render(w, r, pages.Setup(view.SetupData{Error: "Could not create the admin account. Check the server logs."}))

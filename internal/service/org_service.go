@@ -25,6 +25,9 @@ func NewOrgService(orgs *store.OrgStore, repos *store.RepoStore, users *store.Us
 }
 
 func (s *OrgService) Create(ctx context.Context, creatorUserID int64, name, displayName, description string) (*model.Organization, error) {
+	if err := ValidateOwnerName(name); err != nil {
+		return nil, err
+	}
 	// Check name not already used by a user
 	if _, err := s.users.GetByUsername(ctx, name); err == nil {
 		return nil, fmt.Errorf("name already taken by a user account")

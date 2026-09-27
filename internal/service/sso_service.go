@@ -850,7 +850,7 @@ func (s *SSOService) generateJWT(u *model.User) (string, error) {
 }
 
 // sanitizeUsername replaces non-alphanumeric characters with underscores and
-// truncates to 39 characters (GitHub-style limit).
+// fits the result to the owner-name rule.
 func sanitizeUsername(s string) string {
 	var b strings.Builder
 	for _, c := range strings.ToLower(s) {
@@ -860,14 +860,7 @@ func sanitizeUsername(s string) string {
 			b.WriteByte('_')
 		}
 	}
-	result := strings.Trim(b.String(), "_-")
-	if len(result) > 39 {
-		result = result[:39]
-	}
-	if result == "" {
-		result = "sso_user"
-	}
-	return result
+	return fitOwnerName(b.String(), "sso_user")
 }
 
 // SAMLMetadataXML returns the service provider metadata XML for SAML discovery.

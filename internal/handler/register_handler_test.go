@@ -91,6 +91,32 @@ func TestPageRegisterSubmit_UsernameTaken_SaysUsernameTaken(t *testing.T) {
 	}
 }
 
+// The page escapes the rest of the message, so tests match this prefix.
+const usernameRuleText = "Usernames can use letters, numbers, - and _"
+
+func TestPageRegisterSubmit_InvalidUsername_ShowsRuleAndCreatesNoAccount(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	email := "badname_" + testutil.UniqueSuffix(t) + "@test.invalid"
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE email = $1`, email) })
+	logs := captureLogs(t)
+
+	body := postRegister(t, db, "../x", email)
+
+	if !strings.Contains(body, usernameRuleText) {
+		t.Errorf("want the username rule; body:\n%s", body)
+	}
+	var n int
+	if err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM users WHERE email = $1`, email).Scan(&n); err != nil {
+		t.Fatalf("count users: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("an invalid username must not create an account; found %d", n)
+	}
+	if got := loggedLevel(t, logs, "register: create user failed"); got != "INFO" {
+		t.Errorf("an invalid username is a user mistake; want INFO, got %s", got)
+	}
+}
+
 // captureLogs routes slog to a buffer for the rest of the test.
 func captureLogs(t *testing.T) *bytes.Buffer {
 	t.Helper()
@@ -132,7 +158,7 @@ func TestPageRegisterSubmit_DBFailure_GenericErrorLoggedAtError(t *testing.T) {
 	suffix := testutil.UniqueSuffix(t)
 	logs := captureLogs(t)
 
-	body := postRegister(t, db, "nul\x00_"+suffix, "nul_"+suffix+"@test.invalid")
+	body := postRegister(t, db, "nul_"+suffix, "nul\x00_"+suffix+"@test.invalid")
 
 	assertNoDBErrorText(t, body)
 	if !strings.Contains(body, "Could not create account") {
