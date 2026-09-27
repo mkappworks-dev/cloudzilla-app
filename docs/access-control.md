@@ -189,7 +189,7 @@ Every account-creating path (setup, registration, invite, Google OAuth, LDAP/SAM
 1. It refuses (`ErrOwnsOrgRepos`, shown as `delete_org_repos`) while the user is `owner_id` of a live org repo, because the cascade would remove the repo from the org. The user deletes those repos first.
 2. It renames each personal repo's `<name>.git` and `<name>.wiki.git` to `.deleted.<unix_ts>`.
 3. If the row delete fails (for example because the user authored issues or comments in other people's repos), it renames them back.
-4. Once the row is gone, it removes those directories and the copies of every repo the user had soft-deleted, org repos included, which `PurgeExpired` can no longer find.
+4. Once the row is gone, it removes those directories and the copies of every repo the user had soft-deleted, org repos included, which `PurgeExpired` can no longer find. A wiki that a soft delete from before wikis moved with their repo left at `<name>.wiki.git` goes too, unless another row still names it.
 
 The freed username can then be registered or taken as an org name. Repo creation refuses any name whose directory still exists, so nothing the old account left on disk is ever served under the new owner.
 

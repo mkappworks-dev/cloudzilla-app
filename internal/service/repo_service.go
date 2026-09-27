@@ -939,6 +939,7 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 	}
 	for _, r := range expired {
 		removeDeletedCopy(s.cfg.ReposRoot, r)
+		s.removeStrandedWiki(ctx, r.OwnerName, r.Name)
 	}
 	return nil
 }

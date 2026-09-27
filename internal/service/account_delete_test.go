@@ -54,6 +54,20 @@ func TestUserService_DeleteUser_RemovesRepoDirs(t *testing.T) {
 	}
 }
 
+func TestUserService_DeleteUser_RemovesAStrandedWiki(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	userID, user := env.seedUser(t)
+	repoID := env.createWithWiki(t, user, "old")
+	env.strandWiki(t, repoID, user, "old", time.Hour)
+
+	if err := env.users().DeleteUser(context.Background(), userID); err != nil {
+		t.Fatalf("DeleteUser: %v", err)
+	}
+	if _, wikiDir := env.dirs(user, "old"); pathExists(wikiDir) {
+		t.Error("stranded wiki survived the account")
+	}
+}
+
 func TestUserService_DeleteUser_FailedDeleteKeepsRepos(t *testing.T) {
 	env := newRepoDirsEnv(t)
 	ctx := context.Background()

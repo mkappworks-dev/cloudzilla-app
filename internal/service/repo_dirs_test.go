@@ -751,3 +751,81 @@ func TestRepoService_Fork_SkipsAReservedName(t *testing.T) {
 		t.Errorf("fork named %q, want docs.wiki-1", forked.Name)
 	}
 }
+
+// strandWiki soft-deletes owner/name, age ago, the way deletes did before
+// wikis moved with their repo: only the git dir goes aside.
+func (e repoDirsEnv) strandWiki(t *testing.T, repoID int64, owner, name string, age time.Duration) {
+	t.Helper()
+	at := time.Now().Add(-age)
+	gitDir, _ := e.dirs(owner, name)
+	if err := os.Rename(gitDir, gitDir+".deleted."+strconv.FormatInt(at.Unix(), 10)); err != nil {
+		t.Fatalf("move git dir aside: %v", err)
+	}
+	testutil.Exec(t, e.db, `UPDATE repositories SET deleted_at = $1 WHERE id = $2`, time.Unix(at.Unix(), 0), repoID)
+}
+
+func TestRepoService_PurgeExpired_FreesANameAStrandedWikiHeld(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	_, owner := env.seedUser(t)
+	repoID := env.createWithWiki(t, owner, "docs")
+	env.strandWiki(t, repoID, owner, "docs", 31*24*time.Hour)
+
+	if err := env.repos.PurgeExpired(ctx); err != nil {
+		t.Fatalf("PurgeExpired: %v", err)
+	}
+	if _, wikiDir := env.dirs(owner, "docs"); pathExists(wikiDir) {
+		t.Error("stranded wiki survived the purge of its repo")
+	}
+	if _, err := env.repos.Create(ctx, owner, "docs", "", false, service.RepoInitOptions{}); err != nil {
+		t.Fatalf("recreate the purged name: %v", err)
+	}
+	if _, found, _ := env.code.WikiPageGet(owner, "docs", "Home"); found {
+		t.Error("the new repo serves the purged repo's wiki")
+	}
+}
+
+func TestRepoService_PurgeExpired_KeepsAStrandedWikiSomeRowStillNames(t *testing.T) {
+	t.Run("another soft-deleted copy", func(t *testing.T) {
+		env := newRepoDirsEnv(t)
+		c := env.twoDeletedCopies(t, 31*24*time.Hour)
+		_, wikiDir := env.dirs(c.org.Name, "x")
+		copies, _ := filepath.Glob(wikiDir + ".deleted.*")
+		for _, copy := range copies {
+			if err := os.RemoveAll(copy); err != nil {
+				t.Fatalf("remove wiki copy: %v", err)
+			}
+		}
+		if err := env.code.WikiPageSave(c.org.Name, "x", "Home", "stranded", dirsTestAuthor, ""); err != nil {
+			t.Fatalf("strand a wiki: %v", err)
+		}
+
+		if err := env.repos.PurgeExpired(context.Background()); err != nil {
+			t.Fatalf("PurgeExpired: %v", err)
+		}
+		if !pathExists(wikiDir) {
+			t.Error("purge removed a wiki the unexpired row may still restore")
+		}
+	})
+	t.Run("a legacy .wiki repo", func(t *testing.T) {
+		env := newRepoDirsEnv(t)
+		ctx := context.Background()
+		ownerID, owner := env.seedUser(t)
+		repo, err := env.repos.Create(ctx, owner, "foo", "", false, service.RepoInitOptions{})
+		if err != nil {
+			t.Fatalf("Create foo: %v", err)
+		}
+		_, legacyHead := env.legacyWikiRepo(t, owner, "foo")
+		if err := env.repos.Delete(ctx, repo.ID, ownerID); err != nil {
+			t.Fatalf("Delete foo: %v", err)
+		}
+		env.backdate(t, repo.ID, owner, "foo", 31*24*time.Hour)
+
+		if err := env.repos.PurgeExpired(ctx); err != nil {
+			t.Fatalf("PurgeExpired: %v", err)
+		}
+		if _, legacyDir := env.dirs(owner, "foo"); !pathExists(legacyDir) || headOf(t, legacyDir) != legacyHead {
+			t.Error("purging foo removed repo foo.wiki")
+		}
+	})
+}

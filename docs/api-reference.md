@@ -100,7 +100,7 @@ Creating a repository (here, under `/api/orgs/:org/repos`, or from a template) w
 
 Names ending in `.wiki` (in any case) are reserved, because `<name>.wiki.git` is the wiki of repository `<name>`: creating one returns 422 `invalid repository name: names ending in .wiki are reserved for wikis`, and a fork of such a repository gets a `-1` suffix. A `<name>.wiki` repository created before the reservation still works, but while it exists, even soft-deleted, `<name>` cannot be created in or transferred into its namespace (422 `a repository with that name already exists` on create), it cannot be transferred into a namespace that holds `<name>`, and an existing `<name>` has no wiki.
 
-Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` and `<name>.wiki.git.deleted.<unix_ts>`, with the same second stored in `deleted_at`. Restore and the 30-day purge act only on the copy whose suffix matches the row, never on another soft-deleted repository of the same name (org repos are unique per creator, so several can exist). Restore returns an error while another repository holds the name.
+Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` and `<name>.wiki.git.deleted.<unix_ts>`, with the same second stored in `deleted_at`. Restore and the 30-day purge act only on the copy whose suffix matches the row, never on another soft-deleted repository of the same name (org repos are unique per creator, so several can exist). Restore returns an error while another repository holds the name. Deletes made before wikis moved with their repository left `<name>.wiki.git` in place; the purge removes such a wiki once no repository row, live or soft-deleted, names it, so the name can be reused.
 
 ## Issues
 

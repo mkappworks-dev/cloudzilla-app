@@ -215,6 +215,28 @@ func removeDeletedCopy(root string, r model.Repository) {
 	removeDirs(gitDir+suffix, wikiDir+suffix)
 }
 
+// removeStrandedWiki removes the wiki a soft delete from before wikis moved
+// with their repo left at the live path, once no row holds the name: nothing
+// can restore it then, and it would refuse every new claim on the name.
+func (s *RepoService) removeStrandedWiki(ctx context.Context, owner, name string) {
+	wikiDir, err := s.ownWikiDir(ctx, owner, name)
+	if err != nil {
+		slog.Warn("check stranded wiki", "owner", owner, "name", name, "error", err)
+		return
+	}
+	if wikiDir == "" || !pathTaken(wikiDir) {
+		return
+	}
+	held, err := s.repos.NameHeld(ctx, owner, name)
+	if err != nil {
+		slog.Warn("check stranded wiki", "owner", owner, "name", name, "error", err)
+		return
+	}
+	if !held {
+		removeDirs(wikiDir)
+	}
+}
+
 func removeDirs(dirs ...string) {
 	for _, dir := range dirs {
 		if err := os.RemoveAll(dir); err != nil {
@@ -259,6 +281,7 @@ func (s *RepoService) DeleteWithOwner(ctx context.Context, ownerID int64, delete
 	}
 	for _, r := range softDeleted {
 		removeDeletedCopy(s.cfg.ReposRoot, r)
+		s.removeStrandedWiki(ctx, r.OwnerName, r.Name)
 	}
 	return nil
 }
