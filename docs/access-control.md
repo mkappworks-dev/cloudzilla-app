@@ -169,6 +169,10 @@ Superadmin generates token link → shares manually. No SMTP required.
 
 `is_invited` users always bypass `allow_registration` and `allow_login` checks.
 
+## Usernames
+
+Every account-creating path (setup, registration, invite, Google OAuth, LDAP/SAML) runs `service.ValidateUsername`: 1-39 letters, digits, `-` or `_`, starting with a letter or digit. Setup, registration and invites reject anything else. Google OAuth derives the username from the display name (falling back to the email's local part, then `user`) by dropping other characters and appending a number on collision; LDAP/SAML replace other characters with `_`.
+
 ---
 
 ## Full Endpoint Authorization Matrix

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,11 +25,24 @@ var (
 	ErrRepoNotFound         = errors.New("repository not found")
 	ErrEmailTaken           = errors.New("email is already taken")
 	ErrInvalidEmail         = errors.New("email must be a valid address")
+	ErrInvalidUsername      = errors.New("username must be 1-39 chars, alphanumeric, dash or underscore, starting with a letter or number")
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
+	usernameRe              = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$`)
 	emailRe                 = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 )
 
-const MaxPinnedRepos = 6
+const (
+	MaxPinnedRepos    = 6
+	maxUsernameLength = 39
+)
+
+// Usernames are a strict subset of ValidateName so every user is also a valid repo owner path segment.
+func ValidateUsername(username string) error {
+	if !usernameRe.MatchString(username) {
+		return ErrInvalidUsername
+	}
+	return nil
+}
 
 // UserService manages user account operations including authentication and profile updates.
 type UserService struct {
@@ -49,6 +63,9 @@ func (s *UserService) WithNoreplyHostFrom(baseURL string) *UserService {
 }
 
 func (s *UserService) Create(ctx context.Context, username, email, password string) (*model.User, error) {
+	if err := ValidateUsername(username); err != nil {
+		return nil, err
+	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
@@ -65,6 +82,9 @@ func (s *UserService) Create(ctx context.Context, username, email, password stri
 }
 
 func (s *UserService) CreateSuperadmin(ctx context.Context, username, email, password string) (*model.User, error) {
+	if err := ValidateUsername(username); err != nil {
+		return nil, err
+	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("hash password: %w", err)
@@ -122,6 +142,9 @@ func (s *UserService) AuthenticateOAuth(ctx context.Context, provider, oauthID, 
 		return nil, "", ErrRegistrationDisabled
 	}
 	username := s.uniqueUsername(ctx, email, name)
+	if err := ValidateUsername(username); err != nil {
+		return nil, "", err
+	}
 	u, err := s.store.CreateOAuthUser(ctx, username, email, provider, oauthID, avatarURL)
 	if err != nil {
 		return nil, "", err
@@ -131,10 +154,10 @@ func (s *UserService) AuthenticateOAuth(ctx context.Context, provider, oauthID, 
 }
 
 func (s *UserService) uniqueUsername(ctx context.Context, email, name string) string {
-	base := nonAlphanumRe.ReplaceAllString(strings.ToLower(strings.ReplaceAll(name, " ", "")), "")
+	base := usernameBase(name)
 	if base == "" {
-		parts := strings.SplitN(email, "@", 2)
-		base = nonAlphanumRe.ReplaceAllString(strings.ToLower(parts[0]), "")
+		local, _, _ := strings.Cut(email, "@")
+		base = usernameBase(local)
 	}
 	if base == "" {
 		base = "user"
@@ -144,8 +167,15 @@ func (s *UserService) uniqueUsername(ctx context.Context, email, name string) st
 		if _, err := s.store.GetByUsername(ctx, candidate); err != nil {
 			return candidate
 		}
-		candidate = fmt.Sprintf("%s%d", base, i)
+		suffix := strconv.Itoa(i)
+		candidate = base[:min(len(base), maxUsernameLength-len(suffix))] + suffix
 	}
+}
+
+func usernameBase(raw string) string {
+	base := strings.TrimLeft(nonAlphanumRe.ReplaceAllString(strings.ToLower(raw), ""), "_-")
+	// nonAlphanumRe leaves only ASCII, so the byte slice cannot split a rune.
+	return base[:min(len(base), maxUsernameLength)]
 }
 
 // GetByID returns a user by their numeric ID.

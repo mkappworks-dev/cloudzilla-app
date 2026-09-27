@@ -4,6 +4,7 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -138,6 +139,55 @@ func TestUserService_CreateSuperadmin_SetsSuperadminFlag(t *testing.T) {
 	// Password must be hashed, not stored in plaintext.
 	if u.PasswordHash == "adminpass" {
 		t.Error("CreateSuperadmin must not store plaintext password")
+	}
+}
+
+func TestUserService_Create_RejectsInvalidUsername(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	for _, name := range append([]string{"-bob", "bob smith", strings.Repeat("a", 40)}, testutil.HostileNames...) {
+		suffix := testutil.UniqueSuffix(t)
+		_, err := svc.Create(context.Background(), name, "bad_"+suffix+"@example.com", "password1")
+		if !errors.Is(err, service.ErrInvalidUsername) {
+			t.Errorf("Create(%q) = %v, want ErrInvalidUsername", name, err)
+		}
+		if u, err := svc.GetByUsername(context.Background(), name); err == nil {
+			t.Errorf("Create(%q) stored the user", name)
+			testutil.DeleteUsers(t, db, u.ID)
+		}
+	}
+}
+
+func TestUserService_CreateSuperadmin_RejectsInvalidUsername(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	for _, name := range testutil.HostileNames {
+		suffix := testutil.UniqueSuffix(t)
+		_, err := svc.CreateSuperadmin(context.Background(), name, "badadmin_"+suffix+"@example.com", "password1")
+		if !errors.Is(err, service.ErrInvalidUsername) {
+			t.Errorf("CreateSuperadmin(%q) = %v, want ErrInvalidUsername", name, err)
+		}
+		if u, err := svc.GetByUsername(context.Background(), name); err == nil {
+			t.Errorf("CreateSuperadmin(%q) stored the user", name)
+			testutil.DeleteUsers(t, db, u.ID)
+		}
+	}
+}
+
+// Google display names are free text; the derived username must still validate.
+func TestUserService_AuthenticateOAuth_DerivesValidUsername(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	for _, name := range append([]string{"-_Bob", strings.Repeat("Long Name ", 10)}, testutil.HostileNames...) {
+		suffix := testutil.UniqueSuffix(t)
+		u, _, err := svc.AuthenticateOAuth(context.Background(), "google", "g_"+suffix, "oauth_"+suffix+"@example.com", name, "", true, true)
+		if err != nil {
+			t.Fatalf("AuthenticateOAuth(%q): %v", name, err)
+		}
+		testutil.DeleteUsers(t, db, u.ID)
+		if err := service.ValidateUsername(u.Username); err != nil {
+			t.Errorf("display name %q produced invalid username %q", name, u.Username)
+		}
 	}
 }
 
