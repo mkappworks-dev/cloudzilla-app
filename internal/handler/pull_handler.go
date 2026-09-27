@@ -186,6 +186,12 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Merging writes the base branch, so pulls:write alone must not do it.
+	if (state == "merged" || autoMergeAction == "enable") && !claims.HasScope(model.ScopeRepoWrite) {
+		middleware.WriteInsufficientScope(w, model.ScopeRepoWrite)
+		return
+	}
+
 	if titlePresent {
 		if prTitle = strings.TrimSpace(prTitle); prTitle == "" {
 			writeError(w, http.StatusUnprocessableEntity, "title cannot be empty")

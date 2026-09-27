@@ -1,6 +1,6 @@
 # API Reference
 
-All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly cookie (`cz_token`) or an `Authorization: Bearer <token>` header. Personal access tokens (`czp_...`) are also accepted in the `Authorization` header.
+All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly cookie (`cz_token`) or an `Authorization: Bearer <token>` header. Personal access tokens (`czp_...`) are also accepted in the `Authorization` header, as are OAuth-app tokens, which are limited to the routes their scopes admit (see [OAuth Apps](#oauth-apps)).
 
 ---
 
@@ -354,6 +354,17 @@ See [access-control.md](access-control.md) for the full permission model. `CanMa
 | POST   | `/api/oauth/apps`               | Required | Register an OAuth application       |
 | DELETE | `/api/oauth/apps/:id`           | Required | Delete an OAuth application         |
 | DELETE | `/api/oauth/authorizations/:id` | Required | Revoke an OAuth authorization       |
+
+`/oauth/authorize` takes `client_id`, `redirect_uri`, `state`, and a space-delimited `scope`; an unknown scope returns `400`. `/oauth/token` exchanges `code` (with `grant_type=authorization_code`, `client_id`, `client_secret`) for `{"access_token": "...", "token_type": "bearer"}`.
+
+| Scope          | Grants                                                                                         |
+| -------------- | ---------------------------------------------------------------------------------------------- |
+| `repo:read`    | Read repos, issues, pulls, releases, orgs and user profiles; git clone/fetch                   |
+| `repo:write`   | `repo:read`, plus repo content writes, creating repos, merging, git push                       |
+| `issues:write` | Reads, plus writes under `/api/repos/:owner/:repo/issues/**`                                   |
+| `pulls:write`  | Reads, plus writes under `/api/repos/:owner/:repo/pulls/**`, except merging and applying suggestions |
+
+A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` with a `WWW-Authenticate: Bearer error="insufficient_scope", scope="..."` header naming the scope to request. Only listed routes are open to OAuth tokens; account, admin and repo-administration endpoints and HTML pages never are. Route list: [access-control](./access-control.md#oauth-app-scopes).
 
 ## Instance Admin (superadmin only)
 

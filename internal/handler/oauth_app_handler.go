@@ -16,12 +16,15 @@ import (
 func (h *Handler) PageOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 	clientID := r.URL.Query().Get("client_id")
 	redirectURI := r.URL.Query().Get("redirect_uri")
-	scopeParam := r.URL.Query().Get("scope")
-	scopes := strings.Fields(scopeParam)
 
 	app, err := h.Services.OAuthApp.GetByClientID(r.Context(), clientID)
 	if err != nil {
 		http.Error(w, "unknown client_id", http.StatusBadRequest)
+		return
+	}
+	scopes, err := h.Services.OAuthApp.ParseScopes(r.Context(), r.URL.Query().Get("scope"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 

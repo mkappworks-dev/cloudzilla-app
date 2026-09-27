@@ -10,7 +10,7 @@
 | LDAP                  | Bind + search → JWT cookie                         | `POST /auth/ldap`             |
 | SAML SSO              | SP-initiated, ACS callback → JWT cookie            | `GET /auth/saml` → callback   |
 | Personal Access Token | `Authorization: Bearer <token>` header             | Any API endpoint              |
-| OAuth App Token       | `Authorization: Bearer <token>` header             | Scoped API endpoints          |
+| OAuth App Token       | `Authorization: Bearer <token>` header             | Scoped API endpoints (below)  |
 | SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys` | Git SSH transport             |
 | TOTP 2FA              | 6-digit code after password login                  | `POST /auth/2fa/verify`       |
 
@@ -23,10 +23,12 @@ type Claims struct {
     UserID       int64
     Username     string
     IsSuperadmin bool
+    Scoped       bool     // true only for OAuth-app tokens
+    Scopes       []string // granted scopes when Scoped
 }
 ```
 
-Extracted via `middleware.ClaimsFromContext(r.Context())`.
+Extracted via `middleware.ClaimsFromContext(r.Context())`. `claims.HasScope(s)` is always true for unscoped credentials (JWT sessions, PATs), which keep the user's full access. OAuth-app claims never carry `IsSuperadmin`.
 
 ### Middleware Chain
 
@@ -40,10 +42,35 @@ Request → RequestID → Recoverer → Logger → CORS → CSRF → RequireSetu
                                               - apiBodyLimit (1 MB limit)
 ```
 
-- **authMW**: Reads JWT from `Authorization: Bearer` header OR `cz_token` httpOnly cookie. Also accepts PATs and OAuth tokens. Returns 401 if missing/invalid.
-- **optAuthMW**: Same as authMW but allows unauthenticated requests through. Claims may be nil.
+- **authMW**: Reads JWT from `Authorization: Bearer` header OR `cz_token` httpOnly cookie. Also accepts PATs and OAuth tokens. Returns 401 if missing/invalid. An OAuth token without a scope for the route gets 403 (see [OAuth App Scopes](#oauth-app-scopes)).
+- **optAuthMW**: Same as authMW but allows unauthenticated requests through. Claims may be nil. An OAuth token is still refused with 403 on routes its scopes don't cover — it is never silently downgraded to anonymous.
 - **superadminMW**: Requires `claims.IsSuperadmin == true`. Returns 403 otherwise.
 - **CSRF**: Double-submit cookie pattern. Skips git transport, Bearer-auth, and safe methods (GET/HEAD/OPTIONS).
+
+### OAuth App Scopes
+
+An OAuth-app token acts as the user who granted it, but only on routes its scopes admit. Enforcement is a path allow-list in `internal/middleware/scope.go`, applied by both `authMW` and `optAuthMW`: a route it doesn't list — including any new route — is closed to OAuth tokens. Scopes only narrow access; the handler's own `CanRead`/`CanWrite`/`CanManage` checks against the user still apply.
+
+Open routes:
+
+- `/api/repos` (list, create), `POST /api/repos/from-template`, `/api/repos/{owner}/{repo}` (read only — `PATCH` changes settings).
+- Content sub-resources of `/api/repos/{owner}/{repo}`: `issues`, `pulls`, `labels`, `milestones`, `releases`, `statuses`, `commits`, `branches` (not `branches/protections`), `tags`, `comments`, `stargazers`, `star`, `watch`, `fork`, `projects`, `wiki`, `discussions`. A few of these `GET`s return HTML fragments (e.g. the watch button, issue title/body sections) carrying the same data as the JSON.
+- `GET /api/orgs/{org}`, `GET /api/orgs/{org}/members`, `POST /api/orgs/{org}/repos`.
+- `GET /api/users/{username}`, `GET /api/users/{username}/repos`.
+- Git smart-HTTP: `info/refs`, `git-upload-pack`, `git-receive-pack`.
+
+| Scope          | Admits on the open routes                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------- |
+| `repo:read`    | `GET`/`HEAD`; git clone/fetch                                                                           |
+| `repo:write`   | Everything, including creating repos, merging, applying suggestions, and git push                      |
+| `issues:write` | Reads, plus writes under `.../issues/**`                                                                |
+| `pulls:write`  | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, and applying a suggestion |
+
+Merging and enabling auto-merge are requests to `PATCH .../pulls/{number}`, so `UpdatePull` checks `claims.HasScope(repo:write)` itself; applying a suggestion is refused by path. `UpdateComment`/`DeleteComment` require the comment to belong to the issue or pull request in the URL, so neither `issues:write` nor `pulls:write` reaches the other's comments.
+
+Everything else is closed whatever the scopes, notably: HTML pages and `/fragments/*` (which is what keeps a user's email, shown on their own profile, away from apps); `/api/user/*` (SSH keys, PATs, TOTP, saved replies), `/api/oauth/*`, `/api/admin/*`, `/api/notifications/*`, `/api/gists`, `/api/markdown/preview`; repo administration (`hooks`, `collaborators`, `keys`, `topics`, `transfer`, `archive`, `unarchive`, `restore`, `delete`, `template`, branch protections, settings); and org administration.
+
+A refused request gets `403` with `{"error":"insufficient_scope"}` and `WWW-Authenticate: Bearer error="insufficient_scope", scope="<narrowest scope that would admit it>"` (the `scope` attribute is omitted on closed routes). Unknown scopes are rejected at `/oauth/authorize` with `400`. PAT scopes are recorded but not yet enforced; PATs remain unscoped.
 
 ---
 
