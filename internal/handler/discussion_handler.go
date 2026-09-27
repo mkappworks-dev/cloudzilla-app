@@ -318,8 +318,11 @@ func (h *Handler) PageNewDiscussion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil || !repo.AllowDiscussions || !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
+		return
+	}
+	if !repo.AllowDiscussions {
 		h.NotFound(w, r)
 		return
 	}
@@ -358,8 +361,11 @@ func (h *Handler) PageNewDiscussionSubmit(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil || !repo.AllowDiscussions || !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
+		return
+	}
+	if !repo.AllowDiscussions {
 		h.NotFound(w, r)
 		return
 	}
