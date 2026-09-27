@@ -27,6 +27,15 @@ var (
 // bcrypt.ErrPasswordTooLong, so forms check this first to give a clear message.
 const MaxPasswordBytes = 72
 
+// Unknown emails are checked against this so login time doesn't reveal which emails have accounts.
+var dummyPasswordHash = func() []byte {
+	h, err := bcrypt.GenerateFromPassword([]byte("cloudzilla-dummy-password"), bcrypt.DefaultCost)
+	if err != nil {
+		panic(err)
+	}
+	return h
+}()
+
 // UserService manages user account operations including authentication and profile updates.
 type UserService struct {
 	store       *store.UserStore
@@ -71,6 +80,7 @@ func (s *UserService) CreateSuperadmin(ctx context.Context, username, email, pas
 func (s *UserService) Authenticate(ctx context.Context, email, password string) (*model.User, string, error) {
 	u, err := s.store.GetByEmailWithRole(ctx, email)
 	if err != nil {
+		_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(password))
 		return nil, "", fmt.Errorf("invalid credentials")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)); err != nil {

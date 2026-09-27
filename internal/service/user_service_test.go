@@ -184,14 +184,16 @@ func TestUserService_Authenticate_WrongPassword_ReturnsGenericError(t *testing.T
 // unknown email returns the same "invalid credentials" error as a wrong password,
 // preventing attackers from determining whether an email is registered.
 func TestUserService_Authenticate_UnknownEmail_SameErrorAsWrongPassword(t *testing.T) {
+	_, email := testutil.SeedUserWithPassword(t, testutil.OpenTestDB(t), testutil.UniqueSuffix(t), "correctpassword")
 	svc := newUserSvc(t)
 
+	_, _, wrongErr := svc.Authenticate(context.Background(), email, "wrongpassword")
 	_, _, err := svc.Authenticate(context.Background(), "nobody@example.invalid", "anypassword")
-	if err == nil {
-		t.Fatal("Authenticate must fail for unknown email")
+	if err == nil || wrongErr == nil {
+		t.Fatalf("Authenticate must fail for an unknown email and a wrong password; got %v and %v", err, wrongErr)
 	}
-	if !strings.Contains(err.Error(), "invalid credentials") {
-		t.Errorf("error must be generic 'invalid credentials', got %q", err.Error())
+	if err.Error() != wrongErr.Error() {
+		t.Errorf("unknown email error %q differs from wrong password error %q", err, wrongErr)
 	}
 }
 

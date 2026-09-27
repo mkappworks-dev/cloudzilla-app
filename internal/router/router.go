@@ -20,6 +20,13 @@ const (
 	accountCreationWindow = 15 * time.Minute
 )
 
+const (
+	// Room for a person retrying a mistyped password; too few to guess passwords or probe emails at scale.
+	loginAttemptLimit = 30
+	// Short enough that a locked-out person can soon retry; caps a guesser at 120 tries an hour.
+	loginAttemptWindow = 15 * time.Minute
+)
+
 // New registers all application routes and returns the configured chi router.
 func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.Handler, error) {
 	trustedProxies, err := middleware.ParseTrustedProxies(cfg.Server.TrustedProxies)
@@ -73,7 +80,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(optAuthMW, middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/register", h.PageRegisterSubmit)
 	r.Get("/register/complete/{token}", h.PageRegisterComplete)
 	r.With(middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/register/complete/{token}", h.PageRegisterCompleteSubmit)
-	r.With(optAuthMW).Post("/login", h.PageLoginSubmit)
+	r.With(optAuthMW, middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/login", h.PageLoginSubmit)
 	r.With(authMW).Get("/new", h.PageNewRepo)
 	r.With(authMW).Get("/settings", h.PageSettings)
 	r.With(authMW).Post("/settings/email", h.UpdateEmailSettings)
@@ -176,7 +183,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Get("/auth/google/callback", h.GoogleOAuthCallback)
 
 	// SSO auth endpoints
-	r.Post("/auth/ldap", h.LDAPLogin)
+	r.With(middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/auth/ldap", h.LDAPLogin)
 	r.Get("/auth/saml", h.InitiateSAML)
 	r.Post("/auth/saml/callback", h.SAMLCallback)
 	r.Get("/auth/saml/metadata", h.SAMLMetadata)
@@ -184,7 +191,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	// Auth routes
 	r.Route("/api/auth", func(r chi.Router) {
 		r.Use(apiBodyLimit)
-		r.Post("/login", h.Login)
+		r.With(middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/login", h.Login)
 		r.Post("/logout", h.Logout)
 	})
 
