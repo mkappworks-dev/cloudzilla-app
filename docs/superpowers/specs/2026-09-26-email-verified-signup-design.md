@@ -1,6 +1,6 @@
 # 2026-09-26 — Email-verified signup
 
-**Status:** Design approved; not yet implemented.
+**Status:** Implemented.
 **Branch:** `fix/invite-register-email-disclosure`
 **Affected subsystems:** registration (`internal/handler/register_handler.go`, new `signup_handler.go`), users (`internal/store/user_store.go`), new `SignupTokenStore` / `SignupService`, email (`internal/service/email_service.go`), router, Templ pages under `internal/view/pages/`.
 
