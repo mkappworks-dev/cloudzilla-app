@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -44,4 +47,17 @@ func (h *Handler) Forbidden(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusForbidden)
 	h.render(w, r, pages.Forbidden(basePage(r, h.Services)))
+}
+
+// createFormErrorMessage returns page text for the create-form errors a user
+// can act on, or "" when err is internal: store and driver errors carry
+// constraint names and SQLSTATEs, so callers log them and show a generic message.
+func createFormErrorMessage(err error) string {
+	switch {
+	case errors.Is(err, service.ErrTitleTooLong):
+		return fmt.Sprintf("Title is too long (maximum %d characters)", service.MaxTitleLen)
+	case errors.Is(err, service.ErrPullForbidden):
+		return "You don't have access to open pull requests on this repository"
+	}
+	return ""
 }

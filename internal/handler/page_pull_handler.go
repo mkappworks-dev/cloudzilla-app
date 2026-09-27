@@ -280,7 +280,12 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 
 	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, title, body, headBranch, baseBranch, isDraft)
 	if err != nil {
-		renderErr("Failed to create pull request: " + err.Error())
+		if msg := createFormErrorMessage(err); msg != "" {
+			renderErr(msg)
+			return
+		}
+		slog.Error("new PR: create failed", "owner", owner, "repo", repoName, "error", err)
+		renderErr("Could not create the pull request. Please try again.")
 		return
 	}
 

@@ -165,7 +165,7 @@ func (h *Handler) PageNewMilestoneSubmit(w http.ResponseWriter, r *http.Request)
 	if _, err := h.Services.Milestone.Create(r.Context(), owner, repoName, title, description, dueDate); err != nil {
 		slog.Error("create milestone: service create failed",
 			"owner", owner, "repo", repoName, "title", title, "error", err)
-		renderErr("Failed to create milestone: " + err.Error())
+		renderErr("Could not create the milestone. Please try again.")
 		return
 	}
 
