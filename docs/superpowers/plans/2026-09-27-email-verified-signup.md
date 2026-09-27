@@ -27,8 +27,8 @@
   - "This link is no longer valid"
   - "That username is already taken" (from the existing `createAccountErrorMessage`)
 - Accounts created by signup have `is_invited = FALSE`.
-- Test DB: `TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable` (container `trusting-babbage-test-db`; `docker start trusting-babbage-test-db`).
-  - After adding a migration, apply it with `CZ_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable go run ./cmd/cloudzilla migrate`.
+- Test DB: export `TEST_DATABASE_DSN` pointing at your test database. Integration tests skip without it, so every `go test` command below assumes it is set.
+  - After adding a migration, apply it with `CZ_DATABASE_DSN="$TEST_DATABASE_DSN" go run ./cmd/cloudzilla migrate`.
 - Bash in this worktree: literal paths only; no `$(...)`, loops or heredocs. Write files with the Write/Edit tools.
 - Commits: Conventional Commits. `git add` explicit paths, never `.claude/`. End every message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - After editing a `.templ` file, run `make generate-templ` and commit the regenerated `_templ.go`.
@@ -194,7 +194,7 @@ func TestSignupTokenStore_GetUsableByHash_UnknownHash(t *testing.T) {
 
 - [ ] **Step 3: Run the tests to verify they fail**
 
-Run: `TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable go test ./internal/store ./internal/db -run 'SignupToken' -count=1`
+Run: `go test ./internal/store ./internal/db -run 'SignupToken' -count=1`
 Expected: build failure (`undefined: store.NewSignupTokenStore`), or the migration test failing with `relation "signup_tokens" does not exist`.
 
 - [ ] **Step 4: Write the migration** — create `internal/db/migrations/076_signup_tokens.sql`:
@@ -307,10 +307,10 @@ func (s *SignupTokenStore) GetUsableByHash(ctx context.Context, tokenHash string
 
 - [ ] **Step 8: Apply the migration and run the tests**
 
-Run: `CZ_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable go run ./cmd/cloudzilla migrate`
+Run: `CZ_DATABASE_DSN="$TEST_DATABASE_DSN" go run ./cmd/cloudzilla migrate`
 Expected: `applied migration file=076_signup_tokens.sql`
 
-Run: `TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable go test ./internal/store ./internal/db -count=1`
+Run: `go test ./internal/store ./internal/db -count=1`
 Expected: `ok` for both packages.
 
 - [ ] **Step 9: Commit**
@@ -407,7 +407,7 @@ func TestUserStore_CreateFromSignupToken_UsernameTaken_LinkStaysUsable(t *testin
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable go test ./internal/store -run CreateFromSignupToken -count=1`
+Run: `go test ./internal/store -run CreateFromSignupToken -count=1`
 Expected: build failure `CreateFromSignupToken undefined`.
 
 - [ ] **Step 3: Implement** — in `internal/store/user_store.go`, directly below `CreateFromInvitation`:
@@ -447,7 +447,7 @@ func (s *UserStore) CreateFromSignupToken(ctx context.Context, u *model.User, to
 
 - [ ] **Step 4: Run the tests**
 
-Run: `TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable go test ./internal/store -count=1`
+Run: `go test ./internal/store -count=1`
 Expected: `ok`
 
 - [ ] **Step 5: Commit**
@@ -738,7 +738,7 @@ func TestSignupService_Complete_CreatesOrdinaryUserWithLinkEmail(t *testing.T) {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable go test ./internal/service -run SignupService -count=1`
+Run: `go test ./internal/service -run SignupService -count=1`
 Expected: build failure `undefined: service.NewSignupService`.
 
 - [ ] **Step 3: Implement** — create `internal/service/signup_service.go`:
@@ -850,7 +850,7 @@ func hashSignupToken(token string) string {
 
 - [ ] **Step 5: Run the tests and build**
 
-Run: `go build ./... && TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable go test ./internal/service -count=1`
+Run: `go build ./... && go test ./internal/service -count=1`
 Expected: `ok`
 
 - [ ] **Step 6: Commit**
@@ -1337,7 +1337,7 @@ func TestPageRegisterSubmit_SignupEnabled_InvalidEmail_FormErrorAndNoMail(t *tes
 
 - [ ] **Step 4: Run the tests to verify they fail**
 
-Run: `TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable go test ./internal/handler -run 'SignupEnabled' -count=1`
+Run: `go test ./internal/handler -run 'SignupEnabled' -count=1`
 Expected: build failure `h.PageRegisterComplete undefined`.
 
 To see the Task 6 tests fail on behaviour rather than on missing symbols, create `internal/handler/signup_handler.go` with temporary stubs, which Task 7 replaces:
@@ -1424,7 +1424,7 @@ Then in `internal/handler/register_handler.go`:
 
 - [ ] **Step 6: Run the tests**
 
-Run: `TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable go test ./internal/handler -count=1`
+Run: `go test ./internal/handler -count=1`
 Expected: `ok`. The new tests pass, and the existing `TestPageRegisterSubmit_*` tests still pass on the full form.
 
 - [ ] **Step 7: Commit**
@@ -1648,7 +1648,7 @@ The last test builds a fresh handler after changing the setting because `SiteSet
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable go test ./internal/handler -run 'PageRegisterComplete' -count=1`
+Run: `go test ./internal/handler -run 'PageRegisterComplete' -count=1`
 Expected: FAIL. The stubs render nothing, so the form, invalid-page, redirect and sign-in assertions fail.
 
 - [ ] **Step 3: Implement** — in `internal/handler/signup_handler.go`, delete the two stubs and add the following. Also add `"errors"`, `"github.com/go-chi/chi/v5"`, `".../internal/model"` and `".../internal/service"` to its imports.
@@ -1759,7 +1759,7 @@ func (h *Handler) setAuthCookie(w http.ResponseWriter, token string) {
 
 - [ ] **Step 5: Run the tests, build and lint**
 
-Run: `go build ./... && TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable go test ./internal/handler -count=1`
+Run: `go build ./... && go test ./internal/handler -count=1`
 Expected: `ok`
 
 Run: `golangci-lint run ./...`
@@ -1781,7 +1781,7 @@ git commit -m "feat(signup): finish signup from the emailed link" -m "Co-Authore
 - Modify: `docs/configuration.md` (the `smtp.host` row's description)
 - Create (not committed): `$SP/smtp_sink.py`
 
-`$SP` below stands for the session scratchpad, `/private/tmp/claude-501/-Users-mk-Downloads-app-Cloudzilla-cloudzilla-app--claude-worktrees-trusting-babbage-6cce94/a0ceb4d3-cb93-4ebf-a7e6-0e6329155392/scratchpad`. Type it out literally, because the Bash guard rejects variables in some forms.
+`$SP` below stands for a scratch directory, `<scratch-dir>`. Type it out literally if your shell guard rejects variables.
 
 **Interfaces:**
 - Consumes: everything above.
@@ -1806,7 +1806,7 @@ In `docs/configuration.md`, append ` Also enables email-verified signup.` to the
 
 - [ ] **Step 2: Full suite and lint**
 
-Run: `TEST_DATABASE_DSN=postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable go test ./... -count=1`
+Run: `go test ./... -count=1`
 Expected: every package `ok`.
 
 Run: `golangci-lint run ./...`
@@ -1864,9 +1864,9 @@ Then, one command per Bash call:
 2. Build the server:
    `go build -o $SP/czserver ./cmd/server`
    Build CSS so the pages render styled:
-   `../../../bin/tailwindcss -c tailwind/tailwind.config.js -i tailwind/input.css -o cmd/server/frontend/static/main.css --minify`
+   `make build-css`
 3. Start the server (Bash `run_in_background: true`):
-   `CZ_DATABASE_DSN="postgres://cloudzilla:test@localhost:5441/cloudzilla_test?sslmode=disable" CZ_SERVER_PORT=18080 CZ_SERVER_BASE_URL=http://localhost:18080 CZ_GIT_SSH_PORT=12222 CZ_GIT_REPOS_ROOT=$SP/run/repos CZ_GIT_SSH_HOST_KEY=$SP/run/hostkey CZ_SMTP_HOST=127.0.0.1 CZ_SMTP_PORT=12525 $SP/czserver`
+   `CZ_DATABASE_DSN="$TEST_DATABASE_DSN" CZ_SERVER_PORT=18080 CZ_SERVER_BASE_URL=http://localhost:18080 CZ_GIT_SSH_PORT=12222 CZ_GIT_REPOS_ROOT=$SP/run/repos CZ_GIT_SSH_HOST_KEY=$SP/run/hostkey CZ_SMTP_HOST=127.0.0.1 CZ_SMTP_PORT=12525 $SP/czserver`
 4. Request a link for a fresh address:
    `curl -4 -s -o $SP/r1.html -H "X-CSRF-Token: t" -b "csrf_token=t" -d "email=e2e.signup@test.invalid" http://127.0.0.1:18080/register`
 5. Read the link:
@@ -1881,7 +1881,7 @@ Then, one command per Bash call:
 8. Replay the link with the command from step 7.
    Expected: the body contains "This link is no longer valid".
 9. Move past the 5-minute throttle so the existing address gets mail again:
-   `docker exec trusting-babbage-test-db psql -U cloudzilla -d cloudzilla_test -c "UPDATE signup_tokens SET created_at = NOW() - INTERVAL '6 minutes' WHERE lower(email) = 'e2e.signup@test.invalid'"`
+   `psql "$TEST_DATABASE_DSN" -c "UPDATE signup_tokens SET created_at = NOW() - INTERVAL '6 minutes' WHERE lower(email) = 'e2e.signup@test.invalid'"`
 10. Request again with the now-registered address in another case:
     `curl -4 -s -o $SP/r2.html -H "X-CSRF-Token: t" -b "csrf_token=t" -d "email=E2E.Signup@Test.Invalid" http://127.0.0.1:18080/register`
 11. Compare the two responses:
@@ -1890,10 +1890,10 @@ Then, one command per Bash call:
 12. `grep "^Subject:" $SP/mail.log`
     Expected: `Subject: Finish creating your Cloudzilla account` and then `Subject: You already have a Cloudzilla account`.
 13. Stop both processes:
-    `pkill -f scratchpad/czserver`
+    `pkill -f $SP/czserver`
     `pkill -f smtp_sink.py`
 14. Clean up the test DB only:
-    `docker exec trusting-babbage-test-db psql -U cloudzilla -d cloudzilla_test -c "DELETE FROM signup_tokens WHERE lower(email) = 'e2e.signup@test.invalid'; DELETE FROM users WHERE username = 'e2e_signup'"`
+    `psql "$TEST_DATABASE_DSN" -c "DELETE FROM signup_tokens WHERE lower(email) = 'e2e.signup@test.invalid'; DELETE FROM users WHERE username = 'e2e_signup'"`
 
 - [ ] **Step 4: Commit the docs**
 

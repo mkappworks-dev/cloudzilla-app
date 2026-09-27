@@ -14,7 +14,7 @@
 | SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys` | Git SSH transport             |
 | TOTP 2FA              | 6-digit code after password login                  | `POST /auth/2fa/verify`       |
 
-Emails match case-insensitively everywhere: login, OAuth/LDAP/SAML account linking, and invites. The `users_email_lower_key` index enforces it.
+Emails match case-insensitively everywhere: login, Google OAuth linking to an existing account by email, invites, and the existing-account check that makes LDAP and SAML refuse to auto-link. The `users_email_lower_key` index enforces it.
 
 ### JWT Claims
 
@@ -209,7 +209,7 @@ With `smtp.host` set, `/register` asks only for an email and always answers "Che
 - New address: a single-use link to `/register/complete/{token}` (24 hours) where the owner picks a username and password.
 - Address with an account: a "you already have an account — sign in" email.
 
-The response never reveals whether an address has an account. Links are stored as SHA-256 hashes in `signup_tokens` (one per address; a new request replaces it), and an address gets at most one email per 5 minutes. `POST /register` and `POST /register/complete/{token}` are also limited to 10 per client IP per 15 minutes. Closing `allow_registration` stops outstanding links.
+The response never reveals whether an address has an account. Links are stored as SHA-256 hashes in `signup_tokens` (one per address; a new request replaces it), and an address gets at most one email per 5 minutes. `POST /register` and `POST /register/complete/{token}` are also limited to 10 per client IP per 15 minutes, each route with its own budget. If sending fails, the address stays throttled for 5 minutes, so a retry within that window sends nothing. Closing `allow_registration` stops outstanding links.
 
 Without SMTP, `/register` is the classic username/email/password form, which still reveals whether an email is registered.
 
