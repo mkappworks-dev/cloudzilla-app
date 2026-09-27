@@ -1,0 +1,107 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ RegisterEmail(data view.RegisterEmailData) {
+	@layout.Base(data.BasePage, "Create account") {
+		<div class="max-w-md mx-auto mt-12 rounded-md border border-border bg-card p-6">
+			@authCardHero("Cloudzilla", "Create your account", "We'll email you a link to finish signing up.")
+			if data.Error != "" {
+				<div class="mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert">
+					{ data.Error }
+				</div>
+			}
+			<form method="POST" action="/register" class="space-y-4">
+				<div class="space-y-1.5">
+					<label for="email" class="block text-sm font-medium">Email</label>
+					@components.Input(templ.Attributes{
+						"type":      "email",
+						"id":        "email",
+						"name":      "email",
+						"required":  "required",
+						"autofocus": "autofocus",
+						"value":     data.Email,
+					})
+				</div>
+				@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {
+					Continue
+				}
+			</form>
+			<p class="mt-5 text-center text-[12px] text-muted-foreground">
+				Already have an account?
+				<a href="/login" class="text-foreground hover:underline">Sign in</a>
+			</p>
+		</div>
+	}
+}
+
+templ RegisterCheckInbox(data view.RegisterCheckInboxData) {
+	@layout.Base(data.BasePage, "Check your inbox") {
+		<div class="max-w-md mx-auto mt-12 rounded-md border border-border bg-card p-6">
+			@authCardHero("Cloudzilla", "Check your inbox", "We've emailed that address with the next step. If nothing arrives, check your spam folder or try again in a few minutes.")
+			<p class="text-center text-[12px] text-muted-foreground">
+				<a href="/login" class="text-foreground hover:underline">Back to sign in</a>
+			</p>
+		</div>
+	}
+}
+
+templ RegisterComplete(data view.RegisterCompleteData) {
+	@layout.Base(data.BasePage, "Create account") {
+		<div class="max-w-md mx-auto mt-12 rounded-md border border-border bg-card p-6">
+			if data.Signup == nil {
+				@authCardHero("Cloudzilla", "This link is no longer valid", "Request a new one from the sign-up page.")
+				<p class="text-center text-[12px] text-muted-foreground">
+					<a href="/register" class="text-foreground hover:underline">Sign up</a>
+					or
+					<a href="/login" class="text-foreground hover:underline">sign in</a>
+				</p>
+			} else {
+				@authCardHero("Cloudzilla", "Finish creating your account", "Choose a username and password.")
+				if data.Error != "" {
+					<div class="mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert">{ data.Error }</div>
+				}
+				<form method="POST" class="space-y-4">
+					<div class="space-y-1.5">
+						<label for="complete-email" class="block text-sm font-medium">Email</label>
+						@components.Input(templ.Attributes{
+							"type":     "email",
+							"id":       "complete-email",
+							"value":    data.Signup.Email,
+							"readonly": "readonly",
+							"class":    "bg-muted text-muted-foreground cursor-not-allowed",
+						})
+					</div>
+					<div class="space-y-1.5">
+						<label for="complete-username" class="block text-sm font-medium">Username</label>
+						@components.Input(templ.Attributes{
+							"type":      "text",
+							"id":        "complete-username",
+							"name":      "username",
+							"required":  "required",
+							"autofocus": "autofocus",
+							"value":     data.Username,
+						})
+					</div>
+					<div class="space-y-1.5">
+						<label for="complete-password" class="block text-sm font-medium">Password</label>
+						@components.Input(templ.Attributes{
+							"type":      "password",
+							"id":        "complete-password",
+							"name":      "password",
+							"required":  "required",
+							"minlength": "8",
+						})
+					</div>
+					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {
+						Create account
+					}
+				</form>
+			}
+		</div>
+	}
+}
