@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -37,6 +38,10 @@ func (s *IssueService) WithMentionStore(m *store.MentionStore) *IssueService {
 	return s
 }
 
+// ErrPrivateIssueForbidden is returned when a user without write access tries
+// to create a private issue.
+var ErrPrivateIssueForbidden = errors.New("forbidden: only collaborators with write access may create private issues")
+
 func (s *IssueService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, visibility string) (*model.Issue, error) {
 	if len(title) > MaxTitleLen {
 		return nil, ErrTitleTooLong
@@ -52,7 +57,7 @@ func (s *IssueService) Create(ctx context.Context, owner, repoName string, autho
 		return nil, fmt.Errorf("forbidden: cannot create issues on this repository")
 	}
 	if visibility == "private" && !s.repoSvc.CanWrite(ctx, repo, authorID) {
-		return nil, fmt.Errorf("forbidden: only collaborators with write access may create private issues")
+		return nil, ErrPrivateIssueForbidden
 	}
 	issue := &model.Issue{
 		RepoID:     repo.ID,

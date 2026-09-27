@@ -51,6 +51,10 @@ func (h *Handler) PageRegisterSubmit(w http.ResponseWriter, r *http.Request) {
 		renderError("Password must be at least 8 characters")
 		return
 	}
+	if msg := passwordLengthMessage(password); msg != "" {
+		renderError(msg)
+		return
+	}
 
 	if _, err := h.Services.User.Create(r.Context(), username, email, password); err != nil {
 		renderError("Failed to create account: " + err.Error())

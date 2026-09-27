@@ -323,18 +323,16 @@ func (h *Handler) PageReleaseNew(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
-		return
-	}
-
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
+		return
+	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return

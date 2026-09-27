@@ -89,6 +89,7 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.SSO.SetConfig(r.Context(), provider, cfg, enabled); err != nil {
+		slog.Error("save sso config failed", "provider", provider, "error", err)
 		ldapCfg, ldapErr := h.Services.SSO.GetConfig(r.Context(), "ldap")
 		if ldapErr != nil {
 			slog.Error("failed to reload ldap sso config", "error", ldapErr)
@@ -101,7 +102,7 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 			BasePage:   basePage(r, h.Services),
 			LDAPConfig: ldapCfg,
 			SAMLConfig: samlCfg,
-			Error:      "Failed to save SSO config: " + err.Error(),
+			Error:      "Could not save the SSO configuration. Check the server logs.",
 		}))
 		return
 	}

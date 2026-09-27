@@ -141,6 +141,8 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 
 Some handlers delegate authorization to the service layer (e.g., ProjectService checks `CanWrite` internally with the passed `userID`).
 
+Signed-in repo pages load the repo with `h.readableRepo`, which gives a viewer who can't read it the same 404 as a missing repo. It runs before any `CanWrite`/`CanManage` check, so a 403 never confirms that a private repo exists.
+
 ---
 
 ## First-Run Wizard (`/setup`)
@@ -244,6 +246,8 @@ Superadmin generates token link → shares manually. No SMTP required.
 | GET    | `/{owner}/{repo}/labels`                         | optAuthMW | CanRead              | ListLabels        |
 | GET    | `/{owner}/{repo}/hooks`                          | optAuthMW | CanManage (handler)  | ListWebhooks      |
 | GET    | `/{owner}/{repo}/collaborators`                  | optAuthMW | Public list          | ListCollaborators |
+| GET/POST | `/{owner}/{repo}/issues/new`                   | authMW    | readableRepo         | PageNewIssue / PageNewIssueSubmit |
+| GET/POST | `/{owner}/{repo}/pulls/new`                    | authMW    | readableRepo         | PageNewPull / PageNewPullSubmit   |
 
 ### Repository Endpoints — Write (Require CanWrite)
 
@@ -282,6 +286,12 @@ Superadmin generates token link → shares manually. No SMTP required.
 | POST              | `/api/repos/{owner}/{repo}/star`                          | authMW | User-specific action    | StarRepo                    |
 | PUT/DELETE        | `/api/repos/{owner}/{repo}/watch`                         | authMW | User-specific action    | WatchRepo / UnwatchRepo     |
 | POST              | `/api/repos/{owner}/{repo}/comments/{id}/reactions`       | authMW | CanRead + authenticated | ToggleReaction              |
+| GET/POST          | `/{owner}/{repo}/discussions/new`                         | authMW | readableRepo + CanWrite | PageNewDiscussion / PageNewDiscussionSubmit |
+| GET/POST          | `/{owner}/{repo}/milestones/new`                          | authMW | readableRepo + CanWrite | PageNewMilestone / PageNewMilestoneSubmit   |
+| POST              | `/{owner}/{repo}/milestones/{number}`                     | authMW | readableRepo + CanWrite | PageMilestoneDetailAction   |
+| GET               | `/{owner}/{repo}/releases/new`                            | authMW | readableRepo + CanWrite | PageReleaseNew              |
+| GET/POST          | `/{owner}/{repo}/new/{ref}`                               | authMW | readableRepo + CanWrite | PageNewFile / SubmitNewFile |
+| GET               | `/{owner}/{repo}/wiki/new`, `.../wiki/{slug}/edit`        | authMW | CanRead (404) + CanWrite | PageWikiNew / PageWikiEdit |
 
 ### Repository Endpoints — Manage (Require CanManage or Owner)
 
@@ -301,6 +311,8 @@ Superadmin generates token link → shares manually. No SMTP required.
 | PATCH             | `/api/repos/{owner}/{repo}/template`      | authMW | IsOwner (service)   | SetRepoTemplate         |
 | DELETE            | `/api/repos/{owner}/{repo}/wiki/{slug}`   | authMW | CanManage (handler) | DeleteWikiPage          |
 | POST/DELETE       | `.../discussions/categories`              | authMW | CanManage (handler) | DiscussionCategory CRUD |
+| GET               | `/{owner}/{repo}/settings`                | authMW | readableRepo + CanManage | PageRepoSettings   |
+| POST              | `/{owner}/{repo}/settings/{general,features,visibility}` | authMW | readableRepo + CanManage (service) | UpdateRepoGeneral / Features / Visibility |
 
 ### Repository Endpoints — Service-Layer Auth (Project Board)
 

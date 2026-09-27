@@ -21,6 +21,10 @@ var (
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
 )
 
+// MaxPasswordBytes is bcrypt's input limit. Hashing longer passwords fails with
+// bcrypt.ErrPasswordTooLong, so forms check this first to give a clear message.
+const MaxPasswordBytes = 72
+
 // UserService manages user account operations including authentication and profile updates.
 type UserService struct {
 	store       *store.UserStore
