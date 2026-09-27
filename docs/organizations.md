@@ -79,7 +79,7 @@ HTMX requests to add, remove, or change the role of a member respond with the `O
 
 ## OrgService (`internal/service/org_service.go`)
 
-- `Create(ctx, creatorUserID, name, displayName, description)` → `(*Organization, error)` — returns `ErrOrgNameTaken` when the name matches a user or another org; auto-adds creator as owner
+- `Create(ctx, creatorUserID, name, displayName, description)` → `(*Organization, error)` — returns `ErrInvalidOrgName` when `name` fails `ValidateName`, `ErrOrgNameTaken` when it matches a user or another org; auto-adds creator as owner
 - `Get(ctx, name)` → `(*Organization, error)`
 - `UpdateProfile(ctx, orgID, requestingUserID, displayName, description, website, location, contactEmail)` → `error` — owner-only; normalizes and validates `website`
 - `UpdateRepoDefaults(ctx, orgID, requestingUserID, visibility, branchName)` → `error` — owner-only; validates both values

@@ -322,7 +322,7 @@ See [access-control.md](access-control.md) for the full permission model. `CanMa
 
 | Method | Path                                    | Auth     | Description                                                                                                                         |
 | ------ | --------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/api/orgs/`                            | Required | Create organization                                                                                                                 |
+| POST   | `/api/orgs/`                            | Required | Create organization (`name`, `display_name`, `description`); 422 when `name` is invalid or taken                                    |
 | GET    | `/api/orgs/:org`                        | --       | Get organization by name, including `website`, `location`, `contact_email`, `default_repo_visibility`, `default_branch_name`        |
 | GET    | `/api/orgs/:org/members`                | --       | List organization members                                                                                                           |
 | POST   | `/api/orgs/:org/members`                | Required | Add member (`username`, `role`); owner only                                                                                         |

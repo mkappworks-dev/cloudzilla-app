@@ -1,8 +1,10 @@
 package handler_test
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -29,11 +31,61 @@ func newOrgTestRouter(t *testing.T, db *sql.DB) (http.Handler, *service.Services
 	svc := service.New(store.New(db), cfg)
 	h := handler.New(svc, cfg)
 	r := chi.NewRouter()
+	r.Post("/api/orgs/", h.CreateOrg)
+	r.Post("/organizations/new", h.CreateOrganization)
 	r.Post("/api/orgs/{org}/transfer", h.TransferOrg)
 	r.Get("/repos/new", h.PageNewRepo)
 	r.Post("/api/orgs/{org}/repos", h.CreateOrgRepo)
 	unauthorized := func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) }
 	return middleware.Auth(testJWTSecret, testCookieName, nil, nil, unauthorized)(r), svc
+}
+
+func TestCreateOrg_RejectsInvalidName(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	router, svc := newOrgTestRouter(t, db)
+
+	for _, name := range append([]string{"a b", "../x"}, testutil.HostileNames...) {
+		body, _ := json.Marshal(map[string]string{"name": name})
+		req := httptest.NewRequest(http.MethodPost, "/api/orgs/", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, userID, "testuser_"+suffix))
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusUnprocessableEntity {
+			t.Errorf("name %q: want 422, got %d: %s", name, rr.Code, rr.Body.String())
+		}
+		if !strings.Contains(rr.Body.String(), service.ErrInvalidOrgName.Error()) {
+			t.Errorf("name %q: body %s does not name the invalid-name error", name, rr.Body.String())
+		}
+		if _, err := svc.Org.Get(context.Background(), name); err == nil {
+			t.Errorf("name %q: org was stored", name)
+			testutil.Exec(t, db, `DELETE FROM organizations WHERE name = $1`, name)
+		}
+	}
+}
+
+func TestCreateOrganizationPage_RejectsInvalidNameOnce(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	router, _ := newOrgTestRouter(t, db)
+
+	form := url.Values{"name": {"',a:alert(1),b:'"}, "accept_tos": {"on"}}
+	req := httptest.NewRequest(http.MethodPost, "/organizations/new", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, userID, "testuser_"+suffix))
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("want 422, got %d", rr.Code)
+	}
+	if n := strings.Count(rr.Body.String(), "Invalid organization name"); n != 1 {
+		t.Errorf("invalid-name message shown %d times, want 1", n)
+	}
 }
 
 // The previous owner is demoted to member by the transfer, so sending them

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -48,7 +49,12 @@ func (h *Handler) CreateOrg(w http.ResponseWriter, r *http.Request) {
 
 	org, err := h.Services.Org.Create(r.Context(), claims.UserID, req.Name, req.DisplayName, req.Description)
 	if err != nil {
-		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		if errors.Is(err, service.ErrInvalidOrgName) || errors.Is(err, service.ErrOrgNameTaken) {
+			writeError(w, http.StatusUnprocessableEntity, err.Error())
+			return
+		}
+		slog.Error("failed to create org", "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to create organization")
 		return
 	}
 	writeJSON(w, http.StatusCreated, org)

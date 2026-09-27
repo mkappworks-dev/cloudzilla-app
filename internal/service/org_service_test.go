@@ -4,9 +4,11 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -76,6 +78,22 @@ func TestOrgService_Create_NameConflictWithUser_Error(t *testing.T) {
 	_, err := svc.Create(context.Background(), creatorID, existingUsername, "Conflict Org", "")
 	if err == nil {
 		t.Error("Create must fail when org name conflicts with an existing username")
+	}
+}
+
+func TestOrgService_Create_RejectsInvalidName(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	creatorID := testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
+	svc := service.NewOrgService(store.NewOrgStore(db), store.NewRepoStore(db), store.NewUserStore(db), config.GitConfig{})
+	for _, name := range append([]string{"", "..", "-org", "a b", "a/b", strings.Repeat("a", 101)}, testutil.HostileNames...) {
+		_, err := svc.Create(context.Background(), creatorID, name, "", "")
+		if !errors.Is(err, service.ErrInvalidOrgName) {
+			t.Errorf("Create(%q) = %v, want ErrInvalidOrgName", name, err)
+		}
+		if _, err := svc.Get(context.Background(), name); err == nil {
+			t.Errorf("Create(%q) stored the org", name)
+			testutil.Exec(t, db, `DELETE FROM organizations WHERE name = $1`, name)
+		}
 	}
 }
 

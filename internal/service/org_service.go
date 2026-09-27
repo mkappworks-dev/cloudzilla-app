@@ -23,6 +23,8 @@ import (
 // (by another organization or a user account).
 var ErrOrgNameTaken = errors.New("organization name is already taken")
 
+var ErrInvalidOrgName = errors.New("invalid organization name")
+
 // OrgService manages organization creation, membership, and ownership transfers.
 type OrgService struct {
 	orgs  *store.OrgStore
@@ -43,6 +45,9 @@ func (s *OrgService) WithStarStore(stars *store.StarStore) *OrgService {
 }
 
 func (s *OrgService) Create(ctx context.Context, creatorUserID int64, name, displayName, description string) (*model.Organization, error) {
+	if err := ValidateName(name); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrInvalidOrgName, err)
+	}
 	// Check name not already used by a user
 	if _, err := s.users.GetByUsername(ctx, name); err == nil {
 		return nil, fmt.Errorf("%w: conflicts with a user account", ErrOrgNameTaken)

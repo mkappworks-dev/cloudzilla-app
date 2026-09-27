@@ -40,14 +40,13 @@ func (h *Handler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 		h.renderNewOrgError(w, r, name, description, "You must accept the terms of service.")
 		return
 	}
-	if err := service.ValidateName(name); err != nil {
-		h.renderNewOrgError(w, r, name, description, "Invalid organization name: "+err.Error())
-		return
-	}
 	org, err := h.Services.Org.Create(r.Context(), claims.UserID, name, name, description)
 	if err != nil {
 		msg := "Could not create the organization. Please try again."
-		if errors.Is(err, service.ErrOrgNameTaken) {
+		switch {
+		case errors.Is(err, service.ErrInvalidOrgName):
+			msg = "Invalid organization name: use 1-100 letters, numbers, dots, dashes, or underscores, starting with a letter or number."
+		case errors.Is(err, service.ErrOrgNameTaken):
 			msg = "That organization name is already taken."
 		}
 		h.renderNewOrgError(w, r, name, description, msg)
