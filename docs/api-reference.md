@@ -269,7 +269,7 @@ Valid `state` values: `pending`, `success`, `failure`, `error`. Combined state u
 | POST   | `/api/repos/:owner/:repo/wiki/:slug` | Required | Create or update a wiki page |
 | DELETE | `/api/repos/:owner/:repo/wiki/:slug` | Required | Delete a wiki page           |
 
-Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`). Page content is Markdown.
+Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`) that moves with the repository when it is deleted, restored, purged or transferred. Page content is Markdown.
 
 ## Discussions
 

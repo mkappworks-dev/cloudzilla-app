@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -873,15 +872,16 @@ func (s *RepoService) Delete(ctx context.Context, repoID, userID int64) error {
 		return err
 	}
 
-	repoPath := filepath.Join(s.cfg.ReposRoot, repo.OwnerName, repo.Name+".git")
-	deletedPath := repoPath + ".deleted." + strconv.FormatInt(time.Now().Unix(), 10)
-	if _, err := os.Stat(repoPath); err == nil {
-		if err := os.Rename(repoPath, deletedPath); err != nil {
-			return fmt.Errorf("rename git dir for soft delete: %w", err)
-		}
+	gitDir, wikiDir := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
+	moved, err := renameDirs(movesAside(deletedSuffix(time.Now()), gitDir, wikiDir))
+	if err != nil {
+		return fmt.Errorf("rename git dir for soft delete: %w", err)
 	}
-
-	return s.repos.Delete(ctx, repoID, userID)
+	if err := s.repos.Delete(ctx, repoID, userID); err != nil {
+		revertDirs(moved)
+		return err
+	}
+	return nil
 }
 
 func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, isSuperadmin bool) error {
@@ -893,24 +893,28 @@ func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, is
 		return fmt.Errorf("forbidden: only the original owner or a superadmin can restore a repo")
 	}
 
-	ownerDir := filepath.Join(s.cfg.ReposRoot, repo.OwnerName)
-	pattern := filepath.Join(ownerDir, repo.Name+".git.deleted.*")
-	matches, err := filepath.Glob(pattern)
+	gitDir, wikiDir := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
+	matches, err := filepath.Glob(gitDir + ".deleted.*")
 	if err != nil {
 		return fmt.Errorf("glob deleted git dir: %w", err)
 	}
+	var restored []dirMove
 	if len(matches) > 0 {
-		latestMatch := matches[len(matches)-1]
-		restoredPath := filepath.Join(ownerDir, repo.Name+".git")
-		if _, statErr := os.Stat(restoredPath); statErr == nil {
-			return fmt.Errorf("restore conflict: live repo dir already exists at %s", restoredPath)
+		if _, statErr := os.Stat(gitDir); statErr == nil {
+			return fmt.Errorf("restore conflict: live repo dir already exists at %s", gitDir)
 		}
-		if err := os.Rename(latestMatch, restoredPath); err != nil {
+		suffix := strings.TrimPrefix(matches[len(matches)-1], gitDir)
+		restored, err = renameDirs([]dirMove{{from: gitDir + suffix, to: gitDir}, {from: wikiDir + suffix, to: wikiDir}})
+		if err != nil {
 			return fmt.Errorf("rename git dir back on restore: %w", err)
 		}
 	}
 
-	return s.repos.Restore(ctx, repoID)
+	if err := s.repos.Restore(ctx, repoID); err != nil {
+		revertDirs(restored)
+		return err
+	}
+	return nil
 }
 
 func (s *RepoService) GetDeleted(ctx context.Context, ownerName, name string) (*model.Repository, error) {
@@ -924,18 +928,7 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 		return fmt.Errorf("purge expired repos: %w", err)
 	}
 	for _, r := range expired {
-		ownerDir := filepath.Join(s.cfg.ReposRoot, r.OwnerName)
-		pattern := filepath.Join(ownerDir, r.Name+".git.deleted.*")
-		matches, globErr := filepath.Glob(pattern)
-		if globErr != nil {
-			slog.Warn("purge: failed to glob deleted git dir", "pattern", pattern, "error", globErr)
-			continue
-		}
-		for _, m := range matches {
-			if removeErr := os.RemoveAll(m); removeErr != nil {
-				slog.Warn("purge: failed to remove deleted git dir", "path", m, "error", removeErr)
-			}
-		}
+		removeDeletedDirs(s.cfg.ReposRoot, r.OwnerName, r.Name)
 	}
 	return nil
 }
@@ -959,20 +952,19 @@ func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, 
 		return fmt.Errorf("new owner must be a different user")
 	}
 
-	oldPath := filepath.Join(s.cfg.ReposRoot, repo.OwnerName, repo.Name+".git")
-	newDir := filepath.Join(s.cfg.ReposRoot, newOwnerUsername)
-	newPath := filepath.Join(newDir, repo.Name+".git")
+	oldGitDir, oldWikiDir := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
+	newGitDir, newWikiDir := repoDirs(s.cfg.ReposRoot, newOwnerUsername, repo.Name)
 
-	if err := os.MkdirAll(newDir, 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(newGitDir), 0755); err != nil {
 		return fmt.Errorf("create owner dir: %w", err)
 	}
-	if err := os.Rename(oldPath, newPath); err != nil {
+	moved, err := renameDirs([]dirMove{{from: oldGitDir, to: newGitDir}, {from: oldWikiDir, to: newWikiDir}})
+	if err != nil {
 		return fmt.Errorf("move git dir: %w", err)
 	}
 
 	if err := s.repos.UpdateOwner(ctx, repo.ID, newOwner.ID, newOwnerUsername); err != nil {
-		// Best-effort rollback of git dir move
-		_ = os.Rename(newPath, oldPath)
+		revertDirs(moved)
 		return fmt.Errorf("update repo owner: %w", err)
 	}
 	return nil
