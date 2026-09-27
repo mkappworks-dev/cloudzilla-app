@@ -10,9 +10,12 @@ import (
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // TreeEntryWithLastCommit is a directory listing entry enriched with the
@@ -30,6 +33,15 @@ type TreeEntryWithLastCommit struct {
 	}
 }
 
+// Keyed like LanguageService's cache: by the resolved commit, so a new commit
+// or a new repo under the same name always misses, and by repo ID rather than
+// owner/name, which account deletion and transfer hand to a different repo.
+type treeCacheKey struct {
+	repoID int64
+	commit plumbing.Hash
+	dir    string
+}
+
 type treeCacheEntry struct {
 	entries  []TreeEntryWithLastCommit
 	cachedAt time.Time
@@ -44,20 +56,13 @@ const (
 
 // ListEntriesWithLastCommit returns the entries at `dir` enriched with the
 // most recent commit that touched each entry. Results are cached per
-// (owner, repo, ref, dir) for treeCacheTTL.
-func (s *CodeService) ListEntriesWithLastCommit(ctx context.Context, owner, repoName, ref, dir string) ([]TreeEntryWithLastCommit, error) {
+// (repo ID, commit, dir) for treeCacheTTL.
+func (s *CodeService) ListEntriesWithLastCommit(ctx context.Context, r *model.Repository, ref, dir string) ([]TreeEntryWithLastCommit, error) {
 	// resolveRef treats "" as HEAD; the literal "HEAD" would be tried as a branch/tag/SHA and fail.
 	if ref == "HEAD" {
 		ref = ""
 	}
-
-	key := owner + "/" + repoName + ":" + ref + ":" + dir
-	if v, ok := s.treeCache.Load(key); ok {
-		e := v.(treeCacheEntry)
-		if time.Since(e.cachedAt) < treeCacheTTL {
-			return e.entries, nil
-		}
-	}
+	owner, repoName := r.OwnerName, r.Name
 
 	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
 	if err != nil {
@@ -67,6 +72,14 @@ func (s *CodeService) ListEntriesWithLastCommit(ctx context.Context, owner, repo
 	if err != nil {
 		return nil, err
 	}
+	key := treeCacheKey{repoID: r.ID, commit: commit.Hash, dir: dir}
+	if v, ok := s.treeCache.Load(key); ok {
+		e := v.(treeCacheEntry)
+		if time.Since(e.cachedAt) < treeCacheTTL {
+			return e.entries, nil
+		}
+	}
+
 	rootTree, err := commit.Tree()
 	if err != nil {
 		return nil, err
@@ -134,7 +147,7 @@ func (s *CodeService) ListEntriesWithLastCommit(ctx context.Context, owner, repo
 
 // cacheTreeEntries stores entries and triggers an expired-entry sweep once
 // inserts cross treeCacheMaxKeys. Best-effort counter — sync.Map has no Len.
-func (s *CodeService) cacheTreeEntries(key string, entries []TreeEntryWithLastCommit) {
+func (s *CodeService) cacheTreeEntries(key treeCacheKey, entries []TreeEntryWithLastCommit) {
 	s.treeCache.Store(key, treeCacheEntry{entries: entries, cachedAt: time.Now()})
 	if atomic.AddInt64(&s.treeCacheKeys, 1) > treeCacheMaxKeys {
 		atomic.StoreInt64(&s.treeCacheKeys, 0)
