@@ -44,9 +44,8 @@ func (h *Handler) AddIssueAssignee(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
@@ -89,9 +88,8 @@ func (h *Handler) RemoveIssueAssignee(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
@@ -134,9 +132,8 @@ func (h *Handler) AddPullAssignee(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
@@ -181,9 +178,8 @@ func (h *Handler) RemovePullAssignee(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {

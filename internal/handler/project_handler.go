@@ -150,9 +150,8 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !repo.AllowProjects {
@@ -178,15 +177,35 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, project)
 }
 
+// repoProject resolves the project ID in the URL through the URL's repo. The
+// project services authorize by project ID alone, so without the repo match a
+// caller could reach a private repo's project through any repo they can read.
+func (h *Handler) repoProject(w http.ResponseWriter, r *http.Request) (int64, bool) {
+	repo, ok := h.readableRepoJSON(w, r, chi.URLParam(r, "owner"), chi.URLParam(r, "repo"))
+	if !ok {
+		return 0, false
+	}
+	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid project id")
+		return 0, false
+	}
+	project, err := h.Services.Project.GetProject(r.Context(), projectID)
+	if err != nil || project.RepoID != repo.ID {
+		writeError(w, http.StatusNotFound, service.ErrProjectNotFound.Error())
+		return 0, false
+	}
+	return project.ID, true
+}
+
 func (h *Handler) DeleteProject(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid project id")
+	projectID, ok := h.repoProject(w, r)
+	if !ok {
 		return
 	}
 	if err := h.Services.Project.DeleteProject(r.Context(), projectID, claims.UserID); err != nil {
@@ -206,9 +225,8 @@ func (h *Handler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid project id")
+	projectID, ok := h.repoProject(w, r)
+	if !ok {
 		return
 	}
 	var req updateProjectRequest
@@ -234,9 +252,8 @@ func (h *Handler) CreateColumn(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid project id")
+	projectID, ok := h.repoProject(w, r)
+	if !ok {
 		return
 	}
 	var req createColumnRequest
@@ -262,9 +279,8 @@ func (h *Handler) DeleteColumn(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid project id")
+	projectID, ok := h.repoProject(w, r)
+	if !ok {
 		return
 	}
 	columnID, err := strconv.ParseInt(chi.URLParam(r, "colID"), 10, 64)
@@ -285,9 +301,8 @@ func (h *Handler) CreateCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid project id")
+	projectID, ok := h.repoProject(w, r)
+	if !ok {
 		return
 	}
 	var req struct {
@@ -322,9 +337,8 @@ func (h *Handler) MoveCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid project id")
+	projectID, ok := h.repoProject(w, r)
+	if !ok {
 		return
 	}
 	cardID, err := strconv.ParseInt(chi.URLParam(r, "cardID"), 10, 64)
@@ -357,9 +371,8 @@ func (h *Handler) DeleteCard(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	projectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid project id")
+	projectID, ok := h.repoProject(w, r)
+	if !ok {
 		return
 	}
 	cardID, err := strconv.ParseInt(chi.URLParam(r, "cardID"), 10, 64)

@@ -29,6 +29,9 @@ type updateIssueRequest struct {
 func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repo := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repo); !ok {
+		return
+	}
 	var callerID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		callerID = &claims.UserID
@@ -44,6 +47,9 @@ func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetIssue(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repo := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repo); !ok {
+		return
+	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid issue number")
@@ -70,9 +76,8 @@ func (h *Handler) CreateIssue(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !repo.AllowIssues {
@@ -117,9 +122,8 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
@@ -183,6 +187,9 @@ func (h *Handler) PinIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
+		return
+	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid issue number")
@@ -247,6 +254,9 @@ func (h *Handler) LockIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
+		return
+	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid issue number")

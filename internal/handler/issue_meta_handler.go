@@ -24,14 +24,12 @@ func (h *Handler) issueWriteContext(w http.ResponseWriter, r *http.Request) (own
 	}
 	owner = chi.URLParam(r, "owner")
 	repoName = chi.URLParam(r, "repo")
+	if repo, found = h.readableRepoJSON(w, r, owner, repoName); !found {
+		return
+	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid issue number")
-		return
-	}
-	repo, err = h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
@@ -89,6 +87,10 @@ func (h *Handler) SetIssuePriority(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) IssueTitleSection(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
+		return
+	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid issue number")
@@ -105,9 +107,7 @@ func (h *Handler) IssueTitleSection(w http.ResponseWriter, r *http.Request) {
 	}
 	canWrite := false
 	if claims, found := middleware.ClaimsFromContext(r.Context()); found {
-		if repo, rerr := h.Services.Repo.Get(r.Context(), owner, repoName); rerr == nil {
-			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		}
+		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 	h.render(w, r, fragments.IssueTitleSection(owner, repoName, number, issue.Title, canWrite, r.URL.Query().Get("mode") == "edit"))
 }
@@ -145,6 +145,10 @@ func (h *Handler) EditIssueTitle(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) IssueBodySection(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
+		return
+	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid issue number")
@@ -161,9 +165,7 @@ func (h *Handler) IssueBodySection(w http.ResponseWriter, r *http.Request) {
 	}
 	canWrite := false
 	if claims, found := middleware.ClaimsFromContext(r.Context()); found {
-		if repo, rerr := h.Services.Repo.Get(r.Context(), owner, repoName); rerr == nil {
-			canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		}
+		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 	h.render(w, r, fragments.IssueBodyCard(view.IssueBodyCardData{
 		Owner:       owner,

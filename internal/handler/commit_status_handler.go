@@ -30,9 +30,8 @@ func (h *Handler) CreateStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
@@ -102,8 +101,7 @@ func (h *Handler) ListStatuses(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 	sha := chi.URLParam(r, "sha")
 
-	if !h.viewerCanReadRepo(r, owner, repoName) {
-		writeError(w, http.StatusNotFound, "not found")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
 		return
 	}
 
@@ -123,8 +121,7 @@ func (h *Handler) GetCombinedStatus(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 	sha := chi.URLParam(r, "sha")
 
-	if !h.viewerCanReadRepo(r, owner, repoName) {
-		writeError(w, http.StatusNotFound, "not found")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
 		return
 	}
 

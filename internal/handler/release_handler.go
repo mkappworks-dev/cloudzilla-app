@@ -37,14 +37,13 @@ func (h *Handler) releaseStatus(ctx context.Context, owner, repoName string, rel
 func (h *Handler) releaseWriteContext(w http.ResponseWriter, r *http.Request) (owner, repoName string, release *model.Release, canWrite bool, ok bool) {
 	owner = chi.URLParam(r, "owner")
 	repoName = chi.URLParam(r, "repo")
+	repo, found := h.readableRepoJSON(w, r, owner, repoName)
+	if !found {
+		return
+	}
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid release id")
-		return
-	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
 		return
 	}
 	claims, found := middleware.ClaimsFromContext(r.Context())
@@ -74,20 +73,13 @@ func (h *Handler) ReleaseTitleSection(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid release id")
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
-	var userID *int64
 	canWrite := false
 	if claims, found := middleware.ClaimsFromContext(r.Context()); found {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		userID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		writeError(w, http.StatusForbidden, "forbidden")
-		return
 	}
 	release, err := h.Services.Release.GetByID(r.Context(), owner, repoName, id)
 	if err != nil {
@@ -126,20 +118,13 @@ func (h *Handler) ReleaseBodySection(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid release id")
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
-	var userID *int64
 	canWrite := false
 	if claims, found := middleware.ClaimsFromContext(r.Context()); found {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-		userID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		writeError(w, http.StatusForbidden, "forbidden")
-		return
 	}
 	release, err := h.Services.Release.GetByID(r.Context(), owner, repoName, id)
 	if err != nil {
@@ -424,8 +409,7 @@ func (h *Handler) ListReleases(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	if !h.viewerCanReadRepo(r, owner, repoName) {
-		writeError(w, http.StatusNotFound, "repo not found")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
 		return
 	}
 
@@ -443,14 +427,12 @@ func (h *Handler) ListReleases(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetRelease(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
+		return
+	}
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid release id")
-		return
-	}
-
-	if !h.viewerCanReadRepo(r, owner, repoName) {
-		writeError(w, http.StatusNotFound, "release not found")
 		return
 	}
 
@@ -466,8 +448,7 @@ func (h *Handler) GetLatestRelease(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	if !h.viewerCanReadRepo(r, owner, repoName) {
-		writeError(w, http.StatusNotFound, "no release found")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
 		return
 	}
 
@@ -498,9 +479,8 @@ func (h *Handler) CreateRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
@@ -611,9 +591,8 @@ func (h *Handler) UpdateRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
@@ -677,9 +656,8 @@ func (h *Handler) DeleteRelease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {

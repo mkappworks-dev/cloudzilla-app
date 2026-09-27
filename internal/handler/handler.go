@@ -8,6 +8,7 @@ import (
 	"github.com/a-h/templ"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
@@ -51,17 +52,19 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, component templ
 	}
 }
 
-// viewerCanReadRepo looks up the repo by owner/name and returns true if the
-// viewer (resolved from the request context, anonymous if no claims) has read
-// access. Returns false when the repo does not exist or is not visible.
-func (h *Handler) viewerCanReadRepo(r *http.Request, owner, repoName string) bool {
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		return false
-	}
+// readableRepoJSON is readableRepo for the JSON API, where the caller may be
+// anonymous. It must run before anything that answers differently for a repo
+// that exists (a 403, a sub-resource 404, body validation), or that answer
+// would confirm a private repo exists.
+func (h *Handler) readableRepoJSON(w http.ResponseWriter, r *http.Request, owner, repoName string) (*model.Repository, bool) {
 	var viewerID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		viewerID = &claims.UserID
 	}
-	return h.Services.Repo.CanRead(r.Context(), repo, viewerID)
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return nil, false
+	}
+	return repo, true
 }
