@@ -13,6 +13,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -30,7 +31,7 @@ func TestLanguageService_Composition(t *testing.T) {
 	// write-back may touch it, and another method that starts to would panic here.
 	svc := NewLanguageService(code, nil)
 
-	comp, err := svc.Composition(context.Background(), "alice", "lang", "")
+	comp, err := svc.Composition(context.Background(), &model.Repository{OwnerName: "alice", Name: "lang"}, "")
 	if err != nil {
 		t.Fatalf("Composition: %v", err)
 	}
@@ -60,7 +61,7 @@ func TestLanguageService_Percentages_SortedDesc(t *testing.T) {
 	code := newTestRepoWithFiles(t, "bob", "pct", files)
 	svc := NewLanguageService(code, nil)
 
-	pcts, err := svc.Percentages(context.Background(), "bob", "pct", "")
+	pcts, err := svc.Percentages(context.Background(), &model.Repository{OwnerName: "bob", Name: "pct"}, "")
 	if err != nil {
 		t.Fatalf("Percentages: %v", err)
 	}
@@ -92,12 +93,13 @@ func TestLanguageService_Composition_CachesResults(t *testing.T) {
 	}
 	code := newTestRepoWithFiles(t, "carol", "cache", files)
 	svc := NewLanguageService(code, nil)
+	repo := &model.Repository{ID: 7, OwnerName: "carol", Name: "cache"}
 
-	first, err := svc.Composition(context.Background(), "carol", "cache", "")
+	first, err := svc.Composition(context.Background(), repo, "")
 	if err != nil {
 		t.Fatalf("first Composition: %v", err)
 	}
-	second, err := svc.Composition(context.Background(), "carol", "cache", "")
+	second, err := svc.Composition(context.Background(), repo, "")
 	if err != nil {
 		t.Fatalf("second Composition: %v", err)
 	}
@@ -114,8 +116,8 @@ func TestLanguageService_Composition_CachesResults(t *testing.T) {
 	delete(first, "__sentinel__")
 
 	// Also assert the cache entry is present under the expected key.
-	if _, ok := svc.cache.Load("carol/cache:"); !ok {
-		t.Errorf("expected cache entry under key carol/cache:")
+	if _, ok := svc.cache.Load(langCacheKey{repoID: 7}); !ok {
+		t.Errorf("expected cache entry under repo ID 7")
 	}
 }
 
@@ -133,7 +135,7 @@ func TestLanguageService_TopLanguageFor(t *testing.T) {
 	code := newTestRepoWithFiles(t, "alice", "demo", files)
 	svc := NewLanguageService(code, nil)
 
-	top, err := svc.TopLanguageFor(context.Background(), "alice", "demo", "")
+	top, err := svc.TopLanguageFor(context.Background(), &model.Repository{OwnerName: "alice", Name: "demo"}, "")
 	if err != nil {
 		t.Fatalf("TopLanguageFor: %v", err)
 	}
@@ -147,7 +149,7 @@ func TestLanguageService_TopLanguageFor(t *testing.T) {
 	}
 	emptyCode := newTestRepoWithFiles(t, "alice", "empty", emptyFiles)
 	emptySvc := NewLanguageService(emptyCode, nil)
-	top, err = emptySvc.TopLanguageFor(context.Background(), "alice", "empty", "")
+	top, err = emptySvc.TopLanguageFor(context.Background(), &model.Repository{OwnerName: "alice", Name: "empty"}, "")
 	if err != nil {
 		t.Fatalf("TopLanguageFor empty: %v", err)
 	}
@@ -338,6 +340,52 @@ func TestLanguageService_PrimaryLanguage_FillsEmptyColumn(t *testing.T) {
 	}
 }
 
+// A transfer hands the old name to a new repo, which must not store the old tree's cached language.
+func TestLanguageService_PrimaryLanguage_NameReusedAfterTransfer(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	aliceID := testutil.SeedUser(t, db, suffix)
+	alice := "testuser_" + suffix
+	testutil.SeedUser(t, db, suffix+"_b")
+	bob := "testuser_" + suffix + "_b"
+
+	root := t.TempDir()
+	code := NewCodeService(config.GitConfig{ReposRoot: root})
+	repoSvc := NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, code, config.GitConfig{ReposRoot: root})
+	svc := NewLanguageService(code, repoSvc)
+	repoSvc.WithLanguageService(svc)
+
+	old, err := repoSvc.Create(ctx, alice, "foo", "", false, RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatalf("create old repo: %v", err)
+	}
+	if err := code.CommitFile(alice, "foo", old.DefaultBranch, "main.go", []byte("package main\n"), "Tester", "tester@example.com", "add main"); err != nil {
+		t.Fatalf("commit main.go: %v", err)
+	}
+	if pcts, err := svc.AggregateForUser(ctx, alice, nil, 0); err != nil || langNames(pcts) != "Go" {
+		t.Fatalf("profile languages before transfer = %+v, %v; want Go", pcts, err)
+	}
+	if err := repoSvc.TransferRepo(ctx, old, aliceID, bob); err != nil {
+		t.Fatalf("transfer: %v", err)
+	}
+
+	fresh, err := repoSvc.Create(ctx, alice, "foo", "", false, RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatalf("create repo under the freed name: %v", err)
+	}
+	if got := svc.PrimaryLanguage(ctx, fresh); got != "" {
+		t.Errorf("PrimaryLanguage of README-only repo = %q, want none", got)
+	}
+	var stored sql.NullString
+	if err := db.QueryRowContext(ctx, `SELECT primary_language FROM repositories WHERE id = $1`, fresh.ID).Scan(&stored); err != nil {
+		t.Fatalf("read column: %v", err)
+	}
+	if stored.Valid {
+		t.Errorf("stored primary_language = %q, want NULL", stored.String)
+	}
+}
+
 // A page view before the push caches the README-only tree; the push must not store that stale result.
 func TestRepoService_OnPostReceive_PrimaryLanguageFromPushedTree(t *testing.T) {
 	db := testutil.OpenTestDB(t)
@@ -356,8 +404,12 @@ func TestRepoService_OnPostReceive_PrimaryLanguageFromPushedTree(t *testing.T) {
 		NewContributorStatsService(store.NewContributorStatsStore(db), users), code, config.GitConfig{ReposRoot: root})
 	langSvc := NewLanguageService(code, repoSvc)
 	repoSvc.WithLanguageService(langSvc)
+	repo, err := repoSvc.Get(ctx, owner, "pushed")
+	if err != nil {
+		t.Fatalf("get repo: %v", err)
+	}
 
-	if pcts, err := langSvc.Percentages(ctx, owner, "pushed", "master"); err != nil || len(pcts) != 0 {
+	if pcts, err := langSvc.Percentages(ctx, repo, "master"); err != nil || len(pcts) != 0 {
 		t.Fatalf("pre-push Percentages = %+v, %v; want none", pcts, err)
 	}
 
@@ -378,10 +430,6 @@ func TestRepoService_OnPostReceive_PrimaryLanguageFromPushedTree(t *testing.T) {
 		t.Fatalf("resolve master after commit: %v", err)
 	}
 
-	repo, err := repoSvc.Get(ctx, owner, "pushed")
-	if err != nil {
-		t.Fatalf("get repo: %v", err)
-	}
 	cmds := []*packp.Command{{Name: branch, Old: before.Hash(), New: after.Hash()}}
 	if err := repoSvc.OnPostReceive(ctx, repo, gitRepo, cmds); err != nil {
 		t.Fatalf("OnPostReceive: %v", err)
@@ -394,7 +442,7 @@ func TestRepoService_OnPostReceive_PrimaryLanguageFromPushedTree(t *testing.T) {
 	if got.String != "Go" {
 		t.Errorf("primary_language after push = %q, want %q", got.String, "Go")
 	}
-	if pcts, err := langSvc.Percentages(ctx, owner, "pushed", "master"); err != nil || langNames(pcts) != "Go" {
+	if pcts, err := langSvc.Percentages(ctx, repo, "master"); err != nil || langNames(pcts) != "Go" {
 		t.Errorf("post-push Percentages = %+v, %v; want Go", pcts, err)
 	}
 }

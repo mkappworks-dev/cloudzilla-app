@@ -51,7 +51,14 @@ var excludedDirs = map[string]bool{
 type LanguageService struct {
 	code  *CodeService
 	repos *RepoService
-	cache sync.Map // key="owner/repo:ref" → cacheEntry
+	cache sync.Map // langCacheKey → cacheEntry
+}
+
+// Keyed by repo ID, not owner/name: a transfer frees the name for a new repo,
+// which must not read the old repo's cached composition.
+type langCacheKey struct {
+	repoID int64
+	ref    string
 }
 
 // Negative entries (err != nil) use the shorter TTL so a permanent failure can't hammer the tree walk on every refresh.
@@ -70,8 +77,8 @@ func NewLanguageService(code *CodeService, repos *RepoService) *LanguageService 
 	return &LanguageService{code: code, repos: repos}
 }
 
-func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref string) (map[string]int64, error) {
-	key := owner + "/" + repoName + ":" + ref
+func (s *LanguageService) Composition(ctx context.Context, repo *model.Repository, ref string) (map[string]int64, error) {
+	key := langCacheKey{repoID: repo.ID, ref: ref}
 	if v, ok := s.cache.Load(key); ok {
 		e := v.(cacheEntry)
 		ttl := langCacheTTL
@@ -83,7 +90,7 @@ func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref 
 		}
 	}
 	comp := make(map[string]int64)
-	err := s.code.WalkTree(ctx, owner, repoName, ref, func(path string, size int64) error {
+	err := s.code.WalkTree(ctx, repo.OwnerName, repo.Name, ref, func(path string, size int64) error {
 		// Skip if any ancestor directory is excluded.
 		for dir := filepath.Dir(path); dir != "." && dir != "/" && dir != ""; dir = filepath.Dir(dir) {
 			if excludedDirs[filepath.Base(dir)] {
@@ -106,10 +113,9 @@ func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref 
 }
 
 // Drops every ref, not just the default branch: one push can move several.
-func (s *LanguageService) InvalidateRepo(ctx context.Context, owner, repoName string) {
-	prefix := owner + "/" + repoName + ":"
+func (s *LanguageService) InvalidateRepo(ctx context.Context, repoID int64) {
 	s.cache.Range(func(k, _ any) bool {
-		if strings.HasPrefix(k.(string), prefix) {
+		if k.(langCacheKey).repoID == repoID {
 			s.cache.Delete(k)
 		}
 		return true
@@ -123,8 +129,8 @@ type LangPercent struct {
 }
 
 // Drops languages contributing less than 1%.
-func (s *LanguageService) Percentages(ctx context.Context, owner, repoName, ref string) ([]LangPercent, error) {
-	comp, err := s.Composition(ctx, owner, repoName, ref)
+func (s *LanguageService) Percentages(ctx context.Context, repo *model.Repository, ref string) ([]LangPercent, error) {
+	comp, err := s.Composition(ctx, repo, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -135,8 +141,8 @@ func (s *LanguageService) Percentages(ctx context.Context, owner, repoName, ref 
 // default tree. Ties are broken by alphabetical order. Returns ("", nil) when
 // no recognised code is found (including repos containing only empty source
 // files or only excluded extensions like Markdown).
-func (s *LanguageService) TopLanguageFor(ctx context.Context, owner, repoName, ref string) (string, error) {
-	comp, err := s.Composition(ctx, owner, repoName, ref)
+func (s *LanguageService) TopLanguageFor(ctx context.Context, repo *model.Repository, ref string) (string, error) {
+	comp, err := s.Composition(ctx, repo, ref)
 	if err != nil {
 		return "", err
 	}
@@ -160,7 +166,7 @@ func (s *LanguageService) PrimaryLanguage(ctx context.Context, repo *model.Repos
 	if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
 		return *repo.PrimaryLanguage
 	}
-	lang, err := s.TopLanguageFor(ctx, repo.OwnerName, repo.Name, repo.DefaultBranch)
+	lang, err := s.TopLanguageFor(ctx, repo, repo.DefaultBranch)
 	if err != nil || lang == "" {
 		return ""
 	}
@@ -180,7 +186,7 @@ func (s *LanguageService) AggregateForUser(ctx context.Context, username string,
 	}
 	totals := make(map[string]int64)
 	for _, r := range repos {
-		comp, err := s.Composition(ctx, r.OwnerName, r.Name, r.DefaultBranch)
+		comp, err := s.Composition(ctx, &r, r.DefaultBranch)
 		if err != nil {
 			slog.WarnContext(ctx, "language_service: composition failed for repo",
 				"owner", r.OwnerName, "name", r.Name, "ref", r.DefaultBranch, "err", err)

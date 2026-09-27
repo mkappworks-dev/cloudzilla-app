@@ -116,7 +116,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var languages []components.LangBarItem
-	if percents, langErr := h.Services.Language.Percentages(r.Context(), owner, repoName, repo.DefaultBranch); langErr != nil {
+	if percents, langErr := h.Services.Language.Percentages(r.Context(), repo, repo.DefaultBranch); langErr != nil {
 		slog.Warn("repo: language percentages failed", "owner", owner, "repo", repoName, "error", langErr)
 	} else {
 		languages = make([]components.LangBarItem, 0, len(percents))
