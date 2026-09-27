@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -111,5 +112,74 @@ func TestSignupTokenStore_GetUsableByHash_UnknownHash(t *testing.T) {
 	_, err := store.NewSignupTokenStore(db).GetUsableByHash(context.Background(), "no_such_hash_"+testutil.UniqueSuffix(t))
 	if !errors.Is(err, store.ErrSignupTokenUnusable) {
 		t.Errorf("want ErrSignupTokenUnusable, got %v", err)
+	}
+}
+
+func newSignupUser(t *testing.T, db *sql.DB, username string) *model.User {
+	t.Helper()
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE username = $1`, username) })
+	return &model.User{Username: username, PasswordHash: "x"}
+}
+
+func TestUserStore_CreateFromSignupToken_ClaimsLinkAndUsesItsEmail(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	email := "signup_" + suffix + "@test.invalid"
+	cleanupSignupTokens(t, db, email)
+	issueSignupToken(t, store.NewSignupTokenStore(db), email, "hash_"+suffix)
+	u := newSignupUser(t, db, "signup_"+suffix)
+
+	if err := store.NewUserStore(db).CreateFromSignupToken(context.Background(), u, "hash_"+suffix); err != nil {
+		t.Fatalf("CreateFromSignupToken: %v", err)
+	}
+
+	if u.ID == 0 || u.Email != email {
+		t.Errorf("want a created user with the link's email, got %+v", u)
+	}
+	if _, err := store.NewSignupTokenStore(db).GetUsableByHash(context.Background(), "hash_"+suffix); !errors.Is(err, store.ErrSignupTokenUnusable) {
+		t.Errorf("a redeemed link must be unusable; got %v", err)
+	}
+}
+
+// Covers the submit that loses a race: the link was usable when the page
+// loaded but was redeemed before this call.
+func TestUserStore_CreateFromSignupToken_UsedLink_CreatesNoUser(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	email := "signup_" + suffix + "@test.invalid"
+	cleanupSignupTokens(t, db, email)
+	issueSignupToken(t, store.NewSignupTokenStore(db), email, "hash_"+suffix)
+	testutil.Exec(t, db, `UPDATE signup_tokens SET used_at = NOW() WHERE lower(email) = lower($1)`, email)
+	u := newSignupUser(t, db, "signup_"+suffix)
+
+	err := store.NewUserStore(db).CreateFromSignupToken(context.Background(), u, "hash_"+suffix)
+
+	if !errors.Is(err, store.ErrSignupTokenUnusable) {
+		t.Errorf("want ErrSignupTokenUnusable, got %v", err)
+	}
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM users WHERE username = $1`, u.Username).Scan(&n); err != nil {
+		t.Fatalf("count users: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("a used link must not create a user; found %d", n)
+	}
+}
+
+func TestUserStore_CreateFromSignupToken_UsernameTaken_LinkStaysUsable(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	testutil.SeedUser(t, db, suffix)
+	email := "signup_" + suffix + "@test.invalid"
+	cleanupSignupTokens(t, db, email)
+	issueSignupToken(t, store.NewSignupTokenStore(db), email, "hash_"+suffix)
+
+	err := store.NewUserStore(db).CreateFromSignupToken(context.Background(), &model.User{Username: "testuser_" + suffix, PasswordHash: "x"}, "hash_"+suffix)
+
+	if !errors.Is(err, store.ErrUsernameTaken) {
+		t.Errorf("want ErrUsernameTaken, got %v", err)
+	}
+	if _, err := store.NewSignupTokenStore(db).GetUsableByHash(context.Background(), "hash_"+suffix); err != nil {
+		t.Errorf("a failed create must leave the link usable: %v", err)
 	}
 }

@@ -72,6 +72,37 @@ func (s *UserStore) CreateFromInvitation(ctx context.Context, u *model.User, inv
 	return tx.Commit()
 }
 
+// CreateFromSignupToken claims the signup link and inserts u with the link's
+// email in one transaction, so a failed insert leaves the link usable and
+// concurrent submits can't both redeem it.
+func (s *UserStore) CreateFromSignupToken(ctx context.Context, u *model.User, tokenHash string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("user create from signup token: begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	err = tx.QueryRowContext(ctx,
+		`UPDATE signup_tokens SET used_at = NOW() WHERE token_hash = $1 AND `+usableSignupTokenCond+` RETURNING email`,
+		tokenHash,
+	).Scan(&u.Email)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrSignupTokenUnusable
+	}
+	if err != nil {
+		return fmt.Errorf("user create from signup token: claim: %w", err)
+	}
+
+	if err := insertUser(ctx, tx, u); err != nil {
+		// The email was registered after the claim; same rule as usableSignupTokenCond.
+		if errors.Is(err, ErrEmailTaken) {
+			return ErrSignupTokenUnusable
+		}
+		return err
+	}
+	return tx.Commit()
+}
+
 func insertUser(ctx context.Context, db dbtx, u *model.User) error {
 	err := db.QueryRowContext(ctx,
 		`INSERT INTO users (username, email, password_hash, bio, avatar_url, is_invited)
