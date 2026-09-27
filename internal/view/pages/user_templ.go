@@ -271,7 +271,7 @@ func User(data view.UserData) templ.Component {
 				})
 				templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
 					"x-data":     "{ copied: false }",
-					"@click":     "navigator.clipboard.writeText(window.location.origin + " + strconv.Quote("/"+data.User.Username) + "); copied = true; setTimeout(() => copied = false, 1500)",
+					"@click":     "navigator.clipboard.writeText(window.location.origin + " + components.JSLiteral("/"+data.User.Username) + "); copied = true; setTimeout(() => copied = false, 1500)",
 					"aria-label": "Copy profile URL to clipboard",
 				}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var12), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
@@ -512,7 +512,7 @@ func User(data view.UserData) templ.Component {
 						}
 						return nil
 					})
-					templ_7745c5c3_Err = components.LinkButton("/repos/new?name="+data.User.Username+"&visibility=public&init_readme=1", components.ButtonDefault, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var20), templ_7745c5c3_Buffer)
+					templ_7745c5c3_Err = components.LinkButton("/repos/new?name="+url.QueryEscape(data.User.Username)+"&visibility=public&init_readme=1", components.ButtonDefault, components.ButtonSizeDefault, nil).Render(templ.WithChildren(ctx, templ_7745c5c3_Var20), templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

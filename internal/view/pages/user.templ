@@ -68,7 +68,7 @@ templ User(data view.UserData) {
 						}
 						@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{
 							"x-data":     "{ copied: false }",
-							"@click":     "navigator.clipboard.writeText(window.location.origin + " + strconv.Quote("/"+data.User.Username) + "); copied = true; setTimeout(() => copied = false, 1500)",
+							"@click":     "navigator.clipboard.writeText(window.location.origin + " + components.JSLiteral("/"+data.User.Username) + "); copied = true; setTimeout(() => copied = false, 1500)",
 							"aria-label": "Copy profile URL to clipboard",
 						}) {
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"></path></svg>
@@ -142,7 +142,7 @@ templ User(data view.UserData) {
 									<p class="text-[13px] text-muted-foreground max-w-prose">
 										Tell visitors about yourself. We'll create a public repo named <span class="font-mono text-foreground">{ data.User.Username }</span> with a README.md you can edit anytime.
 									</p>
-									@components.LinkButton("/repos/new?name="+data.User.Username+"&visibility=public&init_readme=1", components.ButtonDefault, components.ButtonSizeDefault, nil) {
+									@components.LinkButton("/repos/new?name="+url.QueryEscape(data.User.Username)+"&visibility=public&init_readme=1", components.ButtonDefault, components.ButtonSizeDefault, nil) {
 										<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
 										Create README repo
 									}

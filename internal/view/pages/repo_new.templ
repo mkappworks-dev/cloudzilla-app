@@ -180,7 +180,7 @@ templ RepoNew(data view.RepoNewData) {
 // popup chrome (vs. browser-native <select> chrome). The hidden input keeps
 // the value submittable by the form's JS handler (which reads .value by id).
 templ repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial repoNewSelectOption) {
-	<div x-data={ "{ open: false, value: '" + initial.Value + "', label: '" + initial.Label + "' }" } @click.away="open = false" class="relative">
+	<div x-data={ "{ open: false, value: " + components.JSLiteral(initial.Value) + ", label: " + components.JSLiteral(initial.Label) + " }" } @click.away="open = false" class="relative">
 		<input type="hidden" id={ id } name={ name } value={ initial.Value } x-bind:value="value"/>
 		<button type="button" id={ id + "-btn" } @click="open = !open" :aria-expanded="open ? 'true' : 'false'" aria-haspopup="listbox" class="w-full flex items-center justify-between bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground hover:border-border-strong focus:outline-none focus:border-ring">
 			<span x-text="label" class="truncate text-left"></span>

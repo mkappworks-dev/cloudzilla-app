@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"net/url"
 	"strconv"
 	"time"
 
@@ -83,7 +84,7 @@ templ Org(data view.OrgData) {
 				</div>
 				<div class="flex-shrink-0 flex items-center gap-2">
 					if data.CanManage {
-						@components.LinkButton("/repos/new?owner="+data.Org.Name, components.ButtonDefault, components.ButtonSizeSM, nil) {
+						@components.LinkButton("/repos/new?owner="+url.QueryEscape(data.Org.Name), components.ButtonDefault, components.ButtonSizeSM, nil) {
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
 							New repository
 						}
