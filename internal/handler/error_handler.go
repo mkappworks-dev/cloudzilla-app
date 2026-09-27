@@ -58,3 +58,12 @@ func createFormErrorMessage(err error) string {
 	}
 	return ""
 }
+
+// passwordLengthMessage returns page text for a password bcrypt can't hash, or
+// "" when its length is fine.
+func passwordLengthMessage(password string) string {
+	if len(password) > service.MaxPasswordBytes {
+		return fmt.Sprintf("Password is too long (maximum %d bytes)", service.MaxPasswordBytes)
+	}
+	return ""
+}

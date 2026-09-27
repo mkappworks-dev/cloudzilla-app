@@ -46,6 +46,8 @@ func formRouter(h *handler.Handler) http.Handler {
 	r.Post("/{owner}/{repo}/pulls/new", h.PageNewPullSubmit)
 	r.Post("/admin/sso", h.SaveSSOConfig)
 	r.Post("/setup", h.PageSetupSubmit)
+	r.Post("/register", h.PageRegisterSubmit)
+	r.Post("/invite/{token}", h.PageInviteSubmit)
 	return middleware.OptionalAuth(testJWTSecret, testCookieName, nil, nil)(r)
 }
 
@@ -174,9 +176,12 @@ func TestSaveSSOConfig_StoreError_GenericError(t *testing.T) {
 	assertContains(t, body, "Could not save the SSO configuration")
 }
 
-// A search_path with no tables makes setup look incomplete (the user count
-// fails) and then fails the superadmin insert, without touching shared rows.
-func TestPageSetupSubmit_StoreError_GenericError(t *testing.T) {
+// openSchemalessDB connects to the test database with a search_path that has
+// no tables, so every query fails. Setup then looks incomplete (the user count
+// fails) and site settings fall back to their defaults, without touching
+// shared rows.
+func openSchemalessDB(t *testing.T) *sql.DB {
+	t.Helper()
 	testutil.OpenTestDB(t)
 	dsn, err := url.Parse(os.Getenv("TEST_DATABASE_DSN"))
 	if err != nil || !strings.HasPrefix(dsn.Scheme, "postgres") {
@@ -190,6 +195,11 @@ func TestPageSetupSubmit_StoreError_GenericError(t *testing.T) {
 		t.Fatalf("open schemaless db: %v", err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
+	return db
+}
+
+func TestPageSetupSubmit_StoreError_GenericError(t *testing.T) {
+	db := openSchemalessDB(t)
 
 	body := submitForm(t, newFormHandler(t, db), "/setup", "", url.Values{
 		"username": {"admin"}, "email": {"admin@test.invalid"}, "password": {"password123"},
