@@ -12,6 +12,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 )
 
 // CommitFile commits content to filePath on branch, creating the branch if it
@@ -81,7 +82,7 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 		return err
 	}
 
-	if err := setBranchTip(repo.Storer, branchRef, oldTip, commitHash); err != nil {
+	if err := gitref.Move(repo.Storer, branchRef, oldTip, commitHash); err != nil {
 		return fmt.Errorf("advance branch: %w", err)
 	}
 	// Point HEAD at the branch only when it is missing or detached — i.e. the
