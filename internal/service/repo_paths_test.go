@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
@@ -13,28 +14,40 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-// The owner is seeded directly: a name like ".." predates the owner-name rule
+// The owner is seeded directly: a name like "../x" predates the owner-name rule
 // or bypasses it, and must still never reach outside the repos root.
 func TestRepoService_Create_OwnerOutsideRoot_CreatesNothing(t *testing.T) {
 	db := testutil.OpenTestDB(t)
-	root := t.TempDir()
+	root := filepath.Join(t.TempDir(), "repos")
+	owner := "../dd_" + testutil.UniqueSuffix(t)
+	escaped := filepath.Join(root, owner, "escape.git")
+	if rel, err := filepath.Rel(root, escaped); err != nil || !strings.HasPrefix(rel, "..") {
+		t.Fatalf("owner %q must point outside the root for this test; rel = %q, %v", owner, rel, err)
+	}
 	var ownerID int64
 	if err := db.QueryRowContext(context.Background(),
-		`INSERT INTO users (username, email, password_hash) VALUES ('..', $1, 'x') RETURNING id`,
-		"dotdot_"+testutil.UniqueSuffix(t)+"@test.invalid",
+		`INSERT INTO users (username, email, password_hash) VALUES ($1, $2, 'x') RETURNING id`,
+		owner, "dotdot_"+testutil.UniqueSuffix(t)+"@test.invalid",
 	).Scan(&ownerID); err != nil {
 		t.Fatalf("seed user: %v", err)
 	}
 	t.Cleanup(func() { testutil.DeleteUsers(t, db, ownerID) })
 	svc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{ReposRoot: root})
 
-	_, err := svc.Create(context.Background(), "..", "escape", "", false)
+	_, err := svc.Create(context.Background(), owner, "escape", "", false)
 
-	if err == nil {
-		t.Error("an owner that isn't a single path element must be refused")
+	if !errors.Is(err, service.ErrInvalidRepoPath) {
+		t.Errorf("want ErrInvalidRepoPath, got %v", err)
 	}
-	if _, statErr := os.Stat(filepath.Join(root, "..", "escape.git")); !os.IsNotExist(statErr) {
+	if _, statErr := os.Stat(escaped); !os.IsNotExist(statErr) {
 		t.Errorf("nothing may be created outside the repos root; stat: %v", statErr)
+	}
+	var rows int
+	if err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM repositories WHERE owner_id = $1`, ownerID).Scan(&rows); err != nil {
+		t.Fatal(err)
+	}
+	if rows != 0 {
+		t.Errorf("no repository row may be created, found %d", rows)
 	}
 }
 
