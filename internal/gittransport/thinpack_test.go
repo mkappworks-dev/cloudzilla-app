@@ -82,7 +82,7 @@ func TestWrapForReceive_ResolvesThinPackRefDelta(t *testing.T) {
 		if err != nil {
 			t.Fatalf("endpoint: %v", err)
 		}
-		sess, err := gittransport.NewServer(st).NewReceivePackSession(ep, nil)
+		sess, err := gittransport.NewServer(st, nil).NewReceivePackSession(ep, nil)
 		if err != nil {
 			t.Fatalf("open session: %v", err)
 		}

@@ -49,8 +49,8 @@ func CountRefStatus(status *packp.ReportStatus) (ok, failed int) {
 
 // AppliedCommands returns the subset of commands that the receive-pack
 // report did not mark as failed. A NewServer session reports a per-ref
-// failure (a moved ref, a storer error) only in status, not as a
-// ReceivePack error, so callers must filter before running push side effects.
+// failure (a vet refusal, a moved ref, a storer error) only in status, not as
+// a ReceivePack error, so callers must filter before running push side effects.
 func AppliedCommands(status *packp.ReportStatus, commands []*packp.Command) []*packp.Command {
 	if status == nil {
 		return commands
