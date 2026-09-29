@@ -430,7 +430,7 @@ func TestMoveDirs_ReportsADirectoryStrandedByAFailedUndo(t *testing.T) {
 	errMove, errUndo := errors.New("wiki move failed"), errors.New("undo failed")
 	failRenames(t, map[string]error{wiki: errMove, movedRepo: errUndo})
 
-	err := moveDirs(dirMove{repo, movedRepo}, dirMove{wiki, deletedDirPath(wiki, 1)})
+	_, err := moveDirs(dirMove{repo, movedRepo}, dirMove{wiki, deletedDirPath(wiki, 1)})
 
 	if !errors.Is(err, errMove) || !strings.HasPrefix(err.Error(), errMove.Error()) {
 		t.Errorf("want the move's error first, got %v", err)
@@ -456,4 +456,95 @@ func TestPurgeExpired_OldFormatCopy_NeverTakesAnEarlierDeletion(t *testing.T) {
 	purgeExpired(t, newDiskRepoService(db, root))
 
 	assertExists(t, oldFormatCopy(repo, firstAt))
+}
+
+func isDeleted(t *testing.T, db *sql.DB, repoID int64) bool {
+	t.Helper()
+	var deleted bool
+	if err := db.QueryRowContext(context.Background(), `SELECT deleted_at IS NOT NULL FROM repositories WHERE id = $1`, repoID).Scan(&deleted); err != nil {
+		t.Fatal(err)
+	}
+	return deleted
+}
+
+// cancelOnRename returns a context that the first directory move cancels, so
+// the row update after the moves fails.
+func cancelOnRename(t *testing.T) context.Context {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	prev := rename
+	rename = func(from, to string) error {
+		defer cancel()
+		return prev(from, to)
+	}
+	t.Cleanup(func() { rename = prev; cancel() })
+	return ctx
+}
+
+func TestDelete_RowUpdateFails_MovesTheDirsBack(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	owner := "deleter_" + testutil.UniqueSuffix(t)
+	ownerID := seedOwner(t, db, owner)
+	repoID := seedRepoRow(t, db, ownerID, owner, "x", "NULL")
+	mkdirs(t, filepath.Join(root, owner, "x.git"), filepath.Join(root, owner, "x.wiki.git"))
+
+	err := newDiskRepoService(db, root).Delete(cancelOnRename(t), repoID, ownerID)
+
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("want the row update's error, got %v", err)
+	}
+	assertDirHolds(t, filepath.Join(root, owner), "x.git", "x.wiki.git")
+	if isDeleted(t, db, repoID) {
+		t.Error("the row must stay live")
+	}
+}
+
+func TestRestore_RowUpdateFails_MovesTheDirsBack(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	owner := "restorer_" + testutil.UniqueSuffix(t)
+	ownerID := seedOwner(t, db, owner)
+	repoID := seedRepoRow(t, db, ownerID, owner, "x", "NOW()")
+	repo, wiki := filepath.Join(root, owner, "x.git"), filepath.Join(root, owner, "x.wiki.git")
+	mkdirs(t, deletedDirPath(repo, repoID), deletedDirPath(wiki, repoID))
+
+	err := newDiskRepoService(db, root).Restore(cancelOnRename(t), repoID, ownerID, false)
+
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("want the row update's error, got %v", err)
+	}
+	assertDirHolds(t, filepath.Join(root, owner), filepath.Base(deletedDirPath(repo, repoID)), filepath.Base(deletedDirPath(wiki, repoID)))
+	if !isDeleted(t, db, repoID) {
+		t.Error("the row must stay deleted")
+	}
+}
+
+func TestTransferRepo_OwnerUpdateFails_ReportsAStrandedDir(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	suffix := testutil.UniqueSuffix(t)
+	from, to := "giver_"+suffix, "taker_"+suffix
+	fromID, toID := seedOwner(t, db, from), seedOwner(t, db, to)
+	repoID := seedRepoRow(t, db, fromID, from, "x", "NULL")
+	// The new owner's deleted x fails the owner update on UNIQUE(owner_id, name).
+	seedRepoRow(t, db, toID, to, "x", "NOW()")
+	mkdirs(t, filepath.Join(root, from, "x.git"))
+	moved := filepath.Join(root, to, "x.git")
+	errUndo := errors.New("undo failed")
+	failRenames(t, map[string]error{moved: errUndo})
+	svc := newDiskRepoService(db, root)
+	repo, err := svc.GetByID(context.Background(), repoID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = svc.TransferRepo(context.Background(), repo, fromID, to)
+
+	if err == nil || !strings.HasPrefix(err.Error(), "update repo owner") {
+		t.Errorf("want the owner update's error first, got %v", err)
+	}
+	if !errors.Is(err, errUndo) || !strings.Contains(err.Error(), moved) {
+		t.Errorf("want the failed undo naming the stranded %s, got %v", moved, err)
+	}
 }

@@ -96,24 +96,24 @@ type dirMove struct{ from, to string }
 // directory setup makes it fail.
 var rename = os.Rename
 
-// moveDirs renames each existing from to its to, never over an existing to.
-// On failure it moves back what it already moved, so a repo and its wiki stay
-// together.
-func moveDirs(moves ...dirMove) error {
+// moveDirs renames each existing from to its to, never over an existing to,
+// and returns the moves it made. On failure it moves back what it already
+// moved, so a repo and its wiki stay together.
+func moveDirs(moves ...dirMove) ([]dirMove, error) {
 	var done []dirMove
 	for _, m := range moves {
 		if _, err := os.Stat(m.from); err != nil {
 			continue
 		}
 		if _, err := os.Stat(m.to); err == nil {
-			return undoMoves(fmt.Errorf("%s already exists", m.to), done)
+			return nil, undoMoves(fmt.Errorf("%s already exists", m.to), done)
 		}
 		if err := rename(m.from, m.to); err != nil {
-			return undoMoves(err, done)
+			return nil, undoMoves(err, done)
 		}
 		done = append(done, m)
 	}
-	return nil
+	return done, nil
 }
 
 // undoMoves moves done back, last first, and returns cause joined with every

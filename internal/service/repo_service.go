@@ -790,18 +790,22 @@ func (s *RepoService) Delete(ctx context.Context, repoID, userID int64) error {
 		return err
 	}
 
+	var moved []dirMove
 	// A legacy name can fail RepoDir: soft-delete the row anyway, so the UI can clean it up.
 	repoPath, wikiPath, err := s.gitDirs(repo.OwnerName, repo.Name)
 	if err != nil {
 		slog.Warn("delete: skipping unsafe repo path", "repo_id", repoID, "error", err)
-	} else if err := moveDirs(
+	} else if moved, err = moveDirs(
 		dirMove{repoPath, deletedDirPath(repoPath, repo.ID)},
 		dirMove{wikiPath, deletedDirPath(wikiPath, repo.ID)},
 	); err != nil {
 		return fmt.Errorf("move git dirs for soft delete: %w", err)
 	}
 
-	return s.repos.Delete(ctx, repoID, userID)
+	if err := s.repos.Delete(ctx, repoID, userID); err != nil {
+		return undoMoves(err, moved)
+	}
+	return nil
 }
 
 func (s *RepoService) gitDirs(owner, name string) (repoPath, wikiPath string, err error) {
@@ -832,14 +836,18 @@ func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, is
 	if err != nil {
 		return fmt.Errorf("find deleted git dir: %w", err)
 	}
-	if err := moveDirs(
+	moved, err := moveDirs(
 		dirMove{deletedRepo, repoPath},
 		dirMove{deletedDirPath(wikiPath, repo.ID), wikiPath},
-	); err != nil {
+	)
+	if err != nil {
 		return fmt.Errorf("move git dirs back on restore: %w", err)
 	}
 
-	return s.repos.Restore(ctx, repoID)
+	if err := s.repos.Restore(ctx, repoID); err != nil {
+		return undoMoves(err, moved)
+	}
+	return nil
 }
 
 func (s *RepoService) GetDeleted(ctx context.Context, ownerName, name string) (*model.Repository, error) {
@@ -911,9 +919,7 @@ func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, 
 	}
 
 	if err := s.repos.UpdateOwner(ctx, repo.ID, newOwner.ID, newOwnerUsername); err != nil {
-		// Best-effort rollback of git dir move
-		_ = os.Rename(newPath, oldPath)
-		return fmt.Errorf("update repo owner: %w", err)
+		return undoMoves(fmt.Errorf("update repo owner: %w", err), []dirMove{{oldPath, newPath}})
 	}
 	return nil
 }
