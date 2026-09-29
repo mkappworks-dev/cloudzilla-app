@@ -4,9 +4,13 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"net/url"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -21,12 +25,28 @@ type OAuthAppService struct {
 	users *store.UserStore
 }
 
+// ErrInvalidScope is returned when an authorization request names a scope that cannot be granted.
+var ErrInvalidScope = errors.New("invalid scope")
+
+// ErrInvalidRedirectURI is returned when an app is registered without a usable redirect URI.
+var ErrInvalidRedirectURI = errors.New("invalid redirect_uri")
+
+// ErrInvalidClient is returned when a token request's client_id is unknown or its secret is wrong.
+var ErrInvalidClient = errors.New("invalid client credentials")
+
+// ErrInvalidGrant is returned when an authorization code is unknown, expired, already
+// redeemed, or was issued to another app or redirect_uri.
+var ErrInvalidGrant = errors.New("invalid or expired authorization code")
+
 // NewOAuthAppService creates an OAuthAppService backed by the given stores.
 func NewOAuthAppService(apps *store.OAuthAppStore, auths *store.OAuthAuthorizationStore, users *store.UserStore) *OAuthAppService {
 	return &OAuthAppService{apps: apps, auths: auths, users: users}
 }
 
 func (s *OAuthAppService) CreateApp(ctx context.Context, ownerID int64, name, homepageURL, description string, redirectURIs []string) (*model.OAuthApp, string, error) {
+	if err := validateRedirectURIs(redirectURIs); err != nil {
+		return nil, "", err
+	}
 	clientIDBytes := make([]byte, 10)
 	if _, err := rand.Read(clientIDBytes); err != nil {
 		return nil, "", fmt.Errorf("generate client_id: %w", err)
@@ -71,20 +91,53 @@ func (s *OAuthAppService) DeleteApp(ctx context.Context, id, ownerID int64) erro
 	return s.apps.Delete(ctx, id, ownerID)
 }
 
-// IsRedirectURIAllowed returns true when redirectURI is in the app's allowed
-// list, or when the app has no registered redirect URIs (unrestricted).
-func (s *OAuthAppService) IsRedirectURIAllowed(app *model.OAuthApp, redirectURI string) bool {
-	if len(app.RedirectURIs) == 0 {
-		return true
+func validateRedirectURIs(uris []string) error {
+	if len(uris) == 0 {
+		return fmt.Errorf("%w: at least one is required", ErrInvalidRedirectURI)
 	}
-	return slices.Contains(app.RedirectURIs, redirectURI)
+	for _, raw := range uris {
+		u, err := url.Parse(raw)
+		// RFC 6749 §3.1.2 bars a fragment; a comma would split the stored comma-joined list.
+		if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" || strings.ContainsAny(raw, "#,") {
+			return fmt.Errorf("%w: %q", ErrInvalidRedirectURI, raw)
+		}
+	}
+	return nil
+}
+
+// IsRedirectURIAllowed reports whether redirectURI exactly matches one the app
+// registered; an app with none registered allows none.
+func (s *OAuthAppService) IsRedirectURIAllowed(app *model.OAuthApp, redirectURI string) bool {
+	return redirectURI != "" && slices.Contains(app.RedirectURIs, redirectURI)
+}
+
+// ParseScopes splits a space-delimited OAuth scope parameter, dropping duplicates.
+// It returns ErrInvalidScope if any scope is unknown.
+func (s *OAuthAppService) ParseScopes(_ context.Context, param string) ([]string, error) {
+	return validateScopes(strings.Fields(param))
+}
+
+func validateScopes(requested []string) ([]string, error) {
+	var scopes []string
+	for _, sc := range requested {
+		if !model.IsKnownScope(sc) {
+			return nil, fmt.Errorf("%w: %q", ErrInvalidScope, sc)
+		}
+		if !slices.Contains(scopes, sc) {
+			scopes = append(scopes, sc)
+		}
+	}
+	return scopes, nil
 }
 
 // Authorize creates an authorization code for the given user + app + scopes.
-// It validates that redirectURI is in the app's allowed list.
+// It validates that redirectURI is in the app's allowed list and that every scope is known.
 func (s *OAuthAppService) Authorize(ctx context.Context, appID, userID int64, redirectURI string, scopes []string, app *model.OAuthApp) (code string, err error) {
-	if len(app.RedirectURIs) > 0 && !slices.Contains(app.RedirectURIs, redirectURI) {
+	if !s.IsRedirectURIAllowed(app, redirectURI) {
 		return "", fmt.Errorf("redirect_uri not allowed")
+	}
+	if scopes, err = validateScopes(scopes); err != nil {
+		return "", err
 	}
 	codeBytes := make([]byte, 16)
 	if _, err := rand.Read(codeBytes); err != nil {
@@ -92,20 +145,28 @@ func (s *OAuthAppService) Authorize(ctx context.Context, appID, userID int64, re
 	}
 	codeHex := hex.EncodeToString(codeBytes)
 	expiresAt := time.Now().Add(5 * time.Minute)
-	if _, err := s.auths.Upsert(ctx, appID, userID, codeHex, expiresAt, scopes); err != nil {
+	if _, err := s.auths.Upsert(ctx, appID, userID, codeHex, redirectURI, expiresAt, scopes); err != nil {
 		return "", err
 	}
 	return codeHex, nil
 }
 
-// ExchangeCode validates the authorization code and returns a raw bearer token.
-func (s *OAuthAppService) ExchangeCode(ctx context.Context, clientID, clientSecret, code string) (token string, err error) {
+// ExchangeCode redeems a code issued to clientID for redirectURI and returns a raw bearer token.
+// It returns ErrInvalidClient or ErrInvalidGrant for the caller's mistakes; any other error is internal.
+func (s *OAuthAppService) ExchangeCode(ctx context.Context, clientID, clientSecret, code, redirectURI string) (token string, err error) {
 	app, err := s.apps.GetByClientID(ctx, clientID)
-	if err != nil {
-		return "", fmt.Errorf("app not found")
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrInvalidClient
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(app.ClientSecret), []byte(clientSecret)); err != nil {
-		return "", fmt.Errorf("invalid client_secret")
+	if err != nil {
+		return "", err
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(app.ClientSecret), []byte(clientSecret))
+	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+		return "", ErrInvalidClient
+	}
+	if err != nil {
+		return "", fmt.Errorf("oauth app %d client_secret hash: %w", app.ID, err)
 	}
 	tokenBytes := make([]byte, 20)
 	if _, err := rand.Read(tokenBytes); err != nil {
@@ -113,7 +174,11 @@ func (s *OAuthAppService) ExchangeCode(ctx context.Context, clientID, clientSecr
 	}
 	rawToken := hex.EncodeToString(tokenBytes)
 	tokenHash := sha256HexOf(rawToken)
-	if _, err := s.auths.ExchangeCode(ctx, code, tokenHash); err != nil {
+	_, err = s.auths.ExchangeCode(ctx, app.ID, code, redirectURI, tokenHash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrInvalidGrant
+	}
+	if err != nil {
 		return "", err
 	}
 	return rawToken, nil

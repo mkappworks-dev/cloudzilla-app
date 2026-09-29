@@ -39,7 +39,8 @@ DELETE /api/user/keys/{id}
 ### Authentication
 
 - **Public repos**: No authentication required
-- **Private repos**: Requires HTTP Basic Auth or JWT cookie
+- **Private repos**: Requires HTTP Basic Auth (PAT as password) or JWT cookie
+- **OAuth-app tokens** (`Authorization: Bearer`): need `repo:read` (or any repo scope) to clone/fetch and `repo:write` to push; see [access-control](./access-control.md#oauth-app-scopes)
 - Permissions enforced: read access for clone/fetch, write access for push
 
 ### Example
@@ -63,7 +64,7 @@ Native `git push` produces *thin packs* by default — packs whose objects may b
 
 Cloudzilla's transport is pure-Go and uses `go-git`'s `server.ReceivePack`. go-git's filesystem-backed storer takes a fast path inside `packfile.UpdateObjectStorage` that runs the pack parser **without** access to the storage, so REF_DELTAs whose base is only on disk (not in the pack) cannot be resolved. The receive fails with `reference delta not found` and a 500 is returned to the client.
 
-To work around this without giving up the "no git binary required" invariant, both transports route the storer through `gittransport.WrapForReceive` before handing it to `server.NewServer`. The wrapper hides the storer's `PackfileWriter` method via interface-embedding, which forces `UpdateObjectStorage` onto its slower `NewParserWithStorage` branch. That parser *can* see the storage, so external delta bases are resolved correctly.
+To work around this without giving up the "no git binary required" invariant, both transports serve receive-pack through `gittransport.NewServer`, which routes the storer through `gittransport.WrapForReceive`. The wrapper hides the storer's `PackfileWriter` method via interface-embedding, which forces `UpdateObjectStorage` onto its slower `NewParserWithStorage` branch. That parser *can* see the storage, so external delta bases are resolved correctly.
 
 **Trade-off:** received objects land loose under `objects/xx/yyy…` rather than packed. Native git treats this as routine; reclaim unreferenced loose objects with `cloudzilla gc` (see [Maintenance](#maintenance)).
 
@@ -72,6 +73,22 @@ To work around this without giving up the "no git binary required" invariant, bo
 **Size limit:** the post-decompression pack size is capped by `git.max_pack_bytes` (default 2 GiB; `0` disables). Enforcing it after gzip inflation bounds both an oversized pack and a decompression bomb. An over-limit push is rejected — HTTP `413`, SSH error — rather than parsed in full.
 
 **See also:** [`docs/superpowers/specs/2026-05-15-git-receive-thin-pack-fix-design.md`](./superpowers/specs/2026-05-15-git-receive-thin-pack-fix-design.md).
+
+---
+
+## Concurrent ref updates
+
+go-git's receive-pack writes each pushed ref without comparing it to the command's old value. A branch that moved after the client read the ref advertisement — a web commit (merge, applied suggestion, file or wiki edit) or another push — would be overwritten: an unchecked force push that also skips `block_force_push`.
+
+`gittransport.NewServer` turns each ref write into a compare-and-swap against the old value the client pushed from (`gitref.Move`, which web commits use too; see [pr-merge](./pr-merge.md)). A ref that moved is refused in the report status, and the rest of the push still applies:
+
+```
+ ! [remote rejected] main -> main (ref changed since it was read; fetch and push again)
+```
+
+The response is still HTTP 200 / SSH exit 0; the per-ref status is what tells the client. Branch protection runs after the refs are written, and `gittransport.Revert` undoes a rejected ref only if it still holds the pushed commit. If something moved it in the meantime, the revert is skipped and logged as `branch protection rollback failed`.
+
+**Gap:** go-git can't create or delete a ref conditionally, so creates and deletes check the ref just before writing, not atomically with the write.
 
 ---
 

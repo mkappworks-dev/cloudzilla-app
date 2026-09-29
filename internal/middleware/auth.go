@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -16,11 +17,20 @@ type contextKey string
 
 const claimsKey contextKey = "claims"
 
-// Claims holds the authenticated user's identity extracted from a JWT or PAT.
+// Claims holds the authenticated user's identity extracted from a JWT, PAT or OAuth-app token.
 type Claims struct {
 	UserID       int64
 	Username     string
 	IsSuperadmin bool
+	// Scoped marks a delegated credential (an OAuth-app token) limited to Scopes.
+	// First-party sessions and PATs are unscoped and act with the user's full access.
+	Scoped bool
+	Scopes []string
+}
+
+// HasScope reports whether the credential grants scope. Unscoped credentials grant every scope.
+func (c Claims) HasScope(scope string) bool {
+	return !c.Scoped || slices.Contains(c.Scopes, scope)
 }
 
 // PATValidator is implemented by AccessTokenService. Defined here to avoid import cycle.
@@ -137,16 +147,25 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 }
 
 // serveOAuth handles r when tokenStr is a live OAuth-app token, reporting whether it did.
+// A token lacking scope for r is refused rather than passed on as anonymous.
 // IsSuperadmin stays false: instance-admin power is never delegated to an app.
 func serveOAuth(w http.ResponseWriter, r *http.Request, next http.Handler, resolver OAuthTokenResolver, tokenStr string) bool {
 	if resolver == nil || strings.HasPrefix(tokenStr, "czp_") {
 		return false
 	}
-	user, _, err := resolver.ResolveOAuthToken(r.Context(), tokenStr)
+	user, scopes, err := resolver.ResolveOAuthToken(r.Context(), tokenStr)
 	if err != nil {
 		return false
 	}
-	claims := Claims{UserID: user.ID, Username: user.Username}
+	claims := Claims{UserID: user.ID, Username: user.Username, Scoped: true, Scopes: scopes}
+	if !scopeAllows(claims, r) {
+		var hint string
+		if accepted := acceptedScopes(r); len(accepted) > 0 {
+			hint = accepted[0]
+		}
+		WriteInsufficientScope(w, hint)
+		return true
+	}
 	next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), claimsKey, claims)))
 	return true
 }

@@ -208,7 +208,7 @@ func TestConfirmAuthorize_StateCannotAddRedirectParams(t *testing.T) {
 			if len(q["code"]) != 1 {
 				t.Fatalf("code = %q, want exactly one", q["code"])
 			}
-			if _, err := oauthSvc.ExchangeCode(t.Context(), app.ClientID, clientSecret, q.Get("code")); err != nil {
+			if _, err := oauthSvc.ExchangeCode(t.Context(), app.ClientID, clientSecret, q.Get("code"), registered); err != nil {
 				t.Errorf("code %q in the redirect is not the issued one: %v", q.Get("code"), err)
 			}
 		})

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -16,7 +17,10 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
-const oauthStateCookie = "oauth_state"
+const (
+	oauthStateCookie = "oauth_state"
+	oauthNextCookie  = "oauth_next"
+)
 
 // Variables so tests can point the flow at a fake Google.
 var (
@@ -52,6 +56,21 @@ func (h *Handler) GoogleOAuthBegin(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(5 * time.Minute),
 		SameSite: http.SameSiteLaxMode,
 	})
+	next := r.URL.Query().Get("next")
+	nextCookie := &http.Cookie{
+		Name:     oauthNextCookie,
+		Value:    url.QueryEscape(next),
+		HttpOnly: true,
+		Secure:   h.Cfg.Auth.CookieSecure,
+		Path:     "/",
+		Expires:  time.Now().Add(5 * time.Minute),
+		SameSite: http.SameSiteLaxMode,
+	}
+	if next == "" {
+		// Clear any return path left by an abandoned earlier attempt.
+		nextCookie.MaxAge = -1
+	}
+	http.SetCookie(w, nextCookie)
 	http.Redirect(w, r, h.googleOAuthConfig().AuthCodeURL(state), http.StatusTemporaryRedirect)
 }
 
@@ -62,6 +81,11 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.SetCookie(w, &http.Cookie{Name: oauthStateCookie, MaxAge: -1, Path: "/", Secure: h.Cfg.Auth.CookieSecure})
+	var next string
+	if c, err := r.Cookie(oauthNextCookie); err == nil {
+		next, _ = url.QueryUnescape(c.Value)
+		http.SetCookie(w, &http.Cookie{Name: oauthNextCookie, MaxAge: -1, Path: "/", Secure: h.Cfg.Auth.CookieSecure})
+	}
 
 	cfg := h.googleOAuthConfig()
 	token, err := cfg.Exchange(context.Background(), r.URL.Query().Get("code"))
@@ -142,5 +166,5 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 	h.Services.AuditLog.Record(r.Context(), r, oauthUser.ID, oauthUser.Username, model.AuditActionLogin, "user", oauthUser.ID, oauthUser.Username, nil)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, safeNextPath(next), http.StatusSeeOther)
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -64,7 +65,7 @@ func TestPageSettings_ListsRepliesAppsAndAuthorizations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create oauth app: %v", err)
 	}
-	if _, err := svc.OAuthApp.Authorize(ctx, app.ID, userID, "https://example.test/cb", []string{"repo"}, app); err != nil {
+	if _, err := svc.OAuthApp.Authorize(ctx, app.ID, userID, "https://example.test/cb", []string{model.ScopeRepoRead}, app); err != nil {
 		t.Fatalf("authorize: %v", err)
 	}
 	auths, err := svc.OAuthApp.ListAuthorizationsByUser(ctx, userID)

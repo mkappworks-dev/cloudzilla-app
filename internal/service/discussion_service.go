@@ -18,6 +18,10 @@ const MaxTitleLen = 256
 // ErrTitleTooLong is returned when a title exceeds MaxTitleLen.
 var ErrTitleTooLong = errors.New("title is too long")
 
+// ErrUnknownDiscussionCategory is returned when a discussion names a category
+// that doesn't exist.
+var ErrUnknownDiscussionCategory = store.ErrUnknownDiscussionCategory
+
 // DiscussionService manages repository discussions, replies, and categories.
 type DiscussionService struct {
 	discussions *store.DiscussionStore

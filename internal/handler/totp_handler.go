@@ -84,18 +84,21 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 
 // PageTOTPVerify renders GET /auth/2fa — the 6-digit input page.
 func (h *Handler) PageTOTPVerify(w http.ResponseWriter, r *http.Request) {
+	next := r.URL.Query().Get("next")
 	if _, err := r.Cookie(totpPendingCookieName); err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, view.WithNext("/login", next), http.StatusSeeOther)
 		return
 	}
-	h.render(w, r, pages.TOTPVerify(view.TOTPVerifyPageData{BasePage: basePage(r, h.Services)}))
+	h.render(w, r, pages.TOTPVerify(view.TOTPVerifyPageData{BasePage: basePage(r, h.Services), Next: next}))
 }
 
 // VerifyTOTP handles POST /auth/2fa/verify (form: code, backup_code).
 func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
+	next := r.FormValue("next")
+	loginURL := view.WithNext("/login", next)
 	pendingCookie, err := r.Cookie(totpPendingCookieName)
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, loginURL, http.StatusSeeOther)
 		return
 	}
 
@@ -109,20 +112,20 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
 			Name: totpPendingCookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure,
 		})
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, loginURL, http.StatusSeeOther)
 		return
 	}
 
 	mapClaims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, loginURL, http.StatusSeeOther)
 		return
 	}
 	userID := int64(mapClaims["sub"].(float64))
 
 	u, err := h.Services.TOTP.StoreGetUser(r.Context(), userID)
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, loginURL, http.StatusSeeOther)
 		return
 	}
 
@@ -143,6 +146,7 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 		h.render(w, r, pages.TOTPVerify(view.TOTPVerifyPageData{
 			BasePage: basePage(r, h.Services),
 			Error:    "Invalid code. Please try again.",
+			Next:     next,
 		}))
 		return
 	}
@@ -166,5 +170,5 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 	h.Services.AuditLog.Record(r.Context(), r, u.ID, u.Username, model.AuditActionLogin, "user", u.ID, u.Username, nil)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, safeNextPath(next), http.StatusSeeOther)
 }

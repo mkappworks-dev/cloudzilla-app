@@ -6,8 +6,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
+
+// ErrUnknownDiscussionCategory replaces the category foreign-key violation so
+// the raw driver text, with its constraint name, never reaches a page.
+var ErrUnknownDiscussionCategory = errors.New("unknown discussion category")
 
 // DiscussionStore provides database operations for repository discussions and replies.
 type DiscussionStore struct{ db *sql.DB }
@@ -72,12 +77,17 @@ func (s *DiscussionStore) Create(ctx context.Context, d *model.Discussion) error
 		return err
 	}
 	d.Number = n
-	return s.db.QueryRowContext(ctx,
+	err = s.db.QueryRowContext(ctx,
 		`INSERT INTO discussions (repo_id, category_id, number, title, body, author_id, author_name)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7)
 		 RETURNING id, created_at, updated_at`,
 		d.RepoID, d.CategoryID, d.Number, d.Title, d.Body, d.AuthorID, d.AuthorName,
 	).Scan(&d.ID, &d.CreatedAt, &d.UpdatedAt)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23503" && pgErr.ConstraintName == "discussions_category_id_fkey" {
+		return ErrUnknownDiscussionCategory
+	}
+	return err
 }
 
 func (s *DiscussionStore) List(ctx context.Context, repoID int64, categoryID int64) ([]model.Discussion, error) {

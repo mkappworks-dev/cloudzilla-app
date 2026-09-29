@@ -18,25 +18,28 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
+
+const oauthTestRedirect = "https://client.test/cb"
 
 // oauthAppToken authorizes an app for userID and returns the bearer token the
 // app receives.
 func oauthAppToken(t *testing.T, svc *service.Services, appOwnerID, userID int64) string {
 	t.Helper()
 	ctx := context.Background()
-	app, secret, err := svc.OAuthApp.CreateApp(ctx, appOwnerID, "app "+testutil.UniqueSuffix(t), "", "", nil)
+	app, secret, err := svc.OAuthApp.CreateApp(ctx, appOwnerID, "app "+testutil.UniqueSuffix(t), "", "", []string{oauthTestRedirect})
 	if err != nil {
 		t.Fatalf("create oauth app: %v", err)
 	}
-	code, err := svc.OAuthApp.Authorize(ctx, app.ID, userID, "", []string{"read"}, app)
+	code, err := svc.OAuthApp.Authorize(ctx, app.ID, userID, oauthTestRedirect, []string{model.ScopeRepoRead, model.ScopeRepoWrite}, app)
 	if err != nil {
 		t.Fatalf("authorize oauth app: %v", err)
 	}
-	token, err := svc.OAuthApp.ExchangeCode(ctx, app.ClientID, secret, code)
+	token, err := svc.OAuthApp.ExchangeCode(ctx, app.ClientID, secret, code, oauthTestRedirect)
 	if err != nil {
 		t.Fatalf("exchange oauth code: %v", err)
 	}

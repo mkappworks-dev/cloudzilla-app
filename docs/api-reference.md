@@ -1,6 +1,6 @@
 # API Reference
 
-All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly cookie (`cz_token`) or an `Authorization: Bearer <token>` header. Personal access tokens (`czp_...`) are also accepted in the `Authorization` header.
+All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly cookie (`cz_token`) or an `Authorization: Bearer <token>` header. Personal access tokens (`czp_...`) are also accepted in the `Authorization` header, as are OAuth-app tokens, which are limited to the routes their scopes admit (see [OAuth Apps](#oauth-apps)).
 
 ---
 
@@ -191,6 +191,8 @@ Valid `state` values: `approved`, `changes_requested`, `commented`, `pending`.
 | DELETE | `/api/repos/:owner/:repo/pulls/:number/line_comments/:id`       | Required | Delete a line comment (author or repo writer only)             |
 | POST   | `/api/repos/:owner/:repo/pulls/:number/line_comments/:id/apply` | CanWrite | Apply a code review suggestion                                 |
 
+Applying a suggestion, merging a PR, and editing the wiki return `409` when a push moved the branch while the change was being committed; the push is kept and the client should reload and retry (see [pr-merge](./pr-merge.md#merge-flow)).
+
 ## Reactions
 
 | Method | Path                                             | Auth     | Description                          |
@@ -379,6 +381,29 @@ The profile, repo-defaults, and delete endpoints are browser form posts: they re
 | DELETE | `/api/oauth/authorizations/:id` | Required | Revoke an OAuth authorization (HTMX-aware) |
 
 Registering an app returns `client_secret` once; only its bcrypt hash is stored. JSON callers get it in the body; HTMX form posts (`name`, `homepage_url`, `redirect_uri`, `description`) get the apps-list fragment with the secret revealed.
+
+`POST /api/oauth/apps` takes `name`, `homepage_url`, `description` and `redirect_uris`, and returns the app with its `client_secret`, shown once. At least one redirect URI is required, each an absolute `http`/`https` URL with no fragment or comma; anything else returns `400`.
+
+`/oauth/authorize` takes `client_id`, `redirect_uri`, `state`, and a space-delimited `scope`. `redirect_uri` must exactly match one the app registered; if it doesn't, or a scope is unknown, the response is `400` and nothing is redirected. Apps registered before redirect URIs were required have none, so they must be registered again. The consent page can't be framed (`X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'`). Approving redirects to `redirect_uri` with `code` and `state` added to its query, keeping any query it already has; denying adds `error=access_denied` and `state` instead.
+
+`/oauth/token` exchanges `code` (with `grant_type=authorization_code` and the `redirect_uri` sent to `/oauth/authorize`) for `{"access_token": "...", "token_type": "bearer"}`. The client authenticates with HTTP Basic (`Authorization: Basic base64(client_id:client_secret)`, each part form-encoded first, per RFC 6749 §2.3.1) or with `client_id` and `client_secret` in the form body, not both; the endpoint needs no CSRF token. A code is single-use, expires after 5 minutes, and can be redeemed only by the app it was issued to with the same `redirect_uri`; a refused attempt leaves it redeemable by its own app. Errors follow RFC 6749 §5.2: the body is `{"error": "<code>"}` and nothing else. Every response, success or error, carries `Cache-Control: no-store` (RFC 6749 §5.1).
+
+| Status | `error`                  | When                                                                                                                          |
+| ------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| 400    | `invalid_request`        | `grant_type` or `code` missing, a malformed Basic header, or credentials in both the header and the body                      |
+| 400    | `unsupported_grant_type` | `grant_type` is anything but `authorization_code`                                                                             |
+| 401    | `invalid_client`         | Unknown `client_id`, wrong `client_secret`, or no credentials; adds `WWW-Authenticate: Basic realm="oauth"` if Basic was used |
+| 400    | `invalid_grant`          | Code unknown, expired, already redeemed, issued to another app, or `redirect_uri` doesn't match                               |
+| 500    | `server_error`           | Anything else; the cause is logged server-side                                                                                |
+
+| Scope          | Grants                                                                                         |
+| -------------- | ---------------------------------------------------------------------------------------------- |
+| `repo:read`    | Read repos, issues, pulls, releases, orgs and user profiles; git clone/fetch                   |
+| `repo:write`   | `repo:read`, plus repo content writes, creating repos, merging, git push                       |
+| `issues:write` | Reads, plus writes under `/api/repos/:owner/:repo/issues/**`                                   |
+| `pulls:write`  | Reads, plus writes under `/api/repos/:owner/:repo/pulls/**`, except merging and applying suggestions |
+
+A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` with a `WWW-Authenticate: Bearer error="insufficient_scope", scope="..."` header naming the scope to request. Only listed routes are open to OAuth tokens; account, admin and repo-administration endpoints and HTML pages never are. Route list: [access-control](./access-control.md#oauth-app-scopes).
 
 ## Instance Admin (superadmin only)
 

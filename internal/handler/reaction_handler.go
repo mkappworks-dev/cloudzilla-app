@@ -22,24 +22,16 @@ func (h *Handler) ListReactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
-	var userID *int64
 	loggedIn := false
 	var callerID int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
 		callerID = claims.UserID
 		loggedIn = true
-	}
-
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		writeError(w, http.StatusForbidden, "forbidden")
-		return
 	}
 
 	belongs, err := h.Services.Reaction.CommentBelongsToRepo(r.Context(), commentID, repo.ID)
@@ -76,15 +68,8 @@ func (h *Handler) ToggleReaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-
-	userID := &claims.UserID
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
@@ -139,13 +124,7 @@ func (h *Handler) ToggleDiscussionReaction(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
 		return
 	}
 	discussion, err := h.Services.Discussion.Get(r.Context(), owner, repoName, number)
@@ -194,13 +173,7 @@ func (h *Handler) ToggleDiscussionReplyReaction(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
 		return
 	}
 	discussion, err := h.Services.Discussion.Get(r.Context(), owner, repoName, number)

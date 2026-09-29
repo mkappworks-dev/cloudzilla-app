@@ -12,6 +12,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 )
 
 // Exported so callers can use errors.Is rather than message comparison.
@@ -152,8 +153,7 @@ func (s *CodeService) MergePullRequest(owner, repoName, base, head string) error
 		return errors.New("cannot merge: branches have diverged (fast-forward not possible)")
 	}
 
-	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(base), headCommit.Hash)
-	return repo.Storer.SetReference(ref)
+	return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(base), baseCommit.Hash, headCommit.Hash)
 }
 
 // flattenTree walks a git tree and returns a flat map of full path → mergeFile.
@@ -362,8 +362,7 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head strin
 
 	// If FF is possible, just advance the ref.
 	if checkFastForward(repo, baseCommit, headCommit) {
-		ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(base), headCommit.Hash)
-		return repo.Storer.SetReference(ref)
+		return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(base), baseCommit.Hash, headCommit.Hash)
 	}
 
 	mb, err := findMergeBase(repo, baseCommit, headCommit)
@@ -395,8 +394,7 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head strin
 	if err != nil {
 		return err
 	}
-	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(base), h)
-	return repo.Storer.SetReference(ref)
+	return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(base), baseCommit.Hash, h)
 }
 
 // SquashMergePullRequest creates a single squash commit on base incorporating all head changes.
@@ -450,8 +448,7 @@ func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string,
 	if err != nil {
 		return err
 	}
-	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(base), h)
-	return repo.Storer.SetReference(ref)
+	return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(base), baseCommit.Hash, h)
 }
 
 // ApplySuggestion replaces targetLine (1-based) in filePath on branch with the replacement
@@ -537,6 +534,5 @@ func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, 
 		return err
 	}
 
-	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(branch), newHash)
-	return repo.Storer.SetReference(ref)
+	return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(branch), headCommit.Hash, newHash)
 }

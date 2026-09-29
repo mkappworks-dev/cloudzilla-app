@@ -87,6 +87,18 @@ func basePage(r *http.Request, services *service.Services) BasePage {
 	return page
 }
 
+// readableRepo loads a repo for a signed-in viewer. A repo the viewer can't read
+// gets the same 404 as a missing one, so callers must run it before any
+// CanWrite/CanManage 403, or that 403 would confirm a private repo exists.
+func (h *Handler) readableRepo(w http.ResponseWriter, r *http.Request, owner, repoName string, viewerID int64) (*model.Repository, bool) {
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, &viewerID) {
+		h.NotFound(w, r)
+		return nil, false
+	}
+	return repo, true
+}
+
 // The repo-switcher list is best-effort: a failed lookup leaves it empty.
 func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model.Repository, active string, canManage bool) BasePage {
 	base.OwnerContext = repo.OwnerName

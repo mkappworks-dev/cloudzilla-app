@@ -3,6 +3,7 @@ package pages
 import (
 	"strings"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -27,7 +28,10 @@ templ OAuthAuthorize(data view.OAuthAuthorizeData) {
 						<p class="text-[12px] text-muted-foreground mb-2">Requesting access to:</p>
 						<ul class="rounded-md border border-border bg-muted/40 divide-y divide-border text-[13px]">
 							for _, s := range data.Scopes {
-								<li class="px-3 py-2 font-mono">{ s }</li>
+								<li class="px-3 py-2">
+									<p class="font-mono">{ s }</p>
+									<p class="text-[12px] text-muted-foreground">{ model.ScopeDescription(s) }</p>
+								</li>
 							}
 						</ul>
 					</div>

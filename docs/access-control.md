@@ -10,9 +10,24 @@
 | LDAP                  | Bind + search → JWT cookie                         | `POST /auth/ldap`             |
 | SAML SSO              | SP-initiated, ACS callback → JWT cookie            | `GET /auth/saml` → callback   |
 | Personal Access Token | `Authorization: Bearer <token>` header             | Any API endpoint              |
-| OAuth App Token       | `Authorization: Bearer <token>` header             | Scoped API endpoints          |
+| OAuth App Token       | `Authorization: Bearer <token>` header             | Scoped API endpoints (below)  |
 | SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys` | Git SSH transport             |
 | TOTP 2FA              | 6-digit code after password login                  | `POST /auth/2fa/verify`       |
+
+### Return path after sign-in
+
+A signed-out HTML request is redirected to `/login?next=<request URI>`. Every
+sign-in route redirects to `next` on success, once `safeNextPath` accepts it:
+it must be a rooted same-site path, and it may not start with `//` or `/\` or
+contain control characters. Anything else goes to `/`.
+
+| Flow     | How `next` survives                                                     |
+| -------- | ----------------------------------------------------------------------- |
+| Password | Hidden `next` input on the login form                                   |
+| TOTP     | `/auth/2fa?next=…`, then a hidden input on the code form               |
+| LDAP     | Hidden `next` input on the LDAP form                                    |
+| Google   | `oauth_next` cookie, set by `/auth/google?next=…`                       |
+| SAML     | `RelayState`, dropped when it exceeds the binding's 80-byte limit      |
 
 ### JWT Claims
 
@@ -23,10 +38,12 @@ type Claims struct {
     UserID       int64
     Username     string
     IsSuperadmin bool
+    Scoped       bool     // true only for OAuth-app tokens
+    Scopes       []string // granted scopes when Scoped
 }
 ```
 
-Extracted via `middleware.ClaimsFromContext(r.Context())`.
+Extracted via `middleware.ClaimsFromContext(r.Context())`. `claims.HasScope(s)` is always true for unscoped credentials (JWT sessions, PATs), which keep the user's full access. OAuth-app claims never carry `IsSuperadmin`.
 
 ### Middleware Chain
 
@@ -40,10 +57,35 @@ Request → RequestID → Recoverer → Logger → CORS → CSRF → RequireSetu
                                               - apiBodyLimit (1 MB limit)
 ```
 
-- **authMW**: Reads JWT from `Authorization: Bearer` header OR `cz_token` httpOnly cookie. Also accepts PATs and OAuth tokens. Returns 401 if missing/invalid.
-- **optAuthMW**: Same as authMW but allows unauthenticated requests through. Claims may be nil.
+- **authMW**: Reads JWT from `Authorization: Bearer` header OR `cz_token` httpOnly cookie. Also accepts PATs and OAuth tokens. Returns 401 if missing/invalid. An OAuth token without a scope for the route gets 403 (see [OAuth App Scopes](#oauth-app-scopes)).
+- **optAuthMW**: Same as authMW but allows unauthenticated requests through. Claims may be nil. An OAuth token is still refused with 403 on routes its scopes don't cover — it is never silently downgraded to anonymous.
 - **superadminMW**: Requires `claims.IsSuperadmin == true`. Returns 403 otherwise.
-- **CSRF**: Double-submit cookie pattern. Skips git transport, Bearer-auth, and safe methods (GET/HEAD/OPTIONS).
+- **CSRF**: Double-submit cookie pattern. Skips git transport, Bearer-auth, `POST /oauth/token` (client-secret auth), and safe methods (GET/HEAD/OPTIONS).
+
+### OAuth App Scopes
+
+An OAuth-app token acts as the user who granted it, but only on routes its scopes admit. Enforcement is a path allow-list in `internal/middleware/scope.go`, applied by both `authMW` and `optAuthMW`: a route it doesn't list — including any new route — is closed to OAuth tokens. Scopes only narrow access; the handler's own `CanRead`/`CanWrite`/`CanManage` checks against the user still apply.
+
+Open routes:
+
+- `/api/repos` (list, create), `POST /api/repos/from-template`, `/api/repos/{owner}/{repo}` (read only — `PATCH` changes settings).
+- Content sub-resources of `/api/repos/{owner}/{repo}`: `issues`, `pulls`, `labels`, `milestones`, `releases`, `statuses`, `commits`, `branches` (not `branches/protections`), `tags`, `comments`, `stargazers`, `star`, `watch`, `fork`, `projects`, `wiki`, `discussions`. A few of these `GET`s return HTML fragments (e.g. the watch button, issue title/body sections) carrying the same data as the JSON.
+- `GET /api/orgs/{org}`, `GET /api/orgs/{org}/members`, `POST /api/orgs/{org}/repos`.
+- `GET /api/users/{username}`, `GET /api/users/{username}/repos`.
+- Git smart-HTTP: `info/refs`, `git-upload-pack`, `git-receive-pack`.
+
+| Scope          | Admits on the open routes                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------- |
+| `repo:read`    | `GET`/`HEAD`; git clone/fetch                                                                           |
+| `repo:write`   | Everything, including creating repos, merging, applying suggestions, and git push                      |
+| `issues:write` | Reads, plus writes under `.../issues/**`                                                                |
+| `pulls:write`  | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, and applying a suggestion |
+
+Merging and enabling auto-merge are requests to `PATCH .../pulls/{number}`, so `UpdatePull` checks `claims.HasScope(repo:write)` itself; applying a suggestion is refused by path. `UpdateComment`/`DeleteComment` require the comment to belong to the issue or pull request in the URL, so neither `issues:write` nor `pulls:write` reaches the other's comments.
+
+Everything else is closed whatever the scopes, notably: HTML pages and `/fragments/*` (which is what keeps a user's email, shown on their own profile, away from apps); `/api/user/*` (SSH keys, PATs, TOTP, saved replies), `/api/oauth/*`, `/api/admin/*`, `/api/notifications/*`, `/api/gists`, `/api/markdown/preview`; repo administration (`hooks`, `collaborators`, `keys`, `topics`, `transfer`, `archive`, `unarchive`, `restore`, `delete`, `template`, branch protections, settings); and org administration.
+
+A refused request gets `403` with `{"error":"insufficient_scope"}` and `WWW-Authenticate: Bearer error="insufficient_scope", scope="<narrowest scope that would admit it>"` (the `scope` attribute is omitted on closed routes). Unknown scopes are rejected at `/oauth/authorize` with `400`. PAT scopes are recorded but not yet enforced; PATs remain unscoped.
 
 ---
 
@@ -83,7 +125,7 @@ Org members do not get implicit access to private repos. They must be added as e
 | Repo owner               |      Yes      |      Yes       |     Yes      |            Yes             |   Yes    |  Yes   |
 | Org owner (org repos)    |      Yes      |      Yes       |     Yes      |            Yes             |   Yes    |  Yes   |
 
-**Manage** includes: collaborator CRUD, branch protection, deploy keys, topics, wiki deletion, discussion categories, webhook CRUD, repo settings page access.
+**Manage** includes: collaborator CRUD, branch protection, deploy keys, topics, wiki deletion, webhook CRUD, repo settings page access.
 
 **Transfer/Delete** (owner-only) includes: repo transfer, archive, unarchive, template toggle, soft-delete/restore.
 
@@ -131,7 +173,8 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
     claims, ok := middleware.ClaimsFromContext(r.Context())  // Layer 1: authn
     if !ok { writeError(w, 401, "unauthorized"); return }
 
-    repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
+    repo, ok := h.readableRepoJSON(w, r, owner, repoName)  // 404 unless readable
+    if !ok { return }
     if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {  // Layer 2: authz
         writeError(w, 403, "forbidden"); return
     }
@@ -140,6 +183,17 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 ```
 
 Some handlers delegate authorization to the service layer (e.g., ProjectService checks `CanWrite` internally with the passed `userID`).
+
+### Private Repos Look Missing
+
+A 403 for a private repo, next to a 404 for a missing one, confirms that the private repo exists. So a caller who can't read a repo gets exactly the response a missing repo gets, and only readers ever see a 403:
+
+- Signed-in HTML repo pages load the repo with `h.readableRepo`, which renders the missing repo's 404 page.
+- Every `/api/repos/{owner}/{repo}/…` and `/fragments/{owner}/{repo}/…` route starts with `h.readableRepoJSON`, which answers `404 {"error":"repo not found"}` in both cases. It runs before sub-resource lookups, body validation, and any `CanWrite`/`CanManage`/`IsOwner` check, including checks made in a service. `TestRepoAPI_PrivateRepoNonReader_LooksLikeMissingRepo` walks the router and holds every such route to this.
+- Project board routes also require the project to belong to the URL's repo (`h.projectIDInRepo`). The project services authorize against the project's own repo, so their 403 would otherwise confirm that another repo's project ID exists.
+- Line comment update, delete and apply-suggestion only act on a comment on the URL's pull request (`h.lineCommentOnURLPull`). Line comment IDs are global, so otherwise write access to one repo would reach another's comments, and `/apply` would commit its suggestion content.
+- `POST /api/repos/from-template` answers a private repo's ID with the same 404 as a missing ID, before checking that it is a template.
+- `POST /api/repos/{owner}/{repo}/restore` targets a soft-deleted repo, which `readableRepoJSON` can't see. A caller who may not restore it gets the same 404 as when no deleted repo exists.
 
 ---
 
@@ -264,83 +318,107 @@ The freed username can then be registered or taken as an org name. Repo creation
 
 ### Repository Endpoints — Read
 
-| Method | Path                                             | Auth      | AuthZ                | Handler           |
-| ------ | ------------------------------------------------ | --------- | -------------------- | ----------------- |
-| GET    | `/api/repos`                                     | optAuthMW | Public list          | ListRepos         |
-| GET    | `/api/repos/{owner}/{repo}`                      | optAuthMW | CanRead              | GetRepo           |
-| GET    | `/{owner}/{repo}/issues`                         | optAuthMW | CanRead              | ListIssues        |
-| GET    | `/{owner}/{repo}/issues/{number}`                | optAuthMW | CanRead + visibility | GetIssue          |
-| GET    | `/{owner}/{repo}/pulls`                          | optAuthMW | CanRead              | ListPulls         |
-| GET    | `/{owner}/{repo}/pulls/{number}`                 | optAuthMW | CanRead              | GetPull           |
-| GET    | `/{owner}/{repo}/tree/blob/blame/commits/commit` | optAuthMW | CanRead              | Code browser      |
-| GET    | `/{owner}/{repo}/releases`                       | optAuthMW | CanRead              | ListReleases      |
-| GET    | `/{owner}/{repo}/milestones`                     | optAuthMW | CanRead              | ListMilestones    |
-| GET    | `/{owner}/{repo}/labels`                         | optAuthMW | CanRead              | ListLabels        |
-| GET    | `/{owner}/{repo}/hooks`                          | optAuthMW | CanManage (handler)  | ListWebhooks      |
-| GET    | `/{owner}/{repo}/collaborators`                  | optAuthMW | Public list          | ListCollaborators |
+`readableRepoJSON` answers a repo the caller can't read with the missing repo's 404 (see [Private Repos Look Missing](#private-repos-look-missing)).
+
+| Method   | Path                                                                          | Auth      | AuthZ                          | Handler                           |
+| -------- | ----------------------------------------------------------------------------- | --------- | ------------------------------ | --------------------------------- |
+| GET      | `/api/repos`                                                                  | optAuthMW | Public list                    | ListRepos                         |
+| GET      | `/api/repos/{owner}/{repo}`                                                   | optAuthMW | readableRepoJSON               | GetRepo                           |
+| GET      | `/api/repos/{owner}/{repo}/issues`, `.../issues/{number}` (+ `/title`, `/body`, `/comments`) | optAuthMW | readableRepoJSON + issue visibility | ListIssues / GetIssue / … |
+| GET      | `/api/repos/{owner}/{repo}/pulls`, `.../pulls/{number}` (+ `/reviews`, `/line_comments`) | optAuthMW | readableRepoJSON | ListPulls / GetPull / …     |
+| GET      | `/api/repos/{owner}/{repo}/{labels,milestones,releases,stargazers,topics,watch}` (and sub-paths) | optAuthMW | readableRepoJSON | List/Get handlers   |
+| GET      | `/api/repos/{owner}/{repo}/statuses/{sha}`, `.../commits/{sha}/status`        | optAuthMW | readableRepoJSON               | ListStatuses / GetCombinedStatus  |
+| GET      | `/api/repos/{owner}/{repo}/comments/{id}/reactions`                           | optAuthMW | readableRepoJSON               | ListReactions                     |
+| GET      | `/api/repos/{owner}/{repo}/{hooks,collaborators,keys,branches/protections}`   | optAuthMW | readableRepoJSON + CanManage   | ListWebhooks / ListCollaborators / ListDeployKeys / ListBranchProtections |
+| GET      | `/fragments/{owner}/{repo}/issues/{number}/comments`                          | optAuthMW | readableRepoJSON               | IssueCommentsFragment             |
+| GET      | `/{owner}/{repo}/{issues,pulls,releases,milestones}`                          | optAuthMW | CanRead                        | PageIssues / PagePulls / …        |
+| GET      | `/{owner}/{repo}/tree/blob/blame/commits/commit`                              | optAuthMW | CanRead                        | Code browser                      |
+| GET/POST | `/{owner}/{repo}/issues/new`                                                  | authMW    | readableRepo                   | PageNewIssue / PageNewIssueSubmit |
+| GET/POST | `/{owner}/{repo}/pulls/new`                                                   | authMW    | readableRepo                   | PageNewPull / PageNewPullSubmit   |
 
 ### Repository Endpoints — Write (Require CanWrite)
 
-| Method            | Path                                                      | Auth   | AuthZ Check             | Handler                     |
-| ----------------- | --------------------------------------------------------- | ------ | ----------------------- | --------------------------- |
-| POST              | `/api/repos/{owner}/{repo}/issues`                        | authMW | Authenticated (private: CanWrite in service) | CreateIssue |
-| PATCH             | `/api/repos/{owner}/{repo}/issues/{number}`               | authMW | CanWrite (handler)      | UpdateIssue                 |
-| POST              | `/api/repos/{owner}/{repo}/issues/{number}/comments`      | authMW | CanWrite (handler)      | CreateIssueComment          |
-| PATCH             | `/api/repos/{owner}/{repo}/issues/{number}/comments/{id}` | authMW | Author only             | UpdateComment               |
-| DELETE            | `/api/repos/{owner}/{repo}/issues/{number}/comments/{id}` | authMW | Author OR CanWrite      | DeleteComment               |
-| POST              | `/api/repos/{owner}/{repo}/pulls`                         | authMW | Authenticated           | CreatePull                  |
-| PATCH             | `/api/repos/{owner}/{repo}/pulls/{number}`                | authMW | CanWrite (handler)      | UpdatePull                  |
-| POST              | `/api/repos/{owner}/{repo}/pulls/{number}/reviews`        | authMW | Authenticated (not PR author) | SubmitReview           |
-| POST/PATCH/DELETE | `.../pulls/{number}/line_comments`                        | authMW | CanWrite (handler)      | Line comment CRUD           |
-| POST              | `/api/repos/{owner}/{repo}/labels`                        | authMW | CanWrite (handler)      | CreateLabel                 |
-| DELETE            | `/api/repos/{owner}/{repo}/labels/{id}`                   | authMW | CanWrite (handler)      | DeleteLabel                 |
-| POST/DELETE       | `.../issues/{number}/labels/{labelID}`                    | authMW | CanWrite (handler)      | Add/RemoveIssueLabel        |
-| POST/DELETE       | `.../pulls/{number}/labels/{labelID}`                     | authMW | CanWrite (handler)      | Add/RemovePullLabel         |
-| POST/DELETE       | `.../issues/{number}/assignees`                           | authMW | CanWrite (handler)      | Add/RemoveIssueAssignee     |
-| POST/DELETE       | `.../pulls/{number}/assignees`                            | authMW | CanWrite (handler)      | Add/RemovePullAssignee      |
-| POST              | `/api/repos/{owner}/{repo}/milestones`                    | authMW | CanWrite (handler)      | CreateMilestone             |
-| PATCH             | `/api/repos/{owner}/{repo}/milestones/{number}`           | authMW | CanWrite (handler)      | UpdateMilestone             |
-| DELETE            | `/api/repos/{owner}/{repo}/milestones/{number}`           | authMW | CanWrite (handler)      | DeleteMilestone             |
-| POST              | `.../issues/{number}/milestone`                           | authMW | CanWrite (handler)      | SetIssueMilestone           |
-| POST              | `.../pulls/{number}/milestone`                            | authMW | CanWrite (handler)      | SetPullMilestone            |
-| POST/PATCH/DELETE | `/api/repos/{owner}/{repo}/releases`                      | authMW | CanWrite (handler)      | Release CRUD                |
-| POST              | `/api/repos/{owner}/{repo}/statuses/{sha}`                | authMW | CanWrite (handler)      | CreateStatus                |
-| POST/DELETE       | `/api/repos/{owner}/{repo}/branches`                      | authMW | CanWrite (handler)      | CreateBranch / DeleteBranch |
-| POST/DELETE       | `/api/repos/{owner}/{repo}/tags`                          | authMW | CanWrite (handler)      | CreateTag / DeleteTag       |
-| POST              | `/api/repos/{owner}/{repo}/wiki/{slug}`                   | authMW | CanWrite (handler)      | CreateOrUpdateWikiPage      |
-| POST              | `/api/repos/{owner}/{repo}/discussions`                   | authMW | CanWrite (handler)      | CreateDiscussion            |
-| POST              | `.../discussions/{number}/replies`                        | authMW | CanWrite (handler)      | CreateReply                 |
-| PATCH             | `.../discussions/{number}`                                | authMW | CanWrite (handler)      | MarkAnswer                  |
-| DELETE            | `.../discussions/{number}/replies/{id}`                   | authMW | CanWrite (handler)      | DeleteDiscussionReply       |
-| POST              | `/api/repos/{owner}/{repo}/fork`                          | authMW | CanRead + authenticated | ForkRepo                    |
-| POST              | `/api/repos/{owner}/{repo}/star`                          | authMW | User-specific action    | StarRepo                    |
-| PUT/DELETE        | `/api/repos/{owner}/{repo}/watch`                         | authMW | User-specific action    | WatchRepo / UnwatchRepo     |
-| POST              | `/api/repos/{owner}/{repo}/comments/{id}/reactions`       | authMW | CanRead + authenticated | ToggleReaction              |
+Every row checks `readableRepoJSON` first.
+
+| Method            | Path                                                      | Auth   | AuthZ Check                                  | Handler                     |
+| ----------------- | --------------------------------------------------------- | ------ | -------------------------------------------- | --------------------------- |
+| POST              | `/api/repos/{owner}/{repo}/issues`                        | authMW | readableRepoJSON (private issue: CanWrite in service) | CreateIssue        |
+| PATCH             | `/api/repos/{owner}/{repo}/issues/{number}`               | authMW | CanWrite (handler)                           | UpdateIssue                 |
+| PATCH             | `.../issues/{number}/{title,body}`, POST `.../priority`   | authMW | CanWrite (handler)                           | EditIssueTitle / EditIssueBody / SetIssuePriority |
+| POST              | `/api/repos/{owner}/{repo}/issues/{number}/comments`      | authMW | readableRepoJSON (CanManage if locked)       | CreateIssueComment          |
+| POST              | `/api/repos/{owner}/{repo}/pulls/{number}/comments`       | authMW | readableRepoJSON                             | CreatePullComment           |
+| PATCH             | `.../{issues,pulls}/{number}/comments/{id}`               | authMW | Author only                                  | UpdateComment               |
+| DELETE            | `.../{issues,pulls}/{number}/comments/{id}`               | authMW | Author OR CanWrite                           | DeleteComment               |
+| POST              | `/api/repos/{owner}/{repo}/pulls`                         | authMW | readableRepoJSON (+ service)                 | CreatePull                  |
+| PATCH             | `/api/repos/{owner}/{repo}/pulls/{number}`                | authMW | CanWrite (handler)                           | UpdatePull                  |
+| POST              | `/api/repos/{owner}/{repo}/pulls/{number}/reviews`        | authMW | CanWrite (handler); not PR author (service)  | SubmitReview                |
+| POST/DELETE       | `.../pulls/{number}/reviewers`                            | authMW | CanWrite (handler)                           | Add/RemovePullReviewer      |
+| POST              | `.../pulls/{number}/line_comments`                        | authMW | readableRepoJSON                             | CreateLineComment           |
+| PATCH             | `.../pulls/{number}/line_comments/{id}`                   | authMW | Author only; comment on this PR              | UpdateLineComment           |
+| DELETE            | `.../pulls/{number}/line_comments/{id}`                   | authMW | Author OR CanWrite; comment on this PR       | DeleteLineComment           |
+| POST              | `.../pulls/{number}/line_comments/{id}/apply`             | authMW | CanWrite (handler); suggestion on this PR    | ApplySuggestion             |
+| POST/DELETE       | `.../{issues,pulls}/{number}/linked-*/{number}`           | authMW | CanWrite (handler)                           | Link/UnlinkIssuePull, Link/UnlinkPullIssue |
+| POST              | `/api/repos/{owner}/{repo}/labels`                        | authMW | CanWrite (handler)                           | CreateLabel                 |
+| DELETE            | `/api/repos/{owner}/{repo}/labels/{id}`                   | authMW | CanWrite (handler)                           | DeleteLabel                 |
+| POST/DELETE       | `.../{issues,pulls,discussions}/{number}/labels/{labelID}` | authMW | CanWrite (handler)                          | Add/Remove*Label            |
+| POST/DELETE       | `.../{issues,pulls}/{number}/assignees`                   | authMW | CanWrite (handler)                           | Add/Remove*Assignee         |
+| POST              | `/api/repos/{owner}/{repo}/milestones`                    | authMW | CanWrite (handler)                           | CreateMilestone             |
+| PATCH             | `/api/repos/{owner}/{repo}/milestones/{number}` (+ `/title`, `/body`, `/due`) | authMW | CanWrite (handler)       | UpdateMilestone / EditMilestone* |
+| DELETE            | `/api/repos/{owner}/{repo}/milestones/{number}`           | authMW | CanWrite (handler)                           | DeleteMilestone             |
+| POST              | `.../{issues,pulls}/{number}/milestone`                   | authMW | CanWrite (handler)                           | SetIssueMilestone / SetPullMilestone |
+| POST/PATCH/DELETE | `/api/repos/{owner}/{repo}/releases` (and sub-paths)      | authMW | CanWrite (handler)                           | Release CRUD                |
+| POST              | `/api/repos/{owner}/{repo}/statuses/{sha}`                | authMW | CanWrite (handler)                           | CreateStatus                |
+| POST/DELETE       | `/api/repos/{owner}/{repo}/branches`                      | authMW | CanWrite (handler)                           | CreateBranch / DeleteBranch |
+| POST/DELETE       | `/api/repos/{owner}/{repo}/tags`                          | authMW | CanWrite (handler)                           | CreateTag / DeleteTag       |
+| POST              | `/api/repos/{owner}/{repo}/wiki/{slug}`, `.../wiki/order` | authMW | CanWrite (handler)                           | CreateOrUpdateWikiPage / WikiSetPageOrder |
+| POST              | `/api/repos/{owner}/{repo}/discussions`                   | authMW | CanWrite (handler)                           | CreateDiscussion            |
+| POST              | `.../discussions/{number}/replies`                        | authMW | readableRepoJSON                             | CreateReply                 |
+| PATCH             | `.../discussions/{number}`                                | authMW | CanWrite (handler)                           | MarkAnswer                  |
+| DELETE            | `.../discussions/{number}/replies/{id}`                   | authMW | CanWrite (handler)                           | DeleteDiscussionReply       |
+| POST              | `/api/repos/{owner}/{repo}/fork`                          | authMW | readableRepoJSON                             | ForkRepo                    |
+| POST              | `/api/repos/from-template`                                | authMW | Public, non-archived template (service)      | CreateFromTemplate          |
+| POST/DELETE       | `/api/repos/{owner}/{repo}/star`                          | authMW | readableRepoJSON                             | StarRepo / UnstarRepo       |
+| PUT/DELETE        | `/api/repos/{owner}/{repo}/watch`                         | authMW | readableRepoJSON                             | WatchRepo / UnwatchRepo     |
+| POST              | `.../comments/{id}/reactions`, `.../discussions/{number}/reactions`, `.../replies/{id}/reactions` | authMW | readableRepoJSON | Toggle*Reaction |
+| GET/POST          | `/{owner}/{repo}/discussions/new`                         | authMW | readableRepo + CanWrite                      | PageNewDiscussion / PageNewDiscussionSubmit |
+| GET/POST          | `/{owner}/{repo}/milestones/new`                          | authMW | readableRepo + CanWrite                      | PageNewMilestone / PageNewMilestoneSubmit   |
+| POST              | `/{owner}/{repo}/milestones/{number}`                     | authMW | readableRepo + CanWrite                      | PageMilestoneDetailAction   |
+| GET               | `/{owner}/{repo}/releases/new`                            | authMW | readableRepo + CanWrite                      | PageReleaseNew              |
+| GET/POST          | `/{owner}/{repo}/new/{ref}`                               | authMW | readableRepo + CanWrite                      | PageNewFile / SubmitNewFile |
+| GET               | `/{owner}/{repo}/wiki/new`, `.../wiki/{slug}/edit`        | authMW | CanRead (404) + CanWrite                     | PageWikiNew / PageWikiEdit  |
 
 ### Repository Endpoints — Manage (Require CanManage or Owner)
 
-| Method            | Path                                      | Auth   | AuthZ Check         | Handler                 |
-| ----------------- | ----------------------------------------- | ------ | ------------------- | ----------------------- |
-| PATCH             | `.../issues/{number}/pin`                 | authMW | CanManage (service) | PinIssue                |
-| PATCH             | `.../issues/{number}/lock`                | authMW | CanManage (service) | LockIssue               |
-| POST/PATCH/DELETE | `.../branches/protections`                | authMW | CanManage (handler) | BranchProtection CRUD   |
-| POST/DELETE       | `.../hooks`                               | authMW | CanManage (handler) | Webhook CRUD            |
-| POST/DELETE       | `/api/repos/{owner}/{repo}/collaborators` | authMW | CanManage (handler) | Collaborator CRUD       |
-| POST/DELETE       | `/api/repos/{owner}/{repo}/keys`          | authMW | CanManage (handler) | DeployKey CRUD          |
-| PUT               | `/api/repos/{owner}/{repo}/topics`        | authMW | CanManage (handler) | SetTopics               |
-| POST              | `/api/repos/{owner}/{repo}/transfer`      | authMW | IsOwner (handler)   | TransferRepo            |
-| POST              | `/api/repos/{owner}/{repo}/archive`       | authMW | IsOwner (service)   | ArchiveRepo             |
-| POST              | `/api/repos/{owner}/{repo}/unarchive`     | authMW | IsOwner (service)   | UnarchiveRepo           |
-| POST              | `/api/repos/{owner}/{repo}/restore`       | authMW | OwnerID + superadmin (service) | RestoreRepo    |
-| PATCH             | `/api/repos/{owner}/{repo}/template`      | authMW | IsOwner (service)   | SetRepoTemplate         |
-| DELETE            | `/api/repos/{owner}/{repo}/wiki/{slug}`   | authMW | CanManage (handler) | DeleteWikiPage          |
-| POST/DELETE       | `.../discussions/categories`              | authMW | CanManage (handler) | DiscussionCategory CRUD |
+Every `/api/repos` row checks `readableRepoJSON` first.
+
+| Method            | Path                                      | Auth   | AuthZ Check                    | Handler                 |
+| ----------------- | ----------------------------------------- | ------ | ------------------------------ | ----------------------- |
+| PATCH             | `/api/repos/{owner}/{repo}`               | authMW | CanManage (service)            | UpdateRepo              |
+| PATCH             | `.../issues/{number}/pin`                 | authMW | CanManage (service)            | PinIssue                |
+| PATCH             | `.../issues/{number}/lock`                | authMW | CanManage (service)            | LockIssue               |
+| POST/PATCH/DELETE | `.../branches/protections`                | authMW | CanManage (handler)            | BranchProtection CRUD   |
+| POST/PATCH/DELETE | `.../hooks` (+ `/deliveries`, `/redeliver`) | authMW | CanManage (handler)          | Webhook CRUD            |
+| POST/DELETE       | `/api/repos/{owner}/{repo}/collaborators` | authMW | CanManage (handler)            | Collaborator CRUD       |
+| POST/DELETE       | `/api/repos/{owner}/{repo}/keys`          | authMW | CanManage (handler)            | DeployKey CRUD          |
+| PUT               | `/api/repos/{owner}/{repo}/topics`        | authMW | CanManage (handler)            | SetTopics               |
+| POST              | `/api/repos/{owner}/{repo}/transfer`      | authMW | IsOwner (handler)              | TransferRepo            |
+| POST              | `/api/repos/{owner}/{repo}/archive`       | authMW | IsOwner (service)              | ArchiveRepo             |
+| POST              | `/api/repos/{owner}/{repo}/unarchive`     | authMW | IsOwner (service)              | UnarchiveRepo           |
+| POST              | `/api/repos/{owner}/{repo}/delete`        | authMW | IsOwner (service)              | DeleteRepo              |
+| POST              | `/api/repos/{owner}/{repo}/restore`       | authMW | OwnerID + superadmin (service); 404 otherwise | RestoreRepo |
+| PATCH             | `/api/repos/{owner}/{repo}/template`      | authMW | IsOwner (service)              | SetRepoTemplate         |
+| DELETE            | `/api/repos/{owner}/{repo}/wiki/{slug}`   | authMW | CanManage (handler)            | DeleteWikiPage          |
+| GET               | `/{owner}/{repo}/settings`                | authMW | readableRepo + CanManage       | PageRepoSettings        |
+| POST              | `/{owner}/{repo}/settings/{general,features,visibility}` | authMW | readableRepo + CanManage (service) | UpdateRepoGeneral / Features / Visibility |
 
 ### Repository Endpoints — Service-Layer Auth (Project Board)
+
+`CreateProject` checks `readableRepoJSON`; the other rows resolve the project through `projectIDInRepo` (readable repo that owns the project, else 404) before the service check.
 
 | Method | Path                                | Auth   | AuthZ Check         | Handler → Service |
 | ------ | ----------------------------------- | ------ | ------------------- | ----------------- |
 | POST   | `.../projects`                      | authMW | CanWrite (service)  | CreateProject     |
+| PATCH  | `.../projects/{id}`                 | authMW | CanWrite (service)  | UpdateProject     |
 | DELETE | `.../projects/{id}`                 | authMW | CanManage (service) | DeleteProject     |
 | POST   | `.../projects/{id}/columns`         | authMW | CanWrite (service)  | CreateColumn      |
 | DELETE | `.../projects/{id}/columns/{colID}` | authMW | CanWrite (service)  | DeleteColumn      |

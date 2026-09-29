@@ -12,6 +12,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 )
 
 type WikiPageMeta struct {
@@ -470,7 +471,7 @@ func wikiMutateTree(
 	if err != nil {
 		return err
 	}
-	if err := stor.SetReference(plumbing.NewHashReference(headRef.Name(), commitHash)); err != nil {
+	if err := gitref.Move(stor, headRef.Name(), parentCommit.Hash, commitHash); err != nil {
 		return err
 	}
 	// Mirror wikiCommit's HEAD-fixup so that a rename/delete on a detached or
@@ -529,12 +530,14 @@ func commitSingleFile(
 	}
 
 	entries := []object.TreeEntry{}
+	var oldTip plumbing.Hash
 	var parentHashes []plumbing.Hash
 	if branchHead, herr := storer.Reference(branchRef); herr == nil {
 		parentCommit, err := repo.CommitObject(branchHead.Hash())
 		if err != nil {
 			return err
 		}
+		oldTip = parentCommit.Hash
 		parentHashes = []plumbing.Hash{parentCommit.Hash}
 		existingTree, err := parentCommit.Tree()
 		if err != nil {
@@ -580,8 +583,7 @@ func commitSingleFile(
 		return err
 	}
 
-	ref := plumbing.NewHashReference(branchRef, commitHash)
-	if err := storer.SetReference(ref); err != nil {
+	if err := gitref.Move(storer, branchRef, oldTip, commitHash); err != nil {
 		return err
 	}
 

@@ -11,6 +11,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 )
 
 // ErrEmptyRepo is returned when a repository has no commits.
@@ -18,6 +19,10 @@ var ErrEmptyRepo = errors.New("repository is empty")
 
 // ErrRefNotFound is returned when a named ref (branch, tag, or SHA) cannot be resolved.
 var ErrRefNotFound = errors.New("ref not found")
+
+// ErrRefMoved means a branch moved between reading its tip and advancing it,
+// so the new commit was not applied. Handlers answer 409.
+var ErrRefMoved = gitref.ErrMoved
 
 // BranchInfo holds summary information about a git branch.
 type BranchInfo struct {
