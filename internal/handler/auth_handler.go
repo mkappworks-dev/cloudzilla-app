@@ -31,6 +31,17 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	totpEnabled, _, err := h.Services.TOTP.GetUserTOTPState(r.Context(), user.ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+	// No code is accepted here on purpose: API clients of TOTP users sign in with a personal access token.
+	if totpEnabled {
+		writeError(w, http.StatusUnauthorized, "totp_required")
+		return
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     h.Cfg.Auth.CookieName,
 		Value:    token,
