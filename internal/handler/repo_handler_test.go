@@ -112,6 +112,26 @@ func TestCreateRepo_ValidAuth_201(t *testing.T) {
 	}
 }
 
+func TestCreateRepo_InvalidName_422(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	token := makeIssueJWT(t, ownerID, "testuser_"+suffix)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/repos", repoCreateBody("bad name "+suffix, "", false))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	repoAPIRouterWithAuth(newRepoHandler(db)).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("an invalid name is a client error; want 422, got %d: %s", rr.Code, rr.Body.String())
+	}
+	if !strings.Contains(rr.Body.String(), "Repository names can use letters") {
+		t.Errorf("want the repository name rule; body: %s", rr.Body.String())
+	}
+}
+
 // TestGetRepo_ExistingRepo_200 verifies that GET /api/repos/{owner}/{repo} returns
 // HTTP 200 with the repository details for a known owner/repo combination.
 func TestGetRepo_ExistingRepo_200(t *testing.T) {

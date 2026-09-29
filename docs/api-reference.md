@@ -91,6 +91,8 @@ Public user objects — returned here and by `/api/repos/:owner/:repo/stargazers
 | PATCH  | `/api/repos/:owner/:repo/template`  | IsOwner  | Toggle repository template flag          |
 | POST   | `/api/repos/from-template`          | Required | Create a new repo from a template        |
 
+`POST /api/repos/` returns `422` with the naming rule when `name` isn't a valid repository name.
+
 `POST /api/repos/from-template` takes form fields `template_repo_id` and `name`, and redirects to the new repository. A `name` that isn't a valid repository name returns `422` with the naming rule. The same `422` comes back, with a different message, when the caller's or the template's owner name predates the owner-name rule and isn't a safe path segment.
 
 ## Issues
