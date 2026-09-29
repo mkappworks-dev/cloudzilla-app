@@ -78,8 +78,7 @@ func (e repoDirsEnv) createOrg(t *testing.T, ownerID int64) *model.Organization 
 	return org
 }
 
-// dropRow deletes a repo row and leaves its directories behind, as account
-// deletion used to.
+// dropRow leaves a repo's directories on disk without a row.
 func (e repoDirsEnv) dropRow(t *testing.T, owner, name string) {
 	t.Helper()
 	testutil.Exec(t, e.db, `DELETE FROM repositories WHERE owner_name = $1 AND name = $2`, owner, name)
