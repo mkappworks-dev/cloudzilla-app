@@ -102,10 +102,20 @@ func TestSafeNextPath(t *testing.T) {
 		{`/\evil.example/`, "/"},
 		{"/\t/evil.example/", "/"},
 		{"/\n/evil.example/", "/"},
+		{`/./\evil.example/`, "/"},
+		{`/a/../\evil.example/`, "/"},
+		{`/../\evil.example/`, "/"},
+		{`/oauth/authorize?state=a\b`, `/oauth/authorize?state=a\b`},
 	}
 	for _, tc := range tests {
-		if got := handler.SafeNextPath(tc.next); got != tc.want {
+		got := handler.SafeNextPath(tc.next)
+		if got != tc.want {
 			t.Errorf("safeNextPath(%q) = %q, want %q", tc.next, got, tc.want)
+		}
+		rr := httptest.NewRecorder()
+		http.Redirect(rr, httptest.NewRequest(http.MethodGet, "/login", nil), got, http.StatusSeeOther)
+		if loc := rr.Header().Get("Location"); strings.HasPrefix(loc, "//") || strings.HasPrefix(loc, `/\`) {
+			t.Errorf("safeNextPath(%q) redirects off-site: Location %q", tc.next, loc)
 		}
 	}
 }
