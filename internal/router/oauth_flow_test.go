@@ -248,6 +248,10 @@ func TestOAuthTokenEndpoint_CodeBoundToAppAndRedirectURI(t *testing.T) {
 			if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil || resp.AccessToken == "" {
 				t.Errorf("want an access_token, got %s (%v)", rr.Body.String(), err)
 			}
+			// RFC 6749 §5.1: a response carrying a token must not be cached.
+			if got := rr.Header().Get("Cache-Control"); got != "no-store" {
+				t.Errorf("Cache-Control = %q, want no-store", got)
+			}
 		})
 	}
 }
