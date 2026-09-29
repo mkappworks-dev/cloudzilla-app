@@ -13,3 +13,5 @@ func UseFakeGoogle(t testing.TB, baseURL string) {
 	googleUserinfoURL = baseURL + "/userinfo"
 	t.Cleanup(func() { googleEndpoint, googleUserinfoURL = endpoint, userinfo })
 }
+
+var SafeNextPath = safeNextPath

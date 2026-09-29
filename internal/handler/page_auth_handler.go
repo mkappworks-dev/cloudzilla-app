@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -96,8 +97,11 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 // safeNextPath returns the next= query value if it is a safe same-site path, else "/".
 // Rejects schemed URLs, protocol-relative URLs, and non-rooted paths to prevent open redirects.
+// Browsers read "/\host" as "//host" and strip tabs and newlines before parsing,
+// so both are refused too.
 func safeNextPath(next string) string {
-	if next == "" || !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") {
+	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.HasPrefix(next, `/\`) ||
+		strings.ContainsFunc(next, unicode.IsControl) {
 		return "/"
 	}
 	return next

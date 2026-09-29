@@ -91,3 +91,116 @@ func TestOAuthAppHTMX_SecretOnlyInCreateResponse(t *testing.T) {
 		t.Error("delete response still lists the deleted app")
 	}
 }
+
+func TestSafeNextPath(t *testing.T) {
+	tests := []struct{ next, want string }{
+		{"/oauth/authorize?client_id=a&state=b", "/oauth/authorize?client_id=a&state=b"},
+		{"", "/"},
+		{"settings", "/"},
+		{"https://evil.example/", "/"},
+		{"//evil.example/", "/"},
+		{`/\evil.example/`, "/"},
+		{"/\t/evil.example/", "/"},
+		{"/\n/evil.example/", "/"},
+	}
+	for _, tc := range tests {
+		if got := handler.SafeNextPath(tc.next); got != tc.want {
+			t.Errorf("safeNextPath(%q) = %q, want %q", tc.next, got, tc.want)
+		}
+	}
+}
+
+func TestPageOAuthAuthorize_SignedOutSendsWholeRequestAsNext(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	oauthSvc := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db))
+	app, _, err := oauthSvc.CreateApp(t.Context(), userID, "Next app "+suffix, "", "", []string{"https://client.example/cb"})
+	if err != nil {
+		t.Fatalf("create oauth app: %v", err)
+	}
+	h := handler.New(&service.Services{OAuthApp: oauthSvc}, &config.Config{})
+
+	authorize := "/oauth/authorize?" + url.Values{
+		"client_id":    {app.ClientID},
+		"redirect_uri": {"https://client.example/cb"},
+		"state":        {"x&code=evil"},
+		"next":         {"https://evil.example/"},
+	}.Encode()
+	for _, tc := range []struct{ name, target, wantNext string }{
+		{"whole authorize URL", authorize, authorize},
+		{"off-site path", "//evil.example" + authorize, "/"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			h.PageOAuthAuthorize(rr, httptest.NewRequest(http.MethodGet, tc.target, nil))
+			if rr.Code != http.StatusSeeOther {
+				t.Fatalf("want 303, got %d: %s", rr.Code, rr.Body.String())
+			}
+			loc, err := url.Parse(rr.Header().Get("Location"))
+			if err != nil || loc.Path != "/login" {
+				t.Fatalf("redirected to %q, want /login", rr.Header().Get("Location"))
+			}
+			if q := loc.Query(); len(q) != 1 || len(q["next"]) != 1 || q.Get("next") != tc.wantNext {
+				t.Errorf("login query = %v, want only next=%q", q, tc.wantNext)
+			}
+		})
+	}
+}
+
+func TestConfirmAuthorize_StateCannotAddRedirectParams(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	token := makeIssueJWT(t, userID, "testuser_"+suffix)
+
+	const registered = "https://client.example/cb?tenant=acme"
+	const state = "x&code=evil&state=y"
+	oauthSvc := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db))
+	app, clientSecret, err := oauthSvc.CreateApp(t.Context(), userID, "State app "+suffix, "", "", []string{registered})
+	if err != nil {
+		t.Fatalf("create oauth app: %v", err)
+	}
+	cfg := &config.Config{Auth: config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: time.Hour, CookieName: testCookieName}}
+	r := chi.NewRouter()
+	r.Post("/oauth/authorize", handler.New(&service.Services{OAuthApp: oauthSvc}, cfg).ConfirmAuthorize)
+	unauthorized := func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) }
+	router := middleware.Auth(testJWTSecret, testCookieName, nil, nil, unauthorized)(r)
+
+	for _, action := range []string{"allow", "deny"} {
+		t.Run(action, func(t *testing.T) {
+			form := url.Values{"client_id": {app.ClientID}, "redirect_uri": {registered}, "state": {state}, "action": {action}}
+			req := httptest.NewRequest(http.MethodPost, "/oauth/authorize", strings.NewReader(form.Encode()))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.AddCookie(&http.Cookie{Name: testCookieName, Value: token})
+			rr := httptest.NewRecorder()
+			router.ServeHTTP(rr, req)
+			if rr.Code != http.StatusSeeOther {
+				t.Fatalf("want 303, got %d: %s", rr.Code, rr.Body.String())
+			}
+			loc, err := url.Parse(rr.Header().Get("Location"))
+			if err != nil || loc.Scheme != "https" || loc.Host != "client.example" || loc.Path != "/cb" {
+				t.Fatalf("redirected to %q, want the registered URI", rr.Header().Get("Location"))
+			}
+			q := loc.Query()
+			if len(q["state"]) != 1 || q.Get("state") != state {
+				t.Errorf("state = %q, want exactly %q", q["state"], state)
+			}
+			if len(q["tenant"]) != 1 || q.Get("tenant") != "acme" {
+				t.Errorf("tenant = %q, want the registered URI's own acme", q["tenant"])
+			}
+			if action == "deny" {
+				if q.Get("error") != "access_denied" || q.Has("code") {
+					t.Errorf("deny query = %v, want error=access_denied and no code", q)
+				}
+				return
+			}
+			if len(q["code"]) != 1 {
+				t.Fatalf("code = %q, want exactly one", q["code"])
+			}
+			if _, err := oauthSvc.ExchangeCode(t.Context(), app.ClientID, clientSecret, q.Get("code")); err != nil {
+				t.Errorf("code %q in the redirect is not the issued one: %v", q.Get("code"), err)
+			}
+		})
+	}
+}

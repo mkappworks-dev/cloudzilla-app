@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -28,11 +29,8 @@ func (h *Handler) PageOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 
 	_, loggedIn := middleware.ClaimsFromContext(r.Context())
 	if !loggedIn {
-		next := r.URL.RequestURI()
-		if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") {
-			next = "/"
-		}
-		http.Redirect(w, r, "/login?next="+next, http.StatusSeeOther)
+		login := url.URL{Path: "/login", RawQuery: url.Values{"next": {safeNextPath(r.URL.RequestURI())}}.Encode()}
+		http.Redirect(w, r, login.String(), http.StatusSeeOther)
 		return
 	}
 
@@ -70,31 +68,32 @@ func (h *Handler) ConfirmAuthorize(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown client_id", http.StatusBadRequest)
 		return
 	}
-	if !h.Services.OAuthApp.IsRedirectURIAllowed(app, redirectURI) {
+	redir, err := url.Parse(redirectURI)
+	if err != nil || !h.Services.OAuthApp.IsRedirectURIAllowed(app, redirectURI) {
 		http.Error(w, "redirect_uri not allowed", http.StatusBadRequest)
 		return
 	}
 
+	params := url.Values{}
 	if r.FormValue("action") == "deny" {
-		redir := redirectURI + "?error=access_denied"
-		if state != "" {
-			redir += "&state=" + state
+		params.Set("error", "access_denied")
+	} else {
+		code, err := h.Services.OAuthApp.Authorize(r.Context(), app.ID, claims.UserID, redirectURI, scopes, app)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request")
+			return
 		}
-		http.Redirect(w, r, redir, http.StatusSeeOther)
-		return
+		params.Set("code", code)
 	}
-
-	code, err := h.Services.OAuthApp.Authorize(r.Context(), app.ID, claims.UserID, redirectURI, scopes, app)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request")
-		return
-	}
-
-	redir := redirectURI + "?code=" + code
 	if state != "" {
-		redir += "&state=" + state
+		params.Set("state", state)
 	}
-	http.Redirect(w, r, redir, http.StatusSeeOther)
+	// Appended rather than merged, so the registered URI's own query is kept as-is (RFC 6749 §3.1.2).
+	if redir.RawQuery != "" {
+		redir.RawQuery += "&"
+	}
+	redir.RawQuery += params.Encode()
+	http.Redirect(w, r, redir.String(), http.StatusSeeOther)
 }
 
 // TokenEndpoint handles POST /oauth/token (authorization_code grant).
