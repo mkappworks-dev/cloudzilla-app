@@ -191,13 +191,14 @@ func revertDirs(done []dirMove) {
 
 // deletedCopySuffix finds the copy r's soft delete moved aside, never another
 // holder's copy of the same name. Rows deleted before deleted_at took the
-// rename's clock were stamped by the DB just after it, up to a second later.
+// rename's clock were stamped by the DB's, which may put deleted_at in the
+// second before or after the suffix's.
 func deletedCopySuffix(root string, r model.Repository) (string, bool) {
 	if r.DeletedAt == nil {
 		return "", false
 	}
 	gitDir, wikiDir := repoDirs(root, r.OwnerName, r.Name)
-	for _, at := range []time.Time{*r.DeletedAt, r.DeletedAt.Add(-time.Second)} {
+	for _, at := range []time.Time{*r.DeletedAt, r.DeletedAt.Add(-time.Second), r.DeletedAt.Add(time.Second)} {
 		suffix := deletedSuffix(at)
 		if pathTaken(gitDir+suffix) || pathTaken(wikiDir+suffix) {
 			return suffix, true

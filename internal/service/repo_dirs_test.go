@@ -764,12 +764,77 @@ func TestRepoService_Fork_SkipsAReservedName(t *testing.T) {
 // wikis moved with their repo: only the git dir goes aside.
 func (e repoDirsEnv) strandWiki(t *testing.T, repoID int64, owner, name string, age time.Duration) {
 	t.Helper()
-	at := time.Now().Add(-age)
+	e.legacyDelete(t, repoID, owner, name, age, 0)
+}
+
+// legacyDelete is strandWiki with deleted_at skew away from the suffix's
+// second: the DB's clock stamped it before deleted_at took the rename's.
+func (e repoDirsEnv) legacyDelete(t *testing.T, repoID int64, owner, name string, age, skew time.Duration) {
+	t.Helper()
+	sec := time.Now().Add(-age).Unix()
 	gitDir, _ := e.dirs(owner, name)
-	if err := os.Rename(gitDir, gitDir+".deleted."+strconv.FormatInt(at.Unix(), 10)); err != nil {
+	if err := os.Rename(gitDir, gitDir+".deleted."+strconv.FormatInt(sec, 10)); err != nil {
 		t.Fatalf("move git dir aside: %v", err)
 	}
-	testutil.Exec(t, e.db, `UPDATE repositories SET deleted_at = $1 WHERE id = $2`, time.Unix(at.Unix(), 0), repoID)
+	testutil.Exec(t, e.db, `UPDATE repositories SET deleted_at = $1 WHERE id = $2`, time.Unix(sec, 0).Add(skew), repoID)
+}
+
+// A DB clock running behind the app's stamped deleted_at in the second
+// before the suffix's.
+const dbClockBehind = -5 * time.Millisecond
+
+func TestRepoService_Restore_FindsALegacyCopyStampedBeforeItsSuffix(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ownerID, owner := env.seedUser(t)
+	repoID := env.createWithWiki(t, owner, "legacy")
+	gitDir, _ := env.dirs(owner, "legacy")
+	head := headOf(t, gitDir)
+	env.legacyDelete(t, repoID, owner, "legacy", 0, dbClockBehind)
+
+	if err := env.repos.Restore(context.Background(), repoID, ownerID, false); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+	env.wantLive(t, owner, "legacy", head, "wiki of "+owner+"/legacy")
+}
+
+func TestRepoService_PurgeExpired_RemovesALegacyCopyStampedBeforeItsSuffix(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	_, owner := env.seedUser(t)
+	repoID := env.createWithWiki(t, owner, "legacy")
+	env.legacyDelete(t, repoID, owner, "legacy", 31*24*time.Hour, dbClockBehind)
+
+	if err := env.repos.PurgeExpired(context.Background()); err != nil {
+		t.Fatalf("PurgeExpired: %v", err)
+	}
+	gitDir, _ := env.dirs(owner, "legacy")
+	if copies, _ := filepath.Glob(gitDir + ".deleted.*"); len(copies) != 0 {
+		t.Errorf("purge removed the row but left its copy: %v", copies)
+	}
+}
+
+func TestRepoService_Restore_RefusesWhenTheCopyIsGone(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	ownerID, owner := env.seedUser(t)
+	repoID := env.createWithWiki(t, owner, "gone")
+	if err := env.repos.Delete(ctx, repoID, ownerID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	gitDir, wikiDir := env.dirs(owner, "gone")
+	copies, _ := filepath.Glob(gitDir + ".deleted.*")
+	wikiCopies, _ := filepath.Glob(wikiDir + ".deleted.*")
+	for _, copy := range append(copies, wikiCopies...) {
+		if err := os.RemoveAll(copy); err != nil {
+			t.Fatalf("remove copy: %v", err)
+		}
+	}
+
+	if err := env.repos.Restore(ctx, repoID, ownerID, false); err == nil {
+		t.Error("Restore succeeded with no copy to restore")
+	}
+	if _, err := env.repos.GetDeleted(ctx, owner, "gone"); err != nil {
+		t.Errorf("row no longer soft-deleted: %v", err)
+	}
 }
 
 func TestRepoService_PurgeExpired_FreesANameAStrandedWikiHeld(t *testing.T) {

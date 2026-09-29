@@ -917,12 +917,13 @@ func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, is
 	case !errors.Is(err, sql.ErrNoRows):
 		return err
 	}
-	var restored []dirMove
-	if suffix, ok := deletedCopySuffix(s.cfg.ReposRoot, *repo); ok {
-		restored, err = renameDirs([]dirMove{{from: gitDir + suffix, to: gitDir}, {from: wikiDir + suffix, to: wikiDir}})
-		if err != nil {
-			return fmt.Errorf("rename git dir back on restore: %w", err)
-		}
+	suffix, ok := deletedCopySuffix(s.cfg.ReposRoot, *repo)
+	if !ok {
+		return fmt.Errorf("restore: no soft-deleted copy of %s/%s on disk", repo.OwnerName, repo.Name)
+	}
+	restored, err := renameDirs([]dirMove{{from: gitDir + suffix, to: gitDir}, {from: wikiDir + suffix, to: wikiDir}})
+	if err != nil {
+		return fmt.Errorf("rename git dir back on restore: %w", err)
 	}
 
 	if err := s.repos.Restore(ctx, repoID); err != nil {
