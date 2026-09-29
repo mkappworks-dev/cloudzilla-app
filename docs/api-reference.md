@@ -180,6 +180,8 @@ Valid `state` values: `approved`, `changes_requested`, `commented`, `pending`.
 | DELETE | `/api/repos/:owner/:repo/pulls/:number/line_comments/:id`       | Required | Delete a line comment (author or repo writer only)             |
 | POST   | `/api/repos/:owner/:repo/pulls/:number/line_comments/:id/apply` | CanWrite | Apply a code review suggestion                                 |
 
+Applying a suggestion, merging a PR, and editing the wiki return `409` when a push moved the branch while the change was being committed; the push is kept and the client should reload and retry (see [pr-merge](./pr-merge.md#merge-flow)).
+
 ## Reactions
 
 | Method | Path                                             | Auth     | Description                          |
@@ -363,7 +365,15 @@ See [access-control.md](access-control.md) for the full permission model. `CanMa
 
 `/oauth/authorize` takes `client_id`, `redirect_uri`, `state`, and a space-delimited `scope`. `redirect_uri` must exactly match one the app registered; if it doesn't, or a scope is unknown, the response is `400` and nothing is redirected. Apps registered before redirect URIs were required have none, so they must be registered again. The consent page can't be framed (`X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'`). Approving redirects to `redirect_uri` with `code` and `state` added to its query, keeping any query it already has; denying adds `error=access_denied` and `state` instead.
 
-`/oauth/token` exchanges `code` (with `grant_type=authorization_code`, `client_id`, `client_secret`, and the `redirect_uri` sent to `/oauth/authorize`) for `{"access_token": "...", "token_type": "bearer"}`. A code is single-use, expires after 5 minutes, and can be redeemed only by the app it was issued to with the same `redirect_uri`; otherwise the response is `401` `invalid or expired authorization code`, and the code stays redeemable by its own app. Client credentials go in the form body (HTTP Basic is not supported); the endpoint needs no CSRF token.
+`/oauth/token` exchanges `code` (with `grant_type=authorization_code` and the `redirect_uri` sent to `/oauth/authorize`) for `{"access_token": "...", "token_type": "bearer"}`. The client authenticates with HTTP Basic (`Authorization: Basic base64(client_id:client_secret)`, each part form-encoded first, per RFC 6749 §2.3.1) or with `client_id` and `client_secret` in the form body, not both; the endpoint needs no CSRF token. A code is single-use, expires after 5 minutes, and can be redeemed only by the app it was issued to with the same `redirect_uri`; a refused attempt leaves it redeemable by its own app. Errors follow RFC 6749 §5.2: the body is `{"error": "<code>"}` and nothing else. Every response, success or error, carries `Cache-Control: no-store` (RFC 6749 §5.1).
+
+| Status | `error`                  | When                                                                                                                          |
+| ------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| 400    | `invalid_request`        | `grant_type` or `code` missing, a malformed Basic header, or credentials in both the header and the body                      |
+| 400    | `unsupported_grant_type` | `grant_type` is anything but `authorization_code`                                                                             |
+| 401    | `invalid_client`         | Unknown `client_id`, wrong `client_secret`, or no credentials; adds `WWW-Authenticate: Basic realm="oauth"` if Basic was used |
+| 400    | `invalid_grant`          | Code unknown, expired, already redeemed, issued to another app, or `redirect_uri` doesn't match                               |
+| 500    | `server_error`           | Anything else; the cause is logged server-side                                                                                |
 
 | Scope          | Grants                                                                                         |
 | -------------- | ---------------------------------------------------------------------------------------------- |

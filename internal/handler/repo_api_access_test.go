@@ -28,11 +28,14 @@ import (
 var repoAPIPrefixes = []string{"/api/repos/{owner}/{repo}", "/fragments/{owner}/{repo}"}
 
 func newAPIRouter(t *testing.T, db *sql.DB) http.Handler {
-	t.Helper()
+	return newAPIRouterAt(db, t.TempDir())
+}
+
+func newAPIRouterAt(db *sql.DB, reposRoot string) http.Handler {
 	cfg := &config.Config{
 		Server: config.ServerConfig{BaseURL: "http://localhost:8080"},
 		Auth:   config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: 24 * time.Hour, CookieName: testCookieName},
-		Git:    config.GitConfig{ReposRoot: t.TempDir()},
+		Git:    config.GitConfig{ReposRoot: reposRoot},
 	}
 	h, err := router.New(service.New(store.New(db), cfg), cfg, fstest.MapFS{})
 	if err != nil {

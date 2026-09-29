@@ -471,7 +471,7 @@ func wikiMutateTree(
 	if err != nil {
 		return err
 	}
-	if err := stor.SetReference(plumbing.NewHashReference(headRef.Name(), commitHash)); err != nil {
+	if err := setBranchTip(stor, headRef.Name(), parentCommit.Hash, commitHash); err != nil {
 		return err
 	}
 	// Mirror wikiCommit's HEAD-fixup so that a rename/delete on a detached or
@@ -517,6 +517,7 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, author 
 
 	// Load existing tree entries from HEAD (if any commits exist).
 	entries := []object.TreeEntry{}
+	var oldTip plumbing.Hash
 	var parentHashes []plumbing.Hash
 	head, headErr := repo.Head()
 	if headErr == nil {
@@ -524,6 +525,7 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, author 
 		if err != nil {
 			return err
 		}
+		oldTip = parentCommit.Hash
 		parentHashes = []plumbing.Hash{parentCommit.Hash}
 		existingTree, err := parentCommit.Tree()
 		if err != nil {
@@ -573,12 +575,11 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, author 
 	}
 
 	// Advance HEAD / main ref.
-	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName("main"), commitHash)
-	if err := storer.SetReference(ref); err != nil {
+	mainBranch := plumbing.NewBranchReferenceName("main")
+	if err := setBranchTip(storer, mainBranch, oldTip, commitHash); err != nil {
 		return err
 	}
 
-	mainBranch := plumbing.NewBranchReferenceName("main")
 	headRef, headErr := storer.Reference(plumbing.HEAD)
 	if headErr != nil || headRef.Type() == plumbing.HashReference || headRef.Target() != mainBranch {
 		symRef := plumbing.NewSymbolicReference(plumbing.HEAD, mainBranch)

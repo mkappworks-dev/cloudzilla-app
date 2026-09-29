@@ -346,6 +346,10 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		default:
 			err = h.Services.Code.MergePullRequest(owner, repoName, base, head)
 		}
+		if errors.Is(err, service.ErrRefMoved) {
+			writeError(w, http.StatusConflict, branchMovedMsg)
+			return
+		}
 		if err != nil {
 			writeError(w, http.StatusUnprocessableEntity, err.Error())
 			return

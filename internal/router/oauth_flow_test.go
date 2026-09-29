@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -18,6 +19,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
+	"golang.org/x/oauth2"
 )
 
 type oauthFlow struct {
@@ -81,13 +83,35 @@ func (f oauthFlow) confirm(clientID, redirectURI, state, action string) *httptes
 	})
 }
 
-// token calls /oauth/token as an OAuth client's backend would: no session, no CSRF token.
-func (f oauthFlow) token(form url.Values) *httptest.ResponseRecorder {
+func tokenRequest(form url.Values) *http.Request {
 	req := httptest.NewRequest(http.MethodPost, "/oauth/token", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return req
+}
+
+// token calls /oauth/token as an OAuth client's backend would: no session, no CSRF token.
+func (f oauthFlow) token(form url.Values) *httptest.ResponseRecorder {
+	rr := httptest.NewRecorder()
+	f.h.ServeHTTP(rr, tokenRequest(form))
+	return rr
+}
+
+// tokenBasic is token with the client credentials in an HTTP Basic header,
+// form-encoded first as RFC 6749 §2.3.1 requires.
+func (f oauthFlow) tokenBasic(clientID, secret string, form url.Values) *httptest.ResponseRecorder {
+	req := tokenRequest(form)
+	req.SetBasicAuth(url.QueryEscape(clientID), url.QueryEscape(secret))
 	rr := httptest.NewRecorder()
 	f.h.ServeHTTP(rr, req)
 	return rr
+}
+
+// assertTokenError checks for an RFC 6749 §5.2 error with nothing else in the body.
+func assertTokenError(t *testing.T, rr *httptest.ResponseRecorder, status int, code string) {
+	t.Helper()
+	if want := `{"error":"` + code + `"}`; rr.Code != status || strings.TrimSpace(rr.Body.String()) != want {
+		t.Fatalf("want %d %s, got %d: %s", status, want, rr.Code, rr.Body.String())
+	}
 }
 
 func location(t *testing.T, rr *httptest.ResponseRecorder) *url.URL {
@@ -196,11 +220,11 @@ func TestOAuthTokenEndpoint_CodeBoundToAppAndRedirectURI(t *testing.T) {
 		redirectURI string
 		want        int
 	}{
-		{"another app's credentials", other.ClientID, otherSecret, testRedirectURI, http.StatusUnauthorized},
-		{"different redirect_uri", app.ClientID, secret, "https://client.example/other", http.StatusUnauthorized},
-		{"missing redirect_uri", app.ClientID, secret, "", http.StatusUnauthorized},
+		{"another app's credentials", other.ClientID, otherSecret, testRedirectURI, http.StatusBadRequest},
+		{"different redirect_uri", app.ClientID, secret, "https://client.example/other", http.StatusBadRequest},
+		{"missing redirect_uri", app.ClientID, secret, "", http.StatusBadRequest},
 		{"issuing app", app.ClientID, secret, testRedirectURI, http.StatusOK},
-		{"replayed code", app.ClientID, secret, testRedirectURI, http.StatusUnauthorized},
+		{"replayed code", app.ClientID, secret, testRedirectURI, http.StatusBadRequest},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -211,11 +235,12 @@ func TestOAuthTokenEndpoint_CodeBoundToAppAndRedirectURI(t *testing.T) {
 				"code":          {code},
 				"redirect_uri":  {tt.redirectURI},
 			})
+			if tt.want != http.StatusOK {
+				assertTokenError(t, rr, tt.want, "invalid_grant")
+				return
+			}
 			if rr.Code != tt.want {
 				t.Fatalf("want %d, got %d: %s", tt.want, rr.Code, rr.Body.String())
-			}
-			if tt.want != http.StatusOK {
-				return
 			}
 			var resp struct {
 				AccessToken string `json:"access_token"`
@@ -223,6 +248,84 @@ func TestOAuthTokenEndpoint_CodeBoundToAppAndRedirectURI(t *testing.T) {
 			if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil || resp.AccessToken == "" {
 				t.Errorf("want an access_token, got %s (%v)", rr.Body.String(), err)
 			}
+			// RFC 6749 §5.1: a response carrying a token must not be cached.
+			if got := rr.Header().Get("Cache-Control"); got != "no-store" {
+				t.Errorf("Cache-Control = %q, want no-store", got)
+			}
 		})
+	}
+}
+
+// RFC 6749 §5.2: every client-authentication failure gets the same answer, so the
+// endpoint doesn't reveal which client_ids exist.
+func TestOAuthTokenEndpoint_BadClientCredentials(t *testing.T) {
+	f := newOAuthFlow(t)
+	app, secret := f.createApp(t, testRedirectURI)
+	code := location(t, f.confirm(app.ClientID, testRedirectURI, "", "approve")).Query().Get("code")
+	grant := func() url.Values {
+		return url.Values{"grant_type": {"authorization_code"}, "code": {code}, "redirect_uri": {testRedirectURI}}
+	}
+
+	tests := []struct {
+		name     string
+		basic    bool
+		clientID string
+		secret   string
+	}{
+		{"unknown client_id", false, "no-such-client", secret},
+		{"wrong client_secret", false, app.ClientID, "wrong"},
+		{"no client credentials", false, "", ""},
+		{"unknown client_id via Basic", true, "no-such-client", secret},
+		{"wrong client_secret via Basic", true, app.ClientID, "wrong"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var rr *httptest.ResponseRecorder
+			if tt.basic {
+				rr = f.tokenBasic(tt.clientID, tt.secret, grant())
+			} else {
+				form := grant()
+				form.Set("client_id", tt.clientID)
+				form.Set("client_secret", tt.secret)
+				rr = f.token(form)
+			}
+			assertTokenError(t, rr, http.StatusUnauthorized, "invalid_client")
+			if challenge := rr.Header().Get("WWW-Authenticate"); tt.basic != strings.HasPrefix(challenge, "Basic ") {
+				t.Errorf("WWW-Authenticate = %q, want a Basic challenge exactly when Basic was used", challenge)
+			}
+		})
+	}
+
+	// Client authentication fails before the code is touched, so it is still redeemable.
+	if rr := f.tokenBasic(app.ClientID, secret, grant()); rr.Code != http.StatusOK {
+		t.Errorf("issuing app via Basic: want 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
+// golang.org/x/oauth2 sends client credentials in a Basic header first (AuthStyleAutoDetect)
+// and reads the error code from the JSON body.
+func TestOAuthTokenEndpoint_OAuth2ClientAuthStyles(t *testing.T) {
+	f := newOAuthFlow(t)
+	srv := httptest.NewServer(f.h)
+	t.Cleanup(srv.Close)
+	app, secret := f.createApp(t, testRedirectURI)
+
+	for _, style := range []oauth2.AuthStyle{oauth2.AuthStyleInHeader, oauth2.AuthStyleInParams} {
+		cfg := oauth2.Config{
+			ClientID:     app.ClientID,
+			ClientSecret: secret,
+			RedirectURL:  testRedirectURI,
+			Endpoint:     oauth2.Endpoint{TokenURL: srv.URL + "/oauth/token", AuthStyle: style},
+		}
+		code := location(t, f.confirm(app.ClientID, testRedirectURI, "", "approve")).Query().Get("code")
+
+		tok, err := cfg.Exchange(context.Background(), code)
+		if err != nil || tok.AccessToken == "" {
+			t.Fatalf("AuthStyle %d: Exchange = %v, %v; want an access token", style, tok, err)
+		}
+		var rErr *oauth2.RetrieveError
+		if _, err := cfg.Exchange(context.Background(), code); !errors.As(err, &rErr) || rErr.ErrorCode != "invalid_grant" {
+			t.Errorf("AuthStyle %d: replay = %v, want invalid_grant", style, err)
+		}
 	}
 }
