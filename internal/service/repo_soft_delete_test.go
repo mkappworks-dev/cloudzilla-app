@@ -520,12 +520,25 @@ func TestRestore_RowUpdateFails_MovesTheDirsBack(t *testing.T) {
 	}
 }
 
+func transferOwners(t *testing.T, db *sql.DB) (from, to string, fromID, toID int64) {
+	t.Helper()
+	suffix := testutil.UniqueSuffix(t)
+	from, to = "giver_"+suffix, "taker_"+suffix
+	return from, to, seedOwner(t, db, from), seedOwner(t, db, to)
+}
+
+func transferRepo(svc *RepoService, repoID, userID int64, newOwner string) error {
+	repo, err := svc.GetByID(context.Background(), repoID)
+	if err != nil {
+		return err
+	}
+	return svc.TransferRepo(context.Background(), repo, userID, newOwner)
+}
+
 func TestTransferRepo_OwnerUpdateFails_ReportsAStrandedDir(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	root := t.TempDir()
-	suffix := testutil.UniqueSuffix(t)
-	from, to := "giver_"+suffix, "taker_"+suffix
-	fromID, toID := seedOwner(t, db, from), seedOwner(t, db, to)
+	from, to, fromID, toID := transferOwners(t, db)
 	repoID := seedRepoRow(t, db, fromID, from, "x", "NULL")
 	// The new owner's deleted x fails the owner update on UNIQUE(owner_id, name).
 	seedRepoRow(t, db, toID, to, "x", "NOW()")
@@ -533,13 +546,8 @@ func TestTransferRepo_OwnerUpdateFails_ReportsAStrandedDir(t *testing.T) {
 	moved := filepath.Join(root, to, "x.git")
 	errUndo := errors.New("undo failed")
 	failRenames(t, map[string]error{moved: errUndo})
-	svc := newDiskRepoService(db, root)
-	repo, err := svc.GetByID(context.Background(), repoID)
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	err = svc.TransferRepo(context.Background(), repo, fromID, to)
+	err := transferRepo(newDiskRepoService(db, root), repoID, fromID, to)
 
 	if err == nil || !strings.HasPrefix(err.Error(), "update repo owner") {
 		t.Errorf("want the owner update's error first, got %v", err)
@@ -547,4 +555,64 @@ func TestTransferRepo_OwnerUpdateFails_ReportsAStrandedDir(t *testing.T) {
 	if !errors.Is(err, errUndo) || !strings.Contains(err.Error(), moved) {
 		t.Errorf("want the failed undo naming the stranded %s, got %v", moved, err)
 	}
+}
+
+func TestTransferRepo_MovesTheWiki(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	from, to, fromID, _ := transferOwners(t, db)
+	repoID := seedRepoRow(t, db, fromID, from, "x", "NULL")
+	mkdirs(t, filepath.Join(root, from, "x.git", "objects"), filepath.Join(root, from, "x.wiki.git", "page"))
+
+	if err := transferRepo(newDiskRepoService(db, root), repoID, fromID, to); err != nil {
+		t.Fatalf("TransferRepo: %v", err)
+	}
+
+	assertExists(t, filepath.Join(root, to, "x.git", "objects"), filepath.Join(root, to, "x.wiki.git", "page"))
+	assertDirHolds(t, filepath.Join(root, from))
+}
+
+func TestTransferRepo_WithoutAWiki_MovesTheRepo(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	from, to, fromID, _ := transferOwners(t, db)
+	repoID := seedRepoRow(t, db, fromID, from, "x", "NULL")
+	mkdirs(t, filepath.Join(root, from, "x.git"))
+
+	if err := transferRepo(newDiskRepoService(db, root), repoID, fromID, to); err != nil {
+		t.Fatalf("TransferRepo: %v", err)
+	}
+
+	assertDirHolds(t, filepath.Join(root, to), "x.git")
+}
+
+func TestTransferRepo_WithoutARepoDir_Fails(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	from, to, fromID, _ := transferOwners(t, db)
+	repoID := seedRepoRow(t, db, fromID, from, "x", "NULL")
+	mkdirs(t, filepath.Join(root, from, "x.wiki.git"))
+
+	if err := transferRepo(newDiskRepoService(db, root), repoID, fromID, to); err == nil {
+		t.Error("want an error for a repo with no directory")
+	}
+
+	assertDirHolds(t, filepath.Join(root, from), "x.wiki.git")
+}
+
+func TestTransferRepo_OwnerUpdateFails_MovesTheRepoAndWikiBack(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	from, to, fromID, toID := transferOwners(t, db)
+	repoID := seedRepoRow(t, db, fromID, from, "x", "NULL")
+	// The new owner's deleted x fails the owner update on UNIQUE(owner_id, name).
+	seedRepoRow(t, db, toID, to, "x", "NOW()")
+	mkdirs(t, filepath.Join(root, from, "x.git"), filepath.Join(root, from, "x.wiki.git"))
+
+	if err := transferRepo(newDiskRepoService(db, root), repoID, fromID, to); err == nil {
+		t.Fatal("want the owner update's error")
+	}
+
+	assertDirHolds(t, filepath.Join(root, from), "x.git", "x.wiki.git")
+	assertDirHolds(t, filepath.Join(root, to))
 }

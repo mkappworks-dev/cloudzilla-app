@@ -104,4 +104,6 @@ find <repos_root> -maxdepth 2 -name '*.git.deleted.[0-9]*'
 
 A directory is still claimed while a deleted row with that owner and name has a `deleted_at` within a minute of its Unix time. Remove any whose repository is live or already restored.
 
+Transferring a repository now moves its wiki too. Earlier versions left `<name>.wiki.git` with the previous owner, where a repository they create under that name picks it up; move such wikis to the new owner by hand.
+
 Repository names can no longer end in `.wiki`: repository `x.wiki` would share its directory with repository `x`'s wiki. Repositories given such a name earlier are no longer served on any path: web, API, SSH or Git smart-HTTP, and deleted ones can't be restored. Find them with `SELECT id, owner_name, name FROM repositories WHERE lower(name) LIKE '%.wiki';` and rename them, moving each `<name>.git` directory to match.

@@ -902,24 +902,29 @@ func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, 
 		return fmt.Errorf("new owner must be a different user")
 	}
 
-	oldPath, err := RepoDir(s.cfg.ReposRoot, repo.OwnerName, repo.Name+".git")
+	oldPath, oldWiki, err := s.gitDirs(repo.OwnerName, repo.Name)
 	if err != nil {
 		return err
 	}
-	newPath, err := RepoDir(s.cfg.ReposRoot, newOwnerUsername, repo.Name+".git")
+	newPath, newWiki, err := s.gitDirs(newOwnerUsername, repo.Name)
 	if err != nil {
 		return err
 	}
 
+	// moveDirs skips a missing directory, but only the wiki may be missing.
+	if _, err := os.Stat(oldPath); err != nil {
+		return fmt.Errorf("move git dir: %w", err)
+	}
 	if err := os.MkdirAll(filepath.Dir(newPath), 0755); err != nil {
 		return fmt.Errorf("create owner dir: %w", err)
 	}
-	if err := os.Rename(oldPath, newPath); err != nil {
-		return fmt.Errorf("move git dir: %w", err)
+	moved, err := moveDirs(dirMove{oldPath, newPath}, dirMove{oldWiki, newWiki})
+	if err != nil {
+		return fmt.Errorf("move git dirs: %w", err)
 	}
 
 	if err := s.repos.UpdateOwner(ctx, repo.ID, newOwner.ID, newOwnerUsername); err != nil {
-		return undoMoves(fmt.Errorf("update repo owner: %w", err), []dirMove{{oldPath, newPath}})
+		return undoMoves(fmt.Errorf("update repo owner: %w", err), moved)
 	}
 	return nil
 }
