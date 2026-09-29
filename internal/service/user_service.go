@@ -145,7 +145,6 @@ type OAuthIdentity struct {
 }
 
 func (s *UserService) AuthenticateOAuth(ctx context.Context, id OAuthIdentity, allowRegistration, allowLogin bool) (*model.User, string, error) {
-	// 1. Look up by OAuth ID
 	if u, err := s.store.GetByOAuthID(ctx, id.Provider, id.ID); err == nil {
 		if !u.IsSuperadmin && !u.IsInvited && !allowLogin {
 			return nil, "", ErrLoginDisabled
@@ -154,7 +153,7 @@ func (s *UserService) AuthenticateOAuth(ctx context.Context, id OAuthIdentity, a
 		return u, token, err
 	}
 
-	// An unverified provider email is only a claim: linking on it hands the matching account to whoever typed the address.
+	// An unverified provider email is only a claim; an account created on it would let anyone take the address first.
 	if !id.EmailVerified {
 		return nil, "", ErrOAuthEmailUnverified
 	}

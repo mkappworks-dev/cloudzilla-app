@@ -118,17 +118,6 @@ func (s *UserStore) GetByOAuthID(ctx context.Context, provider, oauthID string) 
 	return u, nil
 }
 
-func (s *UserStore) LinkOAuth(ctx context.Context, userID int64, provider, oauthID string) error {
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE users SET oauth_provider = $1, oauth_id = $2, updated_at = NOW() WHERE id = $3`,
-		provider, oauthID, userID,
-	)
-	if err != nil {
-		return fmt.Errorf("user link oauth: %w", err)
-	}
-	return nil
-}
-
 func (s *UserStore) CreateOAuthUser(ctx context.Context, username, email, provider, oauthID, avatarURL string) (*model.User, error) {
 	u := &model.User{}
 	err := scanUser(s.db.QueryRowContext(ctx,
