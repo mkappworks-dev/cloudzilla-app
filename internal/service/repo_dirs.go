@@ -118,8 +118,12 @@ func claimRepo(ctx context.Context, repos *store.RepoStore, root, owner, name st
 	if err := os.MkdirAll(filepath.Dir(gitDir), 0o755); err != nil {
 		return "", fmt.Errorf("create owner dir: %w", err)
 	}
-	if pathTaken(wikiDir) {
+	// Unlike pathTaken, an unreadable path is an error here: Fork retries on
+	// ErrRepoNameTaken and would otherwise never stop.
+	if _, err := os.Lstat(wikiDir); err == nil {
 		return "", ErrRepoNameTaken
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return "", fmt.Errorf("check wiki dir: %w", err)
 	}
 	if err := os.Mkdir(gitDir, 0o755); err != nil {
 		if errors.Is(err, fs.ErrExist) {

@@ -987,3 +987,31 @@ func TestRepoService_DeleteWithOwner_KeepsAWikiACaseVariantOwnerHolds(t *testing
 		t.Errorf("deleting %s removed %s/notes's wiki", upper, lower)
 	}
 }
+
+func TestRepoService_Fork_StopsWhenTheOwnerDirCannotBeRead(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root ignores directory permissions")
+	}
+	env := newRepoDirsEnv(t)
+	ownerID, owner := env.seedUser(t)
+	userID, user := env.seedUser(t)
+	orig, err := env.repos.Create(context.Background(), ownerID, owner, "forkme", "", false, service.RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatalf("create original: %v", err)
+	}
+	userDir := filepath.Join(env.root, user)
+	if err := os.MkdirAll(userDir, 0o755); err != nil {
+		t.Fatalf("create owner dir: %v", err)
+	}
+	if err := os.Chmod(userDir, 0o600); err != nil {
+		t.Fatalf("chmod owner dir: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(userDir, 0o755) })
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err = env.repos.Fork(ctx, owner, orig.Name, userID, user)
+	if err == nil || errors.Is(err, service.ErrRepoNameTaken) || ctx.Err() != nil {
+		t.Fatalf("Fork = %v (ctx %v), want an immediate filesystem error", err, ctx.Err())
+	}
+}
