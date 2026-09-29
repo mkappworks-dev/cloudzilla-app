@@ -1,5 +1,5 @@
 // Package gittransport contains transport-layer adapters around go-git's
-// receive-pack path: a server whose ref updates are compare-and-swaps, a
+// receive-pack path: a server whose ref updates are vetted compare-and-swaps, a
 // storer wrapper that forces correct thin-pack handling, an incoming-pack
 // size limiter, and a byte counter for observability. See
 // docs/git-transport.md → "Thin packs" and "Concurrent ref updates".

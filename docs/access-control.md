@@ -456,7 +456,7 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | Cookie security    | `Secure` flag configurable via `config.Auth.CookieSecure`; `HttpOnly` always set |
 | Input validation   | All URL path params validated via `strconv`; repo/user names validated via regex |
 | SSRF protection    | Webhook delivery blocks private/internal IPs                                     |
-| Branch protection  | Ref rollback on protection violation after git-receive-pack                      |
+| Branch protection  | A push that violates a rule is refused per ref, before the ref is written        |
 | Password storage   | bcrypt hashed                                                                    |
 | TOTP               | HMAC-SHA1 with bcrypt-hashed backup codes                                        |
 | PAT                | `crypto/rand` generated, bcrypt-hashed for storage                               |
