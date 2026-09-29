@@ -784,13 +784,12 @@ func (s *RepoService) Delete(ctx context.Context, repoID, userID int64) error {
 		return err
 	}
 
+	// A legacy name can fail RepoDir: soft-delete the row anyway, so the UI can clean it up.
 	repoPath, err := RepoDir(s.cfg.ReposRoot, repo.OwnerName, repo.Name+".git")
 	if err != nil {
-		return err
-	}
-	deletedPath := deletedDirPath(repoPath, time.Now())
-	if _, err := os.Stat(repoPath); err == nil {
-		if err := os.Rename(repoPath, deletedPath); err != nil {
+		slog.Warn("delete: skipping unsafe repo path", "repo_id", repoID, "error", err)
+	} else if _, statErr := os.Stat(repoPath); statErr == nil {
+		if err := os.Rename(repoPath, deletedDirPath(repoPath, time.Now())); err != nil {
 			return fmt.Errorf("rename git dir for soft delete: %w", err)
 		}
 	}

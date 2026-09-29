@@ -1,10 +1,13 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
@@ -155,5 +158,33 @@ func TestPurgeExpired_LeavesLiveRepoNamedLikeADeletedDir(t *testing.T) {
 	}
 	if _, err := os.Stat(expired); !os.IsNotExist(err) {
 		t.Errorf("x's soft-deleted dir must be purged; stat: %v", err)
+	}
+}
+
+// An owner stored before the owner-name rule can fail RepoDir. Its repos must
+// still be deletable, so the UI can clean them up.
+func TestDelete_LegacyUnsafeOwner_SoftDeletesRowAndWarns(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	owner := "*_" + testutil.UniqueSuffix(t)
+	ownerID := seedOwner(t, db, owner)
+	repoID := seedRepoRow(t, db, ownerID, owner, "legacy", "NULL")
+	var logs bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	if err := newDiskRepoService(db, t.TempDir()).Delete(context.Background(), repoID, ownerID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+
+	var deleted bool
+	if err := db.QueryRowContext(context.Background(), `SELECT deleted_at IS NOT NULL FROM repositories WHERE id = $1`, repoID).Scan(&deleted); err != nil {
+		t.Fatal(err)
+	}
+	if !deleted {
+		t.Error("the repository row must be soft-deleted")
+	}
+	if !strings.Contains(logs.String(), "level=WARN") || !strings.Contains(logs.String(), "unsafe repo path") {
+		t.Errorf("want a WARN about the unsafe repo path; logs:\n%s", logs.String())
 	}
 }

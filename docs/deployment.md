@@ -68,3 +68,12 @@ Set `server.trusted_proxies` (`CZ_SERVER_TRUSTED_PROXIES`) to the proxy's IP or 
 ### Upgrading
 
 Migration `076_users_email_case_insensitive` refuses to run while two accounts have emails that differ only by case. Its error names their user IDs; change or merge those accounts, then run `cloudzilla-cli migrate` again.
+
+The owner-name rule (see [access-control](./access-control.md)) is checked only when a user or organization is created, so names from before it may fail it. Those that aren't a single safe path segment (containing `/`, `\`, `*`, `?`, `[` or `]`, or equal to `.` or `..`) are refused as repository paths: their repositories can't be served, created, forked, restored or transferred, and deleting one soft-deletes the row but leaves its directory on disk. List every name that fails the rule with:
+
+```sql
+SELECT id, username FROM users WHERE username !~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$';
+SELECT id, name FROM organizations WHERE name !~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$';
+```
+
+Rename them in the database before those owners need to delete, restore or transfer repositories; update `repositories.owner_name` to match and move the owner's directory under `git.repos_root`.
