@@ -828,3 +828,51 @@ func TestRepoService_PurgeExpired_KeepsAStrandedWikiSomeRowStillNames(t *testing
 		}
 	})
 }
+
+func (e repoDirsEnv) seedNamedUser(t *testing.T, username, email string) int64 {
+	t.Helper()
+	var id int64
+	if err := e.db.QueryRow(
+		`INSERT INTO users (username, email, password_hash) VALUES ($1, $2, 'x') RETURNING id`,
+		username, email,
+	).Scan(&id); err != nil {
+		t.Fatalf("seed user %s: %v", username, err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, e.db, id) })
+	return id
+}
+
+func TestRepoService_DeleteWithOwner_KeepsAWikiACaseVariantOwnerHolds(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	if err := os.Mkdir(filepath.Join(env.root, "CaseProbe"), 0o755); err != nil {
+		t.Fatalf("probe: %v", err)
+	}
+	if !pathExists(filepath.Join(env.root, "caseprobe")) {
+		t.Skip("owners differing only in case share a dir only on a case-insensitive filesystem")
+	}
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	upper, lower := "Casefold_"+suffix, "casefold_"+suffix
+	upperID := env.seedNamedUser(t, upper, "upper_"+suffix+"@test.invalid")
+	env.seedNamedUser(t, lower, "lower_"+suffix+"@test.invalid")
+
+	repo, err := env.repos.Create(ctx, upper, "notes", "", false, service.RepoInitOptions{})
+	if err != nil {
+		t.Fatalf("Create %s/notes: %v", upper, err)
+	}
+	if err := env.repos.Delete(ctx, repo.ID, upperID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	env.createWithWiki(t, lower, "notes")
+
+	err = env.repos.DeleteWithOwner(ctx, upperID, func() error {
+		_, err := env.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, upperID)
+		return err
+	})
+	if err != nil {
+		t.Fatalf("DeleteWithOwner: %v", err)
+	}
+	if _, found, _ := env.code.WikiPageGet(lower, "notes", "Home"); !found {
+		t.Errorf("deleting %s removed %s/notes's wiki", upper, lower)
+	}
+}

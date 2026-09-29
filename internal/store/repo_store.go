@@ -92,12 +92,12 @@ func (s *RepoStore) GetByOwnerName(ctx context.Context, ownerName, name string) 
 	return r, nil
 }
 
-// NameHeld counts soft-deleted rows too, and ignores the name's case as a
-// case-insensitive filesystem would.
+// NameHeld counts soft-deleted rows too, and ignores the case of both names
+// as a case-insensitive filesystem would.
 func (s *RepoStore) NameHeld(ctx context.Context, ownerName, name string) (bool, error) {
 	var held bool
 	err := s.db.QueryRowContext(ctx,
-		`SELECT EXISTS (SELECT 1 FROM repositories WHERE owner_name = $1 AND lower(name) = lower($2))`,
+		`SELECT EXISTS (SELECT 1 FROM repositories WHERE lower(owner_name) = lower($1) AND lower(name) = lower($2))`,
 		ownerName, name,
 	).Scan(&held)
 	if err != nil {

@@ -168,3 +168,20 @@ func TestRepoStore_CreateWithOwnerName_AssignsID(t *testing.T) {
 		t.Error("CreateWithOwnerName must populate CreatedAt")
 	}
 }
+
+// Owners whose names differ only in case share one directory on a
+// case-insensitive filesystem, so one's row must hold the name for the other.
+func TestRepoStore_NameHeld_IgnoresOwnerCase(t *testing.T) {
+	db := openStoreDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+
+	held, err := store.NewRepoStore(db).NameHeld(context.Background(), "TestUser_"+suffix, "TestRepo_"+suffix)
+	if err != nil {
+		t.Fatalf("NameHeld: %v", err)
+	}
+	if !held {
+		t.Error("NameHeld misses a row whose owner name differs only in case")
+	}
+}
