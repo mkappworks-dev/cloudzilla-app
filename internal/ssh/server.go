@@ -19,7 +19,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/transport"
-	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
@@ -254,9 +253,9 @@ func (s *Server) sessionHandler(session ssh.Session) {
 			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
 			forcePush := cmd.Action() == packp.Update && cmd.Old != plumbing.ZeroHash && isForcePushSSH(gitRepo, cmd)
 			if err := s.services.BranchProtection.CheckPush(ctx, repo.ID, branch, forcePush); err != nil {
-				// Rollback the ref to its previous value
-				ref := plumbing.NewHashReference(cmd.Name, cmd.Old)
-				_ = gitRepo.Storer.SetReference(ref)
+				if rbErr := gittransport.Revert(gitRepo.Storer, cmd); rbErr != nil {
+					slog.Error("branch protection rollback failed", "ref", cmd.Name.String(), "error", rbErr)
+				}
 				_, _ = fmt.Fprintf(session.Stderr(), "error: push rejected: %v\n", err)
 				_ = session.Exit(1)
 				return
@@ -334,13 +333,7 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 		return nil, fmt.Errorf("create endpoint: %w", err)
 	}
 
-	// MapLoader is keyed on ep.String() (e.g. "file:///"), not the input to NewEndpoint.
-	// WrapForReceive routes receive-pack onto go-git's parsed-storage
-	// path; the filesystem fast path can't resolve thin-pack REF_DELTAs.
-	// See docs/git-transport.md → "Thin packs".
-	srv := server.NewServer(server.MapLoader{
-		ep.String(): gittransport.WrapForReceive(gitRepo.Storer),
-	})
+	srv := gittransport.NewServer(gitRepo.Storer)
 
 	if svc == "git-upload-pack" {
 		sess, err := srv.NewUploadPackSession(ep, nil)
