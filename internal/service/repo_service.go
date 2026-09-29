@@ -791,16 +791,25 @@ func (s *RepoService) Delete(ctx context.Context, repoID, userID int64) error {
 	}
 
 	// A legacy name can fail RepoDir: soft-delete the row anyway, so the UI can clean it up.
-	repoPath, err := RepoDir(s.cfg.ReposRoot, repo.OwnerName, repo.Name+".git")
+	repoPath, wikiPath, err := s.gitDirs(repo.OwnerName, repo.Name)
 	if err != nil {
 		slog.Warn("delete: skipping unsafe repo path", "repo_id", repoID, "error", err)
-	} else if _, statErr := os.Stat(repoPath); statErr == nil {
-		if err := os.Rename(repoPath, deletedDirPath(repoPath, time.Now())); err != nil {
-			return fmt.Errorf("rename git dir for soft delete: %w", err)
-		}
+	} else if err := moveDirs(
+		dirMove{repoPath, deletedDirPath(repoPath, repo.ID)},
+		dirMove{wikiPath, deletedDirPath(wikiPath, repo.ID)},
+	); err != nil {
+		return fmt.Errorf("move git dirs for soft delete: %w", err)
 	}
 
 	return s.repos.Delete(ctx, repoID, userID)
+}
+
+func (s *RepoService) gitDirs(owner, name string) (repoPath, wikiPath string, err error) {
+	if repoPath, err = RepoDir(s.cfg.ReposRoot, owner, name+".git"); err != nil {
+		return "", "", err
+	}
+	wikiPath, err = RepoDir(s.cfg.ReposRoot, owner, name+".wiki.git")
+	return repoPath, wikiPath, err
 }
 
 func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, isSuperadmin bool) error {
@@ -812,22 +821,19 @@ func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, is
 		return fmt.Errorf("forbidden: only the original owner or a superadmin can restore a repo")
 	}
 
-	restoredPath, err := RepoDir(s.cfg.ReposRoot, repo.OwnerName, repo.Name+".git")
+	repoPath, wikiPath, err := s.gitDirs(repo.OwnerName, repo.Name)
 	if err != nil {
 		return err
 	}
-	matches, err := deletedDirs(restoredPath)
+	deletedRepo, err := deletedRepoDir(repoPath, repo.ID, repo.DeletedAt)
 	if err != nil {
-		return fmt.Errorf("list deleted git dirs: %w", err)
+		return fmt.Errorf("find deleted git dir: %w", err)
 	}
-	if len(matches) > 0 {
-		latestMatch := matches[len(matches)-1]
-		if _, statErr := os.Stat(restoredPath); statErr == nil {
-			return fmt.Errorf("restore conflict: live repo dir already exists at %s", restoredPath)
-		}
-		if err := os.Rename(latestMatch, restoredPath); err != nil {
-			return fmt.Errorf("rename git dir back on restore: %w", err)
-		}
+	if err := moveDirs(
+		dirMove{deletedRepo, repoPath},
+		dirMove{deletedDirPath(wikiPath, repo.ID), wikiPath},
+	); err != nil {
+		return fmt.Errorf("move git dirs back on restore: %w", err)
 	}
 
 	return s.repos.Restore(ctx, repoID)
@@ -844,19 +850,19 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 		return fmt.Errorf("purge expired repos: %w", err)
 	}
 	for _, r := range expired {
-		repoPath, pathErr := RepoDir(s.cfg.ReposRoot, r.OwnerName, r.Name+".git")
+		repoPath, wikiPath, pathErr := s.gitDirs(r.OwnerName, r.Name)
 		if pathErr != nil {
 			slog.Warn("purge: skipping unsafe repo path", "error", pathErr)
 			continue
 		}
-		matches, listErr := deletedDirs(repoPath)
-		if listErr != nil {
-			slog.Warn("purge: failed to list deleted git dirs", "path", repoPath, "error", listErr)
+		deletedRepo, findErr := deletedRepoDir(repoPath, r.ID, r.DeletedAt)
+		if findErr != nil {
+			slog.Warn("purge: failed to list deleted git dirs", "path", repoPath, "error", findErr)
 			continue
 		}
-		for _, m := range matches {
-			if removeErr := os.RemoveAll(m); removeErr != nil {
-				slog.Warn("purge: failed to remove deleted git dir", "path", m, "error", removeErr)
+		for _, dir := range []string{deletedRepo, deletedDirPath(wikiPath, r.ID)} {
+			if removeErr := os.RemoveAll(dir); removeErr != nil {
+				slog.Warn("purge: failed to remove deleted git dir", "path", dir, "error", removeErr)
 			}
 		}
 	}

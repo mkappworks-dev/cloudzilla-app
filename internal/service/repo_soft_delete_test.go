@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -187,4 +191,182 @@ func TestDelete_LegacyUnsafeOwner_SoftDeletesRowAndWarns(t *testing.T) {
 	if !strings.Contains(logs.String(), "level=WARN") || !strings.Contains(logs.String(), "unsafe repo path") {
 		t.Errorf("want a WARN about the unsafe repo path; logs:\n%s", logs.String())
 	}
+}
+
+// sameNameOwners returns one owner name and two owner IDs. UNIQUE(owner_id, name)
+// spans soft-deleted rows, so only another owner ID can re-create x under the
+// same owner name, as in an org, whose repos record the creating member.
+func sameNameOwners(t *testing.T, db *sql.DB) (owner string, first, second int64) {
+	t.Helper()
+	suffix := testutil.UniqueSuffix(t)
+	return "acme_" + suffix, seedOwner(t, db, "member1_"+suffix), seedOwner(t, db, "member2_"+suffix)
+}
+
+func deleteRepo(t *testing.T, svc *RepoService, repoID, userID int64) {
+	t.Helper()
+	if err := svc.Delete(context.Background(), repoID, userID); err != nil {
+		t.Fatalf("Delete %d: %v", repoID, err)
+	}
+}
+
+func restoreRepo(t *testing.T, svc *RepoService, repoID, userID int64) {
+	t.Helper()
+	if err := svc.Restore(context.Background(), repoID, userID, false); err != nil {
+		t.Fatalf("Restore %d: %v", repoID, err)
+	}
+}
+
+func purgeExpired(t *testing.T, svc *RepoService) {
+	t.Helper()
+	if err := svc.PurgeExpired(context.Background()); err != nil {
+		t.Fatalf("PurgeExpired: %v", err)
+	}
+}
+
+func assertExists(t *testing.T, paths ...string) {
+	t.Helper()
+	for _, p := range paths {
+		if _, err := os.Stat(p); err != nil {
+			t.Errorf("want %s: %v", p, err)
+		}
+	}
+}
+
+func assertMissing(t *testing.T, paths ...string) {
+	t.Helper()
+	for _, p := range paths {
+		if _, err := os.Stat(p); !os.IsNotExist(err) {
+			t.Errorf("want no %s; stat: %v", p, err)
+		}
+	}
+}
+
+func assertDirHolds(t *testing.T, dir string, want ...string) {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, e := range entries {
+		got = append(got, e.Name())
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("%s holds %v, want %v", dir, got, want)
+	}
+}
+
+func TestDelete_MovesTheWikiAndRestoreBringsItBack(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	owner := "wikimover_" + testutil.UniqueSuffix(t)
+	ownerID := seedOwner(t, db, owner)
+	repoID := seedRepoRow(t, db, ownerID, owner, "x", "NULL")
+	repo, wiki := filepath.Join(root, owner, "x.git"), filepath.Join(root, owner, "x.wiki.git")
+	mkdirs(t, filepath.Join(repo, "objects"), filepath.Join(wiki, "page"))
+	svc := newDiskRepoService(db, root)
+
+	deleteRepo(t, svc, repoID, ownerID)
+	assertMissing(t, repo, wiki)
+
+	restoreRepo(t, svc, repoID, ownerID)
+	assertExists(t, filepath.Join(repo, "objects"), filepath.Join(wiki, "page"))
+}
+
+func TestPurgeExpired_RemovesTheRepoAndItsWiki(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	owner := "wikipurger_" + testutil.UniqueSuffix(t)
+	ownerID := seedOwner(t, db, owner)
+	repoID := seedRepoRow(t, db, ownerID, owner, "x", "NULL")
+	mkdirs(t, filepath.Join(root, owner, "x.git"), filepath.Join(root, owner, "x.wiki.git"))
+	svc := newDiskRepoService(db, root)
+	deleteRepo(t, svc, repoID, ownerID)
+	testutil.Exec(t, db, `UPDATE repositories SET deleted_at = NOW() - INTERVAL '31 days' WHERE id = $1`, repoID)
+
+	purgeExpired(t, svc)
+
+	assertDirHolds(t, filepath.Join(root, owner))
+}
+
+func TestPurgeExpired_LeavesALaterDeletionOfTheSameName(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	owner, first, second := sameNameOwners(t, db)
+	repo, wiki := filepath.Join(root, owner, "x.git"), filepath.Join(root, owner, "x.wiki.git")
+	svc := newDiskRepoService(db, root)
+	firstID := seedRepoRow(t, db, first, owner, "x", "NULL")
+	mkdirs(t, filepath.Join(repo, "first"), filepath.Join(wiki, "first"))
+	deleteRepo(t, svc, firstID, first)
+	secondID := seedRepoRow(t, db, second, owner, "x", "NULL")
+	mkdirs(t, filepath.Join(repo, "second"), filepath.Join(wiki, "second"))
+	deleteRepo(t, svc, secondID, second)
+	testutil.Exec(t, db, `UPDATE repositories SET deleted_at = NOW() - INTERVAL '31 days' WHERE id = $1`, firstID)
+
+	purgeExpired(t, svc)
+	restoreRepo(t, svc, secondID, second)
+
+	assertExists(t, filepath.Join(repo, "second"), filepath.Join(wiki, "second"))
+	assertDirHolds(t, filepath.Join(root, owner), "x.git", "x.wiki.git")
+}
+
+func TestRestore_RestoresTheRowsOwnCopy(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	owner, first, second := sameNameOwners(t, db)
+	repo, wiki := filepath.Join(root, owner, "x.git"), filepath.Join(root, owner, "x.wiki.git")
+	svc := newDiskRepoService(db, root)
+	firstID := seedRepoRow(t, db, first, owner, "x", "NULL")
+	mkdirs(t, filepath.Join(repo, "first"), filepath.Join(wiki, "first"))
+	deleteRepo(t, svc, firstID, first)
+	secondID := seedRepoRow(t, db, second, owner, "x", "NULL")
+	mkdirs(t, filepath.Join(repo, "second"), filepath.Join(wiki, "second"))
+	deleteRepo(t, svc, secondID, second)
+
+	restoreRepo(t, svc, firstID, first)
+
+	assertExists(t, filepath.Join(repo, "first"), filepath.Join(wiki, "first"))
+	assertMissing(t, filepath.Join(repo, "second"), filepath.Join(wiki, "second"))
+}
+
+func deletedAtSQL(at time.Time) string {
+	return fmt.Sprintf("to_timestamp(%d)", at.Unix())
+}
+
+// oldFormatCopy names a copy the way Delete did before copies were named after
+// their row: by the Unix time of the deletion.
+func oldFormatCopy(repoPath string, at time.Time) string {
+	return repoPath + ".deleted." + strconv.FormatInt(at.Unix(), 10)
+}
+
+func TestRestore_OldFormatCopy_TakesTheRowsOwnCopy(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	owner, first, second := sameNameOwners(t, db)
+	repo := filepath.Join(root, owner, "x.git")
+	firstAt, secondAt := time.Now().Add(-48*time.Hour), time.Now().Add(-24*time.Hour)
+	firstID := seedRepoRow(t, db, first, owner, "x", deletedAtSQL(firstAt))
+	seedRepoRow(t, db, second, owner, "x", deletedAtSQL(secondAt))
+	mkdirs(t, filepath.Join(oldFormatCopy(repo, firstAt), "first"), filepath.Join(oldFormatCopy(repo, secondAt), "second"))
+
+	restoreRepo(t, newDiskRepoService(db, root), firstID, first)
+
+	assertExists(t, filepath.Join(repo, "first"), oldFormatCopy(repo, secondAt))
+}
+
+// A row whose old-format deletion left no copy must not claim a later
+// deletion's copy.
+func TestPurgeExpired_OldFormatCopy_NeverTakesALaterDeletion(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	owner, first, second := sameNameOwners(t, db)
+	repo := filepath.Join(root, owner, "x.git")
+	secondAt := time.Now().Add(-24 * time.Hour)
+	seedRepoRow(t, db, first, owner, "x", deletedAtSQL(time.Now().Add(-31*24*time.Hour)))
+	seedRepoRow(t, db, second, owner, "x", deletedAtSQL(secondAt))
+	mkdirs(t, oldFormatCopy(repo, secondAt))
+
+	purgeExpired(t, newDiskRepoService(db, root))
+
+	assertExists(t, oldFormatCopy(repo, secondAt))
 }

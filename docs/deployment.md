@@ -78,4 +78,6 @@ SELECT id, name FROM organizations WHERE name !~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,38
 
 Rename them in the database before those owners need to delete, restore or transfer repositories; update `repositories.owner_name` to match and move the owner's directory under `git.repos_root`.
 
+A deleted repository's directory is now kept as `<name>.git.deleted.id<repository id>`, and its wiki moves with it to `<name>.wiki.git.deleted.id<repository id>`, so restoring or purging one deletion never touches another deletion of the same name. Directories deleted by earlier versions, `<name>.git.deleted.<unix time>`, still restore and purge: a deleted row takes the one whose time is closest to its `deleted_at`, ignoring any more than a minute later. Earlier versions left the wiki in place at `<name>.wiki.git`, where a repository re-created under that name picks it up; move or remove such wikis by hand.
+
 Repository names can no longer end in `.wiki`: repository `x.wiki` would share its directory with repository `x`'s wiki. Repositories given such a name earlier are no longer served on any path: web, API, SSH or Git smart-HTTP. Find them with `SELECT id, owner_name, name FROM repositories WHERE lower(name) LIKE '%.wiki';` and rename them, moving each `<name>.git` directory to match.
