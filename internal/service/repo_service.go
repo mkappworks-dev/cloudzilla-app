@@ -41,11 +41,16 @@ func ValidateName(name string) error {
 	if name == "." || name == ".." {
 		return fmt.Errorf("%w: reserved", ErrInvalidRepoName)
 	}
-	// Repo x keeps its wiki in x.wiki.git, so a repo named x.wiki would share it.
-	if strings.HasSuffix(strings.ToLower(name), ".wiki") {
+	if isWikiAliasName(name) {
 		return fmt.Errorf("%w: can't end in .wiki", ErrInvalidRepoName)
 	}
 	return nil
+}
+
+// Repo x keeps its wiki in x.wiki.git, so a repo named x.wiki would share it.
+// Names from before ValidateName refused them must not be served as repos.
+func isWikiAliasName(name string) bool {
+	return strings.HasSuffix(strings.ToLower(name), ".wiki")
 }
 
 // RepoService manages repository creation, access control, and git directory lifecycle.
@@ -358,6 +363,9 @@ func (s *RepoService) GetByID(ctx context.Context, id int64) (*model.Repository,
 }
 
 func (s *RepoService) Get(ctx context.Context, owner, name string) (*model.Repository, error) {
+	if isWikiAliasName(name) {
+		return nil, fmt.Errorf("repo get %s/%s: %w", owner, name, sql.ErrNoRows)
+	}
 	repo, err := s.repos.GetByOwnerName(ctx, owner, name)
 	if err != nil {
 		return nil, err
@@ -508,7 +516,7 @@ func (s *RepoService) RemoveCollaborator(ctx context.Context, repoID, userID int
 
 // Fork creates a copy of originalOwner/originalName under the actor's namespace.
 func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName string, actorID int64, actorUsername string) (*model.Repository, error) {
-	orig, err := s.repos.GetByOwnerName(ctx, originalOwner, originalName)
+	orig, err := s.Get(ctx, originalOwner, originalName)
 	if err != nil {
 		return nil, fmt.Errorf("original repo not found: %w", err)
 	}
@@ -710,7 +718,7 @@ func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, ne
 		return nil, err
 	}
 	tmpl, err := s.repos.GetByID(ctx, templateRepoID)
-	if errors.Is(err, sql.ErrNoRows) || (err == nil && tmpl.Private) {
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && (tmpl.Private || isWikiAliasName(tmpl.Name))) {
 		return nil, ErrTemplateNotFound
 	}
 	if err != nil {

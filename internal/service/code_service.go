@@ -75,6 +75,9 @@ func (s *CodeService) wikiPath(owner, repoName string) (string, error) {
 }
 
 func (s *CodeService) openRepo(owner, repoName string) (*gogit.Repository, error) {
+	if isWikiAliasName(repoName) {
+		return nil, gogit.ErrRepositoryNotExists
+	}
 	return openRepoAt(s.repoPath(owner, repoName))
 }
 
