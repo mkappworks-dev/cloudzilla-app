@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +20,7 @@ var (
 	ErrLoginDisabled        = errors.New("login is currently disabled")
 	ErrUsernameTaken        = store.ErrUsernameTaken
 	ErrEmailTaken           = store.ErrEmailTaken
+	ErrOrgNameTaken         = store.ErrOrgNameTaken
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
 )
 
@@ -174,15 +174,7 @@ func (s *UserService) uniqueUsername(ctx context.Context, email, name string) st
 	fromName := nonAlphanumRe.ReplaceAllString(strings.ToLower(strings.ReplaceAll(name, " ", "")), "")
 	parts := strings.SplitN(email, "@", 2)
 	fromEmail := nonAlphanumRe.ReplaceAllString(strings.ToLower(parts[0]), "")
-	base := fitOwnerName(fromName, fitOwnerName(fromEmail, "user"))
-	candidate := base
-	for i := 2; ; i++ {
-		if _, err := s.store.GetByUsername(ctx, candidate); err != nil {
-			return candidate
-		}
-		suffix := strconv.Itoa(i)
-		candidate = base[:min(len(base), maxOwnerNameLen-len(suffix))] + suffix
-	}
+	return freeOwnerName(ctx, s.store, fitOwnerName(fromName, fitOwnerName(fromEmail, "user")))
 }
 
 // GetByID returns a user by their numeric ID.

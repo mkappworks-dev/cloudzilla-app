@@ -27,10 +27,6 @@ func (s *OrgService) Create(ctx context.Context, creatorUserID int64, name, disp
 	if err := ValidateOwnerName(name); err != nil {
 		return nil, err
 	}
-	// Check name not already used by a user
-	if _, err := s.users.GetByUsername(ctx, name); err == nil {
-		return nil, fmt.Errorf("name already taken by a user account")
-	}
 
 	org := &model.Organization{
 		Name:        name,
@@ -175,6 +171,7 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 	}
 
 	if _, err := gogit.PlainInit(repoPath, true); err != nil {
+		_ = s.repos.DeleteByID(ctx, r.ID)
 		return nil, fmt.Errorf("git init bare: %w", err)
 	}
 

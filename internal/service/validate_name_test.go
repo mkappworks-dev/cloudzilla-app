@@ -25,6 +25,9 @@ func TestValidateName(t *testing.T) {
 		{name: "contains space", input: "repo name", wantErr: true},
 		{name: "path traversal attempt", input: "../../etc", wantErr: true},
 		{name: "unicode characters", input: "répo", wantErr: true},
+		{name: "wiki suffix aliases a wiki dir", input: "x.wiki", wantErr: true},
+		{name: "wiki suffix in any case", input: "X.WIKI", wantErr: true},
+		{name: "wiki not as suffix", input: "x.wiki.md", wantErr: false},
 		{name: "max length (100 chars)", input: "a" + string(make([]byte, 99)), wantErr: true}, // 100 null bytes = invalid chars
 	}
 

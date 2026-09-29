@@ -41,6 +41,10 @@ func ValidateName(name string) error {
 	if name == "." || name == ".." {
 		return fmt.Errorf("%w: reserved", ErrInvalidRepoName)
 	}
+	// Repo x keeps its wiki in x.wiki.git, so a repo named x.wiki would share it.
+	if strings.HasSuffix(strings.ToLower(name), ".wiki") {
+		return fmt.Errorf("%w: can't end in .wiki", ErrInvalidRepoName)
+	}
 	return nil
 }
 
@@ -326,6 +330,7 @@ func (s *RepoService) Create(ctx context.Context, ownerUsername, name, descripti
 	}
 
 	if _, err := gogit.PlainInit(repoPath, true); err != nil {
+		_ = s.repos.DeleteByID(ctx, r.ID)
 		return nil, fmt.Errorf("git init bare: %w", err)
 	}
 

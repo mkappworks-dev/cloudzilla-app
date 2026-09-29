@@ -91,6 +91,39 @@ func TestPageRegisterSubmit_UsernameTaken_SaysUsernameTaken(t *testing.T) {
 	}
 }
 
+func seedOrgNamed(t *testing.T, db *sql.DB, name string) {
+	t.Helper()
+	testutil.Exec(t, db, `INSERT INTO organizations (name) VALUES ($1)`, name)
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE name = $1`, name) })
+}
+
+func countUsersWithEmail(t *testing.T, db *sql.DB, email string) int {
+	t.Helper()
+	var n int
+	if err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM users WHERE lower(email) = lower($1)`, email).Scan(&n); err != nil {
+		t.Fatalf("count users: %v", err)
+	}
+	return n
+}
+
+// Users and orgs share one path namespace, compared case-insensitively.
+func TestPageRegisterSubmit_OrgNameInOtherCase_SaysUsernameTaken(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	seedOrgNamed(t, db, "acme_"+suffix)
+	email := "fresh_" + suffix + "@test.invalid"
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE email = $1`, email) })
+
+	body := postRegister(t, db, "Acme_"+suffix, email)
+
+	if !strings.Contains(body, "username is already taken") {
+		t.Errorf("want username-taken message; body:\n%s", body)
+	}
+	if n := countUsersWithEmail(t, db, email); n != 0 {
+		t.Errorf("a name taken by an org must not create an account; found %d", n)
+	}
+}
+
 // The page escapes the rest of the message, so tests match this prefix.
 const usernameRuleText = "Usernames can use letters, numbers, - and _"
 

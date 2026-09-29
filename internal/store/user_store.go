@@ -126,10 +126,13 @@ func (s *UserStore) insertClaimed(ctx context.Context, u *model.User, unusable e
 func insertUser(ctx context.Context, db dbtx, u *model.User) error {
 	err := scanUser(db.QueryRowContext(ctx,
 		`INSERT INTO users (username, email, password_hash, bio, avatar_url, is_invited)
-		 VALUES ($1, $2, $3, $4, $5, $6)
+		 SELECT $1, $2, $3, $4, $5, $6 WHERE NOT `+ownerNameTakenCond+`
 		 RETURNING `+userColumns,
 		u.Username, u.Email, u.PasswordHash, u.Bio, u.AvatarURL, u.IsInvited,
 	), u)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrUsernameTaken
+	}
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -143,6 +146,20 @@ func insertUser(ctx context.Context, db dbtx, u *model.User) error {
 		return fmt.Errorf("user create: %w", err)
 	}
 	return nil
+}
+
+// ownerNameTakenCond holds when $1, in any case, is a username or an org name:
+// both are the first URL segment and a directory under the repos root. Inserts
+// check it in the same statement; case variants inserted concurrently can still race.
+const ownerNameTakenCond = `(EXISTS (SELECT 1 FROM users WHERE lower(username) = lower($1))
+	OR EXISTS (SELECT 1 FROM organizations WHERE lower(name) = lower($1)))`
+
+func (s *UserStore) OwnerNameTaken(ctx context.Context, name string) (bool, error) {
+	var taken bool
+	if err := s.db.QueryRowContext(ctx, `SELECT `+ownerNameTakenCond, name).Scan(&taken); err != nil {
+		return false, fmt.Errorf("owner name taken: %w", err)
+	}
+	return taken, nil
 }
 
 func (s *UserStore) GetByID(ctx context.Context, id int64) (*model.User, error) {
@@ -201,10 +218,13 @@ func (s *UserStore) CreateOAuthUser(ctx context.Context, username, email, provid
 	u := &model.User{}
 	err := scanUser(s.db.QueryRowContext(ctx,
 		`INSERT INTO users (username, email, password_hash, oauth_provider, oauth_id, avatar_url)
-		 VALUES ($1, $2, '', $3, $4, $5)
+		 SELECT $1, $2, '', $3, $4, $5 WHERE NOT `+ownerNameTakenCond+`
 		 RETURNING `+userColumns,
 		username, email, provider, oauthID, avatarURL,
 	), u)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrUsernameTaken
+	}
 	if err != nil {
 		return nil, fmt.Errorf("user create oauth: %w", err)
 	}
@@ -221,13 +241,18 @@ func (s *UserStore) CountAll(ctx context.Context) (int, error) {
 }
 
 func (s *UserStore) CreateSuperadmin(ctx context.Context, username, email, passwordHash string) (*model.User, error) {
-	_, err := s.db.ExecContext(ctx,
+	res, err := s.db.ExecContext(ctx,
 		`INSERT INTO users (username, email, password_hash, bio, avatar_url, is_superadmin, created_at, updated_at)
-		 VALUES ($1, $2, $3, '', '', TRUE, NOW(), NOW())`,
+		 SELECT $1, $2, $3, '', '', TRUE, NOW(), NOW() WHERE NOT `+ownerNameTakenCond,
 		username, email, passwordHash,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create superadmin: %w", err)
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return nil, fmt.Errorf("create superadmin: %w", err)
+	} else if n == 0 {
+		return nil, ErrUsernameTaken
 	}
 	return s.GetByEmailWithRole(ctx, email)
 }

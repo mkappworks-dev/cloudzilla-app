@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	invalidRepoNameMessage = "Repository names can use letters, numbers, ., - and _, must start with a letter or number, and be at most 100 characters."
+	invalidRepoNameMessage = "Repository names can use letters, numbers, ., - and _, must start with a letter or number, be at most 100 characters, and can't end in .wiki."
 	unsafeRepoPathMessage  = "This repository can't be created: the owner or template name isn't allowed in repository paths. Ask an administrator to rename it."
 )
 

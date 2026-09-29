@@ -49,6 +49,10 @@ func (h *Handler) CreateOrg(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, invalidOrgNameMessage)
 		return
 	}
+	if errors.Is(err, service.ErrOrgNameTaken) {
+		writeError(w, http.StatusUnprocessableEntity, "That name is already taken")
+		return
+	}
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return

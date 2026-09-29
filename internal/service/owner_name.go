@@ -1,10 +1,14 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 var ErrInvalidOwnerName = errors.New("invalid name")
@@ -48,4 +52,19 @@ func fitOwnerName(base, fallback string) string {
 		return fallback
 	}
 	return name
+}
+
+// freeOwnerName returns base, or base with the lowest numeric suffix from 2,
+// that no user or org holds in any case. The suffix replaces base's tail when
+// needed to stay within the length limit.
+func freeOwnerName(ctx context.Context, users *store.UserStore, base string) string {
+	candidate := base
+	for i := 2; ; i++ {
+		// On a lookup error the insert's own guard still refuses a taken name.
+		if taken, err := users.OwnerNameTaken(ctx, candidate); err != nil || !taken {
+			return candidate
+		}
+		suffix := strconv.Itoa(i)
+		candidate = base[:min(len(base), maxOwnerNameLen-len(suffix))] + suffix
+	}
 }

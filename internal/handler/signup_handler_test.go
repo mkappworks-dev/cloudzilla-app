@@ -307,6 +307,30 @@ func TestPageRegisterCompleteSubmit_UsernameTaken_LinkStaysUsable(t *testing.T) 
 	}
 }
 
+func TestPageRegisterCompleteSubmit_OrgNameInOtherCase_UsernameTakenAndLinkStaysUsable(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	seedOrgNamed(t, db, "acme_"+suffix)
+	email := "signup_" + suffix + "@test.invalid"
+	cleanupSignup(t, db, email)
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE lower(email) = lower($1)`, email) })
+	mailer := newFakeSignupMailer()
+	h := newSignupHandler(db, mailer)
+	token := requestSignupLink(t, db, h, mailer, email)
+
+	body := serveSignup(h, http.MethodPost, "/register/complete/"+token, completeForm("Acme_"+suffix)).Body.String()
+
+	if !strings.Contains(body, "username is already taken") {
+		t.Errorf("want the username-taken message:\n%s", body)
+	}
+	if rr := serveSignup(h, http.MethodGet, "/register/complete/"+token, nil); !strings.Contains(rr.Body.String(), `name="username"`) {
+		t.Error("a failed create must leave the link usable")
+	}
+	if n := countUsersWithEmail(t, db, email); n != 0 {
+		t.Errorf("a name taken by an org must not create an account; found %d", n)
+	}
+}
+
 func TestPageRegisterCompleteSubmit_InvalidUsername_ShowsRuleAndLinkStaysUsable(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	email := "signup_" + testutil.UniqueSuffix(t) + "@test.invalid"

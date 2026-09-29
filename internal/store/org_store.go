@@ -3,10 +3,13 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
+
+var ErrOrgNameTaken = errors.New("name already taken")
 
 // OrgStore provides database operations for organizations and their membership.
 type OrgStore struct{ db *sql.DB }
@@ -16,9 +19,13 @@ func NewOrgStore(db *sql.DB) *OrgStore { return &OrgStore{db: db} }
 
 func (s *OrgStore) Create(ctx context.Context, o *model.Organization) error {
 	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO organizations (name, display_name, description, avatar_url) VALUES ($1, $2, $3, $4) RETURNING id`,
+		`INSERT INTO organizations (name, display_name, description, avatar_url)
+		 SELECT $1, $2, $3, $4 WHERE NOT `+ownerNameTakenCond+` RETURNING id`,
 		o.Name, o.DisplayName, o.Description, o.AvatarURL,
 	).Scan(&o.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrOrgNameTaken
+	}
 	if err != nil {
 		return fmt.Errorf("org create: %w", err)
 	}

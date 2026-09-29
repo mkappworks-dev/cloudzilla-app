@@ -209,6 +209,28 @@ func TestPageInviteSubmit_UsernameTaken_FriendlyErrorAndInviteStaysUsable(t *tes
 	}
 }
 
+func TestPageInviteSubmit_OrgNameInOtherCase_UsernameTakenAndInviteStaysUsable(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	seedOrgNamed(t, db, "acme_"+suffix)
+	email := "invitee_" + suffix + "@test.invalid"
+	id, token := testutil.SeedInvitation(t, db, email, time.Now().UTC().Add(time.Hour))
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE email = $1`, email) })
+
+	form := url.Values{"username": {"Acme_" + suffix}, "password": {"password123"}}
+	body := serveInvite(db, http.MethodPost, token, form).Body.String()
+
+	if !strings.Contains(body, "username is already taken") {
+		t.Errorf("want username-taken message; body:\n%s", body)
+	}
+	if invitationAccepted(t, db, id) {
+		t.Error("a failed account creation must leave the invitation usable")
+	}
+	if n := countUsersWithEmail(t, db, email); n != 0 {
+		t.Errorf("a name taken by an org must not create an account; found %d", n)
+	}
+}
+
 func TestPageInviteSubmit_InvalidUsername_ShowsRuleAndInviteStaysUsable(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	email := "invitee_" + testutil.UniqueSuffix(t) + "@test.invalid"
