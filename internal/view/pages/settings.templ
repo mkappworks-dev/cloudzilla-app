@@ -188,7 +188,9 @@ templ settingsSecuritySection(data view.SettingsData) {
 				} else if data.TOTPPendingSecret != "" {
 					<div class="mt-4 space-y-4">
 						<div class="flex gap-6 items-start">
-							<img src={ "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=" + data.TOTPOTPAuthURL } alt="TOTP QR Code" class="border border-border rounded-md"/>
+							if data.TOTPQRCode != "" {
+								<img src={ data.TOTPQRCode } width="160" height="160" alt="TOTP QR Code" class="shrink-0 border border-border rounded-md"/>
+							}
 							<div class="flex-1 min-w-0">
 								<p class="text-[12.5px] font-medium mb-1">Or enter this key manually</p>
 								<code class="block bg-muted border border-border rounded px-3 py-2 text-[12.5px] font-mono tracking-widest break-all text-foreground">{ data.TOTPPendingSecret }</code>

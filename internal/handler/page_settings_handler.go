@@ -54,7 +54,9 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	if !enabled && secret.Valid && secret.String != "" {
 		data.TOTPPendingSecret = secret.String
-		data.TOTPOTPAuthURL = h.Services.TOTP.BuildOTPAuthURL(claims.Username, "Cloudzilla", secret.String)
+		if data.TOTPQRCode, err = h.Services.TOTP.EnrolmentQRCode(claims.Username, "Cloudzilla", secret.String); err != nil {
+			slog.Error("render totp qr code", "user_id", claims.UserID, "error", err)
+		}
 	}
 
 	if c, err := r.Cookie(backupCodesCookieName); err == nil && c.Value != "" {

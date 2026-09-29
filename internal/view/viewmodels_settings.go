@@ -13,7 +13,7 @@ type SettingsData struct {
 	OAuthAuthorizations []model.OAuthAuthorization
 	TOTPEnabled         bool
 	TOTPPendingSecret   string
-	TOTPOTPAuthURL      string
+	TOTPQRCode          string
 	BackupCodes         []string
 	NewToken            string
 	NoreplyEmail        string
