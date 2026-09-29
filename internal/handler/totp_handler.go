@@ -57,14 +57,7 @@ func (h *Handler) EnableTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     backupCodesCookieName,
-		Value:    strings.Join(rawCodes, ","),
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   h.Cfg.Auth.CookieSecure,
-		MaxAge:   300,
-	})
+	h.setSettingsFlash(w, backupCodesCookieName, strings.Join(rawCodes, ","))
 	http.Redirect(w, r, "/settings#security", http.StatusSeeOther)
 }
 

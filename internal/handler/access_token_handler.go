@@ -45,7 +45,8 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/settings?new_token="+rawToken+"#tokens", http.StatusSeeOther)
+	h.setSettingsFlash(w, newTokenCookieName, rawToken)
+	http.Redirect(w, r, "/settings#tokens", http.StatusSeeOther)
 }
 
 func (h *Handler) DeleteToken(w http.ResponseWriter, r *http.Request) {

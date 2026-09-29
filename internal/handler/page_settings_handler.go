@@ -13,7 +13,32 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-const backupCodesCookieName = "cz_backup_codes"
+const (
+	backupCodesCookieName = "cz_backup_codes"
+	newTokenCookieName    = "cz_new_token"
+)
+
+// setSettingsFlash hands a one-time secret to the next /settings render in a
+// cookie, keeping it out of URLs, browser history, proxy logs and Referer.
+func (h *Handler) setSettingsFlash(w http.ResponseWriter, name, value string) {
+	http.SetCookie(w, &http.Cookie{
+		Name: name, Value: value, Path: "/settings", MaxAge: 300,
+		HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure, SameSite: http.SameSiteLaxMode,
+	})
+}
+
+// takeSettingsFlash returns a value set by setSettingsFlash and expires it, so it renders once.
+func (h *Handler) takeSettingsFlash(w http.ResponseWriter, r *http.Request, name string) string {
+	c, err := r.Cookie(name)
+	if err != nil || c.Value == "" {
+		return ""
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name: name, Value: "", Path: "/settings", MaxAge: -1,
+		HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure, SameSite: http.SameSiteLaxMode,
+	})
+	return c.Value
+}
 
 func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
@@ -49,7 +74,7 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		OAuthApps:           apps,
 		OAuthAuthorizations: auths,
 		TOTPEnabled:         enabled,
-		NewToken:            r.URL.Query().Get("new_token"),
+		NewToken:            h.takeSettingsFlash(w, r, newTokenCookieName),
 		NoreplyEmail:        h.Services.User.NoreplyEmail(ctx, user),
 	}
 	if !enabled && secret.Valid && secret.String != "" {
@@ -59,11 +84,11 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if c, err := r.Cookie(backupCodesCookieName); err == nil && c.Value != "" {
-		data.BackupCodes = strings.Split(c.Value, ",")
-		http.SetCookie(w, &http.Cookie{
-			Name: backupCodesCookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure,
-		})
+	if codes := h.takeSettingsFlash(w, r, backupCodesCookieName); codes != "" {
+		data.BackupCodes = strings.Split(codes, ",")
+	}
+	if data.NewToken != "" || len(data.BackupCodes) > 0 {
+		w.Header().Set("Cache-Control", "no-store")
 	}
 
 	if r.URL.Query().Get("profile_saved") == "1" {

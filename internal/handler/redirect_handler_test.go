@@ -16,7 +16,7 @@ func TestMovedPermanently(t *testing.T) {
 		{"plain", "/repos/new", "", "/new", "/repos/new"},
 		{"keeps query", "/repos/new", "", "/new?owner=acme&init_readme=1", "/repos/new?init_readme=1&owner=acme"},
 		{"fragment", "/settings", "tokens", "/settings/tokens", "/settings#tokens"},
-		{"query before fragment", "/settings", "tokens", "/settings/tokens?new_token=abc", "/settings?new_token=abc#tokens"},
+		{"query before fragment", "/settings", "tokens", "/settings/tokens?page=2", "/settings?page=2#tokens"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
