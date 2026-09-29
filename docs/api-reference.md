@@ -91,7 +91,7 @@ Public user objects — returned here and by `/api/repos/:owner/:repo/stargazers
 | PATCH  | `/api/repos/:owner/:repo/template`  | IsOwner  | Toggle repository template flag          |
 | POST   | `/api/repos/from-template`          | Required | Create a new repo from a template        |
 
-`POST /api/repos/` returns `422` with the naming rule when `name` isn't a valid repository name.
+`POST /api/repos/` returns `422` with the naming rule when `name` isn't a valid repository name. It returns `422` with a different message when the caller's username predates the owner-name rule and isn't a safe path segment.
 
 `POST /api/repos/from-template` takes form fields `template_repo_id` and `name`, and redirects to the new repository. A `name` that isn't a valid repository name returns `422` with the naming rule. The same `422` comes back, with a different message, when the caller's or the template's owner name predates the owner-name rule and isn't a safe path segment.
 
@@ -334,6 +334,8 @@ See [access-control.md](access-control.md) for the full permission model. `CanMa
 | POST   | `/api/orgs/:org/transfer`          | Required | Transfer org ownership (`new_owner` form field); owner only; demotes self to member |
 
 `POST /api/orgs/` takes JSON `name`, `display_name` and `description`. A `name` that breaks the owner-name rule returns `400` with the rule; a `name` that a user or organization already holds, in any case, returns `422` `{"error":"That name is already taken"}`. See [access-control](./access-control.md) for the rule.
+
+`POST /api/orgs/:org/repos` returns `422` with the repository naming rule when `name` isn't a valid repository name, and `422` with a different message when the organization's name predates the owner-name rule and isn't a safe path segment.
 
 ## Notifications
 

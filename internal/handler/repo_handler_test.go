@@ -132,6 +132,31 @@ func TestCreateRepo_InvalidName_422(t *testing.T) {
 	}
 }
 
+func TestCreateRepo_LegacyUnsafeOwner_422AndWarns(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	legacyName := "*_" + testutil.UniqueSuffix(t)
+	var legacyID int64
+	if err := db.QueryRow(`INSERT INTO users (username, email, password_hash) VALUES ($1, $2, 'x') RETURNING id`,
+		legacyName, "legacy_"+testutil.UniqueSuffix(t)+"@test.invalid").Scan(&legacyID); err != nil {
+		t.Fatalf("seed legacy user: %v", err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, legacyID) })
+	logs := captureLogs(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/repos", repoCreateBody("copy", "", false))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, legacyID, legacyName))
+	rr := httptest.NewRecorder()
+	repoAPIRouterWithAuth(newRepoHandler(db)).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), "can't be created") {
+		t.Errorf("want 422 with the unsafe path message, got %d %s", rr.Code, rr.Body)
+	}
+	if level := loggedLevel(t, logs, "create repo: unsafe repository path"); level != "WARN" {
+		t.Errorf("want a WARN log, got %s", level)
+	}
+}
+
 // TestGetRepo_ExistingRepo_200 verifies that GET /api/repos/{owner}/{repo} returns
 // HTTP 200 with the repository details for a known owner/repo combination.
 func TestGetRepo_ExistingRepo_200(t *testing.T) {

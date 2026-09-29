@@ -237,7 +237,15 @@ func (h *Handler) CreateOrgRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repo, err := h.Services.Org.CreateRepo(r.Context(), org.ID, claims.UserID, req.Name, req.Description, req.Private)
-	if err != nil {
+	switch {
+	case errors.Is(err, service.ErrInvalidRepoName):
+		writeError(w, http.StatusUnprocessableEntity, invalidRepoNameMessage)
+		return
+	case errors.Is(err, service.ErrInvalidRepoPath):
+		slog.Warn("create org repo: unsafe repository path", "org", orgName, "error", err)
+		writeError(w, http.StatusUnprocessableEntity, unsafeRepoPathMessage)
+		return
+	case err != nil:
 		slog.Error("failed to create org repo", "org", orgName, "error", err)
 		writeError(w, http.StatusUnprocessableEntity, "failed to create repository")
 		return

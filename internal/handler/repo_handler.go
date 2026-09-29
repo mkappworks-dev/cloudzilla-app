@@ -77,11 +77,15 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repo, err := h.Services.Repo.Create(r.Context(), claims.Username, req.Name, req.Description, req.Private)
-	if errors.Is(err, service.ErrInvalidRepoName) {
+	switch {
+	case errors.Is(err, service.ErrInvalidRepoName):
 		writeError(w, http.StatusUnprocessableEntity, invalidRepoNameMessage)
 		return
-	}
-	if err != nil {
+	case errors.Is(err, service.ErrInvalidRepoPath):
+		slog.Warn("create repo: unsafe repository path", "owner", claims.Username, "error", err)
+		writeError(w, http.StatusUnprocessableEntity, unsafeRepoPathMessage)
+		return
+	case err != nil:
 		slog.Error("failed to create repo", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to create repository")
 		return
