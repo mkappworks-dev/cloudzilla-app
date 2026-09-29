@@ -34,6 +34,8 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
+const branchMovedMsg = "branch was updated while saving; reload and try again"
+
 // Must be called before the response body — sets an HTTP header.
 func toast(w http.ResponseWriter, toastType, message string) {
 	payload, err := json.Marshal(map[string]any{
