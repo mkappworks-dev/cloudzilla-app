@@ -181,6 +181,10 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Code.CommitFile(owner, repoName, ref, path, content, author, message); err != nil {
+		if errors.Is(err, service.ErrRefMoved) {
+			http.Error(w, branchMovedMsg, http.StatusConflict)
+			return
+		}
 		slog.Error("commit file failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return

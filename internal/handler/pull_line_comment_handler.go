@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
@@ -361,6 +363,10 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		comment.Line, comment.SuggestionBody,
 		author,
 	); err != nil {
+		if errors.Is(err, service.ErrRefMoved) {
+			writeError(w, http.StatusConflict, branchMovedMsg)
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "failed to apply suggestion: "+err.Error())
 		return
 	}

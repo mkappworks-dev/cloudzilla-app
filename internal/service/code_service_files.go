@@ -39,6 +39,7 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 	}
 
 	// Parent commit + root tree from the branch tip, if the branch exists.
+	var oldTip plumbing.Hash
 	var parentHashes []plumbing.Hash
 	var baseTree *object.Tree
 	branchRef := plumbing.NewBranchReferenceName(branch)
@@ -47,6 +48,7 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 		if cErr != nil {
 			return fmt.Errorf("resolve branch tip: %w", cErr)
 		}
+		oldTip = parent.Hash
 		parentHashes = []plumbing.Hash{parent.Hash}
 		if baseTree, cErr = parent.Tree(); cErr != nil {
 			return fmt.Errorf("read tree: %w", cErr)
@@ -79,7 +81,7 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 		return err
 	}
 
-	if err := repo.Storer.SetReference(plumbing.NewHashReference(branchRef, commitHash)); err != nil {
+	if err := setBranchTip(repo.Storer, branchRef, oldTip, commitHash); err != nil {
 		return fmt.Errorf("advance branch: %w", err)
 	}
 	// Point HEAD at the branch only when it is missing or detached — i.e. the
