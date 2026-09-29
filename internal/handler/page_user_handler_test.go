@@ -98,7 +98,7 @@ func TestPageUser_LanguagesCountOnlyReposTheViewerCanRead(t *testing.T) {
 		name, file string
 		private    bool
 	}{{"web", "main.go", false}, {"engine", "lib.rs", true}} {
-		if _, err := svc.Repo.Create(ctx, owner, r.name, "", r.private, service.RepoInitOptions{}); err != nil {
+		if _, err := svc.Repo.Create(ctx, ownerID, owner, r.name, "", r.private, service.RepoInitOptions{}); err != nil {
 			t.Fatalf("create %s: %v", r.name, err)
 		}
 		if err := svc.Code.CommitFile(owner, r.name, "main", r.file, []byte("code\n"), service.GitAuthor{Name: owner, Email: owner + "@test.invalid"}, "seed"); err != nil {

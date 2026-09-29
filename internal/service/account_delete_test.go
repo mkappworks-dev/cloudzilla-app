@@ -72,11 +72,11 @@ func TestUserService_DeleteUser_FailedDeleteKeepsRepos(t *testing.T) {
 	env := newRepoDirsEnv(t)
 	ctx := context.Background()
 	userID, user := env.seedUser(t)
-	_, other := env.seedUser(t)
+	otherID, other := env.seedUser(t)
 	env.createWithWiki(t, user, "kept")
 	gitDir, wikiDir := env.dirs(user, "kept")
 	head := headOf(t, gitDir)
-	othersRepo, err := env.repos.Create(ctx, other, "theirs", "", false, service.RepoInitOptions{})
+	othersRepo, err := env.repos.Create(ctx, otherID, other, "theirs", "", false, service.RepoInitOptions{})
 	if err != nil {
 		t.Fatalf("create other's repo: %v", err)
 	}

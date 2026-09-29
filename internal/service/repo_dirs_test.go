@@ -51,6 +51,15 @@ func (e repoDirsEnv) seedUser(t *testing.T) (int64, string) {
 	return testutil.SeedUser(t, e.db, suffix), "testuser_" + suffix
 }
 
+func (e repoDirsEnv) userID(t *testing.T, username string) int64 {
+	t.Helper()
+	var id int64
+	if err := e.db.QueryRow(`SELECT id FROM users WHERE username = $1`, username).Scan(&id); err != nil {
+		t.Fatalf("look up user %s: %v", username, err)
+	}
+	return id
+}
+
 func (e repoDirsEnv) dirs(owner, name string) (gitDir, wikiDir string) {
 	base := filepath.Join(e.root, owner, name)
 	return base + ".git", base + ".wiki.git"
@@ -58,7 +67,7 @@ func (e repoDirsEnv) dirs(owner, name string) (gitDir, wikiDir string) {
 
 func (e repoDirsEnv) createWithWiki(t *testing.T, owner, name string) int64 {
 	t.Helper()
-	repo, err := e.repos.Create(context.Background(), owner, name, "", false, service.RepoInitOptions{AddREADME: true})
+	repo, err := e.repos.Create(context.Background(), e.userID(t, owner), owner, name, "", false, service.RepoInitOptions{AddREADME: true})
 	if err != nil {
 		t.Fatalf("create %s/%s: %v", owner, name, err)
 	}
@@ -373,7 +382,7 @@ func TestRepoService_Create_RefusesLeftoverDirs(t *testing.T) {
 		t.Run(leftover, func(t *testing.T) {
 			env := newRepoDirsEnv(t)
 			ctx := context.Background()
-			_, owner := env.seedUser(t)
+			ownerID, owner := env.seedUser(t)
 			env.createWithWiki(t, owner, "left")
 			env.dropRow(t, owner, "left")
 			gitDir, wikiDir := env.dirs(owner, "left")
@@ -388,7 +397,7 @@ func TestRepoService_Create_RefusesLeftoverDirs(t *testing.T) {
 				head = headOf(t, gitDir)
 			}
 
-			_, err := env.repos.Create(ctx, owner, "left", "", false, service.RepoInitOptions{})
+			_, err := env.repos.Create(ctx, ownerID, owner, "left", "", false, service.RepoInitOptions{})
 			if !errors.Is(err, service.ErrRepoNameTaken) {
 				t.Errorf("Create over a leftover dir: want ErrRepoNameTaken, got %v", err)
 			}
@@ -417,7 +426,7 @@ func TestRepoService_Create_RemovesItsDirWhenTheRowIsRefused(t *testing.T) {
 	}
 
 	// The soft-deleted row still holds (owner_id, name).
-	_, err := env.repos.Create(ctx, owner, "again", "", false, service.RepoInitOptions{})
+	_, err := env.repos.Create(ctx, ownerID, owner, "again", "", false, service.RepoInitOptions{})
 	if !errors.Is(err, service.ErrRepoNameTaken) {
 		t.Errorf("want ErrRepoNameTaken, got %v", err)
 	}
@@ -479,7 +488,7 @@ func TestRepoService_CreateFromTemplate_RefusesLeftoverDirAndPathNames(t *testin
 	ctx := context.Background()
 	tmplOwnerID, tmplOwner := env.seedUser(t)
 	userID, user := env.seedUser(t)
-	tmpl, err := env.repos.Create(ctx, tmplOwner, "tmpl", "", false, service.RepoInitOptions{AddREADME: true})
+	tmpl, err := env.repos.Create(ctx, tmplOwnerID, tmplOwner, "tmpl", "", false, service.RepoInitOptions{AddREADME: true})
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
@@ -517,9 +526,9 @@ func TestRepoService_CreateFromTemplate_RefusesLeftoverDirAndPathNames(t *testin
 func TestRepoService_Fork_SkipsLeftoverDir(t *testing.T) {
 	env := newRepoDirsEnv(t)
 	ctx := context.Background()
-	_, owner := env.seedUser(t)
+	ownerID, owner := env.seedUser(t)
 	userID, user := env.seedUser(t)
-	orig, err := env.repos.Create(ctx, owner, "forkme", "", false, service.RepoInitOptions{AddREADME: true})
+	orig, err := env.repos.Create(ctx, ownerID, owner, "forkme", "", false, service.RepoInitOptions{AddREADME: true})
 	if err != nil {
 		t.Fatalf("create original: %v", err)
 	}
@@ -549,7 +558,7 @@ func TestRepoService_Transfer_RefusesLeftoverWiki(t *testing.T) {
 	ctx := context.Background()
 	fromID, from := env.seedUser(t)
 	_, to := env.seedUser(t)
-	repo, err := env.repos.Create(ctx, from, "moved", "", true, service.RepoInitOptions{AddREADME: true})
+	repo, err := env.repos.Create(ctx, fromID, from, "moved", "", true, service.RepoInitOptions{AddREADME: true})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -574,7 +583,7 @@ func TestRepoService_Transfer_RefusesLeftoverWiki(t *testing.T) {
 func (e repoDirsEnv) legacyWikiRepo(t *testing.T, owner, name string) (int64, string) {
 	t.Helper()
 	ctx := context.Background()
-	repo, err := e.repos.Create(ctx, owner, "tmp"+testutil.UniqueSuffix(t), "", false, service.RepoInitOptions{AddREADME: true})
+	repo, err := e.repos.Create(ctx, e.userID(t, owner), owner, "tmp"+testutil.UniqueSuffix(t), "", false, service.RepoInitOptions{AddREADME: true})
 	if err != nil {
 		t.Fatalf("create stand-in: %v", err)
 	}
@@ -592,10 +601,10 @@ func TestRepoService_WikiSuffixIsReserved(t *testing.T) {
 	ctx := context.Background()
 	userID, user := env.seedUser(t)
 	org := env.createOrg(t, userID)
-	if _, err := env.repos.Create(ctx, user, "foo", "", true, service.RepoInitOptions{AddREADME: true}); err != nil {
+	if _, err := env.repos.Create(ctx, userID, user, "foo", "", true, service.RepoInitOptions{AddREADME: true}); err != nil {
 		t.Fatalf("Create foo: %v", err)
 	}
-	tmpl, err := env.repos.Create(ctx, user, "tmpl", "", false, service.RepoInitOptions{AddREADME: true})
+	tmpl, err := env.repos.Create(ctx, userID, user, "tmpl", "", false, service.RepoInitOptions{AddREADME: true})
 	if err != nil {
 		t.Fatalf("create template: %v", err)
 	}
@@ -606,7 +615,7 @@ func TestRepoService_WikiSuffixIsReserved(t *testing.T) {
 	for _, name := range []string{"foo.wiki", "Foo.WIKI", "bar.wiki"} {
 		creates := map[string]func() error{
 			"Create": func() error {
-				_, err := env.repos.Create(ctx, user, name, "", true, service.RepoInitOptions{})
+				_, err := env.repos.Create(ctx, userID, user, name, "", true, service.RepoInitOptions{})
 				return err
 			},
 			"CreateFromTemplate": func() error {
@@ -643,7 +652,7 @@ func TestRepoService_LegacyWikiNamedRepo_KeepsItsDirFromItsPartner(t *testing.T)
 
 	partnerOf := func(t *testing.T, name string) (*model.Repository, func(step string)) {
 		t.Helper()
-		if _, err := env.repos.Create(ctx, alice, name, "", true, service.RepoInitOptions{AddREADME: true}); err != nil {
+		if _, err := env.repos.Create(ctx, aliceID, alice, name, "", true, service.RepoInitOptions{AddREADME: true}); err != nil {
 			t.Fatalf("Create %s: %v", name, err)
 		}
 		_, legacyHead := env.legacyWikiRepo(t, alice, name)
@@ -668,7 +677,7 @@ func TestRepoService_LegacyWikiNamedRepo_KeepsItsDirFromItsPartner(t *testing.T)
 		if env.repos.WikiEnabled(ctx, repo) {
 			t.Error("the wiki is served from repo served.wiki")
 		}
-		if _, err := env.repos.Create(ctx, alice, "plain", "", true, service.RepoInitOptions{}); err != nil {
+		if _, err := env.repos.Create(ctx, aliceID, alice, "plain", "", true, service.RepoInitOptions{}); err != nil {
 			t.Fatalf("Create plain: %v", err)
 		}
 		plain, err := env.repos.Get(ctx, alice, "plain")
@@ -702,8 +711,8 @@ func TestRepoService_WikiPartnersCannotShareANamespace(t *testing.T) {
 	env := newRepoDirsEnv(t)
 	ctx := context.Background()
 	attackerID, attacker := env.seedUser(t)
-	_, victim := env.seedUser(t)
-	if _, err := env.repos.Create(ctx, victim, "foo", "", true, service.RepoInitOptions{AddREADME: true}); err != nil {
+	victimID, victim := env.seedUser(t)
+	if _, err := env.repos.Create(ctx, victimID, victim, "foo", "", true, service.RepoInitOptions{AddREADME: true}); err != nil {
 		t.Fatalf("Create victim/foo: %v", err)
 	}
 	legacyID, _ := env.legacyWikiRepo(t, attacker, "foo")
@@ -723,7 +732,7 @@ func TestRepoService_WikiPartnersCannotShareANamespace(t *testing.T) {
 	if err := env.repos.Delete(ctx, legacyID, attackerID); err != nil {
 		t.Fatalf("Delete foo.wiki: %v", err)
 	}
-	if _, err := env.repos.Create(ctx, attacker, "foo", "", true, service.RepoInitOptions{}); !errors.Is(err, service.ErrRepoNameTaken) {
+	if _, err := env.repos.Create(ctx, attackerID, attacker, "foo", "", true, service.RepoInitOptions{}); !errors.Is(err, service.ErrRepoNameTaken) {
 		t.Errorf("create foo beside a deleted foo.wiki: want ErrRepoNameTaken, got %v", err)
 	}
 	victimFoo, err := env.repos.Get(ctx, victim, "foo")
@@ -766,7 +775,7 @@ func (e repoDirsEnv) strandWiki(t *testing.T, repoID int64, owner, name string, 
 func TestRepoService_PurgeExpired_FreesANameAStrandedWikiHeld(t *testing.T) {
 	env := newRepoDirsEnv(t)
 	ctx := context.Background()
-	_, owner := env.seedUser(t)
+	ownerID, owner := env.seedUser(t)
 	repoID := env.createWithWiki(t, owner, "docs")
 	env.strandWiki(t, repoID, owner, "docs", 31*24*time.Hour)
 
@@ -776,7 +785,7 @@ func TestRepoService_PurgeExpired_FreesANameAStrandedWikiHeld(t *testing.T) {
 	if _, wikiDir := env.dirs(owner, "docs"); pathExists(wikiDir) {
 		t.Error("stranded wiki survived the purge of its repo")
 	}
-	if _, err := env.repos.Create(ctx, owner, "docs", "", false, service.RepoInitOptions{}); err != nil {
+	if _, err := env.repos.Create(ctx, ownerID, owner, "docs", "", false, service.RepoInitOptions{}); err != nil {
 		t.Fatalf("recreate the purged name: %v", err)
 	}
 	if _, found, _ := env.code.WikiPageGet(owner, "docs", "Home"); found {
@@ -810,7 +819,7 @@ func TestRepoService_PurgeExpired_KeepsAStrandedWikiSomeRowStillNames(t *testing
 		env := newRepoDirsEnv(t)
 		ctx := context.Background()
 		ownerID, owner := env.seedUser(t)
-		repo, err := env.repos.Create(ctx, owner, "foo", "", false, service.RepoInitOptions{})
+		repo, err := env.repos.Create(ctx, ownerID, owner, "foo", "", false, service.RepoInitOptions{})
 		if err != nil {
 			t.Fatalf("Create foo: %v", err)
 		}
@@ -856,7 +865,7 @@ func TestRepoService_DeleteWithOwner_KeepsAWikiACaseVariantOwnerHolds(t *testing
 	upperID := env.seedNamedUser(t, upper, "upper_"+suffix+"@test.invalid")
 	env.seedNamedUser(t, lower, "lower_"+suffix+"@test.invalid")
 
-	repo, err := env.repos.Create(ctx, upper, "notes", "", false, service.RepoInitOptions{})
+	repo, err := env.repos.Create(ctx, upperID, upper, "notes", "", false, service.RepoInitOptions{})
 	if err != nil {
 		t.Fatalf("Create %s/notes: %v", upper, err)
 	}

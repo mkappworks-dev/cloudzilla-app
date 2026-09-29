@@ -16,11 +16,11 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-func newRepoSvc(t *testing.T) (*service.RepoService, string, string) {
+func newRepoSvc(t *testing.T) (*service.RepoService, int64, string, string) {
 	t.Helper()
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
-	testutil.SeedUser(t, db, suffix)
+	ownerID := testutil.SeedUser(t, db, suffix)
 	ownerName := "testuser_" + suffix
 	root := t.TempDir()
 	svc := service.NewRepoService(
@@ -30,7 +30,7 @@ func newRepoSvc(t *testing.T) (*service.RepoService, string, string) {
 		nil, nil,
 		config.GitConfig{ReposRoot: root},
 	)
-	return svc, ownerName, root
+	return svc, ownerID, ownerName, root
 }
 
 func bareTreeFiles(t *testing.T, bareDir, branch string) map[string]bool {
@@ -62,10 +62,10 @@ func bareTreeFiles(t *testing.T, bareDir, branch string) map[string]bool {
 }
 
 func TestRepoService_Create_WithInitFiles(t *testing.T) {
-	svc, owner, root := newRepoSvc(t)
+	svc, ownerID, owner, root := newRepoSvc(t)
 	ctx := context.Background()
 
-	repo, err := svc.Create(ctx, owner, "initrepo", "an initialized project", false, service.RepoInitOptions{
+	repo, err := svc.Create(ctx, ownerID, owner, "initrepo", "an initialized project", false, service.RepoInitOptions{
 		AddREADME: true,
 		Gitignore: "Go",
 		License:   "mit",
@@ -98,10 +98,10 @@ func TestRepoService_Create_WithInitFiles(t *testing.T) {
 }
 
 func TestRepoService_Create_NoInit(t *testing.T) {
-	svc, owner, root := newRepoSvc(t)
+	svc, ownerID, owner, root := newRepoSvc(t)
 	ctx := context.Background()
 
-	repo, err := svc.Create(ctx, owner, "emptyrepo", "", false, service.RepoInitOptions{})
+	repo, err := svc.Create(ctx, ownerID, owner, "emptyrepo", "", false, service.RepoInitOptions{})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -136,7 +136,7 @@ func TestRepoService_Create_InitCommitAuthorFollowsKeepEmailPrivate(t *testing.T
 
 	initAuthor := func(name string) string {
 		t.Helper()
-		repo, err := svc.Create(ctx, owner, name, "", false, service.RepoInitOptions{AddREADME: true})
+		repo, err := svc.Create(ctx, userID, owner, name, "", false, service.RepoInitOptions{AddREADME: true})
 		if err != nil {
 			t.Fatalf("Create %s: %v", name, err)
 		}

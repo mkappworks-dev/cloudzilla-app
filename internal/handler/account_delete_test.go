@@ -76,7 +76,7 @@ func TestDeleteAccount_FreedNameDoesNotExposeOldRepos(t *testing.T) {
 	mallory := "testuser_" + mallorySuffix
 	malloryToken := makeIssueJWT(t, malloryID, mallory)
 
-	if _, err := env.svc.Repo.Create(ctx, alice, "secret", "alice's private notes", true, service.RepoInitOptions{AddREADME: true}); err != nil {
+	if _, err := env.svc.Repo.Create(ctx, aliceID, alice, "secret", "alice's private notes", true, service.RepoInitOptions{AddREADME: true}); err != nil {
 		t.Fatalf("create alice's repo: %v", err)
 	}
 	if err := env.svc.Code.WikiPageSave(alice, "secret", "Home", "alice's private wiki", service.GitAuthor{Name: "alice", Email: "alice@test.invalid"}, ""); err != nil {

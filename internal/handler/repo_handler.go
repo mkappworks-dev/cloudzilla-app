@@ -127,7 +127,7 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Create(r.Context(), claims.Username, req.Name, req.Description, req.Private, service.RepoInitOptions{
+	repo, err := h.Services.Repo.Create(r.Context(), claims.UserID, claims.Username, req.Name, req.Description, req.Private, service.RepoInitOptions{
 		AddREADME: req.AddReadme,
 		Gitignore: req.Gitignore,
 		License:   req.License,

@@ -396,7 +396,7 @@ func TestLanguageService_PrimaryLanguage_NameReusedAfterTransfer(t *testing.T) {
 	svc := NewLanguageService(code, repoSvc)
 	repoSvc.WithLanguageService(svc)
 
-	old, err := repoSvc.Create(ctx, alice, "foo", "", false, RepoInitOptions{AddREADME: true})
+	old, err := repoSvc.Create(ctx, aliceID, alice, "foo", "", false, RepoInitOptions{AddREADME: true})
 	if err != nil {
 		t.Fatalf("create old repo: %v", err)
 	}
@@ -410,7 +410,7 @@ func TestLanguageService_PrimaryLanguage_NameReusedAfterTransfer(t *testing.T) {
 		t.Fatalf("transfer: %v", err)
 	}
 
-	fresh, err := repoSvc.Create(ctx, alice, "foo", "", false, RepoInitOptions{AddREADME: true})
+	fresh, err := repoSvc.Create(ctx, aliceID, alice, "foo", "", false, RepoInitOptions{AddREADME: true})
 	if err != nil {
 		t.Fatalf("create repo under the freed name: %v", err)
 	}

@@ -143,6 +143,46 @@ func TestCreateRepo_TakenName_422(t *testing.T) {
 	}
 }
 
+// A JWT outlives its account, and the freed username can be registered again.
+func TestCreateRepo_DeletedAccountsTokenCannotCreateForTheNameHolder(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	name := "testuser_" + suffix
+	goneID := testutil.SeedUser(t, db, suffix)
+	token := makeIssueJWT(t, goneID, name)
+	testutil.DeleteUsers(t, db, goneID)
+	var heirID int64
+	if err := db.QueryRow(
+		`INSERT INTO users (username, email, password_hash) VALUES ($1, $2, 'x') RETURNING id`,
+		name, "heir_"+suffix+"@test.invalid",
+	).Scan(&heirID); err != nil {
+		t.Fatalf("register the freed name: %v", err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, heirID) })
+	cfg := &config.Config{
+		Auth: config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: 24 * time.Hour, CookieName: testCookieName},
+		Git:  config.GitConfig{ReposRoot: t.TempDir()},
+	}
+	router := repoAPIRouterWithAuth(handler.New(service.New(store.New(db), cfg), cfg))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/repos", repoCreateBody("planted", "", false))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code == http.StatusCreated {
+		t.Errorf("deleted account's token created a repo: %s", rr.Body.String())
+	}
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM repositories WHERE owner_id = $1`, heirID).Scan(&n); err != nil {
+		t.Fatalf("count repos: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("the name's new holder owns %d repos it never created", n)
+	}
+}
+
 // TestGetRepo_ExistingRepo_200 verifies that GET /api/repos/{owner}/{repo} returns
 // HTTP 200 with the repository details for a known owner/repo combination.
 func TestGetRepo_ExistingRepo_200(t *testing.T) {
@@ -225,7 +265,7 @@ func TestRestoreRepo_NameTaken_422(t *testing.T) {
 		Git:  config.GitConfig{ReposRoot: root},
 	}
 	services := service.New(store.New(db), cfg)
-	repo, err := services.Repo.Create(ctx, owner, "back", "", false, service.RepoInitOptions{})
+	repo, err := services.Repo.Create(ctx, ownerID, owner, "back", "", false, service.RepoInitOptions{})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}

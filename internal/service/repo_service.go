@@ -303,7 +303,9 @@ func (o RepoInitOptions) any() bool {
 	return o.AddREADME || o.Gitignore != "" || o.License != ""
 }
 
-func (s *RepoService) Create(ctx context.Context, ownerUsername, name, description string, private bool, init RepoInitOptions) (*model.Repository, error) {
+// Create takes the owner's ID as well as its name: a JWT outlives its account,
+// and the name it carries may since have been registered by someone else.
+func (s *RepoService) Create(ctx context.Context, ownerID int64, ownerUsername, name, description string, private bool, init RepoInitOptions) (*model.Repository, error) {
 	if err := ValidateRepoName(name); err != nil {
 		return nil, fmt.Errorf("invalid repository name: %w", err)
 	}
@@ -311,6 +313,9 @@ func (s *RepoService) Create(ctx context.Context, ownerUsername, name, descripti
 	owner, err := s.users.GetByUsername(ctx, ownerUsername)
 	if err != nil {
 		return nil, fmt.Errorf("owner not found: %w", err)
+	}
+	if owner.ID != ownerID {
+		return nil, fmt.Errorf("owner not found: %s is no longer user %d", ownerUsername, ownerID)
 	}
 
 	repoPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, ownerUsername, name)
