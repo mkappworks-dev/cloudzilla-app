@@ -553,6 +553,43 @@ func TestRepoService_Fork_SkipsLeftoverDir(t *testing.T) {
 	}
 }
 
+// The owner name picks the directory, so it must be the caller's own: an empty
+// one would claim <root>/<name>.git, inside the owner namespace.
+func TestRepoService_ForkAndTemplate_BindOwnerToTheCallersID(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	ownerID, owner := env.seedUser(t)
+	userID, _ := env.seedUser(t)
+	tmpl, err := env.repos.Create(ctx, ownerID, owner, "shared", "", false, service.RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatalf("create original: %v", err)
+	}
+	if err := env.repos.SetTemplate(ctx, tmpl.ID, ownerID, true); err != nil {
+		t.Fatalf("SetTemplate: %v", err)
+	}
+
+	for _, name := range []string{"", owner} {
+		if _, err := env.repos.Fork(ctx, owner, "shared", userID, name); err == nil {
+			t.Errorf("Fork as %q: want an error", name)
+		}
+		if _, err := env.repos.CreateFromTemplate(ctx, tmpl.ID, userID, name, "copied", ""); err == nil {
+			t.Errorf("CreateFromTemplate as %q: want an error", name)
+		}
+	}
+	var n int
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM repositories WHERE owner_id = $1`, userID).Scan(&n); err != nil {
+		t.Fatalf("count rows: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("the caller owns %d repos under another name", n)
+	}
+	for _, dir := range []string{"shared.git", "shared-1.git", "copied.git", filepath.Join(owner, "shared-1.git"), filepath.Join(owner, "copied.git")} {
+		if pathExists(filepath.Join(env.root, dir)) {
+			t.Errorf("%s was claimed", dir)
+		}
+	}
+}
+
 func TestRepoService_Transfer_RefusesLeftoverWiki(t *testing.T) {
 	env := newRepoDirsEnv(t)
 	ctx := context.Background()

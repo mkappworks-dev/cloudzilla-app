@@ -31,7 +31,7 @@ func TestOAuthAppHTMX_SecretOnlyInCreateResponse(t *testing.T) {
 	cfg := &config.Config{
 		Auth: config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: time.Hour, CookieName: testCookieName},
 	}
-	oauthSvc := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db))
+	oauthSvc := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db), store.NewUserStore(db))
 	h := handler.New(&service.Services{OAuthApp: oauthSvc}, cfg)
 	r := chi.NewRouter()
 	r.Post("/api/oauth/apps", h.CreateOAuthApp)
@@ -124,7 +124,7 @@ func TestPageOAuthAuthorize_SignedOutSendsWholeRequestAsNext(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	userID := testutil.SeedUser(t, db, suffix)
-	oauthSvc := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db))
+	oauthSvc := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db), store.NewUserStore(db))
 	app, _, err := oauthSvc.CreateApp(t.Context(), userID, "Next app "+suffix, "", "", []string{"https://client.example/cb"})
 	if err != nil {
 		t.Fatalf("create oauth app: %v", err)
@@ -166,7 +166,7 @@ func TestConfirmAuthorize_StateCannotAddRedirectParams(t *testing.T) {
 
 	const registered = "https://client.example/cb?tenant=acme"
 	const state = "x&code=evil&state=y"
-	oauthSvc := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db))
+	oauthSvc := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db), store.NewUserStore(db))
 	app, clientSecret, err := oauthSvc.CreateApp(t.Context(), userID, "State app "+suffix, "", "", []string{registered})
 	if err != nil {
 		t.Fatalf("create oauth app: %v", err)

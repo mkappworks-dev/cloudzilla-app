@@ -18,11 +18,12 @@ import (
 type OAuthAppService struct {
 	apps  *store.OAuthAppStore
 	auths *store.OAuthAuthorizationStore
+	users *store.UserStore
 }
 
 // NewOAuthAppService creates an OAuthAppService backed by the given stores.
-func NewOAuthAppService(apps *store.OAuthAppStore, auths *store.OAuthAuthorizationStore) *OAuthAppService {
-	return &OAuthAppService{apps: apps, auths: auths}
+func NewOAuthAppService(apps *store.OAuthAppStore, auths *store.OAuthAuthorizationStore, users *store.UserStore) *OAuthAppService {
+	return &OAuthAppService{apps: apps, auths: auths, users: users}
 }
 
 func (s *OAuthAppService) CreateApp(ctx context.Context, ownerID int64, name, homepageURL, description string, redirectURIs []string) (*model.OAuthApp, string, error) {
@@ -118,14 +119,18 @@ func (s *OAuthAppService) ExchangeCode(ctx context.Context, clientID, clientSecr
 	return rawToken, nil
 }
 
-// ResolveOAuthUserID resolves a raw OAuth bearer token to a user ID.
-// Implements middleware.OAuthUserIDResolver.
-func (s *OAuthAppService) ResolveOAuthUserID(ctx context.Context, rawToken string) (int64, error) {
+// ResolveOAuthToken resolves a raw OAuth bearer token to its user and granted scopes.
+// Implements middleware.OAuthTokenResolver.
+func (s *OAuthAppService) ResolveOAuthToken(ctx context.Context, rawToken string) (*model.User, []string, error) {
 	a, err := s.auths.GetByTokenHash(ctx, sha256HexOf(rawToken))
 	if err != nil {
-		return 0, err
+		return nil, nil, err
 	}
-	return a.UserID, nil
+	user, err := s.users.GetByID(ctx, a.UserID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("oauth token user lookup: %w", err)
+	}
+	return user, a.Scopes, nil
 }
 
 func (s *OAuthAppService) RevokeAccess(ctx context.Context, authID, userID int64) error {

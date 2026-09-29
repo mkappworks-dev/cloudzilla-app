@@ -98,6 +98,9 @@ func pathTaken(path string) bool {
 // path, so the row never adopts data an earlier holder of the name left on
 // disk; the wiki path is checked too because wikis are created lazily.
 func claimRepo(ctx context.Context, repos *store.RepoStore, root, owner, name string) (string, error) {
+	if err := ValidateName(owner); err != nil {
+		return "", fmt.Errorf("invalid owner name %q: %w", owner, err)
+	}
 	if isWikiName(name) {
 		return "", ErrRepoNameReserved
 	}

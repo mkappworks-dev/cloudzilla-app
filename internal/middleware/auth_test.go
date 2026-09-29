@@ -69,6 +69,12 @@ func (s *stubPAT) Validate(_ context.Context, _ string) (*model.AccessToken, *mo
 }
 func (s *stubPAT) UpdateLastUsed(_ context.Context, _ int64) error { return nil }
 
+type stubOAuth struct{ user *model.User }
+
+func (s *stubOAuth) ResolveOAuthToken(_ context.Context, _ string) (*model.User, []string, error) {
+	return s.user, []string{"read"}, nil
+}
+
 // okHandler is a trivial 200 handler used as the wrapped next handler in middleware tests.
 func okHandler(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }
 
@@ -156,6 +162,26 @@ func TestAuth_ValidPAT_InjectsUserClaims(t *testing.T) {
 	}
 	if got.UserID != 42 || got.Username != "bob" {
 		t.Errorf("claims mismatch: %+v", got)
+	}
+}
+
+// Handlers name new repos' owner after claims.Username; an empty one puts them
+// at the top of the repos root.
+func TestAuth_OAuthToken_CarriesUsername(t *testing.T) {
+	oauth := &stubOAuth{user: &model.User{ID: 42, Username: "bob", IsSuperadmin: true}}
+	for name, mw := range map[string]func(http.Handler) http.Handler{
+		"Auth":         Auth(testSecret, "cz_token", nil, oauth, testUnauthorized),
+		"OptionalAuth": OptionalAuth(testSecret, "cz_token", nil, oauth),
+	} {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer 0123abcd")
+		var got Claims
+		mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			got, _ = ClaimsFromContext(r.Context())
+		})).ServeHTTP(httptest.NewRecorder(), req)
+		if got != (Claims{UserID: 42, Username: "bob"}) {
+			t.Errorf("%s: want claims for bob without superadmin, got %+v", name, got)
+		}
 	}
 }
 

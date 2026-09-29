@@ -4,6 +4,7 @@ package service_test
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 
@@ -21,6 +22,7 @@ func newOAuthSvc(t *testing.T) (*service.OAuthAppService, int64) {
 	svc := service.NewOAuthAppService(
 		store.NewOAuthAppStore(db),
 		store.NewOAuthAuthorizationStore(db),
+		store.NewUserStore(db),
 	)
 	return svc, ownerID
 }
@@ -70,7 +72,7 @@ func TestOAuthApp_IsRedirectURIAllowed_Registered(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
-	svcLocal := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db))
+	svcLocal := service.NewOAuthAppService(store.NewOAuthAppStore(db), store.NewOAuthAuthorizationStore(db), store.NewUserStore(db))
 	_ = svc
 
 	app, _, err := svcLocal.CreateApp(context.Background(), ownerID, "URI App", "", "",
@@ -112,6 +114,7 @@ func TestOAuthApp_AuthorizeAndExchange_FullFlow(t *testing.T) {
 	svc := service.NewOAuthAppService(
 		store.NewOAuthAppStore(db),
 		store.NewOAuthAuthorizationStore(db),
+		store.NewUserStore(db),
 	)
 
 	app, rawSecret, err := svc.CreateApp(context.Background(), ownerID,
@@ -151,6 +154,7 @@ func TestOAuthApp_ExchangeCode_WrongSecret_Fails(t *testing.T) {
 	svc := service.NewOAuthAppService(
 		store.NewOAuthAppStore(db),
 		store.NewOAuthAuthorizationStore(db),
+		store.NewUserStore(db),
 	)
 
 	app, _, err := svc.CreateApp(context.Background(), ownerID, "Secret App", "", "", nil)
@@ -168,9 +172,9 @@ func TestOAuthApp_ExchangeCode_WrongSecret_Fails(t *testing.T) {
 	}
 }
 
-// TestOAuthApp_ResolveOAuthUserID verifies that after a successful token exchange,
-// ResolveOAuthUserID maps the raw token back to the original user ID.
-func TestOAuthApp_ResolveOAuthUserID(t *testing.T) {
+// TestOAuthApp_ResolveOAuthToken verifies that after a successful token exchange,
+// ResolveOAuthToken maps the raw token back to the original user and granted scopes.
+func TestOAuthApp_ResolveOAuthToken(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
@@ -179,6 +183,7 @@ func TestOAuthApp_ResolveOAuthUserID(t *testing.T) {
 	svc := service.NewOAuthAppService(
 		store.NewOAuthAppStore(db),
 		store.NewOAuthAuthorizationStore(db),
+		store.NewUserStore(db),
 	)
 
 	app, rawSecret, err := svc.CreateApp(context.Background(), ownerID, "Resolve App", "", "", nil)
@@ -194,12 +199,15 @@ func TestOAuthApp_ResolveOAuthUserID(t *testing.T) {
 		t.Fatalf("ExchangeCode: %v", err)
 	}
 
-	resolvedUID, err := svc.ResolveOAuthUserID(context.Background(), token)
+	user, scopes, err := svc.ResolveOAuthToken(context.Background(), token)
 	if err != nil {
-		t.Fatalf("ResolveOAuthUserID: %v", err)
+		t.Fatalf("ResolveOAuthToken: %v", err)
 	}
-	if resolvedUID != userID {
-		t.Errorf("want userID %d, got %d", userID, resolvedUID)
+	if user.ID != userID || user.Username != "testuser_oauth_resolve_"+suffix {
+		t.Errorf("want user %d, got %d (%q)", userID, user.ID, user.Username)
+	}
+	if !slices.Equal(scopes, []string{"read"}) {
+		t.Errorf("want scopes [read], got %v", scopes)
 	}
 }
 
@@ -214,6 +222,7 @@ func TestOAuthApp_Authorize_DisallowedRedirectURI_Error(t *testing.T) {
 	svc := service.NewOAuthAppService(
 		store.NewOAuthAppStore(db),
 		store.NewOAuthAuthorizationStore(db),
+		store.NewUserStore(db),
 	)
 
 	app, _, err := svc.CreateApp(context.Background(), ownerID, "Strict App", "", "",

@@ -303,19 +303,27 @@ func (o RepoInitOptions) any() bool {
 	return o.AddREADME || o.Gitignore != "" || o.License != ""
 }
 
-// Create takes the owner's ID as well as its name: a JWT outlives its account,
-// and the name it carries may since have been registered by someone else.
+// personalOwner takes the owner's ID as well as its name: a JWT outlives its
+// account, and the name it carries may since have been registered by someone else.
+func (s *RepoService) personalOwner(ctx context.Context, id int64, username string) (*model.User, error) {
+	owner, err := s.users.GetByUsername(ctx, username)
+	if err != nil {
+		return nil, fmt.Errorf("owner not found: %w", err)
+	}
+	if owner.ID != id {
+		return nil, fmt.Errorf("owner not found: %s is no longer user %d", username, id)
+	}
+	return owner, nil
+}
+
 func (s *RepoService) Create(ctx context.Context, ownerID int64, ownerUsername, name, description string, private bool, init RepoInitOptions) (*model.Repository, error) {
 	if err := ValidateRepoName(name); err != nil {
 		return nil, fmt.Errorf("invalid repository name: %w", err)
 	}
 
-	owner, err := s.users.GetByUsername(ctx, ownerUsername)
+	owner, err := s.personalOwner(ctx, ownerID, ownerUsername)
 	if err != nil {
-		return nil, fmt.Errorf("owner not found: %w", err)
-	}
-	if owner.ID != ownerID {
-		return nil, fmt.Errorf("owner not found: %s is no longer user %d", ownerUsername, ownerID)
+		return nil, err
 	}
 
 	repoPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, ownerUsername, name)
@@ -630,6 +638,9 @@ func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName stri
 	if !s.CanRead(ctx, orig, &actorID) {
 		return nil, fmt.Errorf("access denied")
 	}
+	if _, err := s.personalOwner(ctx, actorID, actorUsername); err != nil {
+		return nil, err
+	}
 
 	var forkName, dstPath string
 	for i := 0; ; i++ {
@@ -819,6 +830,9 @@ func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, ne
 	}
 	if tmpl.IsArchived {
 		return nil, fmt.Errorf("template repo is archived")
+	}
+	if _, err := s.personalOwner(ctx, newOwnerID, newOwnerUsername); err != nil {
+		return nil, err
 	}
 
 	dstPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, newOwnerUsername, newName)

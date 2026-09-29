@@ -106,7 +106,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		SSO:              NewSSOService(stores.SSO, stores.User, cfg.Auth, siteSettingSvc),
 		SavedReply:       NewSavedReplyService(stores.SavedReply),
 		Email:            emailSvc,
-		OAuthApp:         NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization),
+		OAuthApp:         NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization, stores.User),
 		Watch:            NewWatchService(stores.Watch, stores.Repo),
 		Event:            NewEventService(stores.Event, stores.User, stores.Repo),
 		Discussion:       NewDiscussionService(stores.Discussion, stores.Repo),
