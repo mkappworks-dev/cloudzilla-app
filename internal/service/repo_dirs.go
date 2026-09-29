@@ -257,13 +257,14 @@ func removeDirs(dirs ...string) {
 // ownerID owns, with the owner's personal repo dirs moved aside first. A
 // failed delete puts them back; a successful one removes them and the copies
 // of the owner's soft-deleted repos, which no row is left to restore or purge.
-func (s *RepoService) DeleteWithOwner(ctx context.Context, ownerID int64, deleteOwner func() error) error {
+func (s *RepoService) DeleteWithOwner(ctx context.Context, ownerID int64, deleteOwner func(livePersonalIDs []int64) error) error {
 	repos, err := s.repos.ListAllByOwnerID(ctx, ownerID)
 	if err != nil {
 		return err
 	}
 	var softDeleted []model.Repository
 	var dirs []string
+	var live []int64
 	for _, r := range repos {
 		switch {
 		case r.DeletedAt != nil:
@@ -273,6 +274,7 @@ func (s *RepoService) DeleteWithOwner(ctx context.Context, ownerID int64, delete
 		default:
 			gitDir, wikiDir := repoDirs(s.cfg.ReposRoot, r.OwnerName, r.Name)
 			dirs = append(dirs, gitDir, wikiDir)
+			live = append(live, r.ID)
 		}
 	}
 
@@ -280,16 +282,22 @@ func (s *RepoService) DeleteWithOwner(ctx context.Context, ownerID int64, delete
 	if err != nil {
 		return fmt.Errorf("move repos aside: %w", err)
 	}
-	if err := deleteOwner(); err != nil {
+	if err := deleteOwner(live); err != nil {
 		revertDirs(moved)
 		return err
 	}
 	for _, m := range moved {
 		removeDirs(m.to)
 	}
-	for _, r := range softDeleted {
+	s.RemoveDeletedCopies(ctx, softDeleted)
+	return nil
+}
+
+// RemoveDeletedCopies drops the on-disk copies of soft-deleted repos whose rows
+// are gone, so no restore or purge will ever reach them.
+func (s *RepoService) RemoveDeletedCopies(ctx context.Context, repos []model.Repository) {
+	for _, r := range repos {
 		removeDeletedCopy(s.cfg.ReposRoot, r)
 		s.removeStrandedWiki(ctx, r.OwnerName, r.Name)
 	}
-	return nil
 }

@@ -30,7 +30,13 @@ type OrgService struct {
 	repos *store.RepoStore
 	users *store.UserStore
 	stars *store.StarStore
+	repo  *RepoService
 	cfg   config.GitConfig
+}
+
+func (s *OrgService) WithRepoService(repo *RepoService) *OrgService {
+	s.repo = repo
+	return s
 }
 
 // NewOrgService creates an OrgService backed by the given stores and git config.
@@ -107,7 +113,19 @@ func (s *OrgService) Delete(ctx context.Context, orgID, requestingUserID int64) 
 	if len(repos) > 0 {
 		return ErrOrgHasRepos
 	}
-	return s.orgs.Delete(ctx, orgID)
+	deleted, err := s.repos.ListDeletedByOrgID(ctx, orgID)
+	if err != nil {
+		return fmt.Errorf("list deleted org repos: %w", err)
+	}
+	if err := s.orgs.Delete(ctx, orgID); err != nil {
+		return err
+	}
+	// The org_id cascade drops these rows, so nothing could restore or purge
+	// their copies later.
+	if s.repo != nil {
+		s.repo.RemoveDeletedCopies(ctx, deleted)
+	}
+	return nil
 }
 
 func (s *OrgService) UpdateProfile(ctx context.Context, orgID, requestingUserID int64, displayName, description, website, location, contactEmail string) error {

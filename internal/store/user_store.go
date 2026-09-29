@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -275,15 +276,57 @@ func (s *UserStore) DeleteByID(ctx context.Context, userID int64) error {
 	return nil
 }
 
+var (
+	ErrUserOwnsOrgRepos  = errors.New("user created live organization repositories")
+	ErrOwnedReposChanged = errors.New("user's repositories changed during deletion")
+)
+
 // Deleting only the user row fails when the user authored issues or pull
 // requests in their own repos: the NO ACTION author checks run before the
 // owner cascade reaches those rows. Content in other people's repos still blocks.
-func (s *UserStore) DeleteWithOwnedRepos(ctx context.Context, userID int64) error {
+// livePersonalIDs are the repos the caller already moved aside; locking the user
+// row blocks new repo inserts (their FK check needs it), so the set is re-checked
+// here and a repo created or restored in the meantime aborts the delete.
+func (s *UserStore) DeleteWithOwnedRepos(ctx context.Context, userID int64, livePersonalIDs []int64) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("user delete begin tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `SELECT 1 FROM users WHERE id=$1 FOR UPDATE`, userID); err != nil {
+		return fmt.Errorf("user delete lock: %w", err)
+	}
+	rows, err := tx.QueryContext(ctx,
+		`SELECT id, org_id FROM repositories WHERE owner_id=$1 AND deleted_at IS NULL FOR UPDATE`, userID)
+	if err != nil {
+		return fmt.Errorf("user delete list repos: %w", err)
+	}
+	var live []int64
+	ownsOrgRepo := false
+	for rows.Next() {
+		var id int64
+		var orgID sql.NullInt64
+		if err := rows.Scan(&id, &orgID); err != nil {
+			rows.Close()
+			return fmt.Errorf("user delete scan repo: %w", err)
+		}
+		if orgID.Valid {
+			ownsOrgRepo = true
+		}
+		live = append(live, id)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("user delete list repos: %w", err)
+	}
+	if ownsOrgRepo {
+		return ErrUserOwnsOrgRepos
+	}
+	slices.Sort(live)
+	expected := slices.Sorted(slices.Values(livePersonalIDs))
+	if !slices.Equal(live, expected) {
+		return ErrOwnedReposChanged
+	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM repositories WHERE owner_id=$1`, userID); err != nil {
 		return fmt.Errorf("user delete repos: %w", err)
 	}

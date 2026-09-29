@@ -976,7 +976,7 @@ func TestRepoService_DeleteWithOwner_KeepsAWikiACaseVariantOwnerHolds(t *testing
 	}
 	env.createWithWiki(t, lower, "notes")
 
-	err = env.repos.DeleteWithOwner(ctx, upperID, func() error {
+	err = env.repos.DeleteWithOwner(ctx, upperID, func([]int64) error {
 		_, err := env.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, upperID)
 		return err
 	})
@@ -1013,5 +1013,31 @@ func TestRepoService_Fork_StopsWhenTheOwnerDirCannotBeRead(t *testing.T) {
 	_, err = env.repos.Fork(ctx, owner, orig.Name, userID, user)
 	if err == nil || errors.Is(err, service.ErrRepoNameTaken) || ctx.Err() != nil {
 		t.Fatalf("Fork = %v (ctx %v), want an immediate filesystem error", err, ctx.Err())
+	}
+}
+
+func TestOrgService_Delete_RemovesDeletedRepoCopies(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	userID, _ := env.seedUser(t)
+	org := env.createOrg(t, userID)
+	orgs := env.orgs.WithRepoService(env.repos)
+	repo, err := orgs.CreateRepo(ctx, org.ID, userID, "gone", "", true, service.RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatalf("CreateRepo: %v", err)
+	}
+	if err := env.repos.Delete(ctx, repo.ID, userID); err != nil {
+		t.Fatalf("soft delete: %v", err)
+	}
+
+	if err := orgs.Delete(ctx, org.ID, userID); err != nil {
+		t.Fatalf("Delete org: %v", err)
+	}
+	entries, err := os.ReadDir(filepath.Join(env.root, org.Name))
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("read org dir: %v", err)
+	}
+	for _, e := range entries {
+		t.Errorf("%s/%s survived the org", org.Name, e.Name())
 	}
 }

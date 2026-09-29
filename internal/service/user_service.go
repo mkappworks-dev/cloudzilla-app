@@ -243,8 +243,12 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int64, name, ema
 
 // Related rows go via DB cascades; repo directories via DeleteWithOwner.
 func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
-	return s.repos.DeleteWithOwner(ctx, userID, func() error {
-		return s.store.DeleteWithOwnedRepos(ctx, userID)
+	return s.repos.DeleteWithOwner(ctx, userID, func(livePersonalIDs []int64) error {
+		err := s.store.DeleteWithOwnedRepos(ctx, userID, livePersonalIDs)
+		if errors.Is(err, store.ErrUserOwnsOrgRepos) {
+			return ErrOwnsOrgRepos
+		}
+		return err
 	})
 }
 

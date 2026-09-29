@@ -165,6 +165,28 @@ func (s *RepoStore) GetByOwnerID(ctx context.Context, ownerID int64) ([]model.Re
 
 // ListAllByOwnerID includes soft-deleted repos, which deleting the owner
 // cascades away too. Only the fields that locate a repo on disk are set.
+func (s *RepoStore) ListDeletedByOrgID(ctx context.Context, orgID int64) ([]model.Repository, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, owner_id, owner_name, name, deleted_at FROM repositories WHERE org_id = $1 AND deleted_at IS NOT NULL`,
+		orgID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("repo list deleted by org: %w", err)
+	}
+	defer rows.Close()
+	var repos []model.Repository
+	for rows.Next() {
+		r := model.Repository{OrgID: orgID}
+		var deletedAt time.Time
+		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &r.Name, &deletedAt); err != nil {
+			return nil, err
+		}
+		r.DeletedAt = &deletedAt
+		repos = append(repos, r)
+	}
+	return repos, rows.Err()
+}
+
 func (s *RepoStore) ListAllByOwnerID(ctx context.Context, ownerID int64) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_name, org_id, name, deleted_at FROM repositories WHERE owner_id = $1`,
@@ -471,7 +493,7 @@ func (s *RepoStore) UpdatePrimaryLanguage(ctx context.Context, repoID int64, lan
 }
 
 // FillPrimaryLanguage writes only a NULL column, so a value computed from an
-// older tree can't clobber one a push wrote meanwhile, including a push's ''
+// older tree can't clobber one a push wrote meanwhile, including a push's ”
 // for "no code". It leaves updated_at alone so a page view can't reorder
 // recently-updated lists.
 func (s *RepoStore) FillPrimaryLanguage(ctx context.Context, repoID int64, lang string) error {

@@ -186,3 +186,46 @@ func TestUserService_DeleteUser_ContentInOthersReposStillBlocks(t *testing.T) {
 		t.Fatalf("own repo dir not restored after the failed delete: %v", err)
 	}
 }
+
+func TestUserService_DeleteUser_RepoCreatedMidDeleteAbortsIt(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	users := store.NewUserStore(env.db)
+
+	for _, tc := range []struct {
+		name   string
+		create func(userID int64, user string) error
+	}{
+		{"org repo", func(userID int64, _ string) error {
+			org := env.createOrg(t, userID)
+			_, err := env.orgs.CreateRepo(ctx, org.ID, userID, "late", "", false, service.RepoInitOptions{})
+			return err
+		}},
+		{"personal repo", func(userID int64, user string) error {
+			_, err := env.repos.Create(ctx, userID, user, "late", "", false, service.RepoInitOptions{})
+			return err
+		}},
+	} {
+		userID, user := env.seedUser(t)
+		env.createWithWiki(t, user, "early")
+		err := env.repos.DeleteWithOwner(ctx, userID, func(live []int64) error {
+			if err := tc.create(userID, user); err != nil {
+				t.Fatalf("%s: create mid-delete: %v", tc.name, err)
+			}
+			return users.DeleteWithOwnedRepos(ctx, userID, live)
+		})
+		if err == nil {
+			t.Fatalf("%s: delete succeeded although a repo appeared after the move-aside", tc.name)
+		}
+		if !env.userExists(t, userID) {
+			t.Fatalf("%s: user row deleted", tc.name)
+		}
+		if _, err := os.Stat(filepath.Join(env.root, user, "early.git")); err != nil {
+			t.Fatalf("%s: early repo not restored: %v", tc.name, err)
+		}
+		var n int
+		if err := env.db.QueryRow(`SELECT COUNT(*) FROM repositories WHERE owner_id = $1 AND name = 'late'`, userID).Scan(&n); err != nil || n != 1 {
+			t.Fatalf("%s: repo created mid-delete: count = %d, %v; want it kept", tc.name, n, err)
+		}
+	}
+}
