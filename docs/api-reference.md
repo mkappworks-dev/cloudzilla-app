@@ -6,16 +6,16 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 ## Auth
 
-| Method | Path                    | Auth | Description                                                     |
-| ------ | ----------------------- | ---- | --------------------------------------------------------------- |
-| POST   | `/api/auth/login`       | --   | Login; sets `cz_token` cookie and returns token in body         |
-| POST   | `/api/auth/logout`      | --   | Clears auth cookie; 204, or form 303/HTMX `HX-Redirect` to `/`  |
-| GET    | `/auth/google`          | --   | Begin Google OAuth flow (redirects to Google)                   |
-| GET    | `/auth/google/callback` | --   | Google OAuth callback; sets `cz_token` cookie, redirects to `/` |
-| POST   | `/auth/ldap`            | --   | LDAP login (username + password)                                |
-| GET    | `/auth/saml`            | --   | Initiate SAML SSO flow (redirects to IdP)                       |
-| POST   | `/auth/saml/callback`   | --   | SAML assertion consumer service (ACS) callback                  |
-| GET    | `/auth/saml/metadata`   | --   | SAML SP metadata XML                                            |
+| Method | Path                    | Auth | Description                                                                                                                                                                                                                    |
+| ------ | ----------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/api/auth/login`       | --   | Login; sets `cz_token` cookie and returns token in body                                                                                                                                                                        |
+| POST   | `/api/auth/logout`      | --   | Clears auth cookie; 204, or form 303/HTMX `HX-Redirect` to `/`                                                                                                                                                                 |
+| GET    | `/auth/google`          | --   | Begin Google OAuth flow (redirects to Google)                                                                                                                                                                                  |
+| GET    | `/auth/google/callback` | --   | Google OAuth callback; sets `cz_token` cookie, redirects to `/`; re-renders login with 403 if Google hasn't verified the email, 409 if an account already has that email ([details](./access-control.md#google-oauth-sign-in)) |
+| POST   | `/auth/ldap`            | --   | LDAP login (username + password)                                                                                                                                                                                               |
+| GET    | `/auth/saml`            | --   | Initiate SAML SSO flow (redirects to IdP)                                                                                                                                                                                      |
+| POST   | `/auth/saml/callback`   | --   | SAML assertion consumer service (ACS) callback                                                                                                                                                                                 |
+| GET    | `/auth/saml/metadata`   | --   | SAML SP metadata XML                                                                                                                                                                                                           |
 
 ## Two-Factor Authentication (TOTP)
 
@@ -102,7 +102,7 @@ A transfer is refused with 422 `transfer failed`, and nothing moves, when the ne
 
 Names ending in `.wiki` (in any case) are reserved, because `<name>.wiki.git` is the wiki of repository `<name>`: creating one returns 422 `invalid repository name: names ending in .wiki are reserved for wikis`, and a fork of such a repository gets a `-1` suffix. A `<name>.wiki` repository created before the reservation still works, but while it exists, even soft-deleted, `<name>` cannot be created in or transferred into its namespace (422 `a repository with that name already exists` on create), it cannot be transferred into a namespace that holds `<name>`, and an existing `<name>` has no wiki.
 
-Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` and `<name>.wiki.git.deleted.<unix_ts>`, with the same second stored in `deleted_at`. Restore and the 30-day purge act only on the copy whose suffix matches the row, never on another soft-deleted repository of the same name (org repos are unique per creator, so several can exist). Restore returns 422 `a repository with that name already exists` while another repository, or a directory left on disk, holds the name. Deletes made before wikis moved with their repository left `<name>.wiki.git` in place; the purge removes such a wiki once no repository row, live or soft-deleted, names it, so the name can be reused.
+Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` and `<name>.wiki.git.deleted.<unix_ts>`, with the same second stored in `deleted_at`. Restore and the 30-day purge act only on the copy whose suffix matches the row, never on another soft-deleted repository of the same name (org repos are unique per creator, so several can exist). Restore returns 422 `a repository with that name already exists` while another repository, or a directory left on disk, holds the name. It returns 500 `restore failed`, and leaves the row deleted, when the row's copy is missing from disk. Deletes made before wikis moved with their repository left `<name>.wiki.git` in place; the purge removes such a wiki once no repository row, live or soft-deleted, names it, so the name can be reused.
 
 ## Issues
 
