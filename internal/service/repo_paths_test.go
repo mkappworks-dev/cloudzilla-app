@@ -40,7 +40,7 @@ func TestRepoService_Create_OwnerOutsideRoot_CreatesNothing(t *testing.T) {
 
 func TestRepoDir_RejectsAnythingButOnePathElement(t *testing.T) {
 	root := t.TempDir()
-	for _, seg := range []string{"..", "a/b", `a\b`, "a\x00", ".", ""} {
+	for _, seg := range []string{"..", "a/b", `a\b`, "a\x00", ".", "", "*", "?", "[a]"} {
 		if _, err := service.RepoDir(root, seg, "x.git"); !errors.Is(err, service.ErrInvalidRepoPath) {
 			t.Errorf("owner %q: want ErrInvalidRepoPath, got %v", seg, err)
 		}

@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -779,7 +778,7 @@ func (s *RepoService) Delete(ctx context.Context, repoID, userID int64) error {
 	if err != nil {
 		return err
 	}
-	deletedPath := repoPath + ".deleted." + strconv.FormatInt(time.Now().Unix(), 10)
+	deletedPath := deletedDirPath(repoPath, time.Now())
 	if _, err := os.Stat(repoPath); err == nil {
 		if err := os.Rename(repoPath, deletedPath); err != nil {
 			return fmt.Errorf("rename git dir for soft delete: %w", err)
@@ -802,9 +801,9 @@ func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, is
 	if err != nil {
 		return err
 	}
-	matches, err := filepath.Glob(restoredPath + ".deleted.*")
+	matches, err := deletedDirs(restoredPath)
 	if err != nil {
-		return fmt.Errorf("glob deleted git dir: %w", err)
+		return fmt.Errorf("list deleted git dirs: %w", err)
 	}
 	if len(matches) > 0 {
 		latestMatch := matches[len(matches)-1]
@@ -835,10 +834,9 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 			slog.Warn("purge: skipping unsafe repo path", "error", pathErr)
 			continue
 		}
-		pattern := repoPath + ".deleted.*"
-		matches, globErr := filepath.Glob(pattern)
-		if globErr != nil {
-			slog.Warn("purge: failed to glob deleted git dir", "pattern", pattern, "error", globErr)
+		matches, listErr := deletedDirs(repoPath)
+		if listErr != nil {
+			slog.Warn("purge: failed to list deleted git dirs", "path", repoPath, "error", listErr)
 			continue
 		}
 		for _, m := range matches {
