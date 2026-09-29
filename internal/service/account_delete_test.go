@@ -152,3 +152,37 @@ func TestUserService_DeleteUser_RemovesItsDeletedOrgRepoCopies(t *testing.T) {
 	}
 	env.wantLive(t, c.org.Name, "x", c.secondHead, "wiki of copy 1")
 }
+
+func TestUserService_DeleteUser_OwnIssuesAndPullsDoNotBlock(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	userID, user := env.seedUser(t)
+	repoID := env.createWithWiki(t, user, "tracked")
+	testutil.Exec(t, env.db, `INSERT INTO issues (repo_id, number, title, author_id) VALUES ($1, 1, 'bug', $2)`, repoID, userID)
+	testutil.Exec(t, env.db, `INSERT INTO pull_requests (repo_id, number, title, author_id, head_branch) VALUES ($1, 2, 'fix', $2, 'fix')`, repoID, userID)
+
+	if err := env.users().DeleteUser(context.Background(), userID); err != nil {
+		t.Fatalf("DeleteUser: %v", err)
+	}
+	if env.userExists(t, userID) {
+		t.Fatal("user row survived")
+	}
+}
+
+func TestUserService_DeleteUser_ContentInOthersReposStillBlocks(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	userID, user := env.seedUser(t)
+	env.createWithWiki(t, user, "mine")
+	_, other := env.seedUser(t)
+	theirs := env.createWithWiki(t, other, "theirs")
+	testutil.Exec(t, env.db, `INSERT INTO issues (repo_id, number, title, author_id) VALUES ($1, 1, 'report', $2)`, theirs, userID)
+
+	if err := env.users().DeleteUser(context.Background(), userID); err == nil {
+		t.Fatal("DeleteUser succeeded although the user authored an issue in someone else's repo")
+	}
+	if !env.userExists(t, userID) {
+		t.Fatal("user row deleted")
+	}
+	if _, err := os.Stat(filepath.Join(env.root, user, "mine.git")); err != nil {
+		t.Fatalf("own repo dir not restored after the failed delete: %v", err)
+	}
+}

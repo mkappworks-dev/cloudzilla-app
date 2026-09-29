@@ -275,6 +275,27 @@ func (s *UserStore) DeleteByID(ctx context.Context, userID int64) error {
 	return nil
 }
 
+// Deleting only the user row fails when the user authored issues or pull
+// requests in their own repos: the NO ACTION author checks run before the
+// owner cascade reaches those rows. Content in other people's repos still blocks.
+func (s *UserStore) DeleteWithOwnedRepos(ctx context.Context, userID int64) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("user delete begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `DELETE FROM repositories WHERE owner_id=$1`, userID); err != nil {
+		return fmt.Errorf("user delete repos: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id=$1`, userID); err != nil {
+		return fmt.Errorf("user delete: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("user delete commit: %w", err)
+	}
+	return nil
+}
+
 func (s *UserStore) UpdateNotificationPrefs(ctx context.Context, userID int64, p model.NotificationPrefs) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE users
