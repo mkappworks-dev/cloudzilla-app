@@ -79,31 +79,33 @@ func (s *BranchProtectionService) CheckPush(ctx context.Context, repoID int64, b
 // already hold the pushed commits.
 func (s *BranchProtectionService) CheckPushCommand(ctx context.Context, repoID int64, gitRepo *gogit.Repository, cmd *packp.Command) error {
 	branch, ok := strings.CutPrefix(cmd.Name.String(), "refs/heads/")
-	if !ok || cmd.Action() == packp.Delete {
+	if !ok {
 		return nil
 	}
-	return s.CheckPush(ctx, repoID, branch, isNonFastForward(gitRepo, cmd))
+	return s.CheckPush(ctx, repoID, branch, !isFastForward(gitRepo, cmd))
 }
 
-// isNonFastForward reports whether cmd moves a branch to a commit that doesn't
-// descend from its old one.
-func isNonFastForward(gitRepo *gogit.Repository, cmd *packp.Command) bool {
-	if cmd.Action() != packp.Update {
-		return false
-	}
-	oldCommit, err := gitRepo.CommitObject(cmd.Old)
-	if err != nil {
+// isFastForward reports whether cmd provably keeps every commit its branch
+// had. Deleting and pushing again is a force push in two steps, and go-git's
+// receive-pack doesn't check that pushed commits exist, so a delete or an
+// unreadable commit is not a fast-forward.
+func isFastForward(gitRepo *gogit.Repository, cmd *packp.Command) bool {
+	if cmd.Action() == packp.Delete {
 		return false
 	}
 	newCommit, err := gitRepo.CommitObject(cmd.New)
 	if err != nil {
 		return false
 	}
-	isAncestor, err := oldCommit.IsAncestor(newCommit)
+	if cmd.Action() == packp.Create {
+		return true
+	}
+	oldCommit, err := gitRepo.CommitObject(cmd.Old)
 	if err != nil {
 		return false
 	}
-	return !isAncestor
+	isAncestor, err := oldCommit.IsAncestor(newCommit)
+	return err == nil && isAncestor
 }
 
 // CheckMerge enforces branch protection rules before a PR merge.
