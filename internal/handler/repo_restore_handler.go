@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 func (h *Handler) RestoreRepo(w http.ResponseWriter, r *http.Request) {
@@ -24,10 +27,14 @@ func (h *Handler) RestoreRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Services.Repo.Restore(r.Context(), repo.ID, claims.UserID, claims.IsSuperadmin); err != nil {
+		switch {
 		// A deleted repo is visible only to those who may restore it.
-		if strings.HasPrefix(err.Error(), "forbidden") {
+		case strings.HasPrefix(err.Error(), "forbidden"):
 			writeError(w, http.StatusNotFound, "repo not found")
-		} else {
+		case errors.Is(err, service.ErrRepoNameTaken):
+			writeError(w, http.StatusUnprocessableEntity, service.ErrRepoNameTaken.Error())
+		default:
+			slog.Error("restore repo", "repo_id", repo.ID, "error", err)
 			writeError(w, http.StatusInternalServerError, "restore failed")
 		}
 		return

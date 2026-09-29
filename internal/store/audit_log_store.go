@@ -120,6 +120,11 @@ func buildAuditQuery(base string, f model.AuditFilter, pageSize, offset int) (st
 		args = append(args, f.TargetType)
 		n++
 	}
+	if f.TargetID != nil {
+		conds = append(conds, fmt.Sprintf("target_id = $%d", n))
+		args = append(args, *f.TargetID)
+		n++
+	}
 
 	q := base
 	if len(conds) > 0 {

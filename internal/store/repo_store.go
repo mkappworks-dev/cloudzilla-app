@@ -3,11 +3,24 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
+
+// ErrRepoNameInUse signals a unique violation on (owner_id, name).
+var ErrRepoNameInUse = errors.New("repository name already in use")
+
+func repoWriteErr(op string, err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return ErrRepoNameInUse
+	}
+	return fmt.Errorf("%s: %w", op, err)
+}
 
 // RepoStore provides database operations for repositories and their permissions.
 type RepoStore struct {
@@ -44,7 +57,7 @@ func (s *RepoStore) CreateWithOwnerName(ctx context.Context, r *model.Repository
 		r.OwnerID, r.OwnerName, orgID, r.Name, r.Description, r.Private, r.DefaultBranch, now, now,
 	).Scan(&r.ID)
 	if err != nil {
-		return fmt.Errorf("repo create with owner name: %w", err)
+		return repoWriteErr("repo create with owner name", err)
 	}
 	r.CreatedAt = now
 	r.UpdatedAt = now
@@ -77,6 +90,20 @@ func (s *RepoStore) GetByOwnerName(ctx context.Context, ownerName, name string) 
 		r.ArchivedAt = &archivedAt.Time
 	}
 	return r, nil
+}
+
+// NameHeld counts soft-deleted rows too, and ignores the case of both names
+// as a case-insensitive filesystem would.
+func (s *RepoStore) NameHeld(ctx context.Context, ownerName, name string) (bool, error) {
+	var held bool
+	err := s.db.QueryRowContext(ctx,
+		`SELECT EXISTS (SELECT 1 FROM repositories WHERE lower(owner_name) = lower($1) AND lower(name) = lower($2))`,
+		ownerName, name,
+	).Scan(&held)
+	if err != nil {
+		return false, fmt.Errorf("repo name held: %w", err)
+	}
+	return held, nil
 }
 
 func (s *RepoStore) GetByOwnerNameList(ctx context.Context, ownerName string) ([]model.Repository, error) {
@@ -134,6 +161,56 @@ func (s *RepoStore) GetByOwnerID(ctx context.Context, ownerID int64) ([]model.Re
 	}
 	defer rows.Close()
 	return scanRepoRows(rows)
+}
+
+// ListAllByOwnerID includes soft-deleted repos, which deleting the owner
+// cascades away too. Only the fields that locate a repo on disk are set.
+func (s *RepoStore) ListDeletedByOrgID(ctx context.Context, orgID int64) ([]model.Repository, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, owner_id, owner_name, name, deleted_at FROM repositories WHERE org_id = $1 AND deleted_at IS NOT NULL`,
+		orgID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("repo list deleted by org: %w", err)
+	}
+	defer rows.Close()
+	var repos []model.Repository
+	for rows.Next() {
+		r := model.Repository{OrgID: orgID}
+		var deletedAt time.Time
+		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &r.Name, &deletedAt); err != nil {
+			return nil, err
+		}
+		r.DeletedAt = &deletedAt
+		repos = append(repos, r)
+	}
+	return repos, rows.Err()
+}
+
+func (s *RepoStore) ListAllByOwnerID(ctx context.Context, ownerID int64) ([]model.Repository, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, owner_name, org_id, name, deleted_at FROM repositories WHERE owner_id = $1`,
+		ownerID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("repo list all by owner: %w", err)
+	}
+	defer rows.Close()
+	var repos []model.Repository
+	for rows.Next() {
+		r := model.Repository{OwnerID: ownerID}
+		var orgID sql.NullInt64
+		var deletedAt sql.NullTime
+		if err := rows.Scan(&r.ID, &r.OwnerName, &orgID, &r.Name, &deletedAt); err != nil {
+			return nil, err
+		}
+		r.OrgID = orgID.Int64
+		if deletedAt.Valid {
+			r.DeletedAt = &deletedAt.Time
+		}
+		repos = append(repos, r)
+	}
+	return repos, rows.Err()
 }
 
 func (s *RepoStore) GetByOrgID(ctx context.Context, orgID int64) ([]model.Repository, error) {
@@ -201,7 +278,7 @@ func (s *RepoStore) UpdateOwner(ctx context.Context, repoID, newOwnerID int64, n
 		newOwnerID, newOwnerName, time.Now().UTC(), repoID,
 	)
 	if err != nil {
-		return fmt.Errorf("update repo owner: %w", err)
+		return repoWriteErr("update repo owner", err)
 	}
 	return nil
 }
@@ -303,7 +380,7 @@ func (s *RepoStore) Fork(ctx context.Context, orig *model.Repository, newOwnerID
 		r.OwnerID, r.OwnerName, r.Name, r.Description, r.Private, r.DefaultBranch, orig.ID, now, now,
 	).Scan(&r.ID)
 	if err != nil {
-		return nil, fmt.Errorf("repo fork: %w", err)
+		return nil, repoWriteErr("repo fork", err)
 	}
 	r.CreatedAt = now
 	r.UpdatedAt = now
@@ -415,6 +492,22 @@ func (s *RepoStore) UpdatePrimaryLanguage(ctx context.Context, repoID int64, lan
 	return nil
 }
 
+// FillPrimaryLanguage writes only a NULL column, so a value computed from an
+// older tree can't clobber one a push wrote meanwhile, including a push's ”
+// for "no code". It leaves updated_at alone so a page view can't reorder
+// recently-updated lists.
+func (s *RepoStore) FillPrimaryLanguage(ctx context.Context, repoID int64, lang string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET primary_language = $2
+		 WHERE id = $1 AND primary_language IS NULL`,
+		repoID, lang,
+	)
+	if err != nil {
+		return fmt.Errorf("fill repo primary language: %w", err)
+	}
+	return nil
+}
+
 func (s *RepoStore) UpdateMeta(ctx context.Context, repoID int64, description, website, license string) error {
 	_, err := s.db.ExecContext(ctx,
 		`UPDATE repositories SET description = $1, website = $2, license = $3, updated_at = $4 WHERE id = $5`,
@@ -447,10 +540,10 @@ func (s *RepoStore) DeleteByID(ctx context.Context, id int64) error {
 	return err
 }
 
-func (s *RepoStore) Delete(ctx context.Context, repoID, deletedByID int64) error {
+func (s *RepoStore) Delete(ctx context.Context, repoID, deletedByID int64, deletedAt time.Time) error {
 	result, err := s.db.ExecContext(ctx,
-		`UPDATE repositories SET deleted_at = NOW(), deleted_by = $2, updated_at = NOW() WHERE id = $1`,
-		repoID, deletedByID,
+		`UPDATE repositories SET deleted_at = $3, deleted_by = $2, updated_at = NOW() WHERE id = $1`,
+		repoID, deletedByID, deletedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("soft delete repo: %w", err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -48,7 +49,7 @@ func (s *NotificationService) fanOutToWatchers(ctx context.Context, n *model.Not
 func (s *NotificationService) sendEmailAsync(notif model.Notification) {
 	go func() {
 		u, err := s.userSvc.GetByID(context.Background(), notif.UserID)
-		if err != nil || u.EmailDigest != "immediate" {
+		if err != nil {
 			return
 		}
 		if err := s.emailSvc.SendNotification(context.Background(), u, &notif); err != nil {
@@ -61,9 +62,12 @@ func (s *NotificationService) List(ctx context.Context, userID int64) ([]model.N
 	return s.notifs.ListByUser(ctx, userID)
 }
 
-// ListUnreadByUser returns all unread notifications for a user.
-func (s *NotificationService) ListUnreadByUser(ctx context.Context, userID int64) ([]model.Notification, error) {
-	return s.notifs.ListUnreadByUser(ctx, userID)
+func (s *NotificationService) ListUnreadForDigest(ctx context.Context, u *model.User, mode string) ([]model.Notification, error) {
+	notifs, err := s.notifs.ListUnreadByUser(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(notifs, func(n model.Notification) bool { return !wantsEmail(u, n.Type, mode) }), nil
 }
 
 func (s *NotificationService) CountUnread(ctx context.Context, userID int64) (int, error) {
@@ -172,7 +176,7 @@ func (s *NotificationService) NotifyPRReview(ctx context.Context, repo model.Rep
 
 // NotifyMention fires a mention notification for mentionedUserID.
 // Silent if actorID == mentionedUserID.
-func (s *NotificationService) NotifyMention(ctx context.Context, repo model.Repository, actorID int64, actorName string, mentionedUserID int64, subjectURL string) {
+func (s *NotificationService) NotifyMention(ctx context.Context, repo model.Repository, actorID int64, actorName string, mentionedUserID int64, subjectNumber int, subjectURL string) {
 	if actorID == mentionedUserID {
 		return
 	}
@@ -184,6 +188,7 @@ func (s *NotificationService) NotifyMention(ctx context.Context, repo model.Repo
 		RepoID:     repo.ID,
 		RepoName:   repo.Name,
 		OwnerName:  repo.OwnerName,
+		SubjectID:  int64(subjectNumber),
 		SubjectURL: subjectURL,
 	}
 	if err := s.notifs.Create(ctx, n); err != nil {
@@ -234,5 +239,9 @@ func (s *NotificationService) NotifyDiscussionReply(ctx context.Context, repo mo
 		SubjectID:  int64(discussion.Number),
 		SubjectURL: fmt.Sprintf("/%s/%s/discussions/%d", repo.OwnerName, repo.Name, discussion.Number),
 	}
-	_ = s.notifs.Create(ctx, n)
+	if err := s.notifs.Create(ctx, n); err != nil {
+		slog.Error("NotifyDiscussionReply: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
+	} else {
+		s.sendEmailAsync(*n)
+	}
 }

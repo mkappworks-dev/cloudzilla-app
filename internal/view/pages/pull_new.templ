@@ -40,7 +40,7 @@ templ PullNew(data view.PullNewData) {
 				if effHead == "" {
 					{{ effHead = data.Branches[0].Name }}
 				}
-				{{ reviewersInit := jsStringList(selectedReviewerList(data.Reviewer.All)) }}
+				{{ reviewersInit := components.JSLiteral(selectedReviewerList(data.Reviewer.All)) }}
 				<form
 					method="POST"
 					action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/new") }
@@ -139,13 +139,13 @@ templ pullNewReviewers(data view.PullNewData) {
 					<button
 						type="button"
 						role="menuitemcheckbox"
-						x-on:click={ "toggle(reviewers, '" + o.Username + "')" }
-						:aria-checked={ "reviewers.includes('" + o.Username + "') ? 'true' : 'false'" }
+						x-on:click={ "toggle(reviewers, " + components.JSLiteral(o.Username) + ")" }
+						:aria-checked={ "reviewers.includes(" + components.JSLiteral(o.Username) + ") ? 'true' : 'false'" }
 						class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
 					>
 						@components.Avatar(o.Username, components.AvatarSizeSM, o.Username)
 						<span class="flex-1 truncate">{ o.Username }</span>
-						<span x-show={ "reviewers.includes('" + o.Username + "')" } x-cloak>
+						<span x-show={ "reviewers.includes(" + components.JSLiteral(o.Username) + ")" } x-cloak>
 							@issueNewCheckIcon()
 						</span>
 					</button>
@@ -161,7 +161,7 @@ templ pullNewReviewers(data view.PullNewData) {
 		}
 		<ul class="space-y-1.5">
 			for _, o := range opts {
-				<li x-show={ "reviewers.includes('" + o.Username + "')" } x-cloak class="flex items-center gap-2 text-[13px]">
+				<li x-show={ "reviewers.includes(" + components.JSLiteral(o.Username) + ")" } x-cloak class="flex items-center gap-2 text-[13px]">
 					@components.Avatar(o.Username, components.AvatarSizeSM, o.Username)
 					<a href={ templ.SafeURL("/" + o.Username) } class="font-medium hover:underline truncate">{ o.Username }</a>
 					<span class="ml-auto text-[10px] font-mono text-muted-foreground">Pending</span>
@@ -171,7 +171,7 @@ templ pullNewReviewers(data view.PullNewData) {
 		<p x-show="reviewers.length === 0" class="text-[13px] text-muted-foreground">No reviewers requested.</p>
 		<p class="text-[12px] text-muted-foreground">Suggested from the files changed.</p>
 		for _, o := range opts {
-			<input type="hidden" name="reviewers" value={ o.Username } :disabled={ "!reviewers.includes('" + o.Username + "')" }/>
+			<input type="hidden" name="reviewers" value={ o.Username } :disabled={ "!reviewers.includes(" + components.JSLiteral(o.Username) + ")" }/>
 		}
 	</div>
 }
@@ -185,13 +185,13 @@ templ pullNewLabels(data view.PullNewData) {
 					<button
 						type="button"
 						role="menuitemcheckbox"
-						x-on:click={ "toggle(labels, '" + id + "')" }
-						:aria-checked={ "labels.includes('" + id + "') ? 'true' : 'false'" }
+						x-on:click={ "toggle(labels, " + components.JSLiteral(id) + ")" }
+						:aria-checked={ "labels.includes(" + components.JSLiteral(id) + ") ? 'true' : 'false'" }
 						class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
 					>
 						<span class="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={ "background-color: " + lbl.Color }></span>
 						<span class="flex-1 truncate">{ lbl.Name }</span>
-						<span x-show={ "labels.includes('" + id + "')" } x-cloak>
+						<span x-show={ "labels.includes(" + components.JSLiteral(id) + ")" } x-cloak>
 							@issueNewCheckIcon()
 						</span>
 					</button>
@@ -209,7 +209,7 @@ templ pullNewLabels(data view.PullNewData) {
 			for _, lbl := range data.AllLabels {
 				{{ id := strconv.FormatInt(lbl.ID, 10) }}
 				<span
-					x-show={ "labels.includes('" + id + "')" }
+					x-show={ "labels.includes(" + components.JSLiteral(id) + ")" }
 					x-cloak
 					class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border"
 					style={ "background-color: " + lbl.Color + "33; color: " + lbl.Color + "; border-color: " + lbl.Color + "55" }
@@ -221,7 +221,7 @@ templ pullNewLabels(data view.PullNewData) {
 		</div>
 		for _, lbl := range data.AllLabels {
 			{{ id := strconv.FormatInt(lbl.ID, 10) }}
-			<input type="hidden" name="labels" value={ id } :disabled={ "!labels.includes('" + id + "')" }/>
+			<input type="hidden" name="labels" value={ id } :disabled={ "!labels.includes(" + components.JSLiteral(id) + ")" }/>
 		}
 	</div>
 }

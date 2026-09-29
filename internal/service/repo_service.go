@@ -11,11 +11,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
+	gitconfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
@@ -47,6 +47,7 @@ func ValidateName(name string) error {
 type RepoService struct {
 	repos            *store.RepoStore
 	users            *store.UserStore
+	noreplyHost      string
 	orgs             *store.OrgStore
 	contributorStats *ContributorStatsService
 	code             *CodeService
@@ -57,7 +58,12 @@ type RepoService struct {
 
 // The code service may be nil in tests that do not exercise contributor queries.
 func NewRepoService(repos *store.RepoStore, users *store.UserStore, orgs *store.OrgStore, contributorStats *ContributorStatsService, code *CodeService, cfg config.GitConfig) *RepoService {
-	return &RepoService{repos: repos, users: users, orgs: orgs, contributorStats: contributorStats, code: code, cfg: cfg}
+	return &RepoService{repos: repos, users: users, orgs: orgs, contributorStats: contributorStats, code: code, cfg: cfg, noreplyHost: defaultNoreplyHost}
+}
+
+func (s *RepoService) WithNoreplyHostFrom(baseURL string) *RepoService {
+	s.noreplyHost = noreplyHostFromBaseURL(baseURL)
+	return s
 }
 
 func (s *RepoService) WithLanguageService(lang *LanguageService) *RepoService {
@@ -219,22 +225,11 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 	}
 
 	if s.language != nil && repo.OwnerName != "" && repo.DefaultBranch != "" {
-		comp, err := s.language.Composition(ctx, repo.OwnerName, repo.Name, repo.DefaultBranch)
+		top, err := s.language.TopLanguageFor(ctx, repo, repo.DefaultBranch)
 		if err != nil {
 			slog.Warn("post-receive: language composition failed", "repo_id", repo.ID, "error", err)
-		} else {
-			top := ""
-			if len(comp) > 0 {
-				topBytes := int64(0)
-				for lang, b := range comp {
-					if b > topBytes {
-						top, topBytes = lang, b
-					}
-				}
-			}
-			if err := s.repos.UpdatePrimaryLanguage(ctx, repo.ID, top); err != nil {
-				slog.Error("post-receive: update primary language failed", "repo_id", repo.ID, "error", err)
-			}
+		} else if err := s.repos.UpdatePrimaryLanguage(ctx, repo.ID, top); err != nil {
+			slog.Error("post-receive: update primary language failed", "repo_id", repo.ID, "error", err)
 		}
 	}
 
@@ -298,16 +293,43 @@ func commitSubject(message string) string {
 	return strings.TrimSpace(line)
 }
 
-func (s *RepoService) Create(ctx context.Context, ownerUsername, name, description string, private bool) (*model.Repository, error) {
-	if err := ValidateName(name); err != nil {
-		return nil, fmt.Errorf("invalid repository name: %w", err)
-	}
+type RepoInitOptions struct {
+	AddREADME bool
+	Gitignore string // gitignore template name, "" = none
+	License   string // license key, "" = none
+}
 
-	owner, err := s.users.GetByUsername(ctx, ownerUsername)
+func (o RepoInitOptions) any() bool {
+	return o.AddREADME || o.Gitignore != "" || o.License != ""
+}
+
+// personalOwner takes the owner's ID as well as its name: a JWT outlives its
+// account, and the name it carries may since have been registered by someone else.
+func (s *RepoService) personalOwner(ctx context.Context, id int64, username string) (*model.User, error) {
+	owner, err := s.users.GetByUsername(ctx, username)
 	if err != nil {
 		return nil, fmt.Errorf("owner not found: %w", err)
 	}
+	if owner.ID != id {
+		return nil, fmt.Errorf("owner not found: %s is no longer user %d", username, id)
+	}
+	return owner, nil
+}
 
+func (s *RepoService) Create(ctx context.Context, ownerID int64, ownerUsername, name, description string, private bool, init RepoInitOptions) (*model.Repository, error) {
+	if err := ValidateRepoName(name); err != nil {
+		return nil, fmt.Errorf("invalid repository name: %w", err)
+	}
+
+	owner, err := s.personalOwner(ctx, ownerID, ownerUsername)
+	if err != nil {
+		return nil, err
+	}
+
+	repoPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, ownerUsername, name)
+	if err != nil {
+		return nil, err
+	}
 	r := &model.Repository{
 		OwnerID:       owner.ID,
 		OwnerName:     ownerUsername,
@@ -317,15 +339,120 @@ func (s *RepoService) Create(ctx context.Context, ownerUsername, name, descripti
 		DefaultBranch: "main",
 	}
 	if err := s.repos.CreateWithOwnerName(ctx, r); err != nil {
-		return nil, err
+		abandonNewRepo(ctx, s.repos, 0, repoPath)
+		return nil, repoNameErr("create repo", err)
 	}
-
-	repoPath := filepath.Join(s.cfg.ReposRoot, ownerUsername, name+".git")
 	if _, err := gogit.PlainInit(repoPath, true); err != nil {
+		abandonNewRepo(ctx, s.repos, r.ID, repoPath)
 		return nil, fmt.Errorf("git init bare: %w", err)
 	}
 
+	if init.any() {
+		// The DB row and bare repo already exist. A failure here leaves a valid
+		// empty repo the user can still push to, so we log and return success
+		// rather than 500-ing on already-created state.
+		sig := commitAuthorFor(s.noreplyHost, owner).signature(time.Now().UTC())
+		if err := seedInitialCommit(repoPath, r.DefaultBranch, sig, init, owner.Username, name, description); err != nil {
+			slog.Error("seed initial commit for new repo failed; repo created empty",
+				"repo_id", r.ID, "owner", ownerUsername, "name", name, "error", err)
+		}
+	}
+
 	return r, nil
+}
+
+func seedInitialCommit(bareDir, defaultBranch string, sig object.Signature, init RepoInitOptions, ownerName, repoName, description string) error {
+	files := map[string]string{}
+
+	if init.AddREADME {
+		readme := "# " + repoName + "\n"
+		if d := strings.TrimSpace(description); d != "" {
+			readme += "\n" + d + "\n"
+		}
+		files["README.md"] = readme
+	}
+	if init.Gitignore != "" {
+		if content, ok := gitignoreContent(init.Gitignore); ok {
+			files[".gitignore"] = content
+		} else {
+			return fmt.Errorf("unknown gitignore template %q", init.Gitignore)
+		}
+	}
+	if init.License != "" {
+		if content, ok := licenseContent(init.License, ownerName); ok {
+			files["LICENSE"] = content
+		} else {
+			return fmt.Errorf("unknown license %q", init.License)
+		}
+	}
+	if len(files) == 0 {
+		return nil
+	}
+
+	workDir, err := os.MkdirTemp("", "cz-repo-init-*")
+	if err != nil {
+		return fmt.Errorf("mkdir temp worktree: %w", err)
+	}
+	defer func() { _ = os.RemoveAll(workDir) }()
+
+	work, err := gogit.PlainInit(workDir, false)
+	if err != nil {
+		return fmt.Errorf("git init worktree: %w", err)
+	}
+	wt, err := work.Worktree()
+	if err != nil {
+		return fmt.Errorf("worktree: %w", err)
+	}
+
+	for relPath, content := range files {
+		full := filepath.Join(workDir, relPath)
+		if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+			return fmt.Errorf("write %s: %w", relPath, err)
+		}
+		if _, err := wt.Add(relPath); err != nil {
+			return fmt.Errorf("add %s: %w", relPath, err)
+		}
+	}
+
+	if _, err := wt.Commit("Initial commit", &gogit.CommitOptions{Author: &sig, Committer: &sig}); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+
+	branch := defaultBranch
+	if branch == "" {
+		branch = "main"
+	}
+
+	if _, err := work.CreateRemote(&gitconfig.RemoteConfig{
+		Name: "bare",
+		URLs: []string{bareDir},
+	}); err != nil {
+		return fmt.Errorf("create remote: %w", err)
+	}
+	// Resolve the worktree's actual HEAD branch rather than assuming go-git's
+	// PlainInit default ("master"), so the push survives a go-git default change.
+	headRefAfterCommit, err := work.Head()
+	if err != nil {
+		return fmt.Errorf("resolve worktree HEAD: %w", err)
+	}
+	refSpec := gitconfig.RefSpec(headRefAfterCommit.Name().String() + ":" + plumbing.NewBranchReferenceName(branch).String())
+	if err := work.Push(&gogit.PushOptions{
+		RemoteName: "bare",
+		RefSpecs:   []gitconfig.RefSpec{refSpec},
+	}); err != nil {
+		return fmt.Errorf("push to bare: %w", err)
+	}
+
+	bare, err := gogit.PlainOpen(bareDir)
+	if err != nil {
+		return fmt.Errorf("open bare: %w", err)
+	}
+	headRef := plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.NewBranchReferenceName(branch))
+	if err := bare.Storer.SetReference(headRef); err != nil {
+		return fmt.Errorf("set bare HEAD: %w", err)
+	}
+
+	return nil
 }
 
 func (s *RepoService) List(ctx context.Context) ([]model.Repository, error) {
@@ -346,6 +473,10 @@ func (s *RepoService) ListForUser(ctx context.Context, userID int64, scope strin
 
 func (s *RepoService) GetByID(ctx context.Context, id int64) (*model.Repository, error) {
 	return s.repos.GetByID(ctx, id)
+}
+
+func (s *RepoService) FillPrimaryLanguage(ctx context.Context, repoID int64, lang string) error {
+	return s.repos.FillPrimaryLanguage(ctx, repoID, lang)
 }
 
 func (s *RepoService) Get(ctx context.Context, owner, name string) (*model.Repository, error) {
@@ -507,35 +638,34 @@ func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName stri
 	if !s.CanRead(ctx, orig, &actorID) {
 		return nil, fmt.Errorf("access denied")
 	}
+	if _, err := s.personalOwner(ctx, actorID, actorUsername); err != nil {
+		return nil, err
+	}
 
-	// Determine fork name (avoid collision)
-	forkName := originalName
-	for i := 1; ; i++ {
-		_, err := s.repos.GetByOwnerName(ctx, actorUsername, forkName)
-		if err != nil {
-			break // name is available
+	var forkName, dstPath string
+	for i := 0; ; i++ {
+		forkName = originalName
+		if i > 0 {
+			forkName = fmt.Sprintf("%s-%d", originalName, i)
 		}
-		forkName = fmt.Sprintf("%s-%d", originalName, i)
+		dstPath, err = claimRepo(ctx, s.repos, s.cfg.ReposRoot, actorUsername, forkName)
+		if !errors.Is(err, ErrRepoNameTaken) && !errors.Is(err, ErrRepoNameReserved) {
+			break
+		}
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	forked, err := s.repos.Fork(ctx, orig, actorID, actorUsername, forkName)
 	if err != nil {
-		return nil, fmt.Errorf("fork db record: %w", err)
+		abandonNewRepo(ctx, s.repos, 0, dstPath)
+		return nil, repoNameErr("fork db record", err)
 	}
 
-	// Copy the bare git repo directory
-	srcPath := filepath.Join(s.cfg.ReposRoot, originalOwner, originalName+".git")
-	dstDir := filepath.Join(s.cfg.ReposRoot, actorUsername)
-	dstPath := filepath.Join(dstDir, forkName+".git")
-
-	if err := os.MkdirAll(dstDir, 0755); err != nil {
-		_ = s.repos.DecrementForkCount(ctx, orig.ID)
-		return nil, fmt.Errorf("create owner dir: %w", err)
-	}
-
+	srcPath, _ := repoDirs(s.cfg.ReposRoot, originalOwner, originalName)
 	if err := copyDir(srcPath, dstPath); err != nil {
-		// Rollback DB record
-		_, _ = ctx, forked // best effort
+		abandonNewRepo(ctx, s.repos, forked.ID, dstPath)
 		return nil, fmt.Errorf("copy git dir: %w", err)
 	}
 
@@ -692,6 +822,9 @@ var (
 )
 
 func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, newOwnerID int64, newOwnerUsername, newName, description string) (*model.Repository, error) {
+	if err := ValidateRepoName(newName); err != nil {
+		return nil, fmt.Errorf("invalid repository name: %w", err)
+	}
 	tmpl, err := s.repos.GetByID(ctx, templateRepoID)
 	if errors.Is(err, sql.ErrNoRows) || (err == nil && tmpl.Private) {
 		return nil, ErrTemplateNotFound
@@ -705,7 +838,14 @@ func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, ne
 	if tmpl.IsArchived {
 		return nil, ErrTemplateArchived
 	}
+	if _, err := s.personalOwner(ctx, newOwnerID, newOwnerUsername); err != nil {
+		return nil, err
+	}
 
+	dstPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, newOwnerUsername, newName)
+	if err != nil {
+		return nil, err
+	}
 	newRepo := &model.Repository{
 		OwnerID:       newOwnerID,
 		OwnerName:     newOwnerUsername,
@@ -715,28 +855,19 @@ func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, ne
 		DefaultBranch: tmpl.DefaultBranch,
 	}
 	if err := s.repos.CreateWithOwnerName(ctx, newRepo); err != nil {
-		return nil, fmt.Errorf("create repo from template: %w", err)
+		abandonNewRepo(ctx, s.repos, 0, dstPath)
+		return nil, repoNameErr("create repo from template", err)
 	}
 
-	srcPath := filepath.Join(s.cfg.ReposRoot, tmpl.OwnerName, tmpl.Name+".git")
-	dstDir := filepath.Join(s.cfg.ReposRoot, newOwnerUsername)
-	dstPath := filepath.Join(dstDir, newName+".git")
-
-	if err := os.MkdirAll(dstDir, 0755); err != nil {
-		_ = s.repos.DeleteByID(ctx, newRepo.ID)
-		return nil, fmt.Errorf("create owner dir: %w", err)
-	}
-
+	srcPath, _ := repoDirs(s.cfg.ReposRoot, tmpl.OwnerName, tmpl.Name)
 	if _, statErr := os.Stat(srcPath); statErr == nil {
 		if err := copyDir(srcPath, dstPath); err != nil {
-			_ = s.repos.DeleteByID(ctx, newRepo.ID)
+			abandonNewRepo(ctx, s.repos, newRepo.ID, dstPath)
 			return nil, fmt.Errorf("copy template git dir: %w", err)
 		}
-	} else {
-		if _, err := gogit.PlainInit(dstPath, true); err != nil {
-			_ = s.repos.DeleteByID(ctx, newRepo.ID)
-			return nil, fmt.Errorf("git init bare for template copy: %w", err)
-		}
+	} else if _, err := gogit.PlainInit(dstPath, true); err != nil {
+		abandonNewRepo(ctx, s.repos, newRepo.ID, dstPath)
+		return nil, fmt.Errorf("git init bare for template copy: %w", err)
 	}
 
 	return newRepo, nil
@@ -763,15 +894,27 @@ func (s *RepoService) Delete(ctx context.Context, repoID, userID int64) error {
 		return err
 	}
 
-	repoPath := filepath.Join(s.cfg.ReposRoot, repo.OwnerName, repo.Name+".git")
-	deletedPath := repoPath + ".deleted." + strconv.FormatInt(time.Now().Unix(), 10)
-	if _, err := os.Stat(repoPath); err == nil {
-		if err := os.Rename(repoPath, deletedPath); err != nil {
-			return fmt.Errorf("rename git dir for soft delete: %w", err)
-		}
+	// deleted_at carries the suffix's second so Restore and purge find this
+	// row's copy among other holders' copies of the name.
+	now := time.Now()
+	gitDir, _ := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
+	dirs := []string{gitDir}
+	wikiDir, err := s.ownWikiDir(ctx, repo.OwnerName, repo.Name)
+	if err != nil {
+		return err
 	}
-
-	return s.repos.Delete(ctx, repoID, userID)
+	if wikiDir != "" {
+		dirs = append(dirs, wikiDir)
+	}
+	moved, err := renameDirs(movesAside(deletedSuffix(now), dirs...))
+	if err != nil {
+		return fmt.Errorf("rename git dir for soft delete: %w", err)
+	}
+	if err := s.repos.Delete(ctx, repoID, userID, now); err != nil {
+		revertDirs(moved)
+		return err
+	}
+	return nil
 }
 
 func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, isSuperadmin bool) error {
@@ -783,24 +926,32 @@ func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, is
 		return fmt.Errorf("forbidden: only the original owner or a superadmin can restore a repo")
 	}
 
-	ownerDir := filepath.Join(s.cfg.ReposRoot, repo.OwnerName)
-	pattern := filepath.Join(ownerDir, repo.Name+".git.deleted.*")
-	matches, err := filepath.Glob(pattern)
-	if err != nil {
-		return fmt.Errorf("glob deleted git dir: %w", err)
+	// Org repos are unique per creator, so the name may have a new holder even
+	// when this row's copy is gone; restoring beside it would share its dirs.
+	// The live wiki path is not checked: repos deleted before wikis moved with
+	// them left theirs there, and renameDirs never overwrites one.
+	gitDir, wikiDir := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
+	_, err = s.repos.GetByOwnerName(ctx, repo.OwnerName, repo.Name)
+	switch {
+	case err == nil, pathTaken(gitDir):
+		return fmt.Errorf("restore conflict: %w", ErrRepoNameTaken)
+	case !errors.Is(err, sql.ErrNoRows):
+		return err
 	}
-	if len(matches) > 0 {
-		latestMatch := matches[len(matches)-1]
-		restoredPath := filepath.Join(ownerDir, repo.Name+".git")
-		if _, statErr := os.Stat(restoredPath); statErr == nil {
-			return fmt.Errorf("restore conflict: live repo dir already exists at %s", restoredPath)
-		}
-		if err := os.Rename(latestMatch, restoredPath); err != nil {
-			return fmt.Errorf("rename git dir back on restore: %w", err)
-		}
+	suffix, ok := deletedCopySuffix(s.cfg.ReposRoot, *repo)
+	if !ok {
+		return fmt.Errorf("restore: no soft-deleted copy of %s/%s on disk", repo.OwnerName, repo.Name)
+	}
+	restored, err := renameDirs([]dirMove{{from: gitDir + suffix, to: gitDir}, {from: wikiDir + suffix, to: wikiDir}})
+	if err != nil {
+		return fmt.Errorf("rename git dir back on restore: %w", err)
 	}
 
-	return s.repos.Restore(ctx, repoID)
+	if err := s.repos.Restore(ctx, repoID); err != nil {
+		revertDirs(restored)
+		return err
+	}
+	return nil
 }
 
 func (s *RepoService) GetDeleted(ctx context.Context, ownerName, name string) (*model.Repository, error) {
@@ -814,18 +965,8 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 		return fmt.Errorf("purge expired repos: %w", err)
 	}
 	for _, r := range expired {
-		ownerDir := filepath.Join(s.cfg.ReposRoot, r.OwnerName)
-		pattern := filepath.Join(ownerDir, r.Name+".git.deleted.*")
-		matches, globErr := filepath.Glob(pattern)
-		if globErr != nil {
-			slog.Warn("purge: failed to glob deleted git dir", "pattern", pattern, "error", globErr)
-			continue
-		}
-		for _, m := range matches {
-			if removeErr := os.RemoveAll(m); removeErr != nil {
-				slog.Warn("purge: failed to remove deleted git dir", "path", m, "error", removeErr)
-			}
-		}
+		removeDeletedCopy(s.cfg.ReposRoot, r)
+		s.removeStrandedWiki(ctx, r.OwnerName, r.Name)
 	}
 	return nil
 }
@@ -849,21 +990,38 @@ func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, 
 		return fmt.Errorf("new owner must be a different user")
 	}
 
-	oldPath := filepath.Join(s.cfg.ReposRoot, repo.OwnerName, repo.Name+".git")
-	newDir := filepath.Join(s.cfg.ReposRoot, newOwnerUsername)
-	newPath := filepath.Join(newDir, repo.Name+".git")
+	oldGitDir, _ := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
+	oldWikiDir, err := s.ownWikiDir(ctx, repo.OwnerName, repo.Name)
+	if err != nil {
+		return err
+	}
+	newGitDir, newWikiDir := repoDirs(s.cfg.ReposRoot, newOwnerUsername, repo.Name)
+	// os.Rename refuses an existing dir, but a repo without a wiki skips the
+	// wiki move and would pick up whatever wiki waits at the new path.
+	if pathTaken(newGitDir) || pathTaken(newWikiDir) {
+		return ErrRepoNameTaken
+	}
+	if held, err := s.repos.NameHeld(ctx, newOwnerUsername, wikiPartner(repo.Name)); err != nil {
+		return err
+	} else if held {
+		return ErrRepoNameTaken
+	}
 
-	if err := os.MkdirAll(newDir, 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(newGitDir), 0755); err != nil {
 		return fmt.Errorf("create owner dir: %w", err)
 	}
-	if err := os.Rename(oldPath, newPath); err != nil {
+	moves := []dirMove{{from: oldGitDir, to: newGitDir}}
+	if oldWikiDir != "" {
+		moves = append(moves, dirMove{from: oldWikiDir, to: newWikiDir})
+	}
+	moved, err := renameDirs(moves)
+	if err != nil {
 		return fmt.Errorf("move git dir: %w", err)
 	}
 
 	if err := s.repos.UpdateOwner(ctx, repo.ID, newOwner.ID, newOwnerUsername); err != nil {
-		// Best-effort rollback of git dir move
-		_ = os.Rename(newPath, oldPath)
-		return fmt.Errorf("update repo owner: %w", err)
+		revertDirs(moved)
+		return repoNameErr("update repo owner", err)
 	}
 	return nil
 }

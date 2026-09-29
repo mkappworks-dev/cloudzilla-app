@@ -111,11 +111,10 @@ func TestTOTPService_Verify_InvalidSecret(t *testing.T) {
 	}
 }
 
-// TestBuildOTPAuthURL_ContainsRequiredComponents verifies that BuildOTPAuthURL returns
+// TestBuildOTPAuthURL_ContainsRequiredComponents verifies that buildOTPAuthURL returns
 // a well-formed otpauth:// URI containing all fields required by authenticator apps.
 func TestBuildOTPAuthURL_ContainsRequiredComponents(t *testing.T) {
-	svc := &TOTPService{}
-	url := svc.BuildOTPAuthURL("alice", "Cloudzilla", "JBSWY3DPEHPK3PXP")
+	url := buildOTPAuthURL("alice", "Cloudzilla", "JBSWY3DPEHPK3PXP")
 	if !strings.HasPrefix(url, "otpauth://totp/") {
 		t.Errorf("URL must start with otpauth://totp/, got %q", url)
 	}

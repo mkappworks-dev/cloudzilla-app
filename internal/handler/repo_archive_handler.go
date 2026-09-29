@@ -146,7 +146,7 @@ func (h *Handler) CreateFromTemplate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to create repository")
 		return
 	}
-	http.Redirect(w, r, "/"+claims.Username+"/"+repo.Name, http.StatusSeeOther)
+	http.Redirect(w, r, "/"+repo.OwnerName+"/"+repo.Name, http.StatusSeeOther)
 }
 
 func parseInt64(s string) (int64, error) {

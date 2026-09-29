@@ -4,12 +4,15 @@ package service_test
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"strings"
 	"testing"
 
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -140,6 +143,191 @@ func TestUserService_CreateSuperadmin_SetsSuperadminFlag(t *testing.T) {
 	}
 }
 
+func TestUserService_Create_RejectsInvalidUsername(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	for _, name := range append([]string{"-bob", "bob smith", strings.Repeat("a", 40)}, testutil.HostileNames...) {
+		suffix := testutil.UniqueSuffix(t)
+		_, err := svc.Create(context.Background(), name, "bad_"+suffix+"@example.com", "password1")
+		if !errors.Is(err, service.ErrInvalidUsername) {
+			t.Errorf("Create(%q) = %v, want ErrInvalidUsername", name, err)
+		}
+		if u, err := svc.GetByUsername(context.Background(), name); err == nil {
+			t.Errorf("Create(%q) stored the user", name)
+			testutil.DeleteUsers(t, db, u.ID)
+		}
+	}
+}
+
+func TestUserService_CreateSuperadmin_RejectsInvalidUsername(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	for _, name := range testutil.HostileNames {
+		suffix := testutil.UniqueSuffix(t)
+		_, err := svc.CreateSuperadmin(context.Background(), name, "badadmin_"+suffix+"@example.com", "password1")
+		if !errors.Is(err, service.ErrInvalidUsername) {
+			t.Errorf("CreateSuperadmin(%q) = %v, want ErrInvalidUsername", name, err)
+		}
+		if u, err := svc.GetByUsername(context.Background(), name); err == nil {
+			t.Errorf("CreateSuperadmin(%q) stored the user", name)
+			testutil.DeleteUsers(t, db, u.ID)
+		}
+	}
+}
+
+// Google display names are free text; the derived username must still validate.
+func TestUserService_AuthenticateOAuth_DerivesValidUsername(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	for _, name := range append([]string{"-_Bob", strings.Repeat("Long Name ", 10)}, testutil.HostileNames...) {
+		suffix := testutil.UniqueSuffix(t)
+		u, _, err := svc.AuthenticateOAuth(context.Background(), service.OAuthIdentity{
+			Provider: "google", ID: "g_" + suffix, Email: "oauth_" + suffix + "@example.com", EmailVerified: true, Name: name,
+		}, true, true)
+		if err != nil {
+			t.Fatalf("AuthenticateOAuth(%q): %v", name, err)
+		}
+		testutil.DeleteUsers(t, db, u.ID)
+		if err := service.ValidateUsername(u.Username); err != nil {
+			t.Errorf("display name %q produced invalid username %q", name, u.Username)
+		}
+	}
+}
+
+func linkedOAuthID(t *testing.T, db *sql.DB, userID int64) string {
+	t.Helper()
+	var oauthID string
+	if err := db.QueryRowContext(context.Background(), `SELECT oauth_id FROM users WHERE id = $1`, userID).Scan(&oauthID); err != nil {
+		t.Fatalf("read oauth_id: %v", err)
+	}
+	return oauthID
+}
+
+func TestUserService_AuthenticateOAuth_UnverifiedEmailNeitherLinksNorCreates(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	suffix := testutil.UniqueSuffix(t)
+	victimID, victimEmail := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+
+	for _, email := range []string{victimEmail, "unverified_" + suffix + "@example.com"} {
+		u, _, err := svc.AuthenticateOAuth(context.Background(), service.OAuthIdentity{
+			Provider: "google", ID: "g_unverified_" + suffix, Email: email, Name: "Mallory",
+		}, true, true)
+		if !errors.Is(err, service.ErrOAuthEmailUnverified) {
+			t.Errorf("unverified %s: err = %v, want ErrOAuthEmailUnverified", email, err)
+		}
+		if u != nil {
+			t.Errorf("unverified %s signed in as user %d", email, u.ID)
+		}
+	}
+	if got := linkedOAuthID(t, db, victimID); got != "" {
+		t.Errorf("victim's account was linked to Google ID %q", got)
+	}
+	var created int
+	if err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM users WHERE email = $1`, "unverified_"+suffix+"@example.com").Scan(&created); err != nil {
+		t.Fatal(err)
+	}
+	if created != 0 {
+		t.Errorf("an account was created for the unverified email")
+	}
+}
+
+// Local emails are unverified: anyone can register, be invited with, or
+// change their profile to someone else's address before that person first
+// signs in with Google.
+func TestUserService_AuthenticateOAuth_DoesNotLinkByEmail(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	victimEmail := "victim_" + suffix + "@example.com"
+	attacker, err := svc.Create(ctx, "atk_"+suffix, victimEmail, "attackerpass1")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, attacker.ID) })
+
+	for _, allowRegistration := range []bool{true, false} {
+		u, _, err := svc.AuthenticateOAuth(ctx, service.OAuthIdentity{
+			Provider: "google", ID: "g_victim_" + suffix, Email: victimEmail, EmailVerified: true,
+		}, allowRegistration, true)
+		if !errors.Is(err, service.ErrOAuthAccountExists) {
+			t.Errorf("allowRegistration=%v: err = %v, want ErrOAuthAccountExists", allowRegistration, err)
+		}
+		if u != nil {
+			t.Errorf("allowRegistration=%v: the victim's Google login landed in user %d", allowRegistration, u.ID)
+		}
+	}
+	if got := linkedOAuthID(t, db, attacker.ID); got != "" {
+		t.Errorf("the attacker's account was linked to Google ID %q", got)
+	}
+}
+
+func TestUserService_AuthenticateOAuth_LinkedIDSkipsTheEmailChecks(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	suffix := testutil.UniqueSuffix(t)
+	id := service.OAuthIdentity{Provider: "google", ID: "g_linked_" + suffix, Email: "linked_" + suffix + "@example.com", EmailVerified: true}
+
+	u, _, err := svc.AuthenticateOAuth(context.Background(), id, true, true)
+	if err != nil {
+		t.Fatalf("first login: %v", err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, u.ID) })
+	if got := linkedOAuthID(t, db, u.ID); got != id.ID {
+		t.Fatalf("oauth_id = %q, want %q", got, id.ID)
+	}
+
+	id.EmailVerified = false
+	if again, _, err := svc.AuthenticateOAuth(context.Background(), id, false, true); err != nil || again.ID != u.ID {
+		t.Errorf("linked login with an unverified email = (%v, %v), want user %d", again, err, u.ID)
+	}
+}
+
+// /{owner} resolves a user before an org, so a user holding an org's name
+// hides the org and its repos behind the user's.
+func TestUserService_AccountCreation_RefusesOrgNames(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	users := store.NewUserStore(db)
+	auth := config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}
+	svc := service.NewUserService(users, auth)
+	suffix := testutil.UniqueSuffix(t)
+	orgs := service.NewOrgService(store.NewOrgStore(db), store.NewRepoStore(db), users, config.GitConfig{ReposRoot: t.TempDir()})
+	name := "acme" + strings.ReplaceAll(suffix, "_", "")
+	org, err := orgs.Create(ctx, testutil.SeedUser(t, db, suffix), name, "", "")
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
+
+	if _, err := svc.Create(ctx, name, "reg_"+suffix+"@example.com", "password1"); !errors.Is(err, service.ErrUsernameTaken) {
+		t.Errorf("Create: err = %v, want ErrUsernameTaken", err)
+	}
+	if _, err := svc.CreateSuperadmin(ctx, name, "admin_"+suffix+"@example.com", "password1"); !errors.Is(err, service.ErrUsernameTaken) {
+		t.Errorf("CreateSuperadmin: err = %v, want ErrUsernameTaken", err)
+	}
+	u, _, err := svc.AuthenticateOAuth(ctx, service.OAuthIdentity{
+		Provider: "google", ID: "g_" + suffix, Email: "google_" + suffix + "@example.com", EmailVerified: true, Name: name,
+	}, true, true)
+	if err != nil {
+		t.Fatalf("AuthenticateOAuth: %v", err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, u.ID) })
+	if u.Username == name {
+		t.Errorf("Google sign-up derived the org's name %q", name)
+	}
+
+	var n int
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM users WHERE username = $1`, name).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 0 {
+		testutil.Exec(t, db, `DELETE FROM users WHERE username = $1`, name)
+		t.Errorf("%d users took the org's name", n)
+	}
+}
+
 // TestUserService_GetByUsername_ReturnsUser verifies that GetByUsername finds a previously
 // created user by their exact username.
 func TestUserService_GetByUsername_ReturnsUser(t *testing.T) {
@@ -180,5 +368,76 @@ func TestUserService_GenerateTokenForUser_ReturnsNonEmptyToken(t *testing.T) {
 	}
 	if token == "" {
 		t.Error("GenerateTokenForUser must return a non-empty JWT token")
+	}
+}
+
+func TestUserService_UpdateProfile_LeavesUsernameUnchanged(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	ctx := context.Background()
+
+	newEmail := "profile_" + suffix + "@test.invalid"
+	if err := svc.UpdateProfile(ctx, userID, "New Name", newEmail, "bio", "Acme", "Colombo"); err != nil {
+		t.Fatalf("UpdateProfile: %v", err)
+	}
+
+	u, err := svc.GetByID(ctx, userID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if want := "testuser_" + suffix; u.Username != want {
+		t.Errorf("username = %q, want %q", u.Username, want)
+	}
+	if u.Name != "New Name" || u.Email != newEmail || u.Bio != "bio" || u.Company != "Acme" || u.Location != "Colombo" {
+		t.Errorf("profile fields not saved: name=%q email=%q bio=%q company=%q location=%q", u.Name, u.Email, u.Bio, u.Company, u.Location)
+	}
+}
+
+func TestUserService_UpdateNotificationPrefs_RoundTrips(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	userID := testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	ctx := context.Background()
+
+	for _, want := range []model.NotificationPrefs{
+		{EmailNotifications: false, EmailDigest: model.EmailDigestWeekly, NotifyPRReview: false, NotifyMention: true},
+		{EmailNotifications: true, EmailDigest: model.EmailDigestDaily, NotifyPRReview: true, NotifyMention: false},
+	} {
+		if err := svc.UpdateNotificationPrefs(ctx, userID, want); err != nil {
+			t.Fatalf("UpdateNotificationPrefs(%+v): %v", want, err)
+		}
+		u, err := svc.GetByID(ctx, userID)
+		if err != nil {
+			t.Fatalf("GetByID: %v", err)
+		}
+		got := model.NotificationPrefs{
+			EmailNotifications: u.EmailNotifications,
+			EmailDigest:        u.EmailDigest,
+			NotifyPRReview:     u.NotifyPRReview,
+			NotifyMention:      u.NotifyMention,
+		}
+		if got != want {
+			t.Errorf("saved prefs = %+v, want %+v", got, want)
+		}
+	}
+}
+
+func TestUserService_UpdateNotificationPrefs_UnknownDigestFallsBackToImmediate(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	userID := testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	ctx := context.Background()
+
+	if err := svc.UpdateNotificationPrefs(ctx, userID, model.NotificationPrefs{EmailNotifications: true, EmailDigest: "hourly"}); err != nil {
+		t.Fatalf("UpdateNotificationPrefs: %v", err)
+	}
+	u, err := svc.GetByID(ctx, userID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if u.EmailDigest != model.EmailDigestImmediate {
+		t.Errorf("email_digest = %q, want %q", u.EmailDigest, model.EmailDigestImmediate)
 	}
 }

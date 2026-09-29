@@ -4,7 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -22,8 +25,9 @@ func NewUserStore(database *sql.DB) *UserStore {
 
 // Every query that loads a full model.User selects userColumns and scans with
 // scanUser, so a new users column is added in exactly these two places.
-const userColumns = `id, username, email, password_hash, bio, avatar_url, oauth_provider, oauth_id,
-	is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest, keep_email_private`
+const userColumns = `id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
+	is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
+	notify_pr_review, notify_mention, keep_email_private`
 
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -31,9 +35,10 @@ type rowScanner interface {
 
 // extra receives any columns the query selects after userColumns.
 func scanUser(row rowScanner, u *model.User, extra ...any) error {
-	dest := []any{&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Bio, &u.AvatarURL,
+	dest := []any{&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Name, &u.Bio, &u.Company, &u.Location, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
-		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest, &u.KeepEmailPrivate}
+		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest,
+		&u.NotifyPRReview, &u.NotifyMention, &u.KeepEmailPrivate}
 	return row.Scan(append(dest, extra...)...)
 }
 
@@ -75,6 +80,20 @@ func (s *UserStore) GetByUsername(ctx context.Context, username string) (*model.
 	return u, nil
 }
 
+// OwnerNameTaken: users and organizations share the /{owner} namespace.
+func (s *UserStore) OwnerNameTaken(ctx context.Context, name string) (bool, error) {
+	var taken bool
+	err := s.db.QueryRowContext(ctx,
+		`SELECT EXISTS (SELECT 1 FROM users WHERE username = $1)
+		     OR EXISTS (SELECT 1 FROM organizations WHERE name = $1)`,
+		name,
+	).Scan(&taken)
+	if err != nil {
+		return false, fmt.Errorf("owner name taken: %w", err)
+	}
+	return taken, nil
+}
+
 func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	u, err := s.queryUser(ctx, `WHERE email = $1`, email)
 	if err != nil {
@@ -98,17 +117,6 @@ func (s *UserStore) GetByOAuthID(ctx context.Context, provider, oauthID string) 
 		return nil, fmt.Errorf("user get by oauth id: %w", err)
 	}
 	return u, nil
-}
-
-func (s *UserStore) LinkOAuth(ctx context.Context, userID int64, provider, oauthID string) error {
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE users SET oauth_provider = $1, oauth_id = $2, updated_at = NOW() WHERE id = $3`,
-		provider, oauthID, userID,
-	)
-	if err != nil {
-		return fmt.Errorf("user link oauth: %w", err)
-	}
-	return nil
 }
 
 func (s *UserStore) CreateOAuthUser(ctx context.Context, username, email, provider, oauthID, avatarURL string) (*model.User, error) {
@@ -246,13 +254,102 @@ func (s *UserStore) SetBackupCodes(ctx context.Context, userID int64, codeHashes
 	return nil
 }
 
-// UpdateEmailPrefs saves the user's email notification preferences.
-func (s *UserStore) UpdateEmailPrefs(ctx context.Context, userID int64, emailNotifications bool, emailDigest string) error {
+func (s *UserStore) UpdateProfile(ctx context.Context, userID int64, name, email, bio, company, location string) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE users SET email_notifications=$1, email_digest=$2, updated_at=NOW() WHERE id=$3`,
-		emailNotifications, emailDigest, userID,
+		`UPDATE users
+		   SET name=$1, email=$2, bio=$3, company=$4, location=$5, updated_at=NOW()
+		 WHERE id=$6`,
+		name, email, bio, company, location, userID,
 	)
-	return err
+	if err != nil {
+		return fmt.Errorf("user update profile: %w", err)
+	}
+	return nil
+}
+
+// DeleteByID removes a user. Related rows depend on ON DELETE CASCADE in the schema.
+func (s *UserStore) DeleteByID(ctx context.Context, userID int64) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM users WHERE id=$1`, userID)
+	if err != nil {
+		return fmt.Errorf("user delete: %w", err)
+	}
+	return nil
+}
+
+var (
+	ErrUserOwnsOrgRepos  = errors.New("user created live organization repositories")
+	ErrOwnedReposChanged = errors.New("user's repositories changed during deletion")
+)
+
+// Deleting only the user row fails when the user authored issues or pull
+// requests in their own repos: the NO ACTION author checks run before the
+// owner cascade reaches those rows. Content in other people's repos still blocks.
+// livePersonalIDs are the repos the caller already moved aside; locking the user
+// row blocks new repo inserts (their FK check needs it), so the set is re-checked
+// here and a repo created or restored in the meantime aborts the delete.
+func (s *UserStore) DeleteWithOwnedRepos(ctx context.Context, userID int64, livePersonalIDs []int64) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("user delete begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `SELECT 1 FROM users WHERE id=$1 FOR UPDATE`, userID); err != nil {
+		return fmt.Errorf("user delete lock: %w", err)
+	}
+	rows, err := tx.QueryContext(ctx,
+		`SELECT id, org_id FROM repositories WHERE owner_id=$1 AND deleted_at IS NULL FOR UPDATE`, userID)
+	if err != nil {
+		return fmt.Errorf("user delete list repos: %w", err)
+	}
+	var live []int64
+	ownsOrgRepo := false
+	for rows.Next() {
+		var id int64
+		var orgID sql.NullInt64
+		if err := rows.Scan(&id, &orgID); err != nil {
+			rows.Close()
+			return fmt.Errorf("user delete scan repo: %w", err)
+		}
+		if orgID.Valid {
+			ownsOrgRepo = true
+		}
+		live = append(live, id)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("user delete list repos: %w", err)
+	}
+	if ownsOrgRepo {
+		return ErrUserOwnsOrgRepos
+	}
+	slices.Sort(live)
+	expected := slices.Sorted(slices.Values(livePersonalIDs))
+	if !slices.Equal(live, expected) {
+		return ErrOwnedReposChanged
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM repositories WHERE owner_id=$1`, userID); err != nil {
+		return fmt.Errorf("user delete repos: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id=$1`, userID); err != nil {
+		return fmt.Errorf("user delete: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("user delete commit: %w", err)
+	}
+	return nil
+}
+
+func (s *UserStore) UpdateNotificationPrefs(ctx context.Context, userID int64, p model.NotificationPrefs) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users
+		   SET email_notifications=$1, email_digest=$2, notify_pr_review=$3, notify_mention=$4, updated_at=NOW()
+		 WHERE id=$5`,
+		p.EmailNotifications, p.EmailDigest, p.NotifyPRReview, p.NotifyMention, userID,
+	)
+	if err != nil {
+		return fmt.Errorf("user update notification prefs: %w", err)
+	}
+	return nil
 }
 
 func (s *UserStore) UpdateKeepEmailPrivate(ctx context.Context, userID int64, keep bool) error {
@@ -385,4 +482,94 @@ func postgresArrayToJSON(pgArr string) []byte {
 		return []byte("[]")
 	}
 	return []byte("[" + inner + "]")
+}
+
+func formatPGInt64Array(ids []int64) string {
+	if len(ids) == 0 {
+		return "{}"
+	}
+	parts := make([]string, len(ids))
+	for i, id := range ids {
+		parts[i] = strconv.FormatInt(id, 10)
+	}
+	return "{" + strings.Join(parts, ",") + "}"
+}
+
+func parsePGInt64Array(s string) ([]int64, error) {
+	s = strings.Trim(s, "{}")
+	if s == "" {
+		return nil, nil
+	}
+	parts := strings.Split(s, ",")
+	out := make([]int64, 0, len(parts))
+	for _, p := range parts {
+		n, err := strconv.ParseInt(strings.TrimSpace(p), 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, n)
+	}
+	return out, nil
+}
+
+// AddPinnedRepo drops the prune IDs and appends repoID under a row lock, so
+// overlapping pins can't overwrite each other. It reports false, changing
+// nothing, when the pins left after pruning already number limit.
+func (s *UserStore) AddPinnedRepo(ctx context.Context, userID, repoID int64, prune []int64, limit int) (bool, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("user add pinned repo: begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	var raw string
+	if err := tx.QueryRowContext(ctx,
+		`SELECT pinned_repo_ids::text FROM users WHERE id = $1 FOR UPDATE`, userID,
+	).Scan(&raw); err != nil {
+		return false, fmt.Errorf("user add pinned repo: lock: %w", err)
+	}
+	ids, err := parsePGInt64Array(raw)
+	if err != nil {
+		return false, fmt.Errorf("user add pinned repo: parse: %w", err)
+	}
+	if slices.Contains(ids, repoID) {
+		return true, nil
+	}
+	ids = slices.DeleteFunc(ids, func(id int64) bool { return slices.Contains(prune, id) })
+	if len(ids) >= limit {
+		return false, nil
+	}
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE users SET pinned_repo_ids = $2::bigint[], updated_at = NOW() WHERE id = $1`,
+		userID, formatPGInt64Array(append(ids, repoID)),
+	); err != nil {
+		return false, fmt.Errorf("user add pinned repo: update: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("user add pinned repo: commit: %w", err)
+	}
+	return true, nil
+}
+
+func (s *UserStore) RemovePinnedRepo(ctx context.Context, userID, repoID int64) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users SET pinned_repo_ids = array_remove(pinned_repo_ids, $2::bigint), updated_at = NOW()
+		 WHERE id = $1 AND $2::bigint = ANY(pinned_repo_ids)`,
+		userID, repoID,
+	)
+	if err != nil {
+		return fmt.Errorf("user remove pinned repo: %w", err)
+	}
+	return nil
+}
+
+func (s *UserStore) GetPinnedRepoIDs(ctx context.Context, userID int64) ([]int64, error) {
+	var raw string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT pinned_repo_ids::text FROM users WHERE id = $1`, userID,
+	).Scan(&raw)
+	if err != nil {
+		return nil, fmt.Errorf("user get pinned repo ids: %w", err)
+	}
+	return parsePGInt64Array(raw)
 }

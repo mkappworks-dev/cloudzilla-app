@@ -829,6 +829,9 @@ func (s *SSOService) findOrProvisionUser(ctx context.Context, provider, ssoID, u
 	}
 
 	safeUsername := sanitizeUsername(username)
+	if err := usernameAvailable(ctx, s.users, safeUsername); err != nil {
+		return nil, "", err
+	}
 	u, err = s.store.ProvisionSSOUser(ctx, safeUsername, email, provider, ssoID)
 	if err != nil {
 		return nil, "", fmt.Errorf("provision sso user: %w", err)
@@ -861,8 +864,8 @@ func sanitizeUsername(s string) string {
 		}
 	}
 	result := strings.Trim(b.String(), "_-")
-	if len(result) > 39 {
-		result = result[:39]
+	if len(result) > maxUsernameLength {
+		result = result[:maxUsernameLength]
 	}
 	if result == "" {
 		result = "sso_user"

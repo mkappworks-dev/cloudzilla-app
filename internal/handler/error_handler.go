@@ -32,7 +32,7 @@ func (h *Handler) Unauthorized(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	http.Redirect(w, r, view.WithNext("/login", r.URL.RequestURI()), http.StatusSeeOther)
+	http.Redirect(w, r, view.WithNext("/login", safeNextPath(r.URL.RequestURI())), http.StatusSeeOther)
 }
 
 // Forbidden renders the branded 403 page for HTML or a JSON error for API requests.

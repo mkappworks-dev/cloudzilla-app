@@ -116,7 +116,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var languages []components.LangBarItem
-	if percents, langErr := h.Services.Language.Percentages(r.Context(), owner, repoName, repo.DefaultBranch); langErr != nil {
+	if percents, langErr := h.Services.Language.Percentages(r.Context(), repo, repo.DefaultBranch); langErr != nil {
 		slog.Warn("repo: language percentages failed", "owner", owner, "repo", repoName, "error", langErr)
 	} else {
 		languages = make([]components.LangBarItem, 0, len(percents))
@@ -143,7 +143,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 
 	var repoEntries []service.TreeEntryWithLastCommit
 	var repoLatestCommit view.TreeLatestCommit
-	if entries, lcErr := h.Services.Code.ListEntriesWithLastCommit(r.Context(), owner, repoName, repo.DefaultBranch, ""); lcErr == nil {
+	if entries, lcErr := h.Services.Code.ListEntriesWithLastCommit(r.Context(), repo, repo.DefaultBranch, ""); lcErr == nil {
 		repoEntries = entries
 		var newest service.TreeEntryWithLastCommit
 		for _, e := range entries {
@@ -533,7 +533,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	entries, err := h.Services.Code.ListEntriesWithLastCommit(r.Context(), owner, repoName, result.Ref, result.Path)
+	entries, err := h.Services.Code.ListEntriesWithLastCommit(r.Context(), repo, result.Ref, result.Path)
 	if err != nil {
 		if errors.Is(err, service.ErrEmptyRepo) {
 			entries = nil

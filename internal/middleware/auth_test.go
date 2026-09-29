@@ -170,6 +170,26 @@ func TestAuth_ValidPAT_InjectsUserClaims(t *testing.T) {
 	}
 }
 
+// Handlers name new repos' owner after claims.Username; an empty one puts them
+// at the top of the repos root.
+func TestAuth_OAuthToken_CarriesUsername(t *testing.T) {
+	oauth := &stubOAuth{user: &model.User{ID: 42, Username: "bob", IsSuperadmin: true}, scopes: []string{model.ScopeRepoRead}}
+	for name, mw := range map[string]func(http.Handler) http.Handler{
+		"Auth":         Auth(testSecret, "cz_token", nil, oauth, testUnauthorized),
+		"OptionalAuth": OptionalAuth(testSecret, "cz_token", nil, oauth),
+	} {
+		req := httptest.NewRequest(http.MethodGet, "/api/repos/bob/project", nil)
+		req.Header.Set("Authorization", "Bearer 0123abcd")
+		var got Claims
+		mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			got, _ = ClaimsFromContext(r.Context())
+		})).ServeHTTP(httptest.NewRecorder(), req)
+		if got.UserID != 42 || got.Username != "bob" || got.IsSuperadmin {
+			t.Errorf("%s: want claims for bob without superadmin, got %+v", name, got)
+		}
+	}
+}
+
 // TestAuth_InvalidPAT_Unauthorized verifies that a czp_ token that fails PAT validation
 // does not fall through to grant access — the request is rejected with 401.
 func TestAuth_InvalidPAT_Unauthorized(t *testing.T) {

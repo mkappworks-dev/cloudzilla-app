@@ -33,7 +33,7 @@ func TestLineComment_MustBelongToURLPull(t *testing.T) {
 	attackerID := testutil.SeedUser(t, db, attackerSuffix)
 	attacker := "testuser_" + attackerSuffix
 	repoAName := "repoa_" + attackerSuffix
-	repoA, err := svc.Repo.Create(ctx, attacker, repoAName, "", false)
+	repoA, err := svc.Repo.Create(ctx, attackerID, attacker, repoAName, "", false, service.RepoInitOptions{})
 	if err != nil {
 		t.Fatalf("Repo.Create: %v", err)
 	}

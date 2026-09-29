@@ -59,7 +59,7 @@ type CodeLine struct {
 type CodeService struct {
 	cfg config.GitConfig
 	// treeCache memoizes ListEntriesWithLastCommit results.
-	// Key: "owner/repo:ref:dir"; Value: treeCacheEntry. TTL enforced at read time.
+	// Key: treeCacheKey; Value: treeCacheEntry. TTL enforced at read time.
 	treeCache sync.Map
 	// treeCacheKeys is a best-effort insert counter that drives the
 	// treeCacheMaxKeys-bounded eviction sweep.

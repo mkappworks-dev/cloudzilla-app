@@ -71,7 +71,7 @@ templ WikiPage(data view.WikiPageData) {
 					@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
 						"type":                "button",
 						"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug,
-						"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Wiki page deleted'}));location.href='/" + data.Owner + "/" + data.RepoName + "/wiki';}",
+						"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Wiki page deleted'}));location.href=" + components.JSLiteral("/"+data.Owner+"/"+data.RepoName+"/wiki") + ";}",
 					}) {
 						Delete page
 					}

@@ -6,16 +6,16 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 ## Auth
 
-| Method | Path                    | Auth | Description                                                     |
-| ------ | ----------------------- | ---- | --------------------------------------------------------------- |
-| POST   | `/api/auth/login`       | --   | Login; sets `cz_token` cookie and returns token in body         |
-| POST   | `/api/auth/logout`      | --   | Clears auth cookie; 204, or form 303/HTMX `HX-Redirect` to `/`  |
-| GET    | `/auth/google`          | --   | Begin Google OAuth flow (redirects to Google)                   |
-| GET    | `/auth/google/callback` | --   | Google OAuth callback; sets `cz_token` cookie, redirects to `/` |
-| POST   | `/auth/ldap`            | --   | LDAP login (username + password)                                |
-| GET    | `/auth/saml`            | --   | Initiate SAML SSO flow (redirects to IdP)                       |
-| POST   | `/auth/saml/callback`   | --   | SAML assertion consumer service (ACS) callback                  |
-| GET    | `/auth/saml/metadata`   | --   | SAML SP metadata XML                                            |
+| Method | Path                    | Auth | Description                                                                                                                                                                                                                    |
+| ------ | ----------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/api/auth/login`       | --   | Login; sets `cz_token` cookie and returns token in body                                                                                                                                                                        |
+| POST   | `/api/auth/logout`      | --   | Clears auth cookie; 204, or form 303/HTMX `HX-Redirect` to `/`                                                                                                                                                                 |
+| GET    | `/auth/google`          | --   | Begin Google OAuth flow (redirects to Google)                                                                                                                                                                                  |
+| GET    | `/auth/google/callback` | --   | Google OAuth callback; sets `cz_token` cookie, redirects to `/`; re-renders login with 403 if Google hasn't verified the email, 409 if an account already has that email ([details](./access-control.md#google-oauth-sign-in)) |
+| POST   | `/auth/ldap`            | --   | LDAP login (username + password)                                                                                                                                                                                               |
+| GET    | `/auth/saml`            | --   | Initiate SAML SSO flow (redirects to IdP)                                                                                                                                                                                      |
+| POST   | `/auth/saml/callback`   | --   | SAML assertion consumer service (ACS) callback                                                                                                                                                                                 |
+| GET    | `/auth/saml/metadata`   | --   | SAML SP metadata XML                                                                                                                                                                                                           |
 
 ## Two-Factor Authentication (TOTP)
 
@@ -36,11 +36,10 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 ## Personal Access Tokens
 
-| Method | Path                   | Auth     | Description                                                                                 |
-| ------ | ---------------------- | -------- | ------------------------------------------------------------------------------------------- |
-| GET    | `/settings/tokens`     | Required | Page: list tokens + create form; shows raw token once via `?new_token=...` after creation   |
-| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, `scopes[]`, optional `expires_at`); returns `{"token": "czp_..."}` once |
-| DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                          |
+| Method | Path                   | Auth     | Description                                                                                                                                                        |
+| ------ | ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, repeated `scopes`, optional `expires_at` form fields); redirects to `/settings#tokens`, which shows the raw token once, via an HttpOnly cookie |
+| DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                                                                                                 |
 
 Raw token format: `czp_<32-byte hex>`. Use as `Authorization: Bearer czp_<token>`. Only the SHA-256 hash is stored; the raw value cannot be recovered after creation.
 
@@ -69,27 +68,41 @@ Deploy keys authenticate via SSH using the key's MD5 fingerprint. A `read_only` 
 
 ## Users
 
-| Method | Path                         | Auth | Description                 |
-| ------ | ---------------------------- | ---- | --------------------------- |
-| GET    | `/api/users/:username`       | --   | Get a user's public profile |
-| GET    | `/api/users/:username/repos` | --   | List user's repositories    |
+| Method | Path                                  | Auth     | Description                                                                                           |
+| ------ | ------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| GET    | `/api/users/:username`                | --       | Get a user's public profile                                                                           |
+| GET    | `/api/users/:username/repos`          | --       | List user's repositories                                                                              |
+| POST   | `/api/users/:id/pinned-repos/:repoID` | Required | Pin a repo to the profile; idempotent; 422 past 6 pins; 404 if the repo is not readable by the caller |
+| DELETE | `/api/users/:id/pinned-repos/:repoID` | Required | Unpin a repo from the profile; no-op if it is not pinned                                              |
 
-Public user objects — returned here and by `/api/repos/:owner/:repo/stargazers` (JSON only with `HX-Request: true`; otherwise it renders the stargazers page) — contain only `id`, `username`, `bio`, `avatar_url`, and `created_at`. Email addresses and notification preferences are never returned.
+`:id` is a numeric user ID and must be the caller's own (403 otherwise). Both pin endpoints return `{"ok": true}`.
+
+Public user objects — returned by `GET /api/users/:username` and by `/api/repos/:owner/:repo/stargazers` (JSON only with `HX-Request: true`; otherwise it renders the stargazers page) — contain only `id`, `username`, `bio`, `avatar_url`, and `created_at`. Email addresses and notification preferences are never returned.
 
 ## Repositories
 
-| Method | Path                                | Auth     | Description                              |
-| ------ | ----------------------------------- | -------- | ---------------------------------------- |
-| GET    | `/api/repos/`                       | --       | List all repositories                    |
-| POST   | `/api/repos/`                       | Required | Create a repository                      |
-| GET    | `/api/repos/:owner/:repo`           | --       | Get repository details                   |
-| POST   | `/api/repos/:owner/:repo/fork`      | Required | Fork into authenticated user's namespace |
-| POST   | `/api/repos/:owner/:repo/transfer`  | IsOwner  | Transfer repo to another user            |
-| POST   | `/api/repos/:owner/:repo/restore`   | IsOwner  | Restore a soft-deleted repository        |
-| POST   | `/api/repos/:owner/:repo/archive`   | IsOwner  | Archive a repository                     |
-| POST   | `/api/repos/:owner/:repo/unarchive` | IsOwner  | Unarchive a repository                   |
-| PATCH  | `/api/repos/:owner/:repo/template`  | IsOwner  | Toggle repository template flag          |
-| POST   | `/api/repos/from-template`          | Required | Create a new repo from a template        |
+| Method | Path                                | Auth     | Description                                                                         |
+| ------ | ----------------------------------- | -------- | ----------------------------------------------------------------------------------- |
+| GET    | `/api/repos/`                       | --       | List all repositories                                                               |
+| POST   | `/api/repos/`                       | Required | Create a repository (`name`, `description`, `private`, plus the init options below) |
+| GET    | `/api/repos/:owner/:repo`           | --       | Get repository details                                                              |
+| POST   | `/api/repos/:owner/:repo/fork`      | Required | Fork into authenticated user's namespace                                            |
+| POST   | `/api/repos/:owner/:repo/transfer`  | IsOwner  | Transfer repo to another user                                                       |
+| POST   | `/api/repos/:owner/:repo/restore`   | IsOwner  | Restore a soft-deleted repository                                                   |
+| POST   | `/api/repos/:owner/:repo/archive`   | IsOwner  | Archive a repository                                                                |
+| POST   | `/api/repos/:owner/:repo/unarchive` | IsOwner  | Unarchive a repository                                                              |
+| PATCH  | `/api/repos/:owner/:repo/template`  | IsOwner  | Toggle repository template flag                                                     |
+| POST   | `/api/repos/from-template`          | Required | Create a new repo from a template                                                   |
+
+Repository creation (here and under `/api/orgs/:org/repos`) accepts optional init options that seed an initial commit: `add_readme` (bool), `gitignore` (`Go`, `Node`, `Python`, `Rust`, `Java`, `C++`, `Ruby`), and `license` (`mit`, `apache-2.0`, `gpl-3.0`, `bsd-3-clause`, `unlicense`). An unknown template name leaves the repository empty rather than failing the request.
+
+Creating a repository (here, under `/api/orgs/:org/repos`, or from a template) with a name already used in that namespace returns 422 `a repository with that name already exists` and creates nothing. A directory left on disk without a repository row counts as used, so a new repository never takes over an earlier holder's data; a fork skips such names the same way it skips existing repositories. `POST /api/repos/from-template` checks the name with the same rules as create and returns 422 `invalid repository name: ...` for one it rejects.
+
+A transfer is refused with 422 `transfer failed`, and nothing moves, when the new owner already has a repository with that name, or a `<name>.git` or `<name>.wiki.git` directory left on disk under it.
+
+Names ending in `.wiki` (in any case) are reserved, because `<name>.wiki.git` is the wiki of repository `<name>`: creating one returns 422 `invalid repository name: names ending in .wiki are reserved for wikis`, and a fork of such a repository gets a `-1` suffix. A `<name>.wiki` repository created before the reservation still works, but while it exists, even soft-deleted, `<name>` cannot be created in or transferred into its namespace (422 `a repository with that name already exists` on create), it cannot be transferred into a namespace that holds `<name>`, and an existing `<name>` has no wiki.
+
+Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` and `<name>.wiki.git.deleted.<unix_ts>`, with the same second stored in `deleted_at`. Restore and the 30-day purge act only on the copy whose suffix matches the row, never on another soft-deleted repository of the same name (org repos are unique per creator, so several can exist). Restore returns 422 `a repository with that name already exists` while another repository, or a directory left on disk, holds the name. It returns 500 `restore failed`, and leaves the row deleted, when the row's copy is missing from disk. Deletes made before wikis moved with their repository left `<name>.wiki.git` in place; the purge removes such a wiki once no repository row, live or soft-deleted, names it, so the name can be reused.
 
 ## Issues
 
@@ -266,7 +279,7 @@ Valid `state` values: `pending`, `success`, `failure`, `error`. Combined state u
 | POST   | `/api/repos/:owner/:repo/wiki/:slug` | Required | Create or update a wiki page |
 | DELETE | `/api/repos/:owner/:repo/wiki/:slug` | Required | Delete a wiki page           |
 
-Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`). Page content is Markdown.
+Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`) that moves with the repository when it is deleted, restored, purged or transferred. Page content is Markdown. When a repository named `<repo>.wiki` from before that suffix was reserved holds the path, `<repo>`'s wiki pages return 404 and the directory stays with `<repo>.wiki`.
 
 ## Discussions
 
@@ -276,8 +289,6 @@ Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`). Pag
 | POST   | `/api/repos/:owner/:repo/discussions/:number/replies`     | Required | Reply to a discussion               |
 | PATCH  | `/api/repos/:owner/:repo/discussions/:number`             | Required | Mark a reply as the accepted answer |
 | DELETE | `/api/repos/:owner/:repo/discussions/:number/replies/:id` | Required | Delete a reply                      |
-| POST   | `/api/repos/:owner/:repo/discussions/categories`          | Required | Create a discussion category        |
-| DELETE | `/api/repos/:owner/:repo/discussions/categories/:id`      | Required | Delete a discussion category        |
 
 ## Gists
 
@@ -319,15 +330,27 @@ See [access-control.md](access-control.md) for the full permission model. `CanMa
 
 ## Organizations
 
-| Method | Path                               | Auth     | Description                                                                         |
-| ------ | ---------------------------------- | -------- | ----------------------------------------------------------------------------------- |
-| POST   | `/api/orgs/`                       | Required | Create organization                                                                 |
-| GET    | `/api/orgs/:org`                   | --       | Get organization by name                                                            |
-| GET    | `/api/orgs/:org/members`           | --       | List organization members                                                           |
-| POST   | `/api/orgs/:org/members`           | Required | Add member (`username`, `role`); owner only                                         |
-| DELETE | `/api/orgs/:org/members/:username` | Required | Remove member; owner only; last owner blocked                                       |
-| POST   | `/api/orgs/:org/repos`             | Required | Create a repository under the organization; owner only                              |
-| POST   | `/api/orgs/:org/transfer`          | Required | Transfer org ownership (`new_owner` form field); owner only; demotes self to member |
+| Method | Path                                    | Auth     | Description                                                                                                                         |
+| ------ | --------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/orgs/`                            | Required | Create organization (`name`, `display_name`, `description`); 422 when `name` is invalid or taken                                    |
+| GET    | `/api/orgs/:org`                        | --       | Get organization by name, including `website`, `location`, `contact_email`, `default_repo_visibility`, `default_branch_name`        |
+| GET    | `/api/orgs/:org/members`                | --       | List organization members                                                                                                           |
+| POST   | `/api/orgs/:org/members`                | Required | Add member (`username`, `role`); owner only                                                                                         |
+| DELETE | `/api/orgs/:org/members/:username`      | Required | Remove member; owner only, except a member may remove themselves; last owner blocked                                                |
+| POST   | `/api/orgs/:org/members/:username/role` | Required | Change a member's role (`role` form field: `owner` or `member`); owner only; demoting the last owner is rejected                    |
+| POST   | `/api/orgs/:org/repos`                  | Required | Create a repository under the organization (same body as `POST /api/repos/`); owner only                                            |
+| POST   | `/api/orgs/:org/transfer`               | Required | Transfer org ownership (`new_owner`, optional `confirm_name` form fields); owner only; demotes self to member; redirects to `/:org` |
+| POST   | `/api/orgs/:org/profile`                | Required | Update profile (`display_name`, `description`, `website`, `location`, `contact_email` form fields); owner only                      |
+| POST   | `/api/orgs/:org/repo-defaults`          | Required | Update repo defaults (`default_repo_visibility`, `default_branch_name` form fields); owner only                                     |
+| POST   | `/api/orgs/:org/delete`                 | Required | Delete the organization (`confirm_name` form field); owner only; 422 while the org still owns repositories                          |
+
+Add, remove, and role-change requests sent with `HX-Request: true` respond with the refreshed members-list fragment.
+
+`POST /api/orgs/:org/repos` applies the org's `default_repo_visibility` when `private` is omitted (`private` for an org whose defaults were never changed), and uses the org's `default_branch_name` as the initial branch.
+
+`confirm_name` must equal the org name. It is required by `delete`; `transfer` checks it only when sent. `default_repo_visibility` is `public` or `private`; `default_branch_name` must be non-empty with no whitespace. `website` must be an `http`/`https` URL, and a bare host such as `acme.dev` is stored as `https://acme.dev`.
+
+The profile, repo-defaults, and delete endpoints are browser form posts: they redirect (303) to `/orgs/:org/settings`, `/orgs/:org/settings#repo-defaults`, and `/organizations` respectively, and each writes an audit-log entry (`org.profile.update`, `org.defaults.update`, `org.delete`).
 
 ## Notifications
 
@@ -348,14 +371,16 @@ See [access-control.md](access-control.md) for the full permission model. `CanMa
 
 ## OAuth Apps
 
-| Method | Path                            | Auth     | Description                         |
-| ------ | ------------------------------- | -------- | ----------------------------------- |
-| GET    | `/oauth/authorize`              | Optional | OAuth authorization page            |
-| POST   | `/oauth/authorize`              | Required | Confirm authorization grant         |
-| POST   | `/oauth/token`                  | --       | Exchange auth code for access token |
-| POST   | `/api/oauth/apps`               | Required | Register an OAuth application       |
-| DELETE | `/api/oauth/apps/:id`           | Required | Delete an OAuth application         |
-| DELETE | `/api/oauth/authorizations/:id` | Required | Revoke an OAuth authorization       |
+| Method | Path                            | Auth     | Description                                |
+| ------ | ------------------------------- | -------- | ------------------------------------------ |
+| GET    | `/oauth/authorize`              | Optional | OAuth authorization page                   |
+| POST   | `/oauth/authorize`              | Required | Confirm authorization grant                |
+| POST   | `/oauth/token`                  | --       | Exchange auth code for access token        |
+| POST   | `/api/oauth/apps`               | Required | Register an OAuth application (HTMX-aware) |
+| DELETE | `/api/oauth/apps/:id`           | Required | Delete an OAuth application (HTMX-aware)   |
+| DELETE | `/api/oauth/authorizations/:id` | Required | Revoke an OAuth authorization (HTMX-aware) |
+
+Registering an app returns `client_secret` once; only its bcrypt hash is stored. JSON callers get it in the body; HTMX form posts (`name`, `homepage_url`, `redirect_uri`, `description`) get the apps-list fragment with the secret revealed.
 
 `POST /api/oauth/apps` takes `name`, `homepage_url`, `description` and `redirect_uris`, and returns the app with its `client_secret`, shown once. At least one redirect URI is required, each an absolute `http`/`https` URL with no fragment or comma; anything else returns `400`.
 
