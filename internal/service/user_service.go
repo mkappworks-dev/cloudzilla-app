@@ -48,7 +48,7 @@ func ValidateUsername(username string) error {
 }
 
 // Users and orgs share /{owner}, so every account-creating path runs this;
-// migration 079's triggers back it up against a concurrent insert.
+// migration 080's triggers back it up against a concurrent insert.
 func usernameAvailable(ctx context.Context, users *store.UserStore, username string) error {
 	if err := ValidateUsername(username); err != nil {
 		return err
