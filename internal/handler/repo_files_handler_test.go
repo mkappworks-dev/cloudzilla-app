@@ -100,3 +100,28 @@ func TestUpdateProfileReadme_AuthorEmailFollowsKeepEmailPrivate(t *testing.T) {
 		t.Errorf("setting off: author email = %q, want %q", got, want)
 	}
 }
+
+func TestUpdateProfileReadme_RefusesAnArchivedProfileRepo(t *testing.T) {
+	router, db, reposRoot := newEmailPrivacyRouter(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	owner := "testuser_" + suffix
+	if _, err := db.Exec(
+		`INSERT INTO repositories (owner_id, owner_name, name, description, private, default_branch, is_archived)
+		 VALUES ($1, $2, $2, '', false, 'main', true)`, userID, owner); err != nil {
+		t.Fatalf("seed profile repo: %v", err)
+	}
+	gitRepo, err := gogit.PlainInit(filepath.Join(reposRoot, owner, owner+".git"), true)
+	if err != nil {
+		t.Fatalf("init bare repo: %v", err)
+	}
+	token := makeIssueJWT(t, userID, owner)
+
+	rr := postForm(t, router, token, "/settings/profile-readme", url.Values{"content": {"# hi\n"}})
+	if want := "/" + owner + "?readme_error=profile_repo_archived"; rr.Code != http.StatusSeeOther || rr.Header().Get("Location") != want {
+		t.Fatalf("want 303 to %s, got %d %q", want, rr.Code, rr.Header().Get("Location"))
+	}
+	if _, err := gitRepo.Reference(plumbing.NewBranchReferenceName("main"), true); err == nil {
+		t.Error("an archived profile repo got a commit")
+	}
+}

@@ -628,6 +628,10 @@ func readmeErrorMessage(code string) string {
 		return "README is too large — keep it under 200 KB."
 	case "profile_repo_private":
 		return "Your profile repository is private. Make it public to publish a README."
+	case "profile_repo_archived":
+		return "Your profile repository is archived. Unarchive it to edit the README."
+	case "branch_moved":
+		return "The README changed while you were saving. Reload and try again."
 	case "save_failed":
 		return "Could not save the README. Please try again."
 	default:

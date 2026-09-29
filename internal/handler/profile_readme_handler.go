@@ -40,6 +40,10 @@ func (h *Handler) UpdateProfileReadme(w http.ResponseWriter, r *http.Request) {
 		redirectReadmeError(w, r, user.Username, "profile_repo_private")
 		return
 	}
+	if repo.IsArchived {
+		redirectReadmeError(w, r, user.Username, "profile_repo_archived")
+		return
+	}
 
 	content := r.FormValue("content")
 	if len(content) > maxProfileReadmeBytes {
@@ -59,6 +63,10 @@ func (h *Handler) UpdateProfileReadme(w http.ResponseWriter, r *http.Request) {
 	if err := h.Services.Code.SaveProfileReadme(user.Username, user.Username, repo.DefaultBranch, content, author, message); err != nil {
 		if errors.Is(err, service.ErrProfileRepoMissing) {
 			http.Redirect(w, r, "/repos/new?name="+url.QueryEscape(user.Username)+"&visibility=public&init_readme=1", http.StatusSeeOther)
+			return
+		}
+		if errors.Is(err, service.ErrRefMoved) {
+			redirectReadmeError(w, r, user.Username, "branch_moved")
 			return
 		}
 		slog.Error("failed to save profile README", "username", user.Username, "error", err)
