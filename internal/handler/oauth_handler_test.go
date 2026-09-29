@@ -21,19 +21,27 @@ import (
 
 func fakeGoogle(t *testing.T, userinfo map[string]any) {
 	t.Helper()
+	fakeGoogleServing(t, &userinfo)
+}
+
+// fakeGoogleServing answers userinfo requests with *userinfo, which the test may
+// change between calls, and returns the fake's base URL.
+func fakeGoogleServing(t *testing.T, userinfo *map[string]any) string {
+	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/token":
 			_, _ = io.WriteString(w, `{"access_token":"fake-token","token_type":"Bearer","expires_in":3600}`)
 		case "/userinfo":
-			_ = json.NewEncoder(w).Encode(userinfo)
+			_ = json.NewEncoder(w).Encode(*userinfo)
 		default:
 			http.NotFound(w, r)
 		}
 	}))
 	t.Cleanup(srv.Close)
 	handler.UseFakeGoogle(t, srv.URL)
+	return srv.URL
 }
 
 func googleCallback(t *testing.T, db *sql.DB) *httptest.ResponseRecorder {

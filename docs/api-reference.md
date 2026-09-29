@@ -17,6 +17,8 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | POST   | `/auth/saml/callback`   | --   | SAML assertion consumer service (ACS) callback                                                                                                                                                                                 |
 | GET    | `/auth/saml/metadata`   | --   | SAML SP metadata XML                                                                                                                                                                                                           |
 
+When the `oauth_link_state` cookie matches `state`, `/auth/google/callback` finishes [connecting Google](#connected-accounts) to the signed-in account instead: it never signs in, and redirects to `/settings#connected-accounts`.
+
 ## Two-Factor Authentication (TOTP)
 
 | Method | Path                     | Auth     | Description                                      |
@@ -25,6 +27,15 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | POST   | `/auth/2fa/verify`       | --       | Verify TOTP code or backup code                  |
 | POST   | `/api/user/totp/enable`  | Required | Enable TOTP (submit code to confirm setup)       |
 | POST   | `/api/user/totp/disable` | Required | Disable TOTP                                     |
+
+## Connected Accounts
+
+Browser form posts from Account settings. Both need the current `password`, plus `code` (the TOTP code) when two-factor authentication is on. Errors redirect (303) to `/settings?profile_error=google_…#connected-accounts`. OAuth-app tokens are refused. See [access control](./access-control.md#connecting-google-to-an-existing-account).
+
+| Method | Path                                             | Auth     | Description                                                                                                                                                     |
+| ------ | ------------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/settings/connected-accounts/google`            | Required | Re-authenticates, sets the `oauth_link_state` cookie and redirects (303) to Google. Refused when Google OAuth isn't configured or the account is already linked |
+| POST   | `/settings/connected-accounts/google/disconnect` | Required | Re-authenticates and unlinks Google. Refused for an account without a password. Writes `user.oauth.disconnect` to the audit log                                 |
 
 ## SSH Keys
 

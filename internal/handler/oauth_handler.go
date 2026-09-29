@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"time"
@@ -17,8 +18,11 @@ import (
 )
 
 const (
-	oauthStateCookie = "oauth_state"
-	oauthNextCookie  = "oauth_next"
+	oauthStateCookie     = "oauth_state"
+	oauthNextCookie      = "oauth_next"
+	oauthLinkStateCookie = "oauth_link_state"
+	googleCallbackPath   = "/auth/google/callback"
+	googleProvider       = "google"
 )
 
 // Variables so tests can point the flow at a fake Google.
@@ -74,8 +78,15 @@ func (h *Handler) GoogleOAuthBegin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
+	state := r.URL.Query().Get("state")
+	// The cookie ConnectGoogle set picks link mode, not the state alone, so only the
+	// browser that re-authenticated can finish a link.
+	if c, err := r.Cookie(oauthLinkStateCookie); err == nil && c.Value != "" && c.Value == state {
+		h.googleLinkCallback(w, r, state)
+		return
+	}
 	stateCookie, err := r.Cookie(oauthStateCookie)
-	if err != nil || stateCookie.Value != r.URL.Query().Get("state") {
+	if err != nil || stateCookie.Value != state {
 		http.Error(w, "invalid OAuth state", http.StatusBadRequest)
 		return
 	}
@@ -86,48 +97,16 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{Name: oauthNextCookie, MaxAge: -1, Path: "/", Secure: h.Cfg.Auth.CookieSecure})
 	}
 
-	cfg := h.googleOAuthConfig()
-	token, err := cfg.Exchange(context.Background(), r.URL.Query().Get("code"))
+	identity, status, err := h.googleIdentity(r.Context(), r.URL.Query().Get("code"))
 	if err != nil {
-		http.Error(w, "failed to exchange token", http.StatusBadRequest)
-		return
-	}
-
-	client := cfg.Client(context.Background(), token)
-	resp, err := client.Get(googleUserinfoURL)
-	if err != nil {
-		http.Error(w, "failed to fetch user info", http.StatusBadGateway)
-		return
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		http.Error(w, "failed to fetch user info", http.StatusBadGateway)
-		return
-	}
-
-	var info struct {
-		ID            string `json:"id"`
-		Email         string `json:"email"`
-		VerifiedEmail bool   `json:"verified_email"`
-		Name          string `json:"name"`
-		Picture       string `json:"picture"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-		http.Error(w, "failed to parse user info", http.StatusInternalServerError)
+		http.Error(w, err.Error(), status)
 		return
 	}
 
 	allowReg := h.Services.SiteSetting.AllowRegistration(r.Context())
 	allowLogin := h.Services.SiteSetting.AllowLogin(r.Context())
 
-	oauthUser, jwtToken, err := h.Services.User.AuthenticateOAuth(r.Context(), service.OAuthIdentity{
-		Provider:      "google",
-		ID:            info.ID,
-		Email:         info.Email,
-		EmailVerified: info.VerifiedEmail,
-		Name:          info.Name,
-		AvatarURL:     info.Picture,
-	}, allowReg, allowLogin)
+	oauthUser, jwtToken, err := h.Services.User.AuthenticateOAuth(r.Context(), identity, allowReg, allowLogin)
 	if err != nil {
 		loginError := func(status int, msg string) {
 			ldapEnabled, samlEnabled := h.ssoEnabled(r)
@@ -158,4 +137,43 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	if err := h.signIn(w, r, oauthUser, jwtToken, next); err != nil {
 		http.Error(w, "authentication failed", http.StatusInternalServerError)
 	}
+}
+
+// googleIdentity redeems code at Google and reads the account it grants. On
+// failure the error text is safe to show, and status is the code to send.
+func (h *Handler) googleIdentity(ctx context.Context, code string) (service.OAuthIdentity, int, error) {
+	cfg := h.googleOAuthConfig()
+	token, err := cfg.Exchange(ctx, code)
+	if err != nil {
+		return service.OAuthIdentity{}, http.StatusBadRequest, errors.New("failed to exchange token")
+	}
+
+	resp, err := cfg.Client(ctx, token).Get(googleUserinfoURL)
+	if err != nil {
+		return service.OAuthIdentity{}, http.StatusBadGateway, errors.New("failed to fetch user info")
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return service.OAuthIdentity{}, http.StatusBadGateway, errors.New("failed to fetch user info")
+	}
+
+	var info struct {
+		ID            string `json:"id"`
+		Email         string `json:"email"`
+		VerifiedEmail bool   `json:"verified_email"`
+		Name          string `json:"name"`
+		Picture       string `json:"picture"`
+	}
+	// An empty ID would match every account whose link stores one.
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil || info.ID == "" {
+		return service.OAuthIdentity{}, http.StatusInternalServerError, errors.New("failed to parse user info")
+	}
+	return service.OAuthIdentity{
+		Provider:      googleProvider,
+		ID:            info.ID,
+		Email:         info.Email,
+		EmailVerified: info.VerifiedEmail,
+		Name:          info.Name,
+		AvatarURL:     info.Picture,
+	}, 0, nil
 }

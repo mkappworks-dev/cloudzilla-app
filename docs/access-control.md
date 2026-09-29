@@ -97,7 +97,7 @@ Open routes:
 
 Merging and enabling auto-merge are requests to `PATCH .../pulls/{number}`, so `UpdatePull` checks `claims.HasScope(repo:write)` itself; applying a suggestion is refused by path. `UpdateComment`/`DeleteComment` require the comment to belong to the issue or pull request in the URL, so neither `issues:write` nor `pulls:write` reaches the other's comments.
 
-Everything else is closed whatever the scopes, notably: HTML pages and `/fragments/*` (which is what keeps a user's email, shown on their own profile, away from apps); `/api/user/*` (SSH keys, PATs, TOTP, saved replies), `/api/oauth/*`, `/api/admin/*`, `/api/notifications/*`, `/api/gists`, `/api/markdown/preview`; repo administration (`hooks`, `collaborators`, `keys`, `topics`, `transfer`, `archive`, `unarchive`, `restore`, `delete`, `template`, branch protections, settings); and org administration.
+Everything else is closed whatever the scopes, notably: HTML pages and `/fragments/*` (which is what keeps a user's email, shown on their own profile, away from apps); `/settings/*` form posts (including connecting or disconnecting Google) and `/auth/google/callback`; `/api/user/*` (SSH keys, PATs, TOTP, saved replies), `/api/oauth/*`, `/api/admin/*`, `/api/notifications/*`, `/api/gists`, `/api/markdown/preview`; repo administration (`hooks`, `collaborators`, `keys`, `topics`, `transfer`, `archive`, `unarchive`, `restore`, `delete`, `template`, branch protections, settings); and org administration.
 
 A refused request gets `403` with `{"error":"insufficient_scope"}` and `WWW-Authenticate: Bearer error="insufficient_scope", scope="<narrowest scope that would admit it>"` (the `scope` attribute is omitted on closed routes). Unknown scopes are rejected at `/oauth/authorize` with `400`. PAT scopes are recorded but not yet enforced; PATs remain unscoped.
 
@@ -256,8 +256,31 @@ Without SMTP, `/register` is the classic username/email/password form, which sti
 
 1. An account already linked to the Google ID (`oauth_provider`, `oauth_id`) signs in.
 2. Otherwise Google must report the email as verified (`verified_email` from the userinfo endpoint). If it doesn't, the callback re-renders the login page with a 403 and nothing is linked or created (`ErrOAuthEmailUnverified`).
-3. If an account with exactly that email exists, the callback re-renders the login page with a 409 and links nothing (`ErrOAuthAccountExists`). Local email addresses are never verified, so anyone could register, accept an invite with, or edit their profile to that address before its owner first signs in with Google; the LDAP/SAML path refuses email matches for the same reason. The owner of the address signs in with their password instead.
+3. If an account with exactly that email exists, the callback re-renders the login page with a 409 and links nothing (`ErrOAuthAccountExists`). Local email addresses are never verified, so anyone could register, accept an invite with, or edit their profile to that address before its owner first signs in with Google; the LDAP/SAML path refuses email matches for the same reason. The owner of the address signs in with their password instead, and can [connect Google](#connecting-google-to-an-existing-account) from there.
 4. Otherwise a new account is created, subject to `allow_registration`, and linked to the Google ID.
+
+A connected Google account is a sign-in that outlives the current session, so connecting one needs the password and TOTP code, not just a session. Signing in with it still asks for the TOTP code (see [Two-factor authentication](#two-factor-authentication)).
+
+## Connecting Google to an Existing Account
+
+Account settings → Security → Connected accounts links a Google account to a signed-in account on request, instead of by matching emails. `OAuthLinkService` holds the rules; `ConnectGoogle`, `DisconnectGoogle` and the link mode of `GoogleOAuthCallback` call it.
+
+**Connect** (`POST /settings/connected-accounts/google`, form `password` and `code`):
+
+1. Refused unless `oauth.google_client_id` is set, and unless the password (plus the TOTP code, when TOTP is on) is correct. A session alone is not enough, so a stolen session cannot plant a Google sign-in that outlives it. Accounts without a password (created by Google, LDAP or SAML sign-up) cannot re-authenticate, so they cannot connect.
+2. `BeginLink` stores a random 32-byte state for 10 minutes in `oauth_states` (migration 088), bound to the user and the purpose `link`. Only its SHA-256 is stored, and a newer connect replaces the user's pending one. The raw state goes into the `oauth_link_state` cookie (HttpOnly, `Path=/auth/google/callback`) and into Google's authorization URL, which asks Google to let the user pick an account (`prompt=select_account`). The redirect is a 303, so the browser does not re-post the password to Google.
+
+**Callback, link mode**: `GoogleOAuthCallback` runs link mode only when the `oauth_link_state` cookie matches the `state` parameter; otherwise it runs the login flow above, unchanged. The route runs `optAuthMW` so link mode can read the session. Link mode clears the cookie, then:
+
+1. `ConsumeLinkState` deletes the state before anything else can refuse, so every attempt spends it: a replay, an expired state, a state started by another account, or one that reaches a signed-out browser is refused and cannot be retried.
+2. The signed-in user must be the one who started the flow.
+3. Google must report `verified_email`, and its userinfo must carry an `id`.
+4. If that Google ID is linked to this account, nothing changes. If it is linked to another account, or this account is already linked to a different Google ID, the link is refused. The update only runs `WHERE oauth_provider = ''`, and `users_oauth_idx` refuses a Google ID another account took meanwhile.
+5. Link mode never creates an account or issues a session cookie. Errors return to `/settings?profile_error=google_…#connected-accounts`; success shows a one-time notice through the `cz_settings_notice` cookie.
+
+**Disconnect** (`POST /settings/connected-accounts/google/disconnect`, form `password` and `code`) needs the same re-authentication and clears `oauth_provider`/`oauth_id`. An account without a password is refused (`ErrReauthNoPassword`), and the store's update also requires a password, so the account's only sign-in is never removed.
+
+Both changes write an audit entry (`user.oauth.connect` with the Google email, `user.oauth.disconnect`) and, when SMTP is configured, email the account a notice. The notice ignores notification preferences, since muting it would hide a takeover. Both routes need CSRF like any cookie-authenticated form post, and are closed to OAuth-app tokens.
 
 ## Usernames
 
@@ -306,26 +329,30 @@ The freed username can then be registered or taken as an org name. Repo creation
 | GET/POST | `/auth/saml`            | InitiateSAML / SAMLCallback   |
 | GET/POST | `/auth/2fa`             | PageTOTPVerify / VerifyTOTP   |
 
+`/auth/google/callback` runs `optAuthMW`: its [link mode](#connecting-google-to-an-existing-account) needs the session.
+
 ### User-Scoped Endpoints (Own Data Only)
 
-| Method                | Path                                    | Auth   | AuthZ                                                                          | Handler                    |
-| --------------------- | --------------------------------------- | ------ | ------------------------------------------------------------------------------ | -------------------------- |
-| GET                   | `/settings`                             | authMW | Own user                                                                       | PageSettings               |
-| POST                  | `/settings/profile`                     | authMW | Own user                                                                       | UpdateProfile              |
-| POST                  | `/settings/profile-readme`              | authMW | Own user                                                                       | UpdateProfileReadme        |
-| POST                  | `/settings/notifications`               | authMW | Own user                                                                       | UpdateNotificationSettings |
-| POST                  | `/settings/email`                       | authMW | Own user                                                                       | UpdateEmailSettings        |
-| POST                  | `/settings/delete-account`              | authMW | Own user                                                                       | DeleteAccount              |
-| POST                  | `/settings/security/setup`              | authMW | Own user                                                                       | SetupTOTP                  |
-| POST                  | `/api/user/totp/enable`                 | authMW | Own user (claims.UserID)                                                       | EnableTOTP                 |
-| POST                  | `/api/user/totp/disable`                | authMW | Own user (claims.UserID)                                                       | DisableTOTP                |
-| GET/POST/DELETE       | `/api/user/keys`                        | authMW | Own user (claims.UserID)                                                       | SSH key CRUD               |
-| POST/DELETE           | `/api/user/tokens`                      | authMW | Own user (claims.UserID)                                                       | Token create/revoke        |
-| GET/POST/PATCH/DELETE | `/api/user/replies`                     | authMW | Own user (claims.UserID)                                                       | Saved reply CRUD           |
-| POST/DELETE           | `/api/users/{id}/pinned-repos/{repoID}` | authMW | Own user (`{id}` = claims.UserID, else 403); POST needs repo read access (404) | PinRepo / UnpinRepo        |
-| POST/DELETE           | `/api/oauth/apps`                       | authMW | Own user (claims.UserID)                                                       | OAuth app CRUD             |
-| DELETE                | `/api/oauth/authorizations/{id}`        | authMW | Own user (claims.UserID)                                                       | RevokeOAuthAuthorization   |
-| POST/PATCH/DELETE     | `/api/gists`                            | authMW | Own gist (service checks)                                                      | Gist CRUD                  |
+| Method                | Path                                             | Auth   | AuthZ                                                                          | Handler                    |
+| --------------------- | ------------------------------------------------ | ------ | ------------------------------------------------------------------------------ | -------------------------- |
+| GET                   | `/settings`                                      | authMW | Own user                                                                       | PageSettings               |
+| POST                  | `/settings/profile`                              | authMW | Own user                                                                       | UpdateProfile              |
+| POST                  | `/settings/profile-readme`                       | authMW | Own user                                                                       | UpdateProfileReadme        |
+| POST                  | `/settings/notifications`                        | authMW | Own user                                                                       | UpdateNotificationSettings |
+| POST                  | `/settings/email`                                | authMW | Own user                                                                       | UpdateEmailSettings        |
+| POST                  | `/settings/delete-account`                       | authMW | Own user                                                                       | DeleteAccount              |
+| POST                  | `/settings/connected-accounts/google`            | authMW | Own user; password + TOTP code re-auth                                         | ConnectGoogle              |
+| POST                  | `/settings/connected-accounts/google/disconnect` | authMW | Own user; password + TOTP code re-auth; refused without a password             | DisconnectGoogle           |
+| POST                  | `/settings/security/setup`                       | authMW | Own user                                                                       | SetupTOTP                  |
+| POST                  | `/api/user/totp/enable`                          | authMW | Own user (claims.UserID)                                                       | EnableTOTP                 |
+| POST                  | `/api/user/totp/disable`                         | authMW | Own user (claims.UserID)                                                       | DisableTOTP                |
+| GET/POST/DELETE       | `/api/user/keys`                                 | authMW | Own user (claims.UserID)                                                       | SSH key CRUD               |
+| POST/DELETE           | `/api/user/tokens`                               | authMW | Own user (claims.UserID)                                                       | Token create/revoke        |
+| GET/POST/PATCH/DELETE | `/api/user/replies`                              | authMW | Own user (claims.UserID)                                                       | Saved reply CRUD           |
+| POST/DELETE           | `/api/users/{id}/pinned-repos/{repoID}`          | authMW | Own user (`{id}` = claims.UserID, else 403); POST needs repo read access (404) | PinRepo / UnpinRepo        |
+| POST/DELETE           | `/api/oauth/apps`                                | authMW | Own user (claims.UserID)                                                       | OAuth app CRUD             |
+| DELETE                | `/api/oauth/authorizations/{id}`                 | authMW | Own user (claims.UserID)                                                       | RevokeOAuthAuthorization   |
+| POST/PATCH/DELETE     | `/api/gists`                                     | authMW | Own gist (service checks)                                                      | Gist CRUD                  |
 
 ### Organization Endpoints
 

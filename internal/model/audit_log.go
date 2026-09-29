@@ -36,6 +36,8 @@ const (
 // Common action constants.
 const (
 	AuditActionLogin             = "login"
+	AuditActionOAuthConnect      = "user.oauth.connect"
+	AuditActionOAuthDisconnect   = "user.oauth.disconnect"
 	AuditActionRepoCreate        = "repo.create"
 	AuditActionRepoDelete        = "repo.delete"
 	AuditActionRepoTransfer      = "repo.transfer"
