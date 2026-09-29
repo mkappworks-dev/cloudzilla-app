@@ -92,29 +92,38 @@ func deletedRepoDir(repoPath string, repoID int64, deletedAt *time.Time) (string
 
 type dirMove struct{ from, to string }
 
+// Tests swap rename: an undo re-runs the checks its move just passed, so no
+// directory setup makes it fail.
+var rename = os.Rename
+
 // moveDirs renames each existing from to its to, never over an existing to.
 // On failure it moves back what it already moved, so a repo and its wiki stay
 // together.
 func moveDirs(moves ...dirMove) error {
 	var done []dirMove
-	undo := func() {
-		for _, m := range slices.Backward(done) {
-			_ = os.Rename(m.to, m.from)
-		}
-	}
 	for _, m := range moves {
 		if _, err := os.Stat(m.from); err != nil {
 			continue
 		}
 		if _, err := os.Stat(m.to); err == nil {
-			undo()
-			return fmt.Errorf("%s already exists", m.to)
+			return undoMoves(fmt.Errorf("%s already exists", m.to), done)
 		}
-		if err := os.Rename(m.from, m.to); err != nil {
-			undo()
-			return err
+		if err := rename(m.from, m.to); err != nil {
+			return undoMoves(err, done)
 		}
 		done = append(done, m)
 	}
 	return nil
+}
+
+// undoMoves moves done back, last first, and returns cause joined with every
+// undo that failed, naming the directory it stranded.
+func undoMoves(cause error, done []dirMove) error {
+	errs := []error{cause}
+	for _, m := range slices.Backward(done) {
+		if err := rename(m.to, m.from); err != nil {
+			errs = append(errs, fmt.Errorf("%s stranded, not moved back to %s: %w", m.to, m.from, err))
+		}
+	}
+	return errors.Join(errs...)
 }

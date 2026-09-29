@@ -409,6 +409,38 @@ func TestRestore_OldFormatCopy_NeverTakesAnEarlierDeletion(t *testing.T) {
 	assertExists(t, filepath.Join(repo, "first"))
 }
 
+// failRenames makes rename return failures[from] for those sources.
+func failRenames(t *testing.T, failures map[string]error) {
+	t.Helper()
+	prev := rename
+	rename = func(from, to string) error {
+		if err, ok := failures[from]; ok {
+			return err
+		}
+		return prev(from, to)
+	}
+	t.Cleanup(func() { rename = prev })
+}
+
+func TestMoveDirs_ReportsADirectoryStrandedByAFailedUndo(t *testing.T) {
+	root := t.TempDir()
+	repo, wiki := filepath.Join(root, "x.git"), filepath.Join(root, "x.wiki.git")
+	movedRepo := deletedDirPath(repo, 1)
+	mkdirs(t, repo, wiki)
+	errMove, errUndo := errors.New("wiki move failed"), errors.New("undo failed")
+	failRenames(t, map[string]error{wiki: errMove, movedRepo: errUndo})
+
+	err := moveDirs(dirMove{repo, movedRepo}, dirMove{wiki, deletedDirPath(wiki, 1)})
+
+	if !errors.Is(err, errMove) || !strings.HasPrefix(err.Error(), errMove.Error()) {
+		t.Errorf("want the move's error first, got %v", err)
+	}
+	if !errors.Is(err, errUndo) || !strings.Contains(err.Error(), movedRepo) || !strings.Contains(err.Error(), repo+":") {
+		t.Errorf("want the undo's error naming the stranded %s and its destination %s, got %v", movedRepo, repo, err)
+	}
+	assertExists(t, movedRepo, wiki)
+}
+
 // Old Restore took the latest copy, so a restored row can leave an earlier
 // deletion's copy behind while a later row's own copy is gone.
 func TestPurgeExpired_OldFormatCopy_NeverTakesAnEarlierDeletion(t *testing.T) {
