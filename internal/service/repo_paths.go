@@ -38,13 +38,13 @@ func deletedDirPath(dir string, repoID int64) string {
 	return dir + deletedDirInfix + "id" + strconv.FormatInt(repoID, 10)
 }
 
-// legacyStampSkew allows for the app's clock running ahead of the database's.
+// legacyStampSkew allows for the app's and the database's clocks differing.
 const legacyStampSkew = time.Minute
 
 // legacyDeletedDir returns repoPath's copy soft-deleted before copies were named
 // after their row, or "" if none. Delete stamped it with the Unix time just
 // before the database set deletedAt, so the row's copy has the closest stamp,
-// and one stamped well after deletedAt belongs to a later deletion.
+// and one stamped well before or after deletedAt belongs to another deletion.
 func legacyDeletedDir(repoPath string, deletedAt time.Time) (string, error) {
 	parent := filepath.Dir(repoPath)
 	entries, err := os.ReadDir(parent)
@@ -55,7 +55,8 @@ func legacyDeletedDir(repoPath string, deletedAt time.Time) (string, error) {
 		return "", err
 	}
 	prefix := filepath.Base(repoPath) + deletedDirInfix
-	target, latest := deletedAt.Unix(), deletedAt.Add(legacyStampSkew).Unix()
+	target := deletedAt.Unix()
+	earliest, latest := deletedAt.Add(-legacyStampSkew).Unix(), deletedAt.Add(legacyStampSkew).Unix()
 	var best string
 	var bestGap int64
 	for _, e := range entries {
@@ -64,7 +65,7 @@ func legacyDeletedDir(repoPath string, deletedAt time.Time) (string, error) {
 			continue
 		}
 		stamp, err := strconv.ParseInt(digits, 10, 64)
-		if err != nil || stamp > latest {
+		if err != nil || stamp < earliest || stamp > latest {
 			continue
 		}
 		gap := max(target-stamp, stamp-target)

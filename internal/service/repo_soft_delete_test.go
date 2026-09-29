@@ -125,7 +125,7 @@ func TestRestore_MovesTheLatestDeletedDirBack(t *testing.T) {
 	root := t.TempDir()
 	owner := "restorer_" + testutil.UniqueSuffix(t)
 	ownerID := seedOwner(t, db, owner)
-	repoID := seedRepoRow(t, db, ownerID, owner, "x", "NOW()")
+	repoID := seedRepoRow(t, db, ownerID, owner, "x", "to_timestamp(1700000000)")
 	older := filepath.Join(root, owner, "x.git.deleted.1600000000")
 	latest := filepath.Join(root, owner, "x.git.deleted.1700000000")
 	mkdirs(t, older, filepath.Join(latest, "latest-marker"))
@@ -147,10 +147,11 @@ func TestPurgeExpired_LeavesLiveRepoNamedLikeADeletedDir(t *testing.T) {
 	root := t.TempDir()
 	owner := "purger_" + testutil.UniqueSuffix(t)
 	ownerID := seedOwner(t, db, owner)
-	seedRepoRow(t, db, ownerID, owner, "x", "NOW() - INTERVAL '31 days'")
+	expiredAt := time.Now().Add(-31 * 24 * time.Hour)
+	seedRepoRow(t, db, ownerID, owner, "x", deletedAtSQL(expiredAt))
 	seedRepoRow(t, db, ownerID, owner, "x.git.deleted.1", "NULL")
 	live := filepath.Join(root, owner, "x.git.deleted.1.git")
-	expired := filepath.Join(root, owner, "x.git.deleted.1600000000")
+	expired := oldFormatCopy(filepath.Join(root, owner, "x.git"), expiredAt)
 	mkdirs(t, live, expired)
 
 	if err := newDiskRepoService(db, root).PurgeExpired(context.Background()); err != nil {
@@ -369,4 +370,39 @@ func TestPurgeExpired_OldFormatCopy_NeverTakesALaterDeletion(t *testing.T) {
 	purgeExpired(t, newDiskRepoService(db, root))
 
 	assertExists(t, oldFormatCopy(repo, secondAt))
+}
+
+func TestRestore_OldFormatCopy_NeverTakesAnEarlierDeletion(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	owner, first, second := sameNameOwners(t, db)
+	repo := filepath.Join(root, owner, "x.git")
+	firstAt := time.Now().Add(-48 * time.Hour)
+	firstID := seedRepoRow(t, db, first, owner, "x", deletedAtSQL(firstAt))
+	secondID := seedRepoRow(t, db, second, owner, "x", deletedAtSQL(time.Now().Add(-24*time.Hour)))
+	mkdirs(t, filepath.Join(oldFormatCopy(repo, firstAt), "first"))
+	svc := newDiskRepoService(db, root)
+
+	_ = svc.Restore(context.Background(), secondID, second, false)
+	assertMissing(t, repo)
+
+	restoreRepo(t, svc, firstID, first)
+	assertExists(t, filepath.Join(repo, "first"))
+}
+
+// Old Restore took the latest copy, so a restored row can leave an earlier
+// deletion's copy behind while a later row's own copy is gone.
+func TestPurgeExpired_OldFormatCopy_NeverTakesAnEarlierDeletion(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	owner, first, second := sameNameOwners(t, db)
+	repo := filepath.Join(root, owner, "x.git")
+	firstAt := time.Now().Add(-40 * 24 * time.Hour)
+	seedRepoRow(t, db, first, owner, "x", "NULL")
+	seedRepoRow(t, db, second, owner, "x", deletedAtSQL(time.Now().Add(-31*24*time.Hour)))
+	mkdirs(t, oldFormatCopy(repo, firstAt))
+
+	purgeExpired(t, newDiskRepoService(db, root))
+
+	assertExists(t, oldFormatCopy(repo, firstAt))
 }
