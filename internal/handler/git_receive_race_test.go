@@ -79,7 +79,7 @@ func receivePack(t *testing.T, h http.Handler, r raceRepo, cmds ...*packp.Comman
 func TestGitReceivePack_BranchMovedSinceClientRead_Refused(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	h := newAPIRouterAt(db, reposRoot)
+	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	web := webCommit(t, reposRoot, r, "main")
 
@@ -98,7 +98,7 @@ func TestGitReceivePack_BranchMovedSinceClientRead_Refused(t *testing.T) {
 func TestGitReceivePack_RefusedRefStillEnforcesProtection(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	h := newAPIRouterAt(db, reposRoot)
+	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	testutil.Exec(t, db, `INSERT INTO branch_protections (repo_id, pattern, block_force_push) VALUES ($1, 'main', true)`, r.id)
 
