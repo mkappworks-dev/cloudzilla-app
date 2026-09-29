@@ -51,9 +51,6 @@ func (s *OAuthAuthorizationStore) ExchangeCode(ctx context.Context, appID int64,
 		tokenHash, code, appID, redirectURI,
 	).Scan(&auth.ID, &auth.AppID, &auth.UserID, &auth.Code, &auth.TokenHash, &auth.ScopesRaw, &auth.CodeExpiresAt, &auth.CreatedAt)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("invalid or expired authorization code")
-		}
 		return nil, fmt.Errorf("oauth_authorization exchange: %w", err)
 	}
 	if auth.ScopesRaw != "" {
