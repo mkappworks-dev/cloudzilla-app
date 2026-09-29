@@ -348,3 +348,30 @@ func TestRepoAPI_CreateFromPrivateRepo_LooksLikeMissingTemplate(t *testing.T) {
 		}
 	}
 }
+
+func TestRepoAPI_CreateFromTemplate_UnusableName_422(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	api := newAPIRouter(t, db)
+	template := seedOwnedRepo(t, db, false)
+	testutil.Exec(t, db, `UPDATE repositories SET is_template = true WHERE id = $1`, template.id)
+	legacyName := "*_" + testutil.UniqueSuffix(t)
+	var legacyID int64
+	if err := db.QueryRow(`INSERT INTO users (username, email, password_hash) VALUES ($1, $2, 'x') RETURNING id`,
+		legacyName, "legacy_"+testutil.UniqueSuffix(t)+"@test.invalid").Scan(&legacyID); err != nil {
+		t.Fatalf("seed legacy user: %v", err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, legacyID) })
+
+	for label, c := range map[string]struct{ token, name, wantMsg string }{
+		"invalid name":        {template.owner.token, "a b", "Repository names can use"},
+		"legacy unsafe owner": {makeIssueJWT(t, legacyID, legacyName), "copy", "can't be created"},
+	} {
+		rr := postForm(t, api, c.token, "/api/repos/from-template", url.Values{
+			"template_repo_id": {strconv.FormatInt(template.id, 10)},
+			"name":             {c.name},
+		})
+		if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), c.wantMsg) {
+			t.Errorf("%s: want 422 containing %q, got %d %s", label, c.wantMsg, rr.Code, rr.Body.String())
+		}
+	}
+}

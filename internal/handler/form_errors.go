@@ -8,6 +8,11 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
+const (
+	invalidRepoNameMessage = "Repository names can use letters, numbers, ., - and _, must start with a letter or number, and be at most 100 characters."
+	unsafeRepoPathMessage  = "This repository can't be created: the owner or template name isn't allowed in repository paths. Ask an administrator to rename it."
+)
+
 // createFailedMessage returns the page text for a failed create. Errors the user
 // can act on get their own message; anything else is logged and replaced,
 // because store and driver errors carry constraint names and SQLSTATEs.

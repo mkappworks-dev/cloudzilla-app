@@ -146,7 +146,7 @@ func (s *OrgService) RemoveMember(ctx context.Context, orgID, requestingUserID, 
 
 func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int64, name, description string, private bool) (*model.Repository, error) {
 	if err := ValidateName(name); err != nil {
-		return nil, fmt.Errorf("invalid repository name: %w", err)
+		return nil, err
 	}
 	if !s.IsOwner(ctx, orgID, requestingUserID) {
 		return nil, fmt.Errorf("only org owners can create repos")
