@@ -79,7 +79,7 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	if !enabled && secret.Valid && secret.String != "" {
 		data.TOTPPendingSecret = secret.String
-		if data.TOTPQRCode, err = h.Services.TOTP.EnrolmentQRCode(claims.Username, "Cloudzilla", secret.String); err != nil {
+		if data.TOTPQRCode, err = h.Services.TOTP.EnrolmentQRCode(ctx, claims.Username, "Cloudzilla", secret.String); err != nil {
 			slog.Error("render totp qr code", "user_id", claims.UserID, "error", err)
 		}
 	}

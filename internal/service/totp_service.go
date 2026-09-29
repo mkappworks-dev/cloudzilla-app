@@ -48,14 +48,9 @@ func (s *TOTPService) Generate(username, issuer string) (secret, otpAuthURL stri
 	return secret, otpAuthURL, nil
 }
 
-// BuildOTPAuthURL constructs the otpauth:// URL from a known secret.
-func (s *TOTPService) BuildOTPAuthURL(username, issuer, secret string) string {
-	return buildOTPAuthURL(username, issuer, secret)
-}
-
 // EnrolmentQRCode returns the otpauth:// URL for secret as a QR code PNG data URI.
 // It is drawn here, not by a QR web service, so the shared secret never leaves the server.
-func (s *TOTPService) EnrolmentQRCode(username, issuer, secret string) (string, error) {
+func (s *TOTPService) EnrolmentQRCode(_ context.Context, username, issuer, secret string) (string, error) {
 	// A negative size asks go-qrcode for pixels per module, which keeps module edges crisp.
 	png, err := qrcode.Encode(buildOTPAuthURL(username, issuer, secret), qrcode.Medium, -qrPixelsPerModule)
 	if err != nil {
