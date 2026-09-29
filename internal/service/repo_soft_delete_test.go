@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -96,6 +97,24 @@ func TestRestore_GlobOwnerNameLeavesOtherOwnersAlone(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, attacker, "secret.git")); !os.IsNotExist(err) {
 		t.Errorf("nothing may be restored into the glob-named owner's dir; stat: %v", err)
 	}
+}
+
+// A legacy repo x.wiki's path, x.wiki.git, is repo x's wiki.
+func TestRestore_WikiAliasName_NotFoundAndTouchesNothing(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	root := t.TempDir()
+	owner := "aliasrestorer_" + testutil.UniqueSuffix(t)
+	ownerID := seedOwner(t, db, owner)
+	aliasID := seedRepoRow(t, db, ownerID, owner, "x.wiki", "NOW()")
+	deletedCopy := deletedDirPath(filepath.Join(root, owner, "x.wiki.git"), aliasID)
+	mkdirs(t, deletedCopy)
+
+	err := newDiskRepoService(db, root).Restore(context.Background(), aliasID, ownerID, false)
+
+	if !errors.Is(err, sql.ErrNoRows) {
+		t.Errorf("want sql.ErrNoRows, got %v", err)
+	}
+	assertDirHolds(t, filepath.Join(root, owner), filepath.Base(deletedCopy))
 }
 
 func TestRestore_LeavesLiveRepoNamedLikeADeletedDir(t *testing.T) {

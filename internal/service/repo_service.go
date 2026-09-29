@@ -814,6 +814,9 @@ func (s *RepoService) gitDirs(owner, name string) (repoPath, wikiPath string, er
 
 func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, isSuperadmin bool) error {
 	repo, err := s.repos.GetDeletedByID(ctx, repoID)
+	if err == nil && isWikiAliasName(repo.Name) {
+		err = sql.ErrNoRows
+	}
 	if err != nil {
 		return fmt.Errorf("deleted repo not found: %w", err)
 	}
@@ -840,6 +843,9 @@ func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, is
 }
 
 func (s *RepoService) GetDeleted(ctx context.Context, ownerName, name string) (*model.Repository, error) {
+	if isWikiAliasName(name) {
+		return nil, fmt.Errorf("get deleted repo %s/%s: %w", ownerName, name, sql.ErrNoRows)
+	}
 	return s.repos.GetDeletedByOwnerAndName(ctx, ownerName, name)
 }
 
