@@ -549,15 +549,13 @@ func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName stri
 		return nil, fmt.Errorf("fork db record: %w", err)
 	}
 
-	// Copy the bare git repo directory
 	if err := os.MkdirAll(filepath.Dir(dstPath), 0755); err != nil {
-		_ = s.repos.DecrementForkCount(ctx, orig.ID)
+		_ = s.repos.DeleteByID(ctx, forked.ID)
 		return nil, fmt.Errorf("create owner dir: %w", err)
 	}
 
 	if err := copyDir(srcPath, dstPath); err != nil {
-		// Rollback DB record
-		_, _ = ctx, forked // best effort
+		_ = s.repos.DeleteByID(ctx, forked.ID)
 		return nil, fmt.Errorf("copy git dir: %w", err)
 	}
 
