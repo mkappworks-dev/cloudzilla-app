@@ -55,3 +55,36 @@ func TestSignupTokensMigration_OneRowPerEmailIgnoringCase(t *testing.T) {
 		t.Error("want a unique violation for an email that differs only by case")
 	}
 }
+
+func TestOrganizationsNameLowerIndex_ServesTheOwnerNameGuard(t *testing.T) {
+	db := testutil.OpenFreshTestDB(t)
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.Exec(`SET LOCAL enable_seqscan = off`); err != nil {
+		t.Fatal(err)
+	}
+
+	rows, err := tx.Query(`EXPLAIN SELECT 1 FROM organizations WHERE lower(name) = lower($1)`, "acme")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rows.Close() }()
+	var plan strings.Builder
+	for rows.Next() {
+		var line string
+		if err := rows.Scan(&line); err != nil {
+			t.Fatal(err)
+		}
+		plan.WriteString(line + "\n")
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(plan.String(), "idx_organizations_name_lower") {
+		t.Errorf("the guard's org lookup must be able to use idx_organizations_name_lower; plan:\n%s", plan.String())
+	}
+}
