@@ -283,3 +283,16 @@ func TestPageInviteSubmit_ConcurrentSubmits_OneAccount(t *testing.T) {
 		t.Errorf("want exactly 1 redeemed submit, got %d", redeemed)
 	}
 }
+
+func TestPageInvite_LookupFails_LogsInvitationLookupFailed(t *testing.T) {
+	logs := captureLogs(t)
+
+	rr := serveInvite(openSchemalessDB(t), http.MethodGet, "testinvite_x", nil)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("want 500, got %d", rr.Code)
+	}
+	if got := loggedLevel(t, logs, "invite: invitation lookup failed"); got != "ERROR" {
+		t.Errorf("want ERROR, got %s", got)
+	}
+}

@@ -66,7 +66,7 @@ func (s *UserStore) Create(ctx context.Context, u *model.User) error {
 }
 
 func (s *UserStore) CreateFromInvitation(ctx context.Context, u *model.User, invitationID int64) error {
-	return s.insertClaimed(ctx, u, ErrInvitationUnusable, func(tx *sql.Tx) error {
+	return s.insertClaimed(ctx, "user create from invitation", u, ErrInvitationUnusable, func(tx *sql.Tx) error {
 		res, err := tx.ExecContext(ctx,
 			`UPDATE invitations SET accepted_at = NOW() WHERE id = $1 AND `+usableInvitationCond,
 			invitationID,
@@ -85,7 +85,7 @@ func (s *UserStore) CreateFromInvitation(ctx context.Context, u *model.User, inv
 
 // CreateFromSignupToken inserts u with the email of the link it claims.
 func (s *UserStore) CreateFromSignupToken(ctx context.Context, u *model.User, tokenHash string) error {
-	return s.insertClaimed(ctx, u, ErrSignupTokenUnusable, func(tx *sql.Tx) error {
+	return s.insertClaimed(ctx, "user create from signup token", u, ErrSignupTokenUnusable, func(tx *sql.Tx) error {
 		err := tx.QueryRowContext(ctx,
 			`UPDATE signup_tokens SET used_at = NOW() WHERE token_hash = $1 AND `+usableSignupTokenCond+` RETURNING email`,
 			tokenHash,
@@ -104,10 +104,10 @@ func (s *UserStore) CreateFromSignupToken(ctx context.Context, u *model.User, to
 // releases the claim and concurrent submits can't both redeem one link. An email
 // registered after the claim is reported as unusable, the rule every claim's
 // predicate already applies.
-func (s *UserStore) insertClaimed(ctx context.Context, u *model.User, unusable error, claim func(*sql.Tx) error) error {
+func (s *UserStore) insertClaimed(ctx context.Context, op string, u *model.User, unusable error, claim func(*sql.Tx) error) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("user create: begin: %w", err)
+		return fmt.Errorf("%s: begin: %w", op, err)
 	}
 	defer tx.Rollback()
 

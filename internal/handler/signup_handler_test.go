@@ -429,3 +429,17 @@ func TestPageRegisterComplete_RegistrationClosed_RedirectsToLogin(t *testing.T) 
 		}
 	}
 }
+
+func TestPageRegisterComplete_LookupFails_LogsLinkLookupFailed(t *testing.T) {
+	logs := captureLogs(t)
+	h := newSignupHandler(openSchemalessDB(t), newFakeSignupMailer())
+
+	rr := serveSignup(h, http.MethodGet, "/register/complete/x", nil)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("want 500, got %d", rr.Code)
+	}
+	if got := loggedLevel(t, logs, "signup: link lookup failed"); got != "ERROR" {
+		t.Errorf("want ERROR, got %s", got)
+	}
+}

@@ -64,7 +64,7 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 // usableInvitation writes the response itself when it returns false.
 func (h *Handler) usableInvitation(w http.ResponseWriter, r *http.Request) (*model.Invitation, bool) {
 	inv, err := h.Services.Invitation.GetUsable(r.Context(), chi.URLParam(r, "token"))
-	return inv, h.linkLookupOK(w, r, err, service.ErrInvitationUnusable, h.renderInvalidInvitation, "invite")
+	return inv, h.linkLookupOK(w, r, err, service.ErrInvitationUnusable, h.renderInvalidInvitation, "invite: invitation lookup failed")
 }
 
 // The invitation is withheld: its email may belong to a registered account,

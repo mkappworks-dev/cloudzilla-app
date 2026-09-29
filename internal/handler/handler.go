@@ -69,15 +69,15 @@ func (h *Handler) setAuthCookie(w http.ResponseWriter, token string) {
 
 // linkLookupOK reports whether a token link's lookup succeeded, writing the
 // response itself when it didn't: the invalid-link page for an unusable link,
-// a logged 500 for anything else.
-func (h *Handler) linkLookupOK(w http.ResponseWriter, r *http.Request, err, unusable error, renderInvalid func(http.ResponseWriter, *http.Request), logPrefix string) bool {
+// a 500 logged as logMsg for anything else.
+func (h *Handler) linkLookupOK(w http.ResponseWriter, r *http.Request, err, unusable error, renderInvalid func(http.ResponseWriter, *http.Request), logMsg string) bool {
 	switch {
 	case err == nil:
 		return true
 	case errors.Is(err, unusable):
 		renderInvalid(w, r)
 	default:
-		slog.Error(logPrefix+": link lookup failed", "error", err)
+		slog.Error(logMsg, "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
 	return false

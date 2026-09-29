@@ -120,7 +120,7 @@ func (h *Handler) registrationOpen(w http.ResponseWriter, r *http.Request) bool 
 // usableSignup writes the response itself when it returns false.
 func (h *Handler) usableSignup(w http.ResponseWriter, r *http.Request) (*model.SignupToken, bool) {
 	signup, err := h.Services.Signup.GetUsable(r.Context(), chi.URLParam(r, "token"))
-	return signup, h.linkLookupOK(w, r, err, service.ErrSignupTokenUnusable, h.renderInvalidSignupLink, "signup")
+	return signup, h.linkLookupOK(w, r, err, service.ErrSignupTokenUnusable, h.renderInvalidSignupLink, "signup: link lookup failed")
 }
 
 func (h *Handler) renderInvalidSignupLink(w http.ResponseWriter, r *http.Request) {
