@@ -3,11 +3,9 @@ package handler
 import (
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -160,15 +158,5 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name: totpPendingCookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure,
 	})
-	http.SetCookie(w, &http.Cookie{
-		Name:     h.Cfg.Auth.CookieName,
-		Value:    fullToken,
-		HttpOnly: true,
-		Secure:   h.Cfg.Auth.CookieSecure,
-		Path:     "/",
-		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
-		SameSite: http.SameSiteLaxMode,
-	})
-	h.Services.AuditLog.Record(r.Context(), r, u.ID, u.Username, model.AuditActionLogin, "user", u.ID, u.Username, nil)
-	http.Redirect(w, r, safeNextPath(next), http.StatusSeeOther)
+	h.startSession(w, r, u, fullToken, next)
 }

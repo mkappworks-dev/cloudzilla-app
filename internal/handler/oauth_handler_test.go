@@ -144,3 +144,28 @@ func TestGoogleOAuthCallback_NewVerifiedEmailSignsUp(t *testing.T) {
 		t.Errorf("oauth_id = %q, want the Google ID linked", got)
 	}
 }
+
+func TestGoogleOAuthCallback_TOTPUserGoesTo2FA(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	googleID := "g_totp_" + suffix
+	testutil.Exec(t, db, `UPDATE users SET oauth_provider = 'google', oauth_id = $1, totp_enabled = TRUE, totp_secret = 'JBSWY3DPEHPK3PXP' WHERE id = $2`, googleID, userID)
+	fakeGoogle(t, map[string]any{"id": googleID, "email": "g_totp_" + suffix + "@example.com", "verified_email": true, "name": "TOTP " + suffix})
+
+	rr := googleCallback(t, db)
+
+	if rr.Code != http.StatusSeeOther || !strings.HasPrefix(rr.Header().Get("Location"), "/auth/2fa") {
+		t.Fatalf("got %d to %q, want 303 to /auth/2fa", rr.Code, rr.Header().Get("Location"))
+	}
+	if hasAuthCookie(rr) {
+		t.Error("an auth cookie was issued before the TOTP code was checked")
+	}
+	pending := false
+	for _, c := range rr.Result().Cookies() {
+		pending = pending || (c.Name == "cz_totp_pending" && c.Value != "")
+	}
+	if !pending {
+		t.Error("no cz_totp_pending cookie was issued")
+	}
+}
