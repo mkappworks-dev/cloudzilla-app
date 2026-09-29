@@ -77,3 +77,5 @@ SELECT id, name FROM organizations WHERE name !~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,38
 ```
 
 Rename them in the database before those owners need to delete, restore or transfer repositories; update `repositories.owner_name` to match and move the owner's directory under `git.repos_root`.
+
+Repository names can no longer end in `.wiki`: repository `x.wiki` would share its directory with repository `x`'s wiki. Git smart-HTTP now refuses such names. Find existing ones with `SELECT id, owner_name, name FROM repositories WHERE lower(name) LIKE '%.wiki';` and rename them, moving each `<name>.git` directory to match.

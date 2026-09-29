@@ -84,12 +84,6 @@ func (h *Handler) PageRegisterSubmit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-const (
-	ownerNameRule          = `can use letters, numbers, - and _, must start with a letter or number, be at most 39 characters, and can't be a reserved name like "admin".`
-	invalidUsernameMessage = "Usernames " + ownerNameRule
-	invalidOrgNameMessage  = "Organization names " + ownerNameRule
-)
-
 // Usernames are public, but an email conflict gets the generic message so the
 // form doesn't confirm which addresses have accounts.
 func createAccountErrorMessage(err error) string {
