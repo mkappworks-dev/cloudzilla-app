@@ -78,6 +78,22 @@ SELECT id, name FROM organizations WHERE name !~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,38
 
 Rename them in the database before those owners need to delete, restore or transfer repositories; update `repositories.owner_name` to match and move the owner's directory under `git.repos_root`.
 
+The shared, case-insensitive owner namespace is also checked only on create, so owners from before it may already collide. A user and an organization with the same name share one directory under `git.repos_root`, and so do owners whose names differ only by case on a case-insensitive filesystem (the default on macOS and Windows), so their repositories alias each other. List them with:
+
+```sql
+-- a user and an organization with the same name, ignoring case
+SELECT u.id AS user_id, u.username, o.id AS org_id, o.name AS org_name
+FROM users u JOIN organizations o ON lower(u.username) = lower(o.name);
+-- usernames that differ only by case
+SELECT lower(username) AS name, array_agg(id ORDER BY id) AS user_ids
+FROM users GROUP BY lower(username) HAVING count(*) > 1;
+-- organization names that differ only by case
+SELECT lower(name) AS name, array_agg(id ORDER BY id) AS org_ids
+FROM organizations GROUP BY lower(name) HAVING count(*) > 1;
+```
+
+Rename all but one owner in each row in the database, updating `repositories.owner_name` to match. The old directory also holds the other owner's repositories, so move only the renamed owner's repository directories (`<name>.git`, `<name>.wiki.git` and their `.deleted.` copies) into its new one.
+
 A deleted repository's directory is now kept as `<name>.git.deleted.id<repository id>`, and its wiki moves with it to `<name>.wiki.git.deleted.id<repository id>`, so restoring or purging one deletion never touches another deletion of the same name. Directories deleted by earlier versions, `<name>.git.deleted.<unix time>`, still restore and purge: a deleted row takes the one whose time is closest to its `deleted_at`, ignoring any more than a minute later. Earlier versions left the wiki in place at `<name>.wiki.git`, where a repository re-created under that name picks it up; move or remove such wikis by hand.
 
 Repository names can no longer end in `.wiki`: repository `x.wiki` would share its directory with repository `x`'s wiki. Repositories given such a name earlier are no longer served on any path: web, API, SSH or Git smart-HTTP. Find them with `SELECT id, owner_name, name FROM repositories WHERE lower(name) LIKE '%.wiki';` and rename them, moving each `<name>.git` directory to match.
