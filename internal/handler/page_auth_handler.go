@@ -59,31 +59,43 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := h.signIn(w, r, user, token, next); err != nil {
+		renderLoginError("Internal error")
+	}
+}
+
+// signIn finishes a sign-in whose first factor has passed. Every web sign-in
+// route ends here so none of them can skip TOTP: a user who enabled it gets a
+// short-lived pending cookie and is sent to /auth/2fa, and VerifyTOTP starts
+// the session.
+func (h *Handler) signIn(w http.ResponseWriter, r *http.Request, user *model.User, token, next string) error {
 	totpEnabled, _, err := h.Services.TOTP.GetUserTOTPState(r.Context(), user.ID)
 	if err != nil {
-		renderLoginError("Internal error")
-		return
+		return err
+	}
+	if !totpEnabled {
+		h.startSession(w, r, user, token, next)
+		return nil
 	}
 
-	if totpEnabled {
-		pendingToken, err := h.Services.TOTP.GeneratePendingToken(user.ID, h.Cfg.Auth.JWTSecret)
-		if err != nil {
-			renderLoginError("Internal error")
-			return
-		}
-		http.SetCookie(w, &http.Cookie{
-			Name:     totpPendingCookieName,
-			Value:    pendingToken,
-			HttpOnly: true,
-			Secure:   h.Cfg.Auth.CookieSecure,
-			Path:     "/",
-			Expires:  time.Now().Add(5 * time.Minute),
-			SameSite: http.SameSiteLaxMode,
-		})
-		http.Redirect(w, r, view.WithNext("/auth/2fa", next), http.StatusSeeOther)
-		return
+	pendingToken, err := h.Services.TOTP.GeneratePendingToken(user.ID, h.Cfg.Auth.JWTSecret)
+	if err != nil {
+		return err
 	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     totpPendingCookieName,
+		Value:    pendingToken,
+		HttpOnly: true,
+		Secure:   h.Cfg.Auth.CookieSecure,
+		Path:     "/",
+		Expires:  time.Now().Add(5 * time.Minute),
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.Redirect(w, r, view.WithNext("/auth/2fa", next), http.StatusSeeOther)
+	return nil
+}
 
+func (h *Handler) startSession(w http.ResponseWriter, r *http.Request, user *model.User, token, next string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     h.Cfg.Auth.CookieName,
 		Value:    token,
@@ -93,9 +105,7 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
 		SameSite: http.SameSiteLaxMode,
 	})
-
 	h.Services.AuditLog.Record(r.Context(), r, user.ID, user.Username, model.AuditActionLogin, "user", user.ID, user.Username, nil)
-
 	http.Redirect(w, r, safeNextPath(next), http.StatusSeeOther)
 }
 

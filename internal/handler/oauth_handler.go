@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -156,15 +155,7 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     h.Cfg.Auth.CookieName,
-		Value:    jwtToken,
-		HttpOnly: true,
-		Secure:   h.Cfg.Auth.CookieSecure,
-		Path:     "/",
-		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
-		SameSite: http.SameSiteLaxMode,
-	})
-	h.Services.AuditLog.Record(r.Context(), r, oauthUser.ID, oauthUser.Username, model.AuditActionLogin, "user", oauthUser.ID, oauthUser.Username, nil)
-	http.Redirect(w, r, safeNextPath(next), http.StatusSeeOther)
+	if err := h.signIn(w, r, oauthUser, jwtToken, next); err != nil {
+		http.Error(w, "authentication failed", http.StatusInternalServerError)
+	}
 }

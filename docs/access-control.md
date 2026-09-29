@@ -12,7 +12,7 @@
 | Personal Access Token | `Authorization: Bearer <token>` header             | Any API endpoint              |
 | OAuth App Token       | `Authorization: Bearer <token>` header             | Scoped API endpoints (below)  |
 | SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys` | Git SSH transport             |
-| TOTP 2FA              | 6-digit code after password login                  | `POST /auth/2fa/verify`       |
+| TOTP 2FA              | 6-digit code after any web sign-in                 | `POST /auth/2fa/verify`       |
 
 ### Return path after sign-in
 
@@ -28,6 +28,12 @@ contain control characters. Anything else goes to `/`.
 | LDAP     | Hidden `next` input on the LDAP form                                    |
 | Google   | `oauth_next` cookie, set by `/auth/google?next=…`                       |
 | SAML     | `RelayState`, dropped when it exceeds the binding's 80-byte limit      |
+
+### Two-factor authentication
+
+TOTP is opt-in per user, from the Security tab of `/settings`. The password, LDAP, Google and SAML routes all end in `signIn` (`page_auth_handler.go`). For a user with TOTP on, it sets a five-minute `cz_totp_pending` cookie and redirects to `/auth/2fa` instead of issuing `cz_token`; `VerifyTOTP` starts the session once a code or backup code checks out. Every session starts in `startSession`, which records the `login` audit event.
+
+Google and SAML users get the prompt too, even when the IdP enforces its own MFA. Cloudzilla can't tell whether it did: it neither requests nor checks a SAML `AuthnContext`, and Google's userinfo doesn't say. Because TOTP is opt-in, only users who enrolled are asked, so a user whose IdP already handles MFA can leave it off. Gitea and GitLab make the same default, with a per-provider bypass that Cloudzilla doesn't have yet.
 
 ### JWT Claims
 
