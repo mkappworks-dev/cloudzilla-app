@@ -112,6 +112,9 @@ func (h *Handler) ConfirmAuthorize(w http.ResponseWriter, r *http.Request) {
 // an RFC 6749 §5.2 error code and nothing else, so they reveal neither internals
 // nor which client_ids exist.
 func (h *Handler) TokenEndpoint(w http.ResponseWriter, r *http.Request) {
+	// RFC 6749 §5.1; set on every response so no branch can forget it. Pragma is
+	// omitted on purpose: RFC 9111 deprecates it.
+	w.Header().Set("Cache-Control", "no-store")
 	if err := r.ParseForm(); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request")
 		return

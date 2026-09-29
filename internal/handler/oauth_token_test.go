@@ -78,3 +78,17 @@ func TestTokenEndpoint_StoreError_OpaqueServerError(t *testing.T) {
 		t.Errorf("want 500 %s, got %d: %s", want, rr.Code, rr.Body.String())
 	}
 }
+
+// Every token-endpoint response opts out of caching, so the header can't depend on
+// which branch answered.
+func TestTokenEndpoint_ErrorResponses_NoStore(t *testing.T) {
+	h := newClosedDBTokenEndpoint(t)
+	for _, form := range []url.Values{
+		{"grant_type": {"password"}},
+		{"grant_type": {"authorization_code"}, "code": {"c"}, "client_id": {"id"}, "client_secret": {"s"}},
+	} {
+		if got := postToken(h, form, "", "").Header().Get("Cache-Control"); got != "no-store" {
+			t.Errorf("grant_type %q: Cache-Control = %q, want no-store", form.Get("grant_type"), got)
+		}
+	}
+}
