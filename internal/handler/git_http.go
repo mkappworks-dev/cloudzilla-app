@@ -313,13 +313,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// WrapForReceive routes receive-pack onto go-git's parsed-storage
-	// path; the filesystem fast path can't resolve thin-pack REF_DELTAs.
-	// See docs/git-transport.md → "Thin packs".
-	srv := server.NewServer(server.MapLoader{
-		ep.String(): gittransport.WrapForReceive(gitRepo.Storer),
-	})
-	sess, err := srv.NewReceivePackSession(ep, nil)
+	sess, err := gittransport.NewServer(gitRepo.Storer).NewReceivePackSession(ep, nil)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -390,9 +384,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
 		forcePush := cmd.Action() == packp.Update && cmd.Old != plumbing.ZeroHash && isForcePushHTTP(gitRepo, cmd)
 		if err := h.Services.BranchProtection.CheckPush(r.Context(), repo.ID, branch, forcePush); err != nil {
-			// Rollback the ref to its previous value
-			ref := plumbing.NewHashReference(cmd.Name, cmd.Old)
-			if rbErr := gitRepo.Storer.SetReference(ref); rbErr != nil {
+			if rbErr := gittransport.Revert(gitRepo.Storer, cmd); rbErr != nil {
 				slog.Error("branch protection rollback failed", "ref", cmd.Name.String(), "error", rbErr)
 			}
 			http.Error(w, "push rejected: "+err.Error(), http.StatusForbidden)

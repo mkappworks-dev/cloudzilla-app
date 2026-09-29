@@ -13,6 +13,27 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
+// WriteCommit stores a commit of an empty tree with the given parents.
+func WriteCommit(t *testing.T, st storer.EncodedObjectStorer, msg string, parents ...plumbing.Hash) plumbing.Hash {
+	t.Helper()
+	tree := writeObject(t, st, &object.Tree{})
+	sig := object.Signature{Name: "Tester", Email: "tester@example.com", When: time.Unix(0, 0).UTC()}
+	return writeObject(t, st, &object.Commit{Author: sig, Committer: sig, Message: msg, TreeHash: tree, ParentHashes: parents})
+}
+
+func writeObject(t *testing.T, st storer.EncodedObjectStorer, o object.Object) plumbing.Hash {
+	t.Helper()
+	obj := st.NewEncodedObject()
+	if err := o.Encode(obj); err != nil {
+		t.Fatalf("encode object: %v", err)
+	}
+	h, err := st.SetEncodedObject(obj)
+	if err != nil {
+		t.Fatalf("store object: %v", err)
+	}
+	return h
+}
+
 // PushDuringCommit lands a push on ref after commit has read the branch but
 // before it moves it. It holds go-git's own lock on the loose ref file while
 // commit runs, waits for commit to write a commit on top of from, then moves

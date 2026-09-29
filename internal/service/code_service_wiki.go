@@ -12,6 +12,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 )
 
 type WikiPageMeta struct {
@@ -471,7 +472,7 @@ func wikiMutateTree(
 	if err != nil {
 		return err
 	}
-	if err := setBranchTip(stor, headRef.Name(), parentCommit.Hash, commitHash); err != nil {
+	if err := gitref.Move(stor, headRef.Name(), parentCommit.Hash, commitHash); err != nil {
 		return err
 	}
 	// Mirror wikiCommit's HEAD-fixup so that a rename/delete on a detached or
@@ -576,7 +577,7 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, author 
 
 	// Advance HEAD / main ref.
 	mainBranch := plumbing.NewBranchReferenceName("main")
-	if err := setBranchTip(storer, mainBranch, oldTip, commitHash); err != nil {
+	if err := gitref.Move(storer, mainBranch, oldTip, commitHash); err != nil {
 		return err
 	}
 
