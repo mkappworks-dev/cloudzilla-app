@@ -101,9 +101,9 @@ func (s *BranchProtectionService) CheckPushCommand(ctx context.Context, repoID i
 }
 
 // isFastForward reports whether cmd provably keeps every commit its branch
-// had. Deleting and pushing again is a force push in two steps, and a branch
-// can be pushed to an object that isn't a commit, so a delete or anything it
-// can't read as commits is not a fast-forward.
+// had. Deleting and pushing again is a force push in two steps, so a delete is
+// not a fast-forward; failing closed, neither is anything it can't read as
+// commits.
 func isFastForward(gitRepo *gogit.Repository, cmd *packp.Command) bool {
 	if cmd.Action() == packp.Delete {
 		return false

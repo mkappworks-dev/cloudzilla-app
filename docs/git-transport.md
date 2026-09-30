@@ -86,15 +86,9 @@ go-git's receive-pack writes each pushed ref without comparing it to the command
  ! [remote rejected] main -> main (ref changed since it was read; fetch and push again)
 ```
 
-go-git's receive-pack doesn't check connectivity either, so a push could point any ref at an object that neither its pack nor the repo holds, leaving a ref that clone, the code browser, and indexing can't read. `NewServer` refuses a create or update whose new object isn't in the repo, before the vet function runs:
+`NewServer` also refuses what git would before the vet function runs: a new value whose history the repo doesn't wholly hold (see [Connectivity](#connectivity)), and a branch that doesn't point at a commit.
 
-```
- ! [remote rejected] feature -> feature (missing necessary objects)
-```
-
-It checks only that object, not everything reachable from it.
-
-Branch protection is enforced at the same point, before the write. Both transports pass `NewServer` a vet function that calls `BranchProtectionService.CheckPushCommand`. go-git writes refs only after it has stored the pack, so the check can read the pushed commits to tell a force push from a fast-forward. It fails closed: under `block_force_push`, a push that it can't prove keeps every commit on the branch is refused as a force push. That includes deleting the branch, since delete-then-push is a force push in two steps; the web and API branch delete refuses it too (`BranchProtectionService.CheckDelete`, 422). It also includes pointing the branch at an object that isn't a commit. A refused ref never moves, and the status carries the reason:
+Branch protection is enforced at the same point, before the write. Both transports pass `NewServer` a vet function that calls `BranchProtectionService.CheckPushCommand`. go-git writes refs only after it has stored the pack, so the check can read the pushed commits to tell a force push from a fast-forward. It fails closed: under `block_force_push`, a push that it can't prove keeps every commit on the branch is refused as a force push. That includes deleting the branch, since delete-then-push is a force push in two steps; the web and API branch delete refuses it too (`BranchProtectionService.CheckDelete`, 422). A refused ref never moves, and the status carries the reason:
 
 ```
  ! [remote rejected] main -> main (force push blocked by branch protection)
@@ -107,6 +101,33 @@ The response is still HTTP 200 / SSH exit 0; the per-ref status is what tells th
 **report-status:** go-git returns no status to a client that didn't request `report-status`, and it turns a refused ref into an error for the whole push. The session always requests it internally, so the handlers still know which refs applied, and it sends the status only to clients that asked for it. A client without it gets no per-ref result.
 
 **Gap:** go-git can't create or delete a ref conditionally, so creates and deletes check the ref just before writing, not atomically with the write.
+
+---
+
+## Connectivity
+
+go-git's receive-pack stores whatever pack it gets and writes the ref. A pack could leave out the pushed commit or any of its parents, trees, or blobs, and clone, fetch, the code browser, post-receive stats, and indexing would then fail with "object not found". `NewServer` runs git's `check_connected` itself: every object a create or update's new value reaches must be in the repo, or the ref is refused:
+
+```
+ ! [remote rejected] feature -> feature (missing necessary objects)
+```
+
+The walk stops at history that the repo's refs already reach, so it costs what the push added, not the repo's size:
+
+- Commits are walked newest first from the new value and from every ref (`git rev-list <new> --not --all`), until nothing new is left.
+- Each new commit's tree is compared with its parents' trees, so only the paths it changed are read.
+- Submodule entries are skipped, since their commits live in another repo.
+- When the push builds on the value its ref holds, and its pack carries every commit in between (a plain fast-forward), the walk ends there without reading the other refs.
+
+The walk doesn't stop at an object only because it's present. go-git stores a pack before any ref is checked, so a refused push leaves its objects behind, and a later push could otherwise build on them. For the same reason, only the value a ref holds counts as a fast-forward's base, not whatever old value the client names.
+
+A branch must point at a commit, as in git:
+
+```
+ ! [remote rejected] feature -> feature (trying to write non-commit object to branch)
+```
+
+Tags and other refs may point at any object.
 
 ---
 
