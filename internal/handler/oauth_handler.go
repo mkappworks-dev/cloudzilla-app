@@ -127,7 +127,7 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		case service.ErrOAuthEmailUnverified:
 			loginError(http.StatusForbidden, "Google hasn't verified this Google account's email address, so it can't be used to sign in. Verify the address with Google, or sign in with your password.")
 		case service.ErrOAuthAccountExists:
-			loginError(http.StatusConflict, "An account with this Google account's email address already exists. Sign in with your password.")
+			loginError(http.StatusConflict, "An account with this Google account's email address already exists. Sign in with your password, then connect Google under Account settings → Security.")
 		default:
 			http.Error(w, "authentication failed", http.StatusInternalServerError)
 		}
@@ -164,7 +164,7 @@ func (h *Handler) googleIdentity(ctx context.Context, code string) (service.OAut
 		Name          string `json:"name"`
 		Picture       string `json:"picture"`
 	}
-	// An empty ID would match every account whose link stores one.
+	// An empty ID would be stored as a link that every later ID-less response signs in to.
 	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil || info.ID == "" {
 		return service.OAuthIdentity{}, http.StatusInternalServerError, errors.New("failed to parse user info")
 	}

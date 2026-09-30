@@ -28,7 +28,7 @@ var (
 	ErrOAuthNotLinked       = errors.New("this account is not connected to that provider")
 )
 
-const oauthLinkTTL = 10 * time.Minute
+const oauthLinkTTL = 5 * time.Minute
 
 var oauthProviderNames = map[string]string{"google": "Google"}
 
@@ -42,7 +42,6 @@ type OAuthLinkService struct {
 	email  *EmailService
 }
 
-// NewOAuthLinkService creates an OAuthLinkService.
 func NewOAuthLinkService(users *store.UserStore, states *store.OAuthStateStore, totp *TOTPService, email *EmailService) *OAuthLinkService {
 	return &OAuthLinkService{users: users, states: states, totp: totp, email: email}
 }
@@ -80,33 +79,41 @@ func (s *OAuthLinkService) BeginLink(ctx context.Context, userID int64, password
 		return "", time.Time{}, fmt.Errorf("generate oauth state: %w", err)
 	}
 	state := hex.EncodeToString(raw)
-	expiresAt := time.Now().Add(oauthLinkTTL)
-	if err := s.states.Put(ctx, userID, model.OAuthStatePurposeLink, sha256HexOf(state), expiresAt); err != nil {
+	expiresAt, err := s.states.Put(ctx, userID, model.OAuthStatePurposeLink, sha256HexOf(state), oauthLinkTTL)
+	if err != nil {
 		return "", time.Time{}, err
 	}
 	return state, expiresAt, nil
 }
 
+// LinkGrant is what ConsumeLinkState hands Link. Only this package can fill one in,
+// so no caller can link an account without a re-authenticated, spent state.
+type LinkGrant struct{ userID int64 }
+
 // ConsumeLinkState redeems state for sessionUserID, the account signed in at the
 // callback. Every attempt spends the state, so a refused one cannot be retried.
-func (s *OAuthLinkService) ConsumeLinkState(ctx context.Context, state string, sessionUserID int64) error {
+func (s *OAuthLinkService) ConsumeLinkState(ctx context.Context, state string, sessionUserID int64) (LinkGrant, error) {
 	userID, err := s.states.Take(ctx, sha256HexOf(state), model.OAuthStatePurposeLink)
 	if errors.Is(err, sql.ErrNoRows) {
-		return ErrOAuthLinkInvalid
+		return LinkGrant{}, ErrOAuthLinkInvalid
 	}
 	if err != nil {
-		return err
+		return LinkGrant{}, err
 	}
 	if userID != sessionUserID {
-		return ErrOAuthLinkWrongUser
+		return LinkGrant{}, ErrOAuthLinkWrongUser
 	}
-	return nil
+	return LinkGrant{userID: userID}, nil
 }
 
-// Link connects id to userID once ConsumeLinkState has accepted the callback. It
-// never creates or signs in an account. It reports false when userID already had id.
-func (s *OAuthLinkService) Link(ctx context.Context, userID int64, id OAuthIdentity) (bool, error) {
-	// The audit entry and the notice name this address as the connected account.
+// Link connects id to the account grant names. It never creates or signs in an
+// account, and reports false when that account already had id.
+func (s *OAuthLinkService) Link(ctx context.Context, grant LinkGrant, id OAuthIdentity) (bool, error) {
+	if grant.userID == 0 {
+		return false, ErrOAuthLinkInvalid
+	}
+	userID := grant.userID
+	// The audit entry and the notice name this address, so Google must vouch for it.
 	if !id.EmailVerified {
 		return false, ErrOAuthEmailUnverified
 	}
@@ -133,21 +140,22 @@ func (s *OAuthLinkService) Link(ctx context.Context, userID int64, id OAuthIdent
 	return true, nil
 }
 
-// Unlink removes userID's provider sign-in after re-authentication. An account
-// without a password is refused: the provider is its only way in.
-func (s *OAuthLinkService) Unlink(ctx context.Context, userID int64, provider, password, code string) error {
-	if _, err := s.reauthenticate(ctx, userID, password, code); err != nil {
-		return err
+// Unlink removes userID's provider sign-in after re-authentication and returns the
+// provider ID it held. An account without a password is refused: the provider is its only way in.
+func (s *OAuthLinkService) Unlink(ctx context.Context, userID int64, provider, password, code string) (string, error) {
+	u, err := s.reauthenticate(ctx, userID, password, code)
+	if err != nil {
+		return "", err
 	}
 	unlinked, err := s.users.UnlinkOAuth(ctx, userID, provider)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if !unlinked {
-		return ErrOAuthNotLinked
+		return "", ErrOAuthNotLinked
 	}
 	s.notify(userID, provider, "", false)
-	return nil
+	return u.OAuthID, nil
 }
 
 func (s *OAuthLinkService) notify(userID int64, provider, providerEmail string, connected bool) {
@@ -172,11 +180,11 @@ func oauthLinkNotice(username, providerName, providerEmail string, connected boo
 	if connected {
 		return providerName + " sign-in was connected to your account",
 			fmt.Sprintf("<p>The %s account <strong>%s</strong> can now sign in to <strong>@%s</strong>.</p>"+
-				"<p>If you didn't connect it, someone else knows your password. Disconnect it under Account settings → Security and tell your administrator.</p>",
+				"<p>If you didn't connect it, someone else can sign in as you. Disconnect it under Account settings → Security and tell your administrator.</p>",
 				name, html.EscapeString(providerEmail), user)
 	}
 	return providerName + " sign-in was removed from your account",
 		fmt.Sprintf("<p>%s sign-in was removed from <strong>@%s</strong>. Sign in with your password from now on.</p>"+
-			"<p>If you didn't remove it, someone else knows your password. Tell your administrator.</p>",
+			"<p>If you didn't remove it, someone else can sign in as you. Tell your administrator.</p>",
 			name, user)
 }

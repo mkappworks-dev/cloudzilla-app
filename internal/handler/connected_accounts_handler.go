@@ -53,7 +53,7 @@ func (h *Handler) googleLinkCallback(w http.ResponseWriter, r *http.Request, sta
 
 	// Spend the state before anything else can refuse, so no attempt leaves it redeemable.
 	claims, signedIn := middleware.ClaimsFromContext(r.Context())
-	err := h.Services.OAuthLink.ConsumeLinkState(r.Context(), state, claims.UserID)
+	grant, err := h.Services.OAuthLink.ConsumeLinkState(r.Context(), state, claims.UserID)
 	switch {
 	case !signedIn:
 		redirectConnectedAccountsError(w, r, "google_link_signed_out")
@@ -72,14 +72,15 @@ func (h *Handler) googleLinkCallback(w http.ResponseWriter, r *http.Request, sta
 		redirectConnectedAccountsError(w, r, "google_link_failed")
 		return
 	}
-	changed, err := h.Services.OAuthLink.Link(r.Context(), claims.UserID, identity)
+	changed, err := h.Services.OAuthLink.Link(r.Context(), grant, identity)
 	if err != nil {
 		connectedAccountsError(w, r, claims.UserID, err)
 		return
 	}
 	if changed {
 		h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionOAuthConnect,
-			model.AuditTargetUser, claims.UserID, claims.Username, map[string]any{"provider": googleProvider, "email": identity.Email})
+			model.AuditTargetUser, claims.UserID, claims.Username,
+			map[string]any{"provider": googleProvider, "oauth_id": identity.ID, "email": identity.Email})
 	}
 	h.setSettingsFlash(w, settingsNoticeCookieName, "google_connected")
 	http.Redirect(w, r, "/settings#connected-accounts", http.StatusSeeOther)
@@ -92,12 +93,13 @@ func (h *Handler) DisconnectGoogle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	if err := h.Services.OAuthLink.Unlink(r.Context(), claims.UserID, googleProvider, r.FormValue("password"), r.FormValue("code")); err != nil {
+	oauthID, err := h.Services.OAuthLink.Unlink(r.Context(), claims.UserID, googleProvider, r.FormValue("password"), r.FormValue("code"))
+	if err != nil {
 		connectedAccountsError(w, r, claims.UserID, err)
 		return
 	}
 	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionOAuthDisconnect,
-		model.AuditTargetUser, claims.UserID, claims.Username, map[string]any{"provider": googleProvider})
+		model.AuditTargetUser, claims.UserID, claims.Username, map[string]any{"provider": googleProvider, "oauth_id": oauthID})
 	h.setSettingsFlash(w, settingsNoticeCookieName, "google_disconnected")
 	http.Redirect(w, r, "/settings#connected-accounts", http.StatusSeeOther)
 }
@@ -107,16 +109,20 @@ func connectedAccountsError(w http.ResponseWriter, r *http.Request, userID int64
 	switch {
 	case errors.Is(err, service.ErrReauthFailed):
 		code = "google_reauth_failed"
+		// Nothing throttles these guesses, so leave a trail of them.
+		slog.Warn("connected accounts: re-authentication failed", "user_id", userID)
 	case errors.Is(err, service.ErrReauthNoPassword):
 		code = "google_no_password"
 	case errors.Is(err, service.ErrOAuthLinkInvalid):
 		code = "google_link_invalid"
 	case errors.Is(err, service.ErrOAuthLinkWrongUser):
 		code = "google_link_wrong_user"
+		slog.Warn("connected accounts: link state used by another account", "user_id", userID)
 	case errors.Is(err, service.ErrOAuthEmailUnverified):
 		code = "google_link_unverified"
 	case errors.Is(err, service.ErrOAuthLinkedElsewhere):
 		code = "google_link_taken"
+		slog.Warn("connected accounts: Google account is linked elsewhere", "user_id", userID)
 	case errors.Is(err, service.ErrOAuthAlreadyLinked):
 		code = "google_already_connected"
 	case errors.Is(err, service.ErrOAuthNotLinked):

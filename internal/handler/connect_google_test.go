@@ -107,10 +107,9 @@ func (e *linkEnv) post(path, session string, form url.Values) *httptest.Response
 	return rr
 }
 
-// securitySection renders /settings for session with cookies and returns its Security section.
-func (e *linkEnv) securitySection(session string, cookies ...*http.Cookie) string {
+func (e *linkEnv) settingsBody(path, session string, cookies ...*http.Cookie) string {
 	e.t.Helper()
-	req := httptest.NewRequest(http.MethodGet, "/settings", nil)
+	req := httptest.NewRequest(http.MethodGet, path, nil)
 	req.AddCookie(&http.Cookie{Name: testCookieName, Value: session})
 	for _, c := range cookies {
 		req.AddCookie(c)
@@ -118,9 +117,14 @@ func (e *linkEnv) securitySection(session string, cookies ...*http.Cookie) strin
 	rr := httptest.NewRecorder()
 	e.router.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
-		e.t.Fatalf("GET /settings: %d", rr.Code)
+		e.t.Fatalf("GET %s: %d", path, rr.Code)
 	}
-	return htmlSection(e.t, rr.Body.String(), "security")
+	return rr.Body.String()
+}
+
+func (e *linkEnv) securitySection(session string, cookies ...*http.Cookie) string {
+	e.t.Helper()
+	return htmlSection(e.t, e.settingsBody("/settings", session, cookies...), "security")
 }
 
 func (e *linkEnv) connect(u linkUser, password, code string) *httptest.ResponseRecorder {
@@ -134,14 +138,23 @@ func (e *linkEnv) disconnect(u linkUser, password, code string) *httptest.Respon
 // startLink connects u with the right password and returns the state Google will echo back.
 func (e *linkEnv) startLink(u linkUser) string {
 	e.t.Helper()
-	rr := e.connect(u, linkPassword, "")
+	return e.startLinkWithCode(u, "")
+}
+
+func (e *linkEnv) startLinkWithCode(u linkUser, code string) string {
+	e.t.Helper()
+	rr := e.connect(u, linkPassword, code)
 	loc, err := url.Parse(rr.Header().Get("Location"))
 	if rr.Code != http.StatusSeeOther || err != nil || !strings.HasPrefix(loc.String(), e.google+"/auth") {
 		e.t.Fatalf("connect: got %d to %q, want 303 to the fake Google", rr.Code, rr.Header().Get("Location"))
 	}
 	state := loc.Query().Get("state")
-	if c := responseCookie(rr, linkCookieName); c == nil || c.Value != state || state == "" {
+	c := responseCookie(rr, linkCookieName)
+	if c == nil || c.Value != state || state == "" {
 		e.t.Fatalf("connect set link cookie %+v for state %q", c, state)
+	}
+	if !c.HttpOnly || c.Path != "/auth/google/callback" || c.SameSite != http.SameSiteLaxMode {
+		e.t.Errorf("link cookie HttpOnly=%v Path=%q SameSite=%v; want HttpOnly, the callback path, and Lax", c.HttpOnly, c.Path, c.SameSite)
 	}
 	if got := loc.Query().Get("prompt"); got != "select_account" {
 		e.t.Errorf("auth URL prompt = %q, want select_account so the user picks the Google account", got)
@@ -190,6 +203,18 @@ func (e *linkEnv) awaitAudit(actorID int64, action string) bool {
 		}
 	}
 	return false
+}
+
+// auditOAuthID returns the oauth_id an already-written audit entry records.
+func (e *linkEnv) auditOAuthID(actorID int64, action string) string {
+	e.t.Helper()
+	var id string
+	err := e.db.QueryRowContext(context.Background(),
+		`SELECT metadata->>'oauth_id' FROM audit_log WHERE actor_id = $1 AND action = $2`, actorID, action).Scan(&id)
+	if err != nil {
+		e.t.Fatalf("read %s audit entry: %v", action, err)
+	}
+	return id
 }
 
 func responseCookie(rr *httptest.ResponseRecorder, name string) *http.Cookie {
@@ -273,6 +298,22 @@ func TestPageSettings_ConnectedAccountOffersDisconnect(t *testing.T) {
 	if again := e.securitySection(u.session); strings.Contains(again, "Google account connected") {
 		t.Error("the notice shows again without its cookie")
 	}
+	e.awaitAudit(u.id, model.AuditActionOAuthConnect)
+}
+
+func TestPageSettings_ShowsEachErrorBesideItsControl(t *testing.T) {
+	e := newLinkEnv(t)
+	u := e.user()
+
+	google := e.settingsBody("/settings?profile_error=google_link_taken", u.session)
+	if i := strings.Index(google, `id="connected-accounts"`); i < 0 || !strings.Contains(google[i:], "connected to a different Cloudzilla account") {
+		t.Error("a Google connect error is not shown under Connected accounts")
+	}
+	totp := e.settingsBody("/settings?profile_error=totp_invalid_code", u.session)
+	assertContains(t, totp, "Invalid verification code")
+	if strings.Contains(htmlSection(t, totp, "security"), `role="alert"`) {
+		t.Error("a two-factor error was shown under Connected accounts")
+	}
 }
 
 func TestPageSettings_PasswordlessAccountCannotDisconnect(t *testing.T) {
@@ -300,20 +341,26 @@ func TestConnectGoogle_WrongPasswordIsRefused(t *testing.T) {
 	}
 }
 
-func TestConnectGoogle_WrongTOTPCodeIsRefused(t *testing.T) {
+func TestConnectGoogle_TOTPAccountNeedsTheCode(t *testing.T) {
 	e := newLinkEnv(t)
 	u := e.user()
 	testutil.EnableTOTP(t, e.db, u.id)
+	googleID := "g_totp_" + testutil.UniqueSuffix(t)
+	e.googleAccount(googleID, googleID+"@gmail.test", true)
 
 	for _, code := range []string{"", "12345"} {
 		if got := settingsError(t, e.connect(u, linkPassword, code)); got != "google_reauth_failed" {
 			t.Errorf("TOTP code %q: profile_error = %q, want google_reauth_failed", code, got)
 		}
 	}
-	rr := e.connect(u, linkPassword, testutil.TOTPCode(t, testutil.TestTOTPSecret))
-	if rr.Code != http.StatusSeeOther || !strings.HasPrefix(rr.Header().Get("Location"), e.google+"/auth") {
-		t.Fatalf("with the right code: got %d to %q, want 303 to Google", rr.Code, rr.Header().Get("Location"))
+	state := e.startLinkWithCode(u, testutil.TOTPCode(t, testutil.TestTOTPSecret))
+	if got := settingsError(t, e.callback(u.session, state, state)); got != "" {
+		t.Fatalf("callback after the right code: profile_error = %q", got)
 	}
+	if got := e.linkedGoogleID(u.id); got != googleID {
+		t.Errorf("linked Google ID = %q, want %q", got, googleID)
+	}
+	e.awaitAudit(u.id, model.AuditActionOAuthConnect)
 }
 
 func TestConnectGoogle_RefusedWhenGoogleIsNotConfigured(t *testing.T) {
@@ -347,6 +394,8 @@ func TestConnectGoogle_LinksWithoutSigningInAndGoogleSignInThenWorks(t *testing.
 	}
 	if !e.awaitAudit(u.id, model.AuditActionOAuthConnect) {
 		t.Error("no user.oauth.connect audit entry")
+	} else if got := e.auditOAuthID(u.id, model.AuditActionOAuthConnect); got != googleID {
+		t.Errorf("connect audit entry records oauth_id %q, want %q", got, googleID)
 	}
 	var created int
 	if err := e.db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM users WHERE email = $1`, googleEmail).Scan(&created); err != nil || created != 0 {
@@ -416,6 +465,9 @@ func TestGoogleLinkCallback_AnotherUsersStateIsRefused(t *testing.T) {
 		t.Errorf("profile_error = %q, want google_link_wrong_user", got)
 	}
 	assertNoSignIn(t, rr)
+	if c := responseCookie(rr, linkCookieName); c == nil || c.MaxAge >= 0 {
+		t.Error("a refused callback left the link state cookie in place")
+	}
 	if got := e.linkedGoogleID(other.id); got != "" {
 		t.Errorf("the other user was linked to %q", got)
 	}
@@ -540,8 +592,8 @@ func TestGoogleLinkCallback_CancelledAtGoogleSpendsTheState(t *testing.T) {
 	}
 }
 
-// A link flow started in one tab must not change what a Google sign-in in another does.
-func TestGoogleOAuthCallback_LoginModeIgnoresAPendingLink(t *testing.T) {
+// A link flow started in one tab, or a live session, must not change what a Google sign-in does.
+func TestGoogleOAuthCallback_LoginModeIgnoresAPendingLinkAndTheSession(t *testing.T) {
 	e := newLinkEnv(t)
 	u := e.user()
 	googleID := "g_pending_" + testutil.UniqueSuffix(t)
@@ -552,6 +604,7 @@ func TestGoogleOAuthCallback_LoginModeIgnoresAPendingLink(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/auth/google/callback?state=s1&code=c1", nil)
 	req.AddCookie(&http.Cookie{Name: "oauth_state", Value: "s1"})
 	req.AddCookie(&http.Cookie{Name: linkCookieName, Value: state})
+	req.AddCookie(&http.Cookie{Name: testCookieName, Value: u.session})
 	rr := httptest.NewRecorder()
 	e.router.ServeHTTP(rr, req)
 
@@ -569,6 +622,7 @@ func TestGoogleOAuthCallback_LoginModeIgnoresAPendingLink(t *testing.T) {
 	if got := settingsError(t, e.callback(u.session, state, state)); got != "" {
 		t.Errorf("the pending link no longer completes: profile_error = %q", got)
 	}
+	e.awaitAudit(u.id, model.AuditActionOAuthConnect)
 }
 
 func TestDisconnectGoogle_AccountWithoutPasswordIsRefused(t *testing.T) {
@@ -608,6 +662,8 @@ func TestDisconnectGoogle_NeedsThePasswordThenUnlinks(t *testing.T) {
 	}
 	if !e.awaitAudit(u.id, model.AuditActionOAuthDisconnect) {
 		t.Error("no user.oauth.disconnect audit entry")
+	} else if got := e.auditOAuthID(u.id, model.AuditActionOAuthDisconnect); got != googleID {
+		t.Errorf("disconnect audit entry records oauth_id %q, want %q", got, googleID)
 	}
 	e.awaitAudit(u.id, model.AuditActionOAuthConnect)
 }

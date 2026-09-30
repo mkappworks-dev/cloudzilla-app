@@ -267,12 +267,12 @@ Account settings → Security → Connected accounts links a Google account to a
 
 **Connect** (`POST /settings/connected-accounts/google`, form `password` and `code`):
 
-1. Refused unless `oauth.google_client_id` is set, and unless the password (plus the TOTP code, when TOTP is on) is correct. A session alone is not enough, so a stolen session cannot plant a Google sign-in that outlives it. Accounts without a password (created by Google, LDAP or SAML sign-up) cannot re-authenticate, so they cannot connect.
-2. `BeginLink` stores a random 32-byte state for 10 minutes in `oauth_states` (migration 088), bound to the user and the purpose `link`. Only its SHA-256 is stored, and a newer connect replaces the user's pending one. The raw state goes into the `oauth_link_state` cookie (HttpOnly, `Path=/auth/google/callback`) and into Google's authorization URL, which asks Google to let the user pick an account (`prompt=select_account`). The redirect is a 303, so the browser does not re-post the password to Google.
+1. Refused unless `oauth.google_client_id` is set, and unless the password (plus the TOTP code, when TOTP is on; backup codes aren't accepted) is correct. A session alone is not enough, so a stolen session cannot plant a Google sign-in that outlives it. Accounts without a password (created by Google, LDAP or SAML sign-up) cannot re-authenticate, so they cannot connect.
+2. `BeginLink` stores a random 32-byte state for 5 minutes in `oauth_states` (migration 088), bound to the user and the purpose `link`. Only its SHA-256 is stored, and a newer connect replaces the user's pending one. The raw state goes into the `oauth_link_state` cookie (HttpOnly, `Path=/auth/google/callback`) and into Google's authorization URL, which asks Google to let the user pick an account (`prompt=select_account`). The redirect is a 303, so the browser does not re-post the password to Google.
 
 **Callback, link mode**: `GoogleOAuthCallback` runs link mode only when the `oauth_link_state` cookie matches the `state` parameter; otherwise it runs the login flow above, unchanged. The route runs `optAuthMW` so link mode can read the session. Link mode clears the cookie, then:
 
-1. `ConsumeLinkState` deletes the state before anything else can refuse, so every attempt spends it: a replay, an expired state, a state started by another account, or one that reaches a signed-out browser is refused and cannot be retried.
+1. `ConsumeLinkState` deletes the state before anything else can refuse, so every attempt spends it, and returns the `LinkGrant` that `Link` requires: a replay, an expired state, a state started by another account, or one that reaches a signed-out browser is refused and cannot be retried.
 2. The signed-in user must be the one who started the flow.
 3. Google must report `verified_email`, and its userinfo must carry an `id`.
 4. If that Google ID is linked to this account, nothing changes. If it is linked to another account, or this account is already linked to a different Google ID, the link is refused. The update only runs `WHERE oauth_provider = ''`, and `users_oauth_idx` refuses a Google ID another account took meanwhile.
@@ -280,7 +280,7 @@ Account settings → Security → Connected accounts links a Google account to a
 
 **Disconnect** (`POST /settings/connected-accounts/google/disconnect`, form `password` and `code`) needs the same re-authentication and clears `oauth_provider`/`oauth_id`. An account without a password is refused (`ErrReauthNoPassword`), and the store's update also requires a password, so the account's only sign-in is never removed.
 
-Both changes write an audit entry (`user.oauth.connect` with the Google email, `user.oauth.disconnect`) and, when SMTP is configured, email the account a notice. The notice ignores notification preferences, since muting it would hide a takeover. Both routes need CSRF like any cookie-authenticated form post, and are closed to OAuth-app tokens.
+Both changes write an audit entry (`user.oauth.connect` with the Google ID and email, `user.oauth.disconnect` with the Google ID) and, when SMTP is configured, email the account a notice. The notice ignores notification preferences, since muting it would hide a takeover. Both routes need CSRF like any cookie-authenticated form post, and are closed to OAuth-app tokens.
 
 ## Usernames
 

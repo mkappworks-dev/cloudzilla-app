@@ -32,10 +32,10 @@ When the `oauth_link_state` cookie matches `state`, `/auth/google/callback` fini
 
 Browser form posts from Account settings. Both need the current `password`, plus `code` (the TOTP code) when two-factor authentication is on. Errors redirect (303) to `/settings?profile_error=google_…#connected-accounts`. OAuth-app tokens are refused. See [access control](./access-control.md#connecting-google-to-an-existing-account).
 
-| Method | Path                                             | Auth     | Description                                                                                                                                                     |
-| ------ | ------------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/settings/connected-accounts/google`            | Required | Re-authenticates, sets the `oauth_link_state` cookie and redirects (303) to Google. Refused when Google OAuth isn't configured or the account is already linked |
-| POST   | `/settings/connected-accounts/google/disconnect` | Required | Re-authenticates and unlinks Google. Refused for an account without a password. Writes `user.oauth.disconnect` to the audit log                                 |
+| Method | Path                                             | Auth     | Description                                                                                                                                                                                               |
+| ------ | ------------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/settings/connected-accounts/google`            | Required | Re-authenticates, sets the `oauth_link_state` cookie and redirects (303) to Google. Refused when Google OAuth isn't configured or the account is already linked. The callback writes `user.oauth.connect` |
+| POST   | `/settings/connected-accounts/google/disconnect` | Required | Re-authenticates and unlinks Google. Refused for an account without a password. Writes `user.oauth.disconnect` to the audit log                                                                           |
 
 ## SSH Keys
 

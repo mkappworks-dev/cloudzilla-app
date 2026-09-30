@@ -40,8 +40,16 @@ func TestOAuthLink_NoticesReachTheAccountDespiteMutedNotifications(t *testing.T)
 	users := store.NewUserStore(db)
 	svc := NewOAuthLinkService(users, store.NewOAuthStateStore(db), NewTOTPService(users), mail)
 
+	state, _, err := svc.BeginLink(ctx, userID, "notice password", "")
+	if err != nil {
+		t.Fatalf("BeginLink: %v", err)
+	}
+	grant, err := svc.ConsumeLinkState(ctx, state, userID)
+	if err != nil {
+		t.Fatalf("ConsumeLinkState: %v", err)
+	}
 	googleEmail := "<b>" + suffix + "</b>@example.com"
-	if _, err := svc.Link(ctx, userID, OAuthIdentity{Provider: "google", ID: "g_notice_" + suffix, Email: googleEmail, EmailVerified: true}); err != nil {
+	if _, err := svc.Link(ctx, grant, OAuthIdentity{Provider: "google", ID: "g_notice_" + suffix, Email: googleEmail, EmailVerified: true}); err != nil {
 		t.Fatalf("Link: %v", err)
 	}
 	connected := awaitMail(t, sent)
@@ -52,7 +60,7 @@ func TestOAuthLink_NoticesReachTheAccountDespiteMutedNotifications(t *testing.T)
 		t.Errorf("connect notice does not name the escaped Google address: %s", connected.body)
 	}
 
-	if err := svc.Unlink(ctx, userID, "google", "notice password", ""); err != nil {
+	if _, err := svc.Unlink(ctx, userID, "google", "notice password", ""); err != nil {
 		t.Fatalf("Unlink: %v", err)
 	}
 	removed := awaitMail(t, sent)

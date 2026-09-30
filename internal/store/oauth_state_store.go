@@ -10,27 +10,29 @@ import (
 // OAuthStateStore keeps the server side of OAuth flows that act on a signed-in account.
 type OAuthStateStore struct{ db *sql.DB }
 
-// NewOAuthStateStore creates an OAuthStateStore backed by the given database.
 func NewOAuthStateStore(db *sql.DB) *OAuthStateStore {
 	return &OAuthStateStore{db: db}
 }
 
-// Put makes stateHash userID's only pending state for purpose.
-func (s *OAuthStateStore) Put(ctx context.Context, userID int64, purpose, stateHash string, expiresAt time.Time) error {
+// Put makes stateHash userID's only pending state for purpose and purges every expired one.
+// The database clock sets the expiry, since Take checks it against the same clock.
+func (s *OAuthStateStore) Put(ctx context.Context, userID int64, purpose, stateHash string, ttl time.Duration) (time.Time, error) {
 	if _, err := s.db.ExecContext(ctx, `DELETE FROM oauth_states WHERE expires_at <= NOW()`); err != nil {
-		return fmt.Errorf("oauth_state purge: %w", err)
+		return time.Time{}, fmt.Errorf("oauth_state purge: %w", err)
 	}
-	_, err := s.db.ExecContext(ctx,
+	var expiresAt time.Time
+	err := s.db.QueryRowContext(ctx,
 		`INSERT INTO oauth_states (state_hash, user_id, purpose, expires_at)
-		 VALUES ($1, $2, $3, $4)
+		 VALUES ($1, $2, $3, NOW() + make_interval(secs => $4))
 		 ON CONFLICT (user_id, purpose) DO UPDATE
-		     SET state_hash = EXCLUDED.state_hash, expires_at = EXCLUDED.expires_at, created_at = NOW()`,
-		stateHash, userID, purpose, expiresAt,
-	)
+		     SET state_hash = EXCLUDED.state_hash, expires_at = EXCLUDED.expires_at, created_at = NOW()
+		 RETURNING expires_at`,
+		stateHash, userID, purpose, ttl.Seconds(),
+	).Scan(&expiresAt)
 	if err != nil {
-		return fmt.Errorf("oauth_state put: %w", err)
+		return time.Time{}, fmt.Errorf("oauth_state put: %w", err)
 	}
-	return nil
+	return expiresAt, nil
 }
 
 // Take deletes the state and returns the user it was issued to. An expired state
