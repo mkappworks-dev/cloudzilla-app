@@ -401,7 +401,8 @@ func (s *PullStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int,
 		 FROM pull_requests p
 		 JOIN repositories r ON r.id = p.repo_id
 		 JOIN pull_assignees a ON a.pull_id = p.id
-		 WHERE p.state = 'open' AND r.deleted_at IS NULL AND a.user_id = $1`,
+		 WHERE p.state = 'open' AND r.deleted_at IS NULL AND a.user_id = $1
+		   AND `+readableBy("r", "$1"),
 		userID,
 	).Scan(&n)
 	return n, err
@@ -409,10 +410,9 @@ func (s *PullStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int,
 
 // CountsForUser returns pull-request counts for every account-pulls tab in a
 // single round-trip, keyed "<filter>:<state>". The query is composed only from
-// in-code constants — never caller input — so the concatenation is injection-safe.
+// in-code fragments — never caller input — so the concatenation is injection-safe.
 func (s *PullStore) CountsForUser(ctx context.Context, userID int64) (map[string]int, error) {
-	const vis = `(NOT r.private OR r.owner_id = $1
-	              OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))`
+	vis := readableBy("r", "$1")
 	const (
 		created         = `p.author_id = $1`
 		assigned        = `EXISTS (SELECT 1 FROM pull_assignees pa WHERE pa.pull_id = p.id AND pa.user_id = $1)`
@@ -502,14 +502,12 @@ func (s *PullStore) ListForUser(ctx context.Context, userID int64, mode, state s
 		cond = `p.author_id = $1`
 	}
 	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.author_id,
-	             u.username || '/' || r.name AS repo_full_name, p.updated_at, p.created_at
+	             r.owner_name || '/' || r.name AS repo_full_name, p.updated_at, p.created_at
 	      FROM pull_requests p
 	      JOIN repositories r ON r.id = p.repo_id
-	      JOIN users u        ON u.id = r.owner_id
 	      ` + join + `
 	      WHERE r.deleted_at IS NULL AND p.state = $2 AND ` + cond + `
-	        AND (NOT r.private OR r.owner_id = $1
-	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
+	        AND ` + readableBy("r", "$1") + `
 	      ORDER BY p.updated_at DESC LIMIT 100`
 	return s.scanPullListItems(ctx, q, userID, state)
 }
@@ -526,14 +524,12 @@ func (s *PullStore) ListByIDs(ctx context.Context, userID int64, ids []int64, st
 		args = append(args, id)
 	}
 	q := `SELECT DISTINCT p.id, p.number, p.title, p.state, p.author_id,
-	             u.username || '/' || r.name AS repo_full_name, p.updated_at, p.created_at
+	             r.owner_name || '/' || r.name AS repo_full_name, p.updated_at, p.created_at
 	      FROM pull_requests p
 	      JOIN repositories r ON r.id = p.repo_id
-	      JOIN users u        ON u.id = r.owner_id
 	      WHERE r.deleted_at IS NULL AND p.state = $2
 	        AND p.id IN (` + strings.Join(placeholders, ",") + `)
-	        AND (NOT r.private OR r.owner_id = $1
-	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
+	        AND ` + readableBy("r", "$1") + `
 	      ORDER BY p.updated_at DESC LIMIT 100`
 	return s.scanPullListItems(ctx, q, args...)
 }

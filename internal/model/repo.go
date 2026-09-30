@@ -5,7 +5,7 @@ import "time"
 // Repository represents a git repository and its metadata.
 type Repository struct {
 	ID               int64      `db:"id"             json:"id"`
-	OwnerID          int64      `db:"owner_id"       json:"owner_id"`
+	OwnerID          int64      `db:"owner_id"       json:"owner_id,omitempty"` // zero for an org repo, whose owner is OrgID
 	OwnerName        string     `db:"owner_name"     json:"owner_name,omitempty"`
 	OrgID            int64      `db:"org_id"         json:"org_id,omitempty"`
 	Name             string     `db:"name"           json:"name"`
@@ -30,6 +30,7 @@ type Repository struct {
 	IsTemplate       bool       `db:"is_template"    json:"is_template"`
 	DeletedAt        *time.Time `db:"deleted_at"        json:"deleted_at,omitempty"`
 	DeletedBy        *int64     `db:"deleted_by"        json:"deleted_by,omitempty"`
+	CreatedBy        int64      `db:"created_by"        json:"created_by,omitempty"` // attribution only, never access; set by single-repo lookups
 	PrimaryLanguage  *string    `db:"primary_language"  json:"primary_language,omitempty"`
 }
 

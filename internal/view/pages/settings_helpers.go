@@ -25,8 +25,8 @@ func settingsErrorMessage(code string) string {
 		return "Confirmation username didn't match. Account was not deleted."
 	case "delete_failed":
 		return "Couldn't delete your account. Please try again."
-	case "delete_org_repos":
-		return "You created repositories that belong to an organization. Delete them first. Account was not deleted."
+	case "sole_org_owner":
+		return "You are the only owner of an organization. Add another owner or delete the organization first. Account was not deleted."
 	case "totp_setup_failed":
 		return "Couldn't start two-factor setup. Please try again."
 	case "totp_missing_fields":

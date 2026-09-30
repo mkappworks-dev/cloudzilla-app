@@ -126,7 +126,7 @@ func scanRepos(rows *sql.Rows) ([]model.Repository, error) {
 		var r model.Repository
 		var orgID sql.NullInt64
 		var primaryLang sql.NullString
-		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt, &primaryLang); err != nil {
+		if err := rows.Scan(&r.ID, zeroIfNull{&r.OwnerID}, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt, &primaryLang); err != nil {
 			return nil, err
 		}
 		if orgID.Valid {

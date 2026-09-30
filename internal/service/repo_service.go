@@ -334,6 +334,7 @@ func (s *RepoService) Create(ctx context.Context, ownerID int64, ownerUsername, 
 	}
 	r := &model.Repository{
 		OwnerID:       owner.ID,
+		CreatedBy:     owner.ID,
 		OwnerName:     ownerUsername,
 		Name:          name,
 		Description:   description,
@@ -524,12 +525,11 @@ func (s *RepoService) ListByOwnerVisibleTo(ctx context.Context, ownerUsername st
 	return visible, nil
 }
 
-// isOrgOwner returns true when the repo belongs to an org and userID is an owner of that org.
-func (s *RepoService) isOrgOwner(ctx context.Context, repo *model.Repository, userID int64) bool {
-	if repo.OrgID == 0 {
+func (s *RepoService) isOrgOwner(ctx context.Context, orgID, userID int64) bool {
+	if orgID == 0 {
 		return false
 	}
-	m, err := s.orgs.GetMember(ctx, repo.OrgID, userID)
+	m, err := s.orgs.GetMember(ctx, orgID, userID)
 	if err != nil {
 		return false
 	}
@@ -545,11 +545,7 @@ func (s *RepoService) CanRead(ctx context.Context, repo *model.Repository, userI
 		return false
 	}
 
-	if repo.OwnerID == *userID {
-		return true
-	}
-
-	if s.isOrgOwner(ctx, repo, *userID) {
+	if s.IsOwner(ctx, repo, *userID) {
 		return true
 	}
 
@@ -562,10 +558,7 @@ func (s *RepoService) CanRead(ctx context.Context, repo *model.Repository, userI
 }
 
 func (s *RepoService) CanWrite(ctx context.Context, repo *model.Repository, userID int64) bool {
-	if repo.OwnerID == userID {
-		return true
-	}
-	if s.isOrgOwner(ctx, repo, userID) {
+	if s.IsOwner(ctx, repo, userID) {
 		return true
 	}
 
@@ -581,10 +574,7 @@ func (s *RepoService) CanWrite(ctx context.Context, repo *model.Repository, user
 // Grants access to manage collaborators, settings, branch protection, deploy keys, etc.
 // Does NOT grant transfer or delete — use IsOwner for those.
 func (s *RepoService) CanManage(ctx context.Context, repo *model.Repository, userID int64) bool {
-	if repo.OwnerID == userID {
-		return true
-	}
-	if s.isOrgOwner(ctx, repo, userID) {
+	if s.IsOwner(ctx, repo, userID) {
 		return true
 	}
 	role, err := s.repos.GetPermission(ctx, repo.ID, userID)
@@ -594,13 +584,14 @@ func (s *RepoService) CanManage(ctx context.Context, repo *model.Repository, use
 	return role == string(model.RoleAdmin)
 }
 
-// IsOwner returns true only for the repo owner or org owner.
+// IsOwner returns true only for the owner of a personal repo or an owner of
+// an org repo's org; having created an org repo counts for nothing.
 // Used for destructive operations: transfer, delete, archive, unarchive, template toggle.
 func (s *RepoService) IsOwner(ctx context.Context, repo *model.Repository, userID int64) bool {
-	if repo.OwnerID == userID {
-		return true
+	if repo.OrgID != 0 {
+		return s.isOrgOwner(ctx, repo.OrgID, userID)
 	}
-	return s.isOrgOwner(ctx, repo, userID)
+	return repo.OwnerID == userID
 }
 
 func (s *RepoService) ListPermissionsByUser(ctx context.Context, userID int64) ([]model.Permission, error) {
@@ -850,6 +841,7 @@ func (s *RepoService) CreateFromTemplate(ctx context.Context, templateRepoID, ne
 	}
 	newRepo := &model.Repository{
 		OwnerID:       newOwnerID,
+		CreatedBy:     newOwnerID,
 		OwnerName:     newOwnerUsername,
 		Name:          newName,
 		Description:   description,
@@ -912,7 +904,7 @@ func (s *RepoService) Delete(ctx context.Context, repoID, userID int64) error {
 	if err != nil {
 		return fmt.Errorf("rename git dir for soft delete: %w", err)
 	}
-	if err := s.repos.Delete(ctx, repoID, userID, now); err != nil {
+	if err := s.repos.Delete(ctx, repoID, repo.OwnerName, userID, now); err != nil {
 		revertDirs(moved)
 		return err
 	}
@@ -924,12 +916,13 @@ func (s *RepoService) Restore(ctx context.Context, repoID, requesterID int64, is
 	if err != nil {
 		return fmt.Errorf("deleted repo not found: %w", err)
 	}
-	if repo.OwnerID != requesterID && !isSuperadmin {
-		return fmt.Errorf("forbidden: only the original owner or a superadmin can restore a repo")
+	if !isSuperadmin && !s.IsOwner(ctx, repo, requesterID) {
+		return fmt.Errorf("forbidden: only the repo's owner or a superadmin can restore a repo")
 	}
 
-	// Org repos are unique per creator, so the name may have a new holder even
-	// when this row's copy is gone; restoring beside it would share its dirs.
+	// A soft-deleted org repo does not hold its name, so the name may have a new
+	// holder even when this row's copy is gone; restoring beside it would share
+	// its dirs.
 	// The live wiki path is not checked: repos deleted before wikis moved with
 	// them left theirs there, and renameDirs never overwrites one.
 	gitDir, wikiDir := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
@@ -973,26 +966,22 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 	return nil
 }
 
-// TransferRepo transfers ownership of a personal repo to another user.
-// Only the current owner (repo.OwnerID == requestingUserID) may call this.
-// Org repos cannot be transferred via this method.
-func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, requestingUserID int64, newOwnerUsername string) error {
-	if repo.OwnerID != requestingUserID {
+// TransferRepo hands repo to the user or org named newOwnerName, which resolves
+// user first, as /{owner} does. The requester must own the repo, and must own
+// a receiving org too.
+func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, requestingUserID int64, newOwnerName string) error {
+	if !s.IsOwner(ctx, repo, requestingUserID) {
 		return fmt.Errorf("only the repo owner can transfer ownership")
 	}
-	if repo.OrgID != 0 {
-		return fmt.Errorf("org repos cannot be transferred; manage the org instead")
-	}
-
-	newOwner, err := s.users.GetByUsername(ctx, newOwnerUsername)
+	newOwnerID, newOrgID, err := s.transferTarget(ctx, requestingUserID, newOwnerName)
 	if err != nil {
-		return fmt.Errorf("user not found: %w", err)
+		return err
 	}
-	if newOwner.ID == requestingUserID {
-		return fmt.Errorf("new owner must be a different user")
+	if newOwnerID == repo.OwnerID && newOrgID == repo.OrgID {
+		return fmt.Errorf("the repository already belongs to %s", newOwnerName)
 	}
-	if err := ValidateName(newOwnerUsername); err != nil {
-		return fmt.Errorf("%w: owner %q", ErrInvalidRepoPath, newOwnerUsername)
+	if err := ValidateName(newOwnerName); err != nil {
+		return fmt.Errorf("%w: owner %q", ErrInvalidRepoPath, newOwnerName)
 	}
 
 	oldGitDir, _ := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
@@ -1000,13 +989,13 @@ func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, 
 	if err != nil {
 		return err
 	}
-	newGitDir, newWikiDir := repoDirs(s.cfg.ReposRoot, newOwnerUsername, repo.Name)
+	newGitDir, newWikiDir := repoDirs(s.cfg.ReposRoot, newOwnerName, repo.Name)
 	// os.Rename refuses an existing dir, but a repo without a wiki skips the
 	// wiki move and would pick up whatever wiki waits at the new path.
 	if pathTaken(newGitDir) || pathTaken(newWikiDir) {
 		return ErrRepoNameTaken
 	}
-	if held, err := s.repos.NameHeld(ctx, newOwnerUsername, wikiPartner(repo.Name)); err != nil {
+	if held, err := s.repos.NameHeld(ctx, newOwnerName, wikiPartner(repo.Name)); err != nil {
 		return err
 	} else if held {
 		return ErrRepoNameTaken
@@ -1023,10 +1012,36 @@ func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, 
 	if err != nil {
 		return fmt.Errorf("move git dir: %w", err)
 	}
+	// renameDirs skips a missing source, and a missing git dir means repo is a
+	// stale read: another request has moved or deleted it since.
+	if len(moved) == 0 || moved[0].from != oldGitDir {
+		revertDirs(moved)
+		return ErrRepoChanged
+	}
 
-	if err := s.repos.UpdateOwner(ctx, repo.ID, newOwner.ID, newOwnerUsername); err != nil {
+	if err := s.repos.UpdateOwner(ctx, repo.ID, repo.OwnerName, newOwnerID, newOrgID, newOwnerName); err != nil {
 		revertDirs(moved)
 		return repoNameErr("update repo owner", err)
 	}
 	return nil
+}
+
+// transferTarget resolves name, user first, to a user or to an org the
+// requester owns.
+func (s *RepoService) transferTarget(ctx context.Context, requesterID int64, name string) (userID, orgID int64, err error) {
+	user, err := s.users.GetByUsername(ctx, name)
+	if err == nil {
+		return user.ID, 0, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return 0, 0, err
+	}
+	org, err := s.orgs.GetByName(ctx, name)
+	if err != nil {
+		return 0, 0, fmt.Errorf("new owner not found: %w", err)
+	}
+	if !s.isOrgOwner(ctx, org.ID, requesterID) {
+		return 0, 0, fmt.Errorf("only an owner of %s can transfer a repository into it", org.Name)
+	}
+	return 0, org.ID, nil
 }

@@ -80,7 +80,7 @@ func scanReposWithStats(rows *sql.Rows) ([]model.RepositoryWithStats, error) {
 		var r model.RepositoryWithStats
 		var orgID, forkOfID sql.NullInt64
 		if err := rows.Scan(
-			&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private,
+			&r.ID, zeroIfNull{&r.OwnerID}, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private,
 			&r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt, &r.IsFork, &forkOfID,
 			&r.StarCount, &r.ForkCount,
 		); err != nil {
