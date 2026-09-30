@@ -4,6 +4,7 @@ package service_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -20,8 +21,8 @@ import (
 )
 
 // newOrgSvc builds an OrgService backed by the test database.
-// Returns the service and a seeded creator user ID.
-func newOrgSvc(t *testing.T) (*service.OrgService, int64) {
+// Returns the service, the database and a seeded creator user ID.
+func newOrgSvc(t *testing.T) (*service.OrgService, *sql.DB, int64) {
 	t.Helper()
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
@@ -32,13 +33,13 @@ func newOrgSvc(t *testing.T) (*service.OrgService, int64) {
 		store.NewUserStore(db),
 		config.GitConfig{},
 	)
-	return svc, creatorID
+	return svc, db, creatorID
 }
 
 // TestOrgService_Create_AssignsIDAndOwner verifies that Create inserts the org, returns
 // a non-zero ID, and automatically makes the creator an owner member.
 func TestOrgService_Create_AssignsIDAndOwner(t *testing.T) {
-	svc, creatorID := newOrgSvc(t)
+	svc, db, creatorID := newOrgSvc(t)
 	suffix := testutil.UniqueSuffix(t)
 	orgName := "testorg_" + suffix
 
@@ -46,6 +47,7 @@ func TestOrgService_Create_AssignsIDAndOwner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	if org.ID == 0 {
 		t.Error("created org must have non-zero ID")
 	}
@@ -82,8 +84,7 @@ func TestOrgService_Create_NameConflictWithUser_Error(t *testing.T) {
 }
 
 func TestOrgService_Create_NameOfUserInOtherCase_ReturnsErrOrgNameTaken(t *testing.T) {
-	svc, creatorID := newOrgSvc(t)
-	db := testutil.OpenTestDB(t)
+	svc, db, creatorID := newOrgSvc(t)
 	var username string
 	if err := db.QueryRowContext(context.Background(), `SELECT username FROM users WHERE id = $1`, creatorID).Scan(&username); err != nil {
 		t.Fatal(err)
@@ -97,8 +98,7 @@ func TestOrgService_Create_NameOfUserInOtherCase_ReturnsErrOrgNameTaken(t *testi
 }
 
 func TestOrgService_Create_InvalidName_ReturnsErrInvalidOwnerName(t *testing.T) {
-	svc, creatorID := newOrgSvc(t)
-	db := testutil.OpenTestDB(t)
+	svc, db, creatorID := newOrgSvc(t)
 	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE name = '..'`) })
 
 	_, err := svc.Create(context.Background(), creatorID, "..", "Dots", "")
@@ -143,6 +143,7 @@ func TestOrgService_AddMember_OwnerCanAdd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 
 	if err := svc.AddMember(context.Background(), org.ID, creatorID, newMemberID, model.OrgRoleMember); err != nil {
 		t.Fatalf("AddMember: %v", err)
@@ -174,6 +175,7 @@ func TestOrgService_AddMember_NonOwnerDenied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 
 	// nonOwner is not a member at all — AddMember must be denied.
 	err = svc.AddMember(context.Background(), org.ID, nonOwnerID, targetID, model.OrgRoleMember)
@@ -201,6 +203,7 @@ func TestOrgService_RemoveMember_OwnerCanRemove(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 
 	// Add then remove.
 	if err := svc.AddMember(context.Background(), org.ID, creatorID, memberID, model.OrgRoleMember); err != nil {
@@ -232,6 +235,7 @@ func TestOrgService_RemoveMember_MemberCanLeaveSelf(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	if err := svc.AddMember(context.Background(), org.ID, creatorID, memberID, model.OrgRoleMember); err != nil {
 		t.Fatalf("AddMember: %v", err)
 	}
@@ -264,6 +268,7 @@ func TestOrgService_CountMembers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 
 	// Creator is auto-added as owner member.
 	count, err := svc.CountMembers(context.Background(), org.ID)
@@ -307,6 +312,7 @@ func TestOrgService_IsOwner_MemberRole_ReturnsFalse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	if err := svc.AddMember(context.Background(), org.ID, creatorID, memberID, model.OrgRoleMember); err != nil {
 		t.Fatalf("AddMember: %v", err)
 	}
@@ -334,7 +340,7 @@ func TestOrgService_CreateRepo_WithInitFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create org: %v", err)
 	}
-	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 
 	repo, err := svc.CreateRepo(ctx, org.ID, creatorID, "initrepo", "an initialized project", false, service.RepoInitOptions{
 		AddREADME: true,
@@ -358,12 +364,13 @@ func TestOrgService_CreateRepo_WithInitFiles(t *testing.T) {
 // The website renders as a clickable link on the public org page, so a
 // javascript: URL saved here would run in every visitor's browser.
 func TestOrgService_UpdateProfile_RejectsNonHTTPWebsite(t *testing.T) {
-	svc, ownerID := newOrgSvc(t)
+	svc, db, ownerID := newOrgSvc(t)
 	ctx := context.Background()
 	org, err := svc.Create(ctx, ownerID, "testorg_"+testutil.UniqueSuffix(t), "", "")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 
 	for _, website := range []string{"javascript:alert(1)", "JavaScript:alert(1)", "data:text/html,hi", "https://"} {
 		if err := svc.UpdateProfile(ctx, org.ID, ownerID, "", "", website, "", ""); err == nil {
@@ -381,12 +388,13 @@ func TestOrgService_UpdateProfile_RejectsNonHTTPWebsite(t *testing.T) {
 
 // A bare host would otherwise render as a relative link to /{host}.
 func TestOrgService_UpdateProfile_BareHostGetsHTTPS(t *testing.T) {
-	svc, ownerID := newOrgSvc(t)
+	svc, db, ownerID := newOrgSvc(t)
 	ctx := context.Background()
 	org, err := svc.Create(ctx, ownerID, "testorg_"+testutil.UniqueSuffix(t), "", "")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 
 	if err := svc.UpdateProfile(ctx, org.ID, ownerID, "", "", "acme.dev", "", ""); err != nil {
 		t.Fatalf("UpdateProfile: %v", err)
@@ -486,10 +494,12 @@ func TestOrgService_ListMembershipsForUser_OwnedAndMember(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create owned org: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, ownedOrg.ID)
 	memberOrg, err := svc.Create(ctx, bobID, "testorg_member_"+suffix, "", "")
 	if err != nil {
 		t.Fatalf("Create member org: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, memberOrg.ID)
 	if err := svc.AddMember(ctx, memberOrg.ID, bobID, aliceID, model.OrgRoleMember); err != nil {
 		t.Fatalf("AddMember: %v", err)
 	}
@@ -497,6 +507,7 @@ func TestOrgService_ListMembershipsForUser_OwnedAndMember(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create unrelated org: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, unrelatedOrg.ID)
 
 	memberships, err := svc.ListMembershipsForUser(ctx, aliceID)
 	if err != nil {

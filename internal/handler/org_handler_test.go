@@ -72,7 +72,7 @@ func seedOrgOwnedBy(t *testing.T, db *sql.DB, name string, ownerID int64) {
 	if err := db.QueryRow(`INSERT INTO organizations (name) VALUES ($1) RETURNING id`, name).Scan(&orgID); err != nil {
 		t.Fatalf("seed org %q: %v", name, err)
 	}
-	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, orgID) })
+	testutil.DeleteOrgOnCleanup(t, db, orgID)
 	testutil.Exec(t, db, `INSERT INTO org_members (org_id, user_id, role) VALUES ($1, $2, 'owner')`, orgID, ownerID)
 }
 
@@ -202,6 +202,7 @@ func TestTransferOrg_RedirectsToOrgPage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create org: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 
 	form := url.Values{"new_owner": {"testuser_" + newOwnerSuffix}, "confirm_name": {org.Name}}
 	req := httptest.NewRequest(http.MethodPost, "/api/orgs/"+org.Name+"/transfer", strings.NewReader(form.Encode()))
@@ -231,6 +232,7 @@ func TestPageNewRepo_OwnerOrgDefaultVisibility(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create org: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	get := func(query string) string {
 		req := httptest.NewRequest(http.MethodGet, "/repos/new"+query, nil)
 		req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, ownerID, "testuser_"+suffix))
@@ -274,7 +276,7 @@ func TestCreateOrgRepo_OmittedPrivateUsesOrgDefault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	create := func(body string) *http.Response {
 		req := httptest.NewRequest(http.MethodPost, "/api/orgs/"+org.Name+"/repos", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -320,7 +322,7 @@ func TestCreateOrgRepo_LeftoverDir_422(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	post := func() *httptest.ResponseRecorder {
 		req := httptest.NewRequest(http.MethodPost, "/api/orgs/"+org.Name+"/repos", strings.NewReader(`{"name":"left"}`))
 		req.Header.Set("Content-Type", "application/json")

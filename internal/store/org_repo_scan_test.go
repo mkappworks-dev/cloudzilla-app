@@ -23,7 +23,7 @@ func TestRepoLists_IncludeOrgReposWithoutOwner(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `INSERT INTO organizations (name) VALUES ($1) RETURNING id`, orgName).Scan(&orgID); err != nil {
 		t.Fatalf("insert org: %v", err)
 	}
-	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, orgID) })
+	testutil.DeleteOrgOnCleanup(t, db, orgID)
 	var repoID, deletedID int64
 	if err := db.QueryRowContext(ctx,
 		`INSERT INTO repositories (owner_name, org_id, created_by, name, description, is_template) VALUES ($1, $2, $3, 'live', 'zebracorn', TRUE) RETURNING id`,

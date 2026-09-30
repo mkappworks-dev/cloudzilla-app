@@ -83,7 +83,7 @@ func (e repoDirsEnv) createOrg(t *testing.T, ownerID int64) *model.Organization 
 	if err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	t.Cleanup(func() { testutil.Exec(t, e.db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
+	testutil.DeleteOrgOnCleanup(t, e.db, org.ID)
 	return org
 }
 
