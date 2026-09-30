@@ -131,6 +131,12 @@ Tags and other refs may point at any object.
 
 ---
 
+## Delete-only pushes
+
+git sends no pack when every command is a delete (`git push origin :branch`). go-git's receive-pack parses a pack whenever the request carries one, and decoding a request always attaches the rest of the stream, so `NewServer` drops it for a delete-only push. Otherwise the HTTP body fails as `empty packfile` (HTTP 500), and an SSH push hangs, since the client holds the stream open until it reads the status. Branch protection still vets each delete.
+
+---
+
 ## Maintenance
 
 ### Loose-object GC
