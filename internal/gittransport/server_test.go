@@ -5,6 +5,9 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -235,6 +238,96 @@ func TestNewServer_VetRefusal_ReportedAndOtherRefsApply(t *testing.T) {
 	}
 	if got := r.get(t, topicRef); got != r.pushed {
 		t.Errorf("topic = %s, want pushed %s", got, r.pushed)
+	}
+}
+
+// go-git's receive-pack doesn't check connectivity: it would point a ref at an
+// object that neither the pack nor the repo holds. vet reads the pushed
+// objects, so it isn't asked about one that is missing.
+func TestNewServer_RefToMissingObject_Refused(t *testing.T) {
+	missing := plumbing.NewHash("1234567890123456789012345678901234567890")
+	for _, tc := range []struct {
+		name string
+		ref  plumbing.ReferenceName
+		old  func(*pushRepo) plumbing.Hash
+	}{
+		{"update", mainRef, func(r *pushRepo) plumbing.Hash { return r.base }},
+		{"create", topicRef, func(*pushRepo) plumbing.Hash { return plumbing.ZeroHash }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := newPushRepo(t)
+			old := tc.old(r)
+			vetted := false
+			vet := func(*packp.Command) error {
+				vetted = true
+				return nil
+			}
+
+			status, err := r.receive(r.advertise(t, vet), &packp.Command{Name: tc.ref, Old: old, New: missing})
+
+			if err != nil {
+				t.Errorf("ReceivePack: %v; a refused ref belongs in the report status only", err)
+			}
+			if got := refStatus(t, status, tc.ref); got != gittransport.ErrMissingObjects.Error() {
+				t.Errorf("%s status = %q, want %q", tc.ref, got, gittransport.ErrMissingObjects.Error())
+			}
+			if vetted {
+				t.Error("vet called for a missing object")
+			}
+			got := plumbing.ZeroHash
+			if ref, err := r.repo.Storer.Reference(tc.ref); err == nil {
+				got = ref.Hash()
+			} else if err != plumbing.ErrReferenceNotFound {
+				t.Fatalf("read %s: %v", tc.ref, err)
+			}
+			if got != old {
+				t.Errorf("%s = %s, want %s", tc.ref, got, old)
+			}
+		})
+	}
+}
+
+// go-git reports a ref's error text to the pusher, and a storer error names
+// paths on the server.
+func TestNewServer_RefWriteFails_StatusHidesStorerError(t *testing.T) {
+	r := newPushRepo(t)
+	if err := os.Chmod(filepath.Join(r.dir, mainRef.String()), 0o444); err != nil {
+		t.Fatalf("make main read-only: %v", err)
+	}
+	var logs bytes.Buffer
+	defaultLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(defaultLogger) })
+
+	status, err := r.receive(r.advertise(t, nil), &packp.Command{Name: mainRef, Old: r.base, New: r.pushed})
+
+	if err != nil {
+		t.Errorf("ReceivePack: %v; a refused ref belongs in the report status only", err)
+	}
+	if got := refStatus(t, status, mainRef); got != gittransport.ErrRefUpdateFailed.Error() {
+		t.Errorf("main status = %q, want %q", got, gittransport.ErrRefUpdateFailed.Error())
+	}
+	if got := r.get(t, mainRef); got != r.base {
+		t.Errorf("main = %s, want %s", got, r.base)
+	}
+	if !strings.Contains(logs.String(), "permission denied") {
+		t.Errorf("storer error not logged:\n%s", logs.String())
+	}
+}
+
+func TestNewServer_DeleteRef_Applies(t *testing.T) {
+	r := newPushRepo(t)
+	r.set(t, topicRef, r.base)
+
+	status, err := r.receive(r.advertise(t, nil), &packp.Command{Name: topicRef, Old: r.base, New: plumbing.ZeroHash})
+	if err != nil {
+		t.Fatalf("ReceivePack: %v", err)
+	}
+	if got := refStatus(t, status, topicRef); got != "ok" {
+		t.Errorf("topic status = %q, want ok", got)
+	}
+	if _, err := r.repo.Storer.Reference(topicRef); err != plumbing.ErrReferenceNotFound {
+		t.Errorf("topic lookup err = %v, want %v", err, plumbing.ErrReferenceNotFound)
 	}
 }
 
