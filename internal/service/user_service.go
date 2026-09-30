@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,51 +20,32 @@ import (
 var (
 	ErrRegistrationDisabled = errors.New("registration is disabled")
 	ErrLoginDisabled        = errors.New("login is currently disabled")
+	ErrUsernameTaken        = store.ErrUsernameTaken
+	ErrEmailTaken           = store.ErrEmailTaken
+	ErrOrgNameTaken         = store.ErrOrgNameTaken
 	ErrOAuthEmailUnverified = errors.New("the email address on this account has not been verified by the sign-in provider")
 	ErrOAuthAccountExists   = errors.New("an account with this email already exists; sign in with your password")
 	ErrPinLimit             = errors.New("pin limit reached (6)")
 	ErrRepoNotFound         = errors.New("repository not found")
-	ErrEmailTaken           = errors.New("email is already taken")
 	ErrInvalidEmail         = errors.New("email must be a valid address")
-	ErrInvalidUsername      = errors.New("username must be 1-39 chars, alphanumeric, dash or underscore, starting with a letter or number")
-	ErrUsernameTaken        = errors.New("that name is already taken by a user or an organization")
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
-	usernameRe              = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$`)
 	emailRe                 = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 )
 
-const (
-	MaxPinnedRepos    = 6
-	maxUsernameLength = 39
-)
-
-// Usernames are a strict subset of ValidateName so every user is also a valid repo owner path segment.
-func ValidateUsername(username string) error {
-	if !usernameRe.MatchString(username) {
-		return ErrInvalidUsername
-	}
-	return nil
-}
-
-// Users and orgs share /{owner}, so every account-creating path runs this;
-// migration 080's triggers back it up against a concurrent insert.
-func usernameAvailable(ctx context.Context, users *store.UserStore, username string) error {
-	if err := ValidateUsername(username); err != nil {
-		return err
-	}
-	taken, err := users.OwnerNameTaken(ctx, username)
-	if err != nil {
-		return err
-	}
-	if taken {
-		return ErrUsernameTaken
-	}
-	return nil
-}
+const MaxPinnedRepos = 6
 
 // MaxPasswordBytes is bcrypt's input limit. Hashing longer passwords fails with
 // bcrypt.ErrPasswordTooLong, so forms check this first to give a clear message.
 const MaxPasswordBytes = 72
+
+// Unknown emails are checked against this so login time doesn't reveal which emails have accounts.
+var dummyPasswordHash = func() []byte {
+	h, err := bcrypt.GenerateFromPassword([]byte("cloudzilla-dummy-password"), bcrypt.DefaultCost)
+	if err != nil {
+		panic(err)
+	}
+	return h
+}()
 
 // UserService manages user account operations including authentication and profile updates.
 type UserService struct {
@@ -86,17 +66,17 @@ func (s *UserService) WithNoreplyHostFrom(baseURL string) *UserService {
 }
 
 func (s *UserService) Create(ctx context.Context, username, email, password string) (*model.User, error) {
-	if err := usernameAvailable(ctx, s.store, username); err != nil {
+	if err := ValidateOwnerName(username); err != nil {
 		return nil, err
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := hashPassword(password)
 	if err != nil {
-		return nil, fmt.Errorf("hash password: %w", err)
+		return nil, err
 	}
 	u := &model.User{
 		Username:     username,
 		Email:        email,
-		PasswordHash: string(hash),
+		PasswordHash: hash,
 	}
 	if err := s.store.Create(ctx, u); err != nil {
 		return nil, err
@@ -104,20 +84,29 @@ func (s *UserService) Create(ctx context.Context, username, email, password stri
 	return u, nil
 }
 
-func (s *UserService) CreateSuperadmin(ctx context.Context, username, email, password string) (*model.User, error) {
-	if err := usernameAvailable(ctx, s.store, username); err != nil {
-		return nil, err
-	}
+func hashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, fmt.Errorf("hash password: %w", err)
+		return "", fmt.Errorf("hash password: %w", err)
 	}
-	return s.store.CreateSuperadmin(ctx, username, email, string(hash))
+	return string(hash), nil
+}
+
+func (s *UserService) CreateSuperadmin(ctx context.Context, username, email, password string) (*model.User, error) {
+	if err := ValidateOwnerName(username); err != nil {
+		return nil, err
+	}
+	hash, err := hashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+	return s.store.CreateSuperadmin(ctx, username, email, hash)
 }
 
 func (s *UserService) Authenticate(ctx context.Context, email, password string) (*model.User, string, error) {
 	u, err := s.store.GetByEmailWithRole(ctx, email)
 	if err != nil {
+		_ = bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(password))
 		return nil, "", fmt.Errorf("invalid credentials")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)); err != nil {
@@ -134,8 +123,27 @@ func (s *UserService) GetByUsername(ctx context.Context, username string) (*mode
 	return s.store.GetByUsername(ctx, username)
 }
 
-func (s *UserService) MarkInvited(ctx context.Context, userID int64) error {
-	return s.store.MarkInvited(ctx, userID)
+// CreateFromInvitation creates the invitee's account and redeems inv atomically.
+// It returns ErrInvitationUnusable if inv was redeemed, expired, or its email
+// registered since it was loaded.
+func (s *UserService) CreateFromInvitation(ctx context.Context, inv *model.Invitation, username, password string) (*model.User, error) {
+	if err := ValidateOwnerName(username); err != nil {
+		return nil, err
+	}
+	hash, err := hashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+	u := &model.User{
+		Username:     username,
+		Email:        inv.Email,
+		PasswordHash: hash,
+		IsInvited:    true,
+	}
+	if err := s.store.CreateFromInvitation(ctx, u, inv.ID); err != nil {
+		return nil, err
+	}
+	return u, nil
 }
 
 // OAuthIdentity is what an OAuth provider asserts about the person signing in.
@@ -173,10 +181,7 @@ func (s *UserService) AuthenticateOAuth(ctx context.Context, id OAuthIdentity, a
 	if !allowRegistration {
 		return nil, "", ErrRegistrationDisabled
 	}
-	username, err := s.uniqueUsername(ctx, id.Email, id.Name)
-	if err != nil {
-		return nil, "", err
-	}
+	username := s.uniqueUsername(ctx, id.Email, id.Name)
 	u, err := s.store.CreateOAuthUser(ctx, username, id.Email, id.Provider, id.ID, id.AvatarURL)
 	if err != nil {
 		return nil, "", err
@@ -185,32 +190,11 @@ func (s *UserService) AuthenticateOAuth(ctx context.Context, id OAuthIdentity, a
 	return u, token, err
 }
 
-func (s *UserService) uniqueUsername(ctx context.Context, email, name string) (string, error) {
-	base := usernameBase(name)
-	if base == "" {
-		local, _, _ := strings.Cut(email, "@")
-		base = usernameBase(local)
-	}
-	if base == "" {
-		base = "user"
-	}
-	candidate := base
-	for i := 2; ; i++ {
-		switch err := usernameAvailable(ctx, s.store, candidate); {
-		case err == nil:
-			return candidate, nil
-		case !errors.Is(err, ErrUsernameTaken):
-			return "", err
-		}
-		suffix := strconv.Itoa(i)
-		candidate = base[:min(len(base), maxUsernameLength-len(suffix))] + suffix
-	}
-}
-
-func usernameBase(raw string) string {
-	base := strings.TrimLeft(nonAlphanumRe.ReplaceAllString(strings.ToLower(raw), ""), "_-")
-	// nonAlphanumRe leaves only ASCII, so the byte slice cannot split a rune.
-	return base[:min(len(base), maxUsernameLength)]
+func (s *UserService) uniqueUsername(ctx context.Context, email, name string) string {
+	fromName := nonAlphanumRe.ReplaceAllString(strings.ToLower(strings.ReplaceAll(name, " ", "")), "")
+	local, _, _ := strings.Cut(email, "@")
+	fromEmail := nonAlphanumRe.ReplaceAllString(strings.ToLower(local), "")
+	return freeOwnerName(ctx, s.store, fitOwnerName(fromName, fitOwnerName(fromEmail, "user")))
 }
 
 // GetByID returns a user by their numeric ID.

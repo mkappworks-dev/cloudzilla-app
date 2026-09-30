@@ -115,6 +115,51 @@ func TestCreateRepo_ValidAuth_201(t *testing.T) {
 	}
 }
 
+func TestCreateRepo_InvalidName_422(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	token := makeIssueJWT(t, ownerID, "testuser_"+suffix)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/repos", repoCreateBody("bad name "+suffix, "", false))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	repoAPIRouterWithAuth(newRepoHandler(db)).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("an invalid name is a client error; want 422, got %d: %s", rr.Code, rr.Body.String())
+	}
+	if !strings.Contains(rr.Body.String(), "Repository names can use letters") {
+		t.Errorf("want the repository name rule; body: %s", rr.Body.String())
+	}
+}
+
+func TestCreateRepo_LegacyUnsafeOwner_422AndWarns(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	legacyName := "*_" + testutil.UniqueSuffix(t)
+	var legacyID int64
+	if err := db.QueryRow(`INSERT INTO users (username, email, password_hash) VALUES ($1, $2, 'x') RETURNING id`,
+		legacyName, "legacy_"+testutil.UniqueSuffix(t)+"@test.invalid").Scan(&legacyID); err != nil {
+		t.Fatalf("seed legacy user: %v", err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, legacyID) })
+	logs := captureLogs(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/repos", repoCreateBody("copy", "", false))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, legacyID, legacyName))
+	rr := httptest.NewRecorder()
+	repoAPIRouterWithAuth(newRepoHandler(db)).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), "can't be created") {
+		t.Errorf("want 422 with the unsafe path message, got %d %s", rr.Code, rr.Body)
+	}
+	if level := loggedLevel(t, logs, "create repo: unsafe repository path"); level != "WARN" {
+		t.Errorf("want a WARN log, got %s", level)
+	}
+}
+
 func TestCreateRepo_TakenName_422(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)

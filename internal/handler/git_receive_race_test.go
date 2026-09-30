@@ -111,7 +111,7 @@ func assertRef(t *testing.T, r raceRepo, branch string, want plumbing.Hash) {
 func TestGitReceivePack_BranchMovedSinceClientRead_Refused(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	h := newAPIRouterAt(db, reposRoot)
+	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	web := webCommit(t, reposRoot, r, "main")
 
@@ -126,7 +126,7 @@ func TestGitReceivePack_BranchMovedSinceClientRead_Refused(t *testing.T) {
 func TestGitReceivePack_ForcePushToProtectedBranch_RefusedWithoutWrite(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	h := newAPIRouterAt(db, reposRoot)
+	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	protectMain(t, db, r)
 	// Any write to main now fails with a permission error instead of landing,
@@ -146,7 +146,7 @@ func TestGitReceivePack_ForcePushToProtectedBranch_RefusedWithoutWrite(t *testin
 func TestGitReceivePack_FastForwardToProtectedBranch_Applies(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	h := newAPIRouterAt(db, reposRoot)
+	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	protectMain(t, db, r)
 
@@ -163,7 +163,7 @@ func TestGitReceivePack_FastForwardToProtectedBranch_Applies(t *testing.T) {
 func TestGitReceivePack_ProtectedBranchToMissingCommit_Refused(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	h := newAPIRouterAt(db, reposRoot)
+	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	protectMain(t, db, r)
 
@@ -178,7 +178,7 @@ func TestGitReceivePack_ProtectedBranchToMissingCommit_Refused(t *testing.T) {
 func TestGitReceivePack_CreateProtectedBranchAtMissingCommit_Refused(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	h := newAPIRouterAt(db, reposRoot)
+	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	testutil.Exec(t, db, `INSERT INTO branch_protections (repo_id, pattern, block_force_push) VALUES ($1, 'topic', true)`, r.id)
 
@@ -196,7 +196,7 @@ func TestGitReceivePack_CreateProtectedBranchAtMissingCommit_Refused(t *testing.
 func TestGitReceivePack_DeleteProtectedBranch_Refused(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	h := newAPIRouterAt(db, reposRoot)
+	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	protectMain(t, db, r)
 
@@ -211,7 +211,7 @@ func TestGitReceivePack_DeleteProtectedBranch_Refused(t *testing.T) {
 func TestGitReceivePack_ProtectedAndUnprotectedRefs_AppliesOnlyUnprotected(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	h := newAPIRouterAt(db, reposRoot)
+	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	protectMain(t, db, r)
 
@@ -234,7 +234,7 @@ func TestGitReceivePack_ProtectedAndUnprotectedRefs_AppliesOnlyUnprotected(t *te
 func TestGitReceivePack_RefusedRefStillEnforcesProtection(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	h := newAPIRouterAt(db, reposRoot)
+	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	protectMain(t, db, r)
 
@@ -257,7 +257,7 @@ func TestGitReceivePack_RefusedRefStillEnforcesProtection(t *testing.T) {
 func TestGitReceivePack_NoReportStatus_RefusesPerRef(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	h := newAPIRouterAt(db, reposRoot)
+	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	protectMain(t, db, r)
 

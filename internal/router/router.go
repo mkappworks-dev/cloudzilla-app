@@ -3,6 +3,7 @@ package router
 import (
 	"io/fs"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -12,13 +13,32 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
+// Account creation is rate limited per client IP so /register can't be used to
+// probe many emails for existing accounts.
+const (
+	accountCreationLimit  = 10
+	accountCreationWindow = 15 * time.Minute
+)
+
+const (
+	// Room for a person retrying a mistyped password; too few to guess passwords or probe emails at scale.
+	loginAttemptLimit = 30
+	// Short enough that a locked-out person can soon retry; caps a guesser at 120 tries an hour.
+	loginAttemptWindow = 15 * time.Minute
+)
+
 // New registers all application routes and returns the configured chi router.
-func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Handler {
+func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.Handler, error) {
+	trustedProxies, err := middleware.ParseTrustedProxies(cfg.Server.TrustedProxies)
+	if err != nil {
+		return nil, err
+	}
 	r := chi.NewRouter()
 	h := handler.New(services, cfg)
 
 	// Global middleware
 	r.Use(chiMiddleware.RequestID)
+	r.Use(middleware.ClientIP(trustedProxies))
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(middleware.Logger)
 	r.Use(middleware.CORS(cfg.Server.BaseURL))
@@ -40,7 +60,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Invite routes
 	r.Get("/invite/{token}", h.PageInvite)
-	r.Post("/invite/{token}", h.PageInviteSubmit)
+	r.With(middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/invite/{token}", h.PageInviteSubmit)
 
 	// Admin routes
 	r.With(authMW, superadminMW).Get("/admin/settings", h.PageAdminSettings)
@@ -57,8 +77,10 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/explore", h.PageExplore)
 	r.With(optAuthMW).Get("/login", h.PageLogin)
 	r.With(optAuthMW).Get("/register", h.PageRegister)
-	r.With(optAuthMW).Post("/register", h.PageRegisterSubmit)
-	r.With(optAuthMW).Post("/login", h.PageLoginSubmit)
+	r.With(optAuthMW, middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/register", h.PageRegisterSubmit)
+	r.Get("/register/complete/{token}", h.PageRegisterComplete)
+	r.With(middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/register/complete/{token}", h.PageRegisterCompleteSubmit)
+	r.With(optAuthMW, middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/login", h.PageLoginSubmit)
 	r.With(authMW).Get("/settings", h.PageSettings)
 	r.With(authMW).Post("/settings/profile", h.UpdateProfile)
 	r.With(authMW).Post("/settings/profile-readme", h.UpdateProfileReadme)
@@ -175,7 +197,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.Get("/auth/google/callback", h.GoogleOAuthCallback)
 
 	// SSO auth endpoints
-	r.Post("/auth/ldap", h.LDAPLogin)
+	r.With(middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/auth/ldap", h.LDAPLogin)
 	r.Get("/auth/saml", h.InitiateSAML)
 	r.Post("/auth/saml/callback", h.SAMLCallback)
 	r.Get("/auth/saml/metadata", h.SAMLMetadata)
@@ -183,7 +205,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	// Auth routes
 	r.Route("/api/auth", func(r chi.Router) {
 		r.Use(apiBodyLimit)
-		r.Post("/login", h.Login)
+		r.With(middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/login", h.Login)
 		r.Post("/logout", h.Logout)
 	})
 
@@ -527,5 +549,5 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		_, _ = w.Write(faviconBytes)
 	})
 
-	return r
+	return r, nil
 }

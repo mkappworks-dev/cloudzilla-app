@@ -29,7 +29,7 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 		}
 	}
 
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return fmt.Errorf("open repo: %w", err)
 	}
@@ -153,7 +153,7 @@ func insertBlobIntoTree(repo *gogit.Repository, base *object.Tree, segments []st
 // ArchiveZip streams a zip of the repo tree at ref into w. Files are prefixed
 // "<repo>-<ref>/" so the archive expands into a single folder.
 func (s *CodeService) ArchiveZip(owner, repoName, ref string, w io.Writer) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return fmt.Errorf("open repo: %w", err)
 	}
@@ -208,7 +208,7 @@ const maxFileList = 2000
 // ListAllFiles returns every file path in the tree at ref, capped at
 // maxFileList so the "Go to file" finder stays responsive on large repos.
 func (s *CodeService) ListAllFiles(owner, repoName, ref string) ([]string, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ func (s *CodeService) ListAllFiles(owner, repoName, ref string) ([]string, error
 // CommitCount returns the commit count reachable from ref. It walks the full
 // history — treat as best-effort on large repos.
 func (s *CodeService) CommitCount(owner, repoName, ref string) (int, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return 0, err
 	}

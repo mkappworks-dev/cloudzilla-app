@@ -18,7 +18,7 @@ type LogSinceCommit struct {
 
 // Short-circuits as soon as a commit older than cutoff is seen.
 func (s *CodeService) LogSince(ctx context.Context, owner, repoName, ref string, cutoff time.Time) ([]LogSinceCommit, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}

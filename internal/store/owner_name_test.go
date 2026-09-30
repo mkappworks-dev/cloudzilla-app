@@ -29,10 +29,10 @@ func TestOwnerNames_UsersAndOrgsCannotShareAName(t *testing.T) {
 	testutil.SeedUser(t, db, suffix)
 	orgs := store.NewOrgStore(db)
 
-	taken := &model.Organization{Name: "testuser_" + suffix}
-	err := orgs.Create(ctx, taken)
-	if taken.ID != 0 {
-		testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, taken.ID)
+	var takenID int64
+	err := db.QueryRowContext(ctx, `INSERT INTO organizations (name) VALUES ($1) RETURNING id`, "testuser_"+suffix).Scan(&takenID)
+	if takenID != 0 {
+		testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, takenID)
 	}
 	wantUniqueViolation(t, "org with a user's name", err)
 

@@ -11,7 +11,7 @@ import (
 // PullCommits returns commits reachable from head but not from base, in
 // reverse-chronological order.
 func (s *CodeService) PullCommits(owner, repoName, base, head string) ([]CommitSummary, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}

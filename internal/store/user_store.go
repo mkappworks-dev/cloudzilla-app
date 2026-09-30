@@ -10,7 +10,23 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+)
+
+var (
+	ErrUsernameTaken = errors.New("username already taken")
+	ErrEmailTaken    = errors.New("email already registered")
+)
+
+// The first two are Postgres's default names for the inline UNIQUE columns in
+// 001_create_users.sql; users_email_lower_key is the index from 082, and
+// owner_name_taken is what 080's triggers raise.
+const (
+	usersUsernameKey   = "users_username_key"
+	usersEmailKey      = "users_email_key"
+	usersEmailLowerKey = "users_email_lower_key"
+	ownerNameTakenKey  = "owner_name_taken"
 )
 
 // UserStore provides database operations for user accounts.
@@ -52,16 +68,104 @@ func (s *UserStore) queryUser(ctx context.Context, filter string, args ...any) (
 }
 
 func (s *UserStore) Create(ctx context.Context, u *model.User) error {
-	err := scanUser(s.db.QueryRowContext(ctx,
-		`INSERT INTO users (username, email, password_hash, bio, avatar_url)
-		 VALUES ($1, $2, $3, $4, $5)
-		 RETURNING `+userColumns,
-		u.Username, u.Email, u.PasswordHash, u.Bio, u.AvatarURL,
-	), u)
+	return insertUser(ctx, s.db, u)
+}
+
+func (s *UserStore) CreateFromInvitation(ctx context.Context, u *model.User, invitationID int64) error {
+	return s.insertClaimed(ctx, "user create from invitation", u, ErrInvitationUnusable, func(tx *sql.Tx) error {
+		res, err := tx.ExecContext(ctx,
+			`UPDATE invitations SET accepted_at = NOW() WHERE id = $1 AND `+usableInvitationCond,
+			invitationID,
+		)
+		if err != nil {
+			return fmt.Errorf("user create from invitation: claim: %w", err)
+		}
+		if n, err := res.RowsAffected(); err != nil {
+			return fmt.Errorf("user create from invitation: claim: %w", err)
+		} else if n == 0 {
+			return ErrInvitationUnusable
+		}
+		return nil
+	})
+}
+
+// CreateFromSignupToken inserts u with the email of the link it claims.
+func (s *UserStore) CreateFromSignupToken(ctx context.Context, u *model.User, tokenHash string) error {
+	return s.insertClaimed(ctx, "user create from signup token", u, ErrSignupTokenUnusable, func(tx *sql.Tx) error {
+		err := tx.QueryRowContext(ctx,
+			`UPDATE signup_tokens SET used_at = NOW() WHERE token_hash = $1 AND `+usableSignupTokenCond+` RETURNING email`,
+			tokenHash,
+		).Scan(&u.Email)
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrSignupTokenUnusable
+		}
+		if err != nil {
+			return fmt.Errorf("user create from signup token: claim: %w", err)
+		}
+		return nil
+	})
+}
+
+// insertClaimed runs claim and inserts u in one transaction, so a failed insert
+// releases the claim and concurrent submits can't both redeem one link. An email
+// registered after the claim is reported as unusable, the rule every claim's
+// predicate already applies.
+func (s *UserStore) insertClaimed(ctx context.Context, op string, u *model.User, unusable error, claim func(*sql.Tx) error) error {
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
+		return fmt.Errorf("%s: begin: %w", op, err)
+	}
+	defer tx.Rollback()
+
+	if err := claim(tx); err != nil {
+		return err
+	}
+	if err := insertUser(ctx, tx, u); err != nil {
+		if errors.Is(err, ErrEmailTaken) {
+			return unusable
+		}
+		return err
+	}
+	return tx.Commit()
+}
+
+func insertUser(ctx context.Context, db dbtx, u *model.User) error {
+	err := scanUser(db.QueryRowContext(ctx,
+		`INSERT INTO users (username, email, password_hash, bio, avatar_url, is_invited)
+		 SELECT $1, $2, $3, $4, $5, $6 WHERE NOT `+ownerNameTakenCond+`
+		 RETURNING `+userColumns,
+		u.Username, u.Email, u.PasswordHash, u.Bio, u.AvatarURL, u.IsInvited,
+	), u)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrUsernameTaken
+	}
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			switch pgErr.ConstraintName {
+			case usersUsernameKey, ownerNameTakenKey:
+				return ErrUsernameTaken
+			case usersEmailKey, usersEmailLowerKey:
+				return ErrEmailTaken
+			}
+		}
 		return fmt.Errorf("user create: %w", err)
 	}
 	return nil
+}
+
+// ownerNameTakenCond holds when $1, in any case, is a username or an org name:
+// both are the first URL segment and a directory under the repos root. Inserts
+// check it in the same statement; case variants inserted concurrently can still race.
+const ownerNameTakenCond = `(EXISTS (SELECT 1 FROM users WHERE lower(username) = lower($1))
+	OR EXISTS (SELECT 1 FROM organizations WHERE lower(name) = lower($1)))`
+
+func (s *UserStore) OwnerNameTaken(ctx context.Context, name string) (bool, error) {
+	var taken bool
+	if err := s.db.QueryRowContext(ctx, `SELECT `+ownerNameTakenCond, name).Scan(&taken); err != nil {
+		return false, fmt.Errorf("owner name taken: %w", err)
+	}
+	return taken, nil
 }
 
 func (s *UserStore) GetByID(ctx context.Context, id int64) (*model.User, error) {
@@ -80,22 +184,8 @@ func (s *UserStore) GetByUsername(ctx context.Context, username string) (*model.
 	return u, nil
 }
 
-// OwnerNameTaken: users and organizations share the /{owner} namespace.
-func (s *UserStore) OwnerNameTaken(ctx context.Context, name string) (bool, error) {
-	var taken bool
-	err := s.db.QueryRowContext(ctx,
-		`SELECT EXISTS (SELECT 1 FROM users WHERE username = $1)
-		     OR EXISTS (SELECT 1 FROM organizations WHERE name = $1)`,
-		name,
-	).Scan(&taken)
-	if err != nil {
-		return false, fmt.Errorf("owner name taken: %w", err)
-	}
-	return taken, nil
-}
-
 func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, error) {
-	u, err := s.queryUser(ctx, `WHERE email = $1`, email)
+	u, err := s.queryUser(ctx, `WHERE lower(email) = lower($1)`, email)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email: %w", err)
 	}
@@ -104,7 +194,7 @@ func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, 
 
 // GetByEmailWithRole fetches a user by email including is_superadmin and is_invited columns.
 func (s *UserStore) GetByEmailWithRole(ctx context.Context, email string) (*model.User, error) {
-	u, err := s.queryUser(ctx, `WHERE email = $1`, email)
+	u, err := s.queryUser(ctx, `WHERE lower(email) = lower($1)`, email)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email with role: %w", err)
 	}
@@ -123,10 +213,13 @@ func (s *UserStore) CreateOAuthUser(ctx context.Context, username, email, provid
 	u := &model.User{}
 	err := scanUser(s.db.QueryRowContext(ctx,
 		`INSERT INTO users (username, email, password_hash, oauth_provider, oauth_id, avatar_url)
-		 VALUES ($1, $2, '', $3, $4, $5)
+		 SELECT $1, $2, '', $3, $4, $5 WHERE NOT `+ownerNameTakenCond+`
 		 RETURNING `+userColumns,
 		username, email, provider, oauthID, avatarURL,
 	), u)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrUsernameTaken
+	}
 	if err != nil {
 		return nil, fmt.Errorf("user create oauth: %w", err)
 	}
@@ -143,13 +236,18 @@ func (s *UserStore) CountAll(ctx context.Context) (int, error) {
 }
 
 func (s *UserStore) CreateSuperadmin(ctx context.Context, username, email, passwordHash string) (*model.User, error) {
-	_, err := s.db.ExecContext(ctx,
+	res, err := s.db.ExecContext(ctx,
 		`INSERT INTO users (username, email, password_hash, bio, avatar_url, is_superadmin, created_at, updated_at)
-		 VALUES ($1, $2, $3, '', '', TRUE, NOW(), NOW())`,
+		 SELECT $1, $2, $3, '', '', TRUE, NOW(), NOW() WHERE NOT `+ownerNameTakenCond,
 		username, email, passwordHash,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create superadmin: %w", err)
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return nil, fmt.Errorf("create superadmin: %w", err)
+	} else if n == 0 {
+		return nil, ErrUsernameTaken
 	}
 	return s.GetByEmailWithRole(ctx, email)
 }
@@ -167,14 +265,6 @@ func (s *UserStore) LinkSSO(ctx context.Context, userID int64, provider, ssoID s
 	return nil
 }
 
-func (s *UserStore) MarkInvited(ctx context.Context, userID int64) error {
-	_, err := s.db.ExecContext(ctx, `UPDATE users SET is_invited = TRUE WHERE id = $1`, userID)
-	if err != nil {
-		return fmt.Errorf("user mark invited: %w", err)
-	}
-	return nil
-}
-
 // GetByIDWithTOTP fetches a user by ID including TOTP columns.
 func (s *UserStore) GetByIDWithTOTP(ctx context.Context, id int64) (*model.User, error) {
 	u, err := s.queryUserWithTOTP(ctx, `WHERE id = $1`, id)
@@ -186,7 +276,7 @@ func (s *UserStore) GetByIDWithTOTP(ctx context.Context, id int64) (*model.User,
 
 // GetByEmailWithTOTP fetches a user by email including TOTP fields.
 func (s *UserStore) GetByEmailWithTOTP(ctx context.Context, email string) (*model.User, error) {
-	u, err := s.queryUserWithTOTP(ctx, `WHERE email = $1`, email)
+	u, err := s.queryUserWithTOTP(ctx, `WHERE lower(email) = lower($1)`, email)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email with totp: %w", err)
 	}

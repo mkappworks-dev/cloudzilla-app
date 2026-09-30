@@ -37,7 +37,11 @@ func newTestRouter(t *testing.T) (http.Handler, *service.Services, *sql.DB) {
 		Git:    config.GitConfig{ReposRoot: t.TempDir()},
 	}
 	svc := service.New(store.New(db), cfg)
-	return router.New(svc, cfg, fstest.MapFS{}), svc, db
+	h, err := router.New(svc, cfg, fstest.MapFS{})
+	if err != nil {
+		t.Fatalf("router.New: %v", err)
+	}
+	return h, svc, db
 }
 
 func makeJWT(t *testing.T, userID int64, username string) string {

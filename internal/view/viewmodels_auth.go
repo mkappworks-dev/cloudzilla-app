@@ -42,3 +42,24 @@ type TOTPVerifyPageData struct {
 	Error string
 	Next  string
 }
+
+// RegisterEmailData holds template data for the email-first registration form.
+type RegisterEmailData struct {
+	BasePage
+	Email string
+	Error string
+}
+
+// RegisterCheckInboxData holds template data for the page shown after every email-first registration submit.
+type RegisterCheckInboxData struct {
+	BasePage
+}
+
+// RegisterCompleteData holds template data for finishing a signup from its emailed link.
+// Signup is nil when the link is unusable.
+type RegisterCompleteData struct {
+	BasePage
+	Signup   *model.SignupToken
+	Username string
+	Error    string
+}

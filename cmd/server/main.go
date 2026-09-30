@@ -59,7 +59,11 @@ func main() {
 		}
 	})
 
-	r := router.New(services, cfg, frontendFS)
+	r, err := router.New(services, cfg, frontendFS)
+	if err != nil {
+		slog.Error("failed to build router", "error", err)
+		os.Exit(1)
+	}
 
 	go runEmailDigest(context.Background(), services)
 

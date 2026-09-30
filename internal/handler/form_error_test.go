@@ -205,7 +205,7 @@ func TestPageSetupSubmit_StoreError_GenericError(t *testing.T) {
 	db := openSchemalessDB(t)
 
 	body := submitForm(t, newPageHandler(t, db), "/setup", "", url.Values{
-		"username": {"admin"}, "email": {"admin@test.invalid"}, "password": {"password123"},
+		"username": {"siteadmin"}, "email": {"admin@test.invalid"}, "password": {"password123"},
 	})
 
 	assertNoRawDBError(t, body)

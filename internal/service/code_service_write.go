@@ -21,7 +21,7 @@ func (s *CodeService) SaveProfileReadme(owner, repoName, defaultBranch, content 
 		message = "Update profile README"
 	}
 
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		if errors.Is(err, gogit.ErrRepositoryNotExists) {
 			return ErrProfileRepoMissing

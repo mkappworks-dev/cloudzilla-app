@@ -95,7 +95,7 @@ func rewriteWikiOrder(orderContent, oldSlug, newSlug string) (string, bool) {
 
 // WikiPageListMeta returns an empty slice when the wiki has no commits yet.
 func (s *CodeService) WikiPageListMeta(owner, repoName string) ([]WikiPageMeta, error) {
-	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
+	repo, err := s.openWiki(owner, repoName)
 	if err != nil {
 		if errors.Is(err, gogit.ErrRepositoryNotExists) {
 			return []WikiPageMeta{}, nil
@@ -163,7 +163,7 @@ func firstHeading(content string) string {
 // (filenames without the .md extension) from the HEAD tree root.
 // Returns an empty slice when the wiki has no commits yet.
 func (s *CodeService) WikiPageList(owner, repoName string) ([]string, error) {
-	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
+	repo, err := s.openWiki(owner, repoName)
 	if err != nil {
 		// Wiki repo does not exist yet — not an error.
 		return []string{}, nil
@@ -197,7 +197,7 @@ func (s *CodeService) WikiPageList(owner, repoName string) ([]string, error) {
 // the page exists but has no content. Callers must use found to distinguish the
 // two cases.
 func (s *CodeService) WikiPageGet(owner, repoName, slug string) (content string, found bool, err error) {
-	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
+	repo, err := s.openWiki(owner, repoName)
 	if err != nil {
 		return "", false, nil
 	}
@@ -220,7 +220,7 @@ func (s *CodeService) WikiPageGet(owner, repoName, slug string) (content string,
 
 // WikiPageSetOrder errors when the wiki repo does not yet exist.
 func (s *CodeService) WikiPageSetOrder(owner, repoName string, orderedSlugs []string, author GitAuthor) error {
-	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
+	repo, err := s.openWiki(owner, repoName)
 	if err != nil {
 		return fmt.Errorf("wiki open: %w", err)
 	}
@@ -235,7 +235,10 @@ func (s *CodeService) WikiPageSave(owner, repoName, slug, content string, author
 	if message == "" {
 		message = "Update " + slug
 	}
-	wPath := s.wikiPath(owner, repoName)
+	wPath, err := s.wikiPath(owner, repoName)
+	if err != nil {
+		return err
+	}
 
 	// Open or initialise the bare wiki repo.
 	repo, err := gogit.PlainOpen(wPath)
@@ -254,8 +257,7 @@ func (s *CodeService) WikiPageSave(owner, repoName, slug, content string, author
 // WikiPageRename rewrites .order in the same commit so the user-defined
 // sidebar position is preserved across the rename.
 func (s *CodeService) WikiPageRename(owner, repoName, oldSlug, newSlug string, author GitAuthor, message string) error {
-	wPath := s.wikiPath(owner, repoName)
-	repo, err := gogit.PlainOpen(wPath)
+	repo, err := s.openWiki(owner, repoName)
 	if err != nil {
 		return fmt.Errorf("wiki open: %w", err)
 	}
@@ -318,8 +320,7 @@ func (s *CodeService) WikiPageRename(owner, repoName, oldSlug, newSlug string, a
 // WikiPageDelete strips the slug from .order in the same commit so the
 // sidebar order doesn't drift toward a dead entry.
 func (s *CodeService) WikiPageDelete(owner, repoName, slug string, author GitAuthor) error {
-	wPath := s.wikiPath(owner, repoName)
-	repo, err := gogit.PlainOpen(wPath)
+	repo, err := s.openWiki(owner, repoName)
 	if err != nil {
 		return nil
 	}

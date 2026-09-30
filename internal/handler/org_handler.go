@@ -48,11 +48,15 @@ func (h *Handler) CreateOrg(w http.ResponseWriter, r *http.Request) {
 	}
 
 	org, err := h.Services.Org.Create(r.Context(), claims.UserID, req.Name, req.DisplayName, req.Description)
+	if errors.Is(err, service.ErrInvalidOrgName) {
+		writeError(w, http.StatusUnprocessableEntity, invalidOrgNameMessage)
+		return
+	}
+	if errors.Is(err, service.ErrOrgNameTaken) {
+		writeError(w, http.StatusUnprocessableEntity, "That name is already taken")
+		return
+	}
 	if err != nil {
-		if errors.Is(err, service.ErrInvalidOrgName) || errors.Is(err, service.ErrOrgNameTaken) {
-			writeError(w, http.StatusUnprocessableEntity, err.Error())
-			return
-		}
 		slog.Error("failed to create org", "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to create organization")
 		return
@@ -434,11 +438,18 @@ func (h *Handler) CreateOrgRepo(w http.ResponseWriter, r *http.Request) {
 		Gitignore: req.Gitignore,
 		License:   req.License,
 	})
-	if errors.Is(err, service.ErrRepoNameTaken) || errors.Is(err, service.ErrRepoNameReserved) {
+	switch {
+	case errors.Is(err, service.ErrRepoNameTaken) || errors.Is(err, service.ErrRepoNameReserved):
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
-	}
-	if err != nil {
+	case errors.Is(err, service.ErrInvalidRepoName):
+		writeError(w, http.StatusUnprocessableEntity, invalidRepoNameMessage)
+		return
+	case errors.Is(err, service.ErrInvalidRepoPath):
+		slog.Warn("create org repo: unsafe repository path", "org", orgName, "error", err)
+		writeError(w, http.StatusUnprocessableEntity, unsafeRepoPathMessage)
+		return
+	case err != nil:
 		slog.Error("failed to create org repo", "org", orgName, "error", err)
 		writeError(w, http.StatusUnprocessableEntity, "failed to create repository")
 		return

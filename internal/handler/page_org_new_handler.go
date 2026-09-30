@@ -45,7 +45,7 @@ func (h *Handler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 		msg := "Could not create the organization. Please try again."
 		switch {
 		case errors.Is(err, service.ErrInvalidOrgName):
-			msg = "Invalid organization name: use 1-100 letters, numbers, dots, dashes, or underscores, starting with a letter or number."
+			msg = invalidOrgNameMessage
 		case errors.Is(err, service.ErrOrgNameTaken):
 			msg = "That organization name is already taken."
 		}

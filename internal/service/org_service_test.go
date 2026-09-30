@@ -81,6 +81,33 @@ func TestOrgService_Create_NameConflictWithUser_Error(t *testing.T) {
 	}
 }
 
+func TestOrgService_Create_NameOfUserInOtherCase_ReturnsErrOrgNameTaken(t *testing.T) {
+	svc, creatorID := newOrgSvc(t)
+	db := testutil.OpenTestDB(t)
+	var username string
+	if err := db.QueryRowContext(context.Background(), `SELECT username FROM users WHERE id = $1`, creatorID).Scan(&username); err != nil {
+		t.Fatal(err)
+	}
+	name := strings.ToUpper(username)
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE name = $1`, name) })
+
+	if _, err := svc.Create(context.Background(), creatorID, name, "", ""); !errors.Is(err, service.ErrOrgNameTaken) {
+		t.Errorf("Create(%q) with user %q existing: want ErrOrgNameTaken, got %v", name, username, err)
+	}
+}
+
+func TestOrgService_Create_InvalidName_ReturnsErrInvalidOwnerName(t *testing.T) {
+	svc, creatorID := newOrgSvc(t)
+	db := testutil.OpenTestDB(t)
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE name = '..'`) })
+
+	_, err := svc.Create(context.Background(), creatorID, "..", "Dots", "")
+
+	if !errors.Is(err, service.ErrInvalidOwnerName) {
+		t.Errorf("want ErrInvalidOwnerName, got %v", err)
+	}
+}
+
 func TestOrgService_Create_RejectsInvalidName(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	creatorID := testutil.SeedUser(t, db, testutil.UniqueSuffix(t))

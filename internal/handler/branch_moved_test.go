@@ -98,7 +98,7 @@ func assertPushKept(t *testing.T, rr *httptest.ResponseRecorder, wantBody string
 func TestApplySuggestion_PushLandsMidCommit_Conflict(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	api := newAPIRouterAt(db, reposRoot)
+	api := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	var suggestionID int64
 	err := db.QueryRow(
@@ -121,7 +121,7 @@ func TestApplySuggestion_PushLandsMidCommit_Conflict(t *testing.T) {
 func TestMergePull_PushLandsMidMerge_ConflictAndStaysOpen(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	api := newAPIRouterAt(db, reposRoot)
+	api := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	pullID := seedOpenPull(t, db, r.seededRepo)
 
@@ -145,7 +145,7 @@ func TestMergePull_PushLandsMidMerge_ConflictAndStaysOpen(t *testing.T) {
 func TestSubmitNewFile_PushLandsMidCommit_Conflict(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
-	api := newAPIRouterAt(db, reposRoot)
+	api := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 
 	var rr *httptest.ResponseRecorder
@@ -180,7 +180,7 @@ func TestWikiEdits_PushLandsMidCommit_Conflict(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			db := testutil.OpenTestDB(t)
 			reposRoot := t.TempDir()
-			api := newAPIRouterAt(db, reposRoot)
+			api := newAPIRouterAt(t, db, reposRoot)
 			repo := seedOwnedRepo(t, db, false)
 			code := service.NewCodeService(config.GitConfig{ReposRoot: reposRoot})
 			save := func(slug string) {

@@ -30,16 +30,21 @@ import (
 var repoAPIPrefixes = []string{"/api/repos/{owner}/{repo}", "/fragments/{owner}/{repo}"}
 
 func newAPIRouter(t *testing.T, db *sql.DB) http.Handler {
-	return newAPIRouterAt(db, t.TempDir())
+	return newAPIRouterAt(t, db, t.TempDir())
 }
 
-func newAPIRouterAt(db *sql.DB, reposRoot string) http.Handler {
+func newAPIRouterAt(t *testing.T, db *sql.DB, reposRoot string) http.Handler {
+	t.Helper()
 	cfg := &config.Config{
 		Server: config.ServerConfig{BaseURL: "http://localhost:8080"},
 		Auth:   config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: 24 * time.Hour, CookieName: testCookieName},
 		Git:    config.GitConfig{ReposRoot: reposRoot},
 	}
-	return router.New(service.New(store.New(db), cfg), cfg, fstest.MapFS{})
+	h, err := router.New(service.New(store.New(db), cfg), cfg, fstest.MapFS{})
+	if err != nil {
+		t.Fatalf("router.New: %v", err)
+	}
+	return h
 }
 
 type repoAPIRoute struct{ method, pattern string }
@@ -234,7 +239,7 @@ func TestRepoAPI_PrivateRepoIssues_HiddenFromNonReaders(t *testing.T) {
 func TestRepoAPI_RestoreDeletedRepo_NonOwner_LooksLikeMissingRepo(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	root := t.TempDir()
-	api := newAPIRouterAt(db, root)
+	api := newAPIRouterAt(t, db, root)
 	repo := seedOwnedRepo(t, db, false)
 	if _, err := gogit.PlainInit(filepath.Join(root, repo.owner.name, repo.name+".git"), true); err != nil {
 		t.Fatalf("init bare repo: %v", err)
@@ -353,6 +358,33 @@ func TestRepoAPI_CreateFromPrivateRepo_LooksLikeMissingTemplate(t *testing.T) {
 		if rr := createFrom(id); rr.Code != missing.Code || rr.Body.String() != missing.Body.String() {
 			t.Errorf("%s response (%d %s) must match a missing template's (%d %s)",
 				label, rr.Code, rr.Body.String(), missing.Code, missing.Body.String())
+		}
+	}
+}
+
+func TestRepoAPI_CreateFromTemplate_UnusableName_422(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	api := newAPIRouter(t, db)
+	template := seedOwnedRepo(t, db, false)
+	testutil.Exec(t, db, `UPDATE repositories SET is_template = true WHERE id = $1`, template.id)
+	legacyName := "*_" + testutil.UniqueSuffix(t)
+	var legacyID int64
+	if err := db.QueryRow(`INSERT INTO users (username, email, password_hash) VALUES ($1, $2, 'x') RETURNING id`,
+		legacyName, "legacy_"+testutil.UniqueSuffix(t)+"@test.invalid").Scan(&legacyID); err != nil {
+		t.Fatalf("seed legacy user: %v", err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, legacyID) })
+
+	for label, c := range map[string]struct{ token, name, wantMsg string }{
+		"invalid name":        {template.owner.token, "a b", "Repository names can use"},
+		"legacy unsafe owner": {makeIssueJWT(t, legacyID, legacyName), "copy", "can't be created"},
+	} {
+		rr := postForm(t, api, c.token, "/api/repos/from-template", url.Values{
+			"template_repo_id": {strconv.FormatInt(template.id, 10)},
+			"name":             {c.name},
+		})
+		if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), c.wantMsg) {
+			t.Errorf("%s: want 422 containing %q, got %d %s", label, c.wantMsg, rr.Code, rr.Body.String())
 		}
 	}
 }

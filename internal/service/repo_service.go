@@ -27,18 +27,20 @@ import (
 
 var validNameRe = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
 
+var ErrInvalidRepoName = errors.New("invalid repository name")
+
 // ValidateName checks that a repository or owner name is safe for filesystem
 // use and URL routing. Names must start with an alphanumeric character and
 // contain only alphanumeric, dot, underscore, or hyphen characters.
 func ValidateName(name string) error {
 	if len(name) == 0 || len(name) > 100 {
-		return fmt.Errorf("name must be 1-100 characters")
+		return fmt.Errorf("%w: must be 1-100 characters", ErrInvalidRepoName)
 	}
 	if !validNameRe.MatchString(name) {
-		return fmt.Errorf("name contains invalid characters")
+		return fmt.Errorf("%w: contains invalid characters", ErrInvalidRepoName)
 	}
 	if name == "." || name == ".." {
-		return fmt.Errorf("name is reserved")
+		return fmt.Errorf("%w: reserved", ErrInvalidRepoName)
 	}
 	return nil
 }
@@ -988,6 +990,9 @@ func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, 
 	}
 	if newOwner.ID == requestingUserID {
 		return fmt.Errorf("new owner must be a different user")
+	}
+	if err := ValidateName(newOwnerUsername); err != nil {
+		return fmt.Errorf("%w: owner %q", ErrInvalidRepoPath, newOwnerUsername)
 	}
 
 	oldGitDir, _ := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)

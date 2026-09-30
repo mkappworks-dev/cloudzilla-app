@@ -9,11 +9,17 @@ import (
 templ Invite(data view.InviteData) {
 	@layout.Base(data.BasePage, "Accept invitation") {
 		<div class="max-w-md mx-auto mt-16 rounded-md border border-border bg-card p-6">
-			@authCardHero("You've been invited", "Join Cloudzilla", "Finish setting up your account to start collaborating.")
-			if data.Error != "" {
-				<div class="mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert">{ data.Error }</div>
-			}
-			if data.Invitation != nil {
+			if data.Invitation == nil {
+				@authCardHero("Invitation", "This link is no longer valid", "Ask an administrator for a new invitation.")
+				<p class="text-center text-[12px] text-muted-foreground">
+					Already have an account?
+					<a href="/login" class="text-foreground hover:underline">Sign in</a>
+				</p>
+			} else {
+				@authCardHero("You've been invited", "Join Cloudzilla", "Finish setting up your account to start collaborating.")
+				if data.Error != "" {
+					<div class="mb-4 p-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-sm" role="alert">{ data.Error }</div>
+				}
 				<form method="POST" class="space-y-4">
 					<div class="space-y-1.5">
 						<label for="invite-email" class="block text-sm font-medium">Email</label>

@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -37,7 +36,7 @@ func templateName(filename string) string {
 
 // ListRefs returns all branches and tags for a repository.
 func (s *CodeService) ListRefs(owner, repoName, defaultBranch string) (*RefsResult, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +85,7 @@ func (s *CodeService) ListRefs(owner, repoName, defaultBranch string) (*RefsResu
 // Falls back to .github/ISSUE_TEMPLATE.md if the directory is absent.
 // Returns nil (not an error) if no templates exist.
 func (s *CodeService) GetIssueTemplates(owner, repoName, defaultBranch string) ([]IssueTemplate, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +138,7 @@ func (s *CodeService) GetIssueTemplates(owner, repoName, defaultBranch string) (
 // GetPRTemplate reads .github/PULL_REQUEST_TEMPLATE.md from the default branch.
 // Returns "" (not an error) when the file does not exist.
 func (s *CodeService) GetPRTemplate(owner, repoName, defaultBranch string) (string, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return "", err
 	}
@@ -160,7 +159,7 @@ func (s *CodeService) GetPRTemplate(owner, repoName, defaultBranch string) (stri
 
 // CreateBranch creates a new branch pointing to the resolved fromRef commit.
 func (s *CodeService) CreateBranch(owner, repoName, name, fromRef string) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -177,7 +176,7 @@ func (s *CodeService) CreateBranch(owner, repoName, name, fromRef string) error 
 
 // DeleteBranch removes the named branch reference.
 func (s *CodeService) DeleteBranch(owner, repoName, name string) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -186,7 +185,7 @@ func (s *CodeService) DeleteBranch(owner, repoName, name string) error {
 
 // CreateTag creates a new lightweight tag pointing to the resolved fromRef commit.
 func (s *CodeService) CreateTag(owner, repoName, name, fromRef string) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -203,7 +202,7 @@ func (s *CodeService) CreateTag(owner, repoName, name, fromRef string) error {
 
 // DeleteTag removes the named tag reference.
 func (s *CodeService) DeleteTag(owner, repoName, name string) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
 	}

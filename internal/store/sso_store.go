@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -138,10 +139,13 @@ func (s *SSOStore) ProvisionSSOUser(ctx context.Context, username, email, ssoPro
 	u := &model.User{}
 	err := scanUser(s.db.QueryRowContext(ctx,
 		`INSERT INTO users (username, email, password_hash, bio, avatar_url, sso_provider, sso_id, is_invited, created_at, updated_at)
-		 VALUES ($1, $2, '', '', '', $3, $4, TRUE, NOW(), NOW())
+		 SELECT $1, $2, '', '', '', $3, $4, TRUE, NOW(), NOW() WHERE NOT `+ownerNameTakenCond+`
 		 RETURNING `+userColumns,
 		username, email, ssoProvider, ssoID,
 	), u)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrUsernameTaken
+	}
 	if err != nil {
 		return nil, fmt.Errorf("sso provision user: %w", err)
 	}

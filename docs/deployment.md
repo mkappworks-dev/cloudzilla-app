@@ -60,3 +60,36 @@ docker exec -it cloudzilla-cloudzilla-1 /app/cloudzilla-cli migrate
 Then open `http://localhost:8080` — the first request redirects to `/setup` where you create the superadmin account via the web wizard.
 
 The SSH host key is auto-generated into the named volume on first boot — no manual `ssh-keygen` step needed.
+
+### Behind a reverse proxy
+
+Set `server.trusted_proxies` (`CZ_SERVER_TRUSTED_PROXIES`) to the proxy's IP or CIDR, e.g. `CZ_SERVER_TRUSTED_PROXIES=172.16.0.0/12` for a Docker network. `X-Forwarded-For` is ignored from any other peer, because clients can forge it. A trusted proxy must write bare IP addresses into `X-Forwarded-For`: Cloudzilla reads it right to left and stops at a hop written as `ip:port` or `[v6]`, so those clients share the proxy's budget. Without this setting, audit-log IPs and the per-IP rate limits see only the proxy's address, so every client shares one budget. The limits are 10 attempts per 15 minutes on account creation (`/register`, `/register/complete/{token}` and `/invite/{token}`) and 30 per 15 minutes on password login (`/login`, `/api/auth/login` and `/auth/ldap`); each route has its own budget, and an IPv6 client is counted per /64.
+
+### Upgrading
+
+Migration `082_users_email_case_insensitive` refuses to run while two accounts have emails that differ only by case. Its error names their user IDs; change or merge those accounts, then run `cloudzilla-cli migrate` again.
+
+The owner-name rule (see [access-control](./access-control.md)) is checked only when a user or organization is created, so names from before it may fail it. An owner whose name fails `service.ValidateName` can't create, fork or receive repositories, and one whose name isn't a single safe path segment (containing `/`, `\`, `*`, `?`, `[` or `]`, or equal to `.` or `..`) has its repositories refused on the web, the API, SSH and Git smart-HTTP. List every name that fails the rule with:
+
+```sql
+SELECT id, username FROM users WHERE username !~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$';
+SELECT id, name FROM organizations WHERE name !~ '^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$';
+```
+
+Rename them in the database, update `repositories.owner_name` to match, and move the owner's directory under `git.repos_root`.
+
+The shared, case-insensitive owner namespace is also checked only on create, so owners from before it may already collide. A user and an organization with the same name share one directory under `git.repos_root`, and so do owners whose names differ only by case on a case-insensitive filesystem (the default on macOS and Windows), so their repositories alias each other. List them with:
+
+```sql
+-- a user and an organization with the same name, ignoring case
+SELECT u.id AS user_id, u.username, o.id AS org_id, o.name AS org_name
+FROM users u JOIN organizations o ON lower(u.username) = lower(o.name);
+-- usernames that differ only by case
+SELECT lower(username) AS name, array_agg(id ORDER BY id) AS user_ids
+FROM users GROUP BY lower(username) HAVING count(*) > 1;
+-- organization names that differ only by case
+SELECT lower(name) AS name, array_agg(id ORDER BY id) AS org_ids
+FROM organizations GROUP BY lower(name) HAVING count(*) > 1;
+```
+
+Rename all but one owner in each row in the database, updating `repositories.owner_name` to match. The old directory also holds the other owner's repositories, so move only the renamed owner's repository directories (`<name>.git`, `<name>.wiki.git` and their `.deleted.` copies) into its new one.

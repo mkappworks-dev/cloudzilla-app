@@ -28,7 +28,7 @@ type BlameResult struct {
 
 // GetBlame returns per-line blame information.
 func (s *CodeService) GetBlame(owner, repoName, ref, path string) (*BlameResult, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}

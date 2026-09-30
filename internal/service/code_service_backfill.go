@@ -18,7 +18,7 @@ type WalkedCommit struct {
 
 // Walks every branch, not just the default, so stats match what post-receive ingests for pushes to any branch.
 func (s *CodeService) WalkAllRefCommits(owner, repoName string) ([]WalkedCommit, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}

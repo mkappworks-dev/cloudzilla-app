@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"strings"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -85,15 +84,9 @@ func (s *AuditService) List(ctx context.Context, f model.AuditFilter, page, page
 	return entries, total, nil
 }
 
-// extractIP reads the real client IP from X-Forwarded-For or RemoteAddr.
+// extractIP returns the connection's address; middleware.ClientIP has already
+// replaced it with the forwarded client when the peer is a trusted proxy.
 func extractIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		parts := strings.SplitN(xff, ",", 2)
-		ip := strings.TrimSpace(parts[0])
-		if net.ParseIP(ip) != nil {
-			return ip
-		}
-	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr

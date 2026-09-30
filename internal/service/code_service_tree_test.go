@@ -227,7 +227,10 @@ func TestListEntriesWithLastCommit_CachedPerCommit(t *testing.T) {
 		t.Error("an unchanged commit was listed again instead of served from the cache")
 	}
 
-	bareDir := svc.repoPath("bob", "demo")
+	bareDir, err := svc.repoPath("bob", "demo")
+	if err != nil {
+		t.Fatalf("repo path: %v", err)
+	}
 	cloneDir := t.TempDir()
 	clone, err := gogit.PlainClone(cloneDir, false, &gogit.CloneOptions{URL: bareDir})
 	if err != nil {
@@ -274,7 +277,10 @@ func TestListEntriesWithLastCommit_NewRepoUnderTheNameMisses(t *testing.T) {
 		t.Fatalf("list the old repo: %v", err)
 	}
 
-	bareDir := svc.repoPath("victim", "demo")
+	bareDir, err := svc.repoPath("victim", "demo")
+	if err != nil {
+		t.Fatalf("repo path: %v", err)
+	}
 	if err := os.RemoveAll(bareDir); err != nil {
 		t.Fatalf("remove the old repo: %v", err)
 	}

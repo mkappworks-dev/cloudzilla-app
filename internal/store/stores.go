@@ -17,6 +17,7 @@ type Stores struct {
 	Notification     *NotificationStore
 	SiteSetting      *SiteSettingStore
 	Invitation       *InvitationStore
+	SignupToken      *SignupTokenStore
 	Label            *LabelStore
 	Assignee         *AssigneeStore
 	Star             *StarStore
@@ -64,6 +65,7 @@ func New(database *sql.DB) *Stores {
 		Notification:     NewNotificationStore(database),
 		SiteSetting:      NewSiteSettingStore(database),
 		Invitation:       NewInvitationStore(database),
+		SignupToken:      NewSignupTokenStore(database),
 		Label:            NewLabelStore(database),
 		Assignee:         NewAssigneeStore(database),
 		Star:             NewStarStore(database),

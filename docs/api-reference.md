@@ -104,6 +104,10 @@ Names ending in `.wiki` (in any case) are reserved, because `<name>.wiki.git` is
 
 Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` and `<name>.wiki.git.deleted.<unix_ts>`, with the same second stored in `deleted_at`. Restore and the 30-day purge act only on the copy whose suffix matches the row, never on another soft-deleted repository of the same name (org repos are unique per creator, so several can exist). Restore returns 422 `a repository with that name already exists` while another repository, or a directory left on disk, holds the name. It returns 500 `restore failed`, and leaves the row deleted, when the row's copy is missing from disk. Deletes made before wikis moved with their repository left `<name>.wiki.git` in place; the purge removes such a wiki once no repository row, live or soft-deleted, names it, so the name can be reused.
 
+`POST /api/repos/` returns `422` with the naming rule when `name` isn't a valid repository name. It returns `422` with a different message when the caller's username predates the owner-name rule and isn't a valid path segment (`service.ValidateName`).
+
+`POST /api/repos/from-template` takes form fields `template_repo_id` and `name`, and redirects to the new repository. A `name` that isn't a valid repository name returns `422` with the naming rule. The same `422` comes back, with a different message, when the caller's username predates the owner-name rule and isn't a valid path segment.
+
 ## Issues
 
 | Method | Path                                                  | Auth     | Description                              |
@@ -351,6 +355,10 @@ Add, remove, and role-change requests sent with `HX-Request: true` respond with 
 `confirm_name` must equal the org name. It is required by `delete`; `transfer` checks it only when sent. `default_repo_visibility` is `public` or `private`; `default_branch_name` must be non-empty with no whitespace. `website` must be an `http`/`https` URL, and a bare host such as `acme.dev` is stored as `https://acme.dev`.
 
 The profile, repo-defaults, and delete endpoints are browser form posts: they redirect (303) to `/orgs/:org/settings`, `/orgs/:org/settings#repo-defaults`, and `/organizations` respectively, and each writes an audit-log entry (`org.profile.update`, `org.defaults.update`, `org.delete`).
+
+`POST /api/orgs/` takes JSON `name`, `display_name` and `description`. A `name` that breaks the owner-name rule returns `422` with the rule; a `name` that a user or organization already holds, in any case, returns `422` `{"error":"That name is already taken"}`. See [access-control](./access-control.md) for the rule.
+
+`POST /api/orgs/:org/repos` returns `422` with the repository naming rule when `name` isn't a valid repository name, and `422` with a different message when the organization's name predates the owner-name rule and isn't a valid path segment.
 
 ## Notifications
 

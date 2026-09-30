@@ -3,8 +3,10 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/a-h/templ"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
@@ -53,6 +55,34 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, component templ
 		slog.Error("render failed", "error", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
+}
+
+func (h *Handler) setAuthCookie(w http.ResponseWriter, token string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     h.Cfg.Auth.CookieName,
+		Value:    token,
+		HttpOnly: true,
+		Secure:   h.Cfg.Auth.CookieSecure,
+		Path:     "/",
+		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+// linkLookupOK reports whether a token link's lookup succeeded, writing the
+// response itself when it didn't: the invalid-link page for an unusable link,
+// a 500 logged as logMsg for anything else.
+func (h *Handler) linkLookupOK(w http.ResponseWriter, r *http.Request, err, unusable error, renderInvalid func(http.ResponseWriter, *http.Request), logMsg string) bool {
+	switch {
+	case err == nil:
+		return true
+	case errors.Is(err, unusable):
+		renderInvalid(w, r)
+	default:
+		slog.Error(logMsg, "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+	}
+	return false
 }
 
 // readableRepoJSON is readableRepo with a JSON 404, for API and fragment routes.

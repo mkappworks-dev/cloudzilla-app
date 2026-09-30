@@ -8,6 +8,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -67,6 +68,138 @@ func TestUserService_Create_AssignsID(t *testing.T) {
 	}
 }
 
+func TestUserService_Create_DuplicateUsername_ReturnsErrUsernameTaken(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	testutil.SeedUser(t, db, suffix)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+
+	_, err := svc.Create(context.Background(), "testuser_"+suffix, "dupname_"+suffix+"@example.com", "pass")
+	if !errors.Is(err, service.ErrUsernameTaken) {
+		t.Errorf("want ErrUsernameTaken, got %v", err)
+	}
+}
+
+// Covers the submit that loses a race: the invite was usable when the page
+// loaded but was claimed before this Create ran.
+func TestUserService_CreateFromInvitation_ClaimedInvitation_CreatesNoUser(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	email := "claimed_" + suffix + "@test.invalid"
+	id, _ := testutil.SeedInvitation(t, db, email, time.Now().UTC().Add(time.Hour))
+	if _, err := db.ExecContext(context.Background(), `UPDATE invitations SET accepted_at = NOW() WHERE id = $1`, id); err != nil {
+		t.Fatalf("accept invitation: %v", err)
+	}
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+
+	_, err := svc.CreateFromInvitation(context.Background(), &model.Invitation{ID: id, Email: email}, "claimed_"+suffix, "pass")
+
+	if !errors.Is(err, service.ErrInvitationUnusable) {
+		t.Errorf("want ErrInvitationUnusable, got %v", err)
+	}
+	var n int
+	if err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM users WHERE email = $1`, email).Scan(&n); err != nil {
+		t.Fatalf("count users: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("a claimed invitation must not create a user; found %d", n)
+	}
+}
+
+func TestUserService_Create_InvalidUsername_ReturnsErrInvalidOwnerNameAndNoUser(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	cases := []struct {
+		name   string
+		create func(email string) error
+	}{
+		{"Create", func(email string) error {
+			_, err := svc.Create(context.Background(), "../x", email, "password123")
+			return err
+		}},
+		{"CreateSuperadmin", func(email string) error {
+			_, err := svc.CreateSuperadmin(context.Background(), "admin", email, "password123")
+			return err
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			email := "badname_" + tc.name + "_" + suffix + "@test.invalid"
+			t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE email = $1`, email) })
+
+			if err := tc.create(email); !errors.Is(err, service.ErrInvalidOwnerName) {
+				t.Errorf("want ErrInvalidOwnerName, got %v", err)
+			}
+			var n int
+			if err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM users WHERE email = $1`, email).Scan(&n); err != nil {
+				t.Fatalf("count users: %v", err)
+			}
+			if n != 0 {
+				t.Errorf("an invalid username must not create a user; found %d", n)
+			}
+		})
+	}
+}
+
+func TestUserService_CreateFromInvitation_InvalidUsername_InvitationStaysUsable(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	email := "badinvite_" + testutil.UniqueSuffix(t) + "@test.invalid"
+	id, _ := testutil.SeedInvitation(t, db, email, time.Now().UTC().Add(time.Hour))
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE email = $1`, email) })
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+
+	_, err := svc.CreateFromInvitation(context.Background(), &model.Invitation{ID: id, Email: email}, "a/b", "password123")
+
+	if !errors.Is(err, service.ErrInvalidOwnerName) {
+		t.Errorf("want ErrInvalidOwnerName, got %v", err)
+	}
+	var accepted bool
+	if err := db.QueryRowContext(context.Background(), `SELECT accepted_at IS NOT NULL FROM invitations WHERE id = $1`, id).Scan(&accepted); err != nil {
+		t.Fatalf("read invitation: %v", err)
+	}
+	if accepted {
+		t.Error("a rejected username must leave the invitation usable")
+	}
+}
+
+func TestUserService_Create_DuplicateEmail_ReturnsErrEmailTaken(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	testutil.SeedUser(t, db, suffix)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+
+	_, err := svc.Create(context.Background(), "dupemail_"+suffix, "testuser_"+suffix+"@test.invalid", "pass")
+	if !errors.Is(err, service.ErrEmailTaken) {
+		t.Errorf("want ErrEmailTaken, got %v", err)
+	}
+}
+
+func TestUserService_Create_EmailDiffersOnlyByCase_ReturnsErrEmailTaken(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	testutil.SeedUser(t, db, suffix)
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE username = $1`, "caseemail_"+suffix) })
+
+	_, err := svc.Create(context.Background(), "caseemail_"+suffix, "TestUser_"+suffix+"@Test.Invalid", "pass")
+	if !errors.Is(err, service.ErrEmailTaken) {
+		t.Errorf("want ErrEmailTaken, got %v", err)
+	}
+}
+
+func TestUserService_Authenticate_EmailInOtherCase_ReturnsToken(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	_, email := testutil.SeedUserWithPassword(t, db, suffix, "correctpassword")
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+
+	if _, _, err := svc.Authenticate(context.Background(), strings.ToUpper(email), "correctpassword"); err != nil {
+		t.Errorf("login must ignore email case: %v", err)
+	}
+}
+
 // TestUserService_Authenticate_CorrectPassword_ReturnsToken verifies that Authenticate
 // returns a non-empty JWT and the correct user when given valid credentials.
 func TestUserService_Authenticate_CorrectPassword_ReturnsToken(t *testing.T) {
@@ -109,14 +242,16 @@ func TestUserService_Authenticate_WrongPassword_ReturnsGenericError(t *testing.T
 // unknown email returns the same "invalid credentials" error as a wrong password,
 // preventing attackers from determining whether an email is registered.
 func TestUserService_Authenticate_UnknownEmail_SameErrorAsWrongPassword(t *testing.T) {
+	_, email := testutil.SeedUserWithPassword(t, testutil.OpenTestDB(t), testutil.UniqueSuffix(t), "correctpassword")
 	svc := newUserSvc(t)
 
+	_, _, wrongErr := svc.Authenticate(context.Background(), email, "wrongpassword")
 	_, _, err := svc.Authenticate(context.Background(), "nobody@example.invalid", "anypassword")
-	if err == nil {
-		t.Fatal("Authenticate must fail for unknown email")
+	if err == nil || wrongErr == nil {
+		t.Fatalf("Authenticate must fail for an unknown email and a wrong password; got %v and %v", err, wrongErr)
 	}
-	if !strings.Contains(err.Error(), "invalid credentials") {
-		t.Errorf("error must be generic 'invalid credentials', got %q", err.Error())
+	if err.Error() != wrongErr.Error() {
+		t.Errorf("unknown email error %q differs from wrong password error %q", err, wrongErr)
 	}
 }
 
@@ -149,8 +284,8 @@ func TestUserService_Create_RejectsInvalidUsername(t *testing.T) {
 	for _, name := range append([]string{"-bob", "bob smith", strings.Repeat("a", 40)}, testutil.HostileNames...) {
 		suffix := testutil.UniqueSuffix(t)
 		_, err := svc.Create(context.Background(), name, "bad_"+suffix+"@example.com", "password1")
-		if !errors.Is(err, service.ErrInvalidUsername) {
-			t.Errorf("Create(%q) = %v, want ErrInvalidUsername", name, err)
+		if !errors.Is(err, service.ErrInvalidOwnerName) {
+			t.Errorf("Create(%q) = %v, want ErrInvalidOwnerName", name, err)
 		}
 		if u, err := svc.GetByUsername(context.Background(), name); err == nil {
 			t.Errorf("Create(%q) stored the user", name)
@@ -165,8 +300,8 @@ func TestUserService_CreateSuperadmin_RejectsInvalidUsername(t *testing.T) {
 	for _, name := range testutil.HostileNames {
 		suffix := testutil.UniqueSuffix(t)
 		_, err := svc.CreateSuperadmin(context.Background(), name, "badadmin_"+suffix+"@example.com", "password1")
-		if !errors.Is(err, service.ErrInvalidUsername) {
-			t.Errorf("CreateSuperadmin(%q) = %v, want ErrInvalidUsername", name, err)
+		if !errors.Is(err, service.ErrInvalidOwnerName) {
+			t.Errorf("CreateSuperadmin(%q) = %v, want ErrInvalidOwnerName", name, err)
 		}
 		if u, err := svc.GetByUsername(context.Background(), name); err == nil {
 			t.Errorf("CreateSuperadmin(%q) stored the user", name)
@@ -188,7 +323,7 @@ func TestUserService_AuthenticateOAuth_DerivesValidUsername(t *testing.T) {
 			t.Fatalf("AuthenticateOAuth(%q): %v", name, err)
 		}
 		testutil.DeleteUsers(t, db, u.ID)
-		if err := service.ValidateUsername(u.Username); err != nil {
+		if err := service.ValidateOwnerName(u.Username); err != nil {
 			t.Errorf("display name %q produced invalid username %q", name, u.Username)
 		}
 	}

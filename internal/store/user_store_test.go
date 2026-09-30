@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"os"
+	"strings"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -194,5 +195,21 @@ func TestSSOStore_GetUserBySSO_LoadsPreferences(t *testing.T) {
 	if u.ID != userID || !u.KeepEmailPrivate || u.EmailDigest != "immediate" {
 		t.Errorf("got id=%d keep_email_private=%v email_digest=%q; want id=%d, true, \"immediate\"",
 			u.ID, u.KeepEmailPrivate, u.EmailDigest, userID)
+	}
+}
+
+func TestUserStore_CreateClaimed_BeginErrorNamesTheOperation(t *testing.T) {
+	db := openStoreDB(t)
+	db.Close()
+	users := store.NewUserStore(db)
+	u := &model.User{Username: "x", Email: "x@test.invalid"}
+
+	for op, err := range map[string]error{
+		"user create from invitation: begin: ":   users.CreateFromInvitation(context.Background(), u, 1),
+		"user create from signup token: begin: ": users.CreateFromSignupToken(context.Background(), u, "x"),
+	} {
+		if err == nil || !strings.HasPrefix(err.Error(), op) {
+			t.Errorf("want an error starting %q, got %v", op, err)
+		}
 	}
 }

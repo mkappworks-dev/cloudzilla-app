@@ -828,11 +828,7 @@ func (s *SSOService) findOrProvisionUser(ctx context.Context, provider, ssoID, u
 		return nil, "", ErrRegistrationDisabled
 	}
 
-	safeUsername := sanitizeUsername(username)
-	if err := usernameAvailable(ctx, s.users, safeUsername); err != nil {
-		return nil, "", err
-	}
-	u, err = s.store.ProvisionSSOUser(ctx, safeUsername, email, provider, ssoID)
+	u, err = s.store.ProvisionSSOUser(ctx, sanitizeUsername(username), email, provider, ssoID)
 	if err != nil {
 		return nil, "", fmt.Errorf("provision sso user: %w", err)
 	}
@@ -853,7 +849,7 @@ func (s *SSOService) generateJWT(u *model.User) (string, error) {
 }
 
 // sanitizeUsername replaces non-alphanumeric characters with underscores and
-// truncates to 39 characters (GitHub-style limit).
+// fits the result to the owner-name rule.
 func sanitizeUsername(s string) string {
 	var b strings.Builder
 	for _, c := range strings.ToLower(s) {
@@ -863,14 +859,7 @@ func sanitizeUsername(s string) string {
 			b.WriteByte('_')
 		}
 	}
-	result := strings.Trim(b.String(), "_-")
-	if len(result) > maxUsernameLength {
-		result = result[:maxUsernameLength]
-	}
-	if result == "" {
-		result = "sso_user"
-	}
-	return result
+	return fitOwnerName(b.String(), "sso_user")
 }
 
 // SAMLMetadataXML returns the service provider metadata XML for SAML discovery.

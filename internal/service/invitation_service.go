@@ -11,6 +11,8 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
+var ErrInvitationUnusable = store.ErrInvitationUnusable
+
 // InvitationService manages invite tokens for user registration.
 type InvitationService struct {
 	store *store.InvitationStore
@@ -39,26 +41,10 @@ func (s *InvitationService) Create(ctx context.Context, invitedByID int64, email
 	return inv, nil
 }
 
-func (s *InvitationService) GetByToken(ctx context.Context, token string) (*model.Invitation, error) {
-	inv, err := s.store.GetByToken(ctx, token)
-	if err != nil {
-		return nil, err
-	}
-	return inv, nil
-}
-
-func (s *InvitationService) Validate(inv *model.Invitation) error {
-	if inv.AcceptedAt != nil {
-		return fmt.Errorf("invitation already accepted")
-	}
-	if time.Now().UTC().After(inv.ExpiresAt) {
-		return fmt.Errorf("invitation expired")
-	}
-	return nil
-}
-
-func (s *InvitationService) Accept(ctx context.Context, id int64) error {
-	return s.store.MarkAccepted(ctx, id)
+// GetUsable returns ErrInvitationUnusable alike for unknown, accepted, expired,
+// and already-registered invitations so the page can't tell them apart.
+func (s *InvitationService) GetUsable(ctx context.Context, token string) (*model.Invitation, error) {
+	return s.store.GetUsableByToken(ctx, token)
 }
 
 func (s *InvitationService) List(ctx context.Context) ([]model.Invitation, error) {

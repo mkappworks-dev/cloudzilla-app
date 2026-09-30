@@ -41,7 +41,7 @@ type BlobResult struct {
 
 // GetTree returns tree entries for the given path (empty = root).
 func (s *CodeService) GetTree(owner, repoName, ref, path string) (*TreeResult, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (s *CodeService) GetTree(owner, repoName, ref, path string) (*TreeResult, e
 
 // GetBlob returns file content. Sets IsBinary=true for binary files.
 func (s *CodeService) GetBlob(owner, repoName, ref, path string) (*BlobResult, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (s *CodeService) GetRawBlob(owner, repoName, ref, path string) ([]byte, err
 }
 
 func (s *CodeService) GetRawBlobBounded(owner, repoName, ref, path string, maxBytes int64) ([]byte, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}

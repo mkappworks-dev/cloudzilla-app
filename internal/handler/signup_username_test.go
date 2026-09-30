@@ -56,7 +56,7 @@ func TestPageRegisterSubmit_RejectsInvalidUsername(t *testing.T) {
 			"email":    {"reg_" + suffix + "@test.invalid"},
 			"password": {"password123"},
 		})
-		if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), service.ErrInvalidUsername.Error()) {
+		if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), "Usernames can use letters") {
 			t.Errorf("register %q: got %d, want the form re-rendered with the username error", name, rr.Code)
 		}
 		assertNoUserNamed(t, db, svc, name)
@@ -75,7 +75,7 @@ func TestPageInviteSubmit_RejectsInvalidUsername(t *testing.T) {
 
 	for _, name := range testutil.HostileNames {
 		rr := postSignupForm(router, "/invite/"+inv.Token, url.Values{"username": {name}, "password": {"password123"}})
-		if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), service.ErrInvalidUsername.Error()) {
+		if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), "Usernames can use letters") {
 			t.Errorf("invite %q: got %d, want the form re-rendered with the username error", name, rr.Code)
 		}
 		assertNoUserNamed(t, db, svc, name)

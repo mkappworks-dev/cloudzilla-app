@@ -123,11 +123,18 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 		Gitignore: req.Gitignore,
 		License:   req.License,
 	})
-	if errors.Is(err, service.ErrRepoNameTaken) || errors.Is(err, service.ErrRepoNameReserved) {
+	switch {
+	case errors.Is(err, service.ErrRepoNameTaken) || errors.Is(err, service.ErrRepoNameReserved):
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
-	}
-	if err != nil {
+	case errors.Is(err, service.ErrInvalidRepoName):
+		writeError(w, http.StatusUnprocessableEntity, invalidRepoNameMessage)
+		return
+	case errors.Is(err, service.ErrInvalidRepoPath):
+		slog.Warn("create repo: unsafe repository path", "owner", claims.Username, "error", err)
+		writeError(w, http.StatusUnprocessableEntity, unsafeRepoPathMessage)
+		return
+	case err != nil:
 		slog.Error("failed to create repo", "error", err)
 		writeError(w, http.StatusUnprocessableEntity, "failed to create repository")
 		return

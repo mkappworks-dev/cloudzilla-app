@@ -141,6 +141,13 @@ func (h *Handler) CreateFromTemplate(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, service.ErrNotTemplate), errors.Is(err, service.ErrTemplateArchived):
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
+	case errors.Is(err, service.ErrInvalidRepoName):
+		writeError(w, http.StatusUnprocessableEntity, invalidRepoNameMessage)
+		return
+	case errors.Is(err, service.ErrInvalidRepoPath):
+		slog.Warn("create repo from template: unsafe repository path", "template_repo_id", templateRepoID, "error", err)
+		writeError(w, http.StatusUnprocessableEntity, unsafeRepoPathMessage)
+		return
 	case err != nil:
 		slog.Error("create repo from template failed", "template_repo_id", templateRepoID, "error", err)
 		writeError(w, http.StatusInternalServerError, "failed to create repository")

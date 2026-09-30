@@ -14,6 +14,12 @@
 | SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys`                              | Git SSH transport             |
 | TOTP 2FA              | 6-digit code after any web sign-in                                              | `POST /auth/2fa/verify`       |
 
+Emails match case-insensitively everywhere: login, Google OAuth linking to an existing account by email, invites, and the existing-account check that makes LDAP and SAML refuse to auto-link. The `users_email_lower_key` index enforces it.
+
+Usernames and organization names follow one rule and share one case-insensitive namespace; see [Usernames](#usernames).
+
+Repository names (`service.ValidateName`) use letters, digits, `.`, `-` and `_` and start with a letter or digit. New repositories can't end in `.wiki`; see [api-reference](./api-reference.md) for repositories named that way before the reservation.
+
 ### Return path after sign-in
 
 A signed-out HTML request is redirected to `/login?next=<request URI>`. Every
@@ -227,9 +233,22 @@ Superadmin generates token link → shares manually. No SMTP required.
 1. Superadmin POSTs `email` to `/api/admin/invitations` → 32-byte hex token, 7-day expiry
 2. Admin panel displays `/invite/{token}` link for copying
 3. Recipient visits link → form with `email` pre-filled (read-only)
-4. On submit: user created, `is_invited = TRUE` set, JWT cookie set → redirect `/`
+4. On submit: one transaction claims the invite (`accepted_at`) and creates the user with `is_invited = TRUE`, JWT cookie set → redirect `/`
 
 `is_invited` users always bypass `allow_registration` and `allow_login` checks.
+
+An invite is usable only while unaccepted, unexpired, and no account has its email (case-insensitive). Every other token, unknown ones included, gets the same generic "no longer valid" page without the invitation, because accepted invitations stay in the table and their email now belongs to a registered account.
+
+## Self-Service Signup
+
+With `smtp.host` set, `/register` asks only for an email and always answers "Check your inbox", mailing in the background:
+
+- New address: a single-use link to `/register/complete/{token}` (24 hours) where the owner picks a username and password.
+- Address with an account: a "you already have an account — sign in" email.
+
+The response never reveals whether an address has an account. Links are stored as SHA-256 hashes in `signup_tokens` (one per address; a new request replaces it), and an address gets at most one email per 5 minutes. `POST /register` and `POST /register/complete/{token}` are also limited to 10 per client IP per 15 minutes, each route with its own budget. If sending fails, the address stays throttled for 5 minutes, so a retry within that window sends nothing. Closing `allow_registration` stops outstanding links.
+
+Without SMTP, `/register` is the classic username/email/password form, which still reveals whether an email is registered.
 
 ## Google OAuth Sign-in
 
@@ -242,9 +261,9 @@ Superadmin generates token link → shares manually. No SMTP required.
 
 ## Usernames
 
-Every account-creating path (setup, registration, invite, Google OAuth, LDAP/SAML) runs `service.ValidateUsername`: 1-39 letters, digits, `-` or `_`, starting with a letter or digit. Setup, registration and invites reject anything else. Google OAuth derives the username from the display name (falling back to the email's local part, then `user`) by dropping other characters and appending a number on collision; LDAP/SAML replace other characters with `_`.
+Usernames and organization names are repository path segments, so a new one must match `^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$` and not be a reserved route segment, compared case-insensitively: `activity admin api apps attention auth authorizations explore file-row fragments from-template gists invitations invite issues latest login logout new notifications oauth organizations orgs pulls read-all register repos search settings setup stars static topic unread-count` (`service.ValidateOwnerName`, checked only on create; a router test fails if a top-level route segment is missing from the list). Setup, registration, signup, invites and `POST /api/orgs` reject anything else. Google OAuth derives the username from the display name (falling back to the email's local part, then `user`) by dropping other characters; LDAP/SAML replace other characters with `_`, falling back to `sso_user`.
 
-Users and organizations share one namespace (`/{owner}` and `<repos_root>/<owner>/`). Every account-creating path refuses a name an organization holds with `ErrUsernameTaken`, as `OrgService.Create` refuses a user's name with `ErrOrgNameTaken`; Google OAuth moves on to the next numbered candidate instead. Triggers from migration 080 enforce the same rule in the database, so two concurrent creates cannot both take a name.
+Users and organizations share one namespace (`/{owner}` and `<repos_root>/<owner>/`), compared case-insensitively, so `Acme` can't be registered while org `acme` exists. Every user and organization insert checks this in the same statement (`ownerNameTakenCond` in `internal/store/user_store.go`) and refuses a taken name with `ErrUsernameTaken`, or `ErrOrgNameTaken` for `OrgService.Create`; Google OAuth moves on to the next numbered candidate (`2`, `3`, …) instead. Triggers from migration 080 also lock each exact name, so two concurrent creates of one name cannot both take it.
 
 ## Account Deletion
 

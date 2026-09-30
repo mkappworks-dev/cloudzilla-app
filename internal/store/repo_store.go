@@ -398,17 +398,6 @@ func (s *RepoStore) IncrementForkCount(ctx context.Context, repoID int64) error 
 	return nil
 }
 
-func (s *RepoStore) DecrementForkCount(ctx context.Context, repoID int64) error {
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE repositories SET fork_count = GREATEST(fork_count - 1, 0) WHERE id = $1`,
-		repoID,
-	)
-	if err != nil {
-		return fmt.Errorf("decrement fork count: %w", err)
-	}
-	return nil
-}
-
 func (s *RepoStore) ListForks(ctx context.Context, repoID int64) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,

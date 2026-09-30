@@ -41,6 +41,7 @@ func newAuthHandler(db *sql.DB) *handler.Handler {
 		User:        service.NewUserService(stores.User, cfg.Auth),
 		SiteSetting: service.NewSiteSettingService(stores.SiteSetting, stores.User),
 		AuditLog:    service.NewAuditService(stores.AuditLog),
+		Signup:      service.NewSignupService(store.NewSignupTokenStore(db), stores.User, service.NewEmailService(config.SMTPConfig{}), ""),
 		TOTP:        service.NewTOTPService(stores.User),
 	}
 	return handler.New(svc, cfg)
