@@ -94,7 +94,7 @@ go-git's receive-pack doesn't check connectivity either, so a push could point a
 
 It checks only that object, not everything reachable from it.
 
-Branch protection is enforced at the same point, before the write. Both transports pass `NewServer` a vet function that calls `BranchProtectionService.CheckPushCommand`. go-git writes refs only after it has stored the pack, so the check can read the pushed commits to tell a force push from a fast-forward. It fails closed: under `block_force_push`, a push that it can't prove keeps every commit on the branch is refused as a force push. That includes deleting the branch, since delete-then-push is a force push in two steps. It also includes pointing the branch at an object that isn't a commit. A refused ref never moves, and the status carries the reason:
+Branch protection is enforced at the same point, before the write. Both transports pass `NewServer` a vet function that calls `BranchProtectionService.CheckPushCommand`. go-git writes refs only after it has stored the pack, so the check can read the pushed commits to tell a force push from a fast-forward. It fails closed: under `block_force_push`, a push that it can't prove keeps every commit on the branch is refused as a force push. That includes deleting the branch, since delete-then-push is a force push in two steps; the web and API branch delete refuses it too (`BranchProtectionService.CheckDelete`, 422). It also includes pointing the branch at an object that isn't a commit. A refused ref never moves, and the status carries the reason:
 
 ```
  ! [remote rejected] main -> main (force push blocked by branch protection)

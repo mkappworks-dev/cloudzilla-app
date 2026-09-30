@@ -77,6 +77,12 @@ func (s *BranchProtectionService) CheckPush(ctx context.Context, repoID int64, b
 	return nil
 }
 
+// CheckDelete is CheckPush for deleting a branch outside receive-pack:
+// deleting and pushing again is a force push in two steps.
+func (s *BranchProtectionService) CheckDelete(ctx context.Context, repoID int64, branchName string) error {
+	return s.CheckPush(ctx, repoID, branchName, true)
+}
+
 // CheckPushCommand is CheckPush for one receive-pack command. gitRepo must
 // already hold the pushed commits. go-git reports the error's text to the
 // pusher, so any error but ErrForcePushBlocked is logged and returned as
