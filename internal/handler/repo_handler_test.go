@@ -26,16 +26,18 @@ import (
 )
 
 // newRepoHandler builds a Handler with services needed by the repo handler.
-func newRepoHandler(db *sql.DB) *handler.Handler {
+func newRepoHandler(t *testing.T, db *sql.DB) *handler.Handler {
+	t.Helper()
 	cfg := &config.Config{
 		Auth: config.AuthConfig{
 			JWTSecret:  testJWTSecret,
 			JWTExpiry:  24 * time.Hour,
 			CookieName: testCookieName,
 		},
+		Git: config.GitConfig{ReposRoot: t.TempDir()},
 	}
 	userSvc := service.NewUserService(store.NewUserStore(db), cfg.Auth)
-	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{})
+	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, cfg.Git)
 	svc := &service.Services{
 		User:        userSvc,
 		Repo:        repoSvc,
@@ -70,7 +72,7 @@ func repoCreateBody(name, description string, private bool) *bytes.Buffer {
 // when no Authorization header is provided.
 func TestCreateRepo_NoAuth_401(t *testing.T) {
 	db := testutil.OpenTestDB(t)
-	h := newRepoHandler(db)
+	h := newRepoHandler(t, db)
 	router := repoAPIRouterWithAuth(h)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/repos",
@@ -92,7 +94,7 @@ func TestCreateRepo_ValidAuth_201(t *testing.T) {
 	ownerID := testutil.SeedUser(t, db, suffix)
 	ownerName := "testuser_" + suffix
 
-	h := newRepoHandler(db)
+	h := newRepoHandler(t, db)
 	router := repoAPIRouterWithAuth(h)
 	token := makeIssueJWT(t, ownerID, ownerName)
 
@@ -125,7 +127,7 @@ func TestCreateRepo_InvalidName_422(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	rr := httptest.NewRecorder()
-	repoAPIRouterWithAuth(newRepoHandler(db)).ServeHTTP(rr, req)
+	repoAPIRouterWithAuth(newRepoHandler(t, db)).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("an invalid name is a client error; want 422, got %d: %s", rr.Code, rr.Body.String())
@@ -150,7 +152,7 @@ func TestCreateRepo_LegacyUnsafeOwner_422AndWarns(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, legacyID, legacyName))
 	rr := httptest.NewRecorder()
-	repoAPIRouterWithAuth(newRepoHandler(db)).ServeHTTP(rr, req)
+	repoAPIRouterWithAuth(newRepoHandler(t, db)).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), "can't be created") {
 		t.Errorf("want 422 with the unsafe path message, got %d %s", rr.Code, rr.Body)
@@ -238,7 +240,7 @@ func TestGetRepo_ExistingRepo_200(t *testing.T) {
 	repoName := "testrepo_" + suffix
 	testutil.SeedRepo(t, db, ownerID, ownerName, suffix)
 
-	h := newRepoHandler(db)
+	h := newRepoHandler(t, db)
 	router := repoAPIRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/repos/"+ownerName+"/"+repoName, nil)
@@ -261,7 +263,7 @@ func TestGetRepo_ExistingRepo_200(t *testing.T) {
 // HTTP 404 for a repository that does not exist.
 func TestGetRepo_UnknownRepo_404(t *testing.T) {
 	db := testutil.OpenTestDB(t)
-	h := newRepoHandler(db)
+	h := newRepoHandler(t, db)
 	router := repoAPIRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/repos/nobody/nonexistent", nil)
@@ -282,7 +284,7 @@ func TestListUserRepos_ReturnsRepos(t *testing.T) {
 	ownerName := "testuser_" + suffix
 	testutil.SeedRepo(t, db, ownerID, ownerName, suffix)
 
-	h := newRepoHandler(db)
+	h := newRepoHandler(t, db)
 	router := repoAPIRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/users/"+ownerName+"/repos", nil)
