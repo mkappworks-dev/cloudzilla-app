@@ -19,6 +19,12 @@ type SettingsData struct {
 	NoreplyEmail        string
 	ProfileSaved        bool
 	ProfileError        string
+	GoogleConfigured    bool
+	GoogleConnected     bool
+	HasPassword         bool
+	// Codes from the Google connect flow, shown beside the control rather than atop the page.
+	ConnectedAccountsError  string
+	ConnectedAccountsNotice string
 }
 
 // OAuthAppsFragData holds template data for the OAuth apps list HTMX fragment.

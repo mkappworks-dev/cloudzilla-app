@@ -15,17 +15,19 @@ import (
 )
 
 var (
-	ErrUsernameTaken = errors.New("username already taken")
-	ErrEmailTaken    = errors.New("email already registered")
+	ErrUsernameTaken      = errors.New("username already taken")
+	ErrEmailTaken         = errors.New("email already registered")
+	ErrOAuthIdentityTaken = errors.New("oauth identity is linked to another account")
 )
 
 // The first two are Postgres's default names for the inline UNIQUE columns in
-// 001_create_users.sql; users_email_lower_key is the index from 082, and
-// owner_name_taken is what 080's triggers raise.
+// 001_create_users.sql; users_email_lower_key is the index from 082,
+// users_oauth_idx the one from 008, and owner_name_taken is what 080's triggers raise.
 const (
 	usersUsernameKey   = "users_username_key"
 	usersEmailKey      = "users_email_key"
 	usersEmailLowerKey = "users_email_lower_key"
+	usersOAuthKey      = "users_oauth_idx"
 	ownerNameTakenKey  = "owner_name_taken"
 )
 
@@ -224,6 +226,45 @@ func (s *UserStore) CreateOAuthUser(ctx context.Context, username, email, provid
 		return nil, fmt.Errorf("user create oauth: %w", err)
 	}
 	return u, nil
+}
+
+// LinkOAuth links an account that has no provider link yet, reporting false if it already has one.
+func (s *UserStore) LinkOAuth(ctx context.Context, userID int64, provider, oauthID string) (bool, error) {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE users SET oauth_provider = $2, oauth_id = $3, updated_at = NOW()
+		 WHERE id = $1 AND oauth_provider = ''`,
+		userID, provider, oauthID,
+	)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == usersOAuthKey {
+			return false, ErrOAuthIdentityTaken
+		}
+		return false, fmt.Errorf("user link oauth: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("user link oauth: %w", err)
+	}
+	return n == 1, nil
+}
+
+// UnlinkOAuth clears the account's link to provider, reporting false if there was none.
+// An account without a password keeps its link: it is the only way to sign in to it.
+func (s *UserStore) UnlinkOAuth(ctx context.Context, userID int64, provider string) (bool, error) {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE users SET oauth_provider = '', oauth_id = '', updated_at = NOW()
+		 WHERE id = $1 AND oauth_provider = $2 AND password_hash <> ''`,
+		userID, provider,
+	)
+	if err != nil {
+		return false, fmt.Errorf("user unlink oauth: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("user unlink oauth: %w", err)
+	}
+	return n == 1, nil
 }
 
 func (s *UserStore) CountAll(ctx context.Context) (int, error) {

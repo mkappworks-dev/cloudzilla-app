@@ -76,6 +76,11 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		TOTPEnabled:         enabled,
 		NewToken:            h.takeSettingsFlash(w, r, newTokenCookieName),
 		NoreplyEmail:        h.Services.User.NoreplyEmail(ctx, user),
+		GoogleConfigured:    h.Cfg.OAuth.GoogleClientID != "",
+		GoogleConnected:     user.OAuthProvider == googleProvider,
+		HasPassword:         user.PasswordHash != "",
+
+		ConnectedAccountsNotice: h.takeSettingsFlash(w, r, settingsNoticeCookieName),
 	}
 	if !enabled && secret.Valid && secret.String != "" {
 		data.TOTPPendingSecret = secret.String
@@ -94,7 +99,9 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("profile_saved") == "1" {
 		data.ProfileSaved = true
 	}
-	if e := r.URL.Query().Get("profile_error"); e != "" {
+	if e := r.URL.Query().Get("profile_error"); strings.HasPrefix(e, "google_") {
+		data.ConnectedAccountsError = e
+	} else if e != "" {
 		data.ProfileError = e
 	}
 

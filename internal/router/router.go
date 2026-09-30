@@ -87,6 +87,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Post("/settings/email", h.UpdateEmailSettings)
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
 	r.With(authMW).Post("/settings/delete-account", h.DeleteAccount)
+	r.With(authMW).Post("/settings/connected-accounts/google", h.ConnectGoogle)
+	r.With(authMW).Post("/settings/connected-accounts/google/disconnect", h.DisconnectGoogle)
 	r.With(authMW).Get("/organizations", h.PageOrganizations)
 	r.With(authMW).Get("/organizations/new", h.PageNewOrganization)
 	r.With(authMW).Post("/organizations/new", h.CreateOrganization)
@@ -194,7 +196,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 
 	// OAuth routes
 	r.Get("/auth/google", h.GoogleOAuthBegin)
-	r.Get("/auth/google/callback", h.GoogleOAuthCallback)
+	// Link mode needs the session; login mode ignores it.
+	r.With(optAuthMW).Get("/auth/google/callback", h.GoogleOAuthCallback)
 
 	// SSO auth endpoints
 	r.With(middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/auth/ldap", h.LDAPLogin)

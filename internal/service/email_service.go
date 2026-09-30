@@ -91,6 +91,15 @@ func (s *EmailService) SendNotification(ctx context.Context, user *model.User, n
 	return s.send(user.Email, subject, body)
 }
 
+// SendSecurityNotice mails u about a change to how their account signs in. It
+// ignores notification preferences: muting it would hide a takeover.
+func (s *EmailService) SendSecurityNotice(u *model.User, subject, htmlBody string) error {
+	if u.Email == "" {
+		return nil
+	}
+	return s.send(u.Email, subject, htmlBody)
+}
+
 // The immediate path and the digest job share this gate so the per-type toggles apply to both.
 func wantsEmail(u *model.User, t model.NotificationType, digestMode string) bool {
 	if !u.EmailNotifications || u.Email == "" || u.EmailDigest != digestMode {

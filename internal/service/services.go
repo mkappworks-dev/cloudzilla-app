@@ -35,6 +35,7 @@ type Services struct {
 	BranchProtection *BranchProtectionService
 	Reaction         *ReactionService
 	TOTP             *TOTPService
+	OAuthLink        *OAuthLinkService
 	AuditLog         *AuditService
 	Project          *ProjectService
 	SSO              *SSOService
@@ -69,6 +70,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
 	userSvc := NewUserService(stores.User, cfg.Auth).WithRepoService(repoSvc).WithNoreplyHostFrom(cfg.Server.BaseURL)
 	emailSvc := NewEmailService(cfg.SMTP)
+	totpSvc := NewTOTPService(stores.User)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
@@ -102,7 +104,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		DeployKey:        NewDeployKeyService(stores.DeployKey, stores.SSHKey),
 		BranchProtection: NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus),
 		Reaction:         NewReactionService(stores.Reaction),
-		TOTP:             NewTOTPService(stores.User),
+		TOTP:             totpSvc,
+		OAuthLink:        NewOAuthLinkService(stores.User, stores.OAuthState, totpSvc, emailSvc),
 		AuditLog:         NewAuditService(stores.AuditLog),
 		Project:          NewProjectService(stores.Project, repoSvc),
 		SSO:              NewSSOService(stores.SSO, stores.User, cfg.Auth, siteSettingSvc),
