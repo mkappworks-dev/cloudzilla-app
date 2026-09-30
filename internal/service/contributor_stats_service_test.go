@@ -2,62 +2,25 @@ package service_test
 
 import (
 	"context"
-	"database/sql"
-	"os"
 	"testing"
 	"time"
 
-	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-func openTestDBContributorStatsService(t *testing.T) *sql.DB {
-	t.Helper()
-	dsn := os.Getenv("TEST_DATABASE_DSN")
-	if dsn == "" {
-		t.Skip("TEST_DATABASE_DSN not set; skipping integration test")
-	}
-	db, err := sql.Open("pgx", dsn)
-	if err != nil {
-		t.Fatalf("open test db: %v", err)
-	}
-	if err := db.Ping(); err != nil {
-		t.Fatalf("ping test db: %v", err)
-	}
-	return db
-}
-
 func TestContributorStatsService_IngestCommit_IsIdempotentBySha(t *testing.T) {
-	db := openTestDBContributorStatsService(t)
-	defer func() { _ = db.Close() }()
+	db := testutil.OpenTestDB(t)
 
 	statsStore := store.NewContributorStatsStore(db)
 	userStore := store.NewUserStore(db)
 	svc := service.NewContributorStatsService(statsStore, userStore)
 
 	ctx := context.Background()
-	suffix := "ccis_" + testutil.UniqueSuffix(t)
-
-	var userID int64
-	if err := db.QueryRowContext(ctx,
-		`INSERT INTO users (username, email, password_hash, is_superadmin) VALUES ($1, $2, 'x', false) RETURNING id`,
-		suffix, suffix+"@test.invalid",
-	).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
-	t.Cleanup(func() {
-		_, _ = db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
-	})
-
-	var repoID int64
-	if err := db.QueryRowContext(ctx,
-		`INSERT INTO repositories (owner_id, owner_name, name, description, private, default_branch) VALUES ($1, $2, $3, '', false, 'main') RETURNING id`,
-		userID, suffix, "repo_"+suffix,
-	).Scan(&repoID); err != nil {
-		t.Fatalf("insert repo: %v", err)
-	}
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	repoID := testutil.SeedRepo(t, db, userID, "testuser_"+suffix, suffix)
 
 	when := time.Date(2026, 5, 13, 10, 0, 0, 0, time.UTC)
 	sha := "deadbeefcafe1234"

@@ -41,6 +41,7 @@ func TestUserService_Create_HashesPassword(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, u.ID) })
 
 	// Stored hash must differ from the plaintext.
 	if u.PasswordHash == plaintext {
@@ -63,6 +64,7 @@ func TestUserService_Create_AssignsID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, u.ID) })
 	if u.ID == 0 {
 		t.Error("Create must return a user with non-zero ID")
 	}
@@ -266,6 +268,7 @@ func TestUserService_CreateSuperadmin_SetsSuperadminFlag(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateSuperadmin: %v", err)
 	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, u.ID) })
 	if !u.IsSuperadmin {
 		t.Error("CreateSuperadmin must set IsSuperadmin=true")
 	}
@@ -474,6 +477,7 @@ func TestUserService_GetByUsername_ReturnsUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, u.ID) })
 
 	found, err := svc.GetByUsername(context.Background(), "testuser_"+suffix)
 	if err != nil {
@@ -496,6 +500,7 @@ func TestUserService_GenerateTokenForUser_ReturnsNonEmptyToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, u.ID) })
 
 	token, err := svc.GenerateTokenForUser(context.Background(), u.ID)
 	if err != nil {

@@ -81,7 +81,7 @@ func TestContributorStatsStore_IngestCommitTx_DedupesBothAggregates(t *testing.T
 		t.Fatalf("insert repo: %v", err)
 	}
 	t.Cleanup(func() {
-		_, _ = db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
+		testutil.DeleteUsers(t, db, userID)
 	})
 
 	when := time.Date(2026, 5, 13, 10, 0, 0, 0, time.UTC)
