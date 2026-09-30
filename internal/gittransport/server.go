@@ -61,6 +61,13 @@ type casSession struct {
 // applied; they send it only if req asks for report-status.
 func (c casSession) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateRequest) (*packp.ReportStatus, error) {
 	c.st.expect(req.Commands)
+	// git sends no pack when every command is a delete, but Decode always sets
+	// Packfile and go-git parses it: an HTTP body ends there ("empty packfile"),
+	// and an SSH client keeps the stream open until it reads the status.
+	if deleteOnly(req.Commands) && req.Packfile != nil {
+		_ = req.Packfile.Close()
+		req.Packfile = nil
+	}
 	if !req.Capabilities.Supports(capability.ReportStatus) {
 		_ = req.Capabilities.Set(capability.ReportStatus)
 		defer req.Capabilities.Delete(capability.ReportStatus)
@@ -72,6 +79,15 @@ func (c casSession) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateR
 		err = nil
 	}
 	return status, err
+}
+
+func deleteOnly(cmds []*packp.Command) bool {
+	for _, cmd := range cmds {
+		if cmd.Action() != packp.Delete {
+			return false
+		}
+	}
+	return true
 }
 
 // casStorer vets receive-pack's ref writes and turns them into

@@ -331,6 +331,48 @@ func TestNewServer_DeleteRef_Applies(t *testing.T) {
 	}
 }
 
+// idleStream is an SSH client's stdin in a delete-only push: git holds it open
+// until it reads the status, so a read would block.
+type idleStream struct{ t *testing.T }
+
+func (s idleStream) Read([]byte) (int, error) {
+	s.t.Error("read a delete-only push's pack stream, where git sends no pack")
+	return 0, io.ErrNoProgress
+}
+
+func (idleStream) Close() error { return nil }
+
+// git sends no pack when every command is a delete.
+func TestNewServer_DeleteOnly_ReadsNoPack(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		pack func(*testing.T) io.ReadCloser
+	}{
+		{"http", func(*testing.T) io.ReadCloser { return io.NopCloser(bytes.NewReader(nil)) }},
+		{"ssh", func(t *testing.T) io.ReadCloser { return idleStream{t} }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := newPushRepo(t)
+			r.set(t, topicRef, r.base)
+			req := r.request(&packp.Command{Name: topicRef, Old: r.base, New: plumbing.ZeroHash})
+			req.Packfile = tc.pack(t)
+			_ = req.Capabilities.Set(capability.ReportStatus)
+
+			status, err := r.advertise(t, nil).ReceivePack(context.Background(), req)
+
+			if err != nil {
+				t.Fatalf("ReceivePack: %v", err)
+			}
+			if got := refStatus(t, status, topicRef); got != "ok" {
+				t.Errorf("topic status = %q, want ok", got)
+			}
+			if _, err := r.repo.Storer.Reference(topicRef); err != plumbing.ErrReferenceNotFound {
+				t.Errorf("topic lookup err = %v, want %v", err, plumbing.ErrReferenceNotFound)
+			}
+		})
+	}
+}
+
 // vet judges a push by its commits, so it must run once the pack is stored and
 // before the ref moves.
 func TestNewServer_VetSeesPushedCommitAndOldRef(t *testing.T) {
