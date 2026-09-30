@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -211,5 +212,31 @@ func TestUserStore_CreateClaimed_BeginErrorNamesTheOperation(t *testing.T) {
 		if err == nil || !strings.HasPrefix(err.Error(), op) {
 			t.Errorf("want an error starting %q, got %v", op, err)
 		}
+	}
+}
+
+func TestUserStore_BackupCodes_RoundTrip(t *testing.T) {
+	db := openStoreDB(t)
+	ctx := context.Background()
+	users := store.NewUserStore(db)
+	userID := testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
+
+	for name, codes := range map[string][]string{
+		"bcrypt hashes": {"$2a$04$abc/def.ghiJKLmnoPQRstuVWXyz0123456789ABCDEFGHIJKLMNO", "$2a$04$xyz"},
+		"array syntax":  {`back\slash`, `"quoted"`, "comma,here", "{braces}", " padded ", "NULL", ""},
+		"empty":         {},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if err := users.SetBackupCodes(ctx, userID, codes); err != nil {
+				t.Fatalf("SetBackupCodes: %v", err)
+			}
+			u, err := users.GetByIDWithTOTP(ctx, userID)
+			if err != nil {
+				t.Fatalf("GetByIDWithTOTP: %v", err)
+			}
+			if !slices.Equal(u.TOTPBackupCodes, codes) {
+				t.Errorf("stored %q, read back %q", codes, u.TOTPBackupCodes)
+			}
+		})
 	}
 }

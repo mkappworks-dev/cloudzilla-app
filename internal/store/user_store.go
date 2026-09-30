@@ -326,16 +326,18 @@ func (s *UserStore) GetByEmailWithTOTP(ctx context.Context, email string) (*mode
 
 func (s *UserStore) queryUserWithTOTP(ctx context.Context, filter string, args ...any) (*model.User, error) {
 	u := &model.User{}
-	var backupCodesStr sql.NullString
+	var backupCodesJSON sql.NullString
+	// Not totp_backup_codes::text: Postgres quotes array elements only when they need it.
 	err := scanUser(s.db.QueryRowContext(ctx,
-		`SELECT `+userColumns+`, totp_secret, totp_enabled, totp_backup_codes::text FROM users `+filter, args...),
-		u, &u.TOTPSecret, &u.TOTPEnabled, &backupCodesStr)
+		`SELECT `+userColumns+`, totp_secret, totp_enabled, array_to_json(totp_backup_codes)::text FROM users `+filter, args...),
+		u, &u.TOTPSecret, &u.TOTPEnabled, &backupCodesJSON)
 	if err != nil {
 		return nil, err
 	}
-	if backupCodesStr.Valid && backupCodesStr.String != "" {
-		jsonBytes := postgresArrayToJSON(backupCodesStr.String)
-		_ = json.Unmarshal(jsonBytes, &u.TOTPBackupCodes)
+	if backupCodesJSON.Valid {
+		if err := json.Unmarshal([]byte(backupCodesJSON.String), &u.TOTPBackupCodes); err != nil {
+			return nil, fmt.Errorf("decode backup codes: %w", err)
+		}
 	}
 	return u, nil
 }
@@ -370,14 +372,9 @@ func (s *UserStore) SetTOTPEnabled(ctx context.Context, userID int64, enabled bo
 
 // SetBackupCodes stores bcrypt hashes of backup codes as a PostgreSQL TEXT[].
 func (s *UserStore) SetBackupCodes(ctx context.Context, userID int64, codeHashes []string) error {
-	raw, err := json.Marshal(codeHashes)
-	if err != nil {
-		return fmt.Errorf("marshal backup codes: %w", err)
-	}
-	pgArr := jsonToPostgresArray(raw)
-	_, err = s.db.ExecContext(ctx,
+	_, err := s.db.ExecContext(ctx,
 		`UPDATE users SET totp_backup_codes = $1, updated_at = NOW() WHERE id = $2`,
-		pgArr, userID,
+		codeHashes, userID,
 	)
 	if err != nil {
 		return fmt.Errorf("user set backup codes: %w", err)
@@ -586,33 +583,6 @@ func scanFullUsers(rows *sql.Rows) ([]model.User, error) {
 		users = append(users, u)
 	}
 	return users, rows.Err()
-}
-
-// jsonToPostgresArray converts a JSON array like ["a","b"] to PostgreSQL literal {"a","b"}.
-func jsonToPostgresArray(jsonArr []byte) string {
-	var items []string
-	if err := json.Unmarshal(jsonArr, &items); err != nil {
-		return "{}"
-	}
-	quoted := make([]string, len(items))
-	for i, item := range items {
-		escaped := strings.ReplaceAll(item, `"`, `\"`)
-		quoted[i] = `"` + escaped + `"`
-	}
-	return "{" + strings.Join(quoted, ",") + "}"
-}
-
-// postgresArrayToJSON converts a PostgreSQL array literal {"a","b"} to JSON ["a","b"].
-func postgresArrayToJSON(pgArr string) []byte {
-	pgArr = strings.TrimSpace(pgArr)
-	if len(pgArr) < 2 || pgArr[0] != '{' || pgArr[len(pgArr)-1] != '}' {
-		return []byte("[]")
-	}
-	inner := pgArr[1 : len(pgArr)-1]
-	if inner == "" {
-		return []byte("[]")
-	}
-	return []byte("[" + inner + "]")
 }
 
 func formatPGInt64Array(ids []int64) string {
