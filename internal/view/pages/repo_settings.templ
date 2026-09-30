@@ -20,9 +20,7 @@ func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem 
 	if d.IsOwner {
 		items = append(items, components.SettingsSidebarItem{Label: "Template", Href: "#template", Key: "template"})
 		items = append(items, components.SettingsSidebarItem{Label: "Archive", Href: "#archive", Key: "archive", Danger: true, GroupLabel: "Danger zone"})
-		if d.CanTransfer {
-			items = append(items, components.SettingsSidebarItem{Label: "Transfer Ownership", Href: "#transfer", Key: "transfer", Danger: true})
-		}
+		items = append(items, components.SettingsSidebarItem{Label: "Transfer Ownership", Href: "#transfer", Key: "transfer", Danger: true})
 		items = append(items, components.SettingsSidebarItem{Label: "Delete repository", Href: "#delete", Key: "delete", Danger: true})
 	}
 	return items
@@ -580,40 +578,38 @@ templ RepoSettings(data view.RepoSettingsData) {
 								</div>
 							}
 						}
-						if data.CanTransfer {
-							<div id="transfer" class="scroll-mt-6"></div>
-							@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
-								@components.CardHeader() {
-									<h2 class="text-base font-semibold tracking-tight text-destructive">Transfer Ownership</h2>
-									@components.CardDescription() {
-										Transfer this repository to another user. You will lose owner access.
-									}
+						<div id="transfer" class="scroll-mt-6"></div>
+						@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
+							@components.CardHeader() {
+								<h2 class="text-base font-semibold tracking-tight text-destructive">Transfer Ownership</h2>
+								@components.CardDescription() {
+									Transfer this repository to a user or to an organization you own. You keep owner access only if the new owner is you or an organization you own.
 								}
-								@components.CardContent() {
-									<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer") } data-toast="Repository transferred">
-										<div class="flex gap-3">
-											<label for="transfer-new-owner" class="sr-only">New owner username</label>
-											@components.Input(templ.Attributes{
-												"id":          "transfer-new-owner",
-												"type":        "text",
-												"name":        "new_owner",
-												"placeholder": "New owner username",
-												"required":    "required",
-												"class":       "flex-1",
-											})
-											@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
-												"type":                "submit",
-												"data-confirm-action":  "true",
-												"data-confirm-title":   "Transfer ownership?",
-												"data-confirm-msg":     data.RepoName + " will be transferred to another user. You will lose owner access to this repository.",
-												"data-confirm-label":   "Transfer",
-												"data-confirm-danger":  "true",
-											}) {
-												Transfer
-											}
-										</div>
-									</form>
-								}
+							}
+							@components.CardContent() {
+								<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer") } data-toast="Repository transferred">
+									<div class="flex gap-3">
+										<label for="transfer-new-owner" class="sr-only">New owner: user or organization name</label>
+										@components.Input(templ.Attributes{
+											"id":          "transfer-new-owner",
+											"type":        "text",
+											"name":        "new_owner",
+											"placeholder": "User or organization name",
+											"required":    "required",
+											"class":       "flex-1",
+										})
+										@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
+											"type":                "submit",
+											"data-confirm-action":  "true",
+											"data-confirm-title":   "Transfer ownership?",
+											"data-confirm-msg":     data.RepoName + " will be transferred to the new owner. You keep owner access only if that is you or an organization you own.",
+											"data-confirm-label":   "Transfer",
+											"data-confirm-danger":  "true",
+										}) {
+											Transfer
+										}
+									</div>
+								</form>
 							}
 						}
 						<div id="delete" class="scroll-mt-6"></div>

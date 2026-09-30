@@ -28,6 +28,7 @@ var (
 	ErrPinLimit             = errors.New("pin limit reached (6)")
 	ErrRepoNotFound         = errors.New("repository not found")
 	ErrInvalidEmail         = errors.New("email must be a valid address")
+	ErrSoleOrgOwner         = errors.New("you are the only owner of an organization")
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
 	emailRe                 = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 )
@@ -226,11 +227,17 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID int64, name, ema
 }
 
 // Related rows go via DB cascades; repo directories via DeleteWithOwner.
+// The sole-owner check runs before any dir moves, and again under lock.
 func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
+	if sole, err := s.store.IsSoleOrgOwner(ctx, userID); err != nil {
+		return err
+	} else if sole {
+		return ErrSoleOrgOwner
+	}
 	return s.repos.DeleteWithOwner(ctx, userID, func(livePersonalIDs []int64) error {
 		err := s.store.DeleteWithOwnedRepos(ctx, userID, livePersonalIDs)
-		if errors.Is(err, store.ErrUserOwnsOrgRepos) {
-			return ErrOwnsOrgRepos
+		if errors.Is(err, store.ErrLastOrgOwner) {
+			return ErrSoleOrgOwner
 		}
 		return err
 	})

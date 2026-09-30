@@ -21,9 +21,7 @@ import (
 // cannot tell the two apart.
 var ErrRepoNameTaken = errors.New("a repository with that name already exists")
 
-// ErrOwnsOrgRepos: an org repo's owner_id is the member who created it, so
-// deleting that member's account would cascade the repo out of the org.
-var ErrOwnsOrgRepos = errors.New("delete the organization repositories you created first")
+var ErrRepoChanged = store.ErrRepoChanged
 
 // ErrRepoNameReserved: repo <x>.wiki's git dir would be repo <x>'s wiki dir.
 var ErrRepoNameReserved = errors.New("names ending in .wiki are reserved for wikis")
@@ -253,10 +251,11 @@ func removeDirs(dirs ...string) {
 	}
 }
 
-// DeleteWithOwner runs deleteOwner, whose row delete cascades to every repo
-// ownerID owns, with the owner's personal repo dirs moved aside first. A
+// DeleteWithOwner runs deleteOwner, whose row delete cascades to every
+// personal repo ownerID owns, with those repos' dirs moved aside first. A
 // failed delete puts them back; a successful one removes them and the copies
 // of the owner's soft-deleted repos, which no row is left to restore or purge.
+// Org repos have no owner_id, so they are neither listed nor touched.
 func (s *RepoService) DeleteWithOwner(ctx context.Context, ownerID int64, deleteOwner func(livePersonalIDs []int64) error) error {
 	repos, err := s.repos.ListAllByOwnerID(ctx, ownerID)
 	if err != nil {
@@ -266,16 +265,13 @@ func (s *RepoService) DeleteWithOwner(ctx context.Context, ownerID int64, delete
 	var dirs []string
 	var live []int64
 	for _, r := range repos {
-		switch {
-		case r.DeletedAt != nil:
+		if r.DeletedAt != nil {
 			softDeleted = append(softDeleted, r)
-		case r.OrgID != 0:
-			return ErrOwnsOrgRepos
-		default:
-			gitDir, wikiDir := repoDirs(s.cfg.ReposRoot, r.OwnerName, r.Name)
-			dirs = append(dirs, gitDir, wikiDir)
-			live = append(live, r.ID)
+			continue
 		}
+		gitDir, wikiDir := repoDirs(s.cfg.ReposRoot, r.OwnerName, r.Name)
+		dirs = append(dirs, gitDir, wikiDir)
+		live = append(live, r.ID)
 	}
 
 	moved, err := renameDirs(movesAside(deletedSuffix(time.Now()), dirs...))

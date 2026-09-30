@@ -410,10 +410,22 @@ func (s *UserStore) DeleteByID(ctx context.Context, userID int64) error {
 	return nil
 }
 
-var (
-	ErrUserOwnsOrgRepos  = errors.New("user created live organization repositories")
-	ErrOwnedReposChanged = errors.New("user's repositories changed during deletion")
-)
+var ErrOwnedReposChanged = errors.New("user's repositories changed during deletion")
+
+// soleOwnedOrgs selects the orgs user $1 is the only owner of.
+const soleOwnedOrgs = `SELECT 1 FROM org_members om
+	WHERE om.user_id = $1 AND om.role = 'owner'
+	  AND NOT EXISTS (SELECT 1 FROM org_members other
+	                  WHERE other.org_id = om.org_id AND other.role = 'owner' AND other.user_id <> $1)`
+
+// IsSoleOrgOwner reports whether deleting userID would leave an org with no owner.
+func (s *UserStore) IsSoleOrgOwner(ctx context.Context, userID int64) (bool, error) {
+	var sole bool
+	if err := s.db.QueryRowContext(ctx, `SELECT EXISTS (`+soleOwnedOrgs+`)`, userID).Scan(&sole); err != nil {
+		return false, fmt.Errorf("user sole org owner: %w", err)
+	}
+	return sole, nil
+}
 
 // ghostReassignments are the columns that reference users(id) with no ON DELETE
 // action; any row left in one would block the user delete. nameCol, when set,
@@ -439,7 +451,8 @@ var ghostReassignments = []struct{ table, idCol, nameCol string }{
 // the user wrote elsewhere passes to the ghost, as on GitHub.
 // livePersonalIDs are the repos the caller already moved aside; locking the user
 // row blocks new repo inserts (their FK check needs it), so the set is re-checked
-// here and a repo created or restored in the meantime aborts the delete.
+// here and a repo created or restored in the meantime aborts the delete. Org
+// repos have no owner_id, so neither the cascade nor this check touches them.
 func (s *UserStore) DeleteWithOwnedRepos(ctx context.Context, userID int64, livePersonalIDs []int64) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -449,31 +462,39 @@ func (s *UserStore) DeleteWithOwnedRepos(ctx context.Context, userID int64, live
 	if _, err := tx.ExecContext(ctx, `SELECT 1 FROM users WHERE id=$1 FOR UPDATE`, userID); err != nil {
 		return fmt.Errorf("user delete lock: %w", err)
 	}
+	// OrgStore.changeMember takes these locks too, so neither another owner
+	// leaving nor this user's promotion can land between this check and the
+	// delete. Orgs where the user is only a member count: a promotion would
+	// otherwise let their last other owner leave.
+	if _, err := tx.ExecContext(ctx,
+		`SELECT 1 FROM organizations o JOIN org_members om ON om.org_id = o.id
+		 WHERE om.user_id = $1 ORDER BY o.id FOR NO KEY UPDATE OF o`, userID); err != nil {
+		return fmt.Errorf("user delete lock orgs: %w", err)
+	}
+	var sole bool
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS (`+soleOwnedOrgs+`)`, userID).Scan(&sole); err != nil {
+		return fmt.Errorf("user delete check orgs: %w", err)
+	}
+	if sole {
+		return ErrLastOrgOwner
+	}
 	rows, err := tx.QueryContext(ctx,
-		`SELECT id, org_id FROM repositories WHERE owner_id=$1 AND deleted_at IS NULL FOR UPDATE`, userID)
+		`SELECT id FROM repositories WHERE owner_id=$1 AND deleted_at IS NULL FOR UPDATE`, userID)
 	if err != nil {
 		return fmt.Errorf("user delete list repos: %w", err)
 	}
 	var live []int64
-	ownsOrgRepo := false
 	for rows.Next() {
 		var id int64
-		var orgID sql.NullInt64
-		if err := rows.Scan(&id, &orgID); err != nil {
+		if err := rows.Scan(&id); err != nil {
 			rows.Close()
 			return fmt.Errorf("user delete scan repo: %w", err)
-		}
-		if orgID.Valid {
-			ownsOrgRepo = true
 		}
 		live = append(live, id)
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("user delete list repos: %w", err)
-	}
-	if ownsOrgRepo {
-		return ErrUserOwnsOrgRepos
 	}
 	slices.Sort(live)
 	expected := slices.Sorted(slices.Values(livePersonalIDs))

@@ -15,12 +15,13 @@ type SearchStore struct{ db *sql.DB }
 func NewSearchStore(db *sql.DB) *SearchStore { return &SearchStore{db: db} }
 
 func (s *SearchStore) SearchRepos(ctx context.Context, query string, requestingUserID *int64, limit int) ([]model.Repository, error) {
-	const q = `
+	q := `
 SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private,
        r.default_branch, r.created_at, r.updated_at, r.is_fork, r.fork_of_id, r.fork_count
 FROM repositories r
 WHERE r.search_vector @@ plainto_tsquery('english', $1)
-  AND (r.private = FALSE OR r.owner_id = $2)
+  AND r.deleted_at IS NULL
+  AND ` + readableBy("r", "$2") + `
 ORDER BY ts_rank(r.search_vector, plainto_tsquery('english', $1)) DESC
 LIMIT $3`
 
@@ -103,7 +104,7 @@ func scanSearchRepos(rows *sql.Rows) ([]model.Repository, error) {
 		var r model.Repository
 		var orgID, forkOfID sql.NullInt64
 		if err := rows.Scan(
-			&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private,
+			&r.ID, zeroIfNull{&r.OwnerID}, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private,
 			&r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt, &r.IsFork, &forkOfID, &r.ForkCount,
 		); err != nil {
 			return nil, err

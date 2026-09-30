@@ -2173,7 +2173,7 @@ func settingsDangerSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 151, "</li><li id=\"delete\" class=\"py-4 flex items-start justify-between gap-4\"><div class=\"min-w-0\"><p class=\"text-[13.5px] font-medium\">Delete account</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Permanently remove your account, your repositories and their wikis, gists, and activity. Issues, comments and reviews you left in other people's repositories stay, credited to ghost. Delete any repositories you created in an organization first.</p></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 151, "</li><li id=\"delete\" class=\"py-4 flex items-start justify-between gap-4\"><div class=\"min-w-0\"><p class=\"text-[13.5px] font-medium\">Delete account</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Permanently remove your account, your repositories and their wikis, gists, and activity. Issues, comments and reviews you left in other people's repositories stay, credited to ghost. Organization repositories stay with their organization. If you are an organization's only owner, add another owner or delete the organization first.</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

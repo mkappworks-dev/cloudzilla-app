@@ -16,6 +16,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -120,7 +121,7 @@ func TestDeleteAccount_FreedNameDoesNotExposeOldRepos(t *testing.T) {
 	}
 }
 
-func TestDeleteAccount_RefusedWhileOwningOrgRepos(t *testing.T) {
+func TestDeleteAccount_RefusedWhileSoleOrgOwner(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	env := newAccountDeleteEnv(t)
 	ctx := context.Background()
@@ -133,18 +134,53 @@ func TestDeleteAccount_RefusedWhileOwningOrgRepos(t *testing.T) {
 		t.Fatalf("create org: %v", err)
 	}
 	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
-	if _, err := env.svc.Org.CreateRepo(ctx, org.ID, userID, "orgowned", "", true, service.RepoInitOptions{}); err != nil {
-		t.Fatalf("create org repo: %v", err)
-	}
 
 	rr := env.deleteAccount(t, userID, username)
-	if loc := rr.Header().Get("Location"); rr.Code != http.StatusSeeOther || !strings.Contains(loc, "profile_error=delete_org_repos") {
-		t.Errorf("want 303 naming delete_org_repos, got %d to %q", rr.Code, loc)
+	if loc := rr.Header().Get("Location"); rr.Code != http.StatusSeeOther || !strings.Contains(loc, "profile_error=sole_org_owner") {
+		t.Errorf("want 303 naming sole_org_owner, got %d to %q", rr.Code, loc)
 	}
 	if _, err := env.svc.User.GetByID(ctx, userID); err != nil {
 		t.Errorf("account deleted despite the refusal: %v", err)
 	}
-	if _, err := env.svc.Repo.Get(ctx, org.Name, "orgowned"); err != nil {
-		t.Errorf("org repo gone: %v", err)
+}
+
+func TestDeleteAccount_OrgKeepsServingReposTheUserCreated(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	env := newAccountDeleteEnv(t)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	username := "testuser_" + suffix
+	coSuffix := testutil.UniqueSuffix(t)
+	coOwnerID := testutil.SeedUser(t, db, coSuffix)
+	coOwnerToken := makeIssueJWT(t, coOwnerID, "testuser_"+coSuffix)
+
+	org, err := env.svc.Org.Create(ctx, coOwnerID, "testorg_"+suffix, "", "")
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
+	if err := env.svc.Org.AddMember(ctx, org.ID, coOwnerID, userID, model.OrgRoleOwner); err != nil {
+		t.Fatalf("add owner: %v", err)
+	}
+	if _, err := env.svc.Org.CreateRepo(ctx, org.ID, userID, "orgowned", "", true, service.RepoInitOptions{AddREADME: true}); err != nil {
+		t.Fatalf("create org repo: %v", err)
+	}
+	gitRepo, err := gogit.PlainOpen(filepath.Join(env.root, org.Name, "orgowned.git"))
+	if err != nil {
+		t.Fatalf("open org repo: %v", err)
+	}
+	head, err := gitRepo.Head()
+	if err != nil {
+		t.Fatalf("org repo head: %v", err)
+	}
+
+	if rr := env.deleteAccount(t, userID, username); rr.Code != http.StatusSeeOther || rr.Header().Get("Location") != "/" {
+		t.Fatalf("delete account: want 303 to /, got %d to %q", rr.Code, rr.Header().Get("Location"))
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/"+org.Name+"/orgowned/info/refs?service=git-upload-pack", nil)
+	if rr := env.do(t, req, coOwnerToken); rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), head.Hash().String()) {
+		t.Errorf("org repo after its creator's deletion: want git fetch 200 with %s, got %d", head.Hash(), rr.Code)
 	}
 }

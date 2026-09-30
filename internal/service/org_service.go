@@ -74,10 +74,7 @@ func (s *OrgService) Get(ctx context.Context, name string) (*model.Organization,
 	return s.orgs.GetByName(ctx, name)
 }
 
-// ErrOrgHasRepos is returned when a delete is attempted on an org that still
-// has repositories. Repos must be transferred or deleted first to avoid the
-// FK cascade silently wiping shared data.
-var ErrOrgHasRepos = errors.New("organization still has repositories")
+var ErrOrgHasRepos = store.ErrOrgHasRepos
 
 func (s *OrgService) UpdateRepoDefaults(ctx context.Context, orgID, requestingUserID int64, visibility, branchName string) error {
 	if !s.IsOwner(ctx, orgID, requestingUserID) {
@@ -98,18 +95,8 @@ func (s *OrgService) Delete(ctx context.Context, orgID, requestingUserID int64) 
 	if !s.IsOwner(ctx, orgID, requestingUserID) {
 		return fmt.Errorf("only org owners can delete an organization")
 	}
-	repos, err := s.repos.GetByOrgID(ctx, orgID)
+	deleted, err := s.orgs.Delete(ctx, orgID)
 	if err != nil {
-		return fmt.Errorf("check org repos: %w", err)
-	}
-	if len(repos) > 0 {
-		return ErrOrgHasRepos
-	}
-	deleted, err := s.repos.ListDeletedByOrgID(ctx, orgID)
-	if err != nil {
-		return fmt.Errorf("list deleted org repos: %w", err)
-	}
-	if err := s.orgs.Delete(ctx, orgID); err != nil {
 		return err
 	}
 	// The org_id cascade drops these rows, so nothing could restore or purge
@@ -235,23 +222,11 @@ func (s *OrgService) UpdateMemberRole(ctx context.Context, orgID, requestingUser
 		return nil
 	}
 
-	if target.Role == model.OrgRoleOwner && role == model.OrgRoleMember {
-		members, err := s.orgs.ListMembers(ctx, orgID)
-		if err != nil {
-			return err
-		}
-		ownerCount := 0
-		for _, m := range members {
-			if m.Role == model.OrgRoleOwner {
-				ownerCount++
-			}
-		}
-		if ownerCount <= 1 {
-			return fmt.Errorf("cannot demote the last owner")
-		}
+	err = s.orgs.UpdateMemberRole(ctx, orgID, targetUserID, role)
+	if errors.Is(err, store.ErrLastOrgOwner) {
+		return fmt.Errorf("cannot demote the last owner")
 	}
-
-	return s.orgs.UpdateMemberRole(ctx, orgID, targetUserID, role)
+	return err
 }
 
 func (s *OrgService) RemoveMember(ctx context.Context, orgID, requestingUserID, targetUserID int64) error {
@@ -260,27 +235,15 @@ func (s *OrgService) RemoveMember(ctx context.Context, orgID, requestingUserID, 
 		return fmt.Errorf("only org owners can remove members")
 	}
 
-	// Prevent removing last owner
-	members, err := s.orgs.ListMembers(ctx, orgID)
-	if err != nil {
-		return err
-	}
-	ownerCount := 0
-	for _, m := range members {
-		if m.Role == model.OrgRoleOwner {
-			ownerCount++
-		}
-	}
-
-	targetMember, err := s.orgs.GetMember(ctx, orgID, targetUserID)
-	if err != nil {
+	if _, err := s.orgs.GetMember(ctx, orgID, targetUserID); err != nil {
 		return fmt.Errorf("member not found")
 	}
-	if targetMember.Role == model.OrgRoleOwner && ownerCount <= 1 {
+
+	err := s.orgs.RemoveMember(ctx, orgID, targetUserID)
+	if errors.Is(err, store.ErrLastOrgOwner) {
 		return fmt.Errorf("cannot remove the last owner")
 	}
-
-	return s.orgs.RemoveMember(ctx, orgID, targetUserID)
+	return err
 }
 
 func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int64, name, description string, private bool, init RepoInitOptions) (*model.Repository, error) {
@@ -305,7 +268,7 @@ func (s *OrgService) CreateRepo(ctx context.Context, orgID, requestingUserID int
 		return nil, err
 	}
 	r := &model.Repository{
-		OwnerID:       requestingUserID,
+		CreatedBy:     requestingUserID,
 		OwnerName:     org.Name,
 		OrgID:         orgID,
 		Name:          name,
@@ -455,7 +418,8 @@ func (s *OrgService) TransferOrg(ctx context.Context, orgID, requestingUserID in
 		}
 	}
 
-	// Demote requesting user to member
+	// The store refuses this if it leaves no owner, as when the new owner's
+	// account was deleted in the meantime.
 	if err := s.orgs.UpdateMemberRole(ctx, orgID, requestingUserID, model.OrgRoleMember); err != nil {
 		return fmt.Errorf("demote old owner: %w", err)
 	}

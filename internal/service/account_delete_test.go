@@ -117,40 +117,135 @@ func TestRepoService_DeleteWithOwner_FailedOwnerDeleteKeepsRepos(t *testing.T) {
 	}
 }
 
-func TestUserService_DeleteUser_RefusesWhileOwningOrgRepos(t *testing.T) {
+func TestUserService_DeleteUser_KeepsOrgReposItCreated(t *testing.T) {
 	env := newRepoDirsEnv(t)
 	ctx := context.Background()
-	userID, _ := env.seedUser(t)
-	org := env.createOrg(t, userID)
-	repo, err := env.orgs.CreateRepo(ctx, org.ID, userID, "orgowned", "", true, service.RepoInitOptions{AddREADME: true})
+	userID, user := env.seedUser(t)
+	coOwnerID, _ := env.seedUser(t)
+	org := env.coOwnedOrg(t, coOwnerID, userID)
+	env.createWithWiki(t, user, "mine")
+	kept, err := env.orgs.CreateRepo(ctx, org.ID, userID, "kept", "", true, service.RepoInitOptions{AddREADME: true})
 	if err != nil {
 		t.Fatalf("CreateRepo: %v", err)
 	}
-
-	if err := env.users().DeleteUser(ctx, userID); !errors.Is(err, service.ErrOwnsOrgRepos) {
-		t.Errorf("want ErrOwnsOrgRepos, got %v", err)
+	if err := env.code.WikiPageSave(org.Name, "kept", "Home", "org wiki", dirsTestAuthor, ""); err != nil {
+		t.Fatalf("save org wiki: %v", err)
 	}
-	if !env.userExists(t, userID) {
-		t.Fatal("user deleted while owning an org repo")
+	keptGit, _ := env.dirs(org.Name, "kept")
+	keptHead := headOf(t, keptGit)
+	binned, err := env.orgs.CreateRepo(ctx, org.ID, userID, "binned", "", true, service.RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatalf("CreateRepo: %v", err)
 	}
-	if _, err := env.repos.Get(ctx, org.Name, "orgowned"); err != nil {
-		t.Errorf("org repo row gone: %v", err)
-	}
-	if gitDir, _ := env.dirs(org.Name, "orgowned"); !pathExists(gitDir) {
-		t.Error("org repo dir moved")
-	}
-
-	if err := env.repos.Delete(ctx, repo.ID, userID); err != nil {
+	binnedGit, _ := env.dirs(org.Name, "binned")
+	binnedHead := headOf(t, binnedGit)
+	if err := env.repos.Delete(ctx, binned.ID, userID); err != nil {
 		t.Fatalf("soft delete org repo: %v", err)
 	}
+	if got, err := env.repos.GetByID(ctx, kept.ID); err != nil || got.CreatedBy != userID || got.OwnerID != 0 {
+		t.Fatalf("new org repo: created_by %d, owner_id %d (err %v); want created_by %d and no owner_id", got.CreatedBy, got.OwnerID, err, userID)
+	}
+
 	if err := env.users().DeleteUser(ctx, userID); err != nil {
-		t.Errorf("DeleteUser after deleting the org repo: %v", err)
+		t.Fatalf("DeleteUser: %v", err)
+	}
+
+	if env.userExists(t, userID) {
+		t.Fatal("user row survived")
+	}
+	if matches, _ := filepath.Glob(filepath.Join(env.root, user, "mine*")); len(matches) != 0 {
+		t.Errorf("personal repo dirs survived the account: %v", matches)
+	}
+	got, err := env.repos.Get(ctx, org.Name, "kept")
+	if err != nil {
+		t.Fatalf("org repo row gone: %v", err)
+	}
+	if got.OrgID != org.ID || got.CreatedBy != 0 {
+		t.Errorf("org repo after its creator's deletion: org_id %d created_by %d, want %d and 0", got.OrgID, got.CreatedBy, org.ID)
+	}
+	env.wantLive(t, org.Name, "kept", keptHead, "org wiki")
+	if err := env.repos.Restore(ctx, binned.ID, coOwnerID, false); err != nil {
+		t.Fatalf("co-owner restoring the org repo its deleted creator binned: %v", err)
+	}
+	if headOf(t, binnedGit) != binnedHead {
+		t.Error("restored org repo lost its history")
 	}
 }
 
-// With the row cascaded away nothing can restore or purge the copy, and
-// another owner's copy of the same name must survive.
-func TestUserService_DeleteUser_RemovesItsDeletedOrgRepoCopies(t *testing.T) {
+func TestUserService_DeleteUser_RefusedWhileSoleOrgOwner(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	userID, user := env.seedUser(t)
+	memberID, _ := env.seedUser(t)
+	org := env.createOrg(t, userID)
+	if err := env.orgs.AddMember(ctx, org.ID, userID, memberID, model.OrgRoleMember); err != nil {
+		t.Fatalf("AddMember: %v", err)
+	}
+	env.createWithWiki(t, user, "mine")
+	mineGit, _ := env.dirs(user, "mine")
+	if _, err := env.orgs.CreateRepo(ctx, org.ID, userID, "orgrepo", "", true, service.RepoInitOptions{}); err != nil {
+		t.Fatalf("CreateRepo: %v", err)
+	}
+
+	if err := env.users().DeleteUser(ctx, userID); !errors.Is(err, service.ErrSoleOrgOwner) {
+		t.Fatalf("want ErrSoleOrgOwner, got %v", err)
+	}
+	if !env.userExists(t, userID) {
+		t.Fatal("sole org owner deleted")
+	}
+	if !pathExists(mineGit) {
+		t.Error("personal repo moved by a refused delete")
+	}
+	// A plain member is not an owner the org depends on.
+	if err := env.users().DeleteUser(ctx, memberID); err != nil {
+		t.Errorf("DeleteUser of an org member: %v", err)
+	}
+
+	coOwnerID, _ := env.seedUser(t)
+	if err := env.orgs.AddMember(ctx, org.ID, userID, coOwnerID, model.OrgRoleOwner); err != nil {
+		t.Fatalf("AddMember: %v", err)
+	}
+	if err := env.users().DeleteUser(ctx, userID); err != nil {
+		t.Fatalf("DeleteUser with a second owner: %v", err)
+	}
+	if !env.orgs.IsOwner(ctx, org.ID, coOwnerID) {
+		t.Error("remaining owner lost the org")
+	}
+	if _, err := env.repos.Get(ctx, org.Name, "orgrepo"); err != nil {
+		t.Errorf("org repo gone with its creator: %v", err)
+	}
+}
+
+// The pre-check saw a second owner; the locked re-check must see them leave.
+func TestUserService_DeleteUser_LastCoOwnerLeavingMidDeleteAbortsIt(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	users := store.NewUserStore(env.db)
+	userID, user := env.seedUser(t)
+	coOwnerID, _ := env.seedUser(t)
+	org := env.coOwnedOrg(t, userID, coOwnerID)
+	env.createWithWiki(t, user, "mine")
+
+	err := env.repos.DeleteWithOwner(ctx, userID, func(live []int64) error {
+		if err := env.orgs.RemoveMember(ctx, org.ID, coOwnerID, coOwnerID); err != nil {
+			t.Fatalf("co-owner leaving: %v", err)
+		}
+		return users.DeleteWithOwnedRepos(ctx, userID, live)
+	})
+	if !errors.Is(err, store.ErrLastOrgOwner) {
+		t.Fatalf("want ErrLastOrgOwner, got %v", err)
+	}
+	if !env.userExists(t, userID) || !env.orgs.IsOwner(ctx, org.ID, userID) {
+		t.Fatal("org left without an owner")
+	}
+	if gitDir, _ := env.dirs(user, "mine"); !pathExists(gitDir) {
+		t.Error("personal repo not restored after the refused delete")
+	}
+}
+
+// Deleting a co-owner must neither remove nor strand the org's copies of a
+// name, whoever created or deleted them.
+func TestUserService_DeleteUser_KeepsDeletedOrgReposRestorable(t *testing.T) {
 	env := newRepoDirsEnv(t)
 	ctx := context.Background()
 	c := env.twoDeletedCopies(t, time.Hour)
@@ -160,13 +255,13 @@ func TestUserService_DeleteUser_RemovesItsDeletedOrgRepoCopies(t *testing.T) {
 	}
 
 	gitDir, _ := env.dirs(c.org.Name, "x")
-	if matches, _ := filepath.Glob(gitDir + ".deleted.*"); len(matches) != 1 {
-		t.Errorf("want only the other owner's copy left, got %v", matches)
+	if matches, _ := filepath.Glob(gitDir + ".deleted.*"); len(matches) != 2 {
+		t.Errorf("want both copies kept, got %v", matches)
 	}
-	if err := env.repos.Restore(ctx, c.second, c.secondID, false); err != nil {
-		t.Fatalf("Restore: %v", err)
+	if err := env.repos.Restore(ctx, c.first, c.secondID, false); err != nil {
+		t.Fatalf("Restore of the deleted user's copy: %v", err)
 	}
-	env.wantLive(t, c.org.Name, "x", c.secondHead, "wiki of copy 1")
+	env.wantLive(t, c.org.Name, "x", c.firstHead, "wiki of copy 0")
 }
 
 func TestUserService_DeleteUser_OwnIssuesAndPullsDoNotBlock(t *testing.T) {
@@ -344,11 +439,6 @@ func TestUserService_DeleteUser_RepoCreatedMidDeleteAbortsIt(t *testing.T) {
 		name   string
 		create func(userID int64, user string) error
 	}{
-		{"org repo", func(userID int64, _ string) error {
-			org := env.createOrg(t, userID)
-			_, err := env.orgs.CreateRepo(ctx, org.ID, userID, "late", "", false, service.RepoInitOptions{})
-			return err
-		}},
 		{"personal repo", func(userID int64, user string) error {
 			_, err := env.repos.Create(ctx, userID, user, "late", "", false, service.RepoInitOptions{})
 			return err

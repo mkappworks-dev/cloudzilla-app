@@ -132,9 +132,10 @@ type sameNameCopies struct {
 	firstHead, secondHead string
 }
 
-// twoDeletedCopies leaves two org owners' soft-deleted repos named "x" side by
-// side, the first deleted age earlier. repositories is unique per owner_id,
-// so only the copies' suffixes tell them apart.
+// twoDeletedCopies leaves two soft-deleted org repos named "x", created by
+// different owners, side by side, the first deleted age earlier. A
+// soft-deleted org repo does not hold its name, so only the copies' suffixes
+// tell them apart.
 func (e repoDirsEnv) twoDeletedCopies(t *testing.T, age time.Duration) sameNameCopies {
 	t.Helper()
 	ctx := context.Background()
@@ -459,8 +460,7 @@ func TestOrgService_CreateRepo_RefusesLeftoverDir(t *testing.T) {
 	}
 }
 
-// repositories is unique on (owner_id, name), which does not stop a second
-// org owner from reusing a name.
+// The org holds the name, not the owner who created the repo.
 func TestOrgService_CreateRepo_SecondOwnerCannotReuseAName(t *testing.T) {
 	env := newRepoDirsEnv(t)
 	ctx := context.Background()
@@ -976,9 +976,8 @@ func TestRepoService_DeleteWithOwner_KeepsAWikiACaseVariantOwnerHolds(t *testing
 	}
 	env.createWithWiki(t, lower, "notes")
 
-	err = env.repos.DeleteWithOwner(ctx, upperID, func([]int64) error {
-		_, err := env.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, upperID)
-		return err
+	err = env.repos.DeleteWithOwner(ctx, upperID, func(live []int64) error {
+		return store.NewUserStore(env.db).DeleteWithOwnedRepos(ctx, upperID, live)
 	})
 	if err != nil {
 		t.Fatalf("DeleteWithOwner: %v", err)

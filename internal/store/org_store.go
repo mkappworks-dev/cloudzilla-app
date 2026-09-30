@@ -11,6 +11,9 @@ import (
 
 var ErrOrgNameTaken = errors.New("name already taken")
 
+// ErrLastOrgOwner: an org with no owner can be neither managed nor deleted.
+var ErrLastOrgOwner = errors.New("organization would have no owner")
+
 // OrgStore provides database operations for organizations and their membership.
 type OrgStore struct{ db *sql.DB }
 
@@ -75,20 +78,59 @@ func (s *OrgStore) UpdateRepoDefaults(ctx context.Context, id int64, visibility,
 	return nil
 }
 
-// Delete removes the organization row. The org_members rows cascade via FK.
-// Callers must ensure there are no repositories under the org first, otherwise
-// FK ON DELETE CASCADE will silently wipe every repo, issue, PR, and comment
-// belonging to it.
-func (s *OrgStore) Delete(ctx context.Context, id int64) error {
-	res, err := s.db.ExecContext(ctx, `DELETE FROM organizations WHERE id = $1`, id)
+// ErrOrgHasRepos: the org_id cascade would silently wipe every live repo,
+// issue, PR and comment of the org.
+var ErrOrgHasRepos = errors.New("organization still has repositories")
+
+// Delete removes an org with no live repos and returns its soft-deleted ones,
+// whose rows the cascade drops. The org row lock holds off a repo created or
+// transferred into the org (their FK checks need that row) until the check
+// below has seen it; the repo row locks do the same for a restore.
+func (s *OrgStore) Delete(ctx context.Context, id int64) ([]model.Repository, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("org delete: %w", err)
+		return nil, fmt.Errorf("org delete begin tx: %w", err)
 	}
-	n, _ := res.RowsAffected()
-	if n == 0 {
-		return sql.ErrNoRows
+	defer func() { _ = tx.Rollback() }()
+	var locked int
+	if err := tx.QueryRowContext(ctx, `SELECT 1 FROM organizations WHERE id = $1 FOR UPDATE`, id).Scan(&locked); err != nil {
+		return nil, fmt.Errorf("org delete lock: %w", err)
 	}
-	return nil
+	rows, err := tx.QueryContext(ctx,
+		`SELECT id, owner_name, name, deleted_at FROM repositories WHERE org_id = $1 FOR UPDATE`, id)
+	if err != nil {
+		return nil, fmt.Errorf("org delete list repos: %w", err)
+	}
+	var deleted []model.Repository
+	hasLive := false
+	for rows.Next() {
+		r := model.Repository{OrgID: id}
+		var deletedAt sql.NullTime
+		if err := rows.Scan(&r.ID, &r.OwnerName, &r.Name, &deletedAt); err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("org delete scan repo: %w", err)
+		}
+		if !deletedAt.Valid {
+			hasLive = true
+			continue
+		}
+		r.DeletedAt = &deletedAt.Time
+		deleted = append(deleted, r)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("org delete list repos: %w", err)
+	}
+	if hasLive {
+		return nil, ErrOrgHasRepos
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM organizations WHERE id = $1`, id); err != nil {
+		return nil, fmt.Errorf("org delete: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("org delete commit: %w", err)
+	}
+	return deleted, nil
 }
 
 // UpdateProfile returns sql.ErrNoRows when no row matches id.
@@ -126,11 +168,44 @@ func (s *OrgStore) AddMember(ctx context.Context, orgID, userID int64, role mode
 }
 
 func (s *OrgStore) RemoveMember(ctx context.Context, orgID, userID int64) error {
-	_, err := s.db.ExecContext(ctx,
-		`DELETE FROM org_members WHERE org_id = $1 AND user_id = $2`,
-		orgID, userID,
-	)
-	return err
+	return s.changeMember(ctx, orgID, userID, true,
+		`DELETE FROM org_members WHERE org_id = $1 AND user_id = $2`)
+}
+
+// changeMember applies change with the org row locked, refusing one that takes
+// away the last owner. UserStore.DeleteWithOwnedRepos takes the same lock, so
+// two owners leaving, being demoted or deleting their accounts at once cannot
+// each count the other as the one who stays.
+func (s *OrgStore) changeMember(ctx context.Context, orgID, userID int64, dropsOwner bool, change string, args ...any) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("org member change begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `SELECT 1 FROM organizations WHERE id = $1 FOR NO KEY UPDATE`, orgID); err != nil {
+		return fmt.Errorf("org member change lock: %w", err)
+	}
+	if dropsOwner {
+		var last bool
+		err := tx.QueryRowContext(ctx,
+			`SELECT EXISTS (SELECT 1 FROM org_members WHERE org_id = $1 AND user_id = $2 AND role = 'owner')
+			    AND NOT EXISTS (SELECT 1 FROM org_members WHERE org_id = $1 AND user_id <> $2 AND role = 'owner')`,
+			orgID, userID,
+		).Scan(&last)
+		if err != nil {
+			return fmt.Errorf("org member change count owners: %w", err)
+		}
+		if last {
+			return ErrLastOrgOwner
+		}
+	}
+	if _, err := tx.ExecContext(ctx, change, append([]any{orgID, userID}, args...)...); err != nil {
+		return fmt.Errorf("org member change: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("org member change commit: %w", err)
+	}
+	return nil
 }
 
 func (s *OrgStore) GetMember(ctx context.Context, orgID, userID int64) (*model.OrgMember, error) {
@@ -182,11 +257,8 @@ func (s *OrgStore) CountMembers(ctx context.Context, orgID int64) (int, error) {
 }
 
 func (s *OrgStore) UpdateMemberRole(ctx context.Context, orgID, userID int64, role model.OrgRole) error {
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE org_members SET role = $1 WHERE org_id = $2 AND user_id = $3`,
-		string(role), orgID, userID,
-	)
-	return err
+	return s.changeMember(ctx, orgID, userID, role != model.OrgRoleOwner,
+		`UPDATE org_members SET role = $3 WHERE org_id = $1 AND user_id = $2`, string(role))
 }
 
 func (s *OrgStore) ListByMember(ctx context.Context, userID int64) ([]model.Organization, error) {
