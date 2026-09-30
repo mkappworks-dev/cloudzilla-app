@@ -53,7 +53,7 @@ func newOrgRepoEnv(t *testing.T) orgRepoEnv {
 	if err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	if err := svc.Org.AddMember(ctx, org.ID, owner.id, creator.id, model.OrgRoleOwner); err != nil {
 		t.Fatalf("add creator as owner: %v", err)
 	}

@@ -233,6 +233,13 @@ func SeedRepo(t *testing.T, db *sql.DB, ownerID int64, ownerName, suffix string)
 	return repoID
 }
 
+// DeleteOrgOnCleanup deletes the organization when the test ends. Deleting its
+// owner leaves it behind: only org_members references users.
+func DeleteOrgOnCleanup(t *testing.T, db *sql.DB, id int64) {
+	t.Helper()
+	t.Cleanup(func() { Exec(t, db, `DELETE FROM organizations WHERE id = $1`, id) })
+}
+
 // The counter keeps names unique across tests and -count iterations within one
 // process; the PID separates the concurrent per-package test processes.
 func UniqueSuffix(t *testing.T) string {

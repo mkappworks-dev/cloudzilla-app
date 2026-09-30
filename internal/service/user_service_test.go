@@ -445,7 +445,7 @@ func TestUserService_AccountCreation_RefusesOrgNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 
 	if _, err := svc.Create(ctx, name, "reg_"+suffix+"@example.com", "password1"); !errors.Is(err, service.ErrUsernameTaken) {
 		t.Errorf("Create: err = %v, want ErrUsernameTaken", err)

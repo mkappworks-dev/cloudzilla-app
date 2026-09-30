@@ -134,7 +134,7 @@ func TestDeleteAccount_RefusedWhileSoleOrgOwner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 
 	rr := env.deleteAccount(t, userID, username)
 	if loc := rr.Header().Get("Location"); rr.Code != http.StatusSeeOther || !strings.Contains(loc, "profile_error=sole_org_owner") {
@@ -160,7 +160,7 @@ func TestDeleteAccount_OrgKeepsServingReposTheUserCreated(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	if err := env.svc.Org.AddMember(ctx, org.ID, coOwnerID, userID, model.OrgRoleOwner); err != nil {
 		t.Fatalf("add owner: %v", err)
 	}

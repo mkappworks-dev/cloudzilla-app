@@ -25,6 +25,7 @@ func TestOrgStore_Create_AssignsID(t *testing.T) {
 	if err := os.Create(context.Background(), org); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	if org.ID == 0 {
 		t.Error("Create must assign a non-zero ID")
 	}
@@ -41,6 +42,7 @@ func TestOrgStore_GetByName_ReturnsOrg(t *testing.T) {
 	if err := os.Create(context.Background(), org); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 
 	found, err := os.GetByName(context.Background(), "findable_"+suffix)
 	if err != nil {
@@ -75,6 +77,7 @@ func TestOrgStore_AddMember_ThenGetMember(t *testing.T) {
 	if err := os.Create(context.Background(), org); err != nil {
 		t.Fatalf("Create org: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 
 	if err := os.AddMember(context.Background(), org.ID, memberID, model.OrgRoleMember); err != nil {
 		t.Fatalf("AddMember: %v", err)
@@ -101,6 +104,7 @@ func TestOrgStore_RemoveMember_DeletesRow(t *testing.T) {
 	if err := os.Create(context.Background(), org); err != nil {
 		t.Fatalf("Create org: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	if err := os.AddMember(context.Background(), org.ID, memberID, model.OrgRoleMember); err != nil {
 		t.Fatalf("AddMember: %v", err)
 	}
@@ -126,6 +130,7 @@ func TestOrgStore_UpdateMemberRole(t *testing.T) {
 	if err := os.Create(context.Background(), org); err != nil {
 		t.Fatalf("Create org: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	if err := os.AddMember(context.Background(), org.ID, memberID, model.OrgRoleMember); err != nil {
 		t.Fatalf("AddMember: %v", err)
 	}
@@ -155,6 +160,7 @@ func TestOrgStore_ListMembers_ReturnsAllMembers(t *testing.T) {
 	if err := os.Create(context.Background(), org); err != nil {
 		t.Fatalf("Create org: %v", err)
 	}
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	for _, uid := range []int64{m1, m2} {
 		if err := os.AddMember(context.Background(), org.ID, uid, model.OrgRoleMember); err != nil {
 			t.Fatalf("AddMember: %v", err)

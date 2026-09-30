@@ -286,7 +286,7 @@ func TestLanguageService_AggregateForOrg_ViewerVisibility(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	t.Cleanup(func() { _, _ = db.ExecContext(context.Background(), `DELETE FROM organizations WHERE id = $1`, org.ID) })
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	for _, r := range []struct {
 		name, lang string
 		private    bool

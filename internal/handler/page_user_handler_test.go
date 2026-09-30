@@ -131,7 +131,7 @@ func seedProfileOrg(t *testing.T, db *sql.DB, svc *service.Services, ownerID int
 	if err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	t.Cleanup(func() { _, _ = db.ExecContext(context.Background(), `DELETE FROM organizations WHERE id = $1`, org.ID) })
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	return org
 }
 
