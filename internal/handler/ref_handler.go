@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
@@ -81,6 +83,15 @@ func (h *Handler) DeleteBranch(w http.ResponseWriter, r *http.Request) {
 	}
 	if name == repo.DefaultBranch {
 		writeError(w, http.StatusBadRequest, "cannot delete the default branch")
+		return
+	}
+	if err := h.Services.BranchProtection.CheckDelete(r.Context(), repo.ID, name); err != nil {
+		if errors.Is(err, service.ErrForcePushBlocked) {
+			writeError(w, http.StatusUnprocessableEntity, "cannot delete a branch whose protection rule blocks force pushes")
+			return
+		}
+		slog.Error("check branch protection", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 

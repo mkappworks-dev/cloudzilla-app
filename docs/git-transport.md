@@ -86,11 +86,21 @@ go-git's receive-pack writes each pushed ref without comparing it to the command
  ! [remote rejected] main -> main (ref changed since it was read; fetch and push again)
 ```
 
-Branch protection is enforced at the same point, before the write. Both transports pass `NewServer` a vet function that calls `BranchProtectionService.CheckPushCommand`. go-git writes refs only after it has stored the pack, so the check can read the pushed commits to tell a force push from a fast-forward. It fails closed: under `block_force_push`, a push that it can't prove keeps every commit on the branch is refused as a force push. That includes deleting the branch, since delete-then-push is a force push in two steps. It also includes pointing the branch at a commit the repo doesn't have, which go-git's receive-pack accepts because it doesn't check connectivity. A refused ref never moves, and the status carries the reason:
+go-git's receive-pack doesn't check connectivity either, so a push could point any ref at an object that neither its pack nor the repo holds, leaving a ref that clone, the code browser, and indexing can't read. `NewServer` refuses a create or update whose new object isn't in the repo, before the vet function runs:
+
+```
+ ! [remote rejected] feature -> feature (missing necessary objects)
+```
+
+It checks only that object, not everything reachable from it.
+
+Branch protection is enforced at the same point, before the write. Both transports pass `NewServer` a vet function that calls `BranchProtectionService.CheckPushCommand`. go-git writes refs only after it has stored the pack, so the check can read the pushed commits to tell a force push from a fast-forward. It fails closed: under `block_force_push`, a push that it can't prove keeps every commit on the branch is refused as a force push. That includes deleting the branch, since delete-then-push is a force push in two steps; the web and API branch delete refuses it too (`BranchProtectionService.CheckDelete`, 422). It also includes pointing the branch at an object that isn't a commit. A refused ref never moves, and the status carries the reason:
 
 ```
  ! [remote rejected] main -> main (force push blocked by branch protection)
 ```
+
+The status is sent to the pusher, so an error from the server itself goes only to the server log: a failed rule lookup refuses the ref with `internal error checking branch protection`, and a failed ref write (a storer error, which names paths on the server) with `failed to update ref`.
 
 The response is still HTTP 200 / SSH exit 0; the per-ref status is what tells the client. Webhooks, activity events, and post-receive run only for the refs that applied (`gittransport.AppliedCommands`).
 
