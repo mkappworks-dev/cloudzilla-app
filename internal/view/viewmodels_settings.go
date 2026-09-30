@@ -1,6 +1,9 @@
 package view
 
-import "github.com/mkappworks-dev/cloudzilla-app/internal/model"
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
 
 // SettingsData holds template data for the user account settings page.
 type SettingsData struct {
@@ -26,6 +29,7 @@ type SettingsData struct {
 	SessionsRevoked      bool
 	PasswordChanged      bool
 	PasswordError        string
+	Confirm              components.ConfirmFactors
 	GoogleConfigured     bool
 	GoogleConnected      bool
 	HasPassword          bool
@@ -69,6 +73,7 @@ type AdminSettingsData struct {
 	BasePage
 	Settings    []model.SiteSetting
 	Invitations []model.Invitation
+	Confirm     components.ConfirmFactors
 }
 
 // AdminSettingsFragData holds template data for the admin settings HTMX fragment.
@@ -112,6 +117,7 @@ type SSOSettingsData struct {
 	SAMLConfig *model.SSOConfig
 	Error      string
 	Success    string
+	Confirm    components.ConfirmFactors
 }
 
 // OAuthAuthorizeData holds template data for the OAuth authorization consent page.
@@ -121,8 +127,6 @@ type OAuthAuthorizeData struct {
 	Scopes      []string
 	RedirectURI string
 	State       string
-	// Which factors the consent form asks for; see service.ReauthService.
-	HasPassword bool
-	TOTPEnabled bool
+	Confirm     components.ConfirmFactors
 	Error       string
 }

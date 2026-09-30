@@ -30,7 +30,7 @@ func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem 
 // aria-pressed=true means Public (green); clicking submits the visibility form
 // with the opposite value, routed through the global ConfirmDialog for the
 // "Make public/private?" prompt.
-templ visibilityToggle(owner, repoName string, private bool) {
+templ visibilityToggle(owner, repoName string, private bool, confirm components.ConfirmFactors) {
 	<div class="flex items-start justify-between gap-4 pb-4 mb-2 border-b border-border">
 		<div class="min-w-0">
 			<p class="text-sm font-medium text-foreground">Visibility</p>
@@ -47,21 +47,16 @@ templ visibilityToggle(owner, repoName string, private bool) {
 				@components.Badge(components.BadgeSecondary) {
 					Private
 				}
-				<form method="POST" action={ templ.SafeURL("/" + owner + "/" + repoName + "/settings/visibility") } data-toast="Repository is now public">
-					<input type="hidden" name="private" value="false"/>
-					<button
-						type="submit"
-						aria-pressed="false"
-						aria-label="Repository visibility"
-						data-confirm-action="true"
-						data-confirm-title="Make this repository public?"
-						data-confirm-msg={ "Anyone on the internet will be able to view " + repoName + "." }
-						data-confirm-label="Make public"
-						class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-border bg-muted transition-colors cursor-pointer"
-					>
-						<span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform"></span>
-					</button>
-				</form>
+				<button
+					type="button"
+					aria-pressed="false"
+					aria-label="Repository visibility"
+					onclick="document.getElementById('make-public-dialog').showModal()"
+					class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-border bg-muted transition-colors cursor-pointer"
+				>
+					<span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform"></span>
+				</button>
+				@makePublicDialog(owner, repoName, confirm)
 			} else {
 				@components.Badge(components.BadgeSuccess) {
 					Public
@@ -85,6 +80,36 @@ templ visibilityToggle(owner, repoName string, private bool) {
 			}
 		</div>
 	</div>
+}
+
+// Making a private repository public gives its code to everyone, for good, so
+// it's confirmed like giving someone access.
+templ makePublicDialog(owner, repoName string, confirm components.ConfirmFactors) {
+	@components.Dialog("make-public-dialog") {
+		<form hx-post={ "/" + owner + "/" + repoName + "/settings/visibility" } hx-swap="none">
+			<input type="hidden" name="private" value="false"/>
+			@components.DialogHeader() {
+				@components.DialogTitle("make-public-dialog") {
+					Make this repository public?
+				}
+				@components.DialogDescription() {
+					{ "Anyone on the internet will be able to view and clone " + repoName + ", including its history." }
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-4">
+					<div id="make-public-form-error"></div>
+					<div class="flex flex-wrap items-end gap-3">
+						@components.ConfirmFields("make-public", confirm, true)
+					</div>
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Make public</button>
+			}
+		</form>
+	}
 }
 
 // settingsToggle renders a labelled pill-switch row for a repo feature flag.
@@ -163,7 +188,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								@visibilityToggle(data.Owner, data.RepoName, data.Repo.Private)
+								@visibilityToggle(data.Owner, data.RepoName, data.Repo.Private, data.Confirm)
 								<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/features") } data-toast="Feature settings saved">
 									@settingsToggle("allow_issues", "Issues", "Let people open and track issues.", data.Repo.AllowIssues)
 									@settingsToggle("allow_discussions", "Discussions", "Enable the Discussions tab for Q&A and announcements.", data.Repo.AllowDiscussions)
@@ -627,7 +652,8 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/delete") } data-toast="Repository deleted" class="flex justify-end">
+								<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/delete" } hx-swap="none" data-toast="Repository deleted" class="flex flex-wrap items-end justify-end gap-3">
+									@components.ConfirmFields("delete-repo", data.Confirm, true)
 									@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
 										"type":                "submit",
 										"data-confirm-action":  "true",

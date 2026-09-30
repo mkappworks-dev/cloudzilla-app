@@ -145,6 +145,9 @@ templ SSOSettings(data view.SSOSettingsData) {
 							}
 							<label for="ldap_enabled" class="text-sm text-foreground">Enable LDAP authentication</label>
 						</div>
+						<div class="flex flex-wrap items-end gap-3">
+							@components.ConfirmFields("sso-ldap", data.Confirm, true)
+						</div>
 						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 							Save LDAP Settings
 						}
@@ -252,6 +255,9 @@ templ SSOSettings(data view.SSOSettingsData) {
 							<label for="saml_enabled" class="text-sm text-foreground">Enable SAML authentication</label>
 						</div>
 						<div class="flex gap-3">
+							<div class="flex flex-wrap items-end gap-3">
+								@components.ConfirmFields("sso-saml", data.Confirm, true)
+							</div>
 							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 								Save SAML Settings
 							}

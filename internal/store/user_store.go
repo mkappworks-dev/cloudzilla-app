@@ -292,6 +292,57 @@ func (s *UserStore) ReleaseReauthAttempt(ctx context.Context, userID int64) erro
 	return nil
 }
 
+// IssueReauthCode stores hash as userID's emailed confirmation code for ttl,
+// replacing any earlier one. It reports false, storing nothing, when a code was
+// issued within cooldown; the check and the write are one statement.
+func (s *UserStore) IssueReauthCode(ctx context.Context, userID int64, hash string, ttl, cooldown time.Duration) (bool, error) {
+	var id int64
+	err := s.db.QueryRowContext(ctx,
+		`UPDATE users SET reauth_code_hash = $2,
+		   reauth_code_expires_at = NOW() + make_interval(secs => $3),
+		   reauth_code_sent_at = NOW()
+		 WHERE id = $1 AND (reauth_code_sent_at IS NULL OR reauth_code_sent_at <= NOW() - make_interval(secs => $4))
+		 RETURNING id`,
+		userID, hash, ttl.Seconds(), cooldown.Seconds(),
+	).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("user issue reauth code: %w", err)
+	}
+	return true, nil
+}
+
+// LiveReauthCode returns the hash of userID's unexpired emailed code, or "".
+func (s *UserStore) LiveReauthCode(ctx context.Context, userID int64) (string, error) {
+	var hash string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT CASE WHEN reauth_code_expires_at > NOW() THEN reauth_code_hash ELSE '' END FROM users WHERE id = $1`,
+		userID).Scan(&hash)
+	if err != nil {
+		return "", fmt.Errorf("user live reauth code: %w", err)
+	}
+	return hash, nil
+}
+
+// SpendReauthCode uses up the code with hash, reporting false when it was
+// already spent, replaced or expired, so a code confirms one action.
+func (s *UserStore) SpendReauthCode(ctx context.Context, userID int64, hash string) (bool, error) {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE users SET reauth_code_hash = '', reauth_code_expires_at = NULL
+		 WHERE id = $1 AND reauth_code_hash = $2 AND reauth_code_hash <> '' AND reauth_code_expires_at > NOW()`,
+		userID, hash)
+	if err != nil {
+		return false, fmt.Errorf("user spend reauth code: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("user spend reauth code rows: %w", err)
+	}
+	return n == 1, nil
+}
+
 // ChangePassword swaps oldHash for newHash and ends every session issued before
 // the change, in one statement. It reports false, changing nothing, when the
 // hash is no longer oldHash, so a confirmation only replaces the password it checked.

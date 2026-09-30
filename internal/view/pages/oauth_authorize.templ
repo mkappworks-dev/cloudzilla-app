@@ -46,9 +46,9 @@ templ OAuthAuthorize(data view.OAuthAuthorizeData) {
 					<input type="hidden" name="redirect_uri" value={ data.RedirectURI }/>
 					<input type="hidden" name="scope" value={ strings.Join(data.Scopes, " ") }/>
 					<input type="hidden" name="state" value={ data.State }/>
-					if data.HasPassword || data.TOTPEnabled {
+					if data.Confirm.Any() {
 						<div class="flex flex-wrap items-end gap-3">
-							@settingsConfirmFields("consent", data.HasPassword, data.TOTPEnabled, true)
+							@components.ConfirmFields("consent", data.Confirm, true)
 						</div>
 					}
 					<div class="flex items-center gap-2">

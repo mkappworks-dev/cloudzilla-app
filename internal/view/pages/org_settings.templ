@@ -401,7 +401,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 		@orgInviteMemberDialog(data.Org.Name, data.Confirm)
 		@orgTransferDialog(data.Org.Name, data.Confirm)
 		if data.RepoCount == 0 {
-			@orgDeleteDialog(data.Org.Name, data.MemberCount)
+			@orgDeleteDialog(data.Org.Name, data.MemberCount, data.Confirm)
 		}
 	}
 }
@@ -523,11 +523,11 @@ templ orgTransferDialog(orgName string, confirm components.ConfirmFactors) {
 	}
 }
 
-templ orgDeleteDialog(orgName string, memberCount int) {
+templ orgDeleteDialog(orgName string, memberCount int, confirm components.ConfirmFactors) {
 	@components.Dialog("delete-org-dialog") {
 		<form
-			method="POST"
-			action={ templ.SafeURL("/api/orgs/" + orgName + "/delete") }
+			hx-post={ "/api/orgs/" + orgName + "/delete" }
+			hx-swap="none"
 			data-toast="Organization deleted"
 		>
 			@components.DialogHeader() {
@@ -546,6 +546,7 @@ templ orgDeleteDialog(orgName string, memberCount int) {
 			}
 			@components.DialogBody() {
 				<div class="space-y-4">
+					<div id="delete-org-form-error"></div>
 					<div>
 						<label for="delete-confirm" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
 							Type <span class="font-mono text-foreground">{ orgName }</span> to confirm
@@ -564,6 +565,7 @@ templ orgDeleteDialog(orgName string, memberCount int) {
 						<input type="checkbox" required class="mt-0.5"/>
 						<span>I understand this is permanent and cannot be recovered, even by support.</span>
 					</label>
+					@components.ConfirmFields("delete-org", confirm, true)
 				</div>
 			}
 			@components.DialogFooter() {

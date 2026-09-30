@@ -21,8 +21,9 @@ type createWebhookRequest struct {
 	URL      string `json:"url"`
 	Secret   string `json:"secret"`
 	Events   string `json:"events"`
-	Password string `json:"password"`
-	Code     string `json:"code"`
+	Password  string `json:"password"`
+	Code      string `json:"code"`
+	EmailCode string `json:"email_code"`
 }
 
 func (h *Handler) ListWebhooks(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +86,7 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		url = req.URL
 		secret = req.Secret
 		events = req.Events
-		confirm = service.Confirmation{Password: req.Password, Code: req.Code}
+		confirm = service.Confirmation{Password: req.Password, Code: req.Code, EmailCode: req.EmailCode}
 	}
 
 	if url == "" {
@@ -96,7 +97,7 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "url is required")
 		return
 	}
-	if !h.confirmAction(w, r, claims.UserID, confirm, webhookFormError) {
+	if !h.confirmGrant(w, r, claims.UserID, confirm, webhookFormError) {
 		return
 	}
 

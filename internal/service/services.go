@@ -75,6 +75,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	userSvc := NewUserService(stores.User, cfg.Auth).WithRepoService(repoSvc).WithNoreplyHostFrom(cfg.Server.BaseURL).
 		WithEmailVerification(emailVerificationSvc).WithSecurityNotices(emailSvc)
 	totpSvc := NewTOTPService(stores.User).WithSecurityNotices(emailSvc)
+	reauthSvc := NewReauthService(stores.User, totpSvc).WithEmailCodes(emailSvc)
+	userSvc.WithReauth(reauthSvc)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
@@ -110,7 +112,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Reaction:         NewReactionService(stores.Reaction),
 		TOTP:             totpSvc,
 		OAuthLink:        NewOAuthLinkService(stores.User, stores.OAuthState, totpSvc, emailSvc),
-		Reauth:           NewReauthService(stores.User, totpSvc),
+		Reauth:           reauthSvc,
 		AuditLog:         NewAuditService(stores.AuditLog),
 		Project:          NewProjectService(stores.Project, repoSvc),
 		SSO:              NewSSOService(stores.SSO, stores.User, cfg.Auth, siteSettingSvc),

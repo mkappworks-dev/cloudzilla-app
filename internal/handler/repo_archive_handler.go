@@ -71,12 +71,24 @@ func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if !h.Services.Repo.IsOwner(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "only the repo owner can delete this repository")
+		return
+	}
+	if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), "") {
+		return
+	}
 	if err := h.Services.Repo.Delete(r.Context(), repo.ID, claims.UserID); err != nil {
 		if errors.Is(err, service.ErrForbidden) {
 			writeError(w, http.StatusForbidden, "only the repo owner can delete this repository")
 		} else {
 			writeError(w, http.StatusInternalServerError, "failed to delete repository")
 		}
+		return
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", "/"+owner)
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	http.Redirect(w, r, "/"+owner, http.StatusSeeOther)

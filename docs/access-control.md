@@ -49,7 +49,7 @@ Google and SAML users get the prompt too, even when the IdP enforces its own MFA
 
 ### Confirming sensitive actions
 
-A session is a bearer credential, so anything that adds a way in that outlives it needs the account's own factors as well, whether the way in is for the session's holder or for someone they name. `ReauthService.Confirm` checks a `password` form field when the account has a password, and a `code` field (the TOTP code) when 2FA is on. It applies to:
+A session is a bearer credential, so anything that adds a way in that outlives it needs the account's own factors as well, whether the way in is for the session's holder or for someone they name. `ReauthService.Confirm` checks a `password` form field when the account has a password, and a `code` field (the TOTP code) when 2FA is on. An account with neither confirms with `email_code`, a code emailed to it. It applies to:
 
 - changing the email address on `/settings/profile` (other profile fields save without it);
 - changing the password, and turning 2FA on or off (see [Two-factor authentication](#two-factor-authentication) and [Changing the password](#changing-the-password));
@@ -59,11 +59,16 @@ A session is a bearer credential, so anything that adds a way in that outlives i
 - connecting or disconnecting Google, which also refuse accounts without a password (`ConfirmWithPassword`);
 - adding a repository collaborator, deploy key or webhook (form fields, or `password` and `code` in the webhook JSON body);
 - transferring a repository or an organization;
-- making someone an organization owner, by adding them as one or promoting a member. Adding a plain member and demoting an owner need nothing, since members get no repository until they're added to it. The owner check runs first, so a non-owner's request doesn't spend an attempt.
+- making someone an organization owner, by adding them as one or promoting a member. Adding a plain member and demoting an owner need nothing, since members get no repository until they're added to it. The owner check runs first, so a non-owner's request doesn't spend an attempt;
+- making a private repository public (making one private needs nothing);
+- deleting a repository, an organization or the account;
+- superadmin changes: site settings, invitations, manual email verification, and the LDAP and SAML configuration.
 
-Editing a webhook's events needs nothing: it can't point the webhook somewhere new. Not confirmed yet: making a repository public, deleting a repository, organization or account, and superadmin settings.
+Editing a webhook's events needs nothing: it can't point the webhook somewhere new.
 
-An account with neither a password nor TOTP has nothing to confirm with, so those actions pass for it; the notices for 2FA and password changes are its only warning. Accounts without a password are also kept out of Google linking by email (see [Google OAuth Sign-in](#google-oauth-sign-in)).
+**Accounts without a password or 2FA** (created by Google, LDAP or SAML sign-up) confirm with a code emailed to their address. The confirm fields offer **Email me a code**, which posts to `POST /settings/confirm-code`. The code is six digits, lasts 10 minutes and works once; only its bcrypt hash is stored (`users.reauth_code_*`, migration 094). One code goes out a minute, and a new one replaces the last. Wrong codes count against the same failure limit. A stolen session can ask for a code but can't read the mailbox, and the email tells the owner someone is trying to change their account. Without SMTP such an account has nothing to confirm with, so its sensitive actions are refused (`reauth_unavailable`) rather than let through. Accounts without a password are also kept out of Google linking by email (see [Google OAuth Sign-in](#google-oauth-sign-in)).
+
+**Personal access tokens** skip the confirmation for administering repositories and organizations: collaborators, deploy keys, webhooks, org owners, transfers, visibility and deletion (`confirmGrant`). A token needed the password to create, so it already stands for a confirmation, and scripts can't answer a prompt. Changes to the account itself still need the factors with a token: email, password, 2FA, SSH keys, tokens, OAuth approvals, Google, account deletion and superadmin changes. Only a token authenticated as a PAT (`Claims.PAT`) counts; a session JWT sent as a bearer token is still a session. OAuth-app tokens can't reach these routes at all ([OAuth App Scopes](#oauth-app-scopes)).
 
 A wrong password or code gets `403`, or the form's own error: a `profile_error=reauth_failed` redirect on settings, or the error slot of a modal dialog (`HX-Retarget`), where a toast would sit behind the backdrop. Five failures within 15 minutes, counted per user across all of these actions and the `/auth/2fa` code page, block further attempts for the rest of the window with `429` (`reauth_throttled`). This stops a stolen session from guessing the password. The counts live on the user row (`reauth_failures`, `reauth_window_start`, migration 093), so every instance shares them. Each attempt is claimed with one conditional `UPDATE` before the password is checked, so concurrent guesses can't get past the limit, and a success gives its attempt back. The window runs from its first failure and doesn't slide.
 

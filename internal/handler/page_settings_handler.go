@@ -79,6 +79,7 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		GoogleConfigured:    h.Cfg.OAuth.GoogleClientID != "",
 		GoogleConnected:     user.OAuthProvider == googleProvider,
 		HasPassword:         user.PasswordHash != "",
+		Confirm:             h.confirmFactors(ctx, claims.UserID),
 
 		ConnectedAccountsNotice: h.takeSettingsFlash(w, r, settingsNoticeCookieName),
 	}
@@ -222,6 +223,10 @@ func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.TrimSpace(r.FormValue("confirm_username")) != claims.Username {
 		http.Redirect(w, r, "/settings?profile_error=delete_confirm_mismatch#delete", http.StatusSeeOther)
+		return
+	}
+	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
+		redirectReauthRefusal(w, r, claims.UserID, err, "delete")
 		return
 	}
 	if err := h.Services.User.DeleteUser(r.Context(), claims.UserID); err != nil {

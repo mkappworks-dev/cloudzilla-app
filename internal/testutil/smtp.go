@@ -106,6 +106,18 @@ func (m Mail) VerificationToken(t *testing.T) string {
 	return match[1]
 }
 
+var confirmCodeRe = regexp.MustCompile(`<strong>(\d{6})</strong>`)
+
+// ConfirmationCode returns the code in an emailed confirmation code.
+func (m Mail) ConfirmationCode(t *testing.T) string {
+	t.Helper()
+	match := confirmCodeRe.FindStringSubmatch(m.Data)
+	if match == nil {
+		t.Fatalf("no confirmation code in email: %.500s", m.Data)
+	}
+	return match[1]
+}
+
 // FakeSMTP starts an SMTP server on 127.0.0.1 that accepts every message, and
 // returns the config that sends to it. net/smtp sends PLAIN credentials
 // without TLS only to localhost, which this satisfies.

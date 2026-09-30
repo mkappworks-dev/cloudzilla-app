@@ -373,8 +373,18 @@ func (h *Handler) UpdateRepoVisibility(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	if err := h.Services.Repo.UpdateVisibility(r.Context(), repo.ID, claims.UserID,
-		r.FormValue("private") == "true"); err != nil {
+	private := r.FormValue("private") == "true"
+	// Making a private repository public gives its code to everyone, for good.
+	if repo.Private && !private {
+		if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
+			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
+			return
+		}
+		if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), makePublicFormError) {
+			return
+		}
+	}
+	if err := h.Services.Repo.UpdateVisibility(r.Context(), repo.ID, claims.UserID, private); err != nil {
 		if errors.Is(err, service.ErrForbidden) {
 			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
 			return
@@ -383,8 +393,16 @@ func (h *Handler) UpdateRepoVisibility(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to update settings", http.StatusInternalServerError)
 		return
 	}
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", "/"+owner+"/"+repoName+"/settings")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	http.Redirect(w, r, "/"+owner+"/"+repoName+"/settings", http.StatusSeeOther)
 }
+
+const makePublicFormError = "#make-public-form-error"
+
 
 // PageRefs renders the branches and tags overview page.
 func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {

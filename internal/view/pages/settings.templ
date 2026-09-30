@@ -117,10 +117,10 @@ templ settingsProfileSection(data view.SettingsData) {
 				<label for="acct-email" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Email</label>
 				<input id="acct-email" name="email" type="email" value={ data.User.Email } x-model="email" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"/>
 				<p class="mt-1 text-[11.5px] text-muted-foreground">Used for sign-in and notifications. A new address has to be verified again.</p>
-				if data.HasPassword || data.TOTPEnabled {
+				if data.Confirm.Any() {
 					<div x-show="email !== original" x-cloak class="mt-3 flex flex-wrap items-end gap-3">
-						@settingsConfirmFields("email-change", data.HasPassword, data.TOTPEnabled, false)
-						<p class="basis-full text-[11.5px] text-muted-foreground">Changing your email needs your password{ confirmCodeSuffix(data.TOTPEnabled) }.</p>
+						@components.ConfirmFields("email-change", data.Confirm, false)
+						<p class="basis-full text-[11.5px] text-muted-foreground">Changing your email needs { data.Confirm.Needs() }.</p>
 					</div>
 				}
 			</div>
@@ -199,7 +199,7 @@ templ settingsSecuritySection(data view.SettingsData) {
 				</div>
 				if data.TOTPEnabled {
 					<form method="POST" action="/api/user/totp/disable" data-toast="Two-factor authentication disabled" class="mt-4 flex flex-wrap items-end gap-3">
-						@settingsConfirmFields("totp-disable", data.HasPassword, false, true)
+						@components.ConfirmFields("totp-disable", components.ConfirmFactors{Password: data.Confirm.Password}, true)
 						<div>
 							<label for="totp-disable-code" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Verification code</label>
 							<input id="totp-disable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:border-ring"/>
@@ -219,7 +219,7 @@ templ settingsSecuritySection(data view.SettingsData) {
 						</div>
 						<form method="POST" action="/api/user/totp/enable" data-toast="Two-factor authentication enabled" class="flex flex-wrap items-end gap-3">
 							<input type="hidden" name="secret" value={ data.TOTPPendingSecret }/>
-							@settingsConfirmFields("totp-enable", data.HasPassword, false, true)
+							@components.ConfirmFields("totp-enable", data.Confirm, true)
 							<div>
 								<label for="totp-enable-code" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Enter the 6-digit code from your app</label>
 								<input id="totp-enable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:border-ring"/>
@@ -254,7 +254,7 @@ templ settingsChangePasswordDialog(withCode bool) {
 			}
 			@components.DialogBody() {
 				<div class="space-y-4">
-					@settingsConfirmFields("password-change", true, withCode, true)
+					@components.ConfirmFields("password-change", components.ConfirmFactors{Password: true, Code: withCode}, true)
 					<div>
 						<label for="new-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">New password</label>
 						<input id="new-password" name="new_password" type="password" required minlength="8" autocomplete="new-password" aria-describedby="new-password-help" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
@@ -323,14 +323,9 @@ templ settingsConnectedAccounts(data view.SettingsData) {
 	</div>
 }
 
-// settingsConfirmFields asks for the factors the account has.
-// required is false where the fields only matter for some submissions.
-templ settingsConfirmFields(idPrefix string, hasPassword, withCode, required bool) {
-	@components.ConfirmFields(idPrefix, components.ConfirmFactors{Password: hasPassword, Code: withCode}, required)
-}
-
+// settingsReauthFields asks for the password, which the Google connect flow requires.
 templ settingsReauthFields(idPrefix string, withCode bool) {
-	@settingsConfirmFields(idPrefix, true, withCode, true)
+	@components.ConfirmFields(idPrefix, components.ConfirmFactors{Password: true, Code: withCode}, true)
 }
 
 templ settingsSSHKeysSection(data view.SettingsData) {
@@ -412,7 +407,7 @@ templ settingsAddSSHKeyDialog(data view.SettingsData) {
 						<textarea id="public-key" name="public_key" rows="5" required placeholder="ssh-ed25519 AAAA…" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-none focus:border-ring"></textarea>
 					</div>
 					<div class="flex flex-wrap items-end gap-3">
-						@settingsConfirmFields("ssh-key", data.HasPassword, data.TOTPEnabled, true)
+						@components.ConfirmFields("ssh-key", data.Confirm, true)
 					</div>
 				</div>
 			}
@@ -528,7 +523,7 @@ templ settingsGenerateTokenDialog(data view.SettingsData) {
 						<p class="text-[11px] text-muted-foreground mt-1">Leave blank for a non-expiring token.</p>
 					</div>
 					<div class="flex flex-wrap items-end gap-3">
-						@settingsConfirmFields("token", data.HasPassword, data.TOTPEnabled, true)
+						@components.ConfirmFields("token", data.Confirm, true)
 					</div>
 				</div>
 			}
@@ -838,9 +833,10 @@ templ settingsDangerSection(data view.SettingsData) {
 				<form
 					method="POST"
 					action="/settings/delete-account"
-					class="shrink-0 flex items-center gap-2"
+					class="shrink-0 flex flex-wrap items-end gap-2"
 					onsubmit={ confirmDeleteAccount(data.User.Username) }
 				>
+					@components.ConfirmFields("delete-account", data.Confirm, true)
 					<input
 						type="text"
 						name="confirm_username"

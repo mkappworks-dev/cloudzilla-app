@@ -19,6 +19,10 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 When the `oauth_link_state` cookie matches `state`, `/auth/google/callback` finishes [connecting Google](#connected-accounts) to the signed-in account instead: it never signs in, and redirects to `/settings#connected-accounts`.
 
+## Confirmed actions
+
+Actions that give lasting access take the account's `password`, plus `code` (the TOTP code) when 2FA is on, as form fields or in the JSON body. An account with neither sends `email_code` from `POST /settings/confirm-code`. A wrong confirmation gets 403, and five wrong ones in 15 minutes get 429. Requests authenticated with a personal access token skip it for repository and organization administration, not for changes to the account. The full list is in [access control](./access-control.md#confirming-sensitive-actions).
+
 ## Two-Factor Authentication (TOTP)
 
 | Method | Path                     | Auth     | Description                                      |
@@ -27,6 +31,7 @@ When the `oauth_link_state` cookie matches `state`, `/auth/google/callback` fini
 | POST   | `/auth/2fa/verify`       | --       | Verify TOTP code or backup code; five wrong ones in 15 minutes refuse even the right one for the rest of the window |
 | POST   | `/api/user/totp/enable`  | Required | Enable TOTP (`secret`, `code` from the new authenticator, and `password`); 303 to `/settings?profile_error=reauth_failed#security` on a wrong password |
 | POST   | `/api/user/totp/disable` | Required | Disable TOTP (`code` and `password`)             |
+| POST   | `/settings/confirm-code` | Required | Email a one-time `email_code` to an account with no password or 2FA ([confirming actions](./access-control.md#confirming-sensitive-actions)); one a minute (429), 409 for accounts that confirm another way. HTMX gets the status text with a 200 |
 | POST   | `/settings/password`     | Required | Change the password (`password`, `code` with 2FA, `new_password`, `new_password_confirm`); ends every session and sets a fresh cookie; 303 to `/settings?password_changed=1#password`, or `?password_error=<code>#password` |
 | POST   | `/settings/sessions/revoke` | Required | Sign out every other session: ends all session JWTs issued before and sets a fresh cookie for this browser; 303 to `/settings?sessions_revoked=1#sessions` |
 
@@ -373,7 +378,7 @@ See [access-control.md](access-control.md) for the full permission model. `CanMa
 | POST   | `/api/orgs/:org/transfer`               | Required | Transfer org ownership (`new_owner`, optional `confirm_name`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled); owner only; demotes self to member; redirects to `/:org` |
 | POST   | `/api/orgs/:org/profile`                | Required | Update profile (`display_name`, `description`, `website`, `location`, `contact_email` form fields); owner only                      |
 | POST   | `/api/orgs/:org/repo-defaults`          | Required | Update repo defaults (`default_repo_visibility`, `default_branch_name` form fields); owner only                                     |
-| POST   | `/api/orgs/:org/delete`                 | Required | Delete the organization (`confirm_name` form field); owner only; 422 while the org still owns repositories                          |
+| POST   | `/api/orgs/:org/delete`                 | Required | Delete the organization (`confirm_name`, plus `password` and, with 2FA, `code`); owner only; 422 while the org still owns repositories |
 
 Add, remove, and role-change requests sent with `HX-Request: true` respond with the refreshed members-list fragment.
 
@@ -445,10 +450,10 @@ A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` w
 | Method | Path                         | Auth       | Description                                               |
 | ------ | ---------------------------- | ---------- | --------------------------------------------------------- |
 | GET    | `/admin/settings`            | Superadmin | Admin panel: instance settings + invitation management    |
-| POST   | `/api/admin/settings`        | Superadmin | Toggle a setting (`key`, `value` form fields; HTMX-aware) |
-| POST   | `/api/admin/invitations`     | Superadmin | Create invitation (`email` form field; HTMX-aware)        |
+| POST   | `/api/admin/settings`        | Superadmin | Toggle a setting (`key`, `value`, plus `password` and, with 2FA, `code`; HTMX-aware) |
+| POST   | `/api/admin/invitations`     | Superadmin | Create invitation (`email`, plus `password` and, with 2FA, `code`; HTMX-aware)        |
 | DELETE | `/api/admin/invitations/:id` | Superadmin | Delete an invitation (HTMX-aware)                         |
-| POST   | `/api/admin/users/verify-email` | Superadmin | Mark a user's email verified (`username`, `email` form fields; `email` must be their current address, else 404; 400 when either is missing). HTMX: 204, form: 303 to `/admin/settings`; audit-logged |
+| POST   | `/api/admin/users/verify-email` | Superadmin | Mark a user's email verified (`username`, `email`, plus `password` and, with 2FA, `code`; `email` must be their current address, else 404; 400 when either is missing). HTMX: 204, form: 303 to `/admin/settings`; audit-logged |
 
 ## Setup & Invitations
 

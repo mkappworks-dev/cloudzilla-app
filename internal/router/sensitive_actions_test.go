@@ -327,6 +327,25 @@ func TestAccessGrants_NeedTheAccountsPassword(t *testing.T) {
 			orgID, org := newOrg(t, a)
 			return dialog(a, "/api/orgs/"+org+"/transfer", url.Values{"new_owner": {grantee}, "confirm_name": {org}}), isOrgOwner(orgID)
 		}},
+		{"making a repo public", func(t *testing.T, a account) (func(string) *httptest.ResponseRecorder, func() int) {
+			repoID, base := newRepo(t, a)
+			return form(a, strings.TrimPrefix(base, "/api/repos")+"/settings/visibility", url.Values{"private": {"false"}}),
+				func() int {
+					return countRows(t, db, `SELECT COUNT(*) FROM repositories WHERE id = $1 AND NOT private`, repoID)
+				}
+		}},
+		{"deleting a repo", func(t *testing.T, a account) (func(string) *httptest.ResponseRecorder, func() int) {
+			repoID, base := newRepo(t, a)
+			return form(a, base+"/delete", url.Values{}),
+				func() int {
+					return countRows(t, db, `SELECT COUNT(*) FROM repositories WHERE id = $1 AND deleted_at IS NOT NULL`, repoID)
+				}
+		}},
+		{"deleting an org", func(t *testing.T, a account) (func(string) *httptest.ResponseRecorder, func() int) {
+			orgID, org := newOrg(t, a)
+			return dialog(a, "/api/orgs/"+org+"/delete", url.Values{"confirm_name": {org}}),
+				func() int { return countRows(t, db, `SELECT (1 - COUNT(*))::int FROM organizations WHERE id = $1`, orgID) }
+		}},
 		{"repo transfer", func(t *testing.T, a account) (func(string) *httptest.ResponseRecorder, func() int) {
 			repoID, base := newRepo(t, a)
 			return form(a, base+"/transfer", url.Values{"new_owner": {grantee}}),
@@ -528,4 +547,177 @@ func httpBody(s string) io.ReadCloser { return io.NopCloser(strings.NewReader(s)
 func jsonString(s string) string {
 	b, _ := json.Marshal(s)
 	return string(b)
+}
+
+// A personal access token was created with the password, so a script using one
+// administers repositories and orgs without a prompt. It still can't add a way
+// into the account itself.
+func TestPAT_SkipsConfirmationOnlyForRepoAndOrgAdministration(t *testing.T) {
+	h, svc, db := newVerificationRouter(t, config.SMTPConfig{})
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	userID, _ := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	owner := "testpw_" + suffix
+	granteeSuffix := testutil.UniqueSuffix(t)
+	testutil.SeedUser(t, db, granteeSuffix)
+	pat, _, err := svc.AccessToken.Generate(ctx, userID, "ci", nil, nil)
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	repo, err := svc.Repo.Create(ctx, userID, owner, "pat_"+suffix, "", true, service.RepoInitOptions{})
+	if err != nil {
+		t.Fatalf("create repo: %v", err)
+	}
+	base := "/api/repos/" + owner + "/" + repo.Name
+	post := func(token, path string, form url.Values) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Authorization", "Bearer "+token)
+		return serve(h, req)
+	}
+
+	if rr := post(pat, base+"/collaborators", url.Values{"username": {"testuser_" + granteeSuffix}, "role": {"reader"}}); rr.Code >= 400 {
+		t.Errorf("collaborator with a PAT: got %d %s", rr.Code, rr.Body)
+	}
+	if rr := post(pat, base+"/keys", url.Values{"title": {"ci"}, "public_key": {sshPublicKey(t)}}); rr.Code >= 400 {
+		t.Errorf("deploy key with a PAT: got %d %s", rr.Code, rr.Body)
+	}
+	if rr := post(pat, "/api/user/keys", url.Values{"title": {"laptop"}, "public_key": {sshPublicKey(t)}}); rr.Code != http.StatusForbidden {
+		t.Errorf("account SSH key with a PAT and no password: got %d, want 403", rr.Code)
+	}
+	session := makeJWT(t, userID, owner)
+	if rr := post(session, base+"/collaborators", url.Values{"username": {"testuser_" + granteeSuffix}, "role": {"writer"}}); rr.Code != http.StatusForbidden {
+		t.Errorf("a session JWT sent as a bearer token skipped the confirmation: got %d", rr.Code)
+	}
+}
+
+// An account with no password or 2FA confirms with a code mailed to it; with
+// no outgoing email it has no way to, and is refused.
+func TestEmailCode_ConfirmsForAccountsWithoutAPasswordOr2FA(t *testing.T) {
+	smtp, box := testutil.FakeSMTP(t)
+	h, _, db := newVerificationRouter(t, smtp)
+	withoutSMTP, _, _ := newVerificationRouter(t, config.SMTPConfig{})
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedPasswordlessUser(t, db, suffix, "g_route_"+suffix)
+	session := makeJWT(t, userID, "testnopw_"+suffix)
+	addKey := func(h http.Handler, code string) *httptest.ResponseRecorder {
+		return serve(h, browserRequest(http.MethodPost, "/api/user/keys", session, url.Values{
+			"title": {"laptop"}, "public_key": {sshPublicKey(t)}, "email_code": {code},
+		}))
+	}
+
+	if rr := addKey(withoutSMTP, ""); rr.Code != http.StatusForbidden || !strings.Contains(rr.Body.String(), "no password, two-factor app or email") {
+		t.Errorf("without email: got %d %s, want the no-way-to-confirm refusal", rr.Code, rr.Body)
+	}
+	if rr := addKey(h, ""); rr.Code != http.StatusForbidden {
+		t.Fatalf("no code: got %d, want 403", rr.Code)
+	}
+	rr := serve(h, htmxRequest(browserRequest(http.MethodPost, "/settings/confirm-code", session, url.Values{})))
+	if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), "Code sent") {
+		t.Fatalf("send code: got %d %s", rr.Code, rr.Body)
+	}
+	code := box.NextTo(t, "testnopw_"+suffix+"@test.invalid").ConfirmationCode(t)
+	if rr := addKey(h, code); rr.Code >= 400 {
+		t.Fatalf("with the emailed code: got %d %s", rr.Code, rr.Body)
+	}
+	if rr := addKey(h, code); rr.Code != http.StatusForbidden {
+		t.Errorf("the same code again: got %d, want 403", rr.Code)
+	}
+	if n := countRows(t, db, `SELECT COUNT(*) FROM ssh_keys WHERE user_id = $1`, userID); n != 1 {
+		t.Errorf("%d keys added, want 1", n)
+	}
+
+	// Forms read the code through confirmationFrom, not a JSON body.
+	testutil.Exec(t, db, `UPDATE users SET reauth_code_sent_at = NULL WHERE id = $1`, userID)
+	serve(h, htmxRequest(browserRequest(http.MethodPost, "/settings/confirm-code", session, url.Values{})))
+	code = box.NextTo(t, "testnopw_"+suffix+"@test.invalid").ConfirmationCode(t)
+	rr = serve(h, browserRequest(http.MethodPost, "/api/user/tokens", session, url.Values{"name": {"ci"}, "email_code": {code}}))
+	if rr.Header().Get("Location") != "/settings#tokens" {
+		t.Errorf("token with the emailed code: got %d to %q", rr.Code, rr.Header().Get("Location"))
+	}
+}
+
+// A stolen superadmin session could otherwise open the instance up to its
+// holder: invite them, vouch for an address, or point sign-in at their own IdP.
+func TestAdminActions_NeedThePassword(t *testing.T) {
+	h, _, db := newVerificationRouter(t, config.SMTPConfig{})
+	suffix := testutil.UniqueSuffix(t)
+	adminID := testutil.SeedSuperadmin(t, db, suffix)
+	testutil.SetPassword(t, db, adminID, "password1")
+	admin := superadminJWT(t, adminID, "testadmin_"+suffix)
+	targetID := testutil.SeedUser(t, db, suffix+"_t")
+	invitee := "invitee_" + suffix + "@test.invalid"
+	post := func(path string, form url.Values) *httptest.ResponseRecorder {
+		return serve(h, htmxRequest(browserRequest(http.MethodPost, path, admin, form)))
+	}
+	// Other tests share the instance's settings, so compare them rather than assume them.
+	snapshot := func() string {
+		var s string
+		if err := db.QueryRowContext(context.Background(),
+			`SELECT COALESCE((SELECT string_agg(provider || config::text || enabled::text, ',' ORDER BY provider) FROM sso_configs), '')
+			     || COALESCE((SELECT value FROM site_settings WHERE key = 'allow_registration'), '')`).Scan(&s); err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	settingsBefore := snapshot()
+	var registration string
+	if err := db.QueryRowContext(context.Background(), `SELECT value FROM site_settings WHERE key = 'allow_registration'`).Scan(&registration); err != nil {
+		t.Fatal(err)
+	}
+	// A refusal that doesn't happen would leave the shared setting changed for other tests.
+	t.Cleanup(func() {
+		testutil.Exec(t, db, `UPDATE site_settings SET value = $1 WHERE key = 'allow_registration'`, registration)
+	})
+	unchanged := func() bool {
+		return countRows(t, db, `SELECT COUNT(*) FROM invitations WHERE email = $1`, invitee) == 0 &&
+			countRows(t, db, `SELECT COUNT(*) FROM users WHERE id = $1 AND email_verified_at IS NOT NULL`, targetID) == 0 &&
+			snapshot() == settingsBefore
+	}
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM invitations WHERE email = $1`, invitee) })
+
+	for _, tt := range []struct {
+		name, path string
+		form       url.Values
+	}{
+		{"site setting", "/api/admin/settings", url.Values{"key": {"allow_registration"}, "value": {"flipped"}}},
+		{"invitation", "/api/admin/invitations", url.Values{"email": {invitee}}},
+		{"manual verification", "/api/admin/users/verify-email", url.Values{"username": {"testuser_" + suffix + "_t"}, "email": {"testuser_" + suffix + "_t@test.invalid"}}},
+		{"SSO", "/admin/sso", url.Values{"provider": {"ldap"}, "ldap_host": {"ldap.attacker-" + suffix + ".invalid"}, "ldap_port": {"389"}}},
+	} {
+		for _, password := range []string{"", "wrong"} {
+			if rr := post(tt.path, withPassword(tt.form, password)); !strings.Contains(rr.Body.String(), "was incorrect") {
+				t.Errorf("%s with password %q: got %d %.200s, want the refusal", tt.name, password, rr.Code, rr.Body)
+			}
+		}
+		// Stay under the attempt limit, so each case is refused for its own confirmation.
+		testutil.Exec(t, db, `UPDATE users SET reauth_failures = 0 WHERE id = $1`, adminID)
+	}
+	if !unchanged() {
+		t.Fatal("an unconfirmed admin request changed something")
+	}
+	if rr := post("/api/admin/invitations", withPassword(url.Values{"email": {invitee}}, "password1")); rr.Code != http.StatusOK {
+		t.Errorf("confirmed invitation: got %d %s", rr.Code, rr.Body)
+	}
+}
+
+func TestDeleteAccount_NeedsThePassword(t *testing.T) {
+	h, _, db := newVerificationRouter(t, config.SMTPConfig{})
+	suffix := testutil.UniqueSuffix(t)
+	userID, _ := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	session := makeJWT(t, userID, "testpw_"+suffix)
+	remove := func(password string) *httptest.ResponseRecorder {
+		return serve(h, browserRequest(http.MethodPost, "/settings/delete-account", session,
+			withPassword(url.Values{"confirm_username": {"testpw_" + suffix}}, password)))
+	}
+
+	if rr := remove("wrong"); rr.Header().Get("Location") != "/settings?profile_error=reauth_failed#delete" {
+		t.Fatalf("wrong password: redirected to %q", rr.Header().Get("Location"))
+	}
+	if countRows(t, db, `SELECT COUNT(*) FROM users WHERE id = $1`, userID) != 1 {
+		t.Fatal("an unconfirmed request deleted the account")
+	}
+	if rr := remove("password1"); rr.Header().Get("Location") != "/" {
+		t.Fatalf("confirmed: got %d to %q", rr.Code, rr.Header().Get("Location"))
+	}
 }

@@ -86,6 +86,7 @@ func TestScopeAllows(t *testing.T) {
 		{"admin verify email", "POST", "/api/admin/users/verify-email", []string{read, write, issues, pulls}, false},
 		{"sign out other sessions", "POST", "/settings/sessions/revoke", []string{read, write, issues, pulls}, false},
 		{"change password", "POST", "/settings/password", []string{read, write, issues, pulls}, false},
+		{"email a confirmation code", "POST", "/settings/confirm-code", []string{read, write, issues, pulls}, false},
 		{"turn on 2FA", "POST", "/api/user/totp/enable", []string{read, write, issues, pulls}, false},
 		{"turn off 2FA", "POST", "/api/user/totp/disable", []string{read, write, issues, pulls}, false},
 		{"add collaborator", "POST", "/api/repos/alice/proj/collaborators", []string{read, write, issues, pulls}, false},

@@ -13,13 +13,6 @@ var emailDigestLabels = map[string]string{
 	model.EmailDigestNever:     "Never",
 }
 
-func confirmCodeSuffix(withCode bool) string {
-	if withCode {
-		return " and a two-factor code"
-	}
-	return ""
-}
-
 // SettingsErrorMessage is shared with handlers that answer HTMX requests with the message itself.
 func SettingsErrorMessage(code string) string {
 	switch code {
@@ -47,6 +40,8 @@ func SettingsErrorMessage(code string) string {
 		return "Your password or two-factor code was incorrect. Nothing was changed."
 	case "reauth_throttled":
 		return "Too many incorrect passwords or codes. Try again in 15 minutes."
+	case "reauth_unavailable":
+		return "This account has no password, two-factor app or email to confirm it's you, so this can't be done. Ask your administrator to set up email."
 	case "reauth_error":
 		return "Couldn't check your password or code. Please try again."
 	case "password_mismatch":

@@ -91,6 +91,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Post("/settings/email/resend-verification", h.ResendVerificationEmail)
 	r.With(authMW).Post("/settings/sessions/revoke", h.RevokeSessions)
 	r.With(authMW).Post("/settings/password", h.ChangePassword)
+	r.With(authMW).Post("/settings/confirm-code", h.SendConfirmCode)
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
 	r.With(authMW).Post("/settings/delete-account", h.DeleteAccount)
 	r.With(authMW).Post("/settings/connected-accounts/google", h.ConnectGoogle)

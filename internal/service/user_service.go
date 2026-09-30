@@ -77,6 +77,13 @@ func (s *UserService) WithNoreplyHostFrom(baseURL string) *UserService {
 	return s
 }
 
+// WithReauth confirms email changes with r, which can email a code to accounts
+// with no password or 2FA.
+func (s *UserService) WithReauth(r *ReauthService) *UserService {
+	s.reauth = r
+	return s
+}
+
 // Without it, a password change mails no notice.
 func (s *UserService) WithSecurityNotices(e *EmailService) *UserService {
 	s.notices = e

@@ -52,7 +52,7 @@ func (h *Handler) EnableTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// A code enrolled from a stolen session would lock the owner out at their next sign-in.
-	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, service.Confirmation{Password: r.FormValue("password")}); err != nil {
+	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, service.Confirmation{Password: r.FormValue("password"), EmailCode: r.FormValue("email_code")}); err != nil {
 		redirectReauthRefusal(w, r, claims.UserID, err, "security")
 		return
 	}

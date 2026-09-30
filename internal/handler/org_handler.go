@@ -24,13 +24,15 @@ type createOrgRequest struct {
 type addOrgMemberRequest struct {
 	Username string `json:"username"`
 	Role     string `json:"role"`
-	Password string `json:"password"`
-	Code     string `json:"code"`
+	Password  string `json:"password"`
+	Code      string `json:"code"`
+	EmailCode string `json:"email_code"`
 }
 
 const (
 	inviteMemberFormError = "#invite-member-form-error"
 	transferOrgFormError  = "#transfer-org-form-error"
+	deleteOrgFormError    = "#delete-org-form-error"
 )
 
 // orgPromoteFormError is the error slot of the dialog that makes userID an owner.
@@ -46,7 +48,7 @@ func (h *Handler) confirmOwnerGrant(w http.ResponseWriter, r *http.Request, orgI
 		writeError(w, http.StatusForbidden, "only org owners can do this")
 		return false
 	}
-	return h.confirmAction(w, r, userID, c, slot)
+	return h.confirmGrant(w, r, userID, c, slot)
 }
 
 type createOrgRepoRequest struct {
@@ -130,6 +132,7 @@ func (h *Handler) AddOrgMember(w http.ResponseWriter, r *http.Request) {
 		req.Role = r.FormValue("role")
 		req.Password = r.FormValue("password")
 		req.Code = r.FormValue("code")
+		req.EmailCode = r.FormValue("email_code")
 	} else {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
@@ -157,7 +160,7 @@ func (h *Handler) AddOrgMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if model.OrgRole(req.Role) == model.OrgRoleOwner &&
-		!h.confirmOwnerGrant(w, r, org.ID, claims.UserID, service.Confirmation{Password: req.Password, Code: req.Code}, inviteMemberFormError) {
+		!h.confirmOwnerGrant(w, r, org.ID, claims.UserID, service.Confirmation{Password: req.Password, Code: req.Code, EmailCode: req.EmailCode}, inviteMemberFormError) {
 		return
 	}
 
@@ -355,13 +358,24 @@ func (h *Handler) DeleteOrg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	htmx := r.Header.Get("HX-Request") == "true"
+	fail := func(status int, msg string) {
+		if htmx {
+			renderFormError(w, deleteOrgFormError, msg)
+			return
+		}
+		writeError(w, status, msg)
+	}
 	if r.FormValue("confirm_name") != org.Name {
-		writeError(w, http.StatusUnprocessableEntity, "confirmation name does not match")
+		fail(http.StatusUnprocessableEntity, "confirmation name does not match")
+		return
+	}
+	if !h.confirmOwnerGrant(w, r, org.ID, claims.UserID, confirmationFrom(r), deleteOrgFormError) {
 		return
 	}
 
 	if err := h.Services.Org.Delete(r.Context(), org.ID, claims.UserID); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		fail(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -374,6 +388,11 @@ func (h *Handler) DeleteOrg(w http.ResponseWriter, r *http.Request) {
 		org.ID, org.Name, nil,
 	)
 
+	if htmx {
+		w.Header().Set("HX-Redirect", "/organizations")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	http.Redirect(w, r, "/organizations", http.StatusSeeOther)
 }
 

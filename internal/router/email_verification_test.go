@@ -287,10 +287,12 @@ func TestAdminVerifyEmail_SuperadminOnly(t *testing.T) {
 	}
 
 	admin := superadminJWT(t, adminID, "testadmin_"+suffix)
-	stale := url.Values{"username": form["username"], "email": {"old_" + suffix + "@test.invalid"}}
+	testutil.SetPassword(t, db, adminID, "admin-password")
+	stale := url.Values{"username": form["username"], "email": {"old_" + suffix + "@test.invalid"}, "password": {"admin-password"}}
 	if rr := post(admin, stale); rr.Code != http.StatusNotFound {
 		t.Errorf("admin with a stale email: got %d, want 404", rr.Code)
 	}
+	form.Set("password", "admin-password")
 	if rr := post(admin, form); rr.Code != http.StatusNoContent {
 		t.Fatalf("admin: got %d, want 204: %s", rr.Code, rr.Body.String())
 	}

@@ -14,7 +14,7 @@ import (
 )
 
 func confirmationFrom(r *http.Request) service.Confirmation {
-	return service.Confirmation{Password: r.FormValue("password"), Code: r.FormValue("code")}
+	return service.Confirmation{Password: r.FormValue("password"), Code: r.FormValue("code"), EmailCode: r.FormValue("email_code")}
 }
 
 // reauthRefusal maps a failed confirmation to a status and a SettingsErrorMessage
@@ -27,6 +27,8 @@ func reauthRefusal(userID int64, err error) (int, string, bool) {
 	case errors.Is(err, service.ErrReauthThrottled):
 		slog.Warn("re-authentication throttled", "user_id", userID)
 		return http.StatusTooManyRequests, "reauth_throttled", true
+	case errors.Is(err, service.ErrReauthUnavailable):
+		return http.StatusForbidden, "reauth_unavailable", true
 	}
 	return 0, "", false
 }
@@ -34,12 +36,27 @@ func reauthRefusal(userID int64, err error) (int, string, bool) {
 // confirmFactors reports what userID confirms sensitive actions with. When that
 // can't be read the form asks for both, since a factor the account lacks is ignored.
 func (h *Handler) confirmFactors(ctx context.Context, userID int64) components.ConfirmFactors {
-	password, code, err := h.Services.Reauth.Factors(ctx, userID)
+	f, err := h.Services.Reauth.Factors(ctx, userID)
 	if err != nil {
 		slog.Error("load confirmation factors", "user_id", userID, "error", err)
 		return components.ConfirmFactors{Password: true, Code: true}
 	}
-	return components.ConfirmFactors{Password: password, Code: code}
+	return components.ConfirmFactors{
+		Password:    f.Password,
+		Code:        f.Code,
+		Email:       f.Email,
+		Unavailable: !f.Password && !f.Code && !f.Email,
+	}
+}
+
+// confirmGrant is confirmAction for administering a repository or organization.
+// A personal access token skips it: creating the token took the password, and
+// scripts can't answer a prompt. Tokens still confirm changes to the account itself.
+func (h *Handler) confirmGrant(w http.ResponseWriter, r *http.Request, userID int64, c service.Confirmation, slot string) bool {
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok && claims.PAT {
+		return true
+	}
+	return h.confirmAction(w, r, userID, c, slot)
 }
 
 // confirmAction checks c before a sensitive action and answers the request when
@@ -72,6 +89,40 @@ func redirectReauthRefusal(w http.ResponseWriter, r *http.Request, userID int64,
 		code = "reauth_error"
 	}
 	http.Redirect(w, r, "/settings?profile_error="+code+"#"+anchor, http.StatusSeeOther)
+}
+
+// SendConfirmCode handles POST /settings/confirm-code: it emails a one-time code
+// to an account with no password or 2FA, for the confirm fields on any form.
+func (h *Handler) SendConfirmCode(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	status, msg := http.StatusOK, "Code sent. It works once, for 10 minutes."
+	switch err := h.Services.Reauth.SendEmailCode(r.Context(), claims.UserID); {
+	case err == nil:
+	case errors.Is(err, service.ErrEmailCodeCooldown):
+		status, msg = http.StatusTooManyRequests, "A code was sent less than a minute ago. Check your email."
+	case errors.Is(err, service.ErrEmailCodeNeedless):
+		status, msg = http.StatusConflict, "This account confirms with its password or two-factor code."
+	case errors.Is(err, service.ErrReauthUnavailable):
+		status, msg = http.StatusConflict, pages.SettingsErrorMessage("reauth_unavailable")
+	default:
+		slog.Error("send confirmation code", "user_id", claims.UserID, "error", err)
+		status, msg = http.StatusInternalServerError, "Couldn't send the code. Please try again."
+	}
+	// The status line swaps in whatever happened, so htmx always gets a 200.
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = w.Write([]byte(msg))
+		return
+	}
+	if status != http.StatusOK {
+		writeError(w, status, msg)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "sent"})
 }
 
 // RevokeSessions handles POST /settings/sessions/revoke: it ends every session,

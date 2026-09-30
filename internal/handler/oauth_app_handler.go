@@ -58,8 +58,7 @@ func (h *Handler) renderConsent(w http.ResponseWriter, r *http.Request, userID i
 		return
 	}
 	data.BasePage = basePage(r, h.Services)
-	data.HasPassword = u.PasswordHash != ""
-	data.TOTPEnabled, _, _ = h.Services.TOTP.GetUserTOTPState(r.Context(), userID)
+	data.Confirm = h.confirmFactors(r.Context(), u.ID)
 	// A framed consent page could be clickjacked into a one-click grant.
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("Content-Security-Policy", "frame-ancestors 'none'")

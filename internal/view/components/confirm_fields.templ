@@ -1,14 +1,36 @@
 package components
 
 // ConfirmFactors says which factors a user confirms sensitive actions with;
-// see service.ReauthService.
+// see service.ReauthService. Email is a code emailed on request, for accounts
+// with no password or 2FA; Unavailable is an account with none of the three.
 type ConfirmFactors struct {
-	Password bool
-	Code     bool
+	Password    bool
+	Code        bool
+	Email       bool
+	Unavailable bool
 }
 
-// ConfirmFields asks for the factors in f. An account with neither gets no
-// fields, since it has nothing to confirm with.
+// Any reports whether a form has anything to show for f.
+func (f ConfirmFactors) Any() bool {
+	return f.Password || f.Code || f.Email || f.Unavailable
+}
+
+// Needs names what confirming takes, to finish a sentence like "This needs …".
+func (f ConfirmFactors) Needs() string {
+	switch {
+	case f.Password && f.Code:
+		return "your password and a two-factor code"
+	case f.Password:
+		return "your password"
+	case f.Code:
+		return "a two-factor code"
+	case f.Email:
+		return "a code emailed to your address"
+	}
+	return "a way to confirm it's you"
+}
+
+// ConfirmFields asks for the factors in f.
 templ ConfirmFields(idPrefix string, f ConfirmFactors, required bool) {
 	if f.Password {
 		<div class="min-w-0">
@@ -21,5 +43,25 @@ templ ConfirmFields(idPrefix string, f ConfirmFactors, required bool) {
 			<label for={ idPrefix + "-code" } class="block text-[12px] font-medium text-muted-foreground mb-1.5">Two-factor code</label>
 			<input id={ idPrefix + "-code" } name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required?={ required } autocomplete="one-time-code" placeholder="000000" class="h-9 w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 text-foreground focus:outline-none focus:border-ring"/>
 		</div>
+	}
+	if f.Email {
+		<div class="min-w-0">
+			<label for={ idPrefix + "-email-code" } class="block text-[12px] font-medium text-muted-foreground mb-1.5">Code from your email</label>
+			<div class="flex items-center gap-2">
+				<input id={ idPrefix + "-email-code" } name="email_code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required?={ required } autocomplete="one-time-code" placeholder="000000" aria-describedby={ idPrefix + "-email-code-status" } class="h-9 w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 text-foreground focus:outline-none focus:border-ring"/>
+				<button
+					type="button"
+					hx-post="/settings/confirm-code"
+					hx-params="none"
+					hx-target={ "#" + idPrefix + "-email-code-status" }
+					hx-swap="innerHTML"
+					class="h-9 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground shrink-0"
+				>Email me a code</button>
+			</div>
+			<p id={ idPrefix + "-email-code-status" } class="mt-1 text-[11.5px] text-muted-foreground" aria-live="polite"></p>
+		</div>
+	}
+	if f.Unavailable {
+		<p role="note" class="basis-full text-[12px] text-warning">This account has no password, two-factor app or email to confirm it's you, so this can't be done. Ask your administrator to set up email.</p>
 	}
 }

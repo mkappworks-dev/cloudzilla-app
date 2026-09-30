@@ -28,6 +28,9 @@ type Claims struct {
 	Scopes []string
 	// SessionVersion is the user's session version when a session JWT was issued.
 	SessionVersion int
+	// PAT marks a personal access token, which was itself created with the
+	// account's password, so repository and org administration skip confirmation.
+	PAT bool
 }
 
 // SessionVersions reports a user's current session version; bumping it ends
@@ -108,7 +111,7 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 				token, user, err := patValidator.Validate(r.Context(), tokenStr)
 				if err == nil {
 					touchLastUsed(patValidator, token.ID)
-					claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin}
+					claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin, PAT: true}
 					ctx := context.WithValue(r.Context(), claimsKey, claims)
 					next.ServeHTTP(w, r.WithContext(ctx))
 					return
@@ -157,7 +160,7 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 					pat, user, err := patValidator.Validate(r.Context(), tokenStr)
 					if err == nil {
 						touchLastUsed(patValidator, pat.ID)
-						claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin}
+						claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin, PAT: true}
 						ctx := context.WithValue(r.Context(), claimsKey, claims)
 						r = r.WithContext(ctx)
 						next.ServeHTTP(w, r)

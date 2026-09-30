@@ -25,6 +25,7 @@ func (h *Handler) AddSSHKey(w http.ResponseWriter, r *http.Request) {
 		PublicKey string `json:"public_key"`
 		Password  string `json:"password"`
 		Code      string `json:"code"`
+		EmailCode string `json:"email_code"`
 	}
 
 	// Handle form data from HTMX or JSON
@@ -37,6 +38,7 @@ func (h *Handler) AddSSHKey(w http.ResponseWriter, r *http.Request) {
 		req.PublicKey = r.FormValue("public_key")
 		req.Password = r.FormValue("password")
 		req.Code = r.FormValue("code")
+		req.EmailCode = r.FormValue("email_code")
 	} else {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
@@ -49,7 +51,7 @@ func (h *Handler) AddSSHKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.confirmAction(w, r, claims.UserID, service.Confirmation{Password: req.Password, Code: req.Code}, "") {
+	if !h.confirmAction(w, r, claims.UserID, service.Confirmation{Password: req.Password, Code: req.Code, EmailCode: req.EmailCode}, "") {
 		return
 	}
 

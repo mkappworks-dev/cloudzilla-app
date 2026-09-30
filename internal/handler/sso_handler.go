@@ -35,14 +35,45 @@ func (h *Handler) PageSSOSettings(w http.ResponseWriter, r *http.Request) {
 		BasePage:   basePage(r, h.Services),
 		LDAPConfig: ldapCfg,
 		SAMLConfig: samlCfg,
+		Confirm:    h.confirmFactors(r.Context(), claims.UserID),
 	}))
 }
 
-// SaveSSOConfig handles POST /admin/sso — superadmin only.
+// renderSSOSettings re-renders the settings page after a save, with the outcome.
+func (h *Handler) renderSSOSettings(w http.ResponseWriter, r *http.Request, userID int64, errMsg, success string) {
+	ldapCfg, ldapErr := h.Services.SSO.GetConfig(r.Context(), "ldap")
+	if ldapErr != nil {
+		slog.Error("failed to reload ldap sso config", "error", ldapErr)
+	}
+	samlCfg, samlErr := h.Services.SSO.GetConfig(r.Context(), "saml")
+	if samlErr != nil {
+		slog.Error("failed to reload saml sso config", "error", samlErr)
+	}
+	h.render(w, r, pages.SSOSettings(view.SSOSettingsData{
+		BasePage:   basePage(r, h.Services),
+		LDAPConfig: ldapCfg,
+		SAMLConfig: samlCfg,
+		Error:      errMsg,
+		Success:    success,
+		Confirm:    h.confirmFactors(r.Context(), userID),
+	}))
+}
+
+// SaveSSOConfig handles POST /admin/sso — superadmin only. A directory or IdP
+// the session's holder controls could sign in as its users, so it's confirmed.
 func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok || !claims.IsSuperadmin {
 		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
+		_, code, refused := reauthRefusal(claims.UserID, err)
+		if !refused {
+			slog.Error("confirm sso change", "user_id", claims.UserID, "error", err)
+			code = "reauth_error"
+		}
+		h.renderSSOSettings(w, r, claims.UserID, pages.SettingsErrorMessage(code), "")
 		return
 	}
 
@@ -70,56 +101,16 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 			model.SAMLKeyCert:        r.FormValue("saml_idp_cert"),
 		}
 	default:
-		ldapCfg, ldapErr := h.Services.SSO.GetConfig(r.Context(), "ldap")
-		if ldapErr != nil {
-			slog.Error("failed to reload ldap sso config", "error", ldapErr)
-		}
-		samlCfg, samlErr := h.Services.SSO.GetConfig(r.Context(), "saml")
-		if samlErr != nil {
-			slog.Error("failed to reload saml sso config", "error", samlErr)
-		}
-		h.render(w, r, pages.SSOSettings(view.SSOSettingsData{
-			BasePage:   basePage(r, h.Services),
-			LDAPConfig: ldapCfg,
-			SAMLConfig: samlCfg,
-			Error:      "Unknown provider: " + provider,
-		}))
+		h.renderSSOSettings(w, r, claims.UserID, "Unknown provider: "+provider, "")
 		return
 	}
 
 	if err := h.Services.SSO.SetConfig(r.Context(), provider, cfg, enabled); err != nil {
 		slog.Error("save sso config failed", "provider", provider, "error", err)
-		ldapCfg, ldapErr := h.Services.SSO.GetConfig(r.Context(), "ldap")
-		if ldapErr != nil {
-			slog.Error("failed to reload ldap sso config", "error", ldapErr)
-		}
-		samlCfg, samlErr := h.Services.SSO.GetConfig(r.Context(), "saml")
-		if samlErr != nil {
-			slog.Error("failed to reload saml sso config", "error", samlErr)
-		}
-		h.render(w, r, pages.SSOSettings(view.SSOSettingsData{
-			BasePage:   basePage(r, h.Services),
-			LDAPConfig: ldapCfg,
-			SAMLConfig: samlCfg,
-			Error:      "Could not save the SSO configuration. Check the server logs.",
-		}))
+		h.renderSSOSettings(w, r, claims.UserID, "Could not save the SSO configuration. Check the server logs.", "")
 		return
 	}
-
-	ldapCfg, ldapErr := h.Services.SSO.GetConfig(r.Context(), "ldap")
-	if ldapErr != nil {
-		slog.Error("failed to reload ldap sso config", "error", ldapErr)
-	}
-	samlCfg, samlErr := h.Services.SSO.GetConfig(r.Context(), "saml")
-	if samlErr != nil {
-		slog.Error("failed to reload saml sso config", "error", samlErr)
-	}
-	h.render(w, r, pages.SSOSettings(view.SSOSettingsData{
-		BasePage:   basePage(r, h.Services),
-		LDAPConfig: ldapCfg,
-		SAMLConfig: samlCfg,
-		Success:    "SSO configuration saved.",
-	}))
+	h.renderSSOSettings(w, r, claims.UserID, "", "SSO configuration saved.")
 }
 
 // LDAPLogin handles POST /auth/ldap — accepts form fields username + password.

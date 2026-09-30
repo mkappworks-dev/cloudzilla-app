@@ -205,7 +205,7 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "username and role are required")
 		return
 	}
-	if !h.confirmAction(w, r, claims.UserID, confirmationFrom(r), "") {
+	if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), "") {
 		return
 	}
 
@@ -250,7 +250,7 @@ func (h *Handler) TransferRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "new_owner is required")
 		return
 	}
-	if !h.confirmAction(w, r, claims.UserID, confirmationFrom(r), "") {
+	if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), "") {
 		return
 	}
 

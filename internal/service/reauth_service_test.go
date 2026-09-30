@@ -61,7 +61,7 @@ func TestReauthService_ChecksTheFactorsTheAccountHas(t *testing.T) {
 		{"code without the password", withTOTP, service.Confirmation{Code: code()}, service.ErrReauthFailed},
 		{"code for a passwordless account", totpOnly, service.Confirmation{Code: code()}, nil},
 		{"no code for a passwordless account", totpOnly, service.Confirmation{}, service.ErrReauthFailed},
-		{"an account with no factors", noFactors, service.Confirmation{}, nil},
+		{"an account with nothing to confirm with", noFactors, service.Confirmation{}, service.ErrReauthUnavailable},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -227,18 +227,90 @@ func TestReauthService_Factors(t *testing.T) {
 	testutil.EnableTOTP(t, db, totpOnly)
 
 	for _, tt := range []struct {
-		name           string
-		userID         int64
-		password, code bool
+		name   string
+		userID int64
+		want   service.Factors
 	}{
-		{"password only", passwordOnly, true, false},
-		{"password and 2FA", withTOTP, true, true},
-		{"2FA only", totpOnly, false, true},
+		{"password only", passwordOnly, service.Factors{Password: true}},
+		{"password and 2FA", withTOTP, service.Factors{Password: true, Code: true}},
+		{"2FA only", totpOnly, service.Factors{Code: true}},
 	} {
-		password, code, err := reauth.Factors(context.Background(), tt.userID)
-		if err != nil || password != tt.password || code != tt.code {
-			t.Errorf("%s: Factors = %v, %v, %v; want %v, %v", tt.name, password, code, err, tt.password, tt.code)
+		if got, err := reauth.Factors(context.Background(), tt.userID); err != nil || got != tt.want {
+			t.Errorf("%s: Factors = %+v, %v; want %+v", tt.name, got, err, tt.want)
 		}
+	}
+}
+
+// An account with no password or 2FA confirms with a code mailed to it, which
+// a session alone can't read.
+func TestReauthService_EmailCodes(t *testing.T) {
+	smtp, box := testutil.FakeSMTP(t)
+	svc, db := newVerificationServices(t, smtp)
+	reauth := svc.Reauth
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedPasswordlessUser(t, db, suffix, "g_code_"+suffix)
+	email := "testnopw_" + suffix + "@test.invalid"
+	confirm := func(code string) error {
+		_, err := reauth.Confirm(ctx, userID, service.Confirmation{EmailCode: code})
+		return err
+	}
+
+	if f, err := reauth.Factors(ctx, userID); err != nil || f != (service.Factors{Email: true}) {
+		t.Fatalf("Factors = %+v, %v; want only Email", f, err)
+	}
+	if err := confirm("123456"); !errors.Is(err, service.ErrReauthFailed) {
+		t.Errorf("before any code was sent: err = %v, want ErrReauthFailed", err)
+	}
+	if err := reauth.SendEmailCode(ctx, userID); err != nil {
+		t.Fatalf("SendEmailCode: %v", err)
+	}
+	code := box.NextTo(t, email).ConfirmationCode(t)
+	if err := reauth.SendEmailCode(ctx, userID); !errors.Is(err, service.ErrEmailCodeCooldown) {
+		t.Errorf("a second code within the minute: err = %v, want ErrEmailCodeCooldown", err)
+	}
+	wrong := "000000"
+	if code == wrong {
+		wrong = "111111"
+	}
+	if err := confirm(wrong); !errors.Is(err, service.ErrReauthFailed) {
+		t.Errorf("wrong code: err = %v, want ErrReauthFailed", err)
+	}
+	if err := confirm(code); err != nil {
+		t.Fatalf("right code: err = %v", err)
+	}
+	if err := confirm(code); !errors.Is(err, service.ErrReauthFailed) {
+		t.Errorf("the same code again: err = %v, want ErrReauthFailed", err)
+	}
+
+	testutil.Exec(t, db, `UPDATE users SET reauth_code_sent_at = NOW() - interval '2 minutes' WHERE id = $1`, userID)
+	if err := reauth.SendEmailCode(ctx, userID); err != nil {
+		t.Fatalf("SendEmailCode after the cooldown: %v", err)
+	}
+	code = box.NextTo(t, email).ConfirmationCode(t)
+	testutil.Exec(t, db, `UPDATE users SET reauth_code_expires_at = NOW() - interval '1 second' WHERE id = $1`, userID)
+	if err := confirm(code); !errors.Is(err, service.ErrReauthFailed) {
+		t.Errorf("an expired code: err = %v, want ErrReauthFailed", err)
+	}
+
+	passwordUser, _ := testutil.SeedUserWithPassword(t, db, testutil.UniqueSuffix(t), "password1")
+	if err := reauth.SendEmailCode(ctx, passwordUser); !errors.Is(err, service.ErrEmailCodeNeedless) {
+		t.Errorf("an account with a password: err = %v, want ErrEmailCodeNeedless", err)
+	}
+}
+
+// Without outgoing email, such an account has nothing to confirm with, so its
+// sensitive actions are refused instead of let through.
+func TestReauthService_NoWayToConfirmIsRefused(t *testing.T) {
+	svc, db := newVerificationServices(t, config.SMTPConfig{})
+	ctx := context.Background()
+	userID := testutil.SeedPasswordlessUser(t, db, testutil.UniqueSuffix(t), "g_nosmtp_"+testutil.UniqueSuffix(t))
+
+	if _, err := svc.Reauth.Confirm(ctx, userID, service.Confirmation{EmailCode: "123456"}); !errors.Is(err, service.ErrReauthUnavailable) {
+		t.Errorf("Confirm: err = %v, want ErrReauthUnavailable", err)
+	}
+	if err := svc.Reauth.SendEmailCode(ctx, userID); !errors.Is(err, service.ErrReauthUnavailable) {
+		t.Errorf("SendEmailCode: err = %v, want ErrReauthUnavailable", err)
 	}
 }
 

@@ -37,6 +37,7 @@ func (h *Handler) PageAdminSettings(w http.ResponseWriter, r *http.Request) {
 		BasePage:    basePage(r, h.Services),
 		Settings:    settings,
 		Invitations: invitations,
+		Confirm:     h.confirmFactors(r.Context(), claims.UserID),
 	}))
 }
 
@@ -47,6 +48,9 @@ func (h *Handler) UpdateSiteSetting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !h.confirmAction(w, r, claims.UserID, confirmationFrom(r), "") {
+		return
+	}
 	key := r.FormValue("key")
 	value := r.FormValue("value")
 
@@ -77,6 +81,9 @@ func (h *Handler) CreateInvitation(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	if email == "" {
 		http.Error(w, "email is required", http.StatusBadRequest)
+		return
+	}
+	if !h.confirmAction(w, r, claims.UserID, confirmationFrom(r), "") {
 		return
 	}
 
@@ -110,6 +117,9 @@ func (h *Handler) AdminVerifyEmail(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(r.FormValue("email"))
 	if username == "" || email == "" {
 		writeError(w, http.StatusBadRequest, "Username and email are required.")
+		return
+	}
+	if !h.confirmAction(w, r, claims.UserID, confirmationFrom(r), "") {
 		return
 	}
 	u, err := h.Services.EmailVerifier.MarkVerified(r.Context(), username, email)

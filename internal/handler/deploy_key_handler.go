@@ -88,7 +88,7 @@ func (h *Handler) AddDeployKey(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "title and public_key are required", http.StatusBadRequest)
 		return
 	}
-	if !h.confirmAction(w, r, claims.UserID, confirmationFrom(r), deployKeyFormError) {
+	if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), deployKeyFormError) {
 		return
 	}
 
