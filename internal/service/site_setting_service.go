@@ -31,7 +31,7 @@ func (s *SiteSettingService) IsSetupComplete(ctx context.Context) bool {
 	if s.setupDone.Load() {
 		return true
 	}
-	count, err := s.userStore.CountAll(ctx)
+	count, err := s.userStore.CountAccounts(ctx)
 	if err != nil || count == 0 {
 		return false
 	}

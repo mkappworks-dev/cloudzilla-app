@@ -20,7 +20,7 @@ func TestValidateOwnerName_RefusesHostileNames(t *testing.T) {
 			t.Errorf("valid owner name %q is not a valid owner name: %v", ok, err)
 		}
 	}
-	bad := append([]string{"", strings.Repeat("a", 40), "-bob", "_bob", "bob.smith", "bob smith", "a/b", "..", "jöhn"}, testutil.HostileNames...)
+	bad := append([]string{"", strings.Repeat("a", 40), "-bob", "_bob", "bob.smith", "bob smith", "a/b", "..", "jöhn", "ghost", "Ghost"}, testutil.HostileNames...)
 	for _, name := range bad {
 		if err := ValidateOwnerName(name); !errors.Is(err, ErrInvalidOwnerName) {
 			t.Errorf("ValidateOwnerName(%q) = %v, want ErrInvalidOwnerName", name, err)

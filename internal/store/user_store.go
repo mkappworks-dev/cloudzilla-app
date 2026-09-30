@@ -170,6 +170,12 @@ func (s *UserStore) OwnerNameTaken(ctx context.Context, name string) (bool, erro
 	return taken, nil
 }
 
+// notGhost keeps the ghost out of account counts and of lookups by a name or
+// address someone typed: it stands in for deleted accounts, so nobody signs in
+// as it, finds it, or hands it anything. Lookups by ID still load it for the
+// content it holds.
+const notGhost = `id <> ghost_user_id()`
+
 func (s *UserStore) GetByID(ctx context.Context, id int64) (*model.User, error) {
 	u, err := s.queryUser(ctx, `WHERE id = $1`, id)
 	if err != nil {
@@ -179,7 +185,7 @@ func (s *UserStore) GetByID(ctx context.Context, id int64) (*model.User, error) 
 }
 
 func (s *UserStore) GetByUsername(ctx context.Context, username string) (*model.User, error) {
-	u, err := s.queryUser(ctx, `WHERE username = $1`, username)
+	u, err := s.queryUser(ctx, `WHERE username = $1 AND `+notGhost, username)
 	if err != nil {
 		return nil, fmt.Errorf("user get by username: %w", err)
 	}
@@ -187,7 +193,7 @@ func (s *UserStore) GetByUsername(ctx context.Context, username string) (*model.
 }
 
 func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, error) {
-	u, err := s.queryUser(ctx, `WHERE lower(email) = lower($1)`, email)
+	u, err := s.queryUser(ctx, `WHERE lower(email) = lower($1) AND `+notGhost, email)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email: %w", err)
 	}
@@ -196,7 +202,7 @@ func (s *UserStore) GetByEmail(ctx context.Context, email string) (*model.User, 
 
 // GetByEmailWithRole fetches a user by email including is_superadmin and is_invited columns.
 func (s *UserStore) GetByEmailWithRole(ctx context.Context, email string) (*model.User, error) {
-	u, err := s.queryUser(ctx, `WHERE lower(email) = lower($1)`, email)
+	u, err := s.queryUser(ctx, `WHERE lower(email) = lower($1) AND `+notGhost, email)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email with role: %w", err)
 	}
@@ -267,11 +273,11 @@ func (s *UserStore) UnlinkOAuth(ctx context.Context, userID int64, provider stri
 	return n == 1, nil
 }
 
-func (s *UserStore) CountAll(ctx context.Context) (int, error) {
+func (s *UserStore) CountAccounts(ctx context.Context) (int, error) {
 	var count int
-	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
+	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM users WHERE `+notGhost).Scan(&count)
 	if err != nil {
-		return 0, fmt.Errorf("user count all: %w", err)
+		return 0, fmt.Errorf("user count accounts: %w", err)
 	}
 	return count, nil
 }
@@ -317,7 +323,7 @@ func (s *UserStore) GetByIDWithTOTP(ctx context.Context, id int64) (*model.User,
 
 // GetByEmailWithTOTP fetches a user by email including TOTP fields.
 func (s *UserStore) GetByEmailWithTOTP(ctx context.Context, email string) (*model.User, error) {
-	u, err := s.queryUserWithTOTP(ctx, `WHERE lower(email) = lower($1)`, email)
+	u, err := s.queryUserWithTOTP(ctx, `WHERE lower(email) = lower($1) AND `+notGhost, email)
 	if err != nil {
 		return nil, fmt.Errorf("user get by email with totp: %w", err)
 	}
@@ -409,9 +415,28 @@ var (
 	ErrOwnedReposChanged = errors.New("user's repositories changed during deletion")
 )
 
-// Deleting only the user row fails when the user authored issues or pull
-// requests in their own repos: the NO ACTION author checks run before the
-// owner cascade reaches those rows. Content in other people's repos still blocks.
+// ghostReassignments are the columns that reference users(id) with no ON DELETE
+// action; any row left in one would block the user delete. nameCol, when set,
+// is the username copied into the row, which would otherwise credit whoever
+// registers the freed name next.
+var ghostReassignments = []struct{ table, idCol, nameCol string }{
+	{"issues", "author_id", ""},
+	{"pull_requests", "author_id", ""},
+	{"comments", "author_id", "author_name"},
+	{"notifications", "actor_id", "actor_name"},
+	{"invitations", "invited_by_id", ""},
+	{"releases", "author_id", ""},
+	{"commit_statuses", "creator_id", ""},
+	{"pull_reviews", "author_id", "author_name"},
+	{"pull_line_comments", "author_id", "author_name"},
+	{"discussions", "author_id", "author_name"},
+	{"discussion_replies", "author_id", "author_name"},
+	{"pull_events", "actor_id", "actor_name"},
+	{"repositories", "deleted_by", ""},
+}
+
+// The user's own repos go first, taking everything in them along, so only what
+// the user wrote elsewhere passes to the ghost, as on GitHub.
 // livePersonalIDs are the repos the caller already moved aside; locking the user
 // row blocks new repo inserts (their FK check needs it), so the set is re-checked
 // here and a repo created or restored in the meantime aborts the delete.
@@ -457,6 +482,26 @@ func (s *UserStore) DeleteWithOwnedRepos(ctx context.Context, userID int64, live
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM repositories WHERE owner_id=$1`, userID); err != nil {
 		return fmt.Errorf("user delete repos: %w", err)
+	}
+	// Review requests are addressed to the user, and the ghost can never answer one.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM pull_reviews WHERE author_id=$1 AND state='pending'`, userID); err != nil {
+		return fmt.Errorf("user delete review requests: %w", err)
+	}
+	var ghostID int64
+	var ghostName string
+	if err := tx.QueryRowContext(ctx, `SELECT id, username FROM users WHERE id = ghost_user_id()`).Scan(&ghostID, &ghostName); err != nil {
+		return fmt.Errorf("user delete load ghost: %w", err)
+	}
+	for _, r := range ghostReassignments {
+		q := `UPDATE ` + r.table + ` SET ` + r.idCol + ` = $2`
+		args := []any{userID, ghostID}
+		if r.nameCol != "" {
+			q += `, ` + r.nameCol + ` = $3`
+			args = append(args, ghostName)
+		}
+		if _, err := tx.ExecContext(ctx, q+` WHERE `+r.idCol+` = $1`, args...); err != nil {
+			return fmt.Errorf("user delete reassign %s.%s: %w", r.table, r.idCol, err)
+		}
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id=$1`, userID); err != nil {
 		return fmt.Errorf("user delete: %w", err)
@@ -515,7 +560,7 @@ func (s *UserStore) GetManyByUsernames(ctx context.Context, usernames []string) 
 		placeholders[i] = fmt.Sprintf("$%d", i+1)
 		args[i] = u
 	}
-	q := `SELECT ` + userColumns + ` FROM users WHERE username IN (` + strings.Join(placeholders, ",") + `)`
+	q := `SELECT ` + userColumns + ` FROM users WHERE username IN (` + strings.Join(placeholders, ",") + `) AND ` + notGhost
 	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("user get many by usernames: %w", err)
