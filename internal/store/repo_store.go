@@ -11,8 +11,13 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
-// ErrRepoNameInUse signals a unique violation on (owner_id, name).
+// ErrRepoNameInUse signals a unique violation on (owner_id, name), or on
+// (org_id, name) among live org repos.
 var ErrRepoNameInUse = errors.New("repository name already in use")
+
+// ErrRepoChanged: another request moved, deleted or restored the repo since
+// the caller read it.
+var ErrRepoChanged = errors.New("repository changed while the request ran; reload and try again")
 
 func repoWriteErr(op string, err error) error {
 	var pgErr *pgconn.PgError
@@ -20,6 +25,40 @@ func repoWriteErr(op string, err error) error {
 		return ErrRepoNameInUse
 	}
 	return fmt.Errorf("%s: %w", op, err)
+}
+
+// nullID stores zero as NULL: an org repo has no owner_id, a personal repo no org_id.
+func nullID(id int64) any {
+	if id == 0 {
+		return nil
+	}
+	return id
+}
+
+// zeroIfNull scans a nullable ID as zero, which matches no user.
+type zeroIfNull struct{ dst *int64 }
+
+func (z zeroIfNull) Scan(src any) error {
+	var n sql.NullInt64
+	if err := n.Scan(src); err != nil {
+		return err
+	}
+	*z.dst = n.Int64
+	return nil
+}
+
+// ownedBy is RepoService.IsOwner as a SQL predicate on repositories alias r
+// for the user ID in placeholder u.
+func ownedBy(r, u string) string {
+	return `(` + r + `.owner_id = ` + u +
+		` OR EXISTS (SELECT 1 FROM org_members om WHERE om.org_id = ` + r + `.org_id AND om.user_id = ` + u + ` AND om.role = 'owner'))`
+}
+
+// readableBy is RepoService.CanRead as a SQL predicate, for queries that
+// filter many repos at once.
+func readableBy(r, u string) string {
+	return `(NOT ` + r + `.private OR ` + ownedBy(r, u) +
+		` OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = ` + r + `.id AND perm.user_id = ` + u + `))`
 }
 
 // RepoStore provides database operations for repositories and their permissions.
@@ -34,8 +73,8 @@ func NewRepoStore(database *sql.DB) *RepoStore {
 
 func (s *RepoStore) Create(ctx context.Context, r *model.Repository) error {
 	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO repositories (owner_id, name, description, private, default_branch)
-		 VALUES ($1, $2, $3, $4, $5)
+		`INSERT INTO repositories (owner_id, created_by, name, description, private, default_branch)
+		 VALUES ($1, $1, $2, $3, $4, $5)
 		 RETURNING id, created_at, updated_at`,
 		r.OwnerID, r.Name, r.Description, r.Private, r.DefaultBranch,
 	).Scan(&r.ID, &r.CreatedAt, &r.UpdatedAt)
@@ -47,14 +86,10 @@ func (s *RepoStore) Create(ctx context.Context, r *model.Repository) error {
 
 func (s *RepoStore) CreateWithOwnerName(ctx context.Context, r *model.Repository) error {
 	now := time.Now().UTC()
-	var orgID interface{}
-	if r.OrgID != 0 {
-		orgID = r.OrgID
-	}
 	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO repositories (owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-		r.OwnerID, r.OwnerName, orgID, r.Name, r.Description, r.Private, r.DefaultBranch, now, now,
+		`INSERT INTO repositories (owner_id, owner_name, org_id, created_by, name, description, private, default_branch, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+		nullID(r.OwnerID), r.OwnerName, nullID(r.OrgID), nullID(r.CreatedBy), r.Name, r.Description, r.Private, r.DefaultBranch, now, now,
 	).Scan(&r.ID)
 	if err != nil {
 		return repoWriteErr("repo create with owner name", err)
@@ -71,12 +106,12 @@ func (s *RepoStore) GetByOwnerName(ctx context.Context, ownerName, name string) 
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, website, license, private, default_branch, created_at, updated_at,
 		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template,
-		        allow_issues, allow_discussions, allow_projects, allow_wiki
+		        allow_issues, allow_discussions, allow_projects, allow_wiki, created_by
 		 FROM repositories WHERE owner_name = $1 AND name = $2 AND deleted_at IS NULL`,
 		ownerName, name,
-	).Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Website, &r.License, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
+	).Scan(&r.ID, zeroIfNull{&r.OwnerID}, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Website, &r.License, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
 		&r.IsFork, &forkOfID, &r.ForkCount, &r.IsArchived, &archivedAt, &r.IsTemplate,
-		&r.AllowIssues, &r.AllowDiscussions, &r.AllowProjects, &r.AllowWiki)
+		&r.AllowIssues, &r.AllowDiscussions, &r.AllowProjects, &r.AllowWiki, zeroIfNull{&r.CreatedBy})
 	if err != nil {
 		return nil, fmt.Errorf("repo get by owner name: %w", err)
 	}
@@ -165,31 +200,9 @@ func (s *RepoStore) GetByOwnerID(ctx context.Context, ownerID int64) ([]model.Re
 
 // ListAllByOwnerID includes soft-deleted repos, which deleting the owner
 // cascades away too. Only the fields that locate a repo on disk are set.
-func (s *RepoStore) ListDeletedByOrgID(ctx context.Context, orgID int64) ([]model.Repository, error) {
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, owner_id, owner_name, name, deleted_at FROM repositories WHERE org_id = $1 AND deleted_at IS NOT NULL`,
-		orgID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("repo list deleted by org: %w", err)
-	}
-	defer rows.Close()
-	var repos []model.Repository
-	for rows.Next() {
-		r := model.Repository{OrgID: orgID}
-		var deletedAt time.Time
-		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &r.Name, &deletedAt); err != nil {
-			return nil, err
-		}
-		r.DeletedAt = &deletedAt
-		repos = append(repos, r)
-	}
-	return repos, rows.Err()
-}
-
 func (s *RepoStore) ListAllByOwnerID(ctx context.Context, ownerID int64) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, owner_name, org_id, name, deleted_at FROM repositories WHERE owner_id = $1`,
+		`SELECT id, owner_name, name, deleted_at FROM repositories WHERE owner_id = $1`,
 		ownerID,
 	)
 	if err != nil {
@@ -199,12 +212,10 @@ func (s *RepoStore) ListAllByOwnerID(ctx context.Context, ownerID int64) ([]mode
 	var repos []model.Repository
 	for rows.Next() {
 		r := model.Repository{OwnerID: ownerID}
-		var orgID sql.NullInt64
 		var deletedAt sql.NullTime
-		if err := rows.Scan(&r.ID, &r.OwnerName, &orgID, &r.Name, &deletedAt); err != nil {
+		if err := rows.Scan(&r.ID, &r.OwnerName, &r.Name, &deletedAt); err != nil {
 			return nil, err
 		}
-		r.OrgID = orgID.Int64
 		if deletedAt.Valid {
 			r.DeletedAt = &deletedAt.Time
 		}
@@ -272,13 +283,27 @@ func (s *RepoStore) UpdateVisibility(ctx context.Context, repoID int64, private 
 	return nil
 }
 
-func (s *RepoStore) UpdateOwner(ctx context.Context, repoID, newOwnerID int64, newOwnerName string) error {
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE repositories SET owner_id = $1, owner_name = $2, updated_at = $3 WHERE id = $4`,
-		newOwnerID, newOwnerName, time.Now().UTC(), repoID,
+// UpdateOwner hands a live repo still under oldOwnerName to a user
+// (newOrgID zero) or an org (newOwnerID zero).
+func (s *RepoStore) UpdateOwner(ctx context.Context, repoID int64, oldOwnerName string, newOwnerID, newOrgID int64, newOwnerName string) error {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET owner_id = $1, org_id = $2, owner_name = $3, updated_at = $4
+		 WHERE id = $5 AND owner_name = $6 AND deleted_at IS NULL`,
+		nullID(newOwnerID), nullID(newOrgID), newOwnerName, time.Now().UTC(), repoID, oldOwnerName,
 	)
 	if err != nil {
 		return repoWriteErr("update repo owner", err)
+	}
+	return requireRow(res, "update repo owner")
+}
+
+func requireRow(res sql.Result, op string) error {
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s rows affected: %w", op, err)
+	}
+	if n == 0 {
+		return ErrRepoChanged
 	}
 	return nil
 }
@@ -366,6 +391,7 @@ func (s *RepoStore) Fork(ctx context.Context, orig *model.Repository, newOwnerID
 	now := time.Now().UTC()
 	r := &model.Repository{
 		OwnerID:       newOwnerID,
+		CreatedBy:     newOwnerID,
 		OwnerName:     newOwnerName,
 		Name:          newName,
 		Description:   orig.Description,
@@ -375,8 +401,8 @@ func (s *RepoStore) Fork(ctx context.Context, orig *model.Repository, newOwnerID
 		ForkOfID:      &orig.ID,
 	}
 	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO repositories (owner_id, owner_name, name, description, private, default_branch, is_fork, fork_of_id, created_at, updated_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7, $8, $9) RETURNING id`,
+		`INSERT INTO repositories (owner_id, created_by, owner_name, name, description, private, default_branch, is_fork, fork_of_id, created_at, updated_at)
+		 VALUES ($1, $1, $2, $3, $4, $5, $6, TRUE, $7, $8, $9) RETURNING id`,
 		r.OwnerID, r.OwnerName, r.Name, r.Description, r.Private, r.DefaultBranch, orig.ID, now, now,
 	).Scan(&r.ID)
 	if err != nil {
@@ -420,12 +446,12 @@ func (s *RepoStore) GetByID(ctx context.Context, id int64) (*model.Repository, e
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, website, license, private, default_branch, created_at, updated_at,
 		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template,
-		        allow_issues, allow_discussions, allow_projects, allow_wiki, primary_language
+		        allow_issues, allow_discussions, allow_projects, allow_wiki, primary_language, created_by
 		 FROM repositories WHERE id = $1 AND deleted_at IS NULL`,
 		id,
-	).Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Website, &r.License, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
+	).Scan(&r.ID, zeroIfNull{&r.OwnerID}, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Website, &r.License, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
 		&r.IsFork, &forkOfID, &r.ForkCount, &r.IsArchived, &archivedAt, &r.IsTemplate,
-		&r.AllowIssues, &r.AllowDiscussions, &r.AllowProjects, &r.AllowWiki, &primaryLang)
+		&r.AllowIssues, &r.AllowDiscussions, &r.AllowProjects, &r.AllowWiki, &primaryLang, zeroIfNull{&r.CreatedBy})
 	if err != nil {
 		return nil, fmt.Errorf("repo get by id: %w", err)
 	}
@@ -529,33 +555,28 @@ func (s *RepoStore) DeleteByID(ctx context.Context, id int64) error {
 	return err
 }
 
-func (s *RepoStore) Delete(ctx context.Context, repoID, deletedByID int64, deletedAt time.Time) error {
-	result, err := s.db.ExecContext(ctx,
-		`UPDATE repositories SET deleted_at = $3, deleted_by = $2, updated_at = NOW() WHERE id = $1`,
-		repoID, deletedByID, deletedAt,
+// Delete soft-deletes a live repo still under ownerName.
+func (s *RepoStore) Delete(ctx context.Context, repoID int64, ownerName string, deletedByID int64, deletedAt time.Time) error {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET deleted_at = $3, deleted_by = $2, updated_at = NOW()
+		 WHERE id = $1 AND owner_name = $4 AND deleted_at IS NULL`,
+		repoID, deletedByID, deletedAt, ownerName,
 	)
 	if err != nil {
 		return fmt.Errorf("soft delete repo: %w", err)
 	}
-	n, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("soft delete repo rows affected: %w", err)
-	}
-	if n == 0 {
-		return fmt.Errorf("soft delete repo: repo %d not found or already deleted", repoID)
-	}
-	return nil
+	return requireRow(res, "soft delete repo")
 }
 
 func (s *RepoStore) Restore(ctx context.Context, repoID int64) error {
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE repositories SET deleted_at = NULL, deleted_by = NULL, updated_at = NOW() WHERE id = $1`,
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE repositories SET deleted_at = NULL, deleted_by = NULL, updated_at = NOW() WHERE id = $1 AND deleted_at IS NOT NULL`,
 		repoID,
 	)
 	if err != nil {
-		return fmt.Errorf("restore repo: %w", err)
+		return repoWriteErr("restore repo", err)
 	}
-	return nil
+	return requireRow(res, "restore repo")
 }
 
 func (s *RepoStore) GetDeletedByID(ctx context.Context, id int64) (*model.Repository, error) {
@@ -567,7 +588,7 @@ func (s *RepoStore) GetDeletedByID(ctx context.Context, id int64) (*model.Reposi
 		        created_at, updated_at, is_fork, fork_of_id, fork_count, deleted_at, deleted_by
 		 FROM repositories WHERE id = $1 AND deleted_at IS NOT NULL`,
 		id,
-	).Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch,
+	).Scan(&r.ID, zeroIfNull{&r.OwnerID}, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch,
 		&r.CreatedAt, &r.UpdatedAt, &r.IsFork, &forkOfID, &r.ForkCount, &deletedAt, &deletedBy)
 	if err != nil {
 		return nil, fmt.Errorf("get deleted repo by id: %w", err)
@@ -598,7 +619,7 @@ func (s *RepoStore) GetDeletedByOwnerAndName(ctx context.Context, ownerName, nam
 		 WHERE owner_name = $1 AND name = $2 AND deleted_at IS NOT NULL
 		 ORDER BY deleted_at DESC LIMIT 1`,
 		ownerName, name,
-	).Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch,
+	).Scan(&r.ID, zeroIfNull{&r.OwnerID}, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch,
 		&r.CreatedAt, &r.UpdatedAt, &r.IsFork, &forkOfID, &r.ForkCount, &deletedAt, &deletedBy)
 	if err != nil {
 		return nil, fmt.Errorf("get deleted repo: %w", err)
@@ -639,7 +660,7 @@ func (s *RepoStore) ListDeleted(ctx context.Context, ownerID int64) ([]model.Rep
 		var orgID, forkOfID, deletedBy sql.NullInt64
 		var deletedAt sql.NullTime
 		if err := rows.Scan(
-			&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch,
+			&r.ID, zeroIfNull{&r.OwnerID}, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch,
 			&r.CreatedAt, &r.UpdatedAt, &r.IsFork, &forkOfID, &r.ForkCount, &deletedAt, &deletedBy,
 		); err != nil {
 			return nil, err
@@ -685,7 +706,7 @@ func (s *RepoStore) PurgeExpired(ctx context.Context, before time.Time) ([]model
 		var orgID, forkOfID, deletedBy sql.NullInt64
 		var deletedAt sql.NullTime
 		if err := rows.Scan(
-			&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch,
+			&r.ID, zeroIfNull{&r.OwnerID}, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch,
 			&r.CreatedAt, &r.UpdatedAt, &r.IsFork, &forkOfID, &r.ForkCount, &deletedAt, &deletedBy,
 		); err != nil {
 			rows.Close()
@@ -741,7 +762,7 @@ func (s *RepoStore) ListForUser(ctx context.Context, userID int64, scope string)
 	case "owned":
 		where = `r.owner_id = $1`
 	case "collaborator":
-		where = `r.owner_id <> $1 AND EXISTS (SELECT 1 FROM permissions p WHERE p.repo_id = r.id AND p.user_id = $1)`
+		where = `r.owner_id IS DISTINCT FROM $1 AND EXISTS (SELECT 1 FROM permissions p WHERE p.repo_id = r.id AND p.user_id = $1)`
 	default: // "all"
 		where = `(r.owner_id = $1 OR EXISTS (SELECT 1 FROM permissions p WHERE p.repo_id = r.id AND p.user_id = $1))`
 	}
@@ -761,7 +782,7 @@ func scanRepoRows(rows *sql.Rows) ([]model.Repository, error) {
 		var orgID, forkOfID sql.NullInt64
 		var archivedAt sql.NullTime
 		var primaryLang sql.NullString
-		if err := rows.Scan(&r.ID, &r.OwnerID, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
+		if err := rows.Scan(&r.ID, zeroIfNull{&r.OwnerID}, &r.OwnerName, &orgID, &r.Name, &r.Description, &r.Private, &r.DefaultBranch, &r.CreatedAt, &r.UpdatedAt,
 			&r.IsFork, &forkOfID, &r.ForkCount, &r.IsArchived, &archivedAt, &r.IsTemplate, &primaryLang); err != nil {
 			return nil, err
 		}

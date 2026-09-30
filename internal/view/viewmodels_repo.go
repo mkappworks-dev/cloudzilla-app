@@ -130,7 +130,6 @@ type RepoSettingsData struct {
 	BranchProtections []*model.BranchProtection
 	CanManage         bool
 	IsOwner           bool
-	CanTransfer       bool
 }
 
 // BranchProtectionsFragData holds template data for the branch protections HTMX fragment.

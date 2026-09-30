@@ -274,6 +274,7 @@ func TestCreateOrgRepo_OmittedPrivateUsesOrgDefault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create org: %v", err)
 	}
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
 	create := func(body string) *http.Response {
 		req := httptest.NewRequest(http.MethodPost, "/api/orgs/"+org.Name+"/repos", strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")

@@ -125,7 +125,7 @@ A refused request gets `403` with `{"error":"insufficient_scope"}` and `WWW-Auth
 | `owner`  |        Yes        |        Yes         |     Yes      |      Yes       |     Yes      |    Yes     |
 | `member` |        Yes        |   No (need role)   |      No      |       No       |      No      |     No     |
 
-Org members do not get implicit access to private repos. They must be added as explicit collaborators (`reader`/`writer`/`admin`) on each repo.
+Org members do not get implicit access to private repos. They must be added as explicit collaborators (`reader`/`writer`/`admin`) on each repo. Creating an org repo grants nothing either; see [Organization Repo Ownership](#organization-repo-ownership).
 
 ### Repository Roles
 
@@ -141,11 +141,11 @@ Org members do not get implicit access to private repos. They must be added as e
 
 **Manage** includes: collaborator CRUD, branch protection, deploy keys, topics, wiki deletion, webhook CRUD, repo settings page access.
 
-**Transfer/Delete** (owner-only) includes: repo transfer, archive, unarchive, template toggle, soft-delete/restore.
+**Transfer/Delete** (owner-only) includes: repo transfer, archive, unarchive, template toggle, soft-delete/restore. A transfer's `new_owner` names a user or an org, resolved user first like `/{owner}`; moving a repo into an org also requires owning that org.
 
 ### Organization Repo Ownership
 
-For org repos, `org_id` points to the org and `owner_id` to the member who created the repo, who keeps owner-level access to it. Everyone else's access is determined by `org_members`:
+For org repos, `org_id` points to the org and `owner_id` is `NULL`. `created_by` names whoever created the repo but grants nothing, so a creator who leaves the org or is demoted to member keeps only their explicit repo role, if any. Access is determined by `org_members` and those roles:
 
 | Org Role | Create repos | Manage repos | Transfer repos | Delete repos | Appoint admins |
 | -------- | :----------: | :----------: | :------------: | :----------: | :------------: |
@@ -170,9 +170,11 @@ func (s *RepoService) CanWrite(ctx, repo, userID int64) bool
 // CanManage — owner, org owner, or admin collaborator
 func (s *RepoService) CanManage(ctx, repo, userID int64) bool
 
-// IsOwner — repo owner or org owner only (for transfer, delete, archive)
+// IsOwner — a personal repo's owner, or an owner of an org repo's org (transfer, delete, archive)
 func (s *RepoService) IsOwner(ctx, repo, userID int64) bool
 ```
+
+`IsOwner` looks only at `org_members` for an org repo and only at `owner_id` for a personal one, and the other three build on it. Store queries that filter many repos by what the viewer can read (account issue and PR lists and counts, the activity feed, the attention inbox, repo search) use `readableBy` and `ownedBy` (`internal/store/repo_store.go`), the SQL forms of `CanRead` and `IsOwner`.
 
 ### Two-Layer Enforcement Pattern
 
@@ -290,12 +292,13 @@ Users and organizations share one namespace (`/{owner}` and `<repos_root>/<owner
 
 ## Account Deletion
 
-`POST /settings/delete-account` calls `UserService.DeleteUser`. In one transaction, `UserStore.DeleteWithOwnedRepos` deletes the user's repositories (soft-deleted ones included) and everything in them, drops the user's pending review requests, hands what the user wrote in other people's repos to the [ghost user](#the-ghost-user), and deletes the user row, which cascades to gists, keys, tokens, stars, watches, reactions and activity. Around that transaction, `RepoService.DeleteWithOwner` handles the repo directories:
+`POST /settings/delete-account` calls `UserService.DeleteUser`. In one transaction, `UserStore.DeleteWithOwnedRepos` deletes the user's personal repositories (soft-deleted ones included) and everything in them, drops the user's pending review requests, hands what the user wrote in repos they don't own, org repos included, to the [ghost user](#the-ghost-user), and deletes the user row, which cascades to gists, keys, tokens, stars, watches, reactions and activity. Org repos have no `owner_id`, so they stay with their org: their `created_by` becomes `NULL`, and a `deleted_by` naming the user passes to the ghost.
 
-1. It refuses (`ErrOwnsOrgRepos`, shown as `delete_org_repos`) while the user is `owner_id` of a live org repo, because the cascade would remove the repo from the org. The user deletes those repos first.
-2. It renames each personal repo's `<name>.git` and `<name>.wiki.git` to `.deleted.<unix_ts>`.
-3. If the transaction fails (for example `ErrOwnedReposChanged`, when a repo was created or restored after step 2), it renames them back.
-4. Once the row is gone, it removes those directories and the copies of every repo the user had soft-deleted, org repos included, which `PurgeExpired` can no longer find. A wiki that a soft delete from before wikis moved with their repo left at `<name>.wiki.git` goes too, unless another row still names it.
+`DeleteUser` first refuses (`ErrSoleOrgOwner`, shown as `sole_org_owner`) while the user is the only owner of an organization, before touching any directory. The transaction checks again with every org the user belongs to locked, the lock that promoting, demoting or removing a member also takes. Around that transaction, `RepoService.DeleteWithOwner` handles the repo directories:
+
+1. `DeleteWithOwner` renames each personal repo's `<name>.git` and `<name>.wiki.git` to `.deleted.<unix_ts>`.
+2. If the transaction fails (for example `ErrOwnedReposChanged`, when a repo was created or restored after step 1), it renames them back.
+3. Once the row is gone, it removes those directories and the copies of every personal repo the user had soft-deleted, which `PurgeExpired` can no longer find. A wiki that a soft delete from before wikis moved with their repo left at `<name>.wiki.git` goes too, unless another row still names it.
 
 The freed username can then be registered or taken as an org name. Repo creation refuses any name whose directory still exists, so nothing the old account left on disk is ever served under the new owner.
 

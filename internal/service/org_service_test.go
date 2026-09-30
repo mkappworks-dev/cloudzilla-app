@@ -334,6 +334,7 @@ func TestOrgService_CreateRepo_WithInitFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create org: %v", err)
 	}
+	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
 
 	repo, err := svc.CreateRepo(ctx, org.ID, creatorID, "initrepo", "an initialized project", false, service.RepoInitOptions{
 		AddREADME: true,

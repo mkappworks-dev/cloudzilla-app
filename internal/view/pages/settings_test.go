@@ -241,12 +241,12 @@ func TestSettings_EmailSectionPrivacyToggle(t *testing.T) {
 	}
 }
 
-func TestSettings_OrgRepoDeleteRefusalIsExplained(t *testing.T) {
+func TestSettings_SoleOrgOwnerDeleteRefusalIsExplained(t *testing.T) {
 	out := renderSettings(t, view.SettingsData{
 		User:         model.User{ID: 42, Username: "alice", Email: "alice@example.com"},
-		ProfileError: "delete_org_repos",
+		ProfileError: "sole_org_owner",
 	})
-	if !strings.Contains(out, "You created repositories that belong to an organization. Delete them first.") {
-		t.Error("delete_org_repos renders without its message")
+	if !strings.Contains(out, "You are the only owner of an organization. Add another owner or delete the organization first.") {
+		t.Error("sole_org_owner renders without its message")
 	}
 }

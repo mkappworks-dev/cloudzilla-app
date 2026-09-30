@@ -473,7 +473,8 @@ func (s *IssueStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int
 		 FROM issues i
 		 JOIN repositories r ON r.id = i.repo_id
 		 JOIN issue_assignees a ON a.issue_id = i.id
-		 WHERE i.state = 'open' AND r.deleted_at IS NULL AND a.user_id = $1`,
+		 WHERE i.state = 'open' AND r.deleted_at IS NULL AND a.user_id = $1
+		   AND `+readableBy("r", "$1"),
 		userID,
 	).Scan(&n)
 	return n, err
@@ -490,6 +491,7 @@ func (s *IssueStore) CountDueThisWeekAssignedTo(ctx context.Context, userID int6
 		 JOIN issue_assignees a ON a.issue_id = i.id
 		 JOIN milestones m ON m.id = i.milestone_id
 		 WHERE i.state = 'open' AND r.deleted_at IS NULL AND a.user_id = $1
+		   AND `+readableBy("r", "$1")+`
 		   AND m.due_date IS NOT NULL
 		   AND m.due_date >= NOW() AND m.due_date < NOW() + INTERVAL '7 days'`,
 		userID,
@@ -505,7 +507,7 @@ type IssueListItem struct {
 	AuthorID     int64
 	AuthorName   string
 	Priority     *string
-	RepoFullName string // "<owner_username>/<repo_name>"
+	RepoFullName string // "<owner_name>/<repo_name>"
 	UpdatedAt    time.Time
 	CreatedAt    time.Time
 }
@@ -539,15 +541,15 @@ func (s *IssueStore) AssignedAtForUser(ctx context.Context, userID int64) (map[i
 }
 
 func (s *IssueStore) ListOpenAssignedToUser(ctx context.Context, userID int64) ([]IssueListItem, error) {
-	const q = `
+	q := `
 		SELECT i.id, i.number, i.title, i.state, i.author_id,
-		       u.username || '/' || r.name AS repo_full_name,
+		       r.owner_name || '/' || r.name AS repo_full_name,
 		       i.updated_at
 		FROM issues i
 		JOIN issue_assignees a ON a.issue_id = i.id
 		JOIN repositories r    ON r.id = i.repo_id
-		JOIN users u           ON u.id = r.owner_id
 		WHERE a.user_id = $1 AND i.state = 'open' AND r.deleted_at IS NULL
+		  AND ` + readableBy("r", "$1") + `
 		ORDER BY i.updated_at DESC
 		LIMIT 50
 	`
@@ -579,15 +581,13 @@ func (s *IssueStore) ListForUser(ctx context.Context, userID int64, mode, state 
 	}
 	q := `SELECT DISTINCT i.id, i.number, i.title, i.state, i.author_id,
 	             au.username AS author_name, i.priority,
-	             u.username || '/' || r.name AS repo_full_name, i.updated_at, i.created_at
+	             r.owner_name || '/' || r.name AS repo_full_name, i.updated_at, i.created_at
 	      FROM issues i
 	      JOIN repositories r ON r.id = i.repo_id
-	      JOIN users u        ON u.id = r.owner_id
 	      JOIN users au       ON au.id = i.author_id
 	      ` + join + `
 	      WHERE r.deleted_at IS NULL AND i.state = $2 AND ` + cond + `
-	        AND (NOT r.private OR r.owner_id = $1
-	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
+	        AND ` + readableBy("r", "$1") + `
 	      ORDER BY i.updated_at DESC LIMIT 100`
 	return s.scanIssueListItems(ctx, q, userID, state)
 }
@@ -605,25 +605,22 @@ func (s *IssueStore) ListByIDs(ctx context.Context, userID int64, ids []int64, s
 	}
 	q := `SELECT DISTINCT i.id, i.number, i.title, i.state, i.author_id,
 	             au.username AS author_name, i.priority,
-	             u.username || '/' || r.name AS repo_full_name, i.updated_at, i.created_at
+	             r.owner_name || '/' || r.name AS repo_full_name, i.updated_at, i.created_at
 	      FROM issues i
 	      JOIN repositories r ON r.id = i.repo_id
-	      JOIN users u        ON u.id = r.owner_id
 	      JOIN users au       ON au.id = i.author_id
 	      WHERE r.deleted_at IS NULL AND i.state = $2
 	        AND i.id IN (` + strings.Join(placeholders, ",") + `)
-	        AND (NOT r.private OR r.owner_id = $1
-	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
+	        AND ` + readableBy("r", "$1") + `
 	      ORDER BY i.updated_at DESC LIMIT 100`
 	return s.scanIssueListItems(ctx, q, args...)
 }
 
 // CountsForUser returns issue counts for every account-issues tab in a single
 // round-trip, keyed "<filter>:<state>". The query is composed only from in-code
-// constants — never caller input — so the concatenation is injection-safe.
+// fragments — never caller input — so the concatenation is injection-safe.
 func (s *IssueStore) CountsForUser(ctx context.Context, userID int64) (map[string]int, error) {
-	const vis = `(NOT r.private OR r.owner_id = $1
-	              OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))`
+	vis := readableBy("r", "$1")
 	const (
 		assigned  = `EXISTS (SELECT 1 FROM issue_assignees ia WHERE ia.issue_id = i.id AND ia.user_id = $1)`
 		created   = `i.author_id = $1`

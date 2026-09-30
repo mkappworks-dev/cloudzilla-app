@@ -58,7 +58,6 @@ func (s *CodeSearchStore) Search(ctx context.Context, query string, repoID *int6
 SELECT COUNT(*)
 FROM code_search_index csi
 JOIN repositories r ON r.id = csi.repo_id
-JOIN users u ON u.id = r.owner_id
 WHERE %s
   AND r.private = FALSE`, where)
 
@@ -73,14 +72,13 @@ WHERE %s
 	selectQ := fmt.Sprintf(`
 SELECT csi.repo_id,
        r.name        AS repo_name,
-       u.username    AS owner_name,
+       r.owner_name  AS owner_name,
        csi.file_path,
        ts_headline('simple', csi.content, plainto_tsquery('simple', $1),
                    'MaxWords=15, MinWords=5, StartSel=**, StopSel=**') AS snippet,
        ts_rank(csi.tsv, plainto_tsquery('simple', $1))                 AS rank
 FROM code_search_index csi
 JOIN repositories r ON r.id = csi.repo_id
-JOIN users u ON u.id = r.owner_id
 WHERE %s
   AND r.private = FALSE
 ORDER BY rank DESC

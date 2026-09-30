@@ -292,7 +292,7 @@ func TestLanguageService_AggregateForOrg_ViewerVisibility(t *testing.T) {
 		private    bool
 	}{{"web", "Go", false}, {"cli", "Go", false}, {"internal", "Python", true}} {
 		if _, err := db.ExecContext(ctx,
-			`INSERT INTO repositories (owner_id, owner_name, org_id, name, description, private, default_branch, primary_language)
+			`INSERT INTO repositories (created_by, owner_name, org_id, name, description, private, default_branch, primary_language)
 			 VALUES ($1, $2, $3, $4, '', $5, 'main', $6)`,
 			ownerID, org.Name, org.ID, r.name, r.private, r.lang,
 		); err != nil {

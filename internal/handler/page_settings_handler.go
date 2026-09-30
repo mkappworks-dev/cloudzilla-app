@@ -159,8 +159,8 @@ func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.Services.User.DeleteUser(r.Context(), claims.UserID); err != nil {
 		code := "delete_failed"
-		if errors.Is(err, service.ErrOwnsOrgRepos) {
-			code = "delete_org_repos"
+		if errors.Is(err, service.ErrSoleOrgOwner) {
+			code = "sole_org_owner"
 		} else {
 			slog.Error("delete account failed", "user_id", claims.UserID, "error", err)
 		}
