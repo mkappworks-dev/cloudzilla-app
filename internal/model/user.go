@@ -29,6 +29,12 @@ type User struct {
 	NotifyPRReview     bool           `db:"notify_pr_review"    json:"-"`
 	NotifyMention      bool           `db:"notify_mention"      json:"-"`
 	KeepEmailPrivate   bool           `db:"keep_email_private"  json:"-"`
+	EmailVerifiedAt    *time.Time     `db:"email_verified_at"   json:"-"`
+	SessionVersion     int            `db:"session_version"     json:"-"`
+}
+
+func (u *User) EmailVerified() bool {
+	return u.EmailVerifiedAt != nil
 }
 
 const (

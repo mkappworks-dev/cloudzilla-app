@@ -194,6 +194,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								RepoID:    data.Repo.ID,
 								Collabs:   data.Collabs,
 								CanManage: data.CanManage,
+								Confirm:   data.Confirm,
 							})
 						}
 					}
@@ -260,6 +261,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 										<input type="checkbox" name="read_only" value="true" checked class="rounded border-input accent-foreground"/>
 										Read-only (uncheck to allow push access)
 									</label>
+									@components.ConfirmFields("deploy-key", data.Confirm, true)
 								</form>
 							}
 							@components.DialogFooter() {
@@ -459,7 +461,8 @@ templ RepoSettings(data view.RepoSettingsData) {
 							}
 						}
 						@components.DialogBody() {
-							<form id="webhook-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks" } hx-target="#webhooks-list" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful){this.closest('dialog').close();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Webhook added'}}));}" class="space-y-4">
+							<form id="webhook-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks" } hx-target="#webhooks-list" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful&&event.detail.target&&event.detail.target.id==='webhooks-list'){this.closest('dialog').close();this.reset();this.querySelector('#webhook-form-error').textContent='';document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Webhook added'}}));}" class="space-y-4">
+								<div id="webhook-form-error"></div>
 								<div class="space-y-1.5">
 									<label for="webhook-url" class="block text-xs font-medium">Payload URL</label>
 									@components.Input(templ.Attributes{
@@ -488,6 +491,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 										"value": "push,issues,pull_request",
 									})
 								</div>
+								@components.ConfirmFields("webhook", data.Confirm, true)
 							</form>
 						}
 						@components.DialogFooter() {
@@ -587,8 +591,8 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer") } data-toast="Repository transferred">
-									<div class="flex gap-3">
+								<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer" } hx-swap="none" data-toast="Repository transferred">
+									<div class="flex flex-wrap items-end gap-3">
 										<label for="transfer-new-owner" class="sr-only">New owner: user or organization name</label>
 										@components.Input(templ.Attributes{
 											"id":          "transfer-new-owner",
@@ -598,6 +602,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 											"required":    "required",
 											"class":       "flex-1",
 										})
+										@components.ConfirmFields("transfer-repo", data.Confirm, true)
 										@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
 											"type":                "submit",
 											"data-confirm-action":  "true",

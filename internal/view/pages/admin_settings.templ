@@ -122,6 +122,51 @@ templ AdminSettings(data view.AdminSettingsData) {
 					</div>
 				}
 			}
+			@components.Card(nil) {
+				@components.CardHeader() {
+					@components.CardTitle(2) {
+						Email verification
+					}
+					@components.CardDescription() {
+						Mark a user's email address verified by hand, for instances that can't send the verification link. A verified address lets the Google account with that address sign in to the user's account, so only vouch for addresses you know are theirs.
+					}
+				}
+				@components.CardContent() {
+					<form
+						method="POST"
+						action="/api/admin/users/verify-email"
+						hx-post="/api/admin/users/verify-email"
+						hx-swap="none"
+						hx-on::after-request="if(event.detail.successful){this.reset();}"
+						data-toast="Email marked verified"
+						class="flex flex-col sm:flex-row gap-3"
+					>
+						<label for="verify-username" class="sr-only">Username</label>
+						@components.Input(templ.Attributes{
+							"id":           "verify-username",
+							"type":         "text",
+							"name":         "username",
+							"placeholder":  "username",
+							"required":     "required",
+							"autocomplete": "off",
+							"class":        "flex-1",
+						})
+						<label for="verify-email" class="sr-only">Email</label>
+						@components.Input(templ.Attributes{
+							"id":           "verify-email",
+							"type":         "email",
+							"name":         "email",
+							"placeholder":  "user@example.com",
+							"required":     "required",
+							"autocomplete": "off",
+							"class":        "flex-1",
+						})
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							Mark verified
+						}
+					</form>
+				}
+			}
 		</div>
 	}
 }

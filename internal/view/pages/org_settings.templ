@@ -197,6 +197,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 							Members:   data.Members,
 							CanManage: true,
 							ViewerID:  viewerUserID(data.BasePage),
+							Confirm:   data.Confirm,
 						})
 
 						<script>
@@ -397,22 +398,23 @@ templ OrgSettings(data view.OrgSettingsData) {
 			</div>
 		</div>
 
-		@orgInviteMemberDialog(data.Org.Name)
-		@orgTransferDialog(data.Org.Name)
+		@orgInviteMemberDialog(data.Org.Name, data.Confirm)
+		@orgTransferDialog(data.Org.Name, data.Confirm)
 		if data.RepoCount == 0 {
 			@orgDeleteDialog(data.Org.Name, data.MemberCount)
 		}
 	}
 }
 
-templ orgInviteMemberDialog(orgName string) {
+templ orgInviteMemberDialog(orgName string, confirm components.ConfirmFactors) {
 	@components.Dialog("invite-member-dialog") {
 		<form
 			hx-post={ "/api/orgs/" + orgName + "/members" }
 			hx-target="#org-members-list"
 			hx-swap="outerHTML"
 			data-toast="Member invited"
-			hx-on::after-request="if(event.detail.successful){this.closest('dialog').close(); this.reset();}"
+			x-data="{ role: 'member' }"
+			hx-on::after-request="if(event.detail.successful&&event.detail.target&&event.detail.target.id==='org-members-list'){this.closest('dialog').close();this.reset();this.querySelector('#invite-member-form-error').textContent='';this.querySelector('#invite-role').dispatchEvent(new Event('change'));}"
 		>
 			@components.DialogHeader() {
 				@components.DialogTitle("invite-member-dialog") {
@@ -424,6 +426,7 @@ templ orgInviteMemberDialog(orgName string) {
 			}
 			@components.DialogBody() {
 				<div class="space-y-4">
+					<div id="invite-member-form-error"></div>
 					<div>
 						<label for="invite-username" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Username</label>
 						<input
@@ -441,6 +444,7 @@ templ orgInviteMemberDialog(orgName string) {
 						<select
 							id="invite-role"
 							name="role"
+							x-model="role"
 							class="w-full h-9 rounded-md border border-input bg-background px-3 text-[13px] shadow-sm"
 						>
 							<option value="member" selected>Member</option>
@@ -448,6 +452,12 @@ templ orgInviteMemberDialog(orgName string) {
 						</select>
 						<p class="mt-1 text-[11.5px] text-muted-foreground">Owners can create repositories and manage settings, members, and ownership. Members need a collaborator role on each repository they work on.</p>
 					</div>
+					if confirm.Password || confirm.Code {
+						<div x-show="role === 'owner'" x-cloak class="space-y-4">
+							<p class="text-[12px] text-muted-foreground">Confirm it's you to add an owner.</p>
+							@components.ConfirmFields("invite-owner", confirm, false)
+						</div>
+					}
 				</div>
 			}
 			@components.DialogFooter() {
@@ -458,11 +468,11 @@ templ orgInviteMemberDialog(orgName string) {
 	}
 }
 
-templ orgTransferDialog(orgName string) {
+templ orgTransferDialog(orgName string, confirm components.ConfirmFactors) {
 	@components.Dialog("transfer-org-dialog") {
 		<form
-			method="POST"
-			action={ templ.SafeURL("/api/orgs/" + orgName + "/transfer") }
+			hx-post={ "/api/orgs/" + orgName + "/transfer" }
+			hx-swap="none"
 			data-toast="Organization transferred"
 		>
 			@components.DialogHeader() {
@@ -475,6 +485,7 @@ templ orgTransferDialog(orgName string) {
 			}
 			@components.DialogBody() {
 				<div class="space-y-4">
+					<div id="transfer-org-form-error"></div>
 					<div>
 						<label for="transfer-new-owner" class="block text-[12px] font-medium text-muted-foreground mb-1.5">New owner username</label>
 						<input
@@ -501,6 +512,7 @@ templ orgTransferDialog(orgName string) {
 							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"
 						/>
 					</div>
+					@components.ConfirmFields("transfer-org", confirm, true)
 				</div>
 			}
 			@components.DialogFooter() {

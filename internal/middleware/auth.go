@@ -26,6 +26,42 @@ type Claims struct {
 	// First-party sessions and PATs are unscoped and act with the user's full access.
 	Scoped bool
 	Scopes []string
+	// SessionVersion is the user's session version when a session JWT was issued.
+	SessionVersion int
+}
+
+// SessionVersions reports a user's current session version; bumping it ends
+// every session JWT issued before. Implemented by UserService.
+type SessionVersions interface {
+	SessionVersion(ctx context.Context, userID int64) (int, error)
+}
+
+type authOptions struct {
+	sessions SessionVersions
+}
+
+type AuthOption func(*authOptions)
+
+// WithSessionVersions refuses session JWTs whose version is no longer the user's,
+// and those of deleted users. Without it a JWT is good until it expires.
+func WithSessionVersions(v SessionVersions) AuthOption {
+	return func(o *authOptions) { o.sessions = v }
+}
+
+func applyAuthOptions(opts []AuthOption) authOptions {
+	var o authOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	return o
+}
+
+func (o authOptions) sessionLive(ctx context.Context, c Claims) bool {
+	if o.sessions == nil {
+		return true
+	}
+	v, err := o.sessions.SessionVersion(ctx, c.UserID)
+	return err == nil && v == c.SessionVersion
 }
 
 // HasScope reports whether the credential grants scope. Unscoped credentials grant every scope.
@@ -54,7 +90,8 @@ func ClaimsFromContext(ctx context.Context) (Claims, bool) {
 
 // Auth returns middleware that requires a valid JWT cookie, Bearer token, or PAT.
 // onUnauthorized handles unauthenticated requests (redirect to /login for HTML, JSON 401 for API).
-func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthTokenResolver, onUnauthorized http.HandlerFunc) func(http.Handler) http.Handler {
+func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthTokenResolver, onUnauthorized http.HandlerFunc, opts ...AuthOption) func(http.Handler) http.Handler {
+	o := applyAuthOptions(opts)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenStr := extractToken(r, cookieName)
@@ -96,7 +133,7 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 			}
 
 			claims, ok := claimsFromMap(mapClaims)
-			if !ok {
+			if !ok || !o.sessionLive(r.Context(), claims) {
 				onUnauthorized(w, r)
 				return
 			}
@@ -107,7 +144,8 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 }
 
 // OptionalAuth returns middleware that reads auth credentials if present but allows unauthenticated requests.
-func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthTokenResolver) func(http.Handler) http.Handler {
+func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthTokenResolver, opts ...AuthOption) func(http.Handler) http.Handler {
+	o := applyAuthOptions(opts)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenStr := extractToken(r, cookieName)
@@ -134,7 +172,7 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 				})
 				if err == nil && token.Valid {
 					if mapClaims, ok := token.Claims.(jwt.MapClaims); ok {
-						if claims, ok := claimsFromMap(mapClaims); ok {
+						if claims, ok := claimsFromMap(mapClaims); ok && o.sessionLive(r.Context(), claims) {
 							ctx := context.WithValue(r.Context(), claimsKey, claims)
 							r = r.WithContext(ctx)
 						}
@@ -199,6 +237,10 @@ func claimsFromMap(m jwt.MapClaims) (Claims, bool) {
 	}
 	if v, ok := m["is_superadmin"].(bool); ok {
 		c.IsSuperadmin = v
+	}
+	// Tokens from before session versions existed read as version 0.
+	if v, ok := m["sv"].(float64); ok {
+		c.SessionVersion = int(v)
 	}
 	return c, true
 }

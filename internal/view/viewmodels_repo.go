@@ -130,6 +130,8 @@ type RepoSettingsData struct {
 	BranchProtections []*model.BranchProtection
 	CanManage         bool
 	IsOwner           bool
+	// What the viewer confirms giving others access with.
+	Confirm components.ConfirmFactors
 }
 
 // BranchProtectionsFragData holds template data for the branch protections HTMX fragment.
@@ -300,6 +302,7 @@ type RepoCollaboratorsFragData struct {
 	RepoID    int64
 	Collabs   []model.Permission
 	CanManage bool
+	Confirm   components.ConfirmFactors
 }
 
 // Repo labels management (settings page)

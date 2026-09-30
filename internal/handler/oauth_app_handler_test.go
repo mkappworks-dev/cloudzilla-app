@@ -161,8 +161,8 @@ func TestPageOAuthAuthorize_SignedOutSendsWholeRequestAsNext(t *testing.T) {
 func TestConfirmAuthorize_StateCannotAddRedirectParams(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
-	userID := testutil.SeedUser(t, db, suffix)
-	token := makeIssueJWT(t, userID, "testuser_"+suffix)
+	userID, _ := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	token := makeIssueJWT(t, userID, "testpw_"+suffix)
 
 	const registered = "https://client.example/cb?tenant=acme"
 	const state = "x&code=evil&state=y"
@@ -173,13 +173,15 @@ func TestConfirmAuthorize_StateCannotAddRedirectParams(t *testing.T) {
 	}
 	cfg := &config.Config{Auth: config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: time.Hour, CookieName: testCookieName}}
 	r := chi.NewRouter()
-	r.Post("/oauth/authorize", handler.New(&service.Services{OAuthApp: oauthSvc}, cfg).ConfirmAuthorize)
+	users := store.NewUserStore(db)
+	reauth := service.NewReauthService(users, service.NewTOTPService(users))
+	r.Post("/oauth/authorize", handler.New(&service.Services{OAuthApp: oauthSvc, Reauth: reauth}, cfg).ConfirmAuthorize)
 	unauthorized := func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) }
 	router := middleware.Auth(testJWTSecret, testCookieName, nil, nil, unauthorized)(r)
 
 	for _, action := range []string{"allow", "deny"} {
 		t.Run(action, func(t *testing.T) {
-			form := url.Values{"client_id": {app.ClientID}, "redirect_uri": {registered}, "state": {state}, "action": {action}}
+			form := url.Values{"client_id": {app.ClientID}, "redirect_uri": {registered}, "state": {state}, "action": {action}, "password": {"password1"}}
 			req := httptest.NewRequest(http.MethodPost, "/oauth/authorize", strings.NewReader(form.Encode()))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			req.AddCookie(&http.Cookie{Name: testCookieName, Value: token})

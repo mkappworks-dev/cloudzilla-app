@@ -106,8 +106,7 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	allowReg := h.Services.SiteSetting.AllowRegistration(r.Context())
 	allowLogin := h.Services.SiteSetting.AllowLogin(r.Context())
 
-	oauthUser, jwtToken, err := h.Services.User.AuthenticateOAuth(r.Context(), identity, allowReg, allowLogin)
-	if err != nil {
+	fail := func(err error) {
 		loginError := func(status int, msg string) {
 			ldapEnabled, samlEnabled := h.ssoEnabled(r)
 			w.WriteHeader(status)
@@ -127,15 +126,25 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		case service.ErrOAuthEmailUnverified:
 			loginError(http.StatusForbidden, "Google hasn't verified this Google account's email address, so it can't be used to sign in. Verify the address with Google, or sign in with your password.")
 		case service.ErrOAuthAccountExists:
-			loginError(http.StatusConflict, "An account with this Google account's email address already exists. Sign in with your password, then connect Google under Account settings → Security.")
+			msg := "An account with this Google account's email address already exists. Sign in with your password, then connect Google under Account settings → Security."
+			if h.Services.EmailVerifier.Available() {
+				msg += " Verifying the address there also lets Google sign you in directly."
+			}
+			loginError(http.StatusConflict, msg)
+		case service.ErrOAuthAlreadyLinked:
+			loginError(http.StatusConflict, "The account with this email address is linked to a different Google account. Sign in with that Google account or with your password.")
 		default:
 			http.Error(w, "authentication failed", http.StatusInternalServerError)
 		}
-		return
 	}
 
-	if err := h.signIn(w, r, oauthUser, jwtToken, next); err != nil {
-		http.Error(w, "authentication failed", http.StatusInternalServerError)
+	login, err := h.Services.User.AuthenticateOAuth(r.Context(), identity, allowReg, allowLogin)
+	if err != nil {
+		fail(err)
+		return
+	}
+	if err := h.signInLinking(w, r, login.User, login.Token, next, login.Link); err != nil {
+		fail(err)
 	}
 }
 

@@ -80,6 +80,19 @@ func TestScopeAllows(t *testing.T) {
 		{"gists API", "POST", "/api/gists", []string{read, write}, false},
 		{"admin API", "POST", "/api/admin/settings", []string{read, write}, false},
 		{"consent screen", "POST", "/oauth/authorize", []string{read, write}, false},
+		{"resend verification email", "POST", "/settings/email/resend-verification", []string{read, write, issues, pulls}, false},
+		{"verify email page", "GET", "/verify-email?token=x", []string{read, write, issues, pulls}, false},
+		{"verify email submit", "POST", "/verify-email", []string{read, write, issues, pulls}, false},
+		{"admin verify email", "POST", "/api/admin/users/verify-email", []string{read, write, issues, pulls}, false},
+		{"sign out other sessions", "POST", "/settings/sessions/revoke", []string{read, write, issues, pulls}, false},
+		{"change password", "POST", "/settings/password", []string{read, write, issues, pulls}, false},
+		{"turn on 2FA", "POST", "/api/user/totp/enable", []string{read, write, issues, pulls}, false},
+		{"turn off 2FA", "POST", "/api/user/totp/disable", []string{read, write, issues, pulls}, false},
+		{"add collaborator", "POST", "/api/repos/alice/proj/collaborators", []string{read, write, issues, pulls}, false},
+		{"add deploy key", "POST", "/api/repos/alice/proj/keys", []string{read, write, issues, pulls}, false},
+		{"add webhook", "POST", "/api/repos/alice/proj/hooks", []string{read, write, issues, pulls}, false},
+		{"transfer repo", "POST", "/api/repos/alice/proj/transfer", []string{read, write, issues, pulls}, false},
+		{"transfer org", "POST", "/api/orgs/acme/transfer", []string{read, write, issues, pulls}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

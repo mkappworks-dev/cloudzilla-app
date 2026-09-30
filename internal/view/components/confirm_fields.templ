@@ -1,0 +1,25 @@
+package components
+
+// ConfirmFactors says which factors a user confirms sensitive actions with;
+// see service.ReauthService.
+type ConfirmFactors struct {
+	Password bool
+	Code     bool
+}
+
+// ConfirmFields asks for the factors in f. An account with neither gets no
+// fields, since it has nothing to confirm with.
+templ ConfirmFields(idPrefix string, f ConfirmFactors, required bool) {
+	if f.Password {
+		<div class="min-w-0">
+			<label for={ idPrefix + "-password" } class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
+			<input id={ idPrefix + "-password" } name="password" type="password" required?={ required } autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+		</div>
+	}
+	if f.Code {
+		<div>
+			<label for={ idPrefix + "-code" } class="block text-[12px] font-medium text-muted-foreground mb-1.5">Two-factor code</label>
+			<input id={ idPrefix + "-code" } name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required?={ required } autocomplete="one-time-code" placeholder="000000" class="h-9 w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 text-foreground focus:outline-none focus:border-ring"/>
+		</div>
+	}
+}

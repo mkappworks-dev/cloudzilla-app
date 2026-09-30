@@ -205,6 +205,9 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "username and role are required")
 		return
 	}
+	if !h.confirmAction(w, r, claims.UserID, confirmationFrom(r), "") {
+		return
+	}
 
 	if err := h.Services.Repo.AddCollaborator(r.Context(), repo.ID, username, role); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -215,17 +218,7 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventMemberAdded, map[string]any{"username": username})
 
 	if r.Header.Get("HX-Request") == "true" {
-		collabs, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
-		if collabs == nil {
-			collabs = []model.Permission{}
-		}
-		h.render(w, r, fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Collabs:  collabs,
-			CanManage: true,
-		}))
+		h.renderRepoCollaborators(w, r, owner, repoName, repo.ID, claims.UserID)
 		return
 	}
 
@@ -257,6 +250,9 @@ func (h *Handler) TransferRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "new_owner is required")
 		return
 	}
+	if !h.confirmAction(w, r, claims.UserID, confirmationFrom(r), "") {
+		return
+	}
 
 	if err := h.Services.Repo.TransferRepo(r.Context(), repo, claims.UserID, newOwner); err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "transfer failed")
@@ -265,7 +261,13 @@ func (h *Handler) TransferRepo(w http.ResponseWriter, r *http.Request) {
 
 	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionRepoTransfer, "repo", repo.ID, repo.Name, nil)
 
-	http.Redirect(w, r, "/"+newOwner+"/"+repoName, http.StatusSeeOther)
+	dest := "/" + newOwner + "/" + repoName
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", dest)
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	http.Redirect(w, r, dest, http.StatusSeeOther)
 }
 
 func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
@@ -312,19 +314,24 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		collabs, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
-		if collabs == nil {
-			collabs = []model.Permission{}
-		}
-		h.render(w, r, fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Collabs:  collabs,
-			CanManage: true,
-		}))
+		h.renderRepoCollaborators(w, r, owner, repoName, repo.ID, claims.UserID)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) renderRepoCollaborators(w http.ResponseWriter, r *http.Request, owner, repoName string, repoID, viewerID int64) {
+	collabs, _ := h.Services.Repo.ListCollaborators(r.Context(), repoID)
+	if collabs == nil {
+		collabs = []model.Permission{}
+	}
+	h.render(w, r, fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
+		Owner:     owner,
+		RepoName:  repoName,
+		RepoID:    repoID,
+		Collabs:   collabs,
+		CanManage: true,
+		Confirm:   h.confirmFactors(r.Context(), viewerID),
+	}))
 }

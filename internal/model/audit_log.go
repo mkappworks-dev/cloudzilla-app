@@ -44,4 +44,8 @@ const (
 	AuditActionOrgProfileUpdate  = "org.profile.update"
 	AuditActionOrgDefaultsUpdate = "org.defaults.update"
 	AuditActionOrgDelete         = "org.delete"
+	AuditActionEmailVerify       = "user.email.verify"
+	AuditActionEmailChange       = "user.email.change"
+	AuditActionSessionsRevoke    = "user.sessions.revoke"
+	AuditActionPasswordChange    = "user.password.change"
 )

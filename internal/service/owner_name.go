@@ -27,7 +27,7 @@ var reservedOwnerNames = map[string]bool{
 	"new": true, "notifications": true, "oauth": true, "organizations": true, "orgs": true, "pulls": true,
 	"read-all": true, "register": true, "repos": true, "search": true,
 	"settings": true, "setup": true, "stars": true, "static": true, "topic": true,
-	"unread-count": true,
+	"unread-count": true, "verify-email": true,
 }
 
 // ValidateOwnerName checks a new user or organization name. It runs only on

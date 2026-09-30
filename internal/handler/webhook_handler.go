@@ -10,14 +10,19 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
+const webhookFormError = "#webhook-form-error"
+
 type createWebhookRequest struct {
-	URL    string `json:"url"`
-	Secret string `json:"secret"`
-	Events string `json:"events"`
+	URL      string `json:"url"`
+	Secret   string `json:"secret"`
+	Events   string `json:"events"`
+	Password string `json:"password"`
+	Code     string `json:"code"`
 }
 
 func (h *Handler) ListWebhooks(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +65,9 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var url, secret, events string
-	if r.Header.Get("HX-Request") == "true" {
+	var confirm service.Confirmation
+	htmx := r.Header.Get("HX-Request") == "true"
+	if htmx {
 		if err := r.ParseForm(); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid form data")
 			return
@@ -68,6 +75,7 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		url = r.FormValue("url")
 		secret = r.FormValue("secret")
 		events = r.FormValue("events")
+		confirm = confirmationFrom(r)
 	} else {
 		var req createWebhookRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -77,21 +85,33 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		url = req.URL
 		secret = req.Secret
 		events = req.Events
+		confirm = service.Confirmation{Password: req.Password, Code: req.Code}
 	}
 
 	if url == "" {
+		if htmx {
+			renderFormError(w, webhookFormError, "Payload URL is required.")
+			return
+		}
 		writeError(w, http.StatusBadRequest, "url is required")
+		return
+	}
+	if !h.confirmAction(w, r, claims.UserID, confirm, webhookFormError) {
 		return
 	}
 
 	wh, err := h.Services.Webhook.Create(r.Context(), repo.ID, url, secret, events)
 	if err != nil {
 		slog.Error("operation failed", "error", err)
+		if htmx {
+			renderFormError(w, webhookFormError, "Couldn't add the webhook. Please try again.")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
-	if r.Header.Get("HX-Request") == "true" {
+	if htmx {
 		hooks, _ := h.Services.Webhook.ListByRepo(r.Context(), repo.ID)
 		if hooks == nil {
 			hooks = []model.Webhook{}

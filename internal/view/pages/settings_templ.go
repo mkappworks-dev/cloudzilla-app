@@ -62,7 +62,7 @@ func Settings(data view.SettingsData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
-				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(settingsErrorMessage(data.ProfileError))
+				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(SettingsErrorMessage(data.ProfileError))
 				if templ_7745c5c3_Err != nil {
 					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 21, Col: 159}
 				}
@@ -282,98 +282,142 @@ func settingsProfileSection(data view.SettingsData) templ.Component {
 			templ_7745c5c3_Var9 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<section id=\"profile\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">Profile</h2><p class=\"text-[12.5px] text-muted-foreground mb-6\">How others see you across Cloudzilla.</p><form method=\"POST\" action=\"/settings/profile\" data-toast=\"Profile saved\" class=\"space-y-5\"><div class=\"flex items-start gap-4 mb-2\"><div class=\"h-16 w-16 rounded-full grid place-items-center text-base font-semibold shrink-0 bg-muted border border-border\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<section id=\"profile\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">Profile</h2><p class=\"text-[12.5px] text-muted-foreground mb-6\">How others see you across Cloudzilla.</p><form method=\"POST\" action=\"/settings/profile\" data-toast=\"Profile saved\" class=\"space-y-5\" x-data=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var10 string
-		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(avatarInitials(data.User.Name, data.User.Username))
+		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ original: " + components.JSLiteral(data.User.Email) + ", email: " + components.JSLiteral(data.User.Email) + " }")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 100, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 97, Col: 218}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</div><div class=\"space-y-2\"><button type=\"button\" disabled class=\"h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed\">Upload new picture</button><p class=\"text-[11.5px] text-muted-foreground\">PNG or JPG, max 2 MB. (Coming soon.)</p></div></div><div><label for=\"acct-name\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Name</label> <input id=\"acct-name\" name=\"name\" type=\"text\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\"><div class=\"flex items-start gap-4 mb-2\"><div class=\"h-16 w-16 rounded-full grid place-items-center text-base font-semibold shrink-0 bg-muted border border-border\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var11 string
-		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.User.Name)
+		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(avatarInitials(data.User.Name, data.User.Username))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 109, Col: 72}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 100, Col: 57}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"acct-username\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Username</label> <input id=\"acct-username\" type=\"text\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div><div class=\"space-y-2\"><button type=\"button\" disabled class=\"h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed\">Upload new picture</button><p class=\"text-[11.5px] text-muted-foreground\">PNG or JPG, max 2 MB. (Coming soon.)</p></div></div><div><label for=\"acct-name\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Name</label> <input id=\"acct-name\" name=\"name\" type=\"text\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var12 string
-		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.User.Username)
+		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.User.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 113, Col: 68}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 109, Col: 72}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" readonly class=\"w-full bg-muted/50 border border-border rounded-md px-3 py-2 text-[13px] font-mono text-muted-foreground focus:outline-none\"><p class=\"mt-1 text-[11.5px] text-muted-foreground\">Usernames can't be changed.</p></div><div><label for=\"acct-email\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Email</label> <input id=\"acct-email\" name=\"email\" type=\"email\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"acct-username\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Username</label> <input id=\"acct-username\" type=\"text\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var13 string
-		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.User.Email)
+		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.User.Username)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 118, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 113, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" required class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring\"><p class=\"mt-1 text-[11.5px] text-muted-foreground\">Used for sign-in and notifications.</p></div><div><label for=\"acct-bio\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Bio</label> <textarea id=\"acct-bio\" name=\"bio\" rows=\"3\" placeholder=\"A short description of yourself\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" readonly class=\"w-full bg-muted/50 border border-border rounded-md px-3 py-2 text-[13px] font-mono text-muted-foreground focus:outline-none\"><p class=\"mt-1 text-[11.5px] text-muted-foreground\">Usernames can't be changed.</p></div><div><label for=\"acct-email\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Email</label> <input id=\"acct-email\" name=\"email\" type=\"email\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var14 string
-		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(data.User.Bio)
+		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.User.Email)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 123, Col: 245}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 118, Col: 76}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</textarea></div><div class=\"grid grid-cols-1 sm:grid-cols-2 gap-4\"><div><label for=\"acct-company\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Company</label> <input id=\"acct-company\" name=\"company\" type=\"text\" value=\"")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var15 string
-		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.User.Company)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 128, Col: 82}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" x-model=\"email\" required class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring\"><p class=\"mt-1 text-[11.5px] text-muted-foreground\">Used for sign-in and notifications. A new address has to be verified again.</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" placeholder=\"Company or @organization\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"acct-location\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Location</label> <input id=\"acct-location\" name=\"location\" type=\"text\" value=\"")
+		if data.HasPassword || data.TOTPEnabled {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div x-show=\"email !== original\" x-cloak class=\"mt-3 flex flex-wrap items-end gap-3\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = settingsConfirmFields("email-change", data.HasPassword, data.TOTPEnabled, false).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<p class=\"basis-full text-[11.5px] text-muted-foreground\">Changing your email needs your password")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var15 string
+			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(confirmCodeSuffix(data.TOTPEnabled))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 123, Col: 140}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, ".</p></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div><div><label for=\"acct-bio\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Bio</label> <textarea id=\"acct-bio\" name=\"bio\" rows=\"3\" placeholder=\"A short description of yourself\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var16 string
-		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.User.Location)
+		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(data.User.Bio)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 132, Col: 85}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 129, Col: 245}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\" placeholder=\"City, Country\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div></div><div class=\"flex items-center justify-end gap-2\"><button type=\"reset\" class=\"h-9 px-4 text-sm rounded-md border border-border hover:bg-muted text-foreground\">Cancel</button> <button type=\"submit\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90\">Save profile</button></div></form></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</textarea></div><div class=\"grid grid-cols-1 sm:grid-cols-2 gap-4\"><div><label for=\"acct-company\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Company</label> <input id=\"acct-company\" name=\"company\" type=\"text\" value=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var17 string
+		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.User.Company)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 134, Col: 82}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "\" placeholder=\"Company or @organization\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"acct-location\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Location</label> <input id=\"acct-location\" name=\"location\" type=\"text\" value=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var18 string
+		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.User.Location)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 138, Col: 85}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "\" placeholder=\"City, Country\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div></div><div class=\"flex items-center justify-end gap-2\"><button type=\"reset\" class=\"h-9 px-4 text-sm rounded-md border border-border hover:bg-muted text-foreground\">Cancel</button> <button type=\"submit\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90\">Save profile</button></div></form></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -397,137 +441,382 @@ func settingsSecuritySection(data view.SettingsData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var17 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var17 == nil {
-			templ_7745c5c3_Var17 = templ.NopComponent
+		templ_7745c5c3_Var19 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var19 == nil {
+			templ_7745c5c3_Var19 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<section id=\"security\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">Security</h2><p class=\"text-[12.5px] text-muted-foreground mb-6\">Password, two-factor authentication, and connected accounts.</p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<section id=\"security\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">Security</h2><p class=\"text-[12.5px] text-muted-foreground mb-6\">Password, two-factor authentication, and connected accounts.</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if len(data.BackupCodes) > 0 {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<div class=\"mb-6 border border-warning/40 bg-warning/10 rounded-md p-4\"><p class=\"text-[13.5px] font-medium text-warning mb-2\">Save your backup codes</p><p class=\"text-[12px] text-warning mb-3\">Each code can be used once if you lose access to your authenticator. They will not be shown again.</p><div class=\"grid grid-cols-2 gap-2 font-mono text-[12.5px]\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<div class=\"mb-6 border border-warning/40 bg-warning/10 rounded-md p-4\"><p class=\"text-[13.5px] font-medium text-warning mb-2\">Save your backup codes</p><p class=\"text-[12px] text-warning mb-3\">Each code can be used once if you lose access to your authenticator. They will not be shown again.</p><div class=\"grid grid-cols-2 gap-2 font-mono text-[12.5px]\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			for _, code := range data.BackupCodes {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<div class=\"bg-background border border-warning/40 rounded px-3 py-1.5 text-center tracking-widest text-foreground\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<div class=\"bg-background border border-warning/40 rounded px-3 py-1.5 text-center tracking-widest text-foreground\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var18 string
-				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(code)
+				var templ_7745c5c3_Var20 string
+				templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(code)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 153, Col: 128}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 159, Col: 128}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "</div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<ul class=\"divide-y divide-border\"><li class=\"py-4 flex items-start justify-between gap-4\"><div class=\"min-w-0\"><p class=\"text-[13.5px] font-medium\">Password</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Use a strong, unique password for your account.</p></div><button type=\"button\" disabled class=\"h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed shrink-0\">Change password</button></li><li class=\"py-4\"><div class=\"flex items-start justify-between gap-4\"><div class=\"min-w-0\"><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\">Two-factor authentication ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<ul class=\"divide-y divide-border\"><li id=\"password\" class=\"py-4 scroll-mt-6\"><div class=\"flex items-start justify-between gap-4\"><div class=\"min-w-0\"><p class=\"text-[13.5px] font-medium\">Password</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if data.TOTPEnabled {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success\">Enabled</span>")
+		if data.HasPassword {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Changing it signs out every session, so anyone else who knows the old one is signed out too.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground\">Disabled</span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">This account signs in with Google and has no password.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">TOTP via authenticator app (Google Authenticator, 1Password, Authy).</p></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if data.TOTPEnabled {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<form method=\"POST\" action=\"/api/user/totp/disable\" data-toast=\"Two-factor authentication disabled\" class=\"mt-4 flex items-end gap-3\"><div><label for=\"totp-disable-code\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Verification code</label> <input id=\"totp-disable-code\" name=\"code\" type=\"text\" inputmode=\"numeric\" pattern=\"[0-9]*\" maxlength=\"6\" required autocomplete=\"one-time-code\" placeholder=\"000000\" class=\"w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:border-ring\"></div><button type=\"submit\" class=\"h-9 px-4 text-sm rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10\">Disable 2FA</button></form>")
+		if data.HasPassword {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "<button type=\"button\" onclick=\"document.getElementById('change-password-dialog').showModal()\" class=\"h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground shrink-0\">Change password</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-		} else if data.TOTPPendingSecret != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<div class=\"mt-4 space-y-4\"><div class=\"flex gap-6 items-start\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			if data.TOTPQRCode != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<img src=\"")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				var templ_7745c5c3_Var19 string
-				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.TOTPQRCode)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 192, Col: 34}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var19)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "\" width=\"160\" height=\"160\" alt=\"TOTP QR Code\" class=\"shrink-0 border border-border rounded-md\">")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "<div class=\"flex-1 min-w-0\"><p class=\"text-[12.5px] font-medium mb-1\">Or enter this key manually</p><code class=\"block bg-muted border border-border rounded px-3 py-2 text-[12.5px] font-mono tracking-widest break-all text-foreground\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var20 string
-			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(data.TOTPPendingSecret)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 196, Col: 166}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "</code></div></div><form method=\"POST\" action=\"/api/user/totp/enable\" data-toast=\"Two-factor authentication enabled\" class=\"flex items-end gap-3\"><input type=\"hidden\" name=\"secret\" value=\"")
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if data.PasswordError != "" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<div role=\"alert\" class=\"mt-3 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-3 py-2 text-[12.5px]\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var21 string
-			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.TOTPPendingSecret)
+			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(SettingsErrorMessage(data.PasswordError))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 200, Col: 72}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 180, Col: 177}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var21)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "\"><div><label for=\"totp-enable-code\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Enter the 6-digit code from your app</label> <input id=\"totp-enable-code\" name=\"code\" type=\"text\" inputmode=\"numeric\" pattern=\"[0-9]*\" maxlength=\"6\" required autocomplete=\"one-time-code\" placeholder=\"000000\" class=\"w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:border-ring\"></div><button type=\"submit\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90\">Verify &amp; enable</button></form></div>")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<form method=\"POST\" action=\"/settings/security/setup\" class=\"mt-3\"><button type=\"submit\" class=\"h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground\">Set up 2FA</button></form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</li></ul>")
+		if data.PasswordChanged {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<div role=\"status\" class=\"mt-3 border border-success/40 bg-success/10 text-success rounded-md px-3 py-2 text-[12.5px]\">Password changed. Every other session is signed out.</div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</li><li class=\"py-4\"><div class=\"flex items-start justify-between gap-4\"><div class=\"min-w-0\"><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\">Two-factor authentication ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
+		}
+		if data.TOTPEnabled {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success\">Enabled</span>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		} else {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground\">Disabled</span>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">TOTP via authenticator app (Google Authenticator, 1Password, Authy).</p></div></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if data.TOTPEnabled {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "<form method=\"POST\" action=\"/api/user/totp/disable\" data-toast=\"Two-factor authentication disabled\" class=\"mt-4 flex flex-wrap items-end gap-3\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = settingsConfirmFields("totp-disable", data.HasPassword, false, true).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "<div><label for=\"totp-disable-code\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Verification code</label> <input id=\"totp-disable-code\" name=\"code\" type=\"text\" inputmode=\"numeric\" pattern=\"[0-9]*\" maxlength=\"6\" required autocomplete=\"one-time-code\" placeholder=\"000000\" class=\"w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:border-ring\"></div><button type=\"submit\" class=\"h-9 px-4 text-sm rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10\">Disable 2FA</button></form>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		} else if data.TOTPPendingSecret != "" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "<div class=\"mt-4 space-y-4\"><div class=\"flex gap-6 items-start\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if data.TOTPQRCode != "" {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<img src=\"")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var22 string
+				templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.TOTPQRCode)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 213, Col: 34}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var22)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "\" width=\"160\" height=\"160\" alt=\"TOTP QR Code\" class=\"shrink-0 border border-border rounded-md\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "<div class=\"flex-1 min-w-0\"><p class=\"text-[12.5px] font-medium mb-1\">Or enter this key manually</p><code class=\"block bg-muted border border-border rounded px-3 py-2 text-[12.5px] font-mono tracking-widest break-all text-foreground\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var23 string
+			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(data.TOTPPendingSecret)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 217, Col: 166}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "</code></div></div><form method=\"POST\" action=\"/api/user/totp/enable\" data-toast=\"Two-factor authentication enabled\" class=\"flex flex-wrap items-end gap-3\"><input type=\"hidden\" name=\"secret\" value=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var24 string
+			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.TOTPPendingSecret)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 221, Col: 72}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var24)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = settingsConfirmFields("totp-enable", data.HasPassword, false, true).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "<div><label for=\"totp-enable-code\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Enter the 6-digit code from your app</label> <input id=\"totp-enable-code\" name=\"code\" type=\"text\" inputmode=\"numeric\" pattern=\"[0-9]*\" maxlength=\"6\" required autocomplete=\"one-time-code\" placeholder=\"000000\" class=\"w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:border-ring\"></div><button type=\"submit\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90\">Verify &amp; enable</button></form></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		} else {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "<form method=\"POST\" action=\"/settings/security/setup\" class=\"mt-3\"><button type=\"submit\" class=\"h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground\">Set up 2FA</button></form>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "</li></ul>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if data.HasPassword {
+			templ_7745c5c3_Err = settingsChangePasswordDialog(data.TOTPEnabled).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 		}
 		templ_7745c5c3_Err = settingsConnectedAccounts(data).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "</section>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func settingsChangePasswordDialog(withCode bool) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var25 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var25 == nil {
+			templ_7745c5c3_Var25 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Var26 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+			if !templ_7745c5c3_IsBuffer {
+				defer func() {
+					templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+					if templ_7745c5c3_Err == nil {
+						templ_7745c5c3_Err = templ_7745c5c3_BufErr
+					}
+				}()
+			}
+			ctx = templ.InitializeContext(ctx)
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "<form method=\"POST\" action=\"/settings/password\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Var27 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+				if !templ_7745c5c3_IsBuffer {
+					defer func() {
+						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+						if templ_7745c5c3_Err == nil {
+							templ_7745c5c3_Err = templ_7745c5c3_BufErr
+						}
+					}()
+				}
+				ctx = templ.InitializeContext(ctx)
+				templ_7745c5c3_Var28 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+					if !templ_7745c5c3_IsBuffer {
+						defer func() {
+							templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+							if templ_7745c5c3_Err == nil {
+								templ_7745c5c3_Err = templ_7745c5c3_BufErr
+							}
+						}()
+					}
+					ctx = templ.InitializeContext(ctx)
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "Change password")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					return nil
+				})
+				templ_7745c5c3_Err = components.DialogTitle("change-password-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var28), templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, " ")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Var29 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+					if !templ_7745c5c3_IsBuffer {
+						defer func() {
+							templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+							if templ_7745c5c3_Err == nil {
+								templ_7745c5c3_Err = templ_7745c5c3_BufErr
+							}
+						}()
+					}
+					ctx = templ.InitializeContext(ctx)
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "Every session signed in to your account is signed out. This browser stays signed in.")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					return nil
+				})
+				templ_7745c5c3_Err = components.DialogDescription().Render(templ.WithChildren(ctx, templ_7745c5c3_Var29), templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				return nil
+			})
+			templ_7745c5c3_Err = components.DialogHeader().Render(templ.WithChildren(ctx, templ_7745c5c3_Var27), templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Var30 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+				if !templ_7745c5c3_IsBuffer {
+					defer func() {
+						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+						if templ_7745c5c3_Err == nil {
+							templ_7745c5c3_Err = templ_7745c5c3_BufErr
+						}
+					}()
+				}
+				ctx = templ.InitializeContext(ctx)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "<div class=\"space-y-4\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = settingsConfirmFields("password-change", true, withCode, true).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, "<div><label for=\"new-password\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">New password</label> <input id=\"new-password\" name=\"new_password\" type=\"password\" required minlength=\"8\" autocomplete=\"new-password\" aria-describedby=\"new-password-help\" class=\"h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-ring\"><p id=\"new-password-help\" class=\"mt-1 text-[11.5px] text-muted-foreground\">At least 8 characters.</p></div><div><label for=\"new-password-confirm\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Confirm new password</label> <input id=\"new-password-confirm\" name=\"new_password_confirm\" type=\"password\" required minlength=\"8\" autocomplete=\"new-password\" class=\"h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div></div>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				return nil
+			})
+			templ_7745c5c3_Err = components.DialogBody().Render(templ.WithChildren(ctx, templ_7745c5c3_Var30), templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Var31 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+				if !templ_7745c5c3_IsBuffer {
+					defer func() {
+						templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+						if templ_7745c5c3_Err == nil {
+							templ_7745c5c3_Err = templ_7745c5c3_BufErr
+						}
+					}()
+				}
+				ctx = templ.InitializeContext(ctx)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "<button type=\"button\" onclick=\"this.closest('dialog').close()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4\">Cancel</button> <button type=\"submit\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90\">Change password</button>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				return nil
+			})
+			templ_7745c5c3_Err = components.DialogFooter().Render(templ.WithChildren(ctx, templ_7745c5c3_Var31), templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, "</form>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			return nil
+		})
+		templ_7745c5c3_Err = components.Dialog("change-password-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var26), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -551,54 +840,54 @@ func settingsConnectedAccounts(data view.SettingsData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var22 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var22 == nil {
-			templ_7745c5c3_Var22 = templ.NopComponent
+		templ_7745c5c3_Var32 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var32 == nil {
+			templ_7745c5c3_Var32 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "<div id=\"connected-accounts\" class=\"mt-2 pt-6 border-t border-border scroll-mt-6\"><h3 class=\"text-[13.5px] font-semibold tracking-tight mb-1\">Connected accounts</h3><p class=\"text-[12.5px] text-muted-foreground mb-4\">Sign in with an account you have elsewhere. Cloudzilla never connects one by matching email addresses; you connect it here.</p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, "<div id=\"connected-accounts\" class=\"mt-2 pt-6 border-t border-border scroll-mt-6\"><h3 class=\"text-[13.5px] font-semibold tracking-tight mb-1\">Connected accounts</h3><p class=\"text-[12.5px] text-muted-foreground mb-4\">Sign in with an account you have elsewhere. Connect it here, or sign in with a Google account whose verified address matches this account's verified email.</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.ConnectedAccountsError != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<div role=\"alert\" class=\"mb-4 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-3 py-2 text-[12.5px]\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 65, "<div role=\"alert\" class=\"mb-4 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-3 py-2 text-[12.5px]\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var23 string
-			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(settingsErrorMessage(data.ConnectedAccountsError))
+			var templ_7745c5c3_Var33 string
+			templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(SettingsErrorMessage(data.ConnectedAccountsError))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 224, Col: 184}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 282, Col: 184}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
 		if settingsNoticeMessage(data.ConnectedAccountsNotice) != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<div role=\"status\" class=\"mb-4 border border-success/40 bg-success/10 text-success rounded-md px-3 py-2 text-[12.5px]\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 67, "<div role=\"status\" class=\"mb-4 border border-success/40 bg-success/10 text-success rounded-md px-3 py-2 text-[12.5px]\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var24 string
-			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(settingsNoticeMessage(data.ConnectedAccountsNotice))
+			var templ_7745c5c3_Var34 string
+			templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(settingsNoticeMessage(data.ConnectedAccountsNotice))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 227, Col: 175}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 285, Col: 175}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 68, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "<div class=\"flex items-start gap-3\"><span class=\"h-8 w-8 shrink-0 grid place-items-center rounded-md border border-border bg-background\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 69, "<div class=\"flex items-start gap-3\"><span class=\"h-8 w-8 shrink-0 grid place-items-center rounded-md border border-border bg-background\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -606,27 +895,27 @@ func settingsConnectedAccounts(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "</span><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\">Google ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 70, "</span><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\">Google ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.GoogleConnected {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success\">Connected</span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success\">Connected</span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground\">Not connected</span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 72, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground\">Not connected</span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "</p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.GoogleConnected && data.HasPassword {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "<p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">You can sign in with Google or with your password.</p><form method=\"POST\" action=\"/settings/connected-accounts/google/disconnect\" class=\"mt-3 flex flex-wrap items-end gap-3\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 74, "<p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">You can sign in with Google or with your password.</p><form method=\"POST\" action=\"/settings/connected-accounts/google/disconnect\" class=\"mt-3 flex flex-wrap items-end gap-3\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -634,22 +923,22 @@ func settingsConnectedAccounts(data view.SettingsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "<button type=\"submit\" class=\"h-9 px-4 text-sm rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10\">Disconnect</button></form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "<button type=\"submit\" class=\"h-9 px-4 text-sm rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10\">Disconnect</button></form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else if data.GoogleConnected {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "<p id=\"google-disconnect-help\" class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Google is the only way to sign in to this account, which has no password. Disconnecting it would lock you out.</p><button type=\"button\" disabled aria-describedby=\"google-disconnect-help\" class=\"mt-3 h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed\">Disconnect</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "<p id=\"google-disconnect-help\" class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Google is the only way to sign in to this account, which has no password. Disconnecting it would lock you out.</p><button type=\"button\" disabled aria-describedby=\"google-disconnect-help\" class=\"mt-3 h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed\">Disconnect</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else if !data.GoogleConfigured {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "<p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Google sign-in isn't set up on this instance.</p>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 77, "<p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Google sign-in isn't set up on this instance.</p>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else if data.HasPassword {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "<p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Confirm it's you, then choose the Google account to connect.</p><form method=\"POST\" action=\"/settings/connected-accounts/google\" class=\"mt-3 flex flex-wrap items-end gap-3\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 78, "<p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Confirm it's you, then choose the Google account to connect.</p><form method=\"POST\" action=\"/settings/connected-accounts/google\" class=\"mt-3 flex flex-wrap items-end gap-3\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -657,17 +946,48 @@ func settingsConnectedAccounts(data view.SettingsData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "<button type=\"submit\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90\">Connect Google</button></form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 79, "<button type=\"submit\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90\">Connect Google</button></form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "<p id=\"google-connect-help\" class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Connecting needs your password to confirm it's you, and this account doesn't have one.</p><button type=\"button\" disabled aria-describedby=\"google-connect-help\" class=\"mt-3 h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed\">Connect Google</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 80, "<p id=\"google-connect-help\" class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Connecting needs your password to confirm it's you, and this account doesn't have one.</p><button type=\"button\" disabled aria-describedby=\"google-connect-help\" class=\"mt-3 h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed\">Connect Google</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "</div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 81, "</div></div></div>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+// settingsConfirmFields asks for the factors the account has.
+// required is false where the fields only matter for some submissions.
+func settingsConfirmFields(idPrefix string, hasPassword, withCode, required bool) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var35 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var35 == nil {
+			templ_7745c5c3_Var35 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = components.ConfirmFields(idPrefix, components.ConfirmFactors{Password: hasPassword, Code: withCode}, required).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -691,72 +1011,14 @@ func settingsReauthFields(idPrefix string, withCode bool) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var25 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var25 == nil {
-			templ_7745c5c3_Var25 = templ.NopComponent
+		templ_7745c5c3_Var36 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var36 == nil {
+			templ_7745c5c3_Var36 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "<div class=\"min-w-0\"><label for=\"")
+		templ_7745c5c3_Err = settingsConfirmFields(idPrefix, true, withCode, true).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var26 string
-		templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.ResolveAttributeValue(idPrefix + "-password")
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 270, Col: 37}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var26)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 59, "\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Current password</label> <input id=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var27 string
-		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.ResolveAttributeValue(idPrefix + "-password")
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 271, Col: 36}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var27)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "\" name=\"password\" type=\"password\" required autocomplete=\"current-password\" class=\"h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		if withCode {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, "<div><label for=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var28 string
-			templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.ResolveAttributeValue(idPrefix + "-code")
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 275, Col: 34}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var28)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Two-factor code</label> <input id=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var29 string
-			templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.ResolveAttributeValue(idPrefix + "-code")
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 276, Col: 33}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var29)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, "\" name=\"code\" type=\"text\" inputmode=\"numeric\" pattern=\"[0-9]*\" maxlength=\"6\" required autocomplete=\"one-time-code\" placeholder=\"000000\" class=\"h-9 w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 text-foreground focus:outline-none focus:border-ring\"></div>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
 		}
 		return nil
 	})
@@ -778,128 +1040,128 @@ func settingsSSHKeysSection(data view.SettingsData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var30 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var30 == nil {
-			templ_7745c5c3_Var30 = templ.NopComponent
+		templ_7745c5c3_Var37 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var37 == nil {
+			templ_7745c5c3_Var37 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, "<section id=\"ssh-keys\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><div class=\"flex items-start justify-between gap-4 mb-6\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">SSH keys</h2><p class=\"text-[12.5px] text-muted-foreground\">Used for git push/pull over SSH.</p></div><button type=\"button\" onclick=\"document.getElementById('add-ssh-key-dialog').showModal()\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg> Add SSH key</button></div><div id=\"ssh-keys-list\" class=\"space-y-2 mb-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 82, "<section id=\"ssh-keys\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><div class=\"flex items-start justify-between gap-4 mb-6\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">SSH keys</h2><p class=\"text-[12.5px] text-muted-foreground\">Used for git push/pull over SSH.</p></div><button type=\"button\" onclick=\"document.getElementById('add-ssh-key-dialog').showModal()\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg> Add SSH key</button></div><div id=\"ssh-keys-list\" class=\"space-y-2 mb-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if len(data.SSHKeys) > 0 {
 			for _, k := range data.SSHKeys {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 65, "<div class=\"flex items-center gap-3 border border-border rounded-md p-3\" data-key-id=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 83, "<div class=\"flex items-center gap-3 border border-border rounded-md p-3\" data-key-id=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var31 string
-				templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatInt(k.ID, 10))
+				var templ_7745c5c3_Var38 string
+				templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatInt(k.ID, 10))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 300, Col: 119}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 355, Col: 119}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var31)
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground shrink-0\" aria-hidden=\"true\"><path d=\"M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4\"></path></svg><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium\">")
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var38)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var32 string
-				templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(k.Title)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 303, Col: 53}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 84, "\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground shrink-0\" aria-hidden=\"true\"><path d=\"M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4\"></path></svg><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 67, "</p><p class=\"text-[11.5px] text-muted-foreground font-mono break-all\">")
+				var templ_7745c5c3_Var39 string
+				templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(k.Title)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 358, Col: 53}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var33 string
-				templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(k.Fingerprint)
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 304, Col: 89}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 85, "</p><p class=\"text-[11.5px] text-muted-foreground font-mono break-all\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 68, "</p><p class=\"text-[11.5px] text-muted-foreground mt-0.5\">Added <time datetime=\"")
+				var templ_7745c5c3_Var40 string
+				templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(k.Fingerprint)
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 359, Col: 89}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var34 string
-				templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.ResolveAttributeValue(k.CreatedAt.UTC().Format(time.RFC3339))
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 306, Col: 69}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var34)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 86, "</p><p class=\"text-[11.5px] text-muted-foreground mt-0.5\">Added <time datetime=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 69, "\">")
+				var templ_7745c5c3_Var41 string
+				templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.ResolveAttributeValue(k.CreatedAt.UTC().Format(time.RFC3339))
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 361, Col: 69}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var41)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var35 string
-				templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(k.CreatedAt.Format("Jan 2, 2006"))
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 306, Col: 107}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, "\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 70, "</time></p></div><button type=\"button\" hx-delete=\"")
+				var templ_7745c5c3_Var42 string
+				templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(k.CreatedAt.Format("Jan 2, 2006"))
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 361, Col: 107}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var36 string
-				templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/user/keys/" + strconv.FormatInt(k.ID, 10))
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 311, Col: 66}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var36)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 88, "</time></p></div><button type=\"button\" hx-delete=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" hx-confirm=\"")
+				var templ_7745c5c3_Var43 string
+				templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/user/keys/" + strconv.FormatInt(k.ID, 10))
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 366, Col: 66}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var43)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var37 string
-				templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.ResolveAttributeValue("The " + k.Title + " key will immediately lose access. Any system using it for git operations will stop working.")
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 314, Col: 133}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var37)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 89, "\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" hx-confirm=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 72, "\" data-confirm-title=\"Remove this SSH key?\" data-confirm-label=\"Remove\" data-confirm-danger=\"true\" data-toast=\"SSH key removed\" class=\"h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0\">Remove</button></div>")
+				var templ_7745c5c3_Var44 string
+				templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.ResolveAttributeValue("The " + k.Title + " key will immediately lose access. Any system using it for git operations will stop working.")
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 369, Col: 133}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var44)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 90, "\" data-confirm-title=\"Remove this SSH key?\" data-confirm-label=\"Remove\" data-confirm-danger=\"true\" data-toast=\"SSH key removed\" class=\"h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0\">Remove</button></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "<div class=\"text-center py-6 border border-dashed border-border rounded-md text-[13px] text-muted-foreground\">No SSH keys yet.</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 91, "<div class=\"text-center py-6 border border-dashed border-border rounded-md text-[13px] text-muted-foreground\">No SSH keys yet.</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 74, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 92, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = settingsAddSSHKeyDialog().Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = settingsAddSSHKeyDialog(data).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "</section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 93, "</section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -907,7 +1169,7 @@ func settingsSSHKeysSection(data view.SettingsData) templ.Component {
 	})
 }
 
-func settingsAddSSHKeyDialog() templ.Component {
+func settingsAddSSHKeyDialog(data view.SettingsData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -923,12 +1185,12 @@ func settingsAddSSHKeyDialog() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var38 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var38 == nil {
-			templ_7745c5c3_Var38 = templ.NopComponent
+		templ_7745c5c3_Var45 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var45 == nil {
+			templ_7745c5c3_Var45 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Var39 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_Var46 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 			if !templ_7745c5c3_IsBuffer {
@@ -940,11 +1202,11 @@ func settingsAddSSHKeyDialog() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "<form id=\"add-ssh-key-form\" hx-post=\"/api/user/keys\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" data-toast=\"SSH key added\" hx-on::after-request=\"if(event.detail.successful){this.closest('dialog').close(); this.reset();}\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 94, "<form id=\"add-ssh-key-form\" hx-post=\"/api/user/keys\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" data-toast=\"SSH key added\" hx-on::after-request=\"if(event.detail.successful){this.closest('dialog').close(); this.reset();}\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var40 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var47 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -956,7 +1218,7 @@ func settingsAddSSHKeyDialog() templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Var41 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_Var48 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 					if !templ_7745c5c3_IsBuffer {
@@ -968,21 +1230,21 @@ func settingsAddSSHKeyDialog() templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 77, "Add SSH key")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 95, "Add SSH key")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					return nil
 				})
-				templ_7745c5c3_Err = components.DialogTitle("add-ssh-key-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var41), templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = components.DialogTitle("add-ssh-key-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var48), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 78, " ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 96, " ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Var42 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_Var49 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 					if !templ_7745c5c3_IsBuffer {
@@ -994,23 +1256,23 @@ func settingsAddSSHKeyDialog() templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 79, "A key gives any system holding the private half full git access to your repos.")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 97, "A key gives any system holding the private half full git access to your repos.")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					return nil
 				})
-				templ_7745c5c3_Err = components.DialogDescription().Render(templ.WithChildren(ctx, templ_7745c5c3_Var42), templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = components.DialogDescription().Render(templ.WithChildren(ctx, templ_7745c5c3_Var49), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.DialogHeader().Render(templ.WithChildren(ctx, templ_7745c5c3_Var40), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.DialogHeader().Render(templ.WithChildren(ctx, templ_7745c5c3_Var47), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var43 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var50 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -1022,17 +1284,25 @@ func settingsAddSSHKeyDialog() templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 80, "<div class=\"space-y-4\"><div><label for=\"key-title\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Title</label> <input id=\"key-title\" name=\"title\" type=\"text\" required placeholder=\"e.g. laptop\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"public-key\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Public key</label> <textarea id=\"public-key\" name=\"public_key\" rows=\"5\" required placeholder=\"ssh-ed25519 AAAA…\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-none focus:border-ring\"></textarea></div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, "<div class=\"space-y-4\"><div><label for=\"key-title\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Title</label> <input id=\"key-title\" name=\"title\" type=\"text\" required placeholder=\"e.g. laptop\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"public-key\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Public key</label> <textarea id=\"public-key\" name=\"public_key\" rows=\"5\" required placeholder=\"ssh-ed25519 AAAA…\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-none focus:border-ring\"></textarea></div><div class=\"flex flex-wrap items-end gap-3\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = settingsConfirmFields("ssh-key", data.HasPassword, data.TOTPEnabled, true).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 99, "</div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.DialogBody().Render(templ.WithChildren(ctx, templ_7745c5c3_Var43), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.DialogBody().Render(templ.WithChildren(ctx, templ_7745c5c3_Var50), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var44 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var51 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -1044,23 +1314,23 @@ func settingsAddSSHKeyDialog() templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 81, "<button type=\"button\" onclick=\"this.closest('dialog').close()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4\">Cancel</button> <button type=\"submit\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90\">Add key</button>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 100, "<button type=\"button\" onclick=\"this.closest('dialog').close()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4\">Cancel</button> <button type=\"submit\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90\">Add key</button>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.DialogFooter().Render(templ.WithChildren(ctx, templ_7745c5c3_Var44), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.DialogFooter().Render(templ.WithChildren(ctx, templ_7745c5c3_Var51), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 82, "</form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, "</form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = components.Dialog("add-ssh-key-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var39), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.Dialog("add-ssh-key-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var46), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1084,204 +1354,204 @@ func settingsTokensSection(data view.SettingsData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var45 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var45 == nil {
-			templ_7745c5c3_Var45 = templ.NopComponent
+		templ_7745c5c3_Var52 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var52 == nil {
+			templ_7745c5c3_Var52 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 83, "<section id=\"tokens\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><div class=\"flex items-start justify-between gap-4 mb-6\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">Personal access tokens</h2><p class=\"text-[12.5px] text-muted-foreground\">For scripts and integrations that need to act on your behalf.</p></div><button type=\"button\" onclick=\"document.getElementById('generate-token-dialog').showModal()\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg> Generate token</button></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "<section id=\"tokens\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><div class=\"flex items-start justify-between gap-4 mb-6\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">Personal access tokens</h2><p class=\"text-[12.5px] text-muted-foreground\">For scripts and integrations that need to act on your behalf.</p></div><button type=\"button\" onclick=\"document.getElementById('generate-token-dialog').showModal()\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg> Generate token</button></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if data.NewToken != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 84, "<div class=\"mb-6 border border-success/40 bg-success/10 rounded-md p-4\"><p class=\"font-semibold text-success mb-2 text-[13px]\">Your new token — copy it now, it won't be shown again:</p><code class=\"block bg-background border border-success/40 rounded px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 103, "<div class=\"mb-6 border border-success/40 bg-success/10 rounded-md p-4\"><p class=\"font-semibold text-success mb-2 text-[13px]\">Your new token — copy it now, it won't be shown again:</p><code class=\"block bg-background border border-success/40 rounded px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var46 string
-			templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.JoinStringErrs(data.NewToken)
+			var templ_7745c5c3_Var53 string
+			templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinStringErrs(data.NewToken)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 388, Col: 157}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 446, Col: 157}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var46))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 85, "</code></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 104, "</code></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 86, "<div id=\"tokens-list\" class=\"space-y-2 mb-4\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 105, "<div id=\"tokens-list\" class=\"space-y-2 mb-4\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if len(data.Tokens) > 0 {
 			for _, t := range data.Tokens {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, "<div class=\"flex items-center gap-3 border border-border rounded-md p-3\"><span class=\"h-2 w-2 rounded-full bg-success shrink-0\" aria-label=\"Active\"></span><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 106, "<div class=\"flex items-center gap-3 border border-border rounded-md p-3\"><span class=\"h-2 w-2 rounded-full bg-success shrink-0\" aria-label=\"Active\"></span><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var47 string
-				templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.JoinStringErrs(t.Name)
+				var templ_7745c5c3_Var54 string
+				templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(t.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 397, Col: 52}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 455, Col: 52}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var47))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 88, "</p><p class=\"text-[12px] text-muted-foreground\">scopes: ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 107, "</p><p class=\"text-[12px] text-muted-foreground\">scopes: ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if len(t.Scopes) > 0 {
 					for i, s := range t.Scopes {
 						if i > 0 {
-							var templ_7745c5c3_Var48 string
-							templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.JoinStringErrs(", ")
+							var templ_7745c5c3_Var55 string
+							templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.JoinStringErrs(", ")
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 403, Col: 17}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 461, Col: 17}
 							}
-							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var48))
+							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var55))
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 89, " <span class=\"font-mono\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 108, " <span class=\"font-mono\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						var templ_7745c5c3_Var49 string
-						templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(s)
+						var templ_7745c5c3_Var56 string
+						templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.JoinStringErrs(s)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 405, Col: 37}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 463, Col: 37}
 						}
-						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
+						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var56))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 90, "</span> ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 109, "</span> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 91, "<span class=\"font-mono\">none</span> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 110, "<span class=\"font-mono\">none</span> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
 				if t.ExpiresAt != nil {
-					var templ_7745c5c3_Var50 string
-					templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs(" · expires ")
+					var templ_7745c5c3_Var57 string
+					templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinStringErrs(" · expires ")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 411, Col: 25}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 469, Col: 25}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 92, " <time datetime=\"")
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var51 string
-					templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.ExpiresAt.UTC().Format(time.RFC3339))
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 412, Col: 64}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var51)
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 111, " <time datetime=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 93, "\">")
+					var templ_7745c5c3_Var58 string
+					templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.ExpiresAt.UTC().Format(time.RFC3339))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 470, Col: 64}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var58)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var52 string
-					templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(t.ExpiresAt.Format("Jan 2, 2006"))
-					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 412, Col: 102}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 112, "\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 94, "</time>")
+					var templ_7745c5c3_Var59 string
+					templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs(t.ExpiresAt.Format("Jan 2, 2006"))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 470, Col: 102}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var59))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 113, "</time>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					var templ_7745c5c3_Var53 string
-					templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinStringErrs(" · no expiry")
+					var templ_7745c5c3_Var60 string
+					templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.JoinStringErrs(" · no expiry")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 414, Col: 26}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 472, Col: 26}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var60))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 95, "</p></div><span class=\"text-[11px] text-muted-foreground font-mono\">…")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 114, "</p></div><span class=\"text-[11px] text-muted-foreground font-mono\">…")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var54 string
-				templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(t.LastEight)
+				var templ_7745c5c3_Var61 string
+				templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.JoinStringErrs(t.LastEight)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 418, Col: 80}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 476, Col: 80}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 96, "</span> <button type=\"button\" hx-delete=\"")
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var61))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var55 string
-				templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/user/tokens/" + strconv.FormatInt(t.ID, 10))
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 421, Col: 68}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var55)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 115, "</span> <button type=\"button\" hx-delete=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 97, "\" hx-target=\"#tokens-list\" hx-swap=\"outerHTML\" hx-confirm=\"")
+				var templ_7745c5c3_Var62 string
+				templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/user/tokens/" + strconv.FormatInt(t.ID, 10))
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 479, Col: 68}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var62)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var56 string
-				templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.ResolveAttributeValue("The " + t.Name + " token will immediately lose access. Any script or integration using it will stop working.")
-				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 424, Col: 130}
-				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var56)
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 116, "\" hx-target=\"#tokens-list\" hx-swap=\"outerHTML\" hx-confirm=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, "\" data-confirm-title=\"Revoke this token?\" data-confirm-label=\"Revoke\" data-confirm-danger=\"true\" data-toast=\"Token revoked\" class=\"h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0\">Revoke</button></div>")
+				var templ_7745c5c3_Var63 string
+				templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.ResolveAttributeValue("The " + t.Name + " token will immediately lose access. Any script or integration using it will stop working.")
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 482, Col: 130}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var63)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 117, "\" data-confirm-title=\"Revoke this token?\" data-confirm-label=\"Revoke\" data-confirm-danger=\"true\" data-toast=\"Token revoked\" class=\"h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-destructive shrink-0\">Revoke</button></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 99, "<div class=\"text-center py-6 border border-dashed border-border rounded-md text-[13px] text-muted-foreground\">No tokens yet.</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, "<div class=\"text-center py-6 border border-dashed border-border rounded-md text-[13px] text-muted-foreground\">No tokens yet.</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 100, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 119, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = settingsGenerateTokenDialog().Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = settingsGenerateTokenDialog(data).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, "</section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 120, "</section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1289,7 +1559,7 @@ func settingsTokensSection(data view.SettingsData) templ.Component {
 	})
 }
 
-func settingsGenerateTokenDialog() templ.Component {
+func settingsGenerateTokenDialog(data view.SettingsData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -1305,12 +1575,12 @@ func settingsGenerateTokenDialog() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var57 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var57 == nil {
-			templ_7745c5c3_Var57 = templ.NopComponent
+		templ_7745c5c3_Var64 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var64 == nil {
+			templ_7745c5c3_Var64 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Var58 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_Var65 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 			if !templ_7745c5c3_IsBuffer {
@@ -1322,11 +1592,11 @@ func settingsGenerateTokenDialog() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "<form method=\"POST\" action=\"/api/user/tokens\" data-toast=\"Token generated\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, "<form method=\"POST\" action=\"/api/user/tokens\" data-toast=\"Token generated\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var59 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var66 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -1338,7 +1608,7 @@ func settingsGenerateTokenDialog() templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Var60 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_Var67 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 					if !templ_7745c5c3_IsBuffer {
@@ -1350,21 +1620,21 @@ func settingsGenerateTokenDialog() templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 103, "Generate personal access token")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 122, "Generate personal access token")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					return nil
 				})
-				templ_7745c5c3_Err = components.DialogTitle("generate-token-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var60), templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = components.DialogTitle("generate-token-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var67), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 104, " ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 123, " ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Var61 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_Var68 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 					if !templ_7745c5c3_IsBuffer {
@@ -1376,23 +1646,23 @@ func settingsGenerateTokenDialog() templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 105, "Treat tokens like passwords — they grant API and git access on your behalf.")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 124, "Treat tokens like passwords — they grant API and git access on your behalf.")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					return nil
 				})
-				templ_7745c5c3_Err = components.DialogDescription().Render(templ.WithChildren(ctx, templ_7745c5c3_Var61), templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = components.DialogDescription().Render(templ.WithChildren(ctx, templ_7745c5c3_Var68), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.DialogHeader().Render(templ.WithChildren(ctx, templ_7745c5c3_Var59), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.DialogHeader().Render(templ.WithChildren(ctx, templ_7745c5c3_Var66), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var62 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var69 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -1404,17 +1674,25 @@ func settingsGenerateTokenDialog() templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 106, "<div class=\"space-y-4\"><div><label for=\"token-name\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Name</label> <input id=\"token-name\" name=\"name\" type=\"text\" required placeholder=\"e.g. CI deploy\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><fieldset><legend class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Scopes</legend><div class=\"space-y-1.5 text-[13px]\"><label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"repo:read\"> <span><strong class=\"font-mono\">repo:read</strong> — read repositories, code, issues, PRs</span></label> <label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"repo:write\"> <span><strong class=\"font-mono\">repo:write</strong> — push to repositories</span></label> <label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"issues:write\"> <span><strong class=\"font-mono\">issues:write</strong> — create and update issues</span></label> <label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"pulls:write\"> <span><strong class=\"font-mono\">pulls:write</strong> — create and update pull requests</span></label></div></fieldset><div><label for=\"token-expires\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Expiration (optional)</label> <input id=\"token-expires\" name=\"expires_at\" type=\"date\" class=\"bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"><p class=\"text-[11px] text-muted-foreground mt-1\">Leave blank for a non-expiring token.</p></div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 125, "<div class=\"space-y-4\"><div><label for=\"token-name\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Name</label> <input id=\"token-name\" name=\"name\" type=\"text\" required placeholder=\"e.g. CI deploy\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><fieldset><legend class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Scopes</legend><div class=\"space-y-1.5 text-[13px]\"><label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"repo:read\"> <span><strong class=\"font-mono\">repo:read</strong> — read repositories, code, issues, PRs</span></label> <label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"repo:write\"> <span><strong class=\"font-mono\">repo:write</strong> — push to repositories</span></label> <label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"issues:write\"> <span><strong class=\"font-mono\">issues:write</strong> — create and update issues</span></label> <label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"pulls:write\"> <span><strong class=\"font-mono\">pulls:write</strong> — create and update pull requests</span></label></div></fieldset><div><label for=\"token-expires\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Expiration (optional)</label> <input id=\"token-expires\" name=\"expires_at\" type=\"date\" class=\"bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"><p class=\"text-[11px] text-muted-foreground mt-1\">Leave blank for a non-expiring token.</p></div><div class=\"flex flex-wrap items-end gap-3\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = settingsConfirmFields("token", data.HasPassword, data.TOTPEnabled, true).Render(ctx, templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 126, "</div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.DialogBody().Render(templ.WithChildren(ctx, templ_7745c5c3_Var62), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.DialogBody().Render(templ.WithChildren(ctx, templ_7745c5c3_Var69), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var63 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var70 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -1426,23 +1704,23 @@ func settingsGenerateTokenDialog() templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 107, "<button type=\"button\" onclick=\"this.closest('dialog').close()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4\">Cancel</button> <button type=\"submit\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90\">Generate token</button>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 127, "<button type=\"button\" onclick=\"this.closest('dialog').close()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4\">Cancel</button> <button type=\"submit\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90\">Generate token</button>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.DialogFooter().Render(templ.WithChildren(ctx, templ_7745c5c3_Var63), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.DialogFooter().Render(templ.WithChildren(ctx, templ_7745c5c3_Var70), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 108, "</form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 128, "</form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = components.Dialog("generate-token-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var58), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.Dialog("generate-token-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var65), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1466,12 +1744,12 @@ func settingsOAuthAppsSection(data view.SettingsData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var64 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var64 == nil {
-			templ_7745c5c3_Var64 = templ.NopComponent
+		templ_7745c5c3_Var71 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var71 == nil {
+			templ_7745c5c3_Var71 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 109, "<section id=\"oauth-apps\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><div class=\"flex items-start justify-between gap-4 mb-6\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">OAuth applications</h2><p class=\"text-[12.5px] text-muted-foreground\">Applications you've registered to call the Cloudzilla API on behalf of other users.</p></div><button type=\"button\" onclick=\"document.getElementById('register-oauth-app-dialog').showModal()\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg> Register app</button></div><div class=\"mb-6\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 129, "<section id=\"oauth-apps\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><div class=\"flex items-start justify-between gap-4 mb-6\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">OAuth applications</h2><p class=\"text-[12.5px] text-muted-foreground\">Applications you've registered to call the Cloudzilla API on behalf of other users.</p></div><button type=\"button\" onclick=\"document.getElementById('register-oauth-app-dialog').showModal()\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg> Register app</button></div><div class=\"mb-6\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1479,7 +1757,7 @@ func settingsOAuthAppsSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 110, "</div><h3 class=\"text-[13.5px] font-medium mb-1\">Authorized applications</h3><p class=\"text-[12.5px] text-muted-foreground mb-3\">Applications you've allowed to access your account.</p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 130, "</div><h3 class=\"text-[13.5px] font-medium mb-1\">Authorized applications</h3><p class=\"text-[12.5px] text-muted-foreground mb-3\">Applications you've allowed to access your account.</p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1491,7 +1769,7 @@ func settingsOAuthAppsSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 111, "</section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 131, "</section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1515,12 +1793,12 @@ func settingsRegisterOAuthAppDialog() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var65 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var65 == nil {
-			templ_7745c5c3_Var65 = templ.NopComponent
+		templ_7745c5c3_Var72 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var72 == nil {
+			templ_7745c5c3_Var72 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Var66 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_Var73 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 			if !templ_7745c5c3_IsBuffer {
@@ -1532,11 +1810,11 @@ func settingsRegisterOAuthAppDialog() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 112, "<form hx-post=\"/api/oauth/apps\" hx-target=\"#oauth-apps-list\" hx-swap=\"outerHTML\" data-toast=\"Application registered\" hx-on::after-request=\"if(event.detail.successful){this.closest('dialog').close(); this.reset();}\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 132, "<form hx-post=\"/api/oauth/apps\" hx-target=\"#oauth-apps-list\" hx-swap=\"outerHTML\" data-toast=\"Application registered\" hx-on::after-request=\"if(event.detail.successful){this.closest('dialog').close(); this.reset();}\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var67 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var74 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -1548,7 +1826,7 @@ func settingsRegisterOAuthAppDialog() templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Var68 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_Var75 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 					if !templ_7745c5c3_IsBuffer {
@@ -1560,21 +1838,21 @@ func settingsRegisterOAuthAppDialog() templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 113, "Register OAuth application")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 133, "Register OAuth application")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					return nil
 				})
-				templ_7745c5c3_Err = components.DialogTitle("register-oauth-app-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var68), templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = components.DialogTitle("register-oauth-app-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var75), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 114, " ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 134, " ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Var69 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_Var76 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 					if !templ_7745c5c3_IsBuffer {
@@ -1586,23 +1864,23 @@ func settingsRegisterOAuthAppDialog() templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 115, "You'll get a client ID and a client secret. The secret is shown once.")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 135, "You'll get a client ID and a client secret. The secret is shown once.")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					return nil
 				})
-				templ_7745c5c3_Err = components.DialogDescription().Render(templ.WithChildren(ctx, templ_7745c5c3_Var69), templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = components.DialogDescription().Render(templ.WithChildren(ctx, templ_7745c5c3_Var76), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.DialogHeader().Render(templ.WithChildren(ctx, templ_7745c5c3_Var67), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.DialogHeader().Render(templ.WithChildren(ctx, templ_7745c5c3_Var74), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var70 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var77 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -1614,17 +1892,17 @@ func settingsRegisterOAuthAppDialog() templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 116, "<div class=\"space-y-4\"><div><label for=\"oauth-app-name\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Application name</label> <input id=\"oauth-app-name\" name=\"name\" type=\"text\" required class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"oauth-app-homepage\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Homepage URL</label> <input id=\"oauth-app-homepage\" name=\"homepage_url\" type=\"url\" placeholder=\"https://example.com\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"oauth-app-redirect\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Redirect URI</label> <input id=\"oauth-app-redirect\" name=\"redirect_uri\" type=\"url\" placeholder=\"https://example.com/callback\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring\"><p class=\"text-[11px] text-muted-foreground mt-1\">Leave blank to accept any redirect URI.</p></div><div><label for=\"oauth-app-desc\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Description (optional)</label> <textarea id=\"oauth-app-desc\" name=\"description\" rows=\"3\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></textarea></div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 136, "<div class=\"space-y-4\"><div><label for=\"oauth-app-name\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Application name</label> <input id=\"oauth-app-name\" name=\"name\" type=\"text\" required class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"oauth-app-homepage\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Homepage URL</label> <input id=\"oauth-app-homepage\" name=\"homepage_url\" type=\"url\" placeholder=\"https://example.com\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"oauth-app-redirect\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Redirect URI</label> <input id=\"oauth-app-redirect\" name=\"redirect_uri\" type=\"url\" placeholder=\"https://example.com/callback\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring\"><p class=\"text-[11px] text-muted-foreground mt-1\">Leave blank to accept any redirect URI.</p></div><div><label for=\"oauth-app-desc\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Description (optional)</label> <textarea id=\"oauth-app-desc\" name=\"description\" rows=\"3\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></textarea></div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.DialogBody().Render(templ.WithChildren(ctx, templ_7745c5c3_Var70), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.DialogBody().Render(templ.WithChildren(ctx, templ_7745c5c3_Var77), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var71 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var78 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -1636,23 +1914,23 @@ func settingsRegisterOAuthAppDialog() templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 117, "<button type=\"button\" onclick=\"this.closest('dialog').close()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4\">Cancel</button> <button type=\"submit\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90\">Register app</button>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 137, "<button type=\"button\" onclick=\"this.closest('dialog').close()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4\">Cancel</button> <button type=\"submit\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90\">Register app</button>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.DialogFooter().Render(templ.WithChildren(ctx, templ_7745c5c3_Var71), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.DialogFooter().Render(templ.WithChildren(ctx, templ_7745c5c3_Var78), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, "</form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 138, "</form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = components.Dialog("register-oauth-app-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var66), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.Dialog("register-oauth-app-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var73), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1676,12 +1954,12 @@ func settingsNotificationsSection(data view.SettingsData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var72 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var72 == nil {
-			templ_7745c5c3_Var72 = templ.NopComponent
+		templ_7745c5c3_Var79 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var79 == nil {
+			templ_7745c5c3_Var79 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 119, "<section id=\"notifications\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">Notifications</h2><p class=\"text-[12.5px] text-muted-foreground mb-6\">How and when you hear about activity. Changes save automatically.</p><form hx-post=\"/settings/notifications\" hx-trigger=\"change\" hx-swap=\"none\" data-toast=\"Notification preferences saved\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 139, "<section id=\"notifications\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">Notifications</h2><p class=\"text-[12.5px] text-muted-foreground mb-6\">How and when you hear about activity. Changes save automatically.</p><form hx-post=\"/settings/notifications\" hx-trigger=\"change\" hx-swap=\"none\" data-toast=\"Notification preferences saved\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1689,11 +1967,11 @@ func settingsNotificationsSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 120, "<div class=\"flex items-start justify-between gap-4 py-3 border-b border-border last:border-b-0\"><span class=\"min-w-0\"><label for=\"email_digest\" class=\"block text-sm font-medium text-foreground\">Delivery</label> <span class=\"block text-xs text-muted-foreground mt-0.5\">Send each email right away, or a digest of your unread notifications, watched repositories included, at 08:00 UTC (weekly on Mondays).</span></span><div class=\"w-40 shrink-0\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 140, "<div class=\"flex items-start justify-between gap-4 py-3 border-b border-border last:border-b-0\"><span class=\"min-w-0\"><label for=\"email_digest\" class=\"block text-sm font-medium text-foreground\">Delivery</label> <span class=\"block text-xs text-muted-foreground mt-0.5\">Send each email right away, or a digest of your unread notifications, watched repositories included, at 08:00 UTC (weekly on Mondays).</span></span><div class=\"w-40 shrink-0\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var73 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_Var80 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 			if !templ_7745c5c3_IsBuffer {
@@ -1706,54 +1984,54 @@ func settingsNotificationsSection(data view.SettingsData) templ.Component {
 			}
 			ctx = templ.InitializeContext(ctx)
 			for _, mode := range model.EmailDigestModes {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, "<option value=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 141, "<option value=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var74 string
-				templ_7745c5c3_Var74, templ_7745c5c3_Err = templ.ResolveAttributeValue(mode)
+				var templ_7745c5c3_Var81 string
+				templ_7745c5c3_Var81, templ_7745c5c3_Err = templ.ResolveAttributeValue(mode)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 573, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 634, Col: 27}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var74)
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var81)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 122, "\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 142, "\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if data.User.EmailDigest == mode {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 123, " selected")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 143, " selected")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 124, ">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 144, ">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var75 string
-				templ_7745c5c3_Var75, templ_7745c5c3_Err = templ.JoinStringErrs(emailDigestLabels[mode])
+				var templ_7745c5c3_Var82 string
+				templ_7745c5c3_Var82, templ_7745c5c3_Err = templ.JoinStringErrs(emailDigestLabels[mode])
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 573, Col: 99}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 634, Col: 99}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var75))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var82))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 125, "</option>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 145, "</option>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = components.Select(templ.Attributes{"id": "email_digest", "name": "email_digest"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var73), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.Select(templ.Attributes{"id": "email_digest", "name": "email_digest"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var80), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 126, "</div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 146, "</div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1765,7 +2043,7 @@ func settingsNotificationsSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 127, "</form></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 147, "</form></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1789,12 +2067,12 @@ func settingsSavedRepliesSection(data view.SettingsData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var76 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var76 == nil {
-			templ_7745c5c3_Var76 = templ.NopComponent
+		templ_7745c5c3_Var83 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var83 == nil {
+			templ_7745c5c3_Var83 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 128, "<section id=\"saved-replies\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><div class=\"flex items-start justify-between gap-4 mb-6\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">Saved replies</h2><p class=\"text-[12.5px] text-muted-foreground\">Reusable snippets you can insert into issue and pull request comments.</p></div><button type=\"button\" onclick=\"document.getElementById('new-saved-reply-dialog').showModal()\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg> New reply</button></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 148, "<section id=\"saved-replies\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><div class=\"flex items-start justify-between gap-4 mb-6\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">Saved replies</h2><p class=\"text-[12.5px] text-muted-foreground\">Reusable snippets you can insert into issue and pull request comments.</p></div><button type=\"button\" onclick=\"document.getElementById('new-saved-reply-dialog').showModal()\" class=\"h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"></path></svg> New reply</button></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1806,7 +2084,7 @@ func settingsSavedRepliesSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 129, "</section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 149, "</section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1830,12 +2108,12 @@ func settingsNewSavedReplyDialog() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var77 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var77 == nil {
-			templ_7745c5c3_Var77 = templ.NopComponent
+		templ_7745c5c3_Var84 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var84 == nil {
+			templ_7745c5c3_Var84 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Var78 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_Var85 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 			if !templ_7745c5c3_IsBuffer {
@@ -1847,11 +2125,11 @@ func settingsNewSavedReplyDialog() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 130, "<form hx-post=\"/api/user/replies\" hx-target=\"#saved-replies-list\" hx-swap=\"outerHTML\" data-toast=\"Saved reply added\" hx-on::after-request=\"if(event.detail.successful){this.closest('dialog').close(); this.reset();}\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 150, "<form hx-post=\"/api/user/replies\" hx-target=\"#saved-replies-list\" hx-swap=\"outerHTML\" data-toast=\"Saved reply added\" hx-on::after-request=\"if(event.detail.successful){this.closest('dialog').close(); this.reset();}\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var79 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var86 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -1863,7 +2141,7 @@ func settingsNewSavedReplyDialog() templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Var80 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_Var87 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 					if !templ_7745c5c3_IsBuffer {
@@ -1875,21 +2153,21 @@ func settingsNewSavedReplyDialog() templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 131, "New saved reply")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 151, "New saved reply")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					return nil
 				})
-				templ_7745c5c3_Err = components.DialogTitle("new-saved-reply-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var80), templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = components.DialogTitle("new-saved-reply-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var87), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 132, " ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 152, " ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Var81 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+				templ_7745c5c3_Var88 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 					if !templ_7745c5c3_IsBuffer {
@@ -1901,23 +2179,23 @@ func settingsNewSavedReplyDialog() templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 133, "Pick it from the saved replies menu when writing a comment.")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 153, "Pick it from the saved replies menu when writing a comment.")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					return nil
 				})
-				templ_7745c5c3_Err = components.DialogDescription().Render(templ.WithChildren(ctx, templ_7745c5c3_Var81), templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = components.DialogDescription().Render(templ.WithChildren(ctx, templ_7745c5c3_Var88), templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.DialogHeader().Render(templ.WithChildren(ctx, templ_7745c5c3_Var79), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.DialogHeader().Render(templ.WithChildren(ctx, templ_7745c5c3_Var86), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var82 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var89 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -1929,17 +2207,17 @@ func settingsNewSavedReplyDialog() templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 134, "<div class=\"space-y-4\"><div><label for=\"reply-title\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Title</label> <input id=\"reply-title\" name=\"title\" type=\"text\" required placeholder=\"e.g. Thanks for the report\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"reply-body\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Content</label> <textarea id=\"reply-body\" name=\"body\" rows=\"5\" required placeholder=\"Your reusable comment text…\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></textarea></div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 154, "<div class=\"space-y-4\"><div><label for=\"reply-title\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Title</label> <input id=\"reply-title\" name=\"title\" type=\"text\" required placeholder=\"e.g. Thanks for the report\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><div><label for=\"reply-body\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Content</label> <textarea id=\"reply-body\" name=\"body\" rows=\"5\" required placeholder=\"Your reusable comment text…\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></textarea></div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.DialogBody().Render(templ.WithChildren(ctx, templ_7745c5c3_Var82), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.DialogBody().Render(templ.WithChildren(ctx, templ_7745c5c3_Var89), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var83 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+			templ_7745c5c3_Var90 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 				templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 				templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 				if !templ_7745c5c3_IsBuffer {
@@ -1951,23 +2229,23 @@ func settingsNewSavedReplyDialog() templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 135, "<button type=\"button\" onclick=\"this.closest('dialog').close()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4\">Cancel</button> <button type=\"submit\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90\">Add reply</button>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 155, "<button type=\"button\" onclick=\"this.closest('dialog').close()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4\">Cancel</button> <button type=\"submit\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90\">Add reply</button>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.DialogFooter().Render(templ.WithChildren(ctx, templ_7745c5c3_Var83), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.DialogFooter().Render(templ.WithChildren(ctx, templ_7745c5c3_Var90), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 136, "</form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 156, "</form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = components.Dialog("new-saved-reply-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var78), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.Dialog("new-saved-reply-dialog").Render(templ.WithChildren(ctx, templ_7745c5c3_Var85), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1991,28 +2269,22 @@ func settingsSessionsSection(data view.SettingsData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var84 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var84 == nil {
-			templ_7745c5c3_Var84 = templ.NopComponent
+		templ_7745c5c3_Var91 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var91 == nil {
+			templ_7745c5c3_Var91 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 137, "<section id=\"sessions\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><div class=\"flex items-start justify-between gap-4 mb-6\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight mb-1 inline-flex items-center gap-2\">Sessions")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 157, "<section id=\"sessions\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><div class=\"flex items-start justify-between gap-4 mb-6\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">Sessions</h2><p class=\"text-[12.5px] text-muted-foreground\">Browsers signed in to your account. Access tokens, SSH keys and authorized apps are revoked in their own sections.</p></div><form method=\"POST\" action=\"/settings/sessions/revoke\" class=\"shrink-0\"><button type=\"submit\" class=\"h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground\">Sign out other sessions</button></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = comingSoonBadge().Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
+		if data.SessionsRevoked {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 158, "<div role=\"status\" class=\"mb-4 border border-success/40 bg-success/10 text-success rounded-md px-3 py-2 text-[12.5px]\">Every other session is signed out. This browser stays signed in.</div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 138, "</h2><p class=\"text-[12.5px] text-muted-foreground\">Browsers and clients signed in to your account.</p></div>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = comingSoonButton("Sign out other sessions").Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 139, "</div><ul class=\"divide-y divide-border\"><li class=\"py-3 flex items-center gap-3\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\"><rect x=\"2\" y=\"3\" width=\"20\" height=\"14\" rx=\"2\"></rect><path d=\"M8 21h8M12 17v4\"></path></svg><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium\">This browser <span class=\"ml-2 text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success\">Current</span></p><p class=\"text-[12px] text-muted-foreground\">Cloudzilla uses a single JWT cookie per browser. Sign out to end this session.</p></div></li></ul></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 159, "<ul class=\"divide-y divide-border\"><li class=\"py-3 flex items-center gap-3\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\"><rect x=\"2\" y=\"3\" width=\"20\" height=\"14\" rx=\"2\"></rect><path d=\"M8 21h8M12 17v4\"></path></svg><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium\">This browser <span class=\"ml-2 text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success\">Current</span></p><p class=\"text-[12px] text-muted-foreground\">Sign out to end this session. Other sessions can't be listed, only signed out together.</p></div></li></ul></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2036,12 +2308,12 @@ func settingsEmailsSection(data view.SettingsData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var85 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var85 == nil {
-			templ_7745c5c3_Var85 = templ.NopComponent
+		templ_7745c5c3_Var92 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var92 == nil {
+			templ_7745c5c3_Var92 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 140, "<section id=\"email\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><div class=\"flex items-start justify-between gap-4 mb-6\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">Email</h2><p class=\"text-[12.5px] text-muted-foreground\">Your address, and the author email on commits you make in the web UI.</p></div><span class=\"inline-flex items-center gap-2 shrink-0\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 160, "<section id=\"email\" class=\"border border-border rounded-lg bg-card p-6 scroll-mt-6\"><div class=\"flex items-start justify-between gap-4 mb-6\"><div class=\"min-w-0\"><h2 class=\"text-base font-semibold tracking-tight mb-1\">Email</h2><p class=\"text-[12.5px] text-muted-foreground\">Your address, and the author email on commits you make in the web UI.</p></div><span class=\"inline-flex items-center gap-2 shrink-0\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2053,47 +2325,120 @@ func settingsEmailsSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 141, "</span></div><ul class=\"divide-y divide-border mb-4\"><li class=\"py-3 flex items-center gap-3\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\"><path d=\"M4 4h16v16H4z\"></path><path d=\"M22 6l-10 7L2 6\"></path></svg><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium font-mono\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 161, "</span></div><ul class=\"divide-y divide-border mb-4\"><li class=\"py-3 flex items-center gap-3\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\"><path d=\"M4 4h16v16H4z\"></path><path d=\"M22 6l-10 7L2 6\"></path></svg><div class=\"min-w-0 flex-1\"><p class=\"text-[13.5px] font-medium font-mono\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var86 string
-		templ_7745c5c3_Var86, templ_7745c5c3_Err = templ.JoinStringErrs(data.User.Email)
+		var templ_7745c5c3_Var93 string
+		templ_7745c5c3_Var93, templ_7745c5c3_Err = templ.JoinStringErrs(data.User.Email)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 682, Col: 69}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 745, Col: 69}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var86))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 142, "</p><p class=\"text-[12px] text-muted-foreground\">Used for sign-in and notifications.</p></div><span class=\"text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success\">Primary</span></li></ul><form id=\"email-settings-form\" method=\"POST\" action=\"/settings/email\" hx-post=\"/settings/email\" hx-trigger=\"change\" hx-swap=\"none\" data-toast=\"Email preference saved\"><label class=\"flex items-start justify-between gap-4 py-3 border-t border-border cursor-pointer\"><span class=\"min-w-0\"><span class=\"block text-sm font-medium text-foreground\">Keep my email address private</span> <span id=\"keep-email-private-help\" class=\"block text-xs text-muted-foreground mt-0.5\">File edits, wiki changes, merges, applied suggestions, and profile README edits are authored as <code class=\"text-[11px] bg-muted border border-border rounded px-1.5 py-0.5 font-mono break-words\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var93))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var87 string
-		templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinStringErrs(data.NoreplyEmail)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 702, Col: 125}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var87))
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 162, "</p><p class=\"text-[12px] text-muted-foreground\">Used for sign-in and notifications.</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 143, "</code> instead of your account email. Commit authors are visible to anyone who can read the repository.</span></span> <span class=\"relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5\"><input id=\"keep_email_private\" type=\"checkbox\" name=\"keep_email_private\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		if data.User.KeepEmailPrivate {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 144, " checked")
+		if data.User.EmailVerified() {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 163, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success\">Verified</span> ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		} else {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 164, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-full border border-warning/40 bg-warning/10 text-warning\">Unverified</span> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 145, " aria-describedby=\"keep-email-private-help\" class=\"peer sr-only\"> <span class=\"absolute inset-0 rounded-full border border-border bg-muted transition-colors peer-checked:bg-success peer-checked:border-success\"></span> <span class=\"absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform peer-checked:bg-background peer-checked:translate-x-4\"></span></span></label><noscript>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 165, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success\">Primary</span></li></ul>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var88 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		if !data.User.EmailVerified() {
+			if data.EmailVerificationAvailable {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 166, "<form method=\"POST\" action=\"/settings/email/resend-verification\" hx-post=\"/settings/email/resend-verification\" hx-swap=\"none\" data-toast=\"Verification email sent\" class=\"flex items-center justify-between gap-4 mb-4\"><p class=\"text-[12px] text-muted-foreground\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				if data.VerificationLinkSent {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 167, "We emailed a verification link to this address. It works once and expires 24 hours after it was sent.")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				} else {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 168, "Verify this address with a link sent to it. The link works once and expires after 24 hours.")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 169, "</p>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Var94 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+					templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+					templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+					if !templ_7745c5c3_IsBuffer {
+						defer func() {
+							templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+							if templ_7745c5c3_Err == nil {
+								templ_7745c5c3_Err = templ_7745c5c3_BufErr
+							}
+						}()
+					}
+					ctx = templ.InitializeContext(ctx)
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 170, "Resend verification email")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					return nil
+				})
+				templ_7745c5c3_Err = components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "submit", "class": "shrink-0"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var94), templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 171, "</form>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			} else {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 172, "<p class=\"text-[12px] text-muted-foreground mb-4\">Verifying your email needs outgoing email, which the administrator hasn't configured.</p>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 173, "<form id=\"email-settings-form\" method=\"POST\" action=\"/settings/email\" hx-post=\"/settings/email\" hx-trigger=\"change\" hx-swap=\"none\" data-toast=\"Email preference saved\"><label class=\"flex items-start justify-between gap-4 py-3 border-t border-border cursor-pointer\"><span class=\"min-w-0\"><span class=\"block text-sm font-medium text-foreground\">Keep my email address private</span> <span id=\"keep-email-private-help\" class=\"block text-xs text-muted-foreground mt-0.5\">File edits, wiki changes, merges, applied suggestions, and profile README edits are authored as <code class=\"text-[11px] bg-muted border border-border rounded px-1.5 py-0.5 font-mono break-words\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var95 string
+		templ_7745c5c3_Var95, templ_7745c5c3_Err = templ.JoinStringErrs(data.NoreplyEmail)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 795, Col: 125}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var95))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 174, "</code> instead of your account email. Commit authors are visible to anyone who can read the repository.</span></span> <span class=\"relative inline-flex h-5 w-9 shrink-0 items-center mt-0.5\"><input id=\"keep_email_private\" type=\"checkbox\" name=\"keep_email_private\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if data.User.KeepEmailPrivate {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 175, " checked")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 176, " aria-describedby=\"keep-email-private-help\" class=\"peer sr-only\"> <span class=\"absolute inset-0 rounded-full border border-border bg-muted transition-colors peer-checked:bg-success peer-checked:border-success\"></span> <span class=\"absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform peer-checked:bg-background peer-checked:translate-x-4\"></span></span></label><noscript>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var96 := templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 			templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 			templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
 			if !templ_7745c5c3_IsBuffer {
@@ -2105,30 +2450,30 @@ func settingsEmailsSection(data view.SettingsData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 146, "Save")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 177, "Save")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var88), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{"type": "submit"}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var96), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 147, "</noscript></form><p class=\"text-[12px] text-muted-foreground mt-3\">Commits you push keep the email your git client sets. To keep those private too, run <code class=\"mt-1.5 block w-fit max-w-full text-[11px] bg-muted border border-border rounded px-1.5 py-0.5 font-mono break-words\">git config --global user.email ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 178, "</noscript></form><p class=\"text-[12px] text-muted-foreground mt-3\">Commits you push keep the email your git client sets. To keep those private too, run <code class=\"mt-1.5 block w-fit max-w-full text-[11px] bg-muted border border-border rounded px-1.5 py-0.5 font-mono break-words\">git config --global user.email ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var89 string
-		templ_7745c5c3_Var89, templ_7745c5c3_Err = templ.JoinStringErrs(data.NoreplyEmail)
+		var templ_7745c5c3_Var97 string
+		templ_7745c5c3_Var97, templ_7745c5c3_Err = templ.JoinStringErrs(data.NoreplyEmail)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 720, Col: 183}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 813, Col: 183}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var89))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var97))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 148, "</code></p></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 179, "</code></p></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2152,12 +2497,12 @@ func settingsDangerSection(data view.SettingsData) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var90 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var90 == nil {
-			templ_7745c5c3_Var90 = templ.NopComponent
+		templ_7745c5c3_Var98 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var98 == nil {
+			templ_7745c5c3_Var98 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 149, "<section id=\"danger\" class=\"border border-destructive/40 rounded-lg bg-card p-6 scroll-mt-6\"><h2 class=\"text-base font-semibold tracking-tight mb-1 text-destructive\">Danger zone</h2><p class=\"text-[12.5px] text-muted-foreground mb-6\">Irreversible. Clone any repositories you want to keep first.</p><ul class=\"divide-y divide-border\"><li id=\"export\" class=\"py-4 flex items-start justify-between gap-4\"><div class=\"min-w-0\"><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\">Export your data")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 180, "<section id=\"danger\" class=\"border border-destructive/40 rounded-lg bg-card p-6 scroll-mt-6\"><h2 class=\"text-base font-semibold tracking-tight mb-1 text-destructive\">Danger zone</h2><p class=\"text-[12.5px] text-muted-foreground mb-6\">Irreversible. Clone any repositories you want to keep first.</p><ul class=\"divide-y divide-border\"><li id=\"export\" class=\"py-4 flex items-start justify-between gap-4\"><div class=\"min-w-0\"><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\">Export your data")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2165,7 +2510,7 @@ func settingsDangerSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 150, "</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Download everything you've created on Cloudzilla as a zip.</p></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 181, "</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Download everything you've created on Cloudzilla as a zip.</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2173,7 +2518,7 @@ func settingsDangerSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 151, "</li><li id=\"delete\" class=\"py-4 flex items-start justify-between gap-4\"><div class=\"min-w-0\"><p class=\"text-[13.5px] font-medium\">Delete account</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Permanently remove your account, your repositories and their wikis, gists, and activity. Issues, comments and reviews you left in other people's repositories stay, credited to ghost. Organization repositories stay with their organization. If you are an organization's only owner, add another owner or delete the organization first.</p></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 182, "</li><li id=\"delete\" class=\"py-4 flex items-start justify-between gap-4\"><div class=\"min-w-0\"><p class=\"text-[13.5px] font-medium\">Delete account</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground\">Permanently remove your account, your repositories and their wikis, gists, and activity. Issues, comments and reviews you left in other people's repositories stay, credited to ghost. Organization repositories stay with their organization. If you are an organization's only owner, add another owner or delete the organization first.</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2181,16 +2526,16 @@ func settingsDangerSection(data view.SettingsData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 152, "<form method=\"POST\" action=\"/settings/delete-account\" class=\"shrink-0 flex items-center gap-2\" onsubmit=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 183, "<form method=\"POST\" action=\"/settings/delete-account\" class=\"shrink-0 flex items-center gap-2\" onsubmit=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var91 templ.ComponentScript = confirmDeleteAccount(data.User.Username)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var91.Call)
+		var templ_7745c5c3_Var99 templ.ComponentScript = confirmDeleteAccount(data.User.Username)
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var99.Call)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 153, "\"><input type=\"text\" name=\"confirm_username\" placeholder=\"type your username\" required autocomplete=\"off\" class=\"h-8 w-44 bg-background border border-border rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-none focus:border-ring\"> <button type=\"submit\" class=\"h-8 px-3 text-[13px] rounded-md font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90\">Delete account</button></form></li></ul></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 184, "\"><input type=\"text\" name=\"confirm_username\" placeholder=\"type your username\" required autocomplete=\"off\" class=\"h-8 w-44 bg-background border border-border rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-none focus:border-ring\"> <button type=\"submit\" class=\"h-8 px-3 text-[13px] rounded-md font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90\">Delete account</button></form></li></ul></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2214,12 +2559,12 @@ func comingSoonBadge() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var92 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var92 == nil {
-			templ_7745c5c3_Var92 = templ.NopComponent
+		templ_7745c5c3_Var100 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var100 == nil {
+			templ_7745c5c3_Var100 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 154, "<span class=\"text-[10px] font-normal px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground\">Coming soon</span>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 185, "<span class=\"text-[10px] font-normal px-1.5 py-0.5 rounded-full border border-border bg-muted text-muted-foreground\">Coming soon</span>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -2243,25 +2588,25 @@ func comingSoonButton(label string) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var93 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var93 == nil {
-			templ_7745c5c3_Var93 = templ.NopComponent
+		templ_7745c5c3_Var101 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var101 == nil {
+			templ_7745c5c3_Var101 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 155, "<button type=\"button\" disabled class=\"h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed shrink-0\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 186, "<button type=\"button\" disabled class=\"h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed shrink-0\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var94 string
-		templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.JoinStringErrs(label)
+		var templ_7745c5c3_Var102 string
+		templ_7745c5c3_Var102, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 771, Col: 158}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 864, Col: 158}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var94))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var102))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 156, "</button>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 187, "</button>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

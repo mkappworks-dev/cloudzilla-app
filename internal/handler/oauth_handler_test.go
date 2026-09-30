@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -175,5 +176,177 @@ func TestGoogleOAuthCallback_TOTPUserGoesTo2FA(t *testing.T) {
 	}
 	if !pending {
 		t.Error("no cz_totp_pending cookie was issued")
+	}
+}
+
+// Audit rows are written by goroutines; wait for want of them so none lands after the user is deleted.
+func deleteAuditRows(t *testing.T, db *sql.DB, userID int64, want int) {
+	t.Helper()
+	for deadline := time.Now().Add(2 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+		var n int
+		if err := db.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM audit_log WHERE actor_id = $1`, userID).Scan(&n); err != nil || n >= want {
+			break
+		}
+	}
+	testutil.Exec(t, db, `DELETE FROM audit_log WHERE actor_id = $1`, userID)
+}
+
+func TestGoogleOAuthCallback_LinksWhenBothEmailsAreVerified(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID, email := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	testutil.Exec(t, db, `UPDATE users SET email_verified_at = NOW() WHERE id = $1`, userID)
+	fakeGoogle(t, map[string]any{"id": "g_link_" + suffix, "email": email, "verified_email": true, "name": "Owner"})
+
+	rr := googleCallback(t, db)
+
+	t.Cleanup(func() { deleteAuditRows(t, db, userID, 2) })
+	if rr.Code != http.StatusSeeOther || !hasAuthCookie(rr) {
+		t.Fatalf("got %d (auth cookie: %v), want 303 with an auth cookie; body: %.300s", rr.Code, hasAuthCookie(rr), rr.Body.String())
+	}
+	if got := oauthIDOf(t, db, userID); got != "g_link_"+suffix {
+		t.Errorf("oauth_id = %q, want the Google ID linked", got)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		var n int
+		if err := db.QueryRowContext(context.Background(),
+			`SELECT COUNT(*) FROM audit_log WHERE actor_id = $1 AND action = 'user.oauth.connect' AND metadata->>'via' = 'verified_email'`, userID).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n == 1 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("linking was not audit-logged")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+func TestGoogleOAuthCallback_VerifiedLocalEmailStillNeedsGoogleToVerify(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID, email := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	testutil.Exec(t, db, `UPDATE users SET email_verified_at = NOW() WHERE id = $1`, userID)
+	fakeGoogle(t, map[string]any{"id": "g_unverified_" + suffix, "email": email, "verified_email": false, "name": "Mallory"})
+
+	rr := googleCallback(t, db)
+
+	if rr.Code != http.StatusForbidden || hasAuthCookie(rr) {
+		t.Errorf("got %d (auth cookie: %v), want 403 without a session", rr.Code, hasAuthCookie(rr))
+	}
+	if got := oauthIDOf(t, db, userID); got != "" {
+		t.Errorf("account linked to Google ID %q", got)
+	}
+}
+
+func TestGoogleOAuthCallback_RefusesAnAccountLinkedToAnotherGoogleID(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID, email := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	testutil.Exec(t, db, `UPDATE users SET email_verified_at = NOW(), oauth_provider = 'google', oauth_id = $2 WHERE id = $1`, userID, "g_owner_"+suffix)
+	fakeGoogle(t, map[string]any{"id": "g_other_" + suffix, "email": email, "verified_email": true, "name": "Other"})
+
+	rr := googleCallback(t, db)
+
+	if rr.Code != http.StatusConflict || !strings.Contains(rr.Body.String(), "different Google account") {
+		t.Errorf("got %d, want 409 with the linked-elsewhere error; body: %.300s", rr.Code, rr.Body.String())
+	}
+	if hasAuthCookie(rr) {
+		t.Error("an auth cookie was issued to a second Google account")
+	}
+	if got := oauthIDOf(t, db, userID); got != "g_owner_"+suffix {
+		t.Errorf("oauth_id = %q, want the original Google ID kept", got)
+	}
+}
+
+// verifyTOTP submits form to /auth/2fa/verify with the pending cookie from a Google callback.
+func verifyTOTP(t *testing.T, db *sql.DB, pending *http.Cookie, form url.Values) *httptest.ResponseRecorder {
+	t.Helper()
+	cfg := &config.Config{Auth: config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: time.Hour, CookieName: testCookieName}}
+	h := handler.New(service.New(store.New(db), cfg), cfg)
+	req := httptest.NewRequest(http.MethodPost, "/auth/2fa/verify", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(pending)
+	rr := httptest.NewRecorder()
+	h.VerifyTOTP(rr, req)
+	return rr
+}
+
+// seedTOTPEmailMatch gives a verified, TOTP-enabled account a Google identity
+// that matches it by email.
+func seedTOTPEmailMatch(t *testing.T, db *sql.DB, suffix string) (userID int64, googleID string) {
+	t.Helper()
+	userID, email := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	testutil.Exec(t, db, `UPDATE users SET email_verified_at = NOW() WHERE id = $1`, userID)
+	testutil.EnableTOTP(t, db, userID)
+	googleID = "g_totp_link_" + suffix
+	fakeGoogle(t, map[string]any{"id": googleID, "email": email, "verified_email": true, "name": "Owner"})
+	return userID, googleID
+}
+
+func pendingCookie(t *testing.T, rr *httptest.ResponseRecorder) *http.Cookie {
+	t.Helper()
+	if loc := rr.Header().Get("Location"); rr.Code != http.StatusSeeOther || !strings.HasPrefix(loc, "/auth/2fa") {
+		t.Fatalf("got %d to %q, want 303 to /auth/2fa", rr.Code, loc)
+	}
+	if hasAuthCookie(rr) {
+		t.Fatal("an auth cookie was issued before the TOTP code was checked")
+	}
+	for _, c := range rr.Result().Cookies() {
+		if c.Name == "cz_totp_pending" && c.Value != "" {
+			return c
+		}
+	}
+	t.Fatal("no cz_totp_pending cookie was issued")
+	return nil
+}
+
+// A link made before the second factor would outlast a failed or abandoned
+// code, so the identity is linked only once the code checks out.
+func TestGoogleOAuthCallback_EmailLinkWaitsForTheSecondFactor(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	userID, googleID := seedTOTPEmailMatch(t, db, testutil.UniqueSuffix(t))
+	t.Cleanup(func() { deleteAuditRows(t, db, userID, 2) })
+
+	pending := pendingCookie(t, googleCallback(t, db))
+	if got := oauthIDOf(t, db, userID); got != "" {
+		t.Fatalf("linked to %q before the second factor", got)
+	}
+
+	if rr := verifyTOTP(t, db, pending, url.Values{"code": {"abcdef"}}); hasAuthCookie(rr) {
+		t.Fatal("a wrong code started a session")
+	}
+	if got := oauthIDOf(t, db, userID); got != "" {
+		t.Fatalf("a wrong code linked the account to %q", got)
+	}
+
+	rr := verifyTOTP(t, db, pending, url.Values{"code": {testutil.TOTPCode(t, testutil.TestTOTPSecret)}})
+	if rr.Code != http.StatusSeeOther || !hasAuthCookie(rr) {
+		t.Fatalf("right code: got %d (auth cookie %v), want 303 with a session", rr.Code, hasAuthCookie(rr))
+	}
+	if got := oauthIDOf(t, db, userID); got != googleID {
+		t.Errorf("oauth_id = %q, want %q once the second factor passed", got, googleID)
+	}
+}
+
+func TestGoogleOAuthCallback_EmailLinkFailsClosedWhenTheAccountChanges(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID, _ := seedTOTPEmailMatch(t, db, suffix)
+	pending := pendingCookie(t, googleCallback(t, db))
+
+	testutil.Exec(t, db, `UPDATE users SET email = $2, email_verified_at = NULL WHERE id = $1`, userID, "changed_"+suffix+"@test.invalid")
+	rr := verifyTOTP(t, db, pending, url.Values{"code": {testutil.TOTPCode(t, testutil.TestTOTPSecret)}})
+
+	if hasAuthCookie(rr) {
+		t.Error("a Google sign-in whose email no longer matches started a session")
+	}
+	if !strings.Contains(rr.Body.String(), "Sign in again") {
+		t.Errorf("want the sign-in-again error; body: %.300s", rr.Body.String())
+	}
+	if got := oauthIDOf(t, db, userID); got != "" {
+		t.Errorf("account linked to %q after its email changed", got)
 	}
 }

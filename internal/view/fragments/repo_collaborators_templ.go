@@ -62,7 +62,7 @@ func RepoCollaborators(data view.RepoCollaboratorsFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" hx-target=\"#repo-collaborators\" hx-swap=\"outerHTML\" data-toast=\"Collaborator added\" class=\"flex gap-3 mb-4\"><label for=\"collab-username\" class=\"sr-only\">Username</label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" hx-target=\"#repo-collaborators\" hx-swap=\"outerHTML\" data-toast=\"Collaborator added\" class=\"flex flex-wrap items-end gap-3 mb-4\"><label for=\"collab-username\" class=\"sr-only\">Username</label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -78,6 +78,10 @@ func RepoCollaborators(data view.RepoCollaboratorsFragData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<label for=\"collab-role\" class=\"sr-only\">Role</label> <select id=\"collab-role\" name=\"role\" class=\"flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm\"><option value=\"reader\">Reader</option> <option value=\"writer\">Writer</option> <option value=\"admin\">Admin</option></select>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = components.ConfirmFields("collab", data.Confirm, true).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -115,7 +119,7 @@ func RepoCollaborators(data view.RepoCollaboratorsFragData) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(collabInitial(data.Owner))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_collaborators.templ`, Line: 51, Col: 32}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_collaborators.templ`, Line: 52, Col: 32}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
@@ -128,7 +132,7 @@ func RepoCollaborators(data view.RepoCollaboratorsFragData) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(data.Owner)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_collaborators.templ`, Line: 54, Col: 64}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_collaborators.templ`, Line: 55, Col: 64}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -146,7 +150,7 @@ func RepoCollaborators(data view.RepoCollaboratorsFragData) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(collabInitial(collab.Username))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_collaborators.templ`, Line: 61, Col: 38}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_collaborators.templ`, Line: 62, Col: 38}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -159,7 +163,7 @@ func RepoCollaborators(data view.RepoCollaboratorsFragData) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(collab.Username)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_collaborators.templ`, Line: 64, Col: 70}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_collaborators.templ`, Line: 65, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -172,7 +176,7 @@ func RepoCollaborators(data view.RepoCollaboratorsFragData) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(string(collab.Role))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_collaborators.templ`, Line: 65, Col: 79}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/repo_collaborators.templ`, Line: 66, Col: 79}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {

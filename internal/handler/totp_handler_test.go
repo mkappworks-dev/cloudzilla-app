@@ -24,7 +24,7 @@ func TestVerifyTOTP_BackupCodeStartsSession(t *testing.T) {
 	if err := store.NewUserStore(db).SetBackupCodes(context.Background(), userID, hashes); err != nil {
 		t.Fatalf("SetBackupCodes: %v", err)
 	}
-	pending, err := h.Services.TOTP.GeneratePendingToken(userID, testJWTSecret)
+	pending, err := h.Services.TOTP.GeneratePendingToken(userID, testJWTSecret, nil)
 	if err != nil {
 		t.Fatalf("GeneratePendingToken: %v", err)
 	}

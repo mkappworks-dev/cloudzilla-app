@@ -194,7 +194,6 @@ func TestSettings_UnbuiltSectionsAreDisabled(t *testing.T) {
 	out := renderSettings(t, view.SettingsData{User: model.User{ID: 42, Username: "alice", Email: "alice@example.com"}})
 	for _, s := range []struct{ id, closeTag string }{
 		{"export", "</li>"},
-		{"sessions", "</section>"},
 	} {
 		html := sectionHTML(t, out, s.id, s.closeTag)
 		if !strings.Contains(html, "Coming soon") {
@@ -248,5 +247,47 @@ func TestSettings_SoleOrgOwnerDeleteRefusalIsExplained(t *testing.T) {
 	})
 	if !strings.Contains(out, "You are the only owner of an organization. Add another owner or delete the organization first.") {
 		t.Error("sole_org_owner renders without its message")
+	}
+}
+
+func TestSettings_PasswordChangeMatchesTheAccount(t *testing.T) {
+	user := model.User{ID: 42, Username: "alice", Email: "alice@example.com"}
+	for _, tt := range []struct {
+		name                 string
+		hasPassword, withTOTP bool
+	}{
+		{"password", true, false},
+		{"password and 2FA", true, true},
+		{"Google only", false, false},
+	} {
+		out := renderSettings(t, view.SettingsData{User: user, HasPassword: tt.hasPassword, TOTPEnabled: tt.withTOTP})
+		row := sectionHTML(t, out, "password", "</li>")
+		start := strings.Index(out, `action="/settings/password"`)
+		if !tt.hasPassword {
+			if start >= 0 || strings.Contains(row, "Change password") {
+				t.Errorf("%s: offers a password change to an account with no password", tt.name)
+			}
+			continue
+		}
+		if start < 0 || !strings.Contains(row, "Change password") {
+			t.Fatalf("%s: no password change form", tt.name)
+		}
+		form := out[start:]
+		form = form[:strings.Index(form, "</form>")]
+		for _, name := range []string{"password", "new_password", "new_password_confirm"} {
+			if !strings.Contains(form, `name="`+name+`"`) {
+				t.Errorf("%s: form has no %s field", tt.name, name)
+			}
+		}
+		if got := strings.Contains(form, `name="code"`); got != tt.withTOTP {
+			t.Errorf("%s: asks for a two-factor code = %v, want %v", tt.name, got, tt.withTOTP)
+		}
+	}
+}
+
+func TestSettings_PasswordErrorShowsBesideTheControl(t *testing.T) {
+	out := renderSettings(t, view.SettingsData{User: model.User{ID: 42, Username: "alice"}, HasPassword: true, PasswordError: "password_mismatch"})
+	if row := sectionHTML(t, out, "password", "</li>"); !strings.Contains(row, "didn&#39;t match") {
+		t.Errorf("the password row doesn't explain the mismatch: %s", row)
 	}
 }

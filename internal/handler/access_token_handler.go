@@ -29,6 +29,11 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
+		redirectReauthRefusal(w, r, claims.UserID, err, "tokens")
+		return
+	}
+
 	scopes := r.Form["scopes"]
 
 	var expiresAt *time.Time

@@ -13,7 +13,15 @@ var emailDigestLabels = map[string]string{
 	model.EmailDigestNever:     "Never",
 }
 
-func settingsErrorMessage(code string) string {
+func confirmCodeSuffix(withCode bool) string {
+	if withCode {
+		return " and a two-factor code"
+	}
+	return ""
+}
+
+// SettingsErrorMessage is shared with handlers that answer HTMX requests with the message itself.
+func SettingsErrorMessage(code string) string {
 	switch code {
 	case "invalid_email":
 		return "Enter a valid email address."
@@ -35,6 +43,30 @@ func settingsErrorMessage(code string) string {
 		return "Verification code is required."
 	case "totp_invalid_code":
 		return "Invalid verification code. Please try again."
+	case "reauth_failed":
+		return "Your password or two-factor code was incorrect. Nothing was changed."
+	case "reauth_throttled":
+		return "Too many incorrect passwords or codes. Try again in 15 minutes."
+	case "reauth_error":
+		return "Couldn't check your password or code. Please try again."
+	case "password_mismatch":
+		return "The new passwords didn't match. Nothing was changed."
+	case "password_too_short":
+		return "The new password needs at least 8 characters. Nothing was changed."
+	case "password_too_long":
+		return "The new password can be at most 72 bytes. Nothing was changed."
+	case "password_change_failed":
+		return "Couldn't change your password. Please try again."
+	case "sessions_revoke_failed":
+		return "Couldn't sign out your other sessions. Please try again."
+	case "verification_cooldown":
+		return "Verification emails go out at most once a minute. Try again shortly."
+	case "already_verified":
+		return "Your email address is already verified."
+	case "verification_unavailable":
+		return "Verifying your email needs outgoing email, which the administrator hasn't configured."
+	case "verification_failed":
+		return "Couldn't send the verification email. Please try again later."
 	case "google_not_configured":
 		return "Google sign-in isn't set up on this instance."
 	case "google_reauth_failed":

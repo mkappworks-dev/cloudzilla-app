@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"html"
 	"log/slog"
 	"net/http"
 	"time"
@@ -34,6 +35,16 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
+}
+
+// renderFormError puts msg in slot, the error area of an HTMX form in a modal
+// dialog. It answers 200 because htmx skips swaps on 4xx by default; the form
+// tells success from error by the swapped target id.
+func renderFormError(w http.ResponseWriter, slot, msg string) {
+	w.Header().Set("HX-Retarget", slot)
+	w.Header().Set("HX-Reswap", "innerHTML")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write([]byte(`<div class="rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs p-3" role="alert">` + html.EscapeString(msg) + `</div>`))
 }
 
 const branchMovedMsg = "branch was updated while saving; reload and try again"

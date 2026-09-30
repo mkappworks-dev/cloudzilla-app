@@ -288,6 +288,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		BranchProtections: branchProtections,
 		CanManage:         canManage,
 		IsOwner:           isOwner,
+		Confirm:           h.confirmFactors(r.Context(), claims.UserID),
 	}))
 }
 

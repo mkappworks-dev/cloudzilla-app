@@ -19,10 +19,6 @@ import (
 
 // PageOAuthAuthorize renders the consent screen.
 func (h *Handler) PageOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
-	// A framed consent page could be clickjacked into a one-click grant.
-	w.Header().Set("X-Frame-Options", "DENY")
-	w.Header().Set("Content-Security-Policy", "frame-ancestors 'none'")
-
 	clientID := r.URL.Query().Get("client_id")
 	redirectURI := r.URL.Query().Get("redirect_uri")
 
@@ -41,19 +37,36 @@ func (h *Handler) PageOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, loggedIn := middleware.ClaimsFromContext(r.Context())
+	claims, loggedIn := middleware.ClaimsFromContext(r.Context())
 	if !loggedIn {
 		h.Unauthorized(w, r)
 		return
 	}
-
-	h.render(w, r, pages.OAuthAuthorize(view.OAuthAuthorizeData{
-		BasePage:    basePage(r, h.Services),
+	h.renderConsent(w, r, claims.UserID, http.StatusOK, view.OAuthAuthorizeData{
 		App:         *app,
 		Scopes:      scopes,
 		RedirectURI: redirectURI,
 		State:       r.URL.Query().Get("state"),
-	}))
+	})
+}
+
+// renderConsent fills in the confirmation fields the account needs.
+func (h *Handler) renderConsent(w http.ResponseWriter, r *http.Request, userID int64, status int, data view.OAuthAuthorizeData) {
+	u, err := h.Services.User.GetByID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	data.BasePage = basePage(r, h.Services)
+	data.HasPassword = u.PasswordHash != ""
+	data.TOTPEnabled, _, _ = h.Services.TOTP.GetUserTOTPState(r.Context(), userID)
+	// A framed consent page could be clickjacked into a one-click grant.
+	w.Header().Set("X-Frame-Options", "DENY")
+	w.Header().Set("Content-Security-Policy", "frame-ancestors 'none'")
+	if status != http.StatusOK {
+		w.WriteHeader(status)
+	}
+	h.render(w, r, pages.OAuthAuthorize(data))
 }
 
 // ConfirmAuthorize handles the POST from the consent form.
@@ -91,6 +104,22 @@ func (h *Handler) ConfirmAuthorize(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("action") == "deny" {
 		params.Set("error", "access_denied")
 	} else {
+		// A grant is a credential that outlives the session, so it needs the account's own factors.
+		if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
+			status, code, refused := reauthRefusal(claims.UserID, err)
+			if !refused {
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
+			h.renderConsent(w, r, claims.UserID, status, view.OAuthAuthorizeData{
+				App:         *app,
+				Scopes:      scopes,
+				RedirectURI: redirectURI,
+				State:       state,
+				Error:       pages.SettingsErrorMessage(code),
+			})
+			return
+		}
 		code, err := h.Services.OAuthApp.Authorize(r.Context(), app.ID, claims.UserID, redirectURI, scopes, app)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request")

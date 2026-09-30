@@ -1,12 +1,16 @@
 package handler
 
 import (
+	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -91,6 +95,39 @@ func (h *Handler) CreateInvitation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
+}
+
+// AdminVerifyEmail handles POST /api/admin/users/verify-email: a superadmin
+// vouches for a user's address when no SMTP server can send the link.
+func (h *Handler) AdminVerifyEmail(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok || !claims.IsSuperadmin {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	username := strings.TrimSpace(r.FormValue("username"))
+	email := strings.TrimSpace(r.FormValue("email"))
+	if username == "" || email == "" {
+		writeError(w, http.StatusBadRequest, "Username and email are required.")
+		return
+	}
+	u, err := h.Services.EmailVerifier.MarkVerified(r.Context(), username, email)
+	if errors.Is(err, service.ErrNoSuchUserEmail) {
+		writeError(w, http.StatusNotFound, "No user has that username and email.")
+		return
+	}
+	if err != nil {
+		slog.Error("admin verify email", "username", username, "error", err)
+		writeError(w, http.StatusInternalServerError, "Couldn't mark the email verified.")
+		return
+	}
+	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionEmailVerify, model.AuditTargetUser, u.ID, u.Username,
+		map[string]any{"email": email, "method": "admin"})
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	http.Redirect(w, r, "/admin/settings", http.StatusSeeOther)
 }
 

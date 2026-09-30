@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"slices"
 	"strings"
@@ -39,6 +40,13 @@ const MaxPinnedRepos = 6
 // bcrypt.ErrPasswordTooLong, so forms check this first to give a clear message.
 const MaxPasswordBytes = 72
 
+const MinPasswordLen = 8
+
+var (
+	ErrPasswordTooShort = errors.New("password must be at least 8 characters")
+	ErrPasswordTooLong  = errors.New("password must be at most 72 bytes")
+)
+
 // Unknown emails are checked against this so login time doesn't reveal which emails have accounts.
 var dummyPasswordHash = func() []byte {
 	h, err := bcrypt.GenerateFromPassword([]byte("cloudzilla-dummy-password"), bcrypt.DefaultCost)
@@ -54,16 +62,43 @@ type UserService struct {
 	repos       *RepoService
 	cfg         config.AuthConfig
 	noreplyHost string
+	verifier    *EmailVerificationService
+	reauth      *ReauthService
+	notices     *EmailService
 }
 
 // NewUserService creates a UserService backed by the given user store and auth config.
 func NewUserService(s *store.UserStore, cfg config.AuthConfig) *UserService {
-	return &UserService{store: s, cfg: cfg, noreplyHost: defaultNoreplyHost}
+	return &UserService{store: s, cfg: cfg, noreplyHost: defaultNoreplyHost, reauth: NewReauthService(s, NewTOTPService(s))}
 }
 
 func (s *UserService) WithNoreplyHostFrom(baseURL string) *UserService {
 	s.noreplyHost = noreplyHostFromBaseURL(baseURL)
 	return s
+}
+
+// Without it, a password change mails no notice.
+func (s *UserService) WithSecurityNotices(e *EmailService) *UserService {
+	s.notices = e
+	return s
+}
+
+// Without it, new and changed addresses get no verification email.
+func (s *UserService) WithEmailVerification(v *EmailVerificationService) *UserService {
+	s.verifier = v
+	return s
+}
+
+// The address change or sign-up already succeeded, so a link that can't be
+// issued now is left for the user to request from settings.
+func (s *UserService) sendVerification(ctx context.Context, userID int64) {
+	if s.verifier == nil {
+		return
+	}
+	err := s.verifier.Send(ctx, userID)
+	if err != nil && !errors.Is(err, ErrVerificationCooldown) && !errors.Is(err, ErrEmailVerificationUnavailable) {
+		slog.Error("issue verification email", "user_id", userID, "error", err)
+	}
 }
 
 func (s *UserService) Create(ctx context.Context, username, email, password string) (*model.User, error) {
@@ -144,6 +179,8 @@ func (s *UserService) CreateFromInvitation(ctx context.Context, inv *model.Invit
 	if err := s.store.CreateFromInvitation(ctx, u, inv.ID); err != nil {
 		return nil, err
 	}
+	// The invite link came from an admin, not from the inbox, so it proves nothing about the address.
+	s.sendVerification(ctx, u.ID)
 	return u, nil
 }
 
@@ -157,38 +194,86 @@ type OAuthIdentity struct {
 	AvatarURL     string
 }
 
-func (s *UserService) AuthenticateOAuth(ctx context.Context, id OAuthIdentity, allowRegistration, allowLogin bool) (*model.User, string, error) {
+// OAuthLogin is who an OAuth sign-in authenticated. Callers still apply the
+// account's second factor before issuing Token.
+type OAuthLogin struct {
+	User  *model.User
+	Token string
+	// Link is set when the identity matched an existing account by email. The
+	// account isn't linked until OAuthLinkService.LinkByVerifiedEmail, which callers run only once
+	// every other factor has passed: a link made earlier would outlast a failed one.
+	Link *OAuthLink
+}
+
+// OAuthLink is an identity waiting to be linked to the account UserID.
+type OAuthLink struct {
+	UserID   int64
+	Email    string
+	Provider string
+	ID       string
+}
+
+func (s *UserService) AuthenticateOAuth(ctx context.Context, id OAuthIdentity, allowRegistration, allowLogin bool) (*OAuthLogin, error) {
 	if u, err := s.store.GetByOAuthID(ctx, id.Provider, id.ID); err == nil {
-		if !u.IsSuperadmin && !u.IsInvited && !allowLogin {
-			return nil, "", ErrLoginDisabled
-		}
-		token, err := s.generateJWT(u)
-		return u, token, err
+		return s.oauthLogin(u, allowLogin, nil)
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
 	}
 
 	// An unverified provider email is only a claim; an account created on it would let anyone take the address first.
 	if !id.EmailVerified {
-		return nil, "", ErrOAuthEmailUnverified
+		return nil, ErrOAuthEmailUnverified
 	}
 
-	// Local emails are never verified, so a matching account may belong to
-	// whoever typed the address first; SSO refuses to link on email too.
-	if _, err := s.store.GetByEmailWithRole(ctx, id.Email); err == nil {
-		return nil, "", ErrOAuthAccountExists
-	} else if !errors.Is(err, sql.ErrNoRows) {
-		return nil, "", err
+	existing, err := s.store.GetByEmailWithRole(ctx, id.Email)
+	if err == nil {
+		return s.linkOAuth(existing, id, allowLogin)
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
 	}
 
 	if !allowRegistration {
-		return nil, "", ErrRegistrationDisabled
+		return nil, ErrRegistrationDisabled
 	}
 	username := s.uniqueUsername(ctx, id.Email, id.Name)
-	u, err := s.store.CreateOAuthUser(ctx, username, id.Email, id.Provider, id.ID, id.AvatarURL)
+	u, err := s.store.CreateOAuthUser(ctx, username, id.Email, id.Provider, id.ID, id.AvatarURL, id.EmailVerified)
 	if err != nil {
-		return nil, "", err
+		return nil, err
+	}
+	return s.oauthLogin(u, true, nil)
+}
+
+// Both sides must have proven the address: the provider's word alone would
+// hand over an account whose owner typed someone else's email, and an
+// unverified local address may belong to whoever registered it first.
+func (s *UserService) linkOAuth(u *model.User, id OAuthIdentity, allowLogin bool) (*OAuthLogin, error) {
+	switch {
+	case u.OAuthProvider != "":
+		return nil, ErrOAuthAlreadyLinked
+	case !u.EmailVerified():
+		return nil, ErrOAuthAccountExists
+	// Without a password nothing guards the account's email, so a stolen session
+	// could set its own address, verify it, and pull in its own Google account.
+	case u.PasswordHash == "":
+		return nil, ErrOAuthAccountExists
+	}
+	return s.oauthLogin(u, allowLogin, &OAuthLink{UserID: u.ID, Email: u.Email, Provider: id.Provider, ID: id.ID})
+}
+
+func (s *UserService) oauthLogin(u *model.User, allowLogin bool, link *OAuthLink) (*OAuthLogin, error) {
+	if !loginAllowed(u, allowLogin) {
+		return nil, ErrLoginDisabled
 	}
 	token, err := s.generateJWT(u)
-	return u, token, err
+	if err != nil {
+		return nil, err
+	}
+	return &OAuthLogin{User: u, Token: token, Link: link}, nil
+}
+
+func loginAllowed(u *model.User, allowLogin bool) bool {
+	return allowLogin || u.IsSuperadmin || u.IsInvited
 }
 
 func (s *UserService) uniqueUsername(ctx context.Context, email, name string) string {
@@ -216,14 +301,35 @@ func (s *UserService) UpdateNotificationPrefs(ctx context.Context, userID int64,
 }
 
 // Username is deliberately not editable: repo owner names, on-disk repo paths, and JWT claims key off it.
-func (s *UserService) UpdateProfile(ctx context.Context, userID int64, name, email, bio, company, location string) error {
+// A new email needs confirm: the address decides who can verify it, and so who
+// can link a Google account to this one.
+func (s *UserService) UpdateProfile(ctx context.Context, userID int64, name, email, bio, company, location string, confirm Confirmation) error {
 	if !emailRe.MatchString(email) {
 		return ErrInvalidEmail
 	}
 	if existing, err := s.store.GetByEmail(ctx, email); err == nil && existing.ID != userID {
 		return ErrEmailTaken
 	}
-	return s.store.UpdateProfile(ctx, userID, strings.TrimSpace(name), email, strings.TrimSpace(bio), strings.TrimSpace(company), strings.TrimSpace(location))
+	current, err := s.store.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if current.Email != email {
+		if _, err := s.reauth.Confirm(ctx, userID, confirm); err != nil {
+			return err
+		}
+	}
+	changed, err := s.store.UpdateProfile(ctx, userID, strings.TrimSpace(name), email, strings.TrimSpace(bio), strings.TrimSpace(company), strings.TrimSpace(location))
+	if err != nil {
+		return err
+	}
+	if changed {
+		if s.verifier != nil {
+			s.verifier.notifyAddressChanged(current.Username, current.Email, email)
+		}
+		s.sendVerification(ctx, userID)
+	}
+	return nil
 }
 
 // Related rows go via DB cascades; repo directories via DeleteWithOwner.
@@ -354,8 +460,61 @@ func (s *UserService) UnpinRepo(ctx context.Context, userID, repoID int64) error
 	return s.store.RemovePinnedRepo(ctx, userID, repoID)
 }
 
+// RevokeSessions ends every session userID has, including the caller's, and
+// returns a token for a fresh one.
+func (s *UserService) RevokeSessions(ctx context.Context, userID int64) (string, error) {
+	if _, err := s.store.BumpSessionVersion(ctx, userID); err != nil {
+		return "", err
+	}
+	u, err := s.store.GetByID(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	return s.generateJWT(u)
+}
+
+// ChangePassword replaces userID's password once the current one (and the
+// two-factor code, when 2FA is on) confirms it, and ends every session,
+// including the caller's; the returned token starts a new one.
+func (s *UserService) ChangePassword(ctx context.Context, userID int64, c Confirmation, newPassword string) (string, error) {
+	switch {
+	case len(newPassword) < MinPasswordLen:
+		return "", ErrPasswordTooShort
+	case len(newPassword) > MaxPasswordBytes:
+		return "", ErrPasswordTooLong
+	}
+	confirmed, err := s.reauth.ConfirmWithPassword(ctx, userID, c)
+	if err != nil {
+		return "", err
+	}
+	hash, err := hashPassword(newPassword)
+	if err != nil {
+		return "", err
+	}
+	changed, err := s.store.ChangePassword(ctx, userID, confirmed.PasswordHash, hash)
+	if err != nil {
+		return "", err
+	}
+	// Another change landed after the check, so what was confirmed is no longer the password.
+	if !changed {
+		return "", ErrReauthFailed
+	}
+	notifySecurityChange(s.notices, s.store, userID, "password_change", passwordChangedNotice)
+	u, err := s.store.GetByID(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	return s.generateJWT(u)
+}
+
+// SessionVersion is what a live session's JWT must carry; see RevokeSessions.
+func (s *UserService) SessionVersion(ctx context.Context, userID int64) (int, error) {
+	return s.store.SessionVersion(ctx, userID)
+}
+
 func (s *UserService) generateJWT(u *model.User) (string, error) {
 	claims := jwt.MapClaims{
+		"sv":            u.SessionVersion,
 		"sub":           u.ID,
 		"username":      u.Username,
 		"is_superadmin": u.IsSuperadmin,

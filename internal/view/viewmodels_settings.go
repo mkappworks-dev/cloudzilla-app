@@ -19,9 +19,16 @@ type SettingsData struct {
 	NoreplyEmail        string
 	ProfileSaved        bool
 	ProfileError        string
-	GoogleConfigured    bool
-	GoogleConnected     bool
-	HasPassword         bool
+	// EmailVerificationAvailable is false when no SMTP server is configured.
+	EmailVerificationAvailable bool
+	// VerificationLinkSent is whether a live link for the current address is out.
+	VerificationLinkSent bool
+	SessionsRevoked      bool
+	PasswordChanged      bool
+	PasswordError        string
+	GoogleConfigured     bool
+	GoogleConnected      bool
+	HasPassword          bool
 	// Codes from the Google connect flow, shown beside the control rather than atop the page.
 	ConnectedAccountsError  string
 	ConnectedAccountsNotice string
@@ -114,4 +121,8 @@ type OAuthAuthorizeData struct {
 	Scopes      []string
 	RedirectURI string
 	State       string
+	// Which factors the consent form asks for; see service.ReauthService.
+	HasPassword bool
+	TOTPEnabled bool
+	Error       string
 }

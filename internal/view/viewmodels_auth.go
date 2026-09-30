@@ -43,6 +43,13 @@ type TOTPVerifyPageData struct {
 	Next  string
 }
 
+type VerifyEmailData struct {
+	BasePage
+	Link model.EmailVerificationLink
+	// Token is set only while the link is pending, for the confirm form.
+	Token string
+}
+
 // RegisterEmailData holds template data for the email-first registration form.
 type RegisterEmailData struct {
 	BasePage

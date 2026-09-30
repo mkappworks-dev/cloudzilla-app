@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -48,6 +51,11 @@ func (h *Handler) EnableTOTP(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/settings?profile_error=totp_missing_fields#security", http.StatusSeeOther)
 		return
 	}
+	// A code enrolled from a stolen session would lock the owner out at their next sign-in.
+	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, service.Confirmation{Password: r.FormValue("password")}); err != nil {
+		redirectReauthRefusal(w, r, claims.UserID, err, "security")
+		return
+	}
 
 	rawCodes, err := h.Services.TOTP.Enable(r.Context(), claims.UserID, secret, code)
 	if err != nil {
@@ -70,6 +78,10 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
 	if code == "" {
 		http.Redirect(w, r, "/settings?profile_error=totp_missing_code#security", http.StatusSeeOther)
+		return
+	}
+	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
+		redirectReauthRefusal(w, r, claims.UserID, err, "security")
 		return
 	}
 
@@ -127,26 +139,41 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inputCode := strings.TrimSpace(r.FormValue("code"))
-	backupCode := strings.TrimSpace(r.FormValue("backup_code"))
-
-	verified := false
-	if inputCode != "" && u.TOTPSecret.Valid {
-		verified = h.Services.TOTP.Verify(u.TOTPSecret.String, inputCode)
-	}
-	if !verified && backupCode != "" {
-		if err := h.Services.TOTP.VerifyBackupCode(r.Context(), userID, backupCode); err == nil {
-			verified = true
+	if err := h.Services.Reauth.CheckSecondFactor(r.Context(), userID, r.FormValue("code"), r.FormValue("backup_code")); err != nil {
+		msg := "Invalid code. Please try again."
+		switch {
+		case errors.Is(err, service.ErrReauthThrottled):
+			msg = "Too many incorrect codes. Try again in 15 minutes."
+			slog.Warn("two-factor sign-in throttled", "user_id", userID)
+		case !errors.Is(err, service.ErrReauthFailed):
+			slog.Error("two-factor sign-in", "user_id", userID, "error", err)
+			msg = "Something went wrong. Please try again."
 		}
-	}
-
-	if !verified {
 		h.render(w, r, pages.TOTPVerify(view.TOTPVerifyPageData{
 			BasePage: basePage(r, h.Services),
-			Error:    "Invalid code. Please try again.",
+			Error:    msg,
 			Next:     next,
 		}))
 		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name: totpPendingCookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure,
+	})
+	// The OAuth identity was the first factor only because it matched this
+	// account's address; if the link no longer holds, neither does the sign-in.
+	if link := h.Services.TOTP.PendingOAuthLink(mapClaims, userID); link != nil {
+		if err := h.completeOAuthLink(r, *link); err != nil {
+			if !errors.Is(err, service.ErrOAuthAccountExists) {
+				slog.Error("complete oauth link after totp", "user_id", userID, "error", err)
+			}
+			h.render(w, r, pages.TOTPVerify(view.TOTPVerifyPageData{
+				BasePage: basePage(r, h.Services),
+				Error:    "Your account changed while you were signing in with Google. Sign in again.",
+				Next:     next,
+			}))
+			return
+		}
 	}
 
 	fullToken, err := h.Services.User.GenerateTokenForUser(r.Context(), userID)
@@ -154,9 +181,5 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to create session", http.StatusInternalServerError)
 		return
 	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name: totpPendingCookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure,
-	})
 	h.startSession(w, r, u, fullToken, next)
 }

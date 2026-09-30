@@ -27,13 +27,20 @@ const qrPixelsPerModule = 8
 // TOTPService handles all TOTP (RFC 6238) operations.
 // TOTPService manages TOTP two-factor authentication setup and verification.
 type TOTPService struct {
-	store *store.UserStore
+	store   *store.UserStore
+	notices *EmailService
 }
 
 // NewTOTPService creates a new TOTPService.
 // NewTOTPService creates a TOTPService backed by the given user store.
 func NewTOTPService(s *store.UserStore) *TOTPService {
 	return &TOTPService{store: s}
+}
+
+// Without it, turning 2FA on or off mails no notice.
+func (s *TOTPService) WithSecurityNotices(e *EmailService) *TOTPService {
+	s.notices = e
+	return s
 }
 
 // Generate creates a new TOTP secret for the given user/issuer and returns the
@@ -126,6 +133,7 @@ func (s *TOTPService) Enable(ctx context.Context, userID int64, secret, code str
 	if err := s.store.SetBackupCodes(ctx, userID, hashes); err != nil {
 		return nil, fmt.Errorf("store backup codes: %w", err)
 	}
+	notifySecurityChange(s.notices, s.store, userID, "totp_enable", totpChangedNotice(true))
 	return rawCodes, nil
 }
 
@@ -141,7 +149,11 @@ func (s *TOTPService) Disable(ctx context.Context, userID int64, code string) er
 	if !s.Verify(u.TOTPSecret.String, code) {
 		return fmt.Errorf("invalid totp code")
 	}
-	return s.store.SetTOTPEnabled(ctx, userID, false, "")
+	if err := s.store.SetTOTPEnabled(ctx, userID, false, ""); err != nil {
+		return err
+	}
+	notifySecurityChange(s.notices, s.store, userID, "totp_disable", totpChangedNotice(false))
+	return nil
 }
 
 // GenerateBackupCodes creates 10 random 8-hex-char backup codes and returns both
@@ -209,11 +221,16 @@ func (s *TOTPService) StoreGetUser(ctx context.Context, userID int64) (*model.Us
 	return s.store.GetByIDWithTOTP(ctx, userID)
 }
 
-// GeneratePendingToken creates a short-lived JWT (5 minutes) encoding the userID.
-func (s *TOTPService) GeneratePendingToken(userID int64, jwtSecret string) (string, error) {
+// GeneratePendingToken creates a short-lived JWT (5 minutes) encoding the userID
+// and, when the sign-in is also linking an OAuth identity, the link to make
+// once the code checks out.
+func (s *TOTPService) GeneratePendingToken(userID int64, jwtSecret string, link *OAuthLink) (string, error) {
 	claims := jwt.MapClaims{
 		"sub": userID,
 		"exp": time.Now().Add(5 * time.Minute).Unix(),
+	}
+	if link != nil {
+		claims["link_provider"], claims["link_id"], claims["link_email"] = link.Provider, link.ID, link.Email
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signed, err := token.SignedString([]byte(jwtSecret))
@@ -221,4 +238,16 @@ func (s *TOTPService) GeneratePendingToken(userID int64, jwtSecret string) (stri
 		return "", fmt.Errorf("sign pending token: %w", err)
 	}
 	return signed, nil
+}
+
+// PendingOAuthLink returns the link GeneratePendingToken put in a verified
+// pending token's claims, or nil.
+func (s *TOTPService) PendingOAuthLink(claims map[string]any, userID int64) *OAuthLink {
+	provider, _ := claims["link_provider"].(string)
+	id, _ := claims["link_id"].(string)
+	email, _ := claims["link_email"].(string)
+	if provider == "" || id == "" || email == "" {
+		return nil
+	}
+	return &OAuthLink{UserID: userID, Email: email, Provider: provider, ID: id}
 }

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -45,7 +46,7 @@ func NewUserStore(database *sql.DB) *UserStore {
 // scanUser, so a new users column is added in exactly these two places.
 const userColumns = `id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 	is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
-	notify_pr_review, notify_mention, keep_email_private`
+	notify_pr_review, notify_mention, keep_email_private, email_verified_at, session_version`
 
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -56,7 +57,7 @@ func scanUser(row rowScanner, u *model.User, extra ...any) error {
 	dest := []any{&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Name, &u.Bio, &u.Company, &u.Location, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
 		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest,
-		&u.NotifyPRReview, &u.NotifyMention, &u.KeepEmailPrivate}
+		&u.NotifyPRReview, &u.NotifyMention, &u.KeepEmailPrivate, &u.EmailVerifiedAt, &u.SessionVersion}
 	return row.Scan(append(dest, extra...)...)
 }
 
@@ -70,11 +71,11 @@ func (s *UserStore) queryUser(ctx context.Context, filter string, args ...any) (
 }
 
 func (s *UserStore) Create(ctx context.Context, u *model.User) error {
-	return insertUser(ctx, s.db, u)
+	return insertUser(ctx, s.db, u, false)
 }
 
 func (s *UserStore) CreateFromInvitation(ctx context.Context, u *model.User, invitationID int64) error {
-	return s.insertClaimed(ctx, "user create from invitation", u, ErrInvitationUnusable, func(tx *sql.Tx) error {
+	return s.insertClaimed(ctx, "user create from invitation", u, false, ErrInvitationUnusable, func(tx *sql.Tx) error {
 		res, err := tx.ExecContext(ctx,
 			`UPDATE invitations SET accepted_at = NOW() WHERE id = $1 AND `+usableInvitationCond,
 			invitationID,
@@ -91,9 +92,10 @@ func (s *UserStore) CreateFromInvitation(ctx context.Context, u *model.User, inv
 	})
 }
 
-// CreateFromSignupToken inserts u with the email of the link it claims.
+// CreateFromSignupToken inserts u with the email of the link it claims, verified:
+// only its owner could have opened the link.
 func (s *UserStore) CreateFromSignupToken(ctx context.Context, u *model.User, tokenHash string) error {
-	return s.insertClaimed(ctx, "user create from signup token", u, ErrSignupTokenUnusable, func(tx *sql.Tx) error {
+	return s.insertClaimed(ctx, "user create from signup token", u, true, ErrSignupTokenUnusable, func(tx *sql.Tx) error {
 		err := tx.QueryRowContext(ctx,
 			`UPDATE signup_tokens SET used_at = NOW() WHERE token_hash = $1 AND `+usableSignupTokenCond+` RETURNING email`,
 			tokenHash,
@@ -112,7 +114,7 @@ func (s *UserStore) CreateFromSignupToken(ctx context.Context, u *model.User, to
 // releases the claim and concurrent submits can't both redeem one link. An email
 // registered after the claim is reported as unusable, the rule every claim's
 // predicate already applies.
-func (s *UserStore) insertClaimed(ctx context.Context, op string, u *model.User, unusable error, claim func(*sql.Tx) error) error {
+func (s *UserStore) insertClaimed(ctx context.Context, op string, u *model.User, emailVerified bool, unusable error, claim func(*sql.Tx) error) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("%s: begin: %w", op, err)
@@ -122,7 +124,7 @@ func (s *UserStore) insertClaimed(ctx context.Context, op string, u *model.User,
 	if err := claim(tx); err != nil {
 		return err
 	}
-	if err := insertUser(ctx, tx, u); err != nil {
+	if err := insertUser(ctx, tx, u, emailVerified); err != nil {
 		if errors.Is(err, ErrEmailTaken) {
 			return unusable
 		}
@@ -131,12 +133,12 @@ func (s *UserStore) insertClaimed(ctx context.Context, op string, u *model.User,
 	return tx.Commit()
 }
 
-func insertUser(ctx context.Context, db dbtx, u *model.User) error {
+func insertUser(ctx context.Context, db dbtx, u *model.User, emailVerified bool) error {
 	err := scanUser(db.QueryRowContext(ctx,
-		`INSERT INTO users (username, email, password_hash, bio, avatar_url, is_invited)
-		 SELECT $1, $2, $3, $4, $5, $6 WHERE NOT `+ownerNameTakenCond+`
+		`INSERT INTO users (username, email, password_hash, bio, avatar_url, is_invited, email_verified_at)
+		 SELECT $1, $2, $3, $4, $5, $6, CASE WHEN $7::boolean THEN NOW() END WHERE NOT `+ownerNameTakenCond+`
 		 RETURNING `+userColumns,
-		u.Username, u.Email, u.PasswordHash, u.Bio, u.AvatarURL, u.IsInvited,
+		u.Username, u.Email, u.PasswordHash, u.Bio, u.AvatarURL, u.IsInvited, emailVerified,
 	), u)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrUsernameTaken
@@ -217,13 +219,13 @@ func (s *UserStore) GetByOAuthID(ctx context.Context, provider, oauthID string) 
 	return u, nil
 }
 
-func (s *UserStore) CreateOAuthUser(ctx context.Context, username, email, provider, oauthID, avatarURL string) (*model.User, error) {
+func (s *UserStore) CreateOAuthUser(ctx context.Context, username, email, provider, oauthID, avatarURL string, emailVerified bool) (*model.User, error) {
 	u := &model.User{}
 	err := scanUser(s.db.QueryRowContext(ctx,
-		`INSERT INTO users (username, email, password_hash, oauth_provider, oauth_id, avatar_url)
-		 SELECT $1, $2, '', $3, $4, $5 WHERE NOT `+ownerNameTakenCond+`
+		`INSERT INTO users (username, email, password_hash, oauth_provider, oauth_id, avatar_url, email_verified_at)
+		 SELECT $1, $2, '', $3, $4, $5, CASE WHEN $6::boolean THEN NOW() END WHERE NOT `+ownerNameTakenCond+`
 		 RETURNING `+userColumns,
-		username, email, provider, oauthID, avatarURL,
+		username, email, provider, oauthID, avatarURL, emailVerified,
 	), u)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrUsernameTaken
@@ -232,6 +234,119 @@ func (s *UserStore) CreateOAuthUser(ctx context.Context, username, email, provid
 		return nil, fmt.Errorf("user create oauth: %w", err)
 	}
 	return u, nil
+}
+
+// LinkOAuthByVerifiedEmail re-checks the conditions in the UPDATE itself, so an
+// email change or another link that lands after the caller's read wins; it then
+// returns sql.ErrNoRows.
+func (s *UserStore) LinkOAuthByVerifiedEmail(ctx context.Context, userID int64, email, provider, oauthID string) (*model.User, error) {
+	u := &model.User{}
+	err := scanUser(s.db.QueryRowContext(ctx,
+		`UPDATE users SET oauth_provider = $3, oauth_id = $4, updated_at = NOW()
+		 WHERE id = $1 AND email = $2 AND email_verified_at IS NOT NULL AND oauth_provider = '' AND password_hash <> ''
+		 RETURNING `+userColumns,
+		userID, email, provider, oauthID,
+	), u)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == usersOAuthKey {
+			return nil, ErrOAuthIdentityTaken
+		}
+		return nil, fmt.Errorf("user link oauth by verified email: %w", err)
+	}
+	return u, nil
+}
+
+// ClaimReauthAttempt counts an attempt against userID's failure window and
+// reports false, counting nothing, once limit attempts in the window are spent.
+// The row lock makes concurrent claims take turns, so at most limit get through.
+func (s *UserStore) ClaimReauthAttempt(ctx context.Context, userID int64, limit int, window time.Duration) (bool, error) {
+	var id int64
+	err := s.db.QueryRowContext(ctx,
+		`UPDATE users SET
+		   reauth_failures = CASE WHEN reauth_window_start IS NULL OR reauth_window_start <= NOW() - make_interval(secs => $3)
+		                          THEN 1 ELSE reauth_failures + 1 END,
+		   reauth_window_start = CASE WHEN reauth_window_start IS NULL OR reauth_window_start <= NOW() - make_interval(secs => $3)
+		                              THEN NOW() ELSE reauth_window_start END
+		 WHERE id = $1
+		   AND (reauth_window_start IS NULL OR reauth_window_start <= NOW() - make_interval(secs => $3) OR reauth_failures < $2)
+		 RETURNING id`,
+		userID, limit, window.Seconds(),
+	).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("user claim reauth attempt: %w", err)
+	}
+	return true, nil
+}
+
+// ReleaseReauthAttempt uncounts a claimed attempt that succeeded, so only failures use up the window.
+func (s *UserStore) ReleaseReauthAttempt(ctx context.Context, userID int64) error {
+	if _, err := s.db.ExecContext(ctx,
+		`UPDATE users SET reauth_failures = GREATEST(reauth_failures - 1, 0) WHERE id = $1`, userID,
+	); err != nil {
+		return fmt.Errorf("user release reauth attempt: %w", err)
+	}
+	return nil
+}
+
+// ChangePassword swaps oldHash for newHash and ends every session issued before
+// the change, in one statement. It reports false, changing nothing, when the
+// hash is no longer oldHash, so a confirmation only replaces the password it checked.
+func (s *UserStore) ChangePassword(ctx context.Context, userID int64, oldHash, newHash string) (bool, error) {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE users SET password_hash = $3, session_version = session_version + 1, updated_at = NOW()
+		 WHERE id = $1 AND password_hash = $2`,
+		userID, oldHash, newHash)
+	if err != nil {
+		return false, fmt.Errorf("user change password: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("user change password rows: %w", err)
+	}
+	return n == 1, nil
+}
+
+// BumpSessionVersion ends every session issued before it and returns the new version.
+func (s *UserStore) BumpSessionVersion(ctx context.Context, userID int64) (int, error) {
+	var v int
+	err := s.db.QueryRowContext(ctx,
+		`UPDATE users SET session_version = session_version + 1, updated_at = NOW() WHERE id = $1 RETURNING session_version`,
+		userID,
+	).Scan(&v)
+	if err != nil {
+		return 0, fmt.Errorf("user bump session version: %w", err)
+	}
+	return v, nil
+}
+
+func (s *UserStore) SessionVersion(ctx context.Context, userID int64) (int, error) {
+	var v int
+	if err := s.db.QueryRowContext(ctx, `SELECT session_version FROM users WHERE id = $1`, userID).Scan(&v); err != nil {
+		return 0, fmt.Errorf("user session version: %w", err)
+	}
+	return v, nil
+}
+
+// MarkEmailVerified verifies email only while it is still userID's address,
+// and reports whether it was.
+func (s *UserStore) MarkEmailVerified(ctx context.Context, userID int64, email string) (bool, error) {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE users SET email_verified_at = COALESCE(email_verified_at, NOW()), updated_at = NOW()
+		 WHERE id = $1 AND lower(email) = lower($2)`,
+		userID, email,
+	)
+	if err != nil {
+		return false, fmt.Errorf("user mark email verified: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("user mark email verified: %w", err)
+	}
+	return n == 1, nil
 }
 
 // LinkOAuth links an account that has no provider link yet, reporting false if it already has one.
@@ -388,17 +503,39 @@ func (s *UserStore) SetBackupCodes(ctx context.Context, userID int64, codeHashes
 	return nil
 }
 
-func (s *UserStore) UpdateProfile(ctx context.Context, userID int64, name, email, bio, company, location string) error {
-	_, err := s.db.ExecContext(ctx,
+// UpdateProfile reports whether the email changed. A new address starts
+// unverified, and links already sent to the old one stop working.
+func (s *UserStore) UpdateProfile(ctx context.Context, userID int64, name, email, bio, company, location string) (bool, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("user update profile begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	var oldEmail string
+	if err := tx.QueryRowContext(ctx, `SELECT email FROM users WHERE id=$1 FOR UPDATE`, userID).Scan(&oldEmail); err != nil {
+		return false, fmt.Errorf("user update profile lock: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx,
 		`UPDATE users
-		   SET name=$1, email=$2, bio=$3, company=$4, location=$5, updated_at=NOW()
+		   SET name=$1, email=$2, bio=$3, company=$4, location=$5, updated_at=NOW(),
+		       email_verified_at = CASE WHEN email = $2 THEN email_verified_at END
 		 WHERE id=$6`,
 		name, email, bio, company, location, userID,
-	)
-	if err != nil {
-		return fmt.Errorf("user update profile: %w", err)
+	); err != nil {
+		return false, fmt.Errorf("user update profile: %w", err)
 	}
-	return nil
+	changed := oldEmail != email
+	if changed {
+		if _, err := tx.ExecContext(ctx,
+			`UPDATE email_verification_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL`, userID,
+		); err != nil {
+			return false, fmt.Errorf("user update profile revoke verification tokens: %w", err)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("user update profile commit: %w", err)
+	}
+	return changed, nil
 }
 
 // DeleteByID removes a user. Related rows depend on ON DELETE CASCADE in the schema.
