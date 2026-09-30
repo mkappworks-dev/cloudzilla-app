@@ -40,7 +40,7 @@ func TestOwnerNames_UsersAndOrgsCannotShareAName(t *testing.T) {
 	if err := orgs.Create(ctx, org); err != nil {
 		t.Fatalf("create org: %v", err)
 	}
-	t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM organizations WHERE id = $1`, org.ID) })
+	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 	var id int64
 	err = db.QueryRowContext(ctx,
 		`INSERT INTO users (username, email, password_hash) VALUES ($1, $2, 'x') RETURNING id`,
