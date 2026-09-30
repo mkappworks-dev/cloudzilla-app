@@ -18,10 +18,11 @@ const maxOwnerNameLen = 39
 var ownerNameRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$`)
 
 // An owner name is the first URL segment, so it can't be a top-level route.
+// ghost is the user that deleted accounts' content passes to.
 var reservedOwnerNames = map[string]bool{
 	"activity": true, "admin": true, "api": true, "apps": true, "attention": true,
 	"auth": true, "authorizations": true, "explore": true, "file-row": true,
-	"fragments": true, "from-template": true, "gists": true, "invitations": true,
+	"fragments": true, "from-template": true, "ghost": true, "gists": true, "invitations": true,
 	"invite": true, "issues": true, "latest": true, "login": true, "logout": true,
 	"new": true, "notifications": true, "oauth": true, "organizations": true, "orgs": true, "pulls": true,
 	"read-all": true, "register": true, "repos": true, "search": true,

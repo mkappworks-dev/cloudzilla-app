@@ -88,3 +88,68 @@ func TestOrganizationsNameLowerIndex_ServesTheOwnerNameGuard(t *testing.T) {
 		t.Errorf("the guard's org lookup must be able to use idx_organizations_name_lower; plan:\n%s", plan.String())
 	}
 }
+
+const ghostUserMigration = "migrations/089_ghost_user.sql"
+
+func TestGhostUserMigration_SeedsTheOnlyUserAndItCannotSignIn(t *testing.T) {
+	db := testutil.OpenFreshTestDB(t)
+
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&n); err != nil || n != 1 {
+		t.Fatalf("users on a fresh install = %d, %v; want just the ghost", n, err)
+	}
+	var username, passwordHash, oauthProvider string
+	var ssoProvider *string
+	var emailNotifications, superadmin bool
+	if err := db.QueryRow(
+		`SELECT username, password_hash, oauth_provider, sso_provider, email_notifications, is_superadmin
+		 FROM users WHERE id = ghost_user_id()`,
+	).Scan(&username, &passwordHash, &oauthProvider, &ssoProvider, &emailNotifications, &superadmin); err != nil {
+		t.Fatalf("load ghost: %v", err)
+	}
+	if username != "ghost" {
+		t.Errorf("username = %q, want ghost", username)
+	}
+	if passwordHash != "" || oauthProvider != "" || ssoProvider != nil || superadmin {
+		t.Errorf("ghost has a way in: password %q, oauth %q, sso %v, superadmin %v", passwordHash, oauthProvider, ssoProvider, superadmin)
+	}
+	if emailNotifications {
+		t.Error("ghost gets notification email")
+	}
+}
+
+// Run again on a fresh schema with the migration's objects removed, as on an
+// install from before it where someone already holds the name.
+func TestGhostUserMigration_TakesAFreeNameWhenGhostIsHeld(t *testing.T) {
+	db := testutil.OpenFreshTestDB(t)
+	sql, err := os.ReadFile(ghostUserMigration)
+	if err != nil {
+		t.Fatalf("read migration: %v", err)
+	}
+	testutil.Exec(t, db, `DROP TRIGGER users_keep_ghost ON users`)
+	testutil.Exec(t, db, `DROP INDEX pull_reviews_pull_id_author_id_key`)
+	testutil.Exec(t, db, `ALTER TABLE pull_reviews ADD CONSTRAINT pull_reviews_pull_id_author_id_key UNIQUE (pull_id, author_id)`)
+	testutil.Exec(t, db, `DELETE FROM users`)
+	testutil.Exec(t, db, `DROP FUNCTION users_keep_ghost(), ghost_user_id()`)
+	testutil.Exec(t, db, `INSERT INTO users (username, email, password_hash) VALUES ('Ghost', 'held@test.invalid', 'x')`)
+
+	if _, err := db.Exec(string(sql)); err != nil {
+		t.Fatalf("migration: %v", err)
+	}
+
+	var username string
+	if err := db.QueryRow(`SELECT username FROM users WHERE id = ghost_user_id()`).Scan(&username); err != nil {
+		t.Fatalf("load ghost: %v", err)
+	}
+	if username != "ghost2" {
+		t.Errorf("ghost username = %q, want ghost2", username)
+	}
+}
+
+func TestGhostUser_CannotBeDeleted(t *testing.T) {
+	db := testutil.OpenFreshTestDB(t)
+
+	if _, err := db.Exec(`DELETE FROM users WHERE id = ghost_user_id()`); err == nil {
+		t.Fatal("deleted the ghost; content reassigned to it would then block every account delete")
+	}
+}

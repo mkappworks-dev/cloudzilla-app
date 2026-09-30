@@ -78,7 +78,7 @@ func (s *SearchStore) SearchUsers(ctx context.Context, query string, limit int) 
 	const q = `
 SELECT id, username, email, bio, avatar_url, created_at, updated_at
 FROM users
-WHERE lower(username) LIKE lower($1) || '%'
+WHERE lower(username) LIKE lower($1) || '%' AND ` + notGhost + `
 ORDER BY username
 LIMIT $2`
 	rows, err := s.db.QueryContext(ctx, q, query, limit)

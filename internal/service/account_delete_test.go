@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -26,6 +27,30 @@ func (e repoDirsEnv) userExists(t *testing.T, id int64) bool {
 		t.Fatalf("count users: %v", err)
 	}
 	return n == 1
+}
+
+func (e repoDirsEnv) insertID(t *testing.T, query string, args ...any) int64 {
+	t.Helper()
+	var id int64
+	if err := e.db.QueryRow(query, args...).Scan(&id); err != nil {
+		t.Fatalf("%s: %v", query, err)
+	}
+	return id
+}
+
+func (e repoDirsEnv) ghost(t *testing.T) (int64, string) {
+	t.Helper()
+	var id int64
+	var username string
+	if err := e.db.QueryRow(`SELECT id, username FROM users WHERE id = ghost_user_id()`).Scan(&id, &username); err != nil {
+		t.Fatalf("load ghost: %v", err)
+	}
+	return id, username
+}
+
+func (e repoDirsEnv) seedPull(t *testing.T, repoID, authorID int64) int64 {
+	t.Helper()
+	return e.insertID(t, `INSERT INTO pull_requests (repo_id, number, author_id, title, head_branch) VALUES ($1, 1, $2, 'fix', 'fix') RETURNING id`, repoID, authorID)
 }
 
 func TestUserService_DeleteUser_RemovesRepoDirs(t *testing.T) {
@@ -68,28 +93,19 @@ func TestUserService_DeleteUser_RemovesAStrandedWiki(t *testing.T) {
 	}
 }
 
-func TestUserService_DeleteUser_FailedDeleteKeepsRepos(t *testing.T) {
+func TestRepoService_DeleteWithOwner_FailedOwnerDeleteKeepsRepos(t *testing.T) {
 	env := newRepoDirsEnv(t)
 	ctx := context.Background()
 	userID, user := env.seedUser(t)
-	otherID, other := env.seedUser(t)
 	env.createWithWiki(t, user, "kept")
 	gitDir, wikiDir := env.dirs(user, "kept")
 	head := headOf(t, gitDir)
-	othersRepo, err := env.repos.Create(ctx, otherID, other, "theirs", "", false, service.RepoInitOptions{})
-	if err != nil {
-		t.Fatalf("create other's repo: %v", err)
-	}
-	// issues.author_id has no ON DELETE action, so this issue blocks the user delete.
-	testutil.Exec(t, env.db, `INSERT INTO issues (repo_id, number, author_id, title) VALUES ($1, 1, $2, 'blocks delete')`, othersRepo.ID, userID)
 
-	if err := env.users().DeleteUser(ctx, userID); err == nil {
-		t.Fatal("DeleteUser succeeded despite the authored issue")
+	err := env.repos.DeleteWithOwner(ctx, userID, func([]int64) error { return errors.New("row delete failed") })
+	if err == nil {
+		t.Fatal("DeleteWithOwner succeeded although the owner delete failed")
 	}
 
-	if !env.userExists(t, userID) {
-		t.Fatal("user row gone after a failed delete")
-	}
 	if !pathExists(gitDir) || headOf(t, gitDir) != head {
 		t.Error("repo not back at its path after the failed delete")
 	}
@@ -168,22 +184,154 @@ func TestUserService_DeleteUser_OwnIssuesAndPullsDoNotBlock(t *testing.T) {
 	}
 }
 
-func TestUserService_DeleteUser_ContentInOthersReposStillBlocks(t *testing.T) {
+func TestUserService_DeleteUser_HandsContentInOthersReposToTheGhost(t *testing.T) {
 	env := newRepoDirsEnv(t)
 	userID, user := env.seedUser(t)
 	env.createWithWiki(t, user, "mine")
-	_, other := env.seedUser(t)
-	theirs := env.createWithWiki(t, other, "theirs")
-	testutil.Exec(t, env.db, `INSERT INTO issues (repo_id, number, title, author_id) VALUES ($1, 1, 'report', $2)`, theirs, userID)
+	otherID, other := env.seedUser(t)
+	repoID := env.createWithWiki(t, other, "theirs")
+	gone := env.createWithWiki(t, other, "gone")
+	testutil.Exec(t, env.db, `UPDATE repositories SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2`, userID, gone)
+	issueID := env.insertID(t, `INSERT INTO issues (repo_id, number, author_id, title) VALUES ($1, 1, $2, 'report') RETURNING id`, repoID, userID)
+	pullID := env.insertID(t, `INSERT INTO pull_requests (repo_id, number, author_id, title, head_branch) VALUES ($1, 2, $2, 'fix', 'fix') RETURNING id`, repoID, userID)
+	discussionID := env.insertID(t,
+		`INSERT INTO discussions (repo_id, category_id, number, title, author_id, author_name)
+		 VALUES ($1, (SELECT MIN(id) FROM discussion_categories), 3, 'idea', $2, $3) RETURNING id`,
+		repoID, userID, user)
+	invitationID := env.insertID(t,
+		`INSERT INTO invitations (token, email, invited_by_id, expires_at) VALUES ($1, $2, $3, NOW() + INTERVAL '1 day') RETURNING id`,
+		"tok_"+user, "invitee_"+user+"@test.invalid", userID)
+	t.Cleanup(func() { testutil.Exec(t, env.db, `DELETE FROM invitations WHERE id = $1`, invitationID) })
 
-	if err := env.users().DeleteUser(context.Background(), userID); err == nil {
-		t.Fatal("DeleteUser succeeded although the user authored an issue in someone else's repo")
+	authored := []struct {
+		table, idCol, nameCol string
+		id                    int64
+	}{
+		{"issues", "author_id", "", issueID},
+		{"pull_requests", "author_id", "", pullID},
+		{"comments", "author_id", "author_name", env.insertID(t,
+			`INSERT INTO comments (repo_id, issue_id, author_id, author_name, body) VALUES ($1, $2, $3, $4, 'me too') RETURNING id`,
+			repoID, issueID, userID, user)},
+		{"notifications", "actor_id", "actor_name", env.insertID(t,
+			`INSERT INTO notifications (user_id, actor_id, actor_name, type, repo_id, subject_id) VALUES ($1, $2, $3, 'issue_comment', $4, 1) RETURNING id`,
+			otherID, userID, user, repoID)},
+		{"invitations", "invited_by_id", "", invitationID},
+		{"releases", "author_id", "", env.insertID(t,
+			`INSERT INTO releases (repo_id, tag_name, author_id) VALUES ($1, 'v1', $2) RETURNING id`, repoID, userID)},
+		{"commit_statuses", "creator_id", "", env.insertID(t,
+			`INSERT INTO commit_statuses (repo_id, sha, state, creator_id) VALUES ($1, 'abc', 'success', $2) RETURNING id`, repoID, userID)},
+		{"pull_reviews", "author_id", "author_name", env.insertID(t,
+			`INSERT INTO pull_reviews (pull_id, repo_id, author_id, author_name, state, body) VALUES ($1, $2, $3, $4, 'commented', 'looks off') RETURNING id`,
+			pullID, repoID, userID, user)},
+		{"pull_line_comments", "author_id", "author_name", env.insertID(t,
+			`INSERT INTO pull_line_comments (pull_id, repo_id, author_id, author_name, path, line, body) VALUES ($1, $2, $3, $4, 'a.go', 1, 'nit') RETURNING id`,
+			pullID, repoID, userID, user)},
+		{"discussions", "author_id", "author_name", discussionID},
+		{"discussion_replies", "author_id", "author_name", env.insertID(t,
+			`INSERT INTO discussion_replies (discussion_id, author_id, author_name, body) VALUES ($1, $2, $3, '+1') RETURNING id`,
+			discussionID, userID, user)},
+		{"pull_events", "actor_id", "actor_name", env.insertID(t,
+			`INSERT INTO pull_events (pull_id, actor_id, actor_name, event_type) VALUES ($1, $2, $3, 'closed') RETURNING id`,
+			pullID, userID, user)},
+		{"repositories", "deleted_by", "", gone},
 	}
-	if !env.userExists(t, userID) {
-		t.Fatal("user row deleted")
+
+	if err := env.users().DeleteUser(context.Background(), userID); err != nil {
+		t.Fatalf("DeleteUser: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(env.root, user, "mine.git")); err != nil {
-		t.Fatalf("own repo dir not restored after the failed delete: %v", err)
+
+	if env.userExists(t, userID) {
+		t.Fatal("user row survived")
+	}
+	ghostID, ghostName := env.ghost(t)
+	for _, a := range authored {
+		cols, gotID, gotName := a.idCol, int64(0), ghostName
+		dest := []any{&gotID}
+		if a.nameCol != "" {
+			cols += ", " + a.nameCol
+			dest = append(dest, &gotName)
+		}
+		if err := env.db.QueryRow(`SELECT `+cols+` FROM `+a.table+` WHERE id = $1`, a.id).Scan(dest...); err != nil {
+			t.Errorf("%s row %d: %v", a.table, a.id, err)
+			continue
+		}
+		if gotID != ghostID || gotName != ghostName {
+			t.Errorf("%s row has %s = %d, name %q; want the ghost (%d, %q)", a.table, a.idCol, gotID, gotName, ghostID, ghostName)
+		}
+	}
+}
+
+// A review request is addressed to the user, not written by them, and the
+// ghost can never answer it.
+func TestUserService_DeleteUser_DropsItsPendingReviewRequests(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	userID, user := env.seedUser(t)
+	otherID, other := env.seedUser(t)
+	repoID := env.createWithWiki(t, other, "theirs")
+	pullID := env.seedPull(t, repoID, otherID)
+	requestID := env.insertID(t,
+		`INSERT INTO pull_reviews (pull_id, repo_id, author_id, author_name, state) VALUES ($1, $2, $3, $4, 'pending') RETURNING id`,
+		pullID, repoID, userID, user)
+
+	if err := env.users().DeleteUser(context.Background(), userID); err != nil {
+		t.Fatalf("DeleteUser: %v", err)
+	}
+
+	var n int
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM pull_reviews WHERE id = $1`, requestID).Scan(&n); err != nil || n != 0 {
+		t.Errorf("pending review request count = %d, %v; want it dropped", n, err)
+	}
+}
+
+func TestUserService_DeleteUser_GhostKeepsEveryDeletedReviewersReview(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	otherID, other := env.seedUser(t)
+	repoID := env.createWithWiki(t, other, "theirs")
+	pullID := env.seedPull(t, repoID, otherID)
+
+	for _, state := range []string{"approved", "changes_requested"} {
+		reviewerID, reviewer := env.seedUser(t)
+		testutil.Exec(t, env.db,
+			`INSERT INTO pull_reviews (pull_id, repo_id, author_id, author_name, state) VALUES ($1, $2, $3, $4, $5)`,
+			pullID, repoID, reviewerID, reviewer, state)
+		if err := env.users().DeleteUser(context.Background(), reviewerID); err != nil {
+			t.Fatalf("DeleteUser of the %s reviewer: %v", state, err)
+		}
+	}
+
+	ghostID, _ := env.ghost(t)
+	var n int
+	if err := env.db.QueryRow(`SELECT COUNT(*) FROM pull_reviews WHERE pull_id = $1 AND author_id = $2`, pullID, ghostID).Scan(&n); err != nil || n != 2 {
+		t.Errorf("ghost reviews on the pull = %d, %v; want both", n, err)
+	}
+}
+
+func TestUserService_DeleteUser_ReviewsNoLongerGateThePull(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	otherID, other := env.seedUser(t)
+	repoID := env.createWithWiki(t, other, "theirs")
+	pullID := env.seedPull(t, repoID, otherID)
+	protections := store.NewBranchProtectionStore(env.db)
+	if err := protections.Create(ctx, &model.BranchProtection{RepoID: repoID, Pattern: "main", RequireReviewCount: 1}); err != nil {
+		t.Fatalf("protect main: %v", err)
+	}
+	for _, state := range []string{"approved", "changes_requested"} {
+		reviewerID, reviewer := env.seedUser(t)
+		testutil.Exec(t, env.db,
+			`INSERT INTO pull_reviews (pull_id, repo_id, author_id, author_name, state) VALUES ($1, $2, $3, $4, $5)`,
+			pullID, repoID, reviewerID, reviewer, state)
+		if err := env.users().DeleteUser(ctx, reviewerID); err != nil {
+			t.Fatalf("DeleteUser of the %s reviewer: %v", state, err)
+		}
+	}
+	reviews := service.NewPullReviewService(store.NewPullReviewStore(env.db), store.NewPullStore(env.db), store.NewRepoStore(env.db), protections)
+
+	if ok, reason, err := reviews.CanMerge(ctx, pullID); err != nil || !ok {
+		t.Errorf("CanMerge = %v, %q, %v; nobody is left to withdraw the request for changes", ok, reason, err)
+	}
+	if required, approved, err := reviews.Counts(ctx, pullID); err != nil || required != 1 || approved != 0 {
+		t.Errorf("Counts = %d required, %d approved, %v; want 1, 0 to match CheckMerge", required, approved, err)
 	}
 }
 

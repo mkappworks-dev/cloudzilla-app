@@ -284,20 +284,33 @@ Both changes write an audit entry (`user.oauth.connect` with the Google ID and e
 
 ## Usernames
 
-Usernames and organization names are repository path segments, so a new one must match `^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$` and not be a reserved route segment, compared case-insensitively: `activity admin api apps attention auth authorizations explore file-row fragments from-template gists invitations invite issues latest login logout new notifications oauth organizations orgs pulls read-all register repos search settings setup stars static topic unread-count` (`service.ValidateOwnerName`, checked only on create; a router test fails if a top-level route segment is missing from the list). Setup, registration, signup, invites and `POST /api/orgs` reject anything else. Google OAuth derives the username from the display name (falling back to the email's local part, then `user`) by dropping other characters; LDAP/SAML replace other characters with `_`, falling back to `sso_user`.
+Usernames and organization names are repository path segments, so a new one must match `^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$` and not be a reserved route segment, compared case-insensitively: `activity admin api apps attention auth authorizations explore file-row fragments from-template ghost gists invitations invite issues latest login logout new notifications oauth organizations orgs pulls read-all register repos search settings setup stars static topic unread-count` (`service.ValidateOwnerName`, checked only on create; a router test fails if a top-level route segment is missing from the list). Setup, registration, signup, invites and `POST /api/orgs` reject anything else. Google OAuth derives the username from the display name (falling back to the email's local part, then `user`) by dropping other characters; LDAP/SAML replace other characters with `_`, falling back to `sso_user`.
 
 Users and organizations share one namespace (`/{owner}` and `<repos_root>/<owner>/`), compared case-insensitively, so `Acme` can't be registered while org `acme` exists. Every user and organization insert checks this in the same statement (`ownerNameTakenCond` in `internal/store/user_store.go`) and refuses a taken name with `ErrUsernameTaken`, or `ErrOrgNameTaken` for `OrgService.Create`; Google OAuth moves on to the next numbered candidate (`2`, `3`, …) instead. Triggers from migration 080 also lock each exact name, so two concurrent creates of one name cannot both take it.
 
 ## Account Deletion
 
-`POST /settings/delete-account` calls `UserService.DeleteUser`, which deletes the user row; the database cascades to the user's repositories (soft-deleted ones included), gists, keys, tokens, stars and activity. Around that delete, `RepoService.DeleteWithOwner` handles the repo directories:
+`POST /settings/delete-account` calls `UserService.DeleteUser`. In one transaction, `UserStore.DeleteWithOwnedRepos` deletes the user's repositories (soft-deleted ones included) and everything in them, drops the user's pending review requests, hands what the user wrote in other people's repos to the [ghost user](#the-ghost-user), and deletes the user row, which cascades to gists, keys, tokens, stars, watches, reactions and activity. Around that transaction, `RepoService.DeleteWithOwner` handles the repo directories:
 
 1. It refuses (`ErrOwnsOrgRepos`, shown as `delete_org_repos`) while the user is `owner_id` of a live org repo, because the cascade would remove the repo from the org. The user deletes those repos first.
 2. It renames each personal repo's `<name>.git` and `<name>.wiki.git` to `.deleted.<unix_ts>`.
-3. If the row delete fails (for example because the user authored issues or comments in other people's repos), it renames them back.
+3. If the transaction fails (for example `ErrOwnedReposChanged`, when a repo was created or restored after step 2), it renames them back.
 4. Once the row is gone, it removes those directories and the copies of every repo the user had soft-deleted, org repos included, which `PurgeExpired` can no longer find. A wiki that a soft delete from before wikis moved with their repo left at `<name>.wiki.git` goes too, unless another row still names it.
 
 The freed username can then be registered or taken as an org name. Repo creation refuses any name whose directory still exists, so nothing the old account left on disk is ever served under the new owner.
+
+### The ghost user
+
+As on GitHub, a deleted account's issues, pull requests, comments, reviews, discussions and other contributions to repos it didn't own stay, credited to `ghost`. Migration 089 creates that user and an SQL function, `ghost_user_id()`, returning its ID; if an account named `ghost` already exists, the ghost takes the first free `ghost<n>` instead.
+
+`ghostReassignments` in `internal/store/user_store.go` lists the columns the delete moves to the ghost: every reference to `users(id)` with no `ON DELETE` action, which would otherwise block it. Usernames copied into those rows (`author_name`, `actor_name`) are rewritten too, so whoever registers the freed name isn't credited. A migration that adds such a reference must give it an `ON DELETE` action or add it to the list; `TestGhostReassignments_CoverEveryUserFKWithoutDeleteAction` fails until it does.
+
+- **Sign-in:** the ghost has no password, OAuth or SSO identity, token or key, and email lookups skip it. Notification email is off.
+- **Lookups:** lookups by username, email or search prefix skip it (`notGhost`), so nobody can add it to an org, transfer a repo or org to it, add it as a collaborator, assign it, mention it or request its review. `/ghost` and `GET /api/users/ghost` return 404. Lookups by ID still load it for the content it holds.
+- **Setup:** `IsSetupComplete` counts accounts without it (`UserStore.CountAccounts`), so a fresh install still starts at `/setup`.
+- **Name:** `ghost` is a reserved owner name, and the row itself holds its name against case variants. A trigger refuses to delete the row.
+- **Reviews:** submitted reviews pass to the ghost and stay on the pull request, but count toward neither merge gate. `CountApprovals`, used by branch protection and by the count the pull request page shows, skips them, and a ghost's `changes_requested` doesn't block merging, since nobody could withdraw it. The one-review-per-reviewer index excludes the ghost, so it can hold several reviews on one pull.
+- **Invitations:** pending instance invitations the user sent stay valid, sent by `ghost`. Delete them from the admin page to revoke them.
 
 ---
 

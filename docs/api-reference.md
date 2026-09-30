@@ -191,7 +191,7 @@ Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` an
 | Method | Path                                            | Auth     | Description                                                                                                           |
 | ------ | ----------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/api/repos/:owner/:repo/pulls/:number/reviews` | Optional | List all reviews for a pull request                                                                                   |
-| POST   | `/api/repos/:owner/:repo/pulls/:number/reviews` | Required | Submit or update a review (`state`, `body`); upserts per reviewer; `state=changes_requested` blocks all merge buttons |
+| POST   | `/api/repos/:owner/:repo/pulls/:number/reviews` | Required | Submit or update a review (`state`, `body`); upserts per reviewer; `state=changes_requested` blocks all merge buttons until the reviewer changes it or deletes their account |
 
 Valid `state` values: `approved`, `changes_requested`, `commented`, `pending`.
 
