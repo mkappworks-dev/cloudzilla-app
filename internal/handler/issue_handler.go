@@ -157,7 +157,7 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 
 	go h.Services.Webhook.Dispatch(repo.ID, "issues", h.Services.Webhook.IssuePayload(state, *repo, *issue))
 	go func() {
-		h.Services.Notification.NotifyIssueStateChange(r.Context(), *repo, *issue, claims.UserID, claims.Username)
+		h.Services.Notification.NotifyIssueStateChange(context.WithoutCancel(r.Context()), *repo, *issue, claims.UserID, claims.Username)
 	}()
 	if state == "closed" {
 		repoID := repo.ID

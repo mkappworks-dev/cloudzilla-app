@@ -5,10 +5,33 @@ import "github.com/mkappworks-dev/cloudzilla-app/internal/model"
 // SettingsData holds template data for the user account settings page.
 type SettingsData struct {
 	BasePage
-	SSHKeys          []model.SSHKey
-	Email            string
-	NoreplyEmail     string
-	KeepEmailPrivate bool
+	User                model.User
+	SSHKeys             []model.SSHKey
+	Tokens              []model.AccessToken
+	SavedReplies        []model.SavedReply
+	OAuthApps           []model.OAuthApp
+	OAuthAuthorizations []model.OAuthAuthorization
+	TOTPEnabled         bool
+	TOTPPendingSecret   string
+	TOTPQRCode          string
+	BackupCodes         []string
+	NewToken            string
+	NoreplyEmail        string
+	ProfileSaved        bool
+	ProfileError        string
+}
+
+// OAuthAppsFragData holds template data for the OAuth apps list HTMX fragment.
+type OAuthAppsFragData struct {
+	Apps []model.OAuthApp
+	// Set only when rendering the create response: the store keeps a bcrypt hash, so this is the one chance to show it.
+	NewClientSecret string
+	NewClientID     string
+}
+
+// OAuthAuthorizationsFragData holds template data for the authorized OAuth apps HTMX fragment.
+type OAuthAuthorizationsFragData struct {
+	Authorizations []model.OAuthAuthorization
 }
 
 // NotificationsData holds template data for the notifications page.
@@ -51,14 +74,6 @@ type SSHKeysFragData struct {
 	SSHKeys []model.SSHKey
 }
 
-// Tokens page
-// TokensData holds template data for the personal access tokens page.
-type TokensData struct {
-	BasePage
-	Tokens   []model.AccessToken
-	NewToken string // raw token, shown only once after creation
-}
-
 // Tokens list fragment
 // TokensListFragData holds template data for the PAT list HTMX fragment.
 type TokensListFragData struct {
@@ -86,15 +101,6 @@ type SSOSettingsData struct {
 	Success    string
 }
 
-// Notification settings page
-// NotificationSettingsData holds template data for the notification preferences page.
-type NotificationSettingsData struct {
-	BasePage
-	EmailNotifications bool
-	EmailDigest        string
-}
-
-// OAuth Apps pages
 // OAuthAuthorizeData holds template data for the OAuth authorization consent page.
 type OAuthAuthorizeData struct {
 	BasePage
@@ -102,11 +108,4 @@ type OAuthAuthorizeData struct {
 	Scopes      []string
 	RedirectURI string
 	State       string
-}
-
-// OAuthAppsData holds template data for the OAuth applications management page.
-type OAuthAppsData struct {
-	BasePage
-	Apps           []model.OAuthApp
-	Authorizations []model.OAuthAuthorization
 }

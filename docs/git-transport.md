@@ -86,7 +86,15 @@ go-git's receive-pack writes each pushed ref without comparing it to the command
  ! [remote rejected] main -> main (ref changed since it was read; fetch and push again)
 ```
 
-The response is still HTTP 200 / SSH exit 0; the per-ref status is what tells the client. Branch protection runs after the refs are written, and `gittransport.Revert` undoes a rejected ref only if it still holds the pushed commit. If something moved it in the meantime, the revert is skipped and logged as `branch protection rollback failed`.
+Branch protection is enforced at the same point, before the write. Both transports pass `NewServer` a vet function that calls `BranchProtectionService.CheckPushCommand`. go-git writes refs only after it has stored the pack, so the check can read the pushed commits to tell a force push from a fast-forward. A refused ref never moves, and the status carries the reason:
+
+```
+ ! [remote rejected] main -> main (force push blocked by branch protection)
+```
+
+The response is still HTTP 200 / SSH exit 0; the per-ref status is what tells the client. Webhooks, activity events, and post-receive run only for the refs that applied (`gittransport.AppliedCommands`).
+
+**report-status:** go-git returns no status to a client that didn't request `report-status`, and it turns a refused ref into an error for the whole push. The session always requests it internally, so the handlers still know which refs applied, and it sends the status only to clients that asked for it. A client without it gets no per-ref result.
 
 **Gap:** go-git can't create or delete a ref conditionally, so creates and deletes check the ref just before writing, not atomically with the write.
 

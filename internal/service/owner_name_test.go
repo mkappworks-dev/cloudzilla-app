@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -94,26 +93,3 @@ func TestUniqueUsername_SkipsOwnerNamesInAnyCase(t *testing.T) {
 
 // "admin" is reserved, so both logins fall back to the same name and the
 // second needs a suffix.
-func TestFindOrProvisionUser_PicksAFreeOwnerName(t *testing.T) {
-	db := testutil.OpenTestDB(t)
-	suffix := testutil.UniqueSuffix(t)
-	org := "SSOOrg_" + suffix
-	seedOrgNamed(t, org)
-	svc := NewSSOService(store.NewSSOStore(db), store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-sso-secret-32-bytes-minimum!"}, nil)
-
-	seen := map[string]bool{}
-	for i, name := range []string{strings.ToLower(org), "admin", "admin"} {
-		email := fmt.Sprintf("sso%d_%s@test.invalid", i, suffix)
-		t.Cleanup(func() { testutil.Exec(t, db, `DELETE FROM users WHERE email = $1`, email) })
-
-		u, _, err := svc.findOrProvisionUser(context.Background(), "ldap", email, name, email, true)
-		if err != nil {
-			t.Errorf("provision %q: %v", name, err)
-			continue
-		}
-		if strings.EqualFold(u.Username, org) || seen[u.Username] || ValidateOwnerName(u.Username) != nil {
-			t.Errorf("provision %q: got username %q; want a valid, unused name other than org %q", name, u.Username, org)
-		}
-		seen[u.Username] = true
-	}
-}

@@ -78,6 +78,19 @@ func (s *StarStore) IsStarred(ctx context.Context, userID, repoID int64) (bool, 
 	return exists, err
 }
 
+func (s *StarStore) CountByUser(ctx context.Context, userID int64) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM stars st JOIN repositories r ON r.id = st.repo_id
+		 WHERE st.user_id = $1 AND r.private = false`,
+		userID,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("star count by user: %w", err)
+	}
+	return count, nil
+}
+
 func (s *StarStore) ListByUser(ctx context.Context, userID int64) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at, r.primary_language

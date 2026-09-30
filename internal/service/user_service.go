@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -21,8 +23,16 @@ var (
 	ErrUsernameTaken        = store.ErrUsernameTaken
 	ErrEmailTaken           = store.ErrEmailTaken
 	ErrOrgNameTaken         = store.ErrOrgNameTaken
+	ErrOAuthEmailUnverified = errors.New("the email address on this account has not been verified by the sign-in provider")
+	ErrOAuthAccountExists   = errors.New("an account with this email already exists; sign in with your password")
+	ErrPinLimit             = errors.New("pin limit reached (6)")
+	ErrRepoNotFound         = errors.New("repository not found")
+	ErrInvalidEmail         = errors.New("email must be a valid address")
 	nonAlphanumRe           = regexp.MustCompile(`[^a-z0-9_-]`)
+	emailRe                 = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 )
+
+const MaxPinnedRepos = 6
 
 // MaxPasswordBytes is bcrypt's input limit. Hashing longer passwords fails with
 // bcrypt.ErrPasswordTooLong, so forms check this first to give a clear message.
@@ -40,6 +50,7 @@ var dummyPasswordHash = func() []byte {
 // UserService manages user account operations including authentication and profile updates.
 type UserService struct {
 	store       *store.UserStore
+	repos       *RepoService
 	cfg         config.AuthConfig
 	noreplyHost string
 }
@@ -135,9 +146,18 @@ func (s *UserService) CreateFromInvitation(ctx context.Context, inv *model.Invit
 	return u, nil
 }
 
-func (s *UserService) AuthenticateOAuth(ctx context.Context, provider, oauthID, email, name, avatarURL string, allowRegistration, allowLogin bool) (*model.User, string, error) {
-	// 1. Look up by OAuth ID
-	if u, err := s.store.GetByOAuthID(ctx, provider, oauthID); err == nil {
+// OAuthIdentity is what an OAuth provider asserts about the person signing in.
+type OAuthIdentity struct {
+	Provider      string
+	ID            string
+	Email         string
+	EmailVerified bool
+	Name          string
+	AvatarURL     string
+}
+
+func (s *UserService) AuthenticateOAuth(ctx context.Context, id OAuthIdentity, allowRegistration, allowLogin bool) (*model.User, string, error) {
+	if u, err := s.store.GetByOAuthID(ctx, id.Provider, id.ID); err == nil {
 		if !u.IsSuperadmin && !u.IsInvited && !allowLogin {
 			return nil, "", ErrLoginDisabled
 		}
@@ -145,24 +165,24 @@ func (s *UserService) AuthenticateOAuth(ctx context.Context, provider, oauthID, 
 		return u, token, err
 	}
 
-	// 2. Look up by email — link existing account
-	if u, err := s.store.GetByEmailWithRole(ctx, email); err == nil {
-		if !u.IsSuperadmin && !u.IsInvited && !allowLogin {
-			return nil, "", ErrLoginDisabled
-		}
-		if err := s.store.LinkOAuth(ctx, u.ID, provider, oauthID); err != nil {
-			return nil, "", err
-		}
-		token, err := s.generateJWT(u)
-		return u, token, err
+	// An unverified provider email is only a claim; an account created on it would let anyone take the address first.
+	if !id.EmailVerified {
+		return nil, "", ErrOAuthEmailUnverified
 	}
 
-	// 3. Create new user
+	// Local emails are never verified, so a matching account may belong to
+	// whoever typed the address first; SSO refuses to link on email too.
+	if _, err := s.store.GetByEmailWithRole(ctx, id.Email); err == nil {
+		return nil, "", ErrOAuthAccountExists
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return nil, "", err
+	}
+
 	if !allowRegistration {
 		return nil, "", ErrRegistrationDisabled
 	}
-	username := s.uniqueUsername(ctx, email, name)
-	u, err := s.store.CreateOAuthUser(ctx, username, email, provider, oauthID, avatarURL)
+	username := s.uniqueUsername(ctx, id.Email, id.Name)
+	u, err := s.store.CreateOAuthUser(ctx, username, id.Email, id.Provider, id.ID, id.AvatarURL)
 	if err != nil {
 		return nil, "", err
 	}
@@ -172,8 +192,8 @@ func (s *UserService) AuthenticateOAuth(ctx context.Context, provider, oauthID, 
 
 func (s *UserService) uniqueUsername(ctx context.Context, email, name string) string {
 	fromName := nonAlphanumRe.ReplaceAllString(strings.ToLower(strings.ReplaceAll(name, " ", "")), "")
-	parts := strings.SplitN(email, "@", 2)
-	fromEmail := nonAlphanumRe.ReplaceAllString(strings.ToLower(parts[0]), "")
+	local, _, _ := strings.Cut(email, "@")
+	fromEmail := nonAlphanumRe.ReplaceAllString(strings.ToLower(local), "")
 	return freeOwnerName(ctx, s.store, fitOwnerName(fromName, fitOwnerName(fromEmail, "user")))
 }
 
@@ -187,9 +207,33 @@ func (s *UserService) GetManyByUsernames(ctx context.Context, usernames []string
 	return s.store.GetManyByUsernames(ctx, usernames)
 }
 
-// UpdateEmailPrefs saves the user's email notification preferences.
-func (s *UserService) UpdateEmailPrefs(ctx context.Context, userID int64, emailNotifications bool, emailDigest string) error {
-	return s.store.UpdateEmailPrefs(ctx, userID, emailNotifications, emailDigest)
+func (s *UserService) UpdateNotificationPrefs(ctx context.Context, userID int64, p model.NotificationPrefs) error {
+	if !slices.Contains(model.EmailDigestModes, p.EmailDigest) {
+		p.EmailDigest = model.EmailDigestImmediate
+	}
+	return s.store.UpdateNotificationPrefs(ctx, userID, p)
+}
+
+// Username is deliberately not editable: repo owner names, on-disk repo paths, and JWT claims key off it.
+func (s *UserService) UpdateProfile(ctx context.Context, userID int64, name, email, bio, company, location string) error {
+	if !emailRe.MatchString(email) {
+		return ErrInvalidEmail
+	}
+	if existing, err := s.store.GetByEmail(ctx, email); err == nil && existing.ID != userID {
+		return ErrEmailTaken
+	}
+	return s.store.UpdateProfile(ctx, userID, strings.TrimSpace(name), email, strings.TrimSpace(bio), strings.TrimSpace(company), strings.TrimSpace(location))
+}
+
+// Related rows go via DB cascades; repo directories via DeleteWithOwner.
+func (s *UserService) DeleteUser(ctx context.Context, userID int64) error {
+	return s.repos.DeleteWithOwner(ctx, userID, func(livePersonalIDs []int64) error {
+		err := s.store.DeleteWithOwnedRepos(ctx, userID, livePersonalIDs)
+		if errors.Is(err, store.ErrUserOwnsOrgRepos) {
+			return ErrOwnsOrgRepos
+		}
+		return err
+	})
 }
 
 func (s *UserService) UpdateKeepEmailPrivate(ctx context.Context, userID int64, keep bool) error {
@@ -205,10 +249,7 @@ func (s *UserService) CommitAuthor(ctx context.Context, userID int64) (GitAuthor
 	if err != nil {
 		return GitAuthor{}, err
 	}
-	if u.KeepEmailPrivate || u.Email == "" {
-		return GitAuthor{Name: u.Username, Email: s.NoreplyEmail(ctx, u)}, nil
-	}
-	return GitAuthor{Name: u.Username, Email: u.Email}, nil
+	return commitAuthorFor(s.noreplyHost, u), nil
 }
 
 // ListUsersForDigest returns users with email notifications enabled for the given digest mode.
@@ -224,6 +265,86 @@ func (s *UserService) GenerateTokenForUser(ctx context.Context, userID int64) (s
 		return "", fmt.Errorf("get user: %w", err)
 	}
 	return s.generateJWT(u)
+}
+
+// Required by PinRepo and PinnedRepos, which apply repo visibility, and by
+// DeleteUser, which removes the user's repo directories.
+func (s *UserService) WithRepoService(repos *RepoService) *UserService {
+	s.repos = repos
+	return s
+}
+
+// PinnedRepos returns the pins viewerID can read, in pin order. Stored IDs of
+// deleted repos are skipped rather than erroring, since deletion doesn't unpin.
+func (s *UserService) PinnedRepos(ctx context.Context, userID int64, viewerID *int64) ([]model.Repository, error) {
+	ids, err := s.store.GetPinnedRepoIDs(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	visible, _, err := s.splitPins(ctx, ids, viewerID)
+	return visible, err
+}
+
+// splitPins returns the pins viewerID can read, in pin order, and the IDs of
+// the rest.
+func (s *UserService) splitPins(ctx context.Context, ids []int64, viewerID *int64) ([]model.Repository, []int64, error) {
+	visible := make([]model.Repository, 0, len(ids))
+	var hidden []int64
+	for _, id := range ids {
+		repo, err := s.repos.GetByID(ctx, id)
+		if errors.Is(err, sql.ErrNoRows) {
+			hidden = append(hidden, id)
+			continue
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		if s.repos.CanRead(ctx, repo, viewerID) {
+			visible = append(visible, *repo)
+		} else {
+			hidden = append(hidden, id)
+		}
+	}
+	return visible, hidden, nil
+}
+
+// PinRepo is idempotent. The limit counts only pins the user can still see —
+// the same set their profile shows — and pinning prunes the rest, so deleted
+// or now-unreadable repos don't hold slots the UI reports as free.
+func (s *UserService) PinRepo(ctx context.Context, userID, repoID int64) error {
+	repo, err := s.repos.GetByID(ctx, repoID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrRepoNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if !s.repos.CanRead(ctx, repo, &userID) {
+		return ErrRepoNotFound
+	}
+	ids, err := s.store.GetPinnedRepoIDs(ctx, userID)
+	if err != nil {
+		return err
+	}
+	// Checked before the store locks the row so the lock never waits on repo
+	// lookups; a pin landing in between was checked by its own request.
+	_, stale, err := s.splitPins(ctx, ids, &userID)
+	if err != nil {
+		return err
+	}
+	pinned, err := s.store.AddPinnedRepo(ctx, userID, repoID, stale, MaxPinnedRepos)
+	if err != nil {
+		return err
+	}
+	if !pinned {
+		return ErrPinLimit
+	}
+	return nil
+}
+
+// UnpinRepo is a no-op when repoID is not pinned.
+func (s *UserService) UnpinRepo(ctx context.Context, userID, repoID int64) error {
+	return s.store.RemovePinnedRepo(ctx, userID, repoID)
 }
 
 func (s *UserService) generateJWT(u *model.User) (string, error) {

@@ -34,7 +34,7 @@ func TestRepoService_Create_OwnerOutsideRoot_CreatesNothing(t *testing.T) {
 	t.Cleanup(func() { testutil.DeleteUsers(t, db, ownerID) })
 	svc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{ReposRoot: root})
 
-	_, err := svc.Create(context.Background(), owner, "escape", "", false)
+	_, err := svc.Create(context.Background(), ownerID, owner, "escape", "", false, service.RepoInitOptions{})
 
 	if !errors.Is(err, service.ErrInvalidRepoPath) {
 		t.Errorf("want ErrInvalidRepoPath, got %v", err)
@@ -89,11 +89,11 @@ func TestCreate_InitFails_LeavesNoRow(t *testing.T) {
 		create      func(name string) error
 	}{
 		{user, "blocked_user", func(name string) error {
-			_, err := repos.Create(context.Background(), user, name, "", false)
+			_, err := repos.Create(context.Background(), userID, user, name, "", false, service.RepoInitOptions{})
 			return err
 		}},
 		{org.Name, "blocked_org", func(name string) error {
-			_, err := orgs.CreateRepo(context.Background(), org.ID, userID, name, "", false)
+			_, err := orgs.CreateRepo(context.Background(), org.ID, userID, name, "", false, service.RepoInitOptions{})
 			return err
 		}},
 	}

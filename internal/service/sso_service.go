@@ -828,8 +828,7 @@ func (s *SSOService) findOrProvisionUser(ctx context.Context, provider, ssoID, u
 		return nil, "", ErrRegistrationDisabled
 	}
 
-	safeUsername := freeOwnerName(ctx, s.users, sanitizeUsername(username))
-	u, err = s.store.ProvisionSSOUser(ctx, safeUsername, email, provider, ssoID)
+	u, err = s.store.ProvisionSSOUser(ctx, sanitizeUsername(username), email, provider, ssoID)
 	if err != nil {
 		return nil, "", fmt.Errorf("provision sso user: %w", err)
 	}

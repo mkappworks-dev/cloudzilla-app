@@ -12,9 +12,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	gogit "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/format/pktline"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
@@ -313,7 +313,10 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sess, err := gittransport.NewServer(gitRepo.Storer).NewReceivePackSession(ep, nil)
+	vet := func(cmd *packp.Command) error {
+		return h.Services.BranchProtection.CheckPushCommand(r.Context(), repo.ID, gitRepo, cmd)
+	}
+	sess, err := gittransport.NewServer(gitRepo.Storer, vet).NewReceivePackSession(ep, nil)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -364,33 +367,13 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	)
 
 	w.Header().Set("Content-Type", "application/x-git-receive-pack-result")
-	if status != nil {
+	if status != nil && req.Capabilities.Supports(capability.ReportStatus) {
 		status.Encode(w) //nolint:errcheck
 	}
 
 	// Run side effects only for refs go-git applied — a per-ref failure
 	// surfaces in status, not as a ReceivePack error.
 	commands := gittransport.AppliedCommands(status, req.Commands)
-
-	// Enforce branch protection rules before dispatching webhooks.
-	// If protection rejects the push, rollback the ref to its previous value.
-	for _, cmd := range commands {
-		if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
-			continue
-		}
-		if cmd.Action() == packp.Delete {
-			continue
-		}
-		branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
-		forcePush := cmd.Action() == packp.Update && cmd.Old != plumbing.ZeroHash && isForcePushHTTP(gitRepo, cmd)
-		if err := h.Services.BranchProtection.CheckPush(r.Context(), repo.ID, branch, forcePush); err != nil {
-			if rbErr := gittransport.Revert(gitRepo.Storer, cmd); rbErr != nil {
-				slog.Error("branch protection rollback failed", "ref", cmd.Name.String(), "error", rbErr)
-			}
-			http.Error(w, "push rejected: "+err.Error(), http.StatusForbidden)
-			return
-		}
-	}
 
 	// Dispatch push webhooks for each updated branch
 	pusherName := gu.Username
@@ -451,21 +434,4 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 			)
 		}
 	})
-}
-
-// isForcePushHTTP returns true when the push is non-fast-forward (old commit is not an ancestor of new).
-func isForcePushHTTP(gitRepo *gogit.Repository, cmd *packp.Command) bool {
-	oldCommit, err := gitRepo.CommitObject(cmd.Old)
-	if err != nil {
-		return false
-	}
-	newCommit, err := gitRepo.CommitObject(cmd.New)
-	if err != nil {
-		return false
-	}
-	isAncestor, err := oldCommit.IsAncestor(newCommit)
-	if err != nil {
-		return false
-	}
-	return !isAncestor
 }

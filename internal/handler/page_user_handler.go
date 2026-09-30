@@ -5,14 +5,20 @@ import (
 	"log/slog"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
+
+const profileTabPageSize = 20
 
 // PageUser renders the user or organization profile page at /:username.
 func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
@@ -54,30 +60,137 @@ func (h *Handler) PageUser(w http.ResponseWriter, r *http.Request) {
 		activity = []model.Event{}
 	}
 	var profileReadme template.HTML
+	var profileReadmeRaw string
+	var hasProfileRepo bool
+	var profileRepoDefaultBranch string
 	for _, repo := range repos {
 		if repo.Name == user.Username && !repo.Private {
+			hasProfileRepo = true
+			profileRepoDefaultBranch = repo.DefaultBranch
 			profileReadme = h.Services.Code.GetProfileReadme(user.Username, user.Username, repo.DefaultBranch)
+			if raw, err := h.Services.Code.GetProfileReadmeRaw(user.Username, user.Username, repo.DefaultBranch); err == nil {
+				profileReadmeRaw = raw
+			} else {
+				slog.Warn("user profile: failed to load raw README", "username", username, "error", err)
+			}
 			break
 		}
 	}
 
-	data := view.UserData{
-		BasePage:       basePage(r, h.Services),
-		User:           *user,
-		Repos:          repos,
-		RecentActivity: activity,
-		ProfileReadme:  profileReadme,
-		IsOwnProfile:   viewerID != nil && *viewerID == user.ID,
+	isOwn := viewerID != nil && *viewerID == user.ID
+
+	tab := r.URL.Query().Get("tab")
+	switch tab {
+	case "repositories", "stars", "gists":
+	default:
+		tab = "overview"
 	}
 
-	if r.URL.Query().Get("tab") == "repositories" {
-		data = h.buildRepoTabData(r, data, repos, user.ID, viewerUserID)
+	page := 1
+	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
+		page = p
+	}
+
+	var pinned []components.PinnedRepoData
+	pinnedIDs := map[int64]bool{}
+	if tab == "overview" {
+		pinnedRepos, err := h.Services.User.PinnedRepos(r.Context(), user.ID, viewerID)
+		if err != nil {
+			slog.Warn("user profile: failed to load pinned repositories", "username", username, "error", err)
+			pinnedRepos = nil
+		}
+		ids := make([]int64, len(pinnedRepos))
+		for i, rp := range pinnedRepos {
+			ids[i] = rp.ID
+		}
+		stars, err := h.Services.Star.CountByRepoIDs(r.Context(), ids)
+		if err != nil {
+			slog.Warn("user profile: failed to load pinned star counts", "username", username, "error", err)
+			stars = map[int64]int{}
+		}
+		for _, rp := range pinnedRepos {
+			pinnedIDs[rp.ID] = true
+			pinned = append(pinned, repoCard(rp, h.Services.Language.PrimaryLanguage(r.Context(), &rp), stars[rp.ID]))
+		}
+	}
+
+	heatmap, err := h.Services.CommitStats.LookbackForUser(r.Context(), user.ID, 365)
+	if err != nil {
+		slog.Warn("user profile: failed to load commit heatmap", "username", username, "error", err)
+		heatmap = nil
+	}
+	if heatmap == nil {
+		heatmap = map[time.Time]int{}
+	}
+
+	langPcts, err := h.Services.Language.AggregateForUser(r.Context(), user.Username, viewerID, 5)
+	if err != nil {
+		slog.Warn("user profile: failed to load language stats", "username", username, "error", err)
+		langPcts = nil
+	}
+
+	orgs, err := h.Services.Org.ListMembershipsForUser(r.Context(), user.ID)
+	if err != nil {
+		slog.Warn("user profile: failed to load organization memberships", "username", username, "error", err)
+		orgs = nil
+	}
+	if orgs == nil {
+		orgs = []service.OrgMembership{}
+	}
+
+	starsTotal, err := h.Services.Star.CountByUser(r.Context(), user.ID)
+	if err != nil {
+		slog.Warn("user profile: failed to count starred repos", "username", username, "error", err)
+		starsTotal = 0
+	}
+
+	var gistsTotal int
+	if isOwn {
+		gistsTotal, err = h.Services.Gist.CountByUser(r.Context(), user.ID)
+	} else {
+		gistsTotal, err = h.Services.Gist.CountPublicByOwner(r.Context(), user.ID)
+	}
+	if err != nil {
+		slog.Warn("user profile: failed to count gists", "username", username, "error", err)
+		gistsTotal = 0
+	}
+
+	data := view.UserData{
+		BasePage:                 basePage(r, h.Services),
+		User:                     *user,
+		Repos:                    repos,
+		RecentActivity:           activity,
+		ProfileReadme:            profileReadme,
+		ProfileReadmeRaw:         profileReadmeRaw,
+		ReadmeError:              r.URL.Query().Get("readme_error"),
+		IsOwnProfile:             isOwn,
+		Tab:                      tab,
+		PinnedRepos:              pinned,
+		PinnedRepoIDs:            pinnedIDs,
+		Heatmap:                  heatmap,
+		TopLangs:                 langBarItems(langPcts),
+		Orgs:                     orgs,
+		HasProfileRepo:           hasProfileRepo,
+		ProfileRepoDefaultBranch: profileRepoDefaultBranch,
+		ReposTotal:               len(repos),
+		StarsTotal:               starsTotal,
+		GistsTotal:               gistsTotal,
+	}
+	data.OwnerContext = user.Username
+
+	switch tab {
+	case "repositories":
+		data = h.buildRepoTabData(r, data, repos, user.ID, viewerUserID, page)
+	case "stars":
+		data = h.buildStarsTabData(r, data, username, page)
+	case "gists":
+		data = h.buildGistsTabData(r, data, user.ID, isOwn, page, gistsTotal)
 	}
 
 	h.render(w, r, pages.User(data))
 }
 
-func (h *Handler) buildRepoTabData(r *http.Request, data view.UserData, allRepos []model.Repository, profileOwnerID, viewerUserID int64) view.UserData {
+func (h *Handler) buildRepoTabData(r *http.Request, data view.UserData, allRepos []model.Repository, profileOwnerID, viewerUserID int64, page int) view.UserData {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	repoType := r.URL.Query().Get("type")
 	langFilter := r.URL.Query().Get("language")
@@ -154,8 +267,26 @@ func (h *Handler) buildRepoTabData(r *http.Request, data view.UserData, allRepos
 		}
 	}
 
-	repoIDs := make([]int64, len(filtered))
-	for i, repo := range filtered {
+	total := len(filtered)
+	totalPages := (total + profileTabPageSize - 1) / profileTabPageSize
+	if totalPages < 1 {
+		totalPages = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+	start := (page - 1) * profileTabPageSize
+	end := start + profileTabPageSize
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+	paged := filtered[start:end]
+
+	repoIDs := make([]int64, len(paged))
+	for i, repo := range paged {
 		repoIDs[i] = repo.ID
 	}
 
@@ -171,7 +302,7 @@ func (h *Handler) buildRepoTabData(r *http.Request, data view.UserData, allRepos
 		topicMap = map[int64][]model.Topic{}
 	}
 
-	data.RepoTabRepos = filtered
+	data.RepoTabRepos = paged
 	data.RepoTabRoles = roleMap
 	data.RepoTabLanguages = languages
 	data.RepoTabStars = starCounts
@@ -180,6 +311,85 @@ func (h *Handler) buildRepoTabData(r *http.Request, data view.UserData, allRepos
 	data.RepoTabActiveType = repoType
 	data.RepoTabActiveLanguage = langFilter
 	data.RepoTabActiveStatus = statusFilter
+	data.RepoTabPage = page
+	data.RepoTabTotalPages = totalPages
+	return data
+}
+
+func (h *Handler) buildStarsTabData(r *http.Request, data view.UserData, username string, page int) view.UserData {
+	all, err := h.Services.Star.ListByUser(r.Context(), username)
+	if err != nil {
+		slog.Warn("user profile stars tab: failed to load starred repos", "username", username, "error", err)
+		all = nil
+	}
+	total := len(all)
+	totalPages := (total + profileTabPageSize - 1) / profileTabPageSize
+	if totalPages < 1 {
+		totalPages = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+	start := (page - 1) * profileTabPageSize
+	end := start + profileTabPageSize
+	if start > total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+	data.StarredRepos = all[start:end]
+	data.StarsTabPage = page
+	data.StarsTabTotalPages = totalPages
+	return data
+}
+
+func (h *Handler) buildGistsTabData(r *http.Request, data view.UserData, ownerID int64, isOwner bool, page, total int) view.UserData {
+	totalPages := (total + profileTabPageSize - 1) / profileTabPageSize
+	if totalPages < 1 {
+		totalPages = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+
+	var gists []model.Gist
+	var err error
+	if isOwner {
+		gists, err = h.Services.Gist.ListByOwner(r.Context(), ownerID, page, profileTabPageSize)
+	} else {
+		gists, err = h.Services.Gist.ListPublicByOwner(r.Context(), ownerID, page, profileTabPageSize)
+	}
+	if err != nil {
+		slog.Warn("user profile gists tab: failed to load gists", "owner_id", ownerID, "error", err)
+		gists = nil
+	}
+
+	ids := make([]string, 0, len(gists))
+	for _, g := range gists {
+		ids = append(ids, g.ID)
+	}
+	filenamesByGist, err := h.Services.Gist.LoadFilenames(r.Context(), ids)
+	if err != nil {
+		slog.Warn("user profile gists tab: failed to load filenames", "error", err)
+		filenamesByGist = map[string][]string{}
+	}
+
+	items := make([]view.GistTabItem, 0, len(gists))
+	for _, g := range gists {
+		files := filenamesByGist[g.ID]
+		label, chipClass := gistLanguage(files)
+		items = append(items, view.GistTabItem{
+			Gist:          g,
+			FileCount:     len(files),
+			LanguageLabel: label,
+			LanguageClass: chipClass,
+		})
+	}
+
+	data.GistsTabItems = items
+	data.GistsTabPage = page
+	data.GistsTabTotalPages = totalPages
 	return data
 }
 
@@ -188,8 +398,16 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		viewerID = &claims.UserID
 	}
-	repos, _ := h.Services.Org.ListReposVisibleTo(r.Context(), org.ID, viewerID)
-	members, _ := h.Services.Org.ListMembers(r.Context(), org.ID)
+	repos, err := h.Services.Org.ListReposVisibleTo(r.Context(), org.ID, viewerID)
+	if err != nil {
+		slog.Warn("org profile: failed to load repositories", "org", org.Name, "error", err)
+		repos = nil
+	}
+	members, err := h.Services.Org.ListMembers(r.Context(), org.ID)
+	if err != nil {
+		slog.Warn("org profile: failed to load members", "org", org.Name, "error", err)
+		members = nil
+	}
 	if repos == nil {
 		repos = []model.Repository{}
 	}
@@ -198,16 +416,135 @@ func (h *Handler) pageOrgProfile(w http.ResponseWriter, r *http.Request, org *mo
 	}
 
 	canManage := false
+	var viewerRole *model.OrgRole
+	var viewerJoined *time.Time
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canManage = h.Services.Org.IsOwner(r.Context(), org.ID, claims.UserID)
+		for _, m := range members {
+			if m.UserID == claims.UserID {
+				role := m.Role
+				viewerRole = &role
+				joined := m.CreatedAt
+				viewerJoined = &joined
+				break
+			}
+		}
 	}
 
+	memberCount := len(members)
+	tab := r.URL.Query().Get("tab")
+	showAllRepos := tab == "repositories"
+	showAllPeople := tab == "people"
+
+	var pinned, recent []components.PinnedRepoData
+	featuredLimit, recentLimit := 4, 4
+	if showAllRepos {
+		featuredLimit, recentLimit = 0, len(repos)
+	}
+	highlights, err := h.Services.Org.RepoHighlights(r.Context(), repos, featuredLimit, recentLimit)
+	if err != nil {
+		slog.Warn("org profile: failed to rank repositories", "org", org.Name, "error", err)
+	} else {
+		pinned = repoCards(highlights.Featured)
+		recent = repoCards(highlights.Recent)
+	}
+
+	var profileReadme template.HTML
+	for _, repo := range repos {
+		if !showAllRepos && !showAllPeople && repo.Name == org.Name && !repo.Private {
+			profileReadme = h.Services.Code.GetProfileReadme(org.Name, org.Name, repo.DefaultBranch)
+			break
+		}
+	}
+
+	base := basePage(r, h.Services)
+	base.OwnerContext = org.Name
 	h.render(w, r, pages.Org(view.OrgData{
-		BasePage:  basePage(r, h.Services),
-		Org:       *org,
-		Repos:     repos,
-		Members:   members,
-		CanManage: canManage,
+		BasePage:      base,
+		Org:           *org,
+		Repos:         repos,
+		Members:       members,
+		MemberCount:   memberCount,
+		CanManage:     canManage,
+		ProfileReadme: profileReadme,
+		PinnedRepos:   pinned,
+		RecentRepos:   recent,
+		ShowAllRepos:  showAllRepos,
+		ShowAllPeople: showAllPeople,
+		TopLangs:      langBarItems(h.Services.Language.AggregateForOrg(r.Context(), repos, 5)),
+		ViewerRole:    viewerRole,
+		ViewerJoined:  viewerJoined,
+	}))
+}
+
+func repoCard(repo model.Repository, lang string, stars int) components.PinnedRepoData {
+	return components.PinnedRepoData{
+		OwnerName:     repo.OwnerName,
+		Name:          repo.Name,
+		Description:   repo.Description,
+		Language:      lang,
+		LanguageColor: components.LangColor(lang),
+		Stars:         stars,
+	}
+}
+
+// Org cards read only the cached column: the repositories tab renders every
+// repo, and a tree walk per uncached repo would stall the page.
+func repoCards(repos []model.RepositoryWithStats) []components.PinnedRepoData {
+	out := make([]components.PinnedRepoData, 0, len(repos))
+	for _, r := range repos {
+		lang := ""
+		if r.PrimaryLanguage != nil {
+			lang = *r.PrimaryLanguage
+		}
+		out = append(out, repoCard(r.Repository, lang, r.StarCount))
+	}
+	return out
+}
+
+func langBarItems(pcts []service.LangPercent) []components.LangBarItem {
+	out := make([]components.LangBarItem, 0, len(pcts))
+	for _, p := range pcts {
+		out = append(out, components.LangBarItem{
+			Name:    p.Name,
+			Percent: p.Percent,
+			Color:   components.LangColor(p.Name),
+		})
+	}
+	return out
+}
+
+// PageOrganizations renders the organizations listing page at /organizations.
+func (h *Handler) PageOrganizations(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	memberships, err := h.Services.Org.ListMembershipsForUser(r.Context(), claims.UserID)
+	if err != nil {
+		slog.Warn("organizations: failed to load memberships", "user_id", claims.UserID, "error", err)
+		memberships = nil
+	}
+
+	entries := make([]view.OrgListEntry, 0, len(memberships))
+	for _, m := range memberships {
+		count, err := h.Services.Org.CountMembers(r.Context(), m.Org.ID)
+		if err != nil {
+			slog.Warn("organizations: failed to count members", "org_id", m.Org.ID, "error", err)
+			count = 0
+		}
+		entries = append(entries, view.OrgListEntry{
+			Org:         m.Org,
+			Role:        m.Role,
+			MemberCount: count,
+		})
+	}
+
+	h.render(w, r, pages.Organizations(view.OrgListData{
+		BasePage: basePage(r, h.Services),
+		Entries:  entries,
 	}))
 }
 
@@ -231,14 +568,39 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, _ := h.Services.Org.ListMembers(r.Context(), org.ID)
+	members, err := h.Services.Org.ListMembers(r.Context(), org.ID)
+	if err != nil {
+		slog.Warn("org settings: failed to load members", "org", org.Name, "error", err)
+		members = nil
+	}
 	if members == nil {
 		members = []model.OrgMember{}
 	}
 
+	repos, err := h.Services.Org.ListRepos(r.Context(), org.ID)
+	if err != nil {
+		slog.Warn("org settings: failed to count repositories", "org", org.Name, "error", err)
+		repos = nil
+	}
+
+	orgID := org.ID
+	auditEntries, _, err := h.Services.AuditLog.List(r.Context(), model.AuditFilter{
+		TargetType: model.AuditTargetOrg,
+		TargetID:   &orgID,
+	}, 1, 25)
+	if err != nil {
+		slog.Warn("org settings: failed to load audit log", "org", org.Name, "error", err)
+		auditEntries = nil
+	}
+
+	base := basePage(r, h.Services)
+	base.OwnerContext = org.Name
 	h.render(w, r, pages.OrgSettings(view.OrgSettingsData{
-		BasePage: basePage(r, h.Services),
-		Org:      *org,
-		Members:  members,
+		BasePage:     base,
+		Org:          *org,
+		Members:      members,
+		MemberCount:  len(members),
+		RepoCount:    len(repos),
+		AuditEntries: auditEntries,
 	}))
 }

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -526,7 +527,7 @@ func (h *Handler) CreateReply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go h.Services.Notification.NotifyDiscussionReply(r.Context(), *repo, *discussion, claims.UserID, claims.Username)
+	go h.Services.Notification.NotifyDiscussionReply(context.WithoutCancel(r.Context()), *repo, *discussion, claims.UserID, claims.Username)
 
 	if hxRequest {
 		canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)

@@ -15,8 +15,8 @@ import (
 
 	"github.com/gliderlabs/ssh"
 	gogit "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
@@ -237,33 +237,17 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		return
 	}
 
-	commands, err := s.execGitService(session, gitCmd, gitRepo, owner, repoName, pusherName)
+	vet := func(cmd *packp.Command) error {
+		return s.services.BranchProtection.CheckPushCommand(ctx, repo.ID, gitRepo, cmd)
+	}
+	commands, err := s.execGitService(session, gitCmd, gitRepo, vet, owner, repoName, pusherName)
 	if err != nil {
 		exitWithError(session, "error: %v\n", err)
 		return
 	}
 
-	// Enforce branch protection rules and dispatch push webhooks.
-	// If protection rejects the push, rollback the ref to its previous value.
-	if gitCmd == "git-receive-pack" && err == nil {
-		for _, cmd := range commands {
-			if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
-				continue
-			}
-			if cmd.Action() == packp.Delete {
-				continue
-			}
-			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
-			forcePush := cmd.Action() == packp.Update && cmd.Old != plumbing.ZeroHash && isForcePushSSH(gitRepo, cmd)
-			if err := s.services.BranchProtection.CheckPush(ctx, repo.ID, branch, forcePush); err != nil {
-				if rbErr := gittransport.Revert(gitRepo.Storer, cmd); rbErr != nil {
-					slog.Error("branch protection rollback failed", "ref", cmd.Name.String(), "error", rbErr)
-				}
-				_, _ = fmt.Fprintf(session.Stderr(), "error: push rejected: %v\n", err)
-				_ = session.Exit(1)
-				return
-			}
-		}
+	// Dispatch push webhooks for each updated branch.
+	if gitCmd == "git-receive-pack" {
 		for _, cmd := range commands {
 			if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
 				continue
@@ -311,32 +295,15 @@ func exitWithError(session ssh.Session, format string, args ...any) {
 	_ = session.Exit(1)
 }
 
-// isForcePushSSH returns true when the push is non-fast-forward (old commit is not an ancestor of new).
-func isForcePushSSH(gitRepo *gogit.Repository, cmd *packp.Command) bool {
-	oldCommit, err := gitRepo.CommitObject(cmd.Old)
-	if err != nil {
-		return false
-	}
-	newCommit, err := gitRepo.CommitObject(cmd.New)
-	if err != nil {
-		return false
-	}
-	isAncestor, err := oldCommit.IsAncestor(newCommit)
-	if err != nil {
-		return false
-	}
-	return !isAncestor
-}
-
 // execGitService runs the git pack protocol over the SSH session and returns
 // the commands go-git applied (non-nil only for git-receive-pack).
-func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.Repository, ownerName, repoName, pusherName string) ([]*packp.Command, error) {
+func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.Repository, vet func(*packp.Command) error, ownerName, repoName, pusherName string) ([]*packp.Command, error) {
 	ep, err := transport.NewEndpoint("/")
 	if err != nil {
 		return nil, fmt.Errorf("create endpoint: %w", err)
 	}
 
-	srv := gittransport.NewServer(gitRepo.Storer)
+	srv := gittransport.NewServer(gitRepo.Storer, vet)
 
 	if svc == "git-upload-pack" {
 		sess, err := srv.NewUploadPackSession(ep, nil)
@@ -423,7 +390,7 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			"duration_ms", time.Since(start).Milliseconds(),
 		)
 
-		if status != nil {
+		if status != nil && req.Capabilities.Supports(capability.ReportStatus) {
 			if err := status.Encode(session); err != nil {
 				return nil, fmt.Errorf("encode receive-pack status: %w", err)
 			}

@@ -15,7 +15,7 @@ func TestCreateFromTemplate_InvalidName_CreatesNothing(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "repos")
 	owner := "tmpl_" + testutil.UniqueSuffix(t)
 	ownerID := seedOwner(t, db, owner)
-	tmplID := seedRepoRow(t, db, ownerID, owner, "tmpl", "NULL")
+	tmplID := seedRepoRow(t, db, ownerID, owner, "tmpl")
 	testutil.Exec(t, db, `UPDATE repositories SET is_template = true WHERE id = $1`, tmplID)
 	svc := newDiskRepoService(db, root)
 

@@ -42,7 +42,7 @@ func (h *Handler) PageWikiPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
-	if !repo.AllowWiki {
+	if !h.Services.Repo.WikiEnabled(r.Context(), repo) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
@@ -103,7 +103,7 @@ func (h *Handler) PageWikiEdit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
-	if !repo.AllowWiki {
+	if !h.Services.Repo.WikiEnabled(r.Context(), repo) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
@@ -158,7 +158,7 @@ func (h *Handler) PageWikiNew(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
-	if !repo.AllowWiki {
+	if !h.Services.Repo.WikiEnabled(r.Context(), repo) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
@@ -215,7 +215,7 @@ func (h *Handler) CreateOrUpdateWikiPage(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	if !repo.AllowWiki {
+	if !h.Services.Repo.WikiEnabled(r.Context(), repo) {
 		writeError(w, http.StatusNotFound, "not found")
 		return
 	}
@@ -300,7 +300,7 @@ func (h *Handler) WikiSetPageOrder(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !repo.AllowWiki {
+	if !h.Services.Repo.WikiEnabled(r.Context(), repo) {
 		writeError(w, http.StatusNotFound, "not found")
 		return
 	}
@@ -369,7 +369,7 @@ func (h *Handler) DeleteWikiPage(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !repo.AllowWiki {
+	if !h.Services.Repo.WikiEnabled(r.Context(), repo) {
 		writeError(w, http.StatusNotFound, "not found")
 		return
 	}

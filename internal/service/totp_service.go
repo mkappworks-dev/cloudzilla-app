@@ -7,6 +7,7 @@ import (
 	"crypto/sha1"
 	"database/sql"
 	"encoding/base32"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -17,8 +18,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/skip2/go-qrcode"
 	"golang.org/x/crypto/bcrypt"
 )
+
+const qrPixelsPerModule = 8
 
 // TOTPService handles all TOTP (RFC 6238) operations.
 // TOTPService manages TOTP two-factor authentication setup and verification.
@@ -44,9 +48,15 @@ func (s *TOTPService) Generate(username, issuer string) (secret, otpAuthURL stri
 	return secret, otpAuthURL, nil
 }
 
-// BuildOTPAuthURL constructs the otpauth:// URL from a known secret.
-func (s *TOTPService) BuildOTPAuthURL(username, issuer, secret string) string {
-	return buildOTPAuthURL(username, issuer, secret)
+// EnrolmentQRCode returns the otpauth:// URL for secret as a QR code PNG data URI.
+// It is drawn here, not by a QR web service, so the shared secret never leaves the server.
+func (s *TOTPService) EnrolmentQRCode(_ context.Context, username, issuer, secret string) (string, error) {
+	// A negative size asks go-qrcode for pixels per module, which keeps module edges crisp.
+	png, err := qrcode.Encode(buildOTPAuthURL(username, issuer, secret), qrcode.Medium, -qrPixelsPerModule)
+	if err != nil {
+		return "", fmt.Errorf("encode totp qr code: %w", err)
+	}
+	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(png), nil
 }
 
 func buildOTPAuthURL(username, issuer, secret string) string {

@@ -41,6 +41,13 @@ func noreplyEmail(host string, u *model.User) string {
 	return fmt.Sprintf("%d+%s@%s%s", u.ID, u.Username, noreplyDomainPrefix, host)
 }
 
+func commitAuthorFor(host string, u *model.User) GitAuthor {
+	if u.KeepEmailPrivate || u.Email == "" {
+		return GitAuthor{Name: u.Username, Email: noreplyEmail(host, u)}
+	}
+	return GitAuthor{Name: u.Username, Email: u.Email}
+}
+
 // Any host after the prefix is accepted: base_url usually changes after install
 // (the default is localhost), and commits already made keep the old host.
 func parseNoreplyEmail(email string) (id int64, username string, ok bool) {

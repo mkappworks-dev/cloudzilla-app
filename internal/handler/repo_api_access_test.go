@@ -7,9 +7,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	gogit "github.com/go-git/go-git/v5"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -236,9 +238,16 @@ func TestRepoAPI_PrivateRepoIssues_HiddenFromNonReaders(t *testing.T) {
 
 func TestRepoAPI_RestoreDeletedRepo_NonOwner_LooksLikeMissingRepo(t *testing.T) {
 	db := testutil.OpenTestDB(t)
-	api := newAPIRouter(t, db)
+	root := t.TempDir()
+	api := newAPIRouterAt(t, db, root)
 	repo := seedOwnedRepo(t, db, false)
-	testutil.Exec(t, db, `UPDATE repositories SET deleted_at = now() WHERE id = $1`, repo.id)
+	if _, err := gogit.PlainInit(filepath.Join(root, repo.owner.name, repo.name+".git"), true); err != nil {
+		t.Fatalf("init bare repo: %v", err)
+	}
+	cfg := &config.Config{Git: config.GitConfig{ReposRoot: root}}
+	if err := service.New(store.New(db), cfg).Repo.Delete(t.Context(), repo.id, repo.owner.id); err != nil {
+		t.Fatalf("soft-delete repo: %v", err)
+	}
 	token := seedSignedInUser(t, db).token
 
 	deleted := requestAPI(api, http.MethodPost, "/api/repos"+repo.path+"/restore", token)
@@ -250,22 +259,6 @@ func TestRepoAPI_RestoreDeletedRepo_NonOwner_LooksLikeMissingRepo(t *testing.T) 
 	}
 	if rr := requestAPI(api, http.MethodPost, "/api/repos"+repo.path+"/restore", repo.owner.token); rr.Code != http.StatusSeeOther {
 		t.Errorf("owner restore: want 303, got %d %s", rr.Code, rr.Body.String())
-	}
-}
-
-func TestRepoAPI_RestoreWikiAliasRepo_LooksLikeMissingRepo(t *testing.T) {
-	db := testutil.OpenTestDB(t)
-	api := newAPIRouter(t, db)
-	owner := seedSignedInUser(t, db)
-	testutil.Exec(t, db, `INSERT INTO repositories (owner_id, owner_name, name, description, private, deleted_at)
-		VALUES ($1, $2, 'x.wiki', '', false, now())`, owner.id, owner.name)
-
-	alias := requestAPI(api, http.MethodPost, "/api/repos/"+owner.name+"/x.wiki/restore", owner.token)
-	missing := requestAPI(api, http.MethodPost, "/api/repos/"+owner.name+"/norepo/restore", owner.token)
-
-	if alias.Code != http.StatusNotFound || alias.Body.String() != missing.Body.String() {
-		t.Errorf("wiki alias restore (%d %s) must match a missing repo's (%d %s)",
-			alias.Code, alias.Body.String(), missing.Code, missing.Body.String())
 	}
 }
 

@@ -145,3 +145,31 @@ func TestNotificationStore_MarkAllRead_ZeroCount(t *testing.T) {
 		t.Errorf("CountUnread must be 0 after MarkAllRead, got %d", count)
 	}
 }
+
+func TestNotificationStore_Create_AcceptsEveryType(t *testing.T) {
+	ns, userID, actorID, repoID, owner, repo := seedNotifDeps(t)
+	ctx := context.Background()
+
+	for i, typ := range model.AllNotificationTypes {
+		n := makeNotif(userID, actorID, repoID, owner, repo)
+		n.Type = typ
+		n.SubjectID = int64(i + 1)
+		if err := ns.Create(ctx, n); err != nil {
+			t.Errorf("Create %s: %v", typ, err)
+		}
+	}
+
+	notifs, err := ns.ListByUser(ctx, userID)
+	if err != nil {
+		t.Fatalf("ListByUser: %v", err)
+	}
+	stored := map[model.NotificationType]bool{}
+	for _, n := range notifs {
+		stored[n.Type] = true
+	}
+	for _, typ := range model.AllNotificationTypes {
+		if !stored[typ] {
+			t.Errorf("no %s notification stored", typ)
+		}
+	}
+}

@@ -115,11 +115,11 @@ func TestOAuthTokenScopes_ThroughRouter(t *testing.T) {
 		{"update repo settings with every scope", allTok, "PATCH", repoPath, "{}", http.StatusForbidden},
 		{"add webhook with every scope", allTok, "POST", repoPath + "/hooks", "{}", http.StatusForbidden},
 		{"own profile page with every scope", allTok, "GET", "/" + username, "", http.StatusForbidden},
-		{"notification settings with every scope", allTok, "GET", "/settings/notifications", "", http.StatusForbidden},
+		{"account settings with every scope", allTok, "GET", "/settings", "", http.StatusForbidden},
 		{"mint a PAT with every scope", allTok, "POST", "/api/user/tokens", "name=x", http.StatusForbidden},
 		{"register an OAuth app with every scope", allTok, "POST", "/api/oauth/apps", "{}", http.StatusForbidden},
 		{"unknown token on a required-auth API", "not-a-real-token", "POST", repoPath + "/issues", "{", http.StatusUnauthorized},
-		{"session on notification settings", session, "GET", "/settings/notifications", "", http.StatusOK},
+		{"session on account settings", session, "GET", "/settings", "", http.StatusOK},
 		{"session on own profile page", session, "GET", "/" + username, "", http.StatusOK},
 	}
 	for _, tt := range tests {

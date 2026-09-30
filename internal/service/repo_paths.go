@@ -3,13 +3,8 @@ package service
 import (
 	"errors"
 	"fmt"
-	"io/fs"
-	"os"
 	"path/filepath"
-	"slices"
-	"strconv"
 	"strings"
-	"time"
 )
 
 var ErrInvalidRepoPath = errors.New("invalid repository path")
@@ -28,102 +23,4 @@ func RepoDir(root, owner, name string) (string, error) {
 func isPathElement(seg string) bool {
 	return seg != "" && seg != "." && seg != ".." &&
 		filepath.Base(seg) == seg && !strings.ContainsAny(seg, "/\\\x00*?[]")
-}
-
-const deletedDirInfix = ".deleted."
-
-// deletedDirPath names dir's soft-deleted copy after its repository row, so
-// restoring or purging one row can't take another row's copy.
-func deletedDirPath(dir string, repoID int64) string {
-	return dir + deletedDirInfix + "id" + strconv.FormatInt(repoID, 10)
-}
-
-// legacyStampSkew allows for the app's and the database's clocks differing.
-const legacyStampSkew = time.Minute
-
-// legacyDeletedDir returns repoPath's copy soft-deleted before copies were named
-// after their row, or "" if none. Delete stamped it with the Unix time just
-// before the database set deletedAt, so the row's copy has the closest stamp,
-// and one stamped well before or after deletedAt belongs to another deletion.
-func legacyDeletedDir(repoPath string, deletedAt time.Time) (string, error) {
-	parent := filepath.Dir(repoPath)
-	entries, err := os.ReadDir(parent)
-	if errors.Is(err, fs.ErrNotExist) {
-		return "", nil
-	}
-	if err != nil {
-		return "", err
-	}
-	prefix := filepath.Base(repoPath) + deletedDirInfix
-	target := deletedAt.Unix()
-	earliest, latest := deletedAt.Add(-legacyStampSkew).Unix(), deletedAt.Add(legacyStampSkew).Unix()
-	var best string
-	var bestGap int64
-	for _, e := range entries {
-		digits, ok := strings.CutPrefix(e.Name(), prefix)
-		if !ok || digits == "" || strings.Trim(digits, "0123456789") != "" {
-			continue
-		}
-		stamp, err := strconv.ParseInt(digits, 10, 64)
-		if err != nil || stamp < earliest || stamp > latest {
-			continue
-		}
-		gap := max(target-stamp, stamp-target)
-		if best == "" || gap < bestGap {
-			best, bestGap = filepath.Join(parent, e.Name()), gap
-		}
-	}
-	return best, nil
-}
-
-// deletedRepoDir returns the repository row's soft-deleted copy of repoPath,
-// falling back to one deleted before copies were named after their row.
-func deletedRepoDir(repoPath string, repoID int64, deletedAt *time.Time) (string, error) {
-	bound := deletedDirPath(repoPath, repoID)
-	if _, err := os.Stat(bound); err == nil || deletedAt == nil {
-		return bound, nil
-	}
-	legacy, err := legacyDeletedDir(repoPath, *deletedAt)
-	if err != nil || legacy == "" {
-		return bound, err
-	}
-	return legacy, nil
-}
-
-type dirMove struct{ from, to string }
-
-// Tests swap rename: an undo re-runs the checks its move just passed, so no
-// directory setup makes it fail.
-var rename = os.Rename
-
-// moveDirs renames each existing from to its to, never over an existing to,
-// and returns the moves it made. On failure it moves back what it already
-// moved, so a repo and its wiki stay together.
-func moveDirs(moves ...dirMove) ([]dirMove, error) {
-	var done []dirMove
-	for _, m := range moves {
-		if _, err := os.Stat(m.from); err != nil {
-			continue
-		}
-		if _, err := os.Stat(m.to); err == nil {
-			return nil, undoMoves(fmt.Errorf("%s already exists", m.to), done)
-		}
-		if err := rename(m.from, m.to); err != nil {
-			return nil, undoMoves(err, done)
-		}
-		done = append(done, m)
-	}
-	return done, nil
-}
-
-// undoMoves moves done back, last first, and returns cause joined with every
-// undo that failed, naming the directory it stranded.
-func undoMoves(cause error, done []dirMove) error {
-	errs := []error{cause}
-	for _, m := range slices.Backward(done) {
-		if err := rename(m.to, m.from); err != nil {
-			errs = append(errs, fmt.Errorf("%s stranded, not moved back to %s: %w", m.to, m.from, err))
-		}
-	}
-	return errors.Join(errs...)
 }

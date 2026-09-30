@@ -9,7 +9,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-const caseInsensitiveEmailMigration = "migrations/076_users_email_case_insensitive.sql"
+const caseInsensitiveEmailMigration = "migrations/082_users_email_case_insensitive.sql"
 
 func TestEmailCaseMigration_CaseVariantEmails_FailsNamingUserIDs(t *testing.T) {
 	db := testutil.OpenFreshTestDB(t)

@@ -3,7 +3,6 @@ package handler
 import (
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -139,29 +138,27 @@ func (h *Handler) LDAPLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, token, err := h.Services.SSO.AuthenticateLDAP(r.Context(), username, password)
-	if err != nil {
+	renderLoginError := func(msg string) {
 		ldapEnabled, samlEnabled := h.ssoEnabled(r)
 		h.render(w, r, pages.Login(view.LoginData{
 			BasePage:    basePage(r, h.Services),
 			LDAPEnabled: ldapEnabled,
 			SAMLEnabled: samlEnabled,
-			Error:       "LDAP authentication failed. Please check your credentials.",
+			Error:       msg,
 			Next:        next,
 		}))
+	}
+
+	user, token, err := h.Services.SSO.AuthenticateLDAP(r.Context(), username, password)
+	if err != nil {
+		renderLoginError("LDAP authentication failed. Please check your credentials.")
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     h.Cfg.Auth.CookieName,
-		Value:    token,
-		HttpOnly: true,
-		Secure:   h.Cfg.Auth.CookieSecure,
-		Path:     "/",
-		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
-		SameSite: http.SameSiteLaxMode,
-	})
-	http.Redirect(w, r, safeNextPath(next), http.StatusSeeOther)
+	if err := h.signIn(w, r, user, token, next); err != nil {
+		slog.Error("ldap sign-in failed", "error", err)
+		renderLoginError("Internal error")
+	}
 }
 
 // InitiateSAML handles GET /auth/saml — redirects to the IdP SSO URL.
@@ -182,7 +179,7 @@ func (h *Handler) SAMLCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, token, err := h.Services.SSO.HandleSAMLCallback(r.Context(), samlResponse)
+	user, token, err := h.Services.SSO.HandleSAMLCallback(r.Context(), samlResponse)
 	if err != nil {
 		slog.Error("saml callback failed", "error", err)
 		ldapEnabled, samlEnabled := h.ssoEnabled(r)
@@ -196,16 +193,10 @@ func (h *Handler) SAMLCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     h.Cfg.Auth.CookieName,
-		Value:    token,
-		HttpOnly: true,
-		Secure:   h.Cfg.Auth.CookieSecure,
-		Path:     "/",
-		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
-		SameSite: http.SameSiteLaxMode,
-	})
-	http.Redirect(w, r, safeNextPath(r.FormValue("RelayState")), http.StatusSeeOther)
+	if err := h.signIn(w, r, user, token, r.FormValue("RelayState")); err != nil {
+		slog.Error("saml sign-in failed", "error", err)
+		http.Error(w, "failed to sign in", http.StatusInternalServerError)
+	}
 }
 
 // SAMLMetadata handles GET /auth/saml/metadata — serves SP metadata XML.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	gitobj "github.com/go-git/go-git/v5/plumbing/object"
 
 	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // commitSpec describes one commit to author: a set of files to write (path →
@@ -30,8 +32,13 @@ type commitSpec struct {
 func newTestRepoWithFileCommits(t *testing.T, owner, name string, commits []commitSpec) *CodeService {
 	t.Helper()
 	root := t.TempDir()
+	writeBareRepo(t, filepath.Join(root, owner, name+".git"), commits)
+	return NewCodeService(czconfig.GitConfig{ReposRoot: root})
+}
 
-	bareDir := filepath.Join(root, owner, name+".git")
+func writeBareRepo(t *testing.T, bareDir string, commits []commitSpec) {
+	t.Helper()
+	name := strings.TrimSuffix(filepath.Base(bareDir), ".git")
 	if err := os.MkdirAll(filepath.Dir(bareDir), 0o755); err != nil {
 		t.Fatalf("mkdir owner: %v", err)
 	}
@@ -93,8 +100,10 @@ func newTestRepoWithFileCommits(t *testing.T, owner, name string, commits []comm
 	if err := bare.Storer.SetReference(headRef); err != nil {
 		t.Fatalf("set HEAD: %v", err)
 	}
+}
 
-	return NewCodeService(czconfig.GitConfig{ReposRoot: root})
+func testRepo(id int64, owner string) *model.Repository {
+	return &model.Repository{ID: id, OwnerName: owner, Name: "demo"}
 }
 
 func TestListEntriesWithLastCommit(t *testing.T) {
@@ -129,7 +138,7 @@ func TestListEntriesWithLastCommit(t *testing.T) {
 		},
 	})
 
-	entries, err := svc.ListEntriesWithLastCommit(context.Background(), "alice", "demo", "", "")
+	entries, err := svc.ListEntriesWithLastCommit(context.Background(), testRepo(1, "alice"), "", "")
 	if err != nil {
 		t.Fatalf("ListEntriesWithLastCommit: %v", err)
 	}
@@ -174,7 +183,7 @@ func TestListEntriesWithLastCommit(t *testing.T) {
 	}
 
 	// Sub-directory listing
-	subEntries, err := svc.ListEntriesWithLastCommit(context.Background(), "alice", "demo", "", "src")
+	subEntries, err := svc.ListEntriesWithLastCommit(context.Background(), testRepo(1, "alice"), "", "src")
 	if err != nil {
 		t.Fatalf("ListEntriesWithLastCommit(src): %v", err)
 	}
@@ -191,7 +200,7 @@ func TestListEntriesWithLastCommit(t *testing.T) {
 	}
 }
 
-func TestListEntriesWithLastCommit_Cached(t *testing.T) {
+func TestListEntriesWithLastCommit_CachedPerCommit(t *testing.T) {
 	t.Parallel()
 	now := time.Now().UTC().Truncate(time.Second)
 	svc := newTestRepoWithFileCommits(t, "bob", "demo", []commitSpec{
@@ -201,19 +210,23 @@ func TestListEntriesWithLastCommit_Cached(t *testing.T) {
 			files: map[string]string{"a.txt": "a\n"},
 		},
 	})
+	repo := testRepo(1, "bob")
 
-	first, err := svc.ListEntriesWithLastCommit(context.Background(), "bob", "demo", "", "")
+	first, err := svc.ListEntriesWithLastCommit(context.Background(), repo, "", "")
 	if err != nil {
 		t.Fatalf("first call: %v", err)
 	}
 	if len(first) != 1 {
 		t.Fatalf("expected 1 entry, got %d", len(first))
 	}
+	second, err := svc.ListEntriesWithLastCommit(context.Background(), repo, "", "")
+	if err != nil {
+		t.Fatalf("second call: %v", err)
+	}
+	if &second[0] != &first[0] {
+		t.Error("an unchanged commit was listed again instead of served from the cache")
+	}
 
-	// Mutate the underlying repo by pushing a new commit that adds a second
-	// file. If the cache fires, the next call must still return the stale
-	// (one-entry) listing — proving a real cache hit, not just a recompute
-	// returning the same answer.
 	bareDir, err := svc.repoPath("bob", "demo")
 	if err != nil {
 		t.Fatalf("repo path: %v", err)
@@ -243,15 +256,44 @@ func TestListEntriesWithLastCommit_Cached(t *testing.T) {
 		t.Fatalf("push b: %v", err)
 	}
 
-	second, err := svc.ListEntriesWithLastCommit(context.Background(), "bob", "demo", "", "")
+	third, err := svc.ListEntriesWithLastCommit(context.Background(), repo, "", "")
 	if err != nil {
-		t.Fatalf("second call (cache path): %v", err)
+		t.Fatalf("third call: %v", err)
 	}
-	if len(second) != len(first) {
-		t.Fatalf("cache miss: expected stale len=%d, got %d (new commit visible — cache did not fire)", len(first), len(second))
+	if len(third) != 2 {
+		t.Errorf("after a new commit: got %d entries, want 2", len(third))
 	}
-	if second[0].Name != first[0].Name || second[0].LastCommit.SHA != first[0].LastCommit.SHA {
-		t.Errorf("cache returned different data: %+v vs %+v", first[0], second[0])
+}
+
+// Account deletion and transfer free a name that a new repo can take within
+// the TTL; it must never be served the previous holder's listing.
+func TestListEntriesWithLastCommit_NewRepoUnderTheNameMisses(t *testing.T) {
+	t.Parallel()
+	now := time.Now().UTC().Truncate(time.Second)
+	svc := newTestRepoWithFileCommits(t, "victim", "demo", []commitSpec{
+		{when: now.Add(-time.Hour), msg: "private plans", files: map[string]string{"plans.txt": "secret\n"}},
+	})
+	if _, err := svc.ListEntriesWithLastCommit(context.Background(), testRepo(1, "victim"), "", ""); err != nil {
+		t.Fatalf("list the old repo: %v", err)
+	}
+
+	bareDir, err := svc.repoPath("victim", "demo")
+	if err != nil {
+		t.Fatalf("repo path: %v", err)
+	}
+	if err := os.RemoveAll(bareDir); err != nil {
+		t.Fatalf("remove the old repo: %v", err)
+	}
+	writeBareRepo(t, bareDir, []commitSpec{
+		{when: now, msg: "public", files: map[string]string{"public.txt": "hello\n"}},
+	})
+
+	got, err := svc.ListEntriesWithLastCommit(context.Background(), testRepo(2, "victim"), "", "")
+	if err != nil {
+		t.Fatalf("list the new repo: %v", err)
+	}
+	if len(got) != 1 || got[0].Name != "public.txt" || got[0].LastCommit.Message != "public" {
+		t.Errorf("the new repo was listed as %+v", got)
 	}
 }
 
@@ -267,7 +309,7 @@ func TestListEntriesWithLastCommit_HEADLiteral(t *testing.T) {
 	})
 
 	// Passing the literal "HEAD" should behave like "" (default HEAD), matching LogSince's behavior.
-	entries, err := svc.ListEntriesWithLastCommit(context.Background(), "carol", "demo", "HEAD", "")
+	entries, err := svc.ListEntriesWithLastCommit(context.Background(), testRepo(1, "carol"), "HEAD", "")
 	if err != nil {
 		t.Fatalf("ListEntriesWithLastCommit(HEAD): %v", err)
 	}

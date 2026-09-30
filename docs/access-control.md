@@ -12,13 +12,13 @@
 | Personal Access Token | `Authorization: Bearer <token>` header             | Any API endpoint              |
 | OAuth App Token       | `Authorization: Bearer <token>` header             | Scoped API endpoints (below)  |
 | SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys` | Git SSH transport             |
-| TOTP 2FA              | 6-digit code after password login                  | `POST /auth/2fa/verify`       |
+| TOTP 2FA              | 6-digit code after any web sign-in                 | `POST /auth/2fa/verify`       |
 
 Emails match case-insensitively everywhere: login, Google OAuth linking to an existing account by email, invites, and the existing-account check that makes LDAP and SAML refuse to auto-link. The `users_email_lower_key` index enforces it.
 
-Usernames and organization names are repository path segments, so a new one must match `^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$` and not be a reserved route segment, compared case-insensitively: `activity admin api apps attention auth authorizations explore file-row fragments from-template gists invitations invite issues latest login logout new notifications oauth orgs pulls read-all register repos search settings setup stars static topic unread-count` (`service.ValidateOwnerName`, checked only on create; a router test fails if a top-level route segment is missing from the list). Users and organizations share one owner namespace that is case-insensitive: a new name is taken if it matches any existing username or organization name ignoring case, so `Acme` can't be registered while org `acme` exists. Every user and organization insert checks this in the same statement (`ownerNameTakenCond` in `internal/store/user_store.go`), so register, invite, signup, setup, OAuth, LDAP, SAML and `POST /api/orgs` all apply it. OAuth, LDAP and SAML usernames are fitted to the rule, falling back to `user` / `sso_user`, and get a numeric suffix (`2`, `3`, …) while the name is taken.
+Usernames and organization names follow one rule and share one case-insensitive namespace; see [Usernames](#usernames).
 
-Repository names (`service.ValidateName`) use letters, digits, `.`, `-` and `_`, start with a letter or digit, and can't end in `.wiki` in any case: repository `x` keeps its wiki in `x.wiki.git`, which a repository named `x.wiki` would share. A repository given such a name before the rule existed is unreachable, because it aliases another repository's wiki: the web UI, the API, SSH and Git smart-HTTP answer as for a missing repository, it can't be forked, restored after deletion or used as a template, and `cloudzilla gc --repo` refuses the name. Rename it (see [deployment](./deployment.md#upgrading)).
+Repository names (`service.ValidateName`) use letters, digits, `.`, `-` and `_` and start with a letter or digit. New repositories can't end in `.wiki`; see [api-reference](./api-reference.md) for repositories named that way before the reservation.
 
 ### Return path after sign-in
 
@@ -34,6 +34,12 @@ contain control characters. Anything else goes to `/`.
 | LDAP     | Hidden `next` input on the LDAP form                                    |
 | Google   | `oauth_next` cookie, set by `/auth/google?next=…`                       |
 | SAML     | `RelayState`, dropped when it exceeds the binding's 80-byte limit      |
+
+### Two-factor authentication
+
+TOTP is opt-in per user, from the Security tab of `/settings`. The password, LDAP, Google and SAML routes all end in `signIn` (`page_auth_handler.go`). For a user with TOTP on, it sets a five-minute `cz_totp_pending` cookie and redirects to `/auth/2fa` instead of issuing `cz_token`; `VerifyTOTP` starts the session once a code or backup code checks out. Every session starts in `startSession`, which records the `login` audit event.
+
+Google and SAML users get the prompt too, even when the IdP enforces its own MFA. Cloudzilla can't tell whether it did: it neither requests nor checks a SAML `AuthnContext`, and Google's userinfo doesn't say. Because TOTP is opt-in, only users who enrolled are asked, so a user whose IdP already handles MFA can leave it off. Gitea and GitLab make the same default, with a per-provider bypass that Cloudzilla doesn't have yet.
 
 ### JWT Claims
 
@@ -137,7 +143,7 @@ Org members do not get implicit access to private repos. They must be added as e
 
 ### Organization Repo Ownership
 
-For org repos, `owner_id` points to the org entity. Access is determined by `org_members`:
+For org repos, `org_id` points to the org and `owner_id` to the member who created the repo, who keeps owner-level access to it. Everyone else's access is determined by `org_members`:
 
 | Org Role | Create repos | Manage repos | Transfer repos | Delete repos | Appoint admins |
 | -------- | :----------: | :----------: | :------------: | :----------: | :------------: |
@@ -242,6 +248,32 @@ The response never reveals whether an address has an account. Links are stored a
 
 Without SMTP, `/register` is the classic username/email/password form, which still reveals whether an email is registered.
 
+## Google OAuth Sign-in
+
+`UserService.AuthenticateOAuth` resolves a Google login in this order:
+
+1. An account already linked to the Google ID (`oauth_provider`, `oauth_id`) signs in.
+2. Otherwise Google must report the email as verified (`verified_email` from the userinfo endpoint). If it doesn't, the callback re-renders the login page with a 403 and nothing is linked or created (`ErrOAuthEmailUnverified`).
+3. If an account with exactly that email exists, the callback re-renders the login page with a 409 and links nothing (`ErrOAuthAccountExists`). Local email addresses are never verified, so anyone could register, accept an invite with, or edit their profile to that address before its owner first signs in with Google; the LDAP/SAML path refuses email matches for the same reason. The owner of the address signs in with their password instead.
+4. Otherwise a new account is created, subject to `allow_registration`, and linked to the Google ID.
+
+## Usernames
+
+Usernames and organization names are repository path segments, so a new one must match `^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$` and not be a reserved route segment, compared case-insensitively: `activity admin api apps attention auth authorizations explore file-row fragments from-template gists invitations invite issues latest login logout new notifications oauth organizations orgs pulls read-all register repos search settings setup stars static topic unread-count` (`service.ValidateOwnerName`, checked only on create; a router test fails if a top-level route segment is missing from the list). Setup, registration, signup, invites and `POST /api/orgs` reject anything else. Google OAuth derives the username from the display name (falling back to the email's local part, then `user`) by dropping other characters; LDAP/SAML replace other characters with `_`, falling back to `sso_user`.
+
+Users and organizations share one namespace (`/{owner}` and `<repos_root>/<owner>/`), compared case-insensitively, so `Acme` can't be registered while org `acme` exists. Every user and organization insert checks this in the same statement (`ownerNameTakenCond` in `internal/store/user_store.go`) and refuses a taken name with `ErrUsernameTaken`, or `ErrOrgNameTaken` for `OrgService.Create`; Google OAuth moves on to the next numbered candidate (`2`, `3`, …) instead. Triggers from migration 080 also lock each exact name, so two concurrent creates of one name cannot both take it.
+
+## Account Deletion
+
+`POST /settings/delete-account` calls `UserService.DeleteUser`, which deletes the user row; the database cascades to the user's repositories (soft-deleted ones included), gists, keys, tokens, stars and activity. Around that delete, `RepoService.DeleteWithOwner` handles the repo directories:
+
+1. It refuses (`ErrOwnsOrgRepos`, shown as `delete_org_repos`) while the user is `owner_id` of a live org repo, because the cascade would remove the repo from the org. The user deletes those repos first.
+2. It renames each personal repo's `<name>.git` and `<name>.wiki.git` to `.deleted.<unix_ts>`.
+3. If the row delete fails (for example because the user authored issues or comments in other people's repos), it renames them back.
+4. Once the row is gone, it removes those directories and the copies of every repo the user had soft-deleted, org repos included, which `PurgeExpired` can no longer find. A wiki that a soft delete from before wikis moved with their repo left at `<name>.wiki.git` goes too, unless another row still names it.
+
+The freed username can then be registered or taken as an org name. Repo creation refuses any name whose directory still exists, so nothing the old account left on disk is ever served under the new owner.
+
 ---
 
 ## Full Endpoint Authorization Matrix
@@ -274,32 +306,40 @@ Without SMTP, `/register` is the classic username/email/password form, which sti
 
 ### User-Scoped Endpoints (Own Data Only)
 
-| Method                | Path                             | Auth   | AuthZ                     | Handler                  |
-| --------------------- | -------------------------------- | ------ | ------------------------- | ------------------------ |
-| GET                   | `/settings`                      | authMW | Own user                  | PageSettings             |
-| POST                  | `/settings/email`                | authMW | Own user (claims.UserID)  | UpdateEmailSettings      |
-| GET/POST              | `/settings/notifications`        | authMW | Own user                  | PageNotificationSettings |
-| GET                   | `/settings/security`             | authMW | Own user                  | PageSecuritySettings     |
-| POST                  | `/api/user/totp/enable`          | authMW | Own user (claims.UserID)  | EnableTOTP               |
-| POST                  | `/api/user/totp/disable`         | authMW | Own user (claims.UserID)  | DisableTOTP              |
-| GET/POST/DELETE       | `/api/user/keys`                 | authMW | Own user (claims.UserID)  | SSH key CRUD             |
-| GET/POST/DELETE       | `/api/user/tokens`               | authMW | Own user (claims.UserID)  | Token CRUD               |
-| GET/POST/PATCH/DELETE | `/api/user/replies`              | authMW | Own user (claims.UserID)  | Saved reply CRUD         |
-| POST/DELETE           | `/api/oauth/apps`                | authMW | Own user (claims.UserID)  | OAuth app CRUD           |
-| DELETE                | `/api/oauth/authorizations/{id}` | authMW | Own user (claims.UserID)  | RevokeOAuthAuthorization |
-| POST/PATCH/DELETE     | `/api/gists`                     | authMW | Own gist (service checks) | Gist CRUD                |
+| Method                | Path                                    | Auth   | AuthZ                                                                          | Handler                    |
+| --------------------- | --------------------------------------- | ------ | ------------------------------------------------------------------------------ | -------------------------- |
+| GET                   | `/settings`                             | authMW | Own user                                                                       | PageSettings               |
+| POST                  | `/settings/profile`                     | authMW | Own user                                                                       | UpdateProfile              |
+| POST                  | `/settings/profile-readme`              | authMW | Own user                                                                       | UpdateProfileReadme        |
+| POST                  | `/settings/notifications`               | authMW | Own user                                                                       | UpdateNotificationSettings |
+| POST                  | `/settings/email`                       | authMW | Own user                                                                       | UpdateEmailSettings        |
+| POST                  | `/settings/delete-account`              | authMW | Own user                                                                       | DeleteAccount              |
+| POST                  | `/settings/security/setup`              | authMW | Own user                                                                       | SetupTOTP                  |
+| POST                  | `/api/user/totp/enable`                 | authMW | Own user (claims.UserID)                                                       | EnableTOTP                 |
+| POST                  | `/api/user/totp/disable`                | authMW | Own user (claims.UserID)                                                       | DisableTOTP                |
+| GET/POST/DELETE       | `/api/user/keys`                        | authMW | Own user (claims.UserID)                                                       | SSH key CRUD               |
+| POST/DELETE           | `/api/user/tokens`                      | authMW | Own user (claims.UserID)                                                       | Token create/revoke        |
+| GET/POST/PATCH/DELETE | `/api/user/replies`                     | authMW | Own user (claims.UserID)                                                       | Saved reply CRUD           |
+| POST/DELETE           | `/api/users/{id}/pinned-repos/{repoID}` | authMW | Own user (`{id}` = claims.UserID, else 403); POST needs repo read access (404) | PinRepo / UnpinRepo        |
+| POST/DELETE           | `/api/oauth/apps`                       | authMW | Own user (claims.UserID)                                                       | OAuth app CRUD             |
+| DELETE                | `/api/oauth/authorizations/{id}`        | authMW | Own user (claims.UserID)                                                       | RevokeOAuthAuthorization   |
+| POST/PATCH/DELETE     | `/api/gists`                            | authMW | Own gist (service checks)                                                      | Gist CRUD                  |
 
 ### Organization Endpoints
 
-| Method | Path                                 | Auth      | AuthZ                  | Handler         |
-| ------ | ------------------------------------ | --------- | ---------------------- | --------------- |
-| GET    | `/api/orgs/{org}`                    | optAuthMW | Public                 | GetOrg          |
-| GET    | `/api/orgs/{org}/members`            | optAuthMW | Public                 | ListOrgMembers  |
-| POST   | `/api/orgs`                          | authMW    | Any authenticated user | CreateOrg       |
-| POST   | `/api/orgs/{org}/members`            | authMW    | Org owner (service)    | AddOrgMember    |
-| DELETE | `/api/orgs/{org}/members/{username}` | authMW    | Org owner (service)    | RemoveOrgMember |
-| POST   | `/api/orgs/{org}/repos`              | authMW    | Org owner (service)    | CreateOrgRepo   |
-| POST   | `/api/orgs/{org}/transfer`           | authMW    | Org owner (service)    | TransferOrg     |
+| Method | Path                                      | Auth      | AuthZ                        | Handler               |
+| ------ | ----------------------------------------- | --------- | ---------------------------- | --------------------- |
+| GET    | `/api/orgs/{org}`                         | optAuthMW | Public                       | GetOrg                |
+| GET    | `/api/orgs/{org}/members`                 | optAuthMW | Public                       | ListOrgMembers        |
+| POST   | `/api/orgs`                               | authMW    | Any authenticated user       | CreateOrg             |
+| POST   | `/api/orgs/{org}/members`                 | authMW    | Org owner (service)          | AddOrgMember          |
+| DELETE | `/api/orgs/{org}/members/{username}`      | authMW    | Org owner, or self (service) | RemoveOrgMember       |
+| POST   | `/api/orgs/{org}/members/{username}/role` | authMW    | Org owner (service)          | UpdateOrgMemberRole   |
+| POST   | `/api/orgs/{org}/repos`                   | authMW    | Org owner (service)          | CreateOrgRepo         |
+| POST   | `/api/orgs/{org}/transfer`                | authMW    | Org owner (service)          | TransferOrg           |
+| POST   | `/api/orgs/{org}/profile`                 | authMW    | Org owner (service)          | UpdateOrgProfile      |
+| POST   | `/api/orgs/{org}/repo-defaults`           | authMW    | Org owner (service)          | UpdateOrgRepoDefaults |
+| POST   | `/api/orgs/{org}/delete`                  | authMW    | Org owner (service)          | DeleteOrg             |
 
 ### Repository Endpoints — Read
 
@@ -441,7 +481,7 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | Cookie security    | `Secure` flag configurable via `config.Auth.CookieSecure`; `HttpOnly` always set |
 | Input validation   | All URL path params validated via `strconv`; repo/user names validated via regex |
 | SSRF protection    | Webhook delivery blocks private/internal IPs                                     |
-| Branch protection  | Ref rollback on protection violation after git-receive-pack                      |
+| Branch protection  | A push that violates a rule is refused per ref, before the ref is written        |
 | Password storage   | bcrypt hashed                                                                    |
 | TOTP               | HMAC-SHA1 with bcrypt-hashed backup codes                                        |
 | PAT                | `crypto/rand` generated, bcrypt-hashed for storage                               |

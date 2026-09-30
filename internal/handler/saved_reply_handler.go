@@ -11,22 +11,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
-
-// PageSavedReplies renders GET /settings/replies
-func (h *Handler) PageSavedReplies(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-	replies, _ := h.Services.SavedReply.List(r.Context(), claims.UserID)
-	h.render(w, r, pages.SavedReplies(view.SavedRepliesData{
-		BasePage: basePage(r, h.Services),
-		Replies:  replies,
-	}))
-}
 
 // CreateSavedReply handles POST /api/user/replies
 func (h *Handler) CreateSavedReply(w http.ResponseWriter, r *http.Request) {

@@ -58,7 +58,7 @@ type CodeLine struct {
 type CodeService struct {
 	cfg config.GitConfig
 	// treeCache memoizes ListEntriesWithLastCommit results.
-	// Key: "owner/repo:ref:dir"; Value: treeCacheEntry. TTL enforced at read time.
+	// Key: treeCacheKey; Value: treeCacheEntry. TTL enforced at read time.
 	treeCache sync.Map
 	// treeCacheKeys is a best-effort insert counter that drives the
 	// treeCacheMaxKeys-bounded eviction sweep.
@@ -80,9 +80,6 @@ func (s *CodeService) wikiPath(owner, repoName string) (string, error) {
 }
 
 func (s *CodeService) openRepo(owner, repoName string) (*gogit.Repository, error) {
-	if isWikiAliasName(repoName) {
-		return nil, gogit.ErrRepositoryNotExists
-	}
 	return openRepoAt(s.repoPath(owner, repoName))
 }
 
