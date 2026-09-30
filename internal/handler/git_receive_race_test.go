@@ -16,6 +16,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/format/packfile"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
+	"github.com/go-git/go-git/v5/storage/memory"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
@@ -61,12 +62,18 @@ func postReceivePack(t *testing.T, h http.Handler, r raceRepo, reportStatus bool
 	if _, err := packfile.NewEncoder(&pack, r.git.Storer, false).Encode(tips, 0); err != nil {
 		t.Fatalf("encode pack: %v", err)
 	}
+	return postPack(t, h, r, reportStatus, pack.Bytes(), cmds...)
+}
+
+// postPack pushes cmds and pack over smart HTTP as the repo owner.
+func postPack(t *testing.T, h http.Handler, r raceRepo, reportStatus bool, pack []byte, cmds ...*packp.Command) *httptest.ResponseRecorder {
+	t.Helper()
 	upd := packp.NewReferenceUpdateRequest()
 	if reportStatus {
 		_ = upd.Capabilities.Set(capability.ReportStatus)
 	}
 	upd.Commands = cmds
-	upd.Packfile = io.NopCloser(&pack)
+	upd.Packfile = io.NopCloser(bytes.NewReader(pack))
 	var body bytes.Buffer
 	if err := upd.Encode(&body); err != nil {
 		t.Fatalf("encode request: %v", err)
@@ -81,10 +88,22 @@ func postReceivePack(t *testing.T, h http.Handler, r raceRepo, reportStatus bool
 }
 
 // receivePack pushes cmds with report-status and returns the status of each
-// ref. The status must be the whole response body.
+// ref.
 func receivePack(t *testing.T, h http.Handler, r raceRepo, cmds ...*packp.Command) map[plumbing.ReferenceName]string {
 	t.Helper()
-	rr := postReceivePack(t, h, r, true, cmds...)
+	return reportedRefs(t, postReceivePack(t, h, r, true, cmds...))
+}
+
+// receivePackOf is receivePack with pack as the pushed objects.
+func receivePackOf(t *testing.T, h http.Handler, r raceRepo, pack []byte, cmds ...*packp.Command) map[plumbing.ReferenceName]string {
+	t.Helper()
+	return reportedRefs(t, postPack(t, h, r, true, pack, cmds...))
+}
+
+// reportedRefs is the status of each ref in rr, whose body must be only a
+// report status.
+func reportedRefs(t *testing.T, rr *httptest.ResponseRecorder) map[plumbing.ReferenceName]string {
+	t.Helper()
 	if rr.Code != http.StatusOK {
 		t.Fatalf("receive-pack: %d %q", rr.Code, rr.Body.String())
 	}
@@ -170,35 +189,28 @@ func TestGitReceivePack_FastForwardToProtectedBranch_Applies(t *testing.T) {
 	assertRef(t, r, "main", r.mainPushed)
 }
 
-// A branch can be pushed to any object the repo has, so the protection check
-// must not take one it can't read as a commit for a fast-forward.
-func TestGitReceivePack_ProtectedBranchToNonCommit_Refused(t *testing.T) {
+// Like git: a branch is read as a commit everywhere, protected or not.
+func TestGitReceivePack_BranchToNonCommit_Refused(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
 	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	protectMain(t, db, r)
+	tree := treeOf(t, r, r.mainPushed)
 
-	refs := receivePack(t, h, r, &packp.Command{Name: mainRef, Old: r.mainTip, New: treeOf(t, r, r.mainPushed)})
+	refs := receivePack(t, h, r,
+		&packp.Command{Name: mainRef, Old: r.mainTip, New: tree},
+		&packp.Command{Name: featureRef, Old: r.featureTip, New: tree},
+		&packp.Command{Name: topicRef, Old: plumbing.ZeroHash, New: tree},
+	)
 
-	if got := refs[mainRef]; got != service.ErrForcePushBlocked.Error() {
-		t.Errorf("main status = %q, want %q", got, service.ErrForcePushBlocked.Error())
+	for _, ref := range []plumbing.ReferenceName{mainRef, featureRef, topicRef} {
+		if got := refs[ref]; got != gittransport.ErrNonCommitBranch.Error() {
+			t.Errorf("%s status = %q, want %q", ref, got, gittransport.ErrNonCommitBranch.Error())
+		}
 	}
 	assertRef(t, r, "main", r.mainTip)
-}
-
-func TestGitReceivePack_CreateProtectedBranchAtNonCommit_Refused(t *testing.T) {
-	db := testutil.OpenTestDB(t)
-	reposRoot := t.TempDir()
-	h := newAPIRouterAt(t, db, reposRoot)
-	r := seedRaceRepo(t, db, reposRoot)
-	testutil.Exec(t, db, `INSERT INTO branch_protections (repo_id, pattern, block_force_push) VALUES ($1, 'topic', true)`, r.id)
-
-	refs := receivePack(t, h, r, &packp.Command{Name: topicRef, Old: plumbing.ZeroHash, New: treeOf(t, r, r.mainPushed)})
-
-	if got := refs[topicRef]; got != service.ErrForcePushBlocked.Error() {
-		t.Errorf("topic status = %q, want %q", got, service.ErrForcePushBlocked.Error())
-	}
+	assertRef(t, r, "feature", r.featureTip)
 	if _, err := r.git.Reference(topicRef, false); err != plumbing.ErrReferenceNotFound {
 		t.Errorf("topic lookup err = %v, want %v", err, plumbing.ErrReferenceNotFound)
 	}
@@ -235,6 +247,54 @@ func TestGitReceivePack_CreateTagAtMissingCommit_Refused(t *testing.T) {
 	if _, err := r.git.Reference(tagRef, false); err != plumbing.ErrReferenceNotFound {
 		t.Errorf("v1 lookup err = %v, want %v", err, plumbing.ErrReferenceNotFound)
 	}
+}
+
+// A push must carry all the history it adds, not just its tip.
+func TestGitReceivePack_CommitWithMissingParent_RefusedOthersApply(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	h := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+	client := memory.NewStorage()
+	orphan := testutil.WriteCommit(t, client, "orphan", missingCommit)
+
+	refs := receivePackOf(t, h, r, testutil.PackAll(t, client),
+		&packp.Command{Name: featureRef, Old: r.featureTip, New: orphan},
+		&packp.Command{Name: mainRef, Old: r.mainTip, New: r.mainPushed},
+	)
+
+	if got := refs[featureRef]; got != gittransport.ErrMissingObjects.Error() {
+		t.Errorf("feature status = %q, want %q", got, gittransport.ErrMissingObjects.Error())
+	}
+	if got := refs[mainRef]; got != "ok" {
+		t.Errorf("main status = %q, want ok", got)
+	}
+	assertRef(t, r, "feature", r.featureTip)
+	assertRef(t, r, "main", r.mainPushed)
+}
+
+// go-git stores a pack before it updates any ref, so a refused push leaves its
+// objects in the repo; a later push can't build on them.
+func TestGitReceivePack_OntoRefusedPushObjects_Refused(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	h := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+	first := memory.NewStorage()
+	orphan := testutil.WriteCommit(t, first, "orphan", missingCommit)
+	refs := receivePackOf(t, h, r, testutil.PackAll(t, first), &packp.Command{Name: featureRef, Old: r.featureTip, New: orphan})
+	if got := refs[featureRef]; got != gittransport.ErrMissingObjects.Error() {
+		t.Fatalf("first push: feature status = %q, want %q", got, gittransport.ErrMissingObjects.Error())
+	}
+	next := memory.NewStorage()
+	tip := testutil.WriteCommit(t, next, "tip", orphan)
+
+	refs = receivePackOf(t, h, r, testutil.PackAll(t, next), &packp.Command{Name: featureRef, Old: r.featureTip, New: tip})
+
+	if got := refs[featureRef]; got != gittransport.ErrMissingObjects.Error() {
+		t.Errorf("feature status = %q, want %q", got, gittransport.ErrMissingObjects.Error())
+	}
+	assertRef(t, r, "feature", r.featureTip)
 }
 
 // go-git sends a vet error's text to the pusher, so a failed rule lookup is

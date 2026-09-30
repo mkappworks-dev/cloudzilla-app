@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/go-git/go-billy/v5/osfs"
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/format/packfile"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
@@ -19,6 +21,25 @@ func WriteCommit(t *testing.T, st storer.EncodedObjectStorer, msg string, parent
 	tree := writeObject(t, st, &object.Tree{})
 	sig := object.Signature{Name: "Tester", Email: "tester@example.com", When: time.Unix(0, 0).UTC()}
 	return writeObject(t, st, &object.Commit{Author: sig, Committer: sig, Message: msg, TreeHash: tree, ParentHashes: parents})
+}
+
+// PackAll is a pack of every object in st: what a client that holds them pushes.
+func PackAll(t *testing.T, st storer.EncodedObjectStorer) []byte {
+	t.Helper()
+	iter, err := st.IterEncodedObjects(plumbing.AnyObject)
+	if err != nil {
+		t.Fatalf("list objects: %v", err)
+	}
+	var hs []plumbing.Hash
+	_ = iter.ForEach(func(o plumbing.EncodedObject) error {
+		hs = append(hs, o.Hash())
+		return nil
+	})
+	var pack bytes.Buffer
+	if _, err := packfile.NewEncoder(&pack, st, false).Encode(hs, 0); err != nil {
+		t.Fatalf("encode pack: %v", err)
+	}
+	return pack.Bytes()
 }
 
 func writeObject(t *testing.T, st storer.EncodedObjectStorer, o object.Object) plumbing.Hash {
