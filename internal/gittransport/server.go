@@ -18,14 +18,16 @@ import (
 
 var (
 	ErrMissingObjects  = errors.New("missing necessary objects")
+	ErrNonCommitBranch = errors.New("trying to write non-commit object to branch")
 	ErrRefUpdateFailed = errors.New("failed to update ref")
 )
 
 // NewServer is go-git's git server over s, serving every endpoint. Its
 // receive-pack stores packs through WrapForReceive, then applies a ref update
-// only if s has its new object, vet (when non-nil) accepts it, and the ref
-// still holds the old value the client pushed from. A refused ref is reported
-// in the status with its reason, and the rest of the push still applies.
+// only if s holds everything its new value reaches (a commit, for a branch),
+// vet (when non-nil) accepts it, and the ref still holds the old value the
+// client pushed from. A refused ref is reported in the status with its reason,
+// and the rest of the push still applies.
 func NewServer(s storer.Storer, vet func(*packp.Command) error) transport.Transport {
 	return casServer{Transport: server.NewServer(loader{s}), s: s, vet: vet}
 }
@@ -41,7 +43,8 @@ type casServer struct {
 }
 
 func (c casServer) NewReceivePackSession(ep *transport.Endpoint, auth transport.AuthMethod) (transport.ReceivePackSession, error) {
-	st := &casStorer{Storer: WrapForReceive(c.s), vet: c.vet}
+	s := WrapForReceive(c.s)
+	st := &casStorer{Storer: s, vet: c.vet, conn: newConnectivity(s)}
 	sess, err := server.NewServer(loader{st}).NewReceivePackSession(ep, auth)
 	if err != nil {
 		return nil, err
@@ -78,8 +81,9 @@ func (c casSession) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateR
 // can read the pushed objects.
 type casStorer struct {
 	storer.Storer
-	vet func(*packp.Command) error
-	old map[plumbing.ReferenceName]plumbing.Hash
+	vet  func(*packp.Command) error
+	old  map[plumbing.ReferenceName]plumbing.Hash
+	conn *connectivity
 }
 
 func (c *casStorer) expect(cmds []*packp.Command) {
@@ -87,6 +91,16 @@ func (c *casStorer) expect(cmds []*packp.Command) {
 	for _, cmd := range cmds {
 		c.old[cmd.Name] = cmd.Old
 	}
+}
+
+// SetEncodedObject notes the commits the pack stores: go-git's pack parser
+// stores each object through it.
+func (c *casStorer) SetEncodedObject(obj plumbing.EncodedObject) (plumbing.Hash, error) {
+	h, err := c.Storer.SetEncodedObject(obj)
+	if err == nil && obj.Type() == plumbing.CommitObject {
+		c.conn.pushed[h] = struct{}{}
+	}
+	return h, err
 }
 
 func (c *casStorer) SetReference(ref *plumbing.Reference) error {
@@ -98,10 +112,15 @@ func (c *casStorer) RemoveReference(name plumbing.ReferenceName) error {
 }
 
 func (c *casStorer) move(name plumbing.ReferenceName, to plumbing.Hash) error {
-	// go-git's receive-pack doesn't check connectivity, so to may be an object
-	// that neither the pack nor the repo holds.
-	if !to.IsZero() && c.HasEncodedObject(to) != nil {
-		return ErrMissingObjects
+	if !to.IsZero() {
+		switch err := c.accept(name, to); {
+		case errors.Is(err, plumbing.ErrObjectNotFound):
+			return ErrMissingObjects
+		case errors.Is(err, ErrNonCommitBranch):
+			return err
+		case err != nil:
+			return refUpdateFailed(name, err)
+		}
 	}
 	cmd := &packp.Command{Name: name, Old: c.old[name], New: to}
 	if c.vet != nil {
@@ -116,9 +135,32 @@ func (c *casStorer) move(name plumbing.ReferenceName, to plumbing.Hash) error {
 	case errors.Is(err, gitref.ErrMoved):
 		return fmt.Errorf("%w; fetch and push again", err)
 	default:
-		// go-git reports the error's text to the pusher, and a storer error
-		// names paths on the server.
-		slog.Error("gittransport: ref update failed", "ref", name.String(), "error", err)
-		return ErrRefUpdateFailed
+		return refUpdateFailed(name, err)
 	}
+}
+
+// accept refuses what git's receive-pack would: a branch at anything but a
+// commit, or a value whose history the repo doesn't wholly hold.
+func (c *casStorer) accept(name plumbing.ReferenceName, to plumbing.Hash) error {
+	obj, err := c.EncodedObject(plumbing.AnyObject, to)
+	if err != nil {
+		return err
+	}
+	if name.IsBranch() && obj.Type() != plumbing.CommitObject {
+		return ErrNonCommitBranch
+	}
+	// A push names any old value it likes; only one the ref holds vouches for
+	// the history below it.
+	from := c.old[name]
+	if ref, err := c.Reference(name); err != nil || ref.Hash() != from {
+		from = plumbing.ZeroHash
+	}
+	return c.conn.check(obj, from)
+}
+
+// refUpdateFailed logs err and hides it: go-git reports the error's text to
+// the pusher, and a storer error names paths on the server.
+func refUpdateFailed(name plumbing.ReferenceName, err error) error {
+	slog.Error("gittransport: ref update failed", "ref", name.String(), "error", err)
+	return ErrRefUpdateFailed
 }
