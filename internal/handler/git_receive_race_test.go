@@ -337,6 +337,31 @@ func TestGitReceivePack_DeleteProtectedBranch_Refused(t *testing.T) {
 	assertRef(t, r, "main", r.mainTip)
 }
 
+// git sends no pack when every command is a delete.
+func TestGitReceivePack_DeleteOnlyWithoutPack_AppliesOnlyUnprotected(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	h := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+	protectMain(t, db, r)
+
+	refs := receivePackOf(t, h, r, nil,
+		&packp.Command{Name: mainRef, Old: r.mainTip, New: plumbing.ZeroHash},
+		&packp.Command{Name: featureRef, Old: r.featureTip, New: plumbing.ZeroHash},
+	)
+
+	if got := refs[mainRef]; got != service.ErrForcePushBlocked.Error() {
+		t.Errorf("main status = %q, want %q", got, service.ErrForcePushBlocked.Error())
+	}
+	if got := refs[featureRef]; got != "ok" {
+		t.Errorf("feature status = %q, want ok", got)
+	}
+	assertRef(t, r, "main", r.mainTip)
+	if _, err := r.git.Reference(featureRef, false); err != plumbing.ErrReferenceNotFound {
+		t.Errorf("feature lookup err = %v, want %v", err, plumbing.ErrReferenceNotFound)
+	}
+}
+
 func TestGitReceivePack_ProtectedAndUnprotectedRefs_AppliesOnlyUnprotected(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
