@@ -64,6 +64,7 @@ The Refs page (`/{owner}/{repo}/refs`) lists all branches and tags. Authenticate
 
 - Public repos: refs page always visible (read-only for unauthenticated)
 - Write access required for create/delete; default branch delete is blocked (button hidden)
+- Deleting a branch whose protection rule has `block_force_push` is refused with 422; the button stays, and the refusal shows as an error toast
 
 **API endpoints** (all require `authMW`):
 

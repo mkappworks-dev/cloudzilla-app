@@ -229,11 +229,13 @@ Applying a suggestion, merging a PR, and editing the wiki return `409` when a pu
 | Method | Path                                      | Auth     | Description                                                                   |
 | ------ | ----------------------------------------- | -------- | ----------------------------------------------------------------------------- |
 | POST   | `/api/repos/:owner/:repo/branches`        | CanWrite | Create branch (`name`, `from` form fields; `from` defaults to default branch) |
-| DELETE | `/api/repos/:owner/:repo/branches?name=X` | CanWrite | Delete branch (default branch rejected with 400)                              |
+| DELETE | `/api/repos/:owner/:repo/branches?name=X` | CanWrite | Delete branch (400 for the default branch; 422 under `block_force_push`)      |
 | POST   | `/api/repos/:owner/:repo/tags`            | CanWrite | Create tag (`name`, `from` form fields)                                       |
 | DELETE | `/api/repos/:owner/:repo/tags?name=X`     | CanWrite | Delete tag                                                                    |
 
 All four endpoints require write access. For HTMX requests they return an HTML fragment; otherwise JSON.
+
+Deleting a branch whose protection rule has `block_force_push` returns 422 `cannot delete a branch whose protection rule blocks force pushes`, as JSON for HTMX requests too, because deleting and pushing again is a force push in two steps. `git push --delete` is refused the same way ([git-transport](./git-transport.md#concurrent-ref-updates)).
 
 ## Topics
 
