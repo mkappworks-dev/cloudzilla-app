@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -101,6 +103,16 @@ func receivePack(t *testing.T, h http.Handler, r raceRepo, cmds ...*packp.Comman
 	return refs
 }
 
+// treeOf returns the tree of commit: an object r has that isn't a commit.
+func treeOf(t *testing.T, r raceRepo, commit plumbing.Hash) plumbing.Hash {
+	t.Helper()
+	c, err := r.git.CommitObject(commit)
+	if err != nil {
+		t.Fatalf("read %s: %v", commit, err)
+	}
+	return c.TreeHash
+}
+
 func assertRef(t *testing.T, r raceRepo, branch string, want plumbing.Hash) {
 	t.Helper()
 	if got := branchHash(t, r.git, branch); got != want {
@@ -158,16 +170,16 @@ func TestGitReceivePack_FastForwardToProtectedBranch_Applies(t *testing.T) {
 	assertRef(t, r, "main", r.mainPushed)
 }
 
-// go-git's receive-pack doesn't check that a pushed commit exists, so the
-// protection check must not take one it can't read for a fast-forward.
-func TestGitReceivePack_ProtectedBranchToMissingCommit_Refused(t *testing.T) {
+// A branch can be pushed to any object the repo has, so the protection check
+// must not take one it can't read as a commit for a fast-forward.
+func TestGitReceivePack_ProtectedBranchToNonCommit_Refused(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
 	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	protectMain(t, db, r)
 
-	refs := receivePack(t, h, r, &packp.Command{Name: mainRef, Old: r.mainTip, New: missingCommit})
+	refs := receivePack(t, h, r, &packp.Command{Name: mainRef, Old: r.mainTip, New: treeOf(t, r, r.mainPushed)})
 
 	if got := refs[mainRef]; got != service.ErrForcePushBlocked.Error() {
 		t.Errorf("main status = %q, want %q", got, service.ErrForcePushBlocked.Error())
@@ -175,20 +187,77 @@ func TestGitReceivePack_ProtectedBranchToMissingCommit_Refused(t *testing.T) {
 	assertRef(t, r, "main", r.mainTip)
 }
 
-func TestGitReceivePack_CreateProtectedBranchAtMissingCommit_Refused(t *testing.T) {
+func TestGitReceivePack_CreateProtectedBranchAtNonCommit_Refused(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	reposRoot := t.TempDir()
 	h := newAPIRouterAt(t, db, reposRoot)
 	r := seedRaceRepo(t, db, reposRoot)
 	testutil.Exec(t, db, `INSERT INTO branch_protections (repo_id, pattern, block_force_push) VALUES ($1, 'topic', true)`, r.id)
 
-	refs := receivePack(t, h, r, &packp.Command{Name: topicRef, Old: plumbing.ZeroHash, New: missingCommit})
+	refs := receivePack(t, h, r, &packp.Command{Name: topicRef, Old: plumbing.ZeroHash, New: treeOf(t, r, r.mainPushed)})
 
 	if got := refs[topicRef]; got != service.ErrForcePushBlocked.Error() {
 		t.Errorf("topic status = %q, want %q", got, service.ErrForcePushBlocked.Error())
 	}
 	if _, err := r.git.Reference(topicRef, false); err != plumbing.ErrReferenceNotFound {
 		t.Errorf("topic lookup err = %v, want %v", err, plumbing.ErrReferenceNotFound)
+	}
+}
+
+// go-git's receive-pack doesn't check that a pushed object exists, so any ref
+// could be left pointing at nothing.
+func TestGitReceivePack_UnprotectedBranchToMissingCommit_Refused(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	h := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+
+	refs := receivePack(t, h, r, &packp.Command{Name: featureRef, Old: r.featureTip, New: missingCommit})
+
+	if got := refs[featureRef]; got != gittransport.ErrMissingObjects.Error() {
+		t.Errorf("feature status = %q, want %q", got, gittransport.ErrMissingObjects.Error())
+	}
+	assertRef(t, r, "feature", r.featureTip)
+}
+
+func TestGitReceivePack_CreateTagAtMissingCommit_Refused(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	h := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+	tagRef := plumbing.NewTagReferenceName("v1")
+
+	refs := receivePack(t, h, r, &packp.Command{Name: tagRef, Old: plumbing.ZeroHash, New: missingCommit})
+
+	if got := refs[tagRef]; got != gittransport.ErrMissingObjects.Error() {
+		t.Errorf("v1 status = %q, want %q", got, gittransport.ErrMissingObjects.Error())
+	}
+	if _, err := r.git.Reference(tagRef, false); err != plumbing.ErrReferenceNotFound {
+		t.Errorf("v1 lookup err = %v, want %v", err, plumbing.ErrReferenceNotFound)
+	}
+}
+
+// go-git sends a vet error's text to the pusher, so a failed rule lookup is
+// logged, not reported.
+func TestGitReceivePack_ProtectionLookupFails_RefusedWithoutDBError(t *testing.T) {
+	db := testutil.OpenFreshTestDB(t)
+	reposRoot := t.TempDir()
+	h := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+	testutil.Exec(t, db, `ALTER TABLE branch_protections RENAME TO branch_protections_gone`)
+	var logs bytes.Buffer
+	defaultLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(defaultLogger) })
+
+	refs := receivePack(t, h, r, &packp.Command{Name: featureRef, Old: r.featureTip, New: r.featurePushed})
+
+	if got := refs[featureRef]; got != service.ErrProtectionCheckFailed.Error() {
+		t.Errorf("feature status = %q, want %q", got, service.ErrProtectionCheckFailed.Error())
+	}
+	assertRef(t, r, "feature", r.featureTip)
+	if !strings.Contains(logs.String(), "SQLSTATE 42P01") {
+		t.Errorf("rule lookup error not logged:\n%s", logs.String())
 	}
 }
 

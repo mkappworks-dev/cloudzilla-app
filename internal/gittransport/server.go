@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
@@ -15,11 +16,16 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 )
 
+var (
+	ErrMissingObjects  = errors.New("missing necessary objects")
+	ErrRefUpdateFailed = errors.New("failed to update ref")
+)
+
 // NewServer is go-git's git server over s, serving every endpoint. Its
 // receive-pack stores packs through WrapForReceive, then applies a ref update
-// only if vet (when non-nil) accepts it and the ref still holds the old value
-// the client pushed from. A refused ref is reported in the status with its
-// reason, and the rest of the push still applies.
+// only if s has its new object, vet (when non-nil) accepts it, and the ref
+// still holds the old value the client pushed from. A refused ref is reported
+// in the status with its reason, and the rest of the push still applies.
 func NewServer(s storer.Storer, vet func(*packp.Command) error) transport.Transport {
 	return casServer{Transport: server.NewServer(loader{s}), s: s, vet: vet}
 }
@@ -92,6 +98,11 @@ func (c *casStorer) RemoveReference(name plumbing.ReferenceName) error {
 }
 
 func (c *casStorer) move(name plumbing.ReferenceName, to plumbing.Hash) error {
+	// go-git's receive-pack doesn't check connectivity, so to may be an object
+	// that neither the pack nor the repo holds.
+	if !to.IsZero() && c.HasEncodedObject(to) != nil {
+		return ErrMissingObjects
+	}
 	cmd := &packp.Command{Name: name, Old: c.old[name], New: to}
 	if c.vet != nil {
 		if err := c.vet(cmd); err != nil {
@@ -99,8 +110,15 @@ func (c *casStorer) move(name plumbing.ReferenceName, to plumbing.Hash) error {
 		}
 	}
 	err := gitref.Move(c.Storer, name, cmd.Old, cmd.New)
-	if errors.Is(err, gitref.ErrMoved) {
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, gitref.ErrMoved):
 		return fmt.Errorf("%w; fetch and push again", err)
+	default:
+		// go-git reports the error's text to the pusher, and a storer error
+		// names paths on the server.
+		slog.Error("gittransport: ref update failed", "ref", name.String(), "error", err)
+		return ErrRefUpdateFailed
 	}
-	return err
 }
