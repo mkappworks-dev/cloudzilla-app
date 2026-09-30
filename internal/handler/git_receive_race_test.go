@@ -25,6 +25,8 @@ var (
 	mainRef    = plumbing.NewBranchReferenceName("main")
 	featureRef = plumbing.NewBranchReferenceName("feature")
 	topicRef   = plumbing.NewBranchReferenceName("topic")
+
+	missingCommit = plumbing.NewHash("1234567890123456789012345678901234567890")
 )
 
 // webCommit commits a file on branch through the web and returns the new tip.
@@ -43,12 +45,13 @@ func protectMain(t *testing.T, db *sql.DB, r raceRepo) {
 }
 
 // postReceivePack pushes cmds over smart HTTP as the repo owner, with a pack of
-// the commits they point at.
+// the commits they point at. A commit r lacks is left out of the pack, as a
+// client that omits it would.
 func postReceivePack(t *testing.T, h http.Handler, r raceRepo, reportStatus bool, cmds ...*packp.Command) *httptest.ResponseRecorder {
 	t.Helper()
 	var tips []plumbing.Hash
 	for _, cmd := range cmds {
-		if !cmd.New.IsZero() {
+		if r.git.Storer.HasEncodedObject(cmd.New) == nil {
 			tips = append(tips, cmd.New)
 		}
 	}
@@ -153,6 +156,56 @@ func TestGitReceivePack_FastForwardToProtectedBranch_Applies(t *testing.T) {
 		t.Errorf("main status = %q, want ok", got)
 	}
 	assertRef(t, r, "main", r.mainPushed)
+}
+
+// go-git's receive-pack doesn't check that a pushed commit exists, so the
+// protection check must not take one it can't read for a fast-forward.
+func TestGitReceivePack_ProtectedBranchToMissingCommit_Refused(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	h := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+	protectMain(t, db, r)
+
+	refs := receivePack(t, h, r, &packp.Command{Name: mainRef, Old: r.mainTip, New: missingCommit})
+
+	if got := refs[mainRef]; got != service.ErrForcePushBlocked.Error() {
+		t.Errorf("main status = %q, want %q", got, service.ErrForcePushBlocked.Error())
+	}
+	assertRef(t, r, "main", r.mainTip)
+}
+
+func TestGitReceivePack_CreateProtectedBranchAtMissingCommit_Refused(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	h := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+	testutil.Exec(t, db, `INSERT INTO branch_protections (repo_id, pattern, block_force_push) VALUES ($1, 'topic', true)`, r.id)
+
+	refs := receivePack(t, h, r, &packp.Command{Name: topicRef, Old: plumbing.ZeroHash, New: missingCommit})
+
+	if got := refs[topicRef]; got != service.ErrForcePushBlocked.Error() {
+		t.Errorf("topic status = %q, want %q", got, service.ErrForcePushBlocked.Error())
+	}
+	if _, err := r.git.Reference(topicRef, false); err != plumbing.ErrReferenceNotFound {
+		t.Errorf("topic lookup err = %v, want %v", err, plumbing.ErrReferenceNotFound)
+	}
+}
+
+// Deleting a branch and pushing it again is a force push in two steps.
+func TestGitReceivePack_DeleteProtectedBranch_Refused(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	h := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+	protectMain(t, db, r)
+
+	refs := receivePack(t, h, r, &packp.Command{Name: mainRef, Old: r.mainTip, New: plumbing.ZeroHash})
+
+	if got := refs[mainRef]; got != service.ErrForcePushBlocked.Error() {
+		t.Errorf("main status = %q, want %q", got, service.ErrForcePushBlocked.Error())
+	}
+	assertRef(t, r, "main", r.mainTip)
 }
 
 func TestGitReceivePack_ProtectedAndUnprotectedRefs_AppliesOnlyUnprotected(t *testing.T) {

@@ -2,17 +2,17 @@
 
 ## Authentication Methods
 
-| Method                | Mechanism                                          | Where                         |
-| --------------------- | -------------------------------------------------- | ----------------------------- |
-| Form login            | Email + password → JWT cookie (`cz_token`)         | `POST /login`                 |
-| API login             | Email + password → JWT in cookie + JSON body       | `POST /api/auth/login`        |
-| Google OAuth          | OAuth 2.0 code flow → JWT cookie                   | `GET /auth/google` → callback |
-| LDAP                  | Bind + search → JWT cookie                         | `POST /auth/ldap`             |
-| SAML SSO              | SP-initiated, ACS callback → JWT cookie            | `GET /auth/saml` → callback   |
-| Personal Access Token | `Authorization: Bearer <token>` header             | Any API endpoint              |
-| OAuth App Token       | `Authorization: Bearer <token>` header             | Scoped API endpoints (below)  |
-| SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys` | Git SSH transport             |
-| TOTP 2FA              | 6-digit code after any web sign-in                 | `POST /auth/2fa/verify`       |
+| Method                | Mechanism                                                                       | Where                         |
+| --------------------- | ------------------------------------------------------------------------------- | ----------------------------- |
+| Form login            | Email + password → JWT cookie (`cz_token`)                                      | `POST /login`                 |
+| API login             | Email + password → JWT in cookie + JSON body; `401 totp_required` if TOTP is on | `POST /api/auth/login`        |
+| Google OAuth          | OAuth 2.0 code flow → JWT cookie                                                | `GET /auth/google` → callback |
+| LDAP                  | Bind + search → JWT cookie                                                      | `POST /auth/ldap`             |
+| SAML SSO              | SP-initiated, ACS callback → JWT cookie                                         | `GET /auth/saml` → callback   |
+| Personal Access Token | `Authorization: Bearer <token>` header                                          | Any API endpoint              |
+| OAuth App Token       | `Authorization: Bearer <token>` header                                          | Scoped API endpoints (below)  |
+| SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys`                              | Git SSH transport             |
+| TOTP 2FA              | 6-digit code after any web sign-in                                              | `POST /auth/2fa/verify`       |
 
 Emails match case-insensitively everywhere: login, Google OAuth linking to an existing account by email, invites, and the existing-account check that makes LDAP and SAML refuse to auto-link. The `users_email_lower_key` index enforces it.
 
@@ -37,9 +37,11 @@ contain control characters. Anything else goes to `/`.
 
 ### Two-factor authentication
 
-TOTP is opt-in per user, from the Security tab of `/settings`. The password, LDAP, Google and SAML routes all end in `signIn` (`page_auth_handler.go`). For a user with TOTP on, it sets a five-minute `cz_totp_pending` cookie and redirects to `/auth/2fa` instead of issuing `cz_token`; `VerifyTOTP` starts the session once a code or backup code checks out. Every session starts in `startSession`, which records the `login` audit event.
+TOTP is opt-in per user, from the Security tab of `/settings`. The password, LDAP, Google and SAML routes all end in `signIn` (`page_auth_handler.go`). For a user with TOTP on, it sets a five-minute `cz_totp_pending` cookie and redirects to `/auth/2fa` instead of issuing `cz_token`; `VerifyTOTP` starts the session once a code or backup code checks out. Every web session starts in `startSession`, which records the `login` audit event.
 
 Google and SAML users get the prompt too, even when the IdP enforces its own MFA. Cloudzilla can't tell whether it did: it neither requests nor checks a SAML `AuthnContext`, and Google's userinfo doesn't say. Because TOTP is opt-in, only users who enrolled are asked, so a user whose IdP already handles MFA can leave it off. Gitea and GitLab make the same default, with a per-provider bypass that Cloudzilla doesn't have yet.
+
+`POST /api/auth/login` has no second step. After the password and `AllowLogin` checks, it refuses a user with TOTP on with `401 {"error":"totp_required"}`: no `cz_token`, no token in the body, and no `login` event. API clients of such users authenticate with a personal access token instead. The endpoint accepts no TOTP code on purpose: nothing throttles sign-in attempts, so a code field would add a second place to guess codes while giving nothing a PAT doesn't.
 
 ### JWT Claims
 
