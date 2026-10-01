@@ -375,9 +375,9 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			return nil, fmt.Errorf("write advertised refs: %w", err)
 		}
 
-		// io.NopCloser suppresses the session's Close: go-git closes the
-		// packfile reader after ingestion, but sessionHandler still needs
-		// the session to write status and the exit code.
+		// Nothing reading the request may close the session: go-git closes
+		// the packfile reader after ingestion, and sessionHandler still
+		// writes the status and the exit code.
 		limiter := gittransport.NewLimitedReadCloser(io.NopCloser(session), s.cfg.MaxPackBytes)
 		counter := gittransport.NewByteCounter(limiter)
 		in := bufio.NewReader(counter)
