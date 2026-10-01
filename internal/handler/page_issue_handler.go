@@ -148,7 +148,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		issueLabels = map[int64][]model.Label{}
 	}
 
-	allMilestones, err := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	allMilestones, err := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName, callerID)
 	if err != nil {
 		slog.Warn("issues: milestone list failed", "owner", owner, "repo", repoName, "error", err)
 	}
@@ -164,7 +164,7 @@ func (h *Handler) PageIssues(w http.ResponseWriter, r *http.Request) {
 		allLabels = []model.Label{}
 	}
 
-	pinnedIssues, err := h.Services.Issue.ListPinned(r.Context(), owner, repoName)
+	pinnedIssues, err := h.Services.Issue.ListPinned(r.Context(), owner, repoName, callerID)
 	if err != nil {
 		slog.Warn("issues: pinned list failed", "owner", owner, "repo", repoName, "error", err)
 	}
@@ -251,8 +251,8 @@ func (h *Handler) PageIssueDetail(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 	}
 
-	issueMilestone, _ := h.Services.Milestone.GetForIssue(r.Context(), issue.ID)
-	allIssueMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	issueMilestone, _ := h.Services.Milestone.GetForIssue(r.Context(), issue.ID, issueCallerID)
+	allIssueMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName, issueCallerID)
 	if allIssueMilestones == nil {
 		allIssueMilestones = []model.Milestone{}
 	}
@@ -364,7 +364,7 @@ func (h *Handler) loadIssueSidebarOptions(r *http.Request, data *view.IssueNewDa
 	} else {
 		slog.Warn("new issue: list labels failed", "owner", owner, "repo", repoName, "error", err)
 	}
-	if milestones, err := h.Services.Milestone.ListByRepo(ctx, owner, repoName); err == nil {
+	if milestones, err := h.Services.Milestone.ListByRepo(ctx, owner, repoName, viewerOf(r)); err == nil {
 		data.Milestones = milestones
 	} else {
 		slog.Warn("new issue: list milestones failed", "owner", owner, "repo", repoName, "error", err)

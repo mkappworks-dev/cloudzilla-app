@@ -41,7 +41,7 @@ type BlobResult struct {
 
 // GetTree returns tree entries for the given path (empty = root).
 func (s *CodeService) GetTree(owner, repoName, ref, path string) (*TreeResult, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (s *CodeService) GetTree(owner, repoName, ref, path string) (*TreeResult, e
 
 // GetBlob returns file content. Sets IsBinary=true for binary files.
 func (s *CodeService) GetBlob(owner, repoName, ref, path string) (*BlobResult, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (s *CodeService) GetRawBlob(owner, repoName, ref, path string) ([]byte, err
 }
 
 func (s *CodeService) GetRawBlobBounded(owner, repoName, ref, path string, maxBytes int64) ([]byte, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -197,4 +197,16 @@ func (s *CodeService) GetProfileReadme(ownerName, repoName, defaultBranch string
 		return template.HTML("")
 	}
 	return template.HTML(markdown.Render(string(raw)))
+}
+
+// GetProfileReadmeRaw returns ("", nil) for a missing repo, commit, or README so callers can render an empty editor.
+func (s *CodeService) GetProfileReadmeRaw(ownerName, repoName, defaultBranch string) (string, error) {
+	raw, err := s.GetRawBlob(ownerName, repoName, defaultBranch, "README.md")
+	if err != nil {
+		if errors.Is(err, ErrEmptyRepo) || errors.Is(err, object.ErrFileNotFound) || errors.Is(err, gogit.ErrRepositoryNotExists) {
+			return "", nil
+		}
+		return "", err
+	}
+	return string(raw), nil
 }

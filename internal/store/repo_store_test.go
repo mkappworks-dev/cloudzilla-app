@@ -4,6 +4,8 @@ package store_test
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -44,10 +46,10 @@ func TestRepoStore_GetByOwnerName_UnknownRepo_Error(t *testing.T) {
 	}
 }
 
-// TestRepoStore_GetPermission_OwnerRole verifies that GetPermission returns the role
-// stored in the permissions table for a user/repo pair.
-func TestRepoStore_GetPermission_OwnerRole(t *testing.T) {
-	// SeedRepo inserts an 'owner' permission row for ownerID automatically.
+// TestRepoStore_GetPermission_Owner_NoRow verifies that a repo's owner holds no
+// permissions row: ownership lives in owner_id, so permission lookups must not
+// stand in for RepoService.IsOwner.
+func TestRepoStore_GetPermission_Owner_NoRow(t *testing.T) {
 	db := openStoreDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	ownerID := testutil.SeedUser(t, db, suffix)
@@ -55,12 +57,9 @@ func TestRepoStore_GetPermission_OwnerRole(t *testing.T) {
 	repoID := testutil.SeedRepo(t, db, ownerID, ownerName, suffix)
 
 	s := store.NewRepoStore(db)
-	role, err := s.GetPermission(context.Background(), repoID, ownerID)
-	if err != nil {
-		t.Fatalf("GetPermission: %v", err)
-	}
-	if role != "owner" {
-		t.Errorf("want role %q, got %q", "owner", role)
+	_, err := s.GetPermission(context.Background(), repoID, ownerID)
+	if !errors.Is(err, sql.ErrNoRows) {
+		t.Errorf("GetPermission for the owner: want sql.ErrNoRows, got %v", err)
 	}
 }
 
@@ -166,5 +165,22 @@ func TestRepoStore_CreateWithOwnerName_AssignsID(t *testing.T) {
 	}
 	if r.CreatedAt.IsZero() {
 		t.Error("CreateWithOwnerName must populate CreatedAt")
+	}
+}
+
+// Owners whose names differ only in case share one directory on a
+// case-insensitive filesystem, so one's row must hold the name for the other.
+func TestRepoStore_NameHeld_IgnoresOwnerCase(t *testing.T) {
+	db := openStoreDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
+
+	held, err := store.NewRepoStore(db).NameHeld(context.Background(), "TestUser_"+suffix, "TestRepo_"+suffix)
+	if err != nil {
+		t.Fatalf("NameHeld: %v", err)
+	}
+	if !held {
+		t.Error("NameHeld misses a row whose owner name differs only in case")
 	}
 }

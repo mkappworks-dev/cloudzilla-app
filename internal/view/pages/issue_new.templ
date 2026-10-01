@@ -152,11 +152,11 @@ templ issueNewMetaSection(title, emptyText string, divided bool) {
 templ issueNewPicker(section, heading, menuHeading, triggerLabel string, plus bool) {
 	<div class="flex items-center justify-between">
 		<h3 class="text-[12px] font-medium text-muted-foreground">{ heading }</h3>
-		<div class="relative" x-on:click.outside={ "open === '" + section + "' && (open = null)" }>
+		<div class="relative" x-on:click.outside={ "open === " + components.JSLiteral(section) + " && (open = null)" }>
 			<button
 				type="button"
-				x-on:click={ "open = (open === '" + section + "' ? null : '" + section + "')" }
-				:aria-expanded={ "open === '" + section + "' ? 'true' : 'false'" }
+				x-on:click={ "open = (open === " + components.JSLiteral(section) + " ? null : " + components.JSLiteral(section) + ")" }
+				:aria-expanded={ "open === " + components.JSLiteral(section) + " ? 'true' : 'false'" }
 				aria-haspopup="menu"
 				aria-label={ triggerLabel }
 				class="text-muted-foreground hover:text-foreground"
@@ -168,7 +168,7 @@ templ issueNewPicker(section, heading, menuHeading, triggerLabel string, plus bo
 				}
 			</button>
 			<div
-				x-show={ "open === '" + section + "'" }
+				x-show={ "open === " + components.JSLiteral(section) }
 				x-cloak
 				x-transition.opacity.duration.100ms
 				role="menu"
@@ -201,13 +201,13 @@ templ issueNewAssignees(data view.IssueNewData) {
 					<button
 						type="button"
 						role="menuitemcheckbox"
-						x-on:click={ "toggle(assignees, '" + c + "')" }
-						:aria-checked={ "assignees.includes('" + c + "') ? 'true' : 'false'" }
+						x-on:click={ "toggle(assignees, " + components.JSLiteral(c) + ")" }
+						:aria-checked={ "assignees.includes(" + components.JSLiteral(c) + ") ? 'true' : 'false'" }
 						class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
 					>
 						@components.Avatar(c, components.AvatarSizeSM, c)
 						<span class="flex-1 truncate">{ c }</span>
-						<span x-show={ "assignees.includes('" + c + "')" } x-cloak>
+						<span x-show={ "assignees.includes(" + components.JSLiteral(c) + ")" } x-cloak>
 							@issueNewCheckIcon()
 						</span>
 					</button>
@@ -223,7 +223,7 @@ templ issueNewAssignees(data view.IssueNewData) {
 		}
 		<div class="space-y-1">
 			for _, c := range data.Collaborators {
-				<div x-show={ "assignees.includes('" + c + "')" } x-cloak class="flex items-center gap-2 text-[13px]">
+				<div x-show={ "assignees.includes(" + components.JSLiteral(c) + ")" } x-cloak class="flex items-center gap-2 text-[13px]">
 					@components.Avatar(c, components.AvatarSizeSM, c)
 					<a href={ templ.SafeURL("/" + c) } class="font-medium hover:underline truncate">{ c }</a>
 				</div>
@@ -231,7 +231,7 @@ templ issueNewAssignees(data view.IssueNewData) {
 			<span x-show="assignees.length === 0" class="text-xs text-muted-foreground">No one assigned</span>
 		</div>
 		for _, c := range data.Collaborators {
-			<input type="hidden" name="assignees" value={ c } form="issue-new-form" :disabled={ "!assignees.includes('" + c + "')" }/>
+			<input type="hidden" name="assignees" value={ c } form="issue-new-form" :disabled={ "!assignees.includes(" + components.JSLiteral(c) + ")" }/>
 		}
 	</div>
 }
@@ -245,13 +245,13 @@ templ issueNewLabels(data view.IssueNewData) {
 					<button
 						type="button"
 						role="menuitemcheckbox"
-						x-on:click={ "toggle(labels, '" + id + "')" }
-						:aria-checked={ "labels.includes('" + id + "') ? 'true' : 'false'" }
+						x-on:click={ "toggle(labels, " + components.JSLiteral(id) + ")" }
+						:aria-checked={ "labels.includes(" + components.JSLiteral(id) + ") ? 'true' : 'false'" }
 						class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
 					>
 						<span class="h-2.5 w-2.5 rounded-full inline-block shrink-0" style={ "background-color: " + lbl.Color }></span>
 						<span class="flex-1 truncate">{ lbl.Name }</span>
-						<span x-show={ "labels.includes('" + id + "')" } x-cloak>
+						<span x-show={ "labels.includes(" + components.JSLiteral(id) + ")" } x-cloak>
 							@issueNewCheckIcon()
 						</span>
 					</button>
@@ -269,7 +269,7 @@ templ issueNewLabels(data view.IssueNewData) {
 			for _, lbl := range data.Labels {
 				{{ id := strconv.FormatInt(lbl.ID, 10) }}
 				<span
-					x-show={ "labels.includes('" + id + "')" }
+					x-show={ "labels.includes(" + components.JSLiteral(id) + ")" }
 					x-cloak
 					class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border"
 					style={ "background-color: " + lbl.Color + "33; color: " + lbl.Color + "; border-color: " + lbl.Color + "55" }
@@ -281,7 +281,7 @@ templ issueNewLabels(data view.IssueNewData) {
 		</div>
 		for _, lbl := range data.Labels {
 			{{ id := strconv.FormatInt(lbl.ID, 10) }}
-			<input type="hidden" name="labels" value={ id } form="issue-new-form" :disabled={ "!labels.includes('" + id + "')" }/>
+			<input type="hidden" name="labels" value={ id } form="issue-new-form" :disabled={ "!labels.includes(" + components.JSLiteral(id) + ")" }/>
 		}
 	</div>
 }
@@ -319,20 +319,20 @@ templ issueNewPriorityItem(value, label, dotClass string) {
 	<button
 		type="button"
 		role="menuitemradio"
-		x-on:click={ "priority = '" + value + "'" }
-		:aria-checked={ "priority === '" + value + "' ? 'true' : 'false'" }
+		x-on:click={ "priority = " + components.JSLiteral(value) }
+		:aria-checked={ "priority === " + components.JSLiteral(value) + " ? 'true' : 'false'" }
 		class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
 	>
 		<span class={ "h-2 w-2 rounded-full inline-block shrink-0", dotClass }></span>
 		<span class="flex-1 truncate">{ label }</span>
-		<span x-show={ "priority === '" + value + "'" } x-cloak>
+		<span x-show={ "priority === " + components.JSLiteral(value) } x-cloak>
 			@issueNewCheckIcon()
 		</span>
 	</button>
 }
 
 templ issueNewPriorityBadge(value, classes string) {
-	<span x-show={ "priority === '" + value + "'" } x-cloak class={ "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border", classes }>{ value }</span>
+	<span x-show={ "priority === " + components.JSLiteral(value) } x-cloak class={ "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border", classes }>{ value }</span>
 }
 
 templ issueNewMilestone(data view.IssueNewData) {
@@ -344,13 +344,13 @@ templ issueNewMilestone(data view.IssueNewData) {
 					<button
 						type="button"
 						role="menuitemradio"
-						x-on:click={ "milestone = '" + id + "'" }
-						:aria-checked={ "milestone === '" + id + "' ? 'true' : 'false'" }
+						x-on:click={ "milestone = " + components.JSLiteral(id) }
+						:aria-checked={ "milestone === " + components.JSLiteral(id) + " ? 'true' : 'false'" }
 						class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
 					>
 						<span class={ "h-2 w-2 rounded-full inline-block shrink-0", templ.KV("bg-muted-foreground", m.State == "closed"), templ.KV("bg-success", m.State != "closed") }></span>
 						<span class="flex-1 truncate">{ m.Title }</span>
-						<span x-show={ "milestone === '" + id + "'" } x-cloak>
+						<span x-show={ "milestone === " + components.JSLiteral(id) } x-cloak>
 							@issueNewCheckIcon()
 						</span>
 					</button>
@@ -376,7 +376,7 @@ templ issueNewMilestone(data view.IssueNewData) {
 		<div>
 			for _, m := range data.Milestones {
 				{{ id := strconv.FormatInt(m.ID, 10) }}
-				<div x-show={ "milestone === '" + id + "'" } x-cloak class="text-sm">
+				<div x-show={ "milestone === " + components.JSLiteral(id) } x-cloak class="text-sm">
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/milestones") } class="font-medium text-foreground hover:underline">{ m.Title }</a>
 					if m.OpenCount+m.ClosedCount > 0 {
 						@components.ProgressBarSmall(m.ClosedCount, m.OpenCount+m.ClosedCount)
@@ -398,13 +398,13 @@ templ issueNewLinkedPulls(data view.IssueNewData) {
 					<button
 						type="button"
 						role="menuitemcheckbox"
-						x-on:click={ "toggle(linkedPulls, '" + num + "')" }
-						:aria-checked={ "linkedPulls.includes('" + num + "') ? 'true' : 'false'" }
+						x-on:click={ "toggle(linkedPulls, " + components.JSLiteral(num) + ")" }
+						:aria-checked={ "linkedPulls.includes(" + components.JSLiteral(num) + ") ? 'true' : 'false'" }
 						class="flex w-full items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground"
 					>
 						@issueNewBranchIcon()
 						<span class="flex-1 truncate"><span class="font-mono text-muted-foreground">#{ num }</span> { pr.Title }</span>
-						<span x-show={ "linkedPulls.includes('" + num + "')" } x-cloak>
+						<span x-show={ "linkedPulls.includes(" + components.JSLiteral(num) + ")" } x-cloak>
 							@issueNewCheckIcon()
 						</span>
 					</button>
@@ -421,7 +421,7 @@ templ issueNewLinkedPulls(data view.IssueNewData) {
 		<ul class="space-y-1.5 text-[13px]">
 			for _, pr := range data.RepoPulls {
 				{{ num := strconv.Itoa(pr.Number) }}
-				<li x-show={ "linkedPulls.includes('" + num + "')" } x-cloak class="flex items-center gap-2">
+				<li x-show={ "linkedPulls.includes(" + components.JSLiteral(num) + ")" } x-cloak class="flex items-center gap-2">
 					@issueNewBranchIcon()
 					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + num) } class="hover:underline truncate"><span class="font-mono text-muted-foreground">#{ num }</span> { pr.Title }</a>
 				</li>
@@ -430,7 +430,7 @@ templ issueNewLinkedPulls(data view.IssueNewData) {
 		<p x-show="linkedPulls.length === 0" class="text-xs text-muted-foreground">No linked PRs yet.</p>
 		for _, pr := range data.RepoPulls {
 			{{ num := strconv.Itoa(pr.Number) }}
-			<input type="hidden" name="linked_pulls" value={ num } form="issue-new-form" :disabled={ "!linkedPulls.includes('" + num + "')" }/>
+			<input type="hidden" name="linked_pulls" value={ num } form="issue-new-form" :disabled={ "!linkedPulls.includes(" + components.JSLiteral(num) + ")" }/>
 		}
 	</div>
 }

@@ -19,6 +19,7 @@ type Services struct {
 	Notification     *NotificationService
 	SiteSetting      *SiteSettingService
 	Invitation       *InvitationService
+	Signup           *SignupService
 	Label            *LabelService
 	Assignee         *AssigneeService
 	Star             *StarService
@@ -34,11 +35,14 @@ type Services struct {
 	BranchProtection *BranchProtectionService
 	Reaction         *ReactionService
 	TOTP             *TOTPService
+	OAuthLink        *OAuthLinkService
+	Reauth           *ReauthService
 	AuditLog         *AuditService
 	Project          *ProjectService
 	SSO              *SSOService
 	SavedReply       *SavedReplyService
 	Email            *EmailService
+	EmailVerifier    *EmailVerificationService
 	OAuthApp         *OAuthAppService
 	Watch            *WatchService
 	Event            *EventService
@@ -57,16 +61,26 @@ type Services struct {
 // New constructs and wires all services from the given stores and configuration.
 func New(stores *store.Stores, cfg *config.Config) *Services {
 	code := NewCodeService(cfg.Git)
-	languageSvc := NewLanguageService(code)
 	index := NewIndexService(stores.CodeSearch, code)
 	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
 	contributorStatsSvc := NewContributorStatsService(stores.ContributorStats, stores.User)
 	attentionSvc := NewAttentionService(stores.Issue).WithPullDeps(stores.Pull, stores.PullReview, stores.Mention).WithUserStore(stores.User)
-	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, contributorStatsSvc, code, cfg.Git).WithLanguageService(languageSvc).WithPullStore(stores.Pull)
+	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, contributorStatsSvc, code, cfg.Git).WithPullStore(stores.Pull).
+		WithTransferStore(stores.RepoTransfer).WithNoreplyHostFrom(cfg.Server.BaseURL)
+	orgSvc := NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git).WithStarStore(stores.Star).WithRepoService(repoSvc)
+	languageSvc := NewLanguageService(code, repoSvc)
+	repoSvc.WithLanguageService(languageSvc)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
-	userSvc := NewUserService(stores.User, cfg.Auth).WithNoreplyHostFrom(cfg.Server.BaseURL)
 	emailSvc := NewEmailService(cfg.SMTP)
-	notifSvc := NewNotificationService(stores.Notification, stores.Watch, emailSvc, userSvc)
+	emailVerificationSvc := NewEmailVerificationService(stores.EmailVerification, stores.User, emailSvc, cfg.Server.BaseURL)
+	userSvc := NewUserService(stores.User, cfg.Auth).WithRepoService(repoSvc).WithNoreplyHostFrom(cfg.Server.BaseURL).
+		WithEmailVerification(emailVerificationSvc).WithSecurityNotices(emailSvc)
+	totpSvc := NewTOTPService(stores.User).WithSecurityNotices(emailSvc)
+	ssoSvc := NewSSOService(stores.SSO, stores.User, cfg.Auth, siteSettingSvc)
+	reauthSvc := NewReauthService(stores.User, totpSvc).WithEmailCodes(emailSvc).
+		WithProviderSignIn(stores.OAuthState, ssoSvc, cfg.OAuth.GoogleClientID != "")
+	userSvc.WithReauth(reauthSvc)
+	notifSvc := NewNotificationService(stores.Notification, stores.Watch, repoSvc, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,
@@ -76,14 +90,15 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Repo:             repoSvc,
 		Issue:            NewIssueService(stores.Issue, stores.Repo, stores.Pull, repoSvc).WithMentionStore(stores.Mention),
 		Pull:             pullSvc,
-		Comment:          NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc),
+		Comment:          NewCommentService(stores.Comment, stores.Mention, userSvc, notifSvc, repoSvc),
 		SSHKey:           NewSSHKeyService(stores.SSHKey, stores.User),
 		Code:             code,
-		Org:              NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git),
+		Org:              orgSvc,
 		Webhook:          NewWebhookService(stores.Webhook),
 		Notification:     notifSvc,
 		SiteSetting:      siteSettingSvc,
 		Invitation:       NewInvitationService(stores.Invitation),
+		Signup:           NewSignupService(stores.SignupToken, stores.User, emailSvc, cfg.Server.BaseURL),
 		Label:            NewLabelService(stores.Label, stores.Repo, stores.Issue, stores.Pull, stores.Discussion),
 		Assignee:         NewAssigneeService(stores.Assignee, stores.Repo, stores.Issue, stores.Pull, stores.User),
 		Star:             NewStarService(stores.Star, stores.Repo, stores.User),
@@ -94,16 +109,19 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		PullLineComment:  NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
 		PullEvent:        NewPullEventService(stores.PullEvent),
 		Search:           NewSearchService(stores.Search),
-		AccessToken:      NewAccessTokenService(stores.AccessToken, stores.User),
+		AccessToken:      NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc),
 		DeployKey:        NewDeployKeyService(stores.DeployKey, stores.SSHKey),
 		BranchProtection: NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus),
 		Reaction:         NewReactionService(stores.Reaction),
-		TOTP:             NewTOTPService(stores.User),
+		TOTP:             totpSvc,
+		OAuthLink:        NewOAuthLinkService(stores.User, stores.OAuthState, totpSvc, emailSvc),
+		Reauth:           reauthSvc,
 		AuditLog:         NewAuditService(stores.AuditLog),
 		Project:          NewProjectService(stores.Project, repoSvc),
-		SSO:              NewSSOService(stores.SSO, stores.User, cfg.Auth, siteSettingSvc),
+		SSO:              ssoSvc,
 		SavedReply:       NewSavedReplyService(stores.SavedReply),
 		Email:            emailSvc,
+		EmailVerifier:    emailVerificationSvc,
 		OAuthApp:         NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization, stores.User),
 		Watch:            NewWatchService(stores.Watch, stores.Repo),
 		Event:            NewEventService(stores.Event, stores.User, stores.Repo),

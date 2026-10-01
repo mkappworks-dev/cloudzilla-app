@@ -41,6 +41,9 @@ var autoMergeAuthor = service.GitAuthor{Name: "auto-merge", Email: "auto-merge@l
 func (h *Handler) ListPulls(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repo := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repo); !ok {
+		return
+	}
 	prs, err := h.Services.Pull.List(r.Context(), owner, repo)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "repo not found")
@@ -52,6 +55,9 @@ func (h *Handler) ListPulls(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetPull(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repo := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repo); !ok {
+		return
+	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid pull number")
@@ -73,6 +79,10 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
+		return
+	}
 
 	var req createPRRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -91,32 +101,28 @@ func (h *Handler) CreatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if repo != nil {
-		go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload("opened", *repo, *pr))
-		repoID := repo.ID
-		go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventPROpened, map[string]any{"number": pr.Number, "title": pr.Title})
+	go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload("opened", *repo, *pr))
+	repoID := repo.ID
+	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventPROpened, map[string]any{"number": pr.Number, "title": pr.Title})
 
-		// Auto-assign code owners based on CODEOWNERS file.
-		go func(owner, repoName string, pr *model.PullRequest, defaultBranch string) {
-			diff, err := h.Services.Code.GetPullDiff(owner, repoName, pr.BaseBranch, pr.HeadBranch)
-			if err != nil {
-				return
-			}
-			changedFiles := make([]string, 0, len(diff.Files))
-			for _, f := range diff.Files {
-				changedFiles = append(changedFiles, f.NewPath)
-			}
-			rules, err := h.Services.Code.GetCodeOwners(owner, repoName, defaultBranch)
-			if err != nil || len(rules) == 0 {
-				return
-			}
-			owners := h.Services.Code.MatchCodeOwners(rules, changedFiles)
-			for _, u := range owners {
-				_ = h.Services.Assignee.AddToPull(context.Background(), owner, repoName, pr.Number, u)
-			}
-		}(owner, repoName, pr, repo.DefaultBranch)
-	}
+	go func(owner, repoName string, pr *model.PullRequest, defaultBranch string) {
+		diff, err := h.Services.Code.GetPullDiff(owner, repoName, pr.BaseBranch, pr.HeadBranch)
+		if err != nil {
+			return
+		}
+		changedFiles := make([]string, 0, len(diff.Files))
+		for _, f := range diff.Files {
+			changedFiles = append(changedFiles, f.NewPath)
+		}
+		rules, err := h.Services.Code.GetCodeOwners(owner, repoName, defaultBranch)
+		if err != nil || len(rules) == 0 {
+			return
+		}
+		owners := h.Services.Code.MatchCodeOwners(rules, changedFiles)
+		for _, u := range owners {
+			_ = h.Services.Assignee.AddToPull(context.Background(), owner, repoName, pr.Number, u)
+		}
+	}(owner, repoName, pr, repo.DefaultBranch)
 
 	writeJSON(w, http.StatusCreated, pr)
 }
@@ -135,13 +141,8 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -345,6 +346,10 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 		default:
 			err = h.Services.Code.MergePullRequest(owner, repoName, base, head)
 		}
+		if errors.Is(err, service.ErrRefMoved) {
+			writeError(w, http.StatusConflict, branchMovedMsg)
+			return
+		}
 		if err != nil {
 			writeError(w, http.StatusUnprocessableEntity, err.Error())
 			return
@@ -374,7 +379,7 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 
 	go h.Services.Webhook.Dispatch(repo.ID, "pull_request", h.Services.Webhook.PullPayload(state, *repo, *pr))
 	go func() {
-		h.Services.Notification.NotifyPRStateChange(r.Context(), *repo, *pr, claims.UserID, claims.Username)
+		h.Services.Notification.NotifyPRStateChange(context.WithoutCancel(r.Context()), *repo, *pr, claims.UserID, claims.Username)
 	}()
 	evType := model.EventPRClosed
 	if pr.State == model.PRStateMerged {

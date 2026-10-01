@@ -1,0 +1,120 @@
+package components
+
+// ConfirmFactors says which factors a user confirms sensitive actions with;
+// see service.Factors. Provider is "google" or "saml" for an account that
+// confirms by signing in there again; ProviderReady means it just did, in this
+// browser, and ProviderFailed that the last try didn't confirm this account.
+type ConfirmFactors struct {
+	Password       bool
+	Code           bool
+	Directory      bool
+	Provider       string
+	Email          bool
+	ProviderReady  bool
+	ProviderFailed bool
+	Unavailable    bool
+}
+
+// Any reports whether a form has anything to show for f.
+func (f ConfirmFactors) Any() bool {
+	return f.Password || f.Code || f.Directory || f.Provider != "" || f.Email || f.Unavailable
+}
+
+// Needs names what confirming takes, to finish a sentence like "This needs …".
+func (f ConfirmFactors) Needs() string {
+	switch {
+	case f.Password && f.Code:
+		return "your password and a two-factor code"
+	case f.Password:
+		return "your password"
+	case f.Code:
+		return "a two-factor code"
+	case f.Directory:
+		return "your directory password"
+	case f.Provider != "" && f.Email:
+		return "signing in again with " + providerName(f.Provider) + ", or a code emailed to you"
+	case f.Provider != "":
+		return "signing in again with " + providerName(f.Provider)
+	case f.Email:
+		return "a code emailed to your address"
+	}
+	return "a way to confirm it's you"
+}
+
+func providerName(provider string) string {
+	if provider == "google" {
+		return "Google"
+	}
+	return "single sign-on"
+}
+
+// startProviderSignIn posts to /settings/reauth/{provider} with this page as the
+// place to come back to; requestSubmit lets the layout add the CSRF token.
+script startProviderSignIn(provider string) {
+	var f = document.createElement('form');
+	f.method = 'POST';
+	f.action = '/settings/reauth/' + provider;
+	var back = document.createElement('input');
+	back.type = 'hidden';
+	back.name = 'return_to';
+	back.value = location.pathname + location.search + location.hash;
+	f.appendChild(back);
+	document.body.appendChild(f);
+	f.requestSubmit();
+}
+
+// ConfirmFields asks for the factors in f.
+templ ConfirmFields(idPrefix string, f ConfirmFactors, required bool) {
+	if f.Password || f.Directory {
+		<div class="min-w-0">
+			<label for={ idPrefix + "-password" } class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+				if f.Directory {
+					Directory password
+				} else {
+					Current password
+				}
+			</label>
+			<input id={ idPrefix + "-password" } name="password" type="password" required?={ required } autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+		</div>
+	}
+	if f.Code {
+		<div>
+			<label for={ idPrefix + "-code" } class="block text-[12px] font-medium text-muted-foreground mb-1.5">Two-factor code</label>
+			<input id={ idPrefix + "-code" } name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required?={ required } autocomplete="one-time-code" placeholder="000000" class="h-9 w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 text-foreground focus:outline-none focus:border-ring"/>
+		</div>
+	}
+	if f.Provider != "" {
+		if f.ProviderReady {
+			<p role="status" class="basis-full text-[12px] text-success">{ "Confirmed by signing in again with " + providerName(f.Provider) + ". It works for one change, within 10 minutes." }</p>
+		} else {
+			<div class="min-w-0">
+				<button type="button" onclick={ startProviderSignIn(f.Provider) } class="h-9 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground shrink-0">
+					{ "Confirm with " + providerName(f.Provider) }
+				</button>
+				if f.ProviderFailed {
+					<p role="alert" class="mt-1 text-[11.5px] text-destructive">That sign-in didn't confirm this account. Sign in with the account you use here.</p>
+				}
+			</div>
+		}
+	}
+	if f.Email && !f.ProviderReady {
+		<div class="min-w-0">
+			<label for={ idPrefix + "-email-code" } class="block text-[12px] font-medium text-muted-foreground mb-1.5">Code from your email</label>
+			<div class="flex items-center gap-2">
+				<input id={ idPrefix + "-email-code" } name="email_code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required?={ required && f.Provider == "" } autocomplete="one-time-code" placeholder="000000" aria-describedby={ idPrefix + "-email-code-status" } class="h-9 w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 text-foreground focus:outline-none focus:border-ring"/>
+				<button
+					type="button"
+					hx-post="/settings/confirm-code"
+					hx-params="none"
+					hx-target={ "#" + idPrefix + "-email-code-status" }
+					hx-swap="innerHTML"
+					class="h-9 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground shrink-0"
+				>Email me a code</button>
+			</div>
+			<p id={ idPrefix + "-email-code-status" } class="mt-1 text-[11.5px] text-muted-foreground" aria-live="polite"></p>
+		</div>
+	}
+	if f.Unavailable {
+		<p role="note" class="basis-full text-[12px] text-warning">This account has no way to confirm it's you here, so this can't be done. Ask your administrator.</p>
+	}
+}

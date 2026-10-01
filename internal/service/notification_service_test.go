@@ -25,7 +25,7 @@ func TestNotification_MarkRead_RemovesFromUnread(t *testing.T) {
 
 	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
 	notifStore := store.NewNotificationStore(db)
-	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewEmailService(config.SMTPConfig{}), userSvc)
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}), service.NewEmailService(config.SMTPConfig{}), userSvc)
 
 	// Create a notification directly via the store so we have a known ID.
 	n := &model.Notification{
@@ -73,7 +73,7 @@ func TestNotification_MarkAllRead_ClearsAllUnread(t *testing.T) {
 	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
 
 	notifStore := store.NewNotificationStore(db)
-	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db),
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
 		service.NewEmailService(config.SMTPConfig{}),
 		service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}),
 	)
@@ -89,7 +89,7 @@ func TestNotification_MarkAllRead_ClearsAllUnread(t *testing.T) {
 			RepoName:  "testrepo_" + suffix,
 			OwnerName: "testuser_" + suffix,
 			SubjectID: int64(i + 1),
-			}
+		}
 		if err := notifStore.Create(context.Background(), n); err != nil {
 			t.Fatalf("seed notification %d: %v", i, err)
 		}
@@ -119,7 +119,7 @@ func TestNotification_NotifyIssueComment_SelfAction_Silent(t *testing.T) {
 	repoID := testutil.SeedRepo(t, db, authorID, ownerName, suffix)
 
 	notifStore := store.NewNotificationStore(db)
-	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db),
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
 		service.NewEmailService(config.SMTPConfig{}),
 		service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}),
 	)
@@ -156,7 +156,7 @@ func TestNotification_NotifyIssueComment_DifferentActor_CreatesNotification(t *t
 	repoID := testutil.SeedRepo(t, db, authorID, ownerName, suffix)
 
 	notifStore := store.NewNotificationStore(db)
-	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db),
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
 		service.NewEmailService(config.SMTPConfig{}),
 		service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}),
 	)
@@ -192,7 +192,7 @@ func TestNotification_List_ReturnsCreatedNotifications(t *testing.T) {
 	repoID := testutil.SeedRepo(t, db, userID, "testuser_"+suffix, suffix)
 
 	notifStore := store.NewNotificationStore(db)
-	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db),
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
 		service.NewEmailService(config.SMTPConfig{}),
 		service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}),
 	)
@@ -217,5 +217,90 @@ func TestNotification_List_ReturnsCreatedNotifications(t *testing.T) {
 	}
 	if len(notifs) == 0 {
 		t.Error("List must return at least the notification we just created")
+	}
+}
+
+func TestNotification_ListUnreadForDigest_SkipsTypesToggledOff(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	actorID := testutil.SeedUser(t, db, "actor_"+suffix)
+	ownerName := "testuser_" + suffix
+	repoID := testutil.SeedRepo(t, db, userID, ownerName, suffix)
+
+	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	notifStore := store.NewNotificationStore(db)
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}), service.NewEmailService(config.SMTPConfig{}), userSvc)
+	ctx := context.Background()
+
+	prefs := model.NotificationPrefs{EmailNotifications: true, EmailDigest: model.EmailDigestDaily, NotifyPRReview: true, NotifyMention: false}
+	if err := userSvc.UpdateNotificationPrefs(ctx, userID, prefs); err != nil {
+		t.Fatalf("UpdateNotificationPrefs: %v", err)
+	}
+	for i, typ := range []model.NotificationType{model.NotifMention, model.NotifPRReview, model.NotifIssueComment} {
+		n := &model.Notification{
+			UserID:    userID,
+			ActorID:   actorID,
+			ActorName: "actor_" + suffix,
+			Type:      typ,
+			RepoID:    repoID,
+			RepoName:  "testrepo_" + suffix,
+			OwnerName: ownerName,
+			SubjectID: int64(i + 1),
+		}
+		if err := notifStore.Create(ctx, n); err != nil {
+			t.Fatalf("seed %s notification: %v", typ, err)
+		}
+	}
+
+	u, err := userSvc.GetByID(ctx, userID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	got, err := svc.ListUnreadForDigest(ctx, u, model.EmailDigestDaily)
+	if err != nil {
+		t.Fatalf("ListUnreadForDigest: %v", err)
+	}
+	types := map[model.NotificationType]bool{}
+	for _, n := range got {
+		types[n.Type] = true
+	}
+	if types[model.NotifMention] {
+		t.Error("digest includes a mention although notify_mention is off")
+	}
+	if len(got) != 2 || !types[model.NotifPRReview] || !types[model.NotifIssueComment] {
+		t.Errorf("digest types = %v, want pr_review and issue_comment", types)
+	}
+}
+
+func TestNotification_NotifyDiscussionReply_NotifiesDiscussionAuthor(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	// Seeded first so its cleanup runs after the repo's cascade removes notifications referencing it.
+	actorID := testutil.SeedUser(t, db, "actor_"+suffix)
+	authorID := testutil.SeedUser(t, db, suffix)
+	ownerName := "testuser_" + suffix
+	repoID := testutil.SeedRepo(t, db, authorID, ownerName, suffix)
+
+	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	svc := service.NewNotificationService(store.NewNotificationStore(db), store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}), service.NewEmailService(config.SMTPConfig{}), userSvc)
+	ctx := context.Background()
+	repo := model.Repository{ID: repoID, Name: "testrepo_" + suffix, OwnerName: ownerName}
+
+	svc.NotifyDiscussionReply(ctx, repo, model.Discussion{AuthorID: authorID, Number: 7}, actorID, "actor_"+suffix)
+
+	got, err := svc.List(ctx, authorID)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("got %d notifications, want 1 discussion_reply", len(got))
+	}
+	n := got[0]
+	if n.Type != model.NotifDiscussionReply || n.SubjectID != 7 || n.ActorID != actorID {
+		t.Errorf("notification = %+v, want discussion_reply #7 from actor %d", n, actorID)
+	}
+	if want := "/" + ownerName + "/testrepo_" + suffix + "/discussions/7"; n.SubjectURL != want {
+		t.Errorf("SubjectURL = %q, want %q", n.SubjectURL, want)
 	}
 }

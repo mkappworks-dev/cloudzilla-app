@@ -115,6 +115,32 @@ func (s *SSOService) AuthenticateLDAP(ctx context.Context, username, password st
 	return s.findOrProvisionUser(ctx, "ldap", ssoID, username, username+"@ldap.local", allowReg)
 }
 
+// ProviderEnabled reports whether provider ("ldap" or "saml") is configured and on.
+func (s *SSOService) ProviderEnabled(ctx context.Context, provider string) bool {
+	cfg, err := s.store.GetByProvider(ctx, provider)
+	return err == nil && cfg.Enabled
+}
+
+// CheckLDAPPassword binds as bindDN, the identity an LDAP account signs in with,
+// to check its directory password.
+func (s *SSOService) CheckLDAPPassword(ctx context.Context, bindDN, password string) error {
+	if bindDN == "" || password == "" {
+		return fmt.Errorf("ldap password check: missing bind DN or password")
+	}
+	cfg, err := s.store.GetByProvider(ctx, "ldap")
+	if err != nil {
+		return fmt.Errorf("ldap sso config lookup: %w", err)
+	}
+	if !cfg.Enabled {
+		return fmt.Errorf("ldap sso is disabled")
+	}
+	port := cfg.Config[model.LDAPKeyPort]
+	if port == "" {
+		port = "389"
+	}
+	return bindLDAP(net.JoinHostPort(cfg.Config[model.LDAPKeyHost], port), bindDN, password, cfg.Config[model.LDAPKeyUseTLS] == "true")
+}
+
 // escapeLDAPDN escapes a string for safe interpolation into an LDAP DN per RFC 4514.
 // The following characters are escaped with a leading backslash: , = + < > # ; \ "
 // Control characters and non-ASCII bytes are hex-escaped as \XX.
@@ -324,13 +350,13 @@ func parseLDAPBindResponse(data []byte) error {
 
 // XML Digital Signature (XMLDSig) types — used to parse the embedded signature.
 type dsSignature struct {
-	SignedInfo      dsSignedInfo `xml:"SignedInfo"`
-	SignatureValue  string       `xml:"SignatureValue"`
+	SignedInfo     dsSignedInfo `xml:"SignedInfo"`
+	SignatureValue string       `xml:"SignatureValue"`
 }
 
 type dsSignedInfo struct {
 	CanonicalizationMethod dsAlgorithm   `xml:"CanonicalizationMethod"`
-	SignatureMethod         dsAlgorithm   `xml:"SignatureMethod"`
+	SignatureMethod        dsAlgorithm   `xml:"SignatureMethod"`
 	Reference              []dsReference `xml:"Reference"`
 }
 
@@ -361,16 +387,16 @@ type samlStatusCode struct {
 }
 
 type samlAssertion struct {
-	ID         string          `xml:"ID,attr"`
-	Issuer     string          `xml:"Issuer"`
-	Subject    samlSubject     `xml:"Subject"`
-	Conditions samlConditions  `xml:"Conditions"`
-	AttrStmts  []samlAttrStmt  `xml:"AttributeStatement"`
-	Signature  *dsSignature    `xml:"Signature"`
+	ID         string         `xml:"ID,attr"`
+	Issuer     string         `xml:"Issuer"`
+	Subject    samlSubject    `xml:"Subject"`
+	Conditions samlConditions `xml:"Conditions"`
+	AttrStmts  []samlAttrStmt `xml:"AttributeStatement"`
+	Signature  *dsSignature   `xml:"Signature"`
 }
 
 type samlSubject struct {
-	NameID               samlNameID               `xml:"NameID"`
+	NameID               samlNameID                `xml:"NameID"`
 	SubjectConfirmations []samlSubjectConfirmation `xml:"SubjectConfirmation"`
 }
 
@@ -390,8 +416,8 @@ type samlSubjectConfirmationData struct {
 }
 
 type samlConditions struct {
-	NotBefore           string                  `xml:"NotBefore,attr"`
-	NotOnOrAfter        string                  `xml:"NotOnOrAfter,attr"`
+	NotBefore           string                    `xml:"NotBefore,attr"`
+	NotOnOrAfter        string                    `xml:"NotOnOrAfter,attr"`
 	AudienceRestriction []samlAudienceRestriction `xml:"AudienceRestriction"`
 }
 
@@ -828,8 +854,7 @@ func (s *SSOService) findOrProvisionUser(ctx context.Context, provider, ssoID, u
 		return nil, "", ErrRegistrationDisabled
 	}
 
-	safeUsername := sanitizeUsername(username)
-	u, err = s.store.ProvisionSSOUser(ctx, safeUsername, email, provider, ssoID)
+	u, err = s.store.ProvisionSSOUser(ctx, sanitizeUsername(username), email, provider, ssoID)
 	if err != nil {
 		return nil, "", fmt.Errorf("provision sso user: %w", err)
 	}
@@ -840,6 +865,7 @@ func (s *SSOService) findOrProvisionUser(ctx context.Context, provider, ssoID, u
 // generateJWT produces a signed JWT for an authenticated user.
 func (s *SSOService) generateJWT(u *model.User) (string, error) {
 	claims := jwt.MapClaims{
+		"sv":            u.SessionVersion,
 		"sub":           u.ID,
 		"username":      u.Username,
 		"is_superadmin": u.IsSuperadmin,
@@ -850,7 +876,7 @@ func (s *SSOService) generateJWT(u *model.User) (string, error) {
 }
 
 // sanitizeUsername replaces non-alphanumeric characters with underscores and
-// truncates to 39 characters (GitHub-style limit).
+// fits the result to the owner-name rule.
 func sanitizeUsername(s string) string {
 	var b strings.Builder
 	for _, c := range strings.ToLower(s) {
@@ -860,14 +886,7 @@ func sanitizeUsername(s string) string {
 			b.WriteByte('_')
 		}
 	}
-	result := strings.Trim(b.String(), "_-")
-	if len(result) > 39 {
-		result = result[:39]
-	}
-	if result == "" {
-		result = "sso_user"
-	}
-	return result
+	return fitOwnerName(b.String(), "sso_user")
 }
 
 // SAMLMetadataXML returns the service provider metadata XML for SAML discovery.
@@ -891,7 +910,9 @@ func (s *SSOService) SAMLMetadataXML(ctx context.Context) (string, error) {
 // SAMLAuthnRequestURL builds a SAML HTTP-Redirect binding AuthnRequest URL.
 // The AuthnRequest XML is deflate-compressed, base64-encoded, and appended as
 // the SAMLRequest query parameter to the IdP SSO endpoint (metadata_url).
-func (s *SSOService) SAMLAuthnRequestURL(ctx context.Context) (string, error) {
+// SAMLAuthnRequestURL builds the IdP redirect. forceAuthn asks the IdP to
+// authenticate the user again rather than reuse its own session.
+func (s *SSOService) SAMLAuthnRequestURL(ctx context.Context, relayState string, forceAuthn bool) (string, error) {
 	cfg, err := s.store.GetByProvider(ctx, "saml")
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -912,14 +933,18 @@ func (s *SSOService) SAMLAuthnRequestURL(ctx context.Context) (string, error) {
 
 	id := fmt.Sprintf("id%d", time.Now().UnixNano())
 	issueInstant := time.Now().UTC().Format("2006-01-02T15:04:05Z")
+	force := ""
+	if forceAuthn {
+		force = `ForceAuthn="true" `
+	}
 	xmlStr := fmt.Sprintf(
 		`<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" `+
-			`ID="%s" Version="2.0" IssueInstant="%s" `+
+			`ID="%s" Version="2.0" IssueInstant="%s" %s`+
 			`AssertionConsumerServiceURL="%s" `+
 			`Destination="%s">`+
 			`<saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">%s</saml:Issuer>`+
 			`</samlp:AuthnRequest>`,
-		id, issueInstant, acsURL, idpSSOURL, entityID,
+		id, issueInstant, force, acsURL, idpSSOURL, entityID,
 	)
 
 	// HTTP-Redirect binding: raw DEFLATE + Base64 + URL-encode (SAML spec section 3.4.4.1)
@@ -937,5 +962,11 @@ func (s *SSOService) SAMLAuthnRequestURL(ctx context.Context) (string, error) {
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
-	return idpSSOURL + "?SAMLRequest=" + url.QueryEscape(encoded), nil
+	authnURL := idpSSOURL + "?SAMLRequest=" + url.QueryEscape(encoded)
+	// The HTTP-Redirect binding caps RelayState at 80 bytes (SAML bindings 3.4.3);
+	// a longer one is dropped so strict IdPs don't reject the whole sign-in.
+	if relayState != "" && len(relayState) <= 80 {
+		authnURL += "&RelayState=" + url.QueryEscape(relayState)
+	}
+	return authnURL, nil
 }

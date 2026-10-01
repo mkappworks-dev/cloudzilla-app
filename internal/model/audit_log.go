@@ -24,12 +24,31 @@ type AuditFilter struct {
 	ActorID    *int64
 	Action     string
 	TargetType string
+	TargetID   *int64
 }
+
+const (
+	AuditTargetOrg  = "org"
+	AuditTargetRepo = "repo"
+	AuditTargetUser = "user"
+)
 
 // Common action constants.
 const (
-	AuditActionLogin        = "login"
-	AuditActionRepoCreate   = "repo.create"
-	AuditActionRepoDelete   = "repo.delete"
-	AuditActionRepoTransfer = "repo.transfer"
+	AuditActionLogin               = "login"
+	AuditActionOAuthConnect        = "user.oauth.connect"
+	AuditActionOAuthDisconnect     = "user.oauth.disconnect"
+	AuditActionRepoCreate          = "repo.create"
+	AuditActionRepoDelete          = "repo.delete"
+	AuditActionRepoTransfer        = "repo.transfer"
+	AuditActionRepoTransferRequest = "repo.transfer.request"
+	AuditActionRepoTransferCancel  = "repo.transfer.cancel"
+	AuditActionRepoTransferDecline = "repo.transfer.decline"
+	AuditActionOrgProfileUpdate    = "org.profile.update"
+	AuditActionOrgDefaultsUpdate   = "org.defaults.update"
+	AuditActionOrgDelete           = "org.delete"
+	AuditActionEmailVerify         = "user.email.verify"
+	AuditActionEmailChange         = "user.email.change"
+	AuditActionSessionsRevoke      = "user.sessions.revoke"
+	AuditActionPasswordChange      = "user.password.change"
 )

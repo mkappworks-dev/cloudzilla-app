@@ -386,8 +386,8 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		headStatuses = []model.CommitStatus{}
 	}
 
-	pullMilestone, _ := h.Services.Milestone.GetForPull(r.Context(), pull.ID)
-	allPullDetailMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	pullMilestone, _ := h.Services.Milestone.GetForPull(r.Context(), pull.ID, callerID)
+	allPullDetailMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName, callerID)
 	if allPullDetailMilestones == nil {
 		allPullDetailMilestones = []model.Milestone{}
 	}
@@ -479,7 +479,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		addParticipant(rv.AuthorName)
 	}
 
-	linkedIssueModels, err := h.Services.Issue.LinkedForPull(r.Context(), pull.ID)
+	linkedIssueModels, err := h.Services.Issue.LinkedForPull(r.Context(), pull.ID, callerID)
 	if err != nil {
 		slog.Warn("pull detail: linked issues list failed; rendering without them",
 			"owner", owner, "repo", repoName, "pull_number", number, "error", err)

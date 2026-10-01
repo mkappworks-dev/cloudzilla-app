@@ -1,6 +1,7 @@
 package components
 
 import (
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -166,10 +167,10 @@ templ AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assig
 								<button
 									type="button"
 									if assigned {
-										hx-delete={ base + "?username=" + c }
+										hx-delete={ base + "?username=" + url.QueryEscape(c) }
 									} else {
 										hx-post={ base }
-										hx-vals={ `{"username":"` + c + `"}` }
+										hx-vals={ JSLiteral(map[string]string{"username": c}) }
 									}
 									hx-target={ "#" + divID }
 									hx-swap="outerHTML"

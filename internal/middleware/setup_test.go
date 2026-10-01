@@ -15,7 +15,7 @@ import (
 // newIncompleteSetupService returns a SiteSettingService backed by an unreachable
 // database, so IsSetupComplete always returns false without a real DB.
 // sql.Open does not dial — queries will fail at execution time, causing
-// CountAll to return (0, err), so IsSetupComplete returns false.
+// CountAccounts to return (0, err), so IsSetupComplete returns false.
 func newIncompleteSetupService() *service.SiteSettingService {
 	db, _ := sql.Open("pgx", "postgres://localhost:1/nonexistent?connect_timeout=1")
 	return service.NewSiteSettingService(
@@ -80,6 +80,15 @@ func TestRequireSetup_AllowsHTMX(t *testing.T) {
 	rr := applySetup(svc, "/htmx.min.js")
 	if rr.Code != http.StatusOK {
 		t.Errorf("/htmx.min.js: want 200, got %d", rr.Code)
+	}
+}
+
+// TestRequireSetup_AllowsAlpine covers /alpine.min.js, which the layout loads on the setup page too.
+func TestRequireSetup_AllowsAlpine(t *testing.T) {
+	svc := newIncompleteSetupService()
+	rr := applySetup(svc, "/alpine.min.js")
+	if rr.Code != http.StatusOK {
+		t.Errorf("/alpine.min.js: want 200, got %d", rr.Code)
 	}
 }
 

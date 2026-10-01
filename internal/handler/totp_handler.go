@@ -1,82 +1,43 @@
 package handler
 
 import (
+	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
 const totpPendingCookieName = "cz_totp_pending"
 
-// PageSecuritySettings renders GET /settings/security.
-func (h *Handler) PageSecuritySettings(w http.ResponseWriter, r *http.Request) {
+// SetupTOTP handles POST /settings/security/setup.
+func (h *Handler) SetupTOTP(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	enabled, secret, err := h.Services.TOTP.GetUserTOTPState(r.Context(), claims.UserID)
+	secret, _, err := h.Services.TOTP.Generate(claims.Username, "Cloudzilla")
 	if err != nil {
-		http.Error(w, "failed to load security settings", http.StatusInternalServerError)
+		http.Redirect(w, r, "/settings?profile_error=totp_setup_failed#security", http.StatusSeeOther)
 		return
 	}
-
-	data := view.SecurityPageData{
-		BasePage:    basePage(r, h.Services),
-		TOTPEnabled: enabled,
-	}
-
-	// If TOTP is not yet enabled but a pending secret exists, show the QR setup UI.
-	if !enabled && secret.Valid && secret.String != "" {
-		data.TOTPSecret = secret.String
-		data.OTPAuthURL = h.Services.TOTP.BuildOTPAuthURL(claims.Username, "Cloudzilla", secret.String)
-	}
-
-	h.render(w, r, pages.Security(data))
-}
-
-// PageSecuritySettingsSetup handles POST /settings/security/setup.
-// It generates a new TOTP secret, stores it as pending, and re-renders the page
-// showing the QR code + manual entry key.
-func (h *Handler) PageSecuritySettingsSetup(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-
-	secret, otpAuthURL, err := h.Services.TOTP.Generate(claims.Username, "Cloudzilla")
-	if err != nil {
-		h.render(w, r, pages.Security(view.SecurityPageData{
-			BasePage: basePage(r, h.Services),
-			Error:    "Failed to generate secret. Please try again.",
-		}))
-		return
-	}
-
 	if err := h.Services.TOTP.StoreSecret(r.Context(), claims.UserID, secret); err != nil {
-		h.render(w, r, pages.Security(view.SecurityPageData{
-			BasePage: basePage(r, h.Services),
-			Error:    "Failed to save secret. Please try again.",
-		}))
+		http.Redirect(w, r, "/settings?profile_error=totp_setup_failed#security", http.StatusSeeOther)
 		return
 	}
-
-	h.render(w, r, pages.Security(view.SecurityPageData{
-		BasePage:   basePage(r, h.Services),
-		TOTPSecret: secret,
-		OTPAuthURL: otpAuthURL,
-	}))
+	http.Redirect(w, r, "/settings#security", http.StatusSeeOther)
 }
 
-// EnableTOTP handles POST /api/user/totp/enable (form: secret, code).
+// EnableTOTP handles POST /api/user/totp/enable (form: secret, code). On success
+// the freshly-generated backup codes are stashed in a short-lived cookie so the
+// settings page can show them exactly once.
 func (h *Handler) EnableTOTP(w http.ResponseWriter, r *http.Request) {
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -87,32 +48,23 @@ func (h *Handler) EnableTOTP(w http.ResponseWriter, r *http.Request) {
 	secret := r.FormValue("secret")
 	code := r.FormValue("code")
 	if secret == "" || code == "" {
-		h.render(w, r, pages.Security(view.SecurityPageData{
-			BasePage:   basePage(r, h.Services),
-			TOTPSecret: secret,
-			OTPAuthURL: h.Services.TOTP.BuildOTPAuthURL(claims.Username, "Cloudzilla", secret),
-			Error:      "Secret and code are required.",
-		}))
+		http.Redirect(w, r, "/settings?profile_error=totp_missing_fields#security", http.StatusSeeOther)
+		return
+	}
+	// A code enrolled from a stolen session would lock the owner out at their next sign-in.
+	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, withSignInCode(r, service.Confirmation{Password: r.FormValue("password"), OneTimeCode: r.FormValue("email_code")})); err != nil {
+		redirectReauthRefusal(w, r, claims.UserID, err, "security")
 		return
 	}
 
 	rawCodes, err := h.Services.TOTP.Enable(r.Context(), claims.UserID, secret, code)
 	if err != nil {
-		h.render(w, r, pages.Security(view.SecurityPageData{
-			BasePage:   basePage(r, h.Services),
-			TOTPSecret: secret,
-			OTPAuthURL: h.Services.TOTP.BuildOTPAuthURL(claims.Username, "Cloudzilla", secret),
-			Error:      "Invalid verification code. Please try again.",
-		}))
+		http.Redirect(w, r, "/settings?profile_error=totp_invalid_code#security", http.StatusSeeOther)
 		return
 	}
 
-	h.render(w, r, pages.Security(view.SecurityPageData{
-		BasePage:    basePage(r, h.Services),
-		TOTPEnabled: true,
-		BackupCodes: rawCodes,
-		Success:     "Two-factor authentication has been enabled. Save your backup codes now — they will not be shown again.",
-	}))
+	h.setSettingsFlash(w, backupCodesCookieName, strings.Join(rawCodes, ","))
+	http.Redirect(w, r, "/settings#security", http.StatusSeeOther)
 }
 
 // DisableTOTP handles POST /api/user/totp/disable (form: code).
@@ -125,43 +77,38 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 
 	code := r.FormValue("code")
 	if code == "" {
-		h.render(w, r, pages.Security(view.SecurityPageData{
-			BasePage:    basePage(r, h.Services),
-			TOTPEnabled: true,
-			Error:       "Verification code is required.",
-		}))
+		http.Redirect(w, r, "/settings?profile_error=totp_missing_code#security", http.StatusSeeOther)
+		return
+	}
+	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
+		redirectReauthRefusal(w, r, claims.UserID, err, "security")
 		return
 	}
 
 	if err := h.Services.TOTP.Disable(r.Context(), claims.UserID, code); err != nil {
-		h.render(w, r, pages.Security(view.SecurityPageData{
-			BasePage:    basePage(r, h.Services),
-			TOTPEnabled: true,
-			Error:       "Invalid code. Please try again.",
-		}))
+		http.Redirect(w, r, "/settings?profile_error=totp_invalid_code#security", http.StatusSeeOther)
 		return
 	}
-
-	h.render(w, r, pages.Security(view.SecurityPageData{
-		BasePage: basePage(r, h.Services),
-		Success:  "Two-factor authentication has been disabled.",
-	}))
+	http.Redirect(w, r, "/settings#security", http.StatusSeeOther)
 }
 
 // PageTOTPVerify renders GET /auth/2fa — the 6-digit input page.
 func (h *Handler) PageTOTPVerify(w http.ResponseWriter, r *http.Request) {
+	next := r.URL.Query().Get("next")
 	if _, err := r.Cookie(totpPendingCookieName); err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, view.WithNext("/login", next), http.StatusSeeOther)
 		return
 	}
-	h.render(w, r, pages.TOTPVerify(view.TOTPVerifyPageData{BasePage: basePage(r, h.Services)}))
+	h.render(w, r, pages.TOTPVerify(view.TOTPVerifyPageData{BasePage: basePage(r, h.Services), Next: next}))
 }
 
 // VerifyTOTP handles POST /auth/2fa/verify (form: code, backup_code).
 func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
+	next := r.FormValue("next")
+	loginURL := view.WithNext("/login", next)
 	pendingCookie, err := r.Cookie(totpPendingCookieName)
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, loginURL, http.StatusSeeOther)
 		return
 	}
 
@@ -175,42 +122,58 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
 			Name: totpPendingCookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure,
 		})
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, loginURL, http.StatusSeeOther)
 		return
 	}
 
 	mapClaims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, loginURL, http.StatusSeeOther)
 		return
 	}
 	userID := int64(mapClaims["sub"].(float64))
 
 	u, err := h.Services.TOTP.StoreGetUser(r.Context(), userID)
 	if err != nil {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, loginURL, http.StatusSeeOther)
 		return
 	}
 
-	inputCode := strings.TrimSpace(r.FormValue("code"))
-	backupCode := strings.TrimSpace(r.FormValue("backup_code"))
-
-	verified := false
-	if inputCode != "" && u.TOTPSecret.Valid {
-		verified = h.Services.TOTP.Verify(u.TOTPSecret.String, inputCode)
-	}
-	if !verified && backupCode != "" {
-		if err := h.Services.TOTP.VerifyBackupCode(r.Context(), userID, backupCode); err == nil {
-			verified = true
+	if err := h.Services.Reauth.CheckSecondFactor(r.Context(), userID, r.FormValue("code"), r.FormValue("backup_code")); err != nil {
+		msg := "Invalid code. Please try again."
+		switch {
+		case errors.Is(err, service.ErrReauthThrottled):
+			msg = "Too many incorrect codes. Try again in 15 minutes."
+			slog.Warn("two-factor sign-in throttled", "user_id", userID)
+		case !errors.Is(err, service.ErrReauthFailed):
+			slog.Error("two-factor sign-in", "user_id", userID, "error", err)
+			msg = "Something went wrong. Please try again."
 		}
-	}
-
-	if !verified {
 		h.render(w, r, pages.TOTPVerify(view.TOTPVerifyPageData{
 			BasePage: basePage(r, h.Services),
-			Error:    "Invalid code. Please try again.",
+			Error:    msg,
+			Next:     next,
 		}))
 		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name: totpPendingCookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure,
+	})
+	// The OAuth identity was the first factor only because it matched this
+	// account's address; if the link no longer holds, neither does the sign-in.
+	if link := h.Services.TOTP.PendingOAuthLink(mapClaims, userID); link != nil {
+		if err := h.completeOAuthLink(r, *link); err != nil {
+			if !errors.Is(err, service.ErrOAuthAccountExists) {
+				slog.Error("complete oauth link after totp", "user_id", userID, "error", err)
+			}
+			h.render(w, r, pages.TOTPVerify(view.TOTPVerifyPageData{
+				BasePage: basePage(r, h.Services),
+				Error:    "Your account changed while you were signing in with Google. Sign in again.",
+				Next:     next,
+			}))
+			return
+		}
 	}
 
 	fullToken, err := h.Services.User.GenerateTokenForUser(r.Context(), userID)
@@ -218,19 +181,5 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to create session", http.StatusInternalServerError)
 		return
 	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name: totpPendingCookieName, Value: "", MaxAge: -1, Path: "/", HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure,
-	})
-	http.SetCookie(w, &http.Cookie{
-		Name:     h.Cfg.Auth.CookieName,
-		Value:    fullToken,
-		HttpOnly: true,
-		Secure:   h.Cfg.Auth.CookieSecure,
-		Path:     "/",
-		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
-		SameSite: http.SameSiteLaxMode,
-	})
-	h.Services.AuditLog.Record(r.Context(), r, u.ID, u.Username, model.AuditActionLogin, "user", u.ID, u.Username, nil)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	h.startSession(w, r, u, fullToken, next)
 }

@@ -120,14 +120,7 @@ func seedGitRepo(t *testing.T, db *sql.DB, ownerID int64, ownerName, suffix stri
 	if err != nil {
 		t.Fatalf("seedGitRepo: %v", err)
 	}
-	if _, err := db.ExecContext(context.Background(),
-		`INSERT INTO permissions (user_id, repo_id, role) VALUES ($1, $2, 'owner')`,
-		ownerID, repoID,
-	); err != nil {
-		t.Fatalf("seedGitRepo permission: %v", err)
-	}
 	t.Cleanup(func() {
-		testutil.Exec(t, db, `DELETE FROM permissions WHERE repo_id = $1`, repoID)
 		testutil.Exec(t, db, `DELETE FROM repositories WHERE id = $1`, repoID)
 	})
 	return repoID, repoName
@@ -140,8 +133,8 @@ func seedGitRepo(t *testing.T, db *sql.DB, ownerID int64, ownerName, suffix stri
 func TestResolveGitUser_NoAuth_ReturnsNil(t *testing.T) {
 	h := newBrokenGitHandler()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	if gu := h.resolveGitUser(req); gu != nil {
-		t.Errorf("expected nil without any auth, got %+v", gu)
+	if gu, err := h.resolveGitUser(req); gu != nil || err != nil {
+		t.Errorf("expected nil without any auth, got %+v, %v", gu, err)
 	}
 }
 
@@ -151,8 +144,8 @@ func TestResolveGitUser_BasicAuth_NoCZPPrefix_ReturnsNil(t *testing.T) {
 	h := newBrokenGitHandler()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.SetBasicAuth("alice", "plainpassword")
-	if gu := h.resolveGitUser(req); gu != nil {
-		t.Errorf("expected nil for non-czp_ password, got %+v", gu)
+	if gu, err := h.resolveGitUser(req); gu != nil || err != nil {
+		t.Errorf("expected nil for non-czp_ password, got %+v, %v", gu, err)
 	}
 }
 
@@ -163,8 +156,8 @@ func TestResolveGitUser_BasicAuth_CZPPrefix_InvalidToken_ReturnsNil(t *testing.T
 	h := newBrokenGitHandler()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.SetBasicAuth("alice", "czp_invalidtoken0000000000000000000000000000000000000000000000000")
-	if gu := h.resolveGitUser(req); gu != nil {
-		t.Errorf("expected nil for invalid PAT with broken DB, got %+v", gu)
+	if gu, err := h.resolveGitUser(req); gu != nil || err != nil {
+		t.Errorf("expected nil for invalid PAT with broken DB, got %+v, %v", gu, err)
 	}
 }
 

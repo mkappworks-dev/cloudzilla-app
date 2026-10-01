@@ -25,6 +25,7 @@
 
 - `ResolveRef(owner, repoName, ref)` → `(*object.Commit, displayRef, error)`
 - `GetTree(owner, repoName, ref, path)` → `*TreeResult`
+- `ListEntriesWithLastCommit(ctx, repo, ref, dir)` → `[]TreeEntryWithLastCommit` — each entry with the last commit that touched it; cached for 60s per repo ID, resolved commit and dir, so a new commit, or a new repo that takes a deleted or transferred repo's name, is always listed fresh
 - `GetBlob(owner, repoName, ref, path)` → `*BlobResult`
 - `GetBlame(owner, repoName, ref, path)` → `*BlameResult`
 - `GetCommits(owner, repoName, ref, page, pageSize)` → `*CommitLog`
@@ -63,6 +64,7 @@ The Refs page (`/{owner}/{repo}/refs`) lists all branches and tags. Authenticate
 
 - Public repos: refs page always visible (read-only for unauthenticated)
 - Write access required for create/delete; default branch delete is blocked (button hidden)
+- Deleting a branch whose protection rule has `block_force_push` is refused with 422; the button stays, and the refusal shows as an error toast
 
 **API endpoints** (all require `authMW`):
 

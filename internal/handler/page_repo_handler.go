@@ -116,7 +116,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var languages []components.LangBarItem
-	if percents, langErr := h.Services.Language.Percentages(r.Context(), owner, repoName, repo.DefaultBranch); langErr != nil {
+	if percents, langErr := h.Services.Language.Percentages(r.Context(), repo, repo.DefaultBranch); langErr != nil {
 		slog.Warn("repo: language percentages failed", "owner", owner, "repo", repoName, "error", langErr)
 	} else {
 		languages = make([]components.LangBarItem, 0, len(percents))
@@ -143,7 +143,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 
 	var repoEntries []service.TreeEntryWithLastCommit
 	var repoLatestCommit view.TreeLatestCommit
-	if entries, lcErr := h.Services.Code.ListEntriesWithLastCommit(r.Context(), owner, repoName, repo.DefaultBranch, ""); lcErr == nil {
+	if entries, lcErr := h.Services.Code.ListEntriesWithLastCommit(r.Context(), repo, repo.DefaultBranch, ""); lcErr == nil {
 		repoEntries = entries
 		var newest service.TreeEntryWithLastCommit
 		for _, e := range entries {
@@ -275,7 +275,10 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 
 	// Transfer/delete only for repo owner or org owner (not admin collaborators)
 	isOwner := h.Services.Repo.IsOwner(r.Context(), repo, claims.UserID)
-	canTransfer := isOwner && repo.OrgID == 0
+	var pendingTransfer *model.RepoTransfer
+	if isOwner {
+		pendingTransfer, _ = h.Services.Repo.PendingTransfer(r.Context(), repo.ID)
+	}
 
 	h.render(w, r, pages.RepoSettings(view.RepoSettingsData{
 		BasePage:          h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "settings", canManage),
@@ -289,7 +292,8 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		BranchProtections: branchProtections,
 		CanManage:         canManage,
 		IsOwner:           isOwner,
-		CanTransfer:       canTransfer,
+		PendingTransfer:   pendingTransfer,
+		Confirm:           h.confirmFactors(r, claims.UserID),
 	}))
 }
 
@@ -374,8 +378,18 @@ func (h *Handler) UpdateRepoVisibility(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	if err := h.Services.Repo.UpdateVisibility(r.Context(), repo.ID, claims.UserID,
-		r.FormValue("private") == "true"); err != nil {
+	private := r.FormValue("private") == "true"
+	// Making a private repository public gives its code to everyone, for good.
+	if repo.Private && !private {
+		if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
+			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
+			return
+		}
+		if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), makePublicFormError) {
+			return
+		}
+	}
+	if err := h.Services.Repo.UpdateVisibility(r.Context(), repo.ID, claims.UserID, private); err != nil {
 		if errors.Is(err, service.ErrForbidden) {
 			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
 			return
@@ -384,8 +398,15 @@ func (h *Handler) UpdateRepoVisibility(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to update settings", http.StatusInternalServerError)
 		return
 	}
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", "/"+owner+"/"+repoName+"/settings")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	http.Redirect(w, r, "/"+owner+"/"+repoName+"/settings", http.StatusSeeOther)
 }
+
+const makePublicFormError = "#make-public-form-error"
 
 // PageRefs renders the branches and tags overview page.
 func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
@@ -533,7 +554,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	entries, err := h.Services.Code.ListEntriesWithLastCommit(r.Context(), owner, repoName, result.Ref, result.Path)
+	entries, err := h.Services.Code.ListEntriesWithLastCommit(r.Context(), repo, result.Ref, result.Path)
 	if err != nil {
 		if errors.Is(err, service.ErrEmptyRepo) {
 			entries = nil

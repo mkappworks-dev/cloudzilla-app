@@ -9,6 +9,9 @@ type LoginData struct {
 	LDAPEnabled       bool
 	SAMLEnabled       bool
 	AllowRegistration bool
+	// Next is the unvalidated return path; handlers run it through safeNextPath
+	// before redirecting.
+	Next string
 }
 
 // RegisterData holds template data for the public registration page.
@@ -32,21 +35,38 @@ type InviteData struct {
 	Error      string
 }
 
-// SecurityPageData is the view model for GET /settings/security.
-// SecurityPageData holds template data for the user security settings page.
-type SecurityPageData struct {
-	BasePage
-	TOTPEnabled bool
-	TOTPSecret  string   // pending secret, shown only before first verification
-	OTPAuthURL  string   // otpauth:// URL for QR code (shown only when setting up)
-	BackupCodes []string // raw backup codes, shown only once after enable
-	Error       string
-	Success     string
-}
-
 // TOTPVerifyPageData is the view model for GET /auth/2fa.
 // TOTPVerifyPageData holds template data for the TOTP verification page.
 type TOTPVerifyPageData struct {
 	BasePage
 	Error string
+	Next  string
+}
+
+type VerifyEmailData struct {
+	BasePage
+	Link model.EmailVerificationLink
+	// Token is set only while the link is pending, for the confirm form.
+	Token string
+}
+
+// RegisterEmailData holds template data for the email-first registration form.
+type RegisterEmailData struct {
+	BasePage
+	Email string
+	Error string
+}
+
+// RegisterCheckInboxData holds template data for the page shown after every email-first registration submit.
+type RegisterCheckInboxData struct {
+	BasePage
+}
+
+// RegisterCompleteData holds template data for finishing a signup from its emailed link.
+// Signup is nil when the link is unusable.
+type RegisterCompleteData struct {
+	BasePage
+	Signup   *model.SignupToken
+	Username string
+	Error    string
 }

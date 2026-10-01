@@ -54,7 +54,7 @@ func TestMilestoneService_ListByRepo_ReturnsCreated(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 
-	milestones, err := svc.ListByRepo(context.Background(), owner, repo)
+	milestones, err := svc.ListByRepo(context.Background(), owner, repo, nil)
 	if err != nil {
 		t.Fatalf("ListByRepo: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestMilestoneService_Close_SetsClosedState(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 
-	closed, err := svc.Close(context.Background(), owner, repo, m.Number)
+	closed, err := svc.Close(context.Background(), owner, repo, m.Number, nil)
 	if err != nil {
 		t.Fatalf("Close: %v", err)
 	}
@@ -91,11 +91,11 @@ func TestMilestoneService_Reopen_SetsOpenState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	if _, err := svc.Close(context.Background(), owner, repo, m.Number); err != nil {
+	if _, err := svc.Close(context.Background(), owner, repo, m.Number, nil); err != nil {
 		t.Fatalf("Close: %v", err)
 	}
 
-	reopened, err := svc.Reopen(context.Background(), owner, repo, m.Number)
+	reopened, err := svc.Reopen(context.Background(), owner, repo, m.Number, nil)
 	if err != nil {
 		t.Fatalf("Reopen: %v", err)
 	}
@@ -118,7 +118,7 @@ func TestMilestoneService_Delete_RemovesMilestone(t *testing.T) {
 		t.Fatalf("Delete: %v", err)
 	}
 
-	_, err = svc.GetByNumber(context.Background(), owner, repo, m.Number)
+	_, err = svc.GetByNumber(context.Background(), owner, repo, m.Number, nil)
 	if err == nil {
 		t.Error("GetByNumber must return an error after the milestone is deleted")
 	}

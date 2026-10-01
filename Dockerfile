@@ -1,5 +1,5 @@
 # ── Stage 1: Build ──────────────────────────────────────────────────────────
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 RUN apk add --no-cache make curl
 
@@ -27,7 +27,7 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/cloudzilla ./cmd/server/. &&
     CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/cloudzilla-cli ./cmd/cloudzilla/.
 
 # ── Stage 2: Runtime ─────────────────────────────────────────────────────────
-FROM alpine:3.21
+FROM alpine:3.24
 
 # ca-certificates: needed for Google OAuth outbound HTTPS
 # tzdata: correct timestamps in commits/issues/PRs

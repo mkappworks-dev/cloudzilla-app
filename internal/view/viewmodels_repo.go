@@ -55,7 +55,19 @@ type NewFileData struct {
 // RepoNewData holds template data for the new repository form page.
 type RepoNewData struct {
 	BasePage
-	OwnedOrgs []model.Organization
+	OwnedOrgs          []model.Organization
+	GitignoreTemplates []string
+	LicenseTemplates   []service.License
+
+	// Prefill values read from query params (e.g. the profile-README CTA links
+	// here with ?name=foo&visibility=public&init_readme=1).
+	DefaultName       string
+	DefaultPrivate    bool
+	DefaultInitReadme bool
+	// DefaultOwner preselects the owner dropdown. Empty falls back to the
+	// signed-in user. Used by org pages that link here with ?owner=stitch-labs
+	// so the new repo lands under the org the user came from.
+	DefaultOwner string
 }
 
 type ReleaseView struct {
@@ -118,7 +130,22 @@ type RepoSettingsData struct {
 	BranchProtections []*model.BranchProtection
 	CanManage         bool
 	IsOwner           bool
-	CanTransfer       bool
+	PendingTransfer   *model.RepoTransfer // nil unless IsOwner and a transfer awaits its recipient
+	// What the viewer confirms giving others access with.
+	Confirm components.ConfirmFactors
+}
+
+// RepoTransfersData lists the repositories offered to the viewer.
+type RepoTransfersData struct {
+	BasePage
+	Transfers []IncomingRepoTransfer
+}
+
+// IncomingRepoTransfer is an offer with the collaborators who would keep
+// their access, which the recipient should see before accepting.
+type IncomingRepoTransfer struct {
+	model.RepoTransfer
+	Collaborators []model.Permission
 }
 
 // BranchProtectionsFragData holds template data for the branch protections HTMX fragment.
@@ -289,6 +316,8 @@ type RepoCollaboratorsFragData struct {
 	RepoID    int64
 	Collabs   []model.Permission
 	CanManage bool
+	IsOwner   bool
+	Confirm   components.ConfirmFactors
 }
 
 // Repo labels management (settings page)

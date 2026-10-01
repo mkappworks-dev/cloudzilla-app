@@ -23,7 +23,10 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
-const testJWTSecret = "test-router-secret-32bytes-min!!"
+const (
+	testJWTSecret   = "test-router-secret-32bytes-min!!"
+	testRedirectURI = "https://client.example/cb"
+)
 
 func newTestRouter(t *testing.T) (http.Handler, *service.Services, *sql.DB) {
 	t.Helper()
@@ -34,7 +37,11 @@ func newTestRouter(t *testing.T) (http.Handler, *service.Services, *sql.DB) {
 		Git:    config.GitConfig{ReposRoot: t.TempDir()},
 	}
 	svc := service.New(store.New(db), cfg)
-	return router.New(svc, cfg, fstest.MapFS{}), svc, db
+	h, err := router.New(svc, cfg, fstest.MapFS{})
+	if err != nil {
+		t.Fatalf("router.New: %v", err)
+	}
+	return h, svc, db
 }
 
 func makeJWT(t *testing.T, userID int64, username string) string {
@@ -55,15 +62,15 @@ func makeJWT(t *testing.T, userID int64, username string) string {
 func grantOAuthToken(t *testing.T, svc *service.Services, userID int64, scopes ...string) string {
 	t.Helper()
 	ctx := context.Background()
-	app, secret, err := svc.OAuthApp.CreateApp(ctx, userID, "Scope Test App", "", "", nil)
+	app, secret, err := svc.OAuthApp.CreateApp(ctx, userID, "Scope Test App", "", "", []string{testRedirectURI})
 	if err != nil {
 		t.Fatalf("CreateApp: %v", err)
 	}
-	code, err := svc.OAuthApp.Authorize(ctx, app.ID, userID, "", scopes, app)
+	code, err := svc.OAuthApp.Authorize(ctx, app.ID, userID, testRedirectURI, scopes, app)
 	if err != nil {
 		t.Fatalf("Authorize: %v", err)
 	}
-	token, err := svc.OAuthApp.ExchangeCode(ctx, app.ClientID, secret, code)
+	token, err := svc.OAuthApp.ExchangeCode(ctx, app.ClientID, secret, code, testRedirectURI)
 	if err != nil {
 		t.Fatalf("ExchangeCode: %v", err)
 	}
@@ -108,11 +115,14 @@ func TestOAuthTokenScopes_ThroughRouter(t *testing.T) {
 		{"update repo settings with every scope", allTok, "PATCH", repoPath, "{}", http.StatusForbidden},
 		{"add webhook with every scope", allTok, "POST", repoPath + "/hooks", "{}", http.StatusForbidden},
 		{"own profile page with every scope", allTok, "GET", "/" + username, "", http.StatusForbidden},
-		{"notification settings with every scope", allTok, "GET", "/settings/notifications", "", http.StatusForbidden},
+		{"account settings with every scope", allTok, "GET", "/settings", "", http.StatusForbidden},
 		{"mint a PAT with every scope", allTok, "POST", "/api/user/tokens", "name=x", http.StatusForbidden},
 		{"register an OAuth app with every scope", allTok, "POST", "/api/oauth/apps", "{}", http.StatusForbidden},
+		{"connect Google with every scope", allTok, "POST", "/settings/connected-accounts/google", "password=x", http.StatusForbidden},
+		{"disconnect Google with every scope", allTok, "POST", "/settings/connected-accounts/google/disconnect", "password=x", http.StatusForbidden},
+		{"Google callback with every scope", allTok, "GET", "/auth/google/callback?state=s&code=c", "", http.StatusForbidden},
 		{"unknown token on a required-auth API", "not-a-real-token", "POST", repoPath + "/issues", "{", http.StatusUnauthorized},
-		{"session on notification settings", session, "GET", "/settings/notifications", "", http.StatusOK},
+		{"session on account settings", session, "GET", "/settings", "", http.StatusOK},
 		{"session on own profile page", session, "GET", "/" + username, "", http.StatusOK},
 	}
 	for _, tt := range tests {

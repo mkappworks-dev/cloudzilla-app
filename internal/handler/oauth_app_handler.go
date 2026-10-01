@@ -2,13 +2,18 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
@@ -22,29 +27,45 @@ func (h *Handler) PageOAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown client_id", http.StatusBadRequest)
 		return
 	}
+	if !h.Services.OAuthApp.IsRedirectURIAllowed(app, redirectURI) {
+		http.Error(w, "redirect_uri not allowed", http.StatusBadRequest)
+		return
+	}
 	scopes, err := h.Services.OAuthApp.ParseScopes(r.Context(), r.URL.Query().Get("scope"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	_, loggedIn := middleware.ClaimsFromContext(r.Context())
+	claims, loggedIn := middleware.ClaimsFromContext(r.Context())
 	if !loggedIn {
-		next := r.URL.RequestURI()
-		if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") {
-			next = "/"
-		}
-		http.Redirect(w, r, "/login?next="+next, http.StatusSeeOther)
+		h.Unauthorized(w, r)
 		return
 	}
-
-	h.render(w, r, pages.OAuthAuthorize(view.OAuthAuthorizeData{
-		BasePage:    basePage(r, h.Services),
+	h.renderConsent(w, r, claims.UserID, http.StatusOK, view.OAuthAuthorizeData{
 		App:         *app,
 		Scopes:      scopes,
 		RedirectURI: redirectURI,
 		State:       r.URL.Query().Get("state"),
-	}))
+	})
+}
+
+// renderConsent fills in the confirmation fields the account needs.
+func (h *Handler) renderConsent(w http.ResponseWriter, r *http.Request, userID int64, status int, data view.OAuthAuthorizeData) {
+	u, err := h.Services.User.GetByID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	data.BasePage = basePage(r, h.Services)
+	data.Confirm = h.confirmFactors(r, u.ID)
+	// A framed consent page could be clickjacked into a one-click grant.
+	w.Header().Set("X-Frame-Options", "DENY")
+	w.Header().Set("Content-Security-Policy", "frame-ancestors 'none'")
+	if status != http.StatusOK {
+		w.WriteHeader(status)
+	}
+	h.render(w, r, pages.OAuthAuthorize(data))
 }
 
 // ConfirmAuthorize handles the POST from the consent form.
@@ -72,81 +93,115 @@ func (h *Handler) ConfirmAuthorize(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown client_id", http.StatusBadRequest)
 		return
 	}
-	if !h.Services.OAuthApp.IsRedirectURIAllowed(app, redirectURI) {
+	redir, err := url.Parse(redirectURI)
+	if err != nil || !h.Services.OAuthApp.IsRedirectURIAllowed(app, redirectURI) {
 		http.Error(w, "redirect_uri not allowed", http.StatusBadRequest)
 		return
 	}
 
+	params := url.Values{}
 	if r.FormValue("action") == "deny" {
-		redir := redirectURI + "?error=access_denied"
-		if state != "" {
-			redir += "&state=" + state
+		params.Set("error", "access_denied")
+	} else {
+		// A grant is a credential that outlives the session, so it needs the account's own factors.
+		if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
+			status, code, refused := reauthRefusal(claims.UserID, err)
+			if !refused {
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
+			h.renderConsent(w, r, claims.UserID, status, view.OAuthAuthorizeData{
+				App:         *app,
+				Scopes:      scopes,
+				RedirectURI: redirectURI,
+				State:       state,
+				Error:       pages.SettingsErrorMessage(code),
+			})
+			return
 		}
-		http.Redirect(w, r, redir, http.StatusSeeOther)
-		return
+		code, err := h.Services.OAuthApp.Authorize(r.Context(), app.ID, claims.UserID, redirectURI, scopes, app)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request")
+			return
+		}
+		params.Set("code", code)
 	}
-
-	code, err := h.Services.OAuthApp.Authorize(r.Context(), app.ID, claims.UserID, redirectURI, scopes, app)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request")
-		return
-	}
-
-	redir := redirectURI + "?code=" + code
 	if state != "" {
-		redir += "&state=" + state
+		params.Set("state", state)
 	}
-	http.Redirect(w, r, redir, http.StatusSeeOther)
+	// Appended rather than merged, so the registered URI's own query is kept as-is (RFC 6749 §3.1.2).
+	if redir.RawQuery != "" {
+		redir.RawQuery += "&"
+	}
+	redir.RawQuery += params.Encode()
+	http.Redirect(w, r, redir.String(), http.StatusSeeOther)
 }
 
-// TokenEndpoint handles POST /oauth/token (authorization_code grant).
+// TokenEndpoint handles POST /oauth/token (authorization_code grant). Failures get
+// an RFC 6749 §5.2 error code and nothing else, so they reveal neither internals
+// nor which client_ids exist.
 func (h *Handler) TokenEndpoint(w http.ResponseWriter, r *http.Request) {
+	// RFC 6749 §5.1; set on every response so no branch can forget it. Pragma is
+	// omitted on purpose: RFC 9111 deprecates it.
+	w.Header().Set("Cache-Control", "no-store")
 	if err := r.ParseForm(); err != nil {
-		writeError(w, http.StatusBadRequest, "bad request")
+		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
-	grantType := r.FormValue("grant_type")
-	if grantType != "authorization_code" {
-		writeError(w, http.StatusBadRequest, "unsupported grant_type")
+	switch r.FormValue("grant_type") {
+	case "authorization_code":
+	case "":
+		writeError(w, http.StatusBadRequest, "invalid_request")
+		return
+	default:
+		writeError(w, http.StatusBadRequest, "unsupported_grant_type")
 		return
 	}
-	clientID := r.FormValue("client_id")
-	clientSecret := r.FormValue("client_secret")
+	clientID, clientSecret, usedBasic, err := tokenClientCredentials(r)
 	code := r.FormValue("code")
-
-	token, err := h.Services.OAuthApp.ExchangeCode(r.Context(), clientID, clientSecret, code)
-	if err != nil {
-		writeError(w, http.StatusUnauthorized, err.Error())
+	if err != nil || code == "" {
+		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{
-		"access_token": token,
-		"token_type":   "bearer",
-	})
+
+	token, err := h.Services.OAuthApp.ExchangeCode(r.Context(), clientID, clientSecret, code, r.FormValue("redirect_uri"))
+	switch {
+	case errors.Is(err, service.ErrInvalidClient):
+		if usedBasic {
+			w.Header().Set("WWW-Authenticate", `Basic realm="oauth"`)
+		}
+		writeError(w, http.StatusUnauthorized, "invalid_client")
+	case errors.Is(err, service.ErrInvalidGrant):
+		writeError(w, http.StatusBadRequest, "invalid_grant")
+	case err != nil:
+		slog.Error("oauth token: exchange failed", "client_id", clientID, "error", err)
+		writeError(w, http.StatusInternalServerError, "server_error")
+	default:
+		writeJSON(w, http.StatusOK, map[string]string{
+			"access_token": token,
+			"token_type":   "bearer",
+		})
+	}
 }
 
-// PageOAuthApps renders the user's registered apps and granted authorizations.
-func (h *Handler) PageOAuthApps(w http.ResponseWriter, r *http.Request) {
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
+// tokenClientCredentials reads the client's credentials from an HTTP Basic header,
+// whose parts RFC 6749 §2.3.1 form-encodes, or else from the form body. Sending a
+// secret both ways is an error.
+func tokenClientCredentials(r *http.Request) (clientID, clientSecret string, basic bool, err error) {
+	user, pass, basic := r.BasicAuth()
+	if !basic {
+		return r.FormValue("client_id"), r.FormValue("client_secret"), false, nil
 	}
-	apps, err := h.Services.OAuthApp.ListByOwner(r.Context(), claims.UserID)
-	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
+	if clientID, err = url.QueryUnescape(user); err != nil {
+		return "", "", true, err
 	}
-	auths, err := h.Services.OAuthApp.ListAuthorizationsByUser(r.Context(), claims.UserID)
-	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
+	if clientSecret, err = url.QueryUnescape(pass); err != nil {
+		return "", "", true, err
 	}
-	h.render(w, r, pages.OAuthApps(view.OAuthAppsData{
-		BasePage:       basePage(r, h.Services),
-		Apps:           apps,
-		Authorizations: auths,
-	}))
+	if r.Form.Has("client_secret") || (r.Form.Has("client_id") && r.FormValue("client_id") != clientID) {
+		return "", "", true, errors.New("client credentials in both the Authorization header and the body")
+	}
+	return clientID, clientSecret, true, nil
 }
 
 // CreateOAuthApp handles POST /api/oauth/apps.
@@ -156,13 +211,25 @@ func (h *Handler) CreateOAuthApp(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
+	isHTMX := r.Header.Get("HX-Request") == "true"
 	var req struct {
 		Name         string   `json:"name"`
 		HomepageURL  string   `json:"homepage_url"`
 		Description  string   `json:"description"`
 		RedirectURIs []string `json:"redirect_uris"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if isHTMX {
+		if err := r.ParseForm(); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid form data")
+			return
+		}
+		req.Name = strings.TrimSpace(r.FormValue("name"))
+		req.HomepageURL = strings.TrimSpace(r.FormValue("homepage_url"))
+		req.Description = r.FormValue("description")
+		if uri := strings.TrimSpace(r.FormValue("redirect_uri")); uri != "" {
+			req.RedirectURIs = []string{uri}
+		}
+	} else if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON")
 		return
 	}
@@ -171,8 +238,22 @@ func (h *Handler) CreateOAuthApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	app, rawSecret, err := h.Services.OAuthApp.CreateApp(r.Context(), claims.UserID, req.Name, req.HomepageURL, req.Description, req.RedirectURIs)
+	if errors.Is(err, service.ErrInvalidRedirectURI) {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to create app")
+		return
+	}
+	if isHTMX {
+		apps, _ := h.Services.OAuthApp.ListByOwner(r.Context(), claims.UserID)
+		w.Header().Set("Cache-Control", "no-store")
+		h.render(w, r, fragments.OAuthAppsList(view.OAuthAppsFragData{
+			Apps:            apps,
+			NewClientID:     app.ClientID,
+			NewClientSecret: rawSecret,
+		}))
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]any{
@@ -197,6 +278,11 @@ func (h *Handler) DeleteOAuthApp(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to delete app")
 		return
 	}
+	if r.Header.Get("HX-Request") == "true" {
+		apps, _ := h.Services.OAuthApp.ListByOwner(r.Context(), claims.UserID)
+		h.render(w, r, fragments.OAuthAppsList(view.OAuthAppsFragData{Apps: apps}))
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -214,6 +300,11 @@ func (h *Handler) RevokeOAuthAuthorization(w http.ResponseWriter, r *http.Reques
 	}
 	if err := h.Services.OAuthApp.RevokeAccess(r.Context(), id, claims.UserID); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to revoke authorization")
+		return
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		auths, _ := h.Services.OAuthApp.ListAuthorizationsByUser(r.Context(), claims.UserID)
+		h.render(w, r, fragments.OAuthAuthorizationsList(view.OAuthAuthorizationsFragData{Authorizations: auths}))
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

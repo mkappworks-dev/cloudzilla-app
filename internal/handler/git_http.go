@@ -7,15 +7,14 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	gogit "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/format/pktline"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
@@ -33,29 +32,39 @@ type gitUser struct {
 	Username string
 }
 
-// resolveGitUser returns the authenticated user for git operations.
-// It checks JWT claims first (browser/cookie), then falls back to HTTP Basic Auth
-// where the password is a PAT (git CLI: username:czp_xxx).
-func (h *Handler) resolveGitUser(r *http.Request) *gitUser {
+// resolveGitUser returns the authenticated user for git operations, or nil for an
+// anonymous request. It checks claims first, set by the auth middleware after it
+// enforced token scopes, then HTTP Basic Auth whose password is a PAT (git CLI:
+// username:czp_xxx). The middleware never sees a Basic PAT, so its scopes are
+// enforced here: the error names the scope the token lacks for r. Callers answer
+// it with 403, not 401, because on a 401 git's credential helper erases the token.
+func (h *Handler) resolveGitUser(r *http.Request) (*gitUser, error) {
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		return &gitUser{ID: claims.UserID, Username: claims.Username}
+		return &gitUser{ID: claims.UserID, Username: claims.Username}, nil
 	}
 	_, password, ok := r.BasicAuth()
-	if ok && strings.HasPrefix(password, "czp_") {
-		token, user, err := h.Services.AccessToken.Validate(r.Context(), password)
-		if err == nil {
-			tokenID := token.ID
-			concurrency.Go("access_token.update_last_used", func() {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				if err := h.Services.AccessToken.UpdateLastUsed(ctx, tokenID); err != nil {
-					slog.Warn("access token last_used update failed", "token_id", tokenID, "error", err)
-				}
-			})
-			return &gitUser{ID: user.ID, Username: user.Username}
-		}
+	if !ok || !strings.HasPrefix(password, "czp_") {
+		return nil, nil
 	}
-	return nil
+	token, user, err := h.Services.AccessToken.Validate(r.Context(), password)
+	if err != nil {
+		return nil, nil
+	}
+	if token.SigningKey != "" {
+		return nil, fmt.Errorf("personal access token %q is bound to a signing key, which git can't sign with; use a token without one", token.Name)
+	}
+	tokenID := token.ID
+	concurrency.Go("access_token.update_last_used", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := h.Services.AccessToken.UpdateLastUsed(ctx, tokenID); err != nil {
+			slog.Warn("access token last_used update failed", "token_id", tokenID, "error", err)
+		}
+	})
+	if !middleware.ScopeAllows(middleware.PATClaims(token, user), r) {
+		return nil, fmt.Errorf("personal access token lacks the %s scope", middleware.RequiredScope(r))
+	}
+	return &gitUser{ID: user.ID, Username: user.Username}, nil
 }
 
 func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +88,11 @@ func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gu := h.resolveGitUser(r)
+	gu, err := h.resolveGitUser(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	if svc == "git-receive-pack" {
 		var uid *int64
@@ -107,7 +120,11 @@ func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	repoPath := filepath.Join(h.Cfg.Git.ReposRoot, owner, repoName+".git")
+	repoPath, err := service.RepoDir(h.Cfg.Git.ReposRoot, owner, repoName+".git")
+	if err != nil {
+		http.Error(w, "repository not found", http.StatusNotFound)
+		return
+	}
 	gitRepo, err := gogit.PlainOpen(repoPath)
 	if err != nil {
 		http.Error(w, "failed to open repository", http.StatusInternalServerError)
@@ -178,7 +195,11 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gu := h.resolveGitUser(r)
+	gu, err := h.resolveGitUser(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 	var userID *int64
 	if gu != nil {
 		userID = &gu.ID
@@ -189,7 +210,11 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoPath := filepath.Join(h.Cfg.Git.ReposRoot, owner, repoName+".git")
+	repoPath, err := service.RepoDir(h.Cfg.Git.ReposRoot, owner, repoName+".git")
+	if err != nil {
+		http.Error(w, "repository not found", http.StatusNotFound)
+		return
+	}
 	gitRepo, err := gogit.PlainOpen(repoPath)
 	if err != nil {
 		http.Error(w, "failed to open repository", http.StatusInternalServerError)
@@ -260,7 +285,11 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gu := h.resolveGitUser(r)
+	gu, err := h.resolveGitUser(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 	if gu == nil || !h.Services.Repo.CanWrite(r.Context(), repo, gu.ID) {
 		w.Header().Set("WWW-Authenticate", `Basic realm="git"`)
 		http.Error(w, "access denied", http.StatusUnauthorized)
@@ -272,7 +301,11 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repoPath := filepath.Join(h.Cfg.Git.ReposRoot, owner, repoName+".git")
+	repoPath, err := service.RepoDir(h.Cfg.Git.ReposRoot, owner, repoName+".git")
+	if err != nil {
+		http.Error(w, "repository not found", http.StatusNotFound)
+		return
+	}
 	gitRepo, err := gogit.PlainOpen(repoPath)
 	if err != nil {
 		http.Error(w, "failed to open repository", http.StatusInternalServerError)
@@ -302,13 +335,10 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// WrapForReceive routes receive-pack onto go-git's parsed-storage
-	// path; the filesystem fast path can't resolve thin-pack REF_DELTAs.
-	// See docs/git-transport.md → "Thin packs".
-	srv := server.NewServer(server.MapLoader{
-		ep.String(): gittransport.WrapForReceive(gitRepo.Storer),
-	})
-	sess, err := srv.NewReceivePackSession(ep, nil)
+	vet := func(cmd *packp.Command) error {
+		return h.Services.BranchProtection.CheckPushCommand(r.Context(), repo.ID, gitRepo, cmd)
+	}
+	sess, err := gittransport.NewServer(gitRepo.Storer, vet).NewReceivePackSession(ep, nil)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
@@ -359,35 +389,13 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	)
 
 	w.Header().Set("Content-Type", "application/x-git-receive-pack-result")
-	if status != nil {
+	if status != nil && req.Capabilities.Supports(capability.ReportStatus) {
 		status.Encode(w) //nolint:errcheck
 	}
 
 	// Run side effects only for refs go-git applied — a per-ref failure
 	// surfaces in status, not as a ReceivePack error.
 	commands := gittransport.AppliedCommands(status, req.Commands)
-
-	// Enforce branch protection rules before dispatching webhooks.
-	// If protection rejects the push, rollback the ref to its previous value.
-	for _, cmd := range commands {
-		if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
-			continue
-		}
-		if cmd.Action() == packp.Delete {
-			continue
-		}
-		branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
-		forcePush := cmd.Action() == packp.Update && cmd.Old != plumbing.ZeroHash && isForcePushHTTP(gitRepo, cmd)
-		if err := h.Services.BranchProtection.CheckPush(r.Context(), repo.ID, branch, forcePush); err != nil {
-			// Rollback the ref to its previous value
-			ref := plumbing.NewHashReference(cmd.Name, cmd.Old)
-			if rbErr := gitRepo.Storer.SetReference(ref); rbErr != nil {
-				slog.Error("branch protection rollback failed", "ref", cmd.Name.String(), "error", rbErr)
-			}
-			http.Error(w, "push rejected: "+err.Error(), http.StatusForbidden)
-			return
-		}
-	}
 
 	// Dispatch push webhooks for each updated branch
 	pusherName := gu.Username
@@ -448,21 +456,4 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 			)
 		}
 	})
-}
-
-// isForcePushHTTP returns true when the push is non-fast-forward (old commit is not an ancestor of new).
-func isForcePushHTTP(gitRepo *gogit.Repository, cmd *packp.Command) bool {
-	oldCommit, err := gitRepo.CommitObject(cmd.Old)
-	if err != nil {
-		return false
-	}
-	newCommit, err := gitRepo.CommitObject(cmd.New)
-	if err != nil {
-		return false
-	}
-	isAncestor, err := oldCommit.IsAncestor(newCommit)
-	if err != nil {
-		return false
-	}
-	return !isAncestor
 }

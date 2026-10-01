@@ -34,6 +34,9 @@ func commentEventBody(body string) string {
 func (h *Handler) ListIssueComments(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
+		return
+	}
 	issueNumber, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid issue number")
@@ -67,6 +70,10 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
+		return
+	}
 	issueNumber, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid issue number")
@@ -100,12 +107,6 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, repoErr := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if repoErr != nil {
-		writeError(w, http.StatusInternalServerError, "failed to load repository")
-		return
-	}
-
 	// Enforce lock: non-managers cannot comment on locked issues.
 	if issue.IsLocked {
 		if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
@@ -123,7 +124,7 @@ func (h *Handler) CreateIssueComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	concurrency.Go("notify.issue_comment", func() {
-		h.Services.Notification.NotifyIssueComment(r.Context(), *repo, *issue, claims.UserID, claims.Username)
+		h.Services.Notification.NotifyIssueComment(context.WithoutCancel(r.Context()), *repo, *issue, claims.UserID, claims.Username)
 	})
 
 	repoID := repo.ID
@@ -153,6 +154,10 @@ func (h *Handler) CreatePullComment(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
+		return
+	}
 	pullNumber, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid pull request number")
@@ -180,19 +185,6 @@ func (h *Handler) CreatePullComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, repoErr := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if repoErr != nil {
-		writeError(w, http.StatusInternalServerError, "failed to load repository")
-		return
-	}
-
-	// Pull.Get has no visibility enforcement, so gate on repo read access to keep
-	// private-repo pull requests unreachable to users who cannot see them.
-	if !h.Services.Repo.CanRead(r.Context(), repo, &claims.UserID) {
-		writeError(w, http.StatusNotFound, "pull request not found")
-		return
-	}
-
 	pull, err := h.Services.Pull.Get(r.Context(), owner, repoName, pullNumber)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "pull request not found")
@@ -208,7 +200,7 @@ func (h *Handler) CreatePullComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	concurrency.Go("notify.pr_comment", func() {
-		h.Services.Notification.NotifyPRComment(r.Context(), *repo, *pull, claims.UserID, claims.Username)
+		h.Services.Notification.NotifyPRComment(context.WithoutCancel(r.Context()), *repo, *pull, claims.UserID, claims.Username)
 	})
 
 	repoID := repo.ID
@@ -239,6 +231,10 @@ func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
+		return
+	}
 	id, err := strconv.ParseInt(chi.URLParam(r, "commentID"), 10, 64)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid comment id")
@@ -263,12 +259,6 @@ func (h *Handler) UpdateComment(w http.ResponseWriter, r *http.Request) {
 
 	if strings.TrimSpace(body) == "" {
 		writeError(w, http.StatusBadRequest, "body required")
-		return
-	}
-
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
 		return
 	}
 
@@ -313,9 +303,8 @@ func (h *Handler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
@@ -360,6 +349,9 @@ func (h *Handler) commentUnderURL(r *http.Request, c *model.Comment, viewerID in
 func (h *Handler) IssueCommentsFragment(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
+		return
+	}
 	issueNumber, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid issue number")

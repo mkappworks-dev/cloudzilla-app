@@ -192,9 +192,10 @@ func TestSaveSSOConfig_StoreError_GenericError(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	adminID := testutil.SeedSuperadmin(t, db, suffix)
+	testutil.SetPassword(t, db, adminID, "admin-password")
 
 	body := submitForm(t, newPageHandler(t, db), "/admin/sso", makeSuperadminJWT(t, adminID, "testadmin_"+suffix), url.Values{
-		"provider": {"ldap"}, "ldap_host": {"ldap.test.invalid" + nul},
+		"provider": {"ldap"}, "ldap_host": {"ldap.test.invalid" + nul}, "password": {"admin-password"},
 	})
 
 	assertNoRawDBError(t, body)
@@ -205,7 +206,7 @@ func TestPageSetupSubmit_StoreError_GenericError(t *testing.T) {
 	db := openSchemalessDB(t)
 
 	body := submitForm(t, newPageHandler(t, db), "/setup", "", url.Values{
-		"username": {"admin"}, "email": {"admin@test.invalid"}, "password": {"password123"},
+		"username": {"siteadmin"}, "email": {"admin@test.invalid"}, "password": {"password123"},
 	})
 
 	assertNoRawDBError(t, body)

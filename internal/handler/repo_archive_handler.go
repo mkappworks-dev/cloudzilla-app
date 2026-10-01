@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -18,9 +19,8 @@ func (h *Handler) ArchiveRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if err := h.Services.Repo.Archive(r.Context(), repo.ID, claims.UserID); err != nil {
@@ -43,9 +43,8 @@ func (h *Handler) UnarchiveRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if err := h.Services.Repo.Unarchive(r.Context(), repo.ID, claims.UserID); err != nil {
@@ -68,9 +67,15 @@ func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
+		return
+	}
+	if !h.Services.Repo.IsOwner(r.Context(), repo, claims.UserID) {
+		writeError(w, http.StatusForbidden, "only the repo owner can delete this repository")
+		return
+	}
+	if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), "") {
 		return
 	}
 	if err := h.Services.Repo.Delete(r.Context(), repo.ID, claims.UserID); err != nil {
@@ -79,6 +84,11 @@ func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		} else {
 			writeError(w, http.StatusInternalServerError, "failed to delete repository")
 		}
+		return
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", "/"+owner)
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	http.Redirect(w, r, "/"+owner, http.StatusSeeOther)
@@ -92,9 +102,8 @@ func (h *Handler) SetRepoTemplate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -137,11 +146,26 @@ func (h *Handler) CreateFromTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	repo, err := h.Services.Repo.CreateFromTemplate(r.Context(), templateRepoID, claims.UserID, claims.Username, newName, description)
-	if err != nil {
+	switch {
+	case errors.Is(err, service.ErrTemplateNotFound):
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	case errors.Is(err, service.ErrNotTemplate), errors.Is(err, service.ErrTemplateArchived):
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
+	case errors.Is(err, service.ErrInvalidRepoName):
+		writeError(w, http.StatusUnprocessableEntity, invalidRepoNameMessage)
+		return
+	case errors.Is(err, service.ErrInvalidRepoPath):
+		slog.Warn("create repo from template: unsafe repository path", "template_repo_id", templateRepoID, "error", err)
+		writeError(w, http.StatusUnprocessableEntity, unsafeRepoPathMessage)
+		return
+	case err != nil:
+		slog.Error("create repo from template failed", "template_repo_id", templateRepoID, "error", err)
+		writeError(w, http.StatusInternalServerError, "failed to create repository")
+		return
 	}
-	http.Redirect(w, r, "/"+claims.Username+"/"+repo.Name, http.StatusSeeOther)
+	http.Redirect(w, r, "/"+repo.OwnerName+"/"+repo.Name, http.StatusSeeOther)
 }
 
 func parseInt64(s string) (int64, error) {

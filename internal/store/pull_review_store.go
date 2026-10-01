@@ -20,7 +20,7 @@ func (s *PullReviewStore) Upsert(ctx context.Context, r *model.PullReview) error
 	const q = `
 INSERT INTO pull_reviews (pull_id, repo_id, author_id, author_name, state, body, submitted_at)
 VALUES ($1, $2, $3, $4, $5, $6, NOW())
-ON CONFLICT (pull_id, author_id) DO UPDATE
+ON CONFLICT (pull_id, author_id) WHERE author_id <> ghost_user_id() DO UPDATE
   SET state=$5, body=$6, submitted_at=NOW(), updated_at=NOW()
 RETURNING id, submitted_at, created_at, updated_at`
 	return s.db.QueryRowContext(ctx, q,
@@ -95,10 +95,12 @@ func (s *PullReviewStore) ListByPullIDs(ctx context.Context, pullIDs []int64) (m
 	return result, rows.Err()
 }
 
+// The ghost's reviews count toward neither gate: a deleted account's approval
+// is no longer backed by anyone, and nobody can withdraw its request for changes.
 func (s *PullReviewStore) CountApprovals(ctx context.Context, pullID int64) (int, error) {
 	var count int
 	err := s.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM pull_reviews WHERE pull_id=$1 AND state='approved'`,
+		`SELECT COUNT(*) FROM pull_reviews WHERE pull_id=$1 AND state='approved' AND author_id <> ghost_user_id()`,
 		pullID,
 	).Scan(&count)
 	return count, err
@@ -107,7 +109,7 @@ func (s *PullReviewStore) CountApprovals(ctx context.Context, pullID int64) (int
 func (s *PullReviewStore) HasChangesRequested(ctx context.Context, pullID int64) (bool, error) {
 	var exists bool
 	err := s.db.QueryRowContext(ctx,
-		`SELECT EXISTS(SELECT 1 FROM pull_reviews WHERE pull_id=$1 AND state='changes_requested')`,
+		`SELECT EXISTS(SELECT 1 FROM pull_reviews WHERE pull_id=$1 AND state='changes_requested' AND author_id <> ghost_user_id())`,
 		pullID,
 	).Scan(&exists)
 	return exists, err
@@ -162,7 +164,7 @@ func (s *PullReviewStore) RequestReview(ctx context.Context, pullID, repoID, rev
 	const q = `
 INSERT INTO pull_reviews (pull_id, repo_id, author_id, author_name, state, body)
 VALUES ($1, $2, $3, $4, 'pending', '')
-ON CONFLICT (pull_id, author_id) DO NOTHING`
+ON CONFLICT (pull_id, author_id) WHERE author_id <> ghost_user_id() DO NOTHING`
 	_, err := s.db.ExecContext(ctx, q, pullID, repoID, reviewerID, reviewerName)
 	return err
 }

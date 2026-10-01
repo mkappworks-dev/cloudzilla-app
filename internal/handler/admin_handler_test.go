@@ -28,9 +28,11 @@ func newAdminHandler(db *sql.DB) *handler.Handler {
 			CookieName: testCookieName,
 		},
 	}
-	userSvc := service.NewUserService(store.NewUserStore(db), cfg.Auth)
+	users := store.NewUserStore(db)
+	userSvc := service.NewUserService(users, cfg.Auth)
 	svc := &service.Services{
 		User:        userSvc,
+		Reauth:      service.NewReauthService(users, service.NewTOTPService(users)),
 		SiteSetting: service.NewSiteSettingService(store.NewSiteSettingStore(db), store.NewUserStore(db)),
 		Invitation:  service.NewInvitationService(store.NewInvitationStore(db)),
 		AuditLog:    service.NewAuditService(store.NewAuditLogStore(db)),
@@ -100,13 +102,14 @@ func TestUpdateSiteSetting_Superadmin_303(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
 	adminID := testutil.SeedSuperadmin(t, db, suffix)
+	testutil.SetPassword(t, db, adminID, "admin-password")
 
 	h := newAdminHandler(db)
 	router := withAuth(h)
 
 	token := makeSuperadminJWT(t, adminID, "admin_"+suffix)
 	req := httptest.NewRequest(http.MethodPost, "/admin/settings",
-		strings.NewReader("key=allow_registration&value=true"))
+		strings.NewReader("key=allow_registration&value=true&password=admin-password"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Authorization", "Bearer "+token)
 	rr := httptest.NewRecorder()

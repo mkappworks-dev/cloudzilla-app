@@ -3,21 +3,27 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"strings"
+
+	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
 var (
-	ErrForcePushBlocked    = errors.New("force push blocked by branch protection")
-	ErrInsufficientReviews = errors.New("insufficient reviews for merge")
-	ErrStatusCheckFailed   = errors.New("required status checks have not passed")
+	ErrForcePushBlocked      = errors.New("force push blocked by branch protection")
+	ErrProtectionCheckFailed = errors.New("internal error checking branch protection")
+	ErrInsufficientReviews   = errors.New("insufficient reviews for merge")
+	ErrStatusCheckFailed     = errors.New("required status checks have not passed")
 )
 
 // BranchProtectionService manages branch protection rules and enforces them on push.
 type BranchProtectionService struct {
-	protections   *store.BranchProtectionStore
-	pullReviews   *store.PullReviewStore
+	protections    *store.BranchProtectionStore
+	pullReviews    *store.PullReviewStore
 	commitStatuses *store.CommitStatusStore
 }
 
@@ -69,6 +75,52 @@ func (s *BranchProtectionService) CheckPush(ctx context.Context, repoID int64, b
 		return ErrForcePushBlocked
 	}
 	return nil
+}
+
+// CheckDelete is CheckPush for deleting a branch outside receive-pack:
+// deleting and pushing again is a force push in two steps.
+func (s *BranchProtectionService) CheckDelete(ctx context.Context, repoID int64, branchName string) error {
+	return s.CheckPush(ctx, repoID, branchName, true)
+}
+
+// CheckPushCommand is CheckPush for one receive-pack command. gitRepo must
+// already hold the pushed commits. go-git reports the error's text to the
+// pusher, so any error but ErrForcePushBlocked is logged and returned as
+// ErrProtectionCheckFailed.
+func (s *BranchProtectionService) CheckPushCommand(ctx context.Context, repoID int64, gitRepo *gogit.Repository, cmd *packp.Command) error {
+	branch, ok := strings.CutPrefix(cmd.Name.String(), "refs/heads/")
+	if !ok {
+		return nil
+	}
+	err := s.CheckPush(ctx, repoID, branch, !isFastForward(gitRepo, cmd))
+	if err != nil && !errors.Is(err, ErrForcePushBlocked) {
+		slog.Error("BranchProtectionService.CheckPushCommand: rule lookup failed", "repo_id", repoID, "ref", cmd.Name.String(), "error", err)
+		return ErrProtectionCheckFailed
+	}
+	return err
+}
+
+// isFastForward reports whether cmd provably keeps every commit its branch
+// had. Deleting and pushing again is a force push in two steps, so a delete is
+// not a fast-forward; failing closed, neither is anything it can't read as
+// commits.
+func isFastForward(gitRepo *gogit.Repository, cmd *packp.Command) bool {
+	if cmd.Action() == packp.Delete {
+		return false
+	}
+	newCommit, err := gitRepo.CommitObject(cmd.New)
+	if err != nil {
+		return false
+	}
+	if cmd.Action() == packp.Create {
+		return true
+	}
+	oldCommit, err := gitRepo.CommitObject(cmd.Old)
+	if err != nil {
+		return false
+	}
+	isAncestor, err := oldCommit.IsAncestor(newCommit)
+	return err == nil && isAncestor
 }
 
 // CheckMerge enforces branch protection rules before a PR merge.

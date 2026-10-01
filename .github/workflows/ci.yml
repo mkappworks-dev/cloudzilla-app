@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -33,10 +33,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -58,9 +58,9 @@ jobs:
       - name: Download Mermaid
         run: |
           mkdir -p cmd/server/frontend/static
-          curl -sLf https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.min.js \
+          curl -sLf https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js \
             -o cmd/server/frontend/static/mermaid.min.js
-          echo "70137e77bb273bb2ef972b86e8b0400cca8be53cb25bfc45911a186dc98665de  cmd/server/frontend/static/mermaid.min.js" | sha256sum --check
+          echo "581ed7d74bd9048d0e3a91363927d72ef22942d7722546b27f7cc29e35390eb8  cmd/server/frontend/static/mermaid.min.js" | sha256sum --check
 
       - name: Generate templ
         run: templ generate ./internal/view/...
@@ -80,10 +80,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -105,9 +105,9 @@ jobs:
       - name: Download Mermaid
         run: |
           mkdir -p cmd/server/frontend/static
-          curl -sLf https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.min.js \
+          curl -sLf https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js \
             -o cmd/server/frontend/static/mermaid.min.js
-          echo "70137e77bb273bb2ef972b86e8b0400cca8be53cb25bfc45911a186dc98665de  cmd/server/frontend/static/mermaid.min.js" | sha256sum --check
+          echo "581ed7d74bd9048d0e3a91363927d72ef22942d7722546b27f7cc29e35390eb8  cmd/server/frontend/static/mermaid.min.js" | sha256sum --check
 
       - name: Generate templ
         run: templ generate ./internal/view/...
@@ -124,7 +124,7 @@ jobs:
         run: go build -o dist/cloudzilla-cli ./cmd/cloudzilla/.
 
       - name: Upload binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cloudzilla-binaries
           path: dist/

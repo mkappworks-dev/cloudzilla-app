@@ -101,6 +101,11 @@ func (h *Handler) readableRepo(w http.ResponseWriter, r *http.Request, owner, re
 
 // The repo-switcher list is best-effort: a failed lookup leaves it empty.
 func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model.Repository, active string, canManage bool) BasePage {
+	var viewerID *int64
+	if base.CurrentUser != nil {
+		viewerID = &base.CurrentUser.UserID
+	}
+	base.OwnerContext = repo.OwnerName
 	base.RepoSubnav = &view.RepoSubnavInfo{
 		OwnerName:        repo.OwnerName,
 		RepoName:         repo.Name,
@@ -111,11 +116,7 @@ func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model
 		AllowDiscussions: repo.AllowDiscussions,
 		AllowProjects:    repo.AllowProjects,
 		AllowWiki:        repo.AllowWiki,
-		Counts:           h.repoSubnavCounts(ctx, repo),
-	}
-	var viewerID *int64
-	if base.CurrentUser != nil {
-		viewerID = &base.CurrentUser.UserID
+		Counts:           h.repoSubnavCounts(ctx, repo, viewerID),
 	}
 	if siblings, err := h.Services.Repo.ListByOwnerVisibleTo(ctx, repo.OwnerName, viewerID); err == nil {
 		refs := make([]view.RepoRef, 0, len(siblings))
@@ -130,7 +131,7 @@ func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model
 }
 
 // Best-effort: a failed query drops that tab's count rather than failing the page.
-func (h *Handler) repoSubnavCounts(ctx context.Context, repo *model.Repository) map[string]int {
+func (h *Handler) repoSubnavCounts(ctx context.Context, repo *model.Repository, viewerID *int64) map[string]int {
 	counts := map[string]int{}
 	logFail := func(tab string, err error) {
 		slog.Warn("repo subnav counts: tab query failed; hiding count",
@@ -142,7 +143,7 @@ func (h *Handler) repoSubnavCounts(ctx context.Context, repo *model.Repository) 
 		logFail("pull_requests", err)
 	}
 	if repo.AllowIssues {
-		if n, err := h.Services.Issue.CountOpen(ctx, repo.ID); err == nil {
+		if n, err := h.Services.Issue.CountOpen(ctx, repo.ID, viewerID); err == nil {
 			counts["issues"] = n
 		} else {
 			logFail("issues", err)
@@ -241,7 +242,7 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 			applyHomeRepoSort(data.Repos, repoSort)
 		}
 	} else {
-		publicRepos, err := h.Services.Repo.List(ctx)
+		publicRepos, err := h.Services.Repo.ListVisibleTo(ctx, nil)
 		if err != nil {
 			slog.Warn("home: anonymous public-repo list failed", "error", err)
 		} else {

@@ -10,14 +10,20 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
+const webhookFormError = "#webhook-form-error"
+
 type createWebhookRequest struct {
-	URL    string `json:"url"`
-	Secret string `json:"secret"`
-	Events string `json:"events"`
+	URL       string `json:"url"`
+	Secret    string `json:"secret"`
+	Events    string `json:"events"`
+	Password  string `json:"password"`
+	Code      string `json:"code"`
+	EmailCode string `json:"email_code"`
 }
 
 func (h *Handler) ListWebhooks(w http.ResponseWriter, r *http.Request) {
@@ -29,14 +35,8 @@ func (h *Handler) ListWebhooks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -60,19 +60,15 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
 	var url, secret, events string
-	if r.Header.Get("HX-Request") == "true" {
+	var confirm service.Confirmation
+	htmx := r.Header.Get("HX-Request") == "true"
+	if htmx {
 		if err := r.ParseForm(); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid form data")
 			return
@@ -80,6 +76,7 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		url = r.FormValue("url")
 		secret = r.FormValue("secret")
 		events = r.FormValue("events")
+		confirm = confirmationFrom(r)
 	} else {
 		var req createWebhookRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -89,30 +86,42 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		url = req.URL
 		secret = req.Secret
 		events = req.Events
+		confirm = service.Confirmation{Password: req.Password, Code: req.Code, OneTimeCode: req.EmailCode}
 	}
 
 	if url == "" {
+		if htmx {
+			renderFormError(w, webhookFormError, "Payload URL is required.")
+			return
+		}
 		writeError(w, http.StatusBadRequest, "url is required")
+		return
+	}
+	if !h.confirmGrant(w, r, claims.UserID, confirm, webhookFormError) {
 		return
 	}
 
 	wh, err := h.Services.Webhook.Create(r.Context(), repo.ID, url, secret, events)
 	if err != nil {
 		slog.Error("operation failed", "error", err)
+		if htmx {
+			renderFormError(w, webhookFormError, "Couldn't add the webhook. Please try again.")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
-	if r.Header.Get("HX-Request") == "true" {
+	if htmx {
 		hooks, _ := h.Services.Webhook.ListByRepo(r.Context(), repo.ID)
 		if hooks == nil {
 			hooks = []model.Webhook{}
 		}
 		h.render(w, r, fragments.WebhooksList(view.WebhooksFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Webhooks: hooks,
+			Owner:     owner,
+			RepoName:  repoName,
+			RepoID:    repo.ID,
+			Webhooks:  hooks,
 			CanManage: true,
 		}))
 		return
@@ -134,14 +143,8 @@ func (h *Handler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -156,10 +159,10 @@ func (h *Handler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
 			hooks = []model.Webhook{}
 		}
 		h.render(w, r, fragments.WebhooksList(view.WebhooksFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Webhooks: hooks,
+			Owner:     owner,
+			RepoName:  repoName,
+			RepoID:    repo.ID,
+			Webhooks:  hooks,
 			CanManage: true,
 		}))
 		return
@@ -181,14 +184,8 @@ func (h *Handler) ListWebhookDeliveries(w http.ResponseWriter, r *http.Request) 
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -229,13 +226,8 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -286,10 +278,10 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 			hooks = []model.Webhook{}
 		}
 		h.render(w, r, fragments.WebhooksList(view.WebhooksFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Webhooks: hooks,
+			Owner:     owner,
+			RepoName:  repoName,
+			RepoID:    repo.ID,
+			Webhooks:  hooks,
 			CanManage: true,
 		}))
 		return
@@ -306,20 +298,13 @@ func (h *Handler) RedeliverWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	deliveryIDStr := r.URL.Query().Get("delivery_id")
-	deliveryID, err := strconv.ParseInt(deliveryIDStr, 10, 64)
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
+		return
+	}
+	deliveryID, err := strconv.ParseInt(r.URL.Query().Get("delivery_id"), 10, 64)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "delivery_id required")
-		return
-	}
-
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 

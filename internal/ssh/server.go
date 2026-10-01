@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/ed25519"
@@ -10,16 +11,15 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/gliderlabs/ssh"
 	gogit "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/format/pktline"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
 	"github.com/go-git/go-git/v5/plumbing/transport"
-	"github.com/go-git/go-git/v5/plumbing/transport/server"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
@@ -228,40 +228,28 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		return
 	}
 
-	diskRepoPath := filepath.Join(s.cfg.ReposRoot, owner, repoName+".git")
+	diskRepoPath, err := service.RepoDir(s.cfg.ReposRoot, owner, repoName+".git")
+	if err != nil {
+		exitWithError(session, "repository not found\n")
+		return
+	}
 	gitRepo, err := gogit.PlainOpen(diskRepoPath)
 	if err != nil {
 		exitWithError(session, "failed to open repository\n")
 		return
 	}
 
-	commands, err := s.execGitService(session, gitCmd, gitRepo, owner, repoName, pusherName)
+	vet := func(cmd *packp.Command) error {
+		return s.services.BranchProtection.CheckPushCommand(ctx, repo.ID, gitRepo, cmd)
+	}
+	commands, err := s.execGitService(session, gitCmd, gitRepo, vet, owner, repoName, pusherName)
 	if err != nil {
 		exitWithError(session, "error: %v\n", err)
 		return
 	}
 
-	// Enforce branch protection rules and dispatch push webhooks.
-	// If protection rejects the push, rollback the ref to its previous value.
-	if gitCmd == "git-receive-pack" && err == nil {
-		for _, cmd := range commands {
-			if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
-				continue
-			}
-			if cmd.Action() == packp.Delete {
-				continue
-			}
-			branch := strings.TrimPrefix(cmd.Name.String(), "refs/heads/")
-			forcePush := cmd.Action() == packp.Update && cmd.Old != plumbing.ZeroHash && isForcePushSSH(gitRepo, cmd)
-			if err := s.services.BranchProtection.CheckPush(ctx, repo.ID, branch, forcePush); err != nil {
-				// Rollback the ref to its previous value
-				ref := plumbing.NewHashReference(cmd.Name, cmd.Old)
-				_ = gitRepo.Storer.SetReference(ref)
-				_, _ = fmt.Fprintf(session.Stderr(), "error: push rejected: %v\n", err)
-				_ = session.Exit(1)
-				return
-			}
-		}
+	// Dispatch push webhooks for each updated branch.
+	if gitCmd == "git-receive-pack" {
 		for _, cmd := range commands {
 			if !strings.HasPrefix(cmd.Name.String(), "refs/heads/") {
 				continue
@@ -302,45 +290,32 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	_ = session.Exit(0)
 }
 
-// exitWithError reports a failure to the client and ends the session with status 1.
+// exitWithError reports a failure on stderr, which git prints as-is, and ends the
+// session with status 1. Stdout carries the pack protocol, where git would read
+// the message's first four bytes as a pkt-line length.
 // Write and Exit fail only once the client has gone, so their errors are dropped.
 func exitWithError(session ssh.Session, format string, args ...any) {
-	_, _ = fmt.Fprintf(session, format, args...)
+	_, _ = fmt.Fprintf(session.Stderr(), format, args...)
 	_ = session.Exit(1)
 }
 
-// isForcePushSSH returns true when the push is non-fast-forward (old commit is not an ancestor of new).
-func isForcePushSSH(gitRepo *gogit.Repository, cmd *packp.Command) bool {
-	oldCommit, err := gitRepo.CommitObject(cmd.Old)
-	if err != nil {
-		return false
-	}
-	newCommit, err := gitRepo.CommitObject(cmd.New)
-	if err != nil {
-		return false
-	}
-	isAncestor, err := oldCommit.IsAncestor(newCommit)
-	if err != nil {
-		return false
-	}
-	return !isAncestor
+// isFlushOnly reports whether the client's request is a lone flush-pkt, which git
+// sends when it needs nothing (ls-remote, an up-to-date fetch or push) and go-git
+// rejects as malformed.
+func isFlushOnly(r *bufio.Reader) bool {
+	p, err := r.Peek(len(pktline.FlushPkt))
+	return err == nil && bytes.Equal(p, pktline.FlushPkt)
 }
 
 // execGitService runs the git pack protocol over the SSH session and returns
 // the commands go-git applied (non-nil only for git-receive-pack).
-func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.Repository, ownerName, repoName, pusherName string) ([]*packp.Command, error) {
+func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.Repository, vet func(*packp.Command) error, ownerName, repoName, pusherName string) ([]*packp.Command, error) {
 	ep, err := transport.NewEndpoint("/")
 	if err != nil {
 		return nil, fmt.Errorf("create endpoint: %w", err)
 	}
 
-	// MapLoader is keyed on ep.String() (e.g. "file:///"), not the input to NewEndpoint.
-	// WrapForReceive routes receive-pack onto go-git's parsed-storage
-	// path; the filesystem fast path can't resolve thin-pack REF_DELTAs.
-	// See docs/git-transport.md → "Thin packs".
-	srv := server.NewServer(server.MapLoader{
-		ep.String(): gittransport.WrapForReceive(gitRepo.Storer),
-	})
+	srv := gittransport.NewServer(gitRepo.Storer, vet)
 
 	if svc == "git-upload-pack" {
 		sess, err := srv.NewUploadPackSession(ep, nil)
@@ -361,8 +336,12 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			return nil, fmt.Errorf("write advertised refs: %w", err)
 		}
 
+		in := bufio.NewReader(session)
+		if isFlushOnly(in) {
+			return nil, nil
+		}
 		req := packp.NewUploadPackRequest()
-		if err := req.Decode(session); err != nil {
+		if err := req.Decode(in); err != nil {
 			return nil, fmt.Errorf("decode upload-pack request: %w", err)
 		}
 
@@ -396,14 +375,18 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			return nil, fmt.Errorf("write advertised refs: %w", err)
 		}
 
-		// io.NopCloser suppresses the session's Close: go-git closes the
-		// packfile reader after ingestion, but sessionHandler still needs
-		// the session to write status and the exit code.
+		// Nothing reading the request may close the session: go-git closes
+		// the packfile reader after ingestion, and sessionHandler still
+		// writes the status and the exit code.
 		limiter := gittransport.NewLimitedReadCloser(io.NopCloser(session), s.cfg.MaxPackBytes)
 		counter := gittransport.NewByteCounter(limiter)
+		in := bufio.NewReader(counter)
+		if isFlushOnly(in) {
+			return nil, nil
+		}
 
 		req := packp.NewReferenceUpdateRequest()
-		if err := req.Decode(counter); err != nil {
+		if err := req.Decode(in); err != nil {
 			return nil, fmt.Errorf("decode receive-pack request: %w", err)
 		}
 
@@ -427,7 +410,7 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			"duration_ms", time.Since(start).Milliseconds(),
 		)
 
-		if status != nil {
+		if status != nil && req.Capabilities.Supports(capability.ReportStatus) {
 			if err := status.Encode(session); err != nil {
 				return nil, fmt.Errorf("encode receive-pack status: %w", err)
 			}

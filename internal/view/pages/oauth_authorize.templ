@@ -37,21 +37,32 @@ templ OAuthAuthorize(data view.OAuthAuthorizeData) {
 					</div>
 				}
 
-				<form method="POST" action="/oauth/authorize" class="flex items-center gap-2">
+				if data.Error != "" {
+					<div role="alert" class="border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-3 py-2 text-[12.5px]">{ data.Error }</div>
+				}
+
+				<form method="POST" action="/oauth/authorize" class="space-y-4">
 					<input type="hidden" name="client_id" value={ data.App.ClientID }/>
 					<input type="hidden" name="redirect_uri" value={ data.RedirectURI }/>
 					<input type="hidden" name="scope" value={ strings.Join(data.Scopes, " ") }/>
 					<input type="hidden" name="state" value={ data.State }/>
-					@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"name": "action", "value": "approve", "type": "submit"}) {
-						Authorize
+					if data.Confirm.Any() {
+						<div class="flex flex-wrap items-end gap-3">
+							@components.ConfirmFields("consent", data.Confirm, true)
+						</div>
 					}
-					@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"name": "action", "value": "deny", "type": "submit"}) {
-						Deny
-					}
+					<div class="flex items-center gap-2">
+						@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"name": "action", "value": "approve", "type": "submit"}) {
+							Authorize
+						}
+						@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"name": "action", "value": "deny", "type": "submit", "formnovalidate": true}) {
+							Deny
+						}
+					</div>
 				</form>
 
 				<p class="text-[11px] text-muted-foreground">
-					Authorizing will redirect to <span class="font-mono">{ data.RedirectURI }</span>. You can revoke this app's access at any time from your <a href="/settings/oauth-apps" class="hover:text-foreground hover:underline">connected apps</a> settings.
+					Authorizing will redirect to <span class="font-mono">{ data.RedirectURI }</span>. You can revoke this app's access at any time from your account settings.
 				</p>
 			</div>
 		</div>

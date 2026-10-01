@@ -127,10 +127,10 @@ func TestOrderWikiSlugs(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name    string
-		all     []string
-		order   string
-		want    []string
+		name  string
+		all   []string
+		order string
+		want  []string
 	}{
 		{
 			name:  "no order file — alphabetical",

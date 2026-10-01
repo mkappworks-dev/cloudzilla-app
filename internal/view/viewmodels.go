@@ -29,6 +29,10 @@ type BasePage struct {
 	RepoSubnav        *RepoSubnavInfo
 	AccountSubnav     *AccountSubnavInfo
 	RepoSwitcher      []RepoRef
+	// OwnerContext is the user or org whose page is being viewed (e.g. `/{owner}`
+	// or `/{owner}/{repo}`). The topbar's workspace switcher labels its trigger
+	// with this name when set, falling back to the logged-in user otherwise.
+	OwnerContext string
 }
 
 type OrgEntry struct {
@@ -117,6 +121,8 @@ type AccountReposData struct {
 	Total        int // repos owned or collaborated on, before filtering
 	Page         int
 	TotalPages   int
+
+	IncomingTransfers int
 }
 
 type AccountPullsData struct {

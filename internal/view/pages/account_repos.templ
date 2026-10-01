@@ -26,6 +26,12 @@ templ AccountRepos(data view.AccountReposData) {
 					New repository
 				}
 			</section>
+			if data.IncomingTransfers > 0 {
+				<a href="/repos/transfers" class="mb-4 flex items-center justify-between gap-3 rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-[13px] hover:bg-primary/10">
+					<span>{ incomingTransfersLabel(data.IncomingTransfers) }</span>
+					<span class="font-medium text-primary">Review</span>
+				</a>
+			}
 			<div class="mb-4">
 				@components.TabBar(repoTypeTabs(data))
 			</div>

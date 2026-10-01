@@ -43,32 +43,32 @@ func (s *MilestoneService) Create(ctx context.Context, owner, repoName, title, d
 	return m, nil
 }
 
-func (s *MilestoneService) ListByRepo(ctx context.Context, owner, repoName string) ([]model.Milestone, error) {
+func (s *MilestoneService) ListByRepo(ctx context.Context, owner, repoName string, visibleToUserID *int64) ([]model.Milestone, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
-	return s.milestones.ListByRepo(ctx, repo.ID)
+	return s.milestones.ListByRepo(ctx, repo.ID, visibleToUserID)
 }
 
-func (s *MilestoneService) GetByNumber(ctx context.Context, owner, repoName string, number int) (*model.Milestone, error) {
+func (s *MilestoneService) GetByNumber(ctx context.Context, owner, repoName string, number int, visibleToUserID *int64) (*model.Milestone, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
-	return s.milestones.GetByNumber(ctx, repo.ID, number)
+	return s.milestones.GetByNumber(ctx, repo.ID, number, visibleToUserID)
 }
 
-func (s *MilestoneService) GetByID(ctx context.Context, id int64) (*model.Milestone, error) {
-	return s.milestones.GetByID(ctx, id)
+func (s *MilestoneService) GetByID(ctx context.Context, id int64, visibleToUserID *int64) (*model.Milestone, error) {
+	return s.milestones.GetByID(ctx, id, visibleToUserID)
 }
 
-func (s *MilestoneService) Update(ctx context.Context, owner, repoName string, number int, title, description string, dueDate *time.Time) (*model.Milestone, error) {
+func (s *MilestoneService) Update(ctx context.Context, owner, repoName string, number int, title, description string, dueDate *time.Time, visibleToUserID *int64) (*model.Milestone, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
-	m, err := s.milestones.GetByNumber(ctx, repo.ID, number)
+	m, err := s.milestones.GetByNumber(ctx, repo.ID, number, visibleToUserID)
 	if err != nil {
 		return nil, fmt.Errorf("milestone not found: %w", err)
 	}
@@ -81,12 +81,12 @@ func (s *MilestoneService) Update(ctx context.Context, owner, repoName string, n
 	return m, nil
 }
 
-func (s *MilestoneService) Close(ctx context.Context, owner, repoName string, number int) (*model.Milestone, error) {
+func (s *MilestoneService) Close(ctx context.Context, owner, repoName string, number int, visibleToUserID *int64) (*model.Milestone, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
-	m, err := s.milestones.GetByNumber(ctx, repo.ID, number)
+	m, err := s.milestones.GetByNumber(ctx, repo.ID, number, visibleToUserID)
 	if err != nil {
 		return nil, fmt.Errorf("milestone not found: %w", err)
 	}
@@ -99,12 +99,12 @@ func (s *MilestoneService) Close(ctx context.Context, owner, repoName string, nu
 	return m, nil
 }
 
-func (s *MilestoneService) Reopen(ctx context.Context, owner, repoName string, number int) (*model.Milestone, error) {
+func (s *MilestoneService) Reopen(ctx context.Context, owner, repoName string, number int, visibleToUserID *int64) (*model.Milestone, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
-	m, err := s.milestones.GetByNumber(ctx, repo.ID, number)
+	m, err := s.milestones.GetByNumber(ctx, repo.ID, number, visibleToUserID)
 	if err != nil {
 		return nil, fmt.Errorf("milestone not found: %w", err)
 	}
@@ -132,24 +132,24 @@ func (s *MilestoneService) SetPull(ctx context.Context, pullID int64, milestoneI
 	return s.milestones.SetPull(ctx, pullID, milestoneID)
 }
 
-func (s *MilestoneService) GetForIssue(ctx context.Context, issueID int64) (*model.Milestone, error) {
+func (s *MilestoneService) GetForIssue(ctx context.Context, issueID int64, visibleToUserID *int64) (*model.Milestone, error) {
 	mid, err := s.milestones.GetIssueID(ctx, issueID)
 	if err != nil || mid == nil {
 		return nil, err
 	}
-	return s.milestones.GetByID(ctx, *mid)
+	return s.milestones.GetByID(ctx, *mid, visibleToUserID)
 }
 
-func (s *MilestoneService) GetForPull(ctx context.Context, pullID int64) (*model.Milestone, error) {
+func (s *MilestoneService) GetForPull(ctx context.Context, pullID int64, visibleToUserID *int64) (*model.Milestone, error) {
 	mid, err := s.milestones.GetPullID(ctx, pullID)
 	if err != nil || mid == nil {
 		return nil, err
 	}
-	return s.milestones.GetByID(ctx, *mid)
+	return s.milestones.GetByID(ctx, *mid, visibleToUserID)
 }
 
-func (s *MilestoneService) ListIssues(ctx context.Context, milestoneID int64, state string, page, pageSize int) ([]model.Issue, error) {
-	return s.milestones.ListIssuesPaged(ctx, milestoneID, state, page, pageSize)
+func (s *MilestoneService) ListIssues(ctx context.Context, milestoneID int64, state string, visibleToUserID *int64, page, pageSize int) ([]model.Issue, error) {
+	return s.milestones.ListIssuesPaged(ctx, milestoneID, state, visibleToUserID, page, pageSize)
 }
 
 func (s *MilestoneService) ListPulls(ctx context.Context, milestoneID int64, state string, page, pageSize int) ([]model.PullRequest, error) {

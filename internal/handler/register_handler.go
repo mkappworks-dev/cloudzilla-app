@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"context"
+	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -20,6 +23,10 @@ func (h *Handler) PageRegister(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
+	if h.Services.Signup.Enabled() {
+		h.render(w, r, pages.RegisterEmail(view.RegisterEmailData{BasePage: basePage(r, h.Services)}))
+		return
+	}
 	h.render(w, r, pages.Register(view.RegisterData{BasePage: basePage(r, h.Services)}))
 }
 
@@ -27,6 +34,10 @@ func (h *Handler) PageRegister(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageRegisterSubmit(w http.ResponseWriter, r *http.Request) {
 	if !h.Services.SiteSetting.AllowRegistration(r.Context()) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if h.Services.Signup.Enabled() {
+		h.requestSignup(w, r)
 		return
 	}
 
@@ -57,7 +68,8 @@ func (h *Handler) PageRegisterSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := h.Services.User.Create(r.Context(), username, email, password); err != nil {
-		renderError("Failed to create account: " + err.Error())
+		logCreateAccountFailure(r.Context(), "register: create user failed", err)
+		renderError(createAccountErrorMessage(err))
 		return
 	}
 
@@ -67,15 +79,28 @@ func (h *Handler) PageRegisterSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     h.Cfg.Auth.CookieName,
-		Value:    jwtToken,
-		HttpOnly: true,
-		Secure:   h.Cfg.Auth.CookieSecure,
-		Path:     "/",
-		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
-		SameSite: http.SameSiteLaxMode,
-	})
+	h.setAuthCookie(w, jwtToken)
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+// Usernames are public, but an email conflict gets the generic message so the
+// form doesn't confirm which addresses have accounts.
+func createAccountErrorMessage(err error) string {
+	switch {
+	case errors.Is(err, service.ErrUsernameTaken):
+		return "That username is already taken"
+	case errors.Is(err, service.ErrInvalidOwnerName):
+		return invalidUsernameMessage
+	}
+	return "Could not create account. If you already have one, sign in instead."
+}
+
+// Invalid or taken usernames and taken emails are user mistakes, so they log below Error.
+func logCreateAccountFailure(ctx context.Context, msg string, err error, args ...any) {
+	level := slog.LevelError
+	if errors.Is(err, service.ErrUsernameTaken) || errors.Is(err, service.ErrEmailTaken) || errors.Is(err, service.ErrInvalidOwnerName) {
+		level = slog.LevelInfo
+	}
+	slog.Log(ctx, level, msg, append(args, "error", err)...)
 }

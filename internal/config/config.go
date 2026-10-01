@@ -28,6 +28,9 @@ type ServerConfig struct {
 	BaseURL      string        `mapstructure:"base_url"`
 	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
 	WriteTimeout time.Duration `mapstructure:"write_timeout"`
+	// TrustedProxies lists the IPs or CIDRs of reverse proxies whose
+	// X-Forwarded-For header is believed. Empty means clients connect directly.
+	TrustedProxies []string `mapstructure:"trusted_proxies"`
 }
 
 // DatabaseConfig holds PostgreSQL connection settings.
@@ -86,6 +89,7 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("server.base_url", "http://localhost:8080")
 	v.SetDefault("server.read_timeout", "15s")
 	v.SetDefault("server.write_timeout", "15s")
+	v.SetDefault("server.trusted_proxies", []string{})
 	v.SetDefault("database.dsn", "postgres://cloudzilla:cloudzilla@localhost:5432/cloudzilla?sslmode=disable")
 	v.SetDefault("database.max_open_conns", 10)
 	v.SetDefault("database.max_idle_conns", 5)

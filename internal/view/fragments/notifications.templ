@@ -48,6 +48,8 @@ templ notificationItem(notif model.Notification) {
 					closed PR
 				case model.NotifPROpened:
 					opened PR
+				case model.NotifRepoTransfer:
+					offered you a transfer
 			}
 			in <a href={ templ.SafeURL("/" + notif.OwnerName + "/" + notif.RepoName) } class="text-foreground hover:underline">{ notif.OwnerName }/{ notif.RepoName }</a>
 		</p>

@@ -128,15 +128,10 @@ func (s *PullReviewService) Counts(ctx context.Context, pullID int64) (required 
 	if required == 0 {
 		return 0, 0, nil
 	}
-	reviews, err := s.reviews.ListByPull(ctx, pullID)
+	// The count CheckMerge enforces, so the page never shows a merge it would refuse.
+	approved, err = s.reviews.CountApprovals(ctx, pullID)
 	if err != nil {
-		return required, 0, fmt.Errorf("list reviews for pull %d: %w", pullID, err)
+		return required, 0, fmt.Errorf("count approvals for pull %d: %w", pullID, err)
 	}
-	approvers := make(map[int64]bool)
-	for _, rev := range reviews {
-		if rev.State == model.PRReviewApproved {
-			approvers[rev.AuthorID] = true
-		}
-	}
-	return required, len(approvers), nil
+	return required, approved, nil
 }

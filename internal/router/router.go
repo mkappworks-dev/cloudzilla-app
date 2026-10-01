@@ -3,6 +3,7 @@ package router
 import (
 	"io/fs"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -12,21 +13,41 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
+// Account creation is rate limited per client IP so /register can't be used to
+// probe many emails for existing accounts.
+const (
+	accountCreationLimit  = 10
+	accountCreationWindow = 15 * time.Minute
+)
+
+const (
+	// Room for a person retrying a mistyped password; too few to guess passwords or probe emails at scale.
+	loginAttemptLimit = 30
+	// Short enough that a locked-out person can soon retry; caps a guesser at 120 tries an hour.
+	loginAttemptWindow = 15 * time.Minute
+)
+
 // New registers all application routes and returns the configured chi router.
-func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Handler {
+func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.Handler, error) {
+	trustedProxies, err := middleware.ParseTrustedProxies(cfg.Server.TrustedProxies)
+	if err != nil {
+		return nil, err
+	}
 	r := chi.NewRouter()
 	h := handler.New(services, cfg)
 
 	// Global middleware
 	r.Use(chiMiddleware.RequestID)
+	r.Use(middleware.ClientIP(trustedProxies))
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(middleware.Logger)
 	r.Use(middleware.CORS(cfg.Server.BaseURL))
 	r.Use(middleware.CSRF(cfg.Auth.CookieSecure))
 	r.Use(middleware.RequireSetup(services.SiteSetting))
 
-	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, h.Unauthorized)
-	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp)
+	sessions := middleware.WithSessionVersions(services.User)
+	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, h.Unauthorized, sessions)
+	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, sessions)
 	apiBodyLimit := middleware.MaxBodySize(1 << 20) // 1 MB
 
 	superadminMW := middleware.RequireSuperadmin(h.Forbidden)
@@ -40,7 +61,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Invite routes
 	r.Get("/invite/{token}", h.PageInvite)
-	r.Post("/invite/{token}", h.PageInviteSubmit)
+	r.With(middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/invite/{token}", h.PageInviteSubmit)
 
 	// Admin routes
 	r.With(authMW, superadminMW).Get("/admin/settings", h.PageAdminSettings)
@@ -57,16 +78,42 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(optAuthMW).Get("/explore", h.PageExplore)
 	r.With(optAuthMW).Get("/login", h.PageLogin)
 	r.With(optAuthMW).Get("/register", h.PageRegister)
-	r.With(optAuthMW).Post("/register", h.PageRegisterSubmit)
-	r.With(optAuthMW).Post("/login", h.PageLoginSubmit)
-	r.With(authMW).Get("/new", h.PageNewRepo)
+	r.With(optAuthMW, middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/register", h.PageRegisterSubmit)
+	r.Get("/register/complete/{token}", h.PageRegisterComplete)
+	r.With(middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/register/complete/{token}", h.PageRegisterCompleteSubmit)
+	r.With(optAuthMW, middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/login", h.PageLoginSubmit)
+	r.With(optAuthMW).Get("/verify-email", h.PageVerifyEmail)
+	r.With(optAuthMW).Post("/verify-email", h.VerifyEmailSubmit)
 	r.With(authMW).Get("/settings", h.PageSettings)
+	r.With(authMW).Post("/settings/profile", h.UpdateProfile)
+	r.With(authMW).Post("/settings/profile-readme", h.UpdateProfileReadme)
 	r.With(authMW).Post("/settings/email", h.UpdateEmailSettings)
-	r.With(authMW).Get("/settings/notifications", h.PageNotificationSettings)
+	r.With(authMW).Post("/settings/email/resend-verification", h.ResendVerificationEmail)
+	r.With(authMW).Post("/settings/sessions/revoke", h.RevokeSessions)
+	r.With(authMW).Post("/settings/password", h.ChangePassword)
+	r.With(authMW).Post("/settings/confirm-code", h.SendConfirmCode)
+	r.With(authMW).Post("/settings/reauth/{provider}", h.StartProviderSignIn)
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
-	r.With(authMW).Get("/settings/oauth-apps", h.PageOAuthApps)
+	r.With(authMW).Post("/settings/delete-account", h.DeleteAccount)
+	r.With(authMW).Post("/settings/connected-accounts/google", h.ConnectGoogle)
+	r.With(authMW).Post("/settings/connected-accounts/google/disconnect", h.DisconnectGoogle)
+	r.With(authMW).Get("/organizations", h.PageOrganizations)
+	r.With(authMW).Get("/organizations/new", h.PageNewOrganization)
+	r.With(authMW).Post("/organizations/new", h.CreateOrganization)
 	r.With(authMW).Get("/notifications", h.PageNotifications)
 	r.With(authMW).Get("/activity", h.PageActivity)
+
+	// Old URLs of moved pages; 301s keep bookmarks and links working.
+	r.With(authMW).Get("/new", handler.MovedPermanently("/repos/new", ""))
+	r.With(authMW).Get("/settings/organizations", handler.MovedPermanently("/organizations", ""))
+	r.With(authMW).Get("/settings/security", handler.MovedPermanently("/settings", "security"))
+	r.With(authMW).Get("/settings/notifications", handler.MovedPermanently("/settings", "notifications"))
+	r.With(authMW).Get("/settings/tokens", handler.MovedPermanently("/settings", "tokens"))
+	r.With(authMW).Get("/settings/replies", handler.MovedPermanently("/settings", "saved-replies"))
+	r.With(authMW).Get("/settings/oauth-apps", handler.MovedPermanently("/settings", "oauth-apps"))
+	// Like the pages they replace, these shadow repos named "gists" or "stars".
+	r.Get("/{owner}/gists", handler.MovedToProfileTab("gists"))
+	r.Get("/{owner}/stars", handler.MovedToProfileTab("stars"))
 
 	// OAuth 2.0 authorization code flow
 	r.With(optAuthMW).Get("/oauth/authorize", h.PageOAuthAuthorize)
@@ -90,6 +137,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// Account-level cross-repo pages
 	r.With(authMW).Get("/repos", h.PageAccountRepos)
+	r.With(authMW).Get("/repos/new", h.PageNewRepo)
+	r.With(authMW).Get("/repos/transfers", h.PageRepoTransfers)
 	r.With(authMW).Get("/pulls", h.PageAccountPulls)
 	r.With(authMW).Get("/issues", h.PageAccountIssues)
 	r.With(authMW).Get("/attention", h.PageAttention)
@@ -100,7 +149,6 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	r.With(optAuthMW).Get("/{owner}", h.PageUser)
 	r.With(authMW).Get("/orgs/{org}/settings", h.PageOrgSettings)
-	r.With(optAuthMW).Get("/{owner}/gists", h.PageUserGists)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
 	r.With(authMW).Post("/{owner}/{repo}/settings/general", h.UpdateRepoGeneral)
@@ -110,7 +158,6 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	r.With(authMW).Get("/{owner}/{repo}/releases/new", h.PageReleaseNew)
 	r.With(optAuthMW).Get("/{owner}/{repo}/releases/tag/{tagName}", h.PageReleaseDetail)
 	r.With(optAuthMW).Get("/{owner}/{repo}/stargazers", h.PageStargazers)
-	r.With(optAuthMW).Get("/{owner}/stars", h.PageUserStars)
 	r.With(optAuthMW).Get("/{owner}/{repo}/milestones", h.PageMilestones)
 	r.With(authMW).Get("/{owner}/{repo}/milestones/new", h.PageNewMilestone)
 	r.With(authMW).Post("/{owner}/{repo}/milestones/new", h.PageNewMilestoneSubmit)
@@ -158,10 +205,11 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 	// OAuth routes
 	r.Get("/auth/google", h.GoogleOAuthBegin)
-	r.Get("/auth/google/callback", h.GoogleOAuthCallback)
+	// Link mode needs the session; login mode ignores it.
+	r.With(optAuthMW).Get("/auth/google/callback", h.GoogleOAuthCallback)
 
 	// SSO auth endpoints
-	r.Post("/auth/ldap", h.LDAPLogin)
+	r.With(middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/auth/ldap", h.LDAPLogin)
 	r.Get("/auth/saml", h.InitiateSAML)
 	r.Post("/auth/saml/callback", h.SAMLCallback)
 	r.Get("/auth/saml/metadata", h.SAMLMetadata)
@@ -169,7 +217,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	// Auth routes
 	r.Route("/api/auth", func(r chi.Router) {
 		r.Use(apiBodyLimit)
-		r.Post("/login", h.Login)
+		r.With(middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/login", h.Login)
 		r.Post("/logout", h.Logout)
 	})
 
@@ -178,6 +226,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Use(optAuthMW)
 		r.Get("/{username}", h.GetUser)
 		r.Get("/{username}/repos", h.ListUserRepos)
+		r.With(authMW).Post("/{id}/pinned-repos/{repoID}", h.PinRepo)
+		r.With(authMW).Delete("/{id}/pinned-repos/{repoID}", h.UnpinRepo)
 	})
 
 	// Org routes
@@ -188,8 +238,12 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Get("/{org}/members", h.ListOrgMembers)
 		r.With(authMW).Post("/{org}/members", h.AddOrgMember)
 		r.With(authMW).Delete("/{org}/members/{username}", h.RemoveOrgMember)
+		r.With(authMW).Post("/{org}/members/{username}/role", h.UpdateOrgMemberRole)
 		r.With(authMW).Post("/{org}/repos", h.CreateOrgRepo)
 		r.With(authMW).Post("/{org}/transfer", h.TransferOrg)
+		r.With(authMW).Post("/{org}/profile", h.UpdateOrgProfile)
+		r.With(authMW).Post("/{org}/repo-defaults", h.UpdateOrgRepoDefaults)
+		r.With(authMW).Post("/{org}/delete", h.DeleteOrg)
 	})
 
 	// Repo routes
@@ -348,6 +402,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 
 		// Ownership transfer
 		r.With(authMW).Post("/{owner}/{repo}/transfer", h.TransferRepo)
+		r.With(authMW).Delete("/{owner}/{repo}/transfer", h.CancelRepoTransfer)
 
 		// Soft-delete restore
 		r.With(authMW).Post("/{owner}/{repo}/restore", h.RestoreRepo)
@@ -426,6 +481,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Post("/settings", h.UpdateSiteSetting)
 		r.Post("/invitations", h.CreateInvitation)
 		r.Delete("/invitations/{id}", h.DeleteInvitation)
+		r.Post("/users/verify-email", h.AdminVerifyEmail)
 	})
 
 	// Notification routes
@@ -453,8 +509,15 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Delete("/{id}", h.DeleteSSHKey)
 	})
 
+	// Repository transfers offered to the signed-in user
+	r.Route("/api/user/transfers", func(r chi.Router) {
+		r.Use(authMW, apiBodyLimit)
+		r.Get("/", h.ListRepoTransfers)
+		r.Post("/{id}/accept", h.AcceptRepoTransfer)
+		r.Post("/{id}/decline", h.DeclineRepoTransfer)
+	})
+
 	// Personal Access Token routes
-	r.With(authMW).Get("/settings/tokens", h.PageTokens)
 	r.Route("/api/user/tokens", func(r chi.Router) {
 		r.Use(authMW, apiBodyLimit)
 		r.Post("/", h.CreateToken)
@@ -469,8 +532,6 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		r.Delete("/authorizations/{id}", h.RevokeOAuthAuthorization)
 	})
 
-	// Saved replies routes
-	r.With(authMW).Get("/settings/replies", h.PageSavedReplies)
 	r.Route("/api/user/replies", func(r chi.Router) {
 		r.Use(authMW, apiBodyLimit)
 		r.Get("/", h.ListSavedRepliesFragment)
@@ -480,8 +541,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 	})
 
 	// Security / TOTP routes
-	r.With(authMW).Get("/settings/security", h.PageSecuritySettings)
-	r.With(authMW).Post("/settings/security/setup", h.PageSecuritySettingsSetup)
+	r.With(authMW).Post("/settings/security/setup", h.SetupTOTP)
 	r.With(authMW).Post("/api/user/totp/enable", h.EnableTOTP)
 	r.With(authMW).Post("/api/user/totp/disable", h.DisableTOTP)
 
@@ -511,5 +571,5 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) http.Ha
 		_, _ = w.Write(faviconBytes)
 	})
 
-	return r
+	return r, nil
 }

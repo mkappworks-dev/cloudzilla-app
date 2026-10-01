@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -20,17 +21,7 @@ func (h *Handler) ListReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "not found")
-		return
-	}
-	var viewerID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		viewerID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
-		writeError(w, http.StatusNotFound, "not found")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
 		return
 	}
 
@@ -57,13 +48,8 @@ func (h *Handler) SubmitReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -96,7 +82,7 @@ func (h *Handler) SubmitReview(w http.ResponseWriter, r *http.Request) {
 
 	pr, _ := h.Services.Pull.Get(r.Context(), owner, repoName, number)
 	if repo != nil && pr != nil {
-		go h.Services.Notification.NotifyPRReview(r.Context(), *repo, *pr, claims.UserID, claims.Username)
+		go h.Services.Notification.NotifyPRReview(context.WithoutCancel(r.Context()), *repo, *pr, claims.UserID, claims.Username)
 		go h.tryAutoMerge(owner, repoName, pr.ID)
 	}
 

@@ -23,7 +23,7 @@ func TestUserService_Create_KeepsEmailPrivateByDefault(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	t.Cleanup(func() { _, _ = db.ExecContext(context.Background(), `DELETE FROM users WHERE id = $1`, u.ID) })
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, u.ID) })
 	if !u.KeepEmailPrivate {
 		t.Error("Create must return keep_email_private = true for a new user")
 	}

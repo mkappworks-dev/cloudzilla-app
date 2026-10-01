@@ -57,7 +57,7 @@ func TestPageSetupSubmit_PasswordLength(t *testing.T) {
 			db := openSchemalessDB(t)
 
 			body := submitForm(t, newPageHandler(t, db), "/setup", "", url.Values{
-				"username": {"admin"}, "email": {"admin@test.invalid"}, "password": {tc.password},
+				"username": {"siteadmin"}, "email": {"admin@test.invalid"}, "password": {tc.password},
 			})
 
 			assertPasswordLengthMessage(t, body, tc.tooLong)

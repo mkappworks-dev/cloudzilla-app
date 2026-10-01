@@ -8,19 +8,17 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
-// RequireSetup redirects all requests to /setup when setup is not complete.
-// Allows /setup, /static/, and /invite/ through unconditionally.
-// RequireSetup redirects all requests to /setup until the instance has been configured.
+// RequireSetup redirects every request to /setup until the instance is configured, except the setup page, invite links, and static assets.
 func RequireSetup(svc *service.SiteSettingService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			path := r.URL.Path
 
-			// Always allow these paths through
 			if path == "/setup" ||
 				strings.HasPrefix(path, "/static/") ||
 				strings.HasPrefix(path, "/invite/") ||
-				path == "/htmx.min.js" {
+				path == "/htmx.min.js" ||
+				path == "/alpine.min.js" {
 				next.ServeHTTP(w, r)
 				return
 			}

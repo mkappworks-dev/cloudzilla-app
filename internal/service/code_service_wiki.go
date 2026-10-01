@@ -12,6 +12,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 )
 
 type WikiPageMeta struct {
@@ -94,7 +95,7 @@ func rewriteWikiOrder(orderContent, oldSlug, newSlug string) (string, bool) {
 
 // WikiPageListMeta returns an empty slice when the wiki has no commits yet.
 func (s *CodeService) WikiPageListMeta(owner, repoName string) ([]WikiPageMeta, error) {
-	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
+	repo, err := s.openWiki(owner, repoName)
 	if err != nil {
 		if errors.Is(err, gogit.ErrRepositoryNotExists) {
 			return []WikiPageMeta{}, nil
@@ -162,7 +163,7 @@ func firstHeading(content string) string {
 // (filenames without the .md extension) from the HEAD tree root.
 // Returns an empty slice when the wiki has no commits yet.
 func (s *CodeService) WikiPageList(owner, repoName string) ([]string, error) {
-	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
+	repo, err := s.openWiki(owner, repoName)
 	if err != nil {
 		// Wiki repo does not exist yet — not an error.
 		return []string{}, nil
@@ -196,7 +197,7 @@ func (s *CodeService) WikiPageList(owner, repoName string) ([]string, error) {
 // the page exists but has no content. Callers must use found to distinguish the
 // two cases.
 func (s *CodeService) WikiPageGet(owner, repoName, slug string) (content string, found bool, err error) {
-	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
+	repo, err := s.openWiki(owner, repoName)
 	if err != nil {
 		return "", false, nil
 	}
@@ -219,7 +220,7 @@ func (s *CodeService) WikiPageGet(owner, repoName, slug string) (content string,
 
 // WikiPageSetOrder errors when the wiki repo does not yet exist.
 func (s *CodeService) WikiPageSetOrder(owner, repoName string, orderedSlugs []string, author GitAuthor) error {
-	repo, err := gogit.PlainOpen(s.wikiPath(owner, repoName))
+	repo, err := s.openWiki(owner, repoName)
 	if err != nil {
 		return fmt.Errorf("wiki open: %w", err)
 	}
@@ -234,7 +235,10 @@ func (s *CodeService) WikiPageSave(owner, repoName, slug, content string, author
 	if message == "" {
 		message = "Update " + slug
 	}
-	wPath := s.wikiPath(owner, repoName)
+	wPath, err := s.wikiPath(owner, repoName)
+	if err != nil {
+		return err
+	}
 
 	// Open or initialise the bare wiki repo.
 	repo, err := gogit.PlainOpen(wPath)
@@ -253,8 +257,7 @@ func (s *CodeService) WikiPageSave(owner, repoName, slug, content string, author
 // WikiPageRename rewrites .order in the same commit so the user-defined
 // sidebar position is preserved across the rename.
 func (s *CodeService) WikiPageRename(owner, repoName, oldSlug, newSlug string, author GitAuthor, message string) error {
-	wPath := s.wikiPath(owner, repoName)
-	repo, err := gogit.PlainOpen(wPath)
+	repo, err := s.openWiki(owner, repoName)
 	if err != nil {
 		return fmt.Errorf("wiki open: %w", err)
 	}
@@ -317,8 +320,7 @@ func (s *CodeService) WikiPageRename(owner, repoName, oldSlug, newSlug string, a
 // WikiPageDelete strips the slug from .order in the same commit so the
 // sidebar order doesn't drift toward a dead entry.
 func (s *CodeService) WikiPageDelete(owner, repoName, slug string, author GitAuthor) error {
-	wPath := s.wikiPath(owner, repoName)
-	repo, err := gogit.PlainOpen(wPath)
+	repo, err := s.openWiki(owner, repoName)
 	if err != nil {
 		return nil
 	}
@@ -470,7 +472,7 @@ func wikiMutateTree(
 	if err != nil {
 		return err
 	}
-	if err := stor.SetReference(plumbing.NewHashReference(headRef.Name(), commitHash)); err != nil {
+	if err := gitref.Move(stor, headRef.Name(), parentCommit.Hash, commitHash); err != nil {
 		return err
 	}
 	// Mirror wikiCommit's HEAD-fixup so that a rename/delete on a detached or
@@ -490,12 +492,26 @@ func wikiMutateTree(
 // wikiCommit writes filename/content into the bare repo as a new commit on
 // the default (main) branch, preserving all other files from HEAD.
 func wikiCommit(repo *gogit.Repository, filename string, content []byte, author GitAuthor, message string) error {
+	return commitSingleFile(repo, plumbing.NewBranchReferenceName("main"), author, message, filename, content)
+}
+
+// commitSingleFile writes filename/content into the bare repo as a new commit
+// on branchRef, preserving all other files from the current branch tip. When
+// branchRef does not yet exist (empty repo), the commit becomes the initial
+// commit on that branch and HEAD is pointed at it.
+func commitSingleFile(
+	repo *gogit.Repository,
+	branchRef plumbing.ReferenceName,
+	author GitAuthor,
+	message string,
+	filename string,
+	content []byte,
+) error {
 	now := time.Now()
 	sig := author.signature(now)
 
 	storer := repo.Storer
 
-	// Build blob object for the new file content.
 	blobObj := storer.NewEncodedObject()
 	blobObj.SetType(plumbing.BlobObject)
 	blobObj.SetSize(int64(len(content)))
@@ -514,15 +530,15 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, author 
 		return err
 	}
 
-	// Load existing tree entries from HEAD (if any commits exist).
 	entries := []object.TreeEntry{}
+	var oldTip plumbing.Hash
 	var parentHashes []plumbing.Hash
-	head, headErr := repo.Head()
-	if headErr == nil {
-		parentCommit, err := repo.CommitObject(head.Hash())
+	if branchHead, herr := storer.Reference(branchRef); herr == nil {
+		parentCommit, err := repo.CommitObject(branchHead.Hash())
 		if err != nil {
 			return err
 		}
+		oldTip = parentCommit.Hash
 		parentHashes = []plumbing.Hash{parentCommit.Hash}
 		existingTree, err := parentCommit.Tree()
 		if err != nil {
@@ -535,7 +551,6 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, author 
 		}
 	}
 
-	// Append / replace the target file entry.
 	entries = append(entries, object.TreeEntry{
 		Name: filename,
 		Mode: filemode.Regular,
@@ -543,7 +558,6 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, author 
 	})
 	sort.Slice(entries, func(i, j int) bool { return entries[i].Name < entries[j].Name })
 
-	// Write the tree object.
 	treeObj := storer.NewEncodedObject()
 	tree := object.Tree{Entries: entries}
 	if err := tree.Encode(treeObj); err != nil {
@@ -554,7 +568,6 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, author 
 		return err
 	}
 
-	// Write the commit object.
 	commitObj := storer.NewEncodedObject()
 	commit := object.Commit{
 		Author:       sig,
@@ -571,20 +584,16 @@ func wikiCommit(repo *gogit.Repository, filename string, content []byte, author 
 		return err
 	}
 
-	// Advance HEAD / main ref.
-	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName("main"), commitHash)
-	if err := storer.SetReference(ref); err != nil {
+	if err := gitref.Move(storer, branchRef, oldTip, commitHash); err != nil {
 		return err
 	}
 
-	mainBranch := plumbing.NewBranchReferenceName("main")
 	headRef, headErr := storer.Reference(plumbing.HEAD)
-	if headErr != nil || headRef.Type() == plumbing.HashReference || headRef.Target() != mainBranch {
-		symRef := plumbing.NewSymbolicReference(plumbing.HEAD, mainBranch)
+	if headErr != nil || headRef.Type() == plumbing.HashReference || headRef.Target() != branchRef {
+		symRef := plumbing.NewSymbolicReference(plumbing.HEAD, branchRef)
 		if err := storer.SetReference(symRef); err != nil {
 			return fmt.Errorf("set symbolic HEAD: %w", err)
 		}
 	}
 	return nil
 }
-

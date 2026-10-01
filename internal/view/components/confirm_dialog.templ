@@ -77,9 +77,9 @@ templ ConfirmDialog() {
 					if (!ok) return;
 					var form = trigger.closest('form');
 					if (form) {
-						stashToastFromForm(form);
+						// form.submit() fires no submit event, so the submit listener can't stash for it.
 						if (form.requestSubmit) form.requestSubmit(trigger);
-						else form.submit();
+						else { stashToastFromForm(form); form.submit(); }
 					} else {
 						trigger.dataset.confirmBypass = '1';
 						trigger.click();
@@ -96,12 +96,26 @@ templ ConfirmDialog() {
 				document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: msg } }));
 			});
 
+			document.body.addEventListener('htmx:responseError', function (e) {
+				var xhr = e.detail && e.detail.xhr;
+				if (!xhr) return;
+				var msg = '';
+				try {
+					var body = JSON.parse(xhr.responseText);
+					if (body && typeof body.error === 'string') msg = body.error;
+				} catch (err) {}
+				if (!msg) msg = 'Something went wrong (HTTP ' + xhr.status + ').';
+				document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: msg } }));
+			});
+
 			function stashToastFromForm(form) {
 				var msg = form.getAttribute('data-toast');
 				if (!msg) return;
 				try { sessionStorage.setItem('cz-toast', JSON.stringify({ type: 'success', message: msg })); } catch (e) {}
 			}
 			document.body.addEventListener('submit', function (e) {
+				// A cancelled submit (htmx, or any script) stays on this page, where htmx:afterRequest shows the toast; a stash would replay on the next page load.
+				if (e.defaultPrevented) return;
 				var form = e.target;
 				if (form && form.matches && form.matches('form[data-toast]')) stashToastFromForm(form);
 			});

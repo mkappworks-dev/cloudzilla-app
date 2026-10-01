@@ -36,13 +36,13 @@ func newCommentHandler(db *sql.DB) *handler.Handler {
 	userSvc := service.NewUserService(store.NewUserStore(db), cfg.Auth)
 	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{})
 	emailSvc := service.NewEmailService(config.SMTPConfig{})
-	notifSvc := service.NewNotificationService(store.NewNotificationStore(db), store.NewWatchStore(db), emailSvc, userSvc)
+	notifSvc := service.NewNotificationService(store.NewNotificationStore(db), store.NewWatchStore(db), repoSvc, emailSvc, userSvc)
 	issueSvc := service.NewIssueService(store.NewIssueStore(db), store.NewRepoStore(db), store.NewPullStore(db), repoSvc)
 	svc := &service.Services{
 		User:         userSvc,
 		Repo:         repoSvc,
 		Issue:        issueSvc,
-		Comment:      service.NewCommentService(store.NewCommentStore(db), store.NewMentionStore(db), userSvc, notifSvc),
+		Comment:      service.NewCommentService(store.NewCommentStore(db), store.NewMentionStore(db), userSvc, notifSvc, repoSvc),
 		Notification: notifSvc,
 		SiteSetting:  service.NewSiteSettingService(store.NewSiteSettingStore(db), store.NewUserStore(db)),
 		AuditLog:     service.NewAuditService(store.NewAuditLogStore(db)),

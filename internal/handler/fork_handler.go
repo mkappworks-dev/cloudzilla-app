@@ -19,6 +19,10 @@ func (h *Handler) ForkRepo(w http.ResponseWriter, r *http.Request) {
 
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
+		return
+	}
 
 	forked, err := h.Services.Repo.Fork(r.Context(), owner, repoName, claims.UserID, claims.Username)
 	if err != nil {
@@ -27,11 +31,8 @@ func (h *Handler) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if repo != nil {
-		repoID := repo.ID
-		go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventFork, map[string]any{"fork_owner": claims.Username})
-	}
+	repoID := repo.ID
+	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventFork, map[string]any{"fork_owner": claims.Username})
 
 	dest := "/" + forked.OwnerName + "/" + forked.Name
 	if r.Header.Get("HX-Request") == "true" {

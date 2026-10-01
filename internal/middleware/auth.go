@@ -1,7 +1,11 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"io"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -22,10 +26,51 @@ type Claims struct {
 	UserID       int64
 	Username     string
 	IsSuperadmin bool
-	// Scoped marks a delegated credential (an OAuth-app token) limited to Scopes.
-	// First-party sessions and PATs are unscoped and act with the user's full access.
+	// Scoped marks a token (an OAuth-app token or a PAT) limited to Scopes.
+	// Sessions are unscoped and act with the user's full access.
 	Scoped bool
 	Scopes []string
+	// SessionVersion is the user's session version when a session JWT was issued.
+	SessionVersion int
+	// PAT marks a personal access token, named TokenName. A token with Targets
+	// is limited to those repositories and organizations; see TargetAllows.
+	PAT       bool
+	TokenName string
+	Targets   []string
+}
+
+// SessionVersions reports a user's current session version; bumping it ends
+// every session JWT issued before. Implemented by UserService.
+type SessionVersions interface {
+	SessionVersion(ctx context.Context, userID int64) (int, error)
+}
+
+type authOptions struct {
+	sessions SessionVersions
+}
+
+type AuthOption func(*authOptions)
+
+// WithSessionVersions refuses session JWTs whose version is no longer the user's,
+// and those of deleted users. Without it a JWT is good until it expires.
+func WithSessionVersions(v SessionVersions) AuthOption {
+	return func(o *authOptions) { o.sessions = v }
+}
+
+func applyAuthOptions(opts []AuthOption) authOptions {
+	var o authOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	return o
+}
+
+func (o authOptions) sessionLive(ctx context.Context, c Claims) bool {
+	if o.sessions == nil {
+		return true
+	}
+	v, err := o.sessions.SessionVersion(ctx, c.UserID)
+	return err == nil && v == c.SessionVersion
 }
 
 // HasScope reports whether the credential grants scope. Unscoped credentials grant every scope.
@@ -40,6 +85,12 @@ type PATValidator interface {
 	UpdateLastUsed(ctx context.Context, tokenID int64) error
 }
 
+// SignedRequestVerifier is implemented by AccessTokenService: it checks the
+// signature a token bound to a key needs on every request.
+type SignedRequestVerifier interface {
+	VerifySignedRequest(ctx context.Context, token *model.AccessToken, req model.SignedRequest) error
+}
+
 // OAuthTokenResolver resolves a raw OAuth-app bearer token to its user and granted scopes.
 // Implemented by OAuthAppService; defined here to avoid import cycle.
 type OAuthTokenResolver interface {
@@ -52,30 +103,34 @@ func ClaimsFromContext(ctx context.Context) (Claims, bool) {
 	return c, ok
 }
 
+// alreadyAuthenticated passes r on when an outer auth middleware already set
+// its claims, as optAuthMW does for route groups whose routes add authMW.
+// Checking a signed token's request again would find its nonce spent.
+func alreadyAuthenticated(w http.ResponseWriter, r *http.Request, next http.Handler) bool {
+	if _, ok := ClaimsFromContext(r.Context()); !ok {
+		return false
+	}
+	next.ServeHTTP(w, r)
+	return true
+}
+
 // Auth returns middleware that requires a valid JWT cookie, Bearer token, or PAT.
 // onUnauthorized handles unauthenticated requests (redirect to /login for HTML, JSON 401 for API).
-func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthTokenResolver, onUnauthorized http.HandlerFunc) func(http.Handler) http.Handler {
+func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthTokenResolver, onUnauthorized http.HandlerFunc, opts ...AuthOption) func(http.Handler) http.Handler {
+	o := applyAuthOptions(opts)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if alreadyAuthenticated(w, r, next) {
+				return
+			}
 			tokenStr := extractToken(r, cookieName)
 			if tokenStr == "" {
 				onUnauthorized(w, r)
 				return
 			}
 
-			if serveOAuth(w, r, next, oauthResolver, tokenStr) {
+			if serveOAuth(w, r, next, oauthResolver, tokenStr) || servePAT(w, r, next, patValidator, tokenStr) {
 				return
-			}
-
-			if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
-				token, user, err := patValidator.Validate(r.Context(), tokenStr)
-				if err == nil {
-					touchLastUsed(patValidator, token.ID)
-					claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin}
-					ctx := context.WithValue(r.Context(), claimsKey, claims)
-					next.ServeHTTP(w, r.WithContext(ctx))
-					return
-				}
 			}
 
 			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
@@ -96,7 +151,7 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 			}
 
 			claims, ok := claimsFromMap(mapClaims)
-			if !ok {
+			if !ok || !o.sessionLive(r.Context(), claims) {
 				onUnauthorized(w, r)
 				return
 			}
@@ -107,24 +162,17 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 }
 
 // OptionalAuth returns middleware that reads auth credentials if present but allows unauthenticated requests.
-func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthTokenResolver) func(http.Handler) http.Handler {
+func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthTokenResolver, opts ...AuthOption) func(http.Handler) http.Handler {
+	o := applyAuthOptions(opts)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if alreadyAuthenticated(w, r, next) {
+				return
+			}
 			tokenStr := extractToken(r, cookieName)
 			if tokenStr != "" {
-				if serveOAuth(w, r, next, oauthResolver, tokenStr) {
+				if serveOAuth(w, r, next, oauthResolver, tokenStr) || servePAT(w, r, next, patValidator, tokenStr) {
 					return
-				}
-				if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
-					pat, user, err := patValidator.Validate(r.Context(), tokenStr)
-					if err == nil {
-						touchLastUsed(patValidator, pat.ID)
-						claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin}
-						ctx := context.WithValue(r.Context(), claimsKey, claims)
-						r = r.WithContext(ctx)
-						next.ServeHTTP(w, r)
-						return
-					}
 				}
 				token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
 					if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -134,7 +182,8 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 				})
 				if err == nil && token.Valid {
 					if mapClaims, ok := token.Claims.(jwt.MapClaims); ok {
-						if claims, ok := claimsFromMap(mapClaims); ok {
+						// A revoked session reads as signed out here, not as an error.
+						if claims, ok := claimsFromMap(mapClaims); ok && o.sessionLive(r.Context(), claims) {
 							ctx := context.WithValue(r.Context(), claimsKey, claims)
 							r = r.WithContext(ctx)
 						}
@@ -147,7 +196,6 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 }
 
 // serveOAuth handles r when tokenStr is a live OAuth-app token, reporting whether it did.
-// A token lacking scope for r is refused rather than passed on as anonymous.
 // IsSuperadmin stays false: instance-admin power is never delegated to an app.
 func serveOAuth(w http.ResponseWriter, r *http.Request, next http.Handler, resolver OAuthTokenResolver, tokenStr string) bool {
 	if resolver == nil || strings.HasPrefix(tokenStr, "czp_") {
@@ -157,17 +205,94 @@ func serveOAuth(w http.ResponseWriter, r *http.Request, next http.Handler, resol
 	if err != nil {
 		return false
 	}
-	claims := Claims{UserID: user.ID, Username: user.Username, Scoped: true, Scopes: scopes}
-	if !scopeAllows(claims, r) {
-		var hint string
-		if accepted := acceptedScopes(r); len(accepted) > 0 {
-			hint = accepted[0]
+	serveScoped(w, r, next, Claims{UserID: user.ID, Username: user.Username, Scoped: true, Scopes: scopes})
+	return true
+}
+
+// servePAT handles r when tokenStr is a valid personal access token, reporting
+// whether it did. A token bound to a key must carry its signature.
+func servePAT(w http.ResponseWriter, r *http.Request, next http.Handler, v PATValidator, tokenStr string) bool {
+	if v == nil || !strings.HasPrefix(tokenStr, "czp_") {
+		return false
+	}
+	token, user, err := v.Validate(r.Context(), tokenStr)
+	if err != nil {
+		return false
+	}
+	if token.SigningKey != "" {
+		var signed bool
+		if r, signed = signedRequest(r, v, token); !signed {
+			writeSignatureRequired(w)
+			return true
 		}
-		WriteInsufficientScope(w, hint)
-		return true
+	}
+	touchLastUsed(v, token.ID)
+	serveScoped(w, r, next, PATClaims(token, user))
+	return true
+}
+
+// PATClaims returns the claims a personal access token carries: its owner's
+// identity, limited to the token's scopes. IsSuperadmin stays false, as for
+// OAuth-app tokens: instance administration is for sessions only.
+func PATClaims(t *model.AccessToken, u *model.User) Claims {
+	return Claims{UserID: u.ID, Username: u.Username, Scoped: true, Scopes: t.Scopes, PAT: true, TokenName: t.Name, Targets: t.Targets}
+}
+
+const maxSignedBody = 1 << 20
+
+// signedRequest checks the signature of a request made with token, a token
+// bound to a key; see AccessTokenService.VerifySignedRequest. It hashes the
+// body, so it returns r with the body restored. It fails closed: a validator
+// that can't verify signatures refuses every key-bound token.
+func signedRequest(r *http.Request, v PATValidator, token *model.AccessToken) (*http.Request, bool) {
+	sv, ok := v.(SignedRequestVerifier)
+	if !ok {
+		return r, false
+	}
+	var body []byte
+	if r.Body != nil {
+		var err error
+		if body, err = io.ReadAll(io.LimitReader(r.Body, maxSignedBody+1)); err != nil || len(body) > maxSignedBody {
+			return r, false
+		}
+		r.Body = io.NopCloser(bytes.NewReader(body))
+	}
+	sum := sha256.Sum256(body)
+	err := sv.VerifySignedRequest(r.Context(), token, model.SignedRequest{
+		Method:     r.Method,
+		Target:     r.URL.RequestURI(),
+		Timestamp:  r.Header.Get("X-Cloudzilla-Timestamp"),
+		Nonce:      r.Header.Get("X-Cloudzilla-Nonce"),
+		BodySHA256: hex.EncodeToString(sum[:]),
+		Signature:  r.Header.Get("X-Cloudzilla-Signature"),
+	})
+	if err != nil {
+		slog.Warn("signed request refused", "token_id", token.ID, "target", r.URL.RequestURI(), "error", err)
+	}
+	return r, err == nil
+}
+
+func writeSignatureRequired(w http.ResponseWriter) {
+	w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	_, _ = w.Write([]byte(`{"error":"this token needs each request signed with its key"}`))
+}
+
+// serveScoped passes r on with claims, or refuses it when their scopes don't
+// admit r. A refused token is never downgraded to anonymous on optional-auth routes.
+func serveScoped(w http.ResponseWriter, r *http.Request, next http.Handler, claims Claims) {
+	if !ScopeAllows(claims, r) {
+		WriteInsufficientScope(w, RequiredScope(r))
+		return
+	}
+	if len(claims.Targets) > 0 && !TargetAllows(claims.Targets, r) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"error":"this token isn't allowed for that repository or organization"}`))
+		return
 	}
 	next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), claimsKey, claims)))
-	return true
 }
 
 // RequireSuperadmin returns middleware that calls onForbidden if the authenticated user is not a superadmin.
@@ -199,6 +324,10 @@ func claimsFromMap(m jwt.MapClaims) (Claims, bool) {
 	}
 	if v, ok := m["is_superadmin"].(bool); ok {
 		c.IsSuperadmin = v
+	}
+	// Tokens from before session versions existed read as version 0.
+	if v, ok := m["sv"].(float64); ok {
+		c.SessionVersion = int(v)
 	}
 	return c, true
 }

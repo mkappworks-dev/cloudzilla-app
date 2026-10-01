@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"net/url"
 	"sort"
 	"strconv"
 	"time"
@@ -195,11 +196,11 @@ templ pullDetailBody(data view.PullDetailData) {
 									<button
 										type="button"
 										if pending {
-											hx-delete={ apiBase + "/reviewers?username=" + c }
+											hx-delete={ apiBase + "/reviewers?username=" + url.QueryEscape(c) }
 											hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review request withdrawn'}));location.reload();}"
 										} else {
 											hx-post={ apiBase + "/reviewers" }
-											hx-vals={ `{"username":"` + c + `"}` }
+											hx-vals={ components.JSLiteral(map[string]string{"username": c}) }
 											hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review requested'}));location.reload();}"
 										}
 										hx-swap="none"
