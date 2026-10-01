@@ -58,15 +58,7 @@ func newKey(t *testing.T) gossh.Signer {
 // apart. An empty command requests a shell.
 func runSSH(t *testing.T, addr string, key gossh.Signer, command, stdin string) sshResult {
 	t.Helper()
-	client, err := gossh.Dial("tcp", addr, &gossh.ClientConfig{
-		User:            "git",
-		Auth:            []gossh.AuthMethod{gossh.PublicKeys(key)},
-		HostKeyCallback: gossh.InsecureIgnoreHostKey(),
-		Timeout:         sessionTimeout,
-	})
-	if err != nil {
-		t.Fatalf("dial: %v", err)
-	}
+	client := dial(t, addr, key)
 	defer func() { _ = client.Close() }()
 	hung := time.AfterFunc(sessionTimeout, func() { _ = client.Close() })
 	sess, err := client.NewSession()
@@ -94,15 +86,36 @@ func runSSH(t *testing.T, addr string, key gossh.Signer, command, stdin string) 
 	if !hung.Stop() {
 		t.Fatalf("%q: the server didn't end the session within %v", command, sessionTimeout)
 	}
-	res := sshResult{stdout: stdout.String(), stderr: stderr.String()}
+	return sshResult{stdout: stdout.String(), stderr: stderr.String(), status: exitStatus(t, command, err)}
+}
+
+func dial(t *testing.T, addr string, key gossh.Signer) *gossh.Client {
+	t.Helper()
+	client, err := gossh.Dial("tcp", addr, &gossh.ClientConfig{
+		User:            "git",
+		Auth:            []gossh.AuthMethod{gossh.PublicKeys(key)},
+		HostKeyCallback: gossh.InsecureIgnoreHostKey(),
+		Timeout:         sessionTimeout,
+	})
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	return client
+}
+
+// exitStatus is the status command exited with, given what Wait returned.
+func exitStatus(t *testing.T, command string, err error) int {
+	t.Helper()
 	var exitErr *gossh.ExitError
 	switch {
+	case err == nil:
+		return 0
 	case errors.As(err, &exitErr):
-		res.status = exitErr.ExitStatus()
-	case err != nil:
+		return exitErr.ExitStatus()
+	default:
 		t.Fatalf("run %q: %v", command, err)
+		return 0
 	}
-	return res
 }
 
 func TestSessionHandler_RequestErrorsGoToStderr(t *testing.T) {
