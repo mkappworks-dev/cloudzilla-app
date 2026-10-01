@@ -374,7 +374,18 @@ templ Base(base view.BasePage, title string) {
 			<script src="/alpine.min.js" defer></script>
 			<script src="/static/mermaid.min.js"></script>
 			<script>
-				mermaid.initialize({ startOnLoad: false, theme: 'default' });
+				// Mermaid 12 defaults to the neo look, ELK layout and wider, earlier-wrapping nodes; pin 11's rendering.
+				mermaid.initialize({
+					startOnLoad: false,
+					theme: 'default',
+					look: 'classic',
+					layout: 'dagre',
+					flowchart: { wrappingWidth: 200, minNodeWidth: 0 },
+					state: { wrappingWidth: 200, minNodeWidth: 0 },
+					// A site-wide layout would replace these diagrams' own layout engines.
+					mindmap: { layout: 'cose-bilkent' },
+					swimlane: { layout: 'swimlane' },
+				});
 				document.addEventListener('DOMContentLoaded', function () { mermaid.run(); });
 				document.addEventListener('htmx:afterSwap', function () { mermaid.run(); });
 			</script>
