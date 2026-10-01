@@ -89,8 +89,8 @@ func (s *IssueService) UnlinkPull(ctx context.Context, pullID, issueID int64) er
 	return s.issues.UnlinkFromPull(ctx, pullID, issueID)
 }
 
-func (s *IssueService) LinkedForPull(ctx context.Context, pullID int64) ([]model.Issue, error) {
-	return s.issues.ListLinkedToPull(ctx, pullID)
+func (s *IssueService) LinkedForPull(ctx context.Context, pullID int64, visibleToUserID *int64) ([]model.Issue, error) {
+	return s.issues.ListLinkedToPull(ctx, pullID, visibleToUserID)
 }
 
 func (s *IssueService) Get(ctx context.Context, owner, repoName string, number int, visibleToUserID *int64) (*model.Issue, error) {
@@ -274,8 +274,8 @@ func (s *IssueService) CountDueThisWeekAssignedTo(ctx context.Context, userID in
 	return s.issues.CountDueThisWeekAssignedTo(ctx, userID)
 }
 
-func (s *IssueService) CountOpen(ctx context.Context, repoID int64) (int, error) {
-	return s.issues.CountOpen(ctx, repoID)
+func (s *IssueService) CountOpen(ctx context.Context, repoID int64, visibleToUserID *int64) (int, error) {
+	return s.issues.CountOpen(ctx, repoID, visibleToUserID)
 }
 
 // mode is "assigned", "created", or "mentioned"; state is "open" or "closed".

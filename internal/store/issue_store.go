@@ -242,7 +242,9 @@ func (s *IssueStore) UnlinkFromPull(ctx context.Context, pullID, issueID int64) 
 	return nil
 }
 
-func (s *IssueStore) ListLinkedToPull(ctx context.Context, pullID int64) ([]model.Issue, error) {
+// ListLinkedToPull returns the issues linked to a pull that issueVisibleTo lets
+// the user see. A nil user sees only public issues.
+func (s *IssueStore) ListLinkedToPull(ctx context.Context, pullID int64, visibleToUserID *int64) ([]model.Issue, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT i.id, i.repo_id, i.number, i.author_id,
 		       COALESCE(u.username, '') AS author_name,
@@ -253,8 +255,8 @@ func (s *IssueStore) ListLinkedToPull(ctx context.Context, pullID int64) ([]mode
 		FROM issues i
 		LEFT JOIN users u ON u.id = i.author_id
 		JOIN pull_issue_links pil ON pil.issue_id = i.id
-		WHERE pil.pull_id = $1
-		ORDER BY i.number`, pullID)
+		WHERE pil.pull_id = $1 AND `+issueVisibleTo("i", "$2")+`
+		ORDER BY i.number`, pullID, viewerID(visibleToUserID))
 	if err != nil {
 		return nil, fmt.Errorf("issue list linked to pull: %w", err)
 	}
@@ -312,11 +314,13 @@ func (s *IssueStore) CountPinnedByRepo(ctx context.Context, repoID int64) (int, 
 	return count, err
 }
 
-func (s *IssueStore) CountOpen(ctx context.Context, repoID int64) (int, error) {
+// CountOpen counts a repo's open issues that issueVisibleTo lets the user see.
+// A nil user counts only public issues.
+func (s *IssueStore) CountOpen(ctx context.Context, repoID int64, visibleToUserID *int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM issues WHERE repo_id = $1 AND state = 'open'`,
-		repoID,
+		`SELECT COUNT(*) FROM issues i WHERE i.repo_id = $1 AND i.state = 'open' AND `+issueVisibleTo("i", "$2"),
+		repoID, viewerID(visibleToUserID),
 	).Scan(&n)
 	return n, err
 }
