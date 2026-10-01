@@ -17,7 +17,7 @@ In-app notifications for activity on issues, PRs and discussions you opened, @-m
 | `discussion_reply` | Someone replies to a discussion you started |
 | `pr_opened`        | (type reserved; not currently auto-fired)   |
 
-Notifications are never created when `actorID == authorID` (self-actions are silent). A `mention` is recorded and notified only when the mentioned user can read the repo (`RepoService.CanRead`).
+Notifications are never created when `actorID == authorID` (self-actions are silent). Every notification, watchers' copies included, is created only if its recipient can read the repo at that moment (`RepoService.CanRead`), so watching a repo or having opened the issue, PR or discussion stops counting once the user is removed as a collaborator, removed from the org or demoted from org owner. `CommentService` likewise records an @-mention only for users who can read the repo.
 
 ## Email
 
@@ -32,7 +32,7 @@ Sent only when SMTP is configured. Users set these on `/settings#notifications` 
 
 `wantsEmail(user, type, digestMode)` in `internal/service/email_service.go` decides per notification: `EmailService.SendNotification` calls it with `immediate`, and `NotificationService.ListUnreadForDigest` calls it with the digest mode. The digest job (`runEmailDigest` in `cmd/server/main.go`) first narrows users with `UserService.ListUsersForDigest`, whose SQL repeats the master-switch and digest-mode check.
 
-Immediate email goes only to the notification's direct recipient (the subject's author, or the mentioned user). Watchers also receive in-app copies of issue/PR notifications (`fanOutToWatchers`); those are never emailed immediately, but digests draw from all unread notifications, so daily/weekly users also get watched-repo activity, and `notify_pr_review` filters watched-repo reviews there too.
+Immediate email goes only to the notification's direct recipient (the subject's author, or the mentioned user). Watchers also receive in-app copies of issue/PR notifications (`fanOutToWatchers`); those are never emailed immediately, but digests draw from all unread notifications, so daily/weekly users also get watched-repo activity, and `notify_pr_review` filters watched-repo reviews there too. The digest re-checks read access (`NotificationStore.ListUnreadReadable`, with `readableBy`) and leaves out notifications on repos the user can no longer read.
 
 ## Unread Count in Navbar
 

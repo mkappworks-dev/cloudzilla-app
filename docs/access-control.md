@@ -240,7 +240,7 @@ func (s *RepoService) CanManage(ctx, repo, userID int64) bool
 func (s *RepoService) IsOwner(ctx, repo, userID int64) bool
 ```
 
-`IsOwner` looks only at `org_members` for an org repo and only at `owner_id` for a personal one, and the other three build on it. Store queries that filter many repos by what the viewer can read (account issue and PR lists and counts, the activity feed, the attention inbox, repo search) use `readableBy` and `ownedBy` (`internal/store/repo_store.go`), the SQL forms of `CanRead` and `IsOwner`.
+`IsOwner` looks only at `org_members` for an org repo and only at `owner_id` for a personal one, and the other three build on it. Store queries that filter many repos by what the viewer can read (account issue and PR lists and counts, the activity feed, the attention inbox, repo search, the notification email digest) use `readableBy` and `ownedBy` (`internal/store/repo_store.go`), the SQL forms of `CanRead` and `IsOwner`.
 
 ### Two-Layer Enforcement Pattern
 

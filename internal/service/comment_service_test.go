@@ -25,9 +25,11 @@ func newCommentSvc(t *testing.T) (*service.CommentService, model.Repository, mod
 
 	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
 	emailSvc := service.NewEmailService(config.SMTPConfig{})
+	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{})
 	notifSvc := service.NewNotificationService(
 		store.NewNotificationStore(db),
 		store.NewWatchStore(db),
+		repoSvc,
 		emailSvc,
 		userSvc,
 	)
@@ -36,7 +38,7 @@ func newCommentSvc(t *testing.T) (*service.CommentService, model.Repository, mod
 		store.NewMentionStore(db),
 		userSvc,
 		notifSvc,
-		service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
+		repoSvc,
 	)
 
 	repo := model.Repository{
@@ -188,8 +190,8 @@ func TestCommentService_CreateForIssue_MentionsNotifyOnlyUsersWhoCanReadRepo(t *
 	}
 
 	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
-	notifSvc := service.NewNotificationService(store.NewNotificationStore(db), store.NewWatchStore(db), service.NewEmailService(config.SMTPConfig{}), userSvc)
 	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{})
+	notifSvc := service.NewNotificationService(store.NewNotificationStore(db), store.NewWatchStore(db), repoSvc, service.NewEmailService(config.SMTPConfig{}), userSvc)
 	svc := service.NewCommentService(store.NewCommentStore(db), store.NewMentionStore(db), userSvc, notifSvc, repoSvc)
 	mentions := store.NewMentionStore(db)
 

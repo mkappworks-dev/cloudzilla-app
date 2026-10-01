@@ -25,7 +25,7 @@ func TestNotification_MarkRead_RemovesFromUnread(t *testing.T) {
 
 	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
 	notifStore := store.NewNotificationStore(db)
-	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewEmailService(config.SMTPConfig{}), userSvc)
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}), service.NewEmailService(config.SMTPConfig{}), userSvc)
 
 	// Create a notification directly via the store so we have a known ID.
 	n := &model.Notification{
@@ -73,7 +73,7 @@ func TestNotification_MarkAllRead_ClearsAllUnread(t *testing.T) {
 	repoID := testutil.SeedRepo(t, db, ownerID, "testuser_"+suffix, suffix)
 
 	notifStore := store.NewNotificationStore(db)
-	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db),
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
 		service.NewEmailService(config.SMTPConfig{}),
 		service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}),
 	)
@@ -119,7 +119,7 @@ func TestNotification_NotifyIssueComment_SelfAction_Silent(t *testing.T) {
 	repoID := testutil.SeedRepo(t, db, authorID, ownerName, suffix)
 
 	notifStore := store.NewNotificationStore(db)
-	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db),
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
 		service.NewEmailService(config.SMTPConfig{}),
 		service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}),
 	)
@@ -156,7 +156,7 @@ func TestNotification_NotifyIssueComment_DifferentActor_CreatesNotification(t *t
 	repoID := testutil.SeedRepo(t, db, authorID, ownerName, suffix)
 
 	notifStore := store.NewNotificationStore(db)
-	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db),
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
 		service.NewEmailService(config.SMTPConfig{}),
 		service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}),
 	)
@@ -192,7 +192,7 @@ func TestNotification_List_ReturnsCreatedNotifications(t *testing.T) {
 	repoID := testutil.SeedRepo(t, db, userID, "testuser_"+suffix, suffix)
 
 	notifStore := store.NewNotificationStore(db)
-	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db),
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
 		service.NewEmailService(config.SMTPConfig{}),
 		service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"}),
 	)
@@ -230,7 +230,7 @@ func TestNotification_ListUnreadForDigest_SkipsTypesToggledOff(t *testing.T) {
 
 	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
 	notifStore := store.NewNotificationStore(db)
-	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewEmailService(config.SMTPConfig{}), userSvc)
+	svc := service.NewNotificationService(notifStore, store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}), service.NewEmailService(config.SMTPConfig{}), userSvc)
 	ctx := context.Background()
 
 	prefs := model.NotificationPrefs{EmailNotifications: true, EmailDigest: model.EmailDigestDaily, NotifyPRReview: true, NotifyMention: false}
@@ -283,7 +283,7 @@ func TestNotification_NotifyDiscussionReply_NotifiesDiscussionAuthor(t *testing.
 	repoID := testutil.SeedRepo(t, db, authorID, ownerName, suffix)
 
 	userSvc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
-	svc := service.NewNotificationService(store.NewNotificationStore(db), store.NewWatchStore(db), service.NewEmailService(config.SMTPConfig{}), userSvc)
+	svc := service.NewNotificationService(store.NewNotificationStore(db), store.NewWatchStore(db), service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}), service.NewEmailService(config.SMTPConfig{}), userSvc)
 	ctx := context.Background()
 	repo := model.Repository{ID: repoID, Name: "testrepo_" + suffix, OwnerName: ownerName}
 
