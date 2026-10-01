@@ -22,8 +22,8 @@ type createOrgRequest struct {
 }
 
 type addOrgMemberRequest struct {
-	Username string `json:"username"`
-	Role     string `json:"role"`
+	Username  string `json:"username"`
+	Role      string `json:"role"`
 	Password  string `json:"password"`
 	Code      string `json:"code"`
 	EmailCode string `json:"email_code"`

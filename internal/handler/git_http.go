@@ -32,31 +32,39 @@ type gitUser struct {
 	Username string
 }
 
-// resolveGitUser returns the authenticated user for git operations.
-// It checks JWT claims first (browser/cookie), then falls back to HTTP Basic Auth
-// where the password is a PAT (git CLI: username:czp_xxx). A PAT whose scopes
-// don't allow push, or fetch, counts as no credential.
-func (h *Handler) resolveGitUser(r *http.Request, push bool) *gitUser {
+// resolveGitUser returns the authenticated user for git operations, or nil for an
+// anonymous request. It checks claims first, set by the auth middleware after it
+// enforced token scopes, then HTTP Basic Auth whose password is a PAT (git CLI:
+// username:czp_xxx). The middleware never sees a Basic PAT, so its scopes are
+// enforced here: the error names the scope the token lacks for r. Callers answer
+// it with 403, not 401, because on a 401 git's credential helper erases the token.
+func (h *Handler) resolveGitUser(r *http.Request) (*gitUser, error) {
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		return &gitUser{ID: claims.UserID, Username: claims.Username}
+		return &gitUser{ID: claims.UserID, Username: claims.Username}, nil
 	}
 	_, password, ok := r.BasicAuth()
-	if ok && strings.HasPrefix(password, "czp_") {
-		token, user, err := h.Services.AccessToken.Validate(r.Context(), password)
-		// git can't sign requests, so a token bound to a key never works here.
-		if err == nil && token.SigningKey == "" && middleware.PATAllowsGit(token.Scopes, push) {
-			tokenID := token.ID
-			concurrency.Go("access_token.update_last_used", func() {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				if err := h.Services.AccessToken.UpdateLastUsed(ctx, tokenID); err != nil {
-					slog.Warn("access token last_used update failed", "token_id", tokenID, "error", err)
-				}
-			})
-			return &gitUser{ID: user.ID, Username: user.Username}
-		}
+	if !ok || !strings.HasPrefix(password, "czp_") {
+		return nil, nil
 	}
-	return nil
+	token, user, err := h.Services.AccessToken.Validate(r.Context(), password)
+	if err != nil {
+		return nil, nil
+	}
+	if token.SigningKey != "" {
+		return nil, fmt.Errorf("personal access token %q is bound to a signing key, which git can't sign with; use a token without one", token.Name)
+	}
+	tokenID := token.ID
+	concurrency.Go("access_token.update_last_used", func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := h.Services.AccessToken.UpdateLastUsed(ctx, tokenID); err != nil {
+			slog.Warn("access token last_used update failed", "token_id", tokenID, "error", err)
+		}
+	})
+	if !middleware.ScopeAllows(middleware.PATClaims(token, user), r) {
+		return nil, fmt.Errorf("personal access token lacks the %s scope", middleware.RequiredScope(r))
+	}
+	return &gitUser{ID: user.ID, Username: user.Username}, nil
 }
 
 func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +88,11 @@ func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gu := h.resolveGitUser(r, svc == "git-receive-pack")
+	gu, err := h.resolveGitUser(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
 	if svc == "git-receive-pack" {
 		var uid *int64
@@ -183,7 +195,11 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gu := h.resolveGitUser(r, false)
+	gu, err := h.resolveGitUser(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 	var userID *int64
 	if gu != nil {
 		userID = &gu.ID
@@ -269,7 +285,11 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gu := h.resolveGitUser(r, true)
+	gu, err := h.resolveGitUser(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 	if gu == nil || !h.Services.Repo.CanWrite(r.Context(), repo, gu.ID) {
 		w.Header().Set("WWW-Authenticate", `Basic realm="git"`)
 		http.Error(w, "access denied", http.StatusUnauthorized)

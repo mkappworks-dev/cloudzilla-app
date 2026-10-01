@@ -8,12 +8,16 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
+
+// ErrScopeRequired is returned when a personal access token would be created without scopes.
+var ErrScopeRequired = errors.New("at least one scope is required")
 
 // AccessTokenService manages personal access token (PAT) generation and validation.
 type AccessTokenService struct {
@@ -30,12 +34,53 @@ func NewAccessTokenService(tokens *store.AccessTokenStore, users *store.UserStor
 // prompts, so a leaked one stops working on its own.
 const MaxAdminTokenLifetime = 90 * 24 * time.Hour
 
-var (
-	ErrUnknownTokenScope  = errors.New("unknown token scope")
-	ErrAdminTokenNoExpiry = errors.New("a repo:admin token must expire within 90 days")
-)
+var ErrAdminTokenNoExpiry = errors.New("a repo:admin token must expire within 90 days")
+
+// CheckNewToken validates a new token's scopes, expiry and signing key, and
+// returns the scopes deduplicated and the key normalized. Callers run it before
+// asking for the password, so a typo doesn't spend a confirmation attempt.
+func CheckNewToken(scopes []string, expiresAt *time.Time, signingKey string) ([]string, string, error) {
+	scopes, err := validateTokenScopes(scopes)
+	if err != nil {
+		return nil, "", err
+	}
+	if len(scopes) == 0 {
+		return nil, "", ErrScopeRequired
+	}
+	admin := slices.Contains(scopes, model.ScopeRepoAdmin)
+	if admin && (expiresAt == nil || expiresAt.After(time.Now().Add(MaxAdminTokenLifetime))) {
+		return nil, "", ErrAdminTokenNoExpiry
+	}
+	if strings.TrimSpace(signingKey) == "" {
+		if admin {
+			return nil, "", ErrAdminTokenNeedsKey
+		}
+		return scopes, "", nil
+	}
+	key, err := parseSigningKey(signingKey)
+	if err != nil {
+		return nil, "", err
+	}
+	return scopes, key, nil
+}
+
+// validateTokenScopes is validateScopes for a personal access token, which can
+// also hold repo:admin.
+func validateTokenScopes(requested []string) ([]string, error) {
+	var scopes []string
+	for _, sc := range requested {
+		if !model.IsTokenScope(sc) {
+			return nil, fmt.Errorf("%w: %q", ErrInvalidScope, sc)
+		}
+		if !slices.Contains(scopes, sc) {
+			scopes = append(scopes, sc)
+		}
+	}
+	return scopes, nil
+}
 
 // Generate creates a new PAT, stores only its SHA-256 hash, and returns the raw token once.
+// It returns ErrScopeRequired without scopes and ErrInvalidScope for an unknown one.
 func (s *AccessTokenService) Generate(ctx context.Context, userID int64, name string, scopes []string, expiresAt *time.Time) (string, *model.AccessToken, error) {
 	return s.GenerateWithKey(ctx, userID, name, scopes, expiresAt, "")
 }
@@ -44,27 +89,11 @@ func (s *AccessTokenService) Generate(ctx context.Context, userID int64, name st
 // key: every request with it must be signed (see VerifySignedRequest). A
 // repo:admin token must be bound, so the token string alone can't be used.
 func (s *AccessTokenService) GenerateWithKey(ctx context.Context, userID int64, name string, scopes []string, expiresAt *time.Time, signingKey string) (string, *model.AccessToken, error) {
-	admin := false
-	for _, sc := range scopes {
-		if !model.IsTokenScope(sc) {
-			return "", nil, fmt.Errorf("%w: %q", ErrUnknownTokenScope, sc)
-		}
-		if sc == model.ScopeRepoAdmin {
-			admin = true
-			if expiresAt == nil || expiresAt.After(time.Now().Add(MaxAdminTokenLifetime)) {
-				return "", nil, ErrAdminTokenNoExpiry
-			}
-		}
+	scopes, signingKey, err := CheckNewToken(scopes, expiresAt, signingKey)
+	if err != nil {
+		return "", nil, err
 	}
-	if strings.TrimSpace(signingKey) != "" {
-		key, err := parseSigningKey(signingKey)
-		if err != nil {
-			return "", nil, err
-		}
-		signingKey = key
-	} else if admin {
-		return "", nil, ErrAdminTokenNeedsKey
-	}
+
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
 		return "", nil, fmt.Errorf("generate token bytes: %w", err)

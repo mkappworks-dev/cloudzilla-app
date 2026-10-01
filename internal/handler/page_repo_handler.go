@@ -403,7 +403,6 @@ func (h *Handler) UpdateRepoVisibility(w http.ResponseWriter, r *http.Request) {
 
 const makePublicFormError = "#make-public-form-error"
 
-
 // PageRefs renders the branches and tags overview page.
 func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")

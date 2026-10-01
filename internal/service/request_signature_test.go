@@ -53,7 +53,7 @@ func TestVerifySignedRequest(t *testing.T) {
 	ctx := context.Background()
 	signer, pub := testutil.NewSigningKey(t)
 	other, _ := testutil.NewSigningKey(t)
-	_, tok, err := svc.GenerateWithKey(ctx, userID, "ci", nil, nil, pub)
+	_, tok, err := svc.GenerateWithKey(ctx, userID, "ci", []string{model.ScopeRepoRead}, nil, pub)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestVerifySignedRequest_AcceptsSSHKeygenSignatures(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, tok, err := svc.GenerateWithKey(ctx, userID, "ci", nil, nil, string(pub))
+	_, tok, err := svc.GenerateWithKey(ctx, userID, "ci", []string{model.ScopeRepoRead}, nil, string(pub))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +172,7 @@ func TestAccessTokenService_GenerateWithKey_ChecksScopesAndKeys(t *testing.T) {
 		{"admin with a 1024-bit RSA key", admin, in(24 * time.Hour), string(ssh.MarshalAuthorizedKey(weakPub)), service.ErrInvalidSigningKey},
 		{"admin with a key that isn't one", admin, in(24 * time.Hour), "not a key", service.ErrInvalidSigningKey},
 		{"admin with a key for 30 days", admin, in(30 * 24 * time.Hour), pub + " laptop", nil},
-		{"unknown scope", []string{"repo"}, nil, "", service.ErrUnknownTokenScope},
+		{"unknown scope", []string{"repo"}, nil, "", service.ErrInvalidScope},
 		{"read without a key", []string{model.ScopeRepoRead}, nil, "", nil},
 	} {
 		_, tok, err := svc.GenerateWithKey(ctx, userID, tt.name, tt.scopes, tt.expires, tt.key)

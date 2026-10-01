@@ -9,6 +9,9 @@ const (
 	ScopePullsWrite  = "pulls:write"
 )
 
+// Scopes lists every grantable scope in the order forms offer them.
+var Scopes = []string{ScopeRepoRead, ScopeRepoWrite, ScopeIssuesWrite, ScopePullsWrite}
+
 var scopeDescriptions = map[string]string{
 	ScopeRepoRead:    "Read repositories, issues, pull requests and releases you can access",
 	ScopeRepoWrite:   "Create and update repository content: issues, pull requests, releases, branches, pushes",

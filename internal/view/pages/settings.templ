@@ -458,7 +458,7 @@ templ settingsTokensSection(data view.SettingsData) {
 										<span class="font-mono">{ s }</span>
 									}
 								} else {
-									<span class="font-mono">full access</span>
+									<span class="font-mono">none</span>
 								}
 								if t.SigningKey != "" {
 									{ " · signed requests only" }
@@ -496,7 +496,7 @@ templ settingsTokensSection(data view.SettingsData) {
 
 templ settingsGenerateTokenDialog(data view.SettingsData) {
 	@components.Dialog("generate-token-dialog") {
-		<form method="POST" action="/api/user/tokens" data-toast="Token generated">
+		<form method="POST" action="/api/user/tokens" data-toast="Token generated" x-data="{ picked: 0 }" @change="picked = $el.querySelectorAll('input[name=scopes]:checked').length">
 			@components.DialogHeader() {
 				@components.DialogTitle("generate-token-dialog") {
 					Generate personal access token
@@ -514,12 +514,12 @@ templ settingsGenerateTokenDialog(data view.SettingsData) {
 					<fieldset>
 						<legend class="block text-[12px] font-medium text-muted-foreground mb-1.5">Scopes</legend>
 						<div class="space-y-1.5 text-[13px]">
-							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="repo:read"/> <span><strong class="font-mono">repo:read</strong> — read repositories, code, issues, PRs</span></label>
-							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="repo:write"/> <span><strong class="font-mono">repo:write</strong> — push to repositories</span></label>
-							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="issues:write"/> <span><strong class="font-mono">issues:write</strong> — create and update issues</span></label>
-							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="pulls:write"/> <span><strong class="font-mono">pulls:write</strong> — create and update pull requests</span></label>
+							for _, s := range model.Scopes {
+								<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value={ s }/> <span><strong class="font-mono">{ s }</strong> — { model.ScopeDescription(s) }</span></label>
+							}
 							<label class="flex items-start gap-2"><input type="checkbox" name="scopes" value="repo:admin" class="mt-0.5"/> <span><strong class="font-mono">repo:admin</strong> — manage collaborators, deploy keys, webhooks, org owners, transfers and deletion without a password prompt. Needs a signing key and an expiry within 90 days, and each use is emailed to you.</span></label>
 						</div>
+						<p class="text-[11px] text-muted-foreground mt-1">Choose at least one. Tokens can't manage your account, SSH keys or other tokens, nor repository and organization settings without repo:admin.</p>
 					</fieldset>
 					<div>
 						<label for="token-signing-key" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Signing key (required with repo:admin)</label>
@@ -538,7 +538,7 @@ templ settingsGenerateTokenDialog(data view.SettingsData) {
 			}
 			@components.DialogFooter() {
 				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
-				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Generate token</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none" :disabled="picked === 0">Generate token</button>
 			}
 		</form>
 	}

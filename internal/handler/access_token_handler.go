@@ -31,11 +31,6 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
-		redirectReauthRefusal(w, r, claims.UserID, err, "tokens")
-		return
-	}
-
 	scopes := r.Form["scopes"]
 
 	var expiresAt *time.Time
@@ -46,8 +41,11 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	rawToken, _, err := h.Services.AccessToken.GenerateWithKey(r.Context(), claims.UserID, name, scopes, expiresAt, r.FormValue("signing_key"))
-	switch {
+	signingKey := r.FormValue("signing_key")
+	switch _, _, err := service.CheckNewToken(scopes, expiresAt, signingKey); {
+	case errors.Is(err, service.ErrScopeRequired) || errors.Is(err, service.ErrInvalidScope):
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	case errors.Is(err, service.ErrAdminTokenNeedsKey):
 		http.Redirect(w, r, "/settings?profile_error=token_admin_key#tokens", http.StatusSeeOther)
 		return
@@ -57,10 +55,14 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, service.ErrAdminTokenNoExpiry):
 		http.Redirect(w, r, "/settings?profile_error=token_admin_expiry#tokens", http.StatusSeeOther)
 		return
-	case errors.Is(err, service.ErrUnknownTokenScope):
-		http.Redirect(w, r, "/settings?profile_error=token_scope_unknown#tokens", http.StatusSeeOther)
+	}
+	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
+		redirectReauthRefusal(w, r, claims.UserID, err, "tokens")
 		return
-	case err != nil:
+	}
+
+	rawToken, _, err := h.Services.AccessToken.GenerateWithKey(r.Context(), claims.UserID, name, scopes, expiresAt, signingKey)
+	if err != nil {
 		http.Error(w, "failed to create token", http.StatusInternalServerError)
 		return
 	}

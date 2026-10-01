@@ -20,9 +20,9 @@ import (
 const (
 	// signInCodeCookie holds the one-time code a fresh provider sign-in left in
 	// this browser; only this browser can then use it.
-	signInCodeCookie      = "cz_reauth"
-	signInFailedCookie    = "cz_reauth_failed"
-	signInReturnCookie    = "cz_reauth_return"
+	signInCodeCookie       = "cz_reauth"
+	signInFailedCookie     = "cz_reauth_failed"
+	signInReturnCookie     = "cz_reauth_return"
 	oauthReauthStateCookie = "oauth_reauth_state"
 	samlReauthRelayPrefix  = "reauth:"
 )

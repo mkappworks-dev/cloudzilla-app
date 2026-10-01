@@ -18,9 +18,9 @@ import (
 const webhookFormError = "#webhook-form-error"
 
 type createWebhookRequest struct {
-	URL      string `json:"url"`
-	Secret   string `json:"secret"`
-	Events   string `json:"events"`
+	URL       string `json:"url"`
+	Secret    string `json:"secret"`
+	Events    string `json:"events"`
 	Password  string `json:"password"`
 	Code      string `json:"code"`
 	EmailCode string `json:"email_code"`
@@ -118,10 +118,10 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 			hooks = []model.Webhook{}
 		}
 		h.render(w, r, fragments.WebhooksList(view.WebhooksFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Webhooks: hooks,
+			Owner:     owner,
+			RepoName:  repoName,
+			RepoID:    repo.ID,
+			Webhooks:  hooks,
 			CanManage: true,
 		}))
 		return
@@ -159,10 +159,10 @@ func (h *Handler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
 			hooks = []model.Webhook{}
 		}
 		h.render(w, r, fragments.WebhooksList(view.WebhooksFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Webhooks: hooks,
+			Owner:     owner,
+			RepoName:  repoName,
+			RepoID:    repo.ID,
+			Webhooks:  hooks,
 			CanManage: true,
 		}))
 		return
@@ -278,10 +278,10 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 			hooks = []model.Webhook{}
 		}
 		h.render(w, r, fragments.WebhooksList(view.WebhooksFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Webhooks: hooks,
+			Owner:     owner,
+			RepoName:  repoName,
+			RepoID:    repo.ID,
+			Webhooks:  hooks,
 			CanManage: true,
 		}))
 		return

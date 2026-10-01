@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 )
 
 func Connect(cfg config.DatabaseConfig) (*sql.DB, error) {

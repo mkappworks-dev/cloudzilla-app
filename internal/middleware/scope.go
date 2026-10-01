@@ -28,16 +28,6 @@ var repoAdminResources = map[string]bool{
 	"delete":        true,
 }
 
-// PATAllowsGit reports whether a personal access token with scopes may fetch
-// over git's Basic-auth path, which this middleware doesn't see, or push.
-func PATAllowsGit(scopes []string, push bool) bool {
-	c := Claims{Scoped: len(scopes) > 0, Scopes: scopes}
-	if push {
-		return slices.ContainsFunc(writeScopes, c.HasScope)
-	}
-	return slices.ContainsFunc(readScopes, c.HasScope)
-}
-
 // Sub-resources of /api/repos/{owner}/{repo} that hold repository content.
 // Everything else there administers the repo (hooks, collaborators, keys,
 // topics, transfer, delete, …) and stays closed to scoped tokens.
@@ -152,8 +142,18 @@ func gitTransportScopes(r *http.Request, seg []string) []string {
 	return nil
 }
 
-func scopeAllows(c Claims, r *http.Request) bool {
+// ScopeAllows reports whether c may make r: always for unscoped claims, otherwise
+// only when one of c's scopes admits r.
+func ScopeAllows(c Claims, r *http.Request) bool {
 	return !c.Scoped || slices.ContainsFunc(acceptedScopes(r), c.HasScope)
+}
+
+// RequiredScope returns the narrowest scope that admits r, or "" when no scope does.
+func RequiredScope(r *http.Request) string {
+	if accepted := acceptedScopes(r); len(accepted) > 0 {
+		return accepted[0]
+	}
+	return ""
 }
 
 // WriteInsufficientScope refuses a scoped token (RFC 6750 §3.1). scope names the

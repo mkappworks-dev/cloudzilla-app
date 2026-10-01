@@ -190,6 +190,25 @@ func TestSettings_OAuthAppsSectionListsAppsWithoutSecrets(t *testing.T) {
 	}
 }
 
+func TestSettings_TokenFormOffersEveryScopeAndRequiresOne(t *testing.T) {
+	out := renderSettings(t, view.SettingsData{User: model.User{ID: 42, Username: "alice"}})
+	start := strings.Index(out, `action="/api/user/tokens"`)
+	if start < 0 {
+		t.Fatal("settings page missing token form")
+	}
+	form := out[start:]
+	form = form[:strings.Index(form, "</form>")]
+
+	for _, s := range model.Scopes {
+		if !strings.Contains(form, `value="`+s+`"`) || !strings.Contains(form, model.ScopeDescription(s)) {
+			t.Errorf("token form does not offer %s with its description", s)
+		}
+	}
+	if !regexp.MustCompile(`<button type="submit"[^>]*:disabled="picked === 0"`).MatchString(form) {
+		t.Error("token form can be submitted before a scope is chosen")
+	}
+}
+
 func TestSettings_UnbuiltSectionsAreDisabled(t *testing.T) {
 	out := renderSettings(t, view.SettingsData{User: model.User{ID: 42, Username: "alice", Email: "alice@example.com"}})
 	for _, s := range []struct{ id, closeTag string }{
@@ -253,7 +272,7 @@ func TestSettings_SoleOrgOwnerDeleteRefusalIsExplained(t *testing.T) {
 func TestSettings_PasswordChangeMatchesTheAccount(t *testing.T) {
 	user := model.User{ID: 42, Username: "alice", Email: "alice@example.com"}
 	for _, tt := range []struct {
-		name                 string
+		name                  string
 		hasPassword, withTOTP bool
 	}{
 		{"password", true, false},

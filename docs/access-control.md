@@ -9,7 +9,7 @@
 | Google OAuth          | OAuth 2.0 code flow → JWT cookie                                                | `GET /auth/google` → callback |
 | LDAP                  | Bind + search → JWT cookie                                                      | `POST /auth/ldap`             |
 | SAML SSO              | SP-initiated, ACS callback → JWT cookie                                         | `GET /auth/saml` → callback   |
-| Personal Access Token | `Authorization: Bearer <token>` header                                          | Any API endpoint              |
+| Personal Access Token | `Authorization: Bearer <token>` header; HTTP Basic password for git             | Scoped API endpoints (below)  |
 | OAuth App Token       | `Authorization: Bearer <token>` header                                          | Scoped API endpoints (below)  |
 | SSH Public Key        | Key fingerprint lookup in `ssh_keys`/`deploy_keys`                              | Git SSH transport             |
 | TOTP 2FA              | 6-digit code after any web sign-in                                              | `POST /auth/2fa/verify`       |
@@ -74,7 +74,7 @@ Editing a webhook's events needs nothing: it can't point the webhook somewhere n
 
 Codes, emailed or from a sign-in, are six digits, stored only as a bcrypt hash (`users.reauth_code_*`), work once, and count wrong guesses against the same failure limit. A stolen session can't read the mailbox or sign in as the owner at the provider. An account left with none of these, because the instance turned off its sign-in provider and has no email, is refused (`reauth_unavailable`) rather than let through. Accounts without a password are also kept out of Google linking by email (see [Google OAuth Sign-in](#google-oauth-sign-in)).
 
-**Personal access tokens** are held to the scopes they were created with ([scopes](#oauth-app-scopes)); a token created without scopes keeps the user's full access. Only a token created with **`repo:admin`** skips the confirmation for administering repositories and organizations: collaborators, deploy keys, webhooks, org owners, transfers and deletion (`confirmGrant`). OAuth apps can't be granted `repo:admin`, and it admits only those routes, never the account's own settings, so such a token can't add a password, key or token. Every other token confirms like a browser does, as does a session JWT sent as a bearer token.
+**Personal access tokens** are held to the scopes they were created with ([scopes](#oauth-app-scopes)). Only a token created with **`repo:admin`** reaches, and skips the confirmation for, for administering repositories and organizations: collaborators, deploy keys, webhooks, org owners, transfers and deletion (`confirmGrant`). OAuth apps can't be granted `repo:admin`, and it admits only those routes, never the account's own settings, so such a token can't add a password, key or token. Other tokens can't reach these routes at all, and a session JWT sent as a bearer token confirms like a browser.
 
 A `repo:admin` token is **bound to a signing key**: an SSH public key (Ed25519, ECDSA, or RSA of 2048 bits or more) given when it's created. Every request with it must be signed with the private key, so whoever copies the token string, from a log, a CI variable or a commit, can't use it. Creating one takes the password and an expiry within 90 days, and each use mails the owner the request it made. Any token can be bound the same way; a bound token can't be used for git, which can't sign. See [signed requests](./api-reference.md#signed-requests) for the format.
 
@@ -105,12 +105,12 @@ type Claims struct {
     UserID       int64
     Username     string
     IsSuperadmin bool
-    Scoped       bool     // true only for OAuth-app tokens
+    Scoped       bool     // true for PATs and OAuth-app tokens
     Scopes       []string // granted scopes when Scoped
 }
 ```
 
-Extracted via `middleware.ClaimsFromContext(r.Context())`. `claims.HasScope(s)` is always true for unscoped credentials (JWT sessions, and PATs created without scopes), which keep the user's full access. A PAT created with scopes is `Scoped` like an OAuth token, and `PAT` is set for any PAT. OAuth-app claims never carry `IsSuperadmin`.
+Extracted via `middleware.ClaimsFromContext(r.Context())`. `claims.HasScope(s)` is always true for JWT sessions, which are unscoped and keep the user's full access. Token claims (PATs and OAuth-app tokens) never carry `IsSuperadmin`; a PAT's also set `PAT` and its `TokenName`.
 
 ### Middleware Chain
 
@@ -124,14 +124,14 @@ Request → RequestID → Recoverer → Logger → CORS → CSRF → RequireSetu
                                               - apiBodyLimit (1 MB limit)
 ```
 
-- **authMW**: Reads JWT from `Authorization: Bearer` header OR `cz_token` httpOnly cookie. Also accepts PATs and OAuth tokens. Returns 401 if missing/invalid. An OAuth token without a scope for the route gets 403 (see [OAuth App Scopes](#oauth-app-scopes)).
-- **optAuthMW**: Same as authMW but allows unauthenticated requests through. Claims may be nil. An OAuth token is still refused with 403 on routes its scopes don't cover — it is never silently downgraded to anonymous.
+- **authMW**: Reads JWT from `Authorization: Bearer` header OR `cz_token` httpOnly cookie. Also accepts PATs and OAuth tokens. Returns 401 if missing/invalid. A token without a scope for the route gets 403 (see [Token Scopes](#token-scopes)).
+- **optAuthMW**: Same as authMW but allows unauthenticated requests through. Claims may be nil. A PAT or OAuth token is still refused with 403 on routes its scopes don't cover — it is never silently downgraded to anonymous.
 - **superadminMW**: Requires `claims.IsSuperadmin == true`. Returns 403 otherwise.
 - **CSRF**: Double-submit cookie pattern. Skips git transport, Bearer-auth, `POST /oauth/token` (client-secret auth), and safe methods (GET/HEAD/OPTIONS).
 
-### OAuth App Scopes
+### Token Scopes
 
-An OAuth-app token acts as the user who granted it, but only on routes its scopes admit. Enforcement is a path allow-list in `internal/middleware/scope.go`, applied by both `authMW` and `optAuthMW`: a route it doesn't list — including any new route — is closed to OAuth tokens. Scopes only narrow access; the handler's own `CanRead`/`CanWrite`/`CanManage` checks against the user still apply.
+A PAT or OAuth-app token acts as its user, but only on routes its scopes admit. Enforcement is a path allow-list in `internal/middleware/scope.go`, applied by both `authMW` and `optAuthMW`: a route it doesn't list — including any new route — is closed to tokens. Scopes only narrow access; the handler's own `CanRead`/`CanWrite`/`CanManage` checks against the user still apply.
 
 Open routes:
 
@@ -155,7 +155,15 @@ Merging and enabling auto-merge are requests to `PATCH .../pulls/{number}`, so `
 
 Everything else is closed whatever the scopes, notably: HTML pages and `/fragments/*` (which is what keeps a user's email, shown on their own profile, away from apps); `/settings/*` form posts (including connecting or disconnecting Google and `/settings/email/resend-verification`), `/verify-email` and `/auth/google/callback`; `/api/user/*` (SSH keys, PATs, TOTP, saved replies), `/api/oauth/*`, `/api/admin/*`, `/api/notifications/*`, `/api/gists`, `/api/markdown/preview`; repo administration (`hooks`, `collaborators`, `keys`, `topics`, `transfer`, `archive`, `unarchive`, `restore`, `delete`, `template`, branch protections, settings); and org administration.
 
-A refused request gets `403` with `{"error":"insufficient_scope"}` and `WWW-Authenticate: Bearer error="insufficient_scope", scope="<narrowest scope that would admit it>"` (the `scope` attribute is omitted on closed routes). Unknown scopes are rejected at `/oauth/authorize` with `400`. PAT scopes are recorded but not yet enforced; PATs remain unscoped.
+A refused request gets `403` with `{"error":"insufficient_scope"}` and `WWW-Authenticate: Bearer error="insufficient_scope", scope="<narrowest scope that would admit it>"` (the `scope` attribute is omitted on closed routes). Unknown scopes are rejected at `/oauth/authorize` with `400`.
+
+#### Personal access tokens
+
+PATs get the same open routes and scopes as OAuth-app tokens; being first-party doesn't widen them. Account, admin and repo or org administration stay session-only, so a PAT can't mint PATs, add SSH keys or turn off TOTP.
+
+- `POST /api/user/tokens` needs at least one scope, all of them known; otherwise `400`.
+- git sends a PAT as the HTTP Basic password, which `authMW` and `optAuthMW` never see, so `resolveGitUser` (`internal/handler/git_http.go`) checks it against the same policy. A refusal is a plain-text `403` naming the missing scope, not `401`: on a `401`, git's credential helper erases the stored token.
+- Migration `090` gave every token without a known scope all four scopes, so tokens created without scopes kept git and content-API access but lost the routes above. Tokens that named scopes are held to them.
 
 ---
 
@@ -613,6 +621,6 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | Branch protection  | A push that violates a rule is refused per ref, before the ref is written        |
 | Password storage   | bcrypt hashed                                                                    |
 | TOTP               | HMAC-SHA1 with bcrypt-hashed backup codes                                        |
-| PAT                | `crypto/rand` generated, bcrypt-hashed for storage                               |
+| PAT                | `crypto/rand` generated, SHA-256-hashed for storage, limited to its scopes       |
 | Email verification | 32 `crypto/rand` bytes, SHA-256 at rest, single use, 24 h, one link a minute     |
 | SQL injection      | All queries use parameterized placeholders (`$1`, `$2`, ...)                     |

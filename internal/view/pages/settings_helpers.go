@@ -48,8 +48,6 @@ func SettingsErrorMessage(code string) string {
 		return "A token with repo:admin needs a signing key. Paste an SSH public key; its private key will sign each request."
 	case "token_key_invalid":
 		return "The signing key must be an Ed25519, ECDSA or 2048-bit RSA SSH public key, like the contents of a .pub file."
-	case "token_scope_unknown":
-		return "That token scope doesn't exist. Nothing was created."
 	case "reauth_error":
 		return "Couldn't check your password or code. Please try again."
 	case "password_mismatch":

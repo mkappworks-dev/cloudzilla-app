@@ -1,6 +1,6 @@
 # API Reference
 
-All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly cookie (`cz_token`) or an `Authorization: Bearer <token>` header. Personal access tokens (`czp_...`) are also accepted in the `Authorization` header, as are OAuth-app tokens, which are limited to the routes their scopes admit (see [OAuth Apps](#oauth-apps)).
+All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly cookie (`cz_token`) or an `Authorization: Bearer <token>` header. Personal access tokens (`czp_...`) and OAuth-app tokens are also accepted in the `Authorization` header; both are limited to the routes their scopes admit (see [Token Scopes](./access-control.md#token-scopes)).
 
 ---
 
@@ -92,7 +92,9 @@ Browser form posts from Account settings. Both need the current `password`, plus
 | POST   | `/api/user/tokens`     | Required | Create PAT (`name`, repeated `scopes` from `repo:read`, `repo:write`, `issues:write`, `pulls:write` and `repo:admin` — the last needs `signing_key` and `expires_at` within 90 days — optional `expires_at`, optional `signing_key` (an SSH public key; see [signed requests](#signed-requests)), plus `password` and, with 2FA, `code` form fields); redirects to `/settings#tokens`, which shows the raw token once, via an HttpOnly cookie, or to `/settings?profile_error=reauth_failed#tokens` |
 | DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                                                                                                 |
 
-Raw token format: `czp_<32-byte hex>`. Use as `Authorization: Bearer czp_<token>`. Only the SHA-256 hash is stored; the raw value cannot be recovered after creation.
+Raw token format: `czp_<32-byte hex>`. Use as `Authorization: Bearer czp_<token>`, or as the HTTP Basic password for git. Only the SHA-256 hash is stored; the raw value cannot be recovered after creation.
+
+Scopes are those of [OAuth apps](#oauth-apps), with the same meaning and the same open routes. Creating a token without a scope, or with an unknown one, gets `400`. A PAT never reaches account, admin or repo-administration endpoints; a request outside its scopes gets `403 {"error":"insufficient_scope"}`, or a plain-text `403` from git over HTTP Basic.
 
 ## Commit Email Privacy
 
@@ -476,7 +478,7 @@ Registering an app returns `client_secret` once; only its bcrypt hash is stored.
 | `issues:write` | Reads, plus writes under `/api/repos/:owner/:repo/issues/**`                                   |
 | `pulls:write`  | Reads, plus writes under `/api/repos/:owner/:repo/pulls/**`, except merging and applying suggestions |
 
-A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` with a `WWW-Authenticate: Bearer error="insufficient_scope", scope="..."` header naming the scope to request. Only listed routes are open to OAuth tokens; account, admin and repo-administration endpoints and HTML pages never are. Route list: [access-control](./access-control.md#oauth-app-scopes).
+A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` with a `WWW-Authenticate: Bearer error="insufficient_scope", scope="..."` header naming the scope to request. Only listed routes are open to OAuth tokens and PATs; account, admin and repo-administration endpoints and HTML pages never are. Route list: [access-control](./access-control.md#token-scopes).
 
 ## Instance Admin (superadmin only)
 

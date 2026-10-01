@@ -144,14 +144,14 @@ func TestAuth_NoToken_Unauthorized(t *testing.T) {
 	}
 }
 
-// TestAuth_ValidPAT_InjectsUserClaims verifies that a valid czp_ PAT is accepted and
-// the resolved user's ID and username are injected into the request context.
-func TestAuth_ValidPAT_InjectsUserClaims(t *testing.T) {
+// TestAuth_ValidPAT_InjectsScopedClaims verifies that a valid czp_ PAT is accepted and
+// injects its owner's identity, limited to the token's scopes and without superadmin.
+func TestAuth_ValidPAT_InjectsScopedClaims(t *testing.T) {
 	pat := &stubPAT{
-		token: &model.AccessToken{ID: 1},
-		user:  &model.User{ID: 42, Username: "bob"},
+		token: &model.AccessToken{ID: 1, Scopes: []string{model.ScopeRepoRead}},
+		user:  &model.User{ID: 42, Username: "bob", IsSuperadmin: true},
 	}
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/repos/bob/proj", nil)
 	req.Header.Set("Authorization", "Bearer czp_validtoken")
 
 	var got Claims
@@ -163,10 +163,13 @@ func TestAuth_ValidPAT_InjectsUserClaims(t *testing.T) {
 	Auth(testSecret, "cz_token", pat, nil, testUnauthorized)(handler).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
-		t.Errorf("want 200, got %d", rr.Code)
+		t.Fatalf("want 200, got %d", rr.Code)
 	}
-	if got.UserID != 42 || got.Username != "bob" {
+	if got.UserID != 42 || got.Username != "bob" || !got.HasScope(model.ScopeRepoRead) || got.HasScope(model.ScopeRepoWrite) {
 		t.Errorf("claims mismatch: %+v", got)
+	}
+	if got.IsSuperadmin {
+		t.Error("a PAT must not carry superadmin")
 	}
 }
 

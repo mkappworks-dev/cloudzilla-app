@@ -40,7 +40,7 @@ func (e *linkEnv) signInCallback(session, state string, cookies []*http.Cookie) 
 }
 
 func (e *linkEnv) createToken(u linkUser, cookies ...*http.Cookie) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodPost, "/api/user/tokens", strings.NewReader(url.Values{"name": {"ci"}}.Encode()))
+	req := httptest.NewRequest(http.MethodPost, "/api/user/tokens", strings.NewReader(url.Values{"name": {"ci"}, "scopes": {"repo:read"}}.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.AddCookie(&http.Cookie{Name: testCookieName, Value: u.session})
 	for _, c := range cookies {

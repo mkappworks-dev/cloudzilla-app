@@ -107,7 +107,7 @@ func TestSensitiveActions_NeedTheAccountsPassword(t *testing.T) {
 		count   string
 		refused func(*http.Response) bool
 	}{
-		{"personal access token", "/api/user/tokens", url.Values{"name": {"ci"}},
+		{"personal access token", "/api/user/tokens", url.Values{"name": {"ci"}, "scopes": {"repo:read"}},
 			`SELECT COUNT(*) FROM access_tokens WHERE user_id = $1`,
 			func(r *http.Response) bool {
 				return r.StatusCode == http.StatusSeeOther && strings.Contains(r.Header.Get("Location"), "profile_error=reauth_failed")
@@ -170,7 +170,7 @@ func TestSensitiveActions_ShareOneFailureLimit(t *testing.T) {
 	session := makeJWT(t, userID, "testpw_"+suffix)
 
 	for range 5 {
-		serve(h, browserRequest(http.MethodPost, "/api/user/tokens", session, url.Values{"name": {"ci"}, "password": {"guess"}}))
+		serve(h, browserRequest(http.MethodPost, "/api/user/tokens", session, url.Values{"name": {"ci"}, "scopes": {"repo:read"}, "password": {"guess"}}))
 	}
 	rr := serve(h, browserRequest(http.MethodPost, "/api/user/keys", session, url.Values{
 		"title": {"laptop"}, "public_key": {sshPublicKey(t)}, "password": {"password1"},
@@ -345,7 +345,9 @@ func TestAccessGrants_NeedTheAccountsPassword(t *testing.T) {
 		{"deleting an org", func(t *testing.T, a account) (func(string) *httptest.ResponseRecorder, func() int) {
 			orgID, org := newOrg(t, a)
 			return dialog(a, "/api/orgs/"+org+"/delete", url.Values{"confirm_name": {org}}),
-				func() int { return countRows(t, db, `SELECT (1 - COUNT(*))::int FROM organizations WHERE id = $1`, orgID) }
+				func() int {
+					return countRows(t, db, `SELECT (1 - COUNT(*))::int FROM organizations WHERE id = $1`, orgID)
+				}
 		}},
 		{"repo transfer", func(t *testing.T, a account) (func(string) *httptest.ResponseRecorder, func() int) {
 			repoID, base := newRepo(t, a)
@@ -576,7 +578,7 @@ func TestPAT_OnlyAdminTokensSkipTheConfirmation(t *testing.T) {
 		}
 		return raw
 	}
-	admin, full, readOnly := token(model.ScopeRepoAdmin), token(), token(model.ScopeRepoRead)
+	admin, writer := token(model.ScopeRepoAdmin), token(model.ScopeRepoWrite)
 	repo, err := svc.Repo.Create(ctx, userID, owner, "pat_"+suffix, "", true, service.RepoInitOptions{})
 	if err != nil {
 		t.Fatalf("create repo: %v", err)
@@ -618,14 +620,8 @@ func TestPAT_OnlyAdminTokensSkipTheConfirmation(t *testing.T) {
 	if notice := box.NextTo(t, email); !strings.Contains(notice.Data, base+"/collaborators") {
 		t.Errorf("the admin token's use wasn't mailed to the owner: %.300s", notice.Data)
 	}
-	if rr := post(full, base+"/collaborators", collaborator("writer")); rr.Code != http.StatusForbidden || !strings.Contains(rr.Body.String(), "was incorrect") {
-		t.Errorf("collaborator with a token without scopes and no password: got %d %s, want the refusal", rr.Code, rr.Body)
-	}
-	if rr := post(full, base+"/collaborators", withPassword(collaborator("writer"), "password1")); rr.Code >= 400 {
-		t.Errorf("collaborator with a token without scopes and the password: got %d %s", rr.Code, rr.Body)
-	}
-	if rr := post(readOnly, base+"/collaborators", withPassword(collaborator("admin"), "password1")); rr.Code != http.StatusForbidden || !strings.Contains(rr.Body.String(), "insufficient_scope") {
-		t.Errorf("collaborator with a repo:read token: got %d %s, want insufficient_scope", rr.Code, rr.Body)
+	if rr := post(writer, base+"/collaborators", withPassword(collaborator("admin"), "password1")); rr.Code != http.StatusForbidden || !strings.Contains(rr.Body.String(), "insufficient_scope") {
+		t.Errorf("collaborator with a repo:write token, even with the password: got %d %s, want insufficient_scope", rr.Code, rr.Body)
 	}
 	// /api/user routes take authMW alone, without optAuthMW in front.
 	if rr := post(admin, "/api/user/keys", url.Values{"title": {"laptop"}, "public_key": {sshPublicKey(t)}}); rr.Code != http.StatusUnauthorized {
@@ -709,7 +705,7 @@ func TestEmailCode_ConfirmsForAccountsWithoutAPasswordOr2FA(t *testing.T) {
 	testutil.Exec(t, db, `UPDATE users SET reauth_code_sent_at = NULL WHERE id = $1`, userID)
 	serve(h, htmxRequest(browserRequest(http.MethodPost, "/settings/confirm-code", session, url.Values{})))
 	code = box.NextTo(t, "testnopw_"+suffix+"@test.invalid").ConfirmationCode(t)
-	rr = serve(h, browserRequest(http.MethodPost, "/api/user/tokens", session, url.Values{"name": {"ci"}, "email_code": {code}}))
+	rr = serve(h, browserRequest(http.MethodPost, "/api/user/tokens", session, url.Values{"name": {"ci"}, "scopes": {"repo:read"}, "email_code": {code}}))
 	if rr.Header().Get("Location") != "/settings#tokens" {
 		t.Errorf("token with the emailed code: got %d to %q", rr.Code, rr.Header().Get("Location"))
 	}

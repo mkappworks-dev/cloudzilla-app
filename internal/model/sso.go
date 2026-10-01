@@ -15,10 +15,10 @@ type SSOConfig struct {
 // LDAP config map keys.
 const (
 	LDAPKeyHost       = "host"
-	LDAPKeyPort       = "port"           // default "389"
-	LDAPKeyBaseDN     = "base_dn"        // e.g. "dc=example,dc=com"
-	LDAPKeyBindDNTmpl = "bind_dn_tmpl"   // e.g. "uid=%s,ou=people,dc=example,dc=com"
-	LDAPKeyUseTLS     = "use_tls"        // "true" / "false"
+	LDAPKeyPort       = "port"         // default "389"
+	LDAPKeyBaseDN     = "base_dn"      // e.g. "dc=example,dc=com"
+	LDAPKeyBindDNTmpl = "bind_dn_tmpl" // e.g. "uid=%s,ou=people,dc=example,dc=com"
+	LDAPKeyUseTLS     = "use_tls"      // "true" / "false"
 )
 
 // SAML config map keys.

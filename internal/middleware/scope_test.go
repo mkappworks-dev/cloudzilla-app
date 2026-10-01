@@ -110,8 +110,8 @@ func TestScopeAllows(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(tt.method, tt.target, nil)
 			c := Claims{UserID: 1, Scoped: true, Scopes: tt.scopes}
-			if got := scopeAllows(c, req); got != tt.want {
-				t.Errorf("scopeAllows(%s %s, %v) = %v, want %v", tt.method, tt.target, tt.scopes, got, tt.want)
+			if got := ScopeAllows(c, req); got != tt.want {
+				t.Errorf("ScopeAllows(%s %s, %v) = %v, want %v", tt.method, tt.target, tt.scopes, got, tt.want)
 			}
 		})
 	}
@@ -120,7 +120,7 @@ func TestScopeAllows(t *testing.T) {
 func TestScopeAllows_UnscopedClaimsAllowEverything(t *testing.T) {
 	for _, target := range []string{"/settings/notifications", "/api/repos/alice/proj/hooks", "/alice"} {
 		req := httptest.NewRequest(http.MethodPost, target, nil)
-		if !scopeAllows(Claims{UserID: 1}, req) {
+		if !ScopeAllows(Claims{UserID: 1}, req) {
 			t.Errorf("unscoped claims refused on %s", target)
 		}
 	}
@@ -236,5 +236,51 @@ func TestAuth_JWTWithOAuthResolver_Unscoped(t *testing.T) {
 	}
 	if got.UserID != 7 || got.Scoped {
 		t.Errorf("claims mismatch: %+v", got)
+	}
+}
+
+func TestPAT_ScopeEnforcement(t *testing.T) {
+	read := []string{model.ScopeRepoRead}
+	every := []string{model.ScopeRepoRead, model.ScopeRepoWrite, model.ScopeIssuesWrite, model.ScopePullsWrite}
+	const closed = `Bearer error="insufficient_scope"`
+	tests := []struct {
+		name      string
+		optional  bool
+		method    string
+		target    string
+		scopes    []string
+		want      int
+		challenge string
+	}{
+		{"repo read with repo:read", false, "GET", "/api/repos/bob/proj", read, http.StatusOK, ""},
+		{"repo read on optional auth with repo:read", true, "GET", "/api/repos/bob/proj", read, http.StatusOK, ""},
+		{"repo read without scopes", true, "GET", "/api/repos/bob/proj", nil, http.StatusForbidden, closed + `, scope="repo:read"`},
+		{"create issue with repo:read", false, "POST", "/api/repos/bob/proj/issues", read, http.StatusForbidden, closed + `, scope="issues:write"`},
+		{"push advert with repo:read", true, "GET", "/bob/proj/info/refs?service=git-receive-pack", read, http.StatusForbidden, closed + `, scope="repo:write"`},
+		{"mint a PAT with every scope", false, "POST", "/api/user/tokens", every, http.StatusForbidden, closed},
+		{"add an SSH key with every scope", false, "POST", "/api/user/keys", every, http.StatusForbidden, closed},
+		{"admin API with every scope", false, "POST", "/api/admin/settings", every, http.StatusForbidden, closed},
+		{"add webhook with every scope", false, "POST", "/api/repos/bob/proj/hooks", every, http.StatusForbidden, closed + `, scope="repo:admin"`},
+		{"profile page with every scope", true, "GET", "/bob", every, http.StatusForbidden, closed},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pat := &stubPAT{token: &model.AccessToken{ID: 1, Scopes: tt.scopes}, user: &model.User{ID: 42, Username: "bob"}}
+			mw := Auth(testSecret, "cz_token", pat, nil, testUnauthorized)
+			if tt.optional {
+				mw = OptionalAuth(testSecret, "cz_token", pat, nil)
+			}
+			req := httptest.NewRequest(tt.method, tt.target, nil)
+			req.Header.Set("Authorization", "Bearer czp_token")
+
+			rr := runAuth(mw, req)
+
+			if rr.Code != tt.want {
+				t.Fatalf("want %d, got %d", tt.want, rr.Code)
+			}
+			if got := rr.Header().Get("WWW-Authenticate"); got != tt.challenge {
+				t.Errorf("WWW-Authenticate = %q, want %q", got, tt.challenge)
+			}
+		})
 	}
 }

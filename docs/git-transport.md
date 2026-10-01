@@ -39,8 +39,8 @@ DELETE /api/user/keys/{id}
 ### Authentication
 
 - **Public repos**: No authentication required
-- **Private repos**: Requires HTTP Basic Auth (PAT as password) or JWT cookie
-- **OAuth-app tokens** (`Authorization: Bearer`): need `repo:read` (or any repo scope) to clone/fetch and `repo:write` to push; see [access-control](./access-control.md#oauth-app-scopes)
+- **Private repos**: Requires HTTP Basic Auth (PAT as password), a Bearer token, or JWT cookie
+- **Tokens** (PATs, and OAuth-app tokens via `Authorization: Bearer`): need any repo scope to clone/fetch and `repo:write` to push. A PAT sent as the Basic password and lacking the scope gets a plain-text `403`, not `401`, so git keeps the stored credential; see [access-control](./access-control.md#token-scopes)
 - Permissions enforced: read access for clone/fetch, write access for push
 
 ### Example
