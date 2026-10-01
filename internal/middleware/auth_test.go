@@ -190,6 +190,28 @@ func TestAuth_OAuthToken_CarriesUsername(t *testing.T) {
 	}
 }
 
+// A token bound to a key needs a signed request; a validator that can't check
+// signatures must refuse it rather than let it through.
+func TestAuth_KeyBoundPATWithoutVerifier_Unauthorized(t *testing.T) {
+	pat := &stubPAT{
+		token: &model.AccessToken{ID: 1, SigningKey: "ssh-ed25519 AAAA"},
+		user:  &model.User{ID: 42, Username: "bob"},
+	}
+	for name, mw := range map[string]func(http.Handler) http.Handler{
+		"Auth":         Auth(testSecret, "cz_token", pat, nil, testUnauthorized),
+		"OptionalAuth": OptionalAuth(testSecret, "cz_token", pat, nil),
+	} {
+		req := httptest.NewRequest(http.MethodGet, "/api/repos/bob/project", nil)
+		req.Header.Set("Authorization", "Bearer czp_bound")
+		reached := false
+		rr := httptest.NewRecorder()
+		mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { reached = true })).ServeHTTP(rr, req)
+		if reached || rr.Code != http.StatusUnauthorized {
+			t.Errorf("%s: reached handler %v, status %d; want 401", name, reached, rr.Code)
+		}
+	}
+}
+
 // TestAuth_InvalidPAT_Unauthorized verifies that a czp_ token that fails PAT validation
 // does not fall through to grant access — the request is rejected with 401.
 func TestAuth_InvalidPAT_Unauthorized(t *testing.T) {

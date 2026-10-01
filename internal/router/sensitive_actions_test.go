@@ -563,12 +563,14 @@ func TestPAT_OnlyAdminTokensSkipTheConfirmation(t *testing.T) {
 	granteeSuffix := testutil.UniqueSuffix(t)
 	testutil.SeedUser(t, db, granteeSuffix)
 	soon := time.Now().Add(24 * time.Hour)
+	signer, signingKey := testutil.NewSigningKey(t)
 	token := func(scopes ...string) string {
 		var expires *time.Time
+		var key string
 		if slices.Contains(scopes, model.ScopeRepoAdmin) {
-			expires = &soon
+			expires, key = &soon, signingKey
 		}
-		raw, _, err := svc.AccessToken.Generate(ctx, userID, "ci "+strings.Join(scopes, ","), scopes, expires)
+		raw, _, err := svc.AccessToken.GenerateWithKey(ctx, userID, "ci "+strings.Join(scopes, ","), scopes, expires, key)
 		if err != nil {
 			t.Fatalf("Generate %v: %v", scopes, err)
 		}
@@ -580,18 +582,38 @@ func TestPAT_OnlyAdminTokensSkipTheConfirmation(t *testing.T) {
 		t.Fatalf("create repo: %v", err)
 	}
 	base := "/api/repos/" + owner + "/" + repo.Name
-	post := func(token, path string, form url.Values) *httptest.ResponseRecorder {
+	request := func(token, path string, form url.Values) *http.Request {
 		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Set("Authorization", "Bearer "+token)
-		return serve(h, req)
+		return req
+	}
+	post := func(token, path string, form url.Values) *httptest.ResponseRecorder {
+		return serve(h, request(token, path, form))
 	}
 	collaborator := func(role string) url.Values {
 		return url.Values{"username": {"testuser_" + granteeSuffix}, "role": {role}}
 	}
 
-	if rr := post(admin, base+"/collaborators", collaborator("reader")); rr.Code >= 400 {
-		t.Fatalf("collaborator with a repo:admin token: got %d %s", rr.Code, rr.Body)
+	// The admin token's string alone, unsigned or signed by another key, is refused.
+	other, _ := testutil.NewSigningKey(t)
+	if rr := post(admin, base+"/collaborators", collaborator("reader")); rr.Code != http.StatusUnauthorized {
+		t.Errorf("an unsigned request with a repo:admin token: got %d, want 401", rr.Code)
+	}
+	forged := request(admin, base+"/collaborators", collaborator("reader"))
+	testutil.SignHTTPRequest(t, other, forged)
+	if rr := serve(h, forged); rr.Code != http.StatusUnauthorized {
+		t.Errorf("a request signed by another key: got %d, want 401", rr.Code)
+	}
+	signedReq := request(admin, base+"/collaborators", collaborator("reader"))
+	testutil.SignHTTPRequest(t, signer, signedReq)
+	replay := signedReq.Clone(signedReq.Context())
+	replay.Body = io.NopCloser(strings.NewReader(collaborator("reader").Encode()))
+	if rr := serve(h, signedReq); rr.Code >= 400 {
+		t.Fatalf("collaborator with a signed repo:admin request: got %d %s", rr.Code, rr.Body)
+	}
+	if rr := serve(h, replay); rr.Code != http.StatusUnauthorized {
+		t.Errorf("the same signed request again: got %d, want 401", rr.Code)
 	}
 	if notice := box.NextTo(t, email); !strings.Contains(notice.Data, base+"/collaborators") {
 		t.Errorf("the admin token's use wasn't mailed to the owner: %.300s", notice.Data)
@@ -605,8 +627,14 @@ func TestPAT_OnlyAdminTokensSkipTheConfirmation(t *testing.T) {
 	if rr := post(readOnly, base+"/collaborators", withPassword(collaborator("admin"), "password1")); rr.Code != http.StatusForbidden || !strings.Contains(rr.Body.String(), "insufficient_scope") {
 		t.Errorf("collaborator with a repo:read token: got %d %s, want insufficient_scope", rr.Code, rr.Body)
 	}
-	if rr := post(admin, "/api/user/keys", url.Values{"title": {"laptop"}, "public_key": {sshPublicKey(t)}}); rr.Code != http.StatusForbidden {
-		t.Errorf("account SSH key with a repo:admin token: got %d, want 403", rr.Code)
+	// /api/user routes take authMW alone, without optAuthMW in front.
+	if rr := post(admin, "/api/user/keys", url.Values{"title": {"laptop"}, "public_key": {sshPublicKey(t)}}); rr.Code != http.StatusUnauthorized {
+		t.Errorf("an unsigned request with a repo:admin token on an authMW-only route: got %d, want 401", rr.Code)
+	}
+	keyReq := request(admin, "/api/user/keys", url.Values{"title": {"laptop"}, "public_key": {sshPublicKey(t)}})
+	testutil.SignHTTPRequest(t, signer, keyReq)
+	if rr := serve(h, keyReq); rr.Code != http.StatusForbidden {
+		t.Errorf("account SSH key with a signed repo:admin request: got %d, want 403", rr.Code)
 	}
 	session := makeJWT(t, userID, owner)
 	if rr := post(session, base+"/collaborators", collaborator("writer")); rr.Code != http.StatusForbidden {

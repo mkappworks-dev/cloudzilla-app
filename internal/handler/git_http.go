@@ -43,7 +43,8 @@ func (h *Handler) resolveGitUser(r *http.Request, push bool) *gitUser {
 	_, password, ok := r.BasicAuth()
 	if ok && strings.HasPrefix(password, "czp_") {
 		token, user, err := h.Services.AccessToken.Validate(r.Context(), password)
-		if err == nil && middleware.PATAllowsGit(token.Scopes, push) {
+		// git can't sign requests, so a token bound to a key never works here.
+		if err == nil && token.SigningKey == "" && middleware.PATAllowsGit(token.Scopes, push) {
 			tokenID := token.ID
 			concurrency.Go("access_token.update_last_used", func() {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

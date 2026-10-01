@@ -46,8 +46,14 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	rawToken, _, err := h.Services.AccessToken.Generate(r.Context(), claims.UserID, name, scopes, expiresAt)
+	rawToken, _, err := h.Services.AccessToken.GenerateWithKey(r.Context(), claims.UserID, name, scopes, expiresAt, r.FormValue("signing_key"))
 	switch {
+	case errors.Is(err, service.ErrAdminTokenNeedsKey):
+		http.Redirect(w, r, "/settings?profile_error=token_admin_key#tokens", http.StatusSeeOther)
+		return
+	case errors.Is(err, service.ErrInvalidSigningKey):
+		http.Redirect(w, r, "/settings?profile_error=token_key_invalid#tokens", http.StatusSeeOther)
+		return
 	case errors.Is(err, service.ErrAdminTokenNoExpiry):
 		http.Redirect(w, r, "/settings?profile_error=token_admin_expiry#tokens", http.StatusSeeOther)
 		return

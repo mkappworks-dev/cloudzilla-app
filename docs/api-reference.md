@@ -23,6 +23,38 @@ When the `oauth_link_state` cookie matches `state`, `/auth/google/callback` fini
 
 Actions that give lasting access take the account's `password`, plus `code` (the TOTP code) when 2FA is on, as form fields or in the JSON body. An account with neither sends its directory password (LDAP), the code a fresh sign-in left in the `cz_reauth` cookie (`POST /settings/reauth/{provider}`), or `email_code` from `POST /settings/confirm-code`. A wrong confirmation gets 403, and five wrong ones in 15 minutes get 429. A personal access token created with `repo:admin` skips it for repository and organization administration, never for changes to the account. The full list is in [access control](./access-control.md#confirming-sensitive-actions).
 
+## Signed requests
+
+A token bound to a signing key (every `repo:admin` token) works only for requests signed with the key's private half. Anything else gets `401 {"error":"this token needs each request signed with its key"}`. Each request carries three headers besides `Authorization: Bearer czp_…`:
+
+- `X-Cloudzilla-Timestamp`: Unix seconds, within 5 minutes of the server's clock.
+- `X-Cloudzilla-Nonce`: 16 to 64 characters from `A-Z a-z 0-9 - _`, never reused with the token.
+- `X-Cloudzilla-Signature`: an `ssh-keygen -Y sign -n cloudzilla-api` signature of the message below, without its `BEGIN`/`END` lines and line breaks.
+
+The message is six lines, without a trailing newline: `cloudzilla-request-v1`, the method, the path and query as sent, the timestamp, the nonce, and the hex SHA-256 of the body (of nothing for a request without one). Bodies over 1 MiB are refused. A shell helper:
+
+```sh
+#!/bin/sh
+# cz-signed METHOD PATH [BODY_FILE] [CONTENT_TYPE]
+# Needs CZ_URL, CZ_TOKEN and CZ_KEY (the private key file).
+set -eu
+method=$1 path=$2 body=${3:-/dev/null} type=${4:-application/x-www-form-urlencoded}
+ts=$(date +%s)
+nonce=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+sum=$( (sha256sum 2>/dev/null || shasum -a 256) < "$body" | cut -d' ' -f1)
+msg=$(mktemp)
+trap 'rm -f "$msg" "$msg.sig"' EXIT
+printf 'cloudzilla-request-v1\n%s\n%s\n%s\n%s\n%s' "$method" "$path" "$ts" "$nonce" "$sum" > "$msg"
+ssh-keygen -Y sign -q -f "$CZ_KEY" -n cloudzilla-api "$msg"
+sig=$(sed '1d;$d' "$msg.sig" | tr -d '\n')
+curl -sS -X "$method" "$CZ_URL$path" \
+  -H "Authorization: Bearer $CZ_TOKEN" -H "Content-Type: $type" \
+  -H "X-Cloudzilla-Timestamp: $ts" -H "X-Cloudzilla-Nonce: $nonce" -H "X-Cloudzilla-Signature: $sig" \
+  --data-binary @"$body"
+```
+
+For example, `printf 'username=bob&role=writer' > b; cz-signed POST /api/repos/acme/app/collaborators b`.
+
 ## Two-Factor Authentication (TOTP)
 
 | Method | Path                     | Auth     | Description                                      |
@@ -57,7 +89,7 @@ Browser form posts from Account settings. Both need the current `password`, plus
 
 | Method | Path                   | Auth     | Description                                                                                                                                                        |
 | ------ | ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, repeated `scopes` from `repo:read`, `repo:write`, `issues:write`, `pulls:write` and `repo:admin` — the last needs `expires_at` within 90 days — optional `expires_at`, plus `password` and, with 2FA, `code` form fields); redirects to `/settings#tokens`, which shows the raw token once, via an HttpOnly cookie, or to `/settings?profile_error=reauth_failed#tokens` |
+| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, repeated `scopes` from `repo:read`, `repo:write`, `issues:write`, `pulls:write` and `repo:admin` — the last needs `signing_key` and `expires_at` within 90 days — optional `expires_at`, optional `signing_key` (an SSH public key; see [signed requests](#signed-requests)), plus `password` and, with 2FA, `code` form fields); redirects to `/settings#tokens`, which shows the raw token once, via an HttpOnly cookie, or to `/settings?profile_error=reauth_failed#tokens` |
 | DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                                                                                                 |
 
 Raw token format: `czp_<32-byte hex>`. Use as `Authorization: Bearer czp_<token>`. Only the SHA-256 hash is stored; the raw value cannot be recovered after creation.

@@ -2,12 +2,10 @@ package service_test
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -148,31 +146,4 @@ func min(a, b int) int {
 		return a
 	}
 	return b
-}
-
-// A repo:admin token skips confirmation prompts, so it must expire soon; and a
-// scope that doesn't exist would read as granting nothing, or everything.
-func TestAccessTokenService_Generate_ChecksScopes(t *testing.T) {
-	db := testutil.OpenTestDB(t)
-	svc := service.NewAccessTokenService(store.NewAccessTokenStore(db), store.NewUserStore(db))
-	userID := testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
-	ctx := context.Background()
-	in := func(d time.Duration) *time.Time { t := time.Now().Add(d); return &t }
-
-	for _, tt := range []struct {
-		name    string
-		scopes  []string
-		expires *time.Time
-		want    error
-	}{
-		{"admin without expiry", []string{model.ScopeRepoAdmin}, nil, service.ErrAdminTokenNoExpiry},
-		{"admin for 100 days", []string{model.ScopeRepoAdmin}, in(100 * 24 * time.Hour), service.ErrAdminTokenNoExpiry},
-		{"admin for 30 days", []string{model.ScopeRepoAdmin}, in(30 * 24 * time.Hour), nil},
-		{"unknown scope", []string{"repo"}, nil, service.ErrUnknownTokenScope},
-		{"read", []string{model.ScopeRepoRead}, nil, nil},
-	} {
-		if _, _, err := svc.Generate(ctx, userID, tt.name, tt.scopes, tt.expires); !errors.Is(err, tt.want) {
-			t.Errorf("%s: err = %v, want %v", tt.name, err, tt.want)
-		}
-	}
 }

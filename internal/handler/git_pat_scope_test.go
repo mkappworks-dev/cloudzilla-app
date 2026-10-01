@@ -43,4 +43,16 @@ func TestResolveGitUser_HoldsTokensToTheirScopes(t *testing.T) {
 			}
 		}
 	}
+
+	// git can't sign its requests, so a token bound to a key never works for it.
+	_, pub := testutil.NewSigningKey(t)
+	raw, _, err := h.Services.AccessToken.GenerateWithKey(t.Context(), userID, "bound", []string{model.ScopeRepoWrite}, nil, pub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.SetBasicAuth("x", raw)
+	if h.resolveGitUser(req, false) != nil {
+		t.Error("a key-bound token authenticated git")
+	}
 }

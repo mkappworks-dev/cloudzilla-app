@@ -1,7 +1,11 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"io"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -90,6 +94,53 @@ func (c Claims) HasScope(scope string) bool {
 	return !c.Scoped || slices.Contains(c.Scopes, scope)
 }
 
+// SignedRequestVerifier is implemented by AccessTokenService: it checks the
+// signature a token bound to a key needs on every request.
+type SignedRequestVerifier interface {
+	VerifySignedRequest(ctx context.Context, token *model.AccessToken, req model.SignedRequest) error
+}
+
+const maxSignedBody = 1 << 20
+
+// signedRequest checks the signature of a request made with token, a token
+// bound to a key; see AccessTokenService.VerifySignedRequest. It hashes the
+// body, so it returns r with the body restored. It fails closed: a validator
+// that can't verify signatures refuses every key-bound token.
+func signedRequest(r *http.Request, v PATValidator, token *model.AccessToken) (*http.Request, bool) {
+	sv, ok := v.(SignedRequestVerifier)
+	if !ok {
+		return r, false
+	}
+	var body []byte
+	if r.Body != nil {
+		var err error
+		if body, err = io.ReadAll(io.LimitReader(r.Body, maxSignedBody+1)); err != nil || len(body) > maxSignedBody {
+			return r, false
+		}
+		r.Body = io.NopCloser(bytes.NewReader(body))
+	}
+	sum := sha256.Sum256(body)
+	err := sv.VerifySignedRequest(r.Context(), token, model.SignedRequest{
+		Method:     r.Method,
+		Target:     r.URL.RequestURI(),
+		Timestamp:  r.Header.Get("X-Cloudzilla-Timestamp"),
+		Nonce:      r.Header.Get("X-Cloudzilla-Nonce"),
+		BodySHA256: hex.EncodeToString(sum[:]),
+		Signature:  r.Header.Get("X-Cloudzilla-Signature"),
+	})
+	if err != nil {
+		slog.Warn("signed request refused", "token_id", token.ID, "target", r.URL.RequestURI(), "error", err)
+	}
+	return r, err == nil
+}
+
+func writeSignatureRequired(w http.ResponseWriter) {
+	w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	_, _ = w.Write([]byte(`{"error":"this token needs each request signed with its key"}`))
+}
+
 // PATValidator is implemented by AccessTokenService. Defined here to avoid import cycle.
 // PATValidator validates a raw personal access token and returns the associated user ID.
 type PATValidator interface {
@@ -109,12 +160,26 @@ func ClaimsFromContext(ctx context.Context) (Claims, bool) {
 	return c, ok
 }
 
+// alreadyAuthenticated passes r on when an outer auth middleware already set
+// its claims, as optAuthMW does for route groups whose routes add authMW.
+// Checking a signed token's request again would find its nonce spent.
+func alreadyAuthenticated(w http.ResponseWriter, r *http.Request, next http.Handler) bool {
+	if _, ok := ClaimsFromContext(r.Context()); !ok {
+		return false
+	}
+	next.ServeHTTP(w, r)
+	return true
+}
+
 // Auth returns middleware that requires a valid JWT cookie, Bearer token, or PAT.
 // onUnauthorized handles unauthenticated requests (redirect to /login for HTML, JSON 401 for API).
 func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OAuthTokenResolver, onUnauthorized http.HandlerFunc, opts ...AuthOption) func(http.Handler) http.Handler {
 	o := applyAuthOptions(opts)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if alreadyAuthenticated(w, r, next) {
+				return
+			}
 			tokenStr := extractToken(r, cookieName)
 			if tokenStr == "" {
 				onUnauthorized(w, r)
@@ -128,6 +193,13 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 			if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
 				token, user, err := patValidator.Validate(r.Context(), tokenStr)
 				if err == nil {
+					if token.SigningKey != "" {
+						var signed bool
+						if r, signed = signedRequest(r, patValidator, token); !signed {
+							writeSignatureRequired(w)
+							return
+						}
+					}
 					touchLastUsed(patValidator, token.ID)
 					claims := patClaims(token, user)
 					if !scopeAllows(claims, r) {
@@ -173,6 +245,9 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 	o := applyAuthOptions(opts)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if alreadyAuthenticated(w, r, next) {
+				return
+			}
 			tokenStr := extractToken(r, cookieName)
 			if tokenStr != "" {
 				if serveOAuth(w, r, next, oauthResolver, tokenStr) {
@@ -181,6 +256,13 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 				if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
 					pat, user, err := patValidator.Validate(r.Context(), tokenStr)
 					if err == nil {
+						if pat.SigningKey != "" {
+							var signed bool
+							if r, signed = signedRequest(r, patValidator, pat); !signed {
+								writeSignatureRequired(w)
+								return
+							}
+						}
 						touchLastUsed(patValidator, pat.ID)
 						claims := patClaims(pat, user)
 						if !scopeAllows(claims, r) {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
@@ -18,9 +19,9 @@ func NewAccessTokenStore(db *sql.DB) *AccessTokenStore { return &AccessTokenStor
 func (s *AccessTokenStore) Create(ctx context.Context, t *model.AccessToken) error {
 	t.ScopesRaw = strings.Join(t.Scopes, ",")
 	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO access_tokens (user_id, name, token_hash, last_eight, scopes, expires_at)
-		 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at`,
-		t.UserID, t.Name, t.TokenHash, t.LastEight, t.ScopesRaw, t.ExpiresAt,
+		`INSERT INTO access_tokens (user_id, name, token_hash, last_eight, scopes, expires_at, signing_key)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_at`,
+		t.UserID, t.Name, t.TokenHash, t.LastEight, t.ScopesRaw, t.ExpiresAt, t.SigningKey,
 	).Scan(&t.ID, &t.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("access token create: %w", err)
@@ -30,7 +31,7 @@ func (s *AccessTokenStore) Create(ctx context.Context, t *model.AccessToken) err
 
 func (s *AccessTokenStore) ListByUser(ctx context.Context, userID int64) ([]model.AccessToken, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, user_id, name, token_hash, last_eight, scopes, last_used_at, expires_at, created_at
+		`SELECT id, user_id, name, token_hash, last_eight, scopes, last_used_at, expires_at, created_at, signing_key
 		 FROM access_tokens WHERE user_id = $1 ORDER BY created_at DESC`,
 		userID,
 	)
@@ -42,7 +43,7 @@ func (s *AccessTokenStore) ListByUser(ctx context.Context, userID int64) ([]mode
 	for rows.Next() {
 		var t model.AccessToken
 		if err := rows.Scan(&t.ID, &t.UserID, &t.Name, &t.TokenHash, &t.LastEight, &t.ScopesRaw,
-			&t.LastUsedAt, &t.ExpiresAt, &t.CreatedAt); err != nil {
+			&t.LastUsedAt, &t.ExpiresAt, &t.CreatedAt, &t.SigningKey); err != nil {
 			return nil, err
 		}
 		if t.ScopesRaw != "" {
@@ -56,11 +57,11 @@ func (s *AccessTokenStore) ListByUser(ctx context.Context, userID int64) ([]mode
 func (s *AccessTokenStore) GetByHash(ctx context.Context, tokenHash string) (*model.AccessToken, error) {
 	t := &model.AccessToken{}
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, user_id, name, token_hash, last_eight, scopes, last_used_at, expires_at, created_at
+		`SELECT id, user_id, name, token_hash, last_eight, scopes, last_used_at, expires_at, created_at, signing_key
 		 FROM access_tokens WHERE token_hash = $1`,
 		tokenHash,
 	).Scan(&t.ID, &t.UserID, &t.Name, &t.TokenHash, &t.LastEight, &t.ScopesRaw,
-		&t.LastUsedAt, &t.ExpiresAt, &t.CreatedAt)
+		&t.LastUsedAt, &t.ExpiresAt, &t.CreatedAt, &t.SigningKey)
 	if err != nil {
 		return nil, fmt.Errorf("access token get by hash: %w", err)
 	}
@@ -68,6 +69,27 @@ func (s *AccessTokenStore) GetByHash(ctx context.Context, tokenHash string) (*mo
 		t.Scopes = strings.Split(t.ScopesRaw, ",")
 	}
 	return t, nil
+}
+
+// ClaimNonce records nonce for tokenID until ttl from now, reporting false
+// when it was already used, so a signed request can't be replayed.
+func (s *AccessTokenStore) ClaimNonce(ctx context.Context, tokenID int64, nonce string, ttl time.Duration) (bool, error) {
+	if _, err := s.db.ExecContext(ctx,
+		`DELETE FROM access_token_nonces WHERE token_id = $1 AND expires_at < NOW()`, tokenID); err != nil {
+		return false, fmt.Errorf("access token prune nonces: %w", err)
+	}
+	res, err := s.db.ExecContext(ctx,
+		`INSERT INTO access_token_nonces (token_id, nonce, expires_at)
+		 VALUES ($1, $2, NOW() + make_interval(secs => $3)) ON CONFLICT DO NOTHING`,
+		tokenID, nonce, ttl.Seconds())
+	if err != nil {
+		return false, fmt.Errorf("access token claim nonce: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("access token claim nonce rows: %w", err)
+	}
+	return n == 1, nil
 }
 
 func (s *AccessTokenStore) UpdateLastUsed(ctx context.Context, tokenID int64) error {

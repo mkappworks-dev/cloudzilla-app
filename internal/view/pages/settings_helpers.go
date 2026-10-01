@@ -44,6 +44,10 @@ func SettingsErrorMessage(code string) string {
 		return "This account has no way to confirm it's you here, so this can't be done. Ask your administrator."
 	case "token_admin_expiry":
 		return "A token with repo:admin must expire within 90 days. Pick an expiry date and try again."
+	case "token_admin_key":
+		return "A token with repo:admin needs a signing key. Paste an SSH public key; its private key will sign each request."
+	case "token_key_invalid":
+		return "The signing key must be an Ed25519, ECDSA or 2048-bit RSA SSH public key, like the contents of a .pub file."
 	case "token_scope_unknown":
 		return "That token scope doesn't exist. Nothing was created."
 	case "reauth_error":

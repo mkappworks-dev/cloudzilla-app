@@ -31,19 +31,39 @@ func NewAccessTokenService(tokens *store.AccessTokenStore, users *store.UserStor
 const MaxAdminTokenLifetime = 90 * 24 * time.Hour
 
 var (
-	ErrUnknownTokenScope   = errors.New("unknown token scope")
-	ErrAdminTokenNoExpiry  = errors.New("a repo:admin token must expire within 90 days")
+	ErrUnknownTokenScope  = errors.New("unknown token scope")
+	ErrAdminTokenNoExpiry = errors.New("a repo:admin token must expire within 90 days")
 )
 
 // Generate creates a new PAT, stores only its SHA-256 hash, and returns the raw token once.
 func (s *AccessTokenService) Generate(ctx context.Context, userID int64, name string, scopes []string, expiresAt *time.Time) (string, *model.AccessToken, error) {
+	return s.GenerateWithKey(ctx, userID, name, scopes, expiresAt, "")
+}
+
+// GenerateWithKey is Generate for a token bound to signingKey, an SSH public
+// key: every request with it must be signed (see VerifySignedRequest). A
+// repo:admin token must be bound, so the token string alone can't be used.
+func (s *AccessTokenService) GenerateWithKey(ctx context.Context, userID int64, name string, scopes []string, expiresAt *time.Time, signingKey string) (string, *model.AccessToken, error) {
+	admin := false
 	for _, sc := range scopes {
 		if !model.IsTokenScope(sc) {
 			return "", nil, fmt.Errorf("%w: %q", ErrUnknownTokenScope, sc)
 		}
-		if sc == model.ScopeRepoAdmin && (expiresAt == nil || expiresAt.After(time.Now().Add(MaxAdminTokenLifetime))) {
-			return "", nil, ErrAdminTokenNoExpiry
+		if sc == model.ScopeRepoAdmin {
+			admin = true
+			if expiresAt == nil || expiresAt.After(time.Now().Add(MaxAdminTokenLifetime)) {
+				return "", nil, ErrAdminTokenNoExpiry
+			}
 		}
+	}
+	if strings.TrimSpace(signingKey) != "" {
+		key, err := parseSigningKey(signingKey)
+		if err != nil {
+			return "", nil, err
+		}
+		signingKey = key
+	} else if admin {
+		return "", nil, ErrAdminTokenNeedsKey
 	}
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
@@ -55,12 +75,13 @@ func (s *AccessTokenService) Generate(ctx context.Context, userID int64, name st
 	hash := hex.EncodeToString(sum[:])
 
 	t := &model.AccessToken{
-		UserID:    userID,
-		Name:      name,
-		TokenHash: hash,
-		LastEight: rawHex[len(rawHex)-8:],
-		Scopes:    scopes,
-		ExpiresAt: expiresAt,
+		UserID:     userID,
+		Name:       name,
+		TokenHash:  hash,
+		LastEight:  rawHex[len(rawHex)-8:],
+		Scopes:     scopes,
+		ExpiresAt:  expiresAt,
+		SigningKey: signingKey,
 	}
 	if err := s.tokens.Create(ctx, t); err != nil {
 		return "", nil, err

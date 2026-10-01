@@ -458,7 +458,10 @@ templ settingsTokensSection(data view.SettingsData) {
 										<span class="font-mono">{ s }</span>
 									}
 								} else {
-									<span class="font-mono">none</span>
+									<span class="font-mono">full access</span>
+								}
+								if t.SigningKey != "" {
+									{ " · signed requests only" }
 								}
 								if t.ExpiresAt != nil {
 									{ " · expires " }
@@ -515,9 +518,14 @@ templ settingsGenerateTokenDialog(data view.SettingsData) {
 							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="repo:write"/> <span><strong class="font-mono">repo:write</strong> — push to repositories</span></label>
 							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="issues:write"/> <span><strong class="font-mono">issues:write</strong> — create and update issues</span></label>
 							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="pulls:write"/> <span><strong class="font-mono">pulls:write</strong> — create and update pull requests</span></label>
-							<label class="flex items-start gap-2"><input type="checkbox" name="scopes" value="repo:admin" class="mt-0.5"/> <span><strong class="font-mono">repo:admin</strong> — manage collaborators, deploy keys, webhooks, org owners, transfers and deletion without a password prompt. Needs an expiry within 90 days, and each use is emailed to you.</span></label>
+							<label class="flex items-start gap-2"><input type="checkbox" name="scopes" value="repo:admin" class="mt-0.5"/> <span><strong class="font-mono">repo:admin</strong> — manage collaborators, deploy keys, webhooks, org owners, transfers and deletion without a password prompt. Needs a signing key and an expiry within 90 days, and each use is emailed to you.</span></label>
 						</div>
 					</fieldset>
+					<div>
+						<label for="token-signing-key" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Signing key (required with repo:admin)</label>
+						<textarea id="token-signing-key" name="signing_key" rows="2" placeholder="ssh-ed25519 AAAA…" aria-describedby="token-signing-key-help" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-none focus:border-ring"></textarea>
+						<p id="token-signing-key-help" class="text-[11px] text-muted-foreground mt-1">An SSH public key. Every request with this token must then be signed with its private key (<span class="font-mono">ssh-keygen -Y sign</span>), so the token alone is useless to anyone who copies it. Such a token can't be used for git.</p>
+					</div>
 					<div>
 						<label for="token-expires" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Expiration (optional)</label>
 						<input id="token-expires" name="expires_at" type="date" class="bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
