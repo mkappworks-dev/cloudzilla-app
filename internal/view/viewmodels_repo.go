@@ -316,6 +316,7 @@ type RepoCollaboratorsFragData struct {
 	RepoID    int64
 	Collabs   []model.Permission
 	CanManage bool
+	IsOwner   bool
 	Confirm   components.ConfirmFactors
 }
 

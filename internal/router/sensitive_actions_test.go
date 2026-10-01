@@ -626,7 +626,7 @@ func TestPAT_OnlyAdminTokensSkipTheConfirmation(t *testing.T) {
 	if rr := serve(h, elsewhere); rr.Code != http.StatusForbidden || !strings.Contains(rr.Body.String(), "isn't allowed for that repository") {
 		t.Errorf("a repository the token doesn't name: got %d %s, want 403", rr.Code, rr.Body)
 	}
-	if n := countRows(t, db, `SELECT COUNT(*) FROM permissions WHERE repo_id = $1 AND role <> 'owner'`, otherRepo.ID); n != 0 {
+	if n := countRows(t, db, `SELECT COUNT(*) FROM permissions WHERE repo_id = $1`, otherRepo.ID); n != 0 {
 		t.Errorf("%d collaborators added to a repository the token doesn't name", n)
 	}
 	if notice := box.NextTo(t, email); !strings.Contains(notice.Data, base+"/collaborators") {
