@@ -346,8 +346,9 @@ func (s *IssueStore) SetLocked(ctx context.Context, issueID int64, locked bool) 
 	return err
 }
 
-// ListPinned returns all pinned issues for a repo, ordered by number ascending.
-func (s *IssueStore) ListPinned(ctx context.Context, repoID int64) ([]model.Issue, error) {
+// ListPinned returns a repo's pinned issues that issueVisibleTo lets the user
+// see, ordered by number ascending. A nil user sees only public issues.
+func (s *IssueStore) ListPinned(ctx context.Context, repoID int64, visibleToUserID *int64) ([]model.Issue, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT i.id, i.repo_id, i.number, i.author_id,
 		        COALESCE(u.username, '') AS author_name,
@@ -356,9 +357,9 @@ func (s *IssueStore) ListPinned(ctx context.Context, repoID int64) ([]model.Issu
 		        i.is_pinned, i.is_locked, i.locked_at
 		 FROM issues i
 		 LEFT JOIN users u ON u.id = i.author_id
-		 WHERE i.repo_id = $1 AND i.is_pinned = TRUE
+		 WHERE i.repo_id = $1 AND i.is_pinned = TRUE AND `+issueVisibleTo("i", "$2")+`
 		 ORDER BY i.number ASC`,
-		repoID,
+		repoID, viewerID(visibleToUserID),
 	)
 	if err != nil {
 		return nil, err

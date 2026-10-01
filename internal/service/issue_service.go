@@ -240,13 +240,13 @@ func (s *IssueService) UnlockIssue(ctx context.Context, owner, repoName string, 
 	return s.issues.SetLocked(ctx, issue.ID, false)
 }
 
-// ListPinned returns all pinned issues for a repo.
-func (s *IssueService) ListPinned(ctx context.Context, owner, repoName string) ([]model.Issue, error) {
+// ListPinned returns the pinned issues of a repo that visibleToUserID can see.
+func (s *IssueService) ListPinned(ctx context.Context, owner, repoName string, visibleToUserID *int64) ([]model.Issue, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
-	return s.issues.ListPinned(ctx, repo.ID)
+	return s.issues.ListPinned(ctx, repo.ID, visibleToUserID)
 }
 
 // canManage checks whether userID can manage the repo (owner or org owner).

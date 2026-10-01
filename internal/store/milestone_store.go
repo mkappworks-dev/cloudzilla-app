@@ -21,12 +21,16 @@ type MilestoneStore struct{ db *sql.DB }
 
 func NewMilestoneStore(db *sql.DB) *MilestoneStore { return &MilestoneStore{db: db} }
 
-const milestoneCountsSQL = `
+// milestoneCountsSQL selects milestones with counts of the issues
+// issueVisibleTo lets the user in placeholder u see.
+func milestoneCountsSQL(u string) string {
+	return `
 SELECT m.id, m.repo_id, m.number, m.title, m.description, m.state,
        m.due_date, m.closed_at, m.created_at, m.updated_at,
-       (SELECT COUNT(*) FROM issues i WHERE i.milestone_id = m.id AND i.state = 'open')   AS open_count,
-       (SELECT COUNT(*) FROM issues i WHERE i.milestone_id = m.id AND i.state = 'closed') AS closed_count
+       (SELECT COUNT(*) FROM issues i WHERE i.milestone_id = m.id AND i.state = 'open' AND ` + issueVisibleTo("i", u) + `)   AS open_count,
+       (SELECT COUNT(*) FROM issues i WHERE i.milestone_id = m.id AND i.state = 'closed' AND ` + issueVisibleTo("i", u) + `) AS closed_count
 FROM milestones m`
+}
 
 func (s *MilestoneStore) Create(ctx context.Context, m *model.Milestone) error {
 	const q = `
@@ -45,10 +49,10 @@ RETURNING id, number, created_at, updated_at`
 	).Scan(&m.ID, &m.Number, &m.CreatedAt, &m.UpdatedAt)
 }
 
-func (s *MilestoneStore) ListByRepo(ctx context.Context, repoID int64) ([]model.Milestone, error) {
+func (s *MilestoneStore) ListByRepo(ctx context.Context, repoID int64, visibleToUserID *int64) ([]model.Milestone, error) {
 	rows, err := s.db.QueryContext(ctx,
-		milestoneCountsSQL+` WHERE m.repo_id = $1 ORDER BY m.created_at DESC`,
-		repoID,
+		milestoneCountsSQL("$2")+` WHERE m.repo_id = $1 ORDER BY m.created_at DESC`,
+		repoID, viewerID(visibleToUserID),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("milestone list: %w", err)
@@ -57,10 +61,10 @@ func (s *MilestoneStore) ListByRepo(ctx context.Context, repoID int64) ([]model.
 	return scanMilestones(rows)
 }
 
-func (s *MilestoneStore) GetByNumber(ctx context.Context, repoID int64, number int) (*model.Milestone, error) {
+func (s *MilestoneStore) GetByNumber(ctx context.Context, repoID int64, number int, visibleToUserID *int64) (*model.Milestone, error) {
 	row := s.db.QueryRowContext(ctx,
-		milestoneCountsSQL+` WHERE m.repo_id = $1 AND m.number = $2`,
-		repoID, number,
+		milestoneCountsSQL("$3")+` WHERE m.repo_id = $1 AND m.number = $2`,
+		repoID, number, viewerID(visibleToUserID),
 	)
 	m, err := scanMilestone(row)
 	if err != nil {
@@ -69,10 +73,10 @@ func (s *MilestoneStore) GetByNumber(ctx context.Context, repoID int64, number i
 	return m, nil
 }
 
-func (s *MilestoneStore) GetByID(ctx context.Context, id int64) (*model.Milestone, error) {
+func (s *MilestoneStore) GetByID(ctx context.Context, id int64, visibleToUserID *int64) (*model.Milestone, error) {
 	row := s.db.QueryRowContext(ctx,
-		milestoneCountsSQL+` WHERE m.id = $1`,
-		id,
+		milestoneCountsSQL("$2")+` WHERE m.id = $1`,
+		id, viewerID(visibleToUserID),
 	)
 	m, err := scanMilestone(row)
 	if err != nil {
@@ -284,7 +288,7 @@ func (s *MilestoneStore) ListIssuesByMilestone(ctx context.Context, milestoneID 
 	return ids, rows.Err()
 }
 
-func (s *MilestoneStore) ListIssuesPaged(ctx context.Context, milestoneID int64, state string, page, pageSize int) ([]model.Issue, error) {
+func (s *MilestoneStore) ListIssuesPaged(ctx context.Context, milestoneID int64, state string, visibleToUserID *int64, page, pageSize int) ([]model.Issue, error) {
 	offset := (page - 1) * pageSize
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT i.id, i.repo_id, i.number, i.author_id,
@@ -295,10 +299,10 @@ func (s *MilestoneStore) ListIssuesPaged(ctx context.Context, milestoneID int64,
 		       i.is_pinned, i.is_locked, i.locked_at
 		FROM issues i
 		LEFT JOIN users u ON u.id = i.author_id
-		WHERE i.milestone_id = $1 AND i.state = $2
+		WHERE i.milestone_id = $1 AND i.state = $2 AND `+issueVisibleTo("i", "$3")+`
 		ORDER BY i.created_at DESC
-		LIMIT $3 OFFSET $4`,
-		milestoneID, state, pageSize, offset,
+		LIMIT $4 OFFSET $5`,
+		milestoneID, state, viewerID(visibleToUserID), pageSize, offset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("milestone issues paged: %w", err)

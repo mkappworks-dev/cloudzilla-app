@@ -242,7 +242,7 @@ func (s *RepoService) CanManage(ctx, repo, userID int64) bool
 func (s *RepoService) IsOwner(ctx, repo, userID int64) bool
 ```
 
-`IsOwner` looks only at `org_members` for an org repo and only at `owner_id` for a personal one, and the other three build on it. Store queries that filter many repos by what the viewer can read (account issue and PR lists and counts, the activity feed, the attention inbox, repo, issue and PR search, the notification email digest) use `readableBy` and `ownedBy` (`internal/store/repo_store.go`), the SQL forms of `CanRead` and `IsOwner`. Issue search also applies `issueVisibleTo` (`internal/store/issue_store.go`), the private-issue rule the issue pages use: a private issue shows only to its author and to the users `CanWrite` lets in (the repo's owners and `writer` or `admin` collaborators). Search skips soft-deleted repos, and code search covers public repos only.
+`IsOwner` looks only at `org_members` for an org repo and only at `owner_id` for a personal one, and the other three build on it. Store queries that filter many repos by what the viewer can read (account issue and PR lists and counts, the activity feed, the attention inbox, repo, issue and PR search, the notification email digest) use `readableBy` and `ownedBy` (`internal/store/repo_store.go`), the SQL forms of `CanRead` and `IsOwner`. Issue search also applies `issueVisibleTo` (`internal/store/issue_store.go`), the private-issue rule that issue pages, pinned issues, and milestone issue lists and counts use: a private issue shows only to its author and to the users `CanWrite` lets in (the repo's owners and `writer` or `admin` collaborators). Search skips soft-deleted repos, and code search covers public repos only.
 
 ### Two-Layer Enforcement Pattern
 
