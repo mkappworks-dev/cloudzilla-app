@@ -242,7 +242,7 @@ func (h *Handler) PageHome(w http.ResponseWriter, r *http.Request) {
 			applyHomeRepoSort(data.Repos, repoSort)
 		}
 	} else {
-		publicRepos, err := h.Services.Repo.List(ctx)
+		publicRepos, err := h.Services.Repo.ListVisibleTo(ctx, nil)
 		if err != nil {
 			slog.Warn("home: anonymous public-repo list failed", "error", err)
 		} else {

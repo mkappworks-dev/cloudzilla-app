@@ -146,7 +146,7 @@ Public user objects — returned by `GET /api/users/:username` and by `/api/repo
 
 | Method | Path                                | Auth     | Description                                                                         |
 | ------ | ----------------------------------- | -------- | ----------------------------------------------------------------------------------- |
-| GET    | `/api/repos/`                       | --       | List all repositories                                                               |
+| GET    | `/api/repos/`                       | --       | List the repositories the caller can read; anonymous callers get public ones only   |
 | POST   | `/api/repos/`                       | Required | Create a repository (`name`, `description`, `private`, plus the init options below) |
 | GET    | `/api/repos/:owner/:repo`           | --       | Get repository details                                                              |
 | POST   | `/api/repos/:owner/:repo/fork`      | Required | Fork into authenticated user's namespace                                            |
