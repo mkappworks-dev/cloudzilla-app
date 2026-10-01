@@ -15,6 +15,9 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
 
+// ErrScopeRequired is returned when a personal access token would be created without scopes.
+var ErrScopeRequired = errors.New("at least one scope is required")
+
 // AccessTokenService manages personal access token (PAT) generation and validation.
 type AccessTokenService struct {
 	tokens *store.AccessTokenStore
@@ -27,7 +30,16 @@ func NewAccessTokenService(tokens *store.AccessTokenStore, users *store.UserStor
 }
 
 // Generate creates a new PAT, stores only its SHA-256 hash, and returns the raw token once.
+// It returns ErrScopeRequired without scopes and ErrInvalidScope for an unknown one.
 func (s *AccessTokenService) Generate(ctx context.Context, userID int64, name string, scopes []string, expiresAt *time.Time) (string, *model.AccessToken, error) {
+	scopes, err := validateScopes(scopes)
+	if err != nil {
+		return "", nil, err
+	}
+	if len(scopes) == 0 {
+		return "", nil, ErrScopeRequired
+	}
+
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
 		return "", nil, fmt.Errorf("generate token bytes: %w", err)

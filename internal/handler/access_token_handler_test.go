@@ -17,6 +17,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -73,7 +74,7 @@ func TestCreateToken_ShowsTokenOnceWithoutPuttingItInAURL(t *testing.T) {
 		return string(b)
 	}
 
-	resp, err := client.PostForm(srv.URL+"/api/user/tokens", url.Values{"name": {"ci " + suffix}, "scopes": {"repo"}})
+	resp, err := client.PostForm(srv.URL+"/api/user/tokens", url.Values{"name": {"ci " + suffix}, "scopes": {model.ScopeRepoRead}})
 	if err != nil {
 		t.Fatal(err)
 	}

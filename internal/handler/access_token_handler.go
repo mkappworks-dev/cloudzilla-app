@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
@@ -40,6 +42,10 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rawToken, _, err := h.Services.AccessToken.Generate(r.Context(), claims.UserID, name, scopes, expiresAt)
+	if errors.Is(err, service.ErrScopeRequired) || errors.Is(err, service.ErrInvalidScope) {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	if err != nil {
 		http.Error(w, "failed to create token", http.StatusInternalServerError)
 		return
