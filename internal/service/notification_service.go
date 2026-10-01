@@ -14,18 +14,33 @@ import (
 type NotificationService struct {
 	notifs   *store.NotificationStore
 	watches  *store.WatchStore
+	repos    *RepoService
 	emailSvc *EmailService
 	userSvc  *UserService
 }
 
 // NewNotificationService creates a NotificationService backed by the given stores and services.
-func NewNotificationService(notifs *store.NotificationStore, watches *store.WatchStore, emailSvc *EmailService, userSvc *UserService) *NotificationService {
-	return &NotificationService{notifs: notifs, watches: watches, emailSvc: emailSvc, userSvc: userSvc}
+func NewNotificationService(notifs *store.NotificationStore, watches *store.WatchStore, repos *RepoService, emailSvc *EmailService, userSvc *UserService) *NotificationService {
+	return &NotificationService{notifs: notifs, watches: watches, repos: repos, emailSvc: emailSvc, userSvc: userSvc}
 }
 
-// fanOutToWatchers sends n to all non-ignoring watchers of n.RepoID,
+// create stores n for n.UserID and reports whether it did. Read access is
+// checked here, not when the user watched or authored the subject: a watch or
+// an authorship outlives a revoked collaborator role or org ownership.
+func (s *NotificationService) create(ctx context.Context, repo *model.Repository, n *model.Notification) bool {
+	if !s.repos.CanRead(ctx, repo, &n.UserID) {
+		return false
+	}
+	if err := s.notifs.Create(ctx, n); err != nil {
+		slog.Error("failed to create notification", "type", n.Type, "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
+		return false
+	}
+	return true
+}
+
+// fanOutToWatchers sends n to all non-ignoring watchers of repo,
 // excluding the actor and skipUserID (pass 0 to skip no-one extra).
-func (s *NotificationService) fanOutToWatchers(ctx context.Context, n *model.Notification, skipUserID int64) {
+func (s *NotificationService) fanOutToWatchers(ctx context.Context, repo *model.Repository, n *model.Notification, skipUserID int64) {
 	if s.watches == nil {
 		return
 	}
@@ -40,9 +55,7 @@ func (s *NotificationService) fanOutToWatchers(ctx context.Context, n *model.Not
 		}
 		copy := *n
 		copy.UserID = uid
-		if err := s.notifs.Create(ctx, &copy); err != nil {
-			slog.Error("fanOutToWatchers: failed to create notification", "user_id", uid, "repo_id", n.RepoID, "error", err)
-		}
+		s.create(ctx, repo, &copy)
 	}
 }
 
@@ -63,7 +76,7 @@ func (s *NotificationService) List(ctx context.Context, userID int64) ([]model.N
 }
 
 func (s *NotificationService) ListUnreadForDigest(ctx context.Context, u *model.User, mode string) ([]model.Notification, error) {
-	notifs, err := s.notifs.ListUnreadByUser(ctx, u.ID)
+	notifs, err := s.notifs.ListUnreadReadable(ctx, u.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -95,13 +108,11 @@ func (s *NotificationService) NotifyIssueComment(ctx context.Context, repo model
 	}
 	if actorID != issue.AuthorID {
 		n.UserID = issue.AuthorID
-		if err := s.notifs.Create(ctx, n); err != nil {
-			slog.Error("NotifyIssueComment: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
-		} else {
+		if s.create(ctx, &repo, n) {
 			s.sendEmailAsync(*n)
 		}
 	}
-	s.fanOutToWatchers(ctx, n, issue.AuthorID)
+	s.fanOutToWatchers(ctx, &repo, n, issue.AuthorID)
 }
 
 func (s *NotificationService) NotifyPRComment(ctx context.Context, repo model.Repository, pr model.PullRequest, actorID int64, actorName string) {
@@ -117,13 +128,11 @@ func (s *NotificationService) NotifyPRComment(ctx context.Context, repo model.Re
 	}
 	if actorID != pr.AuthorID {
 		n.UserID = pr.AuthorID
-		if err := s.notifs.Create(ctx, n); err != nil {
-			slog.Error("NotifyPRComment: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
-		} else {
+		if s.create(ctx, &repo, n) {
 			s.sendEmailAsync(*n)
 		}
 	}
-	s.fanOutToWatchers(ctx, n, pr.AuthorID)
+	s.fanOutToWatchers(ctx, &repo, n, pr.AuthorID)
 }
 
 func (s *NotificationService) NotifyIssueStateChange(ctx context.Context, repo model.Repository, issue model.Issue, actorID int64, actorName string) {
@@ -143,13 +152,11 @@ func (s *NotificationService) NotifyIssueStateChange(ctx context.Context, repo m
 	}
 	if actorID != issue.AuthorID {
 		n.UserID = issue.AuthorID
-		if err := s.notifs.Create(ctx, n); err != nil {
-			slog.Error("NotifyIssueStateChange: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
-		} else {
+		if s.create(ctx, &repo, n) {
 			s.sendEmailAsync(*n)
 		}
 	}
-	s.fanOutToWatchers(ctx, n, issue.AuthorID)
+	s.fanOutToWatchers(ctx, &repo, n, issue.AuthorID)
 }
 
 func (s *NotificationService) NotifyPRReview(ctx context.Context, repo model.Repository, pr model.PullRequest, actorID int64, actorName string) {
@@ -165,13 +172,11 @@ func (s *NotificationService) NotifyPRReview(ctx context.Context, repo model.Rep
 	}
 	if actorID != pr.AuthorID {
 		n.UserID = pr.AuthorID
-		if err := s.notifs.Create(ctx, n); err != nil {
-			slog.Error("NotifyPRReview: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
-		} else {
+		if s.create(ctx, &repo, n) {
 			s.sendEmailAsync(*n)
 		}
 	}
-	s.fanOutToWatchers(ctx, n, pr.AuthorID)
+	s.fanOutToWatchers(ctx, &repo, n, pr.AuthorID)
 }
 
 // NotifyMention fires a mention notification for mentionedUserID.
@@ -191,9 +196,7 @@ func (s *NotificationService) NotifyMention(ctx context.Context, repo model.Repo
 		SubjectID:  int64(subjectNumber),
 		SubjectURL: subjectURL,
 	}
-	if err := s.notifs.Create(ctx, n); err != nil {
-		slog.Error("NotifyMention: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
-	} else {
+	if s.create(ctx, &repo, n) {
 		s.sendEmailAsync(*n)
 	}
 }
@@ -215,13 +218,11 @@ func (s *NotificationService) NotifyPRStateChange(ctx context.Context, repo mode
 	}
 	if actorID != pr.AuthorID {
 		n.UserID = pr.AuthorID
-		if err := s.notifs.Create(ctx, n); err != nil {
-			slog.Error("NotifyPRStateChange: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
-		} else {
+		if s.create(ctx, &repo, n) {
 			s.sendEmailAsync(*n)
 		}
 	}
-	s.fanOutToWatchers(ctx, n, pr.AuthorID)
+	s.fanOutToWatchers(ctx, &repo, n, pr.AuthorID)
 }
 
 func (s *NotificationService) NotifyDiscussionReply(ctx context.Context, repo model.Repository, discussion model.Discussion, actorID int64, actorName string) {
@@ -239,9 +240,7 @@ func (s *NotificationService) NotifyDiscussionReply(ctx context.Context, repo mo
 		SubjectID:  int64(discussion.Number),
 		SubjectURL: fmt.Sprintf("/%s/%s/discussions/%d", repo.OwnerName, repo.Name, discussion.Number),
 	}
-	if err := s.notifs.Create(ctx, n); err != nil {
-		slog.Error("NotifyDiscussionReply: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
-	} else {
+	if s.create(ctx, &repo, n) {
 		s.sendEmailAsync(*n)
 	}
 }

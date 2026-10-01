@@ -79,7 +79,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	reauthSvc := NewReauthService(stores.User, totpSvc).WithEmailCodes(emailSvc).
 		WithProviderSignIn(stores.OAuthState, ssoSvc, cfg.OAuth.GoogleClientID != "")
 	userSvc.WithReauth(reauthSvc)
-	notifSvc := NewNotificationService(stores.Notification, stores.Watch, emailSvc, userSvc)
+	notifSvc := NewNotificationService(stores.Notification, stores.Watch, repoSvc, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
 		code, commitStatusSvc, stores.PullReview, stores.Label, stores.Assignee, stores.Comment,

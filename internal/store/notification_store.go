@@ -67,14 +67,18 @@ func (s *NotificationStore) MarkRead(ctx context.Context, id, userID int64) erro
 	return err
 }
 
-func (s *NotificationStore) ListUnreadByUser(ctx context.Context, userID int64) ([]model.Notification, error) {
+// ListUnreadReadable returns userID's unread notifications on repos the user
+// can still read; access may have been revoked since a notification was created.
+func (s *NotificationStore) ListUnreadReadable(ctx context.Context, userID int64) ([]model.Notification, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, user_id, actor_id, actor_name, type, repo_id, repo_name, owner_name, subject_id, subject_url, read, created_at
-		 FROM notifications WHERE user_id = $1 AND read = FALSE ORDER BY created_at DESC`,
+		`SELECT n.id, n.user_id, n.actor_id, n.actor_name, n.type, n.repo_id, n.repo_name, n.owner_name, n.subject_id, n.subject_url, n.read, n.created_at
+		 FROM notifications n JOIN repositories r ON r.id = n.repo_id
+		 WHERE n.user_id = $1 AND n.read = FALSE AND `+readableBy("r", "$1")+`
+		 ORDER BY n.created_at DESC`,
 		userID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("notification list unread by user: %w", err)
+		return nil, fmt.Errorf("notification list unread readable: %w", err)
 	}
 	defer rows.Close()
 	var notifs []model.Notification
