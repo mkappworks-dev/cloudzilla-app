@@ -61,6 +61,15 @@ func readableBy(r, u string) string {
 		` OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = ` + r + `.id AND perm.user_id = ` + u + `))`
 }
 
+// viewerID maps an anonymous viewer to 0, which no user, owner or permission
+// row holds, so readableBy and issueVisibleTo need no anonymous form.
+func viewerID(u *int64) int64 {
+	if u == nil {
+		return 0
+	}
+	return *u
+}
+
 // RepoStore provides database operations for repositories and their permissions.
 type RepoStore struct {
 	db *sql.DB

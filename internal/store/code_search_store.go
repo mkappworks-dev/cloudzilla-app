@@ -37,7 +37,7 @@ func (s *CodeSearchStore) Search(ctx context.Context, query string, repoID *int6
 	args := []interface{}{query}
 	argIdx := 2
 
-	filters := []string{"csi.tsv @@ plainto_tsquery('simple', $1)"}
+	filters := []string{"csi.tsv @@ plainto_tsquery('simple', $1)", "r.private = FALSE", "r.deleted_at IS NULL"}
 	if repoID != nil {
 		filters = append(filters, fmt.Sprintf("csi.repo_id = $%d", argIdx))
 		args = append(args, *repoID)
@@ -58,8 +58,7 @@ func (s *CodeSearchStore) Search(ctx context.Context, query string, repoID *int6
 SELECT COUNT(*)
 FROM code_search_index csi
 JOIN repositories r ON r.id = csi.repo_id
-WHERE %s
-  AND r.private = FALSE`, where)
+WHERE %s`, where)
 
 	var total int
 	if err := s.db.QueryRowContext(ctx, countQ, args...).Scan(&total); err != nil {
@@ -80,7 +79,6 @@ SELECT csi.repo_id,
 FROM code_search_index csi
 JOIN repositories r ON r.id = csi.repo_id
 WHERE %s
-  AND r.private = FALSE
 ORDER BY rank DESC
 LIMIT $%d OFFSET $%d`, where, argIdx, argIdx+1)
 

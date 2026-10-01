@@ -374,7 +374,7 @@ Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`) that
 
 | Method | Path      | Auth     | Description                                                                                                                                        |
 | ------ | --------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/search` | Optional | Full-text search. Query params: `q` (search term), `type` (`all`, `repos`, `issues`, `pulls`, `users`). Private repos visible only to their owner. |
+| GET    | `/search` | Optional | Full-text search. Query params: `q` (search term), `type` (`all`, `repos`, `issues`, `pulls`, `users`). Returns only repos, issues and PRs the viewer can read, never from soft-deleted repos. |
 
 ## Webhooks
 

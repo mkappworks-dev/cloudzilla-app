@@ -74,27 +74,21 @@ func (s *IssueStore) List(ctx context.Context, repoID int64) ([]model.Issue, err
 	return issues, nil
 }
 
+// issueVisibleTo is the private-issue rule as a SQL predicate on issues alias
+// i for the user ID in placeholder u. Issue pages and search share it.
+func issueVisibleTo(i, u string) string {
+	return `(` + i + `.visibility = 'public' OR ` + i + `.author_id = ` + u +
+		` OR EXISTS (SELECT 1 FROM permissions iperm WHERE iperm.user_id = ` + u + ` AND iperm.repo_id = ` + i + `.repo_id` +
+		` AND iperm.role IN ('owner','admin','writer')))`
+}
+
 // GetByNumber returns a single issue by repo + number.
 // If visibleToUserID is nil, only public issues are returned.
 // If visibleToUserID is set, the issue is also returned when the user is the
 // author or has at least writer/admin/owner permission on the repo.
 func (s *IssueStore) GetByNumber(ctx context.Context, repoID int64, number int, visibleToUserID *int64) (*model.Issue, error) {
-	visClause := `AND (i.visibility = 'public'`
-	args := []interface{}{repoID, number}
-	argIdx := 3
-
-	if visibleToUserID != nil {
-		args = append(args, *visibleToUserID, *visibleToUserID)
-		visClause += fmt.Sprintf(
-			` OR i.author_id = $%d OR EXISTS (
-				SELECT 1 FROM permissions p
-				WHERE p.user_id = $%d AND p.repo_id = i.repo_id
-				  AND p.role IN ('owner','admin','writer')
-			)`, argIdx, argIdx+1)
-		argIdx += 2
-	}
-	visClause += `)`
-	_ = argIdx
+	visClause := `AND ` + issueVisibleTo("i", "$3")
+	args := []interface{}{repoID, number, viewerID(visibleToUserID)}
 
 	q := fmt.Sprintf(`
 		SELECT i.id, i.repo_id, i.number, i.author_id,
@@ -189,21 +183,9 @@ func (s *IssueStore) GetByNumberUnfiltered(ctx context.Context, repoID int64, nu
 func (s *IssueStore) ListByRepo(ctx context.Context, repoID int64, state *string, visibleToUserID *int64, page, pageSize int) ([]model.Issue, error) {
 	offset := (page - 1) * pageSize
 
-	visClause := `AND (i.visibility = 'public'`
-	args := []interface{}{repoID}
-	argIdx := 2
-
-	if visibleToUserID != nil {
-		args = append(args, *visibleToUserID, *visibleToUserID)
-		visClause += fmt.Sprintf(
-			` OR i.author_id = $%d OR EXISTS (
-				SELECT 1 FROM permissions p
-				WHERE p.user_id = $%d AND p.repo_id = i.repo_id
-				  AND p.role IN ('owner','admin','writer')
-			)`, argIdx, argIdx+1)
-		argIdx += 2
-	}
-	visClause += `)`
+	visClause := `AND ` + issueVisibleTo("i", "$2")
+	args := []interface{}{repoID, viewerID(visibleToUserID)}
+	argIdx := 3
 
 	stateClause := ""
 	if state != nil {
