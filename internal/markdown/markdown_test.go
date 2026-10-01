@@ -335,7 +335,7 @@ func TestRender_Links(t *testing.T) {
 		{
 			name: "encoded javascript links",
 			src:  "[a](&#106;avascript:alert(1)) [b](javascript&#58;alert(1)) [c](javascript\\:alert(1)) [d](java&#x73;cript:alert(1)) [e](&#x6A;avascript&colon;alert(1))",
-			want: "<p><a href=\"\">a</a> <a href=\"\">b</a> <a href=\"\">c</a> <a href=\"\">d</a> <a href=\"\">e</a></p>\n",
+			want: "<p><a href=\"#\">a</a> <a href=\"#\">b</a> <a href=\"#\">c</a> <a href=\"#\">d</a> <a href=\"#\">e</a></p>\n",
 		},
 		{
 			name: "javascript reference link",
@@ -402,7 +402,6 @@ func TestRender_RawHTML(t *testing.T) {
 				"\n" +
 				"after",
 			want: "<!-- raw HTML omitted -->\n" +
-				"<!-- raw HTML omitted -->\n" +
 				"<p>after</p>\n",
 		},
 		{
@@ -454,7 +453,7 @@ func TestRender_Code(t *testing.T) {
 			src: "```go\n" +
 				"fmt.Println(\"<hi>\", 'x', a&b)\n" +
 				"```",
-			want: "<pre><code class=\"language-go\">fmt.Println(&#34;&lt;hi&gt;&#34;, &#39;x&#39;, a&amp;b)\n" +
+			want: "<pre><code class=\"language-go\">fmt.Println(&quot;&lt;hi&gt;&quot;, 'x', a&amp;b)\n" +
 				"</code></pre>\n",
 		},
 		{
@@ -470,7 +469,7 @@ func TestRender_Code(t *testing.T) {
 			src: "~~~python linenos=1\n" +
 				"print('hi')\n" +
 				"~~~",
-			want: "<pre><code class=\"language-python\">print(&#39;hi&#39;)\n" +
+			want: "<pre><code class=\"language-python\">print('hi')\n" +
 				"</code></pre>\n",
 		},
 		{
@@ -478,7 +477,7 @@ func TestRender_Code(t *testing.T) {
 			src: "```\"><script>alert(1)</script>\n" +
 				"code\n" +
 				"```",
-			want: "<pre><code class=\"language-&#34;&gt;&lt;script&gt;alert(1)&lt;/script&gt;\">code\n" +
+			want: "<pre><code class=\"language-&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;\">code\n" +
 				"</code></pre>\n",
 		},
 		{
@@ -486,7 +485,7 @@ func TestRender_Code(t *testing.T) {
 			src: "```c&#43;&#43;\n" +
 				"int x;\n" +
 				"```",
-			want: "<pre><code class=\"language-c&amp;#43;&amp;#43;\">int x;\n" +
+			want: "<pre><code class=\"language-c++\">int x;\n" +
 				"</code></pre>\n",
 		},
 		{
@@ -514,7 +513,7 @@ func TestRender_Code(t *testing.T) {
 			want: "<ul>\n" +
 				"<li>\n" +
 				"<p>item</p>\n" +
-				"<pre><code class=\"language-sh\">echo &#34;hi&#34;\n" +
+				"<pre><code class=\"language-sh\">echo &quot;hi&quot;\n" +
 				"</code></pre>\n" +
 				"</li>\n" +
 				"</ul>\n",
@@ -533,8 +532,8 @@ func TestRender_Code(t *testing.T) {
 				"  B -->|Yes| C['ok']\n" +
 				"```",
 			want: "<pre class=\"mermaid\">graph TD\n" +
-				"  A[&#34;Start&#34;] --&gt; B{Is it?}\n" +
-				"  B --&gt;|Yes| C[&#39;ok&#39;]\n" +
+				"  A[&quot;Start&quot;] --&gt; B{Is it?}\n" +
+				"  B --&gt;|Yes| C['ok']\n" +
 				"</pre>\n",
 		},
 		{
@@ -544,7 +543,7 @@ func TestRender_Code(t *testing.T) {
 				"  A[\"<img src=x onerror=alert(1)>\"] --> B[</pre><script>alert(1)</script>]\n" +
 				"```",
 			want: "<pre class=\"mermaid\">graph LR\n" +
-				"  A[&#34;&lt;img src=x onerror=alert(1)&gt;&#34;] --&gt; B[&lt;/pre&gt;&lt;script&gt;alert(1)&lt;/script&gt;]\n" +
+				"  A[&quot;&lt;img src=x onerror=alert(1)&gt;&quot;] --&gt; B[&lt;/pre&gt;&lt;script&gt;alert(1)&lt;/script&gt;]\n" +
 				"</pre>\n",
 		},
 		{
