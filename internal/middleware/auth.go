@@ -22,8 +22,8 @@ type Claims struct {
 	UserID       int64
 	Username     string
 	IsSuperadmin bool
-	// Scoped marks a delegated credential (an OAuth-app token) limited to Scopes.
-	// First-party sessions and PATs are unscoped and act with the user's full access.
+	// Scoped marks a token (an OAuth-app token or a PAT) limited to Scopes.
+	// Sessions are unscoped and act with the user's full access.
 	Scoped bool
 	Scopes []string
 }
@@ -63,19 +63,8 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 				return
 			}
 
-			if serveOAuth(w, r, next, oauthResolver, tokenStr) {
+			if serveOAuth(w, r, next, oauthResolver, tokenStr) || servePAT(w, r, next, patValidator, tokenStr) {
 				return
-			}
-
-			if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
-				token, user, err := patValidator.Validate(r.Context(), tokenStr)
-				if err == nil {
-					touchLastUsed(patValidator, token.ID)
-					claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin}
-					ctx := context.WithValue(r.Context(), claimsKey, claims)
-					next.ServeHTTP(w, r.WithContext(ctx))
-					return
-				}
 			}
 
 			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
@@ -112,19 +101,8 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenStr := extractToken(r, cookieName)
 			if tokenStr != "" {
-				if serveOAuth(w, r, next, oauthResolver, tokenStr) {
+				if serveOAuth(w, r, next, oauthResolver, tokenStr) || servePAT(w, r, next, patValidator, tokenStr) {
 					return
-				}
-				if strings.HasPrefix(tokenStr, "czp_") && patValidator != nil {
-					pat, user, err := patValidator.Validate(r.Context(), tokenStr)
-					if err == nil {
-						touchLastUsed(patValidator, pat.ID)
-						claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin}
-						ctx := context.WithValue(r.Context(), claimsKey, claims)
-						r = r.WithContext(ctx)
-						next.ServeHTTP(w, r)
-						return
-					}
 				}
 				token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
 					if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -147,7 +125,6 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 }
 
 // serveOAuth handles r when tokenStr is a live OAuth-app token, reporting whether it did.
-// A token lacking scope for r is refused rather than passed on as anonymous.
 // IsSuperadmin stays false: instance-admin power is never delegated to an app.
 func serveOAuth(w http.ResponseWriter, r *http.Request, next http.Handler, resolver OAuthTokenResolver, tokenStr string) bool {
 	if resolver == nil || strings.HasPrefix(tokenStr, "czp_") {
@@ -157,17 +134,39 @@ func serveOAuth(w http.ResponseWriter, r *http.Request, next http.Handler, resol
 	if err != nil {
 		return false
 	}
-	claims := Claims{UserID: user.ID, Username: user.Username, Scoped: true, Scopes: scopes}
-	if !scopeAllows(claims, r) {
-		var hint string
-		if accepted := acceptedScopes(r); len(accepted) > 0 {
-			hint = accepted[0]
-		}
-		WriteInsufficientScope(w, hint)
-		return true
+	serveScoped(w, r, next, Claims{UserID: user.ID, Username: user.Username, Scoped: true, Scopes: scopes})
+	return true
+}
+
+// servePAT handles r when tokenStr is a valid personal access token, reporting whether it did.
+func servePAT(w http.ResponseWriter, r *http.Request, next http.Handler, v PATValidator, tokenStr string) bool {
+	if v == nil || !strings.HasPrefix(tokenStr, "czp_") {
+		return false
+	}
+	token, user, err := v.Validate(r.Context(), tokenStr)
+	if err != nil {
+		return false
+	}
+	touchLastUsed(v, token.ID)
+	serveScoped(w, r, next, PATClaims(token, user))
+	return true
+}
+
+// PATClaims returns the claims a personal access token carries: its owner's
+// identity, limited to the token's scopes. IsSuperadmin stays false, as for
+// OAuth-app tokens: instance administration is for sessions only.
+func PATClaims(t *model.AccessToken, u *model.User) Claims {
+	return Claims{UserID: u.ID, Username: u.Username, Scoped: true, Scopes: t.Scopes}
+}
+
+// serveScoped passes r on with claims, or refuses it when their scopes don't
+// admit r. A refused token is never downgraded to anonymous on optional-auth routes.
+func serveScoped(w http.ResponseWriter, r *http.Request, next http.Handler, claims Claims) {
+	if !ScopeAllows(claims, r) {
+		WriteInsufficientScope(w, RequiredScope(r))
+		return
 	}
 	next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), claimsKey, claims)))
-	return true
 }
 
 // RequireSuperadmin returns middleware that calls onForbidden if the authenticated user is not a superadmin.

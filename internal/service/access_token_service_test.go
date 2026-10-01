@@ -2,14 +2,19 @@ package service_test
 
 import (
 	"context"
+	"errors"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
+
+var repoRead = []string{model.ScopeRepoRead}
 
 // newAccessTokenSvc creates an AccessTokenService backed by the test database
 // and seeds a user for token ownership. All tests skip if TEST_DATABASE_DSN is not set.
@@ -29,7 +34,7 @@ func newAccessTokenSvc(t *testing.T) (*service.AccessTokenService, int64) {
 // starts with the "czp_" prefix used to identify personal access tokens.
 func TestAccessToken_Generate_HasCZPPrefix(t *testing.T) {
 	svc, userID := newAccessTokenSvc(t)
-	raw, tok, err := svc.Generate(context.Background(), userID, "test-token", nil, nil)
+	raw, tok, err := svc.Generate(context.Background(), userID, "test-token", repoRead, nil)
 	if err != nil {
 		t.Fatalf("Generate: %v", err)
 	}
@@ -45,7 +50,7 @@ func TestAccessToken_Generate_HasCZPPrefix(t *testing.T) {
 // the raw token — the secret is never persisted in plain text.
 func TestAccessToken_Generate_HashNotExposed(t *testing.T) {
 	svc, userID := newAccessTokenSvc(t)
-	raw, tok, err := svc.Generate(context.Background(), userID, "test-hash", nil, nil)
+	raw, tok, err := svc.Generate(context.Background(), userID, "test-hash", repoRead, nil)
 	if err != nil {
 		t.Fatalf("Generate: %v", err)
 	}
@@ -61,7 +66,7 @@ func TestAccessToken_Generate_HashNotExposed(t *testing.T) {
 // validates successfully and resolves to the correct user.
 func TestAccessToken_Validate_MatchesGenerated(t *testing.T) {
 	svc, userID := newAccessTokenSvc(t)
-	raw, _, err := svc.Generate(context.Background(), userID, "validate-test", nil, nil)
+	raw, _, err := svc.Generate(context.Background(), userID, "validate-test", repoRead, nil)
 	if err != nil {
 		t.Fatalf("Generate: %v", err)
 	}
@@ -102,7 +107,7 @@ func TestAccessToken_Validate_NoCZPPrefix_Fails(t *testing.T) {
 func TestAccessToken_Validate_Expired_Fails(t *testing.T) {
 	svc, userID := newAccessTokenSvc(t)
 	past := time.Now().Add(-time.Hour)
-	raw, _, err := svc.Generate(context.Background(), userID, "expired-test", nil, &past)
+	raw, _, err := svc.Generate(context.Background(), userID, "expired-test", repoRead, &past)
 	if err != nil {
 		t.Fatalf("Generate with expiry: %v", err)
 	}
@@ -120,7 +125,7 @@ func TestAccessToken_Validate_FutureExpiry_Passes(t *testing.T) {
 	userID := testutil.SeedUser(t, db, suffix)
 	svc2 := service.NewAccessTokenService(store.NewAccessTokenStore(db), store.NewUserStore(db))
 	future := time.Now().Add(24 * time.Hour)
-	raw, _, err := svc2.Generate(context.Background(), userID, "future-expiry", nil, &future)
+	raw, _, err := svc2.Generate(context.Background(), userID, "future-expiry", repoRead, &future)
 	if err != nil {
 		t.Fatalf("Generate: %v", err)
 	}
@@ -134,10 +139,44 @@ func TestAccessToken_Validate_FutureExpiry_Passes(t *testing.T) {
 // different raw token values (entropy comes from crypto/rand).
 func TestAccessToken_Generate_UniqueTokens(t *testing.T) {
 	svc, userID := newAccessTokenSvc(t)
-	raw1, _, _ := svc.Generate(context.Background(), userID, "tok1", nil, nil)
-	raw2, _, _ := svc.Generate(context.Background(), userID, "tok2", nil, nil)
+	raw1, _, _ := svc.Generate(context.Background(), userID, "tok1", repoRead, nil)
+	raw2, _, _ := svc.Generate(context.Background(), userID, "tok2", repoRead, nil)
 	if raw1 == raw2 {
 		t.Error("consecutive Generate calls must produce unique tokens")
+	}
+}
+
+func TestAccessToken_Generate_RequiresAScope(t *testing.T) {
+	svc := service.NewAccessTokenService(nil, nil)
+
+	_, _, err := svc.Generate(context.Background(), 1, "no-scopes", nil, nil)
+
+	if !errors.Is(err, service.ErrScopeRequired) {
+		t.Errorf("want ErrScopeRequired, got %v", err)
+	}
+}
+
+func TestAccessToken_Generate_RejectsUnknownScope(t *testing.T) {
+	svc := service.NewAccessTokenService(nil, nil)
+
+	_, _, err := svc.Generate(context.Background(), 1, "admin", []string{model.ScopeRepoRead, "admin"}, nil)
+
+	if !errors.Is(err, service.ErrInvalidScope) {
+		t.Errorf("want ErrInvalidScope, got %v", err)
+	}
+}
+
+func TestAccessToken_Generate_DropsDuplicateScopes(t *testing.T) {
+	svc, userID := newAccessTokenSvc(t)
+
+	_, tok, err := svc.Generate(context.Background(), userID, "dupes",
+		[]string{model.ScopeRepoRead, model.ScopeIssuesWrite, model.ScopeRepoRead}, nil)
+
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	if want := []string{model.ScopeRepoRead, model.ScopeIssuesWrite}; !slices.Equal(tok.Scopes, want) {
+		t.Errorf("scopes = %v, want %v", tok.Scopes, want)
 	}
 }
 

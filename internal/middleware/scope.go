@@ -126,8 +126,18 @@ func gitTransportScopes(r *http.Request, seg []string) []string {
 	return nil
 }
 
-func scopeAllows(c Claims, r *http.Request) bool {
+// ScopeAllows reports whether c may make r: always for unscoped claims, otherwise
+// only when one of c's scopes admits r.
+func ScopeAllows(c Claims, r *http.Request) bool {
 	return !c.Scoped || slices.ContainsFunc(acceptedScopes(r), c.HasScope)
+}
+
+// RequiredScope returns the narrowest scope that admits r, or "" when no scope does.
+func RequiredScope(r *http.Request) string {
+	if accepted := acceptedScopes(r); len(accepted) > 0 {
+		return accepted[0]
+	}
+	return ""
 }
 
 // WriteInsufficientScope refuses a scoped token (RFC 6750 §3.1). scope names the
