@@ -39,7 +39,7 @@ func newRepoDirsEnv(t *testing.T) repoDirsEnv {
 	return repoDirsEnv{
 		db:    db,
 		root:  root,
-		repos: service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, git),
+		repos: service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, git).WithTransferStore(store.NewRepoTransferStore(db)),
 		orgs:  service.NewOrgService(store.NewOrgStore(db), store.NewRepoStore(db), store.NewUserStore(db), git),
 		code:  service.NewCodeService(git),
 	}
@@ -85,6 +85,22 @@ func (e repoDirsEnv) createOrg(t *testing.T, ownerID int64) *model.Organization 
 	}
 	testutil.DeleteOrgOnCleanup(t, e.db, org.ID)
 	return org
+}
+
+// transferTo offers repo to the user named to and accepts it as them,
+// returning the first error.
+func (e repoDirsEnv) transferTo(t *testing.T, repo *model.Repository, fromID int64, to string) error {
+	t.Helper()
+	ctx := context.Background()
+	transfer, err := e.repos.TransferRepo(ctx, repo, fromID, to)
+	if err != nil {
+		return err
+	}
+	if transfer == nil {
+		t.Fatalf("the transfer to user %s moved the repo without their acceptance", to)
+	}
+	_, err = e.repos.AcceptTransfer(ctx, transfer.ID, transfer.RecipientID, transfer.FullName())
+	return err
 }
 
 // dropRow leaves a repo's directories on disk without a row.
@@ -366,8 +382,8 @@ func TestRepoService_TransferMovesTheWiki(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	if err := env.repos.TransferRepo(ctx, repo, fromID, to); err != nil {
-		t.Fatalf("TransferRepo: %v", err)
+	if err := env.transferTo(t, repo, fromID, to); err != nil {
+		t.Fatalf("transfer: %v", err)
 	}
 
 	if _, oldWiki := env.dirs(from, "moving"); pathExists(oldWiki) {
@@ -604,7 +620,7 @@ func TestRepoService_Transfer_RefusesLeftoverWiki(t *testing.T) {
 	toGitDir, _ := env.dirs(to, "moved")
 	_ = os.RemoveAll(toGitDir)
 
-	if err := env.repos.TransferRepo(ctx, repo, fromID, to); !errors.Is(err, service.ErrRepoNameTaken) {
+	if err := env.transferTo(t, repo, fromID, to); !errors.Is(err, service.ErrRepoNameTaken) {
 		t.Errorf("want ErrRepoNameTaken, got %v", err)
 	}
 	if got, err := env.repos.Get(ctx, from, "moved"); err != nil || got.OwnerID != fromID {
@@ -727,8 +743,8 @@ func TestRepoService_LegacyWikiNamedRepo_KeepsItsDirFromItsPartner(t *testing.T)
 	})
 	t.Run("transfer", func(t *testing.T) {
 		repo, wantIntact := partnerOf(t, "given")
-		if err := env.repos.TransferRepo(ctx, repo, aliceID, bob); err != nil {
-			t.Fatalf("TransferRepo: %v", err)
+		if err := env.transferTo(t, repo, aliceID, bob); err != nil {
+			t.Fatalf("transfer: %v", err)
 		}
 		wantIntact("transfer")
 		if _, bobWiki := env.dirs(bob, "given"); pathExists(bobWiki) {
@@ -758,7 +774,7 @@ func TestRepoService_WikiPartnersCannotShareANamespace(t *testing.T) {
 		t.Fatalf("GetByID: %v", err)
 	}
 
-	if err := env.repos.TransferRepo(ctx, legacy, attackerID, victim); !errors.Is(err, service.ErrRepoNameTaken) {
+	if err := env.transferTo(t, legacy, attackerID, victim); !errors.Is(err, service.ErrRepoNameTaken) {
 		t.Errorf("transfer foo.wiki beside foo: want ErrRepoNameTaken, got %v", err)
 	}
 	if n := env.rowCount(t, victim, "foo.wiki"); n != 0 {
@@ -776,7 +792,7 @@ func TestRepoService_WikiPartnersCannotShareANamespace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get victim/foo: %v", err)
 	}
-	if err := env.repos.TransferRepo(ctx, victimFoo, victimFoo.OwnerID, attacker); !errors.Is(err, service.ErrRepoNameTaken) {
+	if err := env.transferTo(t, victimFoo, victimFoo.OwnerID, attacker); !errors.Is(err, service.ErrRepoNameTaken) {
 		t.Errorf("transfer foo beside a deleted foo.wiki: want ErrRepoNameTaken, got %v", err)
 	}
 }

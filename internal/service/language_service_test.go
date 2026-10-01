@@ -392,7 +392,8 @@ func TestLanguageService_PrimaryLanguage_NameReusedAfterTransfer(t *testing.T) {
 
 	root := t.TempDir()
 	code := NewCodeService(config.GitConfig{ReposRoot: root})
-	repoSvc := NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, code, config.GitConfig{ReposRoot: root})
+	repoSvc := NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, code, config.GitConfig{ReposRoot: root}).
+		WithTransferStore(store.NewRepoTransferStore(db))
 	svc := NewLanguageService(code, repoSvc)
 	repoSvc.WithLanguageService(svc)
 
@@ -406,8 +407,12 @@ func TestLanguageService_PrimaryLanguage_NameReusedAfterTransfer(t *testing.T) {
 	if pcts, err := svc.AggregateForUser(ctx, alice, nil, 0); err != nil || langNames(pcts) != "Go" {
 		t.Fatalf("profile languages before transfer = %+v, %v; want Go", pcts, err)
 	}
-	if err := repoSvc.TransferRepo(ctx, old, aliceID, bob); err != nil {
+	transfer, err := repoSvc.TransferRepo(ctx, old, aliceID, bob)
+	if err != nil {
 		t.Fatalf("transfer: %v", err)
+	}
+	if _, err := repoSvc.AcceptTransfer(ctx, transfer.ID, transfer.RecipientID, transfer.FullName()); err != nil {
+		t.Fatalf("accept transfer: %v", err)
 	}
 
 	fresh, err := repoSvc.Create(ctx, aliceID, alice, "foo", "", false, RepoInitOptions{AddREADME: true})

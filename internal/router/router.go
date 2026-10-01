@@ -138,6 +138,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	// Account-level cross-repo pages
 	r.With(authMW).Get("/repos", h.PageAccountRepos)
 	r.With(authMW).Get("/repos/new", h.PageNewRepo)
+	r.With(authMW).Get("/repos/transfers", h.PageRepoTransfers)
 	r.With(authMW).Get("/pulls", h.PageAccountPulls)
 	r.With(authMW).Get("/issues", h.PageAccountIssues)
 	r.With(authMW).Get("/attention", h.PageAttention)
@@ -401,6 +402,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 
 		// Ownership transfer
 		r.With(authMW).Post("/{owner}/{repo}/transfer", h.TransferRepo)
+		r.With(authMW).Delete("/{owner}/{repo}/transfer", h.CancelRepoTransfer)
 
 		// Soft-delete restore
 		r.With(authMW).Post("/{owner}/{repo}/restore", h.RestoreRepo)
@@ -505,6 +507,14 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Get("/", h.ListSSHKeys)
 		r.Post("/", h.AddSSHKey)
 		r.Delete("/{id}", h.DeleteSSHKey)
+	})
+
+	// Repository transfers offered to the signed-in user
+	r.Route("/api/user/transfers", func(r chi.Router) {
+		r.Use(authMW, apiBodyLimit)
+		r.Get("/", h.ListRepoTransfers)
+		r.Post("/{id}/accept", h.AcceptRepoTransfer)
+		r.Post("/{id}/decline", h.DeclineRepoTransfer)
 	})
 
 	// Personal Access Token routes

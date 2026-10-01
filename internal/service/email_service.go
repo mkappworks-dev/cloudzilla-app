@@ -147,6 +147,10 @@ func formatNotifEmail(n *model.Notification) (subject, body string) {
 		subject = fmt.Sprintf("[%s/%s] New review on pull request #%d", n.OwnerName, n.RepoName, n.SubjectID)
 		body = fmt.Sprintf("<p><strong>%s</strong> reviewed pull request <a href=\"%s\">#%d</a> in %s/%s.</p>",
 			actor, n.SubjectURL, n.SubjectID, owner, repo)
+	case model.NotifRepoTransfer:
+		subject = fmt.Sprintf("[%s/%s] %s wants to transfer this repository to you", n.OwnerName, n.RepoName, n.ActorName)
+		body = fmt.Sprintf("<p><strong>%s</strong> wants to transfer %s/%s to you. Nothing moves until you <a href=\"%s\">accept it</a>, and the offer expires in %d days.</p>",
+			actor, owner, repo, n.SubjectURL, int(RepoTransferTTL.Hours()/24))
 	default:
 		subject = fmt.Sprintf("[%s/%s] New notification", n.OwnerName, n.RepoName)
 		body = fmt.Sprintf("<p>You have a new notification from <strong>%s</strong> in %s/%s: <a href=\"%s\">view</a>.</p>",

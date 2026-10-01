@@ -225,6 +225,28 @@ func (s *NotificationService) NotifyPRStateChange(ctx context.Context, repo mode
 	s.fanOutToWatchers(ctx, &repo, n, pr.AuthorID)
 }
 
+// NotifyRepoTransfer tells t's recipient that a repository awaits their answer.
+// It skips create's read check: the recipient can't read a private repo until
+// they accept it.
+func (s *NotificationService) NotifyRepoTransfer(ctx context.Context, t model.RepoTransfer) {
+	n := &model.Notification{
+		UserID:     t.RecipientID,
+		ActorID:    t.RequesterID,
+		ActorName:  t.RequesterName,
+		Type:       model.NotifRepoTransfer,
+		RepoID:     t.RepoID,
+		RepoName:   t.RepoName,
+		OwnerName:  t.OwnerName,
+		SubjectID:  t.ID,
+		SubjectURL: "/repos/transfers",
+	}
+	if err := s.notifs.Create(ctx, n); err != nil {
+		slog.Error("NotifyRepoTransfer: failed to create notification", "user_id", n.UserID, "repo_id", n.RepoID, "error", err)
+	} else {
+		s.sendEmailAsync(*n)
+	}
+}
+
 func (s *NotificationService) NotifyDiscussionReply(ctx context.Context, repo model.Repository, discussion model.Discussion, actorID int64, actorName string) {
 	if actorID == discussion.AuthorID {
 		return

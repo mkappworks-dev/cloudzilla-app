@@ -150,7 +150,8 @@ Public user objects — returned by `GET /api/users/:username` and by `/api/repo
 | POST   | `/api/repos/`                       | Required | Create a repository (`name`, `description`, `private`, plus the init options below) |
 | GET    | `/api/repos/:owner/:repo`           | --       | Get repository details                                                              |
 | POST   | `/api/repos/:owner/:repo/fork`      | Required | Fork into authenticated user's namespace                                            |
-| POST   | `/api/repos/:owner/:repo/transfer`  | IsOwner  | Transfer repo to a user or an org (`new_owner`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled); an org target must be one you own |
+| POST   | `/api/repos/:owner/:repo/transfer`  | IsOwner  | Transfer repo to a user or an org (`new_owner`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled); an org target must be one you own. Another user must accept first (see [Repository Transfers](#repository-transfers)) |
+| DELETE | `/api/repos/:owner/:repo/transfer`  | IsOwner  | Cancel the repo's pending transfer; 204, or 404 when none is pending                |
 | POST   | `/api/repos/:owner/:repo/restore`   | IsOwner  | Restore a soft-deleted repository                                                   |
 | POST   | `/api/repos/:owner/:repo/archive`   | IsOwner  | Archive a repository                                                                |
 | POST   | `/api/repos/:owner/:repo/unarchive` | IsOwner  | Unarchive a repository                                                              |
@@ -161,11 +162,30 @@ Repository creation (here and under `/api/orgs/:org/repos`) accepts optional ini
 
 Creating a repository (here, under `/api/orgs/:org/repos`, or from a template) with a name already used in that namespace returns 422 `a repository with that name already exists` and creates nothing. A directory left on disk without a repository row counts as used, so a new repository never takes over an earlier holder's data; a fork skips such names the same way it skips existing repositories. `POST /api/repos/from-template` checks the name with the same rules as create and returns 422 `invalid repository name: ...` for one it rejects.
 
-A transfer is refused with 422 `transfer failed`, and nothing moves, when the new owner already has a repository with that name, or a `<name>.git` or `<name>.wiki.git` directory left on disk under it. It is refused the same way when `new_owner` names neither a user nor an org, names an org the requester does not own, or names the current owner.
+A transfer into an organization you own, or into your own account (an org repo you own), happens at once: the response redirects to the repository's new URL (`HX-Redirect` for HTMX). It is refused with 422 `transfer failed`, and nothing moves, when the new owner already has a repository with that name, or a `<name>.git` or `<name>.wiki.git` directory left on disk under it. It is refused the same way when `new_owner` names neither a user nor an org, names an org the requester does not own, or names the current owner.
+
+## Repository Transfers
+
+A transfer to another user moves nothing until they accept it. `POST /api/repos/:owner/:repo/transfer` answers `202` with the pending transfer, notifies the recipient (notification type `repo_transfer`, emailed like other notifications), and lists it on their `/repos/transfers` page, which also shows the repository's collaborators, who keep their access if it is accepted. A repository has at most one pending transfer: a new one replaces it, and so does any move of the repository. A transfer expires after 7 days (`service.RepoTransferTTL`), and lapses if the requester stops owning the repository.
+
+```json
+{"id": 12, "repo_id": 40, "owner": "alice", "repo": "tools", "description": "", "private": true,
+ "requester_id": 3, "requester": "alice", "recipient_id": 9, "recipient": "bob",
+ "expires_at": "2026-10-08T12:00:00Z", "created_at": "2026-10-01T12:00:00Z"}
+```
+
+| Method | Path                               | Auth     | Description                                                                                                         |
+| ------ | ---------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/user/transfers`              | Required | Transfers offered to you that you can still accept                                                                  |
+| POST   | `/api/user/transfers/:id/accept`   | Required | Accept (`repo`: the `owner/repo` you were offered); 200 with the repository, now yours (`HX-Redirect` to it for HTMX) |
+| POST   | `/api/user/transfers/:id/decline`  | Required | Decline; 204 (`HX-Refresh` for HTMX)                                                                                |
+| DELETE | `/api/repos/:owner/:repo/transfer` | IsOwner  | Cancel your repository's pending transfer; 204 (`HX-Refresh` for HTMX)                                              |
+
+Accepting or declining a transfer that isn't yours, has ended or has expired returns 404 `repository transfer not found or expired`. Accepting returns 409 when `repo` no longer matches the repository's `owner/name`, so a repository renamed or moved after you saw it is never accepted under its new name. It also returns 409, and the transfer stays pending, when you already have a repository with that name or a `<name>.git` or `<name>.wiki.git` directory left on disk: free the name, then accept again. Those name checks run only on accept, since refusing the request would tell the requester whether you hold a private repository of that name.
 
 Repository JSON omits `owner_id` for an org repo, whose owner is `org_id`. `created_by`, when present, records who created the repo and grants no access.
 
-Names ending in `.wiki` (in any case) are reserved, because `<name>.wiki.git` is the wiki of repository `<name>`: creating one returns 422 `invalid repository name: names ending in .wiki are reserved for wikis`, and a fork of such a repository gets a `-1` suffix. A `<name>.wiki` repository created before the reservation still works, but while it exists, even soft-deleted, `<name>` cannot be created in or transferred into its namespace (422 `a repository with that name already exists` on create), it cannot be transferred into a namespace that holds `<name>`, and an existing `<name>` has no wiki.
+Names ending in `.wiki` (in any case) are reserved, because `<name>.wiki.git` is the wiki of repository `<name>`: creating one returns 422 `invalid repository name: names ending in .wiki are reserved for wikis`, and a fork of such a repository gets a `-1` suffix. A `<name>.wiki` repository created before the reservation still works, but while it exists, even soft-deleted, `<name>` cannot be created in or transferred into its namespace (422 `a repository with that name already exists` on create, 409 on accepting a transfer), it cannot be transferred into a namespace that holds `<name>`, and an existing `<name>` has no wiki.
 
 Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` and `<name>.wiki.git.deleted.<unix_ts>`, with the same second stored in `deleted_at`. Restore and the 30-day purge act only on the copy whose suffix matches the row, never on another soft-deleted repository of the same name (a soft-deleted org repo does not hold its name, so several can exist). Restore returns 422 `a repository with that name already exists` while another repository, or a directory left on disk, holds the name. It returns 500 `restore failed`, and leaves the row deleted, when the row's copy is missing from disk. Deletes made before wikis moved with their repository left `<name>.wiki.git` in place; the purge removes such a wiki once no repository row, live or soft-deleted, names it, so the name can be reused.
 

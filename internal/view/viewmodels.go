@@ -121,6 +121,8 @@ type AccountReposData struct {
 	Total        int // repos owned or collaborated on, before filtering
 	Page         int
 	TotalPages   int
+
+	IncomingTransfers int
 }
 
 type AccountPullsData struct {

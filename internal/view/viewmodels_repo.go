@@ -130,8 +130,22 @@ type RepoSettingsData struct {
 	BranchProtections []*model.BranchProtection
 	CanManage         bool
 	IsOwner           bool
+	PendingTransfer   *model.RepoTransfer // nil unless IsOwner and a transfer awaits its recipient
 	// What the viewer confirms giving others access with.
 	Confirm components.ConfirmFactors
+}
+
+// RepoTransfersData lists the repositories offered to the viewer.
+type RepoTransfersData struct {
+	BasePage
+	Transfers []IncomingRepoTransfer
+}
+
+// IncomingRepoTransfer is an offer with the collaborators who would keep
+// their access, which the recipient should see before accepting.
+type IncomingRepoTransfer struct {
+	model.RepoTransfer
+	Collaborators []model.Permission
 }
 
 // BranchProtectionsFragData holds template data for the branch protections HTMX fragment.

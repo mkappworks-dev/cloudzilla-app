@@ -65,7 +65,8 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	commitStatsSvc := NewCommitStatsService(stores.CommitStats, stores.User)
 	contributorStatsSvc := NewContributorStatsService(stores.ContributorStats, stores.User)
 	attentionSvc := NewAttentionService(stores.Issue).WithPullDeps(stores.Pull, stores.PullReview, stores.Mention).WithUserStore(stores.User)
-	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, contributorStatsSvc, code, cfg.Git).WithPullStore(stores.Pull).WithNoreplyHostFrom(cfg.Server.BaseURL)
+	repoSvc := NewRepoService(stores.Repo, stores.User, stores.Org, contributorStatsSvc, code, cfg.Git).WithPullStore(stores.Pull).
+		WithTransferStore(stores.RepoTransfer).WithNoreplyHostFrom(cfg.Server.BaseURL)
 	orgSvc := NewOrgService(stores.Org, stores.Repo, stores.User, cfg.Git).WithStarStore(stores.Star).WithRepoService(repoSvc)
 	languageSvc := NewLanguageService(code, repoSvc)
 	repoSvc.WithLanguageService(languageSvc)

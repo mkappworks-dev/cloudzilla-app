@@ -19,6 +19,8 @@ func notifIcon(t model.NotificationType) string {
 		return "merged"
 	case model.NotifDiscussionReply:
 		return "discussion"
+	case model.NotifRepoTransfer:
+		return "transfer"
 	case model.NotifIssueClosed, model.NotifIssueReopened:
 		return "issue"
 	default:
@@ -48,6 +50,8 @@ func notifTitle(n model.Notification) string {
 		return "@" + n.ActorName + " reopened issue #" + strconv.FormatInt(n.SubjectID, 10)
 	case model.NotifDiscussionReply:
 		return "@" + n.ActorName + " replied in a discussion"
+	case model.NotifRepoTransfer:
+		return "@" + n.ActorName + " wants to transfer a repository to you"
 	default:
 		return "@" + n.ActorName + " in " + n.OwnerName + "/" + n.RepoName
 	}
@@ -81,6 +85,8 @@ templ notifTypeIcon(t model.NotificationType) {
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
 	case model.NotifIssueClosed:
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+	case model.NotifRepoTransfer:
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M4 8h14l-4-4M20 16H6l4 4"/></svg>
 	default:
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
 	}
@@ -105,7 +111,7 @@ templ notifIconClass(t model.NotificationType, read bool) {
 			<span class="flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-[hsl(270_70%_70%)]">
 				@notifTypeIcon(t)
 			</span>
-		case model.NotifDiscussionReply:
+		case model.NotifDiscussionReply, model.NotifRepoTransfer:
 			<span class="flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-primary">
 				@notifTypeIcon(t)
 			</span>

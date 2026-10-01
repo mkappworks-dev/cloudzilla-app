@@ -275,6 +275,10 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 
 	// Transfer/delete only for repo owner or org owner (not admin collaborators)
 	isOwner := h.Services.Repo.IsOwner(r.Context(), repo, claims.UserID)
+	var pendingTransfer *model.RepoTransfer
+	if isOwner {
+		pendingTransfer, _ = h.Services.Repo.PendingTransfer(r.Context(), repo.ID)
+	}
 
 	h.render(w, r, pages.RepoSettings(view.RepoSettingsData{
 		BasePage:          h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "settings", canManage),
@@ -288,6 +292,7 @@ func (h *Handler) PageRepoSettings(w http.ResponseWriter, r *http.Request) {
 		BranchProtections: branchProtections,
 		CanManage:         canManage,
 		IsOwner:           isOwner,
+		PendingTransfer:   pendingTransfer,
 		Confirm:           h.confirmFactors(r, claims.UserID),
 	}))
 }
