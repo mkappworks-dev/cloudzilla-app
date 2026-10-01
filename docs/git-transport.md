@@ -226,5 +226,5 @@ All git operations (HTTP and SSH) respect the same permission rules.
 - `RepoService.CanWrite(ctx, repo, userID)` — owner, org owner, or `writer`/`admin` role
 - `RepoService.CanManage(ctx, repo, userID)` — owner, org owner, or `admin` collaborator (settings, collabs, branch protection)
 - `RepoService.IsOwner(ctx, repo, userID)` — a personal repo's owner or an owner of an org repo's org, never an org repo's creator as such (transfer, delete, archive)
-- `RepoService.TransferRepo(ctx, repo, requestingUserID, newOwnerName)` — moves the git and wiki dirs on disk, updates `owner_id`/`org_id`/`owner_name`; the new owner is a user, or an org the requester owns
+- `RepoService.TransferRepo(ctx, repo, requestingUserID, newOwnerName)` — moves the git and wiki dirs on disk, updates `owner_id`/`org_id`/`owner_name`; the new owner is an org the requester owns or the requester. For any other user it returns a pending `*model.RepoTransfer` and moves nothing until `AcceptTransfer`
 - Bare repository created with `go-git.PlainInit()`, fully compatible with git CLI

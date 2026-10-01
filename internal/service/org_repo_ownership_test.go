@@ -56,8 +56,8 @@ func TestRepoService_Transfer_PersonalRepoIntoOwnedOrg(t *testing.T) {
 	oldGit, _ := env.dirs(user, "moving")
 	head := headOf(t, oldGit)
 
-	if err := env.repos.TransferRepo(ctx, repo, userID, org.Name); err != nil {
-		t.Fatalf("TransferRepo: %v", err)
+	if transfer, err := env.repos.TransferRepo(ctx, repo, userID, org.Name); err != nil || transfer != nil {
+		t.Fatalf("TransferRepo into an owned org = %+v, %v; want it moved at once", transfer, err)
 	}
 
 	got, err := env.repos.Get(ctx, org.Name, "moving")
@@ -96,7 +96,7 @@ func TestRepoService_Transfer_IntoOrgNeedsItsOwnership(t *testing.T) {
 		t.Fatalf("Create: %v", err)
 	}
 
-	if err := env.repos.TransferRepo(ctx, repo, userID, org.Name); err == nil {
+	if _, err := env.repos.TransferRepo(ctx, repo, userID, org.Name); err == nil {
 		t.Fatal("a plain member transferred a repo into the org")
 	}
 	if got, err := env.repos.Get(ctx, user, "stay"); err != nil || got.OwnerID != userID || got.OrgID != 0 {
@@ -119,18 +119,18 @@ func TestRepoService_Transfer_OrgRepoToUserNeedsOrgOwnership(t *testing.T) {
 	gitDir, _ := env.dirs(o.org.Name, "leaving")
 	head := headOf(t, gitDir)
 
-	if err := env.repos.TransferRepo(ctx, o.repo, memberID, member); err == nil {
+	if _, err := env.repos.TransferRepo(ctx, o.repo, memberID, member); err == nil {
 		t.Error("a plain member moved an org repo into their account")
 	}
 	if err := env.orgs.UpdateMemberRole(ctx, o.org.ID, o.coOwnerID, o.creatorID, model.OrgRoleMember); err != nil {
 		t.Fatalf("demote creator: %v", err)
 	}
-	if err := env.repos.TransferRepo(ctx, o.repo, o.creatorID, o.creator); err == nil {
+	if _, err := env.repos.TransferRepo(ctx, o.repo, o.creatorID, o.creator); err == nil {
 		t.Error("the demoted creator moved the org repo into their account")
 	}
 
-	if err := env.repos.TransferRepo(ctx, o.repo, o.coOwnerID, heir); err != nil {
-		t.Fatalf("TransferRepo by an org owner: %v", err)
+	if err := env.transferTo(t, o.repo, o.coOwnerID, heir); err != nil {
+		t.Fatalf("transfer by an org owner: %v", err)
 	}
 	got, err := env.repos.Get(ctx, heir, "leaving")
 	if err != nil {
@@ -154,7 +154,7 @@ func TestRepoService_Transfer_RefusesTheCurrentOwnerAndATakenName(t *testing.T) 
 	env := newRepoDirsEnv(t)
 	ctx := context.Background()
 	o := env.orgRepoByCreator(t, "dup")
-	if err := env.repos.TransferRepo(ctx, o.repo, o.coOwnerID, o.org.Name); err == nil {
+	if _, err := env.repos.TransferRepo(ctx, o.repo, o.coOwnerID, o.org.Name); err == nil {
 		t.Error("transferred an org repo to its own org")
 	}
 
@@ -166,7 +166,7 @@ func TestRepoService_Transfer_RefusesTheCurrentOwnerAndATakenName(t *testing.T) 
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	if err := env.repos.TransferRepo(ctx, mine, userID, o.org.Name); !errors.Is(err, service.ErrRepoNameTaken) {
+	if _, err := env.repos.TransferRepo(ctx, mine, userID, o.org.Name); !errors.Is(err, service.ErrRepoNameTaken) {
 		t.Errorf("want ErrRepoNameTaken, got %v", err)
 	}
 	if got, err := env.repos.Get(ctx, user, "dup"); err != nil || got.OwnerID != userID {
@@ -186,14 +186,17 @@ func TestRepoService_Transfer_RefusesAStaleRead(t *testing.T) {
 	stale := *o.repo
 	_, first := env.seedUser(t)
 	_, second := env.seedUser(t)
-	if err := env.repos.TransferRepo(ctx, o.repo, o.coOwnerID, first); err != nil {
+	if err := env.transferTo(t, o.repo, o.coOwnerID, first); err != nil {
 		t.Fatalf("first transfer: %v", err)
 	}
 	firstGit, _ := env.dirs(first, "raced")
 	head := headOf(t, firstGit)
 
-	if err := env.repos.TransferRepo(ctx, &stale, o.coOwnerID, second); err == nil {
+	if _, err := env.repos.TransferRepo(ctx, &stale, o.coOwnerID, second); err == nil {
 		t.Fatal("a transfer from a stale read succeeded")
+	}
+	if n := env.rowCount(t, first, "raced"); n != 1 {
+		t.Errorf("want the repo row still under %s, got %d rows", first, n)
 	}
 	if _, err := env.repos.Get(ctx, first, "raced"); err != nil {
 		t.Errorf("row moved away from %s: %v", first, err)
@@ -213,7 +216,7 @@ func TestRepoService_Transfer_RefusesADeletedRepo(t *testing.T) {
 	}
 	_, heir := env.seedUser(t)
 
-	if err := env.repos.TransferRepo(ctx, &stale, o.coOwnerID, heir); err == nil {
+	if _, err := env.repos.TransferRepo(ctx, &stale, o.coOwnerID, heir); err == nil {
 		t.Fatal("transferred a soft-deleted repo")
 	}
 	if err := env.repos.Restore(ctx, o.repo.ID, o.coOwnerID, false); err != nil {
@@ -239,7 +242,7 @@ func TestOrgService_DeleteRacingATransferIn_KeepsTheRepo(t *testing.T) {
 		}
 		race(5*time.Millisecond,
 			func() { _ = orgs.Delete(ctx, org.ID, userID) },
-			func() { _ = env.repos.TransferRepo(ctx, repo, userID, org.Name) },
+			func() { _, _ = env.repos.TransferRepo(ctx, repo, userID, org.Name) },
 		)
 		var ownerName string
 		if err := env.db.QueryRow(`SELECT owner_name FROM repositories WHERE id = $1`, repo.ID).Scan(&ownerName); err != nil {

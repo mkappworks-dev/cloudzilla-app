@@ -307,9 +307,16 @@ func (s *RepoStore) UpdateVisibility(ctx context.Context, repoID int64, private 
 }
 
 // UpdateOwner hands a live repo still under oldOwnerName to a user
-// (newOrgID zero) or an org (newOwnerID zero).
+// (newOrgID zero) or an org (newOwnerID zero). It also ends any pending
+// transfer of the repo: one offered from the old namespace must not move it
+// out of the new one.
 func (s *RepoStore) UpdateOwner(ctx context.Context, repoID int64, oldOwnerName string, newOwnerID, newOrgID int64, newOwnerName string) error {
-	res, err := s.db.ExecContext(ctx,
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("update repo owner: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	res, err := tx.ExecContext(ctx,
 		`UPDATE repositories SET owner_id = $1, org_id = $2, owner_name = $3, updated_at = $4
 		 WHERE id = $5 AND owner_name = $6 AND deleted_at IS NULL`,
 		nullID(newOwnerID), nullID(newOrgID), newOwnerName, time.Now().UTC(), repoID, oldOwnerName,
@@ -317,7 +324,13 @@ func (s *RepoStore) UpdateOwner(ctx context.Context, repoID int64, oldOwnerName 
 	if err != nil {
 		return repoWriteErr("update repo owner", err)
 	}
-	return requireRow(res, "update repo owner")
+	if err := requireRow(res, "update repo owner"); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM repo_transfers WHERE repo_id = $1`, repoID); err != nil {
+		return fmt.Errorf("end pending repo transfer: %w", err)
+	}
+	return tx.Commit()
 }
 
 func requireRow(res sql.Result, op string) error {

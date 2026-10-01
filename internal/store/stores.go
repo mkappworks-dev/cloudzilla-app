@@ -8,6 +8,7 @@ import (
 type Stores struct {
 	User               *UserStore
 	Repo               *RepoStore
+	RepoTransfer       *RepoTransferStore
 	Issue              *IssueStore
 	Pull               *PullStore
 	Comment            *CommentStore
@@ -58,6 +59,7 @@ func New(database *sql.DB) *Stores {
 	return &Stores{
 		User:               NewUserStore(database),
 		Repo:               NewRepoStore(database),
+		RepoTransfer:       NewRepoTransferStore(database),
 		Issue:              NewIssueStore(database),
 		Pull:               NewPullStore(database),
 		Comment:            NewCommentStore(database),

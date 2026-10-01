@@ -353,7 +353,7 @@ func TestAccessGrants_NeedTheAccountsPassword(t *testing.T) {
 			repoID, base := newRepo(t, a)
 			return form(a, base+"/transfer", url.Values{"new_owner": {grantee}}),
 				func() int {
-					return countRows(t, db, `SELECT COUNT(*) FROM repositories WHERE id = $1 AND owner_id = $2`, repoID, granteeID)
+					return countRows(t, db, `SELECT COUNT(*) FROM repo_transfers WHERE repo_id = $1 AND recipient_id = $2`, repoID, granteeID)
 				}
 		}},
 	}

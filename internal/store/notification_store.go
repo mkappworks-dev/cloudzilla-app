@@ -69,11 +69,15 @@ func (s *NotificationStore) MarkRead(ctx context.Context, id, userID int64) erro
 
 // ListUnreadReadable returns userID's unread notifications on repos the user
 // can still read; access may have been revoked since a notification was created.
+// A repository transfer still offered to the user counts as readable, since
+// its repo isn't until they accept.
 func (s *NotificationStore) ListUnreadReadable(ctx context.Context, userID int64) ([]model.Notification, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT n.id, n.user_id, n.actor_id, n.actor_name, n.type, n.repo_id, n.repo_name, n.owner_name, n.subject_id, n.subject_url, n.read, n.created_at
 		 FROM notifications n JOIN repositories r ON r.id = n.repo_id
-		 WHERE n.user_id = $1 AND n.read = FALSE AND `+readableBy("r", "$1")+`
+		 WHERE n.user_id = $1 AND n.read = FALSE AND (`+readableBy("r", "$1")+`
+		    OR n.type = 'repo_transfer' AND EXISTS (SELECT 1 FROM repo_transfers t
+		       WHERE t.id = n.subject_id AND t.recipient_id = n.user_id AND t.expires_at > NOW()))
 		 ORDER BY n.created_at DESC`,
 		userID,
 	)

@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
@@ -613,34 +615,57 @@ templ RepoSettings(data view.RepoSettingsData) {
 							@components.CardHeader() {
 								<h2 class="text-base font-semibold tracking-tight text-destructive">Transfer Ownership</h2>
 								@components.CardDescription() {
-									Transfer this repository to a user or to an organization you own. You keep owner access only if the new owner is you or an organization you own.
+									Transfer this repository to another user, who has { transferTTLDays() } days to accept it, or at once to an organization you own. You keep owner access only if the new owner is you or an organization you own.
 								}
 							}
 							@components.CardContent() {
-								<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer" } hx-swap="none" data-toast="Repository transferred">
-									<div class="flex flex-wrap items-end gap-3">
-										<label for="transfer-new-owner" class="sr-only">New owner: user or organization name</label>
-										@components.Input(templ.Attributes{
-											"id":          "transfer-new-owner",
-											"type":        "text",
-											"name":        "new_owner",
-											"placeholder": "User or organization name",
-											"required":    "required",
-											"class":       "flex-1",
-										})
-										@components.ConfirmFields("transfer-repo", data.Confirm, true)
-										@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
-											"type":                "submit",
-											"data-confirm-action":  "true",
-											"data-confirm-title":   "Transfer ownership?",
-											"data-confirm-msg":     data.RepoName + " will be transferred to the new owner. You keep owner access only if that is you or an organization you own.",
-											"data-confirm-label":   "Transfer",
-											"data-confirm-danger":  "true",
+								if data.PendingTransfer != nil {
+									<div class="flex flex-wrap items-center justify-between gap-3">
+										<p class="text-[13px]">
+											Waiting for <span class="font-mono">{ "@" + data.PendingTransfer.RecipientName }</span> to accept.
+											<span class="text-muted-foreground">
+												<time datetime={ data.PendingTransfer.ExpiresAt.UTC().Format(time.RFC3339) }>{ transferExpiry(data.PendingTransfer.ExpiresAt) }</time>
+											</span>
+										</p>
+										@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+											"type":                 "button",
+											"hx-delete":            "/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer",
+											"hx-swap":              "none",
+											"hx-on--after-request": stashToast("Transfer cancelled"),
 										}) {
-											Transfer
+											Cancel transfer
 										}
 									</div>
-								</form>
+								} else {
+									<form
+										hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer" }
+										hx-swap="none"
+										hx-on--after-request="if(event.detail.xhr.status<300){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:event.detail.xhr.status===202?'Transfer requested':'Repository transferred'}));}"
+									>
+										<div class="flex flex-wrap items-end gap-3">
+											<label for="transfer-new-owner" class="sr-only">New owner: user or organization name</label>
+											@components.Input(templ.Attributes{
+												"id":          "transfer-new-owner",
+												"type":        "text",
+												"name":        "new_owner",
+												"placeholder": "User or organization name",
+												"required":    "required",
+												"class":       "flex-1",
+											})
+											@components.ConfirmFields("transfer-repo", data.Confirm, true)
+											@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
+												"type":                "submit",
+												"data-confirm-action": "true",
+												"data-confirm-title":  "Transfer ownership?",
+												"data-confirm-msg":    "A user must accept " + data.RepoName + " before it moves; an organization you own gets it at once. You keep owner access only if the new owner is you or an organization you own.",
+												"data-confirm-label":  "Transfer",
+												"data-confirm-danger": "true",
+											}) {
+												Transfer
+											}
+										</div>
+									</form>
+								}
 							}
 						}
 						<div id="delete" class="scroll-mt-6"></div>

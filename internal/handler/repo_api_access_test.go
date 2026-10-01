@@ -172,6 +172,7 @@ var repoAPIWriteCases = []repoAPICase{
 	{http.MethodPost, "/keys"},
 	{http.MethodPost, "/hooks"},
 	{http.MethodPost, "/transfer"},
+	{http.MethodDelete, "/transfer"},
 	{http.MethodPost, "/archive"},
 	{http.MethodPatch, "/template"},
 	{http.MethodPost, "/delete"},

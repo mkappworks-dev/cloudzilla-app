@@ -601,7 +601,7 @@ func auditActionClass(action string) string {
 		return "bg-success/15 text-success border-success/30"
 	case model.AuditActionRepoDelete:
 		return "bg-destructive/15 text-destructive border-destructive/30"
-	case model.AuditActionRepoTransfer:
+	case model.AuditActionRepoTransfer, model.AuditActionRepoTransferRequest:
 		return "bg-primary/15 text-primary border-primary/30"
 	}
 	return "bg-accent text-muted-foreground border-border"
@@ -621,6 +621,12 @@ func auditActionVerb(action string) string {
 		return "deleted"
 	case model.AuditActionRepoTransfer:
 		return "transferred"
+	case model.AuditActionRepoTransferRequest:
+		return "offered a transfer of"
+	case model.AuditActionRepoTransferCancel:
+		return "cancelled the transfer of"
+	case model.AuditActionRepoTransferDecline:
+		return "declined the transfer of"
 	}
 	return "acted on"
 }

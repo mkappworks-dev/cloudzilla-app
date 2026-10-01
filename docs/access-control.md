@@ -58,7 +58,7 @@ A session is a bearer credential, so anything that adds a way in that outlives i
 - approving an OAuth app on the consent page (`POST /oauth/authorize` with `action=approve`; denying needs nothing);
 - connecting or disconnecting Google, which also refuse accounts without a password (`ConfirmWithPassword`);
 - adding a repository collaborator, deploy key or webhook (form fields, or `password` and `code` in the webhook JSON body);
-- transferring a repository or an organization;
+- transferring a repository or an organization (requesting it; the user who accepts a repository needs nothing more, since they gain it rather than give it away);
 - making someone an organization owner, by adding them as one or promoting a member. Adding a plain member and demoting an owner need nothing, since members get no repository until they're added to it. The owner check runs first, so a non-owner's request doesn't spend an attempt;
 - making a private repository public (making one private needs nothing);
 - deleting a repository, an organization or the account;
@@ -155,7 +155,7 @@ The same allow-list holds personal access tokens created with scopes, on `authMW
 
 Merging and enabling auto-merge are requests to `PATCH .../pulls/{number}`, so `UpdatePull` checks `claims.HasScope(repo:write)` itself; applying a suggestion is refused by path. `UpdateComment`/`DeleteComment` require the comment to belong to the issue or pull request in the URL, so neither `issues:write` nor `pulls:write` reaches the other's comments.
 
-Everything else is closed whatever the scopes, notably: HTML pages and `/fragments/*` (which is what keeps a user's email, shown on their own profile, away from apps); `/settings/*` form posts (including connecting or disconnecting Google and `/settings/email/resend-verification`), `/verify-email` and `/auth/google/callback`; `/api/user/*` (SSH keys, PATs, TOTP, saved replies), `/api/oauth/*`, `/api/admin/*`, `/api/notifications/*`, `/api/gists`, `/api/markdown/preview`; repo administration (`hooks`, `collaborators`, `keys`, `topics`, `transfer`, `archive`, `unarchive`, `restore`, `delete`, `template`, branch protections, settings); and org administration.
+Everything else is closed whatever the scopes, notably: HTML pages and `/fragments/*` (which is what keeps a user's email, shown on their own profile, away from apps); `/settings/*` form posts (including connecting or disconnecting Google and `/settings/email/resend-verification`), `/verify-email` and `/auth/google/callback`; `/api/user/*` (SSH keys, PATs, TOTP, saved replies, accepting repository transfers), `/api/oauth/*`, `/api/admin/*`, `/api/notifications/*`, `/api/gists`, `/api/markdown/preview`; repo administration (`hooks`, `collaborators`, `keys`, `topics`, `transfer`, `archive`, `unarchive`, `restore`, `delete`, `template`, branch protections, settings); and org administration.
 
 A refused request gets `403` with `{"error":"insufficient_scope"}` and `WWW-Authenticate: Bearer error="insufficient_scope", scope="<narrowest scope that would admit it>"` (the `scope` attribute is omitted on closed routes). Unknown scopes are rejected at `/oauth/authorize` with `400`.
 
@@ -210,6 +210,8 @@ Org members do not get implicit access to private repos. They must be added as e
 **Grant / revoke `admin`** (owner-only, `IsOwner`): giving someone the `admin` role, changing an admin's role, and removing an admin. An admin collaborator who tries gets `403`; otherwise they could make a second account of theirs admin, which would keep managing the repo after their own removal or demotion. A collaborator's role must be `reader`, `writer` or `admin`, else `400`: the `permissions.role` column also accepts `owner`, which would grant only read. `RepoService.AddCollaborator` and `RemoveCollaborator` enforce both.
 
 **Transfer/Delete** (owner-only) includes: repo transfer, archive, unarchive, template toggle, soft-delete/restore. A transfer's `new_owner` names a user or an org, resolved user first like `/{owner}`; moving a repo into an org also requires owning that org.
+
+A transfer into an org the requester owns, or into the requester's own account, happens at once. A transfer to any other user only offers the repo (`repo_transfers`, migration 099): it moves when that user accepts on `/repos/transfers` or `POST /api/user/transfers/{id}/accept`, so nobody can put a repo, its README or its collaborators into someone else's namespace (or claim a name there, such as the `<user>/<user>` profile README) without their consent. The offer lasts 7 days, and lapses once the requester no longer owns the repo (`RepoService.incomingTransfer` checks `IsOwner` on every read). The recipient sees the collaborators who keep their roles before accepting, and accepts the `owner/name` they were shown: a repo renamed or moved in between is refused (`ErrTransferChanged`). Accepting deletes the offer and updates the repo row in one transaction (`RepoTransferStore.Accept`), so a transfer cancelled or declined meanwhile moves nothing; any other owner change (`RepoStore.UpdateOwner`) ends the offer too.
 
 ### Organization Repo Ownership
 
@@ -462,6 +464,9 @@ As on GitHub, a deleted account's issues, pull requests, comments, reviews, disc
 | POST/DELETE           | `/api/user/tokens`                               | authMW | Own user (claims.UserID); POST needs password + TOTP code                      | Token create/revoke        |
 | GET/POST/PATCH/DELETE | `/api/user/replies`                              | authMW | Own user (claims.UserID)                                                       | Saved reply CRUD           |
 | POST/DELETE           | `/api/users/{id}/pinned-repos/{repoID}`          | authMW | Own user (`{id}` = claims.UserID, else 403); POST needs repo read access (404) | PinRepo / UnpinRepo        |
+| GET                   | `/repos/transfers`                               | authMW | Own user: transfers offered to claims.UserID                                   | PageRepoTransfers          |
+| GET                   | `/api/user/transfers`                            | authMW | Own user: transfers offered to claims.UserID                                   | ListRepoTransfers          |
+| POST                  | `/api/user/transfers/{id}/accept`, `.../decline` | authMW | Transfer's recipient (service; 404 otherwise); accept also needs the requester to still own the repo | AcceptRepoTransfer / DeclineRepoTransfer |
 | POST/DELETE           | `/api/oauth/apps`                                | authMW | Own user (claims.UserID)                                                       | OAuth app CRUD             |
 | DELETE                | `/api/oauth/authorizations/{id}`                 | authMW | Own user (claims.UserID)                                                       | RevokeOAuthAuthorization   |
 | POST/PATCH/DELETE     | `/api/gists`                                     | authMW | Own gist (service checks)                                                      | Gist CRUD                  |
@@ -568,6 +573,7 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | POST/DELETE       | `/api/repos/{owner}/{repo}/keys`                         | authMW | CanManage (handler); POST needs password + TOTP code | DeployKey CRUD                     |
 | PUT               | `/api/repos/{owner}/{repo}/topics`                       | authMW | CanManage (handler)                           | SetTopics                                 |
 | POST              | `/api/repos/{owner}/{repo}/transfer`                     | authMW | IsOwner (handler); password + TOTP code       | TransferRepo                              |
+| DELETE            | `/api/repos/{owner}/{repo}/transfer`                     | authMW | IsOwner (handler and service)                 | CancelRepoTransfer                        |
 | POST              | `/api/repos/{owner}/{repo}/archive`                      | authMW | IsOwner (service)                             | ArchiveRepo                               |
 | POST              | `/api/repos/{owner}/{repo}/unarchive`                    | authMW | IsOwner (service)                             | UnarchiveRepo                             |
 | POST              | `/api/repos/{owner}/{repo}/delete`                       | authMW | IsOwner (service)                             | DeleteRepo                                |

@@ -55,6 +55,7 @@ type RepoService struct {
 	code             *CodeService
 	language         *LanguageService
 	pulls            *store.PullStore
+	transfers        *store.RepoTransferStore
 	cfg              config.GitConfig
 }
 
@@ -1009,84 +1010,4 @@ func (s *RepoService) PurgeExpired(ctx context.Context) error {
 		s.removeStrandedWiki(ctx, r.OwnerName, r.Name)
 	}
 	return nil
-}
-
-// TransferRepo hands repo to the user or org named newOwnerName, which resolves
-// user first, as /{owner} does. The requester must own the repo, and must own
-// a receiving org too.
-func (s *RepoService) TransferRepo(ctx context.Context, repo *model.Repository, requestingUserID int64, newOwnerName string) error {
-	if !s.IsOwner(ctx, repo, requestingUserID) {
-		return fmt.Errorf("only the repo owner can transfer ownership")
-	}
-	newOwnerID, newOrgID, err := s.transferTarget(ctx, requestingUserID, newOwnerName)
-	if err != nil {
-		return err
-	}
-	if newOwnerID == repo.OwnerID && newOrgID == repo.OrgID {
-		return fmt.Errorf("the repository already belongs to %s", newOwnerName)
-	}
-	if err := ValidateName(newOwnerName); err != nil {
-		return fmt.Errorf("%w: owner %q", ErrInvalidRepoPath, newOwnerName)
-	}
-
-	oldGitDir, _ := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
-	oldWikiDir, err := s.ownWikiDir(ctx, repo.OwnerName, repo.Name)
-	if err != nil {
-		return err
-	}
-	newGitDir, newWikiDir := repoDirs(s.cfg.ReposRoot, newOwnerName, repo.Name)
-	// os.Rename refuses an existing dir, but a repo without a wiki skips the
-	// wiki move and would pick up whatever wiki waits at the new path.
-	if pathTaken(newGitDir) || pathTaken(newWikiDir) {
-		return ErrRepoNameTaken
-	}
-	if held, err := s.repos.NameHeld(ctx, newOwnerName, wikiPartner(repo.Name)); err != nil {
-		return err
-	} else if held {
-		return ErrRepoNameTaken
-	}
-
-	if err := os.MkdirAll(filepath.Dir(newGitDir), 0755); err != nil {
-		return fmt.Errorf("create owner dir: %w", err)
-	}
-	moves := []dirMove{{from: oldGitDir, to: newGitDir}}
-	if oldWikiDir != "" {
-		moves = append(moves, dirMove{from: oldWikiDir, to: newWikiDir})
-	}
-	moved, err := renameDirs(moves)
-	if err != nil {
-		return fmt.Errorf("move git dir: %w", err)
-	}
-	// renameDirs skips a missing source, and a missing git dir means repo is a
-	// stale read: another request has moved or deleted it since.
-	if len(moved) == 0 || moved[0].from != oldGitDir {
-		revertDirs(moved)
-		return ErrRepoChanged
-	}
-
-	if err := s.repos.UpdateOwner(ctx, repo.ID, repo.OwnerName, newOwnerID, newOrgID, newOwnerName); err != nil {
-		revertDirs(moved)
-		return repoNameErr("update repo owner", err)
-	}
-	return nil
-}
-
-// transferTarget resolves name, user first, to a user or to an org the
-// requester owns.
-func (s *RepoService) transferTarget(ctx context.Context, requesterID int64, name string) (userID, orgID int64, err error) {
-	user, err := s.users.GetByUsername(ctx, name)
-	if err == nil {
-		return user.ID, 0, nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return 0, 0, err
-	}
-	org, err := s.orgs.GetByName(ctx, name)
-	if err != nil {
-		return 0, 0, fmt.Errorf("new owner not found: %w", err)
-	}
-	if !s.isOrgOwner(ctx, org.ID, requesterID) {
-		return 0, 0, fmt.Errorf("only an owner of %s can transfer a repository into it", org.Name)
-	}
-	return 0, org.ID, nil
 }

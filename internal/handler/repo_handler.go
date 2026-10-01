@@ -262,8 +262,19 @@ func (h *Handler) TransferRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Services.Repo.TransferRepo(r.Context(), repo, claims.UserID, newOwner); err != nil {
+	transfer, err := h.Services.Repo.TransferRepo(r.Context(), repo, claims.UserID, newOwner)
+	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "transfer failed")
+		return
+	}
+
+	if transfer != nil {
+		h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionRepoTransferRequest, model.AuditTargetRepo, repo.ID, repo.Name, map[string]any{"to": transfer.RecipientName})
+		go h.Services.Notification.NotifyRepoTransfer(context.WithoutCancel(r.Context()), *transfer)
+		if r.Header.Get("HX-Request") == "true" {
+			w.Header().Set("HX-Refresh", "true")
+		}
+		writeJSON(w, http.StatusAccepted, transfer)
 		return
 	}
 

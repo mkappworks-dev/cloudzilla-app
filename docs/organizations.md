@@ -21,7 +21,7 @@ An org repo belongs to the org, as on GitHub. Its `repositories.org_id` names th
 
 So a member who created a repo keeps only what the org and their explicit role give them: leaving the org or being demoted takes away the rest, over git, the web UI and the API alike. Deploy keys, webhooks and forks they set up belong to the repo, not to them, and stay until an owner removes them. The store queries that filter many repos by what the viewer can read (account issue and PR lists and counts, the activity feed, the attention inbox, repo search) use `readableBy` and `ownedBy` from `internal/store/repo_store.go`, the SQL forms of `RepoService.CanRead` and `IsOwner`.
 
-A live org repo's name is unique within the org (`idx_repos_org_name_live`). A soft-deleted one does not hold its name, so `Restore` refuses when the name has been taken since. Any org owner may soft-delete, restore or transfer an org repo. Two owners can act on one repo at once, so a transfer or soft delete acts only on the row it read (same `owner_name`, still live) and fails with `ErrRepoChanged` otherwise.
+A live org repo's name is unique within the org (`idx_repos_org_name_live`). A soft-deleted one does not hold its name, so `Restore` refuses when the name has been taken since. Any org owner may soft-delete, restore or transfer an org repo; a transfer to a user other than themselves waits for that user to accept it, and lapses if the requester stops being an owner first. Two owners can act on one repo at once, so a transfer or soft delete acts only on the row it read (same `owner_name`, still live) and fails with `ErrRepoChanged` otherwise.
 
 ## Account deletion
 
