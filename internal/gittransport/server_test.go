@@ -110,6 +110,15 @@ func (r *pushRepo) receive(sess transport.ReceivePackSession, cmds ...*packp.Com
 	return sess.ReceivePack(context.Background(), req)
 }
 
+func captureLogs(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	var logs bytes.Buffer
+	defaultLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(defaultLogger) })
+	return &logs
+}
+
 func refStatus(t *testing.T, status *packp.ReportStatus, name plumbing.ReferenceName) string {
 	t.Helper()
 	if status == nil {
@@ -294,10 +303,7 @@ func TestNewServer_RefWriteFails_StatusHidesStorerError(t *testing.T) {
 	if err := os.Chmod(filepath.Join(r.dir, mainRef.String()), 0o444); err != nil {
 		t.Fatalf("make main read-only: %v", err)
 	}
-	var logs bytes.Buffer
-	defaultLogger := slog.Default()
-	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
-	t.Cleanup(func() { slog.SetDefault(defaultLogger) })
+	logs := captureLogs(t)
 
 	status, err := r.receive(r.advertise(t, nil), &packp.Command{Name: mainRef, Old: r.base, New: r.pushed})
 
@@ -312,6 +318,65 @@ func TestNewServer_RefWriteFails_StatusHidesStorerError(t *testing.T) {
 	}
 	if !strings.Contains(logs.String(), "permission denied") {
 		t.Errorf("storer error not logged:\n%s", logs.String())
+	}
+}
+
+// go-git reports the unpack error's text to the pusher, and an error storing
+// the pushed objects names paths on the server.
+func TestNewServer_ObjectWriteFails_UnpackStatusHidesStorerError(t *testing.T) {
+	r := newPushRepo(t)
+	// go-git stages every received object in objects/pack before moving it
+	// into place.
+	packDir := filepath.Join(r.dir, "objects", "pack")
+	if err := os.Chmod(packDir, 0o555); err != nil {
+		t.Fatalf("make objects/pack read-only: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(packDir, 0o755) })
+	logs := captureLogs(t)
+
+	status, err := r.receive(r.advertise(t, nil), &packp.Command{Name: mainRef, Old: r.base, New: r.pushed})
+
+	if err == nil || err.Error() != gittransport.ErrUnpackFailed.Error() {
+		t.Errorf("ReceivePack err = %v, want %q", err, gittransport.ErrUnpackFailed.Error())
+	}
+	if status == nil || status.UnpackStatus != gittransport.ErrUnpackFailed.Error() {
+		t.Errorf("unpack status = %+v, want %q", status, gittransport.ErrUnpackFailed.Error())
+	}
+	if got := r.get(t, mainRef); got != r.base {
+		t.Errorf("main = %s, want %s", got, r.base)
+	}
+	if !strings.Contains(logs.String(), "permission denied") {
+		t.Errorf("storer error not logged:\n%s", logs.String())
+	}
+}
+
+// A malformed pack is the pusher's own data, so they still get the reason.
+func TestNewServer_MalformedPack_UnpackStatusKeepsReason(t *testing.T) {
+	missingBase := plumbing.NewHash("1234567890123456789012345678901234567890")
+	for _, tc := range []struct {
+		name string
+		pack func(*pushRepo) []byte
+		want string
+	}{
+		{"bad signature", func(r *pushRepo) []byte { return append([]byte("XACK"), r.pack[4:]...) }, "malformed pack file signature"},
+		{"truncated", func(r *pushRepo) []byte { return r.pack[:len(r.pack)/2] }, "malformed PACK file: unexpected EOF"},
+		{"thin pack on a base the repo lacks", func(*pushRepo) []byte {
+			return buildThinRefDeltaPack(t, missingBase, 4, []byte("target\n"))
+		}, "object not found"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := newPushRepo(t)
+			r.pack = tc.pack(r)
+
+			status, err := r.receive(r.advertise(t, nil), &packp.Command{Name: mainRef, Old: r.base, New: r.pushed})
+
+			if err == nil || err.Error() != tc.want {
+				t.Errorf("ReceivePack err = %v, want %q", err, tc.want)
+			}
+			if status == nil || status.UnpackStatus != tc.want {
+				t.Errorf("unpack status = %+v, want %q", status, tc.want)
+			}
+		})
 	}
 }
 
