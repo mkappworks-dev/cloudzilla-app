@@ -39,7 +39,7 @@ download-mermaid:                  ## Download mermaid.min.js for self-hosting (
 	@mkdir -p cmd/server/frontend/static
 	@if [ ! -f cmd/server/frontend/static/mermaid.min.js ]; then \
 		echo "Downloading mermaid.min.js..."; \
-		curl -sL https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js \
+		curl -sL https://cdn.jsdelivr.net/npm/mermaid@12/dist/mermaid.min.js \
 		  -o cmd/server/frontend/static/mermaid.min.js; \
 	fi
 
