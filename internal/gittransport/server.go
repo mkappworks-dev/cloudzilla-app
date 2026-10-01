@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/format/packfile"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
 	"github.com/go-git/go-git/v5/plumbing/storer"
@@ -20,6 +21,7 @@ var (
 	ErrMissingObjects  = errors.New("missing necessary objects")
 	ErrNonCommitBranch = errors.New("trying to write non-commit object to branch")
 	ErrRefUpdateFailed = errors.New("failed to update ref")
+	ErrUnpackFailed    = errors.New("failed to store pushed objects")
 )
 
 // NewServer is go-git's git server over s, serving every endpoint. Its
@@ -73,12 +75,37 @@ func (c casSession) ReceivePack(ctx context.Context, req *packp.ReferenceUpdateR
 		defer req.Capabilities.Delete(capability.ReportStatus)
 	}
 	status, err := c.ReceivePackSession.ReceivePack(ctx, req)
-	// go-git also returns the first refused ref as an error, though the pack
-	// and the other refs landed and status reports each ref.
-	if status != nil && status.UnpackStatus == "ok" {
+	if status == nil {
+		return nil, err
+	}
+	switch {
+	case status.UnpackStatus == "ok":
+		// go-git also returns the first refused ref as an error, though the pack
+		// and the other refs landed and status reports each ref.
 		err = nil
+	case !isPackError(err):
+		// go-git reports the unpack error's text to the pusher, and an error
+		// storing the pushed objects names paths on the server.
+		slog.Error("gittransport: unpack failed", "error", err)
+		err = ErrUnpackFailed
+		status.UnpackStatus = err.Error()
 	}
 	return status, err
+}
+
+// isPackError reports whether err faults the pushed pack itself, which the
+// pusher sent and may be told about. go-git flattens a zlib error into text it
+// also uses for reads of the repo's own packs, so a corrupt zlib stream isn't
+// one.
+func isPackError(err error) bool {
+	var packErr *packfile.Error
+	return errors.As(err, &packErr) ||
+		errors.Is(err, packfile.ErrMalformedPackFile) ||
+		errors.Is(err, packfile.ErrReferenceDeltaNotFound) ||
+		errors.Is(err, packfile.ErrInvalidDelta) ||
+		errors.Is(err, packfile.ErrDeltaCmd) ||
+		errors.Is(err, plumbing.ErrObjectNotFound) ||
+		errors.Is(err, ErrPackTooLarge)
 }
 
 func deleteOnly(cmds []*packp.Command) bool {

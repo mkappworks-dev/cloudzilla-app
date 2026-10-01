@@ -321,6 +321,33 @@ func TestGitReceivePack_ProtectionLookupFails_RefusedWithoutDBError(t *testing.T
 	}
 }
 
+// go-git reports the unpack error's text to the pusher, and an error storing
+// the pushed objects names paths on the server.
+func TestGitReceivePack_ObjectWriteFails_ResponseHidesServerPath(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	h := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+	// go-git stages every received object in objects/pack before moving it
+	// into place, even one the repo already has.
+	packDir := filepath.Join(r.gitDir, "objects", "pack")
+	if err := os.Chmod(packDir, 0o555); err != nil {
+		t.Fatalf("make objects/pack read-only: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(packDir, 0o755) })
+
+	rr := postReceivePack(t, h, r, true, &packp.Command{Name: mainRef, Old: r.mainTip, New: r.mainPushed})
+
+	body := rr.Body.String()
+	if rr.Code != http.StatusInternalServerError || !strings.Contains(body, gittransport.ErrUnpackFailed.Error()) {
+		t.Errorf("want 500 with %q, got %d %q", gittransport.ErrUnpackFailed.Error(), rr.Code, body)
+	}
+	if strings.Contains(body, reposRoot) {
+		t.Errorf("response names a server path: %q", body)
+	}
+	assertRef(t, r, "main", r.mainTip)
+}
+
 // Deleting a branch and pushing it again is a force push in two steps.
 func TestGitReceivePack_DeleteProtectedBranch_Refused(t *testing.T) {
 	db := testutil.OpenTestDB(t)

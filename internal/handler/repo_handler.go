@@ -220,10 +220,10 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 			collabs = []model.Permission{}
 		}
 		h.render(w, r, fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Collabs:  collabs,
+			Owner:     owner,
+			RepoName:  repoName,
+			RepoID:    repo.ID,
+			Collabs:   collabs,
 			CanManage: true,
 		}))
 		return
@@ -317,10 +317,10 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 			collabs = []model.Permission{}
 		}
 		h.render(w, r, fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Collabs:  collabs,
+			Owner:     owner,
+			RepoName:  repoName,
+			RepoID:    repo.ID,
+			Collabs:   collabs,
 			CanManage: true,
 		}))
 		return

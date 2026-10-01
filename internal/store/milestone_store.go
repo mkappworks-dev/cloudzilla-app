@@ -347,4 +347,3 @@ func (s *MilestoneStore) PullCounts(ctx context.Context, milestoneID int64) (ope
 	}
 	return open, closed, nil
 }
-

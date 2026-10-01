@@ -597,4 +597,3 @@ func commitSingleFile(
 	}
 	return nil
 }
-

@@ -324,13 +324,13 @@ func parseLDAPBindResponse(data []byte) error {
 
 // XML Digital Signature (XMLDSig) types — used to parse the embedded signature.
 type dsSignature struct {
-	SignedInfo      dsSignedInfo `xml:"SignedInfo"`
-	SignatureValue  string       `xml:"SignatureValue"`
+	SignedInfo     dsSignedInfo `xml:"SignedInfo"`
+	SignatureValue string       `xml:"SignatureValue"`
 }
 
 type dsSignedInfo struct {
 	CanonicalizationMethod dsAlgorithm   `xml:"CanonicalizationMethod"`
-	SignatureMethod         dsAlgorithm   `xml:"SignatureMethod"`
+	SignatureMethod        dsAlgorithm   `xml:"SignatureMethod"`
 	Reference              []dsReference `xml:"Reference"`
 }
 
@@ -361,16 +361,16 @@ type samlStatusCode struct {
 }
 
 type samlAssertion struct {
-	ID         string          `xml:"ID,attr"`
-	Issuer     string          `xml:"Issuer"`
-	Subject    samlSubject     `xml:"Subject"`
-	Conditions samlConditions  `xml:"Conditions"`
-	AttrStmts  []samlAttrStmt  `xml:"AttributeStatement"`
-	Signature  *dsSignature    `xml:"Signature"`
+	ID         string         `xml:"ID,attr"`
+	Issuer     string         `xml:"Issuer"`
+	Subject    samlSubject    `xml:"Subject"`
+	Conditions samlConditions `xml:"Conditions"`
+	AttrStmts  []samlAttrStmt `xml:"AttributeStatement"`
+	Signature  *dsSignature   `xml:"Signature"`
 }
 
 type samlSubject struct {
-	NameID               samlNameID               `xml:"NameID"`
+	NameID               samlNameID                `xml:"NameID"`
 	SubjectConfirmations []samlSubjectConfirmation `xml:"SubjectConfirmation"`
 }
 
@@ -390,8 +390,8 @@ type samlSubjectConfirmationData struct {
 }
 
 type samlConditions struct {
-	NotBefore           string                  `xml:"NotBefore,attr"`
-	NotOnOrAfter        string                  `xml:"NotOnOrAfter,attr"`
+	NotBefore           string                    `xml:"NotBefore,attr"`
+	NotOnOrAfter        string                    `xml:"NotOnOrAfter,attr"`
 	AudienceRestriction []samlAudienceRestriction `xml:"AudienceRestriction"`
 }
 

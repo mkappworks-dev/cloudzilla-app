@@ -20,9 +20,9 @@ import (
 // In-process cache of last lazy-parse times per repo to keep an empty
 // dependency set from triggering a full manifest tree-walk on every page view.
 var (
-	depLazyParseTTL  = time.Hour
-	depLazyParsedMu  sync.Mutex
-	depLazyParsedAt  = map[int64]time.Time{}
+	depLazyParseTTL = time.Hour
+	depLazyParsedMu sync.Mutex
+	depLazyParsedAt = map[int64]time.Time{}
 )
 
 func shouldLazyParseDeps(repoID int64) bool {
