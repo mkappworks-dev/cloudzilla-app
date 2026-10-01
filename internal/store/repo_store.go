@@ -777,7 +777,6 @@ func (s *RepoStore) CountForUser(ctx context.Context, userID int64) (int, error)
 }
 
 // scope is "owned", "collaborator", or "all" (default for any unknown value).
-// The repo owner also holds a permission row, so "collaborator" excludes owned repos.
 func (s *RepoStore) ListForUser(ctx context.Context, userID int64, scope string) ([]model.Repository, error) {
 	const cols = `r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at, r.is_fork, r.fork_of_id, r.fork_count, r.is_archived, r.archived_at, r.is_template, r.primary_language`
 	var where string

@@ -205,8 +205,10 @@ func SeedInvitation(t *testing.T, db *sql.DB, email string, expiresAt time.Time)
 }
 
 // SeedRepo inserts a test repository owned by ownerID and returns the repo ID.
-// An owner-role permission row is inserted automatically.
-// Both are deleted when the test ends.
+// It is deleted when the test ends.
+//
+// Like RepoService.Create, it gives the owner no permissions row: ownership is
+// owner_id, and a row here would hide queries that skip ownedBy.
 func SeedRepo(t *testing.T, db *sql.DB, ownerID int64, ownerName, suffix string) int64 {
 	t.Helper()
 	ctx := context.Background()
@@ -219,15 +221,7 @@ func SeedRepo(t *testing.T, db *sql.DB, ownerID int64, ownerName, suffix string)
 	if err != nil {
 		t.Fatalf("SeedRepo: %v", err)
 	}
-	_, err = db.ExecContext(ctx,
-		`INSERT INTO permissions (user_id, repo_id, role) VALUES ($1, $2, 'owner')`,
-		ownerID, repoID,
-	)
-	if err != nil {
-		t.Fatalf("SeedRepo permission: %v", err)
-	}
 	t.Cleanup(func() {
-		Exec(t, db, `DELETE FROM permissions WHERE repo_id = $1`, repoID)
 		Exec(t, db, `DELETE FROM repositories WHERE id = $1`, repoID)
 	})
 	return repoID
