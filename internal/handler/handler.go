@@ -96,6 +96,14 @@ func (h *Handler) linkLookupOK(w http.ResponseWriter, r *http.Request, err, unus
 	return false
 }
 
+// viewerOf returns the signed-in user's ID, or nil for an anonymous request.
+func viewerOf(r *http.Request) *int64 {
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		return &claims.UserID
+	}
+	return nil
+}
+
 // readableRepoJSON is readableRepo with a JSON 404, for API and fragment routes.
 // It must run before anything that would answer an existing repo differently.
 func (h *Handler) readableRepoJSON(w http.ResponseWriter, r *http.Request, owner, repoName string) (*model.Repository, bool) {
