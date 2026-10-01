@@ -61,6 +61,15 @@ func readableBy(r, u string) string {
 		` OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = ` + r + `.id AND perm.user_id = ` + u + `))`
 }
 
+// viewerID maps an anonymous viewer to 0, which no user, owner or permission
+// row holds, so readableBy and issueVisibleTo need no anonymous form.
+func viewerID(u *int64) int64 {
+	if u == nil {
+		return 0
+	}
+	return *u
+}
+
 // RepoStore provides database operations for repositories and their permissions.
 type RepoStore struct {
 	db *sql.DB
@@ -155,13 +164,27 @@ func (s *RepoStore) GetByOwnerNameList(ctx context.Context, ownerName string) ([
 	return scanRepoRows(rows)
 }
 
-func (s *RepoStore) List(ctx context.Context) ([]model.Repository, error) {
+func (s *RepoStore) ListPublic(ctx context.Context) ([]model.Repository, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
 		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template, primary_language
-		 FROM repositories WHERE deleted_at IS NULL ORDER BY created_at DESC`)
+		 FROM repositories WHERE NOT private AND deleted_at IS NULL ORDER BY created_at DESC`)
 	if err != nil {
-		return nil, fmt.Errorf("repo list: %w", err)
+		return nil, fmt.Errorf("repo list public: %w", err)
+	}
+	defer rows.Close()
+	return scanRepoRows(rows)
+}
+
+func (s *RepoStore) ListReadableBy(ctx context.Context, userID int64) ([]model.Repository, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description, r.private, r.default_branch, r.created_at, r.updated_at,
+		        r.is_fork, r.fork_of_id, r.fork_count, r.is_archived, r.archived_at, r.is_template, r.primary_language
+		 FROM repositories r WHERE r.deleted_at IS NULL AND `+readableBy("r", "$1")+` ORDER BY r.created_at DESC`,
+		userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("repo list readable: %w", err)
 	}
 	defer rows.Close()
 	return scanRepoRows(rows)

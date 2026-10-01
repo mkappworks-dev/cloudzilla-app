@@ -84,7 +84,11 @@ type createRepoRequest struct {
 }
 
 func (h *Handler) ListRepos(w http.ResponseWriter, r *http.Request) {
-	repos, err := h.Services.Repo.List(r.Context())
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	repos, err := h.Services.Repo.ListVisibleTo(r.Context(), viewerID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list repos")
 		return
@@ -209,8 +213,12 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Services.Repo.AddCollaborator(r.Context(), repo.ID, username, role); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+	if err := h.Services.Repo.AddCollaborator(r.Context(), repo, claims.UserID, username, role); err != nil {
+		status := http.StatusBadRequest
+		if errors.Is(err, service.ErrAdminRoleOwnerOnly) {
+			status = http.StatusForbidden
+		}
+		writeError(w, status, err.Error())
 		return
 	}
 
@@ -307,7 +315,11 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Services.Repo.RemoveCollaborator(r.Context(), repo.ID, userID); err != nil {
+	if err := h.Services.Repo.RemoveCollaborator(r.Context(), repo, claims.UserID, userID); err != nil {
+		if errors.Is(err, service.ErrAdminRoleOwnerOnly) {
+			writeError(w, http.StatusForbidden, err.Error())
+			return
+		}
 		slog.Error("operation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return

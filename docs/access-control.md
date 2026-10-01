@@ -195,17 +195,19 @@ Org members do not get implicit access to private repos. They must be added as e
 
 ### Repository Roles
 
-| Role                     | Read (public) | Read (private) | Push / Write | Manage (collabs, settings) | Transfer | Delete |
-| ------------------------ | :-----------: | :------------: | :----------: | :------------------------: | :------: | :----: |
-| Anyone (unauthenticated) |      Yes      |       No       |      No      |             No             |    No    |   No   |
-| Authenticated (no role)  |      Yes      |       No       |      No      |             No             |    No    |   No   |
-| `reader`                 |      Yes      |      Yes       |      No      |             No             |    No    |   No   |
-| `writer`                 |      Yes      |      Yes       |     Yes      |             No             |    No    |   No   |
-| `admin`                  |      Yes      |      Yes       |     Yes      |            Yes             |    No    |   No   |
-| Repo owner               |      Yes      |      Yes       |     Yes      |            Yes             |   Yes    |  Yes   |
-| Org owner (org repos)    |      Yes      |      Yes       |     Yes      |            Yes             |   Yes    |  Yes   |
+| Role                     | Read (public) | Read (private) | Push / Write | Manage (collabs, settings) | Grant / revoke `admin` | Transfer | Delete |
+| ------------------------ | :-----------: | :------------: | :----------: | :------------------------: | :--------------------: | :------: | :----: |
+| Anyone (unauthenticated) |      Yes      |       No       |      No      |             No             |           No           |    No    |   No   |
+| Authenticated (no role)  |      Yes      |       No       |      No      |             No             |           No           |    No    |   No   |
+| `reader`                 |      Yes      |      Yes       |      No      |             No             |           No           |    No    |   No   |
+| `writer`                 |      Yes      |      Yes       |     Yes      |             No             |           No           |    No    |   No   |
+| `admin`                  |      Yes      |      Yes       |     Yes      |            Yes             |           No           |    No    |   No   |
+| Repo owner               |      Yes      |      Yes       |     Yes      |            Yes             |          Yes           |   Yes    |  Yes   |
+| Org owner (org repos)    |      Yes      |      Yes       |     Yes      |            Yes             |          Yes           |   Yes    |  Yes   |
 
-**Manage** includes: collaborator CRUD, branch protection, deploy keys, topics, wiki deletion, webhook CRUD, repo settings page access.
+**Manage** includes: adding, changing and removing `reader` and `writer` collaborators, branch protection, deploy keys, topics, wiki deletion, webhook CRUD, repo settings page access.
+
+**Grant / revoke `admin`** (owner-only, `IsOwner`): giving someone the `admin` role, changing an admin's role, and removing an admin. An admin collaborator who tries gets `403`; otherwise they could make a second account of theirs admin, which would keep managing the repo after their own removal or demotion. A collaborator's role must be `reader`, `writer` or `admin`, else `400`: the `permissions.role` column also accepts `owner`, which would grant only read. `RepoService.AddCollaborator` and `RemoveCollaborator` enforce both.
 
 **Transfer/Delete** (owner-only) includes: repo transfer, archive, unarchive, template toggle, soft-delete/restore. A transfer's `new_owner` names a user or an org, resolved user first like `/{owner}`; moving a repo into an org also requires owning that org.
 
@@ -218,7 +220,7 @@ For org repos, `org_id` points to the org and `owner_id` is `NULL`. `created_by`
 | `owner`  |     Yes      |     Yes      |      Yes       |     Yes      |      Yes       |
 | `member` |      No      |      No      |       No       |      No      |       No       |
 
-Org owners can also appoint `admin` collaborators who can manage settings and assign `reader`/`writer` roles.
+Org owners can also appoint `admin` collaborators, who manage settings and `reader`/`writer` collaborators but can't appoint, demote or remove admins.
 
 ---
 
@@ -236,11 +238,11 @@ func (s *RepoService) CanWrite(ctx, repo, userID int64) bool
 // CanManage — owner, org owner, or admin collaborator
 func (s *RepoService) CanManage(ctx, repo, userID int64) bool
 
-// IsOwner — a personal repo's owner, or an owner of an org repo's org (transfer, delete, archive)
+// IsOwner — a personal repo's owner, or an owner of an org repo's org (transfer, delete, archive, the admin role)
 func (s *RepoService) IsOwner(ctx, repo, userID int64) bool
 ```
 
-`IsOwner` looks only at `org_members` for an org repo and only at `owner_id` for a personal one, and the other three build on it. Store queries that filter many repos by what the viewer can read (account issue and PR lists and counts, the activity feed, the attention inbox, repo search, the notification email digest) use `readableBy` and `ownedBy` (`internal/store/repo_store.go`), the SQL forms of `CanRead` and `IsOwner`.
+`IsOwner` looks only at `org_members` for an org repo and only at `owner_id` for a personal one, and the other three build on it. Store queries that filter many repos by what the viewer can read (account issue and PR lists and counts, the activity feed, the attention inbox, repo, issue and PR search, the notification email digest) use `readableBy` and `ownedBy` (`internal/store/repo_store.go`), the SQL forms of `CanRead` and `IsOwner`. Issue search also applies `issueVisibleTo` (`internal/store/issue_store.go`), the private-issue rule the issue pages use: a private issue shows only to its author and to holders of a `writer`, `admin` or `owner` permission row. Search skips soft-deleted repos, and code search covers public repos only.
 
 ### Two-Layer Enforcement Pattern
 
@@ -486,7 +488,7 @@ As on GitHub, a deleted account's issues, pull requests, comments, reviews, disc
 
 | Method   | Path                                                                                             | Auth      | AuthZ                               | Handler                                                                   |
 | -------- | ------------------------------------------------------------------------------------------------ | --------- | ----------------------------------- | ------------------------------------------------------------------------- |
-| GET      | `/api/repos`                                                                                     | optAuthMW | Public list                         | ListRepos                                                                 |
+| GET      | `/api/repos`                                                                                     | optAuthMW | Repos the caller can read           | ListRepos                                                                 |
 | GET      | `/api/repos/{owner}/{repo}`                                                                      | optAuthMW | readableRepoJSON                    | GetRepo                                                                   |
 | GET      | `/api/repos/{owner}/{repo}/issues`, `.../issues/{number}` (+ `/title`, `/body`, `/comments`)     | optAuthMW | readableRepoJSON + issue visibility | ListIssues / GetIssue / …                                                 |
 | GET      | `/api/repos/{owner}/{repo}/pulls`, `.../pulls/{number}` (+ `/reviews`, `/line_comments`)         | optAuthMW | readableRepoJSON                    | ListPulls / GetPull / …                                                   |

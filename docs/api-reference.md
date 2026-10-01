@@ -146,7 +146,7 @@ Public user objects — returned by `GET /api/users/:username` and by `/api/repo
 
 | Method | Path                                | Auth     | Description                                                                         |
 | ------ | ----------------------------------- | -------- | ----------------------------------------------------------------------------------- |
-| GET    | `/api/repos/`                       | --       | List all repositories                                                               |
+| GET    | `/api/repos/`                       | --       | List the repositories the caller can read; anonymous callers get public ones only   |
 | POST   | `/api/repos/`                       | Required | Create a repository (`name`, `description`, `private`, plus the init options below) |
 | GET    | `/api/repos/:owner/:repo`           | --       | Get repository details                                                              |
 | POST   | `/api/repos/:owner/:repo/fork`      | Required | Fork into authenticated user's namespace                                            |
@@ -374,7 +374,7 @@ Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`) that
 
 | Method | Path      | Auth     | Description                                                                                                                                        |
 | ------ | --------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/search` | Optional | Full-text search. Query params: `q` (search term), `type` (`all`, `repos`, `issues`, `pulls`, `users`). Private repos visible only to their owner. |
+| GET    | `/search` | Optional | Full-text search. Query params: `q` (search term), `type` (`all`, `repos`, `issues`, `pulls`, `users`). Returns only repos, issues and PRs the viewer can read, never from soft-deleted repos. |
 
 ## Webhooks
 
@@ -394,8 +394,8 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 | Method | Path                                              | Auth      | Description                           |
 | ------ | ------------------------------------------------- | --------- | ------------------------------------- |
 | GET    | `/api/repos/:owner/:repo/collaborators`           | Optional  | List collaborators with usernames     |
-| POST   | `/api/repos/:owner/:repo/collaborators`           | CanManage | Add collaborator (`username`, `role`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled) |
-| DELETE | `/api/repos/:owner/:repo/collaborators?user_id=N` | CanManage | Remove collaborator by user ID        |
+| POST   | `/api/repos/:owner/:repo/collaborators`           | CanManage | Add collaborator or change their role (`username`, `role` of `reader`, `writer` or `admin`, else 400, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation or when a non-owner grants `admin` or changes an admin's role, 429 when throttled) |
+| DELETE | `/api/repos/:owner/:repo/collaborators?user_id=N` | CanManage | Remove collaborator by user ID (403 when a non-owner removes an admin) |
 
 See [access-control.md](access-control.md) for the full permission model. `CanManage` requires owner, org owner, or `admin` collaborator role.
 
