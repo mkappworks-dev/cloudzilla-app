@@ -394,8 +394,8 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 | Method | Path                                              | Auth      | Description                           |
 | ------ | ------------------------------------------------- | --------- | ------------------------------------- |
 | GET    | `/api/repos/:owner/:repo/collaborators`           | Optional  | List collaborators with usernames     |
-| POST   | `/api/repos/:owner/:repo/collaborators`           | CanManage | Add collaborator (`username`, `role`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled) |
-| DELETE | `/api/repos/:owner/:repo/collaborators?user_id=N` | CanManage | Remove collaborator by user ID        |
+| POST   | `/api/repos/:owner/:repo/collaborators`           | CanManage | Add collaborator or change their role (`username`, `role` of `reader`, `writer` or `admin`, else 400, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation or when a non-owner grants `admin` or changes an admin's role, 429 when throttled) |
+| DELETE | `/api/repos/:owner/:repo/collaborators?user_id=N` | CanManage | Remove collaborator by user ID (403 when a non-owner removes an admin) |
 
 See [access-control.md](access-control.md) for the full permission model. `CanManage` requires owner, org owner, or `admin` collaborator role.
 
