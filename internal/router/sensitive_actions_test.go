@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -549,21 +550,31 @@ func jsonString(s string) string {
 	return string(b)
 }
 
-// A personal access token was created with the password, so a script using one
-// administers repositories and orgs without a prompt. It still can't add a way
-// into the account itself.
-func TestPAT_SkipsConfirmationOnlyForRepoAndOrgAdministration(t *testing.T) {
-	h, svc, db := newVerificationRouter(t, config.SMTPConfig{})
+// Only a token created with repo:admin administers repositories and orgs
+// without a prompt; it must expire, each use is mailed to the owner, and it
+// still can't add a way into the account itself.
+func TestPAT_OnlyAdminTokensSkipTheConfirmation(t *testing.T) {
+	smtp, box := testutil.FakeSMTP(t)
+	h, svc, db := newVerificationRouter(t, smtp)
 	ctx := context.Background()
 	suffix := testutil.UniqueSuffix(t)
-	userID, _ := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	userID, email := testutil.SeedUserWithPassword(t, db, suffix, "password1")
 	owner := "testpw_" + suffix
 	granteeSuffix := testutil.UniqueSuffix(t)
 	testutil.SeedUser(t, db, granteeSuffix)
-	pat, _, err := svc.AccessToken.Generate(ctx, userID, "ci", nil, nil)
-	if err != nil {
-		t.Fatalf("Generate: %v", err)
+	soon := time.Now().Add(24 * time.Hour)
+	token := func(scopes ...string) string {
+		var expires *time.Time
+		if slices.Contains(scopes, model.ScopeRepoAdmin) {
+			expires = &soon
+		}
+		raw, _, err := svc.AccessToken.Generate(ctx, userID, "ci "+strings.Join(scopes, ","), scopes, expires)
+		if err != nil {
+			t.Fatalf("Generate %v: %v", scopes, err)
+		}
+		return raw
 	}
+	admin, full, readOnly := token(model.ScopeRepoAdmin), token(), token(model.ScopeRepoRead)
 	repo, err := svc.Repo.Create(ctx, userID, owner, "pat_"+suffix, "", true, service.RepoInitOptions{})
 	if err != nil {
 		t.Fatalf("create repo: %v", err)
@@ -575,19 +586,58 @@ func TestPAT_SkipsConfirmationOnlyForRepoAndOrgAdministration(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+token)
 		return serve(h, req)
 	}
+	collaborator := func(role string) url.Values {
+		return url.Values{"username": {"testuser_" + granteeSuffix}, "role": {role}}
+	}
 
-	if rr := post(pat, base+"/collaborators", url.Values{"username": {"testuser_" + granteeSuffix}, "role": {"reader"}}); rr.Code >= 400 {
-		t.Errorf("collaborator with a PAT: got %d %s", rr.Code, rr.Body)
+	if rr := post(admin, base+"/collaborators", collaborator("reader")); rr.Code >= 400 {
+		t.Fatalf("collaborator with a repo:admin token: got %d %s", rr.Code, rr.Body)
 	}
-	if rr := post(pat, base+"/keys", url.Values{"title": {"ci"}, "public_key": {sshPublicKey(t)}}); rr.Code >= 400 {
-		t.Errorf("deploy key with a PAT: got %d %s", rr.Code, rr.Body)
+	if notice := box.NextTo(t, email); !strings.Contains(notice.Data, base+"/collaborators") {
+		t.Errorf("the admin token's use wasn't mailed to the owner: %.300s", notice.Data)
 	}
-	if rr := post(pat, "/api/user/keys", url.Values{"title": {"laptop"}, "public_key": {sshPublicKey(t)}}); rr.Code != http.StatusForbidden {
-		t.Errorf("account SSH key with a PAT and no password: got %d, want 403", rr.Code)
+	if rr := post(full, base+"/collaborators", collaborator("writer")); rr.Code != http.StatusForbidden || !strings.Contains(rr.Body.String(), "was incorrect") {
+		t.Errorf("collaborator with a token without scopes and no password: got %d %s, want the refusal", rr.Code, rr.Body)
+	}
+	if rr := post(full, base+"/collaborators", withPassword(collaborator("writer"), "password1")); rr.Code >= 400 {
+		t.Errorf("collaborator with a token without scopes and the password: got %d %s", rr.Code, rr.Body)
+	}
+	if rr := post(readOnly, base+"/collaborators", withPassword(collaborator("admin"), "password1")); rr.Code != http.StatusForbidden || !strings.Contains(rr.Body.String(), "insufficient_scope") {
+		t.Errorf("collaborator with a repo:read token: got %d %s, want insufficient_scope", rr.Code, rr.Body)
+	}
+	if rr := post(admin, "/api/user/keys", url.Values{"title": {"laptop"}, "public_key": {sshPublicKey(t)}}); rr.Code != http.StatusForbidden {
+		t.Errorf("account SSH key with a repo:admin token: got %d, want 403", rr.Code)
 	}
 	session := makeJWT(t, userID, owner)
-	if rr := post(session, base+"/collaborators", url.Values{"username": {"testuser_" + granteeSuffix}, "role": {"writer"}}); rr.Code != http.StatusForbidden {
+	if rr := post(session, base+"/collaborators", collaborator("writer")); rr.Code != http.StatusForbidden {
 		t.Errorf("a session JWT sent as a bearer token skipped the confirmation: got %d", rr.Code)
+	}
+}
+
+// An LDAP account has no password of its own here; it confirms with its
+// directory password, checked by binding as its own DN.
+func TestLDAPAccounts_ConfirmWithTheDirectoryPassword(t *testing.T) {
+	h, svc, db := newVerificationRouter(t, config.SMTPConfig{})
+	suffix := testutil.UniqueSuffix(t)
+	userID, uid := seedLDAPUser(t, db, suffix)
+	testutil.Exec(t, db, `UPDATE users SET password_hash = '' WHERE id = $1`, userID)
+	session := makeJWT(t, userID, "testuser_"+suffix)
+	addKey := func(password string) *httptest.ResponseRecorder {
+		return serve(h, browserRequest(http.MethodPost, "/api/user/keys", session, withPassword(url.Values{
+			"title": {"laptop"}, "public_key": {sshPublicKey(t)},
+		}, password)))
+	}
+
+	enableLDAPWith(t, svc, db, ldapBindRejected)
+	if rr := addKey("wrong-" + uid); rr.Code != http.StatusForbidden {
+		t.Errorf("a password the directory rejects: got %d, want 403", rr.Code)
+	}
+	enableLDAPWith(t, svc, db, ldapBindSuccess)
+	if rr := addKey(""); rr.Code != http.StatusForbidden {
+		t.Errorf("no password: got %d, want 403", rr.Code)
+	}
+	if rr := addKey("right-" + uid); rr.Code >= 400 {
+		t.Errorf("a password the directory accepts: got %d %s", rr.Code, rr.Body)
 	}
 }
 
@@ -606,7 +656,7 @@ func TestEmailCode_ConfirmsForAccountsWithoutAPasswordOr2FA(t *testing.T) {
 		}))
 	}
 
-	if rr := addKey(withoutSMTP, ""); rr.Code != http.StatusForbidden || !strings.Contains(rr.Body.String(), "no password, two-factor app or email") {
+	if rr := addKey(withoutSMTP, ""); rr.Code != http.StatusForbidden || !strings.Contains(rr.Body.String(), "no way to confirm") {
 		t.Errorf("without email: got %d %s, want the no-way-to-confirm refusal", rr.Code, rr.Body)
 	}
 	if rr := addKey(h, ""); rr.Code != http.StatusForbidden {

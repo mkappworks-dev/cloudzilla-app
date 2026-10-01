@@ -1644,7 +1644,7 @@ func settingsGenerateTokenDialog(data view.SettingsData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 125, "<div class=\"space-y-4\"><div><label for=\"token-name\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Name</label> <input id=\"token-name\" name=\"name\" type=\"text\" required placeholder=\"e.g. CI deploy\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><fieldset><legend class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Scopes</legend><div class=\"space-y-1.5 text-[13px]\"><label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"repo:read\"> <span><strong class=\"font-mono\">repo:read</strong> — read repositories, code, issues, PRs</span></label> <label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"repo:write\"> <span><strong class=\"font-mono\">repo:write</strong> — push to repositories</span></label> <label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"issues:write\"> <span><strong class=\"font-mono\">issues:write</strong> — create and update issues</span></label> <label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"pulls:write\"> <span><strong class=\"font-mono\">pulls:write</strong> — create and update pull requests</span></label></div></fieldset><div><label for=\"token-expires\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Expiration (optional)</label> <input id=\"token-expires\" name=\"expires_at\" type=\"date\" class=\"bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"><p class=\"text-[11px] text-muted-foreground mt-1\">Leave blank for a non-expiring token.</p></div><div class=\"flex flex-wrap items-end gap-3\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 125, "<div class=\"space-y-4\"><div><label for=\"token-name\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Name</label> <input id=\"token-name\" name=\"name\" type=\"text\" required placeholder=\"e.g. CI deploy\" class=\"w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"></div><fieldset><legend class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Scopes</legend><div class=\"space-y-1.5 text-[13px]\"><label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"repo:read\"> <span><strong class=\"font-mono\">repo:read</strong> — read repositories, code, issues, PRs</span></label> <label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"repo:write\"> <span><strong class=\"font-mono\">repo:write</strong> — push to repositories</span></label> <label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"issues:write\"> <span><strong class=\"font-mono\">issues:write</strong> — create and update issues</span></label> <label class=\"flex items-center gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"pulls:write\"> <span><strong class=\"font-mono\">pulls:write</strong> — create and update pull requests</span></label> <label class=\"flex items-start gap-2\"><input type=\"checkbox\" name=\"scopes\" value=\"repo:admin\" class=\"mt-0.5\"> <span><strong class=\"font-mono\">repo:admin</strong> — manage collaborators, deploy keys, webhooks, org owners, transfers and deletion without a password prompt. Needs an expiry within 90 days, and each use is emailed to you.</span></label></div></fieldset><div><label for=\"token-expires\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Expiration (optional)</label> <input id=\"token-expires\" name=\"expires_at\" type=\"date\" class=\"bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring\"><p class=\"text-[11px] text-muted-foreground mt-1\">Leave blank for a non-expiring token.</p></div><div class=\"flex flex-wrap items-end gap-3\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1961,7 +1961,7 @@ func settingsNotificationsSection(data view.SettingsData) templ.Component {
 				var templ_7745c5c3_Var80 string
 				templ_7745c5c3_Var80, templ_7745c5c3_Err = templ.ResolveAttributeValue(mode)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 629, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 630, Col: 27}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var80)
 				if templ_7745c5c3_Err != nil {
@@ -1984,7 +1984,7 @@ func settingsNotificationsSection(data view.SettingsData) templ.Component {
 				var templ_7745c5c3_Var81 string
 				templ_7745c5c3_Var81, templ_7745c5c3_Err = templ.JoinStringErrs(emailDigestLabels[mode])
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 629, Col: 99}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 630, Col: 99}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var81))
 				if templ_7745c5c3_Err != nil {
@@ -2302,7 +2302,7 @@ func settingsEmailsSection(data view.SettingsData) templ.Component {
 		var templ_7745c5c3_Var92 string
 		templ_7745c5c3_Var92, templ_7745c5c3_Err = templ.JoinStringErrs(data.User.Email)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 740, Col: 69}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 741, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var92))
 		if templ_7745c5c3_Err != nil {
@@ -2388,7 +2388,7 @@ func settingsEmailsSection(data view.SettingsData) templ.Component {
 		var templ_7745c5c3_Var94 string
 		templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.JoinStringErrs(data.NoreplyEmail)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 790, Col: 125}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 791, Col: 125}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var94))
 		if templ_7745c5c3_Err != nil {
@@ -2437,7 +2437,7 @@ func settingsEmailsSection(data view.SettingsData) templ.Component {
 		var templ_7745c5c3_Var96 string
 		templ_7745c5c3_Var96, templ_7745c5c3_Err = templ.JoinStringErrs(data.NoreplyEmail)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 808, Col: 183}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 809, Col: 183}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var96))
 		if templ_7745c5c3_Err != nil {
@@ -2578,7 +2578,7 @@ func comingSoonButton(label string) templ.Component {
 		var templ_7745c5c3_Var101 string
 		templ_7745c5c3_Var101, templ_7745c5c3_Err = templ.JoinStringErrs(label)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 860, Col: 158}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/settings.templ`, Line: 861, Col: 158}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var101))
 		if templ_7745c5c3_Err != nil {

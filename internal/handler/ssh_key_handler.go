@@ -51,7 +51,7 @@ func (h *Handler) AddSSHKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !h.confirmAction(w, r, claims.UserID, service.Confirmation{Password: req.Password, Code: req.Code, EmailCode: req.EmailCode}, "") {
+	if !h.confirmAction(w, r, claims.UserID, service.Confirmation{Password: req.Password, Code: req.Code, OneTimeCode: req.EmailCode}, "") {
 		return
 	}
 

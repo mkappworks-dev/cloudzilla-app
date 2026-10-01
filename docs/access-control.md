@@ -66,9 +66,15 @@ A session is a bearer credential, so anything that adds a way in that outlives i
 
 Editing a webhook's events needs nothing: it can't point the webhook somewhere new.
 
-**Accounts without a password or 2FA** (created by Google, LDAP or SAML sign-up) confirm with a code emailed to their address. The confirm fields offer **Email me a code**, which posts to `POST /settings/confirm-code`. The code is six digits, lasts 10 minutes and works once; only its bcrypt hash is stored (`users.reauth_code_*`, migration 094). One code goes out a minute, and a new one replaces the last. Wrong codes count against the same failure limit. A stolen session can ask for a code but can't read the mailbox, and the email tells the owner someone is trying to change their account. Without SMTP such an account has nothing to confirm with, so its sensitive actions are refused (`reauth_unavailable`) rather than let through. Accounts without a password are also kept out of Google linking by email (see [Google OAuth Sign-in](#google-oauth-sign-in)).
+**Accounts without a password or 2FA** (created by Google, LDAP or SAML sign-up) confirm with what they sign in with:
 
-**Personal access tokens** skip the confirmation for administering repositories and organizations: collaborators, deploy keys, webhooks, org owners, transfers, visibility and deletion (`confirmGrant`). A token needed the password to create, so it already stands for a confirmation, and scripts can't answer a prompt. Changes to the account itself still need the factors with a token: email, password, 2FA, SSH keys, tokens, OAuth approvals, Google, account deletion and superadmin changes. Only a token authenticated as a PAT (`Claims.PAT`) counts; a session JWT sent as a bearer token is still a session. OAuth-app tokens can't reach these routes at all ([OAuth App Scopes](#oauth-app-scopes)).
+- An **LDAP** account types its directory password, checked by binding as the DN it signs in with.
+- A **Google** or **SAML** account chooses **Confirm with Google** (or single sign-on): `POST /settings/reauth/{provider}` sends it to sign in there again, with `max_age=0` for Google and `ForceAuthn` for SAML. The state is single-use, lasts 5 minutes and is bound to the account (`oauth_states` purpose `reauth`, migration 095); for Google it must also come back to the browser that holds the `oauth_reauth_state` cookie. The callback checks that the provider signed in this same account (the Google ID, or the SAML user), never signs anyone in, and leaves a one-time code in an HttpOnly `cz_reauth` cookie. The next confirmed action in that browser uses it up; it lasts 10 minutes. The SAML response arrives as a cross-site POST without the session, so the code goes to whichever browser the IdP authenticated as the account.
+- When the instance can send email, any of these accounts except LDAP can also choose **Email me a code** (`POST /settings/confirm-code`). Codes go out at most once a minute and five times an hour, and the email warns the owner that someone asked.
+
+Codes, emailed or from a sign-in, are six digits, stored only as a bcrypt hash (`users.reauth_code_*`), work once, and count wrong guesses against the same failure limit. A stolen session can't read the mailbox or sign in as the owner at the provider. An account left with none of these, because the instance turned off its sign-in provider and has no email, is refused (`reauth_unavailable`) rather than let through. Accounts without a password are also kept out of Google linking by email (see [Google OAuth Sign-in](#google-oauth-sign-in)).
+
+**Personal access tokens** are held to the scopes they were created with ([scopes](#oauth-app-scopes)); a token created without scopes keeps the user's full access. Only a token created with **`repo:admin`** skips the confirmation for administering repositories and organizations: collaborators, deploy keys, webhooks, org owners, transfers and deletion (`confirmGrant`). Creating one takes the password, it must expire within 90 days (`AccessTokenService.Generate` refuses otherwise), and each use mails the owner the request it made. `repo:admin` admits only those routes, never the account's own settings, so such a token can't add a password, key or token. Every other token confirms like a browser does, as does a session JWT sent as a bearer token. OAuth apps can't be granted `repo:admin`.
 
 A wrong password or code gets `403`, or the form's own error: a `profile_error=reauth_failed` redirect on settings, or the error slot of a modal dialog (`HX-Retarget`), where a toast would sit behind the backdrop. Five failures within 15 minutes, counted per user across all of these actions and the `/auth/2fa` code page, block further attempts for the rest of the window with `429` (`reauth_throttled`). This stops a stolen session from guessing the password. The counts live on the user row (`reauth_failures`, `reauth_window_start`, migration 093), so every instance shares them. Each attempt is claimed with one conditional `UPDATE` before the password is checked, so concurrent guesses can't get past the limit, and a success gives its attempt back. The window runs from its first failure and doesn't slide.
 
@@ -98,7 +104,7 @@ type Claims struct {
 }
 ```
 
-Extracted via `middleware.ClaimsFromContext(r.Context())`. `claims.HasScope(s)` is always true for unscoped credentials (JWT sessions, PATs), which keep the user's full access. OAuth-app claims never carry `IsSuperadmin`.
+Extracted via `middleware.ClaimsFromContext(r.Context())`. `claims.HasScope(s)` is always true for unscoped credentials (JWT sessions, and PATs created without scopes), which keep the user's full access. A PAT created with scopes is `Scoped` like an OAuth token, and `PAT` is set for any PAT. OAuth-app claims never carry `IsSuperadmin`.
 
 ### Middleware Chain
 
@@ -135,6 +141,9 @@ Open routes:
 | `repo:write`   | Everything, including creating repos, merging, applying suggestions, and git push                        |
 | `issues:write` | Reads, plus writes under `.../issues/**`                                                                 |
 | `pulls:write`  | Reads, plus writes under `.../pulls/**` — except merging, enabling auto-merge, and applying a suggestion |
+| `repo:admin`   | Personal access tokens only: `collaborators`, `keys`, `hooks`, `transfer` and `delete` under a repository, and adding or promoting members, `transfer` and `delete` under `/api/orgs/{org}`. Nothing else |
+
+The same allow-list holds personal access tokens created with scopes, on `authMW` and `optAuthMW`; git's Basic-auth path, which neither sees, checks the scopes itself (`middleware.PATAllowsGit`): fetching needs a read scope and pushing `repo:write`.
 
 Merging and enabling auto-merge are requests to `PATCH .../pulls/{number}`, so `UpdatePull` checks `claims.HasScope(repo:write)` itself; applying a suggestion is refused by path. `UpdateComment`/`DeleteComment` require the comment to belong to the issue or pull request in the URL, so neither `issues:write` nor `pulls:write` reaches the other's comments.
 

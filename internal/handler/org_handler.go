@@ -160,7 +160,7 @@ func (h *Handler) AddOrgMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if model.OrgRole(req.Role) == model.OrgRoleOwner &&
-		!h.confirmOwnerGrant(w, r, org.ID, claims.UserID, service.Confirmation{Password: req.Password, Code: req.Code, EmailCode: req.EmailCode}, inviteMemberFormError) {
+		!h.confirmOwnerGrant(w, r, org.ID, claims.UserID, service.Confirmation{Password: req.Password, Code: req.Code, OneTimeCode: req.EmailCode}, inviteMemberFormError) {
 		return
 	}
 
@@ -185,7 +185,7 @@ func (h *Handler) AddOrgMember(w http.ResponseWriter, r *http.Request) {
 			Members:   members,
 			CanManage: canManage,
 			ViewerID:  claims.UserID,
-			Confirm:   h.confirmFactors(r.Context(), claims.UserID),
+			Confirm:   h.confirmFactors(r, claims.UserID),
 		}))
 		return
 	}
@@ -230,7 +230,7 @@ func (h *Handler) RemoveOrgMember(w http.ResponseWriter, r *http.Request) {
 			Members:   members,
 			CanManage: canManage,
 			ViewerID:  claims.UserID,
-			Confirm:   h.confirmFactors(r.Context(), claims.UserID),
+			Confirm:   h.confirmFactors(r, claims.UserID),
 		}))
 		return
 	}
@@ -286,7 +286,7 @@ func (h *Handler) UpdateOrgMemberRole(w http.ResponseWriter, r *http.Request) {
 			Members:   members,
 			CanManage: true,
 			ViewerID:  claims.UserID,
-			Confirm:   h.confirmFactors(r.Context(), claims.UserID),
+			Confirm:   h.confirmFactors(r, claims.UserID),
 		}))
 		return
 	}

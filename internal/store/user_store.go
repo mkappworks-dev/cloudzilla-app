@@ -293,17 +293,24 @@ func (s *UserStore) ReleaseReauthAttempt(ctx context.Context, userID int64) erro
 }
 
 // IssueReauthCode stores hash as userID's emailed confirmation code for ttl,
-// replacing any earlier one. It reports false, storing nothing, when a code was
-// issued within cooldown; the check and the write are one statement.
-func (s *UserStore) IssueReauthCode(ctx context.Context, userID int64, hash string, ttl, cooldown time.Duration) (bool, error) {
+// replacing any earlier one. It reports false, storing nothing, when a code went
+// out within gap or perWindow codes went out within window; the checks and the
+// write are one statement.
+func (s *UserStore) IssueReauthCode(ctx context.Context, userID int64, hash string, ttl, gap time.Duration, perWindow int, window time.Duration) (bool, error) {
 	var id int64
 	err := s.db.QueryRowContext(ctx,
 		`UPDATE users SET reauth_code_hash = $2,
 		   reauth_code_expires_at = NOW() + make_interval(secs => $3),
-		   reauth_code_sent_at = NOW()
-		 WHERE id = $1 AND (reauth_code_sent_at IS NULL OR reauth_code_sent_at <= NOW() - make_interval(secs => $4))
+		   reauth_code_sent_at = NOW(),
+		   reauth_codes_sent = CASE WHEN reauth_codes_window_start IS NULL OR reauth_codes_window_start <= NOW() - make_interval(secs => $6)
+		                            THEN 1 ELSE reauth_codes_sent + 1 END,
+		   reauth_codes_window_start = CASE WHEN reauth_codes_window_start IS NULL OR reauth_codes_window_start <= NOW() - make_interval(secs => $6)
+		                                    THEN NOW() ELSE reauth_codes_window_start END
+		 WHERE id = $1
+		   AND (reauth_code_sent_at IS NULL OR reauth_code_sent_at <= NOW() - make_interval(secs => $4))
+		   AND (reauth_codes_window_start IS NULL OR reauth_codes_window_start <= NOW() - make_interval(secs => $6) OR reauth_codes_sent < $5)
 		 RETURNING id`,
-		userID, hash, ttl.Seconds(), cooldown.Seconds(),
+		userID, hash, ttl.Seconds(), gap.Seconds(), perWindow, window.Seconds(),
 	).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
@@ -314,7 +321,28 @@ func (s *UserStore) IssueReauthCode(ctx context.Context, userID int64, hash stri
 	return true, nil
 }
 
-// LiveReauthCode returns the hash of userID's unexpired emailed code, or "".
+// StoreReauthCode stores hash as userID's one-time confirmation code for ttl,
+// replacing any earlier one. A fresh provider sign-in issues these, so no cap applies.
+func (s *UserStore) StoreReauthCode(ctx context.Context, userID int64, hash string, ttl time.Duration) error {
+	if _, err := s.db.ExecContext(ctx,
+		`UPDATE users SET reauth_code_hash = $2, reauth_code_expires_at = NOW() + make_interval(secs => $3) WHERE id = $1`,
+		userID, hash, ttl.Seconds()); err != nil {
+		return fmt.Errorf("user store reauth code: %w", err)
+	}
+	return nil
+}
+
+// SSOLink returns the LDAP or SAML identity userID signs in with, if any.
+func (s *UserStore) SSOLink(ctx context.Context, userID int64) (provider, ssoID string, err error) {
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT COALESCE(sso_provider, ''), COALESCE(sso_id, '') FROM users WHERE id = $1`, userID,
+	).Scan(&provider, &ssoID); err != nil {
+		return "", "", fmt.Errorf("user sso link: %w", err)
+	}
+	return provider, ssoID, nil
+}
+
+// LiveReauthCode returns the hash of userID's unexpired emailed code, or ""."
 func (s *UserStore) LiveReauthCode(ctx context.Context, userID int64) (string, error) {
 	var hash string
 	err := s.db.QueryRowContext(ctx,

@@ -3,10 +3,15 @@ package service_test
 // Integration tests for confirming sensitive actions. All tests require TEST_DATABASE_DSN and skip otherwise.
 
 import (
+	"bytes"
+	"compress/flate"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
+	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -14,6 +19,7 @@ import (
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
@@ -252,7 +258,7 @@ func TestReauthService_EmailCodes(t *testing.T) {
 	userID := testutil.SeedPasswordlessUser(t, db, suffix, "g_code_"+suffix)
 	email := "testnopw_" + suffix + "@test.invalid"
 	confirm := func(code string) error {
-		_, err := reauth.Confirm(ctx, userID, service.Confirmation{EmailCode: code})
+		_, err := reauth.Confirm(ctx, userID, service.Confirmation{OneTimeCode: code})
 		return err
 	}
 
@@ -306,7 +312,7 @@ func TestReauthService_NoWayToConfirmIsRefused(t *testing.T) {
 	ctx := context.Background()
 	userID := testutil.SeedPasswordlessUser(t, db, testutil.UniqueSuffix(t), "g_nosmtp_"+testutil.UniqueSuffix(t))
 
-	if _, err := svc.Reauth.Confirm(ctx, userID, service.Confirmation{EmailCode: "123456"}); !errors.Is(err, service.ErrReauthUnavailable) {
+	if _, err := svc.Reauth.Confirm(ctx, userID, service.Confirmation{OneTimeCode: "123456"}); !errors.Is(err, service.ErrReauthUnavailable) {
 		t.Errorf("Confirm: err = %v, want ErrReauthUnavailable", err)
 	}
 	if err := svc.Reauth.SendEmailCode(ctx, userID); !errors.Is(err, service.ErrReauthUnavailable) {
@@ -548,4 +554,119 @@ func countUsersWithPassword(t *testing.T, db *sql.DB, userID int64) int {
 		t.Fatal(err)
 	}
 	return n
+}
+
+// Codes go out at most five times an hour, so a stolen session can't flood
+// the owner's inbox.
+func TestReauthService_EmailCodesAreCappedPerHour(t *testing.T) {
+	smtp, box := testutil.FakeSMTP(t)
+	svc, db := newVerificationServices(t, smtp)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedPasswordlessUser(t, db, suffix, "g_cap_"+suffix)
+	nextMinute := func() {
+		testutil.Exec(t, db, `UPDATE users SET reauth_code_sent_at = NOW() - interval '2 minutes' WHERE id = $1`, userID)
+	}
+
+	for i := range 5 {
+		nextMinute()
+		if err := svc.Reauth.SendEmailCode(ctx, userID); err != nil {
+			t.Fatalf("code %d: %v", i+1, err)
+		}
+	}
+	box.Drain(500 * time.Millisecond)
+	nextMinute()
+	if err := svc.Reauth.SendEmailCode(ctx, userID); !errors.Is(err, service.ErrEmailCodeCooldown) {
+		t.Errorf("a sixth code within the hour: err = %v, want ErrEmailCodeCooldown", err)
+	}
+	testutil.Exec(t, db, `UPDATE users SET reauth_codes_window_start = NOW() - interval '61 minutes' WHERE id = $1`, userID)
+	if err := svc.Reauth.SendEmailCode(ctx, userID); err != nil {
+		t.Errorf("after the hour: err = %v", err)
+	}
+}
+
+// A provider sign-in confirms only the account that started it, once.
+func TestReauthService_ProviderSignInIsBoundToItsAccount(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	users := store.NewUserStore(db)
+	states := store.NewOAuthStateStore(db)
+	reauth := service.NewReauthService(users, service.NewTOTPService(users)).WithProviderSignIn(states, nil, true)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedPasswordlessUser(t, db, suffix, "g_bound_"+suffix)
+	otherID := testutil.SeedPasswordlessUser(t, db, suffix+"_o", "g_other_"+suffix)
+	passwordUser, _ := testutil.SeedUserWithPassword(t, db, testutil.UniqueSuffix(t), "password1")
+
+	if _, _, err := reauth.BeginProviderSignIn(ctx, passwordUser, "google"); !errors.Is(err, service.ErrSignInMismatch) {
+		t.Errorf("an account with a password: err = %v, want ErrSignInMismatch", err)
+	}
+	if _, _, err := reauth.BeginProviderSignIn(ctx, userID, "saml"); !errors.Is(err, service.ErrSignInMismatch) {
+		t.Errorf("a provider the account doesn't use: err = %v, want ErrSignInMismatch", err)
+	}
+	state, _, err := reauth.BeginProviderSignIn(ctx, userID, "google")
+	if err != nil {
+		t.Fatalf("BeginProviderSignIn: %v", err)
+	}
+	if _, _, err := reauth.FinishSAMLSignIn(ctx, state, otherID); !errors.Is(err, service.ErrSignInMismatch) {
+		t.Errorf("a sign-in as another account: err = %v, want ErrSignInMismatch", err)
+	}
+	if _, _, err := reauth.FinishGoogleSignIn(ctx, state, "g_bound_"+suffix); !errors.Is(err, service.ErrSignInMismatch) {
+		t.Errorf("the right account after a refused try: err = %v, want the spent state refused", err)
+	}
+
+	state, _, _ = reauth.BeginProviderSignIn(ctx, userID, "google")
+	gotID, code, err := reauth.FinishGoogleSignIn(ctx, state, "g_bound_"+suffix)
+	if err != nil || gotID != userID || code == "" {
+		t.Fatalf("FinishGoogleSignIn = %d, %q, %v", gotID, code, err)
+	}
+	if _, err := reauth.Confirm(ctx, userID, service.Confirmation{OneTimeCode: code}); err != nil {
+		t.Errorf("Confirm with the sign-in code: %v", err)
+	}
+	if _, err := reauth.Confirm(ctx, userID, service.Confirmation{OneTimeCode: code}); !errors.Is(err, service.ErrReauthFailed) {
+		t.Errorf("the code again: err = %v, want ErrReauthFailed", err)
+	}
+}
+
+// A SAML sign-in to confirm asks the IdP to authenticate again.
+func TestSSOService_SAMLRequestCanForceAuthentication(t *testing.T) {
+	svc, db := newVerificationServices(t, config.SMTPConfig{})
+	ctx := context.Background()
+	prior, err := svc.SSO.GetConfig(ctx, "saml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if prior == nil {
+			testutil.Exec(t, db, `DELETE FROM sso_configs WHERE provider = 'saml'`)
+		} else if err := svc.SSO.SetConfig(ctx, "saml", prior.Config, prior.Enabled); err != nil {
+			t.Errorf("restore saml config: %v", err)
+		}
+	})
+	if err := svc.SSO.SetConfig(ctx, "saml", map[string]string{
+		model.SAMLKeySSOURL: "https://idp.test.invalid/sso", model.SAMLKeyACSURL: "https://cz.test.invalid/acs", model.SAMLKeyEntityID: "cz",
+	}, true); err != nil {
+		t.Fatal(err)
+	}
+	request := func(force bool) string {
+		raw, err := svc.SSO.SAMLAuthnRequestURL(ctx, "", force)
+		if err != nil {
+			t.Fatal(err)
+		}
+		u, _ := url.Parse(raw)
+		deflated, err := base64.StdEncoding.DecodeString(u.Query().Get("SAMLRequest"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		xml, err := io.ReadAll(flate.NewReader(bytes.NewReader(deflated)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(xml)
+	}
+	if !strings.Contains(request(true), `ForceAuthn="true"`) {
+		t.Error("a forced request lacks ForceAuthn")
+	}
+	if strings.Contains(request(false), "ForceAuthn") {
+		t.Error("a sign-in request forces authentication")
+	}
 }

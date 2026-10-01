@@ -34,15 +34,16 @@ type gitUser struct {
 
 // resolveGitUser returns the authenticated user for git operations.
 // It checks JWT claims first (browser/cookie), then falls back to HTTP Basic Auth
-// where the password is a PAT (git CLI: username:czp_xxx).
-func (h *Handler) resolveGitUser(r *http.Request) *gitUser {
+// where the password is a PAT (git CLI: username:czp_xxx). A PAT whose scopes
+// don't allow push, or fetch, counts as no credential.
+func (h *Handler) resolveGitUser(r *http.Request, push bool) *gitUser {
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		return &gitUser{ID: claims.UserID, Username: claims.Username}
 	}
 	_, password, ok := r.BasicAuth()
 	if ok && strings.HasPrefix(password, "czp_") {
 		token, user, err := h.Services.AccessToken.Validate(r.Context(), password)
-		if err == nil {
+		if err == nil && middleware.PATAllowsGit(token.Scopes, push) {
 			tokenID := token.ID
 			concurrency.Go("access_token.update_last_used", func() {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -78,7 +79,7 @@ func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gu := h.resolveGitUser(r)
+	gu := h.resolveGitUser(r, svc == "git-receive-pack")
 
 	if svc == "git-receive-pack" {
 		var uid *int64
@@ -181,7 +182,7 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gu := h.resolveGitUser(r)
+	gu := h.resolveGitUser(r, false)
 	var userID *int64
 	if gu != nil {
 		userID = &gu.ID
@@ -267,7 +268,7 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gu := h.resolveGitUser(r)
+	gu := h.resolveGitUser(r, true)
 	if gu == nil || !h.Services.Repo.CanWrite(r.Context(), repo, gu.ID) {
 		w.Header().Set("WWW-Authenticate", `Basic realm="git"`)
 		http.Error(w, "access denied", http.StatusUnauthorized)

@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
@@ -45,7 +47,14 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rawToken, _, err := h.Services.AccessToken.Generate(r.Context(), claims.UserID, name, scopes, expiresAt)
-	if err != nil {
+	switch {
+	case errors.Is(err, service.ErrAdminTokenNoExpiry):
+		http.Redirect(w, r, "/settings?profile_error=token_admin_expiry#tokens", http.StatusSeeOther)
+		return
+	case errors.Is(err, service.ErrUnknownTokenScope):
+		http.Redirect(w, r, "/settings?profile_error=token_scope_unknown#tokens", http.StatusSeeOther)
+		return
+	case err != nil:
 		http.Error(w, "failed to create token", http.StatusInternalServerError)
 		return
 	}

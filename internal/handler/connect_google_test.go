@@ -67,6 +67,8 @@ func newLinkEnvWithClientID(t *testing.T, clientID string) *linkEnv {
 	r.With(authMW).Post("/settings/connected-accounts/google", h.ConnectGoogle)
 	r.With(authMW).Post("/settings/connected-accounts/google/disconnect", h.DisconnectGoogle)
 	r.With(optAuthMW).Get("/auth/google/callback", h.GoogleOAuthCallback)
+	r.With(authMW).Post("/settings/reauth/{provider}", h.StartProviderSignIn)
+	r.With(authMW).Post("/api/user/tokens", h.CreateToken)
 	e.router = r
 	return e
 }

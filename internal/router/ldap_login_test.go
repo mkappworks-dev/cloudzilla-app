@@ -22,9 +22,12 @@ const ldapBindDNTmpl = "uid=%s,ou=people,dc=test"
 // with resultCode success and empty matchedDN and diagnosticMessage.
 var ldapBindSuccess = []byte{0x30, 0x0c, 0x02, 0x01, 0x01, 0x61, 0x07, 0x0a, 0x01, 0x00, 0x04, 0x00, 0x04, 0x00}
 
-// fakeLDAP starts a server that accepts every simple bind, whatever the DN and
-// password, and returns its address.
-func fakeLDAP(t *testing.T) (host, port string) {
+// ldapBindRejected is ldapBindSuccess with resultCode invalidCredentials (49).
+var ldapBindRejected = []byte{0x30, 0x0c, 0x02, 0x01, 0x01, 0x61, 0x07, 0x0a, 0x01, 0x31, 0x04, 0x00, 0x04, 0x00}
+
+// fakeLDAPAnswering starts a server that answers every simple bind with
+// response, whatever the DN and password, and returns its address.
+func fakeLDAPAnswering(t *testing.T, response []byte) (host, port string) {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -40,7 +43,7 @@ func fakeLDAP(t *testing.T) (host, port string) {
 			go func() {
 				defer func() { _ = conn.Close() }()
 				if _, err := conn.Read(make([]byte, 512)); err == nil {
-					_, _ = conn.Write(ldapBindSuccess)
+					_, _ = conn.Write(response)
 				}
 			}()
 		}
@@ -52,6 +55,12 @@ func fakeLDAP(t *testing.T) (host, port string) {
 // enableLDAP points the instance's LDAP config at a fake server for the rest
 // of the test, then restores the config that was there before.
 func enableLDAP(t *testing.T, svc *service.Services, db *sql.DB) {
+	t.Helper()
+	enableLDAPWith(t, svc, db, ldapBindSuccess)
+}
+
+// enableLDAPWith is enableLDAP with a fake that answers every bind with response.
+func enableLDAPWith(t *testing.T, svc *service.Services, db *sql.DB, response []byte) {
 	t.Helper()
 	ctx := context.Background()
 	prior, err := svc.SSO.GetConfig(ctx, "ldap")
@@ -65,7 +74,7 @@ func enableLDAP(t *testing.T, svc *service.Services, db *sql.DB) {
 			t.Errorf("restore ldap config: %v", err)
 		}
 	})
-	host, port := fakeLDAP(t)
+	host, port := fakeLDAPAnswering(t, response)
 	cfg := map[string]string{model.LDAPKeyHost: host, model.LDAPKeyPort: port, model.LDAPKeyBindDNTmpl: ldapBindDNTmpl}
 	if err := svc.SSO.SetConfig(ctx, "ldap", cfg, true); err != nil {
 		t.Fatalf("SetConfig: %v", err)

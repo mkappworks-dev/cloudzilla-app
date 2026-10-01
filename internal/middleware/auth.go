@@ -28,9 +28,27 @@ type Claims struct {
 	Scopes []string
 	// SessionVersion is the user's session version when a session JWT was issued.
 	SessionVersion int
-	// PAT marks a personal access token, which was itself created with the
-	// account's password, so repository and org administration skip confirmation.
-	PAT bool
+	// PAT marks a personal access token. One created with scopes is held to
+	// them (Scoped); one created without keeps the user's full access.
+	PAT       bool
+	TokenName string
+}
+
+// patClaims are the claims of a personal access token.
+func patClaims(token *model.AccessToken, user *model.User) Claims {
+	return Claims{
+		UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin,
+		PAT: true, TokenName: token.Name, Scoped: len(token.Scopes) > 0, Scopes: token.Scopes,
+	}
+}
+
+// refuseScope answers a scoped token that r's route doesn't admit.
+func refuseScope(w http.ResponseWriter, r *http.Request) {
+	var hint string
+	if accepted := acceptedScopes(r); len(accepted) > 0 {
+		hint = accepted[0]
+	}
+	WriteInsufficientScope(w, hint)
 }
 
 // SessionVersions reports a user's current session version; bumping it ends
@@ -111,7 +129,11 @@ func Auth(secret, cookieName string, patValidator PATValidator, oauthResolver OA
 				token, user, err := patValidator.Validate(r.Context(), tokenStr)
 				if err == nil {
 					touchLastUsed(patValidator, token.ID)
-					claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin, PAT: true}
+					claims := patClaims(token, user)
+					if !scopeAllows(claims, r) {
+						refuseScope(w, r)
+						return
+					}
 					ctx := context.WithValue(r.Context(), claimsKey, claims)
 					next.ServeHTTP(w, r.WithContext(ctx))
 					return
@@ -160,7 +182,11 @@ func OptionalAuth(secret, cookieName string, patValidator PATValidator, oauthRes
 					pat, user, err := patValidator.Validate(r.Context(), tokenStr)
 					if err == nil {
 						touchLastUsed(patValidator, pat.ID)
-						claims := Claims{UserID: user.ID, Username: user.Username, IsSuperadmin: user.IsSuperadmin, PAT: true}
+						claims := patClaims(pat, user)
+						if !scopeAllows(claims, r) {
+							refuseScope(w, r)
+							return
+						}
 						ctx := context.WithValue(r.Context(), claimsKey, claims)
 						r = r.WithContext(ctx)
 						next.ServeHTTP(w, r)
@@ -200,11 +226,7 @@ func serveOAuth(w http.ResponseWriter, r *http.Request, next http.Handler, resol
 	}
 	claims := Claims{UserID: user.ID, Username: user.Username, Scoped: true, Scopes: scopes}
 	if !scopeAllows(claims, r) {
-		var hint string
-		if accepted := acceptedScopes(r); len(accepted) > 0 {
-			hint = accepted[0]
-		}
-		WriteInsufficientScope(w, hint)
+		refuseScope(w, r)
 		return true
 	}
 	next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), claimsKey, claims)))

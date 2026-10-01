@@ -26,8 +26,25 @@ func NewAccessTokenService(tokens *store.AccessTokenStore, users *store.UserStor
 	return &AccessTokenService{tokens: tokens, users: users}
 }
 
+// MaxAdminTokenLifetime bounds a repo:admin token, which skips confirmation
+// prompts, so a leaked one stops working on its own.
+const MaxAdminTokenLifetime = 90 * 24 * time.Hour
+
+var (
+	ErrUnknownTokenScope   = errors.New("unknown token scope")
+	ErrAdminTokenNoExpiry  = errors.New("a repo:admin token must expire within 90 days")
+)
+
 // Generate creates a new PAT, stores only its SHA-256 hash, and returns the raw token once.
 func (s *AccessTokenService) Generate(ctx context.Context, userID int64, name string, scopes []string, expiresAt *time.Time) (string, *model.AccessToken, error) {
+	for _, sc := range scopes {
+		if !model.IsTokenScope(sc) {
+			return "", nil, fmt.Errorf("%w: %q", ErrUnknownTokenScope, sc)
+		}
+		if sc == model.ScopeRepoAdmin && (expiresAt == nil || expiresAt.After(time.Now().Add(MaxAdminTokenLifetime))) {
+			return "", nil, ErrAdminTokenNoExpiry
+		}
+	}
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
 		return "", nil, fmt.Errorf("generate token bytes: %w", err)

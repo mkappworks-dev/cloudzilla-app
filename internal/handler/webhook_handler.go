@@ -86,7 +86,7 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		url = req.URL
 		secret = req.Secret
 		events = req.Events
-		confirm = service.Confirmation{Password: req.Password, Code: req.Code, EmailCode: req.EmailCode}
+		confirm = service.Confirmation{Password: req.Password, Code: req.Code, OneTimeCode: req.EmailCode}
 	}
 
 	if url == "" {

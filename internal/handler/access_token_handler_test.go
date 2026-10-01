@@ -73,7 +73,7 @@ func TestCreateToken_ShowsTokenOnceWithoutPuttingItInAURL(t *testing.T) {
 		return string(b)
 	}
 
-	resp, err := client.PostForm(srv.URL+"/api/user/tokens", url.Values{"name": {"ci " + suffix}, "scopes": {"repo"}, "password": {"password1"}})
+	resp, err := client.PostForm(srv.URL+"/api/user/tokens", url.Values{"name": {"ci " + suffix}, "scopes": {"repo:read"}, "password": {"password1"}})
 	if err != nil {
 		t.Fatal(err)
 	}

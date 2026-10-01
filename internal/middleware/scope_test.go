@@ -15,6 +15,7 @@ func TestScopeAllows(t *testing.T) {
 		write  = model.ScopeRepoWrite
 		issues = model.ScopeIssuesWrite
 		pulls  = model.ScopePullsWrite
+		admin  = model.ScopeRepoAdmin
 	)
 	tests := []struct {
 		name   string
@@ -87,6 +88,16 @@ func TestScopeAllows(t *testing.T) {
 		{"sign out other sessions", "POST", "/settings/sessions/revoke", []string{read, write, issues, pulls}, false},
 		{"change password", "POST", "/settings/password", []string{read, write, issues, pulls}, false},
 		{"email a confirmation code", "POST", "/settings/confirm-code", []string{read, write, issues, pulls}, false},
+		{"sign in again to confirm", "POST", "/settings/reauth/google", []string{read, write, issues, pulls, admin}, false},
+		{"add collaborator with repo:admin", "POST", "/api/repos/alice/proj/collaborators", []string{admin}, true},
+		{"add webhook with repo:admin", "POST", "/api/repos/alice/proj/hooks", []string{admin}, true},
+		{"delete repo with repo:admin", "POST", "/api/repos/alice/proj/delete", []string{admin}, true},
+		{"add org owner with repo:admin", "POST", "/api/orgs/acme/members", []string{admin}, true},
+		{"promote org member with repo:admin", "POST", "/api/orgs/acme/members/bob/role", []string{admin}, true},
+		{"transfer org with repo:admin", "POST", "/api/orgs/acme/transfer", []string{admin}, true},
+		{"push content with repo:admin only", "POST", "/api/repos/alice/proj/issues", []string{admin}, false},
+		{"account SSH key with repo:admin", "POST", "/api/user/keys", []string{admin}, false},
+		{"instance admin with repo:admin", "POST", "/api/admin/settings", []string{admin}, false},
 		{"turn on 2FA", "POST", "/api/user/totp/enable", []string{read, write, issues, pulls}, false},
 		{"turn off 2FA", "POST", "/api/user/totp/disable", []string{read, write, issues, pulls}, false},
 		{"add collaborator", "POST", "/api/repos/alice/proj/collaborators", []string{read, write, issues, pulls}, false},

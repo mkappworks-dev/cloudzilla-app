@@ -41,7 +41,11 @@ func SettingsErrorMessage(code string) string {
 	case "reauth_throttled":
 		return "Too many incorrect passwords or codes. Try again in 15 minutes."
 	case "reauth_unavailable":
-		return "This account has no password, two-factor app or email to confirm it's you, so this can't be done. Ask your administrator to set up email."
+		return "This account has no way to confirm it's you here, so this can't be done. Ask your administrator."
+	case "token_admin_expiry":
+		return "A token with repo:admin must expire within 90 days. Pick an expiry date and try again."
+	case "token_scope_unknown":
+		return "That token scope doesn't exist. Nothing was created."
 	case "reauth_error":
 		return "Couldn't check your password or code. Please try again."
 	case "password_mismatch":

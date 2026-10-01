@@ -515,6 +515,7 @@ templ settingsGenerateTokenDialog(data view.SettingsData) {
 							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="repo:write"/> <span><strong class="font-mono">repo:write</strong> — push to repositories</span></label>
 							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="issues:write"/> <span><strong class="font-mono">issues:write</strong> — create and update issues</span></label>
 							<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value="pulls:write"/> <span><strong class="font-mono">pulls:write</strong> — create and update pull requests</span></label>
+							<label class="flex items-start gap-2"><input type="checkbox" name="scopes" value="repo:admin" class="mt-0.5"/> <span><strong class="font-mono">repo:admin</strong> — manage collaborators, deploy keys, webhooks, org owners, transfers and deletion without a password prompt. Needs an expiry within 90 days, and each use is emailed to you.</span></label>
 						</div>
 					</fieldset>
 					<div>

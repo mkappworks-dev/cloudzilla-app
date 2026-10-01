@@ -332,6 +332,6 @@ func (h *Handler) renderRepoCollaborators(w http.ResponseWriter, r *http.Request
 		RepoID:    repoID,
 		Collabs:   collabs,
 		CanManage: true,
-		Confirm:   h.confirmFactors(r.Context(), viewerID),
+		Confirm:   h.confirmFactors(r, viewerID),
 	}))
 }

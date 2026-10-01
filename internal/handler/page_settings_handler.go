@@ -79,7 +79,7 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		GoogleConfigured:    h.Cfg.OAuth.GoogleClientID != "",
 		GoogleConnected:     user.OAuthProvider == googleProvider,
 		HasPassword:         user.PasswordHash != "",
-		Confirm:             h.confirmFactors(ctx, claims.UserID),
+		Confirm:             h.confirmFactors(r, claims.UserID),
 
 		ConnectedAccountsNotice: h.takeSettingsFlash(w, r, settingsNoticeCookieName),
 	}

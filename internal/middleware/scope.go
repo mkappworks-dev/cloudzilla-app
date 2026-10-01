@@ -15,7 +15,28 @@ var (
 	writeScopes = []string{model.ScopeRepoWrite}
 	issueScopes = []string{model.ScopeIssuesWrite, model.ScopeRepoWrite}
 	pullScopes  = []string{model.ScopePullsWrite, model.ScopeRepoWrite}
+	adminScopes = []string{model.ScopeRepoAdmin}
 )
+
+// Sub-resources of /api/repos/{owner}/{repo} that administer it. Only a personal
+// access token with repo:admin reaches them; OAuth apps can't be granted it.
+var repoAdminResources = map[string]bool{
+	"collaborators": true,
+	"keys":          true,
+	"hooks":         true,
+	"transfer":      true,
+	"delete":        true,
+}
+
+// PATAllowsGit reports whether a personal access token with scopes may fetch
+// over git's Basic-auth path, which this middleware doesn't see, or push.
+func PATAllowsGit(scopes []string, push bool) bool {
+	c := Claims{Scoped: len(scopes) > 0, Scopes: scopes}
+	if push {
+		return slices.ContainsFunc(writeScopes, c.HasScope)
+	}
+	return slices.ContainsFunc(readScopes, c.HasScope)
+}
 
 // Sub-resources of /api/repos/{owner}/{repo} that hold repository content.
 // Everything else there administers the repo (hooks, collaborators, keys,
@@ -62,6 +83,8 @@ func acceptedScopes(r *http.Request) []string {
 				return readScopes
 			case !read && len(seg) == 4 && seg[3] == "repos":
 				return writeScopes
+			case !read && len(seg) >= 4 && (seg[3] == "members" || seg[3] == "transfer" || seg[3] == "delete"):
+				return adminScopes
 			}
 		case "users": // /api/users/{username}, /repos
 			if read && (len(seg) == 3 || len(seg) == 4 && seg[3] == "repos") {
@@ -94,6 +117,9 @@ func repoAPIScopes(rest []string, read bool) []string {
 	}
 
 	sub := rest[2:]
+	if repoAdminResources[sub[0]] {
+		return adminScopes
+	}
 	if !repoContentResources[sub[0]] || sub[0] == "branches" && len(sub) >= 2 && sub[1] == "protections" {
 		return nil
 	}

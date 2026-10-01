@@ -75,7 +75,9 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	userSvc := NewUserService(stores.User, cfg.Auth).WithRepoService(repoSvc).WithNoreplyHostFrom(cfg.Server.BaseURL).
 		WithEmailVerification(emailVerificationSvc).WithSecurityNotices(emailSvc)
 	totpSvc := NewTOTPService(stores.User).WithSecurityNotices(emailSvc)
-	reauthSvc := NewReauthService(stores.User, totpSvc).WithEmailCodes(emailSvc)
+	ssoSvc := NewSSOService(stores.SSO, stores.User, cfg.Auth, siteSettingSvc)
+	reauthSvc := NewReauthService(stores.User, totpSvc).WithEmailCodes(emailSvc).
+		WithProviderSignIn(stores.OAuthState, ssoSvc, cfg.OAuth.GoogleClientID != "")
 	userSvc.WithReauth(reauthSvc)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
@@ -115,7 +117,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		Reauth:           reauthSvc,
 		AuditLog:         NewAuditService(stores.AuditLog),
 		Project:          NewProjectService(stores.Project, repoSvc),
-		SSO:              NewSSOService(stores.SSO, stores.User, cfg.Auth, siteSettingSvc),
+		SSO:              ssoSvc,
 		SavedReply:       NewSavedReplyService(stores.SavedReply),
 		Email:            emailSvc,
 		EmailVerifier:    emailVerificationSvc,

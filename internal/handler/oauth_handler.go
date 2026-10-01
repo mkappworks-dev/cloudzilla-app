@@ -6,10 +6,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -85,6 +87,10 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		h.googleLinkCallback(w, r, state)
 		return
 	}
+	if c, err := r.Cookie(oauthReauthStateCookie); err == nil && c.Value != "" && c.Value == state {
+		h.googleReauthCallback(w, r, state)
+		return
+	}
 	stateCookie, err := r.Cookie(oauthStateCookie)
 	if err != nil || stateCookie.Value != state {
 		http.Error(w, "invalid OAuth state", http.StatusBadRequest)
@@ -150,6 +156,32 @@ func (h *Handler) GoogleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 // googleIdentity redeems code at Google and reads the account it grants. On
 // failure the error text is safe to show, and status is the code to send.
+// googleReauthCallback finishes StartProviderSignIn for Google. It never signs
+// anyone in: the Google account must be the one this signed-in account uses.
+func (h *Handler) googleReauthCallback(w http.ResponseWriter, r *http.Request, state string) {
+	http.SetCookie(w, &http.Cookie{Name: oauthReauthStateCookie, MaxAge: -1, Path: googleCallbackPath, HttpOnly: true, Secure: h.Cfg.Auth.CookieSecure})
+	claims, signedIn := middleware.ClaimsFromContext(r.Context())
+	if !signedIn || r.URL.Query().Get("error") != "" {
+		h.failProviderSignIn(w, r, "")
+		return
+	}
+	identity, _, err := h.googleIdentity(r.Context(), r.URL.Query().Get("code"))
+	if err != nil {
+		slog.Warn("google sign-in to confirm: read google account", "user_id", claims.UserID, "error", err)
+		h.failProviderSignIn(w, r, "")
+		return
+	}
+	userID, code, err := h.Services.Reauth.FinishGoogleSignIn(r.Context(), state, identity.ID)
+	if err != nil || userID != claims.UserID {
+		if err != nil && !errors.Is(err, service.ErrSignInMismatch) {
+			slog.Error("google sign-in to confirm", "user_id", claims.UserID, "error", err)
+		}
+		h.failProviderSignIn(w, r, "")
+		return
+	}
+	h.finishProviderSignIn(w, r, code)
+}
+
 func (h *Handler) googleIdentity(ctx context.Context, code string) (service.OAuthIdentity, int, error) {
 	cfg := h.googleOAuthConfig()
 	token, err := cfg.Exchange(ctx, code)
