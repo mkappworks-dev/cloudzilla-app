@@ -156,3 +156,62 @@ func TestCollaborators_OwnerManagesAdmins(t *testing.T) {
 		t.Errorf("remove admin: want 204, got %d %s", rr.Code, rr.Body.String())
 	}
 }
+
+const adminRoleOption = `<option value="admin">`
+
+// The closing quote keeps user 5's button from matching user 55's.
+func removeButtonFor(userID int64) string {
+	return "/collaborators?user_id=" + strconv.FormatInt(userID, 10) + `"`
+}
+
+// renderCollaborators returns the collaborator list as viewer sees it in the
+// fragment an HTMX add swaps in, which makes writer a writer, and on the
+// settings page.
+func (e collabEnv) renderCollaborators(t *testing.T, viewer, writer signedInUser) map[string]string {
+	t.Helper()
+	form := url.Values{"username": {writer.name}, "role": {"writer"}, "password": {collabPassword}}
+	req := httptest.NewRequest(http.MethodPost, "/api/repos"+e.repo.path+"/collaborators", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Authorization", "Bearer "+viewer.token)
+	req.Header.Set("HX-Request", "true")
+	fragment := httptest.NewRecorder()
+	e.router.ServeHTTP(fragment, req)
+	if fragment.Code != http.StatusOK {
+		t.Fatalf("add writer: want 200, got %d %s", fragment.Code, fragment.Body.String())
+	}
+
+	page := requestPage(t, e.db, http.MethodGet, e.repo.path+"/settings", viewer.token)
+	if page.Code != http.StatusOK {
+		t.Fatalf("settings page: want 200, got %d %s", page.Code, page.Body.String())
+	}
+	return map[string]string{"fragment": fragment.Body.String(), "settings page": page.Body.String()}
+}
+
+func TestCollaborators_AdminSeesNoOwnerOnlyControls(t *testing.T) {
+	env := newCollabEnv(t)
+	writer := seedSignedInUser(t, env.db)
+
+	for view, body := range env.renderCollaborators(t, env.admin, writer) {
+		t.Run(view, func(t *testing.T) {
+			if strings.Contains(body, adminRoleOption) {
+				t.Error("admin is offered the admin role")
+			}
+			if strings.Contains(body, removeButtonFor(env.admin.id)) {
+				t.Error("admin is offered removing an admin")
+			}
+			assertContains(t, body, removeButtonFor(writer.id))
+		})
+	}
+}
+
+func TestCollaborators_OwnerSeesOwnerOnlyControls(t *testing.T) {
+	env := newCollabEnv(t)
+	writer := seedSignedInUser(t, env.db)
+
+	for view, body := range env.renderCollaborators(t, env.repo.owner, writer) {
+		t.Run(view, func(t *testing.T) {
+			assertContains(t, body, adminRoleOption)
+			assertContains(t, body, removeButtonFor(env.admin.id))
+		})
+	}
+}

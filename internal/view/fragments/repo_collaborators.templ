@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
@@ -38,7 +39,9 @@ templ RepoCollaborators(data view.RepoCollaboratorsFragData) {
 				<select id="collab-role" name="role" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
 					<option value="reader">Reader</option>
 					<option value="writer">Writer</option>
-					<option value="admin">Admin</option>
+					if data.IsOwner {
+						<option value="admin">Admin</option>
+					}
 				</select>
 				@components.ConfirmFields("collab", data.Confirm, true)
 				@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
@@ -65,7 +68,7 @@ templ RepoCollaborators(data view.RepoCollaboratorsFragData) {
 						<p class="text-sm font-medium text-foreground">{ collab.Username }</p>
 						<p class="text-xs text-muted-foreground capitalize">{ string(collab.Role) }</p>
 					</div>
-					if data.CanManage {
+					if data.CanManage && (data.IsOwner || collab.Role != model.RoleAdmin) {
 						@components.Button(components.ButtonDestructiveOutline, components.ButtonSizeSM, templ.Attributes{
 							"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/collaborators?user_id=" + strconv.FormatInt(collab.UserID, 10),
 							"hx-target":           "#repo-collaborators",
