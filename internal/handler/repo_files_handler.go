@@ -28,16 +28,15 @@ func (h *Handler) UpdateRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if err := r.ParseForm(); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid form")
 		return
 	}
-	err = h.Services.Repo.UpdateMeta(r.Context(), repo.ID, claims.UserID,
+	err := h.Services.Repo.UpdateMeta(r.Context(), repo.ID, claims.UserID,
 		r.FormValue("description"), r.FormValue("website"), r.FormValue("license"))
 	if err != nil {
 		if errors.Is(err, service.ErrForbidden) {
@@ -95,9 +94,8 @@ func (h *Handler) PageNewFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
@@ -129,9 +127,8 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
@@ -177,17 +174,17 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		message = "Create " + path
 	}
 
-	user, err := h.Services.User.GetByID(r.Context(), claims.UserID)
+	author, err := h.Services.User.CommitAuthor(r.Context(), claims.UserID)
 	if err != nil {
 		http.Error(w, "failed to load user", http.StatusInternalServerError)
 		return
 	}
-	email := user.Email
-	if email == "" {
-		email = user.Username + "@localhost"
-	}
 
-	if err := h.Services.Code.CommitFile(owner, repoName, ref, path, content, user.Username, email, message); err != nil {
+	if err := h.Services.Code.CommitFile(owner, repoName, ref, path, content, author, message); err != nil {
+		if errors.Is(err, service.ErrRefMoved) {
+			http.Error(w, branchMovedMsg, http.StatusConflict)
+			return
+		}
 		slog.Error("commit file failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return

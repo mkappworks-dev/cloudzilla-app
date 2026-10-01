@@ -6,6 +6,8 @@ import (
 	"context"
 	"database/sql"
 	"os"
+	"slices"
+	"strings"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -174,5 +176,67 @@ func TestUserStore_Create_DuplicateUsername_Error(t *testing.T) {
 	if err := s.Create(context.Background(), u2); err == nil {
 		t.Error("Create with duplicate username must return an error")
 		testutil.Exec(t, db, `DELETE FROM users WHERE id = $1`, u2.ID)
+	}
+}
+
+func TestSSOStore_GetUserBySSO_LoadsPreferences(t *testing.T) {
+	db := openStoreDB(t)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	ssoID := "sso_" + suffix
+	if err := store.NewUserStore(db).LinkSSO(ctx, userID, "saml", ssoID); err != nil {
+		t.Fatalf("LinkSSO: %v", err)
+	}
+
+	u, err := store.NewSSOStore(db).GetUserBySSO(ctx, "saml", ssoID)
+	if err != nil {
+		t.Fatalf("GetUserBySSO: %v", err)
+	}
+	if u.ID != userID || !u.KeepEmailPrivate || u.EmailDigest != "immediate" {
+		t.Errorf("got id=%d keep_email_private=%v email_digest=%q; want id=%d, true, \"immediate\"",
+			u.ID, u.KeepEmailPrivate, u.EmailDigest, userID)
+	}
+}
+
+func TestUserStore_CreateClaimed_BeginErrorNamesTheOperation(t *testing.T) {
+	db := openStoreDB(t)
+	db.Close()
+	users := store.NewUserStore(db)
+	u := &model.User{Username: "x", Email: "x@test.invalid"}
+
+	for op, err := range map[string]error{
+		"user create from invitation: begin: ":   users.CreateFromInvitation(context.Background(), u, 1),
+		"user create from signup token: begin: ": users.CreateFromSignupToken(context.Background(), u, "x"),
+	} {
+		if err == nil || !strings.HasPrefix(err.Error(), op) {
+			t.Errorf("want an error starting %q, got %v", op, err)
+		}
+	}
+}
+
+func TestUserStore_BackupCodes_RoundTrip(t *testing.T) {
+	db := openStoreDB(t)
+	ctx := context.Background()
+	users := store.NewUserStore(db)
+	userID := testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
+
+	for name, codes := range map[string][]string{
+		"bcrypt hashes": {"$2a$04$abc/def.ghiJKLmnoPQRstuVWXyz0123456789ABCDEFGHIJKLMNO", "$2a$04$xyz"},
+		"array syntax":  {`back\slash`, `"quoted"`, "comma,here", "{braces}", " padded ", "NULL", ""},
+		"empty":         {},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if err := users.SetBackupCodes(ctx, userID, codes); err != nil {
+				t.Fatalf("SetBackupCodes: %v", err)
+			}
+			u, err := users.GetByIDWithTOTP(ctx, userID)
+			if err != nil {
+				t.Fatalf("GetByIDWithTOTP: %v", err)
+			}
+			if !slices.Equal(u.TOTPBackupCodes, codes) {
+				t.Errorf("stored %q, read back %q", codes, u.TOTPBackupCodes)
+			}
+		})
 	}
 }

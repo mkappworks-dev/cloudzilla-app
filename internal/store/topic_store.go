@@ -103,27 +103,6 @@ func (s *TopicStore) ListByRepoIDs(ctx context.Context, repoIDs []int64) (map[in
 	return result, rows.Err()
 }
 
-// ListReposByTopic returns public repos tagged with a given topic name, paginated.
-func (s *TopicStore) ListReposByTopic(ctx context.Context, topicName string, page, pageSize int) ([]model.Repository, error) {
-	offset := (page - 1) * pageSize
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT r.id, r.owner_id, r.owner_name, r.org_id, r.name, r.description,
-		        r.private, r.default_branch, r.created_at, r.updated_at
-		 FROM repositories r
-		 JOIN repo_topics rt ON r.id = rt.repo_id
-		 JOIN topics t ON t.id = rt.topic_id
-		 WHERE t.name = $1 AND r.private = false
-		 ORDER BY r.updated_at DESC
-		 LIMIT $2 OFFSET $3`,
-		topicName, pageSize, offset,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("topic list repos: %w", err)
-	}
-	defer rows.Close()
-	return scanRepos(rows)
-}
-
 func (s *TopicStore) ListReposByTopicWithStats(ctx context.Context, topicName string, page, pageSize int, sort string) ([]model.RepositoryWithStats, error) {
 	var orderBy string
 	switch sort {

@@ -16,13 +16,8 @@ import (
 	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
 )
 
-// newTestRepoWithFiles initializes a bare repo at <root>/<owner>/<name>.git
-// and seeds it with a single commit containing the given files
-// (path → content). Returns the CodeService configured to read from `root`.
-// Mirrors newTestRepoWithCommits in code_service_log_test.go.
-func newTestRepoWithFiles(t *testing.T, owner, name string, files map[string]string) *CodeService {
+func newTestRepoWithFilesAt(t *testing.T, root, owner, name string, files map[string]string) string {
 	t.Helper()
-	root := t.TempDir()
 
 	bareDir := filepath.Join(root, owner, name+".git")
 	if err := os.MkdirAll(filepath.Dir(bareDir), 0o755); err != nil {
@@ -82,6 +77,13 @@ func newTestRepoWithFiles(t *testing.T, owner, name string, files map[string]str
 		t.Fatalf("set HEAD: %v", err)
 	}
 
+	return bareDir
+}
+
+func newTestRepoWithFiles(t *testing.T, owner, name string, files map[string]string) *CodeService {
+	t.Helper()
+	root := t.TempDir()
+	newTestRepoWithFilesAt(t, root, owner, name, files)
 	return NewCodeService(czconfig.GitConfig{ReposRoot: root})
 }
 
@@ -95,7 +97,11 @@ func TestCodeService_WalkTree_VisitsAllBlobs(t *testing.T) {
 	svc := newTestRepoWithFiles(t, "alice", "demo", files)
 
 	seen := make(map[string]int64)
-	err := svc.WalkTree(context.Background(), "alice", "demo", "", func(path string, size int64) error {
+	commit, _, err := svc.ResolveRef("alice", "demo", "")
+	if err != nil {
+		t.Fatalf("ResolveRef: %v", err)
+	}
+	err = svc.WalkTree(context.Background(), commit, func(path string, size int64) error {
 		if _, dup := seen[path]; dup {
 			t.Errorf("path %s visited more than once", path)
 		}
@@ -135,7 +141,11 @@ func TestCodeService_WalkTree_AbortOnError(t *testing.T) {
 
 	sentinel := errors.New("stop here")
 	calls := 0
-	err := svc.WalkTree(context.Background(), "alice", "abort", "", func(path string, size int64) error {
+	commit, _, err := svc.ResolveRef("alice", "abort", "")
+	if err != nil {
+		t.Fatalf("ResolveRef: %v", err)
+	}
+	err = svc.WalkTree(context.Background(), commit, func(path string, size int64) error {
 		calls++
 		return sentinel
 	})

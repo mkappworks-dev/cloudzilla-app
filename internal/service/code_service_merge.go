@@ -12,6 +12,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 )
 
 // Exported so callers can use errors.Is rather than message comparison.
@@ -51,7 +52,7 @@ func checkFastForward(repo *gogit.Repository, baseCommit, headCommit *object.Com
 
 // GetPullDiff returns the diff between base and head branches, plus whether FF merge is possible.
 func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffResult, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +136,7 @@ func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffRe
 
 // MergePullRequest performs a fast-forward merge of head into base.
 func (s *CodeService) MergePullRequest(owner, repoName, base, head string) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -152,8 +153,7 @@ func (s *CodeService) MergePullRequest(owner, repoName, base, head string) error
 		return errors.New("cannot merge: branches have diverged (fast-forward not possible)")
 	}
 
-	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(base), headCommit.Hash)
-	return repo.Storer.SetReference(ref)
+	return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(base), baseCommit.Hash, headCommit.Hash)
 }
 
 // flattenTree walks a git tree and returns a flat map of full path → mergeFile.
@@ -346,8 +346,8 @@ func mergeTreesNoConflict(repo *gogit.Repository, mergeBase, base, head *object.
 }
 
 // ThreeWayMergePullRequest creates a merge commit combining head into base.
-func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head, authorName, authorEmail string) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head string, author GitAuthor) error {
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -362,8 +362,7 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head, auth
 
 	// If FF is possible, just advance the ref.
 	if checkFastForward(repo, baseCommit, headCommit) {
-		ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(base), headCommit.Hash)
-		return repo.Storer.SetReference(ref)
+		return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(base), baseCommit.Hash, headCommit.Hash)
 	}
 
 	mb, err := findMergeBase(repo, baseCommit, headCommit)
@@ -379,7 +378,7 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head, auth
 	}
 
 	now := time.Now()
-	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
+	sig := author.signature(now)
 	commit := &object.Commit{
 		Author:       sig,
 		Committer:    sig,
@@ -395,13 +394,12 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head, auth
 	if err != nil {
 		return err
 	}
-	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(base), h)
-	return repo.Storer.SetReference(ref)
+	return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(base), baseCommit.Hash, h)
 }
 
 // SquashMergePullRequest creates a single squash commit on base incorporating all head changes.
-func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head, authorName, authorEmail string) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string, author GitAuthor) error {
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -434,7 +432,7 @@ func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head, author
 	}
 
 	now := time.Now()
-	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
+	sig := author.signature(now)
 	commit := &object.Commit{
 		Author:       sig,
 		Committer:    sig,
@@ -450,14 +448,13 @@ func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head, author
 	if err != nil {
 		return err
 	}
-	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(base), h)
-	return repo.Storer.SetReference(ref)
+	return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(base), baseCommit.Hash, h)
 }
 
 // ApplySuggestion replaces targetLine (1-based) in filePath on branch with the replacement
 // text and creates a new commit on that branch.
-func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, targetLine int, replacement, authorName, authorEmail string) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, targetLine int, replacement string, author GitAuthor) error {
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return err
 	}
@@ -520,7 +517,7 @@ func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, 
 
 	// Create new commit.
 	now := time.Now()
-	sig := object.Signature{Name: authorName, Email: authorEmail, When: now}
+	sig := author.signature(now)
 	commit := &object.Commit{
 		Author:       sig,
 		Committer:    sig,
@@ -537,6 +534,5 @@ func (s *CodeService) ApplySuggestion(owner, repoName, branch, filePath string, 
 		return err
 	}
 
-	ref := plumbing.NewHashReference(plumbing.NewBranchReferenceName(branch), newHash)
-	return repo.Storer.SetReference(ref)
+	return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(branch), headCommit.Hash, newHash)
 }

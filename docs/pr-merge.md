@@ -21,19 +21,23 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 3. On button click → HTMX `PATCH /api/repos/{owner}/{repo}/pulls/{number}` with `state=merged` and `merge_strategy=ff|merge|squash`
 4. `UpdatePull` dispatches to `MergePullRequest`, `ThreeWayMergePullRequest`, or `SquashMergePullRequest`
 5. On success → `PullService.SetState(merged)` → fragment returned
-6. On failure (conflict, missing branch, etc.) → 422 → `hx-on::response-error` fires alert
+6. On failure (conflict, missing branch, etc.) → 422 → `hx-on::response-error` fires alert. If a push moved the base branch mid-merge → 409 and the PR stays open (see below)
+
+**Concurrent pushes:** every server-side commit (merges, applied suggestions, web file commits, wiki edits) advances its branch through `gitref.Move`, a compare-and-swap against the tip it read. If a push moved the branch in between, the update is refused with `ErrRefMoved`, handlers answer 409 ("branch was updated while saving; reload and try again"), and the pushed commits stay. An unconditional write would be a force push that skips the `block_force_push` check, which only runs in receive-pack.
 
 ## CodeService Methods
 
 - `GetPullDiff(owner, repo, base, head)` → `*PRDiffResult`
 - `MergePullRequest(owner, repo, base, head)` → `error` (fast-forward only)
-- `ThreeWayMergePullRequest(owner, repo, base, head, authorName, authorEmail)` → `error`
-- `SquashMergePullRequest(owner, repo, base, head, authorName, authorEmail)` → `error`
+- `ThreeWayMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
+- `SquashMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
 - `checkFastForward(repo, baseCommit, headCommit)` → `bool` (private)
 - `findMergeBase(repo, a, b)` → `(*object.Commit, error)` (private; LCA via ancestor walk)
 - `mergeTreesNoConflict(repo, mergeBase, base, head)` → `(plumbing.Hash, bool, error)` (private)
 - `flattenTree(tree)` → `(map[string]mergeFile, error)` (private)
 - `buildTree(repo, files)` → `(plumbing.Hash, error)` (private; recursively encodes tree objects)
+
+`UpdatePull` gets the `GitAuthor` from `UserService.CommitAuthor`, which honours the merger's keep-email-private setting (see [api-reference](./api-reference.md#commit-email-privacy)).
 
 ## PRDiffResult Type
 

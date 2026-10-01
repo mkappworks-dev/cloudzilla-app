@@ -56,6 +56,7 @@ func TestListIssues_VisibilityFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("insert non-member: %v", err)
 	}
+	defer testutil.DeleteUsers(t, db, ownerID, nonMemberID)
 
 	// Create repo owned by ownerID.
 	var repoID int64
@@ -66,15 +67,6 @@ func TestListIssues_VisibilityFilter(t *testing.T) {
 	).Scan(&repoID)
 	if err != nil {
 		t.Fatalf("insert repo: %v", err)
-	}
-
-	// Give owner a permissions row.
-	_, err = db.ExecContext(ctx,
-		`INSERT INTO permissions (user_id, repo_id, role) VALUES ($1, $2, 'owner')`,
-		ownerID, repoID,
-	)
-	if err != nil {
-		t.Fatalf("insert permission: %v", err)
 	}
 
 	// Insert public issue.
@@ -121,10 +113,4 @@ func TestListIssues_VisibilityFilter(t *testing.T) {
 	if len(ownerIssues) != 2 {
 		t.Errorf("owner: want 2 issues, got %d", len(ownerIssues))
 	}
-
-	// Cleanup.
-	testutil.Exec(t, db, `DELETE FROM issues WHERE repo_id = $1`, repoID)
-	testutil.Exec(t, db, `DELETE FROM permissions WHERE repo_id = $1`, repoID)
-	testutil.Exec(t, db, `DELETE FROM repositories WHERE id = $1`, repoID)
-	testutil.Exec(t, db, `DELETE FROM users WHERE id IN ($1, $2)`, ownerID, nonMemberID)
 }

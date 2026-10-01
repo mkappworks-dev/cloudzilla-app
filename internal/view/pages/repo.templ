@@ -1,7 +1,6 @@
 package pages
 
 import (
-	"encoding/json"
 	"net/url"
 	"strconv"
 	"strings"
@@ -241,7 +240,7 @@ templ Repo(data view.RepoData) {
 
 							<div
 								class="relative"
-								x-data={ "{ open: false, proto: 'https', copied: false, urls: { https: '" + data.CloneHTTP + "', ssh: '" + data.CloneSSH + "' } }" }
+								x-data={ "{ open: false, proto: 'https', copied: false, urls: " + components.JSLiteral(map[string]string{"https": data.CloneHTTP, "ssh": data.CloneSSH}) + " }" }
 								x-on:keydown.escape.window="open = false"
 							>
 								<button
@@ -679,11 +678,7 @@ func fileListJSON(files []string) string {
 	for i, f := range files {
 		lower[i] = strings.ToLower(f)
 	}
-	b, err := json.Marshal(lower)
-	if err != nil {
-		return "[]"
-	}
-	return string(b)
+	return components.JSLiteral(lower)
 }
 
 // websiteHref normalises a stored website value into an absolute URL.

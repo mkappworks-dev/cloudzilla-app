@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
@@ -22,14 +24,53 @@ func (h *Handler) PageNewRepo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	orgs, err := h.Services.Org.ListOwnedByUser(r.Context(), claims.UserID)
+	ctx := r.Context()
+	orgs, err := h.Services.Org.ListOwnedByUser(ctx, claims.UserID)
 	if err != nil {
 		slog.Error("list owned orgs", "error", err)
 		orgs = []model.Organization{}
 	}
+	q := r.URL.Query()
+	initReadme := q.Get("init_readme") == "1" || q.Get("init_readme") == "true"
+
+	// ?owner=mkappworks-dev preselects the dropdown when the user arrived from
+	// that org's profile. Only honored when it matches the viewer or an org
+	// they own — otherwise silently ignored so a crafted link can't trick
+	// users into creating a repo under the wrong namespace.
+	var defaultOwner string
+	var ownerOrg *model.Organization
+	if reqOwner := q.Get("owner"); reqOwner != "" {
+		if reqOwner == claims.Username {
+			defaultOwner = reqOwner
+		} else {
+			for i, o := range orgs {
+				if o.Name == reqOwner {
+					defaultOwner = reqOwner
+					ownerOrg = &orgs[i]
+					break
+				}
+			}
+		}
+	}
+
+	var defaultPrivate bool
+	switch q.Get("visibility") {
+	case "private":
+		defaultPrivate = true
+	case "public":
+	default:
+		defaultPrivate = ownerOrg != nil && ownerOrg.DefaultRepoVisibility != "public"
+	}
+
 	h.render(w, r, pages.RepoNew(view.RepoNewData{
-		BasePage:  basePage(r, h.Services),
-		OwnedOrgs: orgs,
+		BasePage:           withAccountSubnav(basePage(r, h.Services), "repositories", h.accountCounts(ctx, claims.UserID)),
+		OwnedOrgs:          orgs,
+		GitignoreTemplates: h.Services.Repo.ListGitignoreTemplates(),
+		LicenseTemplates:   h.Services.Repo.ListLicenseTemplates(),
+		DefaultName:        q.Get("name"),
+		DefaultPrivate:     defaultPrivate,
+		DefaultInitReadme:  initReadme,
+		DefaultOwner:       defaultOwner,
 	}))
 }
 
@@ -37,10 +78,17 @@ type createRepoRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Private     bool   `json:"private"`
+	AddReadme   bool   `json:"add_readme"`
+	Gitignore   string `json:"gitignore"`
+	License     string `json:"license"`
 }
 
 func (h *Handler) ListRepos(w http.ResponseWriter, r *http.Request) {
-	repos, err := h.Services.Repo.List(r.Context())
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	repos, err := h.Services.Repo.ListVisibleTo(r.Context(), viewerID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list repos")
 		return
@@ -54,17 +102,8 @@ func (h *Handler) ListRepos(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetRepo(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	name := chi.URLParam(r, "repo")
-	repo, err := h.Services.Repo.Get(r.Context(), owner, name)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	var viewerID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		viewerID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, name)
+	if !ok {
 		return
 	}
 	writeJSON(w, http.StatusOK, repo)
@@ -83,10 +122,25 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Create(r.Context(), claims.Username, req.Name, req.Description, req.Private)
-	if err != nil {
+	repo, err := h.Services.Repo.Create(r.Context(), claims.UserID, claims.Username, req.Name, req.Description, req.Private, service.RepoInitOptions{
+		AddREADME: req.AddReadme,
+		Gitignore: req.Gitignore,
+		License:   req.License,
+	})
+	switch {
+	case errors.Is(err, service.ErrRepoNameTaken) || errors.Is(err, service.ErrRepoNameReserved):
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	case errors.Is(err, service.ErrInvalidRepoName):
+		writeError(w, http.StatusUnprocessableEntity, invalidRepoNameMessage)
+		return
+	case errors.Is(err, service.ErrInvalidRepoPath):
+		slog.Warn("create repo: unsafe repository path", "owner", claims.Username, "error", err)
+		writeError(w, http.StatusUnprocessableEntity, unsafeRepoPathMessage)
+		return
+	case err != nil:
 		slog.Error("failed to create repo", "error", err)
-		writeError(w, http.StatusInternalServerError, "failed to create repository")
+		writeError(w, http.StatusUnprocessableEntity, "failed to create repository")
 		return
 	}
 
@@ -121,14 +175,8 @@ func (h *Handler) ListCollaborators(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -150,14 +198,8 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -167,9 +209,16 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "username and role are required")
 		return
 	}
+	if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), "") {
+		return
+	}
 
-	if err := h.Services.Repo.AddCollaborator(r.Context(), repo.ID, username, role); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+	if err := h.Services.Repo.AddCollaborator(r.Context(), repo, claims.UserID, username, role); err != nil {
+		status := http.StatusBadRequest
+		if errors.Is(err, service.ErrAdminRoleOwnerOnly) {
+			status = http.StatusForbidden
+		}
+		writeError(w, status, err.Error())
 		return
 	}
 
@@ -177,17 +226,7 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventMemberAdded, map[string]any{"username": username})
 
 	if r.Header.Get("HX-Request") == "true" {
-		collabs, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
-		if collabs == nil {
-			collabs = []model.Permission{}
-		}
-		h.render(w, r, fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Collabs:  collabs,
-			CanManage: true,
-		}))
+		h.renderRepoCollaborators(w, r, owner, repoName, repo, claims.UserID)
 		return
 	}
 
@@ -204,9 +243,8 @@ func (h *Handler) TransferRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
@@ -220,15 +258,35 @@ func (h *Handler) TransferRepo(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "new_owner is required")
 		return
 	}
+	if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), "") {
+		return
+	}
 
-	if err := h.Services.Repo.TransferRepo(r.Context(), repo, claims.UserID, newOwner); err != nil {
+	transfer, err := h.Services.Repo.TransferRepo(r.Context(), repo, claims.UserID, newOwner)
+	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "transfer failed")
+		return
+	}
+
+	if transfer != nil {
+		h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionRepoTransferRequest, model.AuditTargetRepo, repo.ID, repo.Name, map[string]any{"to": transfer.RecipientName})
+		go h.Services.Notification.NotifyRepoTransfer(context.WithoutCancel(r.Context()), *transfer)
+		if r.Header.Get("HX-Request") == "true" {
+			w.Header().Set("HX-Refresh", "true")
+		}
+		writeJSON(w, http.StatusAccepted, transfer)
 		return
 	}
 
 	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionRepoTransfer, "repo", repo.ID, repo.Name, nil)
 
-	http.Redirect(w, r, "/"+newOwner+"/"+repoName, http.StatusSeeOther)
+	dest := "/" + newOwner + "/" + repoName
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", dest)
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	http.Redirect(w, r, dest, http.StatusSeeOther)
 }
 
 func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
@@ -241,14 +299,8 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -274,26 +326,36 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Services.Repo.RemoveCollaborator(r.Context(), repo.ID, userID); err != nil {
+	if err := h.Services.Repo.RemoveCollaborator(r.Context(), repo, claims.UserID, userID); err != nil {
+		if errors.Is(err, service.ErrAdminRoleOwnerOnly) {
+			writeError(w, http.StatusForbidden, err.Error())
+			return
+		}
 		slog.Error("operation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		collabs, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
-		if collabs == nil {
-			collabs = []model.Permission{}
-		}
-		h.render(w, r, fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Collabs:  collabs,
-			CanManage: true,
-		}))
+		h.renderRepoCollaborators(w, r, owner, repoName, repo, claims.UserID)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) renderRepoCollaborators(w http.ResponseWriter, r *http.Request, owner, repoName string, repo *model.Repository, viewerID int64) {
+	collabs, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
+	if collabs == nil {
+		collabs = []model.Permission{}
+	}
+	h.render(w, r, fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
+		Owner:     owner,
+		RepoName:  repoName,
+		RepoID:    repo.ID,
+		Collabs:   collabs,
+		CanManage: true,
+		IsOwner:   h.Services.Repo.IsOwner(r.Context(), repo, viewerID),
+		Confirm:   h.confirmFactors(r, viewerID),
+	}))
 }

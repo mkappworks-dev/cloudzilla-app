@@ -21,6 +21,10 @@ func (h *Handler) StarRepo(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
+		return
+	}
 
 	if err := h.Services.Star.Star(r.Context(), owner, repoName, claims.UserID); err != nil {
 		slog.Error("operation failed", "error", err)
@@ -28,11 +32,8 @@ func (h *Handler) StarRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if repo != nil {
-		repoID := repo.ID
-		go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventStar, map[string]any{})
-	}
+	repoID := repo.ID
+	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventStar, map[string]any{})
 
 	if r.Header.Get("HX-Request") == "true" {
 		h.renderStarButtonFragment(w, r, owner, repoName, claims.UserID)
@@ -49,6 +50,9 @@ func (h *Handler) UnstarRepo(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
+		return
+	}
 
 	if err := h.Services.Star.Unstar(r.Context(), owner, repoName, claims.UserID); err != nil {
 		slog.Error("operation failed", "error", err)
@@ -67,17 +71,8 @@ func (h *Handler) ListStargazers(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	var viewerID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		viewerID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
@@ -139,27 +134,6 @@ func (h *Handler) PageStargazers(w http.ResponseWriter, r *http.Request) {
 		RepoName:   repoName,
 		Stargazers: stargazers,
 		StarCount:  starCount,
-	}))
-}
-
-func (h *Handler) PageUserStars(w http.ResponseWriter, r *http.Request) {
-	username := chi.URLParam(r, "owner")
-
-	user, err := h.Services.User.GetByUsername(r.Context(), username)
-	if err != nil {
-		http.Error(w, "user not found", http.StatusNotFound)
-		return
-	}
-
-	repos, _ := h.Services.Star.ListByUser(r.Context(), username)
-	if repos == nil {
-		repos = []model.Repository{}
-	}
-
-	h.render(w, r, pages.UserStars(view.UserStarsData{
-		BasePage:    basePage(r, h.Services),
-		ProfileUser: *user,
-		Repos:       repos,
 	}))
 }
 

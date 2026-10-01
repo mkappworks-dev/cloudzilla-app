@@ -74,27 +74,23 @@ func (s *IssueStore) List(ctx context.Context, repoID int64) ([]model.Issue, err
 	return issues, nil
 }
 
+// issueVisibleTo is the private-issue rule as a SQL predicate on issues alias
+// i for the user ID in placeholder u: its author and whoever RepoService.CanWrite
+// lets in. Issue pages and search share it.
+func issueVisibleTo(i, u string) string {
+	return `(` + i + `.visibility = 'public' OR ` + i + `.author_id = ` + u +
+		` OR EXISTS (SELECT 1 FROM repositories ir WHERE ir.id = ` + i + `.repo_id AND ` + ownedBy("ir", u) + `)` +
+		` OR EXISTS (SELECT 1 FROM permissions iperm WHERE iperm.user_id = ` + u + ` AND iperm.repo_id = ` + i + `.repo_id` +
+		` AND iperm.role IN ('admin','writer')))`
+}
+
 // GetByNumber returns a single issue by repo + number.
 // If visibleToUserID is nil, only public issues are returned.
-// If visibleToUserID is set, the issue is also returned when the user is the
-// author or has at least writer/admin/owner permission on the repo.
+// If visibleToUserID is set, a private issue is also returned when
+// issueVisibleTo lets that user see it.
 func (s *IssueStore) GetByNumber(ctx context.Context, repoID int64, number int, visibleToUserID *int64) (*model.Issue, error) {
-	visClause := `AND (i.visibility = 'public'`
-	args := []interface{}{repoID, number}
-	argIdx := 3
-
-	if visibleToUserID != nil {
-		args = append(args, *visibleToUserID, *visibleToUserID)
-		visClause += fmt.Sprintf(
-			` OR i.author_id = $%d OR EXISTS (
-				SELECT 1 FROM permissions p
-				WHERE p.user_id = $%d AND p.repo_id = i.repo_id
-				  AND p.role IN ('owner','admin','writer')
-			)`, argIdx, argIdx+1)
-		argIdx += 2
-	}
-	visClause += `)`
-	_ = argIdx
+	visClause := `AND ` + issueVisibleTo("i", "$3")
+	args := []interface{}{repoID, number, viewerID(visibleToUserID)}
 
 	q := fmt.Sprintf(`
 		SELECT i.id, i.repo_id, i.number, i.author_id,
@@ -184,26 +180,14 @@ func (s *IssueStore) GetByNumberUnfiltered(ctx context.Context, repoID int64, nu
 
 // ListByRepo returns issues for the given repo, filtered by optional state and visibility.
 // If visibleToUserID is nil, only public issues are returned.
-// If visibleToUserID is set, public issues plus private issues authored by that user or
-// for which that user has at least writer/admin/owner permission are returned.
+// If visibleToUserID is set, private issues that issueVisibleTo lets that user see are
+// returned too.
 func (s *IssueStore) ListByRepo(ctx context.Context, repoID int64, state *string, visibleToUserID *int64, page, pageSize int) ([]model.Issue, error) {
 	offset := (page - 1) * pageSize
 
-	visClause := `AND (i.visibility = 'public'`
-	args := []interface{}{repoID}
-	argIdx := 2
-
-	if visibleToUserID != nil {
-		args = append(args, *visibleToUserID, *visibleToUserID)
-		visClause += fmt.Sprintf(
-			` OR i.author_id = $%d OR EXISTS (
-				SELECT 1 FROM permissions p
-				WHERE p.user_id = $%d AND p.repo_id = i.repo_id
-				  AND p.role IN ('owner','admin','writer')
-			)`, argIdx, argIdx+1)
-		argIdx += 2
-	}
-	visClause += `)`
+	visClause := `AND ` + issueVisibleTo("i", "$2")
+	args := []interface{}{repoID, viewerID(visibleToUserID)}
+	argIdx := 3
 
 	stateClause := ""
 	if state != nil {
@@ -258,7 +242,9 @@ func (s *IssueStore) UnlinkFromPull(ctx context.Context, pullID, issueID int64) 
 	return nil
 }
 
-func (s *IssueStore) ListLinkedToPull(ctx context.Context, pullID int64) ([]model.Issue, error) {
+// ListLinkedToPull returns the issues linked to a pull that issueVisibleTo lets
+// the user see. A nil user sees only public issues.
+func (s *IssueStore) ListLinkedToPull(ctx context.Context, pullID int64, visibleToUserID *int64) ([]model.Issue, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT i.id, i.repo_id, i.number, i.author_id,
 		       COALESCE(u.username, '') AS author_name,
@@ -269,8 +255,8 @@ func (s *IssueStore) ListLinkedToPull(ctx context.Context, pullID int64) ([]mode
 		FROM issues i
 		LEFT JOIN users u ON u.id = i.author_id
 		JOIN pull_issue_links pil ON pil.issue_id = i.id
-		WHERE pil.pull_id = $1
-		ORDER BY i.number`, pullID)
+		WHERE pil.pull_id = $1 AND `+issueVisibleTo("i", "$2")+`
+		ORDER BY i.number`, pullID, viewerID(visibleToUserID))
 	if err != nil {
 		return nil, fmt.Errorf("issue list linked to pull: %w", err)
 	}
@@ -328,11 +314,13 @@ func (s *IssueStore) CountPinnedByRepo(ctx context.Context, repoID int64) (int, 
 	return count, err
 }
 
-func (s *IssueStore) CountOpen(ctx context.Context, repoID int64) (int, error) {
+// CountOpen counts a repo's open issues that issueVisibleTo lets the user see.
+// A nil user counts only public issues.
+func (s *IssueStore) CountOpen(ctx context.Context, repoID int64, visibleToUserID *int64) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM issues WHERE repo_id = $1 AND state = 'open'`,
-		repoID,
+		`SELECT COUNT(*) FROM issues i WHERE i.repo_id = $1 AND i.state = 'open' AND `+issueVisibleTo("i", "$2"),
+		repoID, viewerID(visibleToUserID),
 	).Scan(&n)
 	return n, err
 }
@@ -362,8 +350,9 @@ func (s *IssueStore) SetLocked(ctx context.Context, issueID int64, locked bool) 
 	return err
 }
 
-// ListPinned returns all pinned issues for a repo, ordered by number ascending.
-func (s *IssueStore) ListPinned(ctx context.Context, repoID int64) ([]model.Issue, error) {
+// ListPinned returns a repo's pinned issues that issueVisibleTo lets the user
+// see, ordered by number ascending. A nil user sees only public issues.
+func (s *IssueStore) ListPinned(ctx context.Context, repoID int64, visibleToUserID *int64) ([]model.Issue, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT i.id, i.repo_id, i.number, i.author_id,
 		        COALESCE(u.username, '') AS author_name,
@@ -372,9 +361,9 @@ func (s *IssueStore) ListPinned(ctx context.Context, repoID int64) ([]model.Issu
 		        i.is_pinned, i.is_locked, i.locked_at
 		 FROM issues i
 		 LEFT JOIN users u ON u.id = i.author_id
-		 WHERE i.repo_id = $1 AND i.is_pinned = TRUE
+		 WHERE i.repo_id = $1 AND i.is_pinned = TRUE AND `+issueVisibleTo("i", "$2")+`
 		 ORDER BY i.number ASC`,
-		repoID,
+		repoID, viewerID(visibleToUserID),
 	)
 	if err != nil {
 		return nil, err
@@ -473,7 +462,8 @@ func (s *IssueStore) CountOpenAssignedTo(ctx context.Context, userID int64) (int
 		 FROM issues i
 		 JOIN repositories r ON r.id = i.repo_id
 		 JOIN issue_assignees a ON a.issue_id = i.id
-		 WHERE i.state = 'open' AND r.deleted_at IS NULL AND a.user_id = $1`,
+		 WHERE i.state = 'open' AND r.deleted_at IS NULL AND a.user_id = $1
+		   AND `+readableBy("r", "$1"),
 		userID,
 	).Scan(&n)
 	return n, err
@@ -490,6 +480,7 @@ func (s *IssueStore) CountDueThisWeekAssignedTo(ctx context.Context, userID int6
 		 JOIN issue_assignees a ON a.issue_id = i.id
 		 JOIN milestones m ON m.id = i.milestone_id
 		 WHERE i.state = 'open' AND r.deleted_at IS NULL AND a.user_id = $1
+		   AND `+readableBy("r", "$1")+`
 		   AND m.due_date IS NOT NULL
 		   AND m.due_date >= NOW() AND m.due_date < NOW() + INTERVAL '7 days'`,
 		userID,
@@ -505,7 +496,7 @@ type IssueListItem struct {
 	AuthorID     int64
 	AuthorName   string
 	Priority     *string
-	RepoFullName string // "<owner_username>/<repo_name>"
+	RepoFullName string // "<owner_name>/<repo_name>"
 	UpdatedAt    time.Time
 	CreatedAt    time.Time
 }
@@ -539,15 +530,15 @@ func (s *IssueStore) AssignedAtForUser(ctx context.Context, userID int64) (map[i
 }
 
 func (s *IssueStore) ListOpenAssignedToUser(ctx context.Context, userID int64) ([]IssueListItem, error) {
-	const q = `
+	q := `
 		SELECT i.id, i.number, i.title, i.state, i.author_id,
-		       u.username || '/' || r.name AS repo_full_name,
+		       r.owner_name || '/' || r.name AS repo_full_name,
 		       i.updated_at
 		FROM issues i
 		JOIN issue_assignees a ON a.issue_id = i.id
 		JOIN repositories r    ON r.id = i.repo_id
-		JOIN users u           ON u.id = r.owner_id
 		WHERE a.user_id = $1 AND i.state = 'open' AND r.deleted_at IS NULL
+		  AND ` + readableBy("r", "$1") + `
 		ORDER BY i.updated_at DESC
 		LIMIT 50
 	`
@@ -579,15 +570,13 @@ func (s *IssueStore) ListForUser(ctx context.Context, userID int64, mode, state 
 	}
 	q := `SELECT DISTINCT i.id, i.number, i.title, i.state, i.author_id,
 	             au.username AS author_name, i.priority,
-	             u.username || '/' || r.name AS repo_full_name, i.updated_at, i.created_at
+	             r.owner_name || '/' || r.name AS repo_full_name, i.updated_at, i.created_at
 	      FROM issues i
 	      JOIN repositories r ON r.id = i.repo_id
-	      JOIN users u        ON u.id = r.owner_id
 	      JOIN users au       ON au.id = i.author_id
 	      ` + join + `
 	      WHERE r.deleted_at IS NULL AND i.state = $2 AND ` + cond + `
-	        AND (NOT r.private OR r.owner_id = $1
-	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
+	        AND ` + readableBy("r", "$1") + `
 	      ORDER BY i.updated_at DESC LIMIT 100`
 	return s.scanIssueListItems(ctx, q, userID, state)
 }
@@ -605,25 +594,22 @@ func (s *IssueStore) ListByIDs(ctx context.Context, userID int64, ids []int64, s
 	}
 	q := `SELECT DISTINCT i.id, i.number, i.title, i.state, i.author_id,
 	             au.username AS author_name, i.priority,
-	             u.username || '/' || r.name AS repo_full_name, i.updated_at, i.created_at
+	             r.owner_name || '/' || r.name AS repo_full_name, i.updated_at, i.created_at
 	      FROM issues i
 	      JOIN repositories r ON r.id = i.repo_id
-	      JOIN users u        ON u.id = r.owner_id
 	      JOIN users au       ON au.id = i.author_id
 	      WHERE r.deleted_at IS NULL AND i.state = $2
 	        AND i.id IN (` + strings.Join(placeholders, ",") + `)
-	        AND (NOT r.private OR r.owner_id = $1
-	             OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))
+	        AND ` + readableBy("r", "$1") + `
 	      ORDER BY i.updated_at DESC LIMIT 100`
 	return s.scanIssueListItems(ctx, q, args...)
 }
 
 // CountsForUser returns issue counts for every account-issues tab in a single
 // round-trip, keyed "<filter>:<state>". The query is composed only from in-code
-// constants — never caller input — so the concatenation is injection-safe.
+// fragments — never caller input — so the concatenation is injection-safe.
 func (s *IssueStore) CountsForUser(ctx context.Context, userID int64) (map[string]int, error) {
-	const vis = `(NOT r.private OR r.owner_id = $1
-	              OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))`
+	vis := readableBy("r", "$1")
 	const (
 		assigned  = `EXISTS (SELECT 1 FROM issue_assignees ia WHERE ia.issue_id = i.id AND ia.user_id = $1)`
 		created   = `i.author_id = $1`

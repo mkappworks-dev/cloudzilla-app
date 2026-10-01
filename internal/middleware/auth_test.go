@@ -69,6 +69,17 @@ func (s *stubPAT) Validate(_ context.Context, _ string) (*model.AccessToken, *mo
 }
 func (s *stubPAT) UpdateLastUsed(_ context.Context, _ int64) error { return nil }
 
+// stubOAuth is a test implementation of OAuthTokenResolver.
+type stubOAuth struct {
+	user   *model.User
+	scopes []string
+	err    error
+}
+
+func (s *stubOAuth) ResolveOAuthToken(_ context.Context, _ string) (*model.User, []string, error) {
+	return s.user, s.scopes, s.err
+}
+
 // okHandler is a trivial 200 handler used as the wrapped next handler in middleware tests.
 func okHandler(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }
 
@@ -133,14 +144,14 @@ func TestAuth_NoToken_Unauthorized(t *testing.T) {
 	}
 }
 
-// TestAuth_ValidPAT_InjectsUserClaims verifies that a valid czp_ PAT is accepted and
-// the resolved user's ID and username are injected into the request context.
-func TestAuth_ValidPAT_InjectsUserClaims(t *testing.T) {
+// TestAuth_ValidPAT_InjectsScopedClaims verifies that a valid czp_ PAT is accepted and
+// injects its owner's identity, limited to the token's scopes and without superadmin.
+func TestAuth_ValidPAT_InjectsScopedClaims(t *testing.T) {
 	pat := &stubPAT{
-		token: &model.AccessToken{ID: 1},
-		user:  &model.User{ID: 42, Username: "bob"},
+		token: &model.AccessToken{ID: 1, Scopes: []string{model.ScopeRepoRead}},
+		user:  &model.User{ID: 42, Username: "bob", IsSuperadmin: true},
 	}
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/repos/bob/proj", nil)
 	req.Header.Set("Authorization", "Bearer czp_validtoken")
 
 	var got Claims
@@ -152,10 +163,55 @@ func TestAuth_ValidPAT_InjectsUserClaims(t *testing.T) {
 	Auth(testSecret, "cz_token", pat, nil, testUnauthorized)(handler).ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
-		t.Errorf("want 200, got %d", rr.Code)
+		t.Fatalf("want 200, got %d", rr.Code)
 	}
-	if got.UserID != 42 || got.Username != "bob" {
+	if got.UserID != 42 || got.Username != "bob" || !got.HasScope(model.ScopeRepoRead) || got.HasScope(model.ScopeRepoWrite) {
 		t.Errorf("claims mismatch: %+v", got)
+	}
+	if got.IsSuperadmin {
+		t.Error("a PAT must not carry superadmin")
+	}
+}
+
+// Handlers name new repos' owner after claims.Username; an empty one puts them
+// at the top of the repos root.
+func TestAuth_OAuthToken_CarriesUsername(t *testing.T) {
+	oauth := &stubOAuth{user: &model.User{ID: 42, Username: "bob", IsSuperadmin: true}, scopes: []string{model.ScopeRepoRead}}
+	for name, mw := range map[string]func(http.Handler) http.Handler{
+		"Auth":         Auth(testSecret, "cz_token", nil, oauth, testUnauthorized),
+		"OptionalAuth": OptionalAuth(testSecret, "cz_token", nil, oauth),
+	} {
+		req := httptest.NewRequest(http.MethodGet, "/api/repos/bob/project", nil)
+		req.Header.Set("Authorization", "Bearer 0123abcd")
+		var got Claims
+		mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			got, _ = ClaimsFromContext(r.Context())
+		})).ServeHTTP(httptest.NewRecorder(), req)
+		if got.UserID != 42 || got.Username != "bob" || got.IsSuperadmin {
+			t.Errorf("%s: want claims for bob without superadmin, got %+v", name, got)
+		}
+	}
+}
+
+// A token bound to a key needs a signed request; a validator that can't check
+// signatures must refuse it rather than let it through.
+func TestAuth_KeyBoundPATWithoutVerifier_Unauthorized(t *testing.T) {
+	pat := &stubPAT{
+		token: &model.AccessToken{ID: 1, SigningKey: "ssh-ed25519 AAAA"},
+		user:  &model.User{ID: 42, Username: "bob"},
+	}
+	for name, mw := range map[string]func(http.Handler) http.Handler{
+		"Auth":         Auth(testSecret, "cz_token", pat, nil, testUnauthorized),
+		"OptionalAuth": OptionalAuth(testSecret, "cz_token", pat, nil),
+	} {
+		req := httptest.NewRequest(http.MethodGet, "/api/repos/bob/project", nil)
+		req.Header.Set("Authorization", "Bearer czp_bound")
+		reached := false
+		rr := httptest.NewRecorder()
+		mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { reached = true })).ServeHTTP(rr, req)
+		if reached || rr.Code != http.StatusUnauthorized {
+			t.Errorf("%s: reached handler %v, status %d; want 401", name, reached, rr.Code)
+		}
 	}
 }
 

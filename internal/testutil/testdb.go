@@ -4,11 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver
+	"github.com/mkappworks-dev/cloudzilla-app/internal/db"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -29,6 +33,41 @@ func OpenTestDB(t *testing.T) *sql.DB {
 	}
 	t.Cleanup(func() { db.Close() })
 	return db
+}
+
+// OpenFreshTestDB opens the test database with a new, fully migrated schema
+// first on its search_path, for tests that need tables no other test writes to
+// (such as an empty users table). The schema is dropped when the test ends.
+func OpenFreshTestDB(t *testing.T) *sql.DB {
+	t.Helper()
+	admin := OpenTestDB(t)
+	schema := "test_" + UniqueSuffix(t)
+	Exec(t, admin, `CREATE SCHEMA `+schema)
+	t.Cleanup(func() { Exec(t, admin, `DROP SCHEMA `+schema+` CASCADE`) })
+
+	fresh, err := sql.Open("pgx", withSearchPath(os.Getenv("TEST_DATABASE_DSN"), schema))
+	if err != nil {
+		t.Fatalf("open fresh test db: %v", err)
+	}
+	t.Cleanup(func() { fresh.Close() })
+	if err := db.Migrate(fresh); err != nil {
+		t.Fatalf("migrate fresh test db: %v", err)
+	}
+	return fresh
+}
+
+func withSearchPath(dsn, schema string) string {
+	if !strings.Contains(dsn, "://") {
+		return dsn + " search_path=" + schema
+	}
+	u, err := url.Parse(dsn)
+	if err != nil {
+		return dsn
+	}
+	q := u.Query()
+	q.Set("search_path", schema)
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 // Exec runs a statement against the test database, failing the test if it errors.
@@ -116,6 +155,17 @@ func SeedUserWithPassword(t *testing.T, db *sql.DB, suffix, password string) (id
 	return id, email
 }
 
+// SetPassword gives an existing test user the plaintext password, for tests of
+// actions that need it confirmed.
+func SetPassword(t *testing.T, db *sql.DB, userID int64, password string) {
+	t.Helper()
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	if err != nil {
+		t.Fatalf("SetPassword hash: %v", err)
+	}
+	Exec(t, db, `UPDATE users SET password_hash = $2 WHERE id = $1`, userID, string(hash))
+}
+
 // SeedSuperadmin inserts a test superadmin user and returns the user's ID.
 func SeedSuperadmin(t *testing.T, db *sql.DB, suffix string) int64 {
 	t.Helper()
@@ -134,9 +184,31 @@ func SeedSuperadmin(t *testing.T, db *sql.DB, suffix string) int64 {
 	return id
 }
 
+// SeedInvitation inserts an invitation for email, sent by a fresh superadmin,
+// and returns its ID and token. Both rows are deleted when the test ends.
+func SeedInvitation(t *testing.T, db *sql.DB, email string, expiresAt time.Time) (id int64, token string) {
+	t.Helper()
+	inviterID := SeedSuperadmin(t, db, UniqueSuffix(t))
+	token = "testinvite_" + UniqueSuffix(t)
+	err := db.QueryRowContext(context.Background(),
+		`INSERT INTO invitations (token, email, invited_by_id, expires_at)
+		 VALUES ($1, $2, $3, $4) RETURNING id`,
+		token, email, inviterID, expiresAt,
+	).Scan(&id)
+	if err != nil {
+		t.Fatalf("SeedInvitation: %v", err)
+	}
+	t.Cleanup(func() {
+		Exec(t, db, `DELETE FROM invitations WHERE id = $1`, id)
+	})
+	return id, token
+}
+
 // SeedRepo inserts a test repository owned by ownerID and returns the repo ID.
-// An owner-role permission row is inserted automatically.
-// Both are deleted when the test ends.
+// It is deleted when the test ends.
+//
+// Like RepoService.Create, it gives the owner no permissions row: ownership is
+// owner_id, and a row here would hide queries that skip ownedBy.
 func SeedRepo(t *testing.T, db *sql.DB, ownerID int64, ownerName, suffix string) int64 {
 	t.Helper()
 	ctx := context.Background()
@@ -149,18 +221,17 @@ func SeedRepo(t *testing.T, db *sql.DB, ownerID int64, ownerName, suffix string)
 	if err != nil {
 		t.Fatalf("SeedRepo: %v", err)
 	}
-	_, err = db.ExecContext(ctx,
-		`INSERT INTO permissions (user_id, repo_id, role) VALUES ($1, $2, 'owner')`,
-		ownerID, repoID,
-	)
-	if err != nil {
-		t.Fatalf("SeedRepo permission: %v", err)
-	}
 	t.Cleanup(func() {
-		Exec(t, db, `DELETE FROM permissions WHERE repo_id = $1`, repoID)
 		Exec(t, db, `DELETE FROM repositories WHERE id = $1`, repoID)
 	})
 	return repoID
+}
+
+// DeleteOrgOnCleanup deletes the organization when the test ends. Deleting its
+// owner leaves it behind: only org_members references users.
+func DeleteOrgOnCleanup(t *testing.T, db *sql.DB, id int64) {
+	t.Helper()
+	t.Cleanup(func() { Exec(t, db, `DELETE FROM organizations WHERE id = $1`, id) })
 }
 
 // The counter keeps names unique across tests and -count iterations within one

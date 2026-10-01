@@ -9,6 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -190,7 +191,7 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(divID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 58, Col: 17}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 59, Col: 17}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 			if templ_7745c5c3_Err != nil {
@@ -227,7 +228,7 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 						var templ_7745c5c3_Var7 string
 						templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(base + strconv.FormatInt(lbl.ID, 10))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 87, Col: 58}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 88, Col: 58}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 						if templ_7745c5c3_Err != nil {
@@ -245,7 +246,7 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 						var templ_7745c5c3_Var8 string
 						templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(base + strconv.FormatInt(lbl.ID, 10))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 89, Col: 56}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 90, Col: 56}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 						if templ_7745c5c3_Err != nil {
@@ -263,7 +264,7 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue("#" + divID)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 91, Col: 32}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 92, Col: 32}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 					if templ_7745c5c3_Err != nil {
@@ -276,7 +277,7 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 					var templ_7745c5c3_Var10 string
 					templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatBool(applied))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 94, Col: 51}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 95, Col: 51}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 					if templ_7745c5c3_Err != nil {
@@ -289,7 +290,7 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 					var templ_7745c5c3_Var11 string
 					templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("background-color: " + lbl.Color)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 97, Col: 110}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 98, Col: 110}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 					if templ_7745c5c3_Err != nil {
@@ -302,7 +303,7 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 					var templ_7745c5c3_Var12 string
 					templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(lbl.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 98, Col: 49}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 99, Col: 49}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 					if templ_7745c5c3_Err != nil {
@@ -330,7 +331,7 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 				var templ_7745c5c3_Var13 templ.SafeURL
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + owner + "/" + repoName + "/settings#labels"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 106, Col: 79}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 107, Col: 79}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -367,7 +368,7 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 					var templ_7745c5c3_Var14 string
 					templ_7745c5c3_Var14, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("background-color: " + lbl.Color + "33; color: " + lbl.Color + "; border-color: " + lbl.Color + "55")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 124, Col: 115}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 125, Col: 115}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 					if templ_7745c5c3_Err != nil {
@@ -380,7 +381,7 @@ func LabelSidebar(owner, repoName string, itemNumber int, kind string, labels []
 					var templ_7745c5c3_Var15 string
 					templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(lbl.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 126, Col: 17}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 127, Col: 17}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 					if templ_7745c5c3_Err != nil {
@@ -433,7 +434,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(divID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 140, Col: 17}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 141, Col: 17}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 			if templ_7745c5c3_Err != nil {
@@ -468,9 +469,9 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var18 string
-						templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.ResolveAttributeValue(base + "?username=" + c)
+						templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.ResolveAttributeValue(base + "?username=" + url.QueryEscape(c))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 169, Col: 45}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 170, Col: 62}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
 						if templ_7745c5c3_Err != nil {
@@ -488,7 +489,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 						var templ_7745c5c3_Var19 string
 						templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.ResolveAttributeValue(base)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 171, Col: 24}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 172, Col: 24}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var19)
 						if templ_7745c5c3_Err != nil {
@@ -499,9 +500,9 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var20 string
-						templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.ResolveAttributeValue(`{"username":"` + c + `"}`)
+						templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.ResolveAttributeValue(JSLiteral(map[string]string{"username": c}))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 172, Col: 46}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 173, Col: 63}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var20)
 						if templ_7745c5c3_Err != nil {
@@ -519,7 +520,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 					var templ_7745c5c3_Var21 string
 					templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.ResolveAttributeValue("#" + divID)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 174, Col: 32}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 175, Col: 32}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var21)
 					if templ_7745c5c3_Err != nil {
@@ -532,7 +533,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 					var templ_7745c5c3_Var22 string
 					templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.FormatBool(assigned))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 177, Col: 52}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 178, Col: 52}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var22)
 					if templ_7745c5c3_Err != nil {
@@ -553,7 +554,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 					var templ_7745c5c3_Var23 string
 					templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(c)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 181, Col: 42}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 182, Col: 42}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 					if templ_7745c5c3_Err != nil {
@@ -581,7 +582,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 				var templ_7745c5c3_Var24 templ.SafeURL
 				templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + owner + "/" + repoName + "/settings#collaborators"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 189, Col: 86}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 190, Col: 86}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 				if templ_7745c5c3_Err != nil {
@@ -626,7 +627,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 					var templ_7745c5c3_Var25 templ.SafeURL
 					templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + a.Username))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 207, Col: 48}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 208, Col: 48}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 					if templ_7745c5c3_Err != nil {
@@ -639,7 +640,7 @@ func AssigneeSidebar(owner, repoName string, itemNumber int, kind string, assign
 					var templ_7745c5c3_Var26 string
 					templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(a.Username)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 207, Col: 108}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/sidebar.templ`, Line: 208, Col: 108}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 					if templ_7745c5c3_Err != nil {

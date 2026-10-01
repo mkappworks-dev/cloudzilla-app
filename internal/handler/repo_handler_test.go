@@ -4,10 +4,13 @@ package handler_test
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -23,16 +26,18 @@ import (
 )
 
 // newRepoHandler builds a Handler with services needed by the repo handler.
-func newRepoHandler(db *sql.DB) *handler.Handler {
+func newRepoHandler(t *testing.T, db *sql.DB) *handler.Handler {
+	t.Helper()
 	cfg := &config.Config{
 		Auth: config.AuthConfig{
 			JWTSecret:  testJWTSecret,
 			JWTExpiry:  24 * time.Hour,
 			CookieName: testCookieName,
 		},
+		Git: config.GitConfig{ReposRoot: t.TempDir()},
 	}
 	userSvc := service.NewUserService(store.NewUserStore(db), cfg.Auth)
-	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{})
+	repoSvc := service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, cfg.Git)
 	svc := &service.Services{
 		User:        userSvc,
 		Repo:        repoSvc,
@@ -67,7 +72,7 @@ func repoCreateBody(name, description string, private bool) *bytes.Buffer {
 // when no Authorization header is provided.
 func TestCreateRepo_NoAuth_401(t *testing.T) {
 	db := testutil.OpenTestDB(t)
-	h := newRepoHandler(db)
+	h := newRepoHandler(t, db)
 	router := repoAPIRouterWithAuth(h)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/repos",
@@ -89,7 +94,7 @@ func TestCreateRepo_ValidAuth_201(t *testing.T) {
 	ownerID := testutil.SeedUser(t, db, suffix)
 	ownerName := "testuser_" + suffix
 
-	h := newRepoHandler(db)
+	h := newRepoHandler(t, db)
 	router := repoAPIRouterWithAuth(h)
 	token := makeIssueJWT(t, ownerID, ownerName)
 
@@ -112,6 +117,119 @@ func TestCreateRepo_ValidAuth_201(t *testing.T) {
 	}
 }
 
+func TestCreateRepo_InvalidName_422(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	token := makeIssueJWT(t, ownerID, "testuser_"+suffix)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/repos", repoCreateBody("bad name "+suffix, "", false))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	repoAPIRouterWithAuth(newRepoHandler(t, db)).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("an invalid name is a client error; want 422, got %d: %s", rr.Code, rr.Body.String())
+	}
+	if !strings.Contains(rr.Body.String(), "Repository names can use letters") {
+		t.Errorf("want the repository name rule; body: %s", rr.Body.String())
+	}
+}
+
+func TestCreateRepo_LegacyUnsafeOwner_422AndWarns(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	legacyName := "*_" + testutil.UniqueSuffix(t)
+	var legacyID int64
+	if err := db.QueryRow(`INSERT INTO users (username, email, password_hash) VALUES ($1, $2, 'x') RETURNING id`,
+		legacyName, "legacy_"+testutil.UniqueSuffix(t)+"@test.invalid").Scan(&legacyID); err != nil {
+		t.Fatalf("seed legacy user: %v", err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, legacyID) })
+	logs := captureLogs(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/repos", repoCreateBody("copy", "", false))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, legacyID, legacyName))
+	rr := httptest.NewRecorder()
+	repoAPIRouterWithAuth(newRepoHandler(t, db)).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), "can't be created") {
+		t.Errorf("want 422 with the unsafe path message, got %d %s", rr.Code, rr.Body)
+	}
+	if level := loggedLevel(t, logs, "create repo: unsafe repository path"); level != "WARN" {
+		t.Errorf("want a WARN log, got %s", level)
+	}
+}
+
+func TestCreateRepo_TakenName_422(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	cfg := &config.Config{
+		Auth: config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: 24 * time.Hour, CookieName: testCookieName},
+		Git:  config.GitConfig{ReposRoot: t.TempDir()},
+	}
+	router := repoAPIRouterWithAuth(handler.New(service.New(store.New(db), cfg), cfg))
+	token := makeIssueJWT(t, ownerID, "testuser_"+suffix)
+	post := func() *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "/api/repos", repoCreateBody("taken", "", false))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := httptest.NewRecorder()
+		router.ServeHTTP(rr, req)
+		return rr
+	}
+
+	if rr := post(); rr.Code != http.StatusCreated {
+		t.Fatalf("first create: want 201, got %d: %s", rr.Code, rr.Body.String())
+	}
+	rr := post()
+	if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), "already exists") {
+		t.Errorf("second create: want 422 naming the conflict, got %d: %s", rr.Code, rr.Body.String())
+	}
+}
+
+// A JWT outlives its account, and the freed username can be registered again.
+func TestCreateRepo_DeletedAccountsTokenCannotCreateForTheNameHolder(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	suffix := testutil.UniqueSuffix(t)
+	name := "testuser_" + suffix
+	goneID := testutil.SeedUser(t, db, suffix)
+	token := makeIssueJWT(t, goneID, name)
+	testutil.DeleteUsers(t, db, goneID)
+	var heirID int64
+	if err := db.QueryRow(
+		`INSERT INTO users (username, email, password_hash) VALUES ($1, $2, 'x') RETURNING id`,
+		name, "heir_"+suffix+"@test.invalid",
+	).Scan(&heirID); err != nil {
+		t.Fatalf("register the freed name: %v", err)
+	}
+	t.Cleanup(func() { testutil.DeleteUsers(t, db, heirID) })
+	cfg := &config.Config{
+		Auth: config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: 24 * time.Hour, CookieName: testCookieName},
+		Git:  config.GitConfig{ReposRoot: t.TempDir()},
+	}
+	router := repoAPIRouterWithAuth(handler.New(service.New(store.New(db), cfg), cfg))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/repos", repoCreateBody("planted", "", false))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code == http.StatusCreated {
+		t.Errorf("deleted account's token created a repo: %s", rr.Body.String())
+	}
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM repositories WHERE owner_id = $1`, heirID).Scan(&n); err != nil {
+		t.Fatalf("count repos: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("the name's new holder owns %d repos it never created", n)
+	}
+}
+
 // TestGetRepo_ExistingRepo_200 verifies that GET /api/repos/{owner}/{repo} returns
 // HTTP 200 with the repository details for a known owner/repo combination.
 func TestGetRepo_ExistingRepo_200(t *testing.T) {
@@ -122,7 +240,7 @@ func TestGetRepo_ExistingRepo_200(t *testing.T) {
 	repoName := "testrepo_" + suffix
 	testutil.SeedRepo(t, db, ownerID, ownerName, suffix)
 
-	h := newRepoHandler(db)
+	h := newRepoHandler(t, db)
 	router := repoAPIRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/repos/"+ownerName+"/"+repoName, nil)
@@ -145,7 +263,7 @@ func TestGetRepo_ExistingRepo_200(t *testing.T) {
 // HTTP 404 for a repository that does not exist.
 func TestGetRepo_UnknownRepo_404(t *testing.T) {
 	db := testutil.OpenTestDB(t)
-	h := newRepoHandler(db)
+	h := newRepoHandler(t, db)
 	router := repoAPIRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/repos/nobody/nonexistent", nil)
@@ -166,7 +284,7 @@ func TestListUserRepos_ReturnsRepos(t *testing.T) {
 	ownerName := "testuser_" + suffix
 	testutil.SeedRepo(t, db, ownerID, ownerName, suffix)
 
-	h := newRepoHandler(db)
+	h := newRepoHandler(t, db)
 	router := repoAPIRouter(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/users/"+ownerName+"/repos", nil)
@@ -179,5 +297,41 @@ func TestListUserRepos_ReturnsRepos(t *testing.T) {
 	body := strings.TrimSpace(rr.Body.String())
 	if !strings.HasPrefix(body, "[") {
 		t.Errorf("want JSON array, got: %s", body)
+	}
+}
+
+func TestRestoreRepo_NameTaken_422(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	ctx := context.Background()
+	suffix := testutil.UniqueSuffix(t)
+	ownerID := testutil.SeedUser(t, db, suffix)
+	owner := "testuser_" + suffix
+	root := t.TempDir()
+	cfg := &config.Config{
+		Auth: config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: 24 * time.Hour, CookieName: testCookieName},
+		Git:  config.GitConfig{ReposRoot: root},
+	}
+	services := service.New(store.New(db), cfg)
+	repo, err := services.Repo.Create(ctx, ownerID, owner, "back", "", false, service.RepoInitOptions{})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if err := services.Repo.Delete(ctx, repo.ID, ownerID); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+	if err := os.Mkdir(filepath.Join(root, owner, "back.git"), 0o755); err != nil {
+		t.Fatalf("occupy the name: %v", err)
+	}
+
+	r := chi.NewRouter()
+	r.Post("/api/repos/{owner}/{repo}/restore", handler.New(services, cfg).RestoreRepo)
+	router := middleware.Auth(testJWTSecret, testCookieName, nil, nil, func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unauthorized", http.StatusUnauthorized) })(r)
+	req := httptest.NewRequest(http.MethodPost, "/api/repos/"+owner+"/back/restore", nil)
+	req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, ownerID, owner))
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), "already exists") {
+		t.Errorf("want 422 naming the conflict, got %d: %s", rr.Code, rr.Body.String())
 	}
 }

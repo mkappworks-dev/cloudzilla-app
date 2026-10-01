@@ -40,8 +40,8 @@ func (s *EventStore) Record(ctx context.Context, e *model.Event) error {
 // or mentioned). Both restrict results to repositories the user can read, so
 // the personalised feed never surfaces private-repo activity — including raw
 // comment-body snippets — to users without access. ListForFeed and FeedCounts
-// share these constants so their predicates cannot drift apart.
-const issueInvolvementEvents = `
+// share these fragments so their predicates cannot drift apart.
+var issueInvolvementEvents = `
     SELECT ie.id FROM events ie
     JOIN issues i ON i.repo_id = ie.repo_id AND i.number = (ie.payload->>'number')::int
     JOIN repositories r ON r.id = ie.repo_id
@@ -51,10 +51,9 @@ const issueInvolvementEvents = `
            OR EXISTS (SELECT 1 FROM issue_assignees ia WHERE ia.issue_id = i.id AND ia.user_id = $1)
            OR EXISTS (SELECT 1 FROM mentions m JOIN comments c ON c.id = m.comment_id
                       WHERE c.issue_id = i.id AND m.user_id = $1))
-      AND (r.private = false OR r.owner_id = $1
-           OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))`
+      AND ` + readableBy("r", "$1")
 
-const pullInvolvementEvents = `
+var pullInvolvementEvents = `
     SELECT pe.id FROM events pe
     JOIN pull_requests p ON p.repo_id = pe.repo_id AND p.number = (pe.payload->>'number')::int
     JOIN repositories r ON r.id = pe.repo_id
@@ -65,8 +64,7 @@ const pullInvolvementEvents = `
            OR EXISTS (SELECT 1 FROM pull_reviews prv WHERE prv.pull_id = p.id AND prv.author_id = $1)
            OR EXISTS (SELECT 1 FROM mentions m JOIN comments c ON c.id = m.comment_id
                       WHERE c.pull_id = p.id AND m.user_id = $1))
-      AND (r.private = false OR r.owner_id = $1
-           OR EXISTS (SELECT 1 FROM permissions perm WHERE perm.repo_id = r.id AND perm.user_id = $1))`
+      AND ` + readableBy("r", "$1")
 
 // ListForFeed returns the user's personalised feed: watched/owned repos plus involved issues and PRs.
 func (s *EventStore) ListForFeed(ctx context.Context, userID int64, page, pageSize int) ([]model.Event, error) {
@@ -81,10 +79,9 @@ func (s *EventStore) ListForFeed(ctx context.Context, userID int64, page, pageSi
 		     SELECT w.repo_id FROM watches w
 		     JOIN repositories wr ON wr.id = w.repo_id
 		     WHERE w.user_id = $1 AND w.level != 'ignoring'
-		       AND (wr.private = false OR wr.owner_id = $1
-		            OR EXISTS (SELECT 1 FROM permissions p WHERE p.repo_id = wr.id AND p.user_id = $1))
+		       AND `+readableBy("wr", "$1")+`
 		     UNION
-		     SELECT r.id FROM repositories r WHERE r.owner_id = $1
+		     SELECT r.id FROM repositories r WHERE `+ownedBy("r", "$1")+`
 		 )
 		 OR e.id IN (`+issueInvolvementEvents+`)
 		 OR e.id IN (`+pullInvolvementEvents+`)
@@ -155,8 +152,7 @@ func (s *EventStore) ListWatching(ctx context.Context, userID int64, page, pageS
 		     SELECT w.repo_id FROM watches w
 		     JOIN repositories wr ON wr.id = w.repo_id
 		     WHERE w.user_id = $1 AND w.level != 'ignoring'
-		       AND (wr.private = false OR wr.owner_id = $1
-		            OR EXISTS (SELECT 1 FROM permissions p WHERE p.repo_id = wr.id AND p.user_id = $1))
+		       AND `+readableBy("wr", "$1")+`
 		 )
 		 ORDER BY e.created_at DESC
 		 LIMIT $2 OFFSET $3`,
@@ -200,10 +196,9 @@ func (s *EventStore) FeedCounts(ctx context.Context, userID int64) (map[string]i
 		        SELECT w.repo_id FROM watches w
 		        JOIN repositories wr ON wr.id = w.repo_id
 		        WHERE w.user_id = $1 AND w.level != 'ignoring'
-		          AND (wr.private = false OR wr.owner_id = $1
-		               OR EXISTS (SELECT 1 FROM permissions p WHERE p.repo_id = wr.id AND p.user_id = $1))
+		          AND `+readableBy("wr", "$1")+`
 		        UNION
-		        SELECT r.id FROM repositories r WHERE r.owner_id = $1
+		        SELECT r.id FROM repositories r WHERE `+ownedBy("r", "$1")+`
 		    )
 		    OR e.id IN (`+issueInvolvementEvents+`)
 		    OR e.id IN (`+pullInvolvementEvents+`)),
@@ -213,8 +208,7 @@ func (s *EventStore) FeedCounts(ctx context.Context, userID int64) (map[string]i
 		        SELECT w.repo_id FROM watches w
 		        JOIN repositories wr ON wr.id = w.repo_id
 		        WHERE w.user_id = $1 AND w.level != 'ignoring'
-		          AND (wr.private = false OR wr.owner_id = $1
-		               OR EXISTS (SELECT 1 FROM permissions p WHERE p.repo_id = wr.id AND p.user_id = $1))
+		          AND `+readableBy("wr", "$1")+`
 		    ))`,
 		userID,
 	).Scan(&all, &yours, &watching)

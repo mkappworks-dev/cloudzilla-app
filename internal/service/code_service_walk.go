@@ -3,23 +3,11 @@ package service
 import (
 	"context"
 
-	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-func (s *CodeService) WalkTree(ctx context.Context, owner, repoName, ref string, fn func(path string, size int64) error) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
-	if err != nil {
-		return err
-	}
-	// resolveRef treats "" as HEAD; the literal string "HEAD" would be tried as a branch/tag/SHA and fail.
-	if ref == "HEAD" {
-		ref = ""
-	}
-	commit, _, err := resolveRef(repo, ref)
-	if err != nil {
-		return err
-	}
+// WalkTree takes the commit rather than a ref so a caller that keys on the commit hash walks exactly that commit.
+func (s *CodeService) WalkTree(ctx context.Context, commit *object.Commit, fn func(path string, size int64) error) error {
 	tree, err := commit.Tree()
 	if err != nil {
 		return err

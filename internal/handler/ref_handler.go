@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
@@ -20,13 +22,8 @@ func (h *Handler) CreateBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -74,13 +71,8 @@ func (h *Handler) DeleteBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -91,6 +83,15 @@ func (h *Handler) DeleteBranch(w http.ResponseWriter, r *http.Request) {
 	}
 	if name == repo.DefaultBranch {
 		writeError(w, http.StatusBadRequest, "cannot delete the default branch")
+		return
+	}
+	if err := h.Services.BranchProtection.CheckDelete(r.Context(), repo.ID, name); err != nil {
+		if errors.Is(err, service.ErrForcePushBlocked) {
+			writeError(w, http.StatusUnprocessableEntity, "cannot delete a branch whose protection rule blocks force pushes")
+			return
+		}
+		slog.Error("check branch protection", "error", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
@@ -129,13 +130,8 @@ func (h *Handler) CreateTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -182,13 +178,8 @@ func (h *Handler) DeleteTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 

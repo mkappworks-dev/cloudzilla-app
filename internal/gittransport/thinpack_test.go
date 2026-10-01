@@ -3,6 +3,7 @@ package gittransport_test
 import (
 	"bytes"
 	"compress/zlib"
+	"context"
 	"crypto/sha1" //nolint:gosec // the git packfile trailer is defined as SHA-1
 	"encoding/binary"
 	"io"
@@ -12,7 +13,9 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/plumbing/format/packfile"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/storer"
+	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
@@ -67,6 +70,30 @@ func TestWrapForReceive_ResolvesThinPackRefDelta(t *testing.T) {
 		}
 		if !bytes.Equal(got, target) {
 			t.Fatalf("resolved content mismatch:\n want %q\n  got %q", target, got)
+		}
+	})
+
+	t.Run("NewServer receive-pack resolves the thin pack", func(t *testing.T) {
+		st := newStorage()
+		baseHash := seedBlob(t, st, baseContent)
+		pack := buildThinRefDeltaPack(t, baseHash, len(baseContent), target)
+
+		ep, err := transport.NewEndpoint("/")
+		if err != nil {
+			t.Fatalf("endpoint: %v", err)
+		}
+		sess, err := gittransport.NewServer(st, nil).NewReceivePackSession(ep, nil)
+		if err != nil {
+			t.Fatalf("open session: %v", err)
+		}
+		req := packp.NewReferenceUpdateRequest()
+		req.Commands = []*packp.Command{{Name: "refs/tags/thin", New: wantTarget}}
+		req.Packfile = io.NopCloser(bytes.NewReader(pack))
+		if _, err := sess.ReceivePack(context.Background(), req); err != nil {
+			t.Fatalf("receive thin pack: %v", err)
+		}
+		if _, err := st.EncodedObject(plumbing.BlobObject, wantTarget); err != nil {
+			t.Fatalf("resolved target %s not found in storage: %v", wantTarget, err)
 		}
 	})
 }

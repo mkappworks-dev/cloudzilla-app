@@ -29,6 +29,9 @@ type updateIssueRequest struct {
 func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repo := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repo); !ok {
+		return
+	}
 	var callerID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		callerID = &claims.UserID
@@ -44,6 +47,9 @@ func (h *Handler) ListIssues(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetIssue(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repo := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repo); !ok {
+		return
+	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid issue number")
@@ -70,9 +76,8 @@ func (h *Handler) CreateIssue(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !repo.AllowIssues {
@@ -117,13 +122,8 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	repo, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -157,7 +157,7 @@ func (h *Handler) UpdateIssue(w http.ResponseWriter, r *http.Request) {
 
 	go h.Services.Webhook.Dispatch(repo.ID, "issues", h.Services.Webhook.IssuePayload(state, *repo, *issue))
 	go func() {
-		h.Services.Notification.NotifyIssueStateChange(r.Context(), *repo, *issue, claims.UserID, claims.Username)
+		h.Services.Notification.NotifyIssueStateChange(context.WithoutCancel(r.Context()), *repo, *issue, claims.UserID, claims.Username)
 	}()
 	if state == "closed" {
 		repoID := repo.ID
@@ -183,6 +183,9 @@ func (h *Handler) PinIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
+		return
+	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid issue number")
@@ -247,6 +250,9 @@ func (h *Handler) LockIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
+		return
+	}
 	number, err := strconv.Atoi(chi.URLParam(r, "number"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid issue number")

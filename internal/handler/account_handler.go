@@ -179,6 +179,11 @@ func (h *Handler) PageAccountRepos(w http.ResponseWriter, r *http.Request) {
 		Page:         page,
 		TotalPages:   totalPages,
 	}
+	if transfers, err := h.Services.Repo.ListIncomingTransfers(ctx, claims.UserID); err != nil {
+		slog.Warn("repos: failed to load incoming transfers", "error", err)
+	} else {
+		data.IncomingTransfers = len(transfers)
+	}
 	h.render(w, r, pages.AccountRepos(data))
 }
 

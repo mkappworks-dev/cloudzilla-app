@@ -56,7 +56,7 @@ func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	all, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	all, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName, userID)
 	var open, closed []model.Milestone
 	for _, m := range all {
 		if m.State == "open" {
@@ -82,14 +82,17 @@ func (h *Handler) PageNewMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	claims, ok := middleware.ClaimsFromContext(r.Context())
-	if !ok || !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
+		return
+	}
+	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
@@ -114,9 +117,8 @@ func (h *Handler) PageNewMilestoneSubmit(w http.ResponseWriter, r *http.Request)
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
@@ -163,9 +165,7 @@ func (h *Handler) PageNewMilestoneSubmit(w http.ResponseWriter, r *http.Request)
 	}
 
 	if _, err := h.Services.Milestone.Create(r.Context(), owner, repoName, title, description, dueDate); err != nil {
-		slog.Error("create milestone: service create failed",
-			"owner", owner, "repo", repoName, "title", title, "error", err)
-		renderErr("Failed to create milestone: " + err.Error())
+		renderErr(createFailedMessage(err, "milestone", "owner", owner, "repo", repoName))
 		return
 	}
 
@@ -175,20 +175,10 @@ func (h *Handler) PageNewMilestoneSubmit(w http.ResponseWriter, r *http.Request)
 func (h *Handler) ListMilestones(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
 		return
 	}
-	var viewerID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		viewerID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	milestones, err := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	milestones, err := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName, viewerOf(r))
 	if err != nil {
 		writeError(w, http.StatusNotFound, "repo not found")
 		return
@@ -204,20 +194,10 @@ func (h *Handler) GetMilestone(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid milestone number")
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
 		return
 	}
-	var viewerID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		viewerID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
-		writeError(w, http.StatusNotFound, "milestone not found")
-		return
-	}
-	m, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number)
+	m, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number, viewerOf(r))
 	if err != nil {
 		writeError(w, http.StatusNotFound, "milestone not found")
 		return
@@ -240,13 +220,7 @@ func (h *Handler) CreateMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -316,13 +290,7 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -351,7 +319,7 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 
 	// Handle state transitions
 	if req.State == "closed" {
-		m, err := h.Services.Milestone.Close(r.Context(), owner, repoName, number)
+		m, err := h.Services.Milestone.Close(r.Context(), owner, repoName, number, &claims.UserID)
 		if err != nil {
 			slog.Error("operation failed", "error", err)
 			writeError(w, http.StatusInternalServerError, "internal server error")
@@ -361,7 +329,7 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.State == "open" {
-		m, err := h.Services.Milestone.Reopen(r.Context(), owner, repoName, number)
+		m, err := h.Services.Milestone.Reopen(r.Context(), owner, repoName, number, &claims.UserID)
 		if err != nil {
 			slog.Error("operation failed", "error", err)
 			writeError(w, http.StatusInternalServerError, "internal server error")
@@ -382,14 +350,14 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 	title := req.Title
 	if title == "" {
-		existing, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number)
+		existing, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number, &claims.UserID)
 		if err != nil {
 			writeError(w, http.StatusNotFound, "milestone not found")
 			return
 		}
 		title = existing.Title
 	}
-	m, err := h.Services.Milestone.Update(r.Context(), owner, repoName, number, title, req.Description, dueDate)
+	m, err := h.Services.Milestone.Update(r.Context(), owner, repoName, number, title, req.Description, dueDate, &claims.UserID)
 	if err != nil {
 		slog.Error("operation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
@@ -407,13 +375,7 @@ func (h *Handler) DeleteMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -442,13 +404,7 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -491,10 +447,10 @@ func (h *Handler) SetIssueMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	allMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName, &claims.UserID)
 	var currentMilestone *model.Milestone
 	if milestoneID != nil {
-		currentMilestone, _ = h.Services.Milestone.GetByID(r.Context(), *milestoneID)
+		currentMilestone, _ = h.Services.Milestone.GetByID(r.Context(), *milestoneID, &claims.UserID)
 	}
 	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
 	canWrite := false
@@ -527,13 +483,7 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), authRepo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -573,10 +523,10 @@ func (h *Handler) SetPullMilestone(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	allMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName, &claims.UserID)
 	var currentMilestone *model.Milestone
 	if milestoneID != nil {
-		currentMilestone, _ = h.Services.Milestone.GetByID(r.Context(), *milestoneID)
+		currentMilestone, _ = h.Services.Milestone.GetByID(r.Context(), *milestoneID, &claims.UserID)
 	}
 	repo, _ := h.Services.Repo.Get(r.Context(), owner, repoName)
 	canWrite := false
@@ -622,7 +572,7 @@ func (h *Handler) PageMilestoneDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number)
+	m, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number, userID)
 	if err != nil {
 		h.NotFound(w, r)
 		return
@@ -677,7 +627,7 @@ func (h *Handler) renderMilestoneDetail(w http.ResponseWriter, r *http.Request, 
 			slog.Warn("milestone detail: pulls list failed", "milestone", m.ID, "error", err)
 		}
 	} else {
-		if issues, err = h.Services.Milestone.ListIssues(r.Context(), m.ID, state, page, milestoneItemsPerPage); err != nil {
+		if issues, err = h.Services.Milestone.ListIssues(r.Context(), m.ID, state, viewerOf(r), page, milestoneItemsPerPage); err != nil {
 			slog.Warn("milestone detail: issues list failed", "milestone", m.ID, "error", err)
 		}
 	}
@@ -723,9 +673,8 @@ func (h *Handler) PageMilestoneDetailAction(w http.ResponseWriter, r *http.Reque
 		h.NotFound(w, r)
 		return
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
@@ -741,7 +690,7 @@ func (h *Handler) PageMilestoneDetailAction(w http.ResponseWriter, r *http.Reque
 
 	switch r.FormValue("action") {
 	case "close":
-		if _, err := h.Services.Milestone.Close(r.Context(), owner, repoName, number); err != nil {
+		if _, err := h.Services.Milestone.Close(r.Context(), owner, repoName, number, &claims.UserID); err != nil {
 			slog.Error("milestone detail: close failed", "owner", owner, "repo", repoName, "number", number, "error", err)
 			http.Error(w, "failed to close milestone", http.StatusInternalServerError)
 			return
@@ -749,7 +698,7 @@ func (h *Handler) PageMilestoneDetailAction(w http.ResponseWriter, r *http.Reque
 		http.Redirect(w, r, detailURL, http.StatusSeeOther)
 
 	case "reopen":
-		if _, err := h.Services.Milestone.Reopen(r.Context(), owner, repoName, number); err != nil {
+		if _, err := h.Services.Milestone.Reopen(r.Context(), owner, repoName, number, &claims.UserID); err != nil {
 			slog.Error("milestone detail: reopen failed", "owner", owner, "repo", repoName, "number", number, "error", err)
 			http.Error(w, "failed to reopen milestone", http.StatusInternalServerError)
 			return
@@ -770,22 +719,15 @@ func (h *Handler) PageMilestoneDetailAction(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *Handler) milestoneFragmentContext(w http.ResponseWriter, r *http.Request, owner, repoName string, number int) (*model.Milestone, bool, bool) {
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return nil, false, false
 	}
-	var userID *int64
 	canWrite := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		writeError(w, http.StatusNotFound, "milestone not found")
-		return nil, false, false
-	}
-	m, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number)
+	m, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number, viewerOf(r))
 	if err != nil {
 		writeError(w, http.StatusNotFound, "milestone not found")
 		return nil, false, false
@@ -799,16 +741,10 @@ func (h *Handler) milestoneWriteContext(w http.ResponseWriter, r *http.Request, 
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return nil, false
 	}
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return nil, false
 	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "forbidden")
-		return nil, false
-	}
-	m, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number)
+	m, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number, &claims.UserID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "milestone not found")
 		return nil, false
@@ -852,7 +788,7 @@ func (h *Handler) EditMilestoneTitle(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "title is required")
 		return
 	}
-	updated, err := h.Services.Milestone.Update(r.Context(), owner, repoName, number, title, m.Description, m.DueDate)
+	updated, err := h.Services.Milestone.Update(r.Context(), owner, repoName, number, title, m.Description, m.DueDate, viewerOf(r))
 	if err != nil {
 		slog.Error("edit milestone title failed", "owner", owner, "repo", repoName, "number", number, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
@@ -901,7 +837,7 @@ func (h *Handler) EditMilestoneBody(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	description := r.FormValue("description")
-	updated, err := h.Services.Milestone.Update(r.Context(), owner, repoName, number, m.Title, description, m.DueDate)
+	updated, err := h.Services.Milestone.Update(r.Context(), owner, repoName, number, m.Title, description, m.DueDate, viewerOf(r))
 	if err != nil {
 		slog.Error("edit milestone body failed", "owner", owner, "repo", repoName, "number", number, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
@@ -958,7 +894,7 @@ func (h *Handler) EditMilestoneDue(w http.ResponseWriter, r *http.Request) {
 		}
 		dueDate = &t
 	}
-	updated, err := h.Services.Milestone.Update(r.Context(), owner, repoName, number, m.Title, m.Description, dueDate)
+	updated, err := h.Services.Milestone.Update(r.Context(), owner, repoName, number, m.Title, m.Description, dueDate, viewerOf(r))
 	if err != nil {
 		slog.Error("edit milestone due date failed", "owner", owner, "repo", repoName, "number", number, "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")

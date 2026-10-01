@@ -19,16 +19,16 @@ func NewOAuthAuthorizationStore(db *sql.DB) *OAuthAuthorizationStore {
 }
 
 // Upsert creates or updates an authorization record, setting a fresh authorization code.
-func (s *OAuthAuthorizationStore) Upsert(ctx context.Context, appID, userID int64, code string, expiresAt time.Time, scopes []string) (*model.OAuthAuthorization, error) {
+func (s *OAuthAuthorizationStore) Upsert(ctx context.Context, appID, userID int64, code, redirectURI string, expiresAt time.Time, scopes []string) (*model.OAuthAuthorization, error) {
 	auth := &model.OAuthAuthorization{}
 	scopesRaw := strings.Join(scopes, ",")
 	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO oauth_authorizations (app_id, user_id, code, scopes, code_expires_at)
-         VALUES ($1, $2, $3, $4, $5)
+		`INSERT INTO oauth_authorizations (app_id, user_id, code, redirect_uri, scopes, code_expires_at)
+         VALUES ($1, $2, $3, $4, $5, $6)
          ON CONFLICT (app_id, user_id) DO UPDATE
-             SET code = EXCLUDED.code, scopes = EXCLUDED.scopes, code_expires_at = EXCLUDED.code_expires_at, token_hash = NULL
+             SET code = EXCLUDED.code, redirect_uri = EXCLUDED.redirect_uri, scopes = EXCLUDED.scopes, code_expires_at = EXCLUDED.code_expires_at, token_hash = NULL
          RETURNING id, app_id, user_id, code, token_hash, scopes, code_expires_at, created_at`,
-		appID, userID, code, scopesRaw, expiresAt,
+		appID, userID, code, redirectURI, scopesRaw, expiresAt,
 	).Scan(&auth.ID, &auth.AppID, &auth.UserID, &auth.Code, &auth.TokenHash, &auth.ScopesRaw, &auth.CodeExpiresAt, &auth.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("oauth_authorization upsert: %w", err)
@@ -39,20 +39,18 @@ func (s *OAuthAuthorizationStore) Upsert(ctx context.Context, appID, userID int6
 	return auth, nil
 }
 
-// ExchangeCode validates the code, clears it, and sets the token_hash.
-func (s *OAuthAuthorizationStore) ExchangeCode(ctx context.Context, code, tokenHash string) (*model.OAuthAuthorization, error) {
+// ExchangeCode redeems a live code issued to appID for redirectURI: it clears the
+// code and sets the token_hash. A mismatch leaves the code redeemable by its own app.
+func (s *OAuthAuthorizationStore) ExchangeCode(ctx context.Context, appID int64, code, redirectURI, tokenHash string) (*model.OAuthAuthorization, error) {
 	auth := &model.OAuthAuthorization{}
 	err := s.db.QueryRowContext(ctx,
 		`UPDATE oauth_authorizations
          SET code = NULL, code_expires_at = NULL, token_hash = $1
-         WHERE code = $2 AND code_expires_at > NOW()
+         WHERE code = $2 AND app_id = $3 AND redirect_uri = $4 AND code_expires_at > NOW()
          RETURNING id, app_id, user_id, code, token_hash, scopes, code_expires_at, created_at`,
-		tokenHash, code,
+		tokenHash, code, appID, redirectURI,
 	).Scan(&auth.ID, &auth.AppID, &auth.UserID, &auth.Code, &auth.TokenHash, &auth.ScopesRaw, &auth.CodeExpiresAt, &auth.CreatedAt)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("invalid or expired authorization code")
-		}
 		return nil, fmt.Errorf("oauth_authorization exchange: %w", err)
 	}
 	if auth.ScopesRaw != "" {

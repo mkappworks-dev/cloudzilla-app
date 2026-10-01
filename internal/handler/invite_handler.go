@@ -1,25 +1,19 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
 func (h *Handler) PageInvite(w http.ResponseWriter, r *http.Request) {
-	token := chi.URLParam(r, "token")
-
-	inv, err := h.Services.Invitation.GetByToken(r.Context(), token)
-	if err != nil {
-		http.Error(w, "invitation not found", http.StatusNotFound)
-		return
-	}
-
-	if err := h.Services.Invitation.Validate(inv); err != nil {
-		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: err.Error()}))
+	inv, ok := h.usableInvitation(w, r)
+	if !ok {
 		return
 	}
 
@@ -27,16 +21,8 @@ func (h *Handler) PageInvite(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
-	token := chi.URLParam(r, "token")
-
-	inv, err := h.Services.Invitation.GetByToken(r.Context(), token)
-	if err != nil {
-		http.Error(w, "invitation not found", http.StatusNotFound)
-		return
-	}
-
-	if err := h.Services.Invitation.Validate(inv); err != nil {
-		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: err.Error()}))
+	inv, ok := h.usableInvitation(w, r)
+	if !ok {
 		return
 	}
 
@@ -47,24 +33,20 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: "All fields are required"}))
 		return
 	}
-
-	// Create the user (bypasses allow_registration)
-	user, err := h.Services.User.Create(r.Context(), username, inv.Email, password)
-	if err != nil {
-		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: "Failed to create account: " + err.Error()}))
+	if msg := passwordLengthMessage(password); msg != "" {
+		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: msg}))
 		return
 	}
 
-	// Mark user as invited so they can always log in
-	// We need store access via a service method or expose MarkInvited via UserService
-	if err := h.Services.User.MarkInvited(r.Context(), user.ID); err != nil {
-		// Non-fatal — log but continue
-		_ = err
-	}
-
-	// Accept the invitation
-	if err := h.Services.Invitation.Accept(r.Context(), inv.ID); err != nil {
-		_ = err
+	// Create the user (bypasses allow_registration)
+	if _, err := h.Services.User.CreateFromInvitation(r.Context(), inv, username, password); err != nil {
+		if errors.Is(err, service.ErrInvitationUnusable) {
+			h.renderInvalidInvitation(w, r)
+			return
+		}
+		logCreateAccountFailure(r.Context(), "invite: create user failed", err, "invitation_id", inv.ID)
+		h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services), Invitation: inv, Error: createAccountErrorMessage(err)}))
+		return
 	}
 
 	// Authenticate and set cookie (bypasses allow_login)
@@ -74,15 +56,19 @@ func (h *Handler) PageInviteSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     h.Cfg.Auth.CookieName,
-		Value:    jwtToken,
-		HttpOnly: true,
-		Secure:   h.Cfg.Auth.CookieSecure,
-		Path:     "/",
-		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
-		SameSite: http.SameSiteLaxMode,
-	})
+	h.setAuthCookie(w, jwtToken)
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+// usableInvitation writes the response itself when it returns false.
+func (h *Handler) usableInvitation(w http.ResponseWriter, r *http.Request) (*model.Invitation, bool) {
+	inv, err := h.Services.Invitation.GetUsable(r.Context(), chi.URLParam(r, "token"))
+	return inv, h.linkLookupOK(w, r, err, service.ErrInvitationUnusable, h.renderInvalidInvitation, "invite: invitation lookup failed")
+}
+
+// The invitation is withheld: its email may belong to a registered account,
+// and the link is unauthenticated.
+func (h *Handler) renderInvalidInvitation(w http.ResponseWriter, r *http.Request) {
+	h.render(w, r, pages.Invite(view.InviteData{BasePage: basePage(r, h.Services)}))
 }

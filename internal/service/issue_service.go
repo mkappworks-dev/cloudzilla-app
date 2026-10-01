@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -37,6 +38,10 @@ func (s *IssueService) WithMentionStore(m *store.MentionStore) *IssueService {
 	return s
 }
 
+// ErrPrivateIssueForbidden is returned when a user without write access tries
+// to create a private issue.
+var ErrPrivateIssueForbidden = errors.New("forbidden: only collaborators with write access may create private issues")
+
 func (s *IssueService) Create(ctx context.Context, owner, repoName string, authorID int64, title, body, visibility string) (*model.Issue, error) {
 	if len(title) > MaxTitleLen {
 		return nil, ErrTitleTooLong
@@ -52,7 +57,7 @@ func (s *IssueService) Create(ctx context.Context, owner, repoName string, autho
 		return nil, fmt.Errorf("forbidden: cannot create issues on this repository")
 	}
 	if visibility == "private" && !s.repoSvc.CanWrite(ctx, repo, authorID) {
-		return nil, fmt.Errorf("forbidden: only collaborators with write access may create private issues")
+		return nil, ErrPrivateIssueForbidden
 	}
 	issue := &model.Issue{
 		RepoID:     repo.ID,
@@ -84,8 +89,8 @@ func (s *IssueService) UnlinkPull(ctx context.Context, pullID, issueID int64) er
 	return s.issues.UnlinkFromPull(ctx, pullID, issueID)
 }
 
-func (s *IssueService) LinkedForPull(ctx context.Context, pullID int64) ([]model.Issue, error) {
-	return s.issues.ListLinkedToPull(ctx, pullID)
+func (s *IssueService) LinkedForPull(ctx context.Context, pullID int64, visibleToUserID *int64) ([]model.Issue, error) {
+	return s.issues.ListLinkedToPull(ctx, pullID, visibleToUserID)
 }
 
 func (s *IssueService) Get(ctx context.Context, owner, repoName string, number int, visibleToUserID *int64) (*model.Issue, error) {
@@ -235,13 +240,13 @@ func (s *IssueService) UnlockIssue(ctx context.Context, owner, repoName string, 
 	return s.issues.SetLocked(ctx, issue.ID, false)
 }
 
-// ListPinned returns all pinned issues for a repo.
-func (s *IssueService) ListPinned(ctx context.Context, owner, repoName string) ([]model.Issue, error) {
+// ListPinned returns the pinned issues of a repo that visibleToUserID can see.
+func (s *IssueService) ListPinned(ctx context.Context, owner, repoName string, visibleToUserID *int64) ([]model.Issue, error) {
 	repo, err := s.repos.GetByOwnerAndName(ctx, owner, repoName)
 	if err != nil {
 		return nil, fmt.Errorf("repo not found: %w", err)
 	}
-	return s.issues.ListPinned(ctx, repo.ID)
+	return s.issues.ListPinned(ctx, repo.ID, visibleToUserID)
 }
 
 // canManage checks whether userID can manage the repo (owner or org owner).
@@ -269,8 +274,8 @@ func (s *IssueService) CountDueThisWeekAssignedTo(ctx context.Context, userID in
 	return s.issues.CountDueThisWeekAssignedTo(ctx, userID)
 }
 
-func (s *IssueService) CountOpen(ctx context.Context, repoID int64) (int, error) {
-	return s.issues.CountOpen(ctx, repoID)
+func (s *IssueService) CountOpen(ctx context.Context, repoID int64, visibleToUserID *int64) (int, error) {
+	return s.issues.CountOpen(ctx, repoID, visibleToUserID)
 }
 
 // mode is "assigned", "created", or "mentioned"; state is "open" or "closed".

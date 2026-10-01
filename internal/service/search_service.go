@@ -50,7 +50,7 @@ func (s *SearchService) Search(ctx context.Context, query, searchType string, re
 
 	if searchType == "all" || searchType == "issues" || searchType == "" {
 		g.Go(func() error {
-			issues, err := s.search.SearchIssues(ctx, query, searchLimit)
+			issues, err := s.search.SearchIssues(ctx, query, requestingUserID, searchLimit)
 			if err != nil {
 				return nil
 			}
@@ -61,7 +61,7 @@ func (s *SearchService) Search(ctx context.Context, query, searchType string, re
 
 	if searchType == "all" || searchType == "pulls" || searchType == "" {
 		g.Go(func() error {
-			pulls, err := s.search.SearchPulls(ctx, query, searchLimit)
+			pulls, err := s.search.SearchPulls(ctx, query, requestingUserID, searchLimit)
 			if err != nil {
 				return nil
 			}

@@ -1,7 +1,6 @@
 package pages
 
 import (
-	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -26,16 +25,9 @@ func commitDays(commits []service.CommitSummary) []CommitDayGroup {
 	return groups
 }
 
-func jsStringList(ss []string) string {
-	parts := make([]string, len(ss))
-	for i, s := range ss {
-		parts[i] = "'" + strings.ReplaceAll(s, "'", `\'`) + "'"
-	}
-	return "[" + strings.Join(parts, ",") + "]"
-}
-
+// Non-nil so JSLiteral renders [] rather than null, which Alpine's .includes would throw on.
 func selectedReviewerList(opts []components.ReviewerOption) []string {
-	var sel []string
+	sel := []string{}
 	for _, o := range opts {
 		if o.Selected {
 			sel = append(sel, o.Username)

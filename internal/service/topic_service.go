@@ -60,20 +60,6 @@ func (s *TopicService) ListByRepoIDs(ctx context.Context, repoIDs []int64) (map[
 	return s.topics.ListByRepoIDs(ctx, repoIDs)
 }
 
-// ListReposByTopic returns public repos for a topic name, paginated.
-func (s *TopicService) ListReposByTopic(ctx context.Context, name string, page, pageSize int) ([]model.Repository, error) {
-	if err := validateTopicName(name); err != nil {
-		return nil, err
-	}
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
-	}
-	return s.topics.ListReposByTopic(ctx, name, page, pageSize)
-}
-
 func (s *TopicService) ListReposByTopicWithStats(ctx context.Context, name string, page, pageSize int, sort string) ([]model.RepositoryWithStats, error) {
 	if err := validateTopicName(name); err != nil {
 		return nil, err

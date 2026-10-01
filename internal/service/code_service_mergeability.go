@@ -13,14 +13,14 @@ import (
 type Mergeability struct {
 	BaseRef      string
 	HeadRef      string
-	Ahead        int    // commits in head not in base (excludes merge base)
-	Behind       int    // commits in base not in head (excludes merge base)
+	Ahead        int // commits in head not in base (excludes merge base)
+	Behind       int // commits in base not in head (excludes merge base)
 	HasConflicts bool
 	MergeBase    string // SHA, empty if no common ancestor
 }
 
 func (s *CodeService) Mergeability(ctx context.Context, owner, repoName, base, head string) (Mergeability, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return Mergeability{}, err
 	}

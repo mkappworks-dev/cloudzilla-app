@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -312,19 +313,18 @@ func (h *Handler) PageNewDiscussion(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
-		return
-	}
-	if !repo.AllowDiscussions {
-		http.Error(w, "not found", http.StatusNotFound)
-		return
-	}
-
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
+		return
+	}
+	if !repo.AllowDiscussions {
+		h.NotFound(w, r)
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
@@ -362,13 +362,12 @@ func (h *Handler) PageNewDiscussionSubmit(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 	if !repo.AllowDiscussions {
-		http.Error(w, "not found", http.StatusNotFound)
+		h.NotFound(w, r)
 		return
 	}
 	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
@@ -422,7 +421,7 @@ func (h *Handler) PageNewDiscussionSubmit(w http.ResponseWriter, r *http.Request
 
 	d, err := h.Services.Discussion.Create(r.Context(), owner, repoName, claims.UserID, claims.Username, categoryID, title, body)
 	if err != nil {
-		renderErr("Failed to create discussion: " + err.Error())
+		renderErr(createFailedMessage(err, "discussion", "owner", owner, "repo", repoName))
 		return
 	}
 	http.Redirect(w, r, "/"+owner+"/"+repoName+"/discussions/"+strconv.Itoa(d.Number), http.StatusSeeOther)
@@ -438,9 +437,8 @@ func (h *Handler) CreateDiscussion(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	authRepo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
+	authRepo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !authRepo.AllowDiscussions {
@@ -479,6 +477,10 @@ func (h *Handler) CreateReply(w http.ResponseWriter, r *http.Request) {
 	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
+		return
+	}
 	numberStr := chi.URLParam(r, "number")
 	number, err := strconv.Atoi(numberStr)
 	if err != nil {
@@ -525,18 +527,10 @@ func (h *Handler) CreateReply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, repoErr := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if repoErr != nil {
-		// The reply already landed; we just can't fan out notifications or
-		// render the post-reply card with full write affordances.
-		slog.Warn("create reply: post-reply repo fetch failed", "owner", owner, "repo", repoName, "discussion", discussion.ID, "error", repoErr)
-	}
-	if repo != nil {
-		go h.Services.Notification.NotifyDiscussionReply(r.Context(), *repo, *discussion, claims.UserID, claims.Username)
-	}
+	go h.Services.Notification.NotifyDiscussionReply(context.WithoutCancel(r.Context()), *repo, *discussion, claims.UserID, claims.Username)
 
 	if hxRequest {
-		canWrite := repo != nil && h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
+		canWrite := h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		allReplies, _ := h.Services.Discussion.ListReplies(r.Context(), discussion.ID)
 		rendered := view.RenderedDiscussionReply{
 			DiscussionReply: *reply,
@@ -565,13 +559,7 @@ func (h *Handler) MarkAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "write access required")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 
@@ -726,13 +714,7 @@ func (h *Handler) DeleteDiscussionReply(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "repo not found")
-		return
-	}
-	if !h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID) {
-		writeError(w, http.StatusForbidden, "write access required")
+	if _, ok := h.writableRepoJSON(w, r, owner, repoName, claims.UserID); !ok {
 		return
 	}
 

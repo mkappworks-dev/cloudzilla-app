@@ -50,14 +50,14 @@ func AdminSettings(data view.AdminSettingsFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</p></div><form hx-post=\"/api/admin/settings\" hx-target=\"#admin-settings-list\" hx-swap=\"outerHTML\" class=\"flex items-center gap-3\"><input type=\"hidden\" name=\"key\" value=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</p></div><form hx-post=\"/api/admin/settings\" hx-target=\"#admin-settings-list\" hx-swap=\"outerHTML\" hx-include=\"#admin-confirm input\" class=\"flex items-center gap-3\"><input type=\"hidden\" name=\"key\" value=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(setting.Key)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_settings.templ`, Line: 19, Col: 57}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/admin_settings.templ`, Line: 20, Col: 57}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 				if templ_7745c5c3_Err != nil {

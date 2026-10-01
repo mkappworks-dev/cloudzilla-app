@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -76,5 +78,40 @@ func TestPageSetupSubmit_SetupComplete_RedirectsToRoot(t *testing.T) {
 	}
 	if loc := rr.Header().Get("Location"); loc != "/" {
 		t.Errorf("want redirect to /, got %q", loc)
+	}
+}
+
+func TestPageSetupSubmit_InvalidUsername_ShowsRule(t *testing.T) {
+	db := testutil.OpenFreshTestDB(t)
+
+	form := url.Values{"username": {"admin"}, "email": {"admin@test.invalid"}, "password": {"password123"}}
+	req := httptest.NewRequest(http.MethodPost, "/setup", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	newSetupHandlerWithDB(db).PageSetupSubmit(rr, req)
+
+	if body := rr.Body.String(); !strings.Contains(body, usernameRuleText) {
+		t.Errorf("want the username rule; body:\n%s", body)
+	}
+}
+
+// A NUL byte is rejected by Postgres itself, standing in for any unexpected DB failure.
+func TestPageSetupSubmit_DBFailure_GenericError(t *testing.T) {
+	db := testutil.OpenFreshTestDB(t)
+	logs := captureLogs(t)
+
+	form := url.Values{"username": {"siteadmin"}, "email": {"admin\x00@test.invalid"}, "password": {"password123"}}
+	req := httptest.NewRequest(http.MethodPost, "/setup", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rr := httptest.NewRecorder()
+	newSetupHandlerWithDB(db).PageSetupSubmit(rr, req)
+
+	body := rr.Body.String()
+	assertNoDBErrorText(t, body)
+	if !strings.Contains(body, "Could not create the admin account") {
+		t.Errorf("want generic setup error; body:\n%s", body)
+	}
+	if got := loggedLevel(t, logs, "setup: create superadmin failed"); got != "ERROR" {
+		t.Errorf("want ERROR, got %s", got)
 	}
 }

@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"time"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
@@ -20,9 +22,7 @@ func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem 
 	if d.IsOwner {
 		items = append(items, components.SettingsSidebarItem{Label: "Template", Href: "#template", Key: "template"})
 		items = append(items, components.SettingsSidebarItem{Label: "Archive", Href: "#archive", Key: "archive", Danger: true, GroupLabel: "Danger zone"})
-		if d.CanTransfer {
-			items = append(items, components.SettingsSidebarItem{Label: "Transfer Ownership", Href: "#transfer", Key: "transfer", Danger: true})
-		}
+		items = append(items, components.SettingsSidebarItem{Label: "Transfer Ownership", Href: "#transfer", Key: "transfer", Danger: true})
 		items = append(items, components.SettingsSidebarItem{Label: "Delete repository", Href: "#delete", Key: "delete", Danger: true})
 	}
 	return items
@@ -32,7 +32,7 @@ func settingsNavItems(d view.RepoSettingsData) []components.SettingsSidebarItem 
 // aria-pressed=true means Public (green); clicking submits the visibility form
 // with the opposite value, routed through the global ConfirmDialog for the
 // "Make public/private?" prompt.
-templ visibilityToggle(owner, repoName string, private bool) {
+templ visibilityToggle(owner, repoName string, private bool, confirm components.ConfirmFactors) {
 	<div class="flex items-start justify-between gap-4 pb-4 mb-2 border-b border-border">
 		<div class="min-w-0">
 			<p class="text-sm font-medium text-foreground">Visibility</p>
@@ -49,21 +49,16 @@ templ visibilityToggle(owner, repoName string, private bool) {
 				@components.Badge(components.BadgeSecondary) {
 					Private
 				}
-				<form method="POST" action={ templ.SafeURL("/" + owner + "/" + repoName + "/settings/visibility") } data-toast="Repository is now public">
-					<input type="hidden" name="private" value="false"/>
-					<button
-						type="submit"
-						aria-pressed="false"
-						aria-label="Repository visibility"
-						data-confirm-action="true"
-						data-confirm-title="Make this repository public?"
-						data-confirm-msg={ "Anyone on the internet will be able to view " + repoName + "." }
-						data-confirm-label="Make public"
-						class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-border bg-muted transition-colors cursor-pointer"
-					>
-						<span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform"></span>
-					</button>
-				</form>
+				<button
+					type="button"
+					aria-pressed="false"
+					aria-label="Repository visibility"
+					onclick="document.getElementById('make-public-dialog').showModal()"
+					class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-border bg-muted transition-colors cursor-pointer"
+				>
+					<span class="absolute left-0.5 h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform"></span>
+				</button>
+				@makePublicDialog(owner, repoName, confirm)
 			} else {
 				@components.Badge(components.BadgeSuccess) {
 					Public
@@ -87,6 +82,36 @@ templ visibilityToggle(owner, repoName string, private bool) {
 			}
 		</div>
 	</div>
+}
+
+// Making a private repository public gives its code to everyone, for good, so
+// it's confirmed like giving someone access.
+templ makePublicDialog(owner, repoName string, confirm components.ConfirmFactors) {
+	@components.Dialog("make-public-dialog") {
+		<form hx-post={ "/" + owner + "/" + repoName + "/settings/visibility" } hx-swap="none">
+			<input type="hidden" name="private" value="false"/>
+			@components.DialogHeader() {
+				@components.DialogTitle("make-public-dialog") {
+					Make this repository public?
+				}
+				@components.DialogDescription() {
+					{ "Anyone on the internet will be able to view and clone " + repoName + ", including its history." }
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-4">
+					<div id="make-public-form-error"></div>
+					<div class="flex flex-wrap items-end gap-3">
+						@components.ConfirmFields("make-public", confirm, true)
+					</div>
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Make public</button>
+			}
+		</form>
+	}
 }
 
 // settingsToggle renders a labelled pill-switch row for a repo feature flag.
@@ -165,7 +190,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								@visibilityToggle(data.Owner, data.RepoName, data.Repo.Private)
+								@visibilityToggle(data.Owner, data.RepoName, data.Repo.Private, data.Confirm)
 								<form method="POST" action={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/settings/features") } data-toast="Feature settings saved">
 									@settingsToggle("allow_issues", "Issues", "Let people open and track issues.", data.Repo.AllowIssues)
 									@settingsToggle("allow_discussions", "Discussions", "Enable the Discussions tab for Q&A and announcements.", data.Repo.AllowDiscussions)
@@ -196,6 +221,8 @@ templ RepoSettings(data view.RepoSettingsData) {
 								RepoID:    data.Repo.ID,
 								Collabs:   data.Collabs,
 								CanManage: data.CanManage,
+								IsOwner:   data.IsOwner,
+								Confirm:   data.Confirm,
 							})
 						}
 					}
@@ -262,6 +289,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 										<input type="checkbox" name="read_only" value="true" checked class="rounded border-input accent-foreground"/>
 										Read-only (uncheck to allow push access)
 									</label>
+									@components.ConfirmFields("deploy-key", data.Confirm, true)
 								</form>
 							}
 							@components.DialogFooter() {
@@ -461,7 +489,8 @@ templ RepoSettings(data view.RepoSettingsData) {
 							}
 						}
 						@components.DialogBody() {
-							<form id="webhook-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks" } hx-target="#webhooks-list" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful){this.closest('dialog').close();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Webhook added'}}));}" class="space-y-4">
+							<form id="webhook-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks" } hx-target="#webhooks-list" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful&&event.detail.target&&event.detail.target.id==='webhooks-list'){this.closest('dialog').close();this.reset();this.querySelector('#webhook-form-error').textContent='';document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Webhook added'}}));}" class="space-y-4">
+								<div id="webhook-form-error"></div>
 								<div class="space-y-1.5">
 									<label for="webhook-url" class="block text-xs font-medium">Payload URL</label>
 									@components.Input(templ.Attributes{
@@ -490,6 +519,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 										"value": "push,issues,pull_request",
 									})
 								</div>
+								@components.ConfirmFields("webhook", data.Confirm, true)
 							</form>
 						}
 						@components.DialogFooter() {
@@ -580,34 +610,56 @@ templ RepoSettings(data view.RepoSettingsData) {
 								</div>
 							}
 						}
-						if data.CanTransfer {
-							<div id="transfer" class="scroll-mt-6"></div>
-							@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
-								@components.CardHeader() {
-									<h2 class="text-base font-semibold tracking-tight text-destructive">Transfer Ownership</h2>
-									@components.CardDescription() {
-										Transfer this repository to another user. You will lose owner access.
-									}
+						<div id="transfer" class="scroll-mt-6"></div>
+						@components.Card(templ.Attributes{"class": "border-destructive/40"}) {
+							@components.CardHeader() {
+								<h2 class="text-base font-semibold tracking-tight text-destructive">Transfer Ownership</h2>
+								@components.CardDescription() {
+									Transfer this repository to another user, who has { transferTTLDays() } days to accept it, or at once to an organization you own. You keep owner access only if the new owner is you or an organization you own.
 								}
-								@components.CardContent() {
-									<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer") } data-toast="Repository transferred">
-										<div class="flex gap-3">
-											<label for="transfer-new-owner" class="sr-only">New owner username</label>
+							}
+							@components.CardContent() {
+								if data.PendingTransfer != nil {
+									<div class="flex flex-wrap items-center justify-between gap-3">
+										<p class="text-[13px]">
+											Waiting for <span class="font-mono">{ "@" + data.PendingTransfer.RecipientName }</span> to accept.
+											<span class="text-muted-foreground">
+												<time datetime={ data.PendingTransfer.ExpiresAt.UTC().Format(time.RFC3339) }>{ transferExpiry(data.PendingTransfer.ExpiresAt) }</time>
+											</span>
+										</p>
+										@components.Button(components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{
+											"type":                 "button",
+											"hx-delete":            "/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer",
+											"hx-swap":              "none",
+											"hx-on--after-request": stashToast("Transfer cancelled"),
+										}) {
+											Cancel transfer
+										}
+									</div>
+								} else {
+									<form
+										hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer" }
+										hx-swap="none"
+										hx-on--after-request="if(event.detail.xhr.status<300){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:event.detail.xhr.status===202?'Transfer requested':'Repository transferred'}));}"
+									>
+										<div class="flex flex-wrap items-end gap-3">
+											<label for="transfer-new-owner" class="sr-only">New owner: user or organization name</label>
 											@components.Input(templ.Attributes{
 												"id":          "transfer-new-owner",
 												"type":        "text",
 												"name":        "new_owner",
-												"placeholder": "New owner username",
+												"placeholder": "User or organization name",
 												"required":    "required",
 												"class":       "flex-1",
 											})
+											@components.ConfirmFields("transfer-repo", data.Confirm, true)
 											@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
 												"type":                "submit",
-												"data-confirm-action":  "true",
-												"data-confirm-title":   "Transfer ownership?",
-												"data-confirm-msg":     data.RepoName + " will be transferred to another user. You will lose owner access to this repository.",
-												"data-confirm-label":   "Transfer",
-												"data-confirm-danger":  "true",
+												"data-confirm-action": "true",
+												"data-confirm-title":  "Transfer ownership?",
+												"data-confirm-msg":    "A user must accept " + data.RepoName + " before it moves; an organization you own gets it at once. You keep owner access only if the new owner is you or an organization you own.",
+												"data-confirm-label":  "Transfer",
+												"data-confirm-danger": "true",
 											}) {
 												Transfer
 											}
@@ -626,7 +678,8 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								<form method="POST" action={ templ.SafeURL("/api/repos/" + data.Owner + "/" + data.RepoName + "/delete") } data-toast="Repository deleted" class="flex justify-end">
+								<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/delete" } hx-swap="none" data-toast="Repository deleted" class="flex flex-wrap items-end justify-end gap-3">
+									@components.ConfirmFields("delete-repo", data.Confirm, true)
 									@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
 										"type":                "submit",
 										"data-confirm-action":  "true",

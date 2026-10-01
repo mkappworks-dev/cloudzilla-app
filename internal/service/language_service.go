@@ -2,11 +2,17 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"github.com/go-git/go-git/v5/plumbing"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
 // README/Markdown/configs/lockfiles are intentionally excluded — composition is about *code*.
@@ -46,8 +52,17 @@ var excludedDirs = map[string]bool{
 }
 
 type LanguageService struct {
-	code  *CodeService
-	cache sync.Map // key="owner/repo:ref" → cacheEntry
+	code         *CodeService
+	repos        *RepoService
+	cache        sync.Map // langCacheKey → cacheEntry
+	cacheInserts atomic.Int64
+}
+
+// Keyed by commit so any new commit, pushed or made in the web UI, misses; by
+// repo ID rather than owner/name, which a transfer hands to a different repo.
+type langCacheKey struct {
+	repoID int64
+	commit plumbing.Hash
 }
 
 // Negative entries (err != nil) use the shorter TTL so a permanent failure can't hammer the tree walk on every refresh.
@@ -60,14 +75,24 @@ type cacheEntry struct {
 const (
 	langCacheTTL         = 10 * time.Minute
 	langCacheNegativeTTL = 30 * time.Second
+	// Entries for superseded commits are never read again, so expired ones are swept every this many inserts.
+	langCacheSweepEvery = 1024
 )
 
-func NewLanguageService(code *CodeService) *LanguageService {
-	return &LanguageService{code: code}
+func NewLanguageService(code *CodeService, repos *RepoService) *LanguageService {
+	return &LanguageService{code: code, repos: repos}
 }
 
-func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref string) (map[string]int64, error) {
-	key := owner + "/" + repoName + ":" + ref
+func (s *LanguageService) Composition(ctx context.Context, repo *model.Repository, ref string) (map[string]int64, error) {
+	// ResolveRef treats "" as HEAD; the literal "HEAD" would be tried as a branch/tag/SHA and fail.
+	if ref == "HEAD" {
+		ref = ""
+	}
+	commit, _, err := s.code.ResolveRef(repo.OwnerName, repo.Name, ref)
+	if err != nil {
+		return nil, err
+	}
+	key := langCacheKey{repoID: repo.ID, commit: commit.Hash}
 	if v, ok := s.cache.Load(key); ok {
 		e := v.(cacheEntry)
 		ttl := langCacheTTL
@@ -79,7 +104,7 @@ func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref 
 		}
 	}
 	comp := make(map[string]int64)
-	err := s.code.WalkTree(ctx, owner, repoName, ref, func(path string, size int64) error {
+	err = s.code.WalkTree(ctx, commit, func(path string, size int64) error {
 		// Skip if any ancestor directory is excluded.
 		for dir := filepath.Dir(path); dir != "." && dir != "/" && dir != ""; dir = filepath.Dir(dir) {
 			if excludedDirs[filepath.Base(dir)] {
@@ -93,12 +118,27 @@ func (s *LanguageService) Composition(ctx context.Context, owner, repoName, ref 
 		return nil
 	})
 	if err != nil {
-		// Eclipses any prior success; intentional so a broken ref doesn't serve pre-breakage data.
-		s.cache.Store(key, cacheEntry{err: err, cachedAt: time.Now()})
+		// A cancelled request says nothing about the commit, so it must not fail the next ones.
+		if ctx.Err() == nil {
+			s.storeEntry(key, cacheEntry{err: err, cachedAt: time.Now()})
+		}
 		return nil, err
 	}
-	s.cache.Store(key, cacheEntry{comp: comp, cachedAt: time.Now()})
+	s.storeEntry(key, cacheEntry{comp: comp, cachedAt: time.Now()})
 	return comp, nil
+}
+
+func (s *LanguageService) storeEntry(key langCacheKey, e cacheEntry) {
+	s.cache.Store(key, e)
+	if s.cacheInserts.Add(1)%langCacheSweepEvery != 0 {
+		return
+	}
+	s.cache.Range(func(k, v any) bool {
+		if time.Since(v.(cacheEntry).cachedAt) >= langCacheTTL {
+			s.cache.Delete(k)
+		}
+		return true
+	})
 }
 
 // Percent is an integer; sum may be ≤ 100 due to rounding.
@@ -108,22 +148,114 @@ type LangPercent struct {
 }
 
 // Drops languages contributing less than 1%.
-func (s *LanguageService) Percentages(ctx context.Context, owner, repoName, ref string) ([]LangPercent, error) {
-	comp, err := s.Composition(ctx, owner, repoName, ref)
+func (s *LanguageService) Percentages(ctx context.Context, repo *model.Repository, ref string) ([]LangPercent, error) {
+	comp, err := s.Composition(ctx, repo, ref)
 	if err != nil {
 		return nil, err
 	}
-	var total int64
-	for _, b := range comp {
-		total += b
+	return rankLanguages(comp, 0), nil
+}
+
+// TopLanguageFor returns the language with the largest byte count in the repo's
+// default tree. Ties are broken by alphabetical order. Returns ("", nil) when
+// no recognised code is found (including repos containing only empty source
+// files or only excluded extensions like Markdown).
+func (s *LanguageService) TopLanguageFor(ctx context.Context, repo *model.Repository, ref string) (string, error) {
+	comp, err := s.Composition(ctx, repo, ref)
+	if err != nil {
+		return "", err
 	}
-	if total == 0 {
-		return nil, nil
-	}
-	out := make([]LangPercent, 0, len(comp))
+	var top string
+	var topBytes int64
 	for name, b := range comp {
-		pct := int(b * 100 / total)
-		if pct > 0 {
+		if b > topBytes || (b == topBytes && name < top) {
+			top = name
+			topBytes = b
+		}
+	}
+	return top, nil
+}
+
+// PrimaryLanguage prefers the column written at push time. Nil and "" fall back
+// to a cached tree walk; only a NULL column stores its result, so forks and
+// older rows no push filled heal for column-only readers like org cards, while
+// a push's "" is never replaced by a walk of an older tree. README-only repos
+// store nothing and keep walking.
+func (s *LanguageService) PrimaryLanguage(ctx context.Context, repo *model.Repository) string {
+	if repo.PrimaryLanguage != nil && *repo.PrimaryLanguage != "" {
+		return *repo.PrimaryLanguage
+	}
+	lang, err := s.TopLanguageFor(ctx, repo, repo.DefaultBranch)
+	if err != nil || lang == "" {
+		return ""
+	}
+	if err := s.repos.FillPrimaryLanguage(ctx, repo.ID, lang); err != nil {
+		slog.WarnContext(ctx, "language_service: store primary language failed", "repo_id", repo.ID, "err", err)
+	}
+	return lang
+}
+
+// Only repos viewerID can read count, so private code never shapes a visitor's
+// view. Per-repo failures (empty repo, bad ref) are skipped so one broken repo
+// can't blank out the whole composition. limit <= 0 returns all languages.
+func (s *LanguageService) AggregateForUser(ctx context.Context, username string, viewerID *int64, limit int) ([]LangPercent, error) {
+	repos, err := s.repos.ListByOwnerVisibleTo(ctx, username, viewerID)
+	if err != nil {
+		return nil, err
+	}
+	totals := make(map[string]int64)
+	for _, r := range repos {
+		comp, err := s.Composition(ctx, &r, r.DefaultBranch)
+		if err != nil {
+			slog.WarnContext(ctx, "language_service: composition failed for repo",
+				"owner", r.OwnerName, "name", r.Name, "ref", r.DefaultBranch, "err", err)
+			continue
+		}
+		for name, b := range comp {
+			totals[name] += b
+		}
+	}
+	return rankLanguages(totals, limit), nil
+}
+
+// AggregateForOrg counts the cached primary language of repos the caller
+// already filtered for the viewer, rather than walking every tree.
+func (s *LanguageService) AggregateForOrg(ctx context.Context, repos []model.Repository, limit int) []LangPercent {
+	counts := make(map[string]int64)
+	for _, r := range repos {
+		if r.PrimaryLanguage != nil && *r.PrimaryLanguage != "" {
+			counts[*r.PrimaryLanguage]++
+		}
+	}
+	return rankLanguages(counts, limit)
+}
+
+// rankLanguages keeps the top limit languages by weight (all when limit <= 0)
+// and computes percentages over the kept ones only, so a top-N bar fills to
+// ~100% instead of leaving the dropped tail as a gap.
+func rankLanguages(weights map[string]int64, limit int) []LangPercent {
+	names := make([]string, 0, len(weights))
+	for name, w := range weights {
+		if w > 0 {
+			names = append(names, name)
+		}
+	}
+	sort.Slice(names, func(i, j int) bool {
+		if weights[names[i]] != weights[names[j]] {
+			return weights[names[i]] > weights[names[j]]
+		}
+		return names[i] < names[j]
+	})
+	if limit > 0 && len(names) > limit {
+		names = names[:limit]
+	}
+	var total int64
+	for _, name := range names {
+		total += weights[name]
+	}
+	out := make([]LangPercent, 0, len(names))
+	for _, name := range names {
+		if pct := int(weights[name] * 100 / total); pct > 0 {
 			out = append(out, LangPercent{Name: name, Percent: pct})
 		}
 	}
@@ -131,7 +263,7 @@ func (s *LanguageService) Percentages(ctx context.Context, owner, repoName, ref 
 		if out[i].Percent != out[j].Percent {
 			return out[i].Percent > out[j].Percent
 		}
-		return out[i].Name < out[j].Name // stable tiebreak
+		return out[i].Name < out[j].Name
 	})
-	return out, nil
+	return out
 }

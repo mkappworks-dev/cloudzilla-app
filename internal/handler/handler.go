@@ -1,13 +1,18 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"html"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/a-h/templ"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
@@ -32,6 +37,18 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
+// renderFormError puts msg in slot, the error area of an HTMX form in a modal
+// dialog. It answers 200 because htmx skips swaps on 4xx by default; the form
+// tells success from error by the swapped target id.
+func renderFormError(w http.ResponseWriter, slot, msg string) {
+	w.Header().Set("HX-Retarget", slot)
+	w.Header().Set("HX-Reswap", "innerHTML")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write([]byte(`<div class="rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs p-3" role="alert">` + html.EscapeString(msg) + `</div>`))
+}
+
+const branchMovedMsg = "branch was updated while saving; reload and try again"
+
 // Must be called before the response body — sets an HTTP header.
 func toast(w http.ResponseWriter, toastType, message string) {
 	payload, err := json.Marshal(map[string]any{
@@ -51,17 +68,73 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, component templ
 	}
 }
 
-// viewerCanReadRepo looks up the repo by owner/name and returns true if the
-// viewer (resolved from the request context, anonymous if no claims) has read
-// access. Returns false when the repo does not exist or is not visible.
-func (h *Handler) viewerCanReadRepo(r *http.Request, owner, repoName string) bool {
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		return false
+func (h *Handler) setAuthCookie(w http.ResponseWriter, token string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     h.Cfg.Auth.CookieName,
+		Value:    token,
+		HttpOnly: true,
+		Secure:   h.Cfg.Auth.CookieSecure,
+		Path:     "/",
+		Expires:  time.Now().Add(h.Cfg.Auth.JWTExpiry),
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+// linkLookupOK reports whether a token link's lookup succeeded, writing the
+// response itself when it didn't: the invalid-link page for an unusable link,
+// a 500 logged as logMsg for anything else.
+func (h *Handler) linkLookupOK(w http.ResponseWriter, r *http.Request, err, unusable error, renderInvalid func(http.ResponseWriter, *http.Request), logMsg string) bool {
+	switch {
+	case err == nil:
+		return true
+	case errors.Is(err, unusable):
+		renderInvalid(w, r)
+	default:
+		slog.Error(logMsg, "error", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 	}
+	return false
+}
+
+// viewerOf returns the signed-in user's ID, or nil for an anonymous request.
+func viewerOf(r *http.Request) *int64 {
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		return &claims.UserID
+	}
+	return nil
+}
+
+// readableRepoJSON is readableRepo with a JSON 404, for API and fragment routes.
+// It must run before anything that would answer an existing repo differently.
+func (h *Handler) readableRepoJSON(w http.ResponseWriter, r *http.Request, owner, repoName string) (*model.Repository, bool) {
 	var viewerID *int64
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		viewerID = &claims.UserID
 	}
-	return h.Services.Repo.CanRead(r.Context(), repo, viewerID)
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
+		writeError(w, http.StatusNotFound, "repo not found")
+		return nil, false
+	}
+	return repo, true
+}
+
+func (h *Handler) writableRepoJSON(w http.ResponseWriter, r *http.Request, owner, repoName string, userID int64) (*model.Repository, bool) {
+	return h.permittedRepoJSON(w, r, owner, repoName, userID, h.Services.Repo.CanWrite)
+}
+
+func (h *Handler) manageableRepoJSON(w http.ResponseWriter, r *http.Request, owner, repoName string, userID int64) (*model.Repository, bool) {
+	return h.permittedRepoJSON(w, r, owner, repoName, userID, h.Services.Repo.CanManage)
+}
+
+func (h *Handler) permittedRepoJSON(w http.ResponseWriter, r *http.Request, owner, repoName string, userID int64, permitted func(context.Context, *model.Repository, int64) bool) (*model.Repository, bool) {
+	repo, ok := h.readableRepoJSON(w, r, owner, repoName)
+	if !ok {
+		return nil, false
+	}
+	if !permitted(r.Context(), repo, userID) {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return nil, false
+	}
+	return repo, true
 }

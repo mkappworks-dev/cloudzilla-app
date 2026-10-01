@@ -12,11 +12,12 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 )
 
 // CommitFile commits content to filePath on branch, creating the branch if it
 // does not yet exist (e.g. the first commit in an empty repo).
-func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, content []byte, authorName, authorEmail, message string) error {
+func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, content []byte, author GitAuthor, message string) error {
 	filePath = strings.Trim(strings.ReplaceAll(filePath, "\\", "/"), "/")
 	if filePath == "" {
 		return fmt.Errorf("file path is empty")
@@ -28,7 +29,7 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 		}
 	}
 
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return fmt.Errorf("open repo: %w", err)
 	}
@@ -39,6 +40,7 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 	}
 
 	// Parent commit + root tree from the branch tip, if the branch exists.
+	var oldTip plumbing.Hash
 	var parentHashes []plumbing.Hash
 	var baseTree *object.Tree
 	branchRef := plumbing.NewBranchReferenceName(branch)
@@ -47,6 +49,7 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 		if cErr != nil {
 			return fmt.Errorf("resolve branch tip: %w", cErr)
 		}
+		oldTip = parent.Hash
 		parentHashes = []plumbing.Hash{parent.Hash}
 		if baseTree, cErr = parent.Tree(); cErr != nil {
 			return fmt.Errorf("read tree: %w", cErr)
@@ -62,7 +65,7 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 		return err
 	}
 
-	sig := object.Signature{Name: authorName, Email: authorEmail, When: time.Now()}
+	sig := author.signature(time.Now())
 	commit := object.Commit{
 		Author:       sig,
 		Committer:    sig,
@@ -79,7 +82,7 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 		return err
 	}
 
-	if err := repo.Storer.SetReference(plumbing.NewHashReference(branchRef, commitHash)); err != nil {
+	if err := gitref.Move(repo.Storer, branchRef, oldTip, commitHash); err != nil {
 		return fmt.Errorf("advance branch: %w", err)
 	}
 	// Point HEAD at the branch only when it is missing or detached — i.e. the
@@ -150,7 +153,7 @@ func insertBlobIntoTree(repo *gogit.Repository, base *object.Tree, segments []st
 // ArchiveZip streams a zip of the repo tree at ref into w. Files are prefixed
 // "<repo>-<ref>/" so the archive expands into a single folder.
 func (s *CodeService) ArchiveZip(owner, repoName, ref string, w io.Writer) error {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return fmt.Errorf("open repo: %w", err)
 	}
@@ -205,7 +208,7 @@ const maxFileList = 2000
 // ListAllFiles returns every file path in the tree at ref, capped at
 // maxFileList so the "Go to file" finder stays responsive on large repos.
 func (s *CodeService) ListAllFiles(owner, repoName, ref string) ([]string, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +246,7 @@ func (s *CodeService) ListAllFiles(owner, repoName, ref string) ([]string, error
 // CommitCount returns the commit count reachable from ref. It walks the full
 // history — treat as best-effort on large repos.
 func (s *CodeService) CommitCount(owner, repoName, ref string) (int, error) {
-	repo, err := gogit.PlainOpen(s.repoPath(owner, repoName))
+	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return 0, err
 	}

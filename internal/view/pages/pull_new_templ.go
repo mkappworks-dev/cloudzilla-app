@@ -154,7 +154,7 @@ func PullNew(data view.PullNewData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				reviewersInit := jsStringList(selectedReviewerList(data.Reviewer.All))
+				reviewersInit := components.JSLiteral(selectedReviewerList(data.Reviewer.All))
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<form method=\"POST\" action=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -529,9 +529,9 @@ func pullNewReviewers(data view.PullNewData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var26 string
-					templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.ResolveAttributeValue("toggle(reviewers, '" + o.Username + "')")
+					templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.ResolveAttributeValue("toggle(reviewers, " + components.JSLiteral(o.Username) + ")")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 142, Col: 60}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 142, Col: 80}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var26)
 					if templ_7745c5c3_Err != nil {
@@ -542,9 +542,9 @@ func pullNewReviewers(data view.PullNewData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var27 string
-					templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.ResolveAttributeValue("reviewers.includes('" + o.Username + "') ? 'true' : 'false'")
+					templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.ResolveAttributeValue("reviewers.includes(" + components.JSLiteral(o.Username) + ") ? 'true' : 'false'")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 143, Col: 83}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 143, Col: 103}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var27)
 					if templ_7745c5c3_Err != nil {
@@ -576,9 +576,9 @@ func pullNewReviewers(data view.PullNewData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var29 string
-					templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.ResolveAttributeValue("reviewers.includes('" + o.Username + "')")
+					templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.ResolveAttributeValue("reviewers.includes(" + components.JSLiteral(o.Username) + ")")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 148, Col: 63}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 148, Col: 83}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var29)
 					if templ_7745c5c3_Err != nil {
@@ -649,9 +649,9 @@ func pullNewReviewers(data view.PullNewData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var31 string
-			templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.ResolveAttributeValue("reviewers.includes('" + o.Username + "')")
+			templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.ResolveAttributeValue("reviewers.includes(" + components.JSLiteral(o.Username) + ")")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 164, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 164, Col: 79}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var31)
 			if templ_7745c5c3_Err != nil {
@@ -719,9 +719,9 @@ func pullNewReviewers(data view.PullNewData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var35 string
-			templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.ResolveAttributeValue("!reviewers.includes('" + o.Username + "')")
+			templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.ResolveAttributeValue("!reviewers.includes(" + components.JSLiteral(o.Username) + ")")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 174, Col: 117}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 174, Col: 137}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var35)
 			if templ_7745c5c3_Err != nil {
@@ -785,9 +785,9 @@ func pullNewLabels(data view.PullNewData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var38 string
-					templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.ResolveAttributeValue("toggle(labels, '" + id + "')")
+					templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.ResolveAttributeValue("toggle(labels, " + components.JSLiteral(id) + ")")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 188, Col: 49}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 188, Col: 69}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var38)
 					if templ_7745c5c3_Err != nil {
@@ -798,9 +798,9 @@ func pullNewLabels(data view.PullNewData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var39 string
-					templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.ResolveAttributeValue("labels.includes('" + id + "') ? 'true' : 'false'")
+					templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.ResolveAttributeValue("labels.includes(" + components.JSLiteral(id) + ") ? 'true' : 'false'")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 189, Col: 72}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 189, Col: 92}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var39)
 					if templ_7745c5c3_Err != nil {
@@ -837,9 +837,9 @@ func pullNewLabels(data view.PullNewData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var42 string
-					templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.ResolveAttributeValue("labels.includes('" + id + "')")
+					templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.ResolveAttributeValue("labels.includes(" + components.JSLiteral(id) + ")")
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 194, Col: 52}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 194, Col: 72}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var42)
 					if templ_7745c5c3_Err != nil {
@@ -911,9 +911,9 @@ func pullNewLabels(data view.PullNewData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var44 string
-			templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.ResolveAttributeValue("labels.includes('" + id + "')")
+			templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.ResolveAttributeValue("labels.includes(" + components.JSLiteral(id) + ")")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 212, Col: 45}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 212, Col: 65}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var44)
 			if templ_7745c5c3_Err != nil {
@@ -974,9 +974,9 @@ func pullNewLabels(data view.PullNewData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var48 string
-			templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.ResolveAttributeValue("!labels.includes('" + id + "')")
+			templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.ResolveAttributeValue("!labels.includes(" + components.JSLiteral(id) + ")")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 224, Col: 95}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pull_new.templ`, Line: 224, Col: 115}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var48)
 			if templ_7745c5c3_Err != nil {

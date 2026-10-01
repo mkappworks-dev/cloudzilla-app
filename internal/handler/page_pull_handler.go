@@ -144,12 +144,16 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 
 // PageNewPull renders the new pull request form with branch selection and diff preview.
 func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -163,10 +167,7 @@ func (h *Handler) PageNewPull(w http.ResponseWriter, r *http.Request) {
 	base := firstNonEmpty(r.URL.Query().Get("base"), repo.DefaultBranch)
 	head := r.URL.Query().Get("head")
 
-	canManage := false
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
-	}
+	canManage := h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 
 	allLabels, err := h.Services.Label.ListByRepo(r.Context(), owner, repoName)
 	if err != nil {
@@ -211,9 +212,8 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepo(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -280,7 +280,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 
 	pr, err := h.Services.Pull.Create(r.Context(), owner, repoName, claims.UserID, title, body, headBranch, baseBranch, isDraft)
 	if err != nil {
-		renderErr("Failed to create pull request: " + err.Error())
+		renderErr(createFailedMessage(err, "pull request", "owner", owner, "repo", repoName))
 		return
 	}
 
@@ -386,8 +386,8 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		headStatuses = []model.CommitStatus{}
 	}
 
-	pullMilestone, _ := h.Services.Milestone.GetForPull(r.Context(), pull.ID)
-	allPullDetailMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName)
+	pullMilestone, _ := h.Services.Milestone.GetForPull(r.Context(), pull.ID, callerID)
+	allPullDetailMilestones, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName, callerID)
 	if allPullDetailMilestones == nil {
 		allPullDetailMilestones = []model.Milestone{}
 	}
@@ -479,7 +479,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		addParticipant(rv.AuthorName)
 	}
 
-	linkedIssueModels, err := h.Services.Issue.LinkedForPull(r.Context(), pull.ID)
+	linkedIssueModels, err := h.Services.Issue.LinkedForPull(r.Context(), pull.ID, callerID)
 	if err != nil {
 		slog.Warn("pull detail: linked issues list failed; rendering without them",
 			"owner", owner, "repo", repoName, "pull_number", number, "error", err)

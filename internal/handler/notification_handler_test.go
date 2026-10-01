@@ -35,6 +35,7 @@ func newNotifHandler(db *sql.DB) *handler.Handler {
 		Notification: service.NewNotificationService(
 			store.NewNotificationStore(db),
 			store.NewWatchStore(db),
+			service.NewRepoService(store.NewRepoStore(db), store.NewUserStore(db), store.NewOrgStore(db), nil, nil, config.GitConfig{}),
 			service.NewEmailService(config.SMTPConfig{}),
 			userSvc,
 		),

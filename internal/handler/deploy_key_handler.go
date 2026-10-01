@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"html"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -13,14 +12,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
-// renderDeployKeyFormError uses status 200 because htmx skips swaps on 4xx by
-// default; the form distinguishes success from error by the swapped target id.
-func renderDeployKeyFormError(w http.ResponseWriter, msg string) {
-	w.Header().Set("HX-Retarget", "#deploy-key-form-error")
-	w.Header().Set("HX-Reswap", "innerHTML")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(`<div class="rounded-md border border-destructive/30 bg-destructive/10 text-destructive text-xs p-3" role="alert">` + html.EscapeString(msg) + `</div>`))
-}
+const deployKeyFormError = "#deploy-key-form-error"
 
 // deployKeyErrorMessage maps known service-level errors to user-safe copy.
 // The unmatched fallback logs the raw error and returns a generic message so
@@ -51,14 +43,8 @@ func (h *Handler) ListDeployKeys(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -80,14 +66,8 @@ func (h *Handler) AddDeployKey(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 
@@ -102,10 +82,13 @@ func (h *Handler) AddDeployKey(w http.ResponseWriter, r *http.Request) {
 
 	if title == "" || publicKey == "" {
 		if r.Header.Get("HX-Request") == "true" {
-			renderDeployKeyFormError(w, "Title and public key are required.")
+			renderFormError(w, deployKeyFormError, "Title and public key are required.")
 			return
 		}
 		http.Error(w, "title and public_key are required", http.StatusBadRequest)
+		return
+	}
+	if !h.confirmGrant(w, r, claims.UserID, confirmationFrom(r), deployKeyFormError) {
 		return
 	}
 
@@ -113,7 +96,7 @@ func (h *Handler) AddDeployKey(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		msg := deployKeyErrorMessage(err)
 		if r.Header.Get("HX-Request") == "true" {
-			renderDeployKeyFormError(w, msg)
+			renderFormError(w, deployKeyFormError, msg)
 			return
 		}
 		writeError(w, http.StatusUnprocessableEntity, msg)
@@ -144,14 +127,8 @@ func (h *Handler) DeleteDeployKey(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
-		return
-	}
-
-	if !h.Services.Repo.CanManage(r.Context(), repo, claims.UserID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
+	repo, ok := h.manageableRepoJSON(w, r, owner, repoName, claims.UserID)
+	if !ok {
 		return
 	}
 

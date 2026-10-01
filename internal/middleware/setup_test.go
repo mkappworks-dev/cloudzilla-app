@@ -15,7 +15,7 @@ import (
 // newIncompleteSetupService returns a SiteSettingService backed by an unreachable
 // database, so IsSetupComplete always returns false without a real DB.
 // sql.Open does not dial — queries will fail at execution time, causing
-// CountAll to return (0, err), so IsSetupComplete returns false.
+// CountAccounts to return (0, err), so IsSetupComplete returns false.
 func newIncompleteSetupService() *service.SiteSettingService {
 	db, _ := sql.Open("pgx", "postgres://localhost:1/nonexistent?connect_timeout=1")
 	return service.NewSiteSettingService(

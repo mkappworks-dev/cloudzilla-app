@@ -39,7 +39,8 @@ DELETE /api/user/keys/{id}
 ### Authentication
 
 - **Public repos**: No authentication required
-- **Private repos**: Requires HTTP Basic Auth or JWT cookie
+- **Private repos**: Requires HTTP Basic Auth (PAT as password), a Bearer token, or JWT cookie
+- **Tokens** (PATs, and OAuth-app tokens via `Authorization: Bearer`): need any repo scope to clone/fetch and `repo:write` to push. A PAT sent as the Basic password and lacking the scope gets a plain-text `403`, not `401`, so git keeps the stored credential; see [access-control](./access-control.md#token-scopes)
 - Permissions enforced: read access for clone/fetch, write access for push
 
 ### Example
@@ -63,7 +64,7 @@ Native `git push` produces *thin packs* by default — packs whose objects may b
 
 Cloudzilla's transport is pure-Go and uses `go-git`'s `server.ReceivePack`. go-git's filesystem-backed storer takes a fast path inside `packfile.UpdateObjectStorage` that runs the pack parser **without** access to the storage, so REF_DELTAs whose base is only on disk (not in the pack) cannot be resolved. The receive fails with `reference delta not found` and a 500 is returned to the client.
 
-To work around this without giving up the "no git binary required" invariant, both transports route the storer through `gittransport.WrapForReceive` before handing it to `server.NewServer`. The wrapper hides the storer's `PackfileWriter` method via interface-embedding, which forces `UpdateObjectStorage` onto its slower `NewParserWithStorage` branch. That parser *can* see the storage, so external delta bases are resolved correctly.
+To work around this without giving up the "no git binary required" invariant, both transports serve receive-pack through `gittransport.NewServer`, which routes the storer through `gittransport.WrapForReceive`. The wrapper hides the storer's `PackfileWriter` method via interface-embedding, which forces `UpdateObjectStorage` onto its slower `NewParserWithStorage` branch. That parser *can* see the storage, so external delta bases are resolved correctly.
 
 **Trade-off:** received objects land loose under `objects/xx/yyy…` rather than packed. Native git treats this as routine; reclaim unreferenced loose objects with `cloudzilla gc` (see [Maintenance](#maintenance)).
 
@@ -72,6 +73,67 @@ To work around this without giving up the "no git binary required" invariant, bo
 **Size limit:** the post-decompression pack size is capped by `git.max_pack_bytes` (default 2 GiB; `0` disables). Enforcing it after gzip inflation bounds both an oversized pack and a decompression bomb. An over-limit push is rejected — HTTP `413`, SSH error — rather than parsed in full.
 
 **See also:** [`docs/superpowers/specs/2026-05-15-git-receive-thin-pack-fix-design.md`](./superpowers/specs/2026-05-15-git-receive-thin-pack-fix-design.md).
+
+---
+
+## Concurrent ref updates
+
+go-git's receive-pack writes each pushed ref without comparing it to the command's old value. A branch that moved after the client read the ref advertisement — a web commit (merge, applied suggestion, file or wiki edit) or another push — would be overwritten: an unchecked force push that also skips `block_force_push`.
+
+`gittransport.NewServer` turns each ref write into a compare-and-swap against the old value the client pushed from (`gitref.Move`, which web commits use too; see [pr-merge](./pr-merge.md)). A ref that moved is refused in the report status, and the rest of the push still applies:
+
+```
+ ! [remote rejected] main -> main (ref changed since it was read; fetch and push again)
+```
+
+`NewServer` also refuses what git would before the vet function runs: a new value whose history the repo doesn't wholly hold (see [Connectivity](#connectivity)), and a branch that doesn't point at a commit.
+
+Branch protection is enforced at the same point, before the write. Both transports pass `NewServer` a vet function that calls `BranchProtectionService.CheckPushCommand`. go-git writes refs only after it has stored the pack, so the check can read the pushed commits to tell a force push from a fast-forward. It fails closed: under `block_force_push`, a push that it can't prove keeps every commit on the branch is refused as a force push. That includes deleting the branch, since delete-then-push is a force push in two steps; the web and API branch delete refuses it too (`BranchProtectionService.CheckDelete`, 422). A refused ref never moves, and the status carries the reason:
+
+```
+ ! [remote rejected] main -> main (force push blocked by branch protection)
+```
+
+The status is sent to the pusher, so an error from the server itself goes only to the server log: a failed rule lookup refuses the ref with `internal error checking branch protection`, and a failed ref write (a storer error, which names paths on the server) with `failed to update ref`. A pack that can't be stored fails the whole push (HTTP 500, SSH error) with `failed to store pushed objects`, unless the fault is in the pack itself: a malformed or truncated pack, or a thin pack whose base the repo lacks, keeps go-git's reason. A corrupt zlib stream gets the generic reason, because go-git words it like a failed read of the repo's own packs.
+
+The response is still HTTP 200 / SSH exit 0; the per-ref status is what tells the client. Webhooks, activity events, and post-receive run only for the refs that applied (`gittransport.AppliedCommands`).
+
+**report-status:** go-git returns no status to a client that didn't request `report-status`, and it turns a refused ref into an error for the whole push. The session always requests it internally, so the handlers still know which refs applied, and it sends the status only to clients that asked for it. A client without it gets no per-ref result.
+
+**Gap:** go-git can't create or delete a ref conditionally, so creates and deletes check the ref just before writing, not atomically with the write.
+
+---
+
+## Connectivity
+
+go-git's receive-pack stores whatever pack it gets and writes the ref. A pack could leave out the pushed commit or any of its parents, trees, or blobs, and clone, fetch, the code browser, post-receive stats, and indexing would then fail with "object not found". `NewServer` runs git's `check_connected` itself: every object a create or update's new value reaches must be in the repo, or the ref is refused:
+
+```
+ ! [remote rejected] feature -> feature (missing necessary objects)
+```
+
+The walk stops at history that the repo's refs already reach, so it costs what the push added, not the repo's size:
+
+- Commits are walked newest first from the new value and from every ref (`git rev-list <new> --not --all`), until nothing new is left.
+- Each new commit's tree is compared with its parents' trees, so only the paths it changed are read.
+- Submodule entries are skipped, since their commits live in another repo.
+- When the push builds on the value its ref holds, and its pack carries every commit in between (a plain fast-forward), the walk ends there without reading the other refs.
+
+The walk doesn't stop at an object only because it's present. go-git stores a pack before any ref is checked, so a refused push leaves its objects behind, and a later push could otherwise build on them. For the same reason, only the value a ref holds counts as a fast-forward's base, not whatever old value the client names.
+
+A branch must point at a commit, as in git:
+
+```
+ ! [remote rejected] feature -> feature (trying to write non-commit object to branch)
+```
+
+Tags and other refs may point at any object.
+
+---
+
+## Delete-only pushes
+
+git sends no pack when every command is a delete (`git push origin :branch`). go-git's receive-pack parses a pack whenever the request carries one, and decoding a request always attaches the rest of the stream, so `NewServer` drops it for a delete-only push. Otherwise the HTTP body fails as `empty packfile` (HTTP 500), and an SSH push hangs, since the client holds the stream open until it reads the status. Branch protection still vets each delete.
 
 ---
 
@@ -133,6 +195,12 @@ git pull
 7. `git-upload-pack` or `git-receive-pack` command is dispatched with user context
 8. Repository permissions are checked (read for upload-pack, write for receive-pack)
 
+### Errors
+
+Errors go to stderr, with exit status 1: an unsupported command, a bad path, a missing repository or no access to it, a deploy key used outside its repository or to push read-only, a push to an archived repository, or a failure during the transfer. git prints stderr as-is; stdout carries only the pack protocol, where git would read a message's first four bytes as a pkt-line length.
+
+When git needs nothing — `ls-remote`, a fetch or push that's already up to date, a clone of an empty repository — it sends a lone flush-pkt instead of a request. go-git rejects that as malformed, so the server checks for it first and exits with status 0.
+
 ## Repository Permission Rules
 
 All git operations (HTTP and SSH) respect the same permission rules.
@@ -157,6 +225,6 @@ All git operations (HTTP and SSH) respect the same permission rules.
 - `RepoService.CanRead(ctx, repo, userID)` — checks public/private + permissions
 - `RepoService.CanWrite(ctx, repo, userID)` — owner, org owner, or `writer`/`admin` role
 - `RepoService.CanManage(ctx, repo, userID)` — owner, org owner, or `admin` collaborator (settings, collabs, branch protection)
-- `RepoService.IsOwner(ctx, repo, userID)` — owner or org owner only (transfer, delete, archive)
-- `RepoService.TransferRepo(ctx, repo, requestingUserID, newOwnerUsername)` — moves git dir on disk, updates `owner_id`/`owner_name`; personal repos only
+- `RepoService.IsOwner(ctx, repo, userID)` — a personal repo's owner or an owner of an org repo's org, never an org repo's creator as such (transfer, delete, archive)
+- `RepoService.TransferRepo(ctx, repo, requestingUserID, newOwnerName)` — moves the git and wiki dirs on disk, updates `owner_id`/`org_id`/`owner_name`; the new owner is an org the requester owns or the requester. For any other user it returns a pending `*model.RepoTransfer` and moves nothing until `AcceptTransfer`
 - Bare repository created with `go-git.PlainInit()`, fully compatible with git CLI
