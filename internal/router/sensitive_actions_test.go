@@ -223,6 +223,8 @@ func TestRevokeSessions_EndsEveryEarlierSession(t *testing.T) {
 
 func TestSessions_EndWhenTheUserIsDeleted(t *testing.T) {
 	h, _, db := newVerificationRouter(t, config.SMTPConfig{})
+	// Outlives the deleted user: with no users left, every route redirects to /setup.
+	testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
 	suffix := testutil.UniqueSuffix(t)
 	userID := testutil.SeedUser(t, db, suffix)
 	session := makeJWT(t, userID, "testuser_"+suffix)
