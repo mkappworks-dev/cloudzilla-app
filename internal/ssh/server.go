@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/ed25519"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/gliderlabs/ssh"
 	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/format/pktline"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
 	"github.com/go-git/go-git/v5/plumbing/transport"
@@ -288,11 +290,21 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	_ = session.Exit(0)
 }
 
-// exitWithError reports a failure to the client and ends the session with status 1.
+// exitWithError reports a failure on stderr, which git prints as-is, and ends the
+// session with status 1. Stdout carries the pack protocol, where git would read
+// the message's first four bytes as a pkt-line length.
 // Write and Exit fail only once the client has gone, so their errors are dropped.
 func exitWithError(session ssh.Session, format string, args ...any) {
-	_, _ = fmt.Fprintf(session, format, args...)
+	_, _ = fmt.Fprintf(session.Stderr(), format, args...)
 	_ = session.Exit(1)
+}
+
+// isFlushOnly reports whether the client's request is a lone flush-pkt, which git
+// sends when it needs nothing (ls-remote, an up-to-date fetch or push) and go-git
+// rejects as malformed.
+func isFlushOnly(r *bufio.Reader) bool {
+	p, err := r.Peek(len(pktline.FlushPkt))
+	return err == nil && bytes.Equal(p, pktline.FlushPkt)
 }
 
 // execGitService runs the git pack protocol over the SSH session and returns
@@ -324,8 +336,12 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			return nil, fmt.Errorf("write advertised refs: %w", err)
 		}
 
+		in := bufio.NewReader(session)
+		if isFlushOnly(in) {
+			return nil, nil
+		}
 		req := packp.NewUploadPackRequest()
-		if err := req.Decode(session); err != nil {
+		if err := req.Decode(in); err != nil {
 			return nil, fmt.Errorf("decode upload-pack request: %w", err)
 		}
 
@@ -359,14 +375,18 @@ func (s *Server) execGitService(session ssh.Session, svc string, gitRepo *gogit.
 			return nil, fmt.Errorf("write advertised refs: %w", err)
 		}
 
-		// io.NopCloser suppresses the session's Close: go-git closes the
-		// packfile reader after ingestion, but sessionHandler still needs
-		// the session to write status and the exit code.
+		// Nothing reading the request may close the session: go-git closes
+		// the packfile reader after ingestion, and sessionHandler still
+		// writes the status and the exit code.
 		limiter := gittransport.NewLimitedReadCloser(io.NopCloser(session), s.cfg.MaxPackBytes)
 		counter := gittransport.NewByteCounter(limiter)
+		in := bufio.NewReader(counter)
+		if isFlushOnly(in) {
+			return nil, nil
+		}
 
 		req := packp.NewReferenceUpdateRequest()
-		if err := req.Decode(counter); err != nil {
+		if err := req.Decode(in); err != nil {
 			return nil, fmt.Errorf("decode receive-pack request: %w", err)
 		}
 
