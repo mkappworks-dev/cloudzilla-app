@@ -83,7 +83,7 @@ func (h *Handler) setPullIssueLink(w http.ResponseWriter, r *http.Request, link 
 // emits a "success" toast only if the linked-issue reload succeeded — otherwise a
 // "warning" toast, so the toast never claims a state the sidebar does not show.
 func (h *Handler) renderLinkedIssuesFragment(w http.ResponseWriter, r *http.Request, owner, repoName string, pullID int64, pullNumber int, userID int64, successToast string) {
-	linked, err := h.Services.Issue.LinkedForPull(r.Context(), pullID)
+	linked, err := h.Services.Issue.LinkedForPull(r.Context(), pullID, &userID)
 	reloadFailed := err != nil
 	if err != nil {
 		slog.Warn("linked issues fragment: list failed; sidebar may contradict the toast",
