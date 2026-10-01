@@ -13,8 +13,8 @@ import (
 type Mergeability struct {
 	BaseRef      string
 	HeadRef      string
-	Ahead        int    // commits in head not in base (excludes merge base)
-	Behind       int    // commits in base not in head (excludes merge base)
+	Ahead        int // commits in head not in base (excludes merge base)
+	Behind       int // commits in base not in head (excludes merge base)
 	HasConflicts bool
 	MergeBase    string // SHA, empty if no common ancestor
 }

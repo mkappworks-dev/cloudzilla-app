@@ -97,10 +97,10 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 			hooks = []model.Webhook{}
 		}
 		h.render(w, r, fragments.WebhooksList(view.WebhooksFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Webhooks: hooks,
+			Owner:     owner,
+			RepoName:  repoName,
+			RepoID:    repo.ID,
+			Webhooks:  hooks,
 			CanManage: true,
 		}))
 		return
@@ -138,10 +138,10 @@ func (h *Handler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
 			hooks = []model.Webhook{}
 		}
 		h.render(w, r, fragments.WebhooksList(view.WebhooksFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Webhooks: hooks,
+			Owner:     owner,
+			RepoName:  repoName,
+			RepoID:    repo.ID,
+			Webhooks:  hooks,
 			CanManage: true,
 		}))
 		return
@@ -257,10 +257,10 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 			hooks = []model.Webhook{}
 		}
 		h.render(w, r, fragments.WebhooksList(view.WebhooksFragData{
-			Owner:    owner,
-			RepoName: repoName,
-			RepoID:   repo.ID,
-			Webhooks: hooks,
+			Owner:     owner,
+			RepoName:  repoName,
+			RepoID:    repo.ID,
+			Webhooks:  hooks,
 			CanManage: true,
 		}))
 		return

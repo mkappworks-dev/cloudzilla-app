@@ -16,3 +16,9 @@ linters:
         - (*database/sql.Stmt).Close
         # Closes the connection pool at process or test exit.
         - (*database/sql.DB).Close
+
+# gofmt rather than goimports with local-prefixes: most files keep module imports
+# in one block with third-party ones.
+formatters:
+  enable:
+    - gofmt
