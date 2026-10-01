@@ -84,7 +84,11 @@ type createRepoRequest struct {
 }
 
 func (h *Handler) ListRepos(w http.ResponseWriter, r *http.Request) {
-	repos, err := h.Services.Repo.List(r.Context())
+	var viewerID *int64
+	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
+		viewerID = &claims.UserID
+	}
+	repos, err := h.Services.Repo.ListVisibleTo(r.Context(), viewerID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list repos")
 		return

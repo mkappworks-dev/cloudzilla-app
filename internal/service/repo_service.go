@@ -458,8 +458,12 @@ func seedInitialCommit(bareDir, defaultBranch string, sig object.Signature, init
 	return nil
 }
 
-func (s *RepoService) List(ctx context.Context) ([]model.Repository, error) {
-	return s.repos.List(ctx)
+// ListVisibleTo is CanRead applied to every repo; viewerID is nil for anonymous viewers.
+func (s *RepoService) ListVisibleTo(ctx context.Context, viewerID *int64) ([]model.Repository, error) {
+	if viewerID == nil {
+		return s.repos.ListPublic(ctx)
+	}
+	return s.repos.ListReadableBy(ctx, *viewerID)
 }
 
 func (s *RepoService) CountForUser(ctx context.Context, userID int64) (int, error) {

@@ -486,7 +486,7 @@ As on GitHub, a deleted account's issues, pull requests, comments, reviews, disc
 
 | Method   | Path                                                                                             | Auth      | AuthZ                               | Handler                                                                   |
 | -------- | ------------------------------------------------------------------------------------------------ | --------- | ----------------------------------- | ------------------------------------------------------------------------- |
-| GET      | `/api/repos`                                                                                     | optAuthMW | Public list                         | ListRepos                                                                 |
+| GET      | `/api/repos`                                                                                     | optAuthMW | Repos the caller can read           | ListRepos                                                                 |
 | GET      | `/api/repos/{owner}/{repo}`                                                                      | optAuthMW | readableRepoJSON                    | GetRepo                                                                   |
 | GET      | `/api/repos/{owner}/{repo}/issues`, `.../issues/{number}` (+ `/title`, `/body`, `/comments`)     | optAuthMW | readableRepoJSON + issue visibility | ListIssues / GetIssue / …                                                 |
 | GET      | `/api/repos/{owner}/{repo}/pulls`, `.../pulls/{number}` (+ `/reviews`, `/line_comments`)         | optAuthMW | readableRepoJSON                    | ListPulls / GetPull / …                                                   |
