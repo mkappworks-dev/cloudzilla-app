@@ -226,7 +226,7 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 	go h.Services.Event.Record(context.Background(), claims.UserID, claims.Username, &repoID, repoName, owner, model.EventMemberAdded, map[string]any{"username": username})
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderRepoCollaborators(w, r, owner, repoName, repo.ID, claims.UserID)
+		h.renderRepoCollaborators(w, r, owner, repoName, repo, claims.UserID)
 		return
 	}
 
@@ -326,24 +326,25 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		h.renderRepoCollaborators(w, r, owner, repoName, repo.ID, claims.UserID)
+		h.renderRepoCollaborators(w, r, owner, repoName, repo, claims.UserID)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) renderRepoCollaborators(w http.ResponseWriter, r *http.Request, owner, repoName string, repoID, viewerID int64) {
-	collabs, _ := h.Services.Repo.ListCollaborators(r.Context(), repoID)
+func (h *Handler) renderRepoCollaborators(w http.ResponseWriter, r *http.Request, owner, repoName string, repo *model.Repository, viewerID int64) {
+	collabs, _ := h.Services.Repo.ListCollaborators(r.Context(), repo.ID)
 	if collabs == nil {
 		collabs = []model.Permission{}
 	}
 	h.render(w, r, fragments.RepoCollaborators(view.RepoCollaboratorsFragData{
 		Owner:     owner,
 		RepoName:  repoName,
-		RepoID:    repoID,
+		RepoID:    repo.ID,
 		Collabs:   collabs,
 		CanManage: true,
+		IsOwner:   h.Services.Repo.IsOwner(r.Context(), repo, viewerID),
 		Confirm:   h.confirmFactors(r, viewerID),
 	}))
 }
