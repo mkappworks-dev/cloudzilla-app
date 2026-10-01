@@ -83,6 +83,15 @@ func TestRequireSetup_AllowsHTMX(t *testing.T) {
 	}
 }
 
+// TestRequireSetup_AllowsAlpine covers /alpine.min.js, which the layout loads on the setup page too.
+func TestRequireSetup_AllowsAlpine(t *testing.T) {
+	svc := newIncompleteSetupService()
+	rr := applySetup(svc, "/alpine.min.js")
+	if rr.Code != http.StatusOK {
+		t.Errorf("/alpine.min.js: want 200, got %d", rr.Code)
+	}
+}
+
 // --- Non-allowlisted paths redirect when setup is not complete ---
 
 // TestRequireSetup_RedirectsNonAllowlisted verifies that any path not on the allowlist

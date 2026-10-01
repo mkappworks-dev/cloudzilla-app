@@ -3,13 +3,17 @@ package service
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"hash"
+	"math/big"
 	"slices"
 	"strconv"
 	"strings"
@@ -155,16 +159,93 @@ func verifySSHSig(pub ssh.PublicKey, namespace string, message, blob []byte, tou
 	if err := ssh.Unmarshal(sig.Signature, &s); err != nil {
 		return fmt.Errorf("sshsig: signature: %w", err)
 	}
-	if err := pub.Verify(signed, &s); err != nil {
-		return err
+	if isHardwareKey(pub) && (len(s.Rest) == 0 || s.Rest[0]&skUserPresent == 0) {
+		if touch {
+			return errors.New("sshsig: the hardware key wasn't touched")
+		}
+		return verifyUntouchedSK(pub, signed, &s)
 	}
-	// x/crypto checks a hardware key's signature, not its user-presence flag.
-	if isHardwareKey(pub) && touch && (len(s.Rest) == 0 || s.Rest[0]&skUserPresent == 0) {
-		return errors.New("sshsig: the hardware key wasn't touched")
-	}
-	return nil
+	return pub.Verify(signed, &s)
 }
 
 func isHardwareKey(pub ssh.PublicKey) bool {
 	return pub.Type() == ssh.KeyAlgoSKED25519 || pub.Type() == ssh.KeyAlgoSKECDSA256
+}
+
+// verifyUntouchedSK checks a hardware key's signature that lacks the
+// user-presence flag. x/crypto's Verify rejects those and waives that only
+// inside its SSH server, so this repeats its check (PROTOCOL.u2f) without it.
+func verifyUntouchedSK(pub ssh.PublicKey, data []byte, s *ssh.Signature) error {
+	if s.Format != pub.Type() {
+		return errors.New("sshsig: signature type doesn't match the key")
+	}
+	var skf struct {
+		Flags   byte
+		Counter uint32
+	}
+	if err := ssh.Unmarshal(s.Rest, &skf); err != nil {
+		return fmt.Errorf("sshsig: %w", err)
+	}
+	app, err := skApplication(pub)
+	if err != nil {
+		return err
+	}
+	appDigest := sha256.Sum256([]byte(app))
+	dataDigest := sha256.Sum256(data)
+	signed := binary.BigEndian.AppendUint32(append(appDigest[:], skf.Flags), skf.Counter)
+	signed = append(signed, dataDigest[:]...)
+
+	cpk, ok := pub.(ssh.CryptoPublicKey)
+	if !ok {
+		return errors.New("sshsig: unsupported hardware key")
+	}
+	switch k := cpk.CryptoPublicKey().(type) {
+	case ed25519.PublicKey:
+		if !ed25519.Verify(k, signed, s.Blob) {
+			return errors.New("sshsig: signature did not verify")
+		}
+	case *ecdsa.PublicKey:
+		var rs struct{ R, S *big.Int }
+		if err := ssh.Unmarshal(s.Blob, &rs); err != nil {
+			return fmt.Errorf("sshsig: %w", err)
+		}
+		digest := sha256.Sum256(signed)
+		if !ecdsa.Verify(k, digest[:], rs.R, rs.S) {
+			return errors.New("sshsig: signature did not verify")
+		}
+	default:
+		return errors.New("sshsig: unsupported hardware key")
+	}
+	return nil
+}
+
+// skApplication returns the FIDO application a hardware key belongs to, which
+// its signatures cover; x/crypto doesn't export it.
+func skApplication(pub ssh.PublicKey) (string, error) {
+	var err error
+	var app string
+	switch pub.Type() {
+	case ssh.KeyAlgoSKED25519:
+		var w struct {
+			Name        string
+			Key         []byte
+			Application string
+		}
+		err = ssh.Unmarshal(pub.Marshal(), &w)
+		app = w.Application
+	case ssh.KeyAlgoSKECDSA256:
+		var w struct {
+			Name, Curve string
+			Key         []byte
+			Application string
+		}
+		err = ssh.Unmarshal(pub.Marshal(), &w)
+		app = w.Application
+	default:
+		return "", errors.New("sshsig: not a hardware key")
+	}
+	if err != nil {
+		return "", fmt.Errorf("sshsig: hardware key: %w", err)
+	}
+	return app, nil
 }

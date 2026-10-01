@@ -2,13 +2,16 @@ package testutil
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/hex"
 	"io"
+	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
@@ -85,16 +88,22 @@ func SignHTTPRequest(t *testing.T, signer ssh.Signer, req *http.Request) {
 	req.Header.Set("X-Cloudzilla-Signature", SignSSHSig(t, signer, model.SignedRequestNamespace, sr.Message()))
 }
 
-// HardwareKey stands in for a FIDO security key holding an sk-ssh-ed25519 key.
+// HardwareKey stands in for a FIDO security key holding an sk-ssh-ed25519 or
+// sk-ecdsa-sha2-nistp256 key.
 type HardwareKey struct {
-	priv    ed25519.PrivateKey
+	keyType string
 	pubBlob []byte
+	sign    func(toSign []byte) []byte
 }
 
-const skEd25519 = "sk-ssh-ed25519@openssh.com"
+const (
+	skEd25519  = "sk-ssh-ed25519@openssh.com"
+	skECDSA256 = "sk-ecdsa-sha2-nistp256@openssh.com"
+	skApp      = "ssh:"
+)
 
-// NewHardwareKey returns a stand-in security key and its public key in
-// authorized_keys form.
+// NewHardwareKey returns a stand-in sk-ssh-ed25519 security key and its
+// public key in authorized_keys form.
 func NewHardwareKey(t *testing.T) (*HardwareKey, string) {
 	t.Helper()
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
@@ -105,8 +114,36 @@ func NewHardwareKey(t *testing.T) (*HardwareKey, string) {
 		Name        string
 		Key         []byte
 		Application string
-	}{skEd25519, pub, "ssh:"})
-	return &HardwareKey{priv: priv, pubBlob: blob}, skEd25519 + " " + base64.StdEncoding.EncodeToString(blob)
+	}{skEd25519, pub, skApp})
+	sign := func(toSign []byte) []byte { return ed25519.Sign(priv, toSign) }
+	return &HardwareKey{keyType: skEd25519, pubBlob: blob, sign: sign}, skEd25519 + " " + base64.StdEncoding.EncodeToString(blob)
+}
+
+// NewHardwareECDSAKey is NewHardwareKey for an sk-ecdsa-sha2-nistp256 key.
+func NewHardwareECDSAKey(t *testing.T) (*HardwareKey, string) {
+	t.Helper()
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	point, err := priv.PublicKey.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	blob := ssh.Marshal(struct {
+		Name, Curve string
+		Key         []byte
+		Application string
+	}{skECDSA256, "nistp256", point, skApp})
+	sign := func(toSign []byte) []byte {
+		digest := sha256.Sum256(toSign)
+		r, s, err := ecdsa.Sign(rand.Reader, priv, digest[:])
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ssh.Marshal(struct{ R, S *big.Int }{r, s})
+	}
+	return &HardwareKey{keyType: skECDSA256, pubBlob: blob, sign: sign}, skECDSA256 + " " + base64.StdEncoding.EncodeToString(blob)
 }
 
 // SignSSHSig is SignSSHSig for the security key; touched sets its
@@ -122,13 +159,13 @@ func (k *HardwareKey) SignSSHSig(message []byte, touched bool) string {
 		flags = 0x01
 	}
 	counter := []byte{0, 0, 0, 1}
-	app := sha256.Sum256([]byte("ssh:"))
+	app := sha256.Sum256([]byte(skApp))
 	data := sha256.Sum256(signed)
 	toSign := append(append(append(app[:], flags), counter...), data[:]...)
 	sigBlob := append(ssh.Marshal(struct {
 		Format    string
 		Signature []byte
-	}{skEd25519, ed25519.Sign(k.priv, toSign)}), append([]byte{flags}, counter...)...)
+	}{k.keyType, k.sign(toSign)}), append([]byte{flags}, counter...)...)
 	blob := append([]byte("SSHSIG"), ssh.Marshal(struct {
 		Version                      uint32
 		PublicKey                    []byte
