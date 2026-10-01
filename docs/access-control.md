@@ -207,7 +207,7 @@ Org members do not get implicit access to private repos. They must be added as e
 
 **Manage** includes: adding, changing and removing `reader` and `writer` collaborators, branch protection, deploy keys, topics, wiki deletion, webhook CRUD, repo settings page access.
 
-**Grant / revoke `admin`** (owner-only, `IsOwner`): giving someone the `admin` role, changing an admin's role, and removing an admin. An admin collaborator who tries gets `403`; otherwise they could make a second account of theirs admin, which would keep managing the repo after their own removal or demotion. A collaborator's role must be `reader`, `writer` or `admin`, else `400`: the `permissions.role` column also accepts `owner`, which would grant only read. `RepoService.AddCollaborator` and `RemoveCollaborator` enforce both.
+**Grant / revoke `admin`** (owner-only, `IsOwner`): giving someone the `admin` role, changing an admin's role, and removing an admin. An admin collaborator who tries gets `403`; otherwise they could make a second account of theirs admin, which would keep managing the repo after their own removal or demotion. A collaborator's role must be `reader`, `writer` or `admin`, else `400`; the `permissions.role` column's CHECK admits the same three. `RepoService.AddCollaborator` and `RemoveCollaborator` enforce both.
 
 **Transfer/Delete** (owner-only) includes: repo transfer, archive, unarchive, template toggle, soft-delete/restore. A transfer's `new_owner` names a user or an org, resolved user first like `/{owner}`; moving a repo into an org also requires owning that org.
 

@@ -108,7 +108,6 @@ func TestRemoveCollaborator_AdminCannotRemoveAdmin(t *testing.T) {
 	}
 }
 
-// "owner" passes the column's CHECK yet grants only read, under an Owner label.
 func TestAddCollaborator_RejectsUnknownRole(t *testing.T) {
 	env := newCollabEnv(t)
 	for _, role := range []string{"owner", "superadmin"} {
