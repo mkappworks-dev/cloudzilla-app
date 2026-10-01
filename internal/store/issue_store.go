@@ -75,17 +75,19 @@ func (s *IssueStore) List(ctx context.Context, repoID int64) ([]model.Issue, err
 }
 
 // issueVisibleTo is the private-issue rule as a SQL predicate on issues alias
-// i for the user ID in placeholder u. Issue pages and search share it.
+// i for the user ID in placeholder u: its author and whoever RepoService.CanWrite
+// lets in. Issue pages and search share it.
 func issueVisibleTo(i, u string) string {
 	return `(` + i + `.visibility = 'public' OR ` + i + `.author_id = ` + u +
+		` OR EXISTS (SELECT 1 FROM repositories ir WHERE ir.id = ` + i + `.repo_id AND ` + ownedBy("ir", u) + `)` +
 		` OR EXISTS (SELECT 1 FROM permissions iperm WHERE iperm.user_id = ` + u + ` AND iperm.repo_id = ` + i + `.repo_id` +
-		` AND iperm.role IN ('owner','admin','writer')))`
+		` AND iperm.role IN ('admin','writer')))`
 }
 
 // GetByNumber returns a single issue by repo + number.
 // If visibleToUserID is nil, only public issues are returned.
-// If visibleToUserID is set, the issue is also returned when the user is the
-// author or has at least writer/admin/owner permission on the repo.
+// If visibleToUserID is set, a private issue is also returned when
+// issueVisibleTo lets that user see it.
 func (s *IssueStore) GetByNumber(ctx context.Context, repoID int64, number int, visibleToUserID *int64) (*model.Issue, error) {
 	visClause := `AND ` + issueVisibleTo("i", "$3")
 	args := []interface{}{repoID, number, viewerID(visibleToUserID)}
@@ -178,8 +180,8 @@ func (s *IssueStore) GetByNumberUnfiltered(ctx context.Context, repoID int64, nu
 
 // ListByRepo returns issues for the given repo, filtered by optional state and visibility.
 // If visibleToUserID is nil, only public issues are returned.
-// If visibleToUserID is set, public issues plus private issues authored by that user or
-// for which that user has at least writer/admin/owner permission are returned.
+// If visibleToUserID is set, private issues that issueVisibleTo lets that user see are
+// returned too.
 func (s *IssueStore) ListByRepo(ctx context.Context, repoID int64, state *string, visibleToUserID *int64, page, pageSize int) ([]model.Issue, error) {
 	offset := (page - 1) * pageSize
 
