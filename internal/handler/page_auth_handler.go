@@ -8,6 +8,7 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -69,16 +70,27 @@ func (h *Handler) PageLoginSubmit(w http.ResponseWriter, r *http.Request) {
 // short-lived pending cookie and is sent to /auth/2fa, and VerifyTOTP starts
 // the session.
 func (h *Handler) signIn(w http.ResponseWriter, r *http.Request, user *model.User, token, next string) error {
+	return h.signInLinking(w, r, user, token, next, nil)
+}
+
+// signInLinking is signIn for an OAuth sign-in that also links the identity
+// to the account. The link waits in the pending cookie until VerifyTOTP.
+func (h *Handler) signInLinking(w http.ResponseWriter, r *http.Request, user *model.User, token, next string, link *service.OAuthLink) error {
 	totpEnabled, _, err := h.Services.TOTP.GetUserTOTPState(r.Context(), user.ID)
 	if err != nil {
 		return err
 	}
 	if !totpEnabled {
+		if link != nil {
+			if err := h.completeOAuthLink(r, *link); err != nil {
+				return err
+			}
+		}
 		h.startSession(w, r, user, token, next)
 		return nil
 	}
 
-	pendingToken, err := h.Services.TOTP.GeneratePendingToken(user.ID, h.Cfg.Auth.JWTSecret)
+	pendingToken, err := h.Services.TOTP.GeneratePendingToken(user.ID, h.Cfg.Auth.JWTSecret, link)
 	if err != nil {
 		return err
 	}
@@ -92,6 +104,16 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request, user *model.Use
 		SameSite: http.SameSiteLaxMode,
 	})
 	http.Redirect(w, r, view.WithNext("/auth/2fa", next), http.StatusSeeOther)
+	return nil
+}
+
+func (h *Handler) completeOAuthLink(r *http.Request, link service.OAuthLink) error {
+	u, err := h.Services.OAuthLink.LinkByVerifiedEmail(r.Context(), link)
+	if err != nil {
+		return err
+	}
+	h.Services.AuditLog.Record(r.Context(), r, u.ID, u.Username, model.AuditActionOAuthConnect, model.AuditTargetUser, u.ID, u.Username,
+		map[string]any{"provider": link.Provider, "oauth_id": link.ID, "email": link.Email, "via": "verified_email"})
 	return nil
 }
 

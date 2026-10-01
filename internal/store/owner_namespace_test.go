@@ -47,7 +47,7 @@ func TestUserInserts_RefuseAnOwnerNameTakenInAnyCase(t *testing.T) {
 			return users.Create(ctx, &model.User{Username: username, Email: email, PasswordHash: "x"})
 		},
 		"CreateOAuthUser": func(username, email string) error {
-			_, err := users.CreateOAuthUser(ctx, username, email, "github", email, "")
+			_, err := users.CreateOAuthUser(ctx, username, email, "github", email, "", false)
 			return err
 		},
 		"CreateSuperadmin": func(username, email string) error {

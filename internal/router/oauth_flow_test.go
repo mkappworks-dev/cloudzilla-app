@@ -35,8 +35,8 @@ func newOAuthFlow(t *testing.T) oauthFlow {
 	t.Helper()
 	h, svc, db := newTestRouter(t)
 	suffix := testutil.UniqueSuffix(t)
-	userID := testutil.SeedUser(t, db, suffix)
-	return oauthFlow{h: h, svc: svc, db: db, suffix: suffix, userID: userID, session: makeJWT(t, userID, "testuser_"+suffix)}
+	userID, _ := testutil.SeedUserWithPassword(t, db, suffix, "password1")
+	return oauthFlow{h: h, svc: svc, db: db, suffix: suffix, userID: userID, session: makeJWT(t, userID, "testpw_"+suffix)}
 }
 
 func (f oauthFlow) createApp(t *testing.T, redirectURIs ...string) (*model.OAuthApp, string) {
@@ -80,6 +80,7 @@ func (f oauthFlow) confirm(clientID, redirectURI, state, action string) *httptes
 		"scope":        {model.ScopeRepoRead},
 		"state":        {state},
 		"action":       {action},
+		"password":     {"password1"},
 	})
 }
 

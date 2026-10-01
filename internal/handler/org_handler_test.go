@@ -193,7 +193,7 @@ func TestCreateOrganizationPage_RejectsInvalidNameOnce(t *testing.T) {
 func TestTransferOrg_RedirectsToOrgPage(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
-	ownerID := testutil.SeedUser(t, db, suffix)
+	ownerID, _ := testutil.SeedUserWithPassword(t, db, suffix, "password1")
 	newOwnerSuffix := suffix + "_new"
 	testutil.SeedUser(t, db, newOwnerSuffix)
 	router, svc := newOrgTestRouter(t, db)
@@ -204,10 +204,10 @@ func TestTransferOrg_RedirectsToOrgPage(t *testing.T) {
 	}
 	testutil.DeleteOrgOnCleanup(t, db, org.ID)
 
-	form := url.Values{"new_owner": {"testuser_" + newOwnerSuffix}, "confirm_name": {org.Name}}
+	form := url.Values{"new_owner": {"testuser_" + newOwnerSuffix}, "confirm_name": {org.Name}, "password": {"password1"}}
 	req := httptest.NewRequest(http.MethodPost, "/api/orgs/"+org.Name+"/transfer", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, ownerID, "testuser_"+suffix))
+	req.Header.Set("Authorization", "Bearer "+makeIssueJWT(t, ownerID, "testpw_"+suffix))
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 

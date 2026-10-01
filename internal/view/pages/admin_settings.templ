@@ -15,6 +15,23 @@ templ AdminSettings(data view.AdminSettingsData) {
 			<div class="flex justify-between items-center">
 				<h1 class="text-2xl font-semibold tracking-tight">Admin Settings</h1>
 			</div>
+			if data.Confirm.Any() {
+				@components.Card(nil) {
+					@components.CardHeader() {
+						@components.CardTitle(2) {
+							Confirm it's you
+						}
+						@components.CardDescription() {
+							{ "Changes on this page need " + data.Confirm.Needs() + ", entered here once for each change." }
+						}
+					}
+					@components.CardContent() {
+						<div id="admin-confirm" class="flex flex-wrap items-end gap-3">
+							@components.ConfirmFields("admin", data.Confirm, false)
+						</div>
+					}
+				}
+			}
 			<!-- Instance Settings -->
 			@components.Card(nil) {
 				@components.CardHeader() {
@@ -33,7 +50,7 @@ templ AdminSettings(data view.AdminSettingsData) {
 									<div>
 										<p class="text-sm font-medium text-foreground">{ s.Key }</p>
 									</div>
-									<form hx-post="/api/admin/settings" hx-target="#admin-settings-list" hx-swap="outerHTML" data-toast="Setting updated" class="flex items-center gap-3">
+									<form hx-post="/api/admin/settings" hx-target="#admin-settings-list" hx-swap="outerHTML" hx-include="#admin-confirm input" data-toast="Setting updated" class="flex items-center gap-3">
 										<input type="hidden" name="key" value={ s.Key }/>
 										if s.Value == "true" {
 											<span class="text-xs text-success font-medium">Enabled</span>
@@ -68,7 +85,7 @@ templ AdminSettings(data view.AdminSettingsData) {
 					}
 				}
 				@components.CardContent() {
-					<form hx-post="/api/admin/invitations" hx-target="#admin-invitations-list" hx-swap="outerHTML" data-toast="Invitation sent" class="flex gap-3 mb-6">
+					<form hx-post="/api/admin/invitations" hx-target="#admin-invitations-list" hx-swap="outerHTML" hx-include="#admin-confirm input" data-toast="Invitation sent" class="flex gap-3 mb-6">
 						<label for="invite-email" class="sr-only">Invitee email</label>
 						@components.Input(templ.Attributes{
 							"id":          "invite-email",
@@ -120,6 +137,52 @@ templ AdminSettings(data view.AdminSettingsData) {
 							<p class="text-sm text-muted-foreground">No invitations yet.</p>
 						}
 					</div>
+				}
+			}
+			@components.Card(nil) {
+				@components.CardHeader() {
+					@components.CardTitle(2) {
+						Email verification
+					}
+					@components.CardDescription() {
+						Mark a user's email address verified by hand, for instances that can't send the verification link. A verified address lets the Google account with that address sign in to the user's account, so only vouch for addresses you know are theirs.
+					}
+				}
+				@components.CardContent() {
+					<form
+						method="POST"
+						action="/api/admin/users/verify-email"
+						hx-post="/api/admin/users/verify-email"
+						hx-include="#admin-confirm input"
+						hx-swap="none"
+						hx-on::after-request="if(event.detail.successful){this.reset();}"
+						data-toast="Email marked verified"
+						class="flex flex-col sm:flex-row gap-3"
+					>
+						<label for="verify-username" class="sr-only">Username</label>
+						@components.Input(templ.Attributes{
+							"id":           "verify-username",
+							"type":         "text",
+							"name":         "username",
+							"placeholder":  "username",
+							"required":     "required",
+							"autocomplete": "off",
+							"class":        "flex-1",
+						})
+						<label for="verify-email" class="sr-only">Email</label>
+						@components.Input(templ.Attributes{
+							"id":           "verify-email",
+							"type":         "email",
+							"name":         "email",
+							"placeholder":  "user@example.com",
+							"required":     "required",
+							"autocomplete": "off",
+							"class":        "flex-1",
+						})
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							Mark verified
+						}
+					</form>
 				}
 			}
 		</div>

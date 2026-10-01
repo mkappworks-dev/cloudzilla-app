@@ -11,7 +11,7 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 | POST   | `/api/auth/login`       | --   | Login (JSON `email`, `password`); sets `cz_token` cookie and returns token in body. A user with TOTP on gets `401 {"error":"totp_required"}` and must use a PAT ([details](./access-control.md#two-factor-authentication))     |
 | POST   | `/api/auth/logout`      | --   | Clears auth cookie; 204, or form 303/HTMX `HX-Redirect` to `/`                                                                                                                                                                 |
 | GET    | `/auth/google`          | --   | Begin Google OAuth flow (redirects to Google)                                                                                                                                                                                  |
-| GET    | `/auth/google/callback` | --   | Google OAuth callback; sets `cz_token` cookie, redirects to `/`; re-renders login with 403 if Google hasn't verified the email, 409 if an account already has that email ([details](./access-control.md#google-oauth-sign-in)) |
+| GET    | `/auth/google/callback` | --   | Google OAuth callback; sets `cz_token` cookie, redirects to `/`; links an existing account only when both Google and the account have verified the email; re-renders login with 403 if Google hasn't verified the email, 409 if the matching account's email is unverified or it is linked to another Google account; redirects to `/auth/2fa` when TOTP is on ([details](./access-control.md#google-oauth-sign-in)) |
 | POST   | `/auth/ldap`            | --   | LDAP login (username + password)                                                                                                                                                                                               |
 | GET    | `/auth/saml`            | --   | Initiate SAML SSO flow (redirects to IdP)                                                                                                                                                                                      |
 | POST   | `/auth/saml/callback`   | --   | SAML assertion consumer service (ACS) callback                                                                                                                                                                                 |
@@ -19,14 +19,54 @@ All JSON endpoints are under `/api/`. Authentication uses a JWT in an httpOnly c
 
 When the `oauth_link_state` cookie matches `state`, `/auth/google/callback` finishes [connecting Google](#connected-accounts) to the signed-in account instead: it never signs in, and redirects to `/settings#connected-accounts`.
 
+## Confirmed actions
+
+Actions that give lasting access take the account's `password`, plus `code` (the TOTP code) when 2FA is on, as form fields or in the JSON body. An account with neither sends its directory password (LDAP), the code a fresh sign-in left in the `cz_reauth` cookie (`POST /settings/reauth/{provider}`), or `email_code` from `POST /settings/confirm-code`. A wrong confirmation gets 403, and five wrong ones in 15 minutes get 429. A personal access token created with `repo:admin` skips it for repository and organization administration, never for changes to the account. The full list is in [access control](./access-control.md#confirming-sensitive-actions).
+
+## Signed requests
+
+A token bound to a signing key (every `repo:admin` token) works only for requests signed with the key's private half. A `repo:admin` token also works only on its targets; any other repository or organization gets `403 {"error":"this token isn't allowed for that repository or organization"}`. Anything else gets `401 {"error":"this token needs each request signed with its key"}`. Each request carries three headers besides `Authorization: Bearer czp_…`:
+
+- `X-Cloudzilla-Timestamp`: Unix seconds, within 5 minutes of the server's clock.
+- `X-Cloudzilla-Nonce`: 16 to 64 characters from `A-Z a-z 0-9 - _`, never reused with the token.
+- `X-Cloudzilla-Signature`: an `ssh-keygen -Y sign -n cloudzilla-api` signature of the message below, without its `BEGIN`/`END` lines and line breaks.
+
+The message is six lines, without a trailing newline: `cloudzilla-request-v1`, the method, the path and query as sent, the timestamp, the nonce, and the hex SHA-256 of the body (of nothing for a request without one). Bodies over 1 MiB are refused. With a hardware key, `ssh-keygen` asks for a touch for each request unless the token's key was registered with `no-touch-required`. A shell helper:
+
+```sh
+#!/bin/sh
+# cz-signed METHOD PATH [BODY_FILE] [CONTENT_TYPE]
+# Needs CZ_URL, CZ_TOKEN and CZ_KEY (the private key file).
+set -eu
+method=$1 path=$2 body=${3:-/dev/null} type=${4:-application/x-www-form-urlencoded}
+ts=$(date +%s)
+nonce=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+sum=$( (sha256sum 2>/dev/null || shasum -a 256) < "$body" | cut -d' ' -f1)
+msg=$(mktemp)
+trap 'rm -f "$msg" "$msg.sig"' EXIT
+printf 'cloudzilla-request-v1\n%s\n%s\n%s\n%s\n%s' "$method" "$path" "$ts" "$nonce" "$sum" > "$msg"
+ssh-keygen -Y sign -q -f "$CZ_KEY" -n cloudzilla-api "$msg"
+sig=$(sed '1d;$d' "$msg.sig" | tr -d '\n')
+curl -sS -X "$method" "$CZ_URL$path" \
+  -H "Authorization: Bearer $CZ_TOKEN" -H "Content-Type: $type" \
+  -H "X-Cloudzilla-Timestamp: $ts" -H "X-Cloudzilla-Nonce: $nonce" -H "X-Cloudzilla-Signature: $sig" \
+  --data-binary @"$body"
+```
+
+For example, `printf 'username=bob&role=writer' > b; cz-signed POST /api/repos/acme/app/collaborators b`.
+
 ## Two-Factor Authentication (TOTP)
 
 | Method | Path                     | Auth     | Description                                      |
 | ------ | ------------------------ | -------- | ------------------------------------------------ |
 | GET    | `/auth/2fa`              | --       | TOTP verification page (reads `cz_totp_pending`) |
-| POST   | `/auth/2fa/verify`       | --       | Verify TOTP code or backup code                  |
-| POST   | `/api/user/totp/enable`  | Required | Enable TOTP (submit code to confirm setup)       |
-| POST   | `/api/user/totp/disable` | Required | Disable TOTP                                     |
+| POST   | `/auth/2fa/verify`       | --       | Verify TOTP code or backup code; five wrong ones in 15 minutes refuse even the right one for the rest of the window |
+| POST   | `/api/user/totp/enable`  | Required | Enable TOTP (`secret`, `code` from the new authenticator, and `password`); 303 to `/settings?profile_error=reauth_failed#security` on a wrong password |
+| POST   | `/api/user/totp/disable` | Required | Disable TOTP (`code` and `password`)             |
+| POST   | `/settings/confirm-code` | Required | Email a one-time `email_code` to an account with no password or 2FA ([confirming actions](./access-control.md#confirming-sensitive-actions)); one a minute and five an hour (429), 409 for accounts that confirm another way. HTMX gets the status text with a 200 |
+| POST   | `/settings/reauth/{provider}` | Required | `google` or `saml`: sign in there again to confirm a change (`return_to` form field). Redirects to the provider; its callback sets the one-time `cz_reauth` cookie and returns to `return_to` |
+| POST   | `/settings/password`     | Required | Change the password (`password`, `code` with 2FA, `new_password`, `new_password_confirm`); ends every session and sets a fresh cookie; 303 to `/settings?password_changed=1#password`, or `?password_error=<code>#password` |
+| POST   | `/settings/sessions/revoke` | Required | Sign out every other session: ends all session JWTs issued before and sets a fresh cookie for this browser; 303 to `/settings?sessions_revoked=1#sessions` |
 
 ## Connected Accounts
 
@@ -42,14 +82,14 @@ Browser form posts from Account settings. Both need the current `password`, plus
 | Method | Path                 | Auth     | Description                          |
 | ------ | -------------------- | -------- | ------------------------------------ |
 | GET    | `/api/user/keys`     | Required | List SSH keys for authenticated user |
-| POST   | `/api/user/keys`     | Required | Add a new SSH public key             |
+| POST   | `/api/user/keys`     | Required | Add a new SSH public key (`title`, `public_key`, plus `password` and, with 2FA, `code`; form or JSON). 403 on a wrong confirmation, 429 when throttled |
 | DELETE | `/api/user/keys/:id` | Required | Delete an SSH key by ID              |
 
 ## Personal Access Tokens
 
 | Method | Path                   | Auth     | Description                                                                                                                                                        |
 | ------ | ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, repeated `scopes`, optional `expires_at` form fields); redirects to `/settings#tokens`, which shows the raw token once, via an HttpOnly cookie |
+| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, repeated `scopes` from `repo:read`, `repo:write`, `issues:write`, `pulls:write` and `repo:admin` — the last needs `signing_key`, `targets` and `expires_at` within 90 days — optional `expires_at`, optional `signing_key` (an SSH public key, hardware `sk-` keys included; see [signed requests](#signed-requests)), `targets` (`repo:admin` only: `owner/repo` or `org`, one per line or comma-separated, each one you administer), plus `password` and, with 2FA, `code` form fields); redirects to `/settings#tokens`, which shows the raw token once, via an HttpOnly cookie, or to `/settings?profile_error=reauth_failed#tokens` |
 | DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                                                                                                 |
 
 Raw token format: `czp_<32-byte hex>`. Use as `Authorization: Bearer czp_<token>`, or as the HTTP Basic password for git. Only the SHA-256 hash is stored; the raw value cannot be recovered after creation.
@@ -69,12 +109,22 @@ Commits made through the web UI (new files, wiki edits, merge and squash merges,
 
 Commits pushed over git keep whatever author the client set. Contributor stats resolve a noreply author back to its user when both the id and username match, under any host, so commits made before a `base_url` change stay credited. Legacy `username@localhost` authors are not resolved.
 
+## Email Verification
+
+| Method | Path                                   | Auth     | Description                                                                                                                                                  |
+| ------ | -------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/settings/email/resend-verification`  | Required | Issue a new verification link for the account's address; the email goes out in the background. HTMX: 204, or JSON `error` with 429 (a link went to the user or the address in the last minute), 409 (already verified), 503 (no SMTP), 500. Form: 303 to `/settings#email`, or to `/settings?profile_error=<code>#email` on failure |
+| GET    | `/verify-email?token=…`                | --       | Check a link and show a confirm button naming the account; spends nothing. 410 when expired, 400 when invalid                                              |
+| POST   | `/verify-email`                        | --       | Form `token`: verify the address the link was sent to. 200 on success, 410 when expired, 400 when invalid or used                                          |
+
+See [Email Verification](./access-control.md#email-verification).
+
 ## Deploy Keys
 
 | Method | Path                               | Auth      | Description                                         |
 | ------ | ---------------------------------- | --------- | --------------------------------------------------- |
 | GET    | `/api/repos/:owner/:repo/keys`     | CanManage | List deploy keys for a repository                   |
-| POST   | `/api/repos/:owner/:repo/keys`     | CanManage | Add deploy key (`title`, `public_key`, `read_only`) |
+| POST   | `/api/repos/:owner/:repo/keys`     | CanManage | Add deploy key (`title`, `public_key`, `read_only`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled) |
 | DELETE | `/api/repos/:owner/:repo/keys/:id` | CanManage | Delete a deploy key by ID                           |
 
 Deploy keys authenticate via SSH using the key's MD5 fingerprint. A `read_only` key cannot push; a read-write key can. Each key is scoped to a single repository.
@@ -100,7 +150,7 @@ Public user objects — returned by `GET /api/users/:username` and by `/api/repo
 | POST   | `/api/repos/`                       | Required | Create a repository (`name`, `description`, `private`, plus the init options below) |
 | GET    | `/api/repos/:owner/:repo`           | --       | Get repository details                                                              |
 | POST   | `/api/repos/:owner/:repo/fork`      | Required | Fork into authenticated user's namespace                                            |
-| POST   | `/api/repos/:owner/:repo/transfer`  | IsOwner  | Transfer repo to a user or an org (`new_owner`); an org target must be one you own  |
+| POST   | `/api/repos/:owner/:repo/transfer`  | IsOwner  | Transfer repo to a user or an org (`new_owner`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled); an org target must be one you own |
 | POST   | `/api/repos/:owner/:repo/restore`   | IsOwner  | Restore a soft-deleted repository                                                   |
 | POST   | `/api/repos/:owner/:repo/archive`   | IsOwner  | Archive a repository                                                                |
 | POST   | `/api/repos/:owner/:repo/unarchive` | IsOwner  | Unarchive a repository                                                              |
@@ -331,7 +381,7 @@ Wiki pages are stored as files in a bare git repository (`<repo>.wiki.git`) that
 | Method | Path                                           | Auth      | Description                                |
 | ------ | ---------------------------------------------- | --------- | ------------------------------------------ |
 | GET    | `/api/repos/:owner/:repo/hooks/`               | --        | List webhooks for repository               |
-| POST   | `/api/repos/:owner/:repo/hooks/`               | CanManage | Create webhook (`url`, `secret`, `events`) |
+| POST   | `/api/repos/:owner/:repo/hooks/`               | CanManage | Create webhook (JSON `url`, `secret`, `events`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled) |
 | PATCH  | `/api/repos/:owner/:repo/hooks/:id`            | CanManage | Update webhook settings                    |
 | DELETE | `/api/repos/:owner/:repo/hooks/:id`            | CanManage | Delete webhook                             |
 | GET    | `/api/repos/:owner/:repo/hooks/:id/deliveries` | CanManage | List delivery history                      |
@@ -344,7 +394,7 @@ Webhooks fire on `push`, `issues`, and `pull_request` events. Requests are signe
 | Method | Path                                              | Auth      | Description                           |
 | ------ | ------------------------------------------------- | --------- | ------------------------------------- |
 | GET    | `/api/repos/:owner/:repo/collaborators`           | Optional  | List collaborators with usernames     |
-| POST   | `/api/repos/:owner/:repo/collaborators`           | CanManage | Add collaborator (`username`, `role`) |
+| POST   | `/api/repos/:owner/:repo/collaborators`           | CanManage | Add collaborator (`username`, `role`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled) |
 | DELETE | `/api/repos/:owner/:repo/collaborators?user_id=N` | CanManage | Remove collaborator by user ID        |
 
 See [access-control.md](access-control.md) for the full permission model. `CanManage` requires owner, org owner, or `admin` collaborator role.
@@ -356,14 +406,14 @@ See [access-control.md](access-control.md) for the full permission model. `CanMa
 | POST   | `/api/orgs/`                            | Required | Create organization (`name`, `display_name`, `description`); 422 when `name` is invalid or taken                                    |
 | GET    | `/api/orgs/:org`                        | --       | Get organization by name, including `website`, `location`, `contact_email`, `default_repo_visibility`, `default_branch_name`        |
 | GET    | `/api/orgs/:org/members`                | --       | List organization members                                                                                                           |
-| POST   | `/api/orgs/:org/members`                | Required | Add member (`username`, `role`); owner only                                                                                         |
+| POST   | `/api/orgs/:org/members`                | Required | Add member (`username`, `role`); owner only; adding an owner also needs `password` and, with 2FA, `code`                             |
 | DELETE | `/api/orgs/:org/members/:username`      | Required | Remove member; owner only, except a member may remove themselves; last owner blocked                                                |
-| POST   | `/api/orgs/:org/members/:username/role` | Required | Change a member's role (`role` form field: `owner` or `member`); owner only; demoting the last owner is rejected                    |
+| POST   | `/api/orgs/:org/members/:username/role` | Required | Change a member's role (`role` form field: `owner` or `member`); owner only; promoting to `owner` also needs `password` and, with 2FA, `code`; demoting the last owner is rejected |
 | POST   | `/api/orgs/:org/repos`                  | Required | Create a repository under the organization (same body as `POST /api/repos/`); owner only                                            |
-| POST   | `/api/orgs/:org/transfer`               | Required | Transfer org ownership (`new_owner`, optional `confirm_name` form fields); owner only; demotes self to member; redirects to `/:org` |
+| POST   | `/api/orgs/:org/transfer`               | Required | Transfer org ownership (`new_owner`, optional `confirm_name`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled); owner only; demotes self to member; redirects to `/:org` |
 | POST   | `/api/orgs/:org/profile`                | Required | Update profile (`display_name`, `description`, `website`, `location`, `contact_email` form fields); owner only                      |
 | POST   | `/api/orgs/:org/repo-defaults`          | Required | Update repo defaults (`default_repo_visibility`, `default_branch_name` form fields); owner only                                     |
-| POST   | `/api/orgs/:org/delete`                 | Required | Delete the organization (`confirm_name` form field); owner only; 422 while the org still owns repositories                          |
+| POST   | `/api/orgs/:org/delete`                 | Required | Delete the organization (`confirm_name`, plus `password` and, with 2FA, `code`); owner only; 422 while the org still owns repositories |
 
 Add, remove, and role-change requests sent with `HX-Request: true` respond with the refreshed members-list fragment.
 
@@ -399,7 +449,7 @@ The profile, repo-defaults, and delete endpoints are browser form posts: they re
 | Method | Path                            | Auth     | Description                                |
 | ------ | ------------------------------- | -------- | ------------------------------------------ |
 | GET    | `/oauth/authorize`              | Optional | OAuth authorization page                   |
-| POST   | `/oauth/authorize`              | Required | Confirm authorization grant                |
+| POST   | `/oauth/authorize`              | Required | Confirm authorization grant; approving needs `password` and, with 2FA, `code` |
 | POST   | `/oauth/token`                  | --       | Exchange auth code for access token        |
 | POST   | `/api/oauth/apps`               | Required | Register an OAuth application (HTMX-aware) |
 | DELETE | `/api/oauth/apps/:id`           | Required | Delete an OAuth application (HTMX-aware)   |
@@ -409,7 +459,7 @@ Registering an app returns `client_secret` once; only its bcrypt hash is stored.
 
 `POST /api/oauth/apps` takes `name`, `homepage_url`, `description` and `redirect_uris`, and returns the app with its `client_secret`, shown once. At least one redirect URI is required, each an absolute `http`/`https` URL with no fragment or comma; anything else returns `400`.
 
-`/oauth/authorize` takes `client_id`, `redirect_uri`, `state`, and a space-delimited `scope`. `redirect_uri` must exactly match one the app registered; if it doesn't, or a scope is unknown, the response is `400` and nothing is redirected. Apps registered before redirect URIs were required have none, so they must be registered again. The consent page can't be framed (`X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'`). Approving redirects to `redirect_uri` with `code` and `state` added to its query, keeping any query it already has; denying adds `error=access_denied` and `state` instead.
+`/oauth/authorize` takes `client_id`, `redirect_uri`, `state`, and a space-delimited `scope`. `redirect_uri` must exactly match one the app registered; if it doesn't, or a scope is unknown, the response is `400` and nothing is redirected. Apps registered before redirect URIs were required have none, so they must be registered again. The consent page can't be framed (`X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'`). Approving needs the account's password and TOTP code (see [access-control](./access-control.md#confirming-sensitive-actions)); a wrong one re-renders the consent page with `403`, or `429` once throttled. Approving redirects to `redirect_uri` with `code` and `state` added to its query, keeping any query it already has; denying needs no confirmation and adds `error=access_denied` and `state` instead.
 
 `/oauth/token` exchanges `code` (with `grant_type=authorization_code` and the `redirect_uri` sent to `/oauth/authorize`) for `{"access_token": "...", "token_type": "bearer"}`. The client authenticates with HTTP Basic (`Authorization: Basic base64(client_id:client_secret)`, each part form-encoded first, per RFC 6749 §2.3.1) or with `client_id` and `client_secret` in the form body, not both; the endpoint needs no CSRF token. A code is single-use, expires after 5 minutes, and can be redeemed only by the app it was issued to with the same `redirect_uri`; a refused attempt leaves it redeemable by its own app. Errors follow RFC 6749 §5.2: the body is `{"error": "<code>"}` and nothing else. Every response, success or error, carries `Cache-Control: no-store` (RFC 6749 §5.1).
 
@@ -435,9 +485,10 @@ A request outside the token's scopes gets `403 {"error":"insufficient_scope"}` w
 | Method | Path                         | Auth       | Description                                               |
 | ------ | ---------------------------- | ---------- | --------------------------------------------------------- |
 | GET    | `/admin/settings`            | Superadmin | Admin panel: instance settings + invitation management    |
-| POST   | `/api/admin/settings`        | Superadmin | Toggle a setting (`key`, `value` form fields; HTMX-aware) |
-| POST   | `/api/admin/invitations`     | Superadmin | Create invitation (`email` form field; HTMX-aware)        |
+| POST   | `/api/admin/settings`        | Superadmin | Toggle a setting (`key`, `value`, plus `password` and, with 2FA, `code`; HTMX-aware) |
+| POST   | `/api/admin/invitations`     | Superadmin | Create invitation (`email`, plus `password` and, with 2FA, `code`; HTMX-aware)        |
 | DELETE | `/api/admin/invitations/:id` | Superadmin | Delete an invitation (HTMX-aware)                         |
+| POST   | `/api/admin/users/verify-email` | Superadmin | Mark a user's email verified (`username`, `email`, plus `password` and, with 2FA, `code`; `email` must be their current address, else 404; 400 when either is missing). HTMX: 204, form: 303 to `/admin/settings`; audit-logged |
 
 ## Setup & Invitations
 

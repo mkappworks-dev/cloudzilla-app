@@ -602,5 +602,6 @@ func (h *Handler) PageOrgSettings(w http.ResponseWriter, r *http.Request) {
 		MemberCount:  len(members),
 		RepoCount:    len(repos),
 		AuditEntries: auditEntries,
+		Confirm:      h.confirmFactors(r, claims.UserID),
 	}))
 }

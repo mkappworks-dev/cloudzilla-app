@@ -24,8 +24,17 @@ func ScopeDescription(scope string) string {
 	return scopeDescriptions[scope]
 }
 
+// ScopeRepoAdmin lets a personal access token administer repositories and
+// organizations without a confirmation prompt. OAuth apps can't be granted it.
+const ScopeRepoAdmin = "repo:admin"
+
 // IsKnownScope reports whether scope can be granted to a token.
 func IsKnownScope(scope string) bool {
 	_, ok := scopeDescriptions[scope]
 	return ok
+}
+
+// IsTokenScope reports whether scope can be given to a personal access token.
+func IsTokenScope(scope string) bool {
+	return IsKnownScope(scope) || scope == ScopeRepoAdmin
 }

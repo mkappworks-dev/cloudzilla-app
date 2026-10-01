@@ -23,7 +23,7 @@ templ RepoCollaborators(data view.RepoCollaboratorsFragData) {
 				hx-target="#repo-collaborators"
 				hx-swap="outerHTML"
 				data-toast="Collaborator added"
-				class="flex gap-3 mb-4"
+				class="flex flex-wrap items-end gap-3 mb-4"
 			>
 				<label for="collab-username" class="sr-only">Username</label>
 				@components.Input(templ.Attributes{
@@ -40,6 +40,7 @@ templ RepoCollaborators(data view.RepoCollaboratorsFragData) {
 					<option value="writer">Writer</option>
 					<option value="admin">Admin</option>
 				</select>
+				@components.ConfirmFields("collab", data.Confirm, true)
 				@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
 					Add
 				}

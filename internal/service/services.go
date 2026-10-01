@@ -36,11 +36,13 @@ type Services struct {
 	Reaction         *ReactionService
 	TOTP             *TOTPService
 	OAuthLink        *OAuthLinkService
+	Reauth           *ReauthService
 	AuditLog         *AuditService
 	Project          *ProjectService
 	SSO              *SSOService
 	SavedReply       *SavedReplyService
 	Email            *EmailService
+	EmailVerifier    *EmailVerificationService
 	OAuthApp         *OAuthAppService
 	Watch            *WatchService
 	Event            *EventService
@@ -68,9 +70,15 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 	languageSvc := NewLanguageService(code, repoSvc)
 	repoSvc.WithLanguageService(languageSvc)
 	siteSettingSvc := NewSiteSettingService(stores.SiteSetting, stores.User)
-	userSvc := NewUserService(stores.User, cfg.Auth).WithRepoService(repoSvc).WithNoreplyHostFrom(cfg.Server.BaseURL)
 	emailSvc := NewEmailService(cfg.SMTP)
-	totpSvc := NewTOTPService(stores.User)
+	emailVerificationSvc := NewEmailVerificationService(stores.EmailVerification, stores.User, emailSvc, cfg.Server.BaseURL)
+	userSvc := NewUserService(stores.User, cfg.Auth).WithRepoService(repoSvc).WithNoreplyHostFrom(cfg.Server.BaseURL).
+		WithEmailVerification(emailVerificationSvc).WithSecurityNotices(emailSvc)
+	totpSvc := NewTOTPService(stores.User).WithSecurityNotices(emailSvc)
+	ssoSvc := NewSSOService(stores.SSO, stores.User, cfg.Auth, siteSettingSvc)
+	reauthSvc := NewReauthService(stores.User, totpSvc).WithEmailCodes(emailSvc).
+		WithProviderSignIn(stores.OAuthState, ssoSvc, cfg.OAuth.GoogleClientID != "")
+	userSvc.WithReauth(reauthSvc)
 	notifSvc := NewNotificationService(stores.Notification, stores.Watch, emailSvc, userSvc)
 	commitStatusSvc := NewCommitStatusService(stores.CommitStatus, stores.Repo, stores.Pull, stores.BranchProtection, code)
 	pullSvc := NewPullService(stores.Pull, stores.Repo, repoSvc).WithCIDeps(
@@ -100,17 +108,19 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		PullLineComment:  NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
 		PullEvent:        NewPullEventService(stores.PullEvent),
 		Search:           NewSearchService(stores.Search),
-		AccessToken:      NewAccessTokenService(stores.AccessToken, stores.User),
+		AccessToken:      NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc),
 		DeployKey:        NewDeployKeyService(stores.DeployKey, stores.SSHKey),
 		BranchProtection: NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus),
 		Reaction:         NewReactionService(stores.Reaction),
 		TOTP:             totpSvc,
 		OAuthLink:        NewOAuthLinkService(stores.User, stores.OAuthState, totpSvc, emailSvc),
+		Reauth:           reauthSvc,
 		AuditLog:         NewAuditService(stores.AuditLog),
 		Project:          NewProjectService(stores.Project, repoSvc),
-		SSO:              NewSSOService(stores.SSO, stores.User, cfg.Auth, siteSettingSvc),
+		SSO:              ssoSvc,
 		SavedReply:       NewSavedReplyService(stores.SavedReply),
 		Email:            emailSvc,
+		EmailVerifier:    emailVerificationSvc,
 		OAuthApp:         NewOAuthAppService(stores.OAuthApp, stores.OAuthAuthorization, stores.User),
 		Watch:            NewWatchService(stores.Watch, stores.Repo),
 		Event:            NewEventService(stores.Event, stores.User, stores.Repo),

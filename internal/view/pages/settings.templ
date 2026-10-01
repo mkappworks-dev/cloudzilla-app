@@ -2,6 +2,7 @@ package pages
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -18,7 +19,7 @@ templ Settings(data view.SettingsData) {
 			<p class="mt-1 text-[13px] text-muted-foreground">Profile, security, access tokens, OAuth apps, notifications, and saved replies.</p>
 		</section>
 		if data.ProfileError != "" {
-			<div class="mb-6 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-4 py-2 text-[13px]">{ settingsErrorMessage(data.ProfileError) }</div>
+			<div class="mb-6 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-4 py-2 text-[13px]">{ SettingsErrorMessage(data.ProfileError) }</div>
 		}
 		<div class="grid grid-cols-12 gap-8">
 			<aside class="col-span-12 lg:col-span-3" aria-label="Settings sections">
@@ -94,7 +95,7 @@ templ settingsProfileSection(data view.SettingsData) {
 	<section id="profile" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
 		<h2 class="text-base font-semibold tracking-tight mb-1">Profile</h2>
 		<p class="text-[12.5px] text-muted-foreground mb-6">How others see you across Cloudzilla.</p>
-		<form method="POST" action="/settings/profile" data-toast="Profile saved" class="space-y-5">
+		<form method="POST" action="/settings/profile" data-toast="Profile saved" class="space-y-5" x-data={ "{ original: " + components.JSLiteral(data.User.Email) + ", email: " + components.JSLiteral(data.User.Email) + " }" }>
 			<div class="flex items-start gap-4 mb-2">
 				<div class="h-16 w-16 rounded-full grid place-items-center text-base font-semibold shrink-0 bg-muted border border-border">
 					{ avatarInitials(data.User.Name, data.User.Username) }
@@ -115,8 +116,14 @@ templ settingsProfileSection(data view.SettingsData) {
 			</div>
 			<div>
 				<label for="acct-email" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Email</label>
-				<input id="acct-email" name="email" type="email" value={ data.User.Email } required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"/>
-				<p class="mt-1 text-[11.5px] text-muted-foreground">Used for sign-in and notifications.</p>
+				<input id="acct-email" name="email" type="email" value={ data.User.Email } x-model="email" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"/>
+				<p class="mt-1 text-[11.5px] text-muted-foreground">Used for sign-in and notifications. A new address has to be verified again.</p>
+				if data.Confirm.Any() {
+					<div x-show="email !== original" x-cloak class="mt-3 flex flex-wrap items-end gap-3">
+						@components.ConfirmFields("email-change", data.Confirm, false)
+						<p class="basis-full text-[11.5px] text-muted-foreground">Changing your email needs { data.Confirm.Needs() }.</p>
+					</div>
+				}
 			</div>
 			<div>
 				<label for="acct-bio" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Bio</label>
@@ -156,12 +163,26 @@ templ settingsSecuritySection(data view.SettingsData) {
 			</div>
 		}
 		<ul class="divide-y divide-border">
-			<li class="py-4 flex items-start justify-between gap-4">
-				<div class="min-w-0">
-					<p class="text-[13.5px] font-medium">Password</p>
-					<p class="mt-0.5 text-[12.5px] text-muted-foreground">Use a strong, unique password for your account.</p>
+			<li id="password" class="py-4 scroll-mt-6">
+				<div class="flex items-start justify-between gap-4">
+					<div class="min-w-0">
+						<p class="text-[13.5px] font-medium">Password</p>
+						if data.HasPassword {
+							<p class="mt-0.5 text-[12.5px] text-muted-foreground">Changing it signs out every session, so anyone else who knows the old one is signed out too.</p>
+						} else {
+							<p class="mt-0.5 text-[12.5px] text-muted-foreground">This account signs in with Google and has no password.</p>
+						}
+					</div>
+					if data.HasPassword {
+						<button type="button" onclick="document.getElementById('change-password-dialog').showModal()" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground shrink-0">Change password</button>
+					}
 				</div>
-				<button type="button" disabled class="h-8 px-3 text-[13px] rounded-md border border-border bg-card text-muted-foreground cursor-not-allowed shrink-0">Change password</button>
+				if data.PasswordError != "" {
+					<div role="alert" class="mt-3 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-3 py-2 text-[12.5px]">{ SettingsErrorMessage(data.PasswordError) }</div>
+				}
+				if data.PasswordChanged {
+					<div role="status" class="mt-3 border border-success/40 bg-success/10 text-success rounded-md px-3 py-2 text-[12.5px]">Password changed. Every other session is signed out.</div>
+				}
 			</li>
 			<li class="py-4">
 				<div class="flex items-start justify-between gap-4">
@@ -178,7 +199,8 @@ templ settingsSecuritySection(data view.SettingsData) {
 					</div>
 				</div>
 				if data.TOTPEnabled {
-					<form method="POST" action="/api/user/totp/disable" data-toast="Two-factor authentication disabled" class="mt-4 flex items-end gap-3">
+					<form method="POST" action="/api/user/totp/disable" data-toast="Two-factor authentication disabled" class="mt-4 flex flex-wrap items-end gap-3">
+						@components.ConfirmFields("totp-disable", components.ConfirmFactors{Password: data.Confirm.Password}, true)
 						<div>
 							<label for="totp-disable-code" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Verification code</label>
 							<input id="totp-disable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:border-ring"/>
@@ -196,8 +218,9 @@ templ settingsSecuritySection(data view.SettingsData) {
 								<code class="block bg-muted border border-border rounded px-3 py-2 text-[12.5px] font-mono tracking-widest break-all text-foreground">{ data.TOTPPendingSecret }</code>
 							</div>
 						</div>
-						<form method="POST" action="/api/user/totp/enable" data-toast="Two-factor authentication enabled" class="flex items-end gap-3">
+						<form method="POST" action="/api/user/totp/enable" data-toast="Two-factor authentication enabled" class="flex flex-wrap items-end gap-3">
 							<input type="hidden" name="secret" value={ data.TOTPPendingSecret }/>
+							@components.ConfirmFields("totp-enable", data.Confirm, true)
 							<div>
 								<label for="totp-enable-code" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Enter the 6-digit code from your app</label>
 								<input id="totp-enable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:border-ring"/>
@@ -212,16 +235,52 @@ templ settingsSecuritySection(data view.SettingsData) {
 				}
 			</li>
 		</ul>
+		if data.HasPassword {
+			@settingsChangePasswordDialog(data.TOTPEnabled)
+		}
 		@settingsConnectedAccounts(data)
 	</section>
+}
+
+templ settingsChangePasswordDialog(withCode bool) {
+	@components.Dialog("change-password-dialog") {
+		<form method="POST" action="/settings/password">
+			@components.DialogHeader() {
+				@components.DialogTitle("change-password-dialog") {
+					Change password
+				}
+				@components.DialogDescription() {
+					Every session signed in to your account is signed out. This browser stays signed in.
+				}
+			}
+			@components.DialogBody() {
+				<div class="space-y-4">
+					@components.ConfirmFields("password-change", components.ConfirmFactors{Password: true, Code: withCode}, true)
+					<div>
+						<label for="new-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">New password</label>
+						<input id="new-password" name="new_password" type="password" required minlength="8" autocomplete="new-password" aria-describedby="new-password-help" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+						<p id="new-password-help" class="mt-1 text-[11.5px] text-muted-foreground">At least 8 characters.</p>
+					</div>
+					<div>
+						<label for="new-password-confirm" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Confirm new password</label>
+						<input id="new-password-confirm" name="new_password_confirm" type="password" required minlength="8" autocomplete="new-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+					</div>
+				</div>
+			}
+			@components.DialogFooter() {
+				<button type="button" onclick="this.closest('dialog').close()" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-4">Cancel</button>
+				<button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-primary text-primary-foreground hover:bg-primary/90">Change password</button>
+			}
+		</form>
+	}
 }
 
 templ settingsConnectedAccounts(data view.SettingsData) {
 	<div id="connected-accounts" class="mt-2 pt-6 border-t border-border scroll-mt-6">
 		<h3 class="text-[13.5px] font-semibold tracking-tight mb-1">Connected accounts</h3>
-		<p class="text-[12.5px] text-muted-foreground mb-4">Sign in with an account you have elsewhere. Cloudzilla never connects one by matching email addresses; you connect it here.</p>
+		<p class="text-[12.5px] text-muted-foreground mb-4">Sign in with an account you have elsewhere. Connect it here, or sign in with a Google account whose verified address matches this account's verified email.</p>
 		if data.ConnectedAccountsError != "" {
-			<div role="alert" class="mb-4 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-3 py-2 text-[12.5px]">{ settingsErrorMessage(data.ConnectedAccountsError) }</div>
+			<div role="alert" class="mb-4 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-3 py-2 text-[12.5px]">{ SettingsErrorMessage(data.ConnectedAccountsError) }</div>
 		}
 		if settingsNoticeMessage(data.ConnectedAccountsNotice) != "" {
 			<div role="status" class="mb-4 border border-success/40 bg-success/10 text-success rounded-md px-3 py-2 text-[12.5px]">{ settingsNoticeMessage(data.ConnectedAccountsNotice) }</div>
@@ -265,17 +324,9 @@ templ settingsConnectedAccounts(data view.SettingsData) {
 	</div>
 }
 
+// settingsReauthFields asks for the password, which the Google connect flow requires.
 templ settingsReauthFields(idPrefix string, withCode bool) {
-	<div class="min-w-0">
-		<label for={ idPrefix + "-password" } class="block text-[12px] font-medium text-muted-foreground mb-1.5">Current password</label>
-		<input id={ idPrefix + "-password" } name="password" type="password" required autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
-	</div>
-	if withCode {
-		<div>
-			<label for={ idPrefix + "-code" } class="block text-[12px] font-medium text-muted-foreground mb-1.5">Two-factor code</label>
-			<input id={ idPrefix + "-code" } name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="h-9 w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 text-foreground focus:outline-none focus:border-ring"/>
-		</div>
-	}
+	@components.ConfirmFields(idPrefix, components.ConfirmFactors{Password: true, Code: withCode}, true)
 }
 
 templ settingsSSHKeysSection(data view.SettingsData) {
@@ -324,11 +375,11 @@ templ settingsSSHKeysSection(data view.SettingsData) {
 				<div class="text-center py-6 border border-dashed border-border rounded-md text-[13px] text-muted-foreground">No SSH keys yet.</div>
 			}
 		</div>
-		@settingsAddSSHKeyDialog()
+		@settingsAddSSHKeyDialog(data)
 	</section>
 }
 
-templ settingsAddSSHKeyDialog() {
+templ settingsAddSSHKeyDialog(data view.SettingsData) {
 	@components.Dialog("add-ssh-key-dialog") {
 		<form
 			id="add-ssh-key-form"
@@ -355,6 +406,9 @@ templ settingsAddSSHKeyDialog() {
 					<div>
 						<label for="public-key" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Public key</label>
 						<textarea id="public-key" name="public_key" rows="5" required placeholder="ssh-ed25519 AAAA…" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-none focus:border-ring"></textarea>
+					</div>
+					<div class="flex flex-wrap items-end gap-3">
+						@components.ConfirmFields("ssh-key", data.Confirm, true)
 					</div>
 				</div>
 			}
@@ -407,6 +461,12 @@ templ settingsTokensSection(data view.SettingsData) {
 								} else {
 									<span class="font-mono">none</span>
 								}
+								if t.SigningKey != "" {
+									{ " · signed requests only" }
+								}
+								if len(t.Targets) > 0 {
+									{ " · only " + strings.Join(t.Targets, ", ") }
+								}
 								if t.ExpiresAt != nil {
 									{ " · expires " }
 									<time datetime={ t.ExpiresAt.UTC().Format(time.RFC3339) }>{ t.ExpiresAt.Format("Jan 2, 2006") }</time>
@@ -434,11 +494,11 @@ templ settingsTokensSection(data view.SettingsData) {
 				<div class="text-center py-6 border border-dashed border-border rounded-md text-[13px] text-muted-foreground">No tokens yet.</div>
 			}
 		</div>
-		@settingsGenerateTokenDialog()
+		@settingsGenerateTokenDialog(data)
 	</section>
 }
 
-templ settingsGenerateTokenDialog() {
+templ settingsGenerateTokenDialog(data view.SettingsData) {
 	@components.Dialog("generate-token-dialog") {
 		<form method="POST" action="/api/user/tokens" data-toast="Token generated" x-data="{ picked: 0 }" @change="picked = $el.querySelectorAll('input[name=scopes]:checked').length">
 			@components.DialogHeader() {
@@ -461,13 +521,27 @@ templ settingsGenerateTokenDialog() {
 							for _, s := range model.Scopes {
 								<label class="flex items-center gap-2"><input type="checkbox" name="scopes" value={ s }/> <span><strong class="font-mono">{ s }</strong> — { model.ScopeDescription(s) }</span></label>
 							}
+							<label class="flex items-start gap-2"><input type="checkbox" name="scopes" value="repo:admin" class="mt-0.5"/> <span><strong class="font-mono">repo:admin</strong> — manage collaborators, deploy keys, webhooks, org owners, transfers and deletion without a password prompt. Needs a signing key and an expiry within 90 days, and each use is emailed to you.</span></label>
 						</div>
-						<p class="text-[11px] text-muted-foreground mt-1">Choose at least one. Tokens can't manage your account, SSH keys, other tokens, or repository and organization settings.</p>
+						<p class="text-[11px] text-muted-foreground mt-1">Choose at least one. Tokens can't manage your account, SSH keys or other tokens, nor repository and organization settings without repo:admin.</p>
 					</fieldset>
+					<div>
+						<label for="token-targets" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repositories and organizations (required with repo:admin)</label>
+						<textarea id="token-targets" name="targets" rows="2" placeholder="acme/app" aria-describedby="token-targets-help" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-none focus:border-ring"></textarea>
+						<p id="token-targets-help" class="text-[11px] text-muted-foreground mt-1">One per line: a repository you manage as <span class="font-mono">owner/repo</span>, or an organization you own, which covers its settings and all its repositories. The token can't touch anything else.</p>
+					</div>
+					<div>
+						<label for="token-signing-key" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Signing key (required with repo:admin)</label>
+						<textarea id="token-signing-key" name="signing_key" rows="2" placeholder="ssh-ed25519 AAAA…" aria-describedby="token-signing-key-help" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-none focus:border-ring"></textarea>
+						<p id="token-signing-key-help" class="text-[11px] text-muted-foreground mt-1">An SSH public key, which can live on a hardware key (sk-). Every request with this token must then be signed with its private key (<span class="font-mono">ssh-keygen -Y sign</span>), so the token alone is useless to anyone who copies it. Such a token can't be used for git.</p>
+					</div>
 					<div>
 						<label for="token-expires" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Expiration (optional)</label>
 						<input id="token-expires" name="expires_at" type="date" class="bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
 						<p class="text-[11px] text-muted-foreground mt-1">Leave blank for a non-expiring token.</p>
+					</div>
+					<div class="flex flex-wrap items-end gap-3">
+						@components.ConfirmFields("token", data.Confirm, true)
 					</div>
 				</div>
 			}
@@ -643,20 +717,22 @@ templ settingsSessionsSection(data view.SettingsData) {
 	<section id="sessions" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
 		<div class="flex items-start justify-between gap-4 mb-6">
 			<div class="min-w-0">
-				<h2 class="text-base font-semibold tracking-tight mb-1 inline-flex items-center gap-2">
-					Sessions
-					@comingSoonBadge()
-				</h2>
-				<p class="text-[12.5px] text-muted-foreground">Browsers and clients signed in to your account.</p>
+				<h2 class="text-base font-semibold tracking-tight mb-1">Sessions</h2>
+				<p class="text-[12.5px] text-muted-foreground">Browsers signed in to your account. Access tokens, SSH keys and authorized apps are revoked in their own sections.</p>
 			</div>
-			@comingSoonButton("Sign out other sessions")
+			<form method="POST" action="/settings/sessions/revoke" class="shrink-0">
+				<button type="submit" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground">Sign out other sessions</button>
+			</form>
 		</div>
+		if data.SessionsRevoked {
+			<div role="status" class="mb-4 border border-success/40 bg-success/10 text-success rounded-md px-3 py-2 text-[12.5px]">Every other session is signed out. This browser stays signed in.</div>
+		}
 		<ul class="divide-y divide-border">
 			<li class="py-3 flex items-center gap-3">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg>
 				<div class="min-w-0 flex-1">
 					<p class="text-[13.5px] font-medium">This browser <span class="ml-2 text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Current</span></p>
-					<p class="text-[12px] text-muted-foreground">Cloudzilla uses a single JWT cookie per browser. Sign out to end this session.</p>
+					<p class="text-[12px] text-muted-foreground">Sign out to end this session. Other sessions can't be listed, only signed out together.</p>
 				</div>
 			</li>
 		</ul>
@@ -682,9 +758,39 @@ templ settingsEmailsSection(data view.SettingsData) {
 					<p class="text-[13.5px] font-medium font-mono">{ data.User.Email }</p>
 					<p class="text-[12px] text-muted-foreground">Used for sign-in and notifications.</p>
 				</div>
+				if data.User.EmailVerified() {
+					<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Verified</span>
+				} else {
+					<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-warning/40 bg-warning/10 text-warning">Unverified</span>
+				}
 				<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-success/30 bg-success/15 text-success">Primary</span>
 			</li>
 		</ul>
+		if !data.User.EmailVerified() {
+			if data.EmailVerificationAvailable {
+				<form
+					method="POST"
+					action="/settings/email/resend-verification"
+					hx-post="/settings/email/resend-verification"
+					hx-swap="none"
+					data-toast="Verification email sent"
+					class="flex items-center justify-between gap-4 mb-4"
+				>
+					<p class="text-[12px] text-muted-foreground">
+						if data.VerificationLinkSent {
+							We emailed a verification link to this address. It works once and expires 24 hours after it was sent.
+						} else {
+							Verify this address with a link sent to it. The link works once and expires after 24 hours.
+						}
+					</p>
+					@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "submit", "class": "shrink-0"}) {
+						Resend verification email
+					}
+				</form>
+			} else {
+				<p class="text-[12px] text-muted-foreground mb-4">Verifying your email needs outgoing email, which the administrator hasn't configured.</p>
+			}
+		}
 		<form
 			id="email-settings-form"
 			method="POST"
@@ -745,9 +851,10 @@ templ settingsDangerSection(data view.SettingsData) {
 				<form
 					method="POST"
 					action="/settings/delete-account"
-					class="shrink-0 flex items-center gap-2"
+					class="shrink-0 flex flex-wrap items-end gap-2"
 					onsubmit={ confirmDeleteAccount(data.User.Username) }
 				>
+					@components.ConfirmFields("delete-account", data.Confirm, true)
 					<input
 						type="text"
 						name="confirm_username"

@@ -319,7 +319,7 @@ func TestUserService_AuthenticateOAuth_DerivesValidUsername(t *testing.T) {
 	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
 	for _, name := range append([]string{"-_Bob", strings.Repeat("Long Name ", 10)}, testutil.HostileNames...) {
 		suffix := testutil.UniqueSuffix(t)
-		u, _, err := svc.AuthenticateOAuth(context.Background(), service.OAuthIdentity{
+		u, err := authOAuth(svc, service.OAuthIdentity{
 			Provider: "google", ID: "g_" + suffix, Email: "oauth_" + suffix + "@example.com", EmailVerified: true, Name: name,
 		}, true, true)
 		if err != nil {
@@ -330,6 +330,14 @@ func TestUserService_AuthenticateOAuth_DerivesValidUsername(t *testing.T) {
 			t.Errorf("display name %q produced invalid username %q", name, u.Username)
 		}
 	}
+}
+
+func authOAuth(svc *service.UserService, id service.OAuthIdentity, allowRegistration, allowLogin bool) (*model.User, error) {
+	login, err := svc.AuthenticateOAuth(context.Background(), id, allowRegistration, allowLogin)
+	if login == nil {
+		return nil, err
+	}
+	return login.User, err
 }
 
 func linkedOAuthID(t *testing.T, db *sql.DB, userID int64) string {
@@ -348,7 +356,7 @@ func TestUserService_AuthenticateOAuth_UnverifiedEmailNeitherLinksNorCreates(t *
 	victimID, victimEmail := testutil.SeedUserWithPassword(t, db, suffix, "password1")
 
 	for _, email := range []string{victimEmail, "unverified_" + suffix + "@example.com"} {
-		u, _, err := svc.AuthenticateOAuth(context.Background(), service.OAuthIdentity{
+		u, err := authOAuth(svc, service.OAuthIdentity{
 			Provider: "google", ID: "g_unverified_" + suffix, Email: email, Name: "Mallory",
 		}, true, true)
 		if !errors.Is(err, service.ErrOAuthEmailUnverified) {
@@ -370,10 +378,10 @@ func TestUserService_AuthenticateOAuth_UnverifiedEmailNeitherLinksNorCreates(t *
 	}
 }
 
-// Local emails are unverified: anyone can register, be invited with, or
-// change their profile to someone else's address before that person first
-// signs in with Google.
-func TestUserService_AuthenticateOAuth_DoesNotLinkByEmail(t *testing.T) {
+// An unverified local address may be someone else's: anyone can register, be
+// invited with, or change their profile to it before its owner first signs in
+// with Google.
+func TestUserService_AuthenticateOAuth_DoesNotLinkAnUnverifiedLocalEmail(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
 	ctx := context.Background()
@@ -386,7 +394,7 @@ func TestUserService_AuthenticateOAuth_DoesNotLinkByEmail(t *testing.T) {
 	t.Cleanup(func() { testutil.DeleteUsers(t, db, attacker.ID) })
 
 	for _, allowRegistration := range []bool{true, false} {
-		u, _, err := svc.AuthenticateOAuth(ctx, service.OAuthIdentity{
+		u, err := authOAuth(svc, service.OAuthIdentity{
 			Provider: "google", ID: "g_victim_" + suffix, Email: victimEmail, EmailVerified: true,
 		}, allowRegistration, true)
 		if !errors.Is(err, service.ErrOAuthAccountExists) {
@@ -407,7 +415,7 @@ func TestUserService_AuthenticateOAuth_LinkedIDSkipsTheEmailChecks(t *testing.T)
 	suffix := testutil.UniqueSuffix(t)
 	id := service.OAuthIdentity{Provider: "google", ID: "g_linked_" + suffix, Email: "linked_" + suffix + "@example.com", EmailVerified: true}
 
-	u, _, err := svc.AuthenticateOAuth(context.Background(), id, true, true)
+	u, err := authOAuth(svc, id, true, true)
 	if err != nil {
 		t.Fatalf("first login: %v", err)
 	}
@@ -417,7 +425,7 @@ func TestUserService_AuthenticateOAuth_LinkedIDSkipsTheEmailChecks(t *testing.T)
 	}
 
 	id.EmailVerified = false
-	if again, _, err := svc.AuthenticateOAuth(context.Background(), id, false, true); err != nil || again.ID != u.ID {
+	if again, err := authOAuth(svc, id, false, true); err != nil || again.ID != u.ID {
 		t.Errorf("linked login with an unverified email = (%v, %v), want user %d", again, err, u.ID)
 	}
 }
@@ -445,7 +453,7 @@ func TestUserService_AccountCreation_RefusesOrgNames(t *testing.T) {
 	if _, err := svc.CreateSuperadmin(ctx, name, "admin_"+suffix+"@example.com", "password1"); !errors.Is(err, service.ErrUsernameTaken) {
 		t.Errorf("CreateSuperadmin: err = %v, want ErrUsernameTaken", err)
 	}
-	u, _, err := svc.AuthenticateOAuth(ctx, service.OAuthIdentity{
+	u, err := authOAuth(svc, service.OAuthIdentity{
 		Provider: "google", ID: "g_" + suffix, Email: "google_" + suffix + "@example.com", EmailVerified: true, Name: name,
 	}, true, true)
 	if err != nil {
@@ -514,12 +522,12 @@ func TestUserService_GenerateTokenForUser_ReturnsNonEmptyToken(t *testing.T) {
 func TestUserService_UpdateProfile_LeavesUsernameUnchanged(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
-	userID := testutil.SeedUser(t, db, suffix)
+	userID, _ := testutil.SeedUserWithPassword(t, db, suffix, "password1")
 	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
 	ctx := context.Background()
 
 	newEmail := "profile_" + suffix + "@test.invalid"
-	if err := svc.UpdateProfile(ctx, userID, "New Name", newEmail, "bio", "Acme", "Colombo"); err != nil {
+	if err := svc.UpdateProfile(ctx, userID, "New Name", newEmail, "bio", "Acme", "Colombo", service.Confirmation{Password: "password1"}); err != nil {
 		t.Fatalf("UpdateProfile: %v", err)
 	}
 
@@ -527,7 +535,7 @@ func TestUserService_UpdateProfile_LeavesUsernameUnchanged(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetByID: %v", err)
 	}
-	if want := "testuser_" + suffix; u.Username != want {
+	if want := "testpw_" + suffix; u.Username != want {
 		t.Errorf("username = %q, want %q", u.Username, want)
 	}
 	if u.Name != "New Name" || u.Email != newEmail || u.Bio != "bio" || u.Company != "Acme" || u.Location != "Colombo" {

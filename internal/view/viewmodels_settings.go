@@ -1,6 +1,9 @@
 package view
 
-import "github.com/mkappworks-dev/cloudzilla-app/internal/model"
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+)
 
 // SettingsData holds template data for the user account settings page.
 type SettingsData struct {
@@ -19,9 +22,17 @@ type SettingsData struct {
 	NoreplyEmail        string
 	ProfileSaved        bool
 	ProfileError        string
-	GoogleConfigured    bool
-	GoogleConnected     bool
-	HasPassword         bool
+	// EmailVerificationAvailable is false when no SMTP server is configured.
+	EmailVerificationAvailable bool
+	// VerificationLinkSent is whether a live link for the current address is out.
+	VerificationLinkSent bool
+	SessionsRevoked      bool
+	PasswordChanged      bool
+	PasswordError        string
+	Confirm              components.ConfirmFactors
+	GoogleConfigured     bool
+	GoogleConnected      bool
+	HasPassword          bool
 	// Codes from the Google connect flow, shown beside the control rather than atop the page.
 	ConnectedAccountsError  string
 	ConnectedAccountsNotice string
@@ -62,6 +73,7 @@ type AdminSettingsData struct {
 	BasePage
 	Settings    []model.SiteSetting
 	Invitations []model.Invitation
+	Confirm     components.ConfirmFactors
 }
 
 // AdminSettingsFragData holds template data for the admin settings HTMX fragment.
@@ -105,6 +117,7 @@ type SSOSettingsData struct {
 	SAMLConfig *model.SSOConfig
 	Error      string
 	Success    string
+	Confirm    components.ConfirmFactors
 }
 
 // OAuthAuthorizeData holds template data for the OAuth authorization consent page.
@@ -114,4 +127,6 @@ type OAuthAuthorizeData struct {
 	Scopes      []string
 	RedirectURI string
 	State       string
+	Confirm     components.ConfirmFactors
+	Error       string
 }

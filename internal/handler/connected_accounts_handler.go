@@ -109,8 +109,10 @@ func connectedAccountsError(w http.ResponseWriter, r *http.Request, userID int64
 	switch {
 	case errors.Is(err, service.ErrReauthFailed):
 		code = "google_reauth_failed"
-		// Nothing throttles these guesses, so leave a trail of them.
 		slog.Warn("connected accounts: re-authentication failed", "user_id", userID)
+	case errors.Is(err, service.ErrReauthThrottled):
+		code = "reauth_throttled"
+		slog.Warn("connected accounts: re-authentication throttled", "user_id", userID)
 	case errors.Is(err, service.ErrReauthNoPassword):
 		code = "google_no_password"
 	case errors.Is(err, service.ErrOAuthLinkInvalid):

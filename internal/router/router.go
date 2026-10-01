@@ -45,8 +45,9 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Use(middleware.CSRF(cfg.Auth.CookieSecure))
 	r.Use(middleware.RequireSetup(services.SiteSetting))
 
-	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, h.Unauthorized)
-	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp)
+	sessions := middleware.WithSessionVersions(services.User)
+	authMW := middleware.Auth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, h.Unauthorized, sessions)
+	optAuthMW := middleware.OptionalAuth(cfg.Auth.JWTSecret, cfg.Auth.CookieName, services.AccessToken, services.OAuthApp, sessions)
 	apiBodyLimit := middleware.MaxBodySize(1 << 20) // 1 MB
 
 	superadminMW := middleware.RequireSuperadmin(h.Forbidden)
@@ -81,10 +82,17 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Get("/register/complete/{token}", h.PageRegisterComplete)
 	r.With(middleware.RateLimit(accountCreationLimit, accountCreationWindow)).Post("/register/complete/{token}", h.PageRegisterCompleteSubmit)
 	r.With(optAuthMW, middleware.RateLimit(loginAttemptLimit, loginAttemptWindow)).Post("/login", h.PageLoginSubmit)
+	r.With(optAuthMW).Get("/verify-email", h.PageVerifyEmail)
+	r.With(optAuthMW).Post("/verify-email", h.VerifyEmailSubmit)
 	r.With(authMW).Get("/settings", h.PageSettings)
 	r.With(authMW).Post("/settings/profile", h.UpdateProfile)
 	r.With(authMW).Post("/settings/profile-readme", h.UpdateProfileReadme)
 	r.With(authMW).Post("/settings/email", h.UpdateEmailSettings)
+	r.With(authMW).Post("/settings/email/resend-verification", h.ResendVerificationEmail)
+	r.With(authMW).Post("/settings/sessions/revoke", h.RevokeSessions)
+	r.With(authMW).Post("/settings/password", h.ChangePassword)
+	r.With(authMW).Post("/settings/confirm-code", h.SendConfirmCode)
+	r.With(authMW).Post("/settings/reauth/{provider}", h.StartProviderSignIn)
 	r.With(authMW).Post("/settings/notifications", h.UpdateNotificationSettings)
 	r.With(authMW).Post("/settings/delete-account", h.DeleteAccount)
 	r.With(authMW).Post("/settings/connected-accounts/google", h.ConnectGoogle)
@@ -471,6 +479,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Post("/settings", h.UpdateSiteSetting)
 		r.Post("/invitations", h.CreateInvitation)
 		r.Delete("/invitations/{id}", h.DeleteInvitation)
+		r.Post("/users/verify-email", h.AdminVerifyEmail)
 	})
 
 	// Notification routes

@@ -119,7 +119,7 @@ func TestUpdateProfile_IgnoresSubmittedUsername(t *testing.T) {
 	loc := postProfile(t, router, token, url.Values{
 		"username": {"someone_else_" + suffix},
 		"name":     {"Renamed"},
-		"email":    {"profile_" + suffix + "@test.invalid"},
+		"email":    {username + "@test.invalid"},
 	})
 	if loc != "/settings?profile_saved=1#profile" {
 		t.Errorf("redirect = %q, want profile_saved", loc)

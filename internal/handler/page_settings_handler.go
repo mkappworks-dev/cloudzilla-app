@@ -79,8 +79,15 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		GoogleConfigured:    h.Cfg.OAuth.GoogleClientID != "",
 		GoogleConnected:     user.OAuthProvider == googleProvider,
 		HasPassword:         user.PasswordHash != "",
+		Confirm:             h.confirmFactors(r, claims.UserID),
 
 		ConnectedAccountsNotice: h.takeSettingsFlash(w, r, settingsNoticeCookieName),
+	}
+	data.EmailVerificationAvailable = h.Services.EmailVerifier.Available()
+	if data.EmailVerificationAvailable && !user.EmailVerified() {
+		if data.VerificationLinkSent, err = h.Services.EmailVerifier.LinkPending(ctx, claims.UserID); err != nil {
+			slog.Error("check pending verification link", "user_id", claims.UserID, "error", err)
+		}
 	}
 	if !enabled && secret.Valid && secret.String != "" {
 		data.TOTPPendingSecret = secret.String
@@ -96,6 +103,9 @@ func (h *Handler) PageSettings(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 	}
 
+	data.SessionsRevoked = r.URL.Query().Get("sessions_revoked") == "1"
+	data.PasswordChanged = r.URL.Query().Get("password_changed") == "1"
+	data.PasswordError = r.URL.Query().Get("password_error")
 	if r.URL.Query().Get("profile_saved") == "1" {
 		data.ProfileSaved = true
 	}
@@ -119,15 +129,26 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	err := h.Services.User.UpdateProfile(
+	before, err := h.Services.User.GetByID(r.Context(), claims.UserID)
+	if err != nil {
+		http.Redirect(w, r, "/settings?profile_error=update_failed#profile", http.StatusSeeOther)
+		return
+	}
+	email := strings.TrimSpace(r.FormValue("email"))
+	err = h.Services.User.UpdateProfile(
 		r.Context(),
 		claims.UserID,
 		r.FormValue("name"),
-		strings.TrimSpace(r.FormValue("email")),
+		email,
 		r.FormValue("bio"),
 		r.FormValue("company"),
 		r.FormValue("location"),
+		confirmationFrom(r),
 	)
+	if _, code, refused := reauthRefusal(claims.UserID, err); refused {
+		http.Redirect(w, r, "/settings?profile_error="+code+"#profile", http.StatusSeeOther)
+		return
+	}
 	if err != nil {
 		switch err {
 		case service.ErrInvalidEmail:
@@ -139,7 +160,54 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if before.Email != email {
+		h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionEmailChange, model.AuditTargetUser, claims.UserID, claims.Username,
+			map[string]any{"from": before.Email, "to": email})
+	}
 	http.Redirect(w, r, "/settings?profile_saved=1#profile", http.StatusSeeOther)
+}
+
+// ChangePassword handles POST /settings/password. The change ends every
+// session, so this browser gets a new one.
+func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	refuse := func(code string) {
+		http.Redirect(w, r, "/settings?password_error="+code+"#password", http.StatusSeeOther)
+	}
+	newPassword := r.FormValue("new_password")
+	if newPassword != r.FormValue("new_password_confirm") {
+		refuse("password_mismatch")
+		return
+	}
+	token, err := h.Services.User.ChangePassword(r.Context(), claims.UserID, confirmationFrom(r), newPassword)
+	if err != nil {
+		code := "password_change_failed"
+		switch {
+		case errors.Is(err, service.ErrPasswordTooShort):
+			code = "password_too_short"
+		case errors.Is(err, service.ErrPasswordTooLong):
+			code = "password_too_long"
+		default:
+			if _, c, refused := reauthRefusal(claims.UserID, err); refused {
+				code = c
+			} else {
+				slog.Error("change password", "user_id", claims.UserID, "error", err)
+			}
+		}
+		refuse(code)
+		return
+	}
+	h.setAuthCookie(w, token)
+	h.Services.AuditLog.Record(r.Context(), r, claims.UserID, claims.Username, model.AuditActionPasswordChange, model.AuditTargetUser, claims.UserID, claims.Username, nil)
+	http.Redirect(w, r, "/settings?password_changed=1#password", http.StatusSeeOther)
 }
 
 // DeleteAccount handles POST /settings/delete-account.
@@ -155,6 +223,10 @@ func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.TrimSpace(r.FormValue("confirm_username")) != claims.Username {
 		http.Redirect(w, r, "/settings?profile_error=delete_confirm_mismatch#delete", http.StatusSeeOther)
+		return
+	}
+	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
+		redirectReauthRefusal(w, r, claims.UserID, err, "delete")
 		return
 	}
 	if err := h.Services.User.DeleteUser(r.Context(), claims.UserID); err != nil {

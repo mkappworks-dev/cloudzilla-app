@@ -109,6 +109,8 @@ type OrgSettingsData struct {
 	MemberCount  int
 	RepoCount    int
 	AuditEntries []model.AuditEntry
+	// What the viewer confirms making someone an owner with.
+	Confirm components.ConfirmFactors
 }
 
 // OrgMembersFragData holds template data for the org members HTMX fragment.
@@ -117,6 +119,7 @@ type OrgMembersFragData struct {
 	Members   []model.OrgMember
 	CanManage bool
 	ViewerID  int64 // for marking the viewer's own row with a "You" badge
+	Confirm   components.ConfirmFactors
 }
 
 // NewOrganizationData holds template data for the new-organization form page.

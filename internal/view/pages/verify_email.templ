@@ -1,0 +1,50 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ VerifyEmail(data view.VerifyEmailData) {
+	@layout.Base(data.BasePage, "Verify email") {
+		<div class="max-w-md mx-auto mt-16 rounded-md border border-border bg-card p-6">
+			switch data.Link.State {
+				case model.EmailVerificationPending:
+					@authCardHero("Email verification", "Verify your email address", "")
+					<p class="mb-4 text-[13px] text-muted-foreground text-center">
+						Confirm that <span class="font-mono text-foreground">{ data.Link.Email }</span> belongs to the Cloudzilla account
+						<span class="font-medium text-foreground">{ data.Link.Username }</span>. If you didn't create or change that account, close this page.
+					</p>
+					<form method="POST" action="/verify-email">
+						<input type="hidden" name="token" value={ data.Token }/>
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {
+							Verify email address
+						}
+					</form>
+				case model.EmailVerificationVerified:
+					@authCardHero("Email verification", "Email verified", "Your email address is verified.")
+					@verifyEmailNextLink(data)
+				case model.EmailVerificationExpired:
+					@authCardHero("Email verification", "This link has expired", "Verification links work for 24 hours. Send a new one from your account settings.")
+					@verifyEmailNextLink(data)
+				default:
+					@authCardHero("Email verification", "This link isn't valid", "It may have been used already, replaced by a newer link, or sent to an address your account no longer uses.")
+					@verifyEmailNextLink(data)
+			}
+		</div>
+	}
+}
+
+templ verifyEmailNextLink(data view.VerifyEmailData) {
+	if data.CurrentUser != nil {
+		@components.LinkButton("/settings#email", components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"class": "w-full"}) {
+			Go to email settings
+		}
+	} else {
+		@components.LinkButton(view.WithNext("/login", "/settings#email"), components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"class": "w-full"}) {
+			Sign in
+		}
+	}
+}

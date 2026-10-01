@@ -310,6 +310,22 @@ func TestOAuthApp_Authorize_UnknownScope_Error(t *testing.T) {
 	}
 }
 
+// repo:admin skips confirmation prompts for personal access tokens; an app
+// must never be granted it.
+func TestOAuthApp_RepoAdminIsNotGrantable(t *testing.T) {
+	svc, ownerID := newOAuthSvc(t)
+	app, _, err := svc.CreateApp(context.Background(), ownerID, "Admin App", "", "", []string{testRedirectURI})
+	if err != nil {
+		t.Fatalf("CreateApp: %v", err)
+	}
+	if _, err := svc.ParseScopes(context.Background(), model.ScopeRepoAdmin); !errors.Is(err, service.ErrInvalidScope) {
+		t.Errorf("ParseScopes(repo:admin): err = %v, want ErrInvalidScope", err)
+	}
+	if _, err := svc.Authorize(context.Background(), app.ID, ownerID, testRedirectURI, []string{model.ScopeRepoAdmin}, app); !errors.Is(err, service.ErrInvalidScope) {
+		t.Errorf("Authorize(repo:admin): err = %v, want ErrInvalidScope", err)
+	}
+}
+
 func TestOAuthApp_ParseScopes(t *testing.T) {
 	svc := service.NewOAuthAppService(nil, nil, nil)
 	got, err := svc.ParseScopes(context.Background(), " repo:read  issues:write repo:read ")

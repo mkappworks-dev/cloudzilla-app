@@ -57,7 +57,8 @@ func (e accountDeleteEnv) do(t *testing.T, req *http.Request, token string) *htt
 
 func (e accountDeleteEnv) deleteAccount(t *testing.T, userID int64, username string) *httptest.ResponseRecorder {
 	t.Helper()
-	form := url.Values{"confirm_username": {username}}
+	testutil.SetPassword(t, testutil.OpenTestDB(t), userID, "delete-password")
+	form := url.Values{"confirm_username": {username}, "password": {"delete-password"}}
 	req := httptest.NewRequest(http.MethodPost, "/settings/delete-account", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	return e.do(t, req, makeIssueJWT(t, userID, username))

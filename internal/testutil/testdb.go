@@ -155,6 +155,17 @@ func SeedUserWithPassword(t *testing.T, db *sql.DB, suffix, password string) (id
 	return id, email
 }
 
+// SetPassword gives an existing test user the plaintext password, for tests of
+// actions that need it confirmed.
+func SetPassword(t *testing.T, db *sql.DB, userID int64, password string) {
+	t.Helper()
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	if err != nil {
+		t.Fatalf("SetPassword hash: %v", err)
+	}
+	Exec(t, db, `UPDATE users SET password_hash = $2 WHERE id = $1`, userID, string(hash))
+}
+
 // SeedSuperadmin inserts a test superadmin user and returns the user's ID.
 func SeedSuperadmin(t *testing.T, db *sql.DB, suffix string) int64 {
 	t.Helper()

@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
@@ -22,6 +23,9 @@ func (h *Handler) AddSSHKey(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Title     string `json:"title"`
 		PublicKey string `json:"public_key"`
+		Password  string `json:"password"`
+		Code      string `json:"code"`
+		EmailCode string `json:"email_code"`
 	}
 
 	// Handle form data from HTMX or JSON
@@ -32,6 +36,9 @@ func (h *Handler) AddSSHKey(w http.ResponseWriter, r *http.Request) {
 		}
 		req.Title = r.FormValue("title")
 		req.PublicKey = r.FormValue("public_key")
+		req.Password = r.FormValue("password")
+		req.Code = r.FormValue("code")
+		req.EmailCode = r.FormValue("email_code")
 	} else {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
@@ -41,6 +48,10 @@ func (h *Handler) AddSSHKey(w http.ResponseWriter, r *http.Request) {
 
 	if req.Title == "" || req.PublicKey == "" {
 		writeError(w, http.StatusBadRequest, "title and public_key are required")
+		return
+	}
+
+	if !h.confirmAction(w, r, claims.UserID, service.Confirmation{Password: req.Password, Code: req.Code, OneTimeCode: req.EmailCode}, "") {
 		return
 	}
 

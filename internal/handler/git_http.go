@@ -50,6 +50,9 @@ func (h *Handler) resolveGitUser(r *http.Request) (*gitUser, error) {
 	if err != nil {
 		return nil, nil
 	}
+	if token.SigningKey != "" {
+		return nil, fmt.Errorf("personal access token %q is bound to a signing key, which git can't sign with; use a token without one", token.Name)
+	}
 	tokenID := token.ID
 	concurrency.Go("access_token.update_last_used", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

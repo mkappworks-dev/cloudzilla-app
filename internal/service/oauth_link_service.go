@@ -9,18 +9,14 @@ import (
 	"fmt"
 	"html"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var (
-	ErrReauthFailed         = errors.New("the password or two-factor code is incorrect")
-	ErrReauthNoPassword     = errors.New("this account has no password to confirm the change with")
 	ErrOAuthLinkInvalid     = errors.New("the connect request is unknown, already used, or expired")
 	ErrOAuthLinkWrongUser   = errors.New("the connect request was started by a different account")
 	ErrOAuthAlreadyLinked   = errors.New("this account is already connected to a Google account")
@@ -38,30 +34,16 @@ var oauthProviderNames = map[string]string{"google": "Google"}
 type OAuthLinkService struct {
 	users  *store.UserStore
 	states *store.OAuthStateStore
-	totp   *TOTPService
+	reauth *ReauthService
 	email  *EmailService
 }
 
 func NewOAuthLinkService(users *store.UserStore, states *store.OAuthStateStore, totp *TOTPService, email *EmailService) *OAuthLinkService {
-	return &OAuthLinkService{users: users, states: states, totp: totp, email: email}
+	return &OAuthLinkService{users: users, states: states, reauth: NewReauthService(users, totp), email: email}
 }
 
 func (s *OAuthLinkService) reauthenticate(ctx context.Context, userID int64, password, code string) (*model.User, error) {
-	u, err := s.users.GetByIDWithTOTP(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	if u.PasswordHash == "" {
-		return nil, ErrReauthNoPassword
-	}
-	if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)) != nil {
-		return nil, ErrReauthFailed
-	}
-	// An empty secret would still yield a predictable code, so it never verifies.
-	if u.TOTPEnabled && (u.TOTPSecret.String == "" || !s.totp.Verify(u.TOTPSecret.String, strings.TrimSpace(code))) {
-		return nil, ErrReauthFailed
-	}
-	return u, nil
+	return s.reauth.ConfirmWithPassword(ctx, userID, Confirmation{Password: password, Code: code})
 }
 
 // BeginLink re-authenticates userID and returns a single-use state for the
@@ -138,6 +120,20 @@ func (s *OAuthLinkService) Link(ctx context.Context, grant LinkGrant, id OAuthId
 	}
 	s.notify(userID, id.Provider, id.Email, true)
 	return true, nil
+}
+
+// LinkByVerifiedEmail makes the link AuthenticateOAuth offered. The UPDATE
+// re-checks the account, since its email may have changed since the match.
+func (s *OAuthLinkService) LinkByVerifiedEmail(ctx context.Context, l OAuthLink) (*model.User, error) {
+	u, err := s.users.LinkOAuthByVerifiedEmail(ctx, l.UserID, l.Email, l.Provider, l.ID)
+	if errors.Is(err, sql.ErrNoRows) || errors.Is(err, store.ErrOAuthIdentityTaken) {
+		return nil, ErrOAuthAccountExists
+	}
+	if err != nil {
+		return nil, err
+	}
+	s.notify(u.ID, l.Provider, l.Email, true)
+	return u, nil
 }
 
 // Unlink removes userID's provider sign-in after re-authentication and returns the

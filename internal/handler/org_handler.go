@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
@@ -21,8 +22,33 @@ type createOrgRequest struct {
 }
 
 type addOrgMemberRequest struct {
-	Username string `json:"username"`
-	Role     string `json:"role"`
+	Username  string `json:"username"`
+	Role      string `json:"role"`
+	Password  string `json:"password"`
+	Code      string `json:"code"`
+	EmailCode string `json:"email_code"`
+}
+
+const (
+	inviteMemberFormError = "#invite-member-form-error"
+	transferOrgFormError  = "#transfer-org-form-error"
+	deleteOrgFormError    = "#delete-org-form-error"
+)
+
+// orgPromoteFormError is the error slot of the dialog that makes userID an owner.
+func orgPromoteFormError(userID int64) string {
+	return "#org-promote-error-" + strconv.FormatInt(userID, 10)
+}
+
+// confirmOwnerGrant confirms an action that makes someone an owner of orgID:
+// owners get every repository in the org, members none until added to one. It
+// checks the caller is an owner first, so only an owner's attempt is counted.
+func (h *Handler) confirmOwnerGrant(w http.ResponseWriter, r *http.Request, orgID, userID int64, c service.Confirmation, slot string) bool {
+	if !h.Services.Org.IsOwner(r.Context(), orgID, userID) {
+		writeError(w, http.StatusForbidden, "only org owners can do this")
+		return false
+	}
+	return h.confirmGrant(w, r, userID, c, slot)
 }
 
 type createOrgRepoRequest struct {
@@ -104,6 +130,9 @@ func (h *Handler) AddOrgMember(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err == nil && r.FormValue("username") != "" {
 		req.Username = r.FormValue("username")
 		req.Role = r.FormValue("role")
+		req.Password = r.FormValue("password")
+		req.Code = r.FormValue("code")
+		req.EmailCode = r.FormValue("email_code")
 	} else {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
@@ -120,13 +149,26 @@ func (h *Handler) AddOrgMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	htmx := r.Header.Get("HX-Request") == "true"
 	targetUser, err := h.Services.User.GetByUsername(r.Context(), req.Username)
 	if err != nil {
+		if htmx {
+			renderFormError(w, inviteMemberFormError, "No user has that username.")
+			return
+		}
 		writeError(w, http.StatusNotFound, "user not found")
+		return
+	}
+	if model.OrgRole(req.Role) == model.OrgRoleOwner &&
+		!h.confirmOwnerGrant(w, r, org.ID, claims.UserID, service.Confirmation{Password: req.Password, Code: req.Code, OneTimeCode: req.EmailCode}, inviteMemberFormError) {
 		return
 	}
 
 	if err := h.Services.Org.AddMember(r.Context(), org.ID, claims.UserID, targetUser.ID, model.OrgRole(req.Role)); err != nil {
+		if htmx {
+			renderFormError(w, inviteMemberFormError, err.Error())
+			return
+		}
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
@@ -137,12 +179,13 @@ func (h *Handler) AddOrgMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canManage := h.Services.Org.IsOwner(r.Context(), org.ID, claims.UserID)
-	if r.Header.Get("HX-Request") == "true" {
+	if htmx {
 		h.render(w, r, fragments.OrgMembers(view.OrgMembersFragData{
 			OrgName:   orgName,
 			Members:   members,
 			CanManage: canManage,
 			ViewerID:  claims.UserID,
+			Confirm:   h.confirmFactors(r, claims.UserID),
 		}))
 		return
 	}
@@ -187,6 +230,7 @@ func (h *Handler) RemoveOrgMember(w http.ResponseWriter, r *http.Request) {
 			Members:   members,
 			CanManage: canManage,
 			ViewerID:  claims.UserID,
+			Confirm:   h.confirmFactors(r, claims.UserID),
 		}))
 		return
 	}
@@ -221,6 +265,9 @@ func (h *Handler) UpdateOrgMemberRole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	role := model.OrgRole(r.FormValue("role"))
+	if role == model.OrgRoleOwner && !h.confirmOwnerGrant(w, r, org.ID, claims.UserID, confirmationFrom(r), orgPromoteFormError(target.ID)) {
+		return
+	}
 	if err := h.Services.Org.UpdateMemberRole(r.Context(), org.ID, claims.UserID, target.ID, role); err != nil {
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
@@ -232,11 +279,14 @@ func (h *Handler) UpdateOrgMemberRole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
+		// Sent as a header: the promote dialog that asked is gone once the list is swapped.
+		toast(w, "success", "Member role updated")
 		h.render(w, r, fragments.OrgMembers(view.OrgMembersFragData{
 			OrgName:   orgName,
 			Members:   members,
 			CanManage: true,
 			ViewerID:  claims.UserID,
+			Confirm:   h.confirmFactors(r, claims.UserID),
 		}))
 		return
 	}
@@ -308,13 +358,24 @@ func (h *Handler) DeleteOrg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	htmx := r.Header.Get("HX-Request") == "true"
+	fail := func(status int, msg string) {
+		if htmx {
+			renderFormError(w, deleteOrgFormError, msg)
+			return
+		}
+		writeError(w, status, msg)
+	}
 	if r.FormValue("confirm_name") != org.Name {
-		writeError(w, http.StatusUnprocessableEntity, "confirmation name does not match")
+		fail(http.StatusUnprocessableEntity, "confirmation name does not match")
+		return
+	}
+	if !h.confirmOwnerGrant(w, r, org.ID, claims.UserID, confirmationFrom(r), deleteOrgFormError) {
 		return
 	}
 
 	if err := h.Services.Org.Delete(r.Context(), org.ID, claims.UserID); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		fail(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -327,6 +388,11 @@ func (h *Handler) DeleteOrg(w http.ResponseWriter, r *http.Request) {
 		org.ID, org.Name, nil,
 	)
 
+	if htmx {
+		w.Header().Set("HX-Redirect", "/organizations")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	http.Redirect(w, r, "/organizations", http.StatusSeeOther)
 }
 
@@ -389,23 +455,39 @@ func (h *Handler) TransferOrg(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	htmx := r.Header.Get("HX-Request") == "true"
+	fail := func(status int, msg string) {
+		if htmx {
+			renderFormError(w, transferOrgFormError, msg)
+			return
+		}
+		writeError(w, status, msg)
+	}
 	newOwner := r.FormValue("new_owner")
 	if newOwner == "" {
-		writeError(w, http.StatusBadRequest, "new_owner is required")
+		fail(http.StatusBadRequest, "new_owner is required")
 		return
 	}
 	// An absent confirm_name is accepted so API callers that predate the dialog keep working.
 	if cn := r.FormValue("confirm_name"); cn != "" && cn != org.Name {
-		writeError(w, http.StatusUnprocessableEntity, "confirmation name does not match")
+		fail(http.StatusUnprocessableEntity, "confirmation name does not match")
+		return
+	}
+	if !h.confirmOwnerGrant(w, r, org.ID, claims.UserID, confirmationFrom(r), transferOrgFormError) {
 		return
 	}
 
 	if err := h.Services.Org.TransferOrg(r.Context(), org.ID, claims.UserID, newOwner); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "transfer failed")
+		fail(http.StatusUnprocessableEntity, "transfer failed")
 		return
 	}
 
 	// The requester is now a member and can no longer open the settings page.
+	if htmx {
+		w.Header().Set("HX-Redirect", "/"+orgName)
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	http.Redirect(w, r, "/"+orgName, http.StatusSeeOther)
 }
 

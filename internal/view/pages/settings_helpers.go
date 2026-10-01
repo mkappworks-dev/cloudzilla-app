@@ -13,7 +13,8 @@ var emailDigestLabels = map[string]string{
 	model.EmailDigestNever:     "Never",
 }
 
-func settingsErrorMessage(code string) string {
+// SettingsErrorMessage is shared with handlers that answer HTMX requests with the message itself.
+func SettingsErrorMessage(code string) string {
 	switch code {
 	case "invalid_email":
 		return "Enter a valid email address."
@@ -35,6 +36,42 @@ func settingsErrorMessage(code string) string {
 		return "Verification code is required."
 	case "totp_invalid_code":
 		return "Invalid verification code. Please try again."
+	case "reauth_failed":
+		return "Your password or two-factor code was incorrect. Nothing was changed."
+	case "reauth_throttled":
+		return "Too many incorrect passwords or codes. Try again in 15 minutes."
+	case "reauth_unavailable":
+		return "This account has no way to confirm it's you here, so this can't be done. Ask your administrator."
+	case "token_admin_expiry":
+		return "A token with repo:admin must expire within 90 days. Pick an expiry date and try again."
+	case "token_admin_targets":
+		return "A token with repo:admin must name the repositories (owner/repo) or organizations it may administer."
+	case "token_target":
+		return "A token can only be limited to repositories you manage and organizations you own, and only with repo:admin. Nothing was created."
+	case "token_admin_key":
+		return "A token with repo:admin needs a signing key. Paste an SSH public key; its private key will sign each request."
+	case "token_key_invalid":
+		return "The signing key must be an Ed25519, ECDSA, 2048-bit RSA or hardware (sk-) SSH public key, like the contents of a .pub file."
+	case "reauth_error":
+		return "Couldn't check your password or code. Please try again."
+	case "password_mismatch":
+		return "The new passwords didn't match. Nothing was changed."
+	case "password_too_short":
+		return "The new password needs at least 8 characters. Nothing was changed."
+	case "password_too_long":
+		return "The new password can be at most 72 bytes. Nothing was changed."
+	case "password_change_failed":
+		return "Couldn't change your password. Please try again."
+	case "sessions_revoke_failed":
+		return "Couldn't sign out your other sessions. Please try again."
+	case "verification_cooldown":
+		return "Verification emails go out at most once a minute. Try again shortly."
+	case "already_verified":
+		return "Your email address is already verified."
+	case "verification_unavailable":
+		return "Verifying your email needs outgoing email, which the administrator hasn't configured."
+	case "verification_failed":
+		return "Couldn't send the verification email. Please try again later."
 	case "google_not_configured":
 		return "Google sign-in isn't set up on this instance."
 	case "google_reauth_failed":

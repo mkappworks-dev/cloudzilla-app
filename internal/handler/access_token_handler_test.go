@@ -28,7 +28,7 @@ var rawTokenRE = regexp.MustCompile(`czp_[0-9a-f]{64}`)
 func TestCreateToken_ShowsTokenOnceWithoutPuttingItInAURL(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	suffix := testutil.UniqueSuffix(t)
-	userID := testutil.SeedUser(t, db, suffix)
+	userID, _ := testutil.SeedUserWithPassword(t, db, suffix, "password1")
 
 	var logs bytes.Buffer
 	defaultLogger := slog.Default()
@@ -53,7 +53,7 @@ func TestCreateToken_ShowsTokenOnceWithoutPuttingItInAURL(t *testing.T) {
 		t.Fatal(err)
 	}
 	srvURL, _ := url.Parse(srv.URL)
-	jar.SetCookies(srvURL, []*http.Cookie{{Name: testCookieName, Value: makeIssueJWT(t, userID, "testuser_"+suffix), Path: "/"}})
+	jar.SetCookies(srvURL, []*http.Cookie{{Name: testCookieName, Value: makeIssueJWT(t, userID, "testpw_"+suffix), Path: "/"}})
 	var visited []string
 	var flash []*http.Cookie
 	client := &http.Client{Jar: jar, CheckRedirect: func(req *http.Request, _ []*http.Request) error {
@@ -74,7 +74,7 @@ func TestCreateToken_ShowsTokenOnceWithoutPuttingItInAURL(t *testing.T) {
 		return string(b)
 	}
 
-	resp, err := client.PostForm(srv.URL+"/api/user/tokens", url.Values{"name": {"ci " + suffix}, "scopes": {model.ScopeRepoRead}})
+	resp, err := client.PostForm(srv.URL+"/api/user/tokens", url.Values{"name": {"ci " + suffix}, "scopes": {model.ScopeRepoRead}, "password": {"password1"}})
 	if err != nil {
 		t.Fatal(err)
 	}

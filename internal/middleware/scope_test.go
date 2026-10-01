@@ -15,6 +15,7 @@ func TestScopeAllows(t *testing.T) {
 		write  = model.ScopeRepoWrite
 		issues = model.ScopeIssuesWrite
 		pulls  = model.ScopePullsWrite
+		admin  = model.ScopeRepoAdmin
 	)
 	tests := []struct {
 		name   string
@@ -80,6 +81,30 @@ func TestScopeAllows(t *testing.T) {
 		{"gists API", "POST", "/api/gists", []string{read, write}, false},
 		{"admin API", "POST", "/api/admin/settings", []string{read, write}, false},
 		{"consent screen", "POST", "/oauth/authorize", []string{read, write}, false},
+		{"resend verification email", "POST", "/settings/email/resend-verification", []string{read, write, issues, pulls}, false},
+		{"verify email page", "GET", "/verify-email?token=x", []string{read, write, issues, pulls}, false},
+		{"verify email submit", "POST", "/verify-email", []string{read, write, issues, pulls}, false},
+		{"admin verify email", "POST", "/api/admin/users/verify-email", []string{read, write, issues, pulls}, false},
+		{"sign out other sessions", "POST", "/settings/sessions/revoke", []string{read, write, issues, pulls}, false},
+		{"change password", "POST", "/settings/password", []string{read, write, issues, pulls}, false},
+		{"email a confirmation code", "POST", "/settings/confirm-code", []string{read, write, issues, pulls}, false},
+		{"sign in again to confirm", "POST", "/settings/reauth/google", []string{read, write, issues, pulls, admin}, false},
+		{"add collaborator with repo:admin", "POST", "/api/repos/alice/proj/collaborators", []string{admin}, true},
+		{"add webhook with repo:admin", "POST", "/api/repos/alice/proj/hooks", []string{admin}, true},
+		{"delete repo with repo:admin", "POST", "/api/repos/alice/proj/delete", []string{admin}, true},
+		{"add org owner with repo:admin", "POST", "/api/orgs/acme/members", []string{admin}, true},
+		{"promote org member with repo:admin", "POST", "/api/orgs/acme/members/bob/role", []string{admin}, true},
+		{"transfer org with repo:admin", "POST", "/api/orgs/acme/transfer", []string{admin}, true},
+		{"push content with repo:admin only", "POST", "/api/repos/alice/proj/issues", []string{admin}, false},
+		{"account SSH key with repo:admin", "POST", "/api/user/keys", []string{admin}, false},
+		{"instance admin with repo:admin", "POST", "/api/admin/settings", []string{admin}, false},
+		{"turn on 2FA", "POST", "/api/user/totp/enable", []string{read, write, issues, pulls}, false},
+		{"turn off 2FA", "POST", "/api/user/totp/disable", []string{read, write, issues, pulls}, false},
+		{"add collaborator", "POST", "/api/repos/alice/proj/collaborators", []string{read, write, issues, pulls}, false},
+		{"add deploy key", "POST", "/api/repos/alice/proj/keys", []string{read, write, issues, pulls}, false},
+		{"add webhook", "POST", "/api/repos/alice/proj/hooks", []string{read, write, issues, pulls}, false},
+		{"transfer repo", "POST", "/api/repos/alice/proj/transfer", []string{read, write, issues, pulls}, false},
+		{"transfer org", "POST", "/api/orgs/acme/transfer", []string{read, write, issues, pulls}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -235,7 +260,7 @@ func TestPAT_ScopeEnforcement(t *testing.T) {
 		{"mint a PAT with every scope", false, "POST", "/api/user/tokens", every, http.StatusForbidden, closed},
 		{"add an SSH key with every scope", false, "POST", "/api/user/keys", every, http.StatusForbidden, closed},
 		{"admin API with every scope", false, "POST", "/api/admin/settings", every, http.StatusForbidden, closed},
-		{"add webhook with every scope", false, "POST", "/api/repos/bob/proj/hooks", every, http.StatusForbidden, closed},
+		{"add webhook with every scope", false, "POST", "/api/repos/bob/proj/hooks", every, http.StatusForbidden, closed + `, scope="repo:admin"`},
 		{"profile page with every scope", true, "GET", "/bob", every, http.StatusForbidden, closed},
 	}
 	for _, tt := range tests {
@@ -257,5 +282,29 @@ func TestPAT_ScopeEnforcement(t *testing.T) {
 				t.Errorf("WWW-Authenticate = %q, want %q", got, tt.challenge)
 			}
 		})
+	}
+}
+
+func TestTargetAllows(t *testing.T) {
+	targets := []string{"alice/app", "acme"}
+	for _, tt := range []struct {
+		method, target string
+		want           bool
+	}{
+		{"POST", "/api/repos/alice/app/collaborators", true},
+		{"POST", "/api/repos/ALICE/App/hooks", true},
+		{"POST", "/api/repos/alice/other/collaborators", false},
+		{"POST", "/api/repos/acme/site/keys", true},
+		{"POST", "/api/orgs/acme/members", true},
+		{"POST", "/api/orgs/other/members", false},
+		{"POST", "/api/repos/bob/app/delete", false},
+		{"POST", "/api/repos/alice%2Fapp/x/hooks", false},
+		{"GET", "/api/repos", true},
+		{"GET", "/api/user/tokens", true},
+	} {
+		req := httptest.NewRequest(tt.method, tt.target, nil)
+		if got := TargetAllows(targets, req); got != tt.want {
+			t.Errorf("%s %s: TargetAllows = %v, want %v", tt.method, tt.target, got, tt.want)
+		}
 	}
 }
