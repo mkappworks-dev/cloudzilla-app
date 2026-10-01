@@ -27,6 +27,8 @@ import (
 func newVerificationRouter(t *testing.T, smtp config.SMTPConfig) (http.Handler, *service.Services, *sql.DB) {
 	t.Helper()
 	db := testutil.OpenTestDB(t)
+	// Outlives the users a test deletes: with no account left, every route redirects to /setup.
+	testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
 	cfg := &config.Config{
 		Server: config.ServerConfig{BaseURL: "http://localhost"},
 		Auth:   config.AuthConfig{JWTSecret: testJWTSecret, JWTExpiry: time.Hour, CookieName: "cz_token"},
