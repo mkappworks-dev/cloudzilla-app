@@ -89,7 +89,7 @@ func TestNotification_MarkAllRead_ClearsAllUnread(t *testing.T) {
 			RepoName:  "testrepo_" + suffix,
 			OwnerName: "testuser_" + suffix,
 			SubjectID: int64(i + 1),
-			}
+		}
 		if err := notifStore.Create(context.Background(), n); err != nil {
 			t.Fatalf("seed notification %d: %v", i, err)
 		}
