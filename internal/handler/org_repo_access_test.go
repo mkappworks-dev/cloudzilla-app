@@ -148,7 +148,7 @@ func TestOrgRepo_CreatorDemotedToMember_KeepsOnlyExplicitRole(t *testing.T) {
 
 	env.wantNoAccess(t, env.creator.token)
 
-	if err := env.svc.Repo.AddCollaborator(ctx, env.repo.ID, env.creator.name, string(model.RoleReader)); err != nil {
+	if err := env.svc.Repo.AddCollaborator(ctx, env.repo, env.owner.id, env.creator.name, string(model.RoleReader)); err != nil {
 		t.Fatalf("grant reader: %v", err)
 	}
 	if code, body := env.gitRefs(t, "git-upload-pack", env.creator.token); code != http.StatusOK || !strings.Contains(body, env.head) {
