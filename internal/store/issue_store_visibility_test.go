@@ -69,15 +69,6 @@ func TestListIssues_VisibilityFilter(t *testing.T) {
 		t.Fatalf("insert repo: %v", err)
 	}
 
-	// Give owner a permissions row.
-	_, err = db.ExecContext(ctx,
-		`INSERT INTO permissions (user_id, repo_id, role) VALUES ($1, $2, 'owner')`,
-		ownerID, repoID,
-	)
-	if err != nil {
-		t.Fatalf("insert permission: %v", err)
-	}
-
 	// Insert public issue.
 	var pubIssueID int64
 	err = db.QueryRowContext(ctx,
