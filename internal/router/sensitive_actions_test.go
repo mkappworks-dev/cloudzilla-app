@@ -566,23 +566,26 @@ func TestPAT_OnlyAdminTokensSkipTheConfirmation(t *testing.T) {
 	testutil.SeedUser(t, db, granteeSuffix)
 	soon := time.Now().Add(24 * time.Hour)
 	signer, signingKey := testutil.NewSigningKey(t)
-	token := func(scopes ...string) string {
-		var expires *time.Time
-		var key string
-		if slices.Contains(scopes, model.ScopeRepoAdmin) {
-			expires, key = &soon, signingKey
-		}
-		raw, _, err := svc.AccessToken.GenerateWithKey(ctx, userID, "ci "+strings.Join(scopes, ","), scopes, expires, key)
-		if err != nil {
-			t.Fatalf("Generate %v: %v", scopes, err)
-		}
-		return raw
-	}
-	admin, writer := token(model.ScopeRepoAdmin), token(model.ScopeRepoWrite)
 	repo, err := svc.Repo.Create(ctx, userID, owner, "pat_"+suffix, "", true, service.RepoInitOptions{})
 	if err != nil {
 		t.Fatalf("create repo: %v", err)
 	}
+	otherRepo, err := svc.Repo.Create(ctx, userID, owner, "pat_other_"+suffix, "", true, service.RepoInitOptions{})
+	if err != nil {
+		t.Fatalf("create repo: %v", err)
+	}
+	token := func(scopes ...string) string {
+		nt := service.NewToken{Name: "ci " + strings.Join(scopes, ","), Scopes: scopes}
+		if slices.Contains(scopes, model.ScopeRepoAdmin) {
+			nt.ExpiresAt, nt.SigningKey, nt.Targets = &soon, signingKey, []string{owner + "/" + repo.Name}
+		}
+		raw, _, err := svc.AccessToken.Create(ctx, userID, nt)
+		if err != nil {
+			t.Fatalf("Create %v: %v", scopes, err)
+		}
+		return raw
+	}
+	admin, writer := token(model.ScopeRepoAdmin), token(model.ScopeRepoWrite)
 	base := "/api/repos/" + owner + "/" + repo.Name
 	request := func(token, path string, form url.Values) *http.Request {
 		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(form.Encode()))
@@ -616,6 +619,15 @@ func TestPAT_OnlyAdminTokensSkipTheConfirmation(t *testing.T) {
 	}
 	if rr := serve(h, replay); rr.Code != http.StatusUnauthorized {
 		t.Errorf("the same signed request again: got %d, want 401", rr.Code)
+	}
+	// The token names only the first repository, though its owner manages both.
+	elsewhere := request(admin, "/api/repos/"+owner+"/"+otherRepo.Name+"/collaborators", collaborator("reader"))
+	testutil.SignHTTPRequest(t, signer, elsewhere)
+	if rr := serve(h, elsewhere); rr.Code != http.StatusForbidden || !strings.Contains(rr.Body.String(), "isn't allowed for that repository") {
+		t.Errorf("a repository the token doesn't name: got %d %s, want 403", rr.Code, rr.Body)
+	}
+	if n := countRows(t, db, `SELECT COUNT(*) FROM permissions WHERE repo_id = $1 AND role <> 'owner'`, otherRepo.ID); n != 0 {
+		t.Errorf("%d collaborators added to a repository the token doesn't name", n)
 	}
 	if notice := box.NextTo(t, email); !strings.Contains(notice.Data, base+"/collaborators") {
 		t.Errorf("the admin token's use wasn't mailed to the owner: %.300s", notice.Data)

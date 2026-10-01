@@ -25,13 +25,13 @@ Actions that give lasting access take the account's `password`, plus `code` (the
 
 ## Signed requests
 
-A token bound to a signing key (every `repo:admin` token) works only for requests signed with the key's private half. Anything else gets `401 {"error":"this token needs each request signed with its key"}`. Each request carries three headers besides `Authorization: Bearer czp_…`:
+A token bound to a signing key (every `repo:admin` token) works only for requests signed with the key's private half. A `repo:admin` token also works only on its targets; any other repository or organization gets `403 {"error":"this token isn't allowed for that repository or organization"}`. Anything else gets `401 {"error":"this token needs each request signed with its key"}`. Each request carries three headers besides `Authorization: Bearer czp_…`:
 
 - `X-Cloudzilla-Timestamp`: Unix seconds, within 5 minutes of the server's clock.
 - `X-Cloudzilla-Nonce`: 16 to 64 characters from `A-Z a-z 0-9 - _`, never reused with the token.
 - `X-Cloudzilla-Signature`: an `ssh-keygen -Y sign -n cloudzilla-api` signature of the message below, without its `BEGIN`/`END` lines and line breaks.
 
-The message is six lines, without a trailing newline: `cloudzilla-request-v1`, the method, the path and query as sent, the timestamp, the nonce, and the hex SHA-256 of the body (of nothing for a request without one). Bodies over 1 MiB are refused. A shell helper:
+The message is six lines, without a trailing newline: `cloudzilla-request-v1`, the method, the path and query as sent, the timestamp, the nonce, and the hex SHA-256 of the body (of nothing for a request without one). Bodies over 1 MiB are refused. With a hardware key, `ssh-keygen` asks for a touch for each request unless the token's key was registered with `no-touch-required`. A shell helper:
 
 ```sh
 #!/bin/sh
@@ -89,7 +89,7 @@ Browser form posts from Account settings. Both need the current `password`, plus
 
 | Method | Path                   | Auth     | Description                                                                                                                                                        |
 | ------ | ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, repeated `scopes` from `repo:read`, `repo:write`, `issues:write`, `pulls:write` and `repo:admin` — the last needs `signing_key` and `expires_at` within 90 days — optional `expires_at`, optional `signing_key` (an SSH public key; see [signed requests](#signed-requests)), plus `password` and, with 2FA, `code` form fields); redirects to `/settings#tokens`, which shows the raw token once, via an HttpOnly cookie, or to `/settings?profile_error=reauth_failed#tokens` |
+| POST   | `/api/user/tokens`     | Required | Create PAT (`name`, repeated `scopes` from `repo:read`, `repo:write`, `issues:write`, `pulls:write` and `repo:admin` — the last needs `signing_key`, `targets` and `expires_at` within 90 days — optional `expires_at`, optional `signing_key` (an SSH public key, hardware `sk-` keys included; see [signed requests](#signed-requests)), `targets` (`repo:admin` only: `owner/repo` or `org`, one per line or comma-separated, each one you administer), plus `password` and, with 2FA, `code` form fields); redirects to `/settings#tokens`, which shows the raw token once, via an HttpOnly cookie, or to `/settings?profile_error=reauth_failed#tokens` |
 | DELETE | `/api/user/tokens/:id` | Required | Revoke a PAT by ID                                                                                                                                                 |
 
 Raw token format: `czp_<32-byte hex>`. Use as `Authorization: Bearer czp_<token>`, or as the HTTP Basic password for git. Only the SHA-256 hash is stored; the raw value cannot be recovered after creation.

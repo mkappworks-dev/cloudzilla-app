@@ -18,10 +18,11 @@ func NewAccessTokenStore(db *sql.DB) *AccessTokenStore { return &AccessTokenStor
 
 func (s *AccessTokenStore) Create(ctx context.Context, t *model.AccessToken) error {
 	t.ScopesRaw = strings.Join(t.Scopes, ",")
+	t.TargetsRaw = strings.Join(t.Targets, ",")
 	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO access_tokens (user_id, name, token_hash, last_eight, scopes, expires_at, signing_key)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_at`,
-		t.UserID, t.Name, t.TokenHash, t.LastEight, t.ScopesRaw, t.ExpiresAt, t.SigningKey,
+		`INSERT INTO access_tokens (user_id, name, token_hash, last_eight, scopes, expires_at, signing_key, targets)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at`,
+		t.UserID, t.Name, t.TokenHash, t.LastEight, t.ScopesRaw, t.ExpiresAt, t.SigningKey, t.TargetsRaw,
 	).Scan(&t.ID, &t.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("access token create: %w", err)
@@ -31,7 +32,7 @@ func (s *AccessTokenStore) Create(ctx context.Context, t *model.AccessToken) err
 
 func (s *AccessTokenStore) ListByUser(ctx context.Context, userID int64) ([]model.AccessToken, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, user_id, name, token_hash, last_eight, scopes, last_used_at, expires_at, created_at, signing_key
+		`SELECT id, user_id, name, token_hash, last_eight, scopes, last_used_at, expires_at, created_at, signing_key, targets
 		 FROM access_tokens WHERE user_id = $1 ORDER BY created_at DESC`,
 		userID,
 	)
@@ -43,11 +44,14 @@ func (s *AccessTokenStore) ListByUser(ctx context.Context, userID int64) ([]mode
 	for rows.Next() {
 		var t model.AccessToken
 		if err := rows.Scan(&t.ID, &t.UserID, &t.Name, &t.TokenHash, &t.LastEight, &t.ScopesRaw,
-			&t.LastUsedAt, &t.ExpiresAt, &t.CreatedAt, &t.SigningKey); err != nil {
+			&t.LastUsedAt, &t.ExpiresAt, &t.CreatedAt, &t.SigningKey, &t.TargetsRaw); err != nil {
 			return nil, err
 		}
 		if t.ScopesRaw != "" {
 			t.Scopes = strings.Split(t.ScopesRaw, ",")
+		}
+		if t.TargetsRaw != "" {
+			t.Targets = strings.Split(t.TargetsRaw, ",")
 		}
 		tokens = append(tokens, t)
 	}
@@ -57,16 +61,19 @@ func (s *AccessTokenStore) ListByUser(ctx context.Context, userID int64) ([]mode
 func (s *AccessTokenStore) GetByHash(ctx context.Context, tokenHash string) (*model.AccessToken, error) {
 	t := &model.AccessToken{}
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, user_id, name, token_hash, last_eight, scopes, last_used_at, expires_at, created_at, signing_key
+		`SELECT id, user_id, name, token_hash, last_eight, scopes, last_used_at, expires_at, created_at, signing_key, targets
 		 FROM access_tokens WHERE token_hash = $1`,
 		tokenHash,
 	).Scan(&t.ID, &t.UserID, &t.Name, &t.TokenHash, &t.LastEight, &t.ScopesRaw,
-		&t.LastUsedAt, &t.ExpiresAt, &t.CreatedAt, &t.SigningKey)
+		&t.LastUsedAt, &t.ExpiresAt, &t.CreatedAt, &t.SigningKey, &t.TargetsRaw)
 	if err != nil {
 		return nil, fmt.Errorf("access token get by hash: %w", err)
 	}
 	if t.ScopesRaw != "" {
 		t.Scopes = strings.Split(t.ScopesRaw, ",")
+	}
+	if t.TargetsRaw != "" {
+		t.Targets = strings.Split(t.TargetsRaw, ",")
 	}
 	return t, nil
 }

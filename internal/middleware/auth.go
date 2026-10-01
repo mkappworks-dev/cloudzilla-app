@@ -32,9 +32,11 @@ type Claims struct {
 	Scopes []string
 	// SessionVersion is the user's session version when a session JWT was issued.
 	SessionVersion int
-	// PAT marks a personal access token, named TokenName.
+	// PAT marks a personal access token, named TokenName. A token with Targets
+	// is limited to those repositories and organizations; see TargetAllows.
 	PAT       bool
 	TokenName string
+	Targets   []string
 }
 
 // SessionVersions reports a user's current session version; bumping it ends
@@ -233,7 +235,7 @@ func servePAT(w http.ResponseWriter, r *http.Request, next http.Handler, v PATVa
 // identity, limited to the token's scopes. IsSuperadmin stays false, as for
 // OAuth-app tokens: instance administration is for sessions only.
 func PATClaims(t *model.AccessToken, u *model.User) Claims {
-	return Claims{UserID: u.ID, Username: u.Username, Scoped: true, Scopes: t.Scopes, PAT: true, TokenName: t.Name}
+	return Claims{UserID: u.ID, Username: u.Username, Scoped: true, Scopes: t.Scopes, PAT: true, TokenName: t.Name, Targets: t.Targets}
 }
 
 const maxSignedBody = 1 << 20
@@ -282,6 +284,12 @@ func writeSignatureRequired(w http.ResponseWriter) {
 func serveScoped(w http.ResponseWriter, r *http.Request, next http.Handler, claims Claims) {
 	if !ScopeAllows(claims, r) {
 		WriteInsufficientScope(w, RequiredScope(r))
+		return
+	}
+	if len(claims.Targets) > 0 && !TargetAllows(claims.Targets, r) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"error":"this token isn't allowed for that repository or organization"}`))
 		return
 	}
 	next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), claimsKey, claims)))

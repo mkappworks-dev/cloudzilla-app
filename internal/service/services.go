@@ -108,7 +108,7 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		PullLineComment:  NewPullLineCommentService(stores.PullLineComment, stores.Pull, stores.Repo),
 		PullEvent:        NewPullEventService(stores.PullEvent),
 		Search:           NewSearchService(stores.Search),
-		AccessToken:      NewAccessTokenService(stores.AccessToken, stores.User),
+		AccessToken:      NewAccessTokenService(stores.AccessToken, stores.User).WithAdminTargets(repoSvc, orgSvc),
 		DeployKey:        NewDeployKeyService(stores.DeployKey, stores.SSHKey),
 		BranchProtection: NewBranchProtectionService(stores.BranchProtection, stores.PullReview, stores.CommitStatus),
 		Reaction:         NewReactionService(stores.Reaction),

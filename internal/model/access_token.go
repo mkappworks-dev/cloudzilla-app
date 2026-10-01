@@ -19,6 +19,10 @@ type AccessToken struct {
 	// SigningKey is an SSH public key in authorized_keys form. When set, every
 	// request with the token must be signed with its private key.
 	SigningKey string `db:"signing_key" json:"-"`
+	// Targets are the repositories ("owner/repo") and organizations ("org") the
+	// token is limited to; empty for a token that isn't.
+	Targets    []string `db:"-"       json:"targets,omitempty"`
+	TargetsRaw string   `db:"targets" json:"-"`
 }
 
 // SignedRequest is what a key-bound token's request carries to prove its

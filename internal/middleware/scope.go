@@ -51,16 +51,47 @@ var repoContentResources = map[string]bool{
 	"discussions": true,
 }
 
-// acceptedScopes returns the scopes, any one of which admits a scoped token to r.
-// Only routes matched here are open to scoped tokens; nil means closed.
-func acceptedScopes(r *http.Request) []string {
-	// Split the path chi routes on, so an encoded "%2F" cannot shift segments
-	// between what the router matches and what this policy sees.
+// pathSegments splits the path chi routes on, so an encoded "%2F" cannot shift
+// segments between what the router matches and what a policy here sees.
+func pathSegments(r *http.Request) []string {
 	path := r.URL.RawPath
 	if path == "" {
 		path = r.URL.Path
 	}
-	seg := strings.Split(strings.Trim(path, "/"), "/")
+	return strings.Split(strings.Trim(path, "/"), "/")
+}
+
+// TargetAllows reports whether r stays within targets, the repositories
+// ("owner/repo") and organizations ("org") a token is limited to. An
+// organization covers its own routes and every repository it owns. A request
+// that names neither is left to the token's scopes.
+func TargetAllows(targets []string, r *http.Request) bool {
+	seg := pathSegments(r)
+	var owner, repo, org string
+	switch {
+	case len(seg) >= 4 && seg[0] == "api" && seg[1] == "repos":
+		owner, repo = seg[2], seg[3]
+	case len(seg) >= 3 && seg[0] == "api" && seg[1] == "orgs":
+		org = seg[2]
+	default:
+		return true
+	}
+	for _, t := range targets {
+		if tOwner, tRepo, isRepo := strings.Cut(t, "/"); isRepo {
+			if repo != "" && strings.EqualFold(tOwner, owner) && strings.EqualFold(tRepo, repo) {
+				return true
+			}
+		} else if strings.EqualFold(t, org) || repo != "" && strings.EqualFold(t, owner) {
+			return true
+		}
+	}
+	return false
+}
+
+// acceptedScopes returns the scopes, any one of which admits a scoped token to r.
+// Only routes matched here are open to scoped tokens; nil means closed.
+func acceptedScopes(r *http.Request) []string {
+	seg := pathSegments(r)
 	read := r.Method == http.MethodGet || r.Method == http.MethodHead
 
 	if seg[0] == "api" && len(seg) >= 2 {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -41,8 +42,12 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	signingKey := r.FormValue("signing_key")
-	switch _, _, err := service.CheckNewToken(scopes, expiresAt, signingKey); {
+	nt, err := h.Services.AccessToken.Check(r.Context(), claims.UserID, service.NewToken{
+		Name: name, Scopes: scopes, ExpiresAt: expiresAt,
+		SigningKey: r.FormValue("signing_key"),
+		Targets:    strings.FieldsFunc(r.FormValue("targets"), func(c rune) bool { return c == ',' || c == '\n' || c == '\r' }),
+	})
+	switch {
 	case errors.Is(err, service.ErrScopeRequired) || errors.Is(err, service.ErrInvalidScope):
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -55,13 +60,22 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, service.ErrAdminTokenNoExpiry):
 		http.Redirect(w, r, "/settings?profile_error=token_admin_expiry#tokens", http.StatusSeeOther)
 		return
+	case errors.Is(err, service.ErrAdminTokenNeedsTargets):
+		http.Redirect(w, r, "/settings?profile_error=token_admin_targets#tokens", http.StatusSeeOther)
+		return
+	case errors.Is(err, service.ErrTokenTarget):
+		http.Redirect(w, r, "/settings?profile_error=token_target#tokens", http.StatusSeeOther)
+		return
+	case err != nil:
+		http.Error(w, "failed to create token", http.StatusInternalServerError)
+		return
 	}
 	if _, err := h.Services.Reauth.Confirm(r.Context(), claims.UserID, confirmationFrom(r)); err != nil {
 		redirectReauthRefusal(w, r, claims.UserID, err, "tokens")
 		return
 	}
 
-	rawToken, _, err := h.Services.AccessToken.GenerateWithKey(r.Context(), claims.UserID, name, scopes, expiresAt, signingKey)
+	rawToken, _, err := h.Services.AccessToken.Create(r.Context(), claims.UserID, nt)
 	if err != nil {
 		http.Error(w, "failed to create token", http.StatusInternalServerError)
 		return

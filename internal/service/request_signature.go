@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -25,18 +26,31 @@ const (
 
 var (
 	ErrRequestSignature   = errors.New("the request isn't signed with the token's key")
-	ErrInvalidSigningKey  = errors.New("the signing key must be an Ed25519, ECDSA or 2048-bit RSA SSH public key")
+	ErrInvalidSigningKey  = errors.New("the signing key must be an Ed25519, ECDSA, 2048-bit RSA or hardware (sk-) SSH public key")
 	ErrAdminTokenNeedsKey = errors.New("a repo:admin token needs a signing key")
 )
 
+// noTouchRequired is the authorized_keys option that lets a hardware key sign
+// without a touch, as in OpenSSH.
+const noTouchRequired = "no-touch-required"
+
+// skUserPresent is the FIDO flag a hardware key sets when it was touched.
+const skUserPresent = 0x01
+
 // parseSigningKey checks key is an SSH public key fit to sign requests and
-// returns it in authorized_keys form.
+// returns it in authorized_keys form, keeping a no-touch-required option.
 func parseSigningKey(key string) (string, error) {
-	pub, _, _, _, err := ssh.ParseAuthorizedKey([]byte(strings.TrimSpace(key)))
+	pub, _, options, _, err := ssh.ParseAuthorizedKey([]byte(strings.TrimSpace(key)))
 	if err != nil {
 		return "", ErrInvalidSigningKey
 	}
+	normalized := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pub)))
 	switch pub.Type() {
+	case ssh.KeyAlgoSKED25519, ssh.KeyAlgoSKECDSA256:
+		if slices.Contains(options, noTouchRequired) {
+			normalized = noTouchRequired + " " + normalized
+		}
+		return normalized, nil
 	case ssh.KeyAlgoED25519, ssh.KeyAlgoECDSA256, ssh.KeyAlgoECDSA384, ssh.KeyAlgoECDSA521:
 	case ssh.KeyAlgoRSA:
 		cpk, ok := pub.(ssh.CryptoPublicKey)
@@ -49,16 +63,17 @@ func parseSigningKey(key string) (string, error) {
 	default:
 		return "", ErrInvalidSigningKey
 	}
-	return strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pub))), nil
+	return normalized, nil
 }
 
 // VerifySignedRequest checks that req, made with token, is signed by the
 // token's key, recently, and for the first time.
 func (s *AccessTokenService) VerifySignedRequest(ctx context.Context, token *model.AccessToken, req model.SignedRequest) error {
-	pub, _, _, _, err := ssh.ParseAuthorizedKey([]byte(token.SigningKey))
+	pub, _, options, _, err := ssh.ParseAuthorizedKey([]byte(token.SigningKey))
 	if err != nil {
 		return fmt.Errorf("token %d signing key: %w", token.ID, err)
 	}
+	touch := !slices.Contains(options, noTouchRequired)
 	ts, err := strconv.ParseInt(req.Timestamp, 10, 64)
 	if err != nil {
 		return ErrRequestSignature
@@ -73,7 +88,7 @@ func (s *AccessTokenService) VerifySignedRequest(ctx context.Context, token *mod
 	if err != nil {
 		return ErrRequestSignature
 	}
-	if err := verifySSHSig(pub, model.SignedRequestNamespace, req.Message(), blob); err != nil {
+	if err := verifySSHSig(pub, model.SignedRequestNamespace, req.Message(), blob, touch); err != nil {
 		return ErrRequestSignature
 	}
 	// Kept past both sides of the skew window, so a captured request can't be sent again.
@@ -100,8 +115,9 @@ func validNonce(n string) bool {
 var sshsigMagic = []byte("SSHSIG")
 
 // verifySSHSig checks blob, an SSHSIG signature as ssh-keygen -Y sign makes,
-// over message in namespace, against pub.
-func verifySSHSig(pub ssh.PublicKey, namespace string, message, blob []byte) error {
+// over message in namespace, against pub. With touch, a hardware key's
+// signature must say the key was touched.
+func verifySSHSig(pub ssh.PublicKey, namespace string, message, blob []byte, touch bool) error {
 	if !bytes.HasPrefix(blob, sshsigMagic) {
 		return errors.New("sshsig: missing magic")
 	}
@@ -139,5 +155,16 @@ func verifySSHSig(pub ssh.PublicKey, namespace string, message, blob []byte) err
 	if err := ssh.Unmarshal(sig.Signature, &s); err != nil {
 		return fmt.Errorf("sshsig: signature: %w", err)
 	}
-	return pub.Verify(signed, &s)
+	if err := pub.Verify(signed, &s); err != nil {
+		return err
+	}
+	// x/crypto checks a hardware key's signature, not its user-presence flag.
+	if isHardwareKey(pub) && touch && (len(s.Rest) == 0 || s.Rest[0]&skUserPresent == 0) {
+		return errors.New("sshsig: the hardware key wasn't touched")
+	}
+	return nil
+}
+
+func isHardwareKey(pub ssh.PublicKey) bool {
+	return pub.Type() == ssh.KeyAlgoSKED25519 || pub.Type() == ssh.KeyAlgoSKECDSA256
 }

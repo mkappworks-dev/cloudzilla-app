@@ -284,3 +284,27 @@ func TestPAT_ScopeEnforcement(t *testing.T) {
 		})
 	}
 }
+
+func TestTargetAllows(t *testing.T) {
+	targets := []string{"alice/app", "acme"}
+	for _, tt := range []struct {
+		method, target string
+		want           bool
+	}{
+		{"POST", "/api/repos/alice/app/collaborators", true},
+		{"POST", "/api/repos/ALICE/App/hooks", true},
+		{"POST", "/api/repos/alice/other/collaborators", false},
+		{"POST", "/api/repos/acme/site/keys", true},
+		{"POST", "/api/orgs/acme/members", true},
+		{"POST", "/api/orgs/other/members", false},
+		{"POST", "/api/repos/bob/app/delete", false},
+		{"POST", "/api/repos/alice%2Fapp/x/hooks", false},
+		{"GET", "/api/repos", true},
+		{"GET", "/api/user/tokens", true},
+	} {
+		req := httptest.NewRequest(tt.method, tt.target, nil)
+		if got := TargetAllows(targets, req); got != tt.want {
+			t.Errorf("%s %s: TargetAllows = %v, want %v", tt.method, tt.target, got, tt.want)
+		}
+	}
+}

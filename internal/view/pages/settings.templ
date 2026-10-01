@@ -2,6 +2,7 @@ package pages
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -463,6 +464,9 @@ templ settingsTokensSection(data view.SettingsData) {
 								if t.SigningKey != "" {
 									{ " · signed requests only" }
 								}
+								if len(t.Targets) > 0 {
+									{ " · only " + strings.Join(t.Targets, ", ") }
+								}
 								if t.ExpiresAt != nil {
 									{ " · expires " }
 									<time datetime={ t.ExpiresAt.UTC().Format(time.RFC3339) }>{ t.ExpiresAt.Format("Jan 2, 2006") }</time>
@@ -522,9 +526,14 @@ templ settingsGenerateTokenDialog(data view.SettingsData) {
 						<p class="text-[11px] text-muted-foreground mt-1">Choose at least one. Tokens can't manage your account, SSH keys or other tokens, nor repository and organization settings without repo:admin.</p>
 					</fieldset>
 					<div>
+						<label for="token-targets" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repositories and organizations (required with repo:admin)</label>
+						<textarea id="token-targets" name="targets" rows="2" placeholder="acme/app" aria-describedby="token-targets-help" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-none focus:border-ring"></textarea>
+						<p id="token-targets-help" class="text-[11px] text-muted-foreground mt-1">One per line: a repository you manage as <span class="font-mono">owner/repo</span>, or an organization you own, which covers its settings and all its repositories. The token can't touch anything else.</p>
+					</div>
+					<div>
 						<label for="token-signing-key" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Signing key (required with repo:admin)</label>
 						<textarea id="token-signing-key" name="signing_key" rows="2" placeholder="ssh-ed25519 AAAA…" aria-describedby="token-signing-key-help" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-none focus:border-ring"></textarea>
-						<p id="token-signing-key-help" class="text-[11px] text-muted-foreground mt-1">An SSH public key. Every request with this token must then be signed with its private key (<span class="font-mono">ssh-keygen -Y sign</span>), so the token alone is useless to anyone who copies it. Such a token can't be used for git.</p>
+						<p id="token-signing-key-help" class="text-[11px] text-muted-foreground mt-1">An SSH public key, which can live on a hardware key (sk-). Every request with this token must then be signed with its private key (<span class="font-mono">ssh-keygen -Y sign</span>), so the token alone is useless to anyone who copies it. Such a token can't be used for git.</p>
 					</div>
 					<div>
 						<label for="token-expires" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Expiration (optional)</label>
