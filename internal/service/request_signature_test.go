@@ -193,30 +193,45 @@ func TestAccessTokenService_GenerateWithKey_ChecksScopesAndKeys(t *testing.T) {
 func TestVerifySignedRequest_HardwareKeys(t *testing.T) {
 	svc, userID := newSigningTokens(t)
 	ctx := context.Background()
-	for _, tt := range []struct {
-		name         string
-		noTouch, tap bool
-		wantVerified bool
+	for _, hw := range []struct {
+		kind   string
+		newKey func(*testing.T) (*testutil.HardwareKey, string)
 	}{
-		{"touched", false, true, true},
-		{"not touched", false, false, false},
-		{"not touched, no-touch-required", true, false, true},
+		{"sk-ed25519", testutil.NewHardwareKey},
+		{"sk-ecdsa", testutil.NewHardwareECDSAKey},
 	} {
-		key, pub := testutil.NewHardwareKey(t)
-		if tt.noTouch {
-			pub = "no-touch-required " + pub
-		}
-		_, tok, err := svc.GenerateWithKey(ctx, userID, tt.name, []string{model.ScopeRepoRead}, nil, pub)
-		if err != nil {
-			t.Fatalf("%s: GenerateWithKey: %v", tt.name, err)
-		}
-		if tt.noTouch != strings.HasPrefix(tok.SigningKey, "no-touch-required ") {
-			t.Errorf("%s: stored key %q lost or invented the no-touch-required option", tt.name, tok.SigningKey)
-		}
-		req := requestFor("POST", "/api/repos/acme/app/keys", "title=ci", time.Now())
-		req.Signature = key.SignSSHSig(req.Message(), tt.tap)
-		if err := svc.VerifySignedRequest(ctx, tok, req); (err == nil) != tt.wantVerified {
-			t.Errorf("%s: err = %v, want verified = %v", tt.name, err, tt.wantVerified)
+		for _, tt := range []struct {
+			name                       string
+			noTouch, tap, otherRequest bool
+			wantVerified               bool
+		}{
+			{"touched", false, true, false, true},
+			{"not touched", false, false, false, false},
+			{"not touched, no-touch-required", true, false, false, true},
+			{"touched, no-touch-required", true, true, false, true},
+			{"not touched, no-touch-required, another request's signature", true, false, true, false},
+		} {
+			name := hw.kind + " " + tt.name
+			key, pub := hw.newKey(t)
+			if tt.noTouch {
+				pub = "no-touch-required " + pub
+			}
+			_, tok, err := svc.GenerateWithKey(ctx, userID, name, []string{model.ScopeRepoRead}, nil, pub)
+			if err != nil {
+				t.Fatalf("%s: GenerateWithKey: %v", name, err)
+			}
+			if tt.noTouch != strings.HasPrefix(tok.SigningKey, "no-touch-required ") {
+				t.Errorf("%s: stored key %q lost or invented the no-touch-required option", name, tok.SigningKey)
+			}
+			req := requestFor("POST", "/api/repos/acme/app/keys", "title=ci", time.Now())
+			msg := req.Message()
+			if tt.otherRequest {
+				msg = requestFor("POST", "/api/repos/acme/app/keys", "title=other", time.Now()).Message()
+			}
+			req.Signature = key.SignSSHSig(msg, tt.tap)
+			if err := svc.VerifySignedRequest(ctx, tok, req); (err == nil) != tt.wantVerified {
+				t.Errorf("%s: err = %v, want verified = %v", name, err, tt.wantVerified)
+			}
 		}
 	}
 }
