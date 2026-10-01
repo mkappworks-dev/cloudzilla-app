@@ -195,6 +195,12 @@ git pull
 7. `git-upload-pack` or `git-receive-pack` command is dispatched with user context
 8. Repository permissions are checked (read for upload-pack, write for receive-pack)
 
+### Errors
+
+Errors go to stderr, with exit status 1: an unsupported command, a bad path, a missing repository or no access to it, a deploy key used outside its repository or to push read-only, a push to an archived repository, or a failure during the transfer. git prints stderr as-is; stdout carries only the pack protocol, where git would read a message's first four bytes as a pkt-line length.
+
+When git needs nothing — `ls-remote`, a fetch or push that's already up to date, a clone of an empty repository — it sends a lone flush-pkt instead of a request. go-git rejects that as malformed, so the server checks for it first and exits with status 0.
+
 ## Repository Permission Rules
 
 All git operations (HTTP and SSH) respect the same permission rules.
