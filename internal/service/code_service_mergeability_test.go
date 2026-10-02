@@ -205,3 +205,25 @@ func TestMergeability_Conflicts(t *testing.T) {
 // value: the no-common-ancestor branch is exercised by inspection of
 // findMergeBase's error path, which Mergeability surfaces by string
 // match per the helper's contract.
+
+func TestMergeability_AfterMergingBaseIntoHead(t *testing.T) {
+	t.Parallel()
+	r := newDivergedPull(t)
+	merged := r.mergeMainIntoFeature(t)
+	r.commit(t, "main", "c.txt", "c\n")
+
+	m, err := r.svc.Mergeability(context.Background(), "alice", "pulls", "main", "feature")
+	if err != nil {
+		t.Fatalf("Mergeability: %v", err)
+	}
+	if m.MergeBase != merged.String() {
+		t.Errorf("MergeBase = %s, want the merged main commit %s", m.MergeBase, merged)
+	}
+	if m.HasConflicts {
+		t.Errorf("HasConflicts = true, want false")
+	}
+	// Ahead: feature's edit and the merge commit. Behind: main's c.txt commit.
+	if m.Ahead != 2 || m.Behind != 1 {
+		t.Errorf("Ahead=%d Behind=%d, want 2 and 1", m.Ahead, m.Behind)
+	}
+}

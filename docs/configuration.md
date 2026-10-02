@@ -224,6 +224,29 @@ cloudzilla-cli migrate --config /etc/cloudzilla/config.yaml
 
 Migrations are embedded in the binary and run in order. Safe to run repeatedly -- already-applied migrations are skipped.
 
+### `cloudzilla-cli seed`
+
+Fill a fresh instance with test data for manual testing: a superadmin (`siteadmin`, `admin@example.test`), 100 users, 10 organizations and 150 repositories with a year of backdated git history, plus issues, pull requests, reviews, discussions, releases, stars and gists. The default size takes under a minute.
+
+```bash
+createdb cloudzilla_seed
+CZ_DATABASE_DSN=postgres://cloudzilla:cloudzilla@localhost:5432/cloudzilla_seed?sslmode=disable \
+CZ_GIT_REPOS_ROOT=./git-repos-seed \
+  sh -c 'cloudzilla-cli migrate && cloudzilla-cli seed --users 20 --repos 30'
+```
+
+It refuses to run unless the database has no accounts and `git.repos_root` is empty, so point it at a scratch database, never at one you use. Run the server with the same config: commit authors use noreply addresses built from `server.base_url`.
+
+| Flag         | Default           | Meaning                                         |
+| ------------ | ----------------- | ----------------------------------------------- |
+| `--users`    | `100`             | Users besides the superadmin                    |
+| `--orgs`     | `10`              | Organizations                                   |
+| `--repos`    | `150`             | Repositories                                    |
+| `--seed`     | `1`               | Random seed; the same seed builds the same data |
+| `--password` | `cloudzilla-seed` | Password for every seeded account               |
+
+SMTP is switched off for the run, so the notifications it creates send no email.
+
 ### Instance management
 
 User and repository management is handled through the web UI:
