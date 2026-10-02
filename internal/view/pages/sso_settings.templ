@@ -10,266 +10,267 @@ templ SSOSettings(data view.SSOSettingsData) {
 	@layout.Base(data.BasePage, "SSO Settings — Cloudzilla") {
 		<div class="space-y-6">
 			@adminTabs("/admin/sso")
-			<div class="space-y-8 max-w-3xl">
-				<div>
-					<h1 class="text-2xl font-semibold tracking-tight">Single Sign-On</h1>
-					<p class="text-muted-foreground text-sm mt-1">Configure LDAP and SAML authentication providers.</p>
-				</div>
-				if data.Success != "" {
-					<div class="p-4 border border-success/40 bg-success/10 rounded-md text-success text-sm">{ data.Success }</div>
-				}
-				if data.Error != "" {
-					<div class="p-4 border border-destructive/40 bg-destructive/10 rounded-md text-destructive text-sm">{ data.Error }</div>
-				}
-				<!-- LDAP Configuration -->
-				@components.Card(nil) {
-					@components.CardHeader() {
-						<div class="flex items-center justify-between">
-							<div class="flex flex-col space-y-1.5">
-								@components.CardTitle(2) {
-									LDAP
-								}
-								@components.CardDescription() {
-									Authenticate users via LDAP simple bind.
-								}
-							</div>
-							if data.LDAPConfig != nil && data.LDAPConfig.Enabled {
-								@components.Badge(components.BadgeSuccess) {
-									Enabled
-								}
-							} else {
-								@components.Badge(components.BadgeSecondary) {
-									Disabled
-								}
+			<div>
+				<h1 class="text-2xl font-semibold tracking-tight">Single Sign-On</h1>
+				<p class="text-muted-foreground text-sm mt-1">Configure LDAP and SAML authentication providers.</p>
+			</div>
+			if data.Success != "" {
+				<div class="p-4 border border-success/40 bg-success/10 rounded-md text-success text-sm">{ data.Success }</div>
+			}
+			if data.Error != "" {
+				<div class="p-4 border border-destructive/40 bg-destructive/10 rounded-md text-destructive text-sm">{ data.Error }</div>
+			}
+			<!-- LDAP Configuration -->
+			@components.Card(nil) {
+				@components.CardHeader() {
+					<div class="flex items-center justify-between">
+						<div class="flex flex-col space-y-1.5">
+							@components.CardTitle(2) {
+								LDAP
+							}
+							@components.CardDescription() {
+								Authenticate users via LDAP simple bind.
 							}
 						</div>
-					}
-					@components.CardContent() {
-						<form method="POST" action="/admin/sso" data-toast="LDAP settings saved" class="space-y-4">
-							<input type="hidden" name="provider" value="ldap"/>
-							<div class="grid grid-cols-2 gap-4">
-								<div class="space-y-1.5">
-									<label for="ldap_host" class="block text-sm font-medium text-foreground">Host</label>
-									if data.LDAPConfig != nil {
-										@components.Input(templ.Attributes{
-											"id":    "ldap_host",
-											"type":  "text",
-											"name":  "ldap_host",
-											"value": data.LDAPConfig.Config["host"],
-										})
-									} else {
-										@components.Input(templ.Attributes{
-											"id":   "ldap_host",
-											"type": "text",
-											"name": "ldap_host",
-										})
-									}
-								</div>
-								<div class="space-y-1.5">
-									<label for="ldap_port" class="block text-sm font-medium text-foreground">Port</label>
-									if data.LDAPConfig != nil {
-										@components.Input(templ.Attributes{
-											"id":          "ldap_port",
-											"type":        "text",
-											"name":        "ldap_port",
-											"value":       data.LDAPConfig.Config["port"],
-											"placeholder": "389",
-										})
-									} else {
-										@components.Input(templ.Attributes{
-											"id":          "ldap_port",
-											"type":        "text",
-											"name":        "ldap_port",
-											"placeholder": "389",
-										})
-									}
-								</div>
-							</div>
-							<div class="space-y-1.5">
-								<label for="ldap_base_dn" class="block text-sm font-medium text-foreground">Base DN</label>
-								if data.LDAPConfig != nil {
-									@components.Input(templ.Attributes{
-										"id":          "ldap_base_dn",
-										"type":        "text",
-										"name":        "ldap_base_dn",
-										"value":       data.LDAPConfig.Config["base_dn"],
-										"placeholder": "dc=example,dc=com",
-									})
-								} else {
-									@components.Input(templ.Attributes{
-										"id":          "ldap_base_dn",
-										"type":        "text",
-										"name":        "ldap_base_dn",
-										"placeholder": "dc=example,dc=com",
-									})
-								}
-							</div>
-							<div class="space-y-1.5">
-								<label for="ldap_bind_dn_tmpl" class="block text-sm font-medium text-foreground">Bind DN Template</label>
-								if data.LDAPConfig != nil {
-									@components.Input(templ.Attributes{
-										"id":          "ldap_bind_dn_tmpl",
-										"type":        "text",
-										"name":        "ldap_bind_dn_tmpl",
-										"value":       data.LDAPConfig.Config["bind_dn_tmpl"],
-										"placeholder": "uid=%s,ou=people,dc=example,dc=com",
-									})
-								} else {
-									@components.Input(templ.Attributes{
-										"id":          "ldap_bind_dn_tmpl",
-										"type":        "text",
-										"name":        "ldap_bind_dn_tmpl",
-										"placeholder": "uid=%s,ou=people,dc=example,dc=com",
-									})
-								}
-							</div>
-							<div class="flex items-center gap-2">
-								if data.LDAPConfig != nil && data.LDAPConfig.Config["use_tls"] == "true" {
-									<input type="checkbox" id="ldap_use_tls" name="ldap_use_tls" value="true" checked class="h-4 w-4 rounded-sm border-input accent-foreground"/>
-								} else {
-									<input type="checkbox" id="ldap_use_tls" name="ldap_use_tls" value="true" class="h-4 w-4 rounded-sm border-input accent-foreground"/>
-								}
-								<label for="ldap_use_tls" class="text-sm text-foreground">Use TLS</label>
-							</div>
-							if data.LDAPConfig != nil && data.LDAPConfig.Enabled && data.LDAPConfig.Config["use_tls"] != "true" {
-								<p class="text-xs text-warning border border-warning/40 bg-warning/10 rounded-sm px-3 py-2">
-									Warning: TLS is disabled. LDAP credentials will be transmitted in plaintext. Enable TLS or use an ldaps:// host for production use.
-								</p>
+						if data.LDAPConfig != nil && data.LDAPConfig.Enabled {
+							@components.Badge(components.BadgeSuccess) {
+								Enabled
 							}
-							<div class="flex items-center gap-2">
-								if data.LDAPConfig != nil && data.LDAPConfig.Enabled {
-									<input type="checkbox" id="ldap_enabled" name="enabled" value="true" checked class="h-4 w-4 rounded-sm border-input accent-foreground"/>
+						} else {
+							@components.Badge(components.BadgeSecondary) {
+								Disabled
+							}
+						}
+					</div>
+				}
+				@components.CardContent() {
+					<form method="POST" action="/admin/sso" data-toast="LDAP settings saved" class="space-y-4">
+						<input type="hidden" name="provider" value="ldap"/>
+						<div class="grid grid-cols-2 gap-4">
+							<div class="space-y-1.5">
+								<label for="ldap_host" class="block text-sm font-medium text-foreground">Host</label>
+								if data.LDAPConfig != nil {
+									@components.Input(templ.Attributes{
+										"id":    "ldap_host",
+										"type":  "text",
+										"name":  "ldap_host",
+										"value": data.LDAPConfig.Config["host"],
+									})
 								} else {
-									<input type="checkbox" id="ldap_enabled" name="enabled" value="true" class="h-4 w-4 rounded-sm border-input accent-foreground"/>
+									@components.Input(templ.Attributes{
+										"id":   "ldap_host",
+										"type": "text",
+										"name": "ldap_host",
+									})
 								}
-								<label for="ldap_enabled" class="text-sm text-foreground">Enable LDAP authentication</label>
 							</div>
+							<div class="space-y-1.5">
+								<label for="ldap_port" class="block text-sm font-medium text-foreground">Port</label>
+								if data.LDAPConfig != nil {
+									@components.Input(templ.Attributes{
+										"id":          "ldap_port",
+										"type":        "text",
+										"name":        "ldap_port",
+										"value":       data.LDAPConfig.Config["port"],
+										"placeholder": "389",
+									})
+								} else {
+									@components.Input(templ.Attributes{
+										"id":          "ldap_port",
+										"type":        "text",
+										"name":        "ldap_port",
+										"placeholder": "389",
+									})
+								}
+							</div>
+						</div>
+						<div class="space-y-1.5">
+							<label for="ldap_base_dn" class="block text-sm font-medium text-foreground">Base DN</label>
+							if data.LDAPConfig != nil {
+								@components.Input(templ.Attributes{
+									"id":          "ldap_base_dn",
+									"type":        "text",
+									"name":        "ldap_base_dn",
+									"value":       data.LDAPConfig.Config["base_dn"],
+									"placeholder": "dc=example,dc=com",
+								})
+							} else {
+								@components.Input(templ.Attributes{
+									"id":          "ldap_base_dn",
+									"type":        "text",
+									"name":        "ldap_base_dn",
+									"placeholder": "dc=example,dc=com",
+								})
+							}
+						</div>
+						<div class="space-y-1.5">
+							<label for="ldap_bind_dn_tmpl" class="block text-sm font-medium text-foreground">Bind DN Template</label>
+							if data.LDAPConfig != nil {
+								@components.Input(templ.Attributes{
+									"id":          "ldap_bind_dn_tmpl",
+									"type":        "text",
+									"name":        "ldap_bind_dn_tmpl",
+									"value":       data.LDAPConfig.Config["bind_dn_tmpl"],
+									"placeholder": "uid=%s,ou=people,dc=example,dc=com",
+								})
+							} else {
+								@components.Input(templ.Attributes{
+									"id":          "ldap_bind_dn_tmpl",
+									"type":        "text",
+									"name":        "ldap_bind_dn_tmpl",
+									"placeholder": "uid=%s,ou=people,dc=example,dc=com",
+								})
+							}
+						</div>
+						<label class="flex w-fit items-center gap-2 text-sm text-foreground">
+							@components.Switch(templ.Attributes{
+								"id":      "ldap_use_tls",
+								"name":    "ldap_use_tls",
+								"value":   "true",
+								"checked": data.LDAPConfig != nil && data.LDAPConfig.Config["use_tls"] == "true",
+							})
+							Use TLS
+						</label>
+						if data.LDAPConfig != nil && data.LDAPConfig.Enabled && data.LDAPConfig.Config["use_tls"] != "true" {
+							<p class="text-xs text-warning border border-warning/40 bg-warning/10 rounded-sm px-3 py-2">
+								Warning: TLS is disabled. LDAP credentials will be transmitted in plaintext. Enable TLS or use an ldaps:// host for production use.
+							</p>
+						}
+						<label class="flex w-fit items-center gap-2 text-sm text-foreground">
+							@components.Switch(templ.Attributes{
+								"id":      "ldap_enabled",
+								"name":    "enabled",
+								"value":   "true",
+								"checked": data.LDAPConfig != nil && data.LDAPConfig.Enabled,
+							})
+							Enable LDAP authentication
+						</label>
+						<div class="flex flex-wrap items-end gap-3">
+							@components.ConfirmFields("sso-ldap", data.Confirm, true)
+						</div>
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							Save LDAP Settings
+						}
+					</form>
+				}
+			}
+			<!-- SAML Configuration -->
+			@components.Card(nil) {
+				@components.CardHeader() {
+					<div class="flex items-center justify-between">
+						<div class="flex flex-col space-y-1.5">
+							@components.CardTitle(2) {
+								SAML 2.0
+							}
+							@components.CardDescription() {
+								Authenticate users via SAML 2.0 HTTP-POST binding.
+							}
+						</div>
+						if data.SAMLConfig != nil && data.SAMLConfig.Enabled {
+							@components.Badge(components.BadgeSuccess) {
+								Enabled
+							}
+						} else {
+							@components.Badge(components.BadgeSecondary) {
+								Disabled
+							}
+						}
+					</div>
+				}
+				@components.CardContent() {
+					<form method="POST" action="/admin/sso" data-toast="SAML settings saved" class="space-y-4">
+						<input type="hidden" name="provider" value="saml"/>
+						<div class="space-y-1.5">
+							<label for="saml_entity_id" class="block text-sm font-medium text-foreground">Entity ID</label>
+							if data.SAMLConfig != nil {
+								@components.Input(templ.Attributes{
+									"id":    "saml_entity_id",
+									"type":  "text",
+									"name":  "saml_entity_id",
+									"value": data.SAMLConfig.Config["entity_id"],
+								})
+							} else {
+								@components.Input(templ.Attributes{
+									"id":   "saml_entity_id",
+									"type": "text",
+									"name": "saml_entity_id",
+								})
+							}
+						</div>
+						<div class="space-y-1.5">
+							<label for="saml_metadata_url" class="block text-sm font-medium text-foreground">IdP SSO URL / Metadata URL</label>
+							if data.SAMLConfig != nil {
+								@components.Input(templ.Attributes{
+									"id":    "saml_metadata_url",
+									"type":  "text",
+									"name":  "saml_metadata_url",
+									"value": data.SAMLConfig.Config["metadata_url"],
+								})
+							} else {
+								@components.Input(templ.Attributes{
+									"id":   "saml_metadata_url",
+									"type": "text",
+									"name": "saml_metadata_url",
+								})
+							}
+						</div>
+						<div class="space-y-1.5">
+							<label for="saml_acs_url" class="block text-sm font-medium text-foreground">Assertion Consumer Service URL</label>
+							if data.SAMLConfig != nil {
+								@components.Input(templ.Attributes{
+									"id":          "saml_acs_url",
+									"type":        "text",
+									"name":        "saml_acs_url",
+									"value":       data.SAMLConfig.Config["acs_url"],
+									"placeholder": "https://yourdomain/auth/saml/callback",
+								})
+							} else {
+								@components.Input(templ.Attributes{
+									"id":          "saml_acs_url",
+									"type":        "text",
+									"name":        "saml_acs_url",
+									"placeholder": "https://yourdomain/auth/saml/callback",
+								})
+							}
+						</div>
+						<div class="space-y-1.5">
+							<label for="saml_idp_cert" class="block text-sm font-medium text-foreground">IdP Certificate (base64, no headers)</label>
+							if data.SAMLConfig != nil {
+								<textarea id="saml_idp_cert" name="saml_idp_cert" rows="4" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-xs placeholder:text-muted-foreground">{ data.SAMLConfig.Config["idp_cert"] }</textarea>
+							} else {
+								@components.Textarea(templ.Attributes{
+									"id":    "saml_idp_cert",
+									"name":  "saml_idp_cert",
+									"rows":  "4",
+									"class": "font-mono",
+								})
+							}
+						</div>
+						<label class="flex w-fit items-center gap-2 text-sm text-foreground">
+							@components.Switch(templ.Attributes{
+								"id":      "saml_enabled",
+								"name":    "enabled",
+								"value":   "true",
+								"checked": data.SAMLConfig != nil && data.SAMLConfig.Enabled,
+							})
+							Enable SAML authentication
+						</label>
+						<div class="flex gap-3">
 							<div class="flex flex-wrap items-end gap-3">
-								@components.ConfirmFields("sso-ldap", data.Confirm, true)
+								@components.ConfirmFields("sso-saml", data.Confirm, true)
 							</div>
 							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-								Save LDAP Settings
+								Save SAML Settings
 							}
-						</form>
-					}
-				}
-				<!-- SAML Configuration -->
-				@components.Card(nil) {
-					@components.CardHeader() {
-						<div class="flex items-center justify-between">
-							<div class="flex flex-col space-y-1.5">
-								@components.CardTitle(2) {
-									SAML 2.0
-								}
-								@components.CardDescription() {
-									Authenticate users via SAML 2.0 HTTP-POST binding.
-								}
-							</div>
 							if data.SAMLConfig != nil && data.SAMLConfig.Enabled {
-								@components.Badge(components.BadgeSuccess) {
-									Enabled
-								}
-							} else {
-								@components.Badge(components.BadgeSecondary) {
-									Disabled
+								@components.LinkButton("/auth/saml/metadata", components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"target": "_blank"}) {
+									View SP Metadata
 								}
 							}
 						</div>
-					}
-					@components.CardContent() {
-						<form method="POST" action="/admin/sso" data-toast="SAML settings saved" class="space-y-4">
-							<input type="hidden" name="provider" value="saml"/>
-							<div class="space-y-1.5">
-								<label for="saml_entity_id" class="block text-sm font-medium text-foreground">Entity ID</label>
-								if data.SAMLConfig != nil {
-									@components.Input(templ.Attributes{
-										"id":    "saml_entity_id",
-										"type":  "text",
-										"name":  "saml_entity_id",
-										"value": data.SAMLConfig.Config["entity_id"],
-									})
-								} else {
-									@components.Input(templ.Attributes{
-										"id":   "saml_entity_id",
-										"type": "text",
-										"name": "saml_entity_id",
-									})
-								}
-							</div>
-							<div class="space-y-1.5">
-								<label for="saml_metadata_url" class="block text-sm font-medium text-foreground">IdP SSO URL / Metadata URL</label>
-								if data.SAMLConfig != nil {
-									@components.Input(templ.Attributes{
-										"id":    "saml_metadata_url",
-										"type":  "text",
-										"name":  "saml_metadata_url",
-										"value": data.SAMLConfig.Config["metadata_url"],
-									})
-								} else {
-									@components.Input(templ.Attributes{
-										"id":   "saml_metadata_url",
-										"type": "text",
-										"name": "saml_metadata_url",
-									})
-								}
-							</div>
-							<div class="space-y-1.5">
-								<label for="saml_acs_url" class="block text-sm font-medium text-foreground">Assertion Consumer Service URL</label>
-								if data.SAMLConfig != nil {
-									@components.Input(templ.Attributes{
-										"id":          "saml_acs_url",
-										"type":        "text",
-										"name":        "saml_acs_url",
-										"value":       data.SAMLConfig.Config["acs_url"],
-										"placeholder": "https://yourdomain/auth/saml/callback",
-									})
-								} else {
-									@components.Input(templ.Attributes{
-										"id":          "saml_acs_url",
-										"type":        "text",
-										"name":        "saml_acs_url",
-										"placeholder": "https://yourdomain/auth/saml/callback",
-									})
-								}
-							</div>
-							<div class="space-y-1.5">
-								<label for="saml_idp_cert" class="block text-sm font-medium text-foreground">IdP Certificate (base64, no headers)</label>
-								if data.SAMLConfig != nil {
-									<textarea id="saml_idp_cert" name="saml_idp_cert" rows="4" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-xs placeholder:text-muted-foreground">{ data.SAMLConfig.Config["idp_cert"] }</textarea>
-								} else {
-									@components.Textarea(templ.Attributes{
-										"id":    "saml_idp_cert",
-										"name":  "saml_idp_cert",
-										"rows":  "4",
-										"class": "font-mono",
-									})
-								}
-							</div>
-							<div class="flex items-center gap-2">
-								if data.SAMLConfig != nil && data.SAMLConfig.Enabled {
-									<input type="checkbox" id="saml_enabled" name="enabled" value="true" checked class="h-4 w-4 rounded-sm border-input accent-foreground"/>
-								} else {
-									<input type="checkbox" id="saml_enabled" name="enabled" value="true" class="h-4 w-4 rounded-sm border-input accent-foreground"/>
-								}
-								<label for="saml_enabled" class="text-sm text-foreground">Enable SAML authentication</label>
-							</div>
-							<div class="flex gap-3">
-								<div class="flex flex-wrap items-end gap-3">
-									@components.ConfirmFields("sso-saml", data.Confirm, true)
-								</div>
-								@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-									Save SAML Settings
-								}
-								if data.SAMLConfig != nil && data.SAMLConfig.Enabled {
-									@components.LinkButton("/auth/saml/metadata", components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"target": "_blank"}) {
-										View SP Metadata
-									}
-								}
-							</div>
-						</form>
-					}
+					</form>
 				}
-			</div>
+			}
 		</div>
 	}
 }
