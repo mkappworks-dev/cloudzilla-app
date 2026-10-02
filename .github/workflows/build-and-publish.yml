@@ -67,9 +67,9 @@ jobs:
       - name: Download HTMX
         run: |
           mkdir -p cmd/server/frontend
-          curl -sLf https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js \
+          curl -sLf https://unpkg.com/htmx.org@2.0.11/dist/htmx.min.js \
             -o cmd/server/frontend/htmx.min.js
-          echo "449317ade7881e949510db614991e195c3a099c4c791c24dacec55f9f4a2a452  cmd/server/frontend/htmx.min.js" | sha256sum --check
+          echo "d6fdc75f204e6bdefa99b69bf1e6d4ac69b8a364f77929f45c13476b4000f717  cmd/server/frontend/htmx.min.js" | sha256sum --check
 
       - name: Generate templ
         run: templ generate ./internal/view/...
