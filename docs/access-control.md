@@ -287,7 +287,7 @@ A 403 for a private repo, next to a 404 for a missing one, confirms that the pri
 
 When no users exist, **all routes redirect to `/setup`**. The first person to submit the form becomes superadmin. After any user exists, `/setup` permanently redirects to `/`.
 
-`RequireSetup` middleware runs globally. Always passes `/setup`, `/static/`, `/invite/`, and `/htmx.min.js` through unconditionally.
+`RequireSetup` middleware runs globally. Always passes `/setup`, `/static/`, `/invite/`, `/htmx.min.js`, and `/alpine.min.js` through unconditionally.
 
 `SiteSettingService.IsSetupComplete()` caches the result atomically via `sync/atomic.Bool` — once true it never re-queries the DB.
 

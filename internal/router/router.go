@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/assets"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
@@ -557,10 +558,14 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	// Static file serving — registered on explicit prefixes so chi's radix
 	// tree prefers these over the parameterized /{owner}/{repo} routes.
 	staticFS, _ := fs.Sub(frontend, "frontend")
-	fileServer := http.FileServer(http.FS(staticFS))
-	r.Handle("/static/*", fileServer)
-	r.Handle("/htmx.min.js", fileServer)
-	r.Handle("/alpine.min.js", fileServer)
+	staticAssets, err := assets.New(staticFS)
+	if err != nil {
+		return nil, err
+	}
+	assets.SetDefault(staticAssets)
+	r.Handle("/static/*", staticAssets)
+	r.Handle("/htmx.min.js", staticAssets)
+	r.Handle("/alpine.min.js", staticAssets)
 
 	// Serve the SVG favicon for the legacy /favicon.ico path that some browsers
 	// and bots auto-request even when <link rel="icon"> is declared.

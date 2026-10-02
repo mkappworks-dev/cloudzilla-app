@@ -211,6 +211,7 @@ internal/
   service/           # Business logic (calls stores)
   handler/           # HTTP handlers (page + API + git)
   middleware/        # Auth, logger, CORS, RequireSetup
+  assets/            # Serves frontend/ under content-hash URLs, with ETags and gzip
   router/            # chi route registration
   ssh/               # SSH server (gliderlabs/ssh)
   view/              # Templ components

@@ -1,0 +1,43 @@
+package layout_test
+
+import (
+	"context"
+	"strings"
+	"testing"
+	"testing/fstest"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/assets"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+func TestBase_ReferencesAssetsByContentHash(t *testing.T) {
+	set, err := assets.New(fstest.MapFS{
+		"static/favicon.svg":    {Data: []byte("<svg/>")},
+		"static/main.css":       {Data: []byte("body{color:red}")},
+		"static/mermaid.min.js": {Data: []byte("mermaid")},
+		"htmx.min.js":           {Data: []byte("htmx")},
+		"alpine.min.js":         {Data: []byte("alpine")},
+	})
+	if err != nil {
+		t.Fatalf("assets.New: %v", err)
+	}
+	assets.SetDefault(set)
+	t.Cleanup(func() { assets.SetDefault(nil) })
+
+	var page strings.Builder
+	if err := layout.Base(view.BasePage{}, "Home").Render(context.Background(), &page); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	for _, want := range []string{
+		`href="/static/favicon.svg?v=d4dc56669143034f"`,
+		`href="/static/main.css?v=15c42ab7768d955e"`,
+		`src="/htmx.min.js?v=dc476210dea6474d"`,
+		`src="/alpine.min.js?v=54c5b3dd459d5ef7"`,
+		`data-mermaid-src="/static/mermaid.min.js?v=0fbccedd61528383"`,
+	} {
+		if !strings.Contains(page.String(), want) {
+			t.Errorf("layout lacks %s", want)
+		}
+	}
+}

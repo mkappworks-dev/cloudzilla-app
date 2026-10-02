@@ -27,6 +27,10 @@ Targets live in the `Makefile` (`dev`, `build`, `migrate`, `lint`, `test`, `test
 
 Tailwind utilities only. When adding a template directory, extend the `content` glob in `tailwind/tailwind.config.js`.
 
+## Static assets
+
+`cmd/server/frontend/` is embedded and served by `internal/assets`. Templates reference a file as `assets.URL("/static/x.js")`, never as a literal path: the `?v=<content hash>` query is what lets browsers cache it for a year.
+
 ## Adding a feature
 
 1. Migration in `internal/db/migrations/` (next sequential number).
