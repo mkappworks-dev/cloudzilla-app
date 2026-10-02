@@ -9,18 +9,18 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
 
-var retargetGuard = regexp.MustCompile(`getResponseHeader\('HX-Retarget'\)\)\s*return`)
+var retargetGuard = regexp.MustCompile(`if \(ctx\.hx\.retarget\) return;`)
 
-// renderFormError answers a dialog form's error with 200 and HX-Retarget, which
-// htmx counts as successful, so data-toast must not read that as success.
+// renderFormError answers a dialog form's error with 200 and HX-Retarget, so
+// data-toast must not read that as success.
 func TestConfirmDialog_DataToastSkipsFormErrors(t *testing.T) {
 	var sb strings.Builder
 	if err := components.ConfirmDialog().Render(context.Background(), &sb); err != nil {
 		t.Fatalf("render: %v", err)
 	}
-	_, listener, ok := strings.Cut(sb.String(), "addEventListener('htmx:afterRequest'")
+	_, listener, ok := strings.Cut(sb.String(), "addEventListener('htmx:after:request'")
 	if !ok {
-		t.Fatal("no htmx:afterRequest listener")
+		t.Fatal("no htmx:after:request listener")
 	}
 	listener, _, _ = strings.Cut(listener, "});")
 

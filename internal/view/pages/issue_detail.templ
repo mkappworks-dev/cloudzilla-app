@@ -88,7 +88,7 @@ templ IssueDetail(data view.IssueDetailData) {
 								"hx-post":               "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/comments",
 								"hx-target":             "#comments",
 								"hx-swap":               "beforeend",
-								"hx-on--after-request":  "if(event.target===this&&event.detail.successful){var el=document.getElementById('issue-comment-count');if(el){var n=parseInt(el.dataset.count||'0',10)+1;el.dataset.count=n;el.textContent=' · '+n+(n===1?' comment':' comments');}var pv=document.getElementById('comment-body-preview');if(pv)pv.replaceChildren();this.reset();}",
+								"hx-on::after:request":  "if(event.target===this&&ctx.response.status<400){var el=document.getElementById('issue-comment-count');if(el){var n=parseInt(el.dataset.count||'0',10)+1;el.dataset.count=n;el.textContent=' · '+n+(n===1?' comment':' comments');}var pv=document.getElementById('comment-body-preview');if(pv)pv.replaceChildren();this.reset();}",
 							}) {
 								@components.CommentEditorHeader(data.BasePage.CurrentUser.Username)
 								@components.MarkdownEditor("comment-body", "body", "", "Add a comment…", 6)
@@ -107,7 +107,7 @@ templ IssueDetail(data view.IssueDetailData) {
 											"hx-patch": "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number),
 											"hx-vals":  `{"state":"open"}`,
 											"hx-swap":  "none",
-											"hx-on::after-request": "if(event.detail.successful)window.location.reload()",
+											"hx-on::after:request": "if(ctx.response.status<400)window.location.reload()",
 											"type":     "button",
 										}) {
 											Reopen issue
@@ -198,7 +198,7 @@ templ IssueDetail(data view.IssueDetailData) {
 					hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) }
 					hx-vals={ `{"state":"closed"}` }
 					hx-swap="none"
-					hx-on:htmx:after-request="if(event.detail.successful)window.location.reload()"
+					hx-on::after:request="if(ctx.response.status<400)window.location.reload()"
 					class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90"
 				>
 					Close issue

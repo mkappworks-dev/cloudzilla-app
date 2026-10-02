@@ -226,7 +226,7 @@ func (h *Handler) CreateMilestone(w http.ResponseWriter, r *http.Request) {
 
 	var title, description string
 	var dueDate *time.Time
-	if r.Header.Get("HX-Request") == "true" || r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+	if r.Header.Get("HX-Request") == "true" || isFormEncoded(r) {
 		if err := r.ParseForm(); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid form")
 			return
@@ -301,7 +301,7 @@ func (h *Handler) UpdateMilestone(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req updateMilestoneRequest
-	if r.Header.Get("HX-Request") == "true" || r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+	if r.Header.Get("HX-Request") == "true" || isFormEncoded(r) {
 		if err := r.ParseForm(); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid form")
 			return

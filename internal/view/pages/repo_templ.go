@@ -1771,7 +1771,7 @@ func Repo(data view.RepoData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 174, "\" hx-on::after-request=\"if(event.detail.successful) this.closest('dialog').close()\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 174, "\" hx-on::after:request=\"if(ctx.response.status<400) this.closest('dialog').close()\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

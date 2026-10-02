@@ -78,7 +78,7 @@ templ pullDetailBody(data view.PullDetailData) {
 						}
 					</div>
 					if data.CanWrite {
-						<form id="desc-editor" class="hidden" hx-patch={ apiBase } hx-swap="none" hx-on--after-request="if(event.target===this&&event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Description updated'}));location.reload();}">
+						<form id="desc-editor" class="hidden" hx-patch={ apiBase } hx-swap="none" hx-on::after:request="if(event.target===this&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Description updated'}));location.reload();}">
 							<div class="rounded-md border border-border overflow-hidden">
 								@components.MarkdownEditor("desc-body", "body", data.Pull.Body, "Edit the description…", 14)
 							</div>
@@ -134,7 +134,7 @@ templ pullDetailBody(data view.PullDetailData) {
 						"hx-patch":             apiBase,
 						"hx-vals":              `{"state":"open"}`,
 						"hx-swap":              "none",
-						"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request reopened'}));location.reload();}",
+						"hx-on::after:request": "if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request reopened'}));location.reload();}",
 					}) {
 						Reopen pull request
 					}
@@ -146,7 +146,7 @@ templ pullDetailBody(data view.PullDetailData) {
 					"hx-post":              apiBase + "/comments",
 					"hx-target":            "#pr-timeline",
 					"hx-swap":              "beforeend",
-					"hx-on--after-request": "if(event.target===this&&event.detail.successful) this.reset()",
+					"hx-on::after:request": "if(event.target===this&&ctx.response.status<400) this.reset()",
 				}) {
 					@components.CommentEditorHeader(data.BasePage.CurrentUser.Username)
 					@components.MarkdownEditor("pr-comment-body", "body", "", "Leave a comment — Markdown supported", 5)
@@ -198,11 +198,11 @@ templ pullDetailBody(data view.PullDetailData) {
 										type="button"
 										if pending {
 											hx-delete={ apiBase + "/reviewers?username=" + url.QueryEscape(c) }
-											hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review request withdrawn'}));location.reload();}"
+											hx-on::after:request="if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review request withdrawn'}));location.reload();}"
 										} else {
 											hx-post={ apiBase + "/reviewers" }
 											hx-vals={ components.JSLiteral(map[string]string{"username": c}) }
-											hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review requested'}));location.reload();}"
+											hx-on::after:request="if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review requested'}));location.reload();}"
 										}
 										hx-swap="none"
 										role="menuitemcheckbox"
@@ -298,7 +298,7 @@ templ pullDetailBody(data view.PullDetailData) {
 						type="button"
 						hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
 						hx-swap="none"
-						hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Unsubscribed from this pull request'}));location.reload();}"
+						hx-on::after:request="if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Unsubscribed from this pull request'}));location.reload();}"
 						aria-pressed="true"
 						class="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-accent text-foreground text-[13px] hover:bg-accent/70"
 					>
@@ -311,7 +311,7 @@ templ pullDetailBody(data view.PullDetailData) {
 						hx-put={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
 						hx-vals={ `{"level":"watching"}` }
 						hx-swap="none"
-						hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Subscribed to this pull request'}));location.reload();}"
+						hx-on::after:request="if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Subscribed to this pull request'}));location.reload();}"
 						aria-pressed="false"
 						class="w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border text-muted-foreground text-[13px] hover:bg-accent hover:text-foreground"
 					>
@@ -340,7 +340,7 @@ templ pullDetailBody(data view.PullDetailData) {
 				hx-patch={ apiBase }
 				hx-vals={ `{"state":"closed"}` }
 				hx-swap="none"
-				hx-on--after-request="if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request closed'}));location.reload();}"
+				hx-on::after:request="if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request closed'}));location.reload();}"
 				class="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90"
 			>
 				Close pull request

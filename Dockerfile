@@ -19,7 +19,7 @@ RUN ARCH=$(uname -m) && \
 # Download mermaid.min.js and htmx.min.js for embedding
 RUN curl -sL https://cdn.jsdelivr.net/npm/mermaid@12/dist/mermaid.min.js \
       -o cmd/server/frontend/static/mermaid.min.js && \
-    curl -sL https://unpkg.com/htmx.org@2.0.11/dist/htmx.min.js \
+    curl -sL https://unpkg.com/htmx.org@4.0.0/dist/htmx.min.js \
       -o cmd/server/frontend/htmx.min.js
 
 # Build Go binaries — fully static, stripped

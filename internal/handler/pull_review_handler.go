@@ -54,7 +54,7 @@ func (h *Handler) SubmitReview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var state, body string
-	if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" || r.Header.Get("HX-Request") == "true" {
+	if isFormEncoded(r) || r.Header.Get("HX-Request") == "true" {
 		if err := r.ParseForm(); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid form")
 			return

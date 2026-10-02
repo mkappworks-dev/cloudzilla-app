@@ -6,6 +6,7 @@ import (
 	"errors"
 	"html"
 	"log/slog"
+	"mime"
 	"net/http"
 	"time"
 
@@ -37,10 +38,16 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
 
+// isFormEncoded reports whether r carries a URL-encoded form. fetch() sends the
+// media type with ";charset=UTF-8" appended, so only the media type is compared.
+func isFormEncoded(r *http.Request) bool {
+	mediaType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	return mediaType == "application/x-www-form-urlencoded"
+}
+
 // renderFormError puts msg in slot, the error area of an HTMX form in a modal
-// dialog. It answers 200 because htmx skips swaps on 4xx by default; the form
-// tells success from error by the swapped target id, and the data-toast
-// listener by HX-Retarget.
+// dialog. It answers 200 because the layout's htmx config skips swaps on 4xx;
+// the form and the data-toast listener tell success from error by HX-Retarget.
 func renderFormError(w http.ResponseWriter, slot, msg string) {
 	w.Header().Set("HX-Retarget", slot)
 	w.Header().Set("HX-Reswap", "innerHTML")

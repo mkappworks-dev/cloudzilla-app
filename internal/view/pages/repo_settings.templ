@@ -262,7 +262,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.DialogBody() {
-								<form id="deploy-key-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys" } hx-target="#deploy-keys-list" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful&&event.detail.target&&event.detail.target.id==='deploy-keys-list'){this.closest('dialog').close();this.reset();this.querySelector('#deploy-key-form-error').textContent='';document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Deploy key added'}}));}" class="space-y-4">
+								<form id="deploy-key-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/keys" } hx-target="#deploy-keys-list" hx-swap="outerHTML" hx-on::after:request="if(event.target===this&&ctx.response.status<400&&!ctx.hx.retarget){this.closest('dialog').close();this.reset();this.querySelector('#deploy-key-form-error').textContent='';document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Deploy key added'}}));}" class="space-y-4">
 									<div id="deploy-key-form-error"></div>
 									<div class="space-y-1.5">
 										<label for="deploy-key-title" class="block text-xs font-medium">Title</label>
@@ -338,7 +338,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.DialogBody() {
-								<form id="label-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/labels" } hx-target="#repo-labels" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful){this.closest('dialog').close();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Label created'}}));}" class="space-y-4">
+								<form id="label-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/labels" } hx-target="#repo-labels" hx-swap="outerHTML" hx-on::after:request="if(ctx.response.status<400){this.closest('dialog').close();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Label created'}}));}" class="space-y-4">
 									<div class="space-y-1.5">
 										<label for="label-name" class="block text-xs font-medium">Name</label>
 										@components.Input(templ.Attributes{
@@ -410,7 +410,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.DialogBody() {
-								<form id="protection-rule-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections" } hx-target="#branch-protections" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful){this.closest('dialog').close();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Protection rule added'}}));}" class="space-y-4">
+								<form id="protection-rule-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/branches/protections" } hx-target="#branch-protections" hx-swap="outerHTML" hx-on::after:request="if(ctx.response.status<400){this.closest('dialog').close();document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Protection rule added'}}));}" class="space-y-4">
 									<div class="space-y-1.5">
 										<label for="bp-pattern" class="block text-xs font-medium">Branch Pattern</label>
 										@components.Input(templ.Attributes{
@@ -463,7 +463,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 							}
 						}
 						@components.DialogBody() {
-							<form id="webhook-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks" } hx-target="#webhooks-list" hx-swap="outerHTML" hx-on::after-request="if(event.detail.successful&&event.detail.target&&event.detail.target.id==='webhooks-list'){this.closest('dialog').close();this.reset();this.querySelector('#webhook-form-error').textContent='';document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Webhook added'}}));}" class="space-y-4">
+							<form id="webhook-form" hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/hooks" } hx-target="#webhooks-list" hx-swap="outerHTML" hx-on::after:request="if(event.target===this&&ctx.response.status<400&&!ctx.hx.retarget){this.closest('dialog').close();this.reset();this.querySelector('#webhook-form-error').textContent='';document.dispatchEvent(new CustomEvent('toast',{detail:{type:'success',message:'Webhook added'}}));}" class="space-y-4">
 								<div id="webhook-form-error"></div>
 								<div class="space-y-1.5">
 									<label for="webhook-url" class="block text-xs font-medium">Payload URL</label>
@@ -545,7 +545,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 										<p class="text-xs text-muted-foreground mt-0.5">Allow other users to create new repositories with the same directory structure and files.</p>
 									</div>
 									if data.Repo.IsTemplate {
-										<input type="checkbox" aria-label="Template repository" checked hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/template" } hx-vals='{"is_template": "false"}' hx-trigger="change" hx-on--after-request={ stashToast("Repository is no longer a template") } class="rounded-sm border-input accent-foreground h-4 w-4"/>
+										<input type="checkbox" aria-label="Template repository" checked hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/template" } hx-vals='{"is_template": "false"}' hx-trigger="change" { templ.Attributes{"hx-on::after:request": stashToast("Repository is no longer a template")}... } class="rounded-sm border-input accent-foreground h-4 w-4"/>
 									} else {
 										<input
 											type="checkbox"
@@ -556,7 +556,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 											hx-confirm={ "Anyone will be able to create new repositories with the same directory structure and files as " + data.RepoName + "." }
 											data-confirm-title="Make this a template repository?"
 											data-confirm-label="Make template"
-											hx-on--after-request={ stashToast("Repository is now a template") }
+											{ templ.Attributes{"hx-on::after:request": stashToast("Repository is now a template")}... }
 											class="rounded-sm border-input accent-foreground h-4 w-4"
 										/>
 									}
@@ -588,7 +588,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 											"hx-confirm":           "Push access will be restored and " + data.RepoName + " will return to active views.",
 											"data-confirm-title":   "Unarchive this repository?",
 											"data-confirm-label":   "Unarchive",
-											"hx-on--after-request": stashToast("Repository unarchived"),
+											"hx-on::after:request": stashToast("Repository unarchived"),
 											"type":                 "button",
 										}) {
 											Unarchive
@@ -601,7 +601,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 											"data-confirm-title":   "Archive this repository?",
 											"data-confirm-label":   "Archive",
 											"data-confirm-danger":  "true",
-											"hx-on--after-request": stashToast("Repository archived"),
+											"hx-on::after:request": stashToast("Repository archived"),
 											"type":                 "button",
 										}) {
 											Archive
@@ -631,7 +631,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 											"type":                 "button",
 											"hx-delete":            "/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer",
 											"hx-swap":              "none",
-											"hx-on--after-request": stashToast("Transfer cancelled"),
+											"hx-on::after:request": stashToast("Transfer cancelled"),
 										}) {
 											Cancel transfer
 										}
@@ -640,7 +640,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 									<form
 										hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/transfer" }
 										hx-swap="none"
-										hx-on--after-request="if(event.target===this&&event.detail.xhr.status<300){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:event.detail.xhr.status===202?'Transfer requested':'Repository transferred'}));}"
+										hx-on::after:request="if(event.target===this&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:ctx.response.status===202?'Transfer requested':'Repository transferred'}));}"
 									>
 										<div class="flex flex-wrap items-end gap-3">
 											<label for="transfer-new-owner" class="sr-only">New owner: user or organization name</label>
@@ -678,7 +678,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 								}
 							}
 							@components.CardContent() {
-								<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/delete" } hx-swap="none" hx-on--after-request={ stashToast("Repository deleted") } class="flex flex-wrap items-end justify-end gap-3">
+								<form hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/delete" } hx-swap="none" { templ.Attributes{"hx-on::after:request": stashToast("Repository deleted")}... } class="flex flex-wrap items-end justify-end gap-3">
 									@components.ConfirmFields("delete-repo", data.Confirm, true)
 									@components.Button(components.ButtonDestructive, components.ButtonSizeDefault, templ.Attributes{
 										"type":                "submit",

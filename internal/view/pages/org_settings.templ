@@ -223,8 +223,9 @@ templ OrgSettings(data view.OrgSettingsData) {
 								document.addEventListener('change', function(e) {
 									if (e.target.matches('[data-org-member-filter-role]')) applyFilter();
 								});
-								document.body.addEventListener('htmx:afterSwap', function(e) {
-									if (e.target && e.target.id === 'org-members-list') applyFilter();
+								document.body.addEventListener('htmx:after:swap', function(e) {
+									var target = e.detail.ctx.target;
+									if (target && target.id === 'org-members-list') applyFilter();
 								});
 							})();
 						</script>
@@ -414,7 +415,7 @@ templ orgInviteMemberDialog(orgName string, confirm components.ConfirmFactors) {
 			hx-swap="outerHTML"
 			data-toast="Member invited"
 			x-data="{ role: 'member' }"
-			hx-on::after-request="if(event.detail.successful&&event.detail.target&&event.detail.target.id==='org-members-list'){this.closest('dialog').close();this.reset();this.querySelector('#invite-member-form-error').textContent='';this.querySelector('#invite-role').dispatchEvent(new Event('change'));}"
+			hx-on::after:request="if(event.target===this&&ctx.response.status<400&&!ctx.hx.retarget){this.closest('dialog').close();this.reset();this.querySelector('#invite-member-form-error').textContent='';this.querySelector('#invite-role').dispatchEvent(new Event('change'));}"
 		>
 			@components.DialogHeader() {
 				@components.DialogTitle("invite-member-dialog") {
@@ -473,7 +474,7 @@ templ orgTransferDialog(orgName string, confirm components.ConfirmFactors) {
 		<form
 			hx-post={ "/api/orgs/" + orgName + "/transfer" }
 			hx-swap="none"
-			hx-on--after-request={ stashToast("Organization transferred") }
+			{ templ.Attributes{"hx-on::after:request": stashToast("Organization transferred")}... }
 		>
 			@components.DialogHeader() {
 				@components.DialogTitle("transfer-org-dialog") {
@@ -528,7 +529,7 @@ templ orgDeleteDialog(orgName string, memberCount int, confirm components.Confir
 		<form
 			hx-post={ "/api/orgs/" + orgName + "/delete" }
 			hx-swap="none"
-			hx-on--after-request={ stashToast("Organization deleted") }
+			{ templ.Attributes{"hx-on::after:request": stashToast("Organization deleted")}... }
 		>
 			@components.DialogHeader() {
 				@components.DialogTitle("delete-org-dialog") {

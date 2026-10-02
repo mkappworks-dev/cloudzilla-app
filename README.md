@@ -158,7 +158,7 @@ First visit redirects to `/setup` to create your superadmin account.
 | [docs/code-browser.md](./docs/code-browser.md)     | Code browser URL patterns, CodeService API, ref resolution  |
 | [docs/deployment.md](./docs/deployment.md)         | Docker quick start, env var overrides                       |
 | [docs/git-transport.md](./docs/git-transport.md)   | HTTP smart protocol, SSH auth, permission rules             |
-| [docs/htmx-patterns.md](./docs/htmx-patterns.md)   | HTMX fragments, DELETE params, hx-on, toasts, templates     |
+| [docs/htmx-patterns.md](./docs/htmx-patterns.md)   | Fragments, params, inheritance, errors, hx-on, toasts       |
 | [docs/notifications.md](./docs/notifications.md)   | Notification types, service API, extension pattern          |
 | [docs/organizations.md](./docs/organizations.md)   | OrgService API, endpoints, role model                       |
 | [docs/pr-merge.md](./docs/pr-merge.md)             | Merge strategies, conflict detection, PRDiffResult          |

@@ -63,7 +63,7 @@ func (h *Handler) CreateLineComment(w http.ResponseWriter, r *http.Request) {
 	var path, diffSide, body string
 	var line int
 
-	if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" || r.Header.Get("HX-Request") == "true" {
+	if isFormEncoded(r) || r.Header.Get("HX-Request") == "true" {
 		if err := r.ParseForm(); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid form")
 			return
@@ -252,7 +252,7 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body string
-	if r.Header.Get("HX-Request") == "true" || r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+	if r.Header.Get("HX-Request") == "true" || isFormEncoded(r) {
 		if err := r.ParseForm(); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid form")
 			return

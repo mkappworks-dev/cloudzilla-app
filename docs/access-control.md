@@ -622,7 +622,7 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | Measure            | Implementation                                                                   |
 | ------------------ | -------------------------------------------------------------------------------- |
 | CORS               | Origin restricted to `config.Server.BaseURL`; `localhost:3000` added in dev only |
-| CSRF               | Double-submit cookie; token injected into HTMX `hx-headers` via layout template  |
+| CSRF               | Double-submit cookie; the layout puts the token in `hx-headers:inherited`        |
 | Body size limit    | 1 MB via `http.MaxBytesReader` on all `/api/*` routes                            |
 | JWT secret warning | Log warning at startup if default secret is still set                            |
 | Cookie security    | `Secure` flag configurable via `config.Auth.CookieSecure`; `HttpOnly` always set |

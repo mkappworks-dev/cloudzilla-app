@@ -11,10 +11,11 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-var afterRequestAttr = regexp.MustCompile(`hx-on--after-request="([^"]*)"`)
+var afterRequestAttr = regexp.MustCompile(`hx-on::after:request="([^"]*)"`)
 
-// htmx follows HX-Redirect before it sets event.detail.successful, so these
-// toasts must be stashed for the next page instead of using data-toast.
+// These controls are answered with HX-Redirect or HX-Refresh, so their toasts
+// must be stashed for the next page, and only when that header arrives: form
+// errors come back as 200 swaps.
 func TestRedirectingControls_StashTheirToast(t *testing.T) {
 	repoSettings := func(archived, template bool) string {
 		return render(t, pages.RepoSettings(view.RepoSettingsData{
@@ -40,18 +41,15 @@ func TestRedirectingControls_StashTheirToast(t *testing.T) {
 			t.Errorf("%s: not rendered", tc.request)
 			continue
 		}
-		if strings.Contains(tag, "data-toast=") {
-			t.Errorf("%s: has data-toast, which never fires after a redirect", tc.request)
-		}
 		m := afterRequestAttr.FindStringSubmatch(tag)
 		if m == nil {
-			t.Errorf("%s: no hx-on--after-request to stash %q", tc.request, tc.toast)
+			t.Errorf("%s: no hx-on::after:request to stash %q", tc.request, tc.toast)
 			continue
 		}
 		on := html.UnescapeString(m[1])
-		for _, want := range []string{"HX-Redirect", "event.target===this", jsonLit(t, tc.toast)} {
+		for _, want := range []string{"ctx.hx.redirect", "event.target===this", jsonLit(t, tc.toast)} {
 			if !strings.Contains(on, want) {
-				t.Errorf("%s: after-request handler lacks %s: %s", tc.request, want, on)
+				t.Errorf("%s: after:request handler lacks %s: %s", tc.request, want, on)
 			}
 		}
 	}

@@ -7,7 +7,7 @@ TAILWIND := bin/tailwindcss
 TAILWIND_OUT := cmd/server/frontend/static/main.css
 
 TAILWIND_VERSION := v4.3.3
-HTMX_VERSION := 2.0.11
+HTMX_VERSION := 4.0.0
 
 setup-tailwind:                    ## Download Tailwind standalone CLI
 	@mkdir -p bin
@@ -46,7 +46,7 @@ download-mermaid:                  ## Download mermaid.min.js for self-hosting (
 
 download-htmx:                     ## Download htmx.min.js for self-hosting (once per HTMX_VERSION)
 	@mkdir -p cmd/server/frontend
-	@if ! grep -qs 'version:"$(HTMX_VERSION)"' cmd/server/frontend/htmx.min.js; then \
+	@if ! grep -qsE 'version[:=]"$(HTMX_VERSION)"' cmd/server/frontend/htmx.min.js; then \
 		echo "Downloading htmx.min.js $(HTMX_VERSION)..."; \
 		curl -sLf https://unpkg.com/htmx.org@$(HTMX_VERSION)/dist/htmx.min.js \
 		  -o cmd/server/frontend/htmx.min.js; \
