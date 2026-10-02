@@ -77,12 +77,12 @@ Worktrees go in `.worktrees/<type>+<slug>` (gitignored), mirroring the branch: `
 
 ### Issue tracker
 
-Local markdown: one directory per feature under `.scratch/`. See `docs/agents/issue-tracker.md`.
+Before creating, reading, triaging or finishing a spec or ticket (markdown under `.scratch/`), read `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Default role names, recorded as each issue file's `Status:` line. See `docs/agents/triage-labels.md`.
+When setting a triage role, write it on the ticket's `Status:` line as `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human` or `wontfix`. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
-Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Before using the domain glossary (`CONTEXT.md`) or ADRs (`docs/adr/`), read `docs/agents/domain.md`.
