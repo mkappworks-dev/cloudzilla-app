@@ -55,14 +55,14 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 		}
 		if len(data.Deliveries) > 0 {
 			for _, d := range data.Deliveries {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"border border-border rounded-lg p-3 text-sm\"><div class=\"flex justify-between items-start gap-3\"><div class=\"min-w-0 flex-1\"><div class=\"flex items-center gap-2 flex-wrap\"><span class=\"font-mono text-xs bg-muted px-1.5 py-0.5 rounded\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"border border-border rounded-lg p-3 text-sm\"><div class=\"flex justify-between items-start gap-3\"><div class=\"min-w-0 flex-1\"><div class=\"flex items-center gap-2 flex-wrap\"><span class=\"font-mono text-xs bg-muted px-1.5 py-0.5 rounded-sm\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(d.Event)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 18, Col: 80}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/webhook_deliveries.templ`, Line: 18, Col: 83}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 				if templ_7745c5c3_Err != nil {
@@ -74,7 +74,7 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 				}
 				if d.ResponseCode > 0 {
 					if d.ResponseCode >= 200 && d.ResponseCode < 300 {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"text-xs px-1.5 py-0.5 rounded bg-success/10 text-success\">HTTP ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"text-xs px-1.5 py-0.5 rounded-sm bg-success/10 text-success\">HTTP ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -92,7 +92,7 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 							return templ_7745c5c3_Err
 						}
 					} else {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"text-xs px-1.5 py-0.5 rounded bg-destructive/10 text-destructive\">HTTP ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<span class=\"text-xs px-1.5 py-0.5 rounded-sm bg-destructive/10 text-destructive\">HTTP ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -112,7 +112,7 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 					}
 				}
 				if d.AttemptCount > 1 {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<span class=\"text-xs bg-warning/10 text-warning px-1.5 py-0.5 rounded\">Attempt ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<span class=\"text-xs bg-warning/10 text-warning px-1.5 py-0.5 rounded-sm\">Attempt ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -131,7 +131,7 @@ func WebhookDeliveriesList(data view.WebhookDeliveriesFragData) templ.Component 
 					}
 				}
 				if d.NextRetryAt != nil {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<span class=\"text-xs bg-primary/10 text-foreground px-1.5 py-0.5 rounded\">Retry pending</span>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<span class=\"text-xs bg-primary/10 text-foreground px-1.5 py-0.5 rounded-sm\">Retry pending</span>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

@@ -165,7 +165,7 @@ func notifIconClass(t model.NotificationType, read bool) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if read {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<span class=\"flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border opacity-65\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<span class=\"shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border opacity-65\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -180,7 +180,7 @@ func notifIconClass(t model.NotificationType, read bool) templ.Component {
 		} else {
 			switch t {
 			case model.NotifPRReview:
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<span class=\"flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-primary\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<span class=\"shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-primary\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -193,7 +193,7 @@ func notifIconClass(t model.NotificationType, read bool) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			case model.NotifMention:
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<span class=\"flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-warning\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<span class=\"shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-warning\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -206,7 +206,7 @@ func notifIconClass(t model.NotificationType, read bool) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			case model.NotifPRMerged:
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<span class=\"flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-[hsl(270_70%_70%)]\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<span class=\"shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-[hsl(270_70%_70%)]\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -219,7 +219,7 @@ func notifIconClass(t model.NotificationType, read bool) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			case model.NotifDiscussionReply, model.NotifRepoTransfer:
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<span class=\"flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-primary\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<span class=\"shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-primary\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -232,7 +232,7 @@ func notifIconClass(t model.NotificationType, read bool) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			case model.NotifIssueClosed:
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<span class=\"flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-destructive\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<span class=\"shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-destructive\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -245,7 +245,7 @@ func notifIconClass(t model.NotificationType, read bool) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			default:
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<span class=\"flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-muted-foreground\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<span class=\"shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-muted-foreground\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -369,12 +369,12 @@ func Notifications(data view.NotificationsData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					if !n.Read {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<span class=\"flex-shrink-0 w-[7px] h-[7px] rounded-full bg-primary mt-[9px]\" aria-label=\"Unread\"></span>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<span class=\"shrink-0 w-[7px] h-[7px] rounded-full bg-primary mt-[9px]\" aria-label=\"Unread\"></span>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					} else {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<span class=\"flex-shrink-0 w-[7px] h-[7px] rounded-full border border-border mt-[9px]\" aria-hidden=\"true\"></span>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "<span class=\"shrink-0 w-[7px] h-[7px] rounded-full border border-border mt-[9px]\" aria-hidden=\"true\"></span>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}

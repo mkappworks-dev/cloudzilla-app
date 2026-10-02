@@ -20,6 +20,8 @@ Source of truth for the UI overhaul (spec: [2026-05-14-ui-overhaul-design.md](su
 | `--warn` | `--warning` | `text-warning` |
 | `--danger` | `--destructive` | `text-destructive` |
 
+Utilities reach these variables through the `@theme inline` block in `tailwind/input.css`; a new token needs a `--color-*` entry there too.
+
 ## Utility classes
 
 | Mockup class | shadcn replacement | Notes |
@@ -34,7 +36,27 @@ Source of truth for the UI overhaul (spec: [2026-05-14-ui-overhaul-design.md](su
 | `hover-row` | `hover:bg-accent` | apply on table rows / list items |
 | `link` | `text-primary` | |
 | `tab-active` | `text-foreground border-foreground` | apply to active tab anchor |
-| `prose` | `prose` | Long-form Markdown (README, PR description). Use the `@tailwindcss/typography` plugin if installed; otherwise add a minimal `.prose` ruleset to `tailwind/input.css` under `@layer components`. |
+| `prose` | `prose` | Long-form Markdown (README, PR description). From `@tailwindcss/typography`, loaded with `@plugin` in `tailwind/input.css`; pair with `dark:prose-invert`. |
+
+## Tailwind v4 names
+
+The build runs Tailwind v4, which moved several scales down a step. Mockups and shadcn snippets written for v3 still use the old names; translate them:
+
+| v3 name | v4 name |
+|---|---|
+| `shadow-sm` | `shadow-xs` |
+| `shadow` | `shadow-sm` |
+| `rounded-sm` | `rounded-xs` |
+| `rounded` | `rounded-sm` |
+| `blur-sm`, `backdrop-blur-sm` | `blur-xs`, `backdrop-blur-xs` |
+| `outline-none` | `outline-hidden` (v4's `outline-none` only sets `outline-style: none`) |
+| `ring` | `ring-3` (a bare `ring` is 1px in v4) |
+| `flex-shrink-0`, `flex-grow` | `shrink-0`, `grow` |
+| `bg-opacity-50` and the other `*-opacity-*` utilities | an opacity modifier on the color, e.g. `bg-black/50` |
+
+`rounded-xs`, `rounded-md` and `rounded-lg` follow `--radius`; `rounded-sm` is a fixed 0.25rem.
+
+`space-y-*` and `divide-y` put their margin or border on every child except the last. A last child that renders nothing (a hidden input, `<script>`, a closed `<dialog>`, a panel hidden with `x-show`) therefore leaves a gap or a stray border under the last visible row: put such elements first or outside the container. When rows toggle with `x-show`, use `flex flex-col gap-*`, which skips hidden rows. A child's own `mt-*`/`mb-*` now applies alongside `space-y-*` instead of being overridden by it.
 
 ## Component-replaced classes
 
@@ -63,7 +85,7 @@ In templ files, pass the correct Tailwind string through a helper (e.g. `gistLan
 
 ## Promoted utility classes (no shadcn equivalent)
 
-These classes get added to `tailwind/input.css` as project-level utilities in Task 3. They are used **by their original names** in templ files.
+These classes are defined with `@utility` in `tailwind/input.css`, so variants work on them. They are used **by their original names** in templ files.
 
 - `grid-bg` — radial-masked grid background on home hero / auth pages
 - `heatmap-cell-0`, `heatmap-cell-1`, `heatmap-cell-2`, `heatmap-cell-3`, `heatmap-cell-4` — commit heatmap intensity scale
@@ -81,6 +103,6 @@ When a per-phase port discovers a mockup class missing from this map:
 1. Stop the port.
 2. Decide which case it is:
    - Has a clean shadcn equivalent → add row to the utility classes table.
-   - No shadcn equivalent but reusable → add to the promoted utilities section AND to `tailwind/input.css`.
+   - No shadcn equivalent but reusable → add to the promoted utilities section AND as an `@utility` in `tailwind/input.css`.
    - One-off → translate inline using a comment in the templ file (`<!-- mockup: .xyz -->`).
 3. Commit the map update separately from the port commit, with subject `docs(ui): extend class translation map for <reason>`.

@@ -34,12 +34,12 @@ templ RepoTopics(data view.RepoTopicsFragData) {
 						id={ "topic-input-" + strconv.FormatInt(data.RepoID, 10) }
 						placeholder="go, web, api (comma-separated)"
 						value={ topicNames(data.Topics) }
-						class="flex-1 border border-border rounded px-2 py-1 text-sm"
+						class="flex-1 border border-border rounded-sm px-2 py-1 text-sm"
 					/>
 					<button
 						type="button"
 						onclick={ saveTopics(data.Owner, data.RepoName, data.RepoID) }
-						class="px-3 py-1 bg-primary text-background rounded text-sm hover:bg-primary"
+						class="px-3 py-1 bg-primary text-background rounded-sm text-sm hover:bg-primary"
 					>Save</button>
 				</div>
 				<p class="text-xs text-muted-foreground mt-1">Lowercase letters, digits, hyphens only. Max 20 topics, 20 chars each.</p>

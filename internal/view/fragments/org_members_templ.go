@@ -231,7 +231,7 @@ func orgMemberRow(orgName string, m model.OrgMember, viewerID int64, canManage b
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"flex h-8 rounded-md border border-input bg-transparent px-2 text-[12px] shadow-sm w-[110px]\"><option value=\"owner\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"flex h-8 rounded-md border border-input bg-transparent px-2 text-[12px] shadow-xs w-[110px]\"><option value=\"owner\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

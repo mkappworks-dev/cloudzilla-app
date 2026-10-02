@@ -15,25 +15,25 @@ templ WebhookDeliveriesList(data view.WebhookDeliveriesFragData) {
 					<div class="flex justify-between items-start gap-3">
 						<div class="min-w-0 flex-1">
 							<div class="flex items-center gap-2 flex-wrap">
-								<span class="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{ d.Event }</span>
+								<span class="font-mono text-xs bg-muted px-1.5 py-0.5 rounded-sm">{ d.Event }</span>
 								if d.ResponseCode > 0 {
 									if d.ResponseCode >= 200 && d.ResponseCode < 300 {
-										<span class="text-xs px-1.5 py-0.5 rounded bg-success/10 text-success">
+										<span class="text-xs px-1.5 py-0.5 rounded-sm bg-success/10 text-success">
 											HTTP { strconv.Itoa(d.ResponseCode) }
 										</span>
 									} else {
-										<span class="text-xs px-1.5 py-0.5 rounded bg-destructive/10 text-destructive">
+										<span class="text-xs px-1.5 py-0.5 rounded-sm bg-destructive/10 text-destructive">
 											HTTP { strconv.Itoa(d.ResponseCode) }
 										</span>
 									}
 								}
 								if d.AttemptCount > 1 {
-									<span class="text-xs bg-warning/10 text-warning px-1.5 py-0.5 rounded">
+									<span class="text-xs bg-warning/10 text-warning px-1.5 py-0.5 rounded-sm">
 										Attempt { strconv.Itoa(d.AttemptCount) }
 									</span>
 								}
 								if d.NextRetryAt != nil {
-									<span class="text-xs bg-primary/10 text-foreground px-1.5 py-0.5 rounded">
+									<span class="text-xs bg-primary/10 text-foreground px-1.5 py-0.5 rounded-sm">
 										Retry pending
 									</span>
 								}

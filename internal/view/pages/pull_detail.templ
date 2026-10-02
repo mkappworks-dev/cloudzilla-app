@@ -61,7 +61,7 @@ templ pullDetailBody(data view.PullDetailData) {
 						opened this pull request
 						<time datetime={ data.Pull.CreatedAt.UTC().Format(time.RFC3339) }>{ data.Pull.CreatedAt.Format("Jan 2, 2006") }</time>
 					</span>
-					<span class="ml-auto text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground">Author</span>
+					<span class="ml-auto text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Author</span>
 					if data.CanWrite {
 						<button type="button" id="edit-desc-btn" class="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border hover:bg-accent text-[12px] text-muted-foreground">
 							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -142,6 +142,7 @@ templ pullDetailBody(data view.PullDetailData) {
 			}
 			if data.BasePage.CurrentUser != nil {
 				@components.CommentEditor(templ.Attributes{
+					"class":                "mt-6",
 					"hx-post":              apiBase + "/comments",
 					"hx-target":            "#pr-timeline",
 					"hx-swap":              "beforeend",

@@ -201,7 +201,7 @@ func Home(data view.HomeData) templ.Component {
 				}
 			}
 			if len(data.Stats) > 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<section aria-labelledby=\"stats-heading\"><h2 id=\"stats-heading\" class=\"sr-only\">Workspace statistics</h2><dl class=\"grid grid-cols-2 md:grid-cols-4 border border-border rounded-md divide-x divide-border\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<section aria-labelledby=\"stats-heading\"><h2 id=\"stats-heading\" class=\"sr-only\">Workspace statistics</h2><dl class=\"grid grid-cols-2 md:grid-cols-4 border border-border rounded-md\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -580,13 +580,13 @@ func Home(data view.HomeData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					if repo.Private {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "<span class=\"ml-1.5 inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground\">Private</span> ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "<span class=\"ml-1.5 inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground\">Private</span> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					}
 					if repo.IsArchived {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "<span class=\"ml-1.5 inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground\">Archived</span> ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "<span class=\"ml-1.5 inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground\">Archived</span> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -885,7 +885,7 @@ func Home(data view.HomeData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var43 = []any{"mt-1 flex-shrink-0 h-1.5 w-1.5 rounded-full", activityDotClass(ev.EventType)}
+					var templ_7745c5c3_Var43 = []any{"mt-1 shrink-0 h-1.5 w-1.5 rounded-full", activityDotClass(ev.EventType)}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var43...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -1092,7 +1092,7 @@ func Home(data view.HomeData) templ.Component {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 115, "</div><svg class=\"text-muted-foreground group-hover:text-foreground flex-shrink-0 ml-2\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M5 12h14M12 5l7 7-7 7\"></path></svg></a></li>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 115, "</div><svg class=\"text-muted-foreground group-hover:text-foreground shrink-0 ml-2\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M5 12h14M12 5l7 7-7 7\"></path></svg></a></li>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -1102,7 +1102,7 @@ func Home(data view.HomeData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 117, "<!-- Keyboard shortcuts --><section aria-labelledby=\"shortcuts-heading\"><div class=\"flex items-center justify-between mb-3\"><h3 id=\"shortcuts-heading\" class=\"text-[13px] font-medium\">Shortcuts</h3></div><dl class=\"space-y-1.5 text-[12px]\"><div class=\"flex items-center justify-between\"><dt class=\"text-muted-foreground\">Command palette</dt><dd class=\"font-mono\"><kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]\">⌘K</kbd></dd></div><div class=\"flex items-center justify-between\"><dt class=\"text-muted-foreground\">New repository</dt><dd class=\"font-mono\"><kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]\">N</kbd> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 117, "<!-- Keyboard shortcuts --><section aria-labelledby=\"shortcuts-heading\"><div class=\"flex items-center justify-between mb-3\"><h3 id=\"shortcuts-heading\" class=\"text-[13px] font-medium\">Shortcuts</h3></div><dl class=\"space-y-1.5 text-[12px]\"><div class=\"flex items-center justify-between\"><dt class=\"text-muted-foreground\">Command palette</dt><dd class=\"font-mono\"><kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]\">⌘K</kbd></dd></div><div class=\"flex items-center justify-between\"><dt class=\"text-muted-foreground\">New repository</dt><dd class=\"font-mono\"><kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]\">N</kbd> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1115,7 +1115,7 @@ func Home(data view.HomeData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, " <kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]\">R</kbd></dd></div><div class=\"flex items-center justify-between\"><dt class=\"text-muted-foreground\">Go to issues</dt><dd class=\"font-mono\"><kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]\">G</kbd> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, " <kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]\">R</kbd></dd></div><div class=\"flex items-center justify-between\"><dt class=\"text-muted-foreground\">Go to issues</dt><dd class=\"font-mono\"><kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]\">G</kbd> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1128,7 +1128,7 @@ func Home(data view.HomeData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 119, " <kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]\">I</kbd></dd></div><div class=\"flex items-center justify-between\"><dt class=\"text-muted-foreground\">Go to pulls</dt><dd class=\"font-mono\"><kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]\">G</kbd> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 119, " <kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]\">I</kbd></dd></div><div class=\"flex items-center justify-between\"><dt class=\"text-muted-foreground\">Go to pulls</dt><dd class=\"font-mono\"><kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]\">G</kbd> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1141,7 +1141,7 @@ func Home(data view.HomeData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 120, " <kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]\">P</kbd></dd></div><div class=\"flex items-center justify-between\"><dt class=\"text-muted-foreground\">Toggle theme</dt><dd class=\"font-mono\"><kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]\">⌘</kbd> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 120, " <kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]\">P</kbd></dd></div><div class=\"flex items-center justify-between\"><dt class=\"text-muted-foreground\">Toggle theme</dt><dd class=\"font-mono\"><kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]\">⌘</kbd> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1154,7 +1154,7 @@ func Home(data view.HomeData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, " <kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]\">⇧</kbd> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, " <kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]\">⇧</kbd> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1167,7 +1167,7 @@ func Home(data view.HomeData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 122, " <kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]\">L</kbd></dd></div></dl></section></aside></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 122, " <kbd class=\"px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]\">L</kbd></dd></div></dl></section></aside></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

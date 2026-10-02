@@ -34,7 +34,7 @@ templ Commit(data view.CommitData) {
 					<span aria-hidden="true">·</span>
 					<time datetime={ data.Commit.AuthorTime.UTC().Format(time.RFC3339) }>{ data.Commit.AuthorTime.Format("2006-01-02 15:04:05 UTC") }</time>
 					<span aria-hidden="true">·</span>
-					<code class="font-mono px-2 py-0.5 rounded text-[12px] bg-muted text-foreground border border-border">{ data.Commit.FullHash }</code>
+					<code class="font-mono px-2 py-0.5 rounded-sm text-[12px] bg-muted text-foreground border border-border">{ data.Commit.FullHash }</code>
 				</div>
 				if len(data.Commit.ParentHashes) > 0 {
 					<div class="mt-2 text-[12px] text-muted-foreground">

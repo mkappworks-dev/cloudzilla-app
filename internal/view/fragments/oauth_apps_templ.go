@@ -41,27 +41,27 @@ func OAuthAppsList(data view.OAuthAppsFragData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if data.NewClientSecret != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div role=\"status\" class=\"mb-4 border border-success/40 bg-success/10 rounded-md p-4\"><p class=\"font-semibold text-success mb-2 text-[13px]\">Copy the client secret now — it won't be shown again.</p><dl class=\"space-y-2 text-[12px]\"><div><dt class=\"text-muted-foreground mb-1\">Client ID</dt><dd><code class=\"block bg-background border border-success/40 rounded px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div role=\"status\" class=\"mb-4 border border-success/40 bg-success/10 rounded-md p-4\"><p class=\"font-semibold text-success mb-2 text-[13px]\">Copy the client secret now — it won't be shown again.</p><dl class=\"space-y-2 text-[12px]\"><div><dt class=\"text-muted-foreground mb-1\">Client ID</dt><dd><code class=\"block bg-background border border-success/40 rounded-sm px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var2 string
 			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(data.NewClientID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/oauth_apps.templ`, Line: 18, Col: 166}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/oauth_apps.templ`, Line: 18, Col: 169}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</code></dd></div><div><dt class=\"text-muted-foreground mb-1\">Client secret</dt><dd><code class=\"block bg-background border border-success/40 rounded px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</code></dd></div><div><dt class=\"text-muted-foreground mb-1\">Client secret</dt><dd><code class=\"block bg-background border border-success/40 rounded-sm px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.NewClientSecret)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/oauth_apps.templ`, Line: 22, Col: 170}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/oauth_apps.templ`, Line: 22, Col: 173}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {

@@ -209,7 +209,7 @@ func Issues(data view.IssuesData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" placeholder=\"Filter is:open\" class=\"w-56 h-8 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring\"></div><div class=\"relative\"><select name=\"label\" aria-label=\"Filter by label\" class=\"h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring appearance-none\"><option value=\"\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" placeholder=\"Filter is:open\" class=\"w-56 h-8 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"></div><div class=\"relative\"><select name=\"label\" aria-label=\"Filter by label\" class=\"h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none\"><option value=\"\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -291,7 +291,7 @@ func Issues(data view.IssuesData) templ.Component {
 					}
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</select> <svg class=\"pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 10l5 5 5-5\"></path></svg></div><div class=\"relative\"><select name=\"milestone\" aria-label=\"Filter by milestone\" class=\"h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring appearance-none\"><option value=\"\">Milestones</option> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</select> <svg class=\"pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 10l5 5 5-5\"></path></svg></div><div class=\"relative\"><select name=\"milestone\" aria-label=\"Filter by milestone\" class=\"h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none\"><option value=\"\">Milestones</option> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -360,7 +360,7 @@ func Issues(data view.IssuesData) templ.Component {
 					}
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</select> <svg class=\"pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 10l5 5 5-5\"></path></svg></div><div class=\"relative\"><select name=\"sort\" aria-label=\"Sort issues\" class=\"h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring appearance-none\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</select> <svg class=\"pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 10l5 5 5-5\"></path></svg></div><div class=\"relative\"><select name=\"sort\" aria-label=\"Sort issues\" class=\"h-8 pl-3 pr-7 text-[13px] bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring appearance-none\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -686,7 +686,7 @@ func Issues(data view.IssuesData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "<p class=\"text-[12px] text-muted-foreground\">Filter syntax: <code class=\"font-mono px-1 py-0.5 bg-accent border border-border rounded\">is:open</code>, <code class=\"font-mono px-1 py-0.5 bg-accent border border-border rounded\">label:bug</code>, <code class=\"font-mono px-1 py-0.5 bg-accent border border-border rounded\">milestone:v0.3</code>, <code class=\"font-mono px-1 py-0.5 bg-accent border border-border rounded\">author:daisy</code>.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "<p class=\"text-[12px] text-muted-foreground\">Filter syntax: <code class=\"font-mono px-1 py-0.5 bg-accent border border-border rounded-sm\">is:open</code>, <code class=\"font-mono px-1 py-0.5 bg-accent border border-border rounded-sm\">label:bug</code>, <code class=\"font-mono px-1 py-0.5 bg-accent border border-border rounded-sm\">milestone:v0.3</code>, <code class=\"font-mono px-1 py-0.5 bg-accent border border-border rounded-sm\">author:daisy</code>.</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

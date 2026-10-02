@@ -59,7 +59,7 @@ templ Topic(data view.TopicData) {
 					<ol class="divide-y divide-border">
 						for _, repo := range data.Repos {
 							<li class="group relative px-4 py-4 hover:bg-muted/50 transition-[padding-left] duration-[120ms] hover:pl-[18px]">
-								<span class="absolute left-0 top-2 bottom-2 w-0.5 bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-[120ms] rounded-sm" aria-hidden="true"></span>
+								<span class="absolute left-0 top-2 bottom-2 w-0.5 bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-[120ms] rounded-xs" aria-hidden="true"></span>
 								<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="text-[14px] font-medium hover:underline">{ repo.OwnerName }/{ repo.Name }</a>
 								if repo.Description != "" {
 									<p class="mt-1 text-[13px] text-muted-foreground">{ repo.Description }</p>

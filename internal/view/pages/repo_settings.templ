@@ -161,15 +161,15 @@ templ RepoSettings(data view.RepoSettingsData) {
 									</div>
 									<div class="space-y-1.5">
 										<label for="repo-description" class="block text-sm font-medium">Description</label>
-										<textarea id="repo-description" name="description" rows="2" placeholder="Short description of this repository" class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring">{ data.Repo.Description }</textarea>
+										<textarea id="repo-description" name="description" rows="2" placeholder="Short description of this repository" class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring">{ data.Repo.Description }</textarea>
 									</div>
 									<div class="space-y-1.5">
 										<label for="repo-website" class="block text-sm font-medium">Homepage URL</label>
-										<input id="repo-website" type="url" name="website" value={ data.Repo.Website } placeholder="https://example.com" class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"/>
+										<input id="repo-website" type="url" name="website" value={ data.Repo.Website } placeholder="https://example.com" class="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"/>
 									</div>
 									<div class="space-y-1.5">
 										<label for="repo-default-branch" class="block text-sm font-medium">Default branch</label>
-										<input id="repo-default-branch" type="text" name="default_branch" value={ data.Repo.DefaultBranch } class="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"/>
+										<input id="repo-default-branch" type="text" name="default_branch" value={ data.Repo.DefaultBranch } class="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 py-1 text-sm font-mono shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring"/>
 									</div>
 									<div class="flex justify-end">
 										@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
@@ -286,7 +286,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 										})
 									</div>
 									<label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-										<input type="checkbox" name="read_only" value="true" checked class="rounded border-input accent-foreground"/>
+										<input type="checkbox" name="read_only" value="true" checked class="rounded-sm border-input accent-foreground"/>
 										Read-only (uncheck to allow push access)
 									</label>
 									@components.ConfirmFields("deploy-key", data.Confirm, true)
@@ -441,7 +441,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 										})
 									</div>
 									<label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-										<input type="checkbox" name="block_force_push" value="true" checked class="rounded border-input accent-foreground"/>
+										<input type="checkbox" name="block_force_push" value="true" checked class="rounded-sm border-input accent-foreground"/>
 										Block force pushes
 									</label>
 								</form>
@@ -454,32 +454,6 @@ templ RepoSettings(data view.RepoSettingsData) {
 									Add Rule
 								}
 							}
-						}
-					}
-					<div id="webhooks" class="scroll-mt-6"></div>
-					<!-- Webhooks section -->
-					@components.Card(nil) {
-						@components.CardHeader() {
-							<div class="flex items-start justify-between gap-4">
-								<div class="min-w-0">
-									<h2 class="text-base font-semibold tracking-tight">Webhooks</h2>
-									@components.CardDescription() {
-										Send HTTP requests to external services when events occur in this repository.
-									}
-								</div>
-								@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": "document.getElementById('webhook-dialog').showModal()"}) {
-									Add webhook
-								}
-							</div>
-						}
-						@components.CardContent() {
-							@fragments.WebhooksList(view.WebhooksFragData{
-								Owner:     data.Owner,
-								RepoName:  data.RepoName,
-								RepoID:    data.Repo.ID,
-								Webhooks:  data.Webhooks,
-								CanManage: data.CanManage,
-							})
 						}
 					}
 					@components.Dialog("webhook-dialog") {
@@ -531,6 +505,32 @@ templ RepoSettings(data view.RepoSettingsData) {
 							}
 						}
 					}
+					<div id="webhooks" class="scroll-mt-6"></div>
+					<!-- Webhooks section -->
+					@components.Card(nil) {
+						@components.CardHeader() {
+							<div class="flex items-start justify-between gap-4">
+								<div class="min-w-0">
+									<h2 class="text-base font-semibold tracking-tight">Webhooks</h2>
+									@components.CardDescription() {
+										Send HTTP requests to external services when events occur in this repository.
+									}
+								</div>
+								@components.Button(components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"type": "button", "onclick": "document.getElementById('webhook-dialog').showModal()"}) {
+									Add webhook
+								}
+							</div>
+						}
+						@components.CardContent() {
+							@fragments.WebhooksList(view.WebhooksFragData{
+								Owner:     data.Owner,
+								RepoName:  data.RepoName,
+								RepoID:    data.Repo.ID,
+								Webhooks:  data.Webhooks,
+								CanManage: data.CanManage,
+							})
+						}
+					}
 					if data.IsOwner {
 						<div id="template" class="scroll-mt-6"></div>
 						<!-- Template repository section -->
@@ -545,7 +545,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 										<p class="text-xs text-muted-foreground mt-0.5">Allow other users to create new repositories with the same directory structure and files.</p>
 									</div>
 									if data.Repo.IsTemplate {
-										<input type="checkbox" aria-label="Template repository" checked hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/template" } hx-vals='{"is_template": "false"}' hx-trigger="change" data-toast="Repository is no longer a template" class="rounded border-input accent-foreground h-4 w-4"/>
+										<input type="checkbox" aria-label="Template repository" checked hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/template" } hx-vals='{"is_template": "false"}' hx-trigger="change" data-toast="Repository is no longer a template" class="rounded-sm border-input accent-foreground h-4 w-4"/>
 									} else {
 										<input
 											type="checkbox"
@@ -557,7 +557,7 @@ templ RepoSettings(data view.RepoSettingsData) {
 											data-confirm-title="Make this a template repository?"
 											data-confirm-label="Make template"
 											data-toast="Repository is now a template"
-											class="rounded border-input accent-foreground h-4 w-4"
+											class="rounded-sm border-input accent-foreground h-4 w-4"
 										/>
 									}
 								</div>
@@ -696,36 +696,37 @@ templ RepoSettings(data view.RepoSettingsData) {
 					}
 				</div>
 			</div>
-			<script>
-				(function () {
-					var nav = document.querySelector('nav[aria-label="Settings sections"]');
-					if (!nav) return;
-					var links = Array.prototype.slice.call(nav.querySelectorAll('a[href^="#"]'));
-					var targets = links
-						.map(function (l) { return { link: l, el: document.getElementById(l.getAttribute('href').slice(1)) }; })
-						.filter(function (t) { return t.el; });
-					if (!targets.length) return;
-					function update() {
-						var active = targets[0];
-						for (var i = 0; i < targets.length; i++) {
-							if (targets[i].el.getBoundingClientRect().top <= 120) active = targets[i];
-						}
-						links.forEach(function (l) {
-							var on = l === active.link;
-							var isDanger = l.classList.contains('text-destructive');
-							if (!isDanger) {
-								l.classList.toggle('bg-accent', on);
-								l.classList.toggle('text-foreground', on);
-								l.classList.toggle('font-medium', on);
-								l.classList.toggle('text-muted-foreground', !on);
-							}
-						});
-					}
-					update();
-					window.addEventListener('scroll', update, { passive: true });
-					window.addEventListener('resize', update, { passive: true });
-				})();
-			</script>
 		</div>
+
+		<script>
+			(function () {
+				var nav = document.querySelector('nav[aria-label="Settings sections"]');
+				if (!nav) return;
+				var links = Array.prototype.slice.call(nav.querySelectorAll('a[href^="#"]'));
+				var targets = links
+					.map(function (l) { return { link: l, el: document.getElementById(l.getAttribute('href').slice(1)) }; })
+					.filter(function (t) { return t.el; });
+				if (!targets.length) return;
+				function update() {
+					var active = targets[0];
+					for (var i = 0; i < targets.length; i++) {
+						if (targets[i].el.getBoundingClientRect().top <= 120) active = targets[i];
+					}
+					links.forEach(function (l) {
+						var on = l === active.link;
+						var isDanger = l.classList.contains('text-destructive');
+						if (!isDanger) {
+							l.classList.toggle('bg-accent', on);
+							l.classList.toggle('text-foreground', on);
+							l.classList.toggle('font-medium', on);
+							l.classList.toggle('text-muted-foreground', !on);
+						}
+					});
+				}
+				update();
+				window.addEventListener('scroll', update, { passive: true });
+				window.addEventListener('resize', update, { passive: true });
+			})();
+		</script>
 	}
 }

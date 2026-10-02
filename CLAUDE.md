@@ -25,7 +25,9 @@ Targets live in the `Makefile` (`dev`, `build`, `migrate`, `lint`, `test`, `test
 
 ## CSS
 
-Tailwind utilities only. When adding a template directory, extend the `content` glob in `tailwind/tailwind.config.js`.
+Tailwind v4 utilities only. `tailwind/input.css` is the whole config: `@theme` maps the tokens to utilities, and `@source` scans only `internal/view/**/*.templ`, so a class that appears only in Go code isn't generated. Templates outside `internal/view/` need their own `@source`.
+
+`space-y-*` and `divide-y` style every child but the last: keep a rendered element last (hidden inputs, `<script>` and `<dialog>` go first or outside), and use `flex flex-col gap-*` when rows toggle with `x-show`.
 
 ## Static assets
 
@@ -63,7 +65,7 @@ Read the matching doc before working in an area:
 - [organizations](./docs/organizations.md) — `OrgService`; `/{owner}` resolves user first, then org
 - [webhooks](./docs/webhooks.md) — events, HMAC signing, fire-and-forget `Dispatch`
 - [notifications](./docs/notifications.md) — types; skipped when `actorID == authorID`
-- [ui-overhaul-class-map](./docs/ui-overhaul-class-map.md) — mockup → shadcn class map; the source of truth when porting UI
+- [ui-overhaul-class-map](./docs/ui-overhaul-class-map.md) — mockup → shadcn class map and Tailwind v3 → v4 names; the source of truth when porting UI
 - [ROADMAP](./docs/ROADMAP.md) and [plans](./docs/superpowers/plans/) — phase status and per-phase plans
 
 ## Branches

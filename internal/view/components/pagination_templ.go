@@ -52,7 +52,7 @@ func Pagination(prevURL, nextURL string) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" class=\"px-4 py-2 border border-border rounded text-sm text-foreground hover:bg-muted/40\">&larr; Previous</a>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" class=\"px-4 py-2 border border-border rounded-sm text-sm text-foreground hover:bg-muted/40\">&larr; Previous</a>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -75,7 +75,7 @@ func Pagination(prevURL, nextURL string) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" class=\"px-4 py-2 border border-border rounded text-sm text-foreground hover:bg-muted/40\">Next &rarr;</a>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" class=\"px-4 py-2 border border-border rounded-sm text-sm text-foreground hover:bg-muted/40\">Next &rarr;</a>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -234,7 +234,7 @@ func PaginationWithCount(prevURL, nextURL string, page, totalPages int) templ.Co
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" class=\"px-3 py-1 bg-muted text-foreground rounded hover:bg-muted transition-colors\">&larr; Previous</a> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" class=\"px-3 py-1 bg-muted text-foreground rounded-sm hover:bg-muted transition-colors\">&larr; Previous</a> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -253,7 +253,7 @@ func PaginationWithCount(prevURL, nextURL string, page, totalPages int) templ.Co
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" class=\"px-3 py-1 bg-muted text-foreground rounded hover:bg-muted transition-colors\">Next &rarr;</a>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" class=\"px-3 py-1 bg-muted text-foreground rounded-sm hover:bg-muted transition-colors\">Next &rarr;</a>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

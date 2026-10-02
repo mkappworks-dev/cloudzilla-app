@@ -81,7 +81,7 @@ func ReleaseTitleSection(owner, repoName string, id int64, name, tagName, status
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" aria-label=\"Release title\" class=\"flex-1 min-w-0 h-9 px-3 rounded-md border border-input bg-background text-lg font-medium focus:outline-none focus:ring-2 focus:ring-ring\"> <button type=\"submit\" class=\"h-9 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 shrink-0\">Save</button> <button type=\"button\" hx-get=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" aria-label=\"Release title\" class=\"flex-1 min-w-0 h-9 px-3 rounded-md border border-input bg-background text-lg font-medium focus:outline-hidden focus:ring-2 focus:ring-ring\"> <button type=\"submit\" class=\"h-9 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 shrink-0\">Save</button> <button type=\"button\" hx-get=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -124,14 +124,14 @@ func ReleaseTitleSection(owner, repoName string, id int64, name, tagName, status
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</h1><code class=\"font-mono px-2 py-0.5 border border-border bg-muted rounded text-[12px]\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</h1><code class=\"font-mono px-2 py-0.5 border border-border bg-muted rounded-sm text-[12px]\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(tagName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/release_meta.templ`, Line: 46, Col: 98}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/release_meta.templ`, Line: 46, Col: 101}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -407,7 +407,7 @@ func ReleaseBodyCard(data view.ReleaseBodyCardData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</div></header><div role=\"tabpanel\" x-show=\"tab === 'write'\"><textarea id=\"release-body-textarea\" x-ref=\"body\" name=\"body\" rows=\"14\" placeholder=\"Release notes…\" class=\"w-full p-3 h-[320px] text-sm font-mono bg-transparent resize-none placeholder:text-muted-foreground focus:outline-none\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</div></header><div role=\"tabpanel\" x-show=\"tab === 'write'\"><textarea id=\"release-body-textarea\" x-ref=\"body\" name=\"body\" rows=\"14\" placeholder=\"Release notes…\" class=\"w-full p-3 h-[320px] text-sm font-mono bg-transparent resize-none placeholder:text-muted-foreground focus:outline-hidden\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

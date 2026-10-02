@@ -156,7 +156,7 @@ templ milestoneItemsSection(data view.MilestoneDetailData, base string) {
 
 templ milestoneIssueRow(owner, repoName string, iss model.Issue) {
 	{{ open := iss.State == model.IssueStateOpen }}
-	<li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-sm before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+	<li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class={ "shrink-0 mt-1", templ.KV("text-success", open), templ.KV("text-muted-foreground", !open) } aria-hidden="true">
 			<circle cx="12" cy="12" r="9"></circle>
 			<circle cx="12" cy="12" r="3"></circle>
@@ -182,7 +182,7 @@ templ milestoneIssueRow(owner, repoName string, iss model.Issue) {
 templ milestonePullRow(owner, repoName string, pr model.PullRequest) {
 	{{ open := pr.State == model.PRStateOpen }}
 	{{ merged := pr.State == model.PRStateMerged }}
-	<li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-sm before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
+	<li class="relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50">
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class={ "shrink-0 mt-1", templ.KV("text-success", open), templ.KV("text-violet-400", merged), templ.KV("text-muted-foreground", !open && !merged) } aria-hidden="true">
 			<line x1="6" y1="3" x2="6" y2="15"></line>
 			<circle cx="18" cy="6" r="3"></circle>

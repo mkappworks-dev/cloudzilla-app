@@ -78,7 +78,7 @@ templ PullNew(data view.PullNewData) {
 							<div class="rounded-md border border-border bg-card overflow-hidden">
 								@components.MarkdownEditor("body", "body", data.TemplateBody, "What does this change, and why? Reference any related issues with #number.", 12)
 							</div>
-							<p class="text-[11px] text-muted-foreground">Markdown is supported. <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded">#</kbd> links issues and pull requests.</p>
+							<p class="text-[11px] text-muted-foreground">Markdown is supported. <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded-sm">#</kbd> links issues and pull requests.</p>
 						</div>
 
 						<div class="flex items-center gap-3 pt-2">
@@ -121,7 +121,7 @@ templ pullNewBranchSelect(id, labelText, hint string, branches []service.BranchI
 		</label>
 		<div class="relative">
 			<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="3" r="3"></circle><circle cx="12" cy="21" r="3"></circle><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path></svg>
-			<select id={ id } name={ id } required class="h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-3 text-sm font-mono shadow-sm">
+			<select id={ id } name={ id } required class="h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-3 text-sm font-mono shadow-xs">
 				for _, b := range branches {
 					<option value={ b.Name } selected?={ b.Name == current }>{ b.Name }</option>
 				}
@@ -133,6 +133,9 @@ templ pullNewBranchSelect(id, labelText, hint string, branches []service.BranchI
 templ pullNewReviewers(data view.PullNewData) {
 	{{ opts := data.Reviewer.All }}
 	<div class="space-y-2">
+		for _, o := range opts {
+			<input type="hidden" name="reviewers" value={ o.Username } :disabled={ "!reviewers.includes(" + components.JSLiteral(o.Username) + ")" }/>
+		}
 		if len(opts) > 0 {
 			@issueNewPicker("reviewers", "Reviewers", "Request reviewers", "Request reviewers", true) {
 				for _, o := range opts {
@@ -159,25 +162,28 @@ templ pullNewReviewers(data view.PullNewData) {
 		} else {
 			<h3 class="text-[12px] font-medium text-muted-foreground">Reviewers</h3>
 		}
-		<ul class="space-y-1.5">
-			for _, o := range opts {
-				<li x-show={ "reviewers.includes(" + components.JSLiteral(o.Username) + ")" } x-cloak class="flex items-center gap-2 text-[13px]">
-					@components.Avatar(o.Username, components.AvatarSizeSM, o.Username)
-					<a href={ templ.SafeURL("/" + o.Username) } class="font-medium hover:underline truncate">{ o.Username }</a>
-					<span class="ml-auto text-[10px] font-mono text-muted-foreground">Pending</span>
-				</li>
-			}
-		</ul>
-		<p x-show="reviewers.length === 0" class="text-[13px] text-muted-foreground">No reviewers requested.</p>
+		<div>
+			<ul class="flex flex-col gap-1.5">
+				for _, o := range opts {
+					<li x-show={ "reviewers.includes(" + components.JSLiteral(o.Username) + ")" } x-cloak class="flex items-center gap-2 text-[13px]">
+						@components.Avatar(o.Username, components.AvatarSizeSM, o.Username)
+						<a href={ templ.SafeURL("/" + o.Username) } class="font-medium hover:underline truncate">{ o.Username }</a>
+						<span class="ml-auto text-[10px] font-mono text-muted-foreground">Pending</span>
+					</li>
+				}
+			</ul>
+			<p x-show="reviewers.length === 0" class="text-[13px] text-muted-foreground">No reviewers requested.</p>
+		</div>
 		<p class="text-[12px] text-muted-foreground">Suggested from the files changed.</p>
-		for _, o := range opts {
-			<input type="hidden" name="reviewers" value={ o.Username } :disabled={ "!reviewers.includes(" + components.JSLiteral(o.Username) + ")" }/>
-		}
 	</div>
 }
 
 templ pullNewLabels(data view.PullNewData) {
 	<div class="space-y-2">
+		for _, lbl := range data.AllLabels {
+			{{ id := strconv.FormatInt(lbl.ID, 10) }}
+			<input type="hidden" name="labels" value={ id } :disabled={ "!labels.includes(" + components.JSLiteral(id) + ")" }/>
+		}
 		if len(data.AllLabels) > 0 {
 			@issueNewPicker("labels", "Labels", "Apply labels", "Edit labels", false) {
 				for _, lbl := range data.AllLabels {
@@ -219,9 +225,5 @@ templ pullNewLabels(data view.PullNewData) {
 			}
 			<span x-show="labels.length === 0" class="text-[13px] text-muted-foreground">No labels.</span>
 		</div>
-		for _, lbl := range data.AllLabels {
-			{{ id := strconv.FormatInt(lbl.ID, 10) }}
-			<input type="hidden" name="labels" value={ id } :disabled={ "!labels.includes(" + components.JSLiteral(id) + ")" }/>
-		}
 	</div>
 }

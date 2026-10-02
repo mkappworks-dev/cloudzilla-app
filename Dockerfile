@@ -1,20 +1,20 @@
 # ── Stage 1: Build ──────────────────────────────────────────────────────────
 FROM golang:1.27-alpine AS builder
 
-RUN apk add --no-cache make curl
+# libstdc++ and libgcc: the Tailwind CLI's musl build links them dynamically
+RUN apk add --no-cache make curl libstdc++ libgcc
 
 WORKDIR /app
 COPY . .
 
-# Download Tailwind CLI (arch-aware, pinned version) and build CSS
+# Download Tailwind CLI (arch-aware, pinned version; musl builds for Alpine) and build CSS
 RUN ARCH=$(uname -m) && \
-    if [ "$ARCH" = "aarch64" ]; then TW=tailwindcss-linux-arm64; else TW=tailwindcss-linux-x64; fi && \
+    if [ "$ARCH" = "aarch64" ]; then TW=tailwindcss-linux-arm64-musl; else TW=tailwindcss-linux-x64-musl; fi && \
     mkdir -p bin cmd/server/frontend/static && \
-    curl -sLf "https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.19/${TW}" \
+    curl -sLf "https://github.com/tailwindlabs/tailwindcss/releases/download/v4.3.3/${TW}" \
       -o bin/tailwindcss && \
     chmod +x bin/tailwindcss && \
-    bin/tailwindcss -c tailwind/tailwind.config.js -i tailwind/input.css \
-      -o cmd/server/frontend/static/main.css --minify
+    bin/tailwindcss -i tailwind/input.css -o cmd/server/frontend/static/main.css --minify
 
 # Download mermaid.min.js and htmx.min.js for embedding
 RUN curl -sL https://cdn.jsdelivr.net/npm/mermaid@12/dist/mermaid.min.js \

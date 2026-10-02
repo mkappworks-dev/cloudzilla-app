@@ -336,7 +336,7 @@ func Org(data view.OrgData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</a></div></div><div class=\"flex-shrink-0 flex items-center gap-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</a></div></div><div class=\"shrink-0 flex items-center gap-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -750,7 +750,7 @@ func Org(data view.OrgData) templ.Component {
 					}
 				}
 				if data.MemberCount > 12 {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "<span class=\"inline-grid place-items-center h-7 w-7 rounded bg-accent border border-border text-[10px] text-muted-foreground\">+")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "<span class=\"inline-grid place-items-center h-7 w-7 rounded-sm bg-accent border border-border text-[10px] text-muted-foreground\">+")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

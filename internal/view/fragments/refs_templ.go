@@ -68,7 +68,7 @@ func BranchesList(data view.BranchesFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				if branch.IsDefault {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"text-xs bg-success/10 text-success px-2 py-0.5 rounded shrink-0\">default</span> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"text-xs bg-success/10 text-success px-2 py-0.5 rounded-sm shrink-0\">default</span> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -130,7 +130,7 @@ func BranchesList(data view.BranchesFragData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" class=\"text-xs text-destructive hover:text-destructive border border-destructive/40 px-2 py-1 rounded hover:bg-destructive/10\">Delete</button>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" class=\"text-xs text-destructive hover:text-destructive border border-destructive/40 px-2 py-1 rounded-sm hover:bg-destructive/10\">Delete</button>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -264,7 +264,7 @@ func TagsList(data view.TagsFragData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "\" class=\"text-xs text-destructive hover:text-destructive border border-destructive/40 px-2 py-1 rounded hover:bg-destructive/10\">Delete</button>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "\" class=\"text-xs text-destructive hover:text-destructive border border-destructive/40 px-2 py-1 rounded-sm hover:bg-destructive/10\">Delete</button>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

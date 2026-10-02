@@ -6,7 +6,7 @@ GO_SRC := $(shell find . -name '*.go' -not -path './vendor/*')
 TAILWIND := bin/tailwindcss
 TAILWIND_OUT := cmd/server/frontend/static/main.css
 
-TAILWIND_VERSION := v3.4.19
+TAILWIND_VERSION := v4.3.3
 HTMX_VERSION := 2.0.11
 
 setup-tailwind:                    ## Download Tailwind standalone CLI
@@ -54,14 +54,12 @@ download-htmx:                     ## Download htmx.min.js for self-hosting (onc
 
 build-css:                         ## Compile Tailwind → static/main.css
 	@mkdir -p cmd/server/frontend/static
-	$(TAILWIND) -c tailwind/tailwind.config.js -i tailwind/input.css \
-	  -o $(TAILWIND_OUT) --minify
+	$(TAILWIND) -i tailwind/input.css -o $(TAILWIND_OUT) --minify
 
 dev: download-mermaid download-htmx build-css generate-templ  ## Run backend + Tailwind + templ watch
 	@(trap 'kill 0' SIGINT; \
 		$(GO) run ./cmd/server/. & \
-		$(TAILWIND) -c tailwind/tailwind.config.js -i tailwind/input.css \
-		  -o $(TAILWIND_OUT) --watch & \
+		$(TAILWIND) -i tailwind/input.css -o $(TAILWIND_OUT) --watch=always & \
 		~/go/bin/templ generate --watch ./internal/view/... & \
 		wait)
 

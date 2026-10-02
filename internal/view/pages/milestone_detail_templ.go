@@ -740,7 +740,7 @@ func milestoneIssueRow(owner, repoName string, iss model.Issue) templ.Component 
 		}
 		ctx = templ.ClearChildren(ctx)
 		open := iss.State == model.IssueStateOpen
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "<li class=\"relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-sm before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "<li class=\"relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -886,7 +886,7 @@ func milestonePullRow(owner, repoName string, pr model.PullRequest) templ.Compon
 		ctx = templ.ClearChildren(ctx)
 		open := pr.State == model.PRStateOpen
 		merged := pr.State == model.PRStateMerged
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "<li class=\"relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-sm before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "<li class=\"relative flex items-start gap-3 px-4 py-3 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px] hover:bg-muted/50\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

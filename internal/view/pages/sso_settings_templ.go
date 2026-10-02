@@ -349,12 +349,12 @@ func SSOSettings(data view.SSOSettingsData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					if data.LDAPConfig != nil && data.LDAPConfig.Config["use_tls"] == "true" {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<input type=\"checkbox\" id=\"ldap_use_tls\" name=\"ldap_use_tls\" value=\"true\" checked class=\"h-4 w-4 rounded border-input accent-foreground\"> ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<input type=\"checkbox\" id=\"ldap_use_tls\" name=\"ldap_use_tls\" value=\"true\" checked class=\"h-4 w-4 rounded-sm border-input accent-foreground\"> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					} else {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<input type=\"checkbox\" id=\"ldap_use_tls\" name=\"ldap_use_tls\" value=\"true\" class=\"h-4 w-4 rounded border-input accent-foreground\"> ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<input type=\"checkbox\" id=\"ldap_use_tls\" name=\"ldap_use_tls\" value=\"true\" class=\"h-4 w-4 rounded-sm border-input accent-foreground\"> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -364,7 +364,7 @@ func SSOSettings(data view.SSOSettingsData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					if data.LDAPConfig != nil && data.LDAPConfig.Enabled && data.LDAPConfig.Config["use_tls"] != "true" {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<p class=\"text-xs text-warning border border-warning/40 bg-warning/10 rounded px-3 py-2\">Warning: TLS is disabled. LDAP credentials will be transmitted in plaintext. Enable TLS or use an ldaps:// host for production use.</p>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<p class=\"text-xs text-warning border border-warning/40 bg-warning/10 rounded-sm px-3 py-2\">Warning: TLS is disabled. LDAP credentials will be transmitted in plaintext. Enable TLS or use an ldaps:// host for production use.</p>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -374,12 +374,12 @@ func SSOSettings(data view.SSOSettingsData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					if data.LDAPConfig != nil && data.LDAPConfig.Enabled {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<input type=\"checkbox\" id=\"ldap_enabled\" name=\"enabled\" value=\"true\" checked class=\"h-4 w-4 rounded border-input accent-foreground\"> ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<input type=\"checkbox\" id=\"ldap_enabled\" name=\"enabled\" value=\"true\" checked class=\"h-4 w-4 rounded-sm border-input accent-foreground\"> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					} else {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<input type=\"checkbox\" id=\"ldap_enabled\" name=\"enabled\" value=\"true\" class=\"h-4 w-4 rounded border-input accent-foreground\"> ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "<input type=\"checkbox\" id=\"ldap_enabled\" name=\"enabled\" value=\"true\" class=\"h-4 w-4 rounded-sm border-input accent-foreground\"> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -666,7 +666,7 @@ func SSOSettings(data view.SSOSettingsData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					if data.SAMLConfig != nil {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "<textarea id=\"saml_idp_cert\" name=\"saml_idp_cert\" rows=\"4\" class=\"flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "<textarea id=\"saml_idp_cert\" name=\"saml_idp_cert\" rows=\"4\" class=\"flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-xs placeholder:text-muted-foreground\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -699,12 +699,12 @@ func SSOSettings(data view.SSOSettingsData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					if data.SAMLConfig != nil && data.SAMLConfig.Enabled {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<input type=\"checkbox\" id=\"saml_enabled\" name=\"enabled\" value=\"true\" checked class=\"h-4 w-4 rounded border-input accent-foreground\"> ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<input type=\"checkbox\" id=\"saml_enabled\" name=\"enabled\" value=\"true\" checked class=\"h-4 w-4 rounded-sm border-input accent-foreground\"> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					} else {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "<input type=\"checkbox\" id=\"saml_enabled\" name=\"enabled\" value=\"true\" class=\"h-4 w-4 rounded border-input accent-foreground\"> ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "<input type=\"checkbox\" id=\"saml_enabled\" name=\"enabled\" value=\"true\" class=\"h-4 w-4 rounded-sm border-input accent-foreground\"> ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}

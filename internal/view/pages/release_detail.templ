@@ -80,7 +80,7 @@ templ ReleaseDetail(data view.ReleaseDetailData) {
 
 					<section aria-labelledby="rel-tag-heading">
 						<h2 id="rel-tag-heading" class="text-[12px] font-medium text-muted-foreground mb-2">Tag</h2>
-						<p><code class="font-mono px-2 py-0.5 border border-border bg-muted rounded text-[12px]">{ data.Release.TagName }</code></p>
+						<p><code class="font-mono px-2 py-0.5 border border-border bg-muted rounded-sm text-[12px]">{ data.Release.TagName }</code></p>
 					</section>
 
 					if data.CommitSHA != "" {

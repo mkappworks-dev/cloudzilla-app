@@ -51,7 +51,7 @@ func Milestones(data view.MilestonesData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"space-y-6\"><div class=\"flex flex-wrap items-start justify-between gap-4\"><div class=\"min-w-0\"><h1 class=\"text-2xl font-semibold tracking-tight\">Milestones</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">Group issues and pull requests toward a shared goal and track progress.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"flex flex-col gap-6\"><div class=\"flex flex-wrap items-start justify-between gap-4\"><div class=\"min-w-0\"><h1 class=\"text-2xl font-semibold tracking-tight\">Milestones</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">Group issues and pull requests toward a shared goal and track progress.</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -198,7 +198,7 @@ func milestoneCard(owner, repoName string, m model.Milestone) templ.Component {
 		ctx = templ.ClearChildren(ctx)
 		closed := m.State == "closed"
 		total := m.OpenCount + m.ClosedCount
-		var templ_7745c5c3_Var7 = []any{"relative rounded-md border border-border bg-card p-4 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-sm before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px]", templ.KV("opacity-70", closed)}
+		var templ_7745c5c3_Var7 = []any{"relative rounded-md border border-border bg-card p-4 transition-[padding] before:content-[''] before:absolute before:left-0 before:inset-y-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 hover:before:opacity-100 hover:pl-[18px]", templ.KV("opacity-70", closed)}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var7...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

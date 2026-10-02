@@ -106,7 +106,7 @@ func SSHKeysList(data view.SSHKeysFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" class=\"ml-4 px-3 py-2 text-destructive border border-destructive/40 rounded hover:bg-destructive/10 transition-colors text-sm\">Delete</button></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" class=\"ml-4 px-3 py-2 text-destructive border border-destructive/40 rounded-sm hover:bg-destructive/10 transition-colors text-sm\">Delete</button></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

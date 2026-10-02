@@ -45,7 +45,7 @@ templ PRReviews(data view.PRReviewsFragData) {
 				class="mt-4 border-t border-border pt-4 space-y-3"
 			>
 				<h3 class="text-sm font-medium text-foreground">Submit a review</h3>
-				<textarea name="body" rows="3" placeholder="Leave a comment (optional)" class="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus-visible:outline-ring resize-none"></textarea>
+				<textarea name="body" rows="3" placeholder="Leave a comment (optional)" class="w-full border border-border rounded-sm px-3 py-2 text-sm focus:outline-hidden focus:ring-1 focus-visible:outline-ring resize-none"></textarea>
 				<div class="flex flex-wrap gap-4 text-sm">
 					<label class="flex items-center gap-2 cursor-pointer">
 						<input type="radio" name="state" value="commented" checked class="accent-gray-500"/>
@@ -60,7 +60,7 @@ templ PRReviews(data view.PRReviewsFragData) {
 						<span class="text-destructive">Request changes</span>
 					</label>
 				</div>
-				<button type="submit" class="px-4 py-2 bg-primary text-background rounded text-sm font-medium hover:bg-primary transition-colors">
+				<button type="submit" class="px-4 py-2 bg-primary text-background rounded-sm text-sm font-medium hover:bg-primary transition-colors">
 					Submit review
 				</button>
 			</form>

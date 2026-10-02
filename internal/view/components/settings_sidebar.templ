@@ -37,15 +37,15 @@ templ SettingsSidebar(d SettingsSidebarData) {
 templ settingsSidebarLink(it SettingsSidebarItem, active string) {
 	if it.Key == active {
 		if it.Danger {
-			<a href={ templ.SafeURL(it.Href) } aria-current="page" class="block px-3 py-1.5 rounded text-sm font-medium bg-destructive/10 text-destructive">{ it.Label }</a>
+			<a href={ templ.SafeURL(it.Href) } aria-current="page" class="block px-3 py-1.5 rounded-sm text-sm font-medium bg-destructive/10 text-destructive">{ it.Label }</a>
 		} else {
-			<a href={ templ.SafeURL(it.Href) } aria-current="page" class="block px-3 py-1.5 rounded text-sm font-medium bg-accent text-foreground">{ it.Label }</a>
+			<a href={ templ.SafeURL(it.Href) } aria-current="page" class="block px-3 py-1.5 rounded-sm text-sm font-medium bg-accent text-foreground">{ it.Label }</a>
 		}
 	} else {
 		if it.Danger {
-			<a href={ templ.SafeURL(it.Href) } class="block px-3 py-1.5 rounded text-sm text-destructive hover:bg-destructive/10">{ it.Label }</a>
+			<a href={ templ.SafeURL(it.Href) } class="block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10">{ it.Label }</a>
 		} else {
-			<a href={ templ.SafeURL(it.Href) } class="block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent">{ it.Label }</a>
+			<a href={ templ.SafeURL(it.Href) } class="block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent">{ it.Label }</a>
 		}
 	}
 }

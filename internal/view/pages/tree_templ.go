@@ -187,7 +187,7 @@ func Tree(data view.TreeData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div></section><div class=\"grid grid-cols-[260px_1fr] gap-4\"><aside x-data=\"{ filter: '' }\" class=\"rounded-md border border-border bg-card sticky top-4 self-start max-h-[calc(100vh-5rem)] overflow-hidden flex flex-col\" aria-label=\"Repository file tree\"><header class=\"px-3 py-2 border-b border-border flex items-center gap-2 bg-muted/40 shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M3 6h18M3 12h18M3 18h18\"></path></svg> <span class=\"text-[12px] font-medium\">Files</span><div class=\"ml-auto flex items-center gap-0.5\"><button type=\"button\" x-on:click=\"filter = ''\" title=\"Clear filter\" aria-label=\"Clear filter\" class=\"h-6 w-6 grid place-items-center rounded hover:bg-muted text-muted-foreground\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M19 9l-7 7-7-7\"></path></svg></button></div></header><div class=\"px-2 py-1.5 border-b border-border shrink-0\"><input x-model=\"filter\" type=\"search\" placeholder=\"Filter files…\" class=\"w-full h-7 px-2 text-[12px] bg-transparent border border-border rounded-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-foreground/30\" aria-label=\"Filter files\"></div><div class=\"overflow-y-auto flex-1 flex flex-col\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div></section><div class=\"grid grid-cols-[260px_1fr] gap-4\"><aside x-data=\"{ filter: '' }\" class=\"rounded-md border border-border bg-card sticky top-4 self-start max-h-[calc(100vh-5rem)] overflow-hidden flex flex-col\" aria-label=\"Repository file tree\"><header class=\"px-3 py-2 border-b border-border flex items-center gap-2 bg-muted/40 shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M3 6h18M3 12h18M3 18h18\"></path></svg> <span class=\"text-[12px] font-medium\">Files</span><div class=\"ml-auto flex items-center gap-0.5\"><button type=\"button\" x-on:click=\"filter = ''\" title=\"Clear filter\" aria-label=\"Clear filter\" class=\"h-6 w-6 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M19 9l-7 7-7-7\"></path></svg></button></div></header><div class=\"px-2 py-1.5 border-b border-border shrink-0\"><input x-model=\"filter\" type=\"search\" placeholder=\"Filter files…\" class=\"w-full h-7 px-2 text-[12px] bg-transparent border border-border rounded-xs placeholder:text-muted-foreground/60 focus:outline-hidden focus:border-foreground/30\" aria-label=\"Filter files\"></div><div class=\"overflow-y-auto flex-1 flex flex-col\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -339,20 +339,20 @@ func Tree(data view.TreeData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\" class=\"font-mono text-muted-foreground hover:underline flex-shrink-0\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\" class=\"font-mono text-muted-foreground hover:underline shrink-0\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var18 string
 					templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(data.LatestCommit.SHA)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/tree.templ`, Line: 117, Col: 156}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/tree.templ`, Line: 117, Col: 151}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</a> <span class=\"text-muted-foreground flex-shrink-0\"><time datetime=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</a> <span class=\"text-muted-foreground shrink-0\"><time datetime=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -583,20 +583,20 @@ func Tree(data view.TreeData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "\" class=\"font-mono text-muted-foreground hover:underline flex-shrink-0\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "\" class=\"font-mono text-muted-foreground hover:underline shrink-0\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var33 string
 					templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(data.LatestCommit.SHA)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/tree.templ`, Line: 155, Col: 156}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/tree.templ`, Line: 155, Col: 151}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "</a> <span class=\"text-muted-foreground flex-shrink-0\"><time datetime=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "</a> <span class=\"text-muted-foreground shrink-0\"><time datetime=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -865,14 +865,14 @@ func Tree(data view.TreeData) templ.Component {
 											if templ_7745c5c3_Err != nil {
 												return templ_7745c5c3_Err
 											}
-											templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "\" class=\"flex-shrink-0\">")
+											templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "\" class=\"shrink-0\">")
 											if templ_7745c5c3_Err != nil {
 												return templ_7745c5c3_Err
 											}
 											var templ_7745c5c3_Var50 string
 											templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs(entry.LastCommit.Timestamp.Format(time.RFC822))
 											if templ_7745c5c3_Err != nil {
-												return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/tree.templ`, Line: 204, Col: 151}
+												return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/tree.templ`, Line: 204, Col: 146}
 											}
 											_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 											if templ_7745c5c3_Err != nil {

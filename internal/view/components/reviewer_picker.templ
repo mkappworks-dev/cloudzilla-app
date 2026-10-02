@@ -35,11 +35,11 @@ templ ReviewerPicker(d ReviewerPickerData) {
 
 templ reviewerOption(opt ReviewerOption) {
 	<li>
-		<label class="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded text-sm cursor-pointer">
+		<label class="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded-sm text-sm cursor-pointer">
 			if opt.Selected {
-				<input type="checkbox" name="reviewers" value={ opt.Username } checked class="h-4 w-4 rounded border-border"/>
+				<input type="checkbox" name="reviewers" value={ opt.Username } checked class="h-4 w-4 rounded-sm border-border"/>
 			} else {
-				<input type="checkbox" name="reviewers" value={ opt.Username } class="h-4 w-4 rounded border-border"/>
+				<input type="checkbox" name="reviewers" value={ opt.Username } class="h-4 w-4 rounded-sm border-border"/>
 			}
 			<span class="flex-1">{ opt.Username }</span>
 			if opt.Reason != "" {

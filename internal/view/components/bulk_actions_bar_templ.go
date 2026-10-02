@@ -122,11 +122,11 @@ func BulkActionsBar(d BulkActionsBarData) templ.Component {
 func bulkActionClass(kind string) string {
 	switch kind {
 	case "destructive":
-		return "ml-auto h-7 px-2.5 text-sm text-destructive hover:bg-destructive/10 rounded"
+		return "ml-auto h-7 px-2.5 text-sm text-destructive hover:bg-destructive/10 rounded-sm"
 	case "primary":
-		return "h-7 px-2.5 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90"
+		return "h-7 px-2.5 text-sm bg-primary text-primary-foreground rounded-sm hover:bg-primary/90"
 	default:
-		return "h-7 px-2.5 text-sm text-muted-foreground hover:text-foreground rounded"
+		return "h-7 px-2.5 text-sm text-muted-foreground hover:text-foreground rounded-sm"
 	}
 }
 

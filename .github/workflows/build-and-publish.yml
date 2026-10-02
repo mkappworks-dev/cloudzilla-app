@@ -54,7 +54,7 @@ jobs:
       - name: Download Tailwind CLI
         run: |
           mkdir -p bin
-          curl -sLf https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.19/tailwindcss-linux-x64 -o bin/tailwindcss
+          curl -sLf https://github.com/tailwindlabs/tailwindcss/releases/download/v4.3.3/tailwindcss-linux-x64 -o bin/tailwindcss
           chmod +x bin/tailwindcss
 
       - name: Download Mermaid
@@ -76,8 +76,7 @@ jobs:
 
       - name: Build Tailwind CSS
         run: |
-          bin/tailwindcss -c tailwind/tailwind.config.js -i tailwind/input.css \
-            -o cmd/server/frontend/static/main.css --minify
+          bin/tailwindcss -i tailwind/input.css -o cmd/server/frontend/static/main.css --minify
 
       - name: Build binaries
         env:

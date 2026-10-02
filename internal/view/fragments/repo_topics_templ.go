@@ -149,7 +149,7 @@ func RepoTopics(data view.RepoTopicsFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" class=\"flex-1 border border-border rounded px-2 py-1 text-sm\"> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" class=\"flex-1 border border-border rounded-sm px-2 py-1 text-sm\"> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -166,7 +166,7 @@ func RepoTopics(data view.RepoTopicsFragData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"px-3 py-1 bg-primary text-background rounded text-sm hover:bg-primary\">Save</button></div><p class=\"text-xs text-muted-foreground mt-1\">Lowercase letters, digits, hyphens only. Max 20 topics, 20 chars each.</p></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"px-3 py-1 bg-primary text-background rounded-sm text-sm hover:bg-primary\">Save</button></div><p class=\"text-xs text-muted-foreground mt-1\">Lowercase letters, digits, hyphens only. Max 20 topics, 20 chars each.</p></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

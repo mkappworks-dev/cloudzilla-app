@@ -44,8 +44,8 @@ func TestComponents_MergeCallerClass(t *testing.T) {
 		{"CommandItemLink", func(a templ.Attributes) templ.Component { return CommandItem("/x", a) }, "gap-2.5"},
 		{"CommandItemButton", func(a templ.Attributes) templ.Component { return CommandItem("", a) }, "gap-2.5"},
 		{"CommentEditor", func(a templ.Attributes) templ.Component { return CommentEditor(a) }, "overflow-hidden"},
-		{"DropdownMenuItem", func(a templ.Attributes) templ.Component { return DropdownMenuItem(a) }, "rounded-sm"},
-		{"DropdownMenuLink", func(a templ.Attributes) templ.Component { return DropdownMenuLink("/x", a) }, "rounded-sm"},
+		{"DropdownMenuItem", func(a templ.Attributes) templ.Component { return DropdownMenuItem(a) }, "rounded-xs"},
+		{"DropdownMenuLink", func(a templ.Attributes) templ.Component { return DropdownMenuLink("/x", a) }, "rounded-xs"},
 		{"Input", func(a templ.Attributes) templ.Component { return Input(a) }, "h-9"},
 		{"SearchInput", func(a templ.Attributes) templ.Component { return SearchInput(a, "") }, "pl-8"},
 		{"Textarea", func(a templ.Attributes) templ.Component { return Textarea(a) }, "min-h-[80px]"},
@@ -161,6 +161,9 @@ func TestWithClass_CallerWinsConflicts(t *testing.T) {
 		{"animate-pulse rounded-md bg-muted", "h-8 w-8 rounded-full", []string{"animate-pulse", "bg-muted", "h-8", "w-8", "rounded-full"}, []string{"rounded-md"}},
 		{"p-4 align-middle [&:has([role=checkbox])]:pr-0", "px-4 py-2.5 w-8", []string{"p-4", "px-4", "py-2.5", "w-8", "[&:has([role=checkbox])]:pr-0"}, nil},
 		{"h-8 px-3 text-[13px]", "text-xs", []string{"h-8", "px-3", "text-xs"}, []string{"text-[13px]"}},
+		{"rounded-xs shadow-xs", "rounded-md shadow-none", []string{"rounded-md", "shadow-none"}, []string{"rounded-xs", "shadow-xs"}},
+		{"focus:outline-hidden", "focus:outline-ring", []string{"focus:outline-hidden", "focus:outline-ring"}, nil},
+		{"outline-hidden", "outline-solid", []string{"outline-solid"}, []string{"outline-hidden"}},
 	}
 	for _, tc := range cases {
 		got := strings.Fields(withClass(templ.Attributes{"class": tc.caller}, tc.base)["class"].(string))
