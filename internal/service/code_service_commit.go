@@ -294,9 +294,7 @@ func buildHunks(chunks []gogitdiff.Chunk) []DiffHunk {
 	var lines []lineInfo
 	oldN, newN := 1, 1
 	for _, chunk := range chunks {
-		content := strings.TrimSuffix(chunk.Content(), "\n")
-		parts := strings.Split(content, "\n")
-		for _, part := range parts {
+		for _, part := range chunkLines(chunk) {
 			switch chunk.Type() {
 			case gogitdiff.Equal:
 				lines = append(lines, lineInfo{gogitdiff.Equal, part, oldN, newN})
@@ -358,4 +356,8 @@ func buildHunks(chunks []gogitdiff.Chunk) []DiffHunk {
 		hunks = append(hunks, DiffHunk{Header: header, Lines: hunkLines})
 	}
 	return hunks
+}
+
+func chunkLines(chunk gogitdiff.Chunk) []string {
+	return strings.Split(strings.TrimSuffix(chunk.Content(), "\n"), "\n")
 }

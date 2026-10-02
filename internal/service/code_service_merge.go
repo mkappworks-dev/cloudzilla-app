@@ -10,6 +10,7 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
+	gogitdiff "github.com/go-git/go-git/v5/plumbing/format/diff"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
@@ -24,6 +25,12 @@ type PRDiffResult struct {
 	TotalDeleted     int
 	CanFastForward   bool // head is a descendant of base
 	CanThreeWayMerge bool // branches diverged but no conflicting file edits
+}
+
+type DiffStats struct {
+	Files   int
+	Added   int
+	Deleted int
 }
 
 // mergeFile holds the blob hash and file mode for a single file in a tree.
@@ -132,6 +139,46 @@ func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffRe
 		CanFastForward:   canFF,
 		CanThreeWayMerge: canMerge3,
 	}, nil
+}
+
+// PullDiffStats returns GetPullDiff's file and line totals without building
+// hunks or running its merge checks, which write merged trees into the repo.
+func (s *CodeService) PullDiffStats(owner, repoName, base, head string) (DiffStats, error) {
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return DiffStats{}, err
+	}
+	baseCommit, _, err := resolveRef(repo, base)
+	if err != nil {
+		return DiffStats{}, err
+	}
+	headCommit, _, err := resolveRef(repo, head)
+	if err != nil {
+		return DiffStats{}, err
+	}
+	patch, err := baseCommit.Patch(headCommit)
+	if err != nil {
+		return DiffStats{}, err
+	}
+
+	// Not patch.Stats(): it drops files with no chunks (binary or empty), which
+	// GetPullDiff lists.
+	var st DiffStats
+	for _, fp := range patch.FilePatches() {
+		st.Files++
+		if fp.IsBinary() {
+			continue
+		}
+		for _, chunk := range fp.Chunks() {
+			switch chunk.Type() {
+			case gogitdiff.Add:
+				st.Added += len(chunkLines(chunk))
+			case gogitdiff.Delete:
+				st.Deleted += len(chunkLines(chunk))
+			}
+		}
+	}
+	return st, nil
 }
 
 // MergePullRequest performs a fast-forward merge of head into base.
