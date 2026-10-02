@@ -600,10 +600,10 @@ func Projects(data view.ProjectsData) templ.Component {
 								return nil
 							})
 							templ_7745c5c3_Err = components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-								"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(p.ID, 10),
-								"hx-confirm":          "Delete this project board and all its columns and cards?",
-								"hx-on:after-request": "window.location.reload()",
-								"type":                "button",
+								"hx-delete":            "/api/repos/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(p.ID, 10),
+								"hx-confirm":           "Delete this project board and all its columns and cards?",
+								"hx-on::after-request": "if(event.detail.successful)window.location.reload()",
+								"type":                 "button",
 							}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var29), templ_7745c5c3_Buffer)
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
