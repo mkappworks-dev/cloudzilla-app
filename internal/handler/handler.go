@@ -39,7 +39,8 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 
 // renderFormError puts msg in slot, the error area of an HTMX form in a modal
 // dialog. It answers 200 because htmx skips swaps on 4xx by default; the form
-// tells success from error by the swapped target id.
+// tells success from error by the swapped target id, and the data-toast
+// listener by HX-Retarget.
 func renderFormError(w http.ResponseWriter, slot, msg string) {
 	w.Header().Set("HX-Retarget", slot)
 	w.Header().Set("HX-Reswap", "innerHTML")
