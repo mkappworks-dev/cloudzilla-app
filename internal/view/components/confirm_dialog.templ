@@ -89,6 +89,8 @@ templ ConfirmDialog() {
 
 			document.body.addEventListener('htmx:afterRequest', function (e) {
 				if (!e.detail.successful) return;
+				// renderFormError's form errors are 200s that htmx counts as successful; HX-Retarget marks them.
+				if (e.detail.xhr.getResponseHeader('HX-Retarget')) return;
 				// Reaches body once per request: from the requester, or, when the swap removed it, from the nearest surviving ancestor, which detail.elt then names.
 				var cfg = e.detail.requestConfig;
 				var elt = (cfg && cfg.elt) || e.detail.elt;

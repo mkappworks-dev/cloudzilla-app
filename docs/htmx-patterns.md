@@ -58,7 +58,7 @@ Bind htmx events as `hx-on::after-request` or `hx-on--after-request`, both short
 ## Toasts
 
 - **From the handler:** call `toast(w, type, message)` before writing the body. It sets `HX-Trigger: {"toast": …}`, and `ToastContainer` shows it.
-- **`data-toast` on the requesting element:** shown after a successful request, even when the response swaps the element out. Don't also send a handler toast for that request, or both show.
+- **`data-toast` on the requesting element:** shown after a successful request, even when the response swaps the element out. Don't also send a handler toast for that request, or both show. A form error from `renderFormError` shows no toast, although htmx sees a 200: the listener skips any response carrying `HX-Retarget`, so send that header only with form errors.
 - **Across a reload or redirect:** stash the toast in `sessionStorage` under `cz-toast`, and the next page shows it. When the handler answers htmx with `HX-Redirect` or `HX-Refresh`, put `hx-on--after-request={ stashToast(…) }` (`internal/view/pages/repo_transfers.templ`) on the requesting element, not `data-toast`: htmx leaves `event.detail.successful` unset for those responses. `stashToast` looks for the header rather than a 2xx status, because form errors come back as 200 swaps, and it ignores requests that bubble up from controls inside the element, like the `ConfirmFields` email-code button. A plain `<form method="POST" data-toast="…">` is stashed on submit.
 
 ## Template Parsing
