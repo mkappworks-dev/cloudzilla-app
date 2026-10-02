@@ -589,7 +589,7 @@ templ Repo(data view.RepoData) {
 				}
 				<form
 					hx-patch={ "/api/repos/" + data.Owner + "/" + data.RepoName }
-					hx-on::after-request="if(event.detail.successful) this.closest('dialog').close()"
+					hx-on::after:request="if(ctx.response.status<400) this.closest('dialog').close()"
 				>
 					@components.DialogBody() {
 						<div class="space-y-4">

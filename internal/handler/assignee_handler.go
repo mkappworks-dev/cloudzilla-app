@@ -14,7 +14,7 @@ import (
 )
 
 func assigneeUsername(r *http.Request) string {
-	if r.Header.Get("HX-Request") == "true" || r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+	if r.Header.Get("HX-Request") == "true" || isFormEncoded(r) {
 		_ = r.ParseForm()
 		return r.FormValue("username")
 	}

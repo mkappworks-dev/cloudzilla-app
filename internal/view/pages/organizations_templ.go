@@ -336,7 +336,7 @@ func orgListRow(e view.OrgListEntry, viewerUsername string) templ.Component {
 				"data-confirm-label":   "Leave",
 				"data-confirm-danger":  "true",
 				"data-toast":           "Left organization",
-				"hx-on::after-request": "if(event.detail.successful)window.location.reload()",
+				"hx-on::after:request": "if(ctx.response.status<400)window.location.reload()",
 				"type":                 "button",
 			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var13), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {

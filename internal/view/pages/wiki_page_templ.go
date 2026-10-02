@@ -333,7 +333,7 @@ func WikiPage(data view.WikiPageData) templ.Component {
 						templ_7745c5c3_Err = components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
 							"type":                 "button",
 							"hx-delete":            "/api/repos/" + data.Owner + "/" + data.RepoName + "/wiki/" + data.Slug,
-							"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Wiki page deleted'}));location.href=" + components.JSLiteral("/"+data.Owner+"/"+data.RepoName+"/wiki") + ";}",
+							"hx-on::after:request": "if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Wiki page deleted'}));location.href=" + components.JSLiteral("/"+data.Owner+"/"+data.RepoName+"/wiki") + ";}",
 						}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var14), templ_7745c5c3_Buffer)
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err

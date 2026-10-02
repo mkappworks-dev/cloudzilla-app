@@ -9,12 +9,18 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
+// htmxConfig keeps htmx 2's handling: handlers answer errors with JSON for the
+// error toast, so 4xx and 5xx responses must not swap, and long requests such as
+// a fork get no client-side timeout.
+const htmxConfig = `{"noSwap":[204,304,"4xx","5xx"],"defaultTimeout":0}`
+
 templ Base(base view.BasePage, title string) {
 	<!DOCTYPE html>
 	<html lang="en" class="dark">
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta name="htmx-config" content={ htmxConfig }/>
 			<title>{ title } — Cloudzilla</title>
 			<link rel="icon" type="image/svg+xml" href={ assets.URL("/static/favicon.svg") }/>
 			<link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -290,10 +296,10 @@ templ Base(base view.BasePage, title string) {
 			@components.ConfirmDialog()
 
 			<script>
-				// CSRF token plumbing — unchanged.
 				(function() {
 					var token = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
-					document.body.setAttribute('hx-headers', JSON.stringify({'X-CSRF-Token': token}));
+					// htmx 4 passes an attribute down to descendants only when it is marked :inherited.
+					document.body.setAttribute('hx-headers:inherited', JSON.stringify({'X-CSRF-Token': token}));
 					function injectCSRF(form) {
 						if (form.method && form.method.toUpperCase() !== 'GET' && !form.querySelector('input[name="csrf_token"]')) {
 							var input = document.createElement('input');
@@ -415,7 +421,7 @@ templ Base(base view.BasePage, title string) {
 						}
 					}
 					document.addEventListener('DOMContentLoaded', render);
-					document.addEventListener('htmx:afterSwap', render);
+					document.addEventListener('htmx:after:swap', render);
 				})();
 			</script>
 		</body>

@@ -250,7 +250,7 @@ func pullDetailBody(data view.PullDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" hx-swap=\"none\" hx-on--after-request=\"if(event.target===this&&event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Description updated'}));location.reload();}\"><div class=\"rounded-md border border-border overflow-hidden\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" hx-swap=\"none\" hx-on::after:request=\"if(event.target===this&&ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Description updated'}));location.reload();}\"><div class=\"rounded-md border border-border overflow-hidden\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -341,7 +341,7 @@ func pullDetailBody(data view.PullDetailData) templ.Component {
 				"hx-patch":             apiBase,
 				"hx-vals":              `{"state":"open"}`,
 				"hx-swap":              "none",
-				"hx-on--after-request": "if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request reopened'}));location.reload();}",
+				"hx-on::after:request": "if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request reopened'}));location.reload();}",
 			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var10), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -458,7 +458,7 @@ func pullDetailBody(data view.PullDetailData) templ.Component {
 				"hx-post":              apiBase + "/comments",
 				"hx-target":            "#pr-timeline",
 				"hx-swap":              "beforeend",
-				"hx-on--after-request": "if(event.target===this&&event.detail.successful) this.reset()",
+				"hx-on::after:request": "if(event.target===this&&ctx.response.status<400) this.reset()",
 			}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var11), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -501,7 +501,7 @@ func pullDetailBody(data view.PullDetailData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "\" hx-on--after-request=\"if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review request withdrawn'}));location.reload();}\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "\" hx-on::after:request=\"if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review request withdrawn'}));location.reload();}\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -532,7 +532,7 @@ func pullDetailBody(data view.PullDetailData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "\" hx-on--after-request=\"if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review requested'}));location.reload();}\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "\" hx-on::after:request=\"if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Review requested'}));location.reload();}\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -817,7 +817,7 @@ func pullDetailBody(data view.PullDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "\" hx-swap=\"none\" hx-on--after-request=\"if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Unsubscribed from this pull request'}));location.reload();}\" aria-pressed=\"true\" class=\"w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-accent text-foreground text-[13px] hover:bg-accent/70\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9\"></path><path d=\"M10.3 21a1.94 1.94 0 003.4 0\"></path></svg> Subscribed</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "\" hx-swap=\"none\" hx-on::after:request=\"if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Unsubscribed from this pull request'}));location.reload();}\" aria-pressed=\"true\" class=\"w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border bg-accent text-foreground text-[13px] hover:bg-accent/70\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9\"></path><path d=\"M10.3 21a1.94 1.94 0 003.4 0\"></path></svg> Subscribed</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -848,7 +848,7 @@ func pullDetailBody(data view.PullDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "\" hx-swap=\"none\" hx-on--after-request=\"if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Subscribed to this pull request'}));location.reload();}\" aria-pressed=\"false\" class=\"w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border text-muted-foreground text-[13px] hover:bg-accent hover:text-foreground\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9\"></path><path d=\"M10.3 21a1.94 1.94 0 003.4 0\"></path></svg> Subscribe</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "\" hx-swap=\"none\" hx-on::after:request=\"if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Subscribed to this pull request'}));location.reload();}\" aria-pressed=\"false\" class=\"w-full h-8 inline-flex items-center justify-center gap-1.5 rounded-md border border-border text-muted-foreground text-[13px] hover:bg-accent hover:text-foreground\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9\"></path><path d=\"M10.3 21a1.94 1.94 0 003.4 0\"></path></svg> Subscribe</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1025,7 +1025,7 @@ func pullDetailBody(data view.PullDetailData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, "\" hx-swap=\"none\" hx-on--after-request=\"if(event.detail.successful){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request closed'}));location.reload();}\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90\">Close pull request</button>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, "\" hx-swap=\"none\" hx-on::after:request=\"if(ctx.response.status<400){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:'Pull request closed'}));location.reload();}\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90\">Close pull request</button>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

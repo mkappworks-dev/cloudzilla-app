@@ -29,7 +29,7 @@ func (h *Handler) AddSSHKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Handle form data from HTMX or JSON
-	if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+	if isFormEncoded(r) {
 		if err := r.ParseForm(); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request")
 			return

@@ -155,7 +155,7 @@ templ AdminSettings(data view.AdminSettingsData) {
 						hx-post="/api/admin/users/verify-email"
 						hx-include="#admin-confirm input"
 						hx-swap="none"
-						hx-on::after-request="if(event.detail.successful){this.reset();}"
+						hx-on::after:request="if(ctx.response.status<400){this.reset();}"
 						data-toast="Email marked verified"
 						class="flex flex-col sm:flex-row gap-3"
 					>

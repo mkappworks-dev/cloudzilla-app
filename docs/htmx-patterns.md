@@ -45,21 +45,42 @@ Fragment (`templates/fragments/issue_detail.html`):
 
 HTMX flow: button click → PATCH → handler returns fragment → HTMX replaces `#issue-detail` outerHTML
 
-## DELETE Parameters
+## Request Parameters
 
-htmx 2 sends a DELETE's parameters (`hx-vals`, `hx-include`, the enclosing form's fields) in the query string, not the body; Go's `r.ParseForm` ignores DELETE bodies anyway. Handlers read them with `r.URL.Query()` or `r.FormValue`.
+- **POST, PUT and PATCH** send a body: the element's form (`elt.form`, or the closest `<form>`), the submitter's name and value, `hx-include` and `hx-vals`. A button inside a form therefore posts the form's fields too. To send none, empty the body in `hx-on::config:request`, as the "Email me a code" button in `confirm_fields.templ` does (htmx 4 dropped `hx-params`).
+- **GET and DELETE** send their parameters in the query string, and include a form only when the requesting element is the form itself. Go's `r.ParseForm` ignores DELETE bodies anyway, so handlers read them with `r.URL.Query()` or `r.FormValue`.
 
-Keep an `hx-delete` out of forms that hold secrets: a password field, or the `csrf_token` input the layout adds to every form whose `method` isn't GET, would end up in the URL, which reverse proxies record in their access logs. The CSRF token already travels in the `X-CSRF-Token` header.
+Keep `hx-delete` off forms that hold secrets: a password field, or the `csrf_token` input the layout adds to every form whose `method` isn't GET, would end up in the URL, which reverse proxies record in their access logs. The CSRF token already travels in the `X-CSRF-Token` header.
+
+fetch sends a form body as `application/x-www-form-urlencoded;charset=UTF-8`, so handlers test the media type with `isFormEncoded(r)`, not with string equality.
+
+## Attribute Inheritance
+
+htmx 4 doesn't inherit attributes by default. `hx-target`, `hx-swap`, `hx-confirm`, `hx-headers` and the rest apply only to the element that carries them, unless the ancestor writes them with the `:inherited` suffix. The layout sets `hx-headers:inherited` on `<body>` to send `X-CSRF-Token` with every request. An element with its own `hx-headers` replaces that value and gets a 403 on its first non-GET request.
+
+## Error Responses
+
+htmx 4 swaps 4xx and 5xx responses by default. `htmxConfig` in `layout.templ` turns that off (`noSwap: [204, 304, "4xx", "5xx"]`), because handlers answer errors with JSON (`writeError`) and the layout's `htmx:response:error` listener shows its `error` field as a toast. It also sets `defaultTimeout: 0`: htmx 4 aborts requests after 60 seconds by default, and a fork can take longer.
+
+A form in a modal dialog shows its error inline instead, where a toast would sit behind the backdrop. `renderFormError` answers 200 with `HX-Retarget` pointing at the form's error slot, so the form tells success from error by `ctx.hx.retarget`.
 
 ## hx-on Attributes
 
-Bind htmx events as `hx-on::after-request` or `hx-on--after-request`, both short for `htmx:after-request`, or name the event in full: `hx-on:htmx:after-request`. With one colon and a bare name, `hx-on:after-request` listens for a DOM event called `after-request`, which htmx never fires.
+htmx 4 event names use colons: `htmx:after:request`, `htmx:after:swap`, `htmx:response:error`. Bind them as `hx-on::after:request`, short for `hx-on:htmx:after:request`. htmx 4 ignores the 2.x spellings `hx-on--after-request` and `hx-on::after-request`, and with one colon, `hx-on:after:request` listens for a DOM event called `after:request`, which htmx never fires.
+
+The handler runs with the event's `detail` in scope, which for htmx events is `{ctx}`:
+
+- Test success with `ctx.response.status<400`; 2.x's `event.detail.successful` is gone.
+- Read response headers from `ctx.hx`, lowercased without dashes: `HX-Retarget` is `ctx.hx.retarget`. Once htmx applies it, `ctx.target` holds that selector string, not an element.
+- Events bubble, so a form's handler also runs for requests from elements inside it, such as the Markdown preview button or "Email me a code". Guard it with `event.target===this`.
+
+templ compiles an attribute that starts with `hx-on:` and has an `{ expr }` value as a script attribute. Pass a computed handler through `templ.Attributes{…}...` instead, as `repo_transfers.templ` does.
 
 ## Toasts
 
 - **From the handler:** call `toast(w, type, message)` before writing the body. It sets `HX-Trigger: {"toast": …}`, and `ToastContainer` shows it.
-- **`data-toast` on the requesting element:** shown after a successful request, even when the response swaps the element out. Don't also send a handler toast for that request, or both show. A form error from `renderFormError` shows no toast, although htmx sees a 200: the listener skips any response carrying `HX-Retarget`, so send that header only with form errors.
-- **Across a reload or redirect:** stash the toast in `sessionStorage` under `cz-toast`, and the next page shows it. When the handler answers htmx with `HX-Redirect` or `HX-Refresh`, put `hx-on--after-request={ stashToast(…) }` (`internal/view/pages/repo_transfers.templ`) on the requesting element, not `data-toast`: htmx leaves `event.detail.successful` unset for those responses. `stashToast` looks for the header rather than a 2xx status, because form errors come back as 200 swaps, and it ignores requests that bubble up from controls inside the element, like the `ConfirmFields` email-code button. A plain `<form method="POST" data-toast="…">` is stashed on submit.
+- **`data-toast` on the requesting element:** shown when the request succeeds. `htmx:after:request` fires before the swap, so this works even when the response swaps the element out. Don't also send a handler toast for that request, or both show. The listener skips a 4xx, a 5xx and any response carrying `HX-Retarget`: `renderFormError`'s form errors come back as 200s, so send that header only with form errors. When the response carries `HX-Redirect` or `HX-Refresh`, the listener stashes the toast for the next page instead.
+- **Across a reload or redirect:** stash the toast in `sessionStorage` under `cz-toast`, and the next page shows it. An `hx-on::after:request` handler that stashes one should look for `ctx.hx.redirect` or `ctx.hx.refresh` rather than trust the status alone, because form errors come back as 200 swaps. It should also check `event.target===this`, which skips requests that bubble up from controls inside the element, like the `ConfirmFields` email-code button. `stashToast` in `internal/view/pages/repo_transfers.templ` does both. A plain `<form method="POST" data-toast="…">` is stashed on submit.
 
 ## Template Parsing
 

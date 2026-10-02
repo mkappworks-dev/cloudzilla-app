@@ -763,7 +763,7 @@ func AdminSettings(data view.AdminSettingsData) templ.Component {
 						}()
 					}
 					ctx = templ.InitializeContext(ctx)
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<form method=\"POST\" action=\"/api/admin/users/verify-email\" hx-post=\"/api/admin/users/verify-email\" hx-include=\"#admin-confirm input\" hx-swap=\"none\" hx-on::after-request=\"if(event.detail.successful){this.reset();}\" data-toast=\"Email marked verified\" class=\"flex flex-col sm:flex-row gap-3\"><label for=\"verify-username\" class=\"sr-only\">Username</label>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<form method=\"POST\" action=\"/api/admin/users/verify-email\" hx-post=\"/api/admin/users/verify-email\" hx-include=\"#admin-confirm input\" hx-swap=\"none\" hx-on::after:request=\"if(ctx.response.status<400){this.reset();}\" data-toast=\"Email marked verified\" class=\"flex flex-col sm:flex-row gap-3\"><label for=\"verify-username\" class=\"sr-only\">Username</label>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

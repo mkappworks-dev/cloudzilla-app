@@ -52,15 +52,16 @@ templ ConfirmDialog() {
 			});
 
 			document.body.addEventListener('htmx:confirm', function (e) {
-				var elt = e.detail.elt;
-				if (!elt || !elt.hasAttribute('hx-confirm')) return;
+				var elt = e.detail.ctx.sourceElement;
+				if (!elt.hasAttribute('hx-confirm')) return;
 				e.preventDefault();
+				// htmx holds the request, and the element's request queue, until one of these runs.
 				open({
 					title:   elt.getAttribute('data-confirm-title') || 'Are you sure?',
-					message: e.detail.question || '',
+					message: e.detail.ctx.confirm || '',
 					label:   elt.getAttribute('data-confirm-label') || 'Confirm',
 					danger:  elt.hasAttribute('data-confirm-danger'),
-				}).then(function (ok) { if (ok) e.detail.issueRequest(true); });
+				}).then(function (ok) { if (ok) e.detail.issueRequest(); else e.detail.dropRequest(); });
 			});
 
 			document.body.addEventListener('click', function (e) {
@@ -87,28 +88,28 @@ templ ConfirmDialog() {
 				});
 			}, true);
 
-			document.body.addEventListener('htmx:afterRequest', function (e) {
-				if (!e.detail.successful) return;
-				// renderFormError's form errors are 200s that htmx counts as successful; HX-Retarget marks them.
-				if (e.detail.xhr.getResponseHeader('HX-Retarget')) return;
-				// Reaches body once per request: from the requester, or, when the swap removed it, from the nearest surviving ancestor, which detail.elt then names.
-				var cfg = e.detail.requestConfig;
-				var elt = (cfg && cfg.elt) || e.detail.elt;
-				if (!elt) return;
-				var msg = elt.getAttribute('data-toast');
+			document.body.addEventListener('htmx:after:request', function (e) {
+				var ctx = e.detail.ctx;
+				if (ctx.response.status >= 400) return;
+				// renderFormError's form errors are 200s; HX-Retarget marks them.
+				if (ctx.hx.retarget) return;
+				var msg = ctx.sourceElement.getAttribute('data-toast');
 				if (!msg) return;
+				if (ctx.hx.redirect || ctx.hx.refresh === 'true') {
+					try { sessionStorage.setItem('cz-toast', JSON.stringify({ type: 'success', message: msg })); } catch (err) {}
+					return;
+				}
 				document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: msg } }));
 			});
 
-			document.body.addEventListener('htmx:responseError', function (e) {
-				var xhr = e.detail && e.detail.xhr;
-				if (!xhr) return;
+			document.body.addEventListener('htmx:response:error', function (e) {
+				var ctx = e.detail.ctx;
 				var msg = '';
 				try {
-					var body = JSON.parse(xhr.responseText);
+					var body = JSON.parse(ctx.text);
 					if (body && typeof body.error === 'string') msg = body.error;
 				} catch (err) {}
-				if (!msg) msg = 'Something went wrong (HTTP ' + xhr.status + ').';
+				if (!msg) msg = 'Something went wrong (HTTP ' + ctx.response.status + ').';
 				document.dispatchEvent(new CustomEvent('toast', { detail: { type: 'error', message: msg } }));
 			});
 
@@ -118,7 +119,7 @@ templ ConfirmDialog() {
 				try { sessionStorage.setItem('cz-toast', JSON.stringify({ type: 'success', message: msg })); } catch (e) {}
 			}
 			document.body.addEventListener('submit', function (e) {
-				// A cancelled submit (htmx, or any script) stays on this page, where htmx:afterRequest shows the toast; a stash would replay on the next page load.
+				// A cancelled submit (htmx, or any script) stays on this page, where htmx:after:request shows the toast; a stash would replay on the next page load.
 				if (e.defaultPrevented) return;
 				var form = e.target;
 				if (form && form.matches && form.matches('form[data-toast]')) stashToastFromForm(form);

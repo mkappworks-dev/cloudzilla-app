@@ -446,7 +446,7 @@ func IssueDetail(data view.IssueDetailData) templ.Component {
 									"hx-patch":             "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number),
 									"hx-vals":              `{"state":"open"}`,
 									"hx-swap":              "none",
-									"hx-on::after-request": "if(event.detail.successful)window.location.reload()",
+									"hx-on::after:request": "if(ctx.response.status<400)window.location.reload()",
 									"type":                 "button",
 								}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var24), templ_7745c5c3_Buffer)
 								if templ_7745c5c3_Err != nil {
@@ -491,7 +491,7 @@ func IssueDetail(data view.IssueDetailData) templ.Component {
 						"hx-post":              "/api/repos/" + data.Owner + "/" + data.RepoName + "/issues/" + strconv.Itoa(data.Issue.Number) + "/comments",
 						"hx-target":            "#comments",
 						"hx-swap":              "beforeend",
-						"hx-on--after-request": "if(event.target===this&&event.detail.successful){var el=document.getElementById('issue-comment-count');if(el){var n=parseInt(el.dataset.count||'0',10)+1;el.dataset.count=n;el.textContent=' · '+n+(n===1?' comment':' comments');}var pv=document.getElementById('comment-body-preview');if(pv)pv.replaceChildren();this.reset();}",
+						"hx-on::after:request": "if(event.target===this&&ctx.response.status<400){var el=document.getElementById('issue-comment-count');if(el){var n=parseInt(el.dataset.count||'0',10)+1;el.dataset.count=n;el.textContent=' · '+n+(n===1?' comment':' comments');}var pv=document.getElementById('comment-body-preview');if(pv)pv.replaceChildren();this.reset();}",
 					}).Render(templ.WithChildren(ctx, templ_7745c5c3_Var22), templ_7745c5c3_Buffer)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -747,7 +747,7 @@ func IssueDetail(data view.IssueDetailData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "\" hx-swap=\"none\" hx-on:htmx:after-request=\"if(event.detail.successful)window.location.reload()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90\">Close issue</button>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "\" hx-swap=\"none\" hx-on::after:request=\"if(ctx.response.status<400)window.location.reload()\" class=\"inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-4 bg-destructive text-destructive-foreground hover:bg-destructive/90\">Close issue</button>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

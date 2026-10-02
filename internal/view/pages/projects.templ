@@ -164,7 +164,7 @@ templ Projects(data view.ProjectsData) {
 										@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
 											"hx-delete":            "/api/repos/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(p.ID, 10),
 											"hx-confirm":           "Delete this project board and all its columns and cards?",
-											"hx-on::after-request": "if(event.detail.successful)window.location.reload()",
+											"hx-on::after:request": "if(ctx.response.status<400)window.location.reload()",
 											"type":                 "button",
 										}) {
 											Delete

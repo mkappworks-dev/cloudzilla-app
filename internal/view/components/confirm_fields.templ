@@ -105,7 +105,7 @@ templ ConfirmFields(idPrefix string, f ConfirmFactors, required bool) {
 				<button
 					type="button"
 					hx-post="/settings/confirm-code"
-					hx-params="none"
+					hx-on::config:request="ctx.request.body = new FormData()"
 					hx-target={ "#" + idPrefix + "-email-code-status" }
 					hx-swap="innerHTML"
 					class="h-9 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground shrink-0"

@@ -1173,7 +1173,7 @@ func settingsAddSSHKeyDialog(data view.SettingsData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 94, "<form id=\"add-ssh-key-form\" hx-post=\"/api/user/keys\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" data-toast=\"SSH key added\" hx-on::after-request=\"if(event.detail.successful){this.closest('dialog').close(); this.reset();}\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 94, "<form id=\"add-ssh-key-form\" hx-post=\"/api/user/keys\" hx-target=\"#ssh-keys-list\" hx-swap=\"outerHTML\" data-toast=\"SSH key added\" hx-on::after:request=\"if(event.target===this&&ctx.response.status<400){this.closest('dialog').close(); this.reset();}\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1860,7 +1860,7 @@ func settingsRegisterOAuthAppDialog() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 139, "<form hx-post=\"/api/oauth/apps\" hx-target=\"#oauth-apps-list\" hx-swap=\"outerHTML\" data-toast=\"Application registered\" hx-on::after-request=\"if(event.detail.successful){this.closest('dialog').close(); this.reset();}\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 139, "<form hx-post=\"/api/oauth/apps\" hx-target=\"#oauth-apps-list\" hx-swap=\"outerHTML\" data-toast=\"Application registered\" hx-on::after:request=\"if(ctx.response.status<400){this.closest('dialog').close(); this.reset();}\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -2175,7 +2175,7 @@ func settingsNewSavedReplyDialog() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 157, "<form hx-post=\"/api/user/replies\" hx-target=\"#saved-replies-list\" hx-swap=\"outerHTML\" data-toast=\"Saved reply added\" hx-on::after-request=\"if(event.detail.successful){this.closest('dialog').close(); this.reset();}\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 157, "<form hx-post=\"/api/user/replies\" hx-target=\"#saved-replies-list\" hx-swap=\"outerHTML\" data-toast=\"Saved reply added\" hx-on::after:request=\"if(ctx.response.status<400){this.closest('dialog').close(); this.reset();}\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

@@ -27,7 +27,7 @@ func requestDeleteBranch(api http.Handler, repo seededRepo, branch string, htmx 
 	return rr
 }
 
-// The HTMX case expects the JSON body too: the layout's htmx:responseError
+// The HTMX case expects the JSON body too: the layout's htmx:response:error
 // handler shows its "error" field as a toast.
 func TestDeleteBranch_ForcePushBlocked_RefusedAndBranchKept(t *testing.T) {
 	for _, tc := range []struct {
