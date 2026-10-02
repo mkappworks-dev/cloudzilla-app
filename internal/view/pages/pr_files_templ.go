@@ -1159,11 +1159,13 @@ func prWSOnlyLines(lines []service.DiffLine) map[int]bool {
 	return out
 }
 
+// Right-side comments and ApplySuggestion count lines in the head file, so
+// only deleted rows take their number from the base file.
 func prDiffLineNum(line service.DiffLine) int {
-	if line.Type == "add" {
-		return line.NewNum
+	if line.Type == "del" {
+		return line.OldNum
 	}
-	return line.OldNum
+	return line.NewNum
 }
 
 func prLineCommentFormURL(data view.PullFilesData, path string, line int) string {
@@ -1257,7 +1259,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 				var templ_7745c5c3_Var60 string
 				templ_7745c5c3_Var60, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("padding-left: " + strconv.Itoa(8+depth*12) + "px")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 582, Col: 223}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 584, Col: 223}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var60))
 				if templ_7745c5c3_Err != nil {
@@ -1270,7 +1272,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 				var templ_7745c5c3_Var61 string
 				templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.JoinStringErrs(n.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 584, Col: 46}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 586, Col: 46}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var61))
 				if templ_7745c5c3_Err != nil {
@@ -1296,7 +1298,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 				var templ_7745c5c3_Var62 templ.SafeURL
 				templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("#" + n.Item.Anchor))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 592, Col: 48}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 594, Col: 48}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var62))
 				if templ_7745c5c3_Err != nil {
@@ -1309,7 +1311,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 				var templ_7745c5c3_Var63 string
 				templ_7745c5c3_Var63, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("padding-left: " + strconv.Itoa(8+depth*12) + "px")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 592, Col: 224}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 594, Col: 224}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 				if templ_7745c5c3_Err != nil {
@@ -1322,7 +1324,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 				var templ_7745c5c3_Var64 string
 				templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.JoinStringErrs(n.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 594, Col: 53}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 596, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var64))
 				if templ_7745c5c3_Err != nil {
@@ -1340,7 +1342,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 					var templ_7745c5c3_Var65 string
 					templ_7745c5c3_Var65, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(n.Item.Added))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 596, Col: 84}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 598, Col: 84}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var65))
 					if templ_7745c5c3_Err != nil {
@@ -1359,7 +1361,7 @@ func prFileTreeNodes(nodes []*prFileTreeNode, depth int) templ.Component {
 					var templ_7745c5c3_Var66 string
 					templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(n.Item.Deleted))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 599, Col: 92}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/pr_files.templ`, Line: 601, Col: 92}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var66))
 					if templ_7745c5c3_Err != nil {
