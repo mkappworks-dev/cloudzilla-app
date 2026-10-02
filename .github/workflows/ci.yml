@@ -58,9 +58,9 @@ jobs:
       - name: Download Mermaid
         run: |
           mkdir -p cmd/server/frontend/static
-          curl -sLf https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js \
+          curl -sLf https://cdn.jsdelivr.net/npm/mermaid@12.0.0/dist/mermaid.min.js \
             -o cmd/server/frontend/static/mermaid.min.js
-          echo "581ed7d74bd9048d0e3a91363927d72ef22942d7722546b27f7cc29e35390eb8  cmd/server/frontend/static/mermaid.min.js" | sha256sum --check
+          echo "28fca7ae6ebc7ed7bb63bde63136a74bfef14f296a57e403657eeb8b32836073  cmd/server/frontend/static/mermaid.min.js" | sha256sum --check
 
       - name: Generate templ
         run: templ generate ./internal/view/...
@@ -105,9 +105,9 @@ jobs:
       - name: Download Mermaid
         run: |
           mkdir -p cmd/server/frontend/static
-          curl -sLf https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js \
+          curl -sLf https://cdn.jsdelivr.net/npm/mermaid@12.0.0/dist/mermaid.min.js \
             -o cmd/server/frontend/static/mermaid.min.js
-          echo "581ed7d74bd9048d0e3a91363927d72ef22942d7722546b27f7cc29e35390eb8  cmd/server/frontend/static/mermaid.min.js" | sha256sum --check
+          echo "28fca7ae6ebc7ed7bb63bde63136a74bfef14f296a57e403657eeb8b32836073  cmd/server/frontend/static/mermaid.min.js" | sha256sum --check
 
       - name: Generate templ
         run: templ generate ./internal/view/...

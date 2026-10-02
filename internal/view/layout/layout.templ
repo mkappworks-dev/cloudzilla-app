@@ -2,6 +2,7 @@ package layout
 
 import (
 	"strconv"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/assets"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -15,11 +16,11 @@ templ Base(base view.BasePage, title string) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>{ title } — Cloudzilla</title>
-			<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+			<link rel="icon" type="image/svg+xml" href={ assets.URL("/static/favicon.svg") }/>
 			<link rel="preconnect" href="https://fonts.googleapis.com"/>
 			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 			<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet"/>
-			<link rel="stylesheet" href="/static/main.css"/>
+			<link rel="stylesheet" href={ assets.URL("/static/main.css") }/>
 			<script>
 				// Theme bootstrap: applied before paint so there's no flash of wrong theme.
 				(function() {
@@ -128,14 +129,16 @@ templ Base(base view.BasePage, title string) {
 					}
 
 					<nav aria-label="Account" class="ml-auto flex items-center gap-1">
-						<form action="/search" method="GET" class="hidden md:block">
-							<label for="topnav-search" class="sr-only">Search Cloudzilla</label>
-							<div class="relative">
-								<input id="topnav-search" name="q" type="search" placeholder="Search…" class="w-56 h-7 pl-7 pr-10 text-[13px] bg-muted border border-transparent hover:border-border focus:bg-background focus:border-border rounded-md placeholder:text-muted-foreground"/>
-								<svg class="absolute left-2 top-1.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-								<kbd class="absolute right-1.5 top-1 text-[10px] px-1.5 py-0.5 bg-background border border-border rounded text-muted-foreground font-mono" aria-hidden="true">⌘K</kbd>
-							</div>
-						</form>
+						if !base.SetupPending {
+							<form action="/search" method="GET" class="hidden md:block">
+								<label for="topnav-search" class="sr-only">Search Cloudzilla</label>
+								<div class="relative">
+									<input id="topnav-search" name="q" type="search" placeholder="Search…" class="w-56 h-7 pl-7 pr-10 text-[13px] bg-muted border border-transparent hover:border-border focus:bg-background focus:border-border rounded-md placeholder:text-muted-foreground"/>
+									<svg class="absolute left-2 top-1.5 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+									<kbd class="absolute right-1.5 top-1 text-[10px] px-1.5 py-0.5 bg-background border border-border rounded text-muted-foreground font-mono" aria-hidden="true">⌘K</kbd>
+								</div>
+							</form>
+						}
 
 						if base.CurrentUser != nil {
 							<a href="/notifications" class="relative h-7 w-7 grid place-items-center text-muted-foreground hover:text-foreground rounded-md hover:bg-accent" aria-label={ notificationsAriaLabel(base.UnreadNotifCount) }>
@@ -226,59 +229,63 @@ templ Base(base view.BasePage, title string) {
 							<span aria-hidden="true" class="text-success">●</span> all systems normal
 						</span>
 					</p>
-					<nav aria-label="Footer">
-						<ul class="flex gap-4 list-none">
-							<li><a href="/docs" class="hover:text-foreground">Docs</a></li>
-							<li><a href="/api" class="hover:text-foreground">API</a></li>
-							<li><a href="/changelog" class="hover:text-foreground">Changelog</a></li>
-							<li><a href="/status" class="hover:text-foreground">Status</a></li>
-						</ul>
-					</nav>
+					if !base.SetupPending {
+						<nav aria-label="Footer">
+							<ul class="flex gap-4 list-none">
+								<li><a href="/docs" class="hover:text-foreground">Docs</a></li>
+								<li><a href="/api" class="hover:text-foreground">API</a></li>
+								<li><a href="/changelog" class="hover:text-foreground">Changelog</a></li>
+								<li><a href="/status" class="hover:text-foreground">Status</a></li>
+							</ul>
+						</nav>
+					}
 				</div>
 			</footer>
 
-			@components.CommandPalette("global-cmd") {
-				@components.CommandGroup("Navigation") {
-					@components.CommandItem("/", nil) {
-						{ "Home" }
-					}
-					@components.CommandItem("/explore", nil) {
-						{ "Explore" }
+			if !base.SetupPending {
+				@components.CommandPalette("global-cmd") {
+					@components.CommandGroup("Navigation") {
+						@components.CommandItem("/", nil) {
+							{ "Home" }
+						}
+						@components.CommandItem("/explore", nil) {
+							{ "Explore" }
+						}
+						if base.CurrentUser != nil {
+							@components.CommandItem("/repos/new", nil) {
+								{ "New repository" }
+							}
+							@components.CommandItem("/notifications", nil) {
+								{ "Notifications" }
+							}
+						}
 					}
 					if base.CurrentUser != nil {
-						@components.CommandItem("/repos/new", nil) {
-							{ "New repository" }
+						@components.CommandGroup("Account") {
+							@components.CommandItem("/"+base.CurrentUser.Username, nil) {
+								{ "Your profile" }
+							}
+							@components.CommandItem("/"+base.CurrentUser.Username+"?tab=gists", nil) {
+								{ "Your gists" }
+							}
+							@components.CommandItem("/"+base.CurrentUser.Username+"?tab=stars", nil) {
+								{ "Your stars" }
+							}
+							@components.CommandItem("/settings", nil) {
+								{ "Settings" }
+							}
 						}
-						@components.CommandItem("/notifications", nil) {
-							{ "Notifications" }
-						}
-					}
-				}
-				if base.CurrentUser != nil {
-					@components.CommandGroup("Account") {
-						@components.CommandItem("/"+base.CurrentUser.Username, nil) {
-							{ "Your profile" }
-						}
-						@components.CommandItem("/"+base.CurrentUser.Username+"?tab=gists", nil) {
-							{ "Your gists" }
-						}
-						@components.CommandItem("/"+base.CurrentUser.Username+"?tab=stars", nil) {
-							{ "Your stars" }
-						}
-						@components.CommandItem("/settings", nil) {
-							{ "Settings" }
-						}
-					}
-					if base.CurrentUser.IsSuperadmin {
-						@components.CommandGroup("Admin") {
-							@components.CommandItem("/admin/settings", nil) {
-								{ "Admin settings" }
+						if base.CurrentUser.IsSuperadmin {
+							@components.CommandGroup("Admin") {
+								@components.CommandItem("/admin/settings", nil) {
+									{ "Admin settings" }
+								}
 							}
 						}
 					}
 				}
+				@components.CommandKHook()
 			}
-			@components.CommandKHook()
 			@components.ToastContainer()
 			@components.ConfirmDialog()
 
@@ -370,13 +377,45 @@ templ Base(base view.BasePage, title string) {
 					});
 				})();
 			</script>
-			<script src="/htmx.min.js" defer></script>
-			<script src="/alpine.min.js" defer></script>
-			<script src="/static/mermaid.min.js"></script>
-			<script>
-				mermaid.initialize({ startOnLoad: false, theme: 'default' });
-				document.addEventListener('DOMContentLoaded', function () { mermaid.run(); });
-				document.addEventListener('htmx:afterSwap', function () { mermaid.run(); });
+			<script src={ assets.URL("/htmx.min.js") } defer></script>
+			<script src={ assets.URL("/alpine.min.js") } defer></script>
+			<script data-mermaid-src={ assets.URL("/static/mermaid.min.js") }>
+				// Mermaid is megabytes of JS, so only a page holding a diagram loads it.
+				(function() {
+					var src = document.currentScript.dataset.mermaidSrc;
+					var loaded;
+					function load() {
+						if (!loaded) {
+							loaded = new Promise(function(resolve) {
+								var script = document.createElement('script');
+								script.src = src;
+								script.onload = resolve;
+								document.head.appendChild(script);
+							}).then(function() {
+								// Mermaid 12 defaults to the neo look, ELK layout and wider, earlier-wrapping nodes; pin 11's rendering.
+								mermaid.initialize({
+									startOnLoad: false,
+									theme: 'default',
+									look: 'classic',
+									layout: 'dagre',
+									flowchart: { wrappingWidth: 200, minNodeWidth: 0 },
+									state: { wrappingWidth: 200, minNodeWidth: 0 },
+									// A site-wide layout would replace these diagrams' own layout engines.
+									mindmap: { layout: 'cose-bilkent' },
+									swimlane: { layout: 'swimlane' },
+								});
+							});
+						}
+						return loaded;
+					}
+					function render() {
+						if (document.querySelector('.mermaid:not([data-processed])')) {
+							load().then(function() { mermaid.run(); });
+						}
+					}
+					document.addEventListener('DOMContentLoaded', render);
+					document.addEventListener('htmx:afterSwap', render);
+				})();
 			</script>
 		</body>
 	</html>

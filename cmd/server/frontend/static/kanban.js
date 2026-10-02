@@ -1,4 +1,4 @@
-// kanban.js — Alpine-driven drag state, htmx.ajax-driven network calls.
+// kanban.js — Alpine-driven drag state, fetch-driven network calls.
 //
 // The board root element must declare:
 //   x-data="kanbanBoard"

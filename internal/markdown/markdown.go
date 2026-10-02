@@ -3,17 +3,17 @@ package markdown
 import (
 	"bytes"
 	"html"
-	"html/template"
+	"io"
 	"log/slog"
+	"strings"
 
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/parser"
-	"github.com/yuin/goldmark/renderer"
-	ghtml "github.com/yuin/goldmark/renderer/html"
-	"github.com/yuin/goldmark/text"
-	"github.com/yuin/goldmark/util"
+	"github.com/yuin/goldmark/v2/ast"
+	"github.com/yuin/goldmark/v2/extension"
+	"github.com/yuin/goldmark/v2/parser"
+	"github.com/yuin/goldmark/v2/renderer"
+	ghtml "github.com/yuin/goldmark/v2/renderer/html"
+	"github.com/yuin/goldmark/v2/text"
+	"github.com/yuin/goldmark/v2/util"
 )
 
 // linkSanitizer is a goldmark AST transformer that rewrites links whose
@@ -22,99 +22,73 @@ import (
 // sanitised href without any additional logic.
 type linkSanitizer struct{}
 
-func (t *linkSanitizer) Transform(doc *ast.Document, _ text.Reader, _ parser.Context) {
+func (t *linkSanitizer) Transform(doc *ast.Document, reader text.Reader, _ parser.Context) {
+	source := reader.Source()
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
+		// Destination.Value is entity- and backslash-decoded, so &#106;avascript: is caught too.
 		if link, ok := n.(*ast.Link); ok {
-			if hasDangerousScheme(link.Destination) {
-				link.Destination = []byte("#")
+			if hasDangerousScheme(link.Destination.Value(source)) {
+				link.Destination = text.NewSingleLineValueFromString("#", text.IdentityDecoder)
 			}
 		}
 		if img, ok := n.(*ast.Image); ok {
-			if hasDangerousScheme(img.Destination) {
-				img.Destination = []byte("")
+			if hasDangerousScheme(img.Destination.Value(source)) {
+				img.Destination = text.NewSingleLineValueFromString("", text.IdentityDecoder)
 			}
 		}
 		return ast.WalkContinue, nil
 	})
 }
 
-func hasDangerousScheme(dest []byte) bool {
-	lower := bytes.ToLower(bytes.TrimSpace(dest))
-	for _, prefix := range [][]byte{
-		[]byte("javascript:"),
-		[]byte("vbscript:"),
-		[]byte("data:"),
-	} {
-		if bytes.HasPrefix(lower, prefix) {
+func hasDangerousScheme(dest string) bool {
+	lower := strings.ToLower(strings.TrimSpace(dest))
+	for _, prefix := range []string{"javascript:", "vbscript:", "data:"} {
+		if strings.HasPrefix(lower, prefix) {
 			return true
 		}
 	}
 	return false
 }
 
-type mermaidRenderer struct{}
-
-func (r *mermaidRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
-	reg.Register(ast.KindFencedCodeBlock, r.renderFencedCode)
-}
-
-func (r *mermaidRenderer) renderFencedCode(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	if !entering {
-		return ast.WalkContinue, nil
-	}
-	n := node.(*ast.FencedCodeBlock)
-	lang := string(n.Language(source))
-
-	var buf bytes.Buffer
-	lines := n.Lines()
-	for i := 0; i < lines.Len(); i++ {
-		line := lines.At(i)
-		buf.Write(line.Value(source))
-	}
-
-	// Write errors stick to the bufio-backed w and surface from goldmark's final Flush.
-	if lang == "mermaid" {
-		_, _ = w.WriteString(`<pre class="mermaid">`)
-		template.HTMLEscape(w, buf.Bytes())
-		_, _ = w.WriteString("</pre>\n")
-	} else {
-		if lang != "" {
-			_, _ = w.WriteString(`<pre><code class="language-`)
-			_, _ = w.WriteString(template.HTMLEscapeString(lang))
-			_, _ = w.WriteString(`">`)
-		} else {
-			_, _ = w.WriteString("<pre><code>")
+func renderMermaid(next ghtml.NodeRenderer) ghtml.NodeRenderer {
+	return ghtml.NodeRendererFunc(func(w io.Writer, source []byte, node ast.Node, entering bool, rc renderer.Context) (ast.WalkStatus, error) {
+		n := node.(*ast.CodeBlock)
+		if lang, _ := n.Language(source); lang != "mermaid" {
+			return next.Render(w, source, node, entering, rc)
 		}
-		template.HTMLEscape(w, buf.Bytes())
-		_, _ = w.WriteString("</code></pre>\n")
-	}
-	return ast.WalkSkipChildren, nil
+		if entering {
+			bw := w.(util.BufWriter)
+			// Write errors stick to w, a util.ErrorBufWriter, and surface from Render.
+			_, _ = bw.WriteString(`<pre class="mermaid">`)
+			_, _ = n.Value.WriteTo(ghtml.ContextTextWriter(rc), source)
+			_, _ = bw.WriteString("</pre>\n")
+		}
+		return ast.WalkSkipChildren, nil
+	})
 }
 
 // Render converts markdown src to safe HTML. Mermaid fenced blocks are
 // wrapped in <pre class="mermaid"> for client-side rendering by mermaid.js.
 // Render converts Markdown source to safe HTML, sanitizing links and disabling raw HTML.
 func Render(src string) string {
-	var buf bytes.Buffer
-	md := goldmark.New(
-		goldmark.WithExtensions(extension.GFM),
-		goldmark.WithParserOptions(
-			parser.WithAutoHeadingID(),
-			parser.WithASTTransformers(
-				util.Prioritized(&linkSanitizer{}, 999),
-			),
-		),
-		goldmark.WithRendererOptions(
-			ghtml.WithHardWraps(),
-			renderer.WithNodeRenderers(
-				util.Prioritized(&mermaidRenderer{}, 1),
-			),
+	source := []byte(src)
+	p := parser.New(
+		parser.WithExtensions(extension.GFMParser),
+		parser.WithAutoHeadingID(),
+		parser.WithASTTransformers(
+			util.Prioritized[parser.ASTTransformer](&linkSanitizer{}, 999),
 		),
 	)
-	if err := md.Convert([]byte(src), &buf); err != nil {
+	r := ghtml.New(
+		ghtml.WithHardWraps(),
+		ghtml.WithExtensions(extension.GFMHTMLRenderer),
+		ghtml.WithNodeRendererDecorator(ast.KindCodeBlock, renderMermaid),
+	)
+	var buf bytes.Buffer
+	if err := r.Render(&buf, source, p.Parse(source)); err != nil {
 		slog.Warn("markdown: failed to convert content, falling back to escaped source", "error", err)
 		return html.EscapeString(src)
 	}

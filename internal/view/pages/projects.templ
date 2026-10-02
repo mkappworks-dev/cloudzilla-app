@@ -162,10 +162,10 @@ templ Projects(data view.ProjectsData) {
 									}
 									if data.CanWrite {
 										@components.Button(components.ButtonDestructive, components.ButtonSizeSM, templ.Attributes{
-											"hx-delete":           "/api/repos/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(p.ID, 10),
-											"hx-confirm":          "Delete this project board and all its columns and cards?",
-											"hx-on:after-request": "window.location.reload()",
-											"type":                "button",
+											"hx-delete":            "/api/repos/" + data.Owner + "/" + data.RepoName + "/projects/" + strconv.FormatInt(p.ID, 10),
+											"hx-confirm":           "Delete this project board and all its columns and cards?",
+											"hx-on::after-request": "if(event.detail.successful)window.location.reload()",
+											"type":                 "button",
 										}) {
 											Delete
 										}

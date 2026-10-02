@@ -3,6 +3,7 @@ package pages
 import (
 	"strconv"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/assets"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -153,7 +154,7 @@ templ ProjectDetail(data view.ProjectDetailData) {
 				}
 			</div>
 		</div>
-		<script src="/static/kanban.js" defer></script>
+		<script src={ assets.URL("/static/kanban.js") } defer></script>
 	}
 }
 
