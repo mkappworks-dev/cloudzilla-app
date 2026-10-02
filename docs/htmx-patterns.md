@@ -58,7 +58,7 @@ Bind htmx events as `hx-on::after-request` or `hx-on--after-request`, both short
 ## Toasts
 
 - **From the handler:** call `toast(w, type, message)` before writing the body. It sets `HX-Trigger: {"toast": …}`, and `ToastContainer` shows it.
-- **`data-toast` on the requesting element:** shown after a successful request, but only if the element survives the swap. When the response replaces it, htmx reports the request on the nearest surviving ancestor, so send the toast from the handler instead.
+- **`data-toast` on the requesting element:** shown after a successful request, even when the response swaps the element out. Don't also send a handler toast for that request, or both show.
 - **Across a reload or redirect:** stash the toast in `sessionStorage` under `cz-toast`, and the next page shows it. `HX-Redirect` and `HX-Refresh` responses leave `event.detail.successful` unset, so gate the stash on `event.detail.xhr.status<300`, as `stashToast` in `internal/view/pages/repo_transfers.templ` does. A plain `<form method="POST" data-toast="…">` is stashed on submit.
 
 ## Template Parsing

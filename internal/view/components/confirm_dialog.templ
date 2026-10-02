@@ -89,7 +89,9 @@ templ ConfirmDialog() {
 
 			document.body.addEventListener('htmx:afterRequest', function (e) {
 				if (!e.detail.successful) return;
-				var elt = e.detail.elt;
+				// Reaches body once per request: from the requester, or, when the swap removed it, from the nearest surviving ancestor, which detail.elt then names.
+				var cfg = e.detail.requestConfig;
+				var elt = (cfg && cfg.elt) || e.detail.elt;
 				if (!elt) return;
 				var msg = elt.getAttribute('data-toast');
 				if (!msg) return;
