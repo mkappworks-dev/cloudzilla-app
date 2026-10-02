@@ -6,33 +6,20 @@ import (
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
 
 templ AdminSettings(data view.AdminSettingsData) {
 	@layout.Base(data.BasePage, "Admin Settings — Cloudzilla") {
 		<div class="space-y-6">
+			if data.Confirm.Any() {
+				@components.ConfirmIdentityDialog(data.Confirm)
+			}
 			@adminTabs("/admin/settings")
 			<div class="flex justify-between items-center">
 				<h1 class="text-2xl font-semibold tracking-tight">Admin Settings</h1>
 			</div>
-			if data.Confirm.Any() {
-				@components.Card(nil) {
-					@components.CardHeader() {
-						@components.CardTitle(2) {
-							Confirm it's you
-						}
-						@components.CardDescription() {
-							{ "Changes on this page need " + data.Confirm.Needs() + ", entered here once for each change." }
-						}
-					}
-					@components.CardContent() {
-						<div id="admin-confirm" class="flex flex-wrap items-end gap-3">
-							@components.ConfirmFields("admin", data.Confirm, false)
-						</div>
-					}
-				}
-			}
 			<!-- Instance Settings -->
 			@components.Card(nil) {
 				@components.CardHeader() {
@@ -44,35 +31,7 @@ templ AdminSettings(data view.AdminSettingsData) {
 					}
 				}
 				@components.CardContent() {
-					<div id="admin-settings-list" class="space-y-3">
-						if len(data.Settings) > 0 {
-							for _, s := range data.Settings {
-								<div class="flex items-center justify-between py-3 border-b border-border last:border-0">
-									<div>
-										<p class="text-sm font-medium text-foreground">{ s.Key }</p>
-									</div>
-									<form hx-post="/api/admin/settings" hx-target="#admin-settings-list" hx-swap="outerHTML" hx-include="#admin-confirm input" data-toast="Setting updated" class="flex items-center gap-3">
-										<input type="hidden" name="key" value={ s.Key }/>
-										if s.Value == "true" {
-											<span class="text-xs text-success font-medium">Enabled</span>
-											<input type="hidden" name="value" value="false"/>
-											@components.Button(components.ButtonSecondary, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
-												Disable
-											}
-										} else {
-											<span class="text-xs text-muted-foreground font-medium">Disabled</span>
-											<input type="hidden" name="value" value="true"/>
-											@components.Button(components.ButtonDefault, components.ButtonSizeSM, templ.Attributes{"type": "submit"}) {
-												Enable
-											}
-										}
-									</form>
-								</div>
-							}
-						} else {
-							<p class="text-sm text-muted-foreground">No settings found.</p>
-						}
-					</div>
+					@fragments.AdminSettings(view.AdminSettingsFragData{Settings: data.Settings})
 				}
 			}
 			<!-- Invitations -->
@@ -86,7 +45,7 @@ templ AdminSettings(data view.AdminSettingsData) {
 					}
 				}
 				@components.CardContent() {
-					<form hx-post="/api/admin/invitations" hx-target="#admin-invitations-list" hx-swap="outerHTML" hx-include="#admin-confirm input" data-toast="Invitation sent" class="flex gap-3 mb-6">
+					<form hx-post="/api/admin/invitations" hx-target="#admin-invitations-list" hx-swap="outerHTML" data-toast="Invitation sent" data-confirm-identity="Send Invite" class="flex gap-3 mb-6">
 						<label for="invite-email" class="sr-only">Invitee email</label>
 						@components.Input(templ.Attributes{
 							"id":          "invite-email",
@@ -154,10 +113,10 @@ templ AdminSettings(data view.AdminSettingsData) {
 						method="POST"
 						action="/api/admin/users/verify-email"
 						hx-post="/api/admin/users/verify-email"
-						hx-include="#admin-confirm input"
 						hx-swap="none"
 						hx-on::after:request="if(ctx.response.status<400){this.reset();}"
 						data-toast="Email marked verified"
+						data-confirm-identity="Mark verified"
 						class="flex flex-col sm:flex-row gap-3"
 					>
 						<label for="verify-username" class="sr-only">Username</label>

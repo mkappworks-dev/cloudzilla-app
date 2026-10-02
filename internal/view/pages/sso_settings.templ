@@ -9,6 +9,9 @@ import (
 templ SSOSettings(data view.SSOSettingsData) {
 	@layout.Base(data.BasePage, "SSO Settings — Cloudzilla") {
 		<div class="space-y-6">
+			if data.Confirm.Any() {
+				@components.ConfirmIdentityDialog(data.Confirm)
+			}
 			@adminTabs("/admin/sso")
 			<div>
 				<h1 class="text-2xl font-semibold tracking-tight">Single Sign-On</h1>
@@ -44,7 +47,7 @@ templ SSOSettings(data view.SSOSettingsData) {
 					</div>
 				}
 				@components.CardContent() {
-					<form method="POST" action="/admin/sso" data-toast="LDAP settings saved" class="space-y-4">
+					<form id="sso-ldap-form" method="POST" action="/admin/sso" data-toast="LDAP settings saved" data-confirm-identity="Save LDAP Settings" class="space-y-4">
 						<input type="hidden" name="provider" value="ldap"/>
 						<div class="grid grid-cols-2 gap-4">
 							<div class="space-y-1.5">
@@ -145,13 +148,14 @@ templ SSOSettings(data view.SSOSettingsData) {
 							})
 							Enable LDAP authentication
 						</label>
-						<div class="flex flex-wrap items-end gap-3">
-							@components.ConfirmFields("sso-ldap", data.Confirm, true)
-						</div>
-						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+					</form>
+				}
+				@components.CardFooter() {
+					<div class="ml-auto">
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "sso-ldap-form"}) {
 							Save LDAP Settings
 						}
-					</form>
+					</div>
 				}
 			}
 			<!-- SAML Configuration -->
@@ -178,7 +182,7 @@ templ SSOSettings(data view.SSOSettingsData) {
 					</div>
 				}
 				@components.CardContent() {
-					<form method="POST" action="/admin/sso" data-toast="SAML settings saved" class="space-y-4">
+					<form id="sso-saml-form" method="POST" action="/admin/sso" data-toast="SAML settings saved" data-confirm-identity="Save SAML Settings" class="space-y-4">
 						<input type="hidden" name="provider" value="saml"/>
 						<div class="space-y-1.5">
 							<label for="saml_entity_id" class="block text-sm font-medium text-foreground">Entity ID</label>
@@ -255,20 +259,19 @@ templ SSOSettings(data view.SSOSettingsData) {
 							})
 							Enable SAML authentication
 						</label>
-						<div class="flex gap-3">
-							<div class="flex flex-wrap items-end gap-3">
-								@components.ConfirmFields("sso-saml", data.Confirm, true)
-							</div>
-							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-								Save SAML Settings
-							}
-							if data.SAMLConfig != nil && data.SAMLConfig.Enabled {
-								@components.LinkButton("/auth/saml/metadata", components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"target": "_blank"}) {
-									View SP Metadata
-								}
-							}
-						</div>
 					</form>
+				}
+				@components.CardFooter() {
+					<div class="ml-auto flex items-center gap-2">
+						if data.SAMLConfig != nil && data.SAMLConfig.Enabled {
+							@components.LinkButton("/auth/saml/metadata", components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"target": "_blank"}) {
+								View SP Metadata
+							}
+						}
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "sso-saml-form"}) {
+							Save SAML Settings
+						}
+					</div>
 				}
 			}
 		</div>

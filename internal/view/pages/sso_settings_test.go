@@ -38,4 +38,5 @@ func TestSSOSettings_FlagsAreSwitchesReflectingConfig(t *testing.T) {
 			t.Errorf("#%s checked = %v, want %v", id, got, wantChecked)
 		}
 	}
+	assertSwitchesInLabels(t, out)
 }
