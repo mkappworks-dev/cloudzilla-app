@@ -489,6 +489,10 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("pull detail: list collaborators failed", "owner", owner, "repo", repoName, "error", err)
 	}
 
+	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull, convBadge|checksBadge)
+	chromeCounts.ConvCount = len(rawComments) + submittedReviewCount(reviews)
+	chromeCounts.ChecksTotal, chromeCounts.ChecksPassed = checkCounts(headStatuses)
+
 	h.render(w, r, pages.PullDetail(view.PullDetailData{
 		BasePage:          h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "pull_requests", canManage2),
 		Repo:              *repo,
@@ -512,7 +516,7 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		LinkableIssues:    linkedIssuesToView(repoIssueModels),
 		Subscribed:        subscribed,
 		Events:            pullEvents,
-		PullChromeCounts:  h.pullChromeCounts(r.Context(), owner, repoName, pull),
+		PullChromeCounts:  chromeCounts,
 		CanMerge:          canMerge,
 		MergeBlockReason:  mergeBlockReason,
 		AutoMergeEnabled:  pull.AutoMergeEnabled,
@@ -574,9 +578,7 @@ func (h *Handler) PagePullCommits(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
-	// Override the active tab's badge with this view's own load so the header
-	// count cannot contradict the body (or the error banner) below it.
-	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull)
+	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull, commitsBadge)
 	chromeCounts.CommitsCount = len(commits)
 
 	h.render(w, r, pages.PullCommits(view.PullCommitsData{
@@ -663,11 +665,8 @@ func (h *Handler) PagePullChecks(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
-	// Override the active tab's badge with this view's own load so the header
-	// count cannot contradict the body (or the error banner) below it.
-	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull)
+	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull, checksBadge)
 	chromeCounts.ChecksTotal = len(rows)
-	chromeCounts.ChecksPassed = 0
 	for _, row := range rows {
 		if row.State == string(model.CommitStatusSuccess) {
 			chromeCounts.ChecksPassed++
@@ -763,9 +762,7 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 	}
 
-	// Override the active tab's badge with this view's own load so the header
-	// count cannot contradict the body (or the error banner) below it.
-	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull)
+	chromeCounts := h.pullChromeCounts(r.Context(), owner, repoName, pull, filesBadge)
 	chromeCounts.FilesCount = len(diff.Files)
 	chromeCounts.Added = diff.TotalAdded
 	chromeCounts.Deleted = diff.TotalDeleted
@@ -785,53 +782,83 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 	}))
 }
 
-func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, pull *model.PullRequest) view.PullChromeCounts {
+type pullBadge uint8
+
+const (
+	convBadge pullBadge = 1 << iota
+	commitsBadge
+	checksBadge
+	filesBadge
+)
+
+// pullChromeCounts loads the tab badges not in own. A tab counts its own
+// badges from the data its body renders, so the header can't contradict the
+// body (or its error banner) and nothing is loaded twice.
+func (h *Handler) pullChromeCounts(ctx context.Context, owner, repoName string, pull *model.PullRequest, own pullBadge) view.PullChromeCounts {
 	var c view.PullChromeCounts
 	logFail := func(what string, err error) {
 		slog.Warn("pull chrome counts: "+what+" failed; tab badge may be wrong",
 			"owner", owner, "repo", repoName, "pull_number", pull.Number, "error", err)
 	}
-	if commits, err := h.Services.Code.PullCommits(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
-		c.CommitsCount = len(commits)
-	} else {
-		logFail("commit walk", err)
+	if own&commitsBadge == 0 {
+		if commits, err := h.Services.Code.PullCommits(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
+			c.CommitsCount = len(commits)
+		} else {
+			logFail("commit walk", err)
+		}
 	}
-	if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); err == nil {
-		if statuses, err := h.Services.CommitStatus.List(ctx, owner, repoName, headCommit.Hash.String()); err == nil {
-			c.ChecksTotal = len(statuses)
-			for _, s := range statuses {
-				if s.State == model.CommitStatusSuccess {
-					c.ChecksPassed++
-				}
+	if own&checksBadge == 0 {
+		if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pull.HeadBranch); err == nil {
+			if statuses, err := h.Services.CommitStatus.List(ctx, owner, repoName, headCommit.Hash.String()); err == nil {
+				c.ChecksTotal, c.ChecksPassed = checkCounts(statuses)
+			} else {
+				logFail("status list", err)
 			}
 		} else {
-			logFail("status list", err)
+			logFail("ref resolution", err)
 		}
-	} else {
-		logFail("ref resolution", err)
 	}
-	if diff, err := h.Services.Code.GetPullDiff(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
-		c.FilesCount = len(diff.Files)
-		c.Added = diff.TotalAdded
-		c.Deleted = diff.TotalDeleted
-	} else {
-		logFail("pull diff", err)
-	}
-	if comments, err := h.Services.Comment.ListByPull(ctx, pull.ID); err == nil {
-		c.ConvCount += len(comments)
-	} else {
-		logFail("comment list", err)
-	}
-	if reviews, err := h.Services.PullReview.ListByPull(ctx, owner, repoName, pull.Number); err == nil {
-		for _, rv := range reviews {
-			if rv.State != model.PRReviewPending {
-				c.ConvCount++
-			}
+	if own&filesBadge == 0 {
+		if stats, err := h.Services.Code.PullDiffStats(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
+			c.FilesCount = stats.Files
+			c.Added = stats.Added
+			c.Deleted = stats.Deleted
+		} else {
+			logFail("pull diff stats", err)
 		}
-	} else {
-		logFail("review list", err)
+	}
+	if own&convBadge == 0 {
+		if comments, err := h.Services.Comment.ListByPull(ctx, pull.ID); err == nil {
+			c.ConvCount += len(comments)
+		} else {
+			logFail("comment list", err)
+		}
+		if reviews, err := h.Services.PullReview.ListByPull(ctx, owner, repoName, pull.Number); err == nil {
+			c.ConvCount += submittedReviewCount(reviews)
+		} else {
+			logFail("review list", err)
+		}
 	}
 	return c
+}
+
+func checkCounts(statuses []model.CommitStatus) (total, passed int) {
+	for _, s := range statuses {
+		if s.State == model.CommitStatusSuccess {
+			passed++
+		}
+	}
+	return len(statuses), passed
+}
+
+func submittedReviewCount(reviews []model.PullReview) int {
+	n := 0
+	for _, rv := range reviews {
+		if rv.State != model.PRReviewPending {
+			n++
+		}
+	}
+	return n
 }
 
 func pullInitials(name string) string {
