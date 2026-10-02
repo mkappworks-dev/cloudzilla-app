@@ -33,6 +33,8 @@ type BasePage struct {
 	// or `/{owner}/{repo}`). The topbar's workspace switcher labels its trigger
 	// with this name when set, falling back to the logged-in user otherwise.
 	OwnerContext string
+	// SetupPending hides site-wide links: until setup completes, every route but /setup redirects back to it.
+	SetupPending bool
 }
 
 type OrgEntry struct {
