@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -515,7 +516,7 @@ func prDiffLineNum(line service.DiffLine) int {
 
 func prLineCommentFormURL(data view.PullFilesData, path string, line int) string {
 	return "/api/repos/" + data.OwnerName + "/" + data.Repo.Name + "/pulls/" +
-		strconv.Itoa(data.Pull.Number) + "/line_comments/form?path=" + path + "&line=" + strconv.Itoa(line)
+		strconv.Itoa(data.Pull.Number) + "/line_comments/form?path=" + url.QueryEscape(path) + "&line=" + strconv.Itoa(line)
 }
 
 func filesNoun(n int) string {

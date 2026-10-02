@@ -169,3 +169,24 @@ func TestLineCommentFragments_TargetThePageRow(t *testing.T) {
 		}
 	}
 }
+
+// The "+" button must hand the form handler the exact path, including
+// characters that delimit a query string or start a fragment.
+func TestPRFileDiff_AddCommentURLKeepsThePath(t *testing.T) {
+	const path = "docs/R&D#1+2.md"
+	page := renderHTML(t, prFileDiff(filesData(nil), modifiedFile(path)))
+
+	btns := addCommentBtn.FindAllStringSubmatch(page, -1)
+	if len(btns) == 0 {
+		t.Fatal("no + buttons rendered")
+	}
+	for _, m := range btns {
+		u, err := url.Parse(html.UnescapeString(m[1]))
+		if err != nil {
+			t.Fatalf("parse %q: %v", m[1], err)
+		}
+		if got := u.Query().Get("path"); got != path {
+			t.Errorf("form URL %q carries path %q, want %q", u, got, path)
+		}
+	}
+}
