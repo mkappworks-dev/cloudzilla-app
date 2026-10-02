@@ -100,12 +100,11 @@ func (h *Handler) CreateLineComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
-		// Re-fetch all comments for this path:line to return updated inline thread
 		allComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
-		key := fmt.Sprintf("%s:%d", comment.Path, comment.Line)
+		key := view.LineCommentKeyOf(*comment)
 		var lineComments []RenderedLineComment
 		for _, c := range allComments {
-			if fmt.Sprintf("%s:%d", c.Path, c.Line) == key {
+			if view.LineCommentKeyOf(c) == key {
 				lineComments = append(lineComments, RenderedLineComment{
 					PullLineComment: c,
 					BodyHTML:        markdown.Render(c.Body),
@@ -117,8 +116,7 @@ func (h *Handler) CreateLineComment(w http.ResponseWriter, r *http.Request) {
 			Owner:      owner,
 			RepoName:   repoName,
 			PullNumber: number,
-			Path:       comment.Path,
-			Line:       comment.Line,
+			Key:        key,
 			Comments:   lineComments,
 			CanWrite:   canWrite,
 		}))
@@ -202,10 +200,10 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("HX-Request") == "true" {
 		allComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
-		key := fmt.Sprintf("%s:%d", existing.Path, existing.Line)
+		key := view.LineCommentKeyOf(*existing)
 		var lineComments []RenderedLineComment
 		for _, c := range allComments {
-			if fmt.Sprintf("%s:%d", c.Path, c.Line) == key {
+			if view.LineCommentKeyOf(c) == key {
 				lineComments = append(lineComments, RenderedLineComment{
 					PullLineComment: c,
 					BodyHTML:        markdown.Render(c.Body),
@@ -217,8 +215,7 @@ func (h *Handler) DeleteLineComment(w http.ResponseWriter, r *http.Request) {
 			Owner:      owner,
 			RepoName:   repoName,
 			PullNumber: number,
-			Path:       existing.Path,
-			Line:       existing.Line,
+			Key:        key,
 			Comments:   lineComments,
 			CanWrite:   canWrite,
 		}))
@@ -291,10 +288,10 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("HX-Request") == "true" {
 		allComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
-		key := fmt.Sprintf("%s:%d", comment.Path, comment.Line)
+		key := view.LineCommentKeyOf(*comment)
 		var lineComments []RenderedLineComment
 		for _, c := range allComments {
-			if fmt.Sprintf("%s:%d", c.Path, c.Line) == key {
+			if view.LineCommentKeyOf(c) == key {
 				lineComments = append(lineComments, RenderedLineComment{
 					PullLineComment: c,
 					BodyHTML:        markdown.Render(c.Body),
@@ -306,8 +303,7 @@ func (h *Handler) UpdateLineComment(w http.ResponseWriter, r *http.Request) {
 			Owner:      owner,
 			RepoName:   repoName,
 			PullNumber: number,
-			Path:       comment.Path,
-			Line:       comment.Line,
+			Key:        key,
 			Comments:   lineComments,
 			CanWrite:   canWrite,
 		}))
