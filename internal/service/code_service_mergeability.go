@@ -4,9 +4,8 @@ import (
 	"context"
 	"errors"
 
-	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
 // Captures raw git-level state only; branch protection / required checks / reviews are layered on top by the PR handler.
@@ -32,18 +31,18 @@ func (s *CodeService) Mergeability(ctx context.Context, owner, repoName, base, h
 	if err != nil {
 		return Mergeability{}, err
 	}
-	mb, err := findMergeBase(repo, baseCommit, headCommit)
+	mb, err := findMergeBase(baseCommit, headCommit)
 	if err != nil {
 		if errors.Is(err, ErrNoCommonAncestor) {
 			return Mergeability{BaseRef: base, HeadRef: head, HasConflicts: true}, nil
 		}
 		return Mergeability{}, err
 	}
-	ahead, err := countCommitsBetween(repo, mb, headCommit)
+	ahead, err := countCommitsBetween(mb, headCommit)
 	if err != nil {
 		return Mergeability{}, err
 	}
-	behind, err := countCommitsBetween(repo, mb, baseCommit)
+	behind, err := countCommitsBetween(mb, baseCommit)
 	if err != nil {
 		return Mergeability{}, err
 	}
@@ -61,27 +60,23 @@ func (s *CodeService) Mergeability(ctx context.Context, owner, repoName, base, h
 	}, nil
 }
 
-// Counts commits reachable from `to` but not from `from` (exclusive of `from`).
-// go-git's iter.ForEach swallows storer.ErrStop and returns nil.
-func countCommitsBetween(repo *gogit.Repository, from, to *object.Commit) (int, error) {
+// Counts commits reachable from `to` but not from `from`.
+func countCommitsBetween(from, to *object.Commit) (int, error) {
 	if from.Hash == to.Hash {
 		return 0, nil
 	}
-	iter, err := repo.Log(&gogit.LogOptions{From: to.Hash})
-	if err != nil {
-		return 0, err
-	}
-	defer iter.Close()
-	n := 0
-	err = iter.ForEach(func(c *object.Commit) error {
-		if c.Hash == from.Hash {
-			return storer.ErrStop
-		}
-		n++
+	inFrom := make(map[plumbing.Hash]bool)
+	err := object.NewCommitPreorderIter(from, nil, nil).ForEach(func(c *object.Commit) error {
+		inFrom[c.Hash] = true
 		return nil
 	})
 	if err != nil {
 		return 0, err
 	}
-	return n, nil
+	n := 0
+	err = object.NewCommitPreorderIter(to, inFrom, nil).ForEach(func(*object.Commit) error {
+		n++
+		return nil
+	})
+	return n, err
 }
