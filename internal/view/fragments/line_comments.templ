@@ -7,7 +7,7 @@ import (
 )
 
 templ LineComments(data view.LineCommentsFragData) {
-	<tr id={ "lc-" + data.Path + "-" + strconv.Itoa(data.Line) } class="bg-primary/10 border-t border-primary/20">
+	<tr id={ view.LineCommentID(data.Path, data.Line) } class="bg-primary/10 border-t border-primary/20">
 		<td colspan="2" class="px-4 py-0">
 			for _, c := range data.Comments {
 				<div class="flex items-start gap-2 py-2 border-b border-primary/20 last:border-0">
@@ -24,14 +24,14 @@ templ LineComments(data view.LineCommentsFragData) {
 					if data.CanWrite {
 						<button
 							hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments/" + strconv.FormatInt(c.ID, 10) }
-							hx-target={ "#lc-" + data.Path + "-" + strconv.Itoa(data.Line) }
+							hx-target={ "#" + view.LineCommentID(data.Path, data.Line) }
 							hx-swap="outerHTML"
 							class="text-muted-foreground/60 hover:text-destructive text-xs shrink-0"
 						>&times;</button>
 					}
 				</div>
 			}
-			<div id={ "lc-form-" + data.Path + "-" + strconv.Itoa(data.Line) }></div>
+			<div id={ view.LineCommentFormID(data.Path, data.Line) }></div>
 		</td>
 	</tr>
 }
@@ -39,7 +39,7 @@ templ LineComments(data view.LineCommentsFragData) {
 templ LineCommentForm(data view.LineCommentFormFragData) {
 	<form
 		hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments" }
-		hx-target={ "#lc-" + data.Path + "-" + strconv.Itoa(data.Line) }
+		hx-target={ "#" + view.LineCommentID(data.Path, data.Line) }
 		hx-swap="outerHTML"
 		class="p-2 space-y-2"
 	>

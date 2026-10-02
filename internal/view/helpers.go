@@ -1,6 +1,11 @@
 package view
 
-import "net/url"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"net/url"
+	"strconv"
+)
 
 // EmojiChar converts an emoji shortcode to its Unicode character.
 func EmojiChar(emoji string) string {
@@ -29,4 +34,21 @@ func WithNext(path, next string) string {
 		return path
 	}
 	return path + "?next=" + url.QueryEscape(next)
+}
+
+// LineCommentID is the DOM id of the inline comment row for path:line. htmx
+// targets it with a "#id" selector, so the path is hashed: a raw '.' or '/'
+// breaks the selector.
+func LineCommentID(path string, line int) string {
+	return "lc-" + lineCommentKey(path, line)
+}
+
+// LineCommentFormID is the DOM id of the comment-form slot inside that row.
+func LineCommentFormID(path string, line int) string {
+	return "lc-form-" + lineCommentKey(path, line)
+}
+
+func lineCommentKey(path string, line int) string {
+	sum := sha256.Sum256([]byte(path))
+	return hex.EncodeToString(sum[:8]) + "-" + strconv.Itoa(line)
 }
