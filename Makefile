@@ -1,4 +1,4 @@
-.PHONY: dev build migrate lint test test-db test-integration clean setup-tailwind setup-templ build-css generate-templ download-mermaid download-htmx docker-build docker-run docker-down
+.PHONY: dev build migrate seed lint test test-db test-integration clean setup-tailwind setup-templ build-css generate-templ download-mermaid download-htmx docker-build docker-run docker-down
 
 BINARY := dist/cloudzilla
 GO := /usr/local/go/bin/go
@@ -75,6 +75,9 @@ build-cli:
 
 migrate:
 	$(GO) run ./cmd/cloudzilla/. migrate
+
+seed:                              ## Fill a fresh, migrated database with test data
+	$(GO) run ./cmd/cloudzilla/. seed
 
 lint:
 	golangci-lint run ./...
