@@ -1,0 +1,17 @@
+package pages
+
+import "github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+
+templ adminTabs(currentPath string) {
+	@components.Tabs("Admin sections") {
+		@components.TabLink("/admin/settings", currentPath == "/admin/settings") {
+			Settings
+		}
+		@components.TabLink("/admin/audit-log", currentPath == "/admin/audit-log") {
+			Audit log
+		}
+		@components.TabLink("/admin/sso", currentPath == "/admin/sso") {
+			Single sign-on
+		}
+	}
+}

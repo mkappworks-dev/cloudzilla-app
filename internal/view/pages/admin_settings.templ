@@ -12,6 +12,7 @@ import (
 templ AdminSettings(data view.AdminSettingsData) {
 	@layout.Base(data.BasePage, "Admin Settings — Cloudzilla") {
 		<div class="space-y-6">
+			@adminTabs("/admin/settings")
 			<div class="flex justify-between items-center">
 				<h1 class="text-2xl font-semibold tracking-tight">Admin Settings</h1>
 			</div>
