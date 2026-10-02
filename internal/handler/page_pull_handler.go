@@ -317,7 +317,7 @@ func (h *Handler) PageNewPullSubmit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/%s/%s/pulls/%d", owner, repoName, pr.Number), http.StatusSeeOther)
 }
 
-// PagePullDetail renders the pull request detail page with diff, reviews, and merge controls.
+// PagePullDetail renders the pull request detail page with reviews and merge controls.
 func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -346,13 +346,6 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.NotFound(w, r)
 		return
-	}
-
-	var diff *service.PRDiffResult
-	if pull.State == model.PRStateOpen {
-		if d, err := h.Services.Code.GetPullDiff(owner, repoName, pull.BaseBranch, pull.HeadBranch); err == nil {
-			diff = d
-		}
 	}
 
 	pullLabels2, _ := h.Services.Label.GetForPull(r.Context(), pull.ID)
@@ -408,16 +401,6 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		comments = append(comments, view.RenderedComment{
 			Comment:  c,
 			BodyHTML: renderMentionsHTML(markdown.Render(c.Body)),
-		})
-	}
-
-	rawLineComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
-	lineComments := map[string][]RenderedLineComment{}
-	for _, c := range rawLineComments {
-		key := fmt.Sprintf("%s:%d", c.Path, c.Line)
-		lineComments[key] = append(lineComments[key], RenderedLineComment{
-			PullLineComment: c,
-			BodyHTML:        markdown.Render(c.Body),
 		})
 	}
 
@@ -513,7 +496,6 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		Owner:             owner,
 		RepoName:          repoName,
 		AuthorUsername:    authorUsername,
-		Diff:              diff,
 		BodyHTML:          markdown.Render(pull.Body),
 		Labels:            pullLabels2,
 		Assignees:         pullAssignees,
@@ -535,7 +517,6 @@ func (h *Handler) PagePullDetail(w http.ResponseWriter, r *http.Request) {
 		MergeBlockReason:  mergeBlockReason,
 		AutoMergeEnabled:  pull.AutoMergeEnabled,
 		AutoMergeStrategy: pull.AutoMergeStrategy,
-		LineComments:      lineComments,
 		Mergeability:      mergeabilityBox,
 	}))
 }

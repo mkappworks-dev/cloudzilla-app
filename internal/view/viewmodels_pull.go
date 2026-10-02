@@ -54,7 +54,6 @@ type PullDetailData struct {
 	Owner             string
 	RepoName          string
 	AuthorUsername    string // resolved by handler; empty -> chrome falls back to Pull.AuthorName
-	Diff              *service.PRDiffResult
 	BodyHTML          string
 	Labels            []model.Label
 	Assignees         []model.User
@@ -75,9 +74,7 @@ type PullDetailData struct {
 	MergeBlockReason  string
 	AutoMergeEnabled  bool
 	AutoMergeStrategy string
-	// LineComments keyed by "path:line" (e.g. "src/main.go:42")
-	LineComments map[string][]RenderedLineComment
-	Mergeability components.MergeabilityBoxData
+	Mergeability      components.MergeabilityBoxData
 }
 
 type PullCommitsData struct {
