@@ -20,11 +20,9 @@ import (
 var ErrNoCommonAncestor = errors.New("no common ancestor")
 
 type PRDiffResult struct {
-	Files            []FileDiff
-	TotalAdded       int
-	TotalDeleted     int
-	CanFastForward   bool // head is a descendant of base
-	CanThreeWayMerge bool // branches diverged but no conflicting file edits
+	Files        []FileDiff
+	TotalAdded   int
+	TotalDeleted int
 }
 
 type DiffStats struct {
@@ -57,7 +55,7 @@ func checkFastForward(repo *gogit.Repository, baseCommit, headCommit *object.Com
 	return found
 }
 
-// GetPullDiff returns the diff between base and head branches, plus whether FF merge is possible.
+// GetPullDiff returns the diff between base and head branches.
 func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffResult, error) {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
@@ -70,15 +68,6 @@ func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffRe
 	headCommit, _, err := resolveRef(repo, head)
 	if err != nil {
 		return nil, err
-	}
-
-	canFF := checkFastForward(repo, baseCommit, headCommit)
-	var canMerge3 bool
-	if !canFF {
-		mb, mbErr := findMergeBase(repo, baseCommit, headCommit)
-		if mbErr == nil {
-			_, canMerge3, _ = mergeTreesNoConflict(repo, mb, baseCommit, headCommit)
-		}
 	}
 
 	patch, err := baseCommit.Patch(headCommit)
@@ -133,16 +122,13 @@ func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffRe
 	}
 
 	return &PRDiffResult{
-		Files:            files,
-		TotalAdded:       totalAdded,
-		TotalDeleted:     totalDeleted,
-		CanFastForward:   canFF,
-		CanThreeWayMerge: canMerge3,
+		Files:        files,
+		TotalAdded:   totalAdded,
+		TotalDeleted: totalDeleted,
 	}, nil
 }
 
-// PullDiffStats returns GetPullDiff's file and line totals without building
-// hunks or running its merge checks, which write merged trees into the repo.
+// PullDiffStats returns GetPullDiff's file and line totals without building hunks.
 func (s *CodeService) PullDiffStats(owner, repoName, base, head string) (DiffStats, error) {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
@@ -313,33 +299,33 @@ func buildTree(repo *gogit.Repository, files map[string]mergeFile) (plumbing.Has
 	return h, err
 }
 
-// mergeTreesNoConflict performs a three-way merge of the file trees.
-// Returns the merged tree hash, true if no conflicts, and any error.
-func mergeTreesNoConflict(repo *gogit.Repository, mergeBase, base, head *object.Commit) (plumbing.Hash, bool, error) {
+// mergeFiles performs a three-way merge of the file trees in memory.
+// Returns the merged files, true if no conflicts, and any error.
+func mergeFiles(mergeBase, base, head *object.Commit) (map[string]mergeFile, bool, error) {
 	mbTree, err := mergeBase.Tree()
 	if err != nil {
-		return plumbing.ZeroHash, false, err
+		return nil, false, err
 	}
 	baseTree, err := base.Tree()
 	if err != nil {
-		return plumbing.ZeroHash, false, err
+		return nil, false, err
 	}
 	headTree, err := head.Tree()
 	if err != nil {
-		return plumbing.ZeroHash, false, err
+		return nil, false, err
 	}
 
 	mbFiles, err := flattenTree(mbTree)
 	if err != nil {
-		return plumbing.ZeroHash, false, err
+		return nil, false, err
 	}
 	baseFiles, err := flattenTree(baseTree)
 	if err != nil {
-		return plumbing.ZeroHash, false, err
+		return nil, false, err
 	}
 	headFiles, err := flattenTree(headTree)
 	if err != nil {
-		return plumbing.ZeroHash, false, err
+		return nil, false, err
 	}
 
 	// Compute which paths changed in head relative to merge base.
@@ -371,7 +357,7 @@ func mergeTreesNoConflict(repo *gogit.Repository, mergeBase, base, head *object.
 	// Conflict: same path modified in both sides.
 	for p := range headChanges {
 		if baseChanges[p] {
-			return plumbing.ZeroHash, false, nil
+			return nil, false, nil
 		}
 	}
 
@@ -387,7 +373,16 @@ func mergeTreesNoConflict(repo *gogit.Repository, mergeBase, base, head *object.
 			delete(merged, p) // deleted in head
 		}
 	}
+	return merged, true, nil
+}
 
+// mergeTreesNoConflict writes mergeFiles' result into repo as a tree.
+// Returns the merged tree hash, true if no conflicts, and any error.
+func mergeTreesNoConflict(repo *gogit.Repository, mergeBase, base, head *object.Commit) (plumbing.Hash, bool, error) {
+	merged, ok, err := mergeFiles(mergeBase, base, head)
+	if err != nil || !ok {
+		return plumbing.ZeroHash, false, err
+	}
 	hash, err := buildTree(repo, merged)
 	return hash, err == nil, err
 }

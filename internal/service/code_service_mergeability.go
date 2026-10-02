@@ -47,7 +47,8 @@ func (s *CodeService) Mergeability(ctx context.Context, owner, repoName, base, h
 	if err != nil {
 		return Mergeability{}, err
 	}
-	_, ok, err := mergeTreesNoConflict(repo, mb, baseCommit, headCommit)
+	// Not mergeTreesNoConflict: checking mergeability must not write the merged tree into the repo.
+	_, ok, err := mergeFiles(mb, baseCommit, headCommit)
 	if err != nil {
 		return Mergeability{}, err
 	}
