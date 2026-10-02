@@ -112,9 +112,8 @@ type PullFilesData struct {
 	Tree           []components.DiffFileTreeItem
 	Diff           *service.PRDiffResult
 	CanWrite       bool
-	// LineComments keyed by "path:line" (e.g. "src/main.go:42").
-	LineComments map[string][]RenderedLineComment
-	LoadError    bool
+	LineComments   map[LineCommentKey][]RenderedLineComment
+	LoadError      bool
 }
 
 type PullNewData struct {
@@ -174,14 +173,25 @@ type PullAssigneeSidebarData struct {
 	CanWrite      bool
 }
 
-// Line comment fragments
+// LineCommentKey identifies a thread of line comments. Line is a base-file line
+// number when Side is "left" and a head-file one when it is "right", so the same
+// Path and Line on the two sides can name different lines.
+type LineCommentKey struct {
+	Side string
+	Path string
+	Line int
+}
+
+func LineCommentKeyOf(c model.PullLineComment) LineCommentKey {
+	return LineCommentKey{Side: c.DiffSide, Path: c.Path, Line: c.Line}
+}
+
 // LineCommentsFragData holds template data for the inline line comments HTMX fragment.
 type LineCommentsFragData struct {
 	Owner      string
 	RepoName   string
 	PullNumber int
-	Path       string
-	Line       int
+	Key        LineCommentKey
 	Comments   []RenderedLineComment
 	CanWrite   bool
 }

@@ -300,11 +300,12 @@ templ prFileDiff(data view.PullFilesData, f service.FileDiff) {
 					{{ wsLines := prWSOnlyLines(hunk.Lines) }}
 					for li, line := range hunk.Lines {
 						{{ lineNum := prDiffLineNum(line) }}
+						{{ right := view.LineCommentKey{Side: "right", Path: filePath, Line: line.NewNum} }}
 						<tr class={ "diff-line", templ.KV("ws-only", wsLines[li]), templ.KV("bg-success/10", line.Type == "add"), templ.KV("bg-destructive/10", line.Type == "del") }>
 							<td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">
 								{ strconv.Itoa(lineNum) }
 								if commentable && line.Type != "del" {
-									<button type="button" hx-get={ prLineCommentFormURL(data, filePath, lineNum) } hx-target={ "#" + view.LineCommentFormID(filePath, lineNum) } hx-swap="innerHTML" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button>
+									<button type="button" hx-get={ prLineCommentFormURL(data, filePath, lineNum) } hx-target={ "#" + view.LineCommentFormID(right) } hx-swap="innerHTML" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button>
 								}
 							</td>
 							<td class={ "pl-3 pr-4 py-0.5 whitespace-pre", templ.KV("text-success", line.Type == "add"), templ.KV("text-destructive", line.Type == "del"), templ.KV("text-foreground/85", line.Type != "add" && line.Type != "del") }>
@@ -318,28 +319,34 @@ templ prFileDiff(data view.PullFilesData, f service.FileDiff) {
 							</td>
 						</tr>
 						if line.Type != "del" {
-							{{ key := filePath + ":" + strconv.Itoa(lineNum) }}
-							if cs, ok := data.LineComments[key]; ok && len(cs) > 0 {
-								@fragments.LineComments(view.LineCommentsFragData{
-									Owner:      data.OwnerName,
-									RepoName:   data.Repo.Name,
-									PullNumber: data.Pull.Number,
-									Path:       filePath,
-									Line:       lineNum,
-									Comments:   cs,
-									CanWrite:   data.CanWrite,
-								})
-							} else {
-								<tr id={ view.LineCommentID(filePath, lineNum) }>
-									<td colspan="2" class="p-0"><div id={ view.LineCommentFormID(filePath, lineNum) }></div></td>
-								</tr>
-							}
+							@prLineThread(data, right)
+						}
+						if line.Type != "add" {
+							@prLineThread(data, view.LineCommentKey{Side: "left", Path: filePath, Line: line.OldNum})
 						}
 					}
 				}
 			</tbody>
 		</table>
 	</div>
+}
+
+// Only right-side threads keep an empty row for the "+" button's form, which posts diff_side=right.
+templ prLineThread(data view.PullFilesData, k view.LineCommentKey) {
+	if cs := data.LineComments[k]; len(cs) > 0 {
+		@fragments.LineComments(view.LineCommentsFragData{
+			Owner:      data.OwnerName,
+			RepoName:   data.Repo.Name,
+			PullNumber: data.Pull.Number,
+			Key:        k,
+			Comments:   cs,
+			CanWrite:   data.CanWrite,
+		})
+	} else if k.Side == "right" {
+		<tr id={ view.LineCommentID(k) }>
+			<td colspan="2" class="p-0"><div id={ view.LineCommentFormID(k) }></div></td>
+		</tr>
+	}
 }
 
 // A wholly-new or wholly-deleted file has nothing to compare against, so it renders full-width.

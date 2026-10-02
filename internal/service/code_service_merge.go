@@ -10,6 +10,7 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
+	gogitdiff "github.com/go-git/go-git/v5/plumbing/format/diff"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
@@ -24,6 +25,12 @@ type PRDiffResult struct {
 	TotalDeleted     int
 	CanFastForward   bool // head is a descendant of base
 	CanThreeWayMerge bool // branches diverged but no conflicting file edits
+}
+
+type DiffStats struct {
+	Files   int
+	Added   int
+	Deleted int
 }
 
 // mergeFile holds the blob hash and file mode for a single file in a tree.
@@ -50,6 +57,22 @@ func checkFastForward(repo *gogit.Repository, baseCommit, headCommit *object.Com
 	return found
 }
 
+// pullPatch diffs head against its merge base with base, so commits that landed
+// on base after head branched off don't show as reverted by the PR. Unrelated
+// histories have no merge base (nil) and diff the tips.
+func pullPatch(base, head *object.Commit) (*object.Patch, *object.Commit, error) {
+	mb, err := findMergeBase(base, head)
+	if errors.Is(err, ErrNoCommonAncestor) {
+		patch, err := base.Patch(head)
+		return patch, nil, err
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	patch, err := mb.Patch(head)
+	return patch, mb, err
+}
+
 // GetPullDiff returns the diff between base and head branches, plus whether FF merge is possible.
 func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffResult, error) {
 	repo, err := s.openRepo(owner, repoName)
@@ -65,25 +88,15 @@ func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffRe
 		return nil, err
 	}
 
-	canFF := checkFastForward(repo, baseCommit, headCommit)
-	var canMerge3 bool
-	// Diff from the merge base: diffing the tips shows commits that landed on
-	// base after head branched off as reverted by the PR.
-	diffBase := baseCommit
-	mb, err := findMergeBase(baseCommit, headCommit)
-	switch {
-	case err == nil:
-		diffBase = mb
-		if !canFF {
-			_, canMerge3, _ = mergeTreesNoConflict(repo, mb, baseCommit, headCommit)
-		}
-	case !errors.Is(err, ErrNoCommonAncestor):
+	patch, mb, err := pullPatch(baseCommit, headCommit)
+	if err != nil {
 		return nil, err
 	}
 
-	patch, err := diffBase.Patch(headCommit)
-	if err != nil {
-		return nil, err
+	canFF := checkFastForward(repo, baseCommit, headCommit)
+	var canMerge3 bool
+	if !canFF && mb != nil {
+		_, canMerge3, _ = mergeTreesNoConflict(repo, mb, baseCommit, headCommit)
 	}
 
 	var files []FileDiff
@@ -139,6 +152,46 @@ func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffRe
 		CanFastForward:   canFF,
 		CanThreeWayMerge: canMerge3,
 	}, nil
+}
+
+// PullDiffStats returns GetPullDiff's file and line totals without building
+// hunks or running its merge checks, which write merged trees into the repo.
+func (s *CodeService) PullDiffStats(owner, repoName, base, head string) (DiffStats, error) {
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return DiffStats{}, err
+	}
+	baseCommit, _, err := resolveRef(repo, base)
+	if err != nil {
+		return DiffStats{}, err
+	}
+	headCommit, _, err := resolveRef(repo, head)
+	if err != nil {
+		return DiffStats{}, err
+	}
+	patch, _, err := pullPatch(baseCommit, headCommit)
+	if err != nil {
+		return DiffStats{}, err
+	}
+
+	// Not patch.Stats(): it drops files with no chunks (binary or empty), which
+	// GetPullDiff lists.
+	var st DiffStats
+	for _, fp := range patch.FilePatches() {
+		st.Files++
+		if fp.IsBinary() {
+			continue
+		}
+		for _, chunk := range fp.Chunks() {
+			switch chunk.Type() {
+			case gogitdiff.Add:
+				st.Added += len(chunkLines(chunk))
+			case gogitdiff.Delete:
+				st.Deleted += len(chunkLines(chunk))
+			}
+		}
+	}
+	return st, nil
 }
 
 // MergePullRequest performs a fast-forward merge of head into base.

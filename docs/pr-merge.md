@@ -28,6 +28,7 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 ## CodeService Methods
 
 - `GetPullDiff(owner, repo, base, head)` → `*PRDiffResult`
+- `PullDiffStats(owner, repo, base, head)` → `(DiffStats, error)` (`GetPullDiff`'s file and line totals without the hunks or merge checks; feeds the Files badge on the other PR tabs)
 - `Mergeability(ctx, owner, repo, base, head)` → `(Mergeability, error)`
 - `MergePullRequest(owner, repo, base, head)` → `error` (fast-forward only)
 - `ThreeWayMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`

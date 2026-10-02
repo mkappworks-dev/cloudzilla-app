@@ -66,7 +66,7 @@ func targetedID(t *testing.T, selector string) string {
 	return m[1]
 }
 
-func filesData(comments map[string][]view.RenderedLineComment) view.PullFilesData {
+func filesData(comments map[view.LineCommentKey][]view.RenderedLineComment) view.PullFilesData {
 	return view.PullFilesData{
 		OwnerName:    "acme",
 		Repo:         &model.Repository{Name: "widgets"},
@@ -156,20 +156,23 @@ func lineComment(path string, line int) view.RenderedLineComment {
 }
 
 // Every hx-target on the Files tab must select exactly one element, even for
-// paths with '/' and '.', for two files whose paths differ only there, and for
-// a context line whose base and head line numbers differ.
+// paths with '/' and '.', for two files whose paths differ only there, for a
+// context line whose base and head line numbers differ, and for left- and
+// right-side threads on the same line number.
 func TestPRFileDiff_LineCommentTargetsSelectOneElement(t *testing.T) {
-	data := filesData(map[string][]view.RenderedLineComment{
-		"src/app.go:3": {lineComment("src/app.go", 3)},
+	data := filesData(map[view.LineCommentKey][]view.RenderedLineComment{
+		{Side: "right", Path: "src/app.go", Line: 3}: {lineComment("src/app.go", 3)},
+		{Side: "left", Path: "src/app.go", Line: 3}:  {lineComment("src/app.go", 3)},
+		{Side: "left", Path: "src/app.go", Line: 2}:  {lineComment("src/app.go", 2)},
 	})
 	out := renderHTML(t, prFileDiff(data, modifiedFile("src/app.go"))) +
 		renderHTML(t, prFileDiff(data, modifiedFile("src-app.go"))) +
 		renderHTML(t, prFileDiff(data, insertedLineFile("lib/app.go")))
 
 	targets := hxTargets(out)
-	// Three "+" buttons per file, plus the delete button on the existing comment.
-	if len(targets) != 10 {
-		t.Fatalf("got %d hx-targets, want 10: %q", len(targets), targets)
+	// Three "+" buttons per file, plus the delete button on each comment.
+	if len(targets) != 12 {
+		t.Fatalf("got %d hx-targets, want 12: %q", len(targets), targets)
 	}
 	ids := idCounts(out)
 	for _, sel := range targets {
@@ -194,16 +197,16 @@ func TestPRFileDiff_RowsCarryTheirHeadFileLine(t *testing.T) {
 	}
 }
 
-// A stored comment's line is a head-file line, so its thread renders once,
+// A right-side comment's line is a head-file line, so its thread renders once,
 // under the row with that head-file line.
 func TestPRFileDiff_ThreadsRenderUnderTheirHeadFileLine(t *testing.T) {
 	onAdded := lineComment("src/app.go", 2)
 	onAdded.BodyHTML = "<p>on the added line</p>"
 	onContext := lineComment("src/app.go", 3)
 	onContext.BodyHTML = "<p>on the context line</p>"
-	data := filesData(map[string][]view.RenderedLineComment{
-		"src/app.go:2": {onAdded},
-		"src/app.go:3": {onContext},
+	data := filesData(map[view.LineCommentKey][]view.RenderedLineComment{
+		{Side: "right", Path: "src/app.go", Line: 2}: {onAdded},
+		{Side: "right", Path: "src/app.go", Line: 3}: {onContext},
 	})
 
 	got := map[string][]string{}
@@ -215,6 +218,38 @@ func TestPRFileDiff_ThreadsRenderUnderTheirHeadFileLine(t *testing.T) {
 	want := map[string][]string{
 		"var x = 2":      {"on the added line"},
 		"func main() {}": {"on the context line"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("threads by row = %q, want %q", got, want)
+	}
+}
+
+// A left-side comment's line is a base-file line, so its thread renders under
+// the deleted or context row showing that line, below any right-side thread
+// there, and never under the head-file line with the same number.
+func TestPRFileDiff_LeftSideThreadsRenderUnderTheirBaseFileLine(t *testing.T) {
+	data := filesData(map[view.LineCommentKey][]view.RenderedLineComment{})
+	for k, body := range map[view.LineCommentKey]string{
+		{Side: "right", Path: "src/app.go", Line: 2}: "on head line 2",
+		{Side: "right", Path: "src/app.go", Line: 3}: "on head line 3",
+		{Side: "left", Path: "src/app.go", Line: 2}:  "on base line 2",
+		{Side: "left", Path: "src/app.go", Line: 3}:  "on base line 3",
+	} {
+		c := lineComment(k.Path, k.Line)
+		c.BodyHTML = "<p>" + body + "</p>"
+		data.LineComments[k] = []view.RenderedLineComment{c}
+	}
+
+	got := map[string][]string{}
+	for _, row := range diffRows(t, renderHTML(t, prFileDiff(data, insertedLineFile("src/app.go")))) {
+		if len(row.threads) > 0 {
+			got[row.code] = row.threads
+		}
+	}
+	want := map[string][]string{
+		"var x = 2":      {"on head line 2"},
+		"func main() {}": {"on head line 3", "on base line 2"},
+		"// old trailer": {"on base line 3"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("threads by row = %q, want %q", got, want)
@@ -259,7 +294,7 @@ func TestLineCommentFragments_TargetThePageRow(t *testing.T) {
 	}
 
 	thread := renderHTML(t, fragments.LineComments(view.LineCommentsFragData{
-		Owner: "acme", RepoName: "widgets", PullNumber: 7, Path: path, Line: line,
+		Owner: "acme", RepoName: "widgets", PullNumber: 7, Key: view.LineCommentKey{Side: "right", Path: path, Line: line},
 		Comments: []view.RenderedLineComment{lineComment(path, line)}, CanWrite: true,
 	}))
 	if m := idAttr.FindStringSubmatch(thread); m == nil || m[1] != rowID {

@@ -282,6 +282,8 @@ Valid `state` values: `approved`, `changes_requested`, `commented`, `pending`.
 
 When `diff_side` is `right` (the default, and what the Files tab posts), `line` is a line number in the head branch's version of `path`; applying a suggestion replaces that line. When it is `left`, `line` is a line number in the base side of the Files tab's diff, the version of `path` at the branches' merge base, and applying returns `422`. Any other `diff_side` is rejected with `422`.
 
+The Files tab shows each side's comments as a thread of their own, under the row that displays the line: a `right` thread under the added or context line with that head-file number, a `left` thread under the deleted or context line with that base-file number. A comment on a line outside the diff's hunks doesn't show there.
+
 Applying a suggestion, merging a PR, and editing the wiki return `409` when a push moved the branch while the change was being committed; the push is kept and the client should reload and retry (see [pr-merge](./pr-merge.md#merge-flow)).
 
 ## Reactions
