@@ -473,7 +473,7 @@ templ orgTransferDialog(orgName string, confirm components.ConfirmFactors) {
 		<form
 			hx-post={ "/api/orgs/" + orgName + "/transfer" }
 			hx-swap="none"
-			data-toast="Organization transferred"
+			hx-on--after-request={ stashToast("Organization transferred") }
 		>
 			@components.DialogHeader() {
 				@components.DialogTitle("transfer-org-dialog") {
@@ -528,7 +528,7 @@ templ orgDeleteDialog(orgName string, memberCount int, confirm components.Confir
 		<form
 			hx-post={ "/api/orgs/" + orgName + "/delete" }
 			hx-swap="none"
-			data-toast="Organization deleted"
+			hx-on--after-request={ stashToast("Organization deleted") }
 		>
 			@components.DialogHeader() {
 				@components.DialogTitle("delete-org-dialog") {

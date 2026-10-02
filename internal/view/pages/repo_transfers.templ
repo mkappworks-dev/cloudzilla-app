@@ -26,9 +26,11 @@ func transferTTLDays() string {
 }
 
 // htmx leaves event.detail.successful unset when it follows HX-Redirect or
-// HX-Refresh, which these responses send, so the status decides.
+// HX-Refresh, and form errors come back as 200 swaps, so the header marks
+// success. The target check skips requests that bubble up from inner controls,
+// like the email-code button in ConfirmFields.
 func stashToast(message string) string {
-	return "if(event.detail.xhr.status<300){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:" + components.JSLiteral(message) + "}));}"
+	return "var x=event.detail.xhr;if(event.target===this&&x.status<300&&(x.getResponseHeader('HX-Redirect')||x.getResponseHeader('HX-Refresh'))){sessionStorage.setItem('cz-toast',JSON.stringify({type:'success',message:" + components.JSLiteral(message) + "}));}"
 }
 
 templ RepoTransfers(data view.RepoTransfersData) {
