@@ -303,7 +303,7 @@ templ prFileDiff(data view.PullFilesData, f service.FileDiff) {
 							<td class="group w-14 text-right pr-2 text-muted-foreground select-none border-r border-border py-0.5 align-top">
 								{ strconv.Itoa(lineNum) }
 								if commentable && line.Type != "del" {
-									<button type="button" hx-get={ prLineCommentFormURL(data, filePath, lineNum) } hx-target={ "#lc-form-" + filePath + "-" + strconv.Itoa(lineNum) } hx-swap="innerHTML" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button>
+									<button type="button" hx-get={ prLineCommentFormURL(data, filePath, lineNum) } hx-target={ "#" + view.LineCommentFormID(filePath, lineNum) } hx-swap="innerHTML" class="ml-1 text-muted-foreground/40 group-hover:text-primary" aria-label="Comment on this line">+</button>
 								}
 							</td>
 							<td class={ "pl-3 pr-4 py-0.5 whitespace-pre", templ.KV("text-success", line.Type == "add"), templ.KV("text-destructive", line.Type == "del"), templ.KV("text-foreground/85", line.Type != "add" && line.Type != "del") }>
@@ -329,8 +329,8 @@ templ prFileDiff(data view.PullFilesData, f service.FileDiff) {
 									CanWrite:   data.CanWrite,
 								})
 							} else {
-								<tr id={ "lc-" + filePath + "-" + strconv.Itoa(lineNum) }>
-									<td colspan="2" class="p-0"><div id={ "lc-form-" + filePath + "-" + strconv.Itoa(lineNum) }></div></td>
+								<tr id={ view.LineCommentID(filePath, lineNum) }>
+									<td colspan="2" class="p-0"><div id={ view.LineCommentFormID(filePath, lineNum) }></div></td>
 								</tr>
 							}
 						}
