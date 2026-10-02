@@ -158,7 +158,7 @@ First visit redirects to `/setup` to create your superadmin account.
 | [docs/code-browser.md](./docs/code-browser.md)     | Code browser URL patterns, CodeService API, ref resolution  |
 | [docs/deployment.md](./docs/deployment.md)         | Docker quick start, env var overrides                       |
 | [docs/git-transport.md](./docs/git-transport.md)   | HTTP smart protocol, SSH auth, permission rules             |
-| [docs/htmx-patterns.md](./docs/htmx-patterns.md)   | HTMX fragment rendering, template parse sequence            |
+| [docs/htmx-patterns.md](./docs/htmx-patterns.md)   | HTMX fragments, DELETE params, hx-on, toasts, templates     |
 | [docs/notifications.md](./docs/notifications.md)   | Notification types, service API, extension pattern          |
 | [docs/organizations.md](./docs/organizations.md)   | OrgService API, endpoints, role model                       |
 | [docs/pr-merge.md](./docs/pr-merge.md)             | Merge strategies, conflict detection, PRDiffResult          |
@@ -174,7 +174,7 @@ First visit redirects to `/setup` to create your superadmin account.
 | `make setup-templ`      | Install the templ CLI (one-time)                                   |
 | `make generate-templ`   | Regenerate `*_templ.go` from `*.templ` files                       |
 | `make download-mermaid` | Download mermaid.min.js (one-time; auto-runs in build/dev)         |
-| `make download-htmx`    | Download htmx.min.js (one-time; auto-runs in build/dev)            |
+| `make download-htmx`    | Download htmx.min.js (once per version; auto-runs in build/dev)    |
 | `make build-css`        | Compile Tailwind CSS                                               |
 | `make dev`              | Run backend + Tailwind + templ watch concurrently                  |
 | `make build`            | Full build: download assets, compile CSS, generate templ, build Go |

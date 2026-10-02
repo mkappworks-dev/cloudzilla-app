@@ -45,6 +45,22 @@ Fragment (`templates/fragments/issue_detail.html`):
 
 HTMX flow: button click → PATCH → handler returns fragment → HTMX replaces `#issue-detail` outerHTML
 
+## DELETE Parameters
+
+htmx 2 sends a DELETE's parameters (`hx-vals`, `hx-include`, the enclosing form's fields) in the query string, not the body; Go's `r.ParseForm` ignores DELETE bodies anyway. Handlers read them with `r.URL.Query()` or `r.FormValue`.
+
+Keep an `hx-delete` out of forms that hold secrets: a password field, or the `csrf_token` input the layout adds to every form whose `method` isn't GET, would end up in the URL, which reverse proxies record in their access logs. The CSRF token already travels in the `X-CSRF-Token` header.
+
+## hx-on Attributes
+
+Bind htmx events as `hx-on::after-request` or `hx-on--after-request`, both short for `htmx:after-request`, or name the event in full: `hx-on:htmx:after-request`. With one colon and a bare name, `hx-on:after-request` listens for a DOM event called `after-request`, which htmx never fires.
+
+## Toasts
+
+- **From the handler:** call `toast(w, type, message)` before writing the body. It sets `HX-Trigger: {"toast": …}`, and `ToastContainer` shows it.
+- **`data-toast` on the requesting element:** shown after a successful request, but only if the element survives the swap. When the response replaces it, htmx reports the request on the nearest surviving ancestor, so send the toast from the handler instead.
+- **Across a reload or redirect:** stash the toast in `sessionStorage` under `cz-toast`, and the next page shows it. `HX-Redirect` and `HX-Refresh` responses leave `event.detail.successful` unset, so gate the stash on `event.detail.xhr.status<300`, as `stashToast` in `internal/view/pages/repo_transfers.templ` does. A plain `<form method="POST" data-toast="…">` is stashed on submit.
+
 ## Template Parsing
 
 Templates are parsed at startup in `router.mustParseTemplates()`:
