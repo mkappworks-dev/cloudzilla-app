@@ -739,9 +739,9 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rawLineComments, _ := h.Services.PullLineComment.ListByPull(r.Context(), owner, repoName, number)
-	lineComments := map[string][]RenderedLineComment{}
+	lineComments := map[view.LineCommentKey][]RenderedLineComment{}
 	for _, c := range rawLineComments {
-		key := fmt.Sprintf("%s:%d", c.Path, c.Line)
+		key := view.LineCommentKeyOf(c)
 		lineComments[key] = append(lineComments[key], RenderedLineComment{
 			PullLineComment: c,
 			BodyHTML:        markdown.Render(c.Body),

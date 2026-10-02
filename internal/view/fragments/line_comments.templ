@@ -7,7 +7,7 @@ import (
 )
 
 templ LineComments(data view.LineCommentsFragData) {
-	<tr id={ view.LineCommentID(data.Path, data.Line) } class="bg-primary/10 border-t border-primary/20">
+	<tr id={ view.LineCommentID(data.Key) } class="bg-primary/10 border-t border-primary/20">
 		<td colspan="2" class="px-4 py-0">
 			for _, c := range data.Comments {
 				<div class="flex items-start gap-2 py-2 border-b border-primary/20 last:border-0">
@@ -24,28 +24,29 @@ templ LineComments(data view.LineCommentsFragData) {
 					if data.CanWrite {
 						<button
 							hx-delete={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments/" + strconv.FormatInt(c.ID, 10) }
-							hx-target={ "#" + view.LineCommentID(data.Path, data.Line) }
+							hx-target={ "#" + view.LineCommentID(data.Key) }
 							hx-swap="outerHTML"
 							class="text-muted-foreground/60 hover:text-destructive text-xs shrink-0"
 						>&times;</button>
 					}
 				</div>
 			}
-			<div id={ view.LineCommentFormID(data.Path, data.Line) }></div>
+			<div id={ view.LineCommentFormID(data.Key) }></div>
 		</td>
 	</tr>
 }
 
 templ LineCommentForm(data view.LineCommentFormFragData) {
+	{{ key := view.LineCommentKey{Side: "right", Path: data.Path, Line: data.Line} }}
 	<form
 		hx-post={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments" }
-		hx-target={ "#" + view.LineCommentID(data.Path, data.Line) }
+		hx-target={ "#" + view.LineCommentID(key) }
 		hx-swap="outerHTML"
 		class="p-2 space-y-2"
 	>
 		<input type="hidden" name="path" value={ data.Path }/>
 		<input type="hidden" name="line" value={ strconv.Itoa(data.Line) }/>
-		<input type="hidden" name="diff_side" value="right"/>
+		<input type="hidden" name="diff_side" value={ key.Side }/>
 		<textarea name="body" rows="2" placeholder="Leave a comment..." required class="w-full border border-border rounded-sm px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus-visible:outline-ring resize-none"></textarea>
 		<div class="flex gap-2">
 			<button type="submit" class="px-3 py-1 bg-primary text-background rounded-sm text-xs font-medium hover:bg-primary">

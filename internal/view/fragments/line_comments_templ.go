@@ -40,9 +40,9 @@ func LineComments(data view.LineCommentsFragData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(view.LineCommentID(data.Path, data.Line))
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(view.LineCommentID(data.Key))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 10, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 10, Col: 38}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
@@ -136,9 +136,9 @@ func LineComments(data view.LineCommentsFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var8 string
-				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue("#" + view.LineCommentID(data.Path, data.Line))
+				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue("#" + view.LineCommentID(data.Key))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 27, Col: 65}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 27, Col: 53}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
 				if templ_7745c5c3_Err != nil {
@@ -159,9 +159,9 @@ func LineComments(data view.LineCommentsFragData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var9 string
-		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(view.LineCommentFormID(data.Path, data.Line))
+		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(view.LineCommentFormID(data.Key))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 34, Col: 57}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 34, Col: 45}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 		if templ_7745c5c3_Err != nil {
@@ -196,6 +196,7 @@ func LineCommentForm(data view.LineCommentFormFragData) templ.Component {
 			templ_7745c5c3_Var10 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
+		key := view.LineCommentKey{Side: "right", Path: data.Path, Line: data.Line}
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<form hx-post=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -203,7 +204,7 @@ func LineCommentForm(data view.LineCommentFormFragData) templ.Component {
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue("/api/repos/" + data.Owner + "/" + data.RepoName + "/pulls/" + strconv.Itoa(data.PullNumber) + "/line_comments")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 41, Col: 123}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 42, Col: 123}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 		if templ_7745c5c3_Err != nil {
@@ -214,9 +215,9 @@ func LineCommentForm(data view.LineCommentFormFragData) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var12 string
-		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue("#" + view.LineCommentID(data.Path, data.Line))
+		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue("#" + view.LineCommentID(key))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 42, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 43, Col: 43}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 		if templ_7745c5c3_Err != nil {
@@ -229,7 +230,7 @@ func LineCommentForm(data view.LineCommentFormFragData) templ.Component {
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Path)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 46, Col: 52}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 47, Col: 52}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 		if templ_7745c5c3_Err != nil {
@@ -242,13 +243,26 @@ func LineCommentForm(data view.LineCommentFormFragData) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.ResolveAttributeValue(strconv.Itoa(data.Line))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 47, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 48, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\"> <input type=\"hidden\" name=\"diff_side\" value=\"right\"> <textarea name=\"body\" rows=\"2\" placeholder=\"Leave a comment...\" required class=\"w-full border border-border rounded-sm px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus-visible:outline-ring resize-none\"></textarea><div class=\"flex gap-2\"><button type=\"submit\" class=\"px-3 py-1 bg-primary text-background rounded-sm text-xs font-medium hover:bg-primary\">Comment</button> <button type=\"button\" onclick=\"this.closest('form').remove()\" class=\"px-3 py-1 bg-background border border-border text-muted-foreground rounded-sm text-xs hover:bg-muted/40\">Cancel</button></div></form>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\"> <input type=\"hidden\" name=\"diff_side\" value=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var15 string
+		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(key.Side)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/line_comments.templ`, Line: 49, Col: 56}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\"> <textarea name=\"body\" rows=\"2\" placeholder=\"Leave a comment...\" required class=\"w-full border border-border rounded-sm px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus-visible:outline-ring resize-none\"></textarea><div class=\"flex gap-2\"><button type=\"submit\" class=\"px-3 py-1 bg-primary text-background rounded-sm text-xs font-medium hover:bg-primary\">Comment</button> <button type=\"button\" onclick=\"this.closest('form').remove()\" class=\"px-3 py-1 bg-background border border-border text-muted-foreground rounded-sm text-xs hover:bg-muted/40\">Cancel</button></div></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
