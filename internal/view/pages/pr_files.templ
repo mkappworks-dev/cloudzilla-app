@@ -507,11 +507,13 @@ func prWSOnlyLines(lines []service.DiffLine) map[int]bool {
 	return out
 }
 
+// Right-side comments and ApplySuggestion count lines in the head file, so
+// only deleted rows take their number from the base file.
 func prDiffLineNum(line service.DiffLine) int {
-	if line.Type == "add" {
-		return line.NewNum
+	if line.Type == "del" {
+		return line.OldNum
 	}
-	return line.OldNum
+	return line.NewNum
 }
 
 func prLineCommentFormURL(data view.PullFilesData, path string, line int) string {

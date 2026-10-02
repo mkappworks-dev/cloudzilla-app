@@ -280,6 +280,8 @@ Valid `state` values: `approved`, `changes_requested`, `commented`, `pending`.
 | DELETE | `/api/repos/:owner/:repo/pulls/:number/line_comments/:id`       | Required | Delete a line comment (author or repo writer only)             |
 | POST   | `/api/repos/:owner/:repo/pulls/:number/line_comments/:id/apply` | CanWrite | Apply a code review suggestion                                 |
 
+When `diff_side` is `right` (the default, and what the Files tab posts), `line` is a line number in the head branch's version of `path`; applying a suggestion replaces that line.
+
 Applying a suggestion, merging a PR, and editing the wiki return `409` when a push moved the branch while the change was being committed; the push is kept and the client should reload and retry (see [pr-merge](./pr-merge.md#merge-flow)).
 
 ## Reactions
