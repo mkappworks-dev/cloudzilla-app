@@ -2,6 +2,7 @@ package layout
 
 import (
 	"strconv"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/assets"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -15,11 +16,11 @@ templ Base(base view.BasePage, title string) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>{ title } — Cloudzilla</title>
-			<link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+			<link rel="icon" type="image/svg+xml" href={ assets.URL("/static/favicon.svg") }/>
 			<link rel="preconnect" href="https://fonts.googleapis.com"/>
 			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 			<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet"/>
-			<link rel="stylesheet" href="/static/main.css"/>
+			<link rel="stylesheet" href={ assets.URL("/static/main.css") }/>
 			<script>
 				// Theme bootstrap: applied before paint so there's no flash of wrong theme.
 				(function() {
@@ -370,24 +371,45 @@ templ Base(base view.BasePage, title string) {
 					});
 				})();
 			</script>
-			<script src="/htmx.min.js" defer></script>
-			<script src="/alpine.min.js" defer></script>
-			<script src="/static/mermaid.min.js"></script>
-			<script>
-				// Mermaid 12 defaults to the neo look, ELK layout and wider, earlier-wrapping nodes; pin 11's rendering.
-				mermaid.initialize({
-					startOnLoad: false,
-					theme: 'default',
-					look: 'classic',
-					layout: 'dagre',
-					flowchart: { wrappingWidth: 200, minNodeWidth: 0 },
-					state: { wrappingWidth: 200, minNodeWidth: 0 },
-					// A site-wide layout would replace these diagrams' own layout engines.
-					mindmap: { layout: 'cose-bilkent' },
-					swimlane: { layout: 'swimlane' },
-				});
-				document.addEventListener('DOMContentLoaded', function () { mermaid.run(); });
-				document.addEventListener('htmx:afterSwap', function () { mermaid.run(); });
+			<script src={ assets.URL("/htmx.min.js") } defer></script>
+			<script src={ assets.URL("/alpine.min.js") } defer></script>
+			<script data-mermaid-src={ assets.URL("/static/mermaid.min.js") }>
+				// Mermaid is megabytes of JS, so only a page holding a diagram loads it.
+				(function() {
+					var src = document.currentScript.dataset.mermaidSrc;
+					var loaded;
+					function load() {
+						if (!loaded) {
+							loaded = new Promise(function(resolve) {
+								var script = document.createElement('script');
+								script.src = src;
+								script.onload = resolve;
+								document.head.appendChild(script);
+							}).then(function() {
+								// Mermaid 12 defaults to the neo look, ELK layout and wider, earlier-wrapping nodes; pin 11's rendering.
+								mermaid.initialize({
+									startOnLoad: false,
+									theme: 'default',
+									look: 'classic',
+									layout: 'dagre',
+									flowchart: { wrappingWidth: 200, minNodeWidth: 0 },
+									state: { wrappingWidth: 200, minNodeWidth: 0 },
+									// A site-wide layout would replace these diagrams' own layout engines.
+									mindmap: { layout: 'cose-bilkent' },
+									swimlane: { layout: 'swimlane' },
+								});
+							});
+						}
+						return loaded;
+					}
+					function render() {
+						if (document.querySelector('.mermaid:not([data-processed])')) {
+							load().then(function() { mermaid.run(); });
+						}
+					}
+					document.addEventListener('DOMContentLoaded', render);
+					document.addEventListener('htmx:afterSwap', render);
+				})();
 			</script>
 		</body>
 	</html>

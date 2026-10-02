@@ -81,3 +81,9 @@ Broken (after formatter):
 <span class="...
   {{if eq .State " open"}}bg-green-100{{else}}bg-red-100{{end}}">
 ```
+
+## Scripts That Act on Swapped Content
+
+A script that enhances server-rendered markup must also run on `htmx:afterSwap`, or content swapped in later (an editor's Preview tab, a newly posted comment) stays raw. The mermaid loader in `layout.templ` is the model. On `DOMContentLoaded` and on every `htmx:afterSwap` it looks for `.mermaid:not([data-processed])`. Only when it finds one does it load `mermaid.min.js` (once per page) and call `mermaid.run()`, so pages without diagrams never download it. A fragment that renders markdown needs no script of its own.
+
+Load such scripts through `assets.URL(...)` (see `internal/assets`) so their URLs carry a content hash.
