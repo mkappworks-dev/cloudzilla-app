@@ -1,0 +1,135 @@
+package service
+
+import (
+	"fmt"
+	"path/filepath"
+	"reflect"
+	"sort"
+	"testing"
+
+	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+
+	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
+)
+
+// pullRepo is a bare repo whose branches the tests grow through CodeService's
+// own commit, branch and merge methods.
+type pullRepo struct {
+	svc  *CodeService
+	repo *gogit.Repository
+}
+
+func newPullRepo(t *testing.T) *pullRepo {
+	t.Helper()
+	root := t.TempDir()
+	repo, err := gogit.PlainInit(filepath.Join(root, "alice", "pulls.git"), true)
+	if err != nil {
+		t.Fatalf("init bare repo: %v", err)
+	}
+	return &pullRepo{svc: NewCodeService(czconfig.GitConfig{ReposRoot: root}), repo: repo}
+}
+
+func (r *pullRepo) commit(t *testing.T, branch, path, content string) {
+	t.Helper()
+	if err := r.svc.CommitFile("alice", "pulls", branch, path, []byte(content), tipTestAuthor, "Add "+path); err != nil {
+		t.Fatalf("commit %s on %s: %v", path, branch, err)
+	}
+}
+
+// newDivergedPull is a repo where feature added a line to a.txt after
+// branching from main, and main then added b.txt.
+func newDivergedPull(t *testing.T) *pullRepo {
+	t.Helper()
+	r := newPullRepo(t)
+	r.commit(t, "main", "a.txt", "one\n")
+	if err := r.svc.CreateBranch("alice", "pulls", "feature", "main"); err != nil {
+		t.Fatalf("create feature: %v", err)
+	}
+	r.commit(t, "feature", "a.txt", "one\ntwo\n")
+	r.commit(t, "main", "b.txt", "b\n")
+	return r
+}
+
+// mergeMainIntoFeature brings feature up to date the way a PR author does,
+// with a merge commit whose first parent is feature, and returns the main
+// commit it merged.
+func (r *pullRepo) mergeMainIntoFeature(t *testing.T) plumbing.Hash {
+	t.Helper()
+	merged := branchTip(t, r.repo, "main")
+	if err := r.svc.ThreeWayMergePullRequest("alice", "pulls", "feature", "main", tipTestAuthor); err != nil {
+		t.Fatalf("merge main into feature: %v", err)
+	}
+	return merged
+}
+
+func fileSummaries(d *PRDiffResult) []string {
+	var out []string
+	for _, f := range d.Files {
+		path := f.DisplayPath()
+		switch {
+		case f.IsNew:
+			path += " (new)"
+		case f.IsDelete:
+			path += " (deleted)"
+		}
+		out = append(out, fmt.Sprintf("%s +%d -%d", path, f.Added, f.Deleted))
+	}
+	sort.Strings(out)
+	return out
+}
+
+func TestGetPullDiff_BaseMovedOn(t *testing.T) {
+	t.Parallel()
+	r := newDivergedPull(t)
+
+	d, err := r.svc.GetPullDiff("alice", "pulls", "main", "feature")
+	if err != nil {
+		t.Fatalf("GetPullDiff: %v", err)
+	}
+	if got, want := fileSummaries(d), []string{"a.txt +1 -0"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("files = %q, want %q", got, want)
+	}
+	if d.TotalAdded != 1 || d.TotalDeleted != 0 {
+		t.Errorf("totals = +%d -%d, want +1 -0", d.TotalAdded, d.TotalDeleted)
+	}
+	if d.CanFastForward || !d.CanThreeWayMerge {
+		t.Errorf("CanFastForward=%v CanThreeWayMerge=%v, want false and true", d.CanFastForward, d.CanThreeWayMerge)
+	}
+}
+
+func TestGetPullDiff_AfterMergingBaseIntoHead(t *testing.T) {
+	t.Parallel()
+	r := newDivergedPull(t)
+	r.mergeMainIntoFeature(t)
+	r.commit(t, "main", "c.txt", "c\n")
+
+	d, err := r.svc.GetPullDiff("alice", "pulls", "main", "feature")
+	if err != nil {
+		t.Fatalf("GetPullDiff: %v", err)
+	}
+	if got, want := fileSummaries(d), []string{"a.txt +1 -0"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("files = %q, want %q", got, want)
+	}
+	if d.CanFastForward || !d.CanThreeWayMerge {
+		t.Errorf("CanFastForward=%v CanThreeWayMerge=%v, want false and true", d.CanFastForward, d.CanThreeWayMerge)
+	}
+}
+
+func TestGetPullDiff_UnrelatedHistoriesDiffTheTips(t *testing.T) {
+	t.Parallel()
+	r := newPullRepo(t)
+	r.commit(t, "main", "a.txt", "one\n")
+	r.commit(t, "orphan", "b.txt", "b\n")
+
+	d, err := r.svc.GetPullDiff("alice", "pulls", "main", "orphan")
+	if err != nil {
+		t.Fatalf("GetPullDiff: %v", err)
+	}
+	if got, want := fileSummaries(d), []string{"a.txt (deleted) +0 -1", "b.txt (new) +1 -0"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("files = %q, want %q", got, want)
+	}
+	if d.CanFastForward || d.CanThreeWayMerge {
+		t.Errorf("CanFastForward=%v CanThreeWayMerge=%v, want both false", d.CanFastForward, d.CanThreeWayMerge)
+	}
+}

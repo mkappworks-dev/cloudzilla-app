@@ -2,7 +2,7 @@
 
 Cloudzilla supports three merge strategies selectable from the PR detail page.
 
-**Diff view:** The PR's Files tab (`PagePullFiles`) shows a full file diff between base and head tips.
+**Diff view:** The PR's Files tab (`PagePullFiles`) diffs head's tip against its merge base with base, like `git diff base...head`, so commits that land on base after head branched off don't show up as reverted by the PR. Branches with no common history fall back to a diff between the two tips. The Files badge, CODEOWNERS reviewer auto-request and suggested reviewers use the same file list.
 
 ## Available Strategies
 
@@ -33,7 +33,7 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 - `ThreeWayMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
 - `SquashMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
 - `checkFastForward(repo, baseCommit, headCommit)` → `bool` (private)
-- `findMergeBase(repo, a, b)` → `(*object.Commit, error)` (private; LCA via ancestor walk)
+- `findMergeBase(a, b)` → `(*object.Commit, error)` (private; best common ancestor, as `git merge-base`)
 - `mergeTreesNoConflict(repo, mergeBase, base, head)` → `(plumbing.Hash, bool, error)` (private)
 - `flattenTree(tree)` → `(map[string]mergeFile, error)` (private)
 - `buildTree(repo, files)` → `(plumbing.Hash, error)` (private; recursively encodes tree objects)
