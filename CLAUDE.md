@@ -76,3 +76,17 @@ Worktrees go in `.worktrees/<type>+<slug>` (gitignored), mirroring the branch: `
 
 - Title: Conventional Commits, enforced by `.github/workflows/pr-title-lint.yml` — e.g. `feat(ui): UI overhaul phase 8 — dashboard`.
 - Body: fill in [`.github/pull_request_template.md`](./.github/pull_request_template.md), ticking only the checklist items that apply.
+
+## Agent skills
+
+### Issue tracker
+
+Before creating, reading, triaging or finishing a spec or ticket (markdown under `.scratch/`), read `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+When setting a triage role, write it on the ticket's `Status:` line as `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human` or `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Before using the domain glossary (`CONTEXT.md`) or ADRs (`docs/adr/`), read `docs/agents/domain.md`.
