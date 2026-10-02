@@ -2,7 +2,7 @@
 
 Cloudzilla supports three merge strategies selectable from the PR detail page.
 
-**Diff view:** The PR detail page shows a full file diff between base and head tips for open PRs. Diff is omitted for closed/merged PRs.
+**Diff view:** The PR's Files tab (`PagePullFiles`) shows a full file diff between base and head tips.
 
 ## Available Strategies
 
@@ -16,8 +16,8 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 
 ## Merge Flow
 
-1. `PagePullDetail` calls `CodeService.GetPullDiff(base, head)` → `PRDiffResult{Files, CanFastForward, CanThreeWayMerge}`
-2. Template renders diff + conditionally shows strategy buttons based on capability flags
+1. `PagePullDetail` (the Conversation tab) calls `CodeService.Mergeability(base, head)` → `Mergeability{Ahead, Behind, HasConflicts}` and derives the merge box's `CanFastForward`, `CanThreeWayMerge` and `CanSquash` flags from it
+2. The merge box offers only the strategies those flags allow
 3. On button click → HTMX `PATCH /api/repos/{owner}/{repo}/pulls/{number}` with `state=merged` and `merge_strategy=ff|merge|squash`
 4. `UpdatePull` dispatches to `MergePullRequest`, `ThreeWayMergePullRequest`, or `SquashMergePullRequest`
 5. On success → `PullService.SetState(merged)` → fragment returned
@@ -28,6 +28,7 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 ## CodeService Methods
 
 - `GetPullDiff(owner, repo, base, head)` → `*PRDiffResult`
+- `Mergeability(ctx, owner, repo, base, head)` → `(Mergeability, error)`
 - `MergePullRequest(owner, repo, base, head)` → `error` (fast-forward only)
 - `ThreeWayMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
 - `SquashMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
