@@ -44,7 +44,7 @@ func (s *AuditLogStore) Create(ctx context.Context, e *model.AuditEntry) error {
 
 // Count returns the total number of entries matching the filter.
 func (s *AuditLogStore) Count(ctx context.Context, f model.AuditFilter) (int, error) {
-	query, args := buildAuditQuery("SELECT COUNT(*) FROM audit_log", f, -1, -1)
+	query, args := buildAuditQuery("SELECT COUNT(*) FROM audit_log", f)
 	var n int
 	if err := s.db.QueryRowContext(ctx, query, args...).Scan(&n); err != nil {
 		return 0, fmt.Errorf("audit log count: %w", err)
@@ -64,8 +64,13 @@ func (s *AuditLogStore) List(ctx context.Context, f model.AuditFilter, page, pag
 		`SELECT id, actor_id, actor_name, action, target_type, target_id, target_name,
 		        ip_address, user_agent, metadata, created_at
 		 FROM audit_log`,
-		f, pageSize, offset,
+		f,
 	)
+	query += " ORDER BY created_at DESC"
+	if pageSize > 0 {
+		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+		args = append(args, pageSize, offset)
+	}
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -96,46 +101,34 @@ func (s *AuditLogStore) List(ctx context.Context, f model.AuditFilter, page, pag
 	return entries, nil
 }
 
-// buildAuditQuery builds a filtered SQL query for audit_log.
-// Pass pageSize < 0 to omit LIMIT/OFFSET (used for COUNT queries).
-func buildAuditQuery(base string, f model.AuditFilter, pageSize, offset int) (string, []any) {
+// buildAuditQuery appends f's WHERE clause to base. Ordering stays in List:
+// Postgres rejects ORDER BY created_at in Count's aggregate query.
+func buildAuditQuery(base string, f model.AuditFilter) (string, []any) {
 	var (
 		conds []string
 		args  []any
-		n     = 1
 	)
 
 	if f.ActorID != nil {
-		conds = append(conds, fmt.Sprintf("actor_id = $%d", n))
 		args = append(args, *f.ActorID)
-		n++
+		conds = append(conds, fmt.Sprintf("actor_id = $%d", len(args)))
 	}
 	if f.Action != "" {
-		conds = append(conds, fmt.Sprintf("action = $%d", n))
 		args = append(args, f.Action)
-		n++
+		conds = append(conds, fmt.Sprintf("action = $%d", len(args)))
 	}
 	if f.TargetType != "" {
-		conds = append(conds, fmt.Sprintf("target_type = $%d", n))
 		args = append(args, f.TargetType)
-		n++
+		conds = append(conds, fmt.Sprintf("target_type = $%d", len(args)))
 	}
 	if f.TargetID != nil {
-		conds = append(conds, fmt.Sprintf("target_id = $%d", n))
 		args = append(args, *f.TargetID)
-		n++
+		conds = append(conds, fmt.Sprintf("target_id = $%d", len(args)))
 	}
 
 	q := base
 	if len(conds) > 0 {
 		q += " WHERE " + strings.Join(conds, " AND ")
 	}
-	q += " ORDER BY created_at DESC"
-
-	if pageSize > 0 {
-		q += fmt.Sprintf(" LIMIT $%d OFFSET $%d", n, n+1)
-		args = append(args, pageSize, offset)
-	}
-
 	return q, args
 }
