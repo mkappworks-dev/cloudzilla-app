@@ -57,7 +57,7 @@ templ PullChrome(data PullChromeData, children templ.Component) {
 							@components.DropdownMenuLabel() {
 								{ "Check out — " + data.Pull.HeadBranch }
 							}
-							<pre class="font-mono text-[11px] text-muted-foreground m-1 p-2 rounded border border-border bg-muted overflow-x-auto whitespace-pre">git fetch origin
+							<pre class="font-mono text-[11px] text-muted-foreground m-1 p-2 rounded-sm border border-border bg-muted overflow-x-auto whitespace-pre">git fetch origin
 git checkout { data.Pull.HeadBranch }</pre>
 							@components.DropdownMenuSeparator()
 							@components.DropdownMenuLink(base+"/tree/"+data.Pull.HeadBranch, nil) {
@@ -74,9 +74,9 @@ git checkout { data.Pull.HeadBranch }</pre>
 					{ " " + chromeMergeVerb(data.Pull.State) + " " }
 					<strong class="text-foreground font-medium">{ commitsPhrase(data.CommitsCount) }</strong>
 					{ " into " }
-					<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded text-[12px]">{ data.Pull.BaseBranch }</span>
+					<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">{ data.Pull.BaseBranch }</span>
 					{ " from " }
-					<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded text-[12px]">{ data.Pull.HeadBranch }</span>
+					<span class="font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]">{ data.Pull.HeadBranch }</span>
 				</p>
 			</div>
 		</section>
@@ -133,7 +133,7 @@ git checkout { data.Pull.HeadBranch }</pre>
 					if (txt.isContentEditable) {
 						var next = txt.textContent.trim();
 						txt.contentEditable = 'false';
-						txt.classList.remove('rounded', 'bg-muted', 'px-1', 'outline', 'outline-1', 'outline-border');
+						txt.classList.remove('rounded-sm', 'bg-muted', 'px-1', 'outline-solid', 'outline-1', 'outline-border');
 						btn.textContent = 'Edit';
 						if (next === '' || next === original) {
 							txt.textContent = original;
@@ -159,7 +159,7 @@ git checkout { data.Pull.HeadBranch }</pre>
 						});
 					} else {
 						txt.contentEditable = 'true';
-						txt.classList.add('rounded', 'bg-muted', 'px-1', 'outline', 'outline-1', 'outline-border');
+						txt.classList.add('rounded-sm', 'bg-muted', 'px-1', 'outline-solid', 'outline-1', 'outline-border');
 						btn.textContent = 'Save';
 						txt.focus();
 					}

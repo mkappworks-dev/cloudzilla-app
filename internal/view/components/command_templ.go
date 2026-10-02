@@ -46,7 +46,7 @@ func CommandPalette(id string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"command-palette rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[640px] max-w-[calc(100vw-2rem)] backdrop:bg-black/60 backdrop:backdrop-blur-sm\" aria-label=\"Command palette\"><div class=\"flex items-center gap-2 border-b border-border px-3.5 py-3\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" class=\"text-muted-foreground\" aria-hidden=\"true\"><circle cx=\"7\" cy=\"7\" r=\"5\"></circle> <path d=\"M14 14l-3-3\"></path></svg> <input data-command-input type=\"search\" placeholder=\"Type a command or search…\" autocomplete=\"off\" autocorrect=\"off\" spellcheck=\"false\" class=\"flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground\"> <kbd class=\"rounded border border-border px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground\">ESC</kbd></div><div data-command-list class=\"max-h-[400px] overflow-y-auto p-2\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "\" class=\"command-palette rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[640px] max-w-[calc(100vw-2rem)] backdrop:bg-black/60 backdrop:backdrop-blur-xs\" aria-label=\"Command palette\"><div class=\"flex items-center gap-2 border-b border-border px-3.5 py-3\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" class=\"text-muted-foreground\" aria-hidden=\"true\"><circle cx=\"7\" cy=\"7\" r=\"5\"></circle> <path d=\"M14 14l-3-3\"></path></svg> <input data-command-input type=\"search\" placeholder=\"Type a command or search…\" autocomplete=\"off\" autocorrect=\"off\" spellcheck=\"false\" class=\"flex-1 bg-transparent text-sm outline-hidden placeholder:text-muted-foreground\"> <kbd class=\"rounded-sm border border-border px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground\">ESC</kbd></div><div data-command-list class=\"max-h-[400px] overflow-y-auto p-2\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -152,7 +152,7 @@ func CommandItem(href string, attrs templ.Attributes) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "flex items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-none"))
+			templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(attrs, "flex items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-hidden"))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -173,7 +173,7 @@ func CommandItem(href string, attrs templ.Attributes) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(withDefaults(attrs, templ.Attributes{"type": "button"}), "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-none"))
+			templ_7745c5c3_Err = templ.RenderAttributes(ctx, templ_7745c5c3_Buffer, withClass(withDefaults(attrs, templ.Attributes{"type": "button"}), "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-hidden"))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

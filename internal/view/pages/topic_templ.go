@@ -149,7 +149,7 @@ func Topic(data view.TopicData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				for _, repo := range data.Repos {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<li class=\"group relative px-4 py-4 hover:bg-muted/50 transition-[padding-left] duration-[120ms] hover:pl-[18px]\"><span class=\"absolute left-0 top-2 bottom-2 w-0.5 bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-[120ms] rounded-sm\" aria-hidden=\"true\"></span> <a href=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<li class=\"group relative px-4 py-4 hover:bg-muted/50 transition-[padding-left] duration-[120ms] hover:pl-[18px]\"><span class=\"absolute left-0 top-2 bottom-2 w-0.5 bg-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-[120ms] rounded-xs\" aria-hidden=\"true\"></span> <a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

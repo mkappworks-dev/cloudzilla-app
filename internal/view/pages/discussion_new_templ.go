@@ -219,20 +219,20 @@ func DiscussionNew(data view.DiscussionNewData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div><p class=\"text-[11px] text-muted-foreground\">Markdown is supported. <kbd class=\"font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div><p class=\"text-[11px] text-muted-foreground\">Markdown is supported. <kbd class=\"font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded-sm\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs("@")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/discussion_new.templ`, Line: 78, Col: 166}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/discussion_new.templ`, Line: 78, Col: 169}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</kbd> mentions notify users; <kbd class=\"font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded\">#</kbd> links issues/PRs.</p></div><div class=\"flex items-center gap-3 pt-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</kbd> mentions notify users; <kbd class=\"font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded-sm\">#</kbd> links issues/PRs.</p></div><div class=\"flex items-center gap-3 pt-2\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

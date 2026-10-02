@@ -248,7 +248,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, " <pre class=\"font-mono text-[11px] text-muted-foreground m-1 p-2 rounded border border-border bg-muted overflow-x-auto whitespace-pre\">git fetch origin git checkout ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, " <pre class=\"font-mono text-[11px] text-muted-foreground m-1 p-2 rounded-sm border border-border bg-muted overflow-x-auto whitespace-pre\">git fetch origin git checkout ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -385,14 +385,14 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, " <span class=\"font-mono px-1.5 py-0.5 bg-muted border border-border rounded text-[12px]\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, " <span class=\"font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(data.Pull.BaseBranch)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 77, Col: 115}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 77, Col: 118}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 		if templ_7745c5c3_Err != nil {
@@ -411,14 +411,14 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, " <span class=\"font-mono px-1.5 py-0.5 bg-muted border border-border rounded text-[12px]\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, " <span class=\"font-mono px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[12px]\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var25 string
 		templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(data.Pull.HeadBranch)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 79, Col: 115}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/pull_chrome.templ`, Line: 79, Col: 118}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 		if templ_7745c5c3_Err != nil {
@@ -772,7 +772,7 @@ func PullChrome(data PullChromeData, children templ.Component) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if data.CanWrite {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "<script>\n\t\t\t(function () {\n\t\t\t\tvar btn = document.getElementById('edit-pr-btn');\n\t\t\t\tvar txt = document.getElementById('pr-title-text');\n\t\t\t\tif (!btn || !txt) return;\n\t\t\t\tvar original = txt.textContent;\n\t\t\t\tbtn.addEventListener('click', function () {\n\t\t\t\t\tif (txt.isContentEditable) {\n\t\t\t\t\t\tvar next = txt.textContent.trim();\n\t\t\t\t\t\ttxt.contentEditable = 'false';\n\t\t\t\t\t\ttxt.classList.remove('rounded', 'bg-muted', 'px-1', 'outline', 'outline-1', 'outline-border');\n\t\t\t\t\t\tbtn.textContent = 'Edit';\n\t\t\t\t\t\tif (next === '' || next === original) {\n\t\t\t\t\t\t\ttxt.textContent = original;\n\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t}\n\t\t\t\t\t\tvar token = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\t\tfetch(btn.dataset.prPatch, {\n\t\t\t\t\t\t\tmethod: 'PATCH',\n\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/x-www-form-urlencoded', 'HX-Request': 'true', 'X-CSRF-Token': token },\n\t\t\t\t\t\t\tbody: 'title=' + encodeURIComponent(next),\n\t\t\t\t\t\t}).then(function (r) {\n\t\t\t\t\t\t\tif (r.ok) {\n\t\t\t\t\t\t\t\toriginal = next;\n\t\t\t\t\t\t\t\tdocument.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Title updated' } }));\n\t\t\t\t\t\t\t\tdocument.title = document.title.replace(/^[^·]+/, next + ' ');\n\t\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\t\ttxt.textContent = original;\n\t\t\t\t\t\t\t\talert('Could not save the title.');\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}).catch(function () {\n\t\t\t\t\t\t\ttxt.textContent = original;\n\t\t\t\t\t\t\talert('Could not save the title.');\n\t\t\t\t\t\t});\n\t\t\t\t\t} else {\n\t\t\t\t\t\ttxt.contentEditable = 'true';\n\t\t\t\t\t\ttxt.classList.add('rounded', 'bg-muted', 'px-1', 'outline', 'outline-1', 'outline-border');\n\t\t\t\t\t\tbtn.textContent = 'Save';\n\t\t\t\t\t\ttxt.focus();\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t})();\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "<script>\n\t\t\t(function () {\n\t\t\t\tvar btn = document.getElementById('edit-pr-btn');\n\t\t\t\tvar txt = document.getElementById('pr-title-text');\n\t\t\t\tif (!btn || !txt) return;\n\t\t\t\tvar original = txt.textContent;\n\t\t\t\tbtn.addEventListener('click', function () {\n\t\t\t\t\tif (txt.isContentEditable) {\n\t\t\t\t\t\tvar next = txt.textContent.trim();\n\t\t\t\t\t\ttxt.contentEditable = 'false';\n\t\t\t\t\t\ttxt.classList.remove('rounded-sm', 'bg-muted', 'px-1', 'outline-solid', 'outline-1', 'outline-border');\n\t\t\t\t\t\tbtn.textContent = 'Edit';\n\t\t\t\t\t\tif (next === '' || next === original) {\n\t\t\t\t\t\t\ttxt.textContent = original;\n\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t}\n\t\t\t\t\t\tvar token = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\t\tfetch(btn.dataset.prPatch, {\n\t\t\t\t\t\t\tmethod: 'PATCH',\n\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/x-www-form-urlencoded', 'HX-Request': 'true', 'X-CSRF-Token': token },\n\t\t\t\t\t\t\tbody: 'title=' + encodeURIComponent(next),\n\t\t\t\t\t\t}).then(function (r) {\n\t\t\t\t\t\t\tif (r.ok) {\n\t\t\t\t\t\t\t\toriginal = next;\n\t\t\t\t\t\t\t\tdocument.dispatchEvent(new CustomEvent('toast', { detail: { type: 'success', message: 'Title updated' } }));\n\t\t\t\t\t\t\t\tdocument.title = document.title.replace(/^[^·]+/, next + ' ');\n\t\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\t\ttxt.textContent = original;\n\t\t\t\t\t\t\t\talert('Could not save the title.');\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}).catch(function () {\n\t\t\t\t\t\t\ttxt.textContent = original;\n\t\t\t\t\t\t\talert('Could not save the title.');\n\t\t\t\t\t\t});\n\t\t\t\t\t} else {\n\t\t\t\t\t\ttxt.contentEditable = 'true';\n\t\t\t\t\t\ttxt.classList.add('rounded-sm', 'bg-muted', 'px-1', 'outline-solid', 'outline-1', 'outline-border');\n\t\t\t\t\t\tbtn.textContent = 'Save';\n\t\t\t\t\t\ttxt.focus();\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t})();\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

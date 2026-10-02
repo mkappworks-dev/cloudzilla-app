@@ -45,11 +45,11 @@ templ SavedRepliesList(data view.SavedRepliesFragData) {
 					>
 						<div>
 							<label for={ "reply-title-" + strconv.FormatInt(reply.ID, 10) } class="block text-[12px] font-medium text-muted-foreground mb-1.5">Title</label>
-							<input id={ "reply-title-" + strconv.FormatInt(reply.ID, 10) } name="title" type="text" value={ reply.Title } required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+							<input id={ "reply-title-" + strconv.FormatInt(reply.ID, 10) } name="title" type="text" value={ reply.Title } required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 						</div>
 						<div>
 							<label for={ "reply-body-" + strconv.FormatInt(reply.ID, 10) } class="block text-[12px] font-medium text-muted-foreground mb-1.5">Content</label>
-							<textarea id={ "reply-body-" + strconv.FormatInt(reply.ID, 10) } name="body" rows="4" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring">{ reply.Body }</textarea>
+							<textarea id={ "reply-body-" + strconv.FormatInt(reply.ID, 10) } name="body" rows="4" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring">{ reply.Body }</textarea>
 						</div>
 						<div class="flex justify-end gap-2">
 							<button type="button" onclick="this.form.reset(); this.form.classList.add('hidden')" class="h-8 px-3 text-[13px] rounded-md border border-border hover:bg-muted text-foreground">Cancel</button>

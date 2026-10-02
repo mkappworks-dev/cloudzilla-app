@@ -27,7 +27,7 @@ templ TokensList(data view.TokensListFragData) {
 							<td class="py-3 text-muted-foreground">
 								if len(tok.Scopes) > 0 {
 									for _, scope := range tok.Scopes {
-										<span class="inline-block bg-muted text-foreground text-xs px-2 py-0.5 rounded mr-1">{ scope }</span>
+										<span class="inline-block bg-muted text-foreground text-xs px-2 py-0.5 rounded-sm mr-1">{ scope }</span>
 									}
 								} else {
 									<span class="text-muted-foreground">none</span>
@@ -54,7 +54,7 @@ templ TokensList(data view.TokensListFragData) {
 									hx-target="#tokens-list"
 									hx-swap="outerHTML"
 									hx-confirm="Revoke this token?"
-									class="px-3 py-1 text-destructive border border-destructive/40 rounded hover:bg-destructive/10 transition-colors text-xs"
+									class="px-3 py-1 text-destructive border border-destructive/40 rounded-sm hover:bg-destructive/10 transition-colors text-xs"
 								>
 									Revoke
 								</button>

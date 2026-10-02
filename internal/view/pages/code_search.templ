@@ -33,11 +33,11 @@ templ CodeSearch(data view.CodeSearchData) {
 						<div class="flex gap-3 text-sm">
 							<div class="flex items-center gap-1">
 								<label for="repo" class="text-muted-foreground shrink-0">Repo:</label>
-								<input type="text" id="repo" name="repo" value={ data.RepoFilter } placeholder="owner/repo" class="flex h-8 w-40 rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground"/>
+								<input type="text" id="repo" name="repo" value={ data.RepoFilter } placeholder="owner/repo" class="flex h-8 w-40 rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-colors placeholder:text-muted-foreground"/>
 							</div>
 							<div class="flex items-center gap-1">
 								<label for="lang" class="text-muted-foreground shrink-0">Language:</label>
-								<input type="text" id="lang" name="lang" value={ data.Lang } placeholder="go, py, js..." class="flex h-8 w-28 rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground"/>
+								<input type="text" id="lang" name="lang" value={ data.Lang } placeholder="go, py, js..." class="flex h-8 w-28 rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-colors placeholder:text-muted-foreground"/>
 							</div>
 						</div>
 					</form>
@@ -53,7 +53,7 @@ templ CodeSearch(data view.CodeSearchData) {
 									<a href={ templ.SafeURL("/" + res.OwnerName + "/" + res.RepoName + "/blob/HEAD/" + res.FilePath) } class="text-foreground font-medium hover:underline text-sm font-mono">{ res.OwnerName }/{ res.RepoName }/{ res.FilePath }</a>
 									<span class="shrink-0 text-xs text-muted-foreground">{ fmt.Sprintf("%.3f", res.Rank) }</span>
 								</div>
-								<pre class="text-xs text-foreground bg-muted rounded p-2 overflow-x-auto whitespace-pre-wrap">{ res.Snippet }</pre>
+								<pre class="text-xs text-foreground bg-muted rounded-sm p-2 overflow-x-auto whitespace-pre-wrap">{ res.Snippet }</pre>
 							</div>
 						}
 					</div>

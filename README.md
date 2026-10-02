@@ -218,7 +218,7 @@ internal/
     layout/          # Base layout component
     pages/           # Page components
     fragments/       # HTMX fragment components
-tailwind/            # Tailwind CSS config
+tailwind/            # Tailwind CSS v4 entry point: theme tokens, sources
 docs/                # Architecture and feature docs
 ```
 

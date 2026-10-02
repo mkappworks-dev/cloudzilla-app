@@ -23,7 +23,7 @@ templ SSHKeysList(data view.SSHKeysFragData) {
 						hx-delete={ "/api/user/keys/" + strconv.FormatInt(key.ID, 10) }
 						hx-target="#ssh-keys-list"
 						hx-swap="outerHTML"
-						class="ml-4 px-3 py-2 text-destructive border border-destructive/40 rounded hover:bg-destructive/10 transition-colors text-sm"
+						class="ml-4 px-3 py-2 text-destructive border border-destructive/40 rounded-sm hover:bg-destructive/10 transition-colors text-sm"
 					>
 						Delete
 					</button>

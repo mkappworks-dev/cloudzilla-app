@@ -153,7 +153,7 @@ func diffTreeChildren(node *diffTreeNode, depth int) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><button type=\"button\" x-on:click=\"open = !open\" class=\"w-full flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded\" style=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\"><button type=\"button\" x-on:click=\"open = !open\" class=\"w-full flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded-sm\" style=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -205,7 +205,7 @@ func diffTreeChildren(node *diffTreeNode, depth int) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" class=\"flex items-center gap-2 px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded\" style=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\" class=\"flex items-center gap-2 px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-accent rounded-sm\" style=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}

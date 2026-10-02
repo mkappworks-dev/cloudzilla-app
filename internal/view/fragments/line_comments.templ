@@ -46,12 +46,12 @@ templ LineCommentForm(data view.LineCommentFormFragData) {
 		<input type="hidden" name="path" value={ data.Path }/>
 		<input type="hidden" name="line" value={ strconv.Itoa(data.Line) }/>
 		<input type="hidden" name="diff_side" value="right"/>
-		<textarea name="body" rows="2" placeholder="Leave a comment..." required class="w-full border border-border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus-visible:outline-ring resize-none"></textarea>
+		<textarea name="body" rows="2" placeholder="Leave a comment..." required class="w-full border border-border rounded-sm px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus-visible:outline-ring resize-none"></textarea>
 		<div class="flex gap-2">
-			<button type="submit" class="px-3 py-1 bg-primary text-background rounded text-xs font-medium hover:bg-primary">
+			<button type="submit" class="px-3 py-1 bg-primary text-background rounded-sm text-xs font-medium hover:bg-primary">
 				Comment
 			</button>
-			<button type="button" onclick="this.closest('form').remove()" class="px-3 py-1 bg-background border border-border text-muted-foreground rounded text-xs hover:bg-muted/40">
+			<button type="button" onclick="this.closest('form').remove()" class="px-3 py-1 bg-background border border-border text-muted-foreground rounded-sm text-xs hover:bg-muted/40">
 				Cancel
 			</button>
 		</div>

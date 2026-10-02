@@ -87,7 +87,7 @@ func Releases(data view.ReleasesData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				for _, release := range data.Releases {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<article class=\"rounded-md border border-border bg-card overflow-hidden relative hover:bg-muted/20 cursor-pointer transition-[padding-left] duration-150 hover:pl-1.5 before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2px] before:bg-foreground before:rounded-sm before:opacity-0 hover:before:opacity-100 before:transition-opacity\"><div class=\"grid sm:grid-cols-[180px_1fr] gap-0\"><aside class=\"border-b sm:border-b-0 sm:border-r border-border p-5 bg-card\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<article class=\"rounded-md border border-border bg-card overflow-hidden relative hover:bg-muted/20 cursor-pointer transition-[padding-left] duration-150 hover:pl-1.5 before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[2px] before:bg-foreground before:rounded-xs before:opacity-0 hover:before:opacity-100 before:transition-opacity\"><div class=\"grid sm:grid-cols-[180px_1fr] gap-0\"><aside class=\"border-b sm:border-b-0 sm:border-r border-border p-5 bg-card\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -166,14 +166,14 @@ func Releases(data view.ReleasesData) templ.Component {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</a> <code class=\"font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded text-[12px]\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</a> <code class=\"font-mono px-2 py-0.5 bg-muted text-foreground border border-border rounded-sm text-[12px]\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var9 string
 					templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(release.TagName)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/releases.templ`, Line: 56, Col: 129}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/releases.templ`, Line: 56, Col: 132}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 					if templ_7745c5c3_Err != nil {

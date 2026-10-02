@@ -82,7 +82,7 @@ templ Org(data view.OrgData) {
 						</a>
 					</div>
 				</div>
-				<div class="flex-shrink-0 flex items-center gap-2">
+				<div class="shrink-0 flex items-center gap-2">
 					if data.CanManage {
 						@components.LinkButton("/repos/new?owner="+url.QueryEscape(data.Org.Name), components.ButtonDefault, components.ButtonSizeSM, nil) {
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"></path></svg>
@@ -199,7 +199,7 @@ templ Org(data view.OrgData) {
 									}
 								}
 								if data.MemberCount > 12 {
-									<span class="inline-grid place-items-center h-7 w-7 rounded bg-accent border border-border text-[10px] text-muted-foreground">
+									<span class="inline-grid place-items-center h-7 w-7 rounded-sm bg-accent border border-border text-[10px] text-muted-foreground">
 										+{ strconv.Itoa(data.MemberCount - 12) }
 									</span>
 								}

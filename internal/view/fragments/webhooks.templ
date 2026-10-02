@@ -39,25 +39,25 @@ templ WebhooksList(data view.WebhooksFragData) {
 								>
 									<label class="flex items-center gap-2 text-xs text-foreground">
 										if hasEvent(wh.Events, "push") {
-											<input type="checkbox" name="push" value="1" checked class="rounded border-input accent-foreground"/>
+											<input type="checkbox" name="push" value="1" checked class="rounded-sm border-input accent-foreground"/>
 										} else {
-											<input type="checkbox" name="push" value="1" class="rounded border-input accent-foreground"/>
+											<input type="checkbox" name="push" value="1" class="rounded-sm border-input accent-foreground"/>
 										}
 										push
 									</label>
 									<label class="flex items-center gap-2 text-xs text-foreground">
 										if hasEvent(wh.Events, "issues") {
-											<input type="checkbox" name="issues" value="1" checked class="rounded border-input accent-foreground"/>
+											<input type="checkbox" name="issues" value="1" checked class="rounded-sm border-input accent-foreground"/>
 										} else {
-											<input type="checkbox" name="issues" value="1" class="rounded border-input accent-foreground"/>
+											<input type="checkbox" name="issues" value="1" class="rounded-sm border-input accent-foreground"/>
 										}
 										issues
 									</label>
 									<label class="flex items-center gap-2 text-xs text-foreground">
 										if hasEvent(wh.Events, "pull_request") {
-											<input type="checkbox" name="pull_request" value="1" checked class="rounded border-input accent-foreground"/>
+											<input type="checkbox" name="pull_request" value="1" checked class="rounded-sm border-input accent-foreground"/>
 										} else {
-											<input type="checkbox" name="pull_request" value="1" class="rounded border-input accent-foreground"/>
+											<input type="checkbox" name="pull_request" value="1" class="rounded-sm border-input accent-foreground"/>
 										}
 										pull_request
 									</label>

@@ -7,7 +7,7 @@ package components
 templ CommandPalette(id string) {
 	<dialog
 		id={ id }
-		class="command-palette rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[640px] max-w-[calc(100vw-2rem)] backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+		class="command-palette rounded-lg border border-border bg-popover text-popover-foreground p-0 w-[640px] max-w-[calc(100vw-2rem)] backdrop:bg-black/60 backdrop:backdrop-blur-xs"
 		aria-label="Command palette"
 	>
 		<div class="flex items-center gap-2 border-b border-border px-3.5 py-3">
@@ -22,9 +22,9 @@ templ CommandPalette(id string) {
 				autocomplete="off"
 				autocorrect="off"
 				spellcheck="false"
-				class="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+				class="flex-1 bg-transparent text-sm outline-hidden placeholder:text-muted-foreground"
 			/>
-			<kbd class="rounded border border-border px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">ESC</kbd>
+			<kbd class="rounded-sm border border-border px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">ESC</kbd>
 		</div>
 		<div data-command-list class="max-h-[400px] overflow-y-auto p-2">
 			{ children... }
@@ -118,14 +118,14 @@ templ CommandItem(href string, attrs templ.Attributes) {
 		<a
 			href={ templ.SafeURL(href) }
 			data-command-item
-			{ withClass(attrs, "flex items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-none")... }
+			{ withClass(attrs, "flex items-center gap-2.5 rounded-md px-2 py-2 text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-hidden")... }
 		>
 			{ children... }
 		</a>
 	} else {
 		<button
 			data-command-item
-			{ withClass(withDefaults(attrs, templ.Attributes{"type": "button"}), "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-none")... }
+			{ withClass(withDefaults(attrs, templ.Attributes{"type": "button"}), "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground data-[active=true]:bg-accent data-[active=true]:text-accent-foreground focus:outline-hidden")... }
 		>
 			{ children... }
 		</button>

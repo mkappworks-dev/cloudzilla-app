@@ -225,7 +225,7 @@ func User(data view.UserData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if data.IsOwnProfile {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<div class=\"flex-shrink-0 flex items-center gap-2\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<div class=\"shrink-0 flex items-center gap-2\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -282,7 +282,7 @@ func User(data view.UserData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</section><nav aria-label=\"Profile sections\" class=\"flex flex-wrap items-center gap-1 text-sm -mt-2\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</section><nav aria-label=\"Profile sections\" class=\"flex flex-wrap items-center gap-1 text-sm\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -401,20 +401,20 @@ func User(data view.UserData) templ.Component {
 						return templ_7745c5c3_Err
 					}
 					if data.IsOwnProfile && data.HasProfileRepo {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<form x-show=\"editing\" x-cloak method=\"POST\" action=\"/settings/profile-readme\" class=\"p-5 space-y-3\"><textarea name=\"content\" required class=\"w-full min-h-[320px] font-mono text-[13px] bg-card border border-border rounded p-3 focus:outline-none focus:ring-2 focus:ring-ring\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<form x-show=\"editing\" x-cloak method=\"POST\" action=\"/settings/profile-readme\" class=\"p-5 space-y-3\"><textarea name=\"content\" required class=\"w-full min-h-[320px] font-mono text-[13px] bg-card border border-border rounded-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-ring\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var16 string
 						templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(data.ProfileReadmeRaw)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/user.templ`, Line: 120, Col: 207}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/user.templ`, Line: 120, Col: 212}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</textarea> <input type=\"text\" name=\"message\" placeholder=\"Update profile README\" class=\"w-full text-[13px] bg-card border border-border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring\"><div class=\"flex items-center justify-end gap-2\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</textarea> <input type=\"text\" name=\"message\" placeholder=\"Update profile README\" class=\"w-full text-[13px] bg-card border border-border rounded-sm px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-ring\"><div class=\"flex items-center justify-end gap-2\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -1024,7 +1024,7 @@ func userReposTab(data view.UserData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 93, "\" placeholder=\"Filter by name…\" class=\"w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:border-border-strong\"> <svg class=\"absolute left-2.5 top-2.5 text-muted-foreground\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"></circle><path d=\"M21 21l-4.3-4.3\"></path></svg></div><select name=\"type\" onchange=\"this.form.submit()\" class=\"h-9 bg-card border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-border-strong\" aria-label=\"Filter by type\" style=\"width:auto\"><option value=\"\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 93, "\" placeholder=\"Filter by name…\" class=\"w-full h-9 pl-8 pr-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:border-border-strong\"> <svg class=\"absolute left-2.5 top-2.5 text-muted-foreground\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"></circle><path d=\"M21 21l-4.3-4.3\"></path></svg></div><select name=\"type\" onchange=\"this.form.submit()\" class=\"h-9 bg-card border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-border-strong\" aria-label=\"Filter by type\" style=\"width:auto\"><option value=\"\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1064,7 +1064,7 @@ func userReposTab(data view.UserData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, ">Templates</option></select> <select name=\"status\" onchange=\"this.form.submit()\" class=\"h-9 bg-card border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-border-strong\" aria-label=\"Filter by visibility\" style=\"width:auto\"><option value=\"\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, ">Templates</option></select> <select name=\"status\" onchange=\"this.form.submit()\" class=\"h-9 bg-card border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-border-strong\" aria-label=\"Filter by visibility\" style=\"width:auto\"><option value=\"\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

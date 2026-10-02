@@ -1,11 +1,111 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Explicit sources keep the build independent of the working directory and
+   keep docs, vendored JS and Go code out of the scan. */
+@import "tailwindcss" source(none);
+@source "../internal/view/**/*.templ";
+
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+/* `inline` makes utilities read the tokens where they are used, so a `.dark`
+   ancestor switches them. */
+@theme inline {
+  --color-border: hsl(var(--border));
+  --color-border-strong: hsl(var(--border-strong));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --radius-xs: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+}
+
+@theme {
+  --font-sans: Geist, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Absolute line heights, as in v3: v4's unitless ratios would hand a
+     smaller text-[Npx] child a shorter inherited line height. */
+  --text-xs--line-height: 1rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl--line-height: 2.25rem;
+  --text-4xl--line-height: 2.5rem;
+}
+
+/* Inline code renders without Typography's backticks. */
+@utility prose {
+  code::before,
+  code::after {
+    content: none;
+  }
+}
+
+/* v3 preflight defaults that v4 dropped; markup written for v3 relies on them. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Browser defaults v3's preflight kept and v4's universal reset zeroes:
+     modals center through dialog's auto margin. */
+  dialog {
+    margin: auto;
+  }
+
+  th,
+  td {
+    padding: 1px;
+  }
+
+  /* v4's transition utilities also animate outline-color, so without this
+     the focus ring fades in from the text color. */
+  * {
+    outline-color: hsl(var(--ring));
+  }
+}
 
 @layer base {
   /* Light theme (default) — shadcn-style token system.
      All colors are HSL space, written as space-separated H S% L% with optional /A.
-     Consumed via `hsl(var(--name))` in tailwind.config.js. */
+     Consumed via `hsl(var(--name))` in the `@theme inline` block above. */
   :root {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
@@ -236,21 +336,19 @@
 .dark .focus\:ring-blue-500:focus,
 .dark .focus\:ring-indigo-500:focus { box-shadow: 0 0 0 2px hsl(var(--ring)); }
 
-@layer utilities {
-  .grid-bg {
-    background-image:
-      linear-gradient(hsl(var(--border)) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
-    background-size: 56px 56px;
-    mask-image: radial-gradient(ellipse at top, black 30%, transparent 70%);
-  }
-
-  .heatmap-cell-0 { background-color: hsl(var(--muted)); }
-  .heatmap-cell-1 { background-color: hsl(var(--success) / 0.25); }
-  .heatmap-cell-2 { background-color: hsl(var(--success) / 0.50); }
-  .heatmap-cell-3 { background-color: hsl(var(--success) / 0.75); }
-  .heatmap-cell-4 { background-color: hsl(var(--success)); }
+@utility grid-bg {
+  background-image:
+    linear-gradient(hsl(var(--border)) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at top, black 30%, transparent 70%);
 }
+
+@utility heatmap-cell-0 { background-color: hsl(var(--muted)); }
+@utility heatmap-cell-1 { background-color: hsl(var(--success) / 0.25); }
+@utility heatmap-cell-2 { background-color: hsl(var(--success) / 0.50); }
+@utility heatmap-cell-3 { background-color: hsl(var(--success) / 0.75); }
+@utility heatmap-cell-4 { background-color: hsl(var(--success)); }
 
 @media (forced-colors: active) {
   .grid-bg { display: none; }

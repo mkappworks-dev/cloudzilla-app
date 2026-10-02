@@ -14,7 +14,7 @@ templ PullDetail(data view.PullDetailFragData) {
 				<div class="flex items-center gap-2 flex-wrap">
 					<h1 class="text-3xl font-bold">{ data.Pull.Title }</h1>
 					if data.Pull.IsDraft {
-						<span class="px-2 py-0.5 rounded text-sm font-medium bg-warning/10 text-warning">Draft</span>
+						<span class="px-2 py-0.5 rounded-sm text-sm font-medium bg-warning/10 text-warning">Draft</span>
 					}
 				</div>
 				<p class="text-muted-foreground text-sm mt-2">
@@ -34,7 +34,7 @@ templ PullDetail(data view.PullDetailFragData) {
 					hx-vals={ `{"is_draft":"false"}` }
 					hx-target="#pull-detail"
 					hx-swap="outerHTML"
-					class="shrink-0 px-4 py-1.5 bg-success text-background rounded text-sm font-medium hover:bg-success transition-colors"
+					class="shrink-0 px-4 py-1.5 bg-success text-background rounded-sm text-sm font-medium hover:bg-success transition-colors"
 				>
 					Ready for review
 				</button>
@@ -43,25 +43,25 @@ templ PullDetail(data view.PullDetailFragData) {
 		@components.MarkdownBody(data.BodyHTML)
 		if data.Pull.State == "open" {
 			<div class="flex flex-wrap items-center gap-2 mt-2">
-				<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.Repo + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-vals={ `{"state":"closed"}` } hx-target="#pull-detail" hx-swap="outerHTML" class="px-4 py-2 bg-destructive text-background rounded font-medium hover:bg-destructive transition-colors">
+				<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.Repo + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-vals={ `{"state":"closed"}` } hx-target="#pull-detail" hx-swap="outerHTML" class="px-4 py-2 bg-destructive text-background rounded-sm font-medium hover:bg-destructive transition-colors">
 					Close PR
 				</button>
 				if data.AutoMergeEnabled {
 					<span class="px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-foreground">&#10003; Auto-merge enabled ({ data.AutoMergeStrategy })</span>
 					if data.CanWrite {
-						<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.Repo + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-vals={ `{"auto_merge":"disable"}` } hx-target="#pull-detail" hx-swap="outerHTML" class="px-3 py-1 text-sm text-muted-foreground border border-border rounded hover:bg-muted/40 transition-colors">
+						<button hx-patch={ "/api/repos/" + data.Owner + "/" + data.Repo + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-vals={ `{"auto_merge":"disable"}` } hx-target="#pull-detail" hx-swap="outerHTML" class="px-3 py-1 text-sm text-muted-foreground border border-border rounded-sm hover:bg-muted/40 transition-colors">
 							Disable auto-merge
 						</button>
 					}
 				} else if data.CanWrite {
 					<form hx-patch={ "/api/repos/" + data.Owner + "/" + data.Repo + "/pulls/" + strconv.Itoa(data.Pull.Number) } hx-target="#pull-detail" hx-swap="outerHTML" class="flex items-center gap-1">
 						<input type="hidden" name="auto_merge" value="enable"/>
-						<select name="auto_merge_strategy" class="text-sm border border-border rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus-visible:outline-ring">
+						<select name="auto_merge_strategy" class="text-sm border border-border rounded-sm px-2 py-1.5 focus:outline-hidden focus:ring-1 focus-visible:outline-ring">
 							<option value="ff">Fast-forward</option>
 							<option value="merge">Merge commit</option>
 							<option value="squash">Squash</option>
 						</select>
-						<button type="submit" class="px-3 py-1.5 bg-primary text-background rounded text-sm font-medium hover:bg-primary transition-colors">
+						<button type="submit" class="px-3 py-1.5 bg-primary text-background rounded-sm text-sm font-medium hover:bg-primary transition-colors">
 							Enable auto-merge
 						</button>
 					</form>

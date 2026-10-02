@@ -25,7 +25,7 @@ templ IssueDetail(data view.IssueDetailFragData) {
 				hx-vals={ `{"state":"closed"}` }
 				hx-target="#issue-detail"
 				hx-swap="outerHTML"
-				class="px-4 py-2 bg-destructive text-background rounded font-medium hover:bg-destructive transition-colors"
+				class="px-4 py-2 bg-destructive text-background rounded-sm font-medium hover:bg-destructive transition-colors"
 			>
 				Close Issue
 			</button>
@@ -35,7 +35,7 @@ templ IssueDetail(data view.IssueDetailFragData) {
 				hx-vals={ `{"state":"open"}` }
 				hx-target="#issue-detail"
 				hx-swap="outerHTML"
-				class="px-4 py-2 bg-success text-background rounded font-medium hover:bg-success transition-colors"
+				class="px-4 py-2 bg-success text-background rounded-sm font-medium hover:bg-success transition-colors"
 			>
 				Re-open Issue
 			</button>

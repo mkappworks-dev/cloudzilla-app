@@ -60,7 +60,7 @@ templ AccountRepos(data view.AccountReposData) {
 					<ol class="divide-y divide-border">
 						for _, repo := range data.Repos {
 							<li data-name={ strings.ToLower(repo.OwnerName + "/" + repo.Name) } x-show="!q || $el.dataset.name.includes(q.toLowerCase())">
-								<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="group relative block py-3 pr-4 pl-4 hover:pl-[18px] transition-[padding] duration-[120ms] hover:bg-muted before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-sm before:bg-foreground before:opacity-0 before:transition-opacity before:duration-[120ms] hover:before:opacity-100">
+								<a href={ templ.SafeURL("/" + repo.OwnerName + "/" + repo.Name) } class="group relative block py-3 pr-4 pl-4 hover:pl-[18px] transition-[padding] duration-[120ms] hover:bg-muted before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-xs before:bg-foreground before:opacity-0 before:transition-opacity before:duration-[120ms] hover:before:opacity-100">
 									<div class="flex items-start gap-3 mb-1.5">
 										<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="shrink-0 mt-0.5 text-muted-foreground" aria-hidden="true" focusable="false">
 											<path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"></path>

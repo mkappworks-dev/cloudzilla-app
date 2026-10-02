@@ -61,7 +61,7 @@ func GistFileRow(index int) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" class=\"font-mono text-[13px] flex-1 bg-transparent focus:outline-none placeholder:text-muted-foreground\" type=\"text\" name=\"filename[]\" placeholder=\"filename.ext\" required></header>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "\" class=\"font-mono text-[13px] flex-1 bg-transparent focus:outline-hidden placeholder:text-muted-foreground\" type=\"text\" name=\"filename[]\" placeholder=\"filename.ext\" required></header>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

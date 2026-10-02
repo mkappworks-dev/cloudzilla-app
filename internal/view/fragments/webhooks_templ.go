@@ -126,12 +126,12 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				if hasEvent(wh.Events, "push") {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<input type=\"checkbox\" name=\"push\" value=\"1\" checked class=\"rounded border-input accent-foreground\"> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<input type=\"checkbox\" name=\"push\" value=\"1\" checked class=\"rounded-sm border-input accent-foreground\"> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<input type=\"checkbox\" name=\"push\" value=\"1\" class=\"rounded border-input accent-foreground\"> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<input type=\"checkbox\" name=\"push\" value=\"1\" class=\"rounded-sm border-input accent-foreground\"> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -141,12 +141,12 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				if hasEvent(wh.Events, "issues") {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<input type=\"checkbox\" name=\"issues\" value=\"1\" checked class=\"rounded border-input accent-foreground\"> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<input type=\"checkbox\" name=\"issues\" value=\"1\" checked class=\"rounded-sm border-input accent-foreground\"> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<input type=\"checkbox\" name=\"issues\" value=\"1\" class=\"rounded border-input accent-foreground\"> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<input type=\"checkbox\" name=\"issues\" value=\"1\" class=\"rounded-sm border-input accent-foreground\"> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -156,12 +156,12 @@ func WebhooksList(data view.WebhooksFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				if hasEvent(wh.Events, "pull_request") {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<input type=\"checkbox\" name=\"pull_request\" value=\"1\" checked class=\"rounded border-input accent-foreground\"> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<input type=\"checkbox\" name=\"pull_request\" value=\"1\" checked class=\"rounded-sm border-input accent-foreground\"> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<input type=\"checkbox\" name=\"pull_request\" value=\"1\" class=\"rounded border-input accent-foreground\"> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<input type=\"checkbox\" name=\"pull_request\" value=\"1\" class=\"rounded-sm border-input accent-foreground\"> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

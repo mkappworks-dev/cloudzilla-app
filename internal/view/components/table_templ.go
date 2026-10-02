@@ -151,7 +151,7 @@ func TableFooter() templ.Component {
 			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<tfoot class=\"border-t border-border bg-muted/50 font-medium [&>tr]:last:border-b-0\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<tfoot class=\"border-t border-border bg-muted/50 font-medium last:[&>tr]:border-b-0\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

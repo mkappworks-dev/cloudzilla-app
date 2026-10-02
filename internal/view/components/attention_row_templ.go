@@ -53,7 +53,7 @@ func AttentionRow(item service.AttentionItem) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var3 = []any{"flex-shrink-0 h-4 w-4 rounded-full grid place-items-center", attentionRowColorClass(item.Kind)}
+		var templ_7745c5c3_Var3 = []any{"shrink-0 h-4 w-4 rounded-full grid place-items-center", attentionRowColorClass(item.Kind)}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var3...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err

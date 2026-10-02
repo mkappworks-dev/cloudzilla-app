@@ -68,12 +68,12 @@ func AdminSettings(data view.AdminSettingsFragData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				if setting.Value == "true" {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"text-xs text-success font-medium\">Enabled</span> <input type=\"hidden\" name=\"value\" value=\"false\"> <button type=\"submit\" class=\"text-xs px-3 py-1 bg-muted text-foreground rounded hover:bg-muted\">Disable</button>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"text-xs text-success font-medium\">Enabled</span> <input type=\"hidden\" name=\"value\" value=\"false\"> <button type=\"submit\" class=\"text-xs px-3 py-1 bg-muted text-foreground rounded-sm hover:bg-muted\">Disable</button>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<span class=\"text-xs text-muted-foreground font-medium\">Disabled</span> <input type=\"hidden\" name=\"value\" value=\"true\"> <button type=\"submit\" class=\"text-xs px-3 py-1 bg-primary text-background rounded hover:bg-primary\">Enable</button>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<span class=\"text-xs text-muted-foreground font-medium\">Disabled</span> <input type=\"hidden\" name=\"value\" value=\"true\"> <button type=\"submit\" class=\"text-xs px-3 py-1 bg-primary text-background rounded-sm hover:bg-primary\">Enable</button>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

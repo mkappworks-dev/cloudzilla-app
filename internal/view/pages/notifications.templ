@@ -94,33 +94,33 @@ templ notifTypeIcon(t model.NotificationType) {
 
 templ notifIconClass(t model.NotificationType, read bool) {
 	if read {
-		<span class="flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border opacity-65">
+		<span class="shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border opacity-65">
 			@notifTypeIcon(t)
 		</span>
 	} else {
 		switch t {
 		case model.NotifPRReview:
-			<span class="flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-primary">
+			<span class="shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-primary">
 				@notifTypeIcon(t)
 			</span>
 		case model.NotifMention:
-			<span class="flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-warning">
+			<span class="shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-warning">
 				@notifTypeIcon(t)
 			</span>
 		case model.NotifPRMerged:
-			<span class="flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-[hsl(270_70%_70%)]">
+			<span class="shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-[hsl(270_70%_70%)]">
 				@notifTypeIcon(t)
 			</span>
 		case model.NotifDiscussionReply, model.NotifRepoTransfer:
-			<span class="flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-primary">
+			<span class="shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-primary">
 				@notifTypeIcon(t)
 			</span>
 		case model.NotifIssueClosed:
-			<span class="flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-destructive">
+			<span class="shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-destructive">
 				@notifTypeIcon(t)
 			</span>
 		default:
-			<span class="flex-shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-muted-foreground">
+			<span class="shrink-0 w-7 h-7 rounded-[6px] grid place-items-center bg-accent border border-border text-muted-foreground">
 				@notifTypeIcon(t)
 			</span>
 		}
@@ -177,9 +177,9 @@ templ Notifications(data view.NotificationsData) {
 								<div class={ "flex items-start gap-3 px-4 py-3 hover:bg-accent transition-colors", templ.KV("bg-primary/[0.03]", !n.Read) }>
 									<!-- Unread dot -->
 									if !n.Read {
-										<span class="flex-shrink-0 w-[7px] h-[7px] rounded-full bg-primary mt-[9px]" aria-label="Unread"></span>
+										<span class="shrink-0 w-[7px] h-[7px] rounded-full bg-primary mt-[9px]" aria-label="Unread"></span>
 									} else {
-										<span class="flex-shrink-0 w-[7px] h-[7px] rounded-full border border-border mt-[9px]" aria-hidden="true"></span>
+										<span class="shrink-0 w-[7px] h-[7px] rounded-full border border-border mt-[9px]" aria-hidden="true"></span>
 									}
 
 									<!-- Type icon -->

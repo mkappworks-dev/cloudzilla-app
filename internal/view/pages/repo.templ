@@ -19,7 +19,7 @@ templ Repo(data view.RepoData) {
 
 			if data.IsArchived {
 				<div role="status" class="flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
-					<svg class="h-4 w-4 flex-shrink-0 text-warning" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+					<svg class="h-4 w-4 shrink-0 text-warning" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
 						<path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
 					</svg>
 					<span class="text-warning">This repository has been archived and is read-only.</span>
@@ -33,7 +33,7 @@ templ Repo(data view.RepoData) {
 						<a href={ templ.SafeURL("/" + data.Owner) } class="text-muted-foreground hover:underline">{ data.Owner }</a>
 						<span class="text-muted-foreground" aria-hidden="true">/</span>
 						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName) } class="font-semibold hover:underline">{ data.RepoName }</a>
-						<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground">
+						<span class="inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">
 							if data.Repo.Private {
 								Private
 							} else {
@@ -58,7 +58,7 @@ templ Repo(data view.RepoData) {
 				</div>
 
 				<!-- Action group: Watch / Star / Fork (each: button + count) -->
-				<div class="flex items-center gap-1.5 flex-shrink-0" role="group" aria-label="Repository actions">
+				<div class="flex items-center gap-1.5 shrink-0" role="group" aria-label="Repository actions">
 					<div
 						id="watch-button"
 						hx-get={ "/api/repos/" + data.Owner + "/" + data.RepoName + "/watch" }
@@ -117,7 +117,7 @@ templ Repo(data view.RepoData) {
 
 				<!-- LEFT — Code / README. x-data scope drives the "Go to file" filter. -->
 				<div
-					class="space-y-6 min-w-0"
+					class="flex flex-col gap-6 min-w-0"
 					x-data={ "{ q: '', files: " + fileListJSON(data.AllFiles) + " }" }
 					x-on:keydown.t.window="if(!/^(INPUT|TEXTAREA|SELECT)$/.test($event.target.tagName) && !$event.target.isContentEditable){ $event.preventDefault(); $refs.finder.focus() }"
 				>
@@ -147,7 +147,7 @@ templ Repo(data view.RepoData) {
 							>
 								<div class="px-1.5 pb-1.5">
 									<label for="branch-filter" class="sr-only">Find a branch or tag</label>
-									<input id="branch-filter" type="search" x-model="bq" placeholder="Find a branch or tag…" class="w-full h-7 px-2.5 text-[12px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"/>
+									<input id="branch-filter" type="search" x-model="bq" placeholder="Find a branch or tag…" class="w-full h-7 px-2.5 text-[12px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
 								</div>
 								if len(data.Branches) > 0 {
 									<p class="px-2.5 pt-1 pb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Branches</p>
@@ -157,7 +157,7 @@ templ Repo(data view.RepoData) {
 											role="menuitem"
 											data-ref={ strings.ToLower(b.Name) }
 											x-show="!bq || $el.dataset.ref.includes(bq.toLowerCase())"
-											class={ "flex items-center gap-2 px-2.5 py-1.5 rounded-sm hover:bg-accent", templ.KV("bg-accent", b.IsDefault) }
+											class={ "flex items-center gap-2 px-2.5 py-1.5 rounded-xs hover:bg-accent", templ.KV("bg-accent", b.IsDefault) }
 										>
 											<span class="flex-1 font-mono text-[12px] truncate">{ b.Name }</span>
 											if b.IsDefault {
@@ -174,14 +174,14 @@ templ Repo(data view.RepoData) {
 											role="menuitem"
 											data-ref={ strings.ToLower(t.Name) }
 											x-show="!bq || $el.dataset.ref.includes(bq.toLowerCase())"
-											class="flex items-center gap-2 px-2.5 py-1.5 rounded-sm hover:bg-accent"
+											class="flex items-center gap-2 px-2.5 py-1.5 rounded-xs hover:bg-accent"
 										>
 											<span class="flex-1 font-mono text-[12px] truncate">{ t.Name }</span>
 										</a>
 									}
 								}
 								<div role="separator" class="my-1 h-px bg-border"></div>
-								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/refs") } role="menuitem" class="flex items-center gap-2 px-2.5 py-1.5 rounded-sm text-[13px] hover:bg-accent">View all branches</a>
+								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/refs") } role="menuitem" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xs text-[13px] hover:bg-accent">View all branches</a>
 							</div>
 						</div>
 						<span class="text-[11px] text-muted-foreground">
@@ -199,9 +199,9 @@ templ Repo(data view.RepoData) {
 									x-model="q"
 									type="search"
 									placeholder="Go to file"
-									class="w-48 h-8 pl-3 pr-9 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+									class="w-48 h-8 pl-3 pr-9 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"
 								/>
-								<kbd class="font-mono absolute right-2 top-1.5 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground" aria-hidden="true">T</kbd>
+								<kbd class="font-mono absolute right-2 top-1.5 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground" aria-hidden="true">T</kbd>
 							</div>
 
 							if data.CanWrite && !data.IsArchived {
@@ -226,11 +226,11 @@ templ Repo(data view.RepoData) {
 										aria-label="Add file"
 										class="absolute right-0 top-full mt-1.5 z-50 min-w-[12rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1 text-sm"
 									>
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/new/" + data.Repo.DefaultBranch) } role="menuitem" class="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent">
+										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/new/" + data.Repo.DefaultBranch) } role="menuitem" class="flex items-center gap-2 px-2 py-1.5 rounded-xs hover:bg-accent">
 											<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
 											Create new file
 										</a>
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/new/" + data.Repo.DefaultBranch + "#upload") } role="menuitem" class="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent">
+										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/new/" + data.Repo.DefaultBranch + "#upload") } role="menuitem" class="flex items-center gap-2 px-2 py-1.5 rounded-xs hover:bg-accent">
 											<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
 											Upload files
 										</a>
@@ -264,16 +264,16 @@ templ Repo(data view.RepoData) {
 									class="absolute right-0 top-full mt-1.5 z-50 w-[340px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3"
 								>
 									<div class="flex items-center gap-0.5 mb-2.5 p-0.5 bg-muted border border-border rounded-md" role="tablist" aria-label="Clone protocol">
-										<button type="button" role="tab" x-on:click="proto = 'https'" :aria-selected="proto === 'https'" :class="proto === 'https' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'" class="flex-1 px-2.5 py-1 rounded text-[12px]">HTTPS</button>
-										<button type="button" role="tab" x-on:click="proto = 'ssh'" :aria-selected="proto === 'ssh'" :class="proto === 'ssh' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'" class="flex-1 px-2.5 py-1 rounded text-[12px]">SSH</button>
+										<button type="button" role="tab" x-on:click="proto = 'https'" :aria-selected="proto === 'https'" :class="proto === 'https' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'" class="flex-1 px-2.5 py-1 rounded-sm text-[12px]">HTTPS</button>
+										<button type="button" role="tab" x-on:click="proto = 'ssh'" :aria-selected="proto === 'ssh'" :class="proto === 'ssh' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'" class="flex-1 px-2.5 py-1 rounded-sm text-[12px]">SSH</button>
 									</div>
 									<label for="clone-url" class="sr-only">Clone URL</label>
 									<div class="flex items-center gap-1.5">
-										<input id="clone-url" type="text" readonly :value="proto === 'https' ? urls.https : urls.ssh" class="flex-1 min-w-0 h-8 px-2.5 text-[12px] font-mono bg-card border border-border rounded-md text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"/>
+										<input id="clone-url" type="text" readonly :value="proto === 'https' ? urls.https : urls.ssh" class="flex-1 min-w-0 h-8 px-2.5 text-[12px] font-mono bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
 										<button
 											type="button"
 											x-on:click="navigator.clipboard.writeText(proto === 'https' ? urls.https : urls.ssh); copied = true; setTimeout(() => copied = false, 1500)"
-											class="h-8 w-8 grid place-items-center border border-border rounded-md hover:bg-accent flex-shrink-0"
+											class="h-8 w-8 grid place-items-center border border-border rounded-md hover:bg-accent shrink-0"
 											:class="copied ? 'text-success' : ''"
 											aria-label="Copy clone URL"
 										>
@@ -283,7 +283,7 @@ templ Repo(data view.RepoData) {
 									</div>
 									<p class="text-[11px] text-muted-foreground mt-2">Clone with Git over HTTPS or SSH.</p>
 									<div role="separator" class="my-2 h-px bg-border"></div>
-									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/archive/" + data.Repo.DefaultBranch + ".zip") } class="flex items-center gap-2 px-2 py-1.5 rounded-sm text-[13px] hover:bg-accent">
+									<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/archive/" + data.Repo.DefaultBranch + ".zip") } class="flex items-center gap-2 px-2 py-1.5 rounded-xs text-[13px] hover:bg-accent">
 										<svg class="text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
 										Download ZIP
 									</a>
@@ -301,12 +301,12 @@ templ Repo(data view.RepoData) {
 									@components.Avatar(data.LatestCommit.Author, components.AvatarSizeXS, "")
 									<a href={ templ.SafeURL(data.LatestCommit.AuthorURL) } class="font-medium hover:underline truncate">{ data.LatestCommit.Author }</a>
 									<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="text-muted-foreground hover:underline truncate flex-1 min-w-0">{ data.LatestCommit.Message }</a>
-									<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="font-mono text-muted-foreground hover:underline flex-shrink-0">{ data.LatestCommit.SHA }</a>
-									<span class="text-muted-foreground flex-shrink-0">
+									<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="font-mono text-muted-foreground hover:underline shrink-0">{ data.LatestCommit.SHA }</a>
+									<span class="text-muted-foreground shrink-0">
 										<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ data.LatestCommit.Timestamp.Format(time.RFC822) }</time>
 									</span>
 									if data.CommitCount > 0 {
-										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commits/" + data.Repo.DefaultBranch) } class="font-mono text-[12px] text-muted-foreground hover:underline flex-shrink-0">{ strconv.Itoa(data.CommitCount) } commits</a>
+										<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commits/" + data.Repo.DefaultBranch) } class="font-mono text-[12px] text-muted-foreground hover:underline shrink-0">{ strconv.Itoa(data.CommitCount) } commits</a>
 									}
 								</div>
 							}
@@ -374,7 +374,7 @@ templ Repo(data view.RepoData) {
 								x-show="$el.dataset.path.includes(q.toLowerCase())"
 								class="flex items-center gap-2 px-4 py-1.5 text-[13px] border-b border-border last:border-b-0 hover:bg-muted/40"
 							>
-								<svg class="text-muted-foreground flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+								<svg class="text-muted-foreground shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
 								<span class="font-mono truncate">{ f }</span>
 							</a>
 						}
@@ -423,21 +423,21 @@ templ Repo(data view.RepoData) {
 							if data.Repo.Website != "" {
 								<div class="flex items-center gap-2">
 									<dt class="sr-only">Website</dt>
-									<svg class="text-muted-foreground flex-shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"></path></svg>
+									<svg class="text-muted-foreground shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"></path></svg>
 									<dd><a href={ templ.SafeURL(websiteHref(data.Repo.Website)) } rel="noopener noreferrer" class="text-primary hover:underline">{ websiteLabel(data.Repo.Website) }</a></dd>
 								</div>
 							}
 							if data.Repo.License != "" {
 								<div class="flex items-center gap-2">
 									<dt class="sr-only">License</dt>
-									<svg class="text-muted-foreground flex-shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1"></rect></svg>
+									<svg class="text-muted-foreground shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1"></rect></svg>
 									<dd class="text-muted-foreground">{ data.Repo.License } license</dd>
 								</div>
 							}
 							if data.LatestCommit.SHA != "" {
 								<div class="flex items-center gap-2">
 									<dt class="sr-only">Activity</dt>
-									<svg class="text-muted-foreground flex-shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+									<svg class="text-muted-foreground shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
 									<dd class="text-muted-foreground">
 										Last commit
 										<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ formatRelative(data.LatestCommit.Timestamp) }</time>
@@ -563,16 +563,16 @@ templ Repo(data view.RepoData) {
 						<h2 id="insights-heading" class="text-[13px] font-medium mb-3">Insights</h2>
 						<ul class="rounded-md border border-border bg-card overflow-hidden text-[12px]">
 							@insightRow("/"+data.Owner+"/"+data.RepoName+"/commits/"+data.Repo.DefaultBranch, "Commits", strconv.Itoa(data.CommitCount)) {
-								<svg class="text-muted-foreground flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"></circle><line x1="2" y1="12" x2="8" y2="12"></line><line x1="16" y1="12" x2="22" y2="12"></line></svg>
+								<svg class="text-muted-foreground shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"></circle><line x1="2" y1="12" x2="8" y2="12"></line><line x1="16" y1="12" x2="22" y2="12"></line></svg>
 							}
 							@insightRow("/"+data.Owner+"/"+data.RepoName+"/pulse", "Pulse", "") {
-								<svg class="text-muted-foreground flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+								<svg class="text-muted-foreground shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
 							}
 							@insightRow("/"+data.Owner+"/"+data.RepoName+"/graphs/contributors", "Contributors", strconv.Itoa(len(data.TopContribs))) {
-								<svg class="text-muted-foreground flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 00-3-3.87"></path><path d="M16 3.13a4 4 0 010 7.75"></path></svg>
+								<svg class="text-muted-foreground shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 00-3-3.87"></path><path d="M16 3.13a4 4 0 010 7.75"></path></svg>
 							}
 							@insightRow("/"+data.Owner+"/"+data.RepoName+"/network/dependencies", "Dependencies", "") {
-								<svg class="text-muted-foreground flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+								<svg class="text-muted-foreground shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
 							}
 						</ul>
 					</section>
@@ -595,15 +595,15 @@ templ Repo(data view.RepoData) {
 						<div class="space-y-4">
 							<div>
 								<label for="edit-desc" class="block text-[12px] font-medium mb-1.5">Description</label>
-								<textarea id="edit-desc" name="description" rows="3" class="w-full px-3 py-2 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none">{ data.Repo.Description }</textarea>
+								<textarea id="edit-desc" name="description" rows="3" class="w-full px-3 py-2 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring resize-none">{ data.Repo.Description }</textarea>
 							</div>
 							<div>
 								<label for="edit-site" class="block text-[12px] font-medium mb-1.5">Website</label>
-								<input id="edit-site" name="website" type="text" value={ data.Repo.Website } placeholder="https://example.com" class="w-full h-9 px-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"/>
+								<input id="edit-site" name="website" type="text" value={ data.Repo.Website } placeholder="https://example.com" class="w-full h-9 px-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
 							</div>
 							<div>
 								<label for="edit-license" class="block text-[12px] font-medium mb-1.5">License</label>
-								<input id="edit-license" name="license" type="text" value={ data.Repo.License } placeholder="MIT, Apache-2.0, BSL 1.1…" class="w-full h-9 px-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"/>
+								<input id="edit-license" name="license" type="text" value={ data.Repo.License } placeholder="MIT, Apache-2.0, BSL 1.1…" class="w-full h-9 px-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
 							</div>
 						</div>
 					}
@@ -629,13 +629,13 @@ templ releaseCard(data view.RepoData, rel model.Release) {
 				}
 			</span>
 			if !rel.IsDraft && !rel.IsPrerelease {
-				<span class="text-[10px] px-1.5 py-0.5 rounded border border-success/30 bg-success/10 text-success font-mono">Latest</span>
+				<span class="text-[10px] px-1.5 py-0.5 rounded-sm border border-success/30 bg-success/10 text-success font-mono">Latest</span>
 			}
 			if rel.IsPrerelease {
-				<span class="text-[10px] px-1.5 py-0.5 rounded border border-warning/30 bg-warning/10 text-warning font-mono">Pre-release</span>
+				<span class="text-[10px] px-1.5 py-0.5 rounded-sm border border-warning/30 bg-warning/10 text-warning font-mono">Pre-release</span>
 			}
 			if rel.IsDraft {
-				<span class="text-[10px] px-1.5 py-0.5 rounded border border-border bg-muted text-muted-foreground font-mono">Draft</span>
+				<span class="text-[10px] px-1.5 py-0.5 rounded-sm border border-border bg-muted text-muted-foreground font-mono">Draft</span>
 			}
 		</p>
 		<p class="text-[12px] text-muted-foreground mt-0.5 font-mono">{ rel.TagName }</p>
@@ -654,9 +654,9 @@ templ insightRow(href, label, count string) {
 			<span>{ label }</span>
 			if count != "" && count != "0" {
 				<span class="font-mono text-muted-foreground/70 ml-auto">{ count }</span>
-				<svg class="text-muted-foreground/70 flex-shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M9 18l6-6-6-6"></path></svg>
+				<svg class="text-muted-foreground/70 shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M9 18l6-6-6-6"></path></svg>
 			} else {
-				<svg class="text-muted-foreground/70 flex-shrink-0 ml-auto" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M9 18l6-6-6-6"></path></svg>
+				<svg class="text-muted-foreground/70 shrink-0 ml-auto" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M9 18l6-6-6-6"></path></svg>
 			}
 		</a>
 	</li>

@@ -4,7 +4,7 @@ package components
 templ Checkbox(attrs templ.Attributes) {
 	<input
 		type="checkbox"
-		{ withClass(attrs, "h-4 w-4 shrink-0 rounded border border-input bg-transparent accent-ring checked:bg-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50")... }
+		{ withClass(attrs, "h-4 w-4 shrink-0 rounded-sm border border-input bg-transparent accent-ring checked:bg-ring checked:border-ring disabled:cursor-not-allowed disabled:opacity-50")... }
 	/>
 }
 
@@ -18,7 +18,7 @@ templ Switch(attrs templ.Attributes) {
 		/>
 		<span
 			aria-hidden="true"
-			class="relative w-9 h-5 bg-input rounded-full transition-colors peer-checked:bg-primary peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-ring peer-focus-visible:outline-offset-2 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed after:absolute after:content-[''] after:top-0.5 after:left-0.5 after:bg-background after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-4"
+			class="relative w-9 h-5 bg-input rounded-full transition-colors peer-checked:bg-primary peer-focus-visible:outline-solid peer-focus-visible:outline-2 peer-focus-visible:outline-ring peer-focus-visible:outline-offset-2 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed after:absolute after:content-[''] after:top-0.5 after:left-0.5 after:bg-background after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-4"
 		></span>
 	</span>
 }

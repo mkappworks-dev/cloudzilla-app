@@ -93,7 +93,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 
 							<div>
 								<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-description">Description</label>
-								<textarea id="org-description" name="description" rows="3" class="w-full bg-background border border-input rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring">{ data.Org.Description }</textarea>
+								<textarea id="org-description" name="description" rows="3" class="w-full bg-background border border-input rounded-md px-3 py-2 text-sm shadow-xs focus:outline-hidden focus:ring-2 focus:ring-ring">{ data.Org.Description }</textarea>
 							</div>
 
 							<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -176,7 +176,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 									type="search"
 									placeholder="Filter by name or @handle…"
 									data-org-member-filter-input
-									class="w-full bg-background border border-border rounded-md pl-8 pr-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"
+									class="w-full bg-background border border-border rounded-md pl-8 pr-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"
 								/>
 								<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
 							</div>
@@ -184,7 +184,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 							<select
 								id="org-member-filter-role"
 								data-org-member-filter-role
-								class="flex h-9 w-40 rounded-md border border-border bg-background px-3 text-[13px] shadow-sm"
+								class="flex h-9 w-40 rounded-md border border-border bg-background px-3 text-[13px] shadow-xs"
 							>
 								<option value="">All roles</option>
 								<option value="owner">Owners</option>
@@ -254,7 +254,7 @@ templ OrgSettings(data view.OrgSettingsData) {
 						<form method="POST" action={ templ.SafeURL("/api/orgs/" + data.Org.Name + "/repo-defaults") } class="space-y-5" data-toast="Repository defaults saved">
 							<div>
 								<label class="block text-[12px] font-medium text-muted-foreground mb-1.5" for="org-default-visibility">Default visibility</label>
-								<select id="org-default-visibility" name="default_repo_visibility" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+								<select id="org-default-visibility" name="default_repo_visibility" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs">
 									<option value="private" selected?={ data.Org.DefaultRepoVisibility != "public" }>Private</option>
 									<option value="public" selected?={ data.Org.DefaultRepoVisibility == "public" }>Public</option>
 								</select>
@@ -425,7 +425,7 @@ templ orgInviteMemberDialog(orgName string, confirm components.ConfirmFactors) {
 				}
 			}
 			@components.DialogBody() {
-				<div class="space-y-4">
+				<div class="flex flex-col gap-4">
 					<div id="invite-member-form-error"></div>
 					<div>
 						<label for="invite-username" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Username</label>
@@ -436,7 +436,7 @@ templ orgInviteMemberDialog(orgName string, confirm components.ConfirmFactors) {
 							required
 							autocomplete="off"
 							placeholder="@handle"
-							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"
+							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
 						/>
 					</div>
 					<div>
@@ -445,7 +445,7 @@ templ orgInviteMemberDialog(orgName string, confirm components.ConfirmFactors) {
 							id="invite-role"
 							name="role"
 							x-model="role"
-							class="w-full h-9 rounded-md border border-input bg-background px-3 text-[13px] shadow-sm"
+							class="w-full h-9 rounded-md border border-input bg-background px-3 text-[13px] shadow-xs"
 						>
 							<option value="member" selected>Member</option>
 							<option value="owner">Owner</option>
@@ -495,7 +495,7 @@ templ orgTransferDialog(orgName string, confirm components.ConfirmFactors) {
 							required
 							autocomplete="off"
 							placeholder="@handle"
-							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"
+							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
 						/>
 					</div>
 					<div>
@@ -509,7 +509,7 @@ templ orgTransferDialog(orgName string, confirm components.ConfirmFactors) {
 							required
 							pattern={ orgName }
 							autocomplete="off"
-							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"
+							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
 						/>
 					</div>
 					@components.ConfirmFields("transfer-org", confirm, true)
@@ -558,7 +558,7 @@ templ orgDeleteDialog(orgName string, memberCount int, confirm components.Confir
 							required
 							pattern={ orgName }
 							autocomplete="off"
-							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"
+							class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"
 						/>
 					</div>
 					<label class="flex items-start gap-2 text-[12.5px] text-muted-foreground">

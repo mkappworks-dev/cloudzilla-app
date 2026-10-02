@@ -69,7 +69,7 @@ func MilestoneTitleSection(owner, repoName string, number int, title string, can
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" required autofocus aria-label=\"Milestone title\" class=\"flex-1 min-w-0 h-9 px-3 rounded-md border border-input bg-background text-lg font-medium focus:outline-none focus:ring-2 focus:ring-ring\"> <button type=\"submit\" class=\"h-9 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 shrink-0\">Save</button> <button type=\"button\" hx-get=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" required autofocus aria-label=\"Milestone title\" class=\"flex-1 min-w-0 h-9 px-3 rounded-md border border-input bg-background text-lg font-medium focus:outline-hidden focus:ring-2 focus:ring-ring\"> <button type=\"submit\" class=\"h-9 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 shrink-0\">Save</button> <button type=\"button\" hx-get=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -341,7 +341,7 @@ func MilestoneDueSection(owner, repoName string, number int, due *time.Time, can
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "\" class=\"w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring\"><div class=\"flex justify-end gap-2\"><button type=\"button\" hx-get=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "\" class=\"w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-ring\"><div class=\"flex justify-end gap-2\"><button type=\"button\" hx-get=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

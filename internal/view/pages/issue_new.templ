@@ -67,7 +67,7 @@ templ IssueNew(data view.IssueNewData) {
 								<div class="rounded-md border border-border bg-card overflow-hidden">
 									@components.MarkdownEditor("body", "body", data.Selected, "Describe the issue. Markdown supported.", 12)
 								</div>
-								<p class="text-[11px] text-muted-foreground">Markdown is supported. <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded">{ "@" }</kbd> mentions notify users; <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded">#</kbd> links issues/PRs.</p>
+								<p class="text-[11px] text-muted-foreground">Markdown is supported. <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded-sm">{ "@" }</kbd> mentions notify users; <kbd class="font-mono text-[10px] px-1 py-0.5 bg-muted border border-border rounded-sm">#</kbd> links issues/PRs.</p>
 							</div>
 
 							if data.CanWrite {
@@ -195,6 +195,9 @@ templ issueNewMenuLink(href string) {
 
 templ issueNewAssignees(data view.IssueNewData) {
 	<div class="space-y-2">
+		for _, c := range data.Collaborators {
+			<input type="hidden" name="assignees" value={ c } form="issue-new-form" :disabled={ "!assignees.includes(" + components.JSLiteral(c) + ")" }/>
+		}
 		if len(data.Collaborators) > 0 {
 			@issueNewPicker("assignees", "Assignees", "Assign people", "Edit assignees", false) {
 				for _, c := range data.Collaborators {
@@ -230,14 +233,15 @@ templ issueNewAssignees(data view.IssueNewData) {
 			}
 			<span x-show="assignees.length === 0" class="text-xs text-muted-foreground">No one assigned</span>
 		</div>
-		for _, c := range data.Collaborators {
-			<input type="hidden" name="assignees" value={ c } form="issue-new-form" :disabled={ "!assignees.includes(" + components.JSLiteral(c) + ")" }/>
-		}
 	</div>
 }
 
 templ issueNewLabels(data view.IssueNewData) {
 	<div class="space-y-2">
+		for _, lbl := range data.Labels {
+			{{ id := strconv.FormatInt(lbl.ID, 10) }}
+			<input type="hidden" name="labels" value={ id } form="issue-new-form" :disabled={ "!labels.includes(" + components.JSLiteral(id) + ")" }/>
+		}
 		if len(data.Labels) > 0 {
 			@issueNewPicker("labels", "Labels", "Apply labels", "Edit labels", false) {
 				for _, lbl := range data.Labels {
@@ -279,15 +283,12 @@ templ issueNewLabels(data view.IssueNewData) {
 			}
 			<span x-show="labels.length === 0" class="text-xs text-muted-foreground">None yet</span>
 		</div>
-		for _, lbl := range data.Labels {
-			{{ id := strconv.FormatInt(lbl.ID, 10) }}
-			<input type="hidden" name="labels" value={ id } form="issue-new-form" :disabled={ "!labels.includes(" + components.JSLiteral(id) + ")" }/>
-		}
 	</div>
 }
 
 templ issueNewPriority() {
 	<div class="space-y-2">
+		<input type="hidden" name="priority" form="issue-new-form" :value="priority"/>
 		@issueNewPicker("priority", "Priority", "Set priority", "Set priority", false) {
 			@issueNewPriorityItem("P0", "P0 · Critical", "bg-destructive")
 			@issueNewPriorityItem("P1", "P1 · High", "bg-blue-500")
@@ -311,7 +312,6 @@ templ issueNewPriority() {
 			@issueNewPriorityBadge("P3", "bg-muted text-muted-foreground border-border")
 			<span x-show="priority === ''" class="text-xs text-muted-foreground">No priority</span>
 		</div>
-		<input type="hidden" name="priority" form="issue-new-form" :value="priority"/>
 	</div>
 }
 
@@ -337,6 +337,7 @@ templ issueNewPriorityBadge(value, classes string) {
 
 templ issueNewMilestone(data view.IssueNewData) {
 	<div class="space-y-2">
+		<input type="hidden" name="milestone" form="issue-new-form" :value="milestone"/>
 		if len(data.Milestones) > 0 {
 			@issueNewPicker("milestone", "Milestone", "Set milestone", "Set milestone", false) {
 				for _, m := range data.Milestones {
@@ -385,12 +386,15 @@ templ issueNewMilestone(data view.IssueNewData) {
 			}
 			<span x-show="milestone === ''" class="text-xs text-muted-foreground">No milestone</span>
 		</div>
-		<input type="hidden" name="milestone" form="issue-new-form" :value="milestone"/>
 	</div>
 }
 
 templ issueNewLinkedPulls(data view.IssueNewData) {
 	<div class="space-y-2">
+		for _, pr := range data.RepoPulls {
+			{{ num := strconv.Itoa(pr.Number) }}
+			<input type="hidden" name="linked_pulls" value={ num } form="issue-new-form" :disabled={ "!linkedPulls.includes(" + components.JSLiteral(num) + ")" }/>
+		}
 		if len(data.RepoPulls) > 0 {
 			@issueNewPicker("linked-pulls", "Linked pull requests", "Link a pull request", "Link a pull request", true) {
 				for _, pr := range data.RepoPulls {
@@ -418,20 +422,18 @@ templ issueNewLinkedPulls(data view.IssueNewData) {
 		} else {
 			<h3 class="text-[12px] font-medium text-muted-foreground">Linked pull requests</h3>
 		}
-		<ul class="space-y-1.5 text-[13px]">
-			for _, pr := range data.RepoPulls {
-				{{ num := strconv.Itoa(pr.Number) }}
-				<li x-show={ "linkedPulls.includes(" + components.JSLiteral(num) + ")" } x-cloak class="flex items-center gap-2">
-					@issueNewBranchIcon()
-					<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + num) } class="hover:underline truncate"><span class="font-mono text-muted-foreground">#{ num }</span> { pr.Title }</a>
-				</li>
-			}
-		</ul>
-		<p x-show="linkedPulls.length === 0" class="text-xs text-muted-foreground">No linked PRs yet.</p>
-		for _, pr := range data.RepoPulls {
-			{{ num := strconv.Itoa(pr.Number) }}
-			<input type="hidden" name="linked_pulls" value={ num } form="issue-new-form" :disabled={ "!linkedPulls.includes(" + components.JSLiteral(num) + ")" }/>
-		}
+		<div>
+			<ul class="flex flex-col gap-1.5 text-[13px]">
+				for _, pr := range data.RepoPulls {
+					{{ num := strconv.Itoa(pr.Number) }}
+					<li x-show={ "linkedPulls.includes(" + components.JSLiteral(num) + ")" } x-cloak class="flex items-center gap-2">
+						@issueNewBranchIcon()
+						<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/pulls/" + num) } class="hover:underline truncate"><span class="font-mono text-muted-foreground">#{ num }</span> { pr.Title }</a>
+					</li>
+				}
+			</ul>
+			<p x-show="linkedPulls.length === 0" class="text-xs text-muted-foreground">No linked PRs yet.</p>
+		</div>
 	</div>
 }
 

@@ -236,7 +236,7 @@ templ IssueTitleSection(owner, repoName string, number int, title string, canWri
 					required
 					autofocus
 					aria-label="Issue title"
-					class="flex-1 min-w-0 h-9 px-3 rounded-md border border-input bg-background text-lg font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+					class="flex-1 min-w-0 h-9 px-3 rounded-md border border-input bg-background text-lg font-medium focus:outline-hidden focus:ring-2 focus:ring-ring"
 				/>
 				<button type="submit" class="h-9 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 shrink-0">Save</button>
 				<button
@@ -269,7 +269,7 @@ templ IssueTitleSection(owner, repoName string, number int, title string, canWri
 // expression — typically a wrap() that surrounds the textarea selection with
 // markdown markers.
 templ mdToolbarButton(label, onClick string) {
-	<button type="button" aria-label={ label } x-on:click={ onClick } class="h-7 w-7 grid place-items-center rounded hover:bg-muted hover:text-foreground">
+	<button type="button" aria-label={ label } x-on:click={ onClick } class="h-7 w-7 grid place-items-center rounded-sm hover:bg-muted hover:text-foreground">
 		{ children... }
 	</button>
 }
@@ -343,7 +343,7 @@ templ IssueBodyCard(data view.IssueBodyCardData) {
 							x-ref="body"
 							name="body"
 							rows="10"
-							class="w-full p-3 h-[240px] text-sm font-mono bg-transparent resize-none placeholder:text-muted-foreground focus:outline-none"
+							class="w-full p-3 h-[240px] text-sm font-mono bg-transparent resize-none placeholder:text-muted-foreground focus:outline-hidden"
 						>{ data.Body }</textarea>
 					</div>
 					<div id="issue-body-preview" role="tabpanel" x-show="tab === 'preview'" x-cloak class="prose prose-sm dark:prose-invert max-w-none p-4 h-[240px] overflow-y-auto">

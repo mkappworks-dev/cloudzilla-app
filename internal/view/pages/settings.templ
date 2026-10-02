@@ -34,7 +34,7 @@ templ Settings(data view.SettingsData) {
 					@settingsNavLink("#sessions", "Sessions", false)
 					@settingsNavLink("#email", "Email", false)
 					<p class="font-mono text-[10px] uppercase tracking-wider mt-4 mb-1 px-2.5 text-muted-foreground">Danger zone</p>
-					<a href="#delete" class="block px-3 py-1.5 rounded text-[13px] text-destructive hover:bg-destructive/10">Delete account</a>
+					<a href="#delete" class="block px-3 py-1.5 rounded-sm text-[13px] text-destructive hover:bg-destructive/10">Delete account</a>
 				</nav>
 			</aside>
 			<div class="col-span-12 lg:col-span-9 space-y-8">
@@ -85,9 +85,9 @@ templ Settings(data view.SettingsData) {
 
 templ settingsNavLink(href, label string, active bool) {
 	if active {
-		<a href={ templ.SafeURL(href) } class="block px-3 py-1.5 rounded bg-accent text-foreground font-medium">{ label }</a>
+		<a href={ templ.SafeURL(href) } class="block px-3 py-1.5 rounded-sm bg-accent text-foreground font-medium">{ label }</a>
 	} else {
-		<a href={ templ.SafeURL(href) } class="block px-3 py-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent">{ label }</a>
+		<a href={ templ.SafeURL(href) } class="block px-3 py-1.5 rounded-sm text-muted-foreground hover:text-foreground hover:bg-accent">{ label }</a>
 	}
 }
 
@@ -96,7 +96,7 @@ templ settingsProfileSection(data view.SettingsData) {
 		<h2 class="text-base font-semibold tracking-tight mb-1">Profile</h2>
 		<p class="text-[12.5px] text-muted-foreground mb-6">How others see you across Cloudzilla.</p>
 		<form method="POST" action="/settings/profile" data-toast="Profile saved" class="space-y-5" x-data={ "{ original: " + components.JSLiteral(data.User.Email) + ", email: " + components.JSLiteral(data.User.Email) + " }" }>
-			<div class="flex items-start gap-4 mb-2">
+			<div class="flex items-start gap-4">
 				<div class="h-16 w-16 rounded-full grid place-items-center text-base font-semibold shrink-0 bg-muted border border-border">
 					{ avatarInitials(data.User.Name, data.User.Username) }
 				</div>
@@ -107,16 +107,16 @@ templ settingsProfileSection(data view.SettingsData) {
 			</div>
 			<div>
 				<label for="acct-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Name</label>
-				<input id="acct-name" name="name" type="text" value={ data.User.Name } class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+				<input id="acct-name" name="name" type="text" value={ data.User.Name } class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 			</div>
 			<div>
 				<label for="acct-username" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Username</label>
-				<input id="acct-username" type="text" value={ data.User.Username } readonly class="w-full bg-muted/50 border border-border rounded-md px-3 py-2 text-[13px] font-mono text-muted-foreground focus:outline-none"/>
+				<input id="acct-username" type="text" value={ data.User.Username } readonly class="w-full bg-muted/50 border border-border rounded-md px-3 py-2 text-[13px] font-mono text-muted-foreground focus:outline-hidden"/>
 				<p class="mt-1 text-[11.5px] text-muted-foreground">Usernames can't be changed.</p>
 			</div>
 			<div>
 				<label for="acct-email" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Email</label>
-				<input id="acct-email" name="email" type="email" value={ data.User.Email } x-model="email" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"/>
+				<input id="acct-email" name="email" type="email" value={ data.User.Email } x-model="email" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"/>
 				<p class="mt-1 text-[11.5px] text-muted-foreground">Used for sign-in and notifications. A new address has to be verified again.</p>
 				if data.Confirm.Any() {
 					<div x-show="email !== original" x-cloak class="mt-3 flex flex-wrap items-end gap-3">
@@ -127,16 +127,16 @@ templ settingsProfileSection(data view.SettingsData) {
 			</div>
 			<div>
 				<label for="acct-bio" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Bio</label>
-				<textarea id="acct-bio" name="bio" rows="3" placeholder="A short description of yourself" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring">{ data.User.Bio }</textarea>
+				<textarea id="acct-bio" name="bio" rows="3" placeholder="A short description of yourself" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring">{ data.User.Bio }</textarea>
 			</div>
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 				<div>
 					<label for="acct-company" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Company</label>
-					<input id="acct-company" name="company" type="text" value={ data.User.Company } placeholder="Company or @organization" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+					<input id="acct-company" name="company" type="text" value={ data.User.Company } placeholder="Company or @organization" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 				</div>
 				<div>
 					<label for="acct-location" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Location</label>
-					<input id="acct-location" name="location" type="text" value={ data.User.Location } placeholder="City, Country" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+					<input id="acct-location" name="location" type="text" value={ data.User.Location } placeholder="City, Country" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 				</div>
 			</div>
 			<div class="flex items-center justify-end gap-2">
@@ -157,7 +157,7 @@ templ settingsSecuritySection(data view.SettingsData) {
 				<p class="text-[12px] text-warning mb-3">Each code can be used once if you lose access to your authenticator. They will not be shown again.</p>
 				<div class="grid grid-cols-2 gap-2 font-mono text-[12.5px]">
 					for _, code := range data.BackupCodes {
-						<div class="bg-background border border-warning/40 rounded px-3 py-1.5 text-center tracking-widest text-foreground">{ code }</div>
+						<div class="bg-background border border-warning/40 rounded-sm px-3 py-1.5 text-center tracking-widest text-foreground">{ code }</div>
 					}
 				</div>
 			</div>
@@ -203,7 +203,7 @@ templ settingsSecuritySection(data view.SettingsData) {
 						@components.ConfirmFields("totp-disable", components.ConfirmFactors{Password: data.Confirm.Password}, true)
 						<div>
 							<label for="totp-disable-code" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Verification code</label>
-							<input id="totp-disable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:border-ring"/>
+							<input id="totp-disable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-hidden focus:border-ring"/>
 						</div>
 						<button type="submit" class="h-9 px-4 text-sm rounded-md border border-destructive/40 text-destructive hover:bg-destructive/10">Disable 2FA</button>
 					</form>
@@ -215,7 +215,7 @@ templ settingsSecuritySection(data view.SettingsData) {
 							}
 							<div class="flex-1 min-w-0">
 								<p class="text-[12.5px] font-medium mb-1">Or enter this key manually</p>
-								<code class="block bg-muted border border-border rounded px-3 py-2 text-[12.5px] font-mono tracking-widest break-all text-foreground">{ data.TOTPPendingSecret }</code>
+								<code class="block bg-muted border border-border rounded-sm px-3 py-2 text-[12.5px] font-mono tracking-widest break-all text-foreground">{ data.TOTPPendingSecret }</code>
 							</div>
 						</div>
 						<form method="POST" action="/api/user/totp/enable" data-toast="Two-factor authentication enabled" class="flex flex-wrap items-end gap-3">
@@ -223,7 +223,7 @@ templ settingsSecuritySection(data view.SettingsData) {
 							@components.ConfirmFields("totp-enable", data.Confirm, true)
 							<div>
 								<label for="totp-enable-code" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Enter the 6-digit code from your app</label>
-								<input id="totp-enable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:border-ring"/>
+								<input id="totp-enable-code" name="code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code" placeholder="000000" class="w-32 font-mono text-center text-base bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-hidden focus:border-ring"/>
 							</div>
 							<button type="submit" class="h-9 px-4 text-sm rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90">Verify &amp; enable</button>
 						</form>
@@ -258,12 +258,12 @@ templ settingsChangePasswordDialog(withCode bool) {
 					@components.ConfirmFields("password-change", components.ConfirmFactors{Password: true, Code: withCode}, true)
 					<div>
 						<label for="new-password" class="block text-[12px] font-medium text-muted-foreground mb-1.5">New password</label>
-						<input id="new-password" name="new_password" type="password" required minlength="8" autocomplete="new-password" aria-describedby="new-password-help" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+						<input id="new-password" name="new_password" type="password" required minlength="8" autocomplete="new-password" aria-describedby="new-password-help" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 						<p id="new-password-help" class="mt-1 text-[11.5px] text-muted-foreground">At least 8 characters.</p>
 					</div>
 					<div>
 						<label for="new-password-confirm" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Confirm new password</label>
-						<input id="new-password-confirm" name="new_password_confirm" type="password" required minlength="8" autocomplete="new-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+						<input id="new-password-confirm" name="new_password_confirm" type="password" required minlength="8" autocomplete="new-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 					</div>
 				</div>
 			}
@@ -401,11 +401,11 @@ templ settingsAddSSHKeyDialog(data view.SettingsData) {
 				<div class="space-y-4">
 					<div>
 						<label for="key-title" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Title</label>
-						<input id="key-title" name="title" type="text" required placeholder="e.g. laptop" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+						<input id="key-title" name="title" type="text" required placeholder="e.g. laptop" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 					</div>
 					<div>
 						<label for="public-key" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Public key</label>
-						<textarea id="public-key" name="public_key" rows="5" required placeholder="ssh-ed25519 AAAA…" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-none focus:border-ring"></textarea>
+						<textarea id="public-key" name="public_key" rows="5" required placeholder="ssh-ed25519 AAAA…" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-hidden focus:border-ring"></textarea>
 					</div>
 					<div class="flex flex-wrap items-end gap-3">
 						@components.ConfirmFields("ssh-key", data.Confirm, true)
@@ -439,7 +439,7 @@ templ settingsTokensSection(data view.SettingsData) {
 		if data.NewToken != "" {
 			<div class="mb-6 border border-success/40 bg-success/10 rounded-md p-4">
 				<p class="font-semibold text-success mb-2 text-[13px]">Your new token — copy it now, it won't be shown again:</p>
-				<code class="block bg-background border border-success/40 rounded px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground">{ data.NewToken }</code>
+				<code class="block bg-background border border-success/40 rounded-sm px-3 py-2 text-[12.5px] font-mono break-all select-all text-foreground">{ data.NewToken }</code>
 			</div>
 		}
 		<div id="tokens-list" class="space-y-2 mb-4">
@@ -513,7 +513,7 @@ templ settingsGenerateTokenDialog(data view.SettingsData) {
 				<div class="space-y-4">
 					<div>
 						<label for="token-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Name</label>
-						<input id="token-name" name="name" type="text" required placeholder="e.g. CI deploy" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+						<input id="token-name" name="name" type="text" required placeholder="e.g. CI deploy" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 					</div>
 					<fieldset>
 						<legend class="block text-[12px] font-medium text-muted-foreground mb-1.5">Scopes</legend>
@@ -527,17 +527,17 @@ templ settingsGenerateTokenDialog(data view.SettingsData) {
 					</fieldset>
 					<div>
 						<label for="token-targets" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repositories and organizations (required with repo:admin)</label>
-						<textarea id="token-targets" name="targets" rows="2" placeholder="acme/app" aria-describedby="token-targets-help" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-none focus:border-ring"></textarea>
+						<textarea id="token-targets" name="targets" rows="2" placeholder="acme/app" aria-describedby="token-targets-help" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-hidden focus:border-ring"></textarea>
 						<p id="token-targets-help" class="text-[11px] text-muted-foreground mt-1">One per line: a repository you manage as <span class="font-mono">owner/repo</span>, or an organization you own, which covers its settings and all its repositories. The token can't touch anything else.</p>
 					</div>
 					<div>
 						<label for="token-signing-key" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Signing key (required with repo:admin)</label>
-						<textarea id="token-signing-key" name="signing_key" rows="2" placeholder="ssh-ed25519 AAAA…" aria-describedby="token-signing-key-help" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-none focus:border-ring"></textarea>
+						<textarea id="token-signing-key" name="signing_key" rows="2" placeholder="ssh-ed25519 AAAA…" aria-describedby="token-signing-key-help" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[12px] font-mono text-foreground focus:outline-hidden focus:border-ring"></textarea>
 						<p id="token-signing-key-help" class="text-[11px] text-muted-foreground mt-1">An SSH public key, which can live on a hardware key (sk-). Every request with this token must then be signed with its private key (<span class="font-mono">ssh-keygen -Y sign</span>), so the token alone is useless to anyone who copies it. Such a token can't be used for git.</p>
 					</div>
 					<div>
 						<label for="token-expires" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Expiration (optional)</label>
-						<input id="token-expires" name="expires_at" type="date" class="bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+						<input id="token-expires" name="expires_at" type="date" class="bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 						<p class="text-[11px] text-muted-foreground mt-1">Leave blank for a non-expiring token.</p>
 					</div>
 					<div class="flex flex-wrap items-end gap-3">
@@ -600,20 +600,20 @@ templ settingsRegisterOAuthAppDialog() {
 				<div class="space-y-4">
 					<div>
 						<label for="oauth-app-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Application name</label>
-						<input id="oauth-app-name" name="name" type="text" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+						<input id="oauth-app-name" name="name" type="text" required class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 					</div>
 					<div>
 						<label for="oauth-app-homepage" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Homepage URL</label>
-						<input id="oauth-app-homepage" name="homepage_url" type="url" placeholder="https://example.com" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+						<input id="oauth-app-homepage" name="homepage_url" type="url" placeholder="https://example.com" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 					</div>
 					<div>
 						<label for="oauth-app-redirect" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Redirect URI</label>
-						<input id="oauth-app-redirect" name="redirect_uri" type="url" placeholder="https://example.com/callback" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-none focus:border-ring"/>
+						<input id="oauth-app-redirect" name="redirect_uri" type="url" placeholder="https://example.com/callback" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] font-mono text-foreground focus:outline-hidden focus:border-ring"/>
 						<p class="text-[11px] text-muted-foreground mt-1">Leave blank to accept any redirect URI.</p>
 					</div>
 					<div>
 						<label for="oauth-app-desc" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Description (optional)</label>
-						<textarea id="oauth-app-desc" name="description" rows="3" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"></textarea>
+						<textarea id="oauth-app-desc" name="description" rows="3" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"></textarea>
 					</div>
 				</div>
 			}
@@ -697,11 +697,11 @@ templ settingsNewSavedReplyDialog() {
 				<div class="space-y-4">
 					<div>
 						<label for="reply-title" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Title</label>
-						<input id="reply-title" name="title" type="text" required placeholder="e.g. Thanks for the report" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"/>
+						<input id="reply-title" name="title" type="text" required placeholder="e.g. Thanks for the report" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 					</div>
 					<div>
 						<label for="reply-body" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Content</label>
-						<textarea id="reply-body" name="body" rows="5" required placeholder="Your reusable comment text…" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-none focus:border-ring"></textarea>
+						<textarea id="reply-body" name="body" rows="5" required placeholder="Your reusable comment text…" class="w-full bg-background border border-border rounded-md px-3 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"></textarea>
 					</div>
 				</div>
 			}
@@ -805,7 +805,7 @@ templ settingsEmailsSection(data view.SettingsData) {
 					<span class="block text-sm font-medium text-foreground">Keep my email address private</span>
 					<span id="keep-email-private-help" class="block text-xs text-muted-foreground mt-0.5">
 						File edits, wiki changes, merges, applied suggestions, and profile README edits are authored as
-						<code class="text-[11px] bg-muted border border-border rounded px-1.5 py-0.5 font-mono break-words">{ data.NoreplyEmail }</code>
+						<code class="text-[11px] bg-muted border border-border rounded-sm px-1.5 py-0.5 font-mono break-words">{ data.NoreplyEmail }</code>
 						instead of your account email. Commit authors are visible to anyone who can read the repository.
 					</span>
 				</span>
@@ -823,7 +823,7 @@ templ settingsEmailsSection(data view.SettingsData) {
 		</form>
 		<p class="text-[12px] text-muted-foreground mt-3">
 			Commits you push keep the email your git client sets. To keep those private too, run
-			<code class="mt-1.5 block w-fit max-w-full text-[11px] bg-muted border border-border rounded px-1.5 py-0.5 font-mono break-words">git config --global user.email { data.NoreplyEmail }</code>
+			<code class="mt-1.5 block w-fit max-w-full text-[11px] bg-muted border border-border rounded-sm px-1.5 py-0.5 font-mono break-words">git config --global user.email { data.NoreplyEmail }</code>
 		</p>
 	</section>
 }
@@ -861,7 +861,7 @@ templ settingsDangerSection(data view.SettingsData) {
 						placeholder="type your username"
 						required
 						autocomplete="off"
-						class="h-8 w-44 bg-background border border-border rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-none focus:border-ring"
+						class="h-8 w-44 bg-background border border-border rounded-md px-3 text-[12.5px] font-mono text-foreground focus:outline-hidden focus:border-ring"
 					/>
 					<button type="submit" class="h-8 px-3 text-[13px] rounded-md font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete account</button>
 				</form>

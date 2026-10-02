@@ -21,11 +21,11 @@ templ AdminSettings(data view.AdminSettingsFragData) {
 						if setting.Value == "true" {
 							<span class="text-xs text-success font-medium">Enabled</span>
 							<input type="hidden" name="value" value="false"/>
-							<button type="submit" class="text-xs px-3 py-1 bg-muted text-foreground rounded hover:bg-muted">Disable</button>
+							<button type="submit" class="text-xs px-3 py-1 bg-muted text-foreground rounded-sm hover:bg-muted">Disable</button>
 						} else {
 							<span class="text-xs text-muted-foreground font-medium">Disabled</span>
 							<input type="hidden" name="value" value="true"/>
-							<button type="submit" class="text-xs px-3 py-1 bg-primary text-background rounded hover:bg-primary">Enable</button>
+							<button type="submit" class="text-xs px-3 py-1 bg-primary text-background rounded-sm hover:bg-primary">Enable</button>
 						}
 					</form>
 				</div>

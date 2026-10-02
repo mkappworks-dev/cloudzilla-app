@@ -71,7 +71,7 @@ templ orgListRow(e view.OrgListEntry, viewerUsername string) {
 			</div>
 			<p class="text-xs text-muted-foreground mt-0.5">{ orgRowSubtitle(e) }</p>
 		</div>
-		<div class="flex-shrink-0">
+		<div class="shrink-0">
 			if e.Role == model.OrgRoleOwner {
 				@components.LinkButton("/orgs/"+e.Org.Name+"/settings", components.ButtonOutline, components.ButtonSizeSM, nil) {
 					Manage

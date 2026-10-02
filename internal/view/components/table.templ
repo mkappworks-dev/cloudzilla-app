@@ -22,7 +22,7 @@ templ TableBody() {
 }
 
 templ TableFooter() {
-	<tfoot class="border-t border-border bg-muted/50 font-medium [&>tr]:last:border-b-0">
+	<tfoot class="border-t border-border bg-muted/50 font-medium last:[&>tr]:border-b-0">
 		{ children... }
 	</tfoot>
 }

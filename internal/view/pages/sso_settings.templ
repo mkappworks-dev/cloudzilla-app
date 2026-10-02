@@ -126,22 +126,22 @@ templ SSOSettings(data view.SSOSettingsData) {
 						</div>
 						<div class="flex items-center gap-2">
 							if data.LDAPConfig != nil && data.LDAPConfig.Config["use_tls"] == "true" {
-								<input type="checkbox" id="ldap_use_tls" name="ldap_use_tls" value="true" checked class="h-4 w-4 rounded border-input accent-foreground"/>
+								<input type="checkbox" id="ldap_use_tls" name="ldap_use_tls" value="true" checked class="h-4 w-4 rounded-sm border-input accent-foreground"/>
 							} else {
-								<input type="checkbox" id="ldap_use_tls" name="ldap_use_tls" value="true" class="h-4 w-4 rounded border-input accent-foreground"/>
+								<input type="checkbox" id="ldap_use_tls" name="ldap_use_tls" value="true" class="h-4 w-4 rounded-sm border-input accent-foreground"/>
 							}
 							<label for="ldap_use_tls" class="text-sm text-foreground">Use TLS</label>
 						</div>
 						if data.LDAPConfig != nil && data.LDAPConfig.Enabled && data.LDAPConfig.Config["use_tls"] != "true" {
-							<p class="text-xs text-warning border border-warning/40 bg-warning/10 rounded px-3 py-2">
+							<p class="text-xs text-warning border border-warning/40 bg-warning/10 rounded-sm px-3 py-2">
 								Warning: TLS is disabled. LDAP credentials will be transmitted in plaintext. Enable TLS or use an ldaps:// host for production use.
 							</p>
 						}
 						<div class="flex items-center gap-2">
 							if data.LDAPConfig != nil && data.LDAPConfig.Enabled {
-								<input type="checkbox" id="ldap_enabled" name="enabled" value="true" checked class="h-4 w-4 rounded border-input accent-foreground"/>
+								<input type="checkbox" id="ldap_enabled" name="enabled" value="true" checked class="h-4 w-4 rounded-sm border-input accent-foreground"/>
 							} else {
-								<input type="checkbox" id="ldap_enabled" name="enabled" value="true" class="h-4 w-4 rounded border-input accent-foreground"/>
+								<input type="checkbox" id="ldap_enabled" name="enabled" value="true" class="h-4 w-4 rounded-sm border-input accent-foreground"/>
 							}
 							<label for="ldap_enabled" class="text-sm text-foreground">Enable LDAP authentication</label>
 						</div>
@@ -236,7 +236,7 @@ templ SSOSettings(data view.SSOSettingsData) {
 						<div class="space-y-1.5">
 							<label for="saml_idp_cert" class="block text-sm font-medium text-foreground">IdP Certificate (base64, no headers)</label>
 							if data.SAMLConfig != nil {
-								<textarea id="saml_idp_cert" name="saml_idp_cert" rows="4" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground">{ data.SAMLConfig.Config["idp_cert"] }</textarea>
+								<textarea id="saml_idp_cert" name="saml_idp_cert" rows="4" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-xs placeholder:text-muted-foreground">{ data.SAMLConfig.Config["idp_cert"] }</textarea>
 							} else {
 								@components.Textarea(templ.Attributes{
 									"id":    "saml_idp_cert",
@@ -248,9 +248,9 @@ templ SSOSettings(data view.SSOSettingsData) {
 						</div>
 						<div class="flex items-center gap-2">
 							if data.SAMLConfig != nil && data.SAMLConfig.Enabled {
-								<input type="checkbox" id="saml_enabled" name="enabled" value="true" checked class="h-4 w-4 rounded border-input accent-foreground"/>
+								<input type="checkbox" id="saml_enabled" name="enabled" value="true" checked class="h-4 w-4 rounded-sm border-input accent-foreground"/>
 							} else {
-								<input type="checkbox" id="saml_enabled" name="enabled" value="true" class="h-4 w-4 rounded border-input accent-foreground"/>
+								<input type="checkbox" id="saml_enabled" name="enabled" value="true" class="h-4 w-4 rounded-sm border-input accent-foreground"/>
 							}
 							<label for="saml_enabled" class="text-sm text-foreground">Enable SAML authentication</label>
 						</div>

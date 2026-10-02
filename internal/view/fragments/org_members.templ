@@ -50,7 +50,7 @@ templ orgMemberRow(orgName string, m model.OrgMember, viewerID int64, canManage 
 				hx-include="this"
 				x-data
 				x-on:change={ "if ($el.value === 'owner') { $el.value = 'member'; document.getElementById(" + components.JSLiteral(promoteID) + ").showModal() } else { htmx.trigger($el, 'demote') }" }
-				class="flex h-8 rounded-md border border-input bg-transparent px-2 text-[12px] shadow-sm w-[110px]"
+				class="flex h-8 rounded-md border border-input bg-transparent px-2 text-[12px] shadow-xs w-[110px]"
 			>
 				<option value="owner" selected?={ m.Role == model.OrgRoleOwner }>Owner</option>
 				<option value="member" selected?={ m.Role == model.OrgRoleMember }>Member</option>

@@ -65,7 +65,7 @@ templ Commits(data view.CommitsData) {
 									>{ c.FullHash[:7] }</a>
 									<a
 										href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + c.FullHash) }
-										class="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground border border-border rounded px-1.5 py-0.5 hover:bg-muted/50"
+										class="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground border border-border rounded-sm px-1.5 py-0.5 hover:bg-muted/50"
 										title="Browse repository at this point in history"
 									>
 										<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">

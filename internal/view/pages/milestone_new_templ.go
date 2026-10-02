@@ -179,7 +179,7 @@ func MilestoneNew(data view.MilestoneNewData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div><p class=\"text-[11px] text-muted-foreground\">Leave blank for an open-ended milestone.</p></div><div class=\"space-y-1.5\"><label for=\"description\" class=\"block text-sm font-medium\">Description <span class=\"text-muted-foreground font-normal\">(optional)</span></label> <textarea id=\"description\" name=\"description\" rows=\"8\" class=\"flex min-h-[160px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-sm placeholder:text-muted-foreground resize-vertical\" placeholder=\"What does this milestone deliver? Markdown supported.\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div><p class=\"text-[11px] text-muted-foreground\">Leave blank for an open-ended milestone.</p></div><div class=\"space-y-1.5\"><label for=\"description\" class=\"block text-sm font-medium\">Description <span class=\"text-muted-foreground font-normal\">(optional)</span></label> <textarea id=\"description\" name=\"description\" rows=\"8\" class=\"flex min-h-[160px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-xs placeholder:text-muted-foreground resize-vertical\" placeholder=\"What does this milestone deliver? Markdown supported.\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

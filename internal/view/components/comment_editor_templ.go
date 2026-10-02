@@ -29,7 +29,7 @@ func CommentEditor(attrs templ.Attributes) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<section class=\"mt-6\" aria-label=\"Add a comment\"><form")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<section aria-label=\"Add a comment\"><form")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

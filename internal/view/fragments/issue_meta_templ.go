@@ -673,7 +673,7 @@ func IssueTitleSection(owner, repoName string, number int, title string, canWrit
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "\" required autofocus aria-label=\"Issue title\" class=\"flex-1 min-w-0 h-9 px-3 rounded-md border border-input bg-background text-lg font-medium focus:outline-none focus:ring-2 focus:ring-ring\"> <button type=\"submit\" class=\"h-9 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 shrink-0\">Save</button> <button type=\"button\" hx-get=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "\" required autofocus aria-label=\"Issue title\" class=\"flex-1 min-w-0 h-9 px-3 rounded-md border border-input bg-background text-lg font-medium focus:outline-hidden focus:ring-2 focus:ring-ring\"> <button type=\"submit\" class=\"h-9 px-3 text-[13px] rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 shrink-0\">Save</button> <button type=\"button\" hx-get=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -812,7 +812,7 @@ func mdToolbarButton(label, onClick string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "\" class=\"h-7 w-7 grid place-items-center rounded hover:bg-muted hover:text-foreground\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "\" class=\"h-7 w-7 grid place-items-center rounded-sm hover:bg-muted hover:text-foreground\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1038,7 +1038,7 @@ func IssueBodyCard(data view.IssueBodyCardData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 83, "</div></header><div role=\"tabpanel\" x-show=\"tab === 'write'\"><textarea id=\"issue-body-textarea\" x-ref=\"body\" name=\"body\" rows=\"10\" class=\"w-full p-3 h-[240px] text-sm font-mono bg-transparent resize-none placeholder:text-muted-foreground focus:outline-none\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 83, "</div></header><div role=\"tabpanel\" x-show=\"tab === 'write'\"><textarea id=\"issue-body-textarea\" x-ref=\"body\" name=\"body\" rows=\"10\" class=\"w-full p-3 h-[240px] text-sm font-mono bg-transparent resize-none placeholder:text-muted-foreground focus:outline-hidden\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

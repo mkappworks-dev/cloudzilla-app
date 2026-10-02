@@ -151,14 +151,14 @@ func settingsSidebarLink(it SettingsSidebarItem, active string) templ.Component 
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" aria-current=\"page\" class=\"block px-3 py-1.5 rounded text-sm font-medium bg-destructive/10 text-destructive\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\" aria-current=\"page\" class=\"block px-3 py-1.5 rounded-sm text-sm font-medium bg-destructive/10 text-destructive\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var6 string
 				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(it.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/settings_sidebar.templ`, Line: 40, Col: 157}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/settings_sidebar.templ`, Line: 40, Col: 160}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 				if templ_7745c5c3_Err != nil {
@@ -182,14 +182,14 @@ func settingsSidebarLink(it SettingsSidebarItem, active string) templ.Component 
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" aria-current=\"page\" class=\"block px-3 py-1.5 rounded text-sm font-medium bg-accent text-foreground\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\" aria-current=\"page\" class=\"block px-3 py-1.5 rounded-sm text-sm font-medium bg-accent text-foreground\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var8 string
 				templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(it.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/settings_sidebar.templ`, Line: 42, Col: 148}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/settings_sidebar.templ`, Line: 42, Col: 151}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 				if templ_7745c5c3_Err != nil {
@@ -215,14 +215,14 @@ func settingsSidebarLink(it SettingsSidebarItem, active string) templ.Component 
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"block px-3 py-1.5 rounded text-sm text-destructive hover:bg-destructive/10\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" class=\"block px-3 py-1.5 rounded-sm text-sm text-destructive hover:bg-destructive/10\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var10 string
 				templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(it.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/settings_sidebar.templ`, Line: 46, Col: 131}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/settings_sidebar.templ`, Line: 46, Col: 134}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 				if templ_7745c5c3_Err != nil {
@@ -246,14 +246,14 @@ func settingsSidebarLink(it SettingsSidebarItem, active string) templ.Component 
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" class=\"block px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-foreground hover:bg-accent\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" class=\"block px-3 py-1.5 rounded-sm text-sm text-muted-foreground hover:text-foreground hover:bg-accent\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var12 string
 				templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(it.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/settings_sidebar.templ`, Line: 48, Col: 150}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/settings_sidebar.templ`, Line: 48, Col: 153}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 				if templ_7745c5c3_Err != nil {

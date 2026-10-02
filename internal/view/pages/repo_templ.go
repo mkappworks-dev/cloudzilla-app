@@ -59,7 +59,7 @@ func Repo(data view.RepoData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if data.IsArchived {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div role=\"status\" class=\"flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm\"><svg class=\"h-4 w-4 flex-shrink-0 text-warning\" fill=\"currentColor\" viewBox=\"0 0 20 20\" aria-hidden=\"true\" focusable=\"false\"><path fill-rule=\"evenodd\" d=\"M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z\" clip-rule=\"evenodd\"></path></svg> <span class=\"text-warning\">This repository has been archived and is read-only.</span></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div role=\"status\" class=\"flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm\"><svg class=\"h-4 w-4 shrink-0 text-warning\" fill=\"currentColor\" viewBox=\"0 0 20 20\" aria-hidden=\"true\" focusable=\"false\"><path fill-rule=\"evenodd\" d=\"M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z\" clip-rule=\"evenodd\"></path></svg> <span class=\"text-warning\">This repository has been archived and is read-only.</span></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -116,7 +116,7 @@ func Repo(data view.RepoData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</a> <span class=\"inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</a> <span class=\"inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -214,7 +214,7 @@ func Repo(data view.RepoData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</div><!-- Action group: Watch / Star / Fork (each: button + count) --><div class=\"flex items-center gap-1.5 flex-shrink-0\" role=\"group\" aria-label=\"Repository actions\"><div id=\"watch-button\" hx-get=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "</div><!-- Action group: Watch / Star / Fork (each: button + count) --><div class=\"flex items-center gap-1.5 shrink-0\" role=\"group\" aria-label=\"Repository actions\"><div id=\"watch-button\" hx-get=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -355,7 +355,7 @@ func Repo(data view.RepoData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "</span></div></div></section><!-- Two-column layout --><div class=\"grid lg:grid-cols-[1fr_320px] gap-8\"><!-- LEFT — Code / README. x-data scope drives the \"Go to file\" filter. --><div class=\"space-y-6 min-w-0\" x-data=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "</span></div></div></section><!-- Two-column layout --><div class=\"grid lg:grid-cols-[1fr_320px] gap-8\"><!-- LEFT — Code / README. x-data scope drives the \"Go to file\" filter. --><div class=\"flex flex-col gap-6 min-w-0\" x-data=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -394,7 +394,7 @@ func Repo(data view.RepoData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</span> <svg class=\"text-muted-foreground\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 10l5 5 5-5\"></path></svg></button><div x-show=\"open\" x-cloak x-transition.opacity.duration.100ms x-on:click.outside=\"open = false\" role=\"menu\" aria-label=\"Switch branches and tags\" class=\"absolute left-0 top-full mt-1.5 z-50 w-[300px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1\"><div class=\"px-1.5 pb-1.5\"><label for=\"branch-filter\" class=\"sr-only\">Find a branch or tag</label> <input id=\"branch-filter\" type=\"search\" x-model=\"bq\" placeholder=\"Find a branch or tag…\" class=\"w-full h-7 px-2.5 text-[12px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring\"></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</span> <svg class=\"text-muted-foreground\" width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 10l5 5 5-5\"></path></svg></button><div x-show=\"open\" x-cloak x-transition.opacity.duration.100ms x-on:click.outside=\"open = false\" role=\"menu\" aria-label=\"Switch branches and tags\" class=\"absolute left-0 top-full mt-1.5 z-50 w-[300px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1\"><div class=\"px-1.5 pb-1.5\"><label for=\"branch-filter\" class=\"sr-only\">Find a branch or tag</label> <input id=\"branch-filter\" type=\"search\" x-model=\"bq\" placeholder=\"Find a branch or tag…\" class=\"w-full h-7 px-2.5 text-[12px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -404,7 +404,7 @@ func Repo(data view.RepoData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				for _, b := range data.Branches {
-					var templ_7745c5c3_Var22 = []any{"flex items-center gap-2 px-2.5 py-1.5 rounded-sm hover:bg-accent", templ.KV("bg-accent", b.IsDefault)}
+					var templ_7745c5c3_Var22 = []any{"flex items-center gap-2 px-2.5 py-1.5 rounded-xs hover:bg-accent", templ.KV("bg-accent", b.IsDefault)}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var22...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
@@ -509,7 +509,7 @@ func Repo(data view.RepoData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "\" x-show=\"!bq || $el.dataset.ref.includes(bq.toLowerCase())\" class=\"flex items-center gap-2 px-2.5 py-1.5 rounded-sm hover:bg-accent\"><span class=\"flex-1 font-mono text-[12px] truncate\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "\" x-show=\"!bq || $el.dataset.ref.includes(bq.toLowerCase())\" class=\"flex items-center gap-2 px-2.5 py-1.5 rounded-xs hover:bg-accent\"><span class=\"flex-1 font-mono text-[12px] truncate\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -541,7 +541,7 @@ func Repo(data view.RepoData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "\" role=\"menuitem\" class=\"flex items-center gap-2 px-2.5 py-1.5 rounded-sm text-[13px] hover:bg-accent\">View all branches</a></div></div><span class=\"text-[11px] text-muted-foreground\"><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "\" role=\"menuitem\" class=\"flex items-center gap-2 px-2.5 py-1.5 rounded-xs text-[13px] hover:bg-accent\">View all branches</a></div></div><span class=\"text-[11px] text-muted-foreground\"><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -593,7 +593,7 @@ func Repo(data view.RepoData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, " tags</a></span><div class=\"ml-auto flex items-center gap-1.5\"><div class=\"relative\"><label for=\"file-finder\" class=\"sr-only\">Go to file</label> <input id=\"file-finder\" x-ref=\"finder\" x-model=\"q\" type=\"search\" placeholder=\"Go to file\" class=\"w-48 h-8 pl-3 pr-9 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring\"> <kbd class=\"font-mono absolute right-2 top-1.5 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground\" aria-hidden=\"true\">T</kbd></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, " tags</a></span><div class=\"ml-auto flex items-center gap-1.5\"><div class=\"relative\"><label for=\"file-finder\" class=\"sr-only\">Go to file</label> <input id=\"file-finder\" x-ref=\"finder\" x-model=\"q\" type=\"search\" placeholder=\"Go to file\" class=\"w-48 h-8 pl-3 pr-9 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"> <kbd class=\"font-mono absolute right-2 top-1.5 text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground\" aria-hidden=\"true\">T</kbd></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -611,7 +611,7 @@ func Repo(data view.RepoData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "\" role=\"menuitem\" class=\"flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent\"><svg class=\"text-muted-foreground\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\"><path d=\"M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z\"></path><polyline points=\"14 2 14 8 20 8\"></polyline><line x1=\"12\" y1=\"11\" x2=\"12\" y2=\"17\"></line><line x1=\"9\" y1=\"14\" x2=\"15\" y2=\"14\"></line></svg> Create new file</a> <a href=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 57, "\" role=\"menuitem\" class=\"flex items-center gap-2 px-2 py-1.5 rounded-xs hover:bg-accent\"><svg class=\"text-muted-foreground\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\"><path d=\"M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z\"></path><polyline points=\"14 2 14 8 20 8\"></polyline><line x1=\"12\" y1=\"11\" x2=\"12\" y2=\"17\"></line><line x1=\"9\" y1=\"14\" x2=\"15\" y2=\"14\"></line></svg> Create new file</a> <a href=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -624,7 +624,7 @@ func Repo(data view.RepoData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "\" role=\"menuitem\" class=\"flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent\"><svg class=\"text-muted-foreground\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\"><path d=\"M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4\"></path><polyline points=\"17 8 12 3 7 8\"></polyline><line x1=\"12\" y1=\"3\" x2=\"12\" y2=\"15\"></line></svg> Upload files</a></div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "\" role=\"menuitem\" class=\"flex items-center gap-2 px-2 py-1.5 rounded-xs hover:bg-accent\"><svg class=\"text-muted-foreground\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\"><path d=\"M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4\"></path><polyline points=\"17 8 12 3 7 8\"></polyline><line x1=\"12\" y1=\"3\" x2=\"12\" y2=\"15\"></line></svg> Upload files</a></div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -642,7 +642,7 @@ func Repo(data view.RepoData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "\" x-on:keydown.escape.window=\"open = false\"><button type=\"button\" x-on:click=\"open = !open\" :aria-expanded=\"open ? 'true' : 'false'\" aria-haspopup=\"dialog\" class=\"h-8 px-3 text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium inline-flex items-center gap-1.5\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><polyline points=\"16 18 22 12 16 6\"></polyline><polyline points=\"8 6 2 12 8 18\"></polyline></svg> Clone <svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 10l5 5 5-5\"></path></svg></button><div x-show=\"open\" x-cloak x-transition.opacity.duration.100ms x-on:click.outside=\"open = false\" role=\"dialog\" aria-label=\"Clone this repository\" class=\"absolute right-0 top-full mt-1.5 z-50 w-[340px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3\"><div class=\"flex items-center gap-0.5 mb-2.5 p-0.5 bg-muted border border-border rounded-md\" role=\"tablist\" aria-label=\"Clone protocol\"><button type=\"button\" role=\"tab\" x-on:click=\"proto = 'https'\" :aria-selected=\"proto === 'https'\" :class=\"proto === 'https' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'\" class=\"flex-1 px-2.5 py-1 rounded text-[12px]\">HTTPS</button> <button type=\"button\" role=\"tab\" x-on:click=\"proto = 'ssh'\" :aria-selected=\"proto === 'ssh'\" :class=\"proto === 'ssh' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'\" class=\"flex-1 px-2.5 py-1 rounded text-[12px]\">SSH</button></div><label for=\"clone-url\" class=\"sr-only\">Clone URL</label><div class=\"flex items-center gap-1.5\"><input id=\"clone-url\" type=\"text\" readonly :value=\"proto === 'https' ? urls.https : urls.ssh\" class=\"flex-1 min-w-0 h-8 px-2.5 text-[12px] font-mono bg-card border border-border rounded-md text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring\"> <button type=\"button\" x-on:click=\"navigator.clipboard.writeText(proto === 'https' ? urls.https : urls.ssh); copied = true; setTimeout(() => copied = false, 1500)\" class=\"h-8 w-8 grid place-items-center border border-border rounded-md hover:bg-accent flex-shrink-0\" :class=\"copied ? 'text-success' : ''\" aria-label=\"Copy clone URL\"><svg x-show=\"!copied\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\"><rect x=\"9\" y=\"9\" width=\"13\" height=\"13\" rx=\"2\"></rect><path d=\"M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1\"></path></svg> <svg x-show=\"copied\" x-cloak width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" aria-hidden=\"true\"><path d=\"M20 6L9 17l-5-5\"></path></svg></button></div><p class=\"text-[11px] text-muted-foreground mt-2\">Clone with Git over HTTPS or SSH.</p><div role=\"separator\" class=\"my-2 h-px bg-border\"></div><a href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "\" x-on:keydown.escape.window=\"open = false\"><button type=\"button\" x-on:click=\"open = !open\" :aria-expanded=\"open ? 'true' : 'false'\" aria-haspopup=\"dialog\" class=\"h-8 px-3 text-[13px] bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium inline-flex items-center gap-1.5\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><polyline points=\"16 18 22 12 16 6\"></polyline><polyline points=\"8 6 2 12 8 18\"></polyline></svg> Clone <svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 10l5 5 5-5\"></path></svg></button><div x-show=\"open\" x-cloak x-transition.opacity.duration.100ms x-on:click.outside=\"open = false\" role=\"dialog\" aria-label=\"Clone this repository\" class=\"absolute right-0 top-full mt-1.5 z-50 w-[340px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-3\"><div class=\"flex items-center gap-0.5 mb-2.5 p-0.5 bg-muted border border-border rounded-md\" role=\"tablist\" aria-label=\"Clone protocol\"><button type=\"button\" role=\"tab\" x-on:click=\"proto = 'https'\" :aria-selected=\"proto === 'https'\" :class=\"proto === 'https' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'\" class=\"flex-1 px-2.5 py-1 rounded-sm text-[12px]\">HTTPS</button> <button type=\"button\" role=\"tab\" x-on:click=\"proto = 'ssh'\" :aria-selected=\"proto === 'ssh'\" :class=\"proto === 'ssh' ? 'bg-card text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'\" class=\"flex-1 px-2.5 py-1 rounded-sm text-[12px]\">SSH</button></div><label for=\"clone-url\" class=\"sr-only\">Clone URL</label><div class=\"flex items-center gap-1.5\"><input id=\"clone-url\" type=\"text\" readonly :value=\"proto === 'https' ? urls.https : urls.ssh\" class=\"flex-1 min-w-0 h-8 px-2.5 text-[12px] font-mono bg-card border border-border rounded-md text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"> <button type=\"button\" x-on:click=\"navigator.clipboard.writeText(proto === 'https' ? urls.https : urls.ssh); copied = true; setTimeout(() => copied = false, 1500)\" class=\"h-8 w-8 grid place-items-center border border-border rounded-md hover:bg-accent shrink-0\" :class=\"copied ? 'text-success' : ''\" aria-label=\"Copy clone URL\"><svg x-show=\"!copied\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\"><rect x=\"9\" y=\"9\" width=\"13\" height=\"13\" rx=\"2\"></rect><path d=\"M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1\"></path></svg> <svg x-show=\"copied\" x-cloak width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" aria-hidden=\"true\"><path d=\"M20 6L9 17l-5-5\"></path></svg></button></div><p class=\"text-[11px] text-muted-foreground mt-2\">Clone with Git over HTTPS or SSH.</p><div role=\"separator\" class=\"my-2 h-px bg-border\"></div><a href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -655,7 +655,7 @@ func Repo(data view.RepoData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, "\" class=\"flex items-center gap-2 px-2 py-1.5 rounded-sm text-[13px] hover:bg-accent\"><svg class=\"text-muted-foreground\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\"><path d=\"M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4\"></path><polyline points=\"7 10 12 15 17 10\"></polyline><line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"></line></svg> Download ZIP</a></div></div></div></div><!-- File tree (hidden while the file finder is active) -->")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 61, "\" class=\"flex items-center gap-2 px-2 py-1.5 rounded-xs text-[13px] hover:bg-accent\"><svg class=\"text-muted-foreground\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\"><path d=\"M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4\"></path><polyline points=\"7 10 12 15 17 10\"></polyline><line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"></line></svg> Download ZIP</a></div></div></div></div><!-- File tree (hidden while the file finder is active) -->")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -751,20 +751,20 @@ func Repo(data view.RepoData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 70, "\" class=\"font-mono text-muted-foreground hover:underline flex-shrink-0\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 70, "\" class=\"font-mono text-muted-foreground hover:underline shrink-0\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var45 string
 					templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(data.LatestCommit.SHA)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 304, Col: 157}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 304, Col: 152}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "</a> <span class=\"text-muted-foreground flex-shrink-0\"><time datetime=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "</a> <span class=\"text-muted-foreground shrink-0\"><time datetime=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -808,14 +808,14 @@ func Repo(data view.RepoData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "\" class=\"font-mono text-[12px] text-muted-foreground hover:underline flex-shrink-0\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "\" class=\"font-mono text-[12px] text-muted-foreground hover:underline shrink-0\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var49 string
 						templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(strconv.Itoa(data.CommitCount))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 309, Col: 230}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 309, Col: 225}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 						if templ_7745c5c3_Err != nil {
@@ -1049,7 +1049,7 @@ func Repo(data view.RepoData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 104, "\" x-show=\"$el.dataset.path.includes(q.toLowerCase())\" class=\"flex items-center gap-2 px-4 py-1.5 text-[13px] border-b border-border last:border-b-0 hover:bg-muted/40\"><svg class=\"text-muted-foreground flex-shrink-0\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\"><path d=\"M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z\"></path><polyline points=\"14 2 14 8 20 8\"></polyline></svg> <span class=\"font-mono truncate\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 104, "\" x-show=\"$el.dataset.path.includes(q.toLowerCase())\" class=\"flex items-center gap-2 px-4 py-1.5 text-[13px] border-b border-border last:border-b-0 hover:bg-muted/40\"><svg class=\"text-muted-foreground shrink-0\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\"><path d=\"M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z\"></path><polyline points=\"14 2 14 8 20 8\"></polyline></svg> <span class=\"font-mono truncate\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1148,7 +1148,7 @@ func Repo(data view.RepoData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			if data.Repo.Website != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, "<div class=\"flex items-center gap-2\"><dt class=\"sr-only\">Website</dt><svg class=\"text-muted-foreground flex-shrink-0\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"2\" y1=\"12\" x2=\"22\" y2=\"12\"></line><path d=\"M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20\"></path></svg><dd><a href=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, "<div class=\"flex items-center gap-2\"><dt class=\"sr-only\">Website</dt><svg class=\"text-muted-foreground shrink-0\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"2\" y1=\"12\" x2=\"22\" y2=\"12\"></line><path d=\"M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20\"></path></svg><dd><a href=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1180,7 +1180,7 @@ func Repo(data view.RepoData) templ.Component {
 				}
 			}
 			if data.Repo.License != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, "<div class=\"flex items-center gap-2\"><dt class=\"sr-only\">License</dt><svg class=\"text-muted-foreground flex-shrink-0\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2\"></path><rect x=\"8\" y=\"2\" width=\"8\" height=\"4\" rx=\"1\"></rect></svg><dd class=\"text-muted-foreground\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, "<div class=\"flex items-center gap-2\"><dt class=\"sr-only\">License</dt><svg class=\"text-muted-foreground shrink-0\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2\"></path><rect x=\"8\" y=\"2\" width=\"8\" height=\"4\" rx=\"1\"></rect></svg><dd class=\"text-muted-foreground\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1199,7 +1199,7 @@ func Repo(data view.RepoData) templ.Component {
 				}
 			}
 			if data.LatestCommit.SHA != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 123, "<div class=\"flex items-center gap-2\"><dt class=\"sr-only\">Activity</dt><svg class=\"text-muted-foreground flex-shrink-0\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M22 12h-4l-3 9L9 3l-3 9H2\"></path></svg><dd class=\"text-muted-foreground\">Last commit <time datetime=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 123, "<div class=\"flex items-center gap-2\"><dt class=\"sr-only\">Activity</dt><svg class=\"text-muted-foreground shrink-0\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M22 12h-4l-3 9L9 3l-3 9H2\"></path></svg><dd class=\"text-muted-foreground\">Last commit <time datetime=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1625,7 +1625,7 @@ func Repo(data view.RepoData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 167, "<svg class=\"text-muted-foreground flex-shrink-0\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"12\" cy=\"12\" r=\"4\"></circle><line x1=\"2\" y1=\"12\" x2=\"8\" y2=\"12\"></line><line x1=\"16\" y1=\"12\" x2=\"22\" y2=\"12\"></line></svg>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 167, "<svg class=\"text-muted-foreground shrink-0\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"12\" cy=\"12\" r=\"4\"></circle><line x1=\"2\" y1=\"12\" x2=\"8\" y2=\"12\"></line><line x1=\"16\" y1=\"12\" x2=\"22\" y2=\"12\"></line></svg>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1647,7 +1647,7 @@ func Repo(data view.RepoData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 168, "<svg class=\"text-muted-foreground flex-shrink-0\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M22 12h-4l-3 9L9 3l-3 9H2\"></path></svg>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 168, "<svg class=\"text-muted-foreground shrink-0\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M22 12h-4l-3 9L9 3l-3 9H2\"></path></svg>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1669,7 +1669,7 @@ func Repo(data view.RepoData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 169, "<svg class=\"text-muted-foreground flex-shrink-0\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2\"></path><circle cx=\"9\" cy=\"7\" r=\"4\"></circle><path d=\"M23 21v-2a4 4 0 00-3-3.87\"></path><path d=\"M16 3.13a4 4 0 010 7.75\"></path></svg>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 169, "<svg class=\"text-muted-foreground shrink-0\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2\"></path><circle cx=\"9\" cy=\"7\" r=\"4\"></circle><path d=\"M23 21v-2a4 4 0 00-3-3.87\"></path><path d=\"M16 3.13a4 4 0 010 7.75\"></path></svg>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1691,7 +1691,7 @@ func Repo(data view.RepoData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 170, "<svg class=\"text-muted-foreground flex-shrink-0\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z\"></path><polyline points=\"3.27 6.96 12 12.01 20.73 6.96\"></polyline><line x1=\"12\" y1=\"22.08\" x2=\"12\" y2=\"12\"></line></svg>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 170, "<svg class=\"text-muted-foreground shrink-0\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z\"></path><polyline points=\"3.27 6.96 12 12.01 20.73 6.96\"></polyline><line x1=\"12\" y1=\"22.08\" x2=\"12\" y2=\"12\"></line></svg>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -1787,14 +1787,14 @@ func Repo(data view.RepoData) templ.Component {
 							}()
 						}
 						ctx = templ.InitializeContext(ctx)
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 175, "<div class=\"space-y-4\"><div><label for=\"edit-desc\" class=\"block text-[12px] font-medium mb-1.5\">Description</label> <textarea id=\"edit-desc\" name=\"description\" rows=\"3\" class=\"w-full px-3 py-2 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 175, "<div class=\"space-y-4\"><div><label for=\"edit-desc\" class=\"block text-[12px] font-medium mb-1.5\">Description</label> <textarea id=\"edit-desc\" name=\"description\" rows=\"3\" class=\"w-full px-3 py-2 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring resize-none\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var99 string
 						templ_7745c5c3_Var99, templ_7745c5c3_Err = templ.JoinStringErrs(data.Repo.Description)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 598, Col: 255}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo.templ`, Line: 598, Col: 257}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var99))
 						if templ_7745c5c3_Err != nil {
@@ -1813,7 +1813,7 @@ func Repo(data view.RepoData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 177, "\" placeholder=\"https://example.com\" class=\"w-full h-9 px-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring\"></div><div><label for=\"edit-license\" class=\"block text-[12px] font-medium mb-1.5\">License</label> <input id=\"edit-license\" name=\"license\" type=\"text\" value=\"")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 177, "\" placeholder=\"https://example.com\" class=\"w-full h-9 px-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"></div><div><label for=\"edit-license\" class=\"block text-[12px] font-medium mb-1.5\">License</label> <input id=\"edit-license\" name=\"license\" type=\"text\" value=\"")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -1826,7 +1826,7 @@ func Repo(data view.RepoData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 178, "\" placeholder=\"MIT, Apache-2.0, BSL 1.1…\" class=\"w-full h-9 px-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring\"></div></div>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 178, "\" placeholder=\"MIT, Apache-2.0, BSL 1.1…\" class=\"w-full h-9 px-3 text-[13px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring\"></div></div>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -1944,19 +1944,19 @@ func releaseCard(data view.RepoData, rel model.Release) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		if !rel.IsDraft && !rel.IsPrerelease {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 184, "<span class=\"text-[10px] px-1.5 py-0.5 rounded border border-success/30 bg-success/10 text-success font-mono\">Latest</span> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 184, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-sm border border-success/30 bg-success/10 text-success font-mono\">Latest</span> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
 		if rel.IsPrerelease {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 185, "<span class=\"text-[10px] px-1.5 py-0.5 rounded border border-warning/30 bg-warning/10 text-warning font-mono\">Pre-release</span> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 185, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-sm border border-warning/30 bg-warning/10 text-warning font-mono\">Pre-release</span> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
 		if rel.IsDraft {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 186, "<span class=\"text-[10px] px-1.5 py-0.5 rounded border border-border bg-muted text-muted-foreground font-mono\">Draft</span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 186, "<span class=\"text-[10px] px-1.5 py-0.5 rounded-sm border border-border bg-muted text-muted-foreground font-mono\">Draft</span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -2082,12 +2082,12 @@ func insightRow(href, label, count string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 196, "</span> <svg class=\"text-muted-foreground/70 flex-shrink-0\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M9 18l6-6-6-6\"></path></svg>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 196, "</span> <svg class=\"text-muted-foreground/70 shrink-0\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M9 18l6-6-6-6\"></path></svg>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 197, "<svg class=\"text-muted-foreground/70 flex-shrink-0 ml-auto\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M9 18l6-6-6-6\"></path></svg>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 197, "<svg class=\"text-muted-foreground/70 shrink-0 ml-auto\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M9 18l6-6-6-6\"></path></svg>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

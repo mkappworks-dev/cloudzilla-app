@@ -9,7 +9,7 @@ import (
 
 templ AttentionRow(item service.AttentionItem) {
 	<a href={ templ.SafeURL(item.URL) } class="group flex items-center gap-3 border-l-2 border-l-transparent px-4 py-3 transition-all hover:border-l-foreground hover:bg-accent hover:pl-[18px]">
-		<span class={ "flex-shrink-0 h-4 w-4 rounded-full grid place-items-center", attentionRowColorClass(item.Kind) } aria-hidden="true">
+		<span class={ "shrink-0 h-4 w-4 rounded-full grid place-items-center", attentionRowColorClass(item.Kind) } aria-hidden="true">
 			@attentionRowIcon(item.Kind)
 		</span>
 		<div class="min-w-0 flex-1">

@@ -32,7 +32,7 @@ templ treeItem(n TreeNode, depth int, activeName string) {
 	>
 		if n.IsDir {
 			<div x-data={ "{ open: " + boolStr(n.IsOpen) + " }" }>
-				<div class="flex items-center gap-0.5 rounded hover:bg-muted/50" style={ "padding-left: " + depthPx(depth) + "px" }>
+				<div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style={ "padding-left: " + depthPx(depth) + "px" }>
 					<button
 						type="button"
 						x-on:click="open = !open"
@@ -65,7 +65,7 @@ templ treeItem(n TreeNode, depth int, activeName string) {
 				if n.Name == activeName {
 					aria-current="page"
 				}
-				class={ "flex items-center gap-1 py-[3px] rounded text-[12.5px] " + fileItemClass(n.Name == activeName) }
+				class={ "flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] " + fileItemClass(n.Name == activeName) }
 				style={ "padding-left: " + depthPx(depth) + "px" }
 			>
 				<span class="shrink-0 w-5 flex items-center justify-center"></span>

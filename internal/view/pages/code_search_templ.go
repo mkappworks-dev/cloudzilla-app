@@ -128,7 +128,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" placeholder=\"owner/repo\" class=\"flex h-8 w-40 rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground\"></div><div class=\"flex items-center gap-1\"><label for=\"lang\" class=\"text-muted-foreground shrink-0\">Language:</label> <input type=\"text\" id=\"lang\" name=\"lang\" value=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" placeholder=\"owner/repo\" class=\"flex h-8 w-40 rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-colors placeholder:text-muted-foreground\"></div><div class=\"flex items-center gap-1\"><label for=\"lang\" class=\"text-muted-foreground shrink-0\">Language:</label> <input type=\"text\" id=\"lang\" name=\"lang\" value=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -141,7 +141,7 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" placeholder=\"go, py, js...\" class=\"flex h-8 w-28 rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground\"></div></div></form>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" placeholder=\"go, py, js...\" class=\"flex h-8 w-28 rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-xs transition-colors placeholder:text-muted-foreground\"></div></div></form>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -242,14 +242,14 @@ func CodeSearch(data view.CodeSearchData) templ.Component {
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</span></div><pre class=\"text-xs text-foreground bg-muted rounded p-2 overflow-x-auto whitespace-pre-wrap\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</span></div><pre class=\"text-xs text-foreground bg-muted rounded-sm p-2 overflow-x-auto whitespace-pre-wrap\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var14 string
 						templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(res.Snippet)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 56, Col: 115}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/code_search.templ`, Line: 56, Col: 118}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 						if templ_7745c5c3_Err != nil {

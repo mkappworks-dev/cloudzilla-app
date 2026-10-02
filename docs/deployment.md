@@ -14,10 +14,10 @@ Cloudzilla ships a multi-stage `Dockerfile` and `docker-compose.yml`.
 
 ### Image build stages
 
-| Stage     | Base                 | Purpose                                                                                                          |
-| --------- | -------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `builder` | `golang:1.27-alpine` | Downloads Tailwind CLI (arch-aware), compiles CSS, builds both Go binaries with `CGO_ENABLED=0 -ldflags="-s -w"` |
-| runtime   | `alpine:3.24`        | Copies binaries; installs `ca-certificates tzdata`; exposes 8080/2222                                            |
+| Stage     | Base                 | Purpose                                                                                                                     |
+| --------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `builder` | `golang:1.27-alpine` | Downloads Tailwind CLI (arch-aware musl build), compiles CSS, builds both Go binaries with `CGO_ENABLED=0 -ldflags="-s -w"` |
+| runtime   | `alpine:3.24`        | Copies binaries; installs `ca-certificates tzdata`; exposes 8080/2222                                                       |
 
 ### Persistent volume (`/data`)
 

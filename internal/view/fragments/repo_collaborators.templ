@@ -36,7 +36,7 @@ templ RepoCollaborators(data view.RepoCollaboratorsFragData) {
 					"class":       "flex-1",
 				})
 				<label for="collab-role" class="sr-only">Role</label>
-				<select id="collab-role" name="role" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+				<select id="collab-role" name="role" class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs">
 					<option value="reader">Reader</option>
 					<option value="writer">Writer</option>
 					if data.IsOwner {

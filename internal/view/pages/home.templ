@@ -58,7 +58,7 @@ templ Home(data view.HomeData) {
 			if len(data.Stats) > 0 {
 				<section aria-labelledby="stats-heading">
 					<h2 id="stats-heading" class="sr-only">Workspace statistics</h2>
-					<dl class="grid grid-cols-2 md:grid-cols-4 border border-border rounded-md divide-x divide-border">
+					<dl class="grid grid-cols-2 md:grid-cols-4 border border-border rounded-md">
 						for i, it := range data.Stats {
 							<div class={ "p-5", templ.KV("border-l border-border", i > 0) }>
 								<dt class="text-[11px] font-mono text-muted-foreground uppercase tracking-wider mb-2">{ it.Label }</dt>
@@ -204,10 +204,10 @@ templ Home(data view.HomeData) {
 													<span class="text-muted-foreground mx-1" aria-hidden="true">/</span>
 													<span class="text-muted-foreground text-[12px]">{ repo.DefaultBranch }</span>
 													if repo.Private {
-														<span class="ml-1.5 inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground">Private</span>
+														<span class="ml-1.5 inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Private</span>
 													}
 													if repo.IsArchived {
-														<span class="ml-1.5 inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground">Archived</span>
+														<span class="ml-1.5 inline-flex items-center text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded-sm text-muted-foreground">Archived</span>
 													}
 													if repo.Description != "" {
 														<p class="text-[11px] text-muted-foreground truncate mt-0.5 font-normal">{ repo.Description }</p>
@@ -301,7 +301,7 @@ templ Home(data view.HomeData) {
 							<ol class="space-y-3">
 								for _, ev := range data.Activity {
 									<li class="text-[12px] flex gap-2.5">
-										<span class={ "mt-1 flex-shrink-0 h-1.5 w-1.5 rounded-full", activityDotClass(ev.EventType) } aria-hidden="true"></span>
+										<span class={ "mt-1 shrink-0 h-1.5 w-1.5 rounded-full", activityDotClass(ev.EventType) } aria-hidden="true"></span>
 										<div class="min-w-0 flex-1">
 											<p>
 												<a href={ templ.SafeURL("/" + ev.ActorName) } class="hover:underline">{ "@" + ev.ActorName }</a>
@@ -340,7 +340,7 @@ templ Home(data view.HomeData) {
 													<p class="text-[11px] text-muted-foreground truncate mt-0.5">{ tmpl.Description }</p>
 												}
 											</div>
-											<svg class="text-muted-foreground group-hover:text-foreground flex-shrink-0 ml-2" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+											<svg class="text-muted-foreground group-hover:text-foreground shrink-0 ml-2" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
 												<path d="M5 12h14M12 5l7 7-7 7"></path>
 											</svg>
 										</a>
@@ -358,40 +358,40 @@ templ Home(data view.HomeData) {
 						<dl class="space-y-1.5 text-[12px]">
 							<div class="flex items-center justify-between">
 								<dt class="text-muted-foreground">Command palette</dt>
-								<dd class="font-mono"><kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">⌘K</kbd></dd>
+								<dd class="font-mono"><kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">⌘K</kbd></dd>
 							</div>
 							<div class="flex items-center justify-between">
 								<dt class="text-muted-foreground">New repository</dt>
 								<dd class="font-mono">
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">N</kbd>
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">N</kbd>
 									{ " " }
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">R</kbd>
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">R</kbd>
 								</dd>
 							</div>
 							<div class="flex items-center justify-between">
 								<dt class="text-muted-foreground">Go to issues</dt>
 								<dd class="font-mono">
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">G</kbd>
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">G</kbd>
 									{ " " }
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">I</kbd>
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">I</kbd>
 								</dd>
 							</div>
 							<div class="flex items-center justify-between">
 								<dt class="text-muted-foreground">Go to pulls</dt>
 								<dd class="font-mono">
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">G</kbd>
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">G</kbd>
 									{ " " }
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">P</kbd>
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">P</kbd>
 								</dd>
 							</div>
 							<div class="flex items-center justify-between">
 								<dt class="text-muted-foreground">Toggle theme</dt>
 								<dd class="font-mono">
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">⌘</kbd>
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">⌘</kbd>
 									{ " " }
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">⇧</kbd>
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">⇧</kbd>
 									{ " " }
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[11px]">L</kbd>
+									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">L</kbd>
 								</dd>
 							</div>
 						</dl>

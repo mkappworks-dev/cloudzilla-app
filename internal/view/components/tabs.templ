@@ -39,7 +39,7 @@ templ TabBar(tabs []Tab) {
 //	  <div class="ml-auto">…search field…</div>
 //	}
 templ Tabs(ariaLabel string) {
-	<nav aria-label={ ariaLabel } class="flex items-center gap-1 border-b border-border text-sm -mb-px">
+	<nav aria-label={ ariaLabel } class="flex items-center gap-1 border-b border-border text-sm">
 		{ children... }
 	</nav>
 }

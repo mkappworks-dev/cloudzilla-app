@@ -208,14 +208,14 @@ func ReleaseDetail(data view.ReleaseDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"ml-auto h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4\"></path><polyline points=\"7 10 12 15 17 10\"></polyline><line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"></line></svg> Download</a></li></ul></section></div><aside class=\"space-y-6\" aria-label=\"Release metadata\"><section aria-labelledby=\"rel-tag-heading\"><h2 id=\"rel-tag-heading\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Tag</h2><p><code class=\"font-mono px-2 py-0.5 border border-border bg-muted rounded text-[12px]\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" class=\"ml-auto h-7 px-2.5 border border-border rounded-md hover:bg-accent text-muted-foreground inline-flex items-center gap-1.5 text-[12px] shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4\"></path><polyline points=\"7 10 12 15 17 10\"></polyline><line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"></line></svg> Download</a></li></ul></section></div><aside class=\"space-y-6\" aria-label=\"Release metadata\"><section aria-labelledby=\"rel-tag-heading\"><h2 id=\"rel-tag-heading\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Tag</h2><p><code class=\"font-mono px-2 py-0.5 border border-border bg-muted rounded-sm text-[12px]\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(data.Release.TagName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 83, Col: 117}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/release_detail.templ`, Line: 83, Col: 120}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {

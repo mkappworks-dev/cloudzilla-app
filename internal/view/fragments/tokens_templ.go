@@ -64,14 +64,14 @@ func TokensList(data view.TokensListFragData) templ.Component {
 				}
 				if len(tok.Scopes) > 0 {
 					for _, scope := range tok.Scopes {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"inline-block bg-muted text-foreground text-xs px-2 py-0.5 rounded mr-1\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<span class=\"inline-block bg-muted text-foreground text-xs px-2 py-0.5 rounded-sm mr-1\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var3 string
 						templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(scope)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 30, Col: 102}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/fragments/tokens.templ`, Line: 30, Col: 105}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 						if templ_7745c5c3_Err != nil {
@@ -154,7 +154,7 @@ func TokensList(data view.TokensListFragData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" hx-target=\"#tokens-list\" hx-swap=\"outerHTML\" hx-confirm=\"Revoke this token?\" class=\"px-3 py-1 text-destructive border border-destructive/40 rounded hover:bg-destructive/10 transition-colors text-xs\">Revoke</button></td></tr>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" hx-target=\"#tokens-list\" hx-swap=\"outerHTML\" hx-confirm=\"Revoke this token?\" class=\"px-3 py-1 text-destructive border border-destructive/40 rounded-sm hover:bg-destructive/10 transition-colors text-xs\">Revoke</button></td></tr>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
