@@ -348,6 +348,11 @@ func (h *Handler) ApplySuggestion(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "comment is not a suggestion")
 		return
 	}
+	// A left-side line numbers the base file, but applying edits the head branch.
+	if comment.DiffSide != "right" {
+		writeError(w, http.StatusUnprocessableEntity, "only right-side suggestions can be applied")
+		return
+	}
 	if pr.State != "open" {
 		writeError(w, http.StatusUnprocessableEntity, "cannot apply suggestion to a closed or merged pull request")
 		return

@@ -33,6 +33,9 @@ func (s *PullLineCommentService) Create(ctx context.Context, owner, repoName str
 	if diffSide == "" {
 		diffSide = "right"
 	}
+	if diffSide != "left" && diffSide != "right" {
+		return nil, fmt.Errorf("diff_side must be left or right")
+	}
 	isSuggestion, suggestionBody := parseSuggestion(body)
 	c := &model.PullLineComment{
 		PullID:         pr.ID,
