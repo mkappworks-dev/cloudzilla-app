@@ -147,9 +147,6 @@ func TestGetPullDiff_BaseMovedOn(t *testing.T) {
 	if d.TotalAdded != 1 || d.TotalDeleted != 0 {
 		t.Errorf("totals = +%d -%d, want +1 -0", d.TotalAdded, d.TotalDeleted)
 	}
-	if d.CanFastForward || !d.CanThreeWayMerge {
-		t.Errorf("CanFastForward=%v CanThreeWayMerge=%v, want false and true", d.CanFastForward, d.CanThreeWayMerge)
-	}
 }
 
 func TestGetPullDiff_AfterMergingBaseIntoHead(t *testing.T) {
@@ -165,9 +162,6 @@ func TestGetPullDiff_AfterMergingBaseIntoHead(t *testing.T) {
 	if got, want := fileSummaries(d), []string{"a.txt +1 -0"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("files = %q, want %q", got, want)
 	}
-	if d.CanFastForward || !d.CanThreeWayMerge {
-		t.Errorf("CanFastForward=%v CanThreeWayMerge=%v, want false and true", d.CanFastForward, d.CanThreeWayMerge)
-	}
 }
 
 func TestGetPullDiff_UnrelatedHistoriesDiffTheTips(t *testing.T) {
@@ -182,8 +176,5 @@ func TestGetPullDiff_UnrelatedHistoriesDiffTheTips(t *testing.T) {
 	}
 	if got, want := fileSummaries(d), []string{"a.txt (deleted) +0 -1", "b.txt (new) +1 -0"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("files = %q, want %q", got, want)
-	}
-	if d.CanFastForward || d.CanThreeWayMerge {
-		t.Errorf("CanFastForward=%v CanThreeWayMerge=%v, want both false", d.CanFastForward, d.CanThreeWayMerge)
 	}
 }
