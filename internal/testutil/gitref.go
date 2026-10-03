@@ -15,6 +15,28 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
+// InitBareRepo creates a bare repo at dir for a test to push into over
+// go-git's file transport.
+func InitBareRepo(t *testing.T, dir string) *gogit.Repository {
+	t.Helper()
+	repo, err := gogit.PlainInit(dir, true)
+	if err != nil {
+		t.Fatalf("init bare repo: %v", err)
+	}
+	cfg, err := repo.Config()
+	if err != nil {
+		t.Fatalf("bare repo config: %v", err)
+	}
+	// The push runs the real git-receive-pack, which otherwise ends with a
+	// detached `git maintenance run --auto` that can still be repacking
+	// objects/ when the test reads it or t.TempDir cleanup removes it.
+	cfg.Raw.Section("receive").SetOption("autogc", "false")
+	if err := repo.SetConfig(cfg); err != nil {
+		t.Fatalf("set bare repo config: %v", err)
+	}
+	return repo
+}
+
 // WriteCommit stores a commit of an empty tree with the given parents.
 func WriteCommit(t *testing.T, st storer.EncodedObjectStorer, msg string, parents ...plumbing.Hash) plumbing.Hash {
 	t.Helper()

@@ -29,9 +29,7 @@ func seedBareRepo(t *testing.T, root, owner, name, branchName string) (*service.
 	if err := os.MkdirAll(filepath.Dir(bareDir), 0o755); err != nil {
 		t.Fatalf("mkdir owner: %v", err)
 	}
-	if _, err := gogit.PlainInit(bareDir, true); err != nil {
-		t.Fatalf("plain init bare: %v", err)
-	}
+	testutil.InitBareRepo(t, bareDir)
 
 	workDir := t.TempDir()
 	work, err := gogit.PlainInit(workDir, false)

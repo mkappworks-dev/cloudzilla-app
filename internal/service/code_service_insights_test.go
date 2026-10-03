@@ -12,6 +12,7 @@ import (
 	gitobj "github.com/go-git/go-git/v5/plumbing/object"
 
 	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 // Builds a bare repo whose only branch is main while its symbolic HEAD still points at a nonexistent master.
@@ -23,9 +24,7 @@ func newTestRepoStaleHEAD(t *testing.T, owner, name string) *CodeService {
 	if err := os.MkdirAll(filepath.Dir(bareDir), 0o755); err != nil {
 		t.Fatalf("mkdir owner: %v", err)
 	}
-	if _, err := gogit.PlainInit(bareDir, true); err != nil {
-		t.Fatalf("plain init bare: %v", err)
-	}
+	testutil.InitBareRepo(t, bareDir)
 
 	workDir := t.TempDir()
 	work, err := gogit.PlainInit(workDir, false)

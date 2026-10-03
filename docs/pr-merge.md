@@ -14,6 +14,8 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 
 **Conflict detection:** `mergeFiles` performs a pure tree-level three-way merge in memory — if the same path (a file, symlink or submodule pointer) was changed on both sides relative to the merge base, in content or in mode, all merge buttons are hidden and a conflict warning is shown. That includes a chmod on one side and an edit on the other, which `git merge` would combine. The developer must rebase locally and push. Only the merge methods write the merged tree, through `mergeTreesNoConflict`; viewing a PR writes nothing to the repo.
 
+A file, symlink or submodule on one side where the other side has a directory at the same path is a conflict too, as in `git merge`. When base adds the file `lib` and head adds `lib/x`, no path changed on both sides, but a tree can't hold two entries named `lib`.
+
 **History walks:** Viewing and merging a PR read only the history since base and head diverged, not all of either branch. `findMergeBase` and `isAncestor` (`merge_base.go`) are git's merge-base walk, exact under any clock skew. The Ahead/Behind counts and the Commits tab come from `commitRange`, which lists what `git rev-list a..b` does, in its order: under clock skew deeper than its slop, that can include commits base reaches. History made within one second, as scripts make it, can still be read to the root.
 
 ## Merge Flow
@@ -26,6 +28,8 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 6. On failure (conflict, missing branch, etc.) → 422 → `hx-on::response-error` fires alert. If a push moved the base branch mid-merge → 409 and the PR stays open (see below)
 
 **Concurrent pushes:** every server-side commit (merges, applied suggestions, web file commits, wiki edits) advances its branch through `gitref.Move`, a compare-and-swap against the tip it read. If a push moved the branch in between, the update is refused with `ErrRefMoved`, handlers answer 409 ("branch was updated while saving; reload and try again"), and the pushed commits stay. An unconditional write would be a force push that skips the `block_force_push` check, which only runs in receive-pack.
+
+**Tree order:** those commits write their trees through `writeTree`, which sorts entries the way git does: a directory compares as its name plus `/`, so `docs.md` comes before `docs/`. go-git refuses to encode a tree in any other order ("entries in tree are not sorted").
 
 ## CodeService Methods
 
@@ -43,6 +47,7 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 - `flattenTree(tree)` → `(map[string]mergeFile, error)` (private; every entry but directories, so symlinks and submodules survive a rebuild)
 - `changedPaths(from, to)` → `map[string]bool` (private; paths added, deleted, or changed in content or mode)
 - `buildTree(repo, files)` → `(plumbing.Hash, error)` (private; recursively encodes tree objects)
+- `hasPathUnderFile(files)` → `bool` (private; whether a path lies below another, such as `lib/x` below `lib`)
 
 `UpdatePull` gets the `GitAuthor` from `UserService.CommitAuthor`, which honours the merger's keep-email-private setting (see [api-reference](./api-reference.md#commit-email-privacy)).
 
