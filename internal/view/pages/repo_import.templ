@@ -34,7 +34,7 @@ templ RepoImport(data view.RepoImportData) {
 					<div x-data="{ open: false }" class="flex flex-col gap-3">
 						<button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'" aria-controls="import-credentials" class="self-start inline-flex items-center gap-1.5 text-[13px] text-primary hover:underline">
 							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false" class="transition-transform" :class="open && 'rotate-90'"><path d="M9 18l6-6-6-6"></path></svg>
-							The source needs a username and token
+							This repository needs credentials
 						</button>
 						<div id="import-credentials" x-show="open" x-cloak class="grid sm:grid-cols-2 gap-3">
 							<div>
@@ -45,7 +45,7 @@ templ RepoImport(data view.RepoImportData) {
 								<label for="import-token" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Access token</label>
 								<input id="import-token" name="auth_token" type="password" autocomplete="new-password" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
 							</div>
-							<p class="sm:col-span-2 text-[12px] text-muted-foreground/70">Used once for this import and never stored. A token with read access to the repository is enough.</p>
+							<p class="sm:col-span-2 text-[12px] text-muted-foreground/70">Used once for this import and not stored. A token with read access to the repository is enough.</p>
 						</div>
 					</div>
 
