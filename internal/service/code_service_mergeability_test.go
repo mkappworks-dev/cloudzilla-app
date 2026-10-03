@@ -13,6 +13,7 @@ import (
 	gitobj "github.com/go-git/go-git/v5/plumbing/object"
 
 	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 // mergeabilityTestRepo seeds a bare repo at <root>/<owner>/<name>.git via
@@ -29,20 +30,7 @@ func mergeabilityTestRepo(t *testing.T, owner, name string) (*CodeService, *gogi
 	if err := os.MkdirAll(filepath.Dir(bareDir), 0o755); err != nil {
 		t.Fatalf("mkdir owner: %v", err)
 	}
-	bare, err := gogit.PlainInit(bareDir, true)
-	if err != nil {
-		t.Fatalf("plain init bare: %v", err)
-	}
-	cfg, err := bare.Config()
-	if err != nil {
-		t.Fatalf("bare config: %v", err)
-	}
-	// Otherwise git-receive-pack leaves a detached `git maintenance run --auto`
-	// behind, which can repack objects/ after pushBranch returns.
-	cfg.Raw.Section("receive").SetOption("autogc", "false")
-	if err := bare.SetConfig(cfg); err != nil {
-		t.Fatalf("set bare config: %v", err)
-	}
+	testutil.InitBareRepo(t, bareDir)
 
 	workDir := t.TempDir()
 	work, err := gogit.PlainInit(workDir, false)

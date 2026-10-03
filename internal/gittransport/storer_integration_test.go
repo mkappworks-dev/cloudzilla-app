@@ -13,6 +13,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/server"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 // TestWrapForReceive_PushSucceedsThroughWrappedStorer is a transport smoke
@@ -30,10 +31,7 @@ import (
 func TestWrapForReceive_PushSucceedsThroughWrappedStorer(t *testing.T) {
 	// 1. Bare server repo that will receive the push.
 	serverDir := t.TempDir()
-	serverRepo, err := gogit.PlainInit(serverDir, true)
-	if err != nil {
-		t.Fatalf("PlainInit server: %v", err)
-	}
+	serverRepo := testutil.InitBareRepo(t, serverDir)
 
 	// 2. Seed the server with one commit via a non-bare working dir.
 	seedDir := t.TempDir()

@@ -15,6 +15,7 @@ import (
 
 	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 // commitSpec describes one commit to author: a set of files to write (path →
@@ -42,9 +43,7 @@ func writeBareRepo(t *testing.T, bareDir string, commits []commitSpec) {
 	if err := os.MkdirAll(filepath.Dir(bareDir), 0o755); err != nil {
 		t.Fatalf("mkdir owner: %v", err)
 	}
-	if _, err := gogit.PlainInit(bareDir, true); err != nil {
-		t.Fatalf("plain init bare: %v", err)
-	}
+	testutil.InitBareRepo(t, bareDir)
 
 	workDir := t.TempDir()
 	work, err := gogit.PlainInit(workDir, false)
