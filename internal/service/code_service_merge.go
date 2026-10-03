@@ -292,17 +292,7 @@ func buildTree(repo *gogit.Repository, files map[string]mergeFile) (plumbing.Has
 		})
 	}
 
-	// Merge and sort all entries lexicographically (git requirement).
-	all := append(subtreeEntries, entries...)
-	sort.Slice(all, func(i, j int) bool { return all[i].Name < all[j].Name })
-
-	tree := &object.Tree{Entries: all}
-	obj := repo.Storer.NewEncodedObject()
-	if err := tree.Encode(obj); err != nil {
-		return plumbing.ZeroHash, err
-	}
-	h, err := repo.Storer.SetEncodedObject(obj)
-	return h, err
+	return writeTree(repo, append(subtreeEntries, entries...))
 }
 
 // changedPaths returns the paths added, deleted, or changed in content or mode
@@ -373,7 +363,27 @@ func mergeFiles(mergeBase, base, head *object.Commit) (map[string]mergeFile, boo
 			delete(merged, p) // deleted in head
 		}
 	}
+
+	// Conflict: a non-directory entry on one side where the other side has a directory.
+	if hasPathUnderFile(merged) {
+		return nil, false, nil
+	}
 	return merged, true, nil
+}
+
+// hasPathUnderFile reports whether a path in files lies below another, as
+// lib/x below lib. A tree can't hold both: it would need two entries named lib.
+func hasPathUnderFile(files map[string]mergeFile) bool {
+	for p := range files {
+		for i := range len(p) {
+			if p[i] == '/' {
+				if _, ok := files[p[:i]]; ok {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // mergeTreesNoConflict writes mergeFiles' result into repo as a tree.

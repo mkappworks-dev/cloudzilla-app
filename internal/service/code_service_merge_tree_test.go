@@ -131,7 +131,7 @@ func TestPullMerges_KeepModeChanges(t *testing.T) {
 func TestPullMerges_RefuseConflictingEdits(t *testing.T) {
 	conflicts := []struct {
 		name string
-		// edit makes main and feature change the same path, and returns main's tip.
+		// edit makes conflicting changes on main and feature, and returns main's tip.
 		edit func(t *testing.T, r *tipTestRepo) plumbing.Hash
 	}{
 		{"both add a file", func(t *testing.T, r *tipTestRepo) plumbing.Hash {
@@ -145,12 +145,31 @@ func TestPullMerges_RefuseConflictingEdits(t *testing.T) {
 			r.commit(t, "feature", "a.txt", "a\nb\n")
 			return r.commitEntry(t, "main", "a.txt", filemode.Executable, r.blob(t, "a\n"))
 		}},
+		{"file against directory", func(t *testing.T, r *tipTestRepo) plumbing.Hash {
+			r.commit(t, "feature", "lib/x.go", "x\n")
+			return r.commit(t, "main", "lib", "lib\n")
+		}},
+		{"directory against file", func(t *testing.T, r *tipTestRepo) plumbing.Hash {
+			r.commit(t, "feature", "lib", "lib\n")
+			return r.commit(t, "main", "lib/x.go", "x\n")
+		}},
+		{"nested file against directory", func(t *testing.T, r *tipTestRepo) plumbing.Hash {
+			r.commit(t, "feature", "src/lib/x.go", "x\n")
+			return r.commit(t, "main", "src/lib", "lib\n")
+		}},
+		{"submodule against directory", func(t *testing.T, r *tipTestRepo) plumbing.Hash {
+			r.commit(t, "feature", "deps/lib/x.go", "x\n")
+			return r.commitEntry(t, "main", "deps/lib", filemode.Submodule, mainLib)
+		}},
 	}
 	for _, c := range conflicts {
 		for _, tt := range pullMerges {
 			t.Run(c.name+"/"+tt.name, func(t *testing.T) {
 				r := newTipTestRepo(t)
 				tip := c.edit(t, r)
+				if m, err := r.svc.Mergeability(context.Background(), r.owner, r.name, "main", "feature"); err != nil || !m.HasConflicts {
+					t.Errorf("Mergeability = %+v, %v; want conflicts", m, err)
+				}
 				if err := tt.merge(r); err == nil || !strings.Contains(err.Error(), "conflicting changes") {
 					t.Errorf("err = %v, want a conflict error", err)
 				}
