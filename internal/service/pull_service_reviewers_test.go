@@ -32,9 +32,7 @@ func seedRepoWithCODEOWNERS(t *testing.T, reposRoot, owner, name, featureBranch,
 	if err := os.MkdirAll(filepath.Dir(bareDir), 0o755); err != nil {
 		t.Fatalf("mkdir owner dir: %v", err)
 	}
-	if _, err := gogit.PlainInit(bareDir, true); err != nil {
-		t.Fatalf("init bare repo: %v", err)
-	}
+	testutil.InitBareRepo(t, bareDir)
 
 	workDir := t.TempDir()
 	work, err := gogit.PlainInit(workDir, false)

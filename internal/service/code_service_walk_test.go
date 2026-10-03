@@ -14,6 +14,7 @@ import (
 	gitobj "github.com/go-git/go-git/v5/plumbing/object"
 
 	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
 
 func newTestRepoWithFilesAt(t *testing.T, root, owner, name string, files map[string]string) string {
@@ -23,9 +24,7 @@ func newTestRepoWithFilesAt(t *testing.T, root, owner, name string, files map[st
 	if err := os.MkdirAll(filepath.Dir(bareDir), 0o755); err != nil {
 		t.Fatalf("mkdir owner: %v", err)
 	}
-	if _, err := gogit.PlainInit(bareDir, true); err != nil {
-		t.Fatalf("plain init bare: %v", err)
-	}
+	testutil.InitBareRepo(t, bareDir)
 
 	workDir := t.TempDir()
 	work, err := gogit.PlainInit(workDir, false)
