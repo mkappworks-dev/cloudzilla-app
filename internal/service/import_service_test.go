@@ -168,10 +168,9 @@ func TestImport_StartEvictsOldFinishedJobs(t *testing.T) {
 	}
 }
 
-func TestImport_LimitsActiveImportsPerUser(t *testing.T) {
-	imports, _, db, _ := newImportEnv(t, true)
-	ctx := context.Background()
-	uid, uname := seedImportUser(t, db)
+// gatedImportSource serves a repository that answers nothing until release is called.
+func gatedImportSource(t *testing.T) (cloneURL string, release func()) {
+	t.Helper()
 	handler := testutil.GitHTTPHandler(t, testutil.SeedSourceRepo(t).Dir, "", "")
 	gate := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -179,22 +178,63 @@ func TestImport_LimitsActiveImportsPerUser(t *testing.T) {
 		handler.ServeHTTP(w, r)
 	}))
 	t.Cleanup(srv.Close)
-	release := sync.OnceFunc(func() { close(gate) })
+	release = sync.OnceFunc(func() { close(gate) })
 	t.Cleanup(release) // before srv.Close, which waits for the held requests
+	return srv.URL + "/source.git", release
+}
+
+func TestImport_LimitsActiveImportsPerUser(t *testing.T) {
+	imports, _, db, _ := newImportEnv(t, true)
+	ctx := context.Background()
+	uid, uname := seedImportUser(t, db)
+	cloneURL, release := gatedImportSource(t)
 
 	var ids []string
 	for i := range 5 {
-		job, err := imports.Start(ctx, uid, uname, service.ImportRequest{CloneURL: srv.URL + "/source.git", Name: fmt.Sprintf("held%d", i)})
+		job, err := imports.Start(ctx, uid, uname, service.ImportRequest{CloneURL: cloneURL, Name: fmt.Sprintf("held%d", i)})
 		if err != nil {
 			t.Fatalf("import %d: %v", i, err)
 		}
 		ids = append(ids, job.ID)
 	}
-	if _, err := imports.Start(ctx, uid, uname, service.ImportRequest{CloneURL: srv.URL + "/source.git", Name: "sixth"}); !errors.Is(err, service.ErrTooManyImports) {
+	if _, err := imports.Start(ctx, uid, uname, service.ImportRequest{CloneURL: cloneURL, Name: "sixth"}); !errors.Is(err, service.ErrTooManyImports) {
 		t.Errorf("sixth import: err = %v, want ErrTooManyImports", err)
 	}
 	release()
 	for _, id := range ids {
 		waitImport(t, imports, uid, id)
+	}
+}
+
+func TestImport_FailsWhenTheNameIsTakenMidImport(t *testing.T) {
+	imports, repoSvc, db, root := newImportEnv(t, true)
+	ctx := context.Background()
+	uid, uname := seedImportUser(t, db)
+	cloneURL, release := gatedImportSource(t)
+
+	job, err := imports.Start(ctx, uid, uname, service.ImportRequest{CloneURL: cloneURL, Name: "contested"})
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	created, err := repoSvc.Create(ctx, uid, uname, "contested", "", false, service.RepoInitOptions{})
+	if err != nil {
+		t.Fatalf("create while the import is held: %v", err)
+	}
+	release()
+
+	got := waitImport(t, imports, uid, job.ID)
+	if want := uname + "/contested was created while the import ran."; got.Status != service.ImportFailed || got.Error != want {
+		t.Errorf("got %s %q, want failed %q", got.Status, got.Error, want)
+	}
+	var rows int
+	var id int64
+	if err := db.QueryRowContext(ctx, `SELECT count(*), coalesce(min(id), 0) FROM repositories WHERE owner_name = $1 AND name = $2`, uname, "contested").Scan(&rows, &id); err != nil {
+		t.Fatalf("count rows: %v", err)
+	}
+	if rows != 1 || id != created.ID {
+		t.Errorf("repositories for %s/contested: %d rows, id %d; want only the created repo, id %d", uname, rows, id, created.ID)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".import-tmp", job.ID)); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("temp clone left behind: %v", err)
 	}
 }
