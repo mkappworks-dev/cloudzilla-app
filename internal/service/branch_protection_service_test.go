@@ -1,12 +1,19 @@
 package service_test
 
-// Integration tests for BranchProtectionService.CheckPush and CheckMerge.
+// Integration tests for BranchProtectionService.CheckPush, CheckPushCommand
+// and CheckMerge.
 // All tests require TEST_DATABASE_DSN and skip otherwise.
 
 import (
 	"context"
 	"errors"
 	"testing"
+
+	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
+	"github.com/go-git/go-git/v5/storage"
+	"github.com/go-git/go-git/v5/storage/memory"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -117,6 +124,59 @@ func TestCheckPush_UnmatchedBranch_Passes(t *testing.T) {
 	err := svc.CheckPush(context.Background(), repoID, "feature/my-branch", true)
 	if err != nil {
 		t.Errorf("push to unmatched branch must pass, got %v", err)
+	}
+}
+
+type readCounter struct {
+	storage.Storer
+	reads int
+}
+
+func (c *readCounter) EncodedObject(t plumbing.ObjectType, h plumbing.Hash) (plumbing.EncodedObject, error) {
+	c.reads++
+	return c.Storer.EncodedObject(t, h)
+}
+
+// Telling a force push from a fast-forward walks history inside receive-pack,
+// so a push that no rule blocks as a force push mustn't pay for the walk.
+func TestCheckPushCommand_ReadsHistoryOnlyForARuleThatBlocksForcePushes(t *testing.T) {
+	svc, repoID := newBPSvc(t)
+	seedBranchProtection(t, svc, &model.BranchProtection{RepoID: repoID, Pattern: "main", BlockForcePush: true})
+	seedBranchProtection(t, svc, &model.BranchProtection{RepoID: repoID, Pattern: "release", RequireReviewCount: 1})
+	base, err := gogit.Init(memory.NewStorage(), nil)
+	if err != nil {
+		t.Fatalf("init repo: %v", err)
+	}
+	fork := testutil.WriteCommit(t, base.Storer, "Fork")
+	draft := testutil.WriteCommit(t, base.Storer, "Draft", fork)
+	amended := testutil.WriteCommit(t, base.Storer, "Amended draft", fork)
+
+	tests := []struct {
+		name, branch string
+		want         error
+		readsHistory bool
+	}{
+		{"no rule", "topic", nil, false},
+		{"rule allowing force pushes", "release", nil, false},
+		// Proves the counter sees the walk; without it, zero reads proves nothing.
+		{"rule blocking force pushes", "main", service.ErrForcePushBlocked, true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			counter := &readCounter{Storer: base.Storer}
+			repo, err := gogit.Open(counter, nil)
+			if err != nil {
+				t.Fatalf("open repo: %v", err)
+			}
+			cmd := &packp.Command{Name: plumbing.NewBranchReferenceName(tc.branch), Old: draft, New: amended}
+
+			if err := svc.CheckPushCommand(context.Background(), repoID, repo, cmd); !errors.Is(err, tc.want) {
+				t.Errorf("CheckPushCommand = %v, want %v", err, tc.want)
+			}
+			if got := counter.reads > 0; got != tc.readsHistory {
+				t.Errorf("read %d objects, want history read = %v", counter.reads, tc.readsHistory)
+			}
+		})
 	}
 }
 
