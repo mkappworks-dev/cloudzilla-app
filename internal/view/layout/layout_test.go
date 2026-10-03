@@ -7,6 +7,7 @@ import (
 	"testing/fstest"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/assets"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
 )
@@ -39,5 +40,27 @@ func TestBase_ReferencesAssetsByContentHash(t *testing.T) {
 		if !strings.Contains(page.String(), want) {
 			t.Errorf("layout lacks %s", want)
 		}
+	}
+}
+
+func TestBase_UserMenuLinksAdminForSuperadminOnly(t *testing.T) {
+	const adminMenuItem = `href="/admin/settings" role="menuitem"`
+	for _, tc := range []struct {
+		name       string
+		superadmin bool
+	}{
+		{"superadmin", true},
+		{"user", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			base := view.BasePage{CurrentUser: &middleware.Claims{Username: "alice", IsSuperadmin: tc.superadmin}}
+			var page strings.Builder
+			if err := layout.Base(base, "Home").Render(context.Background(), &page); err != nil {
+				t.Fatalf("render: %v", err)
+			}
+			if got := strings.Contains(page.String(), adminMenuItem); got != tc.superadmin {
+				t.Errorf("user menu links admin = %v, want %v", got, tc.superadmin)
+			}
+		})
 	}
 }

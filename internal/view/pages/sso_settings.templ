@@ -1,6 +1,10 @@
 package pages
 
 import (
+	"strconv"
+	"strings"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -8,13 +12,14 @@ import (
 
 templ SSOSettings(data view.SSOSettingsData) {
 	@layout.Base(data.BasePage, "SSO Settings") {
-		<div class="space-y-8 max-w-3xl">
-			<div class="flex items-center justify-between">
-				<div>
-					<h1 class="text-3xl font-semibold tracking-tight">Single Sign-On</h1>
-					<p class="text-muted-foreground text-sm mt-1">Configure LDAP and SAML authentication providers.</p>
-				</div>
-				<a href="/admin/settings" class="text-sm text-foreground hover:underline">Back to Admin</a>
+		<div class="space-y-6">
+			if data.Confirm.Any() {
+				@components.ConfirmIdentityDialog(data.Confirm)
+			}
+			@adminTabs("/admin/sso")
+			<div>
+				<h1 class="text-2xl font-semibold tracking-tight">Single Sign-On</h1>
+				<p class="text-muted-foreground text-sm mt-1">Configure LDAP and SAML authentication providers.</p>
 			</div>
 			if data.Success != "" {
 				<div class="p-4 border border-success/40 bg-success/10 rounded-md text-success text-sm">{ data.Success }</div>
@@ -34,35 +39,29 @@ templ SSOSettings(data view.SSOSettingsData) {
 								Authenticate users via LDAP simple bind.
 							}
 						</div>
-						if data.LDAPConfig != nil && data.LDAPConfig.Enabled {
-							@components.Badge(components.BadgeSuccess) {
-								Enabled
-							}
-						} else {
-							@components.Badge(components.BadgeSecondary) {
-								Disabled
-							}
-						}
+						@ssoSwitch("ldap", "LDAP", data.LDAPConfig)
 					</div>
 				}
 				@components.CardContent() {
-					<form method="POST" action="/admin/sso" data-toast="LDAP settings saved" class="space-y-4">
+					<form id="sso-ldap-form" method="POST" action="/admin/sso" data-toast="LDAP settings saved" data-confirm-identity="Save LDAP Settings" class="space-y-4">
 						<input type="hidden" name="provider" value="ldap"/>
 						<div class="grid grid-cols-2 gap-4">
 							<div class="space-y-1.5">
 								<label for="ldap_host" class="block text-sm font-medium text-foreground">Host</label>
 								if data.LDAPConfig != nil {
 									@components.Input(templ.Attributes{
-										"id":    "ldap_host",
-										"type":  "text",
-										"name":  "ldap_host",
-										"value": data.LDAPConfig.Config["host"],
+										"id":                "ldap_host",
+										"type":              "text",
+										"name":              "ldap_host",
+										"value":             data.LDAPConfig.Config["host"],
+										"data-sso-required": ssoFieldLabels[model.LDAPKeyHost],
 									})
 								} else {
 									@components.Input(templ.Attributes{
-										"id":   "ldap_host",
-										"type": "text",
-										"name": "ldap_host",
+										"id":                "ldap_host",
+										"type":              "text",
+										"name":              "ldap_host",
+										"data-sso-required": ssoFieldLabels[model.LDAPKeyHost],
 									})
 								}
 							</div>
@@ -109,49 +108,45 @@ templ SSOSettings(data view.SSOSettingsData) {
 							<label for="ldap_bind_dn_tmpl" class="block text-sm font-medium text-foreground">Bind DN Template</label>
 							if data.LDAPConfig != nil {
 								@components.Input(templ.Attributes{
-									"id":          "ldap_bind_dn_tmpl",
-									"type":        "text",
-									"name":        "ldap_bind_dn_tmpl",
-									"value":       data.LDAPConfig.Config["bind_dn_tmpl"],
-									"placeholder": "uid=%s,ou=people,dc=example,dc=com",
+									"id":                "ldap_bind_dn_tmpl",
+									"type":              "text",
+									"name":              "ldap_bind_dn_tmpl",
+									"value":             data.LDAPConfig.Config["bind_dn_tmpl"],
+									"placeholder":       "uid=%s,ou=people,dc=example,dc=com",
+									"data-sso-required": ssoFieldLabels[model.LDAPKeyBindDNTmpl],
 								})
 							} else {
 								@components.Input(templ.Attributes{
-									"id":          "ldap_bind_dn_tmpl",
-									"type":        "text",
-									"name":        "ldap_bind_dn_tmpl",
-									"placeholder": "uid=%s,ou=people,dc=example,dc=com",
+									"id":                "ldap_bind_dn_tmpl",
+									"type":              "text",
+									"name":              "ldap_bind_dn_tmpl",
+									"placeholder":       "uid=%s,ou=people,dc=example,dc=com",
+									"data-sso-required": ssoFieldLabels[model.LDAPKeyBindDNTmpl],
 								})
 							}
 						</div>
-						<div class="flex items-center gap-2">
-							if data.LDAPConfig != nil && data.LDAPConfig.Config["use_tls"] == "true" {
-								<input type="checkbox" id="ldap_use_tls" name="ldap_use_tls" value="true" checked class="h-4 w-4 rounded-sm border-input accent-foreground"/>
-							} else {
-								<input type="checkbox" id="ldap_use_tls" name="ldap_use_tls" value="true" class="h-4 w-4 rounded-sm border-input accent-foreground"/>
-							}
-							<label for="ldap_use_tls" class="text-sm text-foreground">Use TLS</label>
-						</div>
+						<label class="flex w-fit items-center gap-2 text-sm text-foreground cursor-pointer">
+							@components.Checkbox(templ.Attributes{
+								"id":      "ldap_use_tls",
+								"name":    "ldap_use_tls",
+								"value":   "true",
+								"checked": data.LDAPConfig != nil && data.LDAPConfig.Config["use_tls"] == "true",
+							})
+							<span>Use TLS</span>
+						</label>
 						if data.LDAPConfig != nil && data.LDAPConfig.Enabled && data.LDAPConfig.Config["use_tls"] != "true" {
 							<p class="text-xs text-warning border border-warning/40 bg-warning/10 rounded-sm px-3 py-2">
 								Warning: TLS is disabled. LDAP credentials will be transmitted in plaintext. Enable TLS or use an ldaps:// host for production use.
 							</p>
 						}
-						<div class="flex items-center gap-2">
-							if data.LDAPConfig != nil && data.LDAPConfig.Enabled {
-								<input type="checkbox" id="ldap_enabled" name="enabled" value="true" checked class="h-4 w-4 rounded-sm border-input accent-foreground"/>
-							} else {
-								<input type="checkbox" id="ldap_enabled" name="enabled" value="true" class="h-4 w-4 rounded-sm border-input accent-foreground"/>
-							}
-							<label for="ldap_enabled" class="text-sm text-foreground">Enable LDAP authentication</label>
-						</div>
-						<div class="flex flex-wrap items-end gap-3">
-							@components.ConfirmFields("sso-ldap", data.Confirm, true)
-						</div>
-						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+					</form>
+				}
+				@components.CardFooter() {
+					<div class="ml-auto">
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "sso-ldap-form", "data-sso-save": true}) {
 							Save LDAP Settings
 						}
-					</form>
+					</div>
 				}
 			}
 			<!-- SAML Configuration -->
@@ -166,110 +161,220 @@ templ SSOSettings(data view.SSOSettingsData) {
 								Authenticate users via SAML 2.0 HTTP-POST binding.
 							}
 						</div>
-						if data.SAMLConfig != nil && data.SAMLConfig.Enabled {
-							@components.Badge(components.BadgeSuccess) {
-								Enabled
-							}
-						} else {
-							@components.Badge(components.BadgeSecondary) {
-								Disabled
-							}
-						}
+						@ssoSwitch("saml", "SAML", data.SAMLConfig)
 					</div>
 				}
 				@components.CardContent() {
-					<form method="POST" action="/admin/sso" data-toast="SAML settings saved" class="space-y-4">
+					<form id="sso-saml-form" method="POST" action="/admin/sso" data-toast="SAML settings saved" data-confirm-identity="Save SAML Settings" class="space-y-4">
 						<input type="hidden" name="provider" value="saml"/>
 						<div class="space-y-1.5">
 							<label for="saml_entity_id" class="block text-sm font-medium text-foreground">Entity ID</label>
 							if data.SAMLConfig != nil {
 								@components.Input(templ.Attributes{
-									"id":    "saml_entity_id",
-									"type":  "text",
-									"name":  "saml_entity_id",
-									"value": data.SAMLConfig.Config["entity_id"],
+									"id":                "saml_entity_id",
+									"type":              "text",
+									"name":              "saml_entity_id",
+									"value":             data.SAMLConfig.Config["entity_id"],
+									"data-sso-required": ssoFieldLabels[model.SAMLKeyEntityID],
 								})
 							} else {
 								@components.Input(templ.Attributes{
-									"id":   "saml_entity_id",
-									"type": "text",
-									"name": "saml_entity_id",
+									"id":                "saml_entity_id",
+									"type":              "text",
+									"name":              "saml_entity_id",
+									"data-sso-required": ssoFieldLabels[model.SAMLKeyEntityID],
 								})
 							}
 						</div>
 						<div class="space-y-1.5">
-							<label for="saml_metadata_url" class="block text-sm font-medium text-foreground">IdP SSO URL / Metadata URL</label>
-							if data.SAMLConfig != nil {
-								@components.Input(templ.Attributes{
-									"id":    "saml_metadata_url",
-									"type":  "text",
-									"name":  "saml_metadata_url",
-									"value": data.SAMLConfig.Config["metadata_url"],
-								})
-							} else {
-								@components.Input(templ.Attributes{
-									"id":   "saml_metadata_url",
-									"type": "text",
-									"name": "saml_metadata_url",
-								})
-							}
+							<label for="saml_sso_url" class="block text-sm font-medium text-foreground">IdP SSO URL</label>
+							@components.Input(templ.Attributes{
+								"id":                "saml_sso_url",
+								"type":              "text",
+								"name":              "saml_sso_url",
+								"value":             samlSSOURL(data.SAMLConfig),
+								"data-sso-required": ssoFieldLabels[model.SAMLKeySSOURL],
+							})
 						</div>
 						<div class="space-y-1.5">
-							<label for="saml_acs_url" class="block text-sm font-medium text-foreground">Assertion Consumer Service URL</label>
+							<label for="saml_acs_url" class="block text-sm font-medium text-foreground">Assertion Consumer Service (ACS) URL</label>
 							if data.SAMLConfig != nil {
 								@components.Input(templ.Attributes{
-									"id":          "saml_acs_url",
-									"type":        "text",
-									"name":        "saml_acs_url",
-									"value":       data.SAMLConfig.Config["acs_url"],
-									"placeholder": "https://yourdomain/auth/saml/callback",
+									"id":                "saml_acs_url",
+									"type":              "text",
+									"name":              "saml_acs_url",
+									"value":             data.SAMLConfig.Config["acs_url"],
+									"placeholder":       "https://yourdomain/auth/saml/callback",
+									"data-sso-required": ssoFieldLabels[model.SAMLKeyACSURL],
 								})
 							} else {
 								@components.Input(templ.Attributes{
-									"id":          "saml_acs_url",
-									"type":        "text",
-									"name":        "saml_acs_url",
-									"placeholder": "https://yourdomain/auth/saml/callback",
+									"id":                "saml_acs_url",
+									"type":              "text",
+									"name":              "saml_acs_url",
+									"placeholder":       "https://yourdomain/auth/saml/callback",
+									"data-sso-required": ssoFieldLabels[model.SAMLKeyACSURL],
 								})
 							}
 						</div>
 						<div class="space-y-1.5">
 							<label for="saml_idp_cert" class="block text-sm font-medium text-foreground">IdP Certificate (base64, no headers)</label>
 							if data.SAMLConfig != nil {
-								<textarea id="saml_idp_cert" name="saml_idp_cert" rows="4" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-xs placeholder:text-muted-foreground">{ data.SAMLConfig.Config["idp_cert"] }</textarea>
+								<textarea id="saml_idp_cert" name="saml_idp_cert" data-sso-required={ ssoFieldLabels[model.SAMLKeyCert] } rows="4" class="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm font-mono shadow-xs placeholder:text-muted-foreground">{ data.SAMLConfig.Config["idp_cert"] }</textarea>
 							} else {
 								@components.Textarea(templ.Attributes{
-									"id":    "saml_idp_cert",
-									"name":  "saml_idp_cert",
-									"rows":  "4",
-									"class": "font-mono",
+									"id":                "saml_idp_cert",
+									"name":              "saml_idp_cert",
+									"rows":              "4",
+									"class":             "font-mono",
+									"data-sso-required": ssoFieldLabels[model.SAMLKeyCert],
 								})
-							}
-						</div>
-						<div class="flex items-center gap-2">
-							if data.SAMLConfig != nil && data.SAMLConfig.Enabled {
-								<input type="checkbox" id="saml_enabled" name="enabled" value="true" checked class="h-4 w-4 rounded-sm border-input accent-foreground"/>
-							} else {
-								<input type="checkbox" id="saml_enabled" name="enabled" value="true" class="h-4 w-4 rounded-sm border-input accent-foreground"/>
-							}
-							<label for="saml_enabled" class="text-sm text-foreground">Enable SAML authentication</label>
-						</div>
-						<div class="flex gap-3">
-							<div class="flex flex-wrap items-end gap-3">
-								@components.ConfirmFields("sso-saml", data.Confirm, true)
-							</div>
-							@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
-								Save SAML Settings
-							}
-							if data.SAMLConfig != nil && data.SAMLConfig.Enabled {
-								@components.LinkButton("/auth/saml/metadata", components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"target": "_blank"}) {
-									View SP Metadata
-								}
 							}
 						</div>
 					</form>
 				}
+				@components.CardFooter() {
+					<div class="ml-auto flex items-center gap-2">
+						if data.SAMLConfig != nil && data.SAMLConfig.Enabled {
+							@components.LinkButton("/auth/saml/metadata", components.ButtonOutline, components.ButtonSizeDefault, templ.Attributes{"target": "_blank"}) {
+								View SP Metadata
+							}
+						}
+						@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "form": "sso-saml-form", "data-sso-save": true}) {
+							Save SAML Settings
+						}
+					</div>
+				}
 			}
 		</div>
+		<script>
+			(function () {
+				var READY = ['ring-2', 'ring-switch', 'ring-offset-2', 'ring-offset-card'];
+				document.querySelectorAll('[data-sso-needs]').forEach(function (hint) {
+					var form = document.getElementById(hint.getAttribute('data-sso-needs'));
+					var save = document.querySelector('[data-sso-save][form="' + form.id + '"]');
+					var name = hint.getAttribute('data-sso-name');
+					function update() {
+						var missing = Array.prototype.filter.call(form.querySelectorAll('[data-sso-required]'), function (f) { return !f.value.trim(); })
+							.map(function (f) { return f.getAttribute('data-sso-required'); });
+						var text = missing.length ? 'Fill in ' + joinLabels(missing) + ', then save' : 'Save ' + name + ' Settings to turn this on';
+						// aria-live reads every change, so only write when the words differ.
+						if (hint.textContent !== text) hint.textContent = text;
+						READY.forEach(function (c) { save.classList.toggle(c, !missing.length); });
+					}
+					form.addEventListener('input', update);
+					update();
+				});
+				function joinLabels(labels) {
+					return labels.length < 2 ? labels.join('') : labels.slice(0, -1).join(', ') + ' and ' + labels[labels.length - 1];
+				}
+			})();
+		</script>
 	}
+}
+
+// ssoSwitch turns a provider on or off by itself, confirmed like the settings.
+// It can't turn on until cfg is Ready, but a provider that's on can always go off.
+templ ssoSwitch(provider, name string, cfg *model.SSOConfig) {
+	<div class="flex items-center gap-3">
+		if !cfg.Ready() {
+			<span
+				id={ provider + "-switch-needs" }
+				data-sso-needs={ "sso-" + provider + "-form" }
+				data-sso-name={ name }
+				aria-live="polite"
+				class="text-[12px] text-muted-foreground text-right"
+			>{ ssoNeedsText(provider, cfg) }</span>
+		}
+		if cfg.Ready() || (cfg != nil && cfg.Enabled) {
+			<form
+				hx-post={ "/api/admin/sso/" + provider + "/enabled" }
+				hx-swap="none"
+				hx-on::after:request="if(event.target===this&&ctx.response.status>=400){this.reset();}"
+				data-toast={ ssoSwitchToast(name, cfg.Enabled) }
+				data-confirm-identity={ ssoSwitchAction(name, cfg.Enabled) }
+				data-confirm-reset
+			>
+				<input type="hidden" name="enabled" value={ strconv.FormatBool(!cfg.Enabled) }/>
+				<label class="flex items-center cursor-pointer">
+					<span class="sr-only">{ "Enable " + name + " authentication" }</span>
+					@components.Switch(ssoSwitchAttrs(provider, cfg))
+				</label>
+			</form>
+		} else {
+			<label class="flex items-center">
+				<span class="sr-only">{ "Enable " + name + " authentication" }</span>
+				@components.Switch(templ.Attributes{
+					"id":               provider + "_enabled",
+					"disabled":         true,
+					"aria-describedby": provider + "-switch-needs",
+				})
+			</label>
+		}
+	</div>
+}
+
+// ssoFieldLabels name each required setting as its field's label does, so the
+// hint points at fields people can find; the page script reads them back.
+var ssoFieldLabels = map[string]string{
+	model.LDAPKeyHost:       "Host",
+	model.LDAPKeyBindDNTmpl: "Bind DN Template",
+	model.SAMLKeyEntityID:   "Entity ID",
+	model.SAMLKeySSOURL:     "IdP SSO URL",
+	model.SAMLKeyACSURL:     "ACS URL",
+	model.SAMLKeyCert:       "IdP Certificate",
+}
+
+// ssoNeedsText is the hint until the page script takes over, which must phrase
+// it the same way.
+func ssoNeedsText(provider string, cfg *model.SSOConfig) string {
+	var saved map[string]string
+	if cfg != nil {
+		saved = cfg.Config
+	}
+	var labels []string
+	for _, key := range model.SSOMissingSettings(provider, saved) {
+		labels = append(labels, ssoFieldLabels[key])
+	}
+	return "Fill in " + joinLabels(labels) + ", then save"
+}
+
+func joinLabels(labels []string) string {
+	if len(labels) < 2 {
+		return strings.Join(labels, "")
+	}
+	return strings.Join(labels[:len(labels)-1], ", ") + " and " + labels[len(labels)-1]
+}
+
+func ssoSwitchAction(name string, on bool) string {
+	if on {
+		return "Turn off " + name
+	}
+	return "Turn on " + name
+}
+
+func ssoSwitchToast(name string, on bool) string {
+	if on {
+		return name + " turned off"
+	}
+	return name + " turned on"
+}
+
+func ssoSwitchAttrs(provider string, cfg *model.SSOConfig) templ.Attributes {
+	attrs := templ.Attributes{"id": provider + "_enabled", "checked": cfg.Enabled, "onchange": "this.form.requestSubmit()"}
+	if !cfg.Ready() {
+		attrs["aria-describedby"] = provider + "-switch-needs"
+	}
+	return attrs
+}
+
+// samlSSOURL falls back to metadata_url, where this field saved the URL before.
+func samlSSOURL(cfg *model.SSOConfig) string {
+	if cfg == nil {
+		return ""
+	}
+	if u := cfg.Config[model.SAMLKeySSOURL]; u != "" {
+		return u
+	}
+	return cfg.Config[model.SAMLKeyMetadataURL]
 }

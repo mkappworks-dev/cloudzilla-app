@@ -65,8 +65,13 @@ script startProviderSignIn(provider string) {
 
 // ConfirmFields asks for the factors in f.
 templ ConfirmFields(idPrefix string, f ConfirmFactors, required bool) {
+	@confirmFields(idPrefix, f, required, false)
+}
+
+// inDialog gives the password its own full-width row and a show/hide toggle.
+templ confirmFields(idPrefix string, f ConfirmFactors, required, inDialog bool) {
 	if f.Password || f.Directory {
-		<div class="min-w-0">
+		<div class={ "min-w-0", templ.KV("basis-full", inDialog) }>
 			<label for={ idPrefix + "-password" } class="block text-[12px] font-medium text-muted-foreground mb-1.5">
 				if f.Directory {
 					Directory password
@@ -74,7 +79,11 @@ templ ConfirmFields(idPrefix string, f ConfirmFactors, required bool) {
 					Current password
 				}
 			</label>
-			<input id={ idPrefix + "-password" } name="password" type="password" required?={ required } autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+			if inDialog {
+				@PasswordInput(templ.Attributes{"id": idPrefix + "-password", "name": "password", "required": required, "autocomplete": "current-password"})
+			} else {
+				<input id={ idPrefix + "-password" } name="password" type="password" required?={ required } autocomplete="current-password" class="h-9 w-56 max-w-full bg-background border border-border rounded-md px-3 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+			}
 		</div>
 	}
 	if f.Code {

@@ -14,6 +14,7 @@
   --color-border-strong: hsl(var(--border-strong));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  --color-switch: hsl(var(--switch));
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-primary: hsl(var(--primary));
@@ -141,6 +142,7 @@
     --border-strong: 240 5.9% 70%;
     --input: 240 5.9% 88%;
     --ring: 222 88% 56%;
+    --switch: 212.4 100% 47.6%; /* Vercel Geist's toggle blue, #0070F3, in both themes, so .dark leaves it alone */
 
     --radius: 0.375rem;
   }
