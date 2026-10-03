@@ -47,7 +47,7 @@ func Checkbox(attrs templ.Attributes) templ.Component {
 }
 
 // A native checkbox so screen readers announce a switch and read on/off from `checked`. Wrap in a <label>, as with Checkbox.
-// dark:peer-checked:bg-ring is not redundant: dark:bg-border-strong is emitted later at the same specificity and would win.
+// dark:peer-checked:bg-switch is not redundant: dark:bg-border-strong is emitted later at the same specificity and would win.
 func Switch(attrs templ.Attributes) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -77,7 +77,7 @@ func Switch(attrs templ.Attributes) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "> <span aria-hidden=\"true\" class=\"relative w-9 h-5 bg-input dark:bg-border-strong rounded-full transition-colors peer-checked:bg-ring dark:peer-checked:bg-ring peer-focus-visible:outline-solid peer-focus-visible:outline-2 peer-focus-visible:outline-ring peer-focus-visible:outline-offset-2 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed after:absolute after:content-[''] after:top-0.5 after:left-0.5 after:bg-white after:shadow-sm after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-4\"></span></span>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "> <span aria-hidden=\"true\" class=\"relative w-9 h-5 bg-input dark:bg-border-strong rounded-full transition-colors peer-checked:bg-switch dark:peer-checked:bg-switch peer-focus-visible:outline-solid peer-focus-visible:outline-2 peer-focus-visible:outline-ring peer-focus-visible:outline-offset-2 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed after:absolute after:content-[''] after:top-0.5 after:left-0.5 after:bg-white after:shadow-sm after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-4\"></span></span>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
