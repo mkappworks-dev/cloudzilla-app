@@ -10,7 +10,7 @@ import (
 )
 
 templ OAuthAuthorize(data view.OAuthAuthorizeData) {
-	@layout.Base(data.BasePage, "Authorize "+data.App.Name+" — Cloudzilla") {
+	@layout.Base(data.BasePage, "Authorize "+data.App.Name) {
 		<div class="max-w-md mx-auto py-12">
 			<div class="rounded-md border border-border bg-card p-6 space-y-5">
 				<div>
