@@ -125,28 +125,28 @@ templ SSOSettings(data view.SSOSettingsData) {
 								})
 							}
 						</div>
-						<label class="flex w-fit items-center gap-2 text-sm text-foreground">
+						<label class="flex items-center justify-between gap-4 text-sm text-foreground cursor-pointer">
+							<span>Use TLS</span>
 							@components.Switch(templ.Attributes{
 								"id":      "ldap_use_tls",
 								"name":    "ldap_use_tls",
 								"value":   "true",
 								"checked": data.LDAPConfig != nil && data.LDAPConfig.Config["use_tls"] == "true",
 							})
-							Use TLS
 						</label>
 						if data.LDAPConfig != nil && data.LDAPConfig.Enabled && data.LDAPConfig.Config["use_tls"] != "true" {
 							<p class="text-xs text-warning border border-warning/40 bg-warning/10 rounded-sm px-3 py-2">
 								Warning: TLS is disabled. LDAP credentials will be transmitted in plaintext. Enable TLS or use an ldaps:// host for production use.
 							</p>
 						}
-						<label class="flex w-fit items-center gap-2 text-sm text-foreground">
+						<label class="flex items-center justify-between gap-4 text-sm text-foreground cursor-pointer">
+							<span>Enable LDAP authentication</span>
 							@components.Switch(templ.Attributes{
 								"id":      "ldap_enabled",
 								"name":    "enabled",
 								"value":   "true",
 								"checked": data.LDAPConfig != nil && data.LDAPConfig.Enabled,
 							})
-							Enable LDAP authentication
 						</label>
 					</form>
 				}
@@ -250,14 +250,14 @@ templ SSOSettings(data view.SSOSettingsData) {
 								})
 							}
 						</div>
-						<label class="flex w-fit items-center gap-2 text-sm text-foreground">
+						<label class="flex items-center justify-between gap-4 text-sm text-foreground cursor-pointer">
+							<span>Enable SAML authentication</span>
 							@components.Switch(templ.Attributes{
 								"id":      "saml_enabled",
 								"name":    "enabled",
 								"value":   "true",
 								"checked": data.SAMLConfig != nil && data.SAMLConfig.Enabled,
 							})
-							Enable SAML authentication
 						</label>
 					</form>
 				}
