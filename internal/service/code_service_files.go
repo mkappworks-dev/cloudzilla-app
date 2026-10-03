@@ -112,6 +112,17 @@ func writeBlob(repo *gogit.Repository, content []byte) (plumbing.Hash, error) {
 	return repo.Storer.SetEncodedObject(obj)
 }
 
+// writeTree stores entries as a tree in the order git requires, where a
+// directory sorts as if its name ended in "/": docs.md before docs/.
+func writeTree(repo *gogit.Repository, entries []object.TreeEntry) (plumbing.Hash, error) {
+	sort.Sort(object.TreeEntrySorter(entries))
+	obj := repo.Storer.NewEncodedObject()
+	if err := (&object.Tree{Entries: entries}).Encode(obj); err != nil {
+		return plumbing.ZeroHash, err
+	}
+	return repo.Storer.SetEncodedObject(obj)
+}
+
 // insertBlobIntoTree rebuilds the tree chain so segments resolve to blobHash,
 // returning the new root tree hash. A nil base starts from an empty tree.
 func insertBlobIntoTree(repo *gogit.Repository, base *object.Tree, segments []string, blobHash plumbing.Hash) (plumbing.Hash, error) {
@@ -141,13 +152,7 @@ func insertBlobIntoTree(repo *gogit.Repository, base *object.Tree, segments []st
 		entries = append(entries, object.TreeEntry{Name: name, Mode: filemode.Dir, Hash: subHash})
 	}
 
-	sort.Slice(entries, func(i, j int) bool { return entries[i].Name < entries[j].Name })
-	tree := object.Tree{Entries: entries}
-	obj := repo.Storer.NewEncodedObject()
-	if err := tree.Encode(obj); err != nil {
-		return plumbing.ZeroHash, err
-	}
-	return repo.Storer.SetEncodedObject(obj)
+	return writeTree(repo, entries)
 }
 
 // ArchiveZip streams a zip of the repo tree at ref into w. Files are prefixed

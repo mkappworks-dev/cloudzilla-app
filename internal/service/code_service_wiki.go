@@ -438,14 +438,7 @@ func wikiMutateTree(
 			entries = append(entries, object.TreeEntry{Name: b.Name, Mode: filemode.Regular, Hash: hash})
 		}
 	}
-	sort.Slice(entries, func(i, j int) bool { return entries[i].Name < entries[j].Name })
-
-	treeObj := stor.NewEncodedObject()
-	tree := object.Tree{Entries: entries}
-	if err := tree.Encode(treeObj); err != nil {
-		return err
-	}
-	treeHash, err := stor.SetEncodedObject(treeObj)
+	treeHash, err := writeTree(repo, entries)
 	if err != nil {
 		return err
 	}
@@ -556,14 +549,7 @@ func commitSingleFile(
 		Mode: filemode.Regular,
 		Hash: blobHash,
 	})
-	sort.Slice(entries, func(i, j int) bool { return entries[i].Name < entries[j].Name })
-
-	treeObj := storer.NewEncodedObject()
-	tree := object.Tree{Entries: entries}
-	if err := tree.Encode(treeObj); err != nil {
-		return err
-	}
-	treeHash, err := storer.SetEncodedObject(treeObj)
+	treeHash, err := writeTree(repo, entries)
 	if err != nil {
 		return err
 	}
