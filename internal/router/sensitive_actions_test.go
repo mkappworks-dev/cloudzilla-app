@@ -770,6 +770,7 @@ func TestAdminActions_NeedThePassword(t *testing.T) {
 		{"invitation", "/api/admin/invitations", url.Values{"email": {invitee}}},
 		{"manual verification", "/api/admin/users/verify-email", url.Values{"username": {"testuser_" + suffix + "_t"}, "email": {"testuser_" + suffix + "_t@test.invalid"}}},
 		{"SSO", "/admin/sso", url.Values{"provider": {"ldap"}, "ldap_host": {"ldap.attacker-" + suffix + ".invalid"}, "ldap_port": {"389"}}},
+		{"SSO switch", "/api/admin/sso/ldap/enabled", url.Values{"enabled": {"true"}}},
 	} {
 		for _, password := range []string{"", "wrong"} {
 			if rr := post(tt.path, withPassword(tt.form, password)); !strings.Contains(rr.Body.String(), "was incorrect") {

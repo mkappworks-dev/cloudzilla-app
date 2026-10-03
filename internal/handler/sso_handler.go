@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
@@ -81,10 +82,6 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	provider := r.FormValue("provider")
-	// HTML checkboxes submit the field only when checked (value may be "on",
-	// "true", or any custom value). Presence means enabled; absence means false.
-	enabled := r.FormValue("enabled") != ""
-
 	var cfg map[string]string
 	switch provider {
 	case "ldap":
@@ -97,23 +94,65 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	case "saml":
 		cfg = map[string]string{
-			model.SAMLKeyEntityID:    r.FormValue("saml_entity_id"),
-			model.SAMLKeyMetadataURL: r.FormValue("saml_metadata_url"),
-			model.SAMLKeySSOURL:      r.FormValue("saml_sso_url"),
-			model.SAMLKeyACSURL:      r.FormValue("saml_acs_url"),
-			model.SAMLKeyCert:        r.FormValue("saml_idp_cert"),
+			model.SAMLKeyEntityID: r.FormValue("saml_entity_id"),
+			model.SAMLKeySSOURL:   r.FormValue("saml_sso_url"),
+			model.SAMLKeyACSURL:   r.FormValue("saml_acs_url"),
+			model.SAMLKeyCert:     r.FormValue("saml_idp_cert"),
 		}
 	default:
 		h.renderSSOSettings(w, r, claims.UserID, "Unknown provider: "+provider, "")
 		return
 	}
 
-	if err := h.Services.SSO.SetConfig(r.Context(), provider, cfg, enabled); err != nil {
+	if err := h.Services.SSO.SaveSettings(r.Context(), provider, cfg); err != nil {
+		if errors.Is(err, service.ErrSSOIncomplete) {
+			name := ssoProviderNames[provider]
+			h.renderSSOSettings(w, r, claims.UserID, name+" sign-in needs that setting. Turn "+name+" off before clearing it.", "")
+			return
+		}
 		slog.Error("save sso config failed", "provider", provider, "error", err)
 		h.renderSSOSettings(w, r, claims.UserID, "Could not save the SSO configuration. Check the server logs.", "")
 		return
 	}
 	h.renderSSOSettings(w, r, claims.UserID, "", "SSO configuration saved.")
+}
+
+var ssoProviderNames = map[string]string{"ldap": "LDAP", "saml": "SAML"}
+
+// SetSSOEnabled handles POST /api/admin/sso/{provider}/enabled, the switch on
+// each provider's card. It's confirmed for the same reason as SaveSSOConfig.
+func (h *Handler) SetSSOEnabled(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.ClaimsFromContext(r.Context())
+	if !ok || !claims.IsSuperadmin {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	provider := chi.URLParam(r, "provider")
+	name, known := ssoProviderNames[provider]
+	if !known {
+		writeError(w, http.StatusNotFound, "unknown SSO provider")
+		return
+	}
+	if !h.confirmAction(w, r, claims.UserID, confirmationFrom(r), "") {
+		return
+	}
+
+	if err := h.Services.SSO.SetEnabled(r.Context(), provider, r.FormValue("enabled") == "true"); err != nil {
+		if errors.Is(err, service.ErrSSOIncomplete) {
+			writeError(w, http.StatusUnprocessableEntity, "Save the settings "+name+" sign-in needs before turning it on.")
+			return
+		}
+		slog.Error("set sso enabled", "provider", provider, "error", err)
+		writeError(w, http.StatusInternalServerError, "Could not update "+name+". Check the server logs.")
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Refresh", "true")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	http.Redirect(w, r, "/admin/sso", http.StatusSeeOther)
 }
 
 // LDAPLogin handles POST /auth/ldap — accepts form fields username + password.

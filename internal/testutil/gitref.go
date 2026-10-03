@@ -18,8 +18,14 @@ import (
 // WriteCommit stores a commit of an empty tree with the given parents.
 func WriteCommit(t *testing.T, st storer.EncodedObjectStorer, msg string, parents ...plumbing.Hash) plumbing.Hash {
 	t.Helper()
-	tree := writeObject(t, st, &object.Tree{})
 	sig := object.Signature{Name: "Tester", Email: "tester@example.com", When: time.Unix(0, 0).UTC()}
+	return WriteCommitBy(t, st, sig, msg, parents...)
+}
+
+// WriteCommitBy is WriteCommit with sig as the author and committer.
+func WriteCommitBy(t *testing.T, st storer.EncodedObjectStorer, sig object.Signature, msg string, parents ...plumbing.Hash) plumbing.Hash {
+	t.Helper()
+	tree := writeObject(t, st, &object.Tree{})
 	return writeObject(t, st, &object.Commit{Author: sig, Committer: sig, Message: msg, TreeHash: tree, ParentHashes: parents})
 }
 

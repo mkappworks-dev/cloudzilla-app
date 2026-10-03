@@ -150,17 +150,7 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 			continue
 		}
 		walkAttempts++
-		iter, err := gitRepo.Log(&gogit.LogOptions{From: cmd.New})
-		if err != nil {
-			walkFailures++
-			slog.Warn("post-receive: log iter failed",
-				"repo_id", repo.ID, "ref", cmd.Name.String(), "new", cmd.New.String(), "error", err)
-			continue
-		}
-		walkErr := iter.ForEach(func(c *object.Commit) error {
-			if c.Hash == cmd.Old {
-				return storer.ErrStop
-			}
+		walkErr := forEachPushedCommit(gitRepo, cmd, func(c *object.Commit) error {
 			if _, dup := seen[c.Hash]; dup {
 				return nil
 			}
@@ -172,7 +162,6 @@ func (s *RepoService) OnPostReceive(ctx context.Context, repo *model.Repository,
 			})
 			return nil
 		})
-		iter.Close()
 		if walkErr != nil {
 			walkFailures++
 			slog.Warn("post-receive: commit walk failed",
@@ -255,15 +244,11 @@ func (s *RepoService) PushSummaries(gitRepo *gogit.Repository, commands []*packp
 		if cmd == nil || !strings.HasPrefix(cmd.Name.String(), "refs/heads/") || cmd.Action() == packp.Delete {
 			continue
 		}
-		iter, err := gitRepo.Log(&gogit.LogOptions{From: cmd.New})
-		if err != nil {
-			slog.Warn("push summary: log iter failed", "ref", cmd.Name.String(), "error", err)
-			continue
-		}
 		var commits []model.CommitSummary
 		total := 0
-		walkErr := iter.ForEach(func(c *object.Commit) error {
-			if c.Hash == cmd.Old || total >= pushSummaryWalkCap {
+		newBranch := cmd.Action() == packp.Create
+		walkErr := forEachPushedCommit(gitRepo, cmd, func(c *object.Commit) error {
+			if newBranch && total >= pushSummaryWalkCap {
 				return storer.ErrStop
 			}
 			total++
@@ -275,7 +260,6 @@ func (s *RepoService) PushSummaries(gitRepo *gogit.Repository, commands []*packp
 			}
 			return nil
 		})
-		iter.Close()
 		if walkErr != nil {
 			slog.Warn("push summary: commit walk failed", "ref", cmd.Name.String(), "error", walkErr)
 		}
@@ -289,6 +273,34 @@ func (s *RepoService) PushSummaries(gitRepo *gogit.Repository, commands []*packp
 		})
 	}
 	return summaries
+}
+
+// forEachPushedCommit calls fn for each commit cmd adds to its branch until fn
+// returns storer.ErrStop. A new branch has no old tip to stop at, so fn sees
+// all of its history.
+func forEachPushedCommit(gitRepo *gogit.Repository, cmd *packp.Command, fn func(*object.Commit) error) error {
+	if cmd.Action() == packp.Create {
+		iter, err := gitRepo.Log(&gogit.LogOptions{From: cmd.New})
+		if err != nil {
+			return err
+		}
+		defer iter.Close()
+		return iter.ForEach(fn)
+	}
+	commits, err := commitRange(gitRepo, cmd.Old, cmd.New)
+	if err != nil {
+		return err
+	}
+	for _, c := range commits {
+		err := fn(c)
+		if errors.Is(err, storer.ErrStop) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func commitSubject(message string) string {

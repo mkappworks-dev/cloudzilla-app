@@ -1,0 +1,85 @@
+package components
+
+// ConfirmIdentityDialog asks for the factors in f when a form marked
+// data-confirm-identity="<confirm button label>" is submitted, then submits the
+// form again with them. Render it once per page, outside any form, and only when
+// f.Any(): without it those forms submit directly. A form also marked
+// data-confirm-reset is reset when the dialog is dismissed, so a switch that
+// submitted it flips back.
+templ ConfirmIdentityDialog(f ConfirmFactors) {
+	@Dialog("cz-identity-dialog") {
+		<form method="dialog">
+			@DialogHeader() {
+				@DialogTitle("cz-identity-dialog") {
+					Confirm it's you
+				}
+				@DialogDescription() {
+					{ "This change needs " + f.Needs() + "." }
+				}
+			}
+			@DialogBody() {
+				<div class="flex flex-wrap items-end gap-3">
+					@confirmFields("cz-identity", f, true, true)
+				</div>
+			}
+			@DialogFooter() {
+				@Button(ButtonOutline, ButtonSizeDefault, templ.Attributes{"type": "button", "data-identity-cancel": true}) {
+					Cancel
+				}
+				@Button(ButtonDefault, ButtonSizeDefault, templ.Attributes{"type": "submit", "data-identity-ok": true, "disabled": f.Unavailable}) {
+					Confirm
+				}
+			}
+		</form>
+	}
+	<script>
+		(function () {
+			var dlg = document.getElementById('cz-identity-dialog');
+			if (!dlg || typeof dlg.showModal !== 'function') return;
+			var box = dlg.querySelector('form');
+			var okBtn = dlg.querySelector('[data-identity-ok]');
+			var pending = null;
+			var resubmitting = null;
+
+			// Capture at the document runs before htmx's own submit listener on the form.
+			document.addEventListener('submit', function (e) {
+				var form = e.target;
+				if (!form.matches || !form.matches('form[data-confirm-identity]')) return;
+				if (form === resubmitting) return;
+				e.preventDefault();
+				e.stopPropagation();
+				pending = { form: form, submitter: e.submitter };
+				okBtn.textContent = form.getAttribute('data-confirm-identity') || 'Confirm';
+				box.reset();
+				box.querySelectorAll('[data-password-reveal][aria-pressed="true"]').forEach(function (b) { b.click(); });
+				dlg.returnValue = '';
+				dlg.showModal();
+			}, true);
+
+			dlg.querySelector('[data-identity-cancel]').addEventListener('click', function () { dlg.close(); });
+
+			box.addEventListener('submit', function (e) {
+				e.preventDefault();
+				var target = pending;
+				pending = null;
+				var factors = new FormData(box);
+				box.reset();
+				dlg.close('confirmed');
+				if (!target) return;
+				// htmx builds its request body with new FormData(form) too, so this reaches htmx and native posts alike.
+				target.form.addEventListener('formdata', function (fe) {
+					factors.forEach(function (v, k) { fe.formData.set(k, v); });
+				}, { once: true });
+				resubmitting = target.form;
+				try { target.form.requestSubmit(target.submitter); } finally { resubmitting = null; }
+			});
+
+			dlg.addEventListener('close', function () {
+				if (dlg.returnValue === 'confirmed') return;
+				var target = pending;
+				pending = null;
+				if (target && target.form.hasAttribute('data-confirm-reset')) target.form.reset();
+			});
+		})();
+	</script>
+}

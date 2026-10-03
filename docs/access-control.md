@@ -16,6 +16,8 @@
 
 Emails match case-insensitively everywhere: login, Google OAuth linking to an existing account by email, invites, and the existing-account check that makes LDAP and SAML refuse to auto-link. The `users_email_lower_key` index enforces it.
 
+A superadmin sets LDAP and SAML up at `/admin/sso`. Saving a provider's settings leaves it on or off; the switch on its card (`POST /api/admin/sso/{provider}/enabled`) turns it on or off on its own. It won't turn on until the settings sign-in needs are saved (`model.SSOSettingsReady`: LDAP needs a host and bind DN template; SAML an entity ID, IdP SSO URL, ACS URL and certificate), and a save can't clear one of them while the provider is on (`ErrSSOIncomplete`).
+
 Usernames and organization names follow one rule and share one case-insensitive namespace; see [Usernames](#usernames).
 
 Repository names (`service.ValidateName`) use letters, digits, `.`, `-` and `_` and start with a letter or digit. New repositories can't end in `.wiki`; see [api-reference](./api-reference.md) for repositories named that way before the reservation.
@@ -62,7 +64,7 @@ A session is a bearer credential, so anything that adds a way in that outlives i
 - making someone an organization owner, by adding them as one or promoting a member. Adding a plain member and demoting an owner need nothing, since members get no repository until they're added to it. The owner check runs first, so a non-owner's request doesn't spend an attempt;
 - making a private repository public (making one private needs nothing);
 - deleting a repository, an organization or the account;
-- superadmin changes: site settings, invitations, manual email verification, and the LDAP and SAML configuration.
+- superadmin changes: site settings, invitations, manual email verification, and the LDAP and SAML configuration, including turning a provider on or off.
 
 Editing a webhook's events needs nothing: it can't point the webhook somewhere new.
 
@@ -414,15 +416,16 @@ As on GitHub, a deleted account's issues, pull requests, comments, reviews, disc
 
 ### Instance / Admin Endpoints
 
-| Method   | Path                            | Auth                  | AuthZ           | Handler                         |
-| -------- | ------------------------------- | --------------------- | --------------- | ------------------------------- |
-| GET      | `/admin/settings`               | authMW + superadminMW | Superadmin only | PageAdminSettings               |
-| GET      | `/admin/audit-log`              | authMW + superadminMW | Superadmin only | PageAuditLog                    |
-| GET/POST | `/admin/sso`                    | authMW + superadminMW | Superadmin only | PageSSOSettings / SaveSSOConfig |
-| POST     | `/api/admin/settings`           | authMW + superadminMW | Superadmin only | UpdateSiteSetting               |
-| POST     | `/api/admin/invitations`        | authMW + superadminMW | Superadmin only | CreateInvitation                |
-| DELETE   | `/api/admin/invitations/{id}`   | authMW + superadminMW | Superadmin only | DeleteInvitation                |
-| POST     | `/api/admin/users/verify-email` | authMW + superadminMW | Superadmin only | AdminVerifyEmail                |
+| Method   | Path                                | Auth                  | AuthZ           | Handler                         |
+| -------- | ----------------------------------- | --------------------- | --------------- | ------------------------------- |
+| GET      | `/admin/settings`                   | authMW + superadminMW | Superadmin only | PageAdminSettings               |
+| GET      | `/admin/audit-log`                  | authMW + superadminMW | Superadmin only | PageAuditLog                    |
+| GET/POST | `/admin/sso`                        | authMW + superadminMW | Superadmin only | PageSSOSettings / SaveSSOConfig |
+| POST     | `/api/admin/settings`               | authMW + superadminMW | Superadmin only | UpdateSiteSetting               |
+| POST     | `/api/admin/invitations`            | authMW + superadminMW | Superadmin only | CreateInvitation                |
+| DELETE   | `/api/admin/invitations/{id}`       | authMW + superadminMW | Superadmin only | DeleteInvitation                |
+| POST     | `/api/admin/users/verify-email`     | authMW + superadminMW | Superadmin only | AdminVerifyEmail                |
+| POST     | `/api/admin/sso/{provider}/enabled` | authMW + superadminMW | Superadmin only | SetSSOEnabled                   |
 
 ### Authentication Endpoints (No Auth Required)
 
