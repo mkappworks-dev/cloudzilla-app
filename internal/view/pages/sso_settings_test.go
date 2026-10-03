@@ -40,3 +40,28 @@ func TestSSOSettings_FlagsAreSwitchesReflectingConfig(t *testing.T) {
 	}
 	assertSwitchesInLabels(t, out)
 }
+
+// SAML sign-in reads sso_url, so the IdP URL field posts saml_sso_url. Rows
+// saved before kept that URL in metadata_url, which the field falls back to.
+func TestSSOSettings_SAMLFieldPostsTheSSOURL(t *testing.T) {
+	ssoURLField := func(cfg map[string]string) string {
+		t.Helper()
+		var sb strings.Builder
+		data := view.SSOSettingsData{SAMLConfig: &model.SSOConfig{Provider: "saml", Config: cfg}}
+		if err := pages.SSOSettings(data).Render(context.Background(), &sb); err != nil {
+			t.Fatalf("render: %v", err)
+		}
+		return regexp.MustCompile(`<input[^>]*name="saml_sso_url"[^>]*>`).FindString(sb.String())
+	}
+	for _, tc := range []struct {
+		cfg  map[string]string
+		want string
+	}{
+		{map[string]string{model.SAMLKeyMetadataURL: "https://idp.test/legacy"}, "https://idp.test/legacy"},
+		{map[string]string{model.SAMLKeySSOURL: "https://idp.test/sso", model.SAMLKeyMetadataURL: "https://idp.test/legacy"}, "https://idp.test/sso"},
+	} {
+		if field := ssoURLField(tc.cfg); !strings.Contains(field, `value="`+tc.want+`"`) {
+			t.Errorf("config %v: field = %q, want value %s", tc.cfg, field, tc.want)
+		}
+	}
+}

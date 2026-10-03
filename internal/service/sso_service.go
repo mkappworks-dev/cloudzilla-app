@@ -909,7 +909,7 @@ func (s *SSOService) SAMLMetadataXML(ctx context.Context) (string, error) {
 
 // SAMLAuthnRequestURL builds a SAML HTTP-Redirect binding AuthnRequest URL.
 // The AuthnRequest XML is deflate-compressed, base64-encoded, and appended as
-// the SAMLRequest query parameter to the IdP SSO endpoint (metadata_url).
+// the SAMLRequest query parameter to the IdP SSO endpoint (sso_url).
 // SAMLAuthnRequestURL builds the IdP redirect. forceAuthn asks the IdP to
 // authenticate the user again rather than reuse its own session.
 func (s *SSOService) SAMLAuthnRequestURL(ctx context.Context, relayState string, forceAuthn bool) (string, error) {

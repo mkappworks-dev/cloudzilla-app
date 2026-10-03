@@ -97,11 +97,10 @@ func (h *Handler) SaveSSOConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	case "saml":
 		cfg = map[string]string{
-			model.SAMLKeyEntityID:    r.FormValue("saml_entity_id"),
-			model.SAMLKeyMetadataURL: r.FormValue("saml_metadata_url"),
-			model.SAMLKeySSOURL:      r.FormValue("saml_sso_url"),
-			model.SAMLKeyACSURL:      r.FormValue("saml_acs_url"),
-			model.SAMLKeyCert:        r.FormValue("saml_idp_cert"),
+			model.SAMLKeyEntityID: r.FormValue("saml_entity_id"),
+			model.SAMLKeySSOURL:   r.FormValue("saml_sso_url"),
+			model.SAMLKeyACSURL:   r.FormValue("saml_acs_url"),
+			model.SAMLKeyCert:     r.FormValue("saml_idp_cert"),
 		}
 	default:
 		h.renderSSOSettings(w, r, claims.UserID, "Unknown provider: "+provider, "")

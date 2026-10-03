@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -202,21 +203,13 @@ templ SSOSettings(data view.SSOSettingsData) {
 							}
 						</div>
 						<div class="space-y-1.5">
-							<label for="saml_metadata_url" class="block text-sm font-medium text-foreground">IdP SSO URL / Metadata URL</label>
-							if data.SAMLConfig != nil {
-								@components.Input(templ.Attributes{
-									"id":    "saml_metadata_url",
-									"type":  "text",
-									"name":  "saml_metadata_url",
-									"value": data.SAMLConfig.Config["metadata_url"],
-								})
-							} else {
-								@components.Input(templ.Attributes{
-									"id":   "saml_metadata_url",
-									"type": "text",
-									"name": "saml_metadata_url",
-								})
-							}
+							<label for="saml_sso_url" class="block text-sm font-medium text-foreground">IdP SSO URL</label>
+							@components.Input(templ.Attributes{
+								"id":    "saml_sso_url",
+								"type":  "text",
+								"name":  "saml_sso_url",
+								"value": samlSSOURL(data.SAMLConfig),
+							})
 						</div>
 						<div class="space-y-1.5">
 							<label for="saml_acs_url" class="block text-sm font-medium text-foreground">Assertion Consumer Service URL</label>
@@ -276,4 +269,15 @@ templ SSOSettings(data view.SSOSettingsData) {
 			}
 		</div>
 	}
+}
+
+// samlSSOURL falls back to metadata_url, where this field saved the URL before.
+func samlSSOURL(cfg *model.SSOConfig) string {
+	if cfg == nil {
+		return ""
+	}
+	if u := cfg.Config[model.SAMLKeySSOURL]; u != "" {
+		return u
+	}
+	return cfg.Config[model.SAMLKeyMetadataURL]
 }
