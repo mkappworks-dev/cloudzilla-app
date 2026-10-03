@@ -247,6 +247,10 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.With(authMW).Post("/{org}/delete", h.DeleteOrg)
 	})
 
+	// Not under /api/repos: GET /api/repos/import/{id} would shadow /api/repos/{owner}/{repo} for a user named "import".
+	r.With(authMW, apiBodyLimit).Post("/api/imports", h.StartImport)
+	r.With(authMW).Get("/api/imports/{id}", h.GetImportJob)
+
 	// Repo routes
 	r.Route("/api/repos", func(r chi.Router) {
 		r.Use(optAuthMW, apiBodyLimit)
