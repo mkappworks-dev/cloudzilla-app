@@ -21,17 +21,35 @@ import (
 // kind, such as a file where the path needs a directory. Handlers answer 409.
 var ErrPathCollision = errors.New("path collides with an existing entry")
 
+// maxFilePathBytes is Linux's PATH_MAX: no checkout there could hold a longer
+// path. It also bounds CommitFile's tree work, which grows with path depth.
+const maxFilePathBytes = 4096
+
+// ErrInvalidFilePath means git couldn't check out a commit's path, as with
+// ErrFilePathTooLong. Handlers answer 422.
+var (
+	ErrInvalidFilePath = errors.New("invalid file path")
+	ErrFilePathTooLong = fmt.Errorf("%w: longer than %d bytes", ErrInvalidFilePath, maxFilePathBytes)
+)
+
 // CommitFile commits content to filePath on branch, creating the branch if it
-// does not yet exist (e.g. the first commit in an empty repo).
+// does not yet exist (e.g. the first commit in an empty repo). It refuses a
+// path git couldn't check out with ErrInvalidFilePath.
 func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, content []byte, author GitAuthor, message string) error {
 	filePath = strings.Trim(strings.ReplaceAll(filePath, "\\", "/"), "/")
 	if filePath == "" {
-		return fmt.Errorf("file path is empty")
+		return fmt.Errorf("%w: empty", ErrInvalidFilePath)
+	}
+	if len(filePath) > maxFilePathBytes {
+		return ErrFilePathTooLong
 	}
 	segments := strings.Split(filePath, "/")
 	for _, seg := range segments {
 		if seg == "" || seg == "." || seg == ".." {
-			return fmt.Errorf("invalid file path: %q", filePath)
+			return fmt.Errorf("%w: %q", ErrInvalidFilePath, filePath)
+		}
+		if isDotGit(seg) {
+			return fmt.Errorf("%w: %q is reserved for Git's own data", ErrInvalidFilePath, seg)
 		}
 	}
 

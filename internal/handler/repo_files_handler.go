@@ -15,8 +15,15 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
 
-// maxUploadBytes caps a single uploaded file committed through the web UI.
-const maxUploadBytes = 25 << 20
+const (
+	// maxUploadBytes caps a single uploaded file committed through the web UI.
+	maxUploadBytes = 25 << 20
+	// MaxNewFileBodyBytes caps the New file form's request body: the largest
+	// upload plus room for the other fields.
+	MaxNewFileBodyBytes = maxUploadBytes + 1<<20
+)
+
+var fileTooLargeMsg = fmt.Sprintf("files are limited to %d MB", maxUploadBytes>>20)
 
 // UpdateRepo handles PATCH /api/repos/{owner}/{repo} — updates the editable
 // repository metadata (description, website, license) from the About panel.
@@ -143,6 +150,15 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 		ref = repo.DefaultBranch
 	}
 
+	if err := parseNewFileForm(r); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			http.Error(w, fileTooLargeMsg, http.StatusRequestEntityTooLarge)
+			return
+		}
+		http.Error(w, "invalid form", http.StatusBadRequest)
+		return
+	}
 	path := strings.TrimSpace(r.FormValue("path"))
 	dir := strings.Trim(r.FormValue("dir"), "/")
 	content := []byte(r.FormValue("content"))
@@ -151,7 +167,11 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 	// An uploaded file, when present, takes precedence over the textarea.
 	if file, header, ferr := r.FormFile("file"); ferr == nil {
 		defer func() { _ = file.Close() }()
-		data, rerr := io.ReadAll(io.LimitReader(file, maxUploadBytes))
+		if header.Size > maxUploadBytes {
+			http.Error(w, fileTooLargeMsg, http.StatusRequestEntityTooLarge)
+			return
+		}
+		data, rerr := io.ReadAll(file)
 		if rerr != nil {
 			http.Error(w, "failed to read uploaded file", http.StatusInternalServerError)
 			return
@@ -189,9 +209,26 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return
 		}
+		if errors.Is(err, service.ErrInvalidFilePath) {
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+			return
+		}
 		slog.Error("commit file failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 	http.Redirect(w, r, "/"+owner+"/"+repoName+"/blob/"+ref+"/"+path, http.StatusSeeOther)
+}
+
+// parseNewFileForm parses either encoding of the New file form, in memory since
+// the body limit bounds it. ParseForm goes first because, on a urlencoded body,
+// ParseMultipartForm reports ErrNotMultipart in place of ParseForm's error.
+func parseNewFileForm(r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return err
+	}
+	if err := r.ParseMultipartForm(MaxNewFileBodyBytes); err != nil && !errors.Is(err, http.ErrNotMultipart) {
+		return err
+	}
+	return nil
 }

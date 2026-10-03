@@ -626,10 +626,11 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | ------------------ | -------------------------------------------------------------------------------- |
 | CORS               | Origin restricted to `config.Server.BaseURL`; `localhost:3000` added in dev only |
 | CSRF               | Double-submit cookie; the layout puts the token in `hx-headers:inherited`        |
-| Body size limit    | 1 MB via `http.MaxBytesReader` on all `/api/*` routes                            |
+| Body size limit    | 1 MB on all `/api/*` routes, 26 MB on the New file form (`http.MaxBytesReader`)  |
 | JWT secret warning | Log warning at startup if default secret is still set                            |
 | Cookie security    | `Secure` flag configurable via `config.Auth.CookieSecure`; `HttpOnly` always set |
 | Input validation   | All URL path params validated via `strconv`; repo/user names validated via regex |
+| Web commit paths   | No `.git` component (any case, NTFS or HFS+ alias); at most 4096 bytes           |
 | SSRF protection    | Webhook delivery blocks private/internal IPs                                     |
 | Branch protection  | A push that violates a rule is refused per ref, before the ref is written        |
 | Password storage   | bcrypt hashed                                                                    |

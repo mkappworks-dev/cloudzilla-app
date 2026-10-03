@@ -1,10 +1,15 @@
 package handler_test
 
 import (
+	"bytes"
 	"fmt"
+	"log/slog"
+	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	gogit "github.com/go-git/go-git/v5"
@@ -150,5 +155,131 @@ func TestUpdateProfileReadme_RefusesAnArchivedProfileRepo(t *testing.T) {
 	}
 	if _, err := gitRepo.Reference(plumbing.NewBranchReferenceName("main"), true); err == nil {
 		t.Error("an archived profile repo got a commit")
+	}
+}
+
+// uploadCap is the largest file the New file form commits.
+const uploadCap = 25 << 20
+
+// postUpload posts the New file form as a browser does: multipart, with file
+// as the upload unless it is nil.
+func postUpload(t *testing.T, router http.Handler, token, path string, fields url.Values, file []byte) *httptest.ResponseRecorder {
+	t.Helper()
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	for name, values := range fields {
+		for _, v := range values {
+			if err := mw.WriteField(name, v); err != nil {
+				t.Fatalf("write field %s: %v", name, err)
+			}
+		}
+	}
+	if file != nil {
+		fw, err := mw.CreateFormFile("file", "upload.bin")
+		if err != nil {
+			t.Fatalf("create file part: %v", err)
+		}
+		if _, err := fw.Write(file); err != nil {
+			t.Fatalf("write file part: %v", err)
+		}
+	}
+	if err := mw.Close(); err != nil {
+		t.Fatalf("close multipart body: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, path, &body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	return rr
+}
+
+func TestSubmitNewFile_CommitsAnUploadAtTheCap(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	api := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+
+	rr := postUpload(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {"big.bin"}}, bytes.Repeat([]byte("a"), uploadCap))
+
+	if rr.Code != http.StatusSeeOther {
+		t.Fatalf("want 303, got %d: %s", rr.Code, rr.Body.String())
+	}
+	tip, err := r.git.CommitObject(branchHash(t, r.git, "main"))
+	if err != nil {
+		t.Fatalf("load main: %v", err)
+	}
+	f, err := tip.File("big.bin")
+	if err != nil {
+		t.Fatalf("find big.bin: %v", err)
+	}
+	if f.Size != uploadCap {
+		t.Errorf("big.bin is %d bytes, want %d", f.Size, uploadCap)
+	}
+}
+
+func TestSubmitNewFile_RefusesOversizedForms(t *testing.T) {
+	overLimit := url.Values{"path": {"big.txt"}, "content": {strings.Repeat("a", 27<<20)}}
+	tests := []struct {
+		name string
+		send func(t *testing.T, api http.Handler, r raceRepo) *httptest.ResponseRecorder
+	}{
+		{"upload over the cap", func(t *testing.T, api http.Handler, r raceRepo) *httptest.ResponseRecorder {
+			return postUpload(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {"big.bin"}}, bytes.Repeat([]byte("a"), uploadCap+1))
+		}},
+		{"multipart body over the limit", func(t *testing.T, api http.Handler, r raceRepo) *httptest.ResponseRecorder {
+			return postUpload(t, api, r.owner.token, r.path+"/new/main", overLimit, nil)
+		}},
+		{"urlencoded body over the limit", func(t *testing.T, api http.Handler, r raceRepo) *httptest.ResponseRecorder {
+			return postForm(t, api, r.owner.token, r.path+"/new/main", overLimit)
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := testutil.OpenTestDB(t)
+			reposRoot := t.TempDir()
+			api := newAPIRouterAt(t, db, reposRoot)
+			r := seedRaceRepo(t, db, reposRoot)
+
+			rr := tt.send(t, api, r)
+
+			if want := "files are limited to 25 MB\n"; rr.Code != http.StatusRequestEntityTooLarge || rr.Body.String() != want {
+				t.Errorf("want 413 %q, got %d %.100q", want, rr.Code, rr.Body.String())
+			}
+			if got := branchHash(t, r.git, "main"); got != r.mainTip {
+				t.Errorf("main = %s, want %s", got, r.mainTip)
+			}
+		})
+	}
+}
+
+func TestSubmitNewFile_RefusesInvalidPathsWithoutLoggingThem(t *testing.T) {
+	tests := []struct{ name, path string }{
+		{"too long", strings.Repeat("d/", 2048) + "f"},
+		{".git", ".git/hooks/post-checkout"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := testutil.OpenTestDB(t)
+			reposRoot := t.TempDir()
+			api := newAPIRouterAt(t, db, reposRoot)
+			r := seedRaceRepo(t, db, reposRoot)
+			var logs bytes.Buffer
+			defaultLogger := slog.Default()
+			slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+			t.Cleanup(func() { slog.SetDefault(defaultLogger) })
+
+			rr := postForm(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {tt.path}, "content": {"hook\n"}})
+
+			if rr.Code != http.StatusUnprocessableEntity || !strings.HasPrefix(rr.Body.String(), "invalid file path: ") {
+				t.Errorf("want 422 invalid file path, got %d %.100q", rr.Code, rr.Body.String())
+			}
+			if got := branchHash(t, r.git, "main"); got != r.mainTip {
+				t.Errorf("main = %s, want %s", got, r.mainTip)
+			}
+			if strings.Contains(logs.String(), "commit file failed") {
+				t.Errorf("a refused path was logged as a failure:\n%.300s", logs.String())
+			}
+		})
 	}
 }
