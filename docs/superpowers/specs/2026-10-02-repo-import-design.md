@@ -28,11 +28,11 @@ The request can't run synchronously: `server.write_timeout` defaults to 15s, so 
 | Route | Behaviour |
 | --- | --- |
 | `GET /repos/import` | Import form. `?url=`, `?owner=`, `?name=` prefill it (used by "Try again"). `owner` is honoured only when it is the viewer or an org they own, the same rule as `/repos/new`. |
-| `POST /api/repos/import` | JSON `{clone_url, auth_username, auth_token, owner, name, description, private}`. Validates, starts the job, returns `202 {id, status_url}`. |
+| `POST /api/imports` | JSON `{clone_url, auth_username, auth_token, owner, name, description, private}`. Validates, starts the job, returns `202 {id, status_url}`. |
 | `GET /repos/import/{id}` | Status page. With `HX-Request` it renders only the status fragment. A finished job answers the fragment request with `HX-Redirect: /{owner}/{name}`. Unknown, expired, or another user's job: 404. |
-| `GET /api/repos/import/{id}` | JSON `{id, status, owner, name, progress, error}` for API clients. Same 404 rule. |
+| `GET /api/imports/{id}` | JSON `{id, status, owner, name, progress, error}` for API clients. Same 404 rule. |
 
-All four routes require auth (`authMW`).
+All four routes require auth (`authMW`). The JSON routes live under `/api/imports`, not `/api/repos/import`: there `GET …/import/{id}` would shadow `GET /api/repos/{owner}/{repo}` for a user named `import`.
 
 ### Start (synchronous, before the 202)
 
