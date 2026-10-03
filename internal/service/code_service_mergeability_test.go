@@ -29,8 +29,19 @@ func mergeabilityTestRepo(t *testing.T, owner, name string) (*CodeService, *gogi
 	if err := os.MkdirAll(filepath.Dir(bareDir), 0o755); err != nil {
 		t.Fatalf("mkdir owner: %v", err)
 	}
-	if _, err := gogit.PlainInit(bareDir, true); err != nil {
+	bare, err := gogit.PlainInit(bareDir, true)
+	if err != nil {
 		t.Fatalf("plain init bare: %v", err)
+	}
+	cfg, err := bare.Config()
+	if err != nil {
+		t.Fatalf("bare config: %v", err)
+	}
+	// Otherwise git-receive-pack leaves a detached `git maintenance run --auto`
+	// behind, which can repack objects/ after pushBranch returns.
+	cfg.Raw.Section("receive").SetOption("autogc", "false")
+	if err := bare.SetConfig(cfg); err != nil {
+		t.Fatalf("set bare config: %v", err)
 	}
 
 	workDir := t.TempDir()
