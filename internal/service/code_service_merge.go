@@ -13,7 +13,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	gogitdiff "github.com/go-git/go-git/v5/plumbing/format/diff"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 )
 
@@ -41,27 +40,15 @@ type mergeFile struct {
 
 // checkFastForward returns true if headCommit is a descendant of baseCommit.
 func checkFastForward(repo *gogit.Repository, baseCommit, headCommit *object.Commit) bool {
-	iter, err := repo.Log(&gogit.LogOptions{From: headCommit.Hash})
-	if err != nil {
-		return false
-	}
-	defer iter.Close()
-	found := false
-	_ = iter.ForEach(func(c *object.Commit) error {
-		if c.Hash == baseCommit.Hash {
-			found = true
-			return storer.ErrStop
-		}
-		return nil
-	})
-	return found
+	ok, err := isAncestor(repo, baseCommit, headCommit)
+	return err == nil && ok
 }
 
 // pullPatch diffs head against its merge base with base, so commits that landed
 // on base after head branched off don't show as reverted by the PR. Unrelated
 // histories have no merge base and diff the tips.
-func pullPatch(base, head *object.Commit) (*object.Patch, error) {
-	mb, err := findMergeBase(base, head)
+func pullPatch(repo *gogit.Repository, base, head *object.Commit) (*object.Patch, error) {
+	mb, err := findMergeBase(repo, base, head)
 	if errors.Is(err, ErrNoCommonAncestor) {
 		return base.Patch(head)
 	}
@@ -86,7 +73,7 @@ func (s *CodeService) GetPullDiff(owner, repoName, base, head string) (*PRDiffRe
 		return nil, err
 	}
 
-	patch, err := pullPatch(baseCommit, headCommit)
+	patch, err := pullPatch(repo, baseCommit, headCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +145,7 @@ func (s *CodeService) PullDiffStats(owner, repoName, base, head string) (DiffSta
 	if err != nil {
 		return DiffStats{}, err
 	}
-	patch, err := pullPatch(baseCommit, headCommit)
+	patch, err := pullPatch(repo, baseCommit, headCommit)
 	if err != nil {
 		return DiffStats{}, err
 	}
@@ -223,19 +210,6 @@ func flattenTree(tree *object.Tree) (map[string]mergeFile, error) {
 			result[name] = mergeFile{hash: entry.Hash, mode: entry.Mode}
 		}
 	}
-}
-
-// findMergeBase returns the best common ancestor of a and b, as `git merge-base`
-// does. Criss-cross histories have several; the newest is returned.
-func findMergeBase(a, b *object.Commit) (*object.Commit, error) {
-	bases, err := a.MergeBase(b)
-	if err != nil {
-		return nil, err
-	}
-	if len(bases) == 0 {
-		return nil, ErrNoCommonAncestor
-	}
-	return bases[0], nil
 }
 
 // buildTree recursively encodes a flat file map into git tree objects and returns the root tree hash.
@@ -407,7 +381,7 @@ func (s *CodeService) ThreeWayMergePullRequest(owner, repoName, base, head strin
 		return gitref.Move(repo.Storer, plumbing.NewBranchReferenceName(base), baseCommit.Hash, headCommit.Hash)
 	}
 
-	mb, err := findMergeBase(baseCommit, headCommit)
+	mb, err := findMergeBase(repo, baseCommit, headCommit)
 	if err != nil {
 		return fmt.Errorf("cannot find merge base: %w", err)
 	}
@@ -459,7 +433,7 @@ func (s *CodeService) SquashMergePullRequest(owner, repoName, base, head string,
 		// FF case: squash commit uses head's tree directly.
 		treeHash = headCommit.TreeHash
 	} else {
-		mb, err := findMergeBase(baseCommit, headCommit)
+		mb, err := findMergeBase(repo, baseCommit, headCommit)
 		if err != nil {
 			return fmt.Errorf("cannot find merge base: %w", err)
 		}

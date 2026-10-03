@@ -14,6 +14,8 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 
 **Conflict detection:** `mergeFiles` performs a pure tree-level three-way merge in memory — if the same path (a file, symlink or submodule pointer) was changed on both sides relative to the merge base, in content or in mode, all merge buttons are hidden and a conflict warning is shown. That includes a chmod on one side and an edit on the other, which `git merge` would combine. The developer must rebase locally and push. Only the merge methods write the merged tree, through `mergeTreesNoConflict`; viewing a PR writes nothing to the repo.
 
+**History walks:** Viewing and merging a PR read only the history since base and head diverged, not all of either branch. `findMergeBase` and `isAncestor` (`merge_base.go`) are git's merge-base walk, exact under any clock skew. The Ahead/Behind counts and the Commits tab come from `commitRange`, which lists what `git rev-list a..b` does, in its order: under clock skew deeper than its slop, that can include commits base reaches. History made within one second, as scripts make it, can still be read to the root.
+
 ## Merge Flow
 
 1. `PagePullDetail` (the Conversation tab) calls `CodeService.Mergeability(base, head)` → `Mergeability{Ahead, Behind, HasConflicts}` and derives the merge box's `CanFastForward`, `CanThreeWayMerge` and `CanSquash` flags from it
@@ -30,11 +32,12 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 - `GetPullDiff(owner, repo, base, head)` → `*PRDiffResult`
 - `PullDiffStats(owner, repo, base, head)` → `(DiffStats, error)` (`GetPullDiff`'s file and line totals without the hunks; feeds the Files badge on the other PR tabs)
 - `Mergeability(ctx, owner, repo, base, head)` → `(Mergeability, error)`
+- `PullCommits(owner, repo, base, head)` → `([]CommitSummary, error)` (the commits head has and base doesn't, newest first)
 - `MergePullRequest(owner, repo, base, head)` → `error` (fast-forward only)
 - `ThreeWayMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
 - `SquashMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
-- `checkFastForward(repo, baseCommit, headCommit)` → `bool` (private)
-- `findMergeBase(a, b)` → `(*object.Commit, error)` (private; best common ancestor, as `git merge-base`)
+- `checkFastForward(repo, baseCommit, headCommit)` → `bool` (private; `isAncestor`, as `git merge-base --is-ancestor`)
+- `findMergeBase(repo, a, b)` → `(*object.Commit, error)` (private; best common ancestor, as `git merge-base`)
 - `mergeTreesNoConflict(repo, mergeBase, base, head)` → `(plumbing.Hash, bool, error)` (private)
 - `mergeFiles(mergeBase, base, head)` → `(map[string]mergeFile, bool, error)` (private; `mergeTreesNoConflict` without the tree writes, used by `Mergeability`)
 - `flattenTree(tree)` → `(map[string]mergeFile, error)` (private; every entry but directories, so symlinks and submodules survive a rebuild)
