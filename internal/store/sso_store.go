@@ -90,6 +90,38 @@ func (s *SSOStore) Upsert(ctx context.Context, provider string, config map[strin
 	return nil
 }
 
+// SaveConfig replaces a provider's settings, creating it switched off, and
+// leaves an existing provider on or off as it was.
+func (s *SSOStore) SaveConfig(ctx context.Context, provider string, config map[string]string) error {
+	raw, err := json.Marshal(config)
+	if err != nil {
+		return fmt.Errorf("marshal sso config: %w", err)
+	}
+	_, err = s.db.ExecContext(ctx,
+		`INSERT INTO sso_configs (provider, config, enabled, updated_at)
+		 VALUES ($1, $2, false, NOW())
+		 ON CONFLICT (provider) DO UPDATE
+		   SET config = EXCLUDED.config, updated_at = NOW()`,
+		provider, string(raw),
+	)
+	if err != nil {
+		return fmt.Errorf("sso save config: %w", err)
+	}
+	return nil
+}
+
+// SetEnabled turns a saved provider on or off without touching its settings.
+func (s *SSOStore) SetEnabled(ctx context.Context, provider string, enabled bool) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE sso_configs SET enabled = $2, updated_at = NOW() WHERE provider = $1`,
+		provider, enabled,
+	)
+	if err != nil {
+		return fmt.Errorf("sso set enabled: %w", err)
+	}
+	return nil
+}
+
 // GetUserBySSO looks up a user by sso_provider + sso_id.
 func (s *SSOStore) GetUserBySSO(ctx context.Context, provider, ssoID string) (*model.User, error) {
 	u := &model.User{}

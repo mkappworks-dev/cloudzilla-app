@@ -57,12 +57,52 @@ func (s *SSOService) ListConfigs(ctx context.Context) ([]*model.SSOConfig, error
 	return s.store.ListAll(ctx)
 }
 
-// SetConfig creates or replaces the configuration for a provider.
+// ErrSSOIncomplete refuses to leave a provider on without a setting its sign-in
+// needs: turning it on before they're saved, or clearing one while it's on.
+var ErrSSOIncomplete = errors.New("sso provider lacks a setting sign-in needs")
+
+// SetConfig replaces a provider's settings and state outright, unchecked; the
+// admin pages go through SaveSettings and SetEnabled, which keep ErrSSOIncomplete's rule.
 func (s *SSOService) SetConfig(ctx context.Context, provider string, config map[string]string, enabled bool) error {
 	if provider != "ldap" && provider != "saml" {
 		return fmt.Errorf("unknown sso provider: %s", provider)
 	}
 	return s.store.Upsert(ctx, provider, config, enabled)
+}
+
+// SaveSettings replaces a provider's settings and keeps it on or off as it was.
+func (s *SSOService) SaveSettings(ctx context.Context, provider string, config map[string]string) error {
+	if provider != "ldap" && provider != "saml" {
+		return fmt.Errorf("unknown sso provider: %s", provider)
+	}
+	if !model.SSOSettingsReady(provider, config) {
+		cur, err := s.GetConfig(ctx, provider)
+		if err != nil {
+			return err
+		}
+		if cur != nil && cur.Enabled {
+			return ErrSSOIncomplete
+		}
+	}
+	return s.store.SaveConfig(ctx, provider, config)
+}
+
+// SetEnabled turns a provider on or off and leaves its settings alone.
+func (s *SSOService) SetEnabled(ctx context.Context, provider string, enabled bool) error {
+	if provider != "ldap" && provider != "saml" {
+		return fmt.Errorf("unknown sso provider: %s", provider)
+	}
+	cfg, err := s.GetConfig(ctx, provider)
+	if err != nil {
+		return err
+	}
+	if enabled && !cfg.Ready() {
+		return ErrSSOIncomplete
+	}
+	if cfg == nil {
+		return nil
+	}
+	return s.store.SetEnabled(ctx, provider, enabled)
 }
 
 // --------------------------------------------------------------------------
@@ -909,7 +949,7 @@ func (s *SSOService) SAMLMetadataXML(ctx context.Context) (string, error) {
 
 // SAMLAuthnRequestURL builds a SAML HTTP-Redirect binding AuthnRequest URL.
 // The AuthnRequest XML is deflate-compressed, base64-encoded, and appended as
-// the SAMLRequest query parameter to the IdP SSO endpoint (metadata_url).
+// the SAMLRequest query parameter to the IdP SSO endpoint (sso_url).
 // SAMLAuthnRequestURL builds the IdP redirect. forceAuthn asks the IdP to
 // authenticate the user again rather than reuse its own session.
 func (s *SSOService) SAMLAuthnRequestURL(ctx context.Context, relayState string, forceAuthn bool) (string, error) {

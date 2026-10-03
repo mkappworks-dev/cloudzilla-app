@@ -11,7 +11,7 @@ import (
 )
 
 templ ReleaseDetail(data view.ReleaseDetailData) {
-	@layout.Base(data.BasePage, releaseDetailTitle(data)+" · "+data.RepoName+" · Releases · Cloudzilla") {
+	@layout.Base(data.BasePage, releaseDetailTitle(data)+" · "+data.RepoName+" · Releases") {
 		<div class="max-w-[1400px] mx-auto px-6 pt-8 pb-20 space-y-6">
 
 			<section aria-labelledby="rel-title">

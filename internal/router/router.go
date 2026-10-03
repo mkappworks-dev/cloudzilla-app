@@ -489,6 +489,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.Post("/invitations", h.CreateInvitation)
 		r.Delete("/invitations/{id}", h.DeleteInvitation)
 		r.Post("/users/verify-email", h.AdminVerifyEmail)
+		r.Post("/sso/{provider}/enabled", h.SetSSOEnabled)
 	})
 
 	// Notification routes

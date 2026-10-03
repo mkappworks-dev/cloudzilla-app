@@ -15,7 +15,7 @@ Stores → Services → Handlers, strictly:
 
 ## Commands
 
-Targets live in the `Makefile` (`dev`, `build`, `migrate`, `lint`, `test`, `test-integration`). Integration tests need `TEST_DATABASE_DSN`; `make test-integration` starts the test DB and sets it.
+Targets live in the `Makefile` (`dev`, `build`, `migrate`, `seed`, `lint`, `test`, `test-integration`). Integration tests need `TEST_DATABASE_DSN`; `make test-integration` starts the test DB and sets it.
 
 ## Templ
 
