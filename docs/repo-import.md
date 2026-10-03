@@ -17,7 +17,8 @@ Jobs live in memory and are dropped an hour after they finish. A restart loses i
 - Only `http` and `https` URLs are accepted. go-git treats a bare path or `file://` URL as a repository on the server's own disk.
 - Credentials go in the username and token fields, never the URL. They are used for one clone as HTTP basic auth and are not stored or logged.
 - The go-git HTTP client is process-wide. When a request's context carries an import guard, the dialer resolves the host itself and refuses loopback, private, link-local, multicast, unspecified, `0.0.0.0/8` and `100.64.0.0/10` addresses, then connects to the vetted IP. Redirects re-dial through the same check. `import.allow_local_networks: true` turns the check off, for importing from a server on your own network.
-- Imports ignore `HTTP(S)_PROXY`, and response bytes are capped by `git.max_pack_bytes`.
+- Imports ignore `HTTP(S)_PROXY`.
+- Response bodies are capped by kind, so one hostile source can't make an import hold gigabytes in memory. The pack is capped at `git.max_pack_bytes`; the `info/refs` ref advertisement at 64 MiB; a non-2xx body is cut off at 64 KiB, since go-git only uses it as error text. The 64 MiB and 64 KiB caps apply even when `git.max_pack_bytes` is `0`. Crossing the pack or ref cap fails the import, and the message names the cap.
 - Each accepted import (202) is written to the audit log as `repo.import` with the source URL, whether or not the clone later succeeds.
 - Personal access tokens and OAuth-app tokens are refused on `/api/imports`; only a session (the cookie, or the login JWT as Bearer) can start or read an import. The owner is in the request body, which the token-target check (based on the URL path) can't see.
 
@@ -27,4 +28,4 @@ Jobs live in memory and are dropped an hour after they finish. A restart loses i
 | --- | --- | --- |
 | `import.allow_local_networks` | `false` | Allow sources on private networks |
 | `import.timeout` | `30m` | Time limit for one import |
-| `git.max_pack_bytes` | 2 GiB | Also caps the bytes one import downloads |
+| `git.max_pack_bytes` | 2 GiB | Also caps the pack one import downloads (`0` = no cap) |

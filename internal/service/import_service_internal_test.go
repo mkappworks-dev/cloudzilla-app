@@ -83,6 +83,24 @@ func TestImportService_PanicFailsTheJob(t *testing.T) {
 	}
 }
 
+func TestImportService_FailureNamesTheCapCrossed(t *testing.T) {
+	s := &ImportService{}
+	job := &importJob{ImportJob: ImportJob{ID: "j", SourceURL: "https://example.com/a.git", Owner: "me", Name: "a"}}
+	for _, tc := range []struct {
+		crossed *importSizeError
+		want    string
+	}{
+		{&importSizeError{limit: 2 << 30}, "The repository is larger than this instance's limit of 2 GiB."},
+		{&importSizeError{limit: 512 << 20}, "The repository is larger than this instance's limit of 512 MiB."},
+		{&importSizeError{limit: importMaxRefsBytes, refs: true}, "The source advertised more refs than this instance accepts (64 MiB)."},
+	} {
+		got := s.failureMessage(context.Background(), job, &importGuard{tooLarge: tc.crossed}, errors.New("read failed"))
+		if got != tc.want {
+			t.Errorf("failureMessage = %q, want %q", got, tc.want)
+		}
+	}
+}
+
 func TestFormatImportLimits(t *testing.T) {
 	for d, want := range map[time.Duration]string{
 		30 * time.Minute: "30m", time.Hour: "1h", 90 * time.Minute: "1h30m", 45 * time.Second: "45s",

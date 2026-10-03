@@ -79,7 +79,7 @@ func TestImportClient_AllowLocalNetworks(t *testing.T) {
 
 func TestImportClient_CapsResponseBytes(t *testing.T) {
 	srv := importTestServer(t, strings.Repeat("x", 1000))
-	g := &importGuard{allowLocal: true, maxBytes: 100}
+	g := &importGuard{allowLocal: true, maxPackBytes: 100}
 	resp, err := importGet(withImportGuard(context.Background(), g), srv.URL)
 	if err != nil {
 		t.Fatalf("request: %v", err)
@@ -90,5 +90,78 @@ func TestImportClient_CapsResponseBytes(t *testing.T) {
 	}
 	if !errors.Is(g.failure(), ErrImportTooLarge) {
 		t.Errorf("failure() = %v, want ErrImportTooLarge", g.failure())
+	}
+	var size *importSizeError
+	if !errors.As(g.failure(), &size) || size.refs || size.limit != 100 {
+		t.Errorf("failure() = %+v, want the 100-byte pack cap", size)
+	}
+}
+
+func TestImportClient_CapsTheRefAdvertisementSeparately(t *testing.T) {
+	srv := importTestServer(t, strings.Repeat("x", 1000))
+	g := &importGuard{allowLocal: true, maxRefsBytes: 100}
+	resp, err := importGet(withImportGuard(context.Background(), g), srv.URL+"/source.git/info/refs?service=git-upload-pack")
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if _, err := io.ReadAll(resp.Body); !errors.Is(err, gittransport.ErrPackTooLarge) {
+		t.Errorf("read error = %v, want ErrPackTooLarge", err)
+	}
+	var size *importSizeError
+	if !errors.Is(g.failure(), ErrImportTooLarge) || !errors.As(g.failure(), &size) || !size.refs || size.limit != 100 {
+		t.Errorf("failure() = %+v, want the 100-byte refs cap", g.failure())
+	}
+}
+
+func TestImportClient_RefsCapDoesNotLimitThePack(t *testing.T) {
+	srv := importTestServer(t, strings.Repeat("x", 1000))
+	g := &importGuard{allowLocal: true, maxRefsBytes: 100}
+	resp, err := importGet(withImportGuard(context.Background(), g), srv.URL+"/source.git/git-upload-pack")
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if body, err := io.ReadAll(resp.Body); err != nil || len(body) != 1000 {
+		t.Errorf("read %d bytes, %v; want 1000, nil", len(body), err)
+	}
+	if g.failure() != nil {
+		t.Errorf("failure() = %v, want nil", g.failure())
+	}
+}
+
+func TestImportClient_TruncatesErrorBodies(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = io.WriteString(w, strings.Repeat("x", 1000))
+	}))
+	t.Cleanup(srv.Close)
+	// Caps below the error cap prove a non-2xx body answers to its own cap alone.
+	g := &importGuard{allowLocal: true, maxPackBytes: 10, maxRefsBytes: 10, maxErrorBytes: 100}
+	resp, err := importGet(withImportGuard(context.Background(), g), srv.URL+"/source.git/info/refs?service=git-upload-pack")
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil || len(body) != 100 {
+		t.Errorf("read %d bytes, %v; want 100, nil", len(body), err)
+	}
+	if g.failure() != nil {
+		t.Errorf("failure() = %v, want nil: a long error page is not a size failure", g.failure())
+	}
+}
+
+func TestImportSizeError_Message(t *testing.T) {
+	for _, tc := range []struct {
+		err  importSizeError
+		want string
+	}{
+		{importSizeError{limit: 2 << 30}, "The repository is larger than this instance's limit of 2 GiB."},
+		{importSizeError{limit: importMaxRefsBytes, refs: true}, "The source advertised more refs than this instance accepts (64 MiB)."},
+	} {
+		if got := tc.err.message(); got != tc.want {
+			t.Errorf("message() = %q, want %q", got, tc.want)
+		}
 	}
 }

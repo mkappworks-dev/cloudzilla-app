@@ -84,11 +84,11 @@ type importJob struct {
 // ImportService runs imports in the background. Jobs live in memory: a
 // restart drops imports in flight, and RemoveStaleTemp clears their clones.
 type ImportService struct {
-	repo     *RepoService
-	root     string
-	maxBytes int64
-	cfg      config.ImportConfig
-	slots    chan struct{}
+	repo         *RepoService
+	root         string
+	maxPackBytes int64
+	cfg          config.ImportConfig
+	slots        chan struct{}
 
 	mu   sync.Mutex
 	jobs map[string]*importJob
@@ -97,12 +97,12 @@ type ImportService struct {
 func NewImportService(repo *RepoService, git config.GitConfig, cfg config.ImportConfig) *ImportService {
 	installImportTransport()
 	return &ImportService{
-		repo:     repo,
-		root:     git.ReposRoot,
-		maxBytes: git.MaxPackBytes,
-		cfg:      cfg,
-		slots:    make(chan struct{}, importConcurrency),
-		jobs:     map[string]*importJob{},
+		repo:         repo,
+		root:         git.ReposRoot,
+		maxPackBytes: git.MaxPackBytes,
+		cfg:          cfg,
+		slots:        make(chan struct{}, importConcurrency),
+		jobs:         map[string]*importJob{},
 	}
 }
 
@@ -184,7 +184,12 @@ func (s *ImportService) attempt(dir string, job *importJob, target ImportTarget,
 			failure = importFailedMessage
 		}
 	}()
-	guard := &importGuard{allowLocal: s.cfg.AllowLocalNetworks, maxBytes: s.maxBytes}
+	guard := &importGuard{
+		allowLocal:    s.cfg.AllowLocalNetworks,
+		maxPackBytes:  s.maxPackBytes,
+		maxRefsBytes:  importMaxRefsBytes,
+		maxErrorBytes: importMaxErrorBodyBytes,
+	}
 	ctx, cancel := s.jobContext(withImportGuard(context.Background(), guard))
 	defer cancel()
 	if err := s.cloneAndPublish(ctx, dir, job, target, description, private, auth); err != nil {
@@ -214,12 +219,13 @@ func (s *ImportService) cloneAndPublish(ctx context.Context, dir string, job *im
 
 func (s *ImportService) failureMessage(ctx context.Context, job *importJob, guard *importGuard, err error) string {
 	var blocked *ImportBlockedError
+	var tooLarge *importSizeError
 	stopped := guard.failure()
 	switch {
 	case errors.As(stopped, &blocked):
 		return blocked.Host + " resolves to a private network address. An administrator can allow this with import.allow_local_networks."
-	case errors.Is(stopped, ErrImportTooLarge):
-		return "The repository is larger than this instance's limit of " + formatImportBytes(s.maxBytes) + "."
+	case errors.As(stopped, &tooLarge):
+		return tooLarge.message()
 	case errors.Is(ctx.Err(), context.DeadlineExceeded):
 		return "The import took longer than " + formatImportTimeout(s.cfg.Timeout) + " and was stopped."
 	case errors.Is(err, transport.ErrAuthenticationRequired), errors.Is(err, transport.ErrAuthorizationFailed),
