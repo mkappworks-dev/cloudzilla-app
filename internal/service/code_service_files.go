@@ -2,8 +2,10 @@ package service
 
 import (
 	"archive/zip"
+	"errors"
 	"fmt"
 	"io"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -14,6 +16,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 )
+
+// ErrPathCollision means a commit's path runs into an existing entry of another
+// kind, such as a file where the path needs a directory. Handlers answer 409.
+var ErrPathCollision = errors.New("path collides with an existing entry")
 
 // CommitFile commits content to filePath on branch, creating the branch if it
 // does not yet exist (e.g. the first commit in an empty repo).
@@ -54,13 +60,9 @@ func (s *CodeService) CommitFile(owner, repoName, branch, filePath string, conte
 		if baseTree, cErr = parent.Tree(); cErr != nil {
 			return fmt.Errorf("read tree: %w", cErr)
 		}
-		// Reject a no-op commit when the file already matches.
-		if existing, fErr := baseTree.File(filePath); fErr == nil && existing.Hash == blobHash {
-			return fmt.Errorf("file is unchanged")
-		}
 	}
 
-	rootTreeHash, err := insertBlobIntoTree(repo, baseTree, segments, blobHash)
+	rootTreeHash, err := insertBlobIntoTree(repo, baseTree, "", segments, blobHash)
 	if err != nil {
 		return err
 	}
@@ -124,28 +126,48 @@ func writeTree(repo *gogit.Repository, entries []object.TreeEntry) (plumbing.Has
 }
 
 // insertBlobIntoTree rebuilds the tree chain so segments resolve to blobHash,
-// returning the new root tree hash. A nil base starts from an empty tree.
-func insertBlobIntoTree(repo *gogit.Repository, base *object.Tree, segments []string, blobHash plumbing.Hash) (plumbing.Hash, error) {
+// returning the new root tree hash. A nil base starts from an empty tree, and
+// dir is base's path. Only a file is replaced, keeping its mode; any other
+// entry in the way is an ErrPathCollision.
+func insertBlobIntoTree(repo *gogit.Repository, base *object.Tree, dir string, segments []string, blobHash plumbing.Hash) (plumbing.Hash, error) {
 	name := segments[0]
+	entryPath := path.Join(dir, name)
+	var existing *object.TreeEntry
 	entries := []object.TreeEntry{}
 	if base != nil {
-		for _, e := range base.Entries {
-			if e.Name != name {
+		for i, e := range base.Entries {
+			if e.Name == name {
+				existing = &base.Entries[i]
+			} else {
 				entries = append(entries, e)
 			}
 		}
 	}
 
 	if len(segments) == 1 {
-		entries = append(entries, object.TreeEntry{Name: name, Mode: filemode.Regular, Hash: blobHash})
+		mode := filemode.Regular
+		if existing != nil {
+			if existing.Mode != filemode.Regular && existing.Mode != filemode.Executable {
+				return plumbing.ZeroHash, pathCollision(entryPath, existing.Mode)
+			}
+			if existing.Hash == blobHash {
+				return plumbing.ZeroHash, errors.New("file is unchanged")
+			}
+			mode = existing.Mode
+		}
+		entries = append(entries, object.TreeEntry{Name: name, Mode: mode, Hash: blobHash})
 	} else {
 		var subTree *object.Tree
-		if base != nil {
-			if existing, err := base.Tree(name); err == nil {
-				subTree = existing
+		if existing != nil {
+			if existing.Mode != filemode.Dir {
+				return plumbing.ZeroHash, pathCollision(entryPath, existing.Mode)
+			}
+			var err error
+			if subTree, err = repo.TreeObject(existing.Hash); err != nil {
+				return plumbing.ZeroHash, fmt.Errorf("read %s: %w", entryPath, err)
 			}
 		}
-		subHash, err := insertBlobIntoTree(repo, subTree, segments[1:], blobHash)
+		subHash, err := insertBlobIntoTree(repo, subTree, entryPath, segments[1:], blobHash)
 		if err != nil {
 			return plumbing.ZeroHash, err
 		}
@@ -153,6 +175,19 @@ func insertBlobIntoTree(repo *gogit.Repository, base *object.Tree, segments []st
 	}
 
 	return writeTree(repo, entries)
+}
+
+func pathCollision(p string, mode filemode.FileMode) error {
+	kind := "file"
+	switch mode {
+	case filemode.Dir:
+		kind = "directory"
+	case filemode.Symlink:
+		kind = "symlink"
+	case filemode.Submodule:
+		kind = "submodule"
+	}
+	return fmt.Errorf("%w: %s is a %s", ErrPathCollision, p, kind)
 }
 
 // ArchiveZip streams a zip of the repo tree at ref into w. Files are prefixed
