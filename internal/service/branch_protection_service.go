@@ -67,11 +67,17 @@ func (s *BranchProtectionService) Delete(ctx context.Context, id, repoID int64) 
 // CheckPush enforces branch protection rules for a push operation.
 // isForcePush should be true when the push is non-fast-forward.
 func (s *BranchProtectionService) CheckPush(ctx context.Context, repoID int64, branchName string, isForcePush bool) error {
+	return s.checkPush(ctx, repoID, branchName, func() bool { return isForcePush })
+}
+
+// checkPush is CheckPush, calling isForcePush only if a rule blocks force
+// pushes: for a receive-pack command, it walks history.
+func (s *BranchProtectionService) checkPush(ctx context.Context, repoID int64, branchName string, isForcePush func() bool) error {
 	rule, err := s.protections.MatchForBranch(ctx, repoID, branchName)
 	if err != nil || rule == nil {
 		return err
 	}
-	if isForcePush && rule.BlockForcePush {
+	if rule.BlockForcePush && isForcePush() {
 		return ErrForcePushBlocked
 	}
 	return nil
@@ -92,7 +98,7 @@ func (s *BranchProtectionService) CheckPushCommand(ctx context.Context, repoID i
 	if !ok {
 		return nil
 	}
-	err := s.CheckPush(ctx, repoID, branch, !isFastForward(gitRepo, cmd))
+	err := s.checkPush(ctx, repoID, branch, func() bool { return !isFastForward(gitRepo, cmd) })
 	if err != nil && !errors.Is(err, ErrForcePushBlocked) {
 		slog.Error("BranchProtectionService.CheckPushCommand: rule lookup failed", "repo_id", repoID, "ref", cmd.Name.String(), "error", err)
 		return ErrProtectionCheckFailed
