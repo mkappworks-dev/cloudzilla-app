@@ -18,8 +18,8 @@ Jobs live in memory and are dropped an hour after they finish. A restart loses i
 - Credentials go in the username and token fields, never the URL. They are used for one clone as HTTP basic auth and are not stored or logged.
 - The go-git HTTP client is process-wide. When a request's context carries an import guard, the dialer resolves the host itself and refuses loopback, private, link-local, multicast, unspecified, `0.0.0.0/8` and `100.64.0.0/10` addresses, then connects to the vetted IP. Redirects re-dial through the same check. `import.allow_local_networks: true` turns the check off, for importing from a server on your own network.
 - Imports ignore `HTTP(S)_PROXY`, and response bytes are capped by `git.max_pack_bytes`.
-- Each import request is written to the audit log as `repo.import`, with the source URL, before the clone starts.
-- Scoped access tokens (fine-grained PATs and OAuth-app tokens) are refused on `/api/imports`; browser sessions and unscoped tokens can use it. The import's owner is specified in the JSON body, so a token-target check reading the URL path cannot confine an org-limited token.
+- Each accepted import (202) is written to the audit log as `repo.import` with the source URL, whether or not the clone later succeeds.
+- Personal access tokens and OAuth-app tokens are refused on `/api/imports`; only a session (the cookie, or the login JWT as Bearer) can start or read an import. The owner is in the request body, which the token-target check (based on the URL path) can't see.
 
 ## Configuration
 
