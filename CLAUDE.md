@@ -62,6 +62,7 @@ Read the matching doc before working in an area:
 - [deployment](./docs/deployment.md) — Docker, bootstrap
 - [code-browser](./docs/code-browser.md) — `CodeService`, ref resolution, `ErrEmptyRepo` → 404
 - [pr-merge](./docs/pr-merge.md) — `ff`/`merge`/`squash`, conflict detection
+- [repo-import](./docs/repo-import.md) — background clone jobs, SSRF guard on go-git's HTTP client, `import.*` config
 - [organizations](./docs/organizations.md) — `OrgService`; `/{owner}` resolves user first, then org
 - [webhooks](./docs/webhooks.md) — events, HMAC signing, fire-and-forget `Dispatch`
 - [notifications](./docs/notifications.md) — types; skipped when `actorID == authorID`

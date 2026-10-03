@@ -164,6 +164,15 @@ Creating a repository (here, under `/api/orgs/:org/repos`, or from a template) w
 
 A transfer into an organization you own, or into your own account (an org repo you own), happens at once: the response redirects to the repository's new URL (`HX-Redirect` for HTMX). It is refused with 422 `transfer failed`, and nothing moves, when the new owner already has a repository with that name, or a `<name>.git` or `<name>.wiki.git` directory left on disk under it. It is refused the same way when `new_owner` names neither a user nor an org, names an org the requester does not own, or names the current owner.
 
+## Repository Imports
+
+| Method | Path                | Auth     | Description |
+| ------ | ------------------- | -------- | ----------- |
+| POST   | `/api/imports`      | Required | Start importing a Git repository (`clone_url`, `name`, optional `owner`, `description`, `private`, `auth_username` + `auth_token`). Returns `202 {id, status, owner, name, status_url}` |
+| GET    | `/api/imports/:id`  | Required | The import's `status` (`queued`, `running`, `done`, `failed`), `progress` and `error`. 404 for an unknown, expired or someone else's import |
+
+`clone_url` must be `http://` or `https://` without credentials in it (422). `auth_username` and `auth_token` go together (422). `owner` defaults to the caller; another owner must be an organization the caller owns (403). A name already used under the owner is 422 `a repository with that name already exists`. A sixth import while five are queued or running is 429. Scoped access tokens (fine-grained PATs and OAuth-app tokens) are refused on `/api/imports`. `status_url` in the response is the HTML status page (`/repos/import/{id}`); API clients poll `GET /api/imports/{id}` for JSON. Imports run in the background; see [repo-import](./repo-import.md).
+
 ## Repository Transfers
 
 A transfer to another user moves nothing until they accept it. `POST /api/repos/:owner/:repo/transfer` answers `202` with the pending transfer, notifies the recipient (notification type `repo_transfer`, emailed like other notifications), and lists it on their `/repos/transfers` page, which also shows the repository's collaborators, who keep their access if it is accepted. A repository has at most one pending transfer: a new one replaces it, and so does any move of the repository. A transfer expires after 7 days (`service.RepoTransferTTL`), and lapses if the requester stops owning the repository.
