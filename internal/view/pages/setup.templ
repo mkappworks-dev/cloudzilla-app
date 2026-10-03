@@ -8,7 +8,7 @@ import (
 
 templ Setup(data view.SetupData) {
 	{{ data.BasePage.SetupPending = true }}
-	@layout.Base(data.BasePage, "Setup Cloudzilla") {
+	@layout.Base(data.BasePage, "Setup") {
 		<div class="max-w-md mx-auto mt-16 rounded-md border border-border bg-card p-6">
 			@authCardHero("First-run setup", "Create your superadmin account", "Cloudzilla needs one admin to bootstrap — this account is the only one that can complete the initial configuration.")
 			if data.Error != "" {
