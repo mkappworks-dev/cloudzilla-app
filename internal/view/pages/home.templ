@@ -82,7 +82,7 @@ templ Home(data view.HomeData) {
 			}
 
 			<!-- Main two-column layout -->
-			<div class="grid lg:grid-cols-[1fr_320px] gap-8">
+			<div class={ "grid gap-8", templ.KV("lg:grid-cols-[1fr_320px]", homeHasSidebar(data)) }>
 
 				<!-- LEFT column -->
 				<div class="space-y-10">
@@ -288,115 +288,70 @@ templ Home(data view.HomeData) {
 					}
 				</div>
 
-				<!-- RIGHT rail / sidebar -->
-				<aside class="space-y-8" aria-label="Sidebar">
+				if homeHasSidebar(data) {
+					<!-- RIGHT rail / sidebar -->
+					<aside class="space-y-8" aria-label="Sidebar">
 
-					<!-- Activity -->
-					if len(data.Activity) > 0 {
-						<section aria-labelledby="activity-heading">
-							<div class="flex items-center justify-between mb-3">
-								<h3 id="activity-heading" class="text-[13px] font-medium">Activity</h3>
-								<a href="/activity" class="text-[12px] text-muted-foreground hover:text-foreground">All<span aria-hidden="true"> →</span><span class="sr-only"> activity</span></a>
-							</div>
-							<ol class="space-y-3">
-								for _, ev := range data.Activity {
-									<li class="text-[12px] flex gap-2.5">
-										<span class={ "mt-1 shrink-0 h-1.5 w-1.5 rounded-full", activityDotClass(ev.EventType) } aria-hidden="true"></span>
-										<div class="min-w-0 flex-1">
-											<p>
-												<a href={ templ.SafeURL("/" + ev.ActorName) } class="hover:underline">{ "@" + ev.ActorName }</a>
-												<span class="text-muted-foreground">{ " " + eventVerb(ev.EventType) + " " }</span>
-												if ev.OwnerName != "" && ev.RepoName != "" {
-													<span class="font-mono">{ ev.RepoName }</span>
-												}
-											</p>
-											<p class="text-muted-foreground mt-0.5 font-mono text-[11px]">
-												if ev.OwnerName != "" && ev.RepoName != "" {
-													{ ev.OwnerName + "/" + ev.RepoName }
-													<span aria-hidden="true">{ " · " }</span>
-												}
-												<time datetime={ ev.CreatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(ev.CreatedAt) }</time>
-											</p>
-										</div>
-									</li>
-								}
-							</ol>
-						</section>
-					}
-
-					<!-- Templates -->
-					if len(data.Templates) > 0 {
-						<section aria-labelledby="templates-heading">
-							<div class="flex items-center justify-between mb-3">
-								<h3 id="templates-heading" class="text-[13px] font-medium">Start from a template</h3>
-							</div>
-							<ul class="border border-border rounded-md bg-card divide-y divide-border">
-								for _, tmpl := range data.Templates {
-									<li>
-										<a href={ templ.SafeURL("/repos/new?template=" + strconv.FormatInt(tmpl.ID, 10)) } class="flex items-center justify-between px-3 py-2.5 hover:bg-muted/40 group">
-											<div class="min-w-0">
-												<p class="text-[12px] truncate">{ tmpl.Name }</p>
-												if tmpl.Description != "" {
-													<p class="text-[11px] text-muted-foreground truncate mt-0.5">{ tmpl.Description }</p>
-												}
+						<!-- Activity -->
+						if len(data.Activity) > 0 {
+							<section aria-labelledby="activity-heading">
+								<div class="flex items-center justify-between mb-3">
+									<h3 id="activity-heading" class="text-[13px] font-medium">Activity</h3>
+									<a href="/activity" class="text-[12px] text-muted-foreground hover:text-foreground">All<span aria-hidden="true"> →</span><span class="sr-only"> activity</span></a>
+								</div>
+								<ol class="space-y-3">
+									for _, ev := range data.Activity {
+										<li class="text-[12px] flex gap-2.5">
+											<span class={ "mt-1 shrink-0 h-1.5 w-1.5 rounded-full", activityDotClass(ev.EventType) } aria-hidden="true"></span>
+											<div class="min-w-0 flex-1">
+												<p>
+													<a href={ templ.SafeURL("/" + ev.ActorName) } class="hover:underline">{ "@" + ev.ActorName }</a>
+													<span class="text-muted-foreground">{ " " + eventVerb(ev.EventType) + " " }</span>
+													if ev.OwnerName != "" && ev.RepoName != "" {
+														<span class="font-mono">{ ev.RepoName }</span>
+													}
+												</p>
+												<p class="text-muted-foreground mt-0.5 font-mono text-[11px]">
+													if ev.OwnerName != "" && ev.RepoName != "" {
+														{ ev.OwnerName + "/" + ev.RepoName }
+														<span aria-hidden="true">{ " · " }</span>
+													}
+													<time datetime={ ev.CreatedAt.UTC().Format(time.RFC3339) }>{ formatRelative(ev.CreatedAt) }</time>
+												</p>
 											</div>
-											<svg class="text-muted-foreground group-hover:text-foreground shrink-0 ml-2" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-												<path d="M5 12h14M12 5l7 7-7 7"></path>
-											</svg>
-										</a>
-									</li>
-								}
-							</ul>
-						</section>
-					}
+										</li>
+									}
+								</ol>
+							</section>
+						}
 
-					<!-- Keyboard shortcuts -->
-					<section aria-labelledby="shortcuts-heading">
-						<div class="flex items-center justify-between mb-3">
-							<h3 id="shortcuts-heading" class="text-[13px] font-medium">Shortcuts</h3>
-						</div>
-						<dl class="space-y-1.5 text-[12px]">
-							<div class="flex items-center justify-between">
-								<dt class="text-muted-foreground">Command palette</dt>
-								<dd class="font-mono"><kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">⌘K</kbd></dd>
-							</div>
-							<div class="flex items-center justify-between">
-								<dt class="text-muted-foreground">New repository</dt>
-								<dd class="font-mono">
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">N</kbd>
-									{ " " }
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">R</kbd>
-								</dd>
-							</div>
-							<div class="flex items-center justify-between">
-								<dt class="text-muted-foreground">Go to issues</dt>
-								<dd class="font-mono">
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">G</kbd>
-									{ " " }
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">I</kbd>
-								</dd>
-							</div>
-							<div class="flex items-center justify-between">
-								<dt class="text-muted-foreground">Go to pulls</dt>
-								<dd class="font-mono">
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">G</kbd>
-									{ " " }
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">P</kbd>
-								</dd>
-							</div>
-							<div class="flex items-center justify-between">
-								<dt class="text-muted-foreground">Toggle theme</dt>
-								<dd class="font-mono">
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">⌘</kbd>
-									{ " " }
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">⇧</kbd>
-									{ " " }
-									<kbd class="px-1.5 py-0.5 bg-muted border border-border rounded-sm text-[11px]">L</kbd>
-								</dd>
-							</div>
-						</dl>
-					</section>
-				</aside>
+						<!-- Templates -->
+						if len(data.Templates) > 0 {
+							<section aria-labelledby="templates-heading">
+								<div class="flex items-center justify-between mb-3">
+									<h3 id="templates-heading" class="text-[13px] font-medium">Start from a template</h3>
+								</div>
+								<ul class="border border-border rounded-md bg-card divide-y divide-border">
+									for _, tmpl := range data.Templates {
+										<li>
+											<a href={ templ.SafeURL("/repos/new?template=" + strconv.FormatInt(tmpl.ID, 10)) } class="flex items-center justify-between px-3 py-2.5 hover:bg-muted/40 group">
+												<div class="min-w-0">
+													<p class="text-[12px] truncate">{ tmpl.Name }</p>
+													if tmpl.Description != "" {
+														<p class="text-[11px] text-muted-foreground truncate mt-0.5">{ tmpl.Description }</p>
+													}
+												</div>
+												<svg class="text-muted-foreground group-hover:text-foreground shrink-0 ml-2" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+													<path d="M5 12h14M12 5l7 7-7 7"></path>
+												</svg>
+											</a>
+										</li>
+									}
+								</ul>
+							</section>
+						}
+					</aside>
+				}
 			</div>
 		</div>
 	}
@@ -417,6 +372,10 @@ templ repoIcon(private bool) {
 	}
 }
 
+
+func homeHasSidebar(data view.HomeData) bool {
+	return len(data.Activity) > 0 || len(data.Templates) > 0
+}
 
 func activityDotClass(eventType string) string {
 	switch eventType {

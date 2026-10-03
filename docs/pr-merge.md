@@ -2,7 +2,7 @@
 
 Cloudzilla supports three merge strategies selectable from the PR detail page.
 
-**Diff view:** The PR's Files tab (`PagePullFiles`) shows a full file diff between base and head tips.
+**Diff view:** The PR's Files tab (`PagePullFiles`) diffs head's tip against its merge base with base, like `git diff base...head`, so commits that land on base after head branched off don't show up as reverted by the PR. Branches with no common history fall back to a diff between the two tips. The Files badge, CODEOWNERS reviewer auto-request and suggested reviewers use the same file list.
 
 ## Available Strategies
 
@@ -12,7 +12,7 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 | Three-way merge | "Create merge commit"  | FF or clean three-way merge possible | Creates a commit with two parents (base + head)         |
 | Squash merge    | "Squash and merge"     | FF or clean three-way merge possible | Collapses head commits into a single new commit on base |
 
-**Conflict detection:** `mergeTreesNoConflict` performs a pure tree-level three-way merge — if the same file path was modified on both sides relative to the merge base, all merge buttons are hidden and a conflict warning is shown. The developer must rebase locally and push.
+**Conflict detection:** `mergeFiles` performs a pure tree-level three-way merge in memory — if the same file path was modified on both sides relative to the merge base, all merge buttons are hidden and a conflict warning is shown. The developer must rebase locally and push. Only the merge methods write the merged tree, through `mergeTreesNoConflict`; viewing a PR writes nothing to the repo.
 
 ## Merge Flow
 
@@ -28,14 +28,15 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 ## CodeService Methods
 
 - `GetPullDiff(owner, repo, base, head)` → `*PRDiffResult`
-- `PullDiffStats(owner, repo, base, head)` → `(DiffStats, error)` (`GetPullDiff`'s file and line totals without the hunks or merge checks; feeds the Files badge on the other PR tabs)
+- `PullDiffStats(owner, repo, base, head)` → `(DiffStats, error)` (`GetPullDiff`'s file and line totals without the hunks; feeds the Files badge on the other PR tabs)
 - `Mergeability(ctx, owner, repo, base, head)` → `(Mergeability, error)`
 - `MergePullRequest(owner, repo, base, head)` → `error` (fast-forward only)
 - `ThreeWayMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
 - `SquashMergePullRequest(owner, repo, base, head, author GitAuthor)` → `error`
 - `checkFastForward(repo, baseCommit, headCommit)` → `bool` (private)
-- `findMergeBase(repo, a, b)` → `(*object.Commit, error)` (private; LCA via ancestor walk)
+- `findMergeBase(a, b)` → `(*object.Commit, error)` (private; best common ancestor, as `git merge-base`)
 - `mergeTreesNoConflict(repo, mergeBase, base, head)` → `(plumbing.Hash, bool, error)` (private)
+- `mergeFiles(mergeBase, base, head)` → `(map[string]mergeFile, bool, error)` (private; `mergeTreesNoConflict` without the tree writes, used by `Mergeability`)
 - `flattenTree(tree)` → `(map[string]mergeFile, error)` (private)
 - `buildTree(repo, files)` → `(plumbing.Hash, error)` (private; recursively encodes tree objects)
 
@@ -45,11 +46,9 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 
 ```go
 type PRDiffResult struct {
-    Files            []FileDiff
-    TotalAdded       int
-    TotalDeleted     int
-    CanFastForward   bool  // head is a descendant of base
-    CanThreeWayMerge bool  // branches diverged but no conflicting file edits
+    Files        []FileDiff
+    TotalAdded   int
+    TotalDeleted int
 }
 ```
 

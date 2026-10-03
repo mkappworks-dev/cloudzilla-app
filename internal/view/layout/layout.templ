@@ -277,6 +277,12 @@ templ Base(base view.BasePage, title string) {
 							@components.CommandItem("/"+base.CurrentUser.Username, nil) {
 								{ "Your profile" }
 							}
+							@components.CommandItem("/pulls", nil) {
+								{ "Your pull requests" }
+							}
+							@components.CommandItem("/issues", nil) {
+								{ "Your issues" }
+							}
 							@components.CommandItem("/"+base.CurrentUser.Username+"?tab=gists", nil) {
 								{ "Your gists" }
 							}
@@ -298,6 +304,14 @@ templ Base(base view.BasePage, title string) {
 								@components.CommandItem("/admin/sso", nil) {
 									{ "Single sign-on" }
 								}
+							}
+						}
+					}
+					@components.CommandGroup("Preferences") {
+						@components.CommandItem("", templ.Attributes{"onclick": "document.getElementById('theme-toggle').click(); this.closest('dialog').close()"}) {
+							{ "Toggle theme" }
+							@components.CommandShortcut() {
+								{ "⌘⇧L" }
 							}
 						}
 					}
