@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	gogit "github.com/go-git/go-git/v5"
@@ -30,13 +31,20 @@ func TestPullDiffStats_MatchesGetPullDiff(t *testing.T) {
 	pushBranch(t, work, "feature")
 
 	objects := filepath.Join(bareDir, "objects")
-	before := countFiles(t, objects)
+	before := filesUnder(t, objects)
 	stats, err := svc.PullDiffStats("alice", "stats", "main", "feature")
 	if err != nil {
 		t.Fatalf("PullDiffStats: %v", err)
 	}
-	if after := countFiles(t, objects); after != before {
-		t.Errorf("PullDiffStats wrote %d objects into the repo", after-before)
+	var written []string
+	for path := range filesUnder(t, objects) {
+		if !before[path] {
+			written = append(written, path)
+		}
+	}
+	if len(written) > 0 {
+		sort.Strings(written)
+		t.Errorf("PullDiffStats wrote into objects/: %s", strings.Join(written, ", "))
 	}
 	// main.txt landed on main after feature branched off, so it isn't counted.
 	if want := (DiffStats{Files: 3, Added: 2, Deleted: 1}); stats != want {
@@ -65,6 +73,23 @@ func countFiles(t *testing.T, dir string) int {
 		t.Fatalf("walk %s: %v", dir, err)
 	}
 	return n
+}
+
+func filesUnder(t *testing.T, dir string) map[string]bool {
+	t.Helper()
+	paths := map[string]bool{}
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		rel, err := filepath.Rel(dir, path)
+		paths[rel] = true
+		return err
+	})
+	if err != nil {
+		t.Fatalf("walk %s: %v", dir, err)
+	}
+	return paths
 }
 
 // pullRepo is a bare repo whose branches the tests grow through CodeService's
