@@ -1,0 +1,94 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"io"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
+)
+
+func TestBlockedImportIP(t *testing.T) {
+	for _, tc := range []struct {
+		ip      string
+		blocked bool
+	}{
+		{"127.0.0.1", true}, {"10.1.2.3", true}, {"172.16.0.1", true}, {"192.168.1.1", true},
+		{"169.254.169.254", true}, {"100.100.100.200", true}, {"0.1.2.3", true}, {"0.0.0.0", true},
+		{"224.0.0.1", true}, {"::1", true}, {"fc00::1", true}, {"fe80::1", true}, {"::ffff:127.0.0.1", true},
+		{"8.8.8.8", false}, {"140.82.112.3", false}, {"2606:4700:4700::1111", false},
+	} {
+		if got := blockedImportIP(net.ParseIP(tc.ip)); got != tc.blocked {
+			t.Errorf("blockedImportIP(%s) = %v, want %v", tc.ip, got, tc.blocked)
+		}
+	}
+}
+
+func importTestServer(t *testing.T, body string) *httptest.Server {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, body)
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func importGet(ctx context.Context, url string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	return newImportHTTPClient().Do(req)
+}
+
+func TestImportClient_RefusesLoopbackUnderGuard(t *testing.T) {
+	srv := importTestServer(t, "ok")
+	g := &importGuard{}
+	if resp, err := importGet(withImportGuard(context.Background(), g), srv.URL); err == nil {
+		_ = resp.Body.Close()
+		t.Fatal("request to 127.0.0.1 succeeded under a guard")
+	}
+	var blocked *ImportBlockedError
+	if !errors.As(g.failure(), &blocked) || blocked.Host != "127.0.0.1" {
+		t.Errorf("failure() = %v, want ImportBlockedError for 127.0.0.1", g.failure())
+	}
+}
+
+func TestImportClient_LeavesUnguardedRequestsAlone(t *testing.T) {
+	srv := importTestServer(t, "ok")
+	resp, err := importGet(context.Background(), srv.URL)
+	if err != nil {
+		t.Fatalf("unguarded request: %v", err)
+	}
+	_ = resp.Body.Close()
+}
+
+func TestImportClient_AllowLocalNetworks(t *testing.T) {
+	srv := importTestServer(t, "ok")
+	resp, err := importGet(withImportGuard(context.Background(), &importGuard{allowLocal: true}), srv.URL)
+	if err != nil {
+		t.Fatalf("request with allow_local_networks: %v", err)
+	}
+	_ = resp.Body.Close()
+}
+
+func TestImportClient_CapsResponseBytes(t *testing.T) {
+	srv := importTestServer(t, strings.Repeat("x", 1000))
+	g := &importGuard{allowLocal: true, maxBytes: 100}
+	resp, err := importGet(withImportGuard(context.Background(), g), srv.URL)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if _, err := io.ReadAll(resp.Body); !errors.Is(err, gittransport.ErrPackTooLarge) {
+		t.Errorf("read error = %v, want ErrPackTooLarge", err)
+	}
+	if !errors.Is(g.failure(), ErrImportTooLarge) {
+		t.Errorf("failure() = %v, want ErrImportTooLarge", g.failure())
+	}
+}

@@ -19,6 +19,7 @@ type Config struct {
 	Git      GitConfig      `mapstructure:"git"`
 	OAuth    OAuthConfig    `mapstructure:"oauth"`
 	SMTP     SMTPConfig     `mapstructure:"smtp"`
+	Import   ImportConfig   `mapstructure:"import"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -60,6 +61,13 @@ type GitConfig struct {
 	// backstop against slow-trickle connections that defeat the idle
 	// timeout. Zero disables it.
 	SSHMaxSession time.Duration `mapstructure:"ssh_max_session"`
+}
+
+// ImportConfig holds repository import settings.
+type ImportConfig struct {
+	// Off by default, so a user can't make the server probe its own network.
+	AllowLocalNetworks bool          `mapstructure:"allow_local_networks"`
+	Timeout            time.Duration `mapstructure:"timeout"`
 }
 
 // OAuthConfig holds Google OAuth provider settings.
@@ -111,6 +119,8 @@ func Load(cfgFile string) (*Config, error) {
 	v.SetDefault("smtp.password", "")
 	v.SetDefault("smtp.from", "noreply@localhost")
 	v.SetDefault("smtp.tls", false)
+	v.SetDefault("import.allow_local_networks", false)
+	v.SetDefault("import.timeout", "30m")
 
 	// Env overrides
 	v.SetEnvPrefix("CZ")
