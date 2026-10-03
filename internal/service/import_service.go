@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -27,10 +28,15 @@ const (
 	importTmpDirName = ".import-tmp"
 )
 
+const importFailedMessage = "The import failed."
+
 var (
 	ErrTooManyImports = fmt.Errorf("you already have %d imports in progress; wait for one to finish", importPerUserLimit)
 	ErrImportNotFound = errors.New("import not found")
 )
+
+// A var so a test can make the clone panic.
+var cloneImport = cloneForImport
 
 type ImportStatus string
 
@@ -162,18 +168,29 @@ func (s *ImportService) run(job *importJob, target ImportTarget, description str
 	defer func() { <-s.slots }()
 	s.setStatus(job, ImportRunning)
 
+	dir := filepath.Join(s.root, importTmpDirName, job.ID)
+	failure := s.attempt(dir, job, target, description, private, auth)
+	_ = os.RemoveAll(dir)
+	s.finish(job, failure)
+}
+
+// attempt recovers a panic itself: concurrency.Go's recover would leave the
+// job running, holding one of the user's slots and polled forever.
+func (s *ImportService) attempt(dir string, job *importJob, target ImportTarget, description string, private bool, auth transport.AuthMethod) (failure string) {
+	defer func() {
+		if p := recover(); p != nil {
+			slog.Error("repo import panicked", "job_id", job.ID, "owner", job.Owner, "name", job.Name,
+				"source_host", importHost(job.SourceURL), "panic", p, "stack", string(debug.Stack()))
+			failure = importFailedMessage
+		}
+	}()
 	guard := &importGuard{allowLocal: s.cfg.AllowLocalNetworks, maxBytes: s.maxBytes}
 	ctx, cancel := s.jobContext(withImportGuard(context.Background(), guard))
 	defer cancel()
-
-	dir := filepath.Join(s.root, importTmpDirName, job.ID)
-	defer func() { _ = os.RemoveAll(dir) }()
-
-	var failure string
 	if err := s.cloneAndPublish(ctx, dir, job, target, description, private, auth); err != nil {
-		failure = s.failureMessage(ctx, job, guard, err)
+		return s.failureMessage(ctx, job, guard, err)
 	}
-	s.finish(job, failure)
+	return ""
 }
 
 func (s *ImportService) jobContext(parent context.Context) (context.Context, context.CancelFunc) {
@@ -187,7 +204,7 @@ func (s *ImportService) cloneAndPublish(ctx context.Context, dir string, job *im
 	if err := os.MkdirAll(filepath.Dir(dir), 0o755); err != nil {
 		return fmt.Errorf("create import temp dir: %w", err)
 	}
-	branch, err := cloneForImport(ctx, dir, job.SourceURL, auth, job.progress)
+	branch, err := cloneImport(ctx, dir, job.SourceURL, auth, job.progress)
 	if err != nil {
 		return err
 	}
@@ -217,7 +234,7 @@ func (s *ImportService) failureMessage(ctx context.Context, job *importJob, guar
 	}
 	slog.Error("repo import failed", "job_id", job.ID, "owner", job.Owner, "name", job.Name,
 		"source_host", importHost(job.SourceURL), "error", err)
-	return "The import failed."
+	return importFailedMessage
 }
 
 func (s *ImportService) setStatus(job *importJob, status ImportStatus) {

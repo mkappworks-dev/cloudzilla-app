@@ -3,8 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"io"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/go-git/go-git/v5/plumbing/transport"
 )
 
 func TestImportService_StartRejectsBadInputBeforeAnyLookup(t *testing.T) {
@@ -39,6 +44,42 @@ func TestImportService_SweepDropsOldFinishedJobs(t *testing.T) {
 		if _, ok := s.jobs[id]; !ok {
 			t.Errorf("%s job dropped", id)
 		}
+	}
+}
+
+func TestImportService_PanicFailsTheJob(t *testing.T) {
+	root := t.TempDir()
+	s := &ImportService{root: root, slots: make(chan struct{}, 1), jobs: map[string]*importJob{}}
+	job := &importJob{
+		ImportJob: ImportJob{ID: "boom", UserID: 1, SourceURL: "https://example.com/a.git", Owner: "me", Name: "a", Status: ImportQueued},
+		progress:  &importProgress{},
+	}
+	s.jobs[job.ID] = job
+	dir := filepath.Join(root, importTmpDirName, job.ID)
+
+	orig := cloneImport
+	t.Cleanup(func() { cloneImport = orig })
+	cloneImport = func(_ context.Context, dir, _ string, _ transport.AuthMethod, _ io.Writer) (string, error) {
+		if err := os.MkdirAll(filepath.Join(dir, "objects"), 0o755); err != nil {
+			t.Errorf("seed clone dir: %v", err)
+		}
+		panic("hostile reply")
+	}
+
+	s.run(job, ImportTarget{}, "", false, nil)
+
+	got, err := s.Get(1, job.ID)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got.Status != ImportFailed || got.Error != "The import failed." {
+		t.Errorf("job = %s %q, want failed %q", got.Status, got.Error, "The import failed.")
+	}
+	if _, err := os.Stat(dir); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("temp clone left behind: %v", err)
+	}
+	if len(s.slots) != 0 {
+		t.Error("import slot not released")
 	}
 }
 
