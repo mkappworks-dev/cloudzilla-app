@@ -47,6 +47,54 @@ func TestSSOSettings_EnableSwitchesAndTLSCheckbox(t *testing.T) {
 	assertSwitchesInLabels(t, out)
 }
 
+// The hint beside a switch that can't turn on names the empty required fields
+// by their labels; the page script keeps it current from the same markers.
+func TestSSOSettings_HintNamesWhatToFillIn(t *testing.T) {
+	var sb strings.Builder
+	data := view.SSOSettingsData{
+		LDAPConfig: &model.SSOConfig{Provider: "ldap", Config: map[string]string{model.LDAPKeyHost: "ldap.test.invalid"}},
+	}
+	if err := pages.SSOSettings(data).Render(context.Background(), &sb); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	out := sb.String()
+
+	for provider, want := range map[string]string{
+		"ldap": "Fill in Bind DN Template, then save",
+		"saml": "Fill in Entity ID, IdP SSO URL, ACS URL and IdP Certificate, then save",
+	} {
+		hint := regexp.MustCompile(`<span[^>]*id="` + provider + `-switch-needs"[^>]*>([^<]*)</span>`).FindStringSubmatch(out)
+		if hint == nil || hint[1] != want {
+			t.Errorf("%s hint = %q, want %q", provider, hint, want)
+			continue
+		}
+		if form := `data-sso-needs="sso-` + provider + `-form"`; !strings.Contains(hint[0], form) {
+			t.Errorf("%s hint is not tied to its form: %s", provider, hint[0])
+		}
+	}
+
+	required := regexp.MustCompile(`id="([a-z_]+)"[^>]*data-sso-required="([^"]+)"|data-sso-required="([^"]+)"[^>]*id="([a-z_]+)"`)
+	got := map[string]string{}
+	for _, m := range required.FindAllStringSubmatch(out, -1) {
+		if m[1] != "" {
+			got[m[1]] = m[2]
+		} else {
+			got[m[4]] = m[3]
+		}
+	}
+	for id, label := range map[string]string{
+		"ldap_host": "Host", "ldap_bind_dn_tmpl": "Bind DN Template",
+		"saml_entity_id": "Entity ID", "saml_sso_url": "IdP SSO URL", "saml_acs_url": "ACS URL", "saml_idp_cert": "IdP Certificate",
+	} {
+		if got[id] != label {
+			t.Errorf("#%s data-sso-required = %q, want %q", id, got[id], label)
+		}
+	}
+	if n := len(regexp.MustCompile(`<button[^>]*data-sso-save`).FindAllString(out, -1)); n != 2 {
+		t.Errorf("%d Save buttons marked for the ready ring, want 2", n)
+	}
+}
+
 // SAML sign-in reads sso_url, so the IdP URL field posts saml_sso_url. Rows
 // saved before kept that URL in metadata_url, which the field falls back to.
 func TestSSOSettings_SAMLFieldPostsTheSSOURL(t *testing.T) {

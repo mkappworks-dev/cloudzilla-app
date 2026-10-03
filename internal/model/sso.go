@@ -33,25 +33,30 @@ const (
 	SAMLKeyCert        = "idp_cert"     // PEM-encoded IdP signing certificate (base64, no headers)
 )
 
-// ssoRequiredKeys are the settings each provider's sign-in fails without.
+// ssoRequiredKeys are the settings each provider's sign-in fails without, in
+// the order the settings page shows their fields.
 var ssoRequiredKeys = map[string][]string{
 	"ldap": {LDAPKeyHost, LDAPKeyBindDNTmpl},
 	"saml": {SAMLKeyEntityID, SAMLKeySSOURL, SAMLKeyACSURL, SAMLKeyCert},
 }
 
+// SSOMissingSettings lists the settings signing in with provider needs that
+// config leaves blank.
+func SSOMissingSettings(provider string, config map[string]string) []string {
+	var missing []string
+	for _, k := range ssoRequiredKeys[provider] {
+		if strings.TrimSpace(config[k]) == "" {
+			missing = append(missing, k)
+		}
+	}
+	return missing
+}
+
 // SSOSettingsReady reports whether config has every setting signing in with
 // provider needs, which it must before the provider can be on.
 func SSOSettingsReady(provider string, config map[string]string) bool {
-	keys, ok := ssoRequiredKeys[provider]
-	if !ok {
-		return false
-	}
-	for _, k := range keys {
-		if strings.TrimSpace(config[k]) == "" {
-			return false
-		}
-	}
-	return true
+	_, known := ssoRequiredKeys[provider]
+	return known && len(SSOMissingSettings(provider, config)) == 0
 }
 
 // Ready reports whether c's saved settings let its provider be turned on.

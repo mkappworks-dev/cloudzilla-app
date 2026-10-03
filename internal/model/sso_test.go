@@ -1,6 +1,7 @@
 package model_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
@@ -39,6 +40,24 @@ func TestSSOConfig_Ready(t *testing.T) {
 	} {
 		if got := tc.cfg.Ready(); got != tc.want {
 			t.Errorf("%s: Ready() = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
+// The settings page lists what's missing in the order its fields appear.
+func TestSSOMissingSettings(t *testing.T) {
+	for _, tc := range []struct {
+		provider string
+		cfg      map[string]string
+		want     []string
+	}{
+		{"ldap", nil, []string{model.LDAPKeyHost, model.LDAPKeyBindDNTmpl}},
+		{"ldap", map[string]string{model.LDAPKeyHost: "h", model.LDAPKeyBindDNTmpl: " "}, []string{model.LDAPKeyBindDNTmpl}},
+		{"ldap", map[string]string{model.LDAPKeyHost: "h", model.LDAPKeyBindDNTmpl: "uid=%s"}, nil},
+		{"saml", map[string]string{model.SAMLKeyACSURL: "https://cz.test.invalid/acs"}, []string{model.SAMLKeyEntityID, model.SAMLKeySSOURL, model.SAMLKeyCert}},
+	} {
+		if got := model.SSOMissingSettings(tc.provider, tc.cfg); !slices.Equal(got, tc.want) {
+			t.Errorf("%s %v: missing = %v, want %v", tc.provider, tc.cfg, got, tc.want)
 		}
 	}
 }
