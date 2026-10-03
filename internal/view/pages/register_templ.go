@@ -111,6 +111,7 @@ func Register(data view.RegisterData) templ.Component {
 				"name":      "password",
 				"required":  "required",
 				"minlength": "8",
+				"class":     authPasswordClass,
 			}).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err

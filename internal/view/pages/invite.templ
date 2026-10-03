@@ -48,6 +48,7 @@ templ Invite(data view.InviteData) {
 							"id":       "invite-password",
 							"name":     "password",
 							"required": "required",
+							"class":    authPasswordClass,
 						})
 					</div>
 					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {

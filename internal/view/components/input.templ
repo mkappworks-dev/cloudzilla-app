@@ -7,36 +7,6 @@ templ Input(attrs templ.Attributes) {
 	/>
 }
 
-// Caller supplies the <label>, as with Input, and omits "type": the component owns it.
-// Any submit re-masks the field, so browsers don't save the password to a text input's autofill history.
-templ PasswordInput(attrs templ.Attributes) {
-	<div
-		x-data="{ shown: false }"
-		x-on:submit.window="shown = false"
-		class="relative"
-	>
-		<input
-			type="password"
-			x-bind:type="shown ? 'text' : 'password'"
-			{ withClass(attrs, "flex h-9 w-full rounded-md border border-input bg-transparent pl-3 pr-9 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50")... }
-		/>
-		<button
-			type="button"
-			x-on:click="shown = !shown"
-			aria-label="Show password"
-			aria-pressed="false"
-			x-bind:aria-pressed="shown"
-			if id, ok := attrs["id"].(string); ok {
-				aria-controls={ id }
-			}
-			class="absolute inset-y-0 right-0 grid w-9 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
-		>
-			<svg x-show="!shown" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>
-			<svg x-show="shown" x-cloak width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path><path d="m2 2 20 20"></path></svg>
-		</button>
-	</div>
-}
-
 // Always pair with a <label> (class="sr-only" to hide it visually).
 templ SearchInput(attrs templ.Attributes, kbdHint string) {
 	<div class="relative">

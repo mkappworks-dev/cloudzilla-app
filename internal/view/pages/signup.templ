@@ -94,6 +94,7 @@ templ RegisterComplete(data view.RegisterCompleteData) {
 							"name":      "password",
 							"required":  "required",
 							"minlength": "8",
+							"class":     authPasswordClass,
 						})
 					</div>
 					@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {

@@ -40,6 +40,7 @@ templ Setup(data view.SetupData) {
 						"id":       "setup-password",
 						"name":     "password",
 						"required": "required",
+						"class":    authPasswordClass,
 					})
 				</div>
 				@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {

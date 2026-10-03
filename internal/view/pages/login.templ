@@ -26,6 +26,10 @@ templ authCardHero(eyebrow, heading, sub string) {
 	</div>
 }
 
+// PasswordInput defaults to the compact settings field; this matches it to the
+// components.Input fields on the sign-in and sign-up cards.
+var authPasswordClass = "bg-transparent text-sm shadow-xs focus:outline-solid focus:border-input"
+
 // nextInput carries the post-sign-in return path through a sign-in form.
 templ nextInput(next string) {
 	if next != "" {
@@ -59,6 +63,7 @@ templ Login(data view.LoginData) {
 						"id":       "password",
 						"name":     "password",
 						"required": "required",
+						"class":    authPasswordClass,
 					})
 				</div>
 				@components.Button(components.ButtonDefault, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {
@@ -112,6 +117,7 @@ templ Login(data view.LoginData) {
 											"id":       "ldap-password",
 											"name":     "password",
 											"required": "required",
+											"class":    authPasswordClass,
 										})
 									</div>
 									@components.Button(components.ButtonSecondary, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "class": "w-full"}) {

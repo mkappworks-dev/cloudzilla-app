@@ -125,6 +125,7 @@ func Invite(data view.InviteData) templ.Component {
 					"id":       "invite-password",
 					"name":     "password",
 					"required": "required",
+					"class":    authPasswordClass,
 				}).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
