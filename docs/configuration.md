@@ -228,14 +228,34 @@ Migrations are embedded in the binary and run in order. Safe to run repeatedly -
 
 Fill a fresh instance with test data for manual testing: a superadmin (`siteadmin`, `admin@example.test`), 100 users, 10 organizations and 150 repositories with a year of backdated git history, plus issues, pull requests, reviews, discussions, releases, stars and gists. The default size takes under a minute.
 
+In development, seed the dev instance right after migrating it:
+
 ```bash
-createdb cloudzilla_seed
-CZ_DATABASE_DSN=postgres://cloudzilla:cloudzilla@localhost:5432/cloudzilla_seed?sslmode=disable \
-CZ_GIT_REPOS_ROOT=./git-repos-seed \
-  sh -c 'cloudzilla-cli migrate && cloudzilla-cli seed --users 20 --repos 30'
+make migrate
+make seed
+make dev
 ```
 
-It refuses to run unless the database has no accounts and `git.repos_root` is empty, so point it at a scratch database, never at one you use. Run the server with the same config: commit authors use noreply addresses built from `server.base_url`.
+`make seed` reads `config.yaml` like `make dev` does, so it fills the dev database and writes the bare repositories to `./git-repos`, where the server reads them. It refuses to run unless the database has no accounts and `git.repos_root` is empty. To reseed, stop `make dev`, then recreate the database and empty `./git-repos`:
+
+```bash
+docker compose exec postgres dropdb -U cloudzilla --force cloudzilla
+docker compose exec postgres createdb -U cloudzilla cloudzilla
+rm -rf git-repos
+make migrate && make seed
+```
+
+To keep your dev data, seed a scratch database and repos root instead, and start the server from the same shell so it reads both. A server pointed at another `git.repos_root` lists the seeded repositories with no files, branches or tags.
+
+```bash
+docker compose exec postgres createdb -U cloudzilla cloudzilla_seed
+export CZ_DATABASE_DSN=postgres://cloudzilla:cloudzilla@localhost:5432/cloudzilla_seed?sslmode=disable
+export CZ_GIT_REPOS_ROOT=./git-repos-seed
+make migrate && make seed
+make dev
+```
+
+`make seed` uses the default size; for another, run `cloudzilla-cli seed` (or `go run ./cmd/cloudzilla/. seed`) with the flags below. Run the server with the seed's `server.base_url`: commit authors use noreply addresses built from it.
 
 | Flag         | Default           | Meaning                                         |
 | ------------ | ----------------- | ----------------------------------------------- |
