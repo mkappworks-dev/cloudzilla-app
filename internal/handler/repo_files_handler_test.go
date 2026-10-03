@@ -57,6 +57,33 @@ func TestSubmitNewFile_AuthorEmailFollowsKeepEmailPrivate(t *testing.T) {
 	}
 }
 
+func TestSubmitNewFile_RefusesPathCollisions(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	api := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+	if rr := postForm(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {"docs/guide.md"}, "content": {"guide\n"}}); rr.Code != http.StatusSeeOther {
+		t.Fatalf("add docs/guide.md: want 303, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	tests := []struct{ name, path, want string }{
+		{"file over a directory", "docs/", "path collides with an existing entry: docs is a directory\n"},
+		{"directory over a file", "a.txt/x", "path collides with an existing entry: a.txt is a file\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tip := branchHash(t, r.git, "main")
+			rr := postForm(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {tt.path}, "content": {"x\n"}})
+			if rr.Code != http.StatusConflict || rr.Body.String() != tt.want {
+				t.Errorf("want 409 %q, got %d %q", tt.want, rr.Code, rr.Body.String())
+			}
+			if got := branchHash(t, r.git, "main"); got != tip {
+				t.Errorf("main = %s, want it left at %s", got, tip)
+			}
+		})
+	}
+}
+
 func TestUpdateProfileReadme_AuthorEmailFollowsKeepEmailPrivate(t *testing.T) {
 	router, db, reposRoot := newEmailPrivacyRouter(t)
 	suffix := testutil.UniqueSuffix(t)
