@@ -144,6 +144,8 @@ make dev                # Backend + Tailwind watch on http://localhost:8080
 
 First visit redirects to `/setup` to create your superadmin account.
 
+For a populated instance to click around in, run `make seed` against a fresh, migrated scratch database instead of visiting `/setup`. See [`cloudzilla-cli seed`](./docs/configuration.md#cloudzilla-cli-seed).
+
 ---
 
 ## Documentation
@@ -179,6 +181,7 @@ First visit redirects to `/setup` to create your superadmin account.
 | `make dev`              | Run backend + Tailwind + templ watch concurrently                  |
 | `make build`            | Full build: download assets, compile CSS, generate templ, build Go |
 | `make migrate`          | Run DB migrations                                                  |
+| `make seed`             | Fill a fresh, migrated database with test data                     |
 | `make lint`             | Run golangci-lint                                                  |
 | `make test`             | Run unit tests (no database required)                              |
 | `make test-db`          | Start the test database container                                  |
