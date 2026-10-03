@@ -54,46 +54,63 @@ func rangeNames(t *testing.T, repo *gogit.Repository, hashes map[string]plumbing
 	return names
 }
 
+// randomHistory is 25 commits with merges, extra roots and rewinds, from all
+// distinct dates to nearly all in one second. With skewed set, about a quarter
+// are dated up to an hour before their parents.
+func randomHistory(rng *rand.Rand, skewed bool) []rangeCommit {
+	sameSecond := rng.Float64()
+	var commits []rangeCommit
+	var at time.Duration
+	for i := range 25 {
+		var parents []string
+		if i > 0 && rng.IntN(10) > 0 {
+			for _, j := range rng.Perm(i)[:1+rng.IntN(min(i, 3))] {
+				parents = append(parents, fmt.Sprintf("c%d", j))
+			}
+		}
+		if rng.Float64() >= sameSecond {
+			at += time.Duration(1+rng.IntN(60)) * time.Second
+		}
+		when := at
+		if skewed && rng.IntN(4) == 0 {
+			when -= time.Duration(rng.IntN(3600)) * time.Second
+		}
+		commits = append(commits, rangeCommit{fmt.Sprintf("c%d", i), parents, when})
+	}
+	return commits
+}
+
+// reachability returns, by plain search, the commits of history that each one
+// reaches, itself included.
+func reachability(history []rangeCommit) func(from string) map[string]bool {
+	parentsOf := map[string][]string{}
+	for _, c := range history {
+		parentsOf[c.name] = c.parents
+	}
+	return func(from string) map[string]bool {
+		seen := map[string]bool{}
+		stack := []string{from}
+		for len(stack) > 0 {
+			c := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			if !seen[c] {
+				seen[c] = true
+				stack = append(stack, parentsOf[c]...)
+			}
+		}
+		return seen
+	}
+}
+
 // With no commit dated before its parent, commitRange must list exactly the
-// commits tip reaches and old doesn't. Random histories, from all distinct
-// dates to nearly all in one second, with merges, extra roots and rewinds,
-// exercise the stop rule that hand-built cases can't pin.
+// commits tip reaches and old doesn't. Random histories exercise the stop rule
+// that hand-built cases can't pin.
 func TestCommitRange_MatchesReachability(t *testing.T) {
 	rng := rand.New(rand.NewPCG(1, 2))
 	for range 200 {
-		sameSecond := rng.Float64()
-		var commits []rangeCommit
-		parentsOf := map[string][]string{}
-		var at time.Duration
-		for i := range 25 {
-			var parents []string
-			if i > 0 && rng.IntN(10) > 0 {
-				for _, j := range rng.Perm(i)[:1+rng.IntN(min(i, 3))] {
-					parents = append(parents, fmt.Sprintf("c%d", j))
-				}
-			}
-			if rng.Float64() >= sameSecond {
-				at += time.Duration(1+rng.IntN(60)) * time.Second
-			}
-			name := fmt.Sprintf("c%d", i)
-			commits = append(commits, rangeCommit{name, parents, at})
-			parentsOf[name] = parents
-		}
+		commits := randomHistory(rng, false)
 		repo, hashes := writeRangeHistory(t, commits)
-
-		reaches := func(from string) map[string]bool {
-			seen := map[string]bool{}
-			stack := []string{from}
-			for len(stack) > 0 {
-				c := stack[len(stack)-1]
-				stack = stack[:len(stack)-1]
-				if !seen[c] {
-					seen[c] = true
-					stack = append(stack, parentsOf[c]...)
-				}
-			}
-			return seen
-		}
+		reaches := reachability(commits)
 		for range 20 {
 			old, tip := commits[rng.IntN(len(commits))].name, commits[rng.IntN(len(commits))].name
 			fromOld := reaches(old)

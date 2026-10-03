@@ -119,8 +119,8 @@ func isFastForward(gitRepo *gogit.Repository, cmd *packp.Command) bool {
 	if err != nil {
 		return false
 	}
-	isAncestor, err := oldCommit.IsAncestor(newCommit)
-	return err == nil && isAncestor
+	ok, err := isAncestor(gitRepo, oldCommit, newCommit)
+	return err == nil && ok
 }
 
 // CheckMerge enforces branch protection rules before a PR merge.

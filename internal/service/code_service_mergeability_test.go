@@ -198,12 +198,21 @@ func TestMergeability_Conflicts(t *testing.T) {
 	}
 }
 
-// TestMergeability_NoCommonAncestor is intentionally omitted. Seeding
-// two truly-disjoint histories in a single repo requires direct Storer
-// manipulation that fights go-git's worktree semantics and adds little
-// value: the no-common-ancestor branch is exercised by inspection of
-// findMergeBase's error path, which Mergeability surfaces by string
-// match per the helper's contract.
+func TestMergeability_NoCommonAncestor(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	h := newPushHistory(t, filepath.Join(root, "alice", "unrelated.git"), "tester@example.com", time.Minute)
+	setBranch(t, h.repo, "main", h.line(2))
+	setBranch(t, h.repo, "orphan", h.line(2))
+
+	m, err := NewCodeService(czconfig.GitConfig{ReposRoot: root}).Mergeability(context.Background(), "alice", "unrelated", "main", "orphan")
+	if err != nil {
+		t.Fatalf("Mergeability: %v", err)
+	}
+	if want := (Mergeability{BaseRef: "main", HeadRef: "orphan", HasConflicts: true}); m != want {
+		t.Errorf("Mergeability = %+v, want %+v", m, want)
+	}
+}
 
 func TestMergeability_AfterMergingBaseIntoHead(t *testing.T) {
 	t.Parallel()
@@ -224,5 +233,27 @@ func TestMergeability_AfterMergingBaseIntoHead(t *testing.T) {
 	// Ahead: feature's edit and the merge commit. Behind: main's c.txt commit.
 	if m.Ahead != 2 || m.Behind != 1 {
 		t.Errorf("Ahead=%d Behind=%d, want 2 and 1", m.Ahead, m.Behind)
+	}
+}
+
+// The branches sit on history whose commits are missing 20 below the fork, so
+// a walk through all of either branch's history fails.
+func TestMergeability_ReadsOnlyTheHistorySinceTheFork(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	h := newPushHistory(t, filepath.Join(root, "alice", "shallow.git"), "tester@example.com", time.Minute)
+	fork := h.shallowLine(20)
+	feature := h.commit("Feature 1", fork)
+	merged := h.commit("Main change 1", fork)
+	setBranch(t, h.repo, "feature", h.commit("Merge main", feature, merged))
+	setBranch(t, h.repo, "main", h.commit("Main change 2", merged))
+
+	m, err := NewCodeService(czconfig.GitConfig{ReposRoot: root}).Mergeability(context.Background(), "alice", "shallow", "main", "feature")
+	if err != nil {
+		t.Fatalf("Mergeability: %v", err)
+	}
+	// Ahead: feature's commit and its merge. Behind: main's second change.
+	if m.MergeBase != merged.String() || m.Ahead != 2 || m.Behind != 1 || m.HasConflicts {
+		t.Errorf("Mergeability = %+v, want MergeBase %s, Ahead 2, Behind 1, no conflicts", m, merged)
 	}
 }

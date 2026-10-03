@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/go-git/go-git/v5/plumbing"
+	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
@@ -31,18 +31,18 @@ func (s *CodeService) Mergeability(ctx context.Context, owner, repoName, base, h
 	if err != nil {
 		return Mergeability{}, err
 	}
-	mb, err := findMergeBase(baseCommit, headCommit)
+	mb, err := findMergeBase(repo, baseCommit, headCommit)
 	if err != nil {
 		if errors.Is(err, ErrNoCommonAncestor) {
 			return Mergeability{BaseRef: base, HeadRef: head, HasConflicts: true}, nil
 		}
 		return Mergeability{}, err
 	}
-	ahead, err := countCommitsBetween(mb, headCommit)
+	ahead, err := countCommitsBetween(repo, mb, headCommit)
 	if err != nil {
 		return Mergeability{}, err
 	}
-	behind, err := countCommitsBetween(mb, baseCommit)
+	behind, err := countCommitsBetween(repo, mb, baseCommit)
 	if err != nil {
 		return Mergeability{}, err
 	}
@@ -62,22 +62,7 @@ func (s *CodeService) Mergeability(ctx context.Context, owner, repoName, base, h
 }
 
 // Counts commits reachable from `to` but not from `from`.
-func countCommitsBetween(from, to *object.Commit) (int, error) {
-	if from.Hash == to.Hash {
-		return 0, nil
-	}
-	inFrom := make(map[plumbing.Hash]bool)
-	err := object.NewCommitPreorderIter(from, nil, nil).ForEach(func(c *object.Commit) error {
-		inFrom[c.Hash] = true
-		return nil
-	})
-	if err != nil {
-		return 0, err
-	}
-	n := 0
-	err = object.NewCommitPreorderIter(to, inFrom, nil).ForEach(func(*object.Commit) error {
-		n++
-		return nil
-	})
-	return n, err
+func countCommitsBetween(repo *gogit.Repository, from, to *object.Commit) (int, error) {
+	commits, err := commitRange(repo, from.Hash, to.Hash)
+	return len(commits), err
 }

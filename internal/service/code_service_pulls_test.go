@@ -1,8 +1,12 @@
 package service
 
 import (
+	"path/filepath"
+	"slices"
 	"testing"
 	"time"
+
+	czconfig "github.com/mkappworks-dev/cloudzilla-app/internal/config"
 )
 
 func TestPullCommits_Linear(t *testing.T) {
@@ -90,5 +94,61 @@ func TestPullCommits_NoOp(t *testing.T) {
 	}
 	if len(commits) != 0 {
 		t.Errorf("expected 0 commits (base==head), got %d", len(commits))
+	}
+}
+
+// Commits from one second list as `git rev-list main..feature` lists this
+// history: in the order they were queued, a merge's parents in turn.
+func TestPullCommits_SameSecondInRevListOrder(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	h := newPushHistory(t, filepath.Join(root, "alice", "scripted.git"), "tester@example.com", 0)
+	fork := h.line(2)
+	x := h.commit("X", fork)
+	y := h.commit("Y", fork)
+	m1 := h.commit("Merge Y", x, y)
+	w := h.commit("W", fork)
+	m2 := h.commit("Merge W", m1, w)
+	setBranch(t, h.repo, "main", fork)
+	setBranch(t, h.repo, "feature", m2)
+
+	commits, err := NewCodeService(czconfig.GitConfig{ReposRoot: root}).PullCommits("alice", "scripted", "main", "feature")
+	if err != nil {
+		t.Fatalf("PullCommits: %v", err)
+	}
+	var got []string
+	for _, c := range commits {
+		got = append(got, c.Message)
+	}
+	if want := []string{"Merge W", "Merge Y", "W", "X", "Y"}; !slices.Equal(got, want) {
+		t.Errorf("PullCommits = %v, want %v", got, want)
+	}
+}
+
+// PullCommits lists head's own commits newest first, without the base commits
+// head merged. The branches sit on history whose commits are missing 20 below
+// the fork, so a walk through all of either branch's history fails.
+func TestPullCommits_ReadsOnlyTheHistorySinceTheFork(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	h := newPushHistory(t, filepath.Join(root, "alice", "shallow.git"), "tester@example.com", time.Minute)
+	fork := h.shallowLine(20)
+	first := h.commit("Feature 1", fork)
+	merged := h.commit("Main change 1", fork)
+	second := h.commit("Feature 2", first)
+	merge := h.commit("Merge main", second, merged)
+	setBranch(t, h.repo, "feature", merge)
+	setBranch(t, h.repo, "main", h.commit("Main change 2", merged))
+
+	commits, err := NewCodeService(czconfig.GitConfig{ReposRoot: root}).PullCommits("alice", "shallow", "main", "feature")
+	if err != nil {
+		t.Fatalf("PullCommits: %v", err)
+	}
+	var got []string
+	for _, c := range commits {
+		got = append(got, c.FullHash)
+	}
+	if want := []string{merge.String(), second.String(), first.String()}; !slices.Equal(got, want) {
+		t.Errorf("PullCommits = %v, want %v", got, want)
 	}
 }

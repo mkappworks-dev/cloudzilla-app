@@ -63,10 +63,19 @@ func (h *pushHistory) line(n int, parents ...plumbing.Hash) plumbing.Hash {
 	return parents[0]
 }
 
-// testPush moves main from old to new, adding the commits in added, newest first.
+// shallowLine is line(n) on a parent missing from the repo, as past a shallow
+// clone's boundary, so a walk through all of its history fails.
+func (h *pushHistory) shallowLine(n int) plumbing.Hash {
+	h.t.Helper()
+	return h.line(n, plumbing.NewHash("0123456789abcdef0123456789abcdef01234567"))
+}
+
+// testPush moves main from old to new, adding the commits in added, newest
+// first. A forced push drops commits main had.
 type testPush struct {
 	old, new plumbing.Hash
 	added    []plumbing.Hash
+	forced   bool
 }
 
 func (p testPush) commands() []*packp.Command {
@@ -100,11 +109,16 @@ var pushShapes = []struct {
 	{"force-push of an amended tip", func(h *pushHistory, fork plumbing.Hash) testPush {
 		old := h.commit("Draft", fork)
 		amended := h.commit("Amended draft", fork)
-		return testPush{old: old, new: amended, added: []plumbing.Hash{amended}}
+		return testPush{old: old, new: amended, added: []plumbing.Hash{amended}, forced: true}
 	}},
 	{"force-push back to an ancestor", func(h *pushHistory, fork plumbing.Hash) testPush {
 		old := h.commit("Dropped 2", h.commit("Dropped 1", fork))
-		return testPush{old: old, new: fork}
+		return testPush{old: old, new: fork, forced: true}
+	}},
+	{"force-push of an unrelated history", func(h *pushHistory, fork plumbing.Hash) testPush {
+		root := h.commit("Unrelated root")
+		tip := h.commit("Unrelated tip", root)
+		return testPush{old: fork, new: tip, added: []plumbing.Hash{tip, root}, forced: true}
 	}},
 }
 
@@ -154,15 +168,13 @@ func TestPushSummaries_UpdatedBranch(t *testing.T) {
 	}
 }
 
-// The history here is 20 commits deep and then missing, as past a shallow
-// clone's boundary, so a walk through all of the old tip's history fails
-// instead of summarizing the push.
+// A walk through all of the old tip's history fails instead of summarizing
+// the push.
 func TestPushSummaries_ReadsOnlyTheHistorySinceTheFork(t *testing.T) {
 	for _, shape := range pushShapes {
 		t.Run(shape.name, func(t *testing.T) {
 			h := newPushHistory(t, t.TempDir(), "tester@example.com", time.Minute)
-			absent := plumbing.NewHash("0123456789abcdef0123456789abcdef01234567")
-			p := shape.build(h, h.line(20, absent))
+			p := shape.build(h, h.shallowLine(20))
 
 			assertPushSummary(t, (&RepoService{}).PushSummaries(h.repo, p.commands()), p.added)
 		})
