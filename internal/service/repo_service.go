@@ -15,12 +15,13 @@ import (
 	"time"
 
 	gogit "github.com/go-git/go-git/v5"
-	gitconfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/gitref"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
 )
@@ -377,6 +378,8 @@ func (s *RepoService) Create(ctx context.Context, ownerID int64, ownerUsername, 
 	return r, nil
 }
 
+// seedInitialCommit writes the objects into the bare repo itself: a go-git push
+// to a local path execs git-receive-pack, and the Docker image ships no git.
 func seedInitialCommit(bareDir, defaultBranch string, sig object.Signature, init RepoInitOptions, ownerName, repoName, description string) error {
 	files := map[string]string{}
 
@@ -405,66 +408,43 @@ func seedInitialCommit(bareDir, defaultBranch string, sig object.Signature, init
 		return nil
 	}
 
-	workDir, err := os.MkdirTemp("", "cz-repo-init-*")
+	bare, err := gogit.PlainOpen(bareDir)
 	if err != nil {
-		return fmt.Errorf("mkdir temp worktree: %w", err)
-	}
-	defer func() { _ = os.RemoveAll(workDir) }()
-
-	work, err := gogit.PlainInit(workDir, false)
-	if err != nil {
-		return fmt.Errorf("git init worktree: %w", err)
-	}
-	wt, err := work.Worktree()
-	if err != nil {
-		return fmt.Errorf("worktree: %w", err)
+		return fmt.Errorf("open bare: %w", err)
 	}
 
-	for relPath, content := range files {
-		full := filepath.Join(workDir, relPath)
-		if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
-			return fmt.Errorf("write %s: %w", relPath, err)
+	entries := make([]object.TreeEntry, 0, len(files))
+	for name, content := range files {
+		blob, err := writeBlob(bare, []byte(content))
+		if err != nil {
+			return fmt.Errorf("write %s: %w", name, err)
 		}
-		if _, err := wt.Add(relPath); err != nil {
-			return fmt.Errorf("add %s: %w", relPath, err)
-		}
+		entries = append(entries, object.TreeEntry{Name: name, Mode: filemode.Regular, Hash: blob})
+	}
+	tree, err := writeTree(bare, entries)
+	if err != nil {
+		return fmt.Errorf("write tree: %w", err)
 	}
 
-	if _, err := wt.Commit("Initial commit", &gogit.CommitOptions{Author: &sig, Committer: &sig}); err != nil {
-		return fmt.Errorf("commit: %w", err)
+	commit := &object.Commit{Author: sig, Committer: sig, Message: "Initial commit", TreeHash: tree}
+	commitObj := bare.Storer.NewEncodedObject()
+	if err := commit.Encode(commitObj); err != nil {
+		return fmt.Errorf("encode commit: %w", err)
+	}
+	commitHash, err := bare.Storer.SetEncodedObject(commitObj)
+	if err != nil {
+		return fmt.Errorf("write commit: %w", err)
 	}
 
 	branch := defaultBranch
 	if branch == "" {
 		branch = "main"
 	}
-
-	if _, err := work.CreateRemote(&gitconfig.RemoteConfig{
-		Name: "bare",
-		URLs: []string{bareDir},
-	}); err != nil {
-		return fmt.Errorf("create remote: %w", err)
+	branchRef := plumbing.NewBranchReferenceName(branch)
+	if err := gitref.Move(bare.Storer, branchRef, plumbing.ZeroHash, commitHash); err != nil {
+		return fmt.Errorf("create %s: %w", branchRef, err)
 	}
-	// Resolve the worktree's actual HEAD branch rather than assuming go-git's
-	// PlainInit default ("master"), so the push survives a go-git default change.
-	headRefAfterCommit, err := work.Head()
-	if err != nil {
-		return fmt.Errorf("resolve worktree HEAD: %w", err)
-	}
-	refSpec := gitconfig.RefSpec(headRefAfterCommit.Name().String() + ":" + plumbing.NewBranchReferenceName(branch).String())
-	if err := work.Push(&gogit.PushOptions{
-		RemoteName: "bare",
-		RefSpecs:   []gitconfig.RefSpec{refSpec},
-	}); err != nil {
-		return fmt.Errorf("push to bare: %w", err)
-	}
-
-	bare, err := gogit.PlainOpen(bareDir)
-	if err != nil {
-		return fmt.Errorf("open bare: %w", err)
-	}
-	headRef := plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.NewBranchReferenceName(branch))
-	if err := bare.Storer.SetReference(headRef); err != nil {
+	if err := bare.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, branchRef)); err != nil {
 		return fmt.Errorf("set bare HEAD: %w", err)
 	}
 
