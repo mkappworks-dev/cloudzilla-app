@@ -72,7 +72,7 @@ func TestSubmitNewFile_RefusesPathCollisions(t *testing.T) {
 	}
 
 	tests := []struct{ name, path, want string }{
-		{"file over a directory", "docs/", "path collides with an existing entry: docs is a directory\n"},
+		{"file over a directory", "docs", "path collides with an existing entry: docs is a directory\n"},
 		{"directory over a file", "a.txt/x", "path collides with an existing entry: a.txt is a file\n"},
 	}
 	for _, tt := range tests {
@@ -279,6 +279,80 @@ func TestSubmitNewFile_RefusesInvalidPathsWithoutLoggingThem(t *testing.T) {
 			}
 			if strings.Contains(logs.String(), "commit file failed") {
 				t.Errorf("a refused path was logged as a failure:\n%.300s", logs.String())
+			}
+		})
+	}
+}
+
+func TestSubmitNewFile_UploadKeepsItsOwnName(t *testing.T) {
+	tests := []struct{ name, path, dir, want string }{
+		{"existing directory", "docs/", "", "docs/upload.bin"},
+		{"new directory", "notes/2026/", "", "notes/2026/upload.bin"},
+		{"root", "/", "", "upload.bin"},
+		{"blank path from a directory page", "", "docs", "docs/upload.bin"},
+		{"blank path from the root page", "", "", "upload.bin"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := testutil.OpenTestDB(t)
+			reposRoot := t.TempDir()
+			api := newAPIRouterAt(t, db, reposRoot)
+			r := seedRaceRepo(t, db, reposRoot)
+			if rr := postForm(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {"docs/guide.md"}, "content": {"guide\n"}}); rr.Code != http.StatusSeeOther {
+				t.Fatalf("add docs/guide.md: want 303, got %d: %s", rr.Code, rr.Body.String())
+			}
+
+			rr := postUpload(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {tt.path}, "dir": {tt.dir}}, []byte("uploaded\n"))
+
+			if want := r.path + "/blob/main/" + tt.want; rr.Code != http.StatusSeeOther || rr.Header().Get("Location") != want {
+				t.Fatalf("want 303 to %s, got %d %q: %s", want, rr.Code, rr.Header().Get("Location"), rr.Body.String())
+			}
+			tip, err := r.git.CommitObject(branchHash(t, r.git, "main"))
+			if err != nil {
+				t.Fatalf("load main: %v", err)
+			}
+			if want := "Create " + tt.want; tip.Message != want {
+				t.Errorf("commit message = %q, want %q", tip.Message, want)
+			}
+			for path, want := range map[string]string{tt.want: "uploaded\n", "docs/guide.md": "guide\n"} {
+				f, err := tip.File(path)
+				if err != nil {
+					t.Errorf("find %s: %v", path, err)
+					continue
+				}
+				if got, err := f.Contents(); err != nil || got != want {
+					t.Errorf("%s = %q (%v), want %q", path, got, err, want)
+				}
+			}
+		})
+	}
+}
+
+func TestSubmitNewFile_AsksForAFileNameAfterATrailingSlash(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	reposRoot := t.TempDir()
+	api := newAPIRouterAt(t, db, reposRoot)
+	r := seedRaceRepo(t, db, reposRoot)
+	if rr := postForm(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {"docs/guide.md"}, "content": {"guide\n"}}); rr.Code != http.StatusSeeOther {
+		t.Fatalf("add docs/guide.md: want 303, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	tests := []struct{ name, path string }{
+		{"existing directory", "docs/"},
+		{"new directory", "notes/"},
+		{"root", "/"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tip := branchHash(t, r.git, "main")
+
+			rr := postUpload(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {tt.path}, "content": {"typed\n"}}, nil)
+
+			if want := "the path ends in /: add a file name or upload a file\n"; rr.Code != http.StatusBadRequest || rr.Body.String() != want {
+				t.Errorf("want 400 %q, got %d %q", want, rr.Code, rr.Body.String())
+			}
+			if got := branchHash(t, r.git, "main"); got != tip {
+				t.Errorf("main = %s, want it left at %s", got, tip)
 			}
 		})
 	}

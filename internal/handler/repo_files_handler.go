@@ -177,19 +177,24 @@ func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		content = data
-		// A blank path falls back to the upload's own name, placed in the
-		// directory the New file page was opened from.
-		if path == "" {
-			path = header.Filename
-			if dir != "" {
-				path = dir + "/" + path
-			}
+		// A blank path means the directory the New file page was opened from.
+		if path == "" && dir != "" {
+			path = dir + "/"
+		}
+		if path == "" || strings.HasSuffix(path, "/") {
+			path += header.Filename
 		}
 	}
 	if path == "" {
 		http.Error(w, "a file path is required", http.StatusBadRequest)
 		return
 	}
+	if strings.HasSuffix(path, "/") {
+		http.Error(w, "the path ends in /: add a file name or upload a file", http.StatusBadRequest)
+		return
+	}
+	// CommitFile ignores a leading /, and the redirect must name the committed path.
+	path = strings.TrimLeft(path, "/")
 	if message == "" {
 		message = "Create " + path
 	}
