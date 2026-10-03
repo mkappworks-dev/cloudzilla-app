@@ -246,8 +246,9 @@ func (s *RepoService) PushSummaries(gitRepo *gogit.Repository, commands []*packp
 		}
 		var commits []model.CommitSummary
 		total := 0
+		newBranch := cmd.Action() == packp.Create
 		walkErr := forEachPushedCommit(gitRepo, cmd, func(c *object.Commit) error {
-			if total >= pushSummaryWalkCap {
+			if newBranch && total >= pushSummaryWalkCap {
 				return storer.ErrStop
 			}
 			total++

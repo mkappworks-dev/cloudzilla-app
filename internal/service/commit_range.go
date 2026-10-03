@@ -3,6 +3,7 @@ package service
 import (
 	"container/heap"
 	"math"
+	"slices"
 
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -22,7 +23,7 @@ const rangeWalkSlop = 5
 // same second as one it kept, so history made within one second, as scripts
 // make it, is read to the root.
 func commitRange(repo *gogit.Repository, old, tip plumbing.Hash) ([]*object.Commit, error) {
-	w := rangeWalk{repo: repo, nodes: map[plumbing.Hash]*rangeNode{}}
+	w := rangeWalk{repo: repo, nodes: map[plumbing.Hash]*rangeNode{}, excludedUnloaded: map[plumbing.Hash]bool{}}
 	if err := w.add(old, true); err != nil {
 		return nil, err
 	}
@@ -63,9 +64,10 @@ func commitRange(repo *gogit.Repository, old, tip plumbing.Hash) ([]*object.Comm
 }
 
 type rangeWalk struct {
-	repo  *gogit.Repository
-	nodes map[plumbing.Hash]*rangeNode
-	queue rangeQueue
+	repo             *gogit.Repository
+	nodes            map[plumbing.Hash]*rangeNode
+	excludedUnloaded map[plumbing.Hash]bool
+	queue            rangeQueue
 }
 
 type rangeNode struct {
@@ -77,37 +79,40 @@ type rangeNode struct {
 func (n *rangeNode) when() int64 { return n.commit.Committer.When.Unix() }
 
 func (w *rangeWalk) add(h plumbing.Hash, excluded bool) error {
-	if n, ok := w.nodes[h]; ok {
-		if excluded {
-			w.exclude(n)
+	n, ok := w.nodes[h]
+	if !ok {
+		c, err := w.repo.CommitObject(h)
+		if err != nil {
+			return err
 		}
-		return nil
+		n = &rangeNode{commit: c, excluded: w.excludedUnloaded[h], order: len(w.nodes)}
+		w.nodes[h] = n
+		heap.Push(&w.queue, n)
 	}
-	c, err := w.repo.CommitObject(h)
-	if err != nil {
-		return err
+	if excluded {
+		w.exclude(n)
 	}
-	n := &rangeNode{commit: c, excluded: excluded, order: len(w.nodes)}
-	w.nodes[h] = n
-	heap.Push(&w.queue, n)
 	return nil
 }
 
-// exclude also marks the ancestors of n the walk has already loaded: when dates
-// don't order two commits, one can be kept before old's side reaches it.
+// exclude marks n and its parents reachable from old, and onward through loaded
+// commits not yet marked. Like git, it marks the parents now rather than when n
+// is popped: if n is dated before them, the walk can settle before popping it.
+// Loaded commits may already have been kept.
 func (w *rangeWalk) exclude(n *rangeNode) {
-	stack := []*rangeNode{n}
+	n.excluded = true
+	stack := slices.Clone(n.commit.ParentHashes)
 	for len(stack) > 0 {
-		n := stack[len(stack)-1]
+		h := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
-		if n.excluded {
+		p, ok := w.nodes[h]
+		if !ok {
+			w.excludedUnloaded[h] = true
 			continue
 		}
-		n.excluded = true
-		for _, p := range n.commit.ParentHashes {
-			if pn, ok := w.nodes[p]; ok {
-				stack = append(stack, pn)
-			}
+		if !p.excluded {
+			p.excluded = true
+			stack = append(stack, p.commit.ParentHashes...)
 		}
 	}
 }

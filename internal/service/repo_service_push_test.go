@@ -196,6 +196,22 @@ func TestPushSummaries_NewBranchStopsAtTheWalkCap(t *testing.T) {
 	assertPushSummary(t, got, history[:pushSummaryWalkCap])
 }
 
+// The cap bounds a new branch's walk; an update's walk ends at the old tip.
+func TestPushSummaries_UpdatedBranchCountsPastTheWalkCap(t *testing.T) {
+	h := newPushHistory(t, t.TempDir(), "tester@example.com", time.Minute)
+	old := h.line(3)
+	tip := old
+	var added []plumbing.Hash
+	for i := range pushSummaryWalkCap + 10 {
+		tip = h.commit(fmt.Sprintf("Pushed %d", i), tip)
+		added = append([]plumbing.Hash{tip}, added...)
+	}
+
+	got := (&RepoService{}).PushSummaries(h.repo, testPush{old: old, new: tip}.commands())
+
+	assertPushSummary(t, got, added)
+}
+
 func TestRepoService_OnPostReceive_IngestsOnlyThePushedCommits(t *testing.T) {
 	db := testutil.OpenTestDB(t)
 	ctx := context.Background()
