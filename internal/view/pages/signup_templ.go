@@ -291,8 +291,7 @@ func RegisterComplete(data view.RegisterCompleteData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = components.Input(templ.Attributes{
-					"type":      "password",
+				templ_7745c5c3_Err = components.PasswordInput(templ.Attributes{
 					"id":        "complete-password",
 					"name":      "password",
 					"required":  "required",

@@ -89,8 +89,7 @@ templ RegisterComplete(data view.RegisterCompleteData) {
 					</div>
 					<div class="space-y-1.5">
 						<label for="complete-password" class="block text-sm font-medium">Password</label>
-						@components.Input(templ.Attributes{
-							"type":      "password",
+						@components.PasswordInput(templ.Attributes{
 							"id":        "complete-password",
 							"name":      "password",
 							"required":  "required",

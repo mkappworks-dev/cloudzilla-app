@@ -55,8 +55,7 @@ templ Login(data view.LoginData) {
 				</div>
 				<div class="space-y-1.5">
 					<label for="password" class="block text-sm font-medium">Password</label>
-					@components.Input(templ.Attributes{
-						"type":     "password",
+					@components.PasswordInput(templ.Attributes{
 						"id":       "password",
 						"name":     "password",
 						"required": "required",
@@ -109,8 +108,7 @@ templ Login(data view.LoginData) {
 									</div>
 									<div class="space-y-1.5">
 										<label for="ldap-password" class="block text-xs font-medium">Password</label>
-										@components.Input(templ.Attributes{
-											"type":     "password",
+										@components.PasswordInput(templ.Attributes{
 											"id":       "ldap-password",
 											"name":     "password",
 											"required": "required",
