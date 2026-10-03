@@ -161,12 +161,12 @@ func TestUpdateProfileReadme_RefusesAnArchivedProfileRepo(t *testing.T) {
 // uploadCap is the largest file the New file form commits.
 const uploadCap = 25 << 20
 
-// postUpload posts the New file form as a browser does: multipart, with file
+// uploadForm encodes the New file form as a browser does: multipart, with file
 // as the upload unless it is nil.
-func postUpload(t *testing.T, router http.Handler, token, path string, fields url.Values, file []byte) *httptest.ResponseRecorder {
+func uploadForm(t *testing.T, fields url.Values, file []byte) (contentType string, body []byte) {
 	t.Helper()
-	var body bytes.Buffer
-	mw := multipart.NewWriter(&body)
+	var b bytes.Buffer
+	mw := multipart.NewWriter(&b)
 	for name, values := range fields {
 		for _, v := range values {
 			if err := mw.WriteField(name, v); err != nil {
@@ -186,8 +186,15 @@ func postUpload(t *testing.T, router http.Handler, token, path string, fields ur
 	if err := mw.Close(); err != nil {
 		t.Fatalf("close multipart body: %v", err)
 	}
-	req := httptest.NewRequest(http.MethodPost, path, &body)
-	req.Header.Set("Content-Type", mw.FormDataContentType())
+	return mw.FormDataContentType(), b.Bytes()
+}
+
+// postUpload posts the New file form with a Bearer token.
+func postUpload(t *testing.T, router http.Handler, token, path string, fields url.Values, file []byte) *httptest.ResponseRecorder {
+	t.Helper()
+	contentType, body := uploadForm(t, fields, file)
+	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(body))
+	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("Authorization", "Bearer "+token)
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
@@ -195,26 +202,43 @@ func postUpload(t *testing.T, router http.Handler, token, path string, fields ur
 }
 
 func TestSubmitNewFile_CommitsAnUploadAtTheCap(t *testing.T) {
-	db := testutil.OpenTestDB(t)
-	reposRoot := t.TempDir()
-	api := newAPIRouterAt(t, db, reposRoot)
-	r := seedRaceRepo(t, db, reposRoot)
+	atCap := bytes.Repeat([]byte("a"), uploadCap)
+	tests := []struct {
+		name string
+		send func(t *testing.T, api http.Handler, r raceRepo) *httptest.ResponseRecorder
+	}{
+		{"Bearer token", func(t *testing.T, api http.Handler, r raceRepo) *httptest.ResponseRecorder {
+			return postUpload(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {"big.bin"}}, atCap)
+		}},
+		{"browser session", func(t *testing.T, api http.Handler, r raceRepo) *httptest.ResponseRecorder {
+			rr, _ := postBrowserUpload(t, api, r, atCap)
+			return rr
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db := testutil.OpenTestDB(t)
+			reposRoot := t.TempDir()
+			api := newAPIRouterAt(t, db, reposRoot)
+			r := seedRaceRepo(t, db, reposRoot)
 
-	rr := postUpload(t, api, r.owner.token, r.path+"/new/main", url.Values{"path": {"big.bin"}}, bytes.Repeat([]byte("a"), uploadCap))
+			rr := tt.send(t, api, r)
 
-	if rr.Code != http.StatusSeeOther {
-		t.Fatalf("want 303, got %d: %s", rr.Code, rr.Body.String())
-	}
-	tip, err := r.git.CommitObject(branchHash(t, r.git, "main"))
-	if err != nil {
-		t.Fatalf("load main: %v", err)
-	}
-	f, err := tip.File("big.bin")
-	if err != nil {
-		t.Fatalf("find big.bin: %v", err)
-	}
-	if f.Size != uploadCap {
-		t.Errorf("big.bin is %d bytes, want %d", f.Size, uploadCap)
+			if rr.Code != http.StatusSeeOther {
+				t.Fatalf("want 303, got %d: %s", rr.Code, rr.Body.String())
+			}
+			tip, err := r.git.CommitObject(branchHash(t, r.git, "main"))
+			if err != nil {
+				t.Fatalf("load main: %v", err)
+			}
+			f, err := tip.File("big.bin")
+			if err != nil {
+				t.Fatalf("find big.bin: %v", err)
+			}
+			if f.Size != uploadCap {
+				t.Errorf("big.bin is %d bytes, want %d", f.Size, uploadCap)
+			}
+		})
 	}
 }
 
