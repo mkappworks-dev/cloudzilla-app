@@ -59,6 +59,23 @@ func TestImportClient_RefusesLoopbackUnderGuard(t *testing.T) {
 	}
 }
 
+func TestImportClient_RefusesAHostnameThatResolvesToLoopback(t *testing.T) {
+	srv := importTestServer(t, "ok")
+	_, port, err := net.SplitHostPort(srv.Listener.Addr().String())
+	if err != nil {
+		t.Fatalf("split listener address: %v", err)
+	}
+	g := &importGuard{}
+	if resp, err := importGet(withImportGuard(context.Background(), g), "http://localhost:"+port); err == nil {
+		_ = resp.Body.Close()
+		t.Fatal("request to localhost succeeded under a guard")
+	}
+	var blocked *ImportBlockedError
+	if !errors.As(g.failure(), &blocked) || *blocked != (ImportBlockedError{Host: "localhost"}) {
+		t.Errorf("failure() = %v, want ImportBlockedError{Host: localhost}", g.failure())
+	}
+}
+
 func TestImportClient_LeavesUnguardedRequestsAlone(t *testing.T) {
 	srv := importTestServer(t, "ok")
 	resp, err := importGet(context.Background(), srv.URL)
