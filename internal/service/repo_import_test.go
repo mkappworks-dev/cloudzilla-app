@@ -169,3 +169,24 @@ func TestCreateFromImport_RechecksOrgOwnership(t *testing.T) {
 		t.Errorf("err = %v, want ErrForbidden", err)
 	}
 }
+
+func TestCreateFromImport_FailureReleasesTheName(t *testing.T) {
+	svc, _, db, root := newImportRepoSvc(t)
+	ctx := context.Background()
+	uid, uname := seedImportUser(t, db)
+	target := service.ImportTarget{ActorID: uid, OwnerName: uname, OwnerID: uid}
+
+	if _, err := svc.CreateFromImport(ctx, target, "imported", "", false, "trunk", filepath.Join(t.TempDir(), "missing")); err == nil {
+		t.Fatal("CreateFromImport with a missing source succeeded")
+	}
+	if _, err := svc.Get(ctx, uname, "imported"); err == nil {
+		t.Error("row left behind after the failed publish")
+	}
+	if _, err := os.Stat(filepath.Join(root, uname, "imported.git")); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("repo dir left behind after the failed publish: %v", err)
+	}
+
+	if _, err := svc.CreateFromImport(ctx, target, "imported", "", false, "trunk", seedImportedClone(t)); err != nil {
+		t.Errorf("retry after the failed publish: %v", err)
+	}
+}
