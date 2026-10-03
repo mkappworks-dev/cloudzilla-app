@@ -148,7 +148,7 @@ func RepoImport(data view.RepoImportData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></form></div><aside class=\"space-y-6\" aria-label=\"About importing\"><section aria-labelledby=\"ri-what\"><h2 id=\"ri-what\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">What gets imported</h2><p class=\"text-[13px] text-muted-foreground/70 leading-relaxed\">Every branch and tag, with full history. The new repository's default branch matches the source's.</p></section><section aria-labelledby=\"ri-not\" class=\"border-t border-border pt-5\"><h2 id=\"ri-not\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Not imported</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground/70 leading-relaxed\"><li>Issues, pull requests, wikis, and releases.</li><li>Git LFS files: only their pointer files come across.</li><li>Later changes to the source. An import is a one-time copy.</li></ul></section></aside></div><script>\n\t\t\t(function() {\n\t\t\t\tconst form = document.getElementById('import-form');\n\t\t\t\tconst errBox = document.getElementById('import-form-error');\n\t\t\t\tconst urlInput = document.getElementById('import-url');\n\t\t\t\tconst nameInput = document.getElementById('import-name');\n\t\t\t\tlet nameEdited = nameInput.value !== '';\n\t\t\t\tnameInput.addEventListener('input', function() { nameEdited = true; });\n\t\t\t\turlInput.addEventListener('input', function() {\n\t\t\t\t\tif (nameEdited) return;\n\t\t\t\t\tconst path = urlInput.value.trim().replace(/[?#].*$/, '').replace(/\\/+$/, '');\n\t\t\t\t\tnameInput.value = path.slice(path.lastIndexOf('/') + 1).replace(/\\.git$/, '').replace(/[^A-Za-z0-9._-]/g, '-');\n\t\t\t\t});\n\t\t\t\tform.addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\terrBox.classList.add('hidden');\n\t\t\t\t\tconst submit = form.querySelector('[type=submit]');\n\t\t\t\t\tsubmit.disabled = true;\n\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\ttry {\n\t\t\t\t\t\tconst res = await fetch('/api/imports', {\n\t\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\t\tbody: JSON.stringify({\n\t\t\t\t\t\t\t\tclone_url: urlInput.value.trim(),\n\t\t\t\t\t\t\t\tauth_username: document.getElementById('import-username').value,\n\t\t\t\t\t\t\t\tauth_token: document.getElementById('import-token').value,\n\t\t\t\t\t\t\t\towner: form.querySelector('[name=owner]').value,\n\t\t\t\t\t\t\t\tname: nameInput.value.trim(),\n\t\t\t\t\t\t\t\tdescription: form.querySelector('[name=description]').value,\n\t\t\t\t\t\t\t\tprivate: form.querySelector('[name=visibility]:checked').value === 'private'\n\t\t\t\t\t\t\t})\n\t\t\t\t\t\t});\n\t\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\t\twindow.location.href = (await res.json()).status_url;\n\t\t\t\t\t\t\treturn;\n\t\t\t\t\t\t}\n\t\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\t\tlet msg = text;\n\t\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\t\terrBox.textContent = msg || ('Failed to start the import (HTTP ' + res.status + ')');\n\t\t\t\t\t\terrBox.classList.remove('hidden');\n\t\t\t\t\t} finally {\n\t\t\t\t\t\tsubmit.disabled = false;\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t})();\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></form></div><aside class=\"space-y-6\" aria-label=\"About importing\"><section aria-labelledby=\"ri-what\"><h2 id=\"ri-what\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">What gets imported</h2><p class=\"text-[13px] text-muted-foreground/70 leading-relaxed\">Every branch and tag, with full history. The new repository's default branch matches the source's.</p></section><section aria-labelledby=\"ri-not\" class=\"border-t border-border pt-5\"><h2 id=\"ri-not\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Not imported</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground/70 leading-relaxed\"><li>Issues, pull requests, wikis, and releases.</li><li>Git LFS files: only their pointer files come across.</li><li>Later changes to the source. An import is a one-time copy.</li></ul></section></aside></div><script>\n\t\t\t(function() {\n\t\t\t\tconst form = document.getElementById('import-form');\n\t\t\t\tconst errBox = document.getElementById('import-form-error');\n\t\t\t\tconst urlInput = document.getElementById('import-url');\n\t\t\t\tconst nameInput = document.getElementById('import-name');\n\t\t\t\tlet nameEdited = nameInput.value !== '';\n\t\t\t\tnameInput.addEventListener('input', function() { nameEdited = true; });\n\t\t\t\turlInput.addEventListener('input', function() {\n\t\t\t\t\tif (nameEdited) return;\n\t\t\t\t\tconst path = urlInput.value.trim().replace(/[?#].*$/, '').replace(/\\/+$/, '');\n\t\t\t\t\tnameInput.value = path.slice(path.lastIndexOf('/') + 1).replace(/\\.git$/, '').replace(/[^A-Za-z0-9._-]/g, '-');\n\t\t\t\t});\n\t\t\t\tconst submit = form.querySelector('[type=submit]');\n\t\t\t\t// A page restored from the back/forward cache keeps the disabled button of the submit that navigated away.\n\t\t\t\twindow.addEventListener('pageshow', function(e) { if (e.persisted) submit.disabled = false; });\n\t\t\t\tfunction showError(msg) {\n\t\t\t\t\terrBox.textContent = msg;\n\t\t\t\t\terrBox.classList.remove('hidden');\n\t\t\t\t\tsubmit.disabled = false;\n\t\t\t\t}\n\t\t\t\tform.addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\terrBox.classList.add('hidden');\n\t\t\t\t\tsubmit.disabled = true;\n\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\tlet res;\n\t\t\t\t\ttry {\n\t\t\t\t\t\tres = await fetch('/api/imports', {\n\t\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\t\tbody: JSON.stringify({\n\t\t\t\t\t\t\t\tclone_url: urlInput.value.trim(),\n\t\t\t\t\t\t\t\tauth_username: document.getElementById('import-username').value,\n\t\t\t\t\t\t\t\tauth_token: document.getElementById('import-token').value,\n\t\t\t\t\t\t\t\towner: form.querySelector('[name=owner]').value,\n\t\t\t\t\t\t\t\tname: nameInput.value.trim(),\n\t\t\t\t\t\t\t\tdescription: form.querySelector('[name=description]').value,\n\t\t\t\t\t\t\t\tprivate: form.querySelector('[name=visibility]:checked').value === 'private'\n\t\t\t\t\t\t\t})\n\t\t\t\t\t\t});\n\t\t\t\t\t} catch (_) {\n\t\t\t\t\t\tshowError('Could not reach the server. Try again.');\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\t// Stays disabled on success: the import has started, and a second click would start another.\n\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\twindow.location.href = (await res.json()).status_url;\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\tlet msg = text;\n\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\tshowError(msg || ('Failed to start the import (HTTP ' + res.status + ')'));\n\t\t\t\t});\n\t\t\t})();\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -202,7 +202,7 @@ func RepoImportStatus(data view.RepoImportStatusData) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(data.Job.Owner)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 156, Col: 103}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 165, Col: 103}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -215,7 +215,7 @@ func RepoImportStatus(data view.RepoImportStatusData) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(data.Job.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 156, Col: 121}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 165, Col: 121}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 			if templ_7745c5c3_Err != nil {
@@ -228,7 +228,7 @@ func RepoImportStatus(data view.RepoImportStatusData) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(data.Job.SourceURL)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 157, Col: 93}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 166, Col: 93}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -284,7 +284,7 @@ func RepoImportStatusPanel(job service.ImportJob) templ.Component {
 			var templ_7745c5c3_Var13 templ.SafeURL
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL("/" + job.Owner + "/" + job.Name))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 170, Col: 61}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 179, Col: 61}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -297,7 +297,7 @@ func RepoImportStatusPanel(job service.ImportJob) templ.Component {
 			var templ_7745c5c3_Var14 string
 			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(job.Owner)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 170, Col: 148}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 179, Col: 148}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 			if templ_7745c5c3_Err != nil {
@@ -310,7 +310,7 @@ func RepoImportStatusPanel(job service.ImportJob) templ.Component {
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(job.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 170, Col: 161}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 179, Col: 161}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -328,7 +328,7 @@ func RepoImportStatusPanel(job service.ImportJob) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(job.Error)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 175, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 184, Col: 59}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -372,7 +372,7 @@ func RepoImportStatusPanel(job service.ImportJob) templ.Component {
 			var templ_7745c5c3_Var18 string
 			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.ResolveAttributeValue("/repos/import/" + job.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 183, Col: 61}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 192, Col: 61}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
 			if templ_7745c5c3_Err != nil {
@@ -405,7 +405,7 @@ func RepoImportStatusPanel(job service.ImportJob) templ.Component {
 				var templ_7745c5c3_Var19 string
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(job.Progress)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 193, Col: 91}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_import.templ`, Line: 202, Col: 91}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 				if templ_7745c5c3_Err != nil {

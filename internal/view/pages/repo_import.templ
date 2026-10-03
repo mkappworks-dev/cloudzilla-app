@@ -112,14 +112,22 @@ templ RepoImport(data view.RepoImportData) {
 					const path = urlInput.value.trim().replace(/[?#].*$/, '').replace(/\/+$/, '');
 					nameInput.value = path.slice(path.lastIndexOf('/') + 1).replace(/\.git$/, '').replace(/[^A-Za-z0-9._-]/g, '-');
 				});
+				const submit = form.querySelector('[type=submit]');
+				// A page restored from the back/forward cache keeps the disabled button of the submit that navigated away.
+				window.addEventListener('pageshow', function(e) { if (e.persisted) submit.disabled = false; });
+				function showError(msg) {
+					errBox.textContent = msg;
+					errBox.classList.remove('hidden');
+					submit.disabled = false;
+				}
 				form.addEventListener('submit', async function(e) {
 					e.preventDefault();
 					errBox.classList.add('hidden');
-					const submit = form.querySelector('[type=submit]');
 					submit.disabled = true;
 					const csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+					let res;
 					try {
-						const res = await fetch('/api/imports', {
+						res = await fetch('/api/imports', {
 							method: 'POST',
 							headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
 							body: JSON.stringify({
@@ -132,18 +140,19 @@ templ RepoImport(data view.RepoImportData) {
 								private: form.querySelector('[name=visibility]:checked').value === 'private'
 							})
 						});
-						if (res.ok) {
-							window.location.href = (await res.json()).status_url;
-							return;
-						}
-						const text = await res.text();
-						let msg = text;
-						try { msg = JSON.parse(text).error || text; } catch (_) {}
-						errBox.textContent = msg || ('Failed to start the import (HTTP ' + res.status + ')');
-						errBox.classList.remove('hidden');
-					} finally {
-						submit.disabled = false;
+					} catch (_) {
+						showError('Could not reach the server. Try again.');
+						return;
 					}
+					// Stays disabled on success: the import has started, and a second click would start another.
+					if (res.ok) {
+						window.location.href = (await res.json()).status_url;
+						return;
+					}
+					const text = await res.text();
+					let msg = text;
+					try { msg = JSON.parse(text).error || text; } catch (_) {}
+					showError(msg || ('Failed to start the import (HTTP ' + res.status + ')'));
 				});
 			})();
 		</script>
