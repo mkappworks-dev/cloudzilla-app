@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 	"time"
@@ -31,7 +32,8 @@ type DiffStats struct {
 	Deleted int
 }
 
-// mergeFile holds the blob hash and file mode for a single file in a tree.
+// mergeFile is a non-directory tree entry. A submodule's hash names a commit in
+// the submodule's repo, not an object in this one.
 type mergeFile struct {
 	hash plumbing.Hash
 	mode filemode.FileMode
@@ -204,14 +206,23 @@ func (s *CodeService) MergePullRequest(owner, repoName, base, head string) error
 }
 
 // flattenTree walks a git tree and returns a flat map of full path → mergeFile.
+// Not tree.Files(): it skips submodules, which buildTree would then drop.
 func flattenTree(tree *object.Tree) (map[string]mergeFile, error) {
 	result := make(map[string]mergeFile)
-	iter := tree.Files()
-	err := iter.ForEach(func(f *object.File) error {
-		result[f.Name] = mergeFile{hash: f.Hash, mode: f.Mode}
-		return nil
-	})
-	return result, err
+	walker := object.NewTreeWalker(tree, true, nil)
+	defer walker.Close()
+	for {
+		name, entry, err := walker.Next()
+		if err == io.EOF {
+			return result, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		if entry.Mode != filemode.Dir {
+			result[name] = mergeFile{hash: entry.Hash, mode: entry.Mode}
+		}
+	}
 }
 
 // findMergeBase returns the best common ancestor of a and b, as `git merge-base`
@@ -294,6 +305,23 @@ func buildTree(repo *gogit.Repository, files map[string]mergeFile) (plumbing.Has
 	return h, err
 }
 
+// changedPaths returns the paths added, deleted, or changed in content or mode
+// between from and to.
+func changedPaths(from, to map[string]mergeFile) map[string]bool {
+	changed := make(map[string]bool)
+	for p, mf := range to {
+		if old, ok := from[p]; !ok || old != mf {
+			changed[p] = true
+		}
+	}
+	for p := range from {
+		if _, ok := to[p]; !ok {
+			changed[p] = true
+		}
+	}
+	return changed
+}
+
 // mergeFiles performs a three-way merge of the file trees in memory.
 // Returns the merged files, true if no conflicts, and any error.
 func mergeFiles(mergeBase, base, head *object.Commit) (map[string]mergeFile, bool, error) {
@@ -323,31 +351,8 @@ func mergeFiles(mergeBase, base, head *object.Commit) (map[string]mergeFile, boo
 		return nil, false, err
 	}
 
-	// Compute which paths changed in head relative to merge base.
-	headChanges := make(map[string]bool)
-	for p, mf := range headFiles {
-		if mbMF, ok := mbFiles[p]; !ok || mbMF.hash != mf.hash {
-			headChanges[p] = true
-		}
-	}
-	for p := range mbFiles {
-		if _, ok := headFiles[p]; !ok {
-			headChanges[p] = true // deleted in head
-		}
-	}
-
-	// Compute which paths changed in base relative to merge base.
-	baseChanges := make(map[string]bool)
-	for p, mf := range baseFiles {
-		if mbMF, ok := mbFiles[p]; !ok || mbMF.hash != mf.hash {
-			baseChanges[p] = true
-		}
-	}
-	for p := range mbFiles {
-		if _, ok := baseFiles[p]; !ok {
-			baseChanges[p] = true // deleted in base
-		}
-	}
+	headChanges := changedPaths(mbFiles, headFiles)
+	baseChanges := changedPaths(mbFiles, baseFiles)
 
 	// Conflict: same path modified in both sides.
 	for p := range headChanges {
