@@ -146,6 +146,28 @@ func TestImport_JobsArePrivateToTheirUser(t *testing.T) {
 	}
 }
 
+func TestImport_StartEvictsOldFinishedJobs(t *testing.T) {
+	imports, _, db, _ := newImportEnv(t, false)
+	ctx := context.Background()
+	uid, uname := seedImportUser(t, db)
+
+	var ids []string
+	for i := range 22 {
+		job, err := imports.Start(ctx, uid, uname, service.ImportRequest{CloneURL: "http://127.0.0.1:1/x.git", Name: fmt.Sprintf("refused%d", i)})
+		if err != nil {
+			t.Fatalf("import %d: %v", i, err)
+		}
+		waitImport(t, imports, uid, job.ID)
+		ids = append(ids, job.ID)
+	}
+	if _, err := imports.Get(uid, ids[0]); !errors.Is(err, service.ErrImportNotFound) {
+		t.Errorf("oldest finished job: err = %v, want ErrImportNotFound", err)
+	}
+	if _, err := imports.Get(uid, ids[1]); err != nil {
+		t.Errorf("second oldest finished job: %v", err)
+	}
+}
+
 func TestImport_LimitsActiveImportsPerUser(t *testing.T) {
 	imports, _, db, _ := newImportEnv(t, true)
 	ctx := context.Background()

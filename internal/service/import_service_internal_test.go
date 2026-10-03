@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -43,6 +44,39 @@ func TestImportService_SweepDropsOldFinishedJobs(t *testing.T) {
 	for _, id := range []string{"recent", "running"} {
 		if _, ok := s.jobs[id]; !ok {
 			t.Errorf("%s job dropped", id)
+		}
+	}
+}
+
+func TestImportService_EvictsAUsersOldestFinishedJobs(t *testing.T) {
+	now := time.Now()
+	s := &ImportService{jobs: map[string]*importJob{}}
+	add := func(id string, user int64, status ImportStatus, finishedAgo time.Duration) {
+		job := &importJob{ImportJob: ImportJob{ID: id, UserID: user, Status: status}}
+		if job.Finished() {
+			job.FinishedAt = now.Add(-finishedAgo)
+		}
+		s.jobs[id] = job
+	}
+	const total = importFinishedPerUser + 5
+	for i := 1; i <= total; i++ { // job i finished i minutes ago
+		add(fmt.Sprintf("mine-%d", i), 1, ImportFailed, time.Duration(i)*time.Minute)
+	}
+	add("running", 1, ImportRunning, 0)
+	add("queued", 1, ImportQueued, 0)
+	add("theirs-old", 2, ImportDone, 3*time.Hour)
+
+	s.evictFinishedLocked(1)
+
+	for i := 1; i <= total; i++ {
+		id := fmt.Sprintf("mine-%d", i)
+		if _, kept := s.jobs[id]; kept != (i <= importFinishedPerUser) {
+			t.Errorf("%s kept = %v, want %v", id, kept, i <= importFinishedPerUser)
+		}
+	}
+	for _, id := range []string{"running", "queued", "theirs-old"} {
+		if _, ok := s.jobs[id]; !ok {
+			t.Errorf("%s was evicted", id)
 		}
 	}
 }

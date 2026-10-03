@@ -10,11 +10,12 @@
 4. `RepoService.CreateFromImport` re-checks the user's right to the owner, claims the name, inserts the row and renames the clone into place.
 5. The status page polls every 2 s and redirects to the repository when the job is done.
 
-Jobs live in memory and are dropped an hour after they finish. A restart loses imports in flight; startup deletes `.import-tmp`.
+Jobs live in memory and are dropped an hour after they finish; a user keeps at most 20 finished jobs, and starting another import evicts the oldest. A restart loses imports in flight; startup deletes `.import-tmp`.
 
 ## Security
 
 - Only `http` and `https` URLs are accepted. go-git treats a bare path or `file://` URL as a repository on the server's own disk.
+- A URL longer than 2048 bytes, or with a query string, is refused. go-git appends `/info/refs` after the query, so such a URL could never clone, and a `?token=` secret in it would reach the audit log, the logs and the status page. The job and its audit row keep the URL, so the length is bounded.
 - Credentials go in the username and token fields, never the URL. They are used for one clone as HTTP basic auth and are not stored or logged.
 - The go-git HTTP client is process-wide. When a request's context carries an import guard, the dialer resolves the host itself and refuses loopback, private, link-local, multicast, unspecified, `0.0.0.0/8` and `100.64.0.0/10` addresses, then connects to the vetted IP. Redirects re-dial through the same check. `import.allow_local_networks: true` turns the check off, for importing from a server on your own network.
 - Imports ignore `HTTP(S)_PROXY`.

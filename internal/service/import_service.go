@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -24,6 +25,8 @@ const (
 	importConcurrency  = 3
 	importPerUserLimit = 5
 	importJobRetention = time.Hour
+	// Refusals finish in milliseconds; without this a loop of them grows jobs for an hour.
+	importFinishedPerUser = 20
 	// Owner names start with a letter or digit, so this can't collide with an owner dir.
 	importTmpDirName = ".import-tmp"
 )
@@ -137,6 +140,7 @@ func (s *ImportService) Start(ctx context.Context, actorID int64, actorUsername 
 		return ImportJob{}, ErrTooManyImports
 	}
 	s.jobs[id] = job
+	s.evictFinishedLocked(actorID)
 	snap := job.ImportJob
 	s.mu.Unlock()
 
@@ -263,6 +267,22 @@ func (s *ImportService) sweepLocked(now time.Time) {
 		if job.Finished() && now.Sub(job.FinishedAt) > importJobRetention {
 			delete(s.jobs, id)
 		}
+	}
+}
+
+func (s *ImportService) evictFinishedLocked(userID int64) {
+	var finished []*importJob
+	for _, job := range s.jobs {
+		if job.UserID == userID && job.Finished() {
+			finished = append(finished, job)
+		}
+	}
+	if len(finished) <= importFinishedPerUser {
+		return
+	}
+	slices.SortFunc(finished, func(a, b *importJob) int { return a.FinishedAt.Compare(b.FinishedAt) })
+	for _, job := range finished[:len(finished)-importFinishedPerUser] {
+		delete(s.jobs, job.ID)
 	}
 }
 

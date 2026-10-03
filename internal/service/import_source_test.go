@@ -9,6 +9,8 @@ import (
 )
 
 func TestParseImportURL(t *testing.T) {
+	const prefix = "https://example.com/"
+	atLimit := prefix + strings.Repeat("a", maxImportURLBytes-len(prefix))
 	for _, tc := range []struct {
 		in, want string
 		err      error
@@ -25,6 +27,12 @@ func TestParseImportURL(t *testing.T) {
 		{"github.com/a/b", "", ErrImportURL},
 		{"https:///a/b", "", ErrImportURL},
 		{"", "", ErrImportURL},
+		{"https://github.com/a/b.git?token=s3cret", "", ErrImportURL},
+		{"https://github.com/a/b.git?", "", ErrImportURL},
+		{"https://github.com/a/b?x=1#frag", "", ErrImportURL},
+		{atLimit, atLimit, nil},
+		{"  " + atLimit + "  ", atLimit, nil},
+		{atLimit + "a", "", ErrImportURL},
 	} {
 		got, err := ParseImportURL(tc.in)
 		if !errors.Is(err, tc.err) || got != tc.want {

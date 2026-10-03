@@ -18,11 +18,20 @@ var (
 	ErrImportEmptySource = errors.New("the source repository is empty")
 )
 
+// The URL is kept in the job and its audit row for an hour or more.
+const maxImportURLBytes = 2048
+
 // ParseImportURL accepts http(s) only: go-git reads a bare path or file://
-// URL as a repository on this server's disk.
+// URL as a repository on this server's disk. It refuses a query string:
+// go-git appends /info/refs after it, so the clone could never work, and a
+// ?token= secret would reach the audit log and the status page.
 func ParseImportURL(raw string) (string, error) {
-	u, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" {
+	raw = strings.TrimSpace(raw)
+	if len(raw) > maxImportURLBytes {
+		return "", ErrImportURL
+	}
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.RawQuery != "" || u.ForceQuery {
 		return "", ErrImportURL
 	}
 	if u.User != nil {
