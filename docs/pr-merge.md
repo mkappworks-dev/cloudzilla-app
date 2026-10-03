@@ -12,7 +12,7 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 | Three-way merge | "Create merge commit"  | FF or clean three-way merge possible | Creates a commit with two parents (base + head)         |
 | Squash merge    | "Squash and merge"     | FF or clean three-way merge possible | Collapses head commits into a single new commit on base |
 
-**Conflict detection:** `mergeFiles` performs a pure tree-level three-way merge in memory — if the same file path was modified on both sides relative to the merge base, all merge buttons are hidden and a conflict warning is shown. The developer must rebase locally and push. Only the merge methods write the merged tree, through `mergeTreesNoConflict`; viewing a PR writes nothing to the repo.
+**Conflict detection:** `mergeFiles` performs a pure tree-level three-way merge in memory — if the same path (a file, symlink or submodule pointer) was changed on both sides relative to the merge base, in content or in mode, all merge buttons are hidden and a conflict warning is shown. That includes a chmod on one side and an edit on the other, which `git merge` would combine. The developer must rebase locally and push. Only the merge methods write the merged tree, through `mergeTreesNoConflict`; viewing a PR writes nothing to the repo.
 
 ## Merge Flow
 
@@ -37,7 +37,8 @@ Cloudzilla supports three merge strategies selectable from the PR detail page.
 - `findMergeBase(a, b)` → `(*object.Commit, error)` (private; best common ancestor, as `git merge-base`)
 - `mergeTreesNoConflict(repo, mergeBase, base, head)` → `(plumbing.Hash, bool, error)` (private)
 - `mergeFiles(mergeBase, base, head)` → `(map[string]mergeFile, bool, error)` (private; `mergeTreesNoConflict` without the tree writes, used by `Mergeability`)
-- `flattenTree(tree)` → `(map[string]mergeFile, error)` (private)
+- `flattenTree(tree)` → `(map[string]mergeFile, error)` (private; every entry but directories, so symlinks and submodules survive a rebuild)
+- `changedPaths(from, to)` → `map[string]bool` (private; paths added, deleted, or changed in content or mode)
 - `buildTree(repo, files)` → `(plumbing.Hash, error)` (private; recursively encodes tree objects)
 
 `UpdatePull` gets the `GitAuthor` from `UserService.CommitAuthor`, which honours the merger's keep-email-private setting (see [api-reference](./api-reference.md#commit-email-privacy)).
