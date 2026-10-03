@@ -42,6 +42,9 @@ func main() {
 
 	stores := store.New(database)
 	services := service.New(stores, cfg)
+	if err := services.Import.RemoveStaleTemp(); err != nil {
+		slog.Warn("remove clones of interrupted imports failed", "error", err)
+	}
 
 	// Re-run safety relies on BackfillRecentCommits' HasRowsForRepoSince guard against the additive AddCount.
 	concurrency.Go("commit_stats.backfill", func() {

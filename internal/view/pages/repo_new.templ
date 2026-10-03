@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -17,7 +18,7 @@ templ RepoNew(data view.RepoNewData) {
 	if data.CurrentUser != nil {
 		{{ me = data.CurrentUser.Username }}
 	}
-	{{ ownerOpts := repoNewOwnerOpts(data) }}
+	{{ ownerOpts := repoOwnerOpts(me, data.OwnedOrgs) }}
 	{{ initialOwner := data.DefaultOwner }}
 	{{ if initialOwner == "" { initialOwner = me } }}
 	{{ giOpts := repoNewGitignoreOpts(data.GitignoreTemplates) }}
@@ -52,29 +53,7 @@ templ RepoNew(data view.RepoNewData) {
 						<textarea id="repo-description" name="description" rows="2" placeholder="A short description of your project" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring"></textarea>
 					</div>
 
-					<fieldset>
-						<legend class="text-[12px] font-medium text-muted-foreground mb-2">Visibility</legend>
-						<label class="border border-border rounded-md p-3 flex items-start gap-3 mb-2 cursor-pointer hover:bg-accent">
-							<input type="radio" name="visibility" value="public" checked?={ !data.DefaultPrivate } class="mt-0.5 accent-[hsl(var(--ring))]"/>
-							<div>
-								<p class="text-[13.5px] font-medium inline-flex items-center gap-2">
-									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-									Public
-								</p>
-								<p class="mt-0.5 text-[12.5px] text-muted-foreground/70">Anyone on the internet can see this repository. You choose who can commit.</p>
-							</div>
-						</label>
-						<label class="border border-border rounded-md p-3 flex items-start gap-3 cursor-pointer hover:bg-accent">
-							<input type="radio" name="visibility" value="private" checked?={ data.DefaultPrivate } class="mt-0.5 accent-[hsl(var(--ring))]"/>
-							<div>
-								<p class="text-[13.5px] font-medium inline-flex items-center gap-2">
-									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
-									Private
-								</p>
-								<p class="mt-0.5 text-[12.5px] text-muted-foreground/70">You choose who can see and commit to this repository.</p>
-							</div>
-						</label>
-					</fieldset>
+					@repoVisibilityFieldset(data.DefaultPrivate)
 
 					<div class="space-y-3">
 						<p class="text-[12px] font-medium text-muted-foreground">Initialize this repository with</p>
@@ -128,7 +107,7 @@ templ RepoNew(data view.RepoNewData) {
 			</aside>
 		</div>
 
-		<p class="mt-6 text-[12.5px] text-muted-foreground/70 text-center">Want to import an existing repository instead? <a href="#" class="text-primary hover:underline">Import a repository →</a></p>
+		<p class="mt-6 text-[12.5px] text-muted-foreground/70 text-center">Want to import an existing repository instead? <a href="/repos/import" class="text-primary hover:underline">Import a repository →</a></p>
 
 		<script>
 			(function() {
@@ -176,6 +155,33 @@ templ RepoNew(data view.RepoNewData) {
 	}
 }
 
+// repoVisibilityFieldset is the public/private choice shared by the new and import forms.
+templ repoVisibilityFieldset(private bool) {
+	<fieldset>
+		<legend class="text-[12px] font-medium text-muted-foreground mb-2">Visibility</legend>
+		<label class="border border-border rounded-md p-3 flex items-start gap-3 mb-2 cursor-pointer hover:bg-accent">
+			<input type="radio" name="visibility" value="public" checked?={ !private } class="mt-0.5 accent-[hsl(var(--ring))]"/>
+			<div>
+				<p class="text-[13.5px] font-medium inline-flex items-center gap-2">
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+					Public
+				</p>
+				<p class="mt-0.5 text-[12.5px] text-muted-foreground/70">Anyone on the internet can see this repository. You choose who can commit.</p>
+			</div>
+		</label>
+		<label class="border border-border rounded-md p-3 flex items-start gap-3 cursor-pointer hover:bg-accent">
+			<input type="radio" name="visibility" value="private" checked?={ private } class="mt-0.5 accent-[hsl(var(--ring))]"/>
+			<div>
+				<p class="text-[13.5px] font-medium inline-flex items-center gap-2">
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path></svg>
+					Private
+				</p>
+				<p class="mt-0.5 text-[12.5px] text-muted-foreground/70">You choose who can see and commit to this repository.</p>
+			</div>
+		</label>
+	</fieldset>
+}
+
 // repoNewCustomSelect is a custom Alpine-driven dropdown matching the app's
 // popup chrome (vs. browser-native <select> chrome). The hidden input keeps
 // the value submittable by the form's JS handler (which reads .value by id).
@@ -206,12 +212,12 @@ templ repoNewCustomSelect(id, name string, options []repoNewSelectOption, initia
 	</div>
 }
 
-func repoNewOwnerOpts(data view.RepoNewData) []repoNewSelectOption {
+func repoOwnerOpts(me string, orgs []model.Organization) []repoNewSelectOption {
 	var opts []repoNewSelectOption
-	if data.CurrentUser != nil {
-		opts = append(opts, repoNewSelectOption{Value: data.CurrentUser.Username, Label: data.CurrentUser.Username, Visibility: "public"})
+	if me != "" {
+		opts = append(opts, repoNewSelectOption{Value: me, Label: me, Visibility: "public"})
 	}
-	for _, o := range data.OwnedOrgs {
+	for _, o := range orgs {
 		vis := "private"
 		if o.DefaultRepoVisibility == "public" {
 			vis = "public"

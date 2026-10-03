@@ -139,6 +139,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	// Account-level cross-repo pages
 	r.With(authMW).Get("/repos", h.PageAccountRepos)
 	r.With(authMW).Get("/repos/new", h.PageNewRepo)
+	r.With(authMW).Get("/repos/import", h.PageImportRepo)
+	r.With(authMW).Get("/repos/import/{id}", h.PageImportStatus)
 	r.With(authMW).Get("/repos/transfers", h.PageRepoTransfers)
 	r.With(authMW).Get("/pulls", h.PageAccountPulls)
 	r.With(authMW).Get("/issues", h.PageAccountIssues)
@@ -246,6 +248,10 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 		r.With(authMW).Post("/{org}/repo-defaults", h.UpdateOrgRepoDefaults)
 		r.With(authMW).Post("/{org}/delete", h.DeleteOrg)
 	})
+
+	// Not under /api/repos: GET /api/repos/import/{id} would shadow /api/repos/{owner}/{repo} for a user named "import".
+	r.With(authMW, apiBodyLimit).Post("/api/imports", h.StartImport)
+	r.With(authMW).Get("/api/imports/{id}", h.GetImportJob)
 
 	// Repo routes
 	r.Route("/api/repos", func(r chi.Router) {

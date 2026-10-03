@@ -9,6 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -45,7 +46,7 @@ func RepoNew(data view.RepoNewData) templ.Component {
 		if data.CurrentUser != nil {
 			me = data.CurrentUser.Username
 		}
-		ownerOpts := repoNewOwnerOpts(data)
+		ownerOpts := repoOwnerOpts(me, data.OwnedOrgs)
 		initialOwner := data.DefaultOwner
 		if initialOwner == "" {
 			initialOwner = me
@@ -71,7 +72,7 @@ func RepoNew(data view.RepoNewData) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(me)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 33, Col: 105}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 34, Col: 105}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
@@ -92,43 +93,31 @@ func RepoNew(data view.RepoNewData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.DefaultName)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 43, Col: 149}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 44, Col: 149}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\"></div></div><p class=\"text-[12px] text-muted-foreground/70\">Great repository names are short and memorable. Need inspiration? <span class=\"font-mono\">turbo-octo-meme</span>.</p><div><label for=\"repo-description\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Description <span class=\"text-muted-foreground/70 font-normal\">(optional)</span></label> <textarea id=\"repo-description\" name=\"description\" rows=\"2\" placeholder=\"A short description of your project\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\"></textarea></div><fieldset><legend class=\"text-[12px] font-medium text-muted-foreground mb-2\">Visibility</legend> <label class=\"border border-border rounded-md p-3 flex items-start gap-3 mb-2 cursor-pointer hover:bg-accent\"><input type=\"radio\" name=\"visibility\" value=\"public\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\"></div></div><p class=\"text-[12px] text-muted-foreground/70\">Great repository names are short and memorable. Need inspiration? <span class=\"font-mono\">turbo-octo-meme</span>.</p><div><label for=\"repo-description\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Description <span class=\"text-muted-foreground/70 font-normal\">(optional)</span></label> <textarea id=\"repo-description\" name=\"description\" rows=\"2\" placeholder=\"A short description of your project\" class=\"w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring\"></textarea></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if !data.DefaultPrivate {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, " checked")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, " class=\"mt-0.5 accent-[hsl(var(--ring))]\"><div><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"2\" y1=\"12\" x2=\"22\" y2=\"12\"></line><path d=\"M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z\"></path></svg> Public</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground/70\">Anyone on the internet can see this repository. You choose who can commit.</p></div></label> <label class=\"border border-border rounded-md p-3 flex items-start gap-3 cursor-pointer hover:bg-accent\"><input type=\"radio\" name=\"visibility\" value=\"private\"")
+			templ_7745c5c3_Err = repoVisibilityFieldset(data.DefaultPrivate).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if data.DefaultPrivate {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, " checked")
-				if templ_7745c5c3_Err != nil {
-					return templ_7745c5c3_Err
-				}
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, " class=\"mt-0.5 accent-[hsl(var(--ring))]\"><div><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\" ry=\"2\"></rect><path d=\"M7 11V7a5 5 0 0110 0v4\"></path></svg> Private</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground/70\">You choose who can see and commit to this repository.</p></div></label></fieldset><div class=\"space-y-3\"><p class=\"text-[12px] font-medium text-muted-foreground\">Initialize this repository with</p><label class=\"flex items-start gap-2 text-[13px]\"><input type=\"checkbox\" id=\"repo-readme\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"space-y-3\"><p class=\"text-[12px] font-medium text-muted-foreground\">Initialize this repository with</p><label class=\"flex items-start gap-2 text-[13px]\"><input type=\"checkbox\" id=\"repo-readme\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if data.DefaultName == "" || data.DefaultInitReadme {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, " checked")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, " checked")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, " class=\"mt-0.5 accent-[hsl(var(--ring))]\"> <span>Add a README — describes your project at a glance.</span></label><div><label for=\"repo-gitignore-btn\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Add .gitignore <span class=\"text-muted-foreground/70 font-normal\">(optional)</span></label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, " class=\"mt-0.5 accent-[hsl(var(--ring))]\"> <span>Add a README — describes your project at a glance.</span></label><div><label for=\"repo-gitignore-btn\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Add .gitignore <span class=\"text-muted-foreground/70 font-normal\">(optional)</span></label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -136,7 +125,7 @@ func RepoNew(data view.RepoNewData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<p class=\"mt-1 text-[12px] text-muted-foreground/70\">Choose which files Git should ignore, from a template.</p></div><div><label for=\"repo-license-btn\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Choose a license <span class=\"text-muted-foreground/70 font-normal\">(optional)</span></label>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<p class=\"mt-1 text-[12px] text-muted-foreground/70\">Choose which files Git should ignore, from a template.</p></div><div><label for=\"repo-license-btn\" class=\"block text-[12px] font-medium text-muted-foreground mb-1.5\">Choose a license <span class=\"text-muted-foreground/70 font-normal\">(optional)</span></label>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -144,7 +133,7 @@ func RepoNew(data view.RepoNewData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<p class=\"mt-1 text-[12px] text-muted-foreground/70\">Sets the terms under which others may reuse your code.</p></div></div><div id=\"repo-form-error\" role=\"alert\" class=\"hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2\"></div><div class=\"flex items-center justify-end gap-2 pt-2 border-t border-border\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<p class=\"mt-1 text-[12px] text-muted-foreground/70\">Sets the terms under which others may reuse your code.</p></div></div><div id=\"repo-form-error\" role=\"alert\" class=\"hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2\"></div><div class=\"flex items-center justify-end gap-2 pt-2 border-t border-border\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -160,7 +149,7 @@ func RepoNew(data view.RepoNewData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "Cancel")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "Cancel")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -182,7 +171,7 @@ func RepoNew(data view.RepoNewData) templ.Component {
 					}()
 				}
 				ctx = templ.InitializeContext(ctx)
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "Create repository")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "Create repository")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -192,13 +181,63 @@ func RepoNew(data view.RepoNewData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</div></form></div><aside class=\"space-y-6\" aria-label=\"About repositories\"><section aria-labelledby=\"rn-about\"><h2 id=\"rn-about\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">About repositories</h2><p class=\"text-[13px] text-muted-foreground/70 leading-relaxed\">A repository is the home for one project — its code, full revision history, issues, and pull requests. Start it empty, or seed it with a README, .gitignore, and license below.</p></section><section aria-labelledby=\"rn-tips\" class=\"border-t border-border pt-5\"><h2 id=\"rn-tips\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Good to know</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground/70 leading-relaxed\"><li>Repository names must be unique within the owner account or organization.</li><li>Visibility can be switched between public and private later in repository settings.</li><li>Adding a README lets you clone a working copy right away — an empty repo only shows setup instructions.</li><li>A license sets the terms for how others may reuse your code; you can add one later too.</li></ul></section></aside></div><p class=\"mt-6 text-[12.5px] text-muted-foreground/70 text-center\">Want to import an existing repository instead? <a href=\"#\" class=\"text-primary hover:underline\">Import a repository →</a></p><script>\n\t\t\t(function() {\n\t\t\t\tconst form = document.getElementById('repo-form');\n\t\t\t\tconst errBox = document.getElementById('repo-form-error');\n\t\t\t\tform.addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\terrBox.classList.add('hidden');\n\t\t\t\t\tconst ownerSel = form.querySelector('[name=owner]');\n\t\t\t\t\tconst owner = ownerSel ? ownerSel.value : '';\n\t\t\t\t\tconst name = form.querySelector('[name=name]').value.trim();\n\t\t\t\t\tconst description = form.querySelector('[name=description]').value;\n\t\t\t\t\tconst isPrivate = form.querySelector('[name=visibility]:checked').value === 'private';\n\t\t\t\t\tconst addReadme = document.getElementById('repo-readme').checked;\n\t\t\t\t\tconst gitignore = document.getElementById('repo-gitignore').value;\n\t\t\t\t\tconst license = document.getElementById('repo-license').value;\n\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\tconst me = form.dataset.username;\n\t\t\t\t\tconst isOrg = owner && owner !== me;\n\t\t\t\t\tconst url = isOrg ? ('/api/orgs/' + encodeURIComponent(owner) + '/repos') : '/api/repos/';\n\t\t\t\t\tconst res = await fetch(url, {\n\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\tbody: JSON.stringify({\n\t\t\t\t\t\t\tname: name,\n\t\t\t\t\t\t\tdescription: description,\n\t\t\t\t\t\t\tprivate: isPrivate,\n\t\t\t\t\t\t\tadd_readme: addReadme,\n\t\t\t\t\t\t\tgitignore: gitignore,\n\t\t\t\t\t\t\tlicense: license\n\t\t\t\t\t\t})\n\t\t\t\t\t});\n\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\twindow.location.href = '/' + owner + '/' + name;\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\tlet msg = text;\n\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\terrBox.textContent = msg || ('Failed to create repository (HTTP ' + res.status + ')');\n\t\t\t\t\terrBox.classList.remove('hidden');\n\t\t\t\t});\n\t\t\t})();\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div></form></div><aside class=\"space-y-6\" aria-label=\"About repositories\"><section aria-labelledby=\"rn-about\"><h2 id=\"rn-about\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">About repositories</h2><p class=\"text-[13px] text-muted-foreground/70 leading-relaxed\">A repository is the home for one project — its code, full revision history, issues, and pull requests. Start it empty, or seed it with a README, .gitignore, and license below.</p></section><section aria-labelledby=\"rn-tips\" class=\"border-t border-border pt-5\"><h2 id=\"rn-tips\" class=\"text-[12px] font-medium text-muted-foreground mb-2\">Good to know</h2><ul class=\"space-y-2 text-[13px] text-muted-foreground/70 leading-relaxed\"><li>Repository names must be unique within the owner account or organization.</li><li>Visibility can be switched between public and private later in repository settings.</li><li>Adding a README lets you clone a working copy right away — an empty repo only shows setup instructions.</li><li>A license sets the terms for how others may reuse your code; you can add one later too.</li></ul></section></aside></div><p class=\"mt-6 text-[12.5px] text-muted-foreground/70 text-center\">Want to import an existing repository instead? <a href=\"/repos/import\" class=\"text-primary hover:underline\">Import a repository →</a></p><script>\n\t\t\t(function() {\n\t\t\t\tconst form = document.getElementById('repo-form');\n\t\t\t\tconst errBox = document.getElementById('repo-form-error');\n\t\t\t\tform.addEventListener('submit', async function(e) {\n\t\t\t\t\te.preventDefault();\n\t\t\t\t\terrBox.classList.add('hidden');\n\t\t\t\t\tconst ownerSel = form.querySelector('[name=owner]');\n\t\t\t\t\tconst owner = ownerSel ? ownerSel.value : '';\n\t\t\t\t\tconst name = form.querySelector('[name=name]').value.trim();\n\t\t\t\t\tconst description = form.querySelector('[name=description]').value;\n\t\t\t\t\tconst isPrivate = form.querySelector('[name=visibility]:checked').value === 'private';\n\t\t\t\t\tconst addReadme = document.getElementById('repo-readme').checked;\n\t\t\t\t\tconst gitignore = document.getElementById('repo-gitignore').value;\n\t\t\t\t\tconst license = document.getElementById('repo-license').value;\n\t\t\t\t\tconst csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';\n\t\t\t\t\tconst me = form.dataset.username;\n\t\t\t\t\tconst isOrg = owner && owner !== me;\n\t\t\t\t\tconst url = isOrg ? ('/api/orgs/' + encodeURIComponent(owner) + '/repos') : '/api/repos/';\n\t\t\t\t\tconst res = await fetch(url, {\n\t\t\t\t\t\tmethod: 'POST',\n\t\t\t\t\t\theaders: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},\n\t\t\t\t\t\tbody: JSON.stringify({\n\t\t\t\t\t\t\tname: name,\n\t\t\t\t\t\t\tdescription: description,\n\t\t\t\t\t\t\tprivate: isPrivate,\n\t\t\t\t\t\t\tadd_readme: addReadme,\n\t\t\t\t\t\t\tgitignore: gitignore,\n\t\t\t\t\t\t\tlicense: license\n\t\t\t\t\t\t})\n\t\t\t\t\t});\n\t\t\t\t\tif (res.ok) {\n\t\t\t\t\t\twindow.location.href = '/' + owner + '/' + name;\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t\tconst text = await res.text();\n\t\t\t\t\tlet msg = text;\n\t\t\t\t\ttry { msg = JSON.parse(text).error || text; } catch (_) {}\n\t\t\t\t\terrBox.textContent = msg || ('Failed to create repository (HTTP ' + res.status + ')');\n\t\t\t\t\terrBox.classList.remove('hidden');\n\t\t\t\t});\n\t\t\t})();\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			return nil
 		})
 		templ_7745c5c3_Err = layout.Base(data.BasePage, "New repository").Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+// repoVisibilityFieldset is the public/private choice shared by the new and import forms.
+func repoVisibilityFieldset(private bool) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var7 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var7 == nil {
+			templ_7745c5c3_Var7 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<fieldset><legend class=\"text-[12px] font-medium text-muted-foreground mb-2\">Visibility</legend> <label class=\"border border-border rounded-md p-3 flex items-start gap-3 mb-2 cursor-pointer hover:bg-accent\"><input type=\"radio\" name=\"visibility\" value=\"public\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if !private {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, " checked")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, " class=\"mt-0.5 accent-[hsl(var(--ring))]\"><div><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><line x1=\"2\" y1=\"12\" x2=\"22\" y2=\"12\"></line><path d=\"M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z\"></path></svg> Public</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground/70\">Anyone on the internet can see this repository. You choose who can commit.</p></div></label> <label class=\"border border-border rounded-md p-3 flex items-start gap-3 cursor-pointer hover:bg-accent\"><input type=\"radio\" name=\"visibility\" value=\"private\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if private {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, " checked")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, " class=\"mt-0.5 accent-[hsl(var(--ring))]\"><div><p class=\"text-[13.5px] font-medium inline-flex items-center gap-2\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\" ry=\"2\"></rect><path d=\"M7 11V7a5 5 0 0110 0v4\"></path></svg> Private</p><p class=\"mt-0.5 text-[12.5px] text-muted-foreground/70\">You choose who can see and commit to this repository.</p></div></label></fieldset>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -225,149 +264,149 @@ func repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var7 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var7 == nil {
-			templ_7745c5c3_Var7 = templ.NopComponent
+		templ_7745c5c3_Var8 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var8 == nil {
+			templ_7745c5c3_Var8 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<div x-data=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var8 string
-		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ open: false, value: " + components.JSLiteral(initial.Value) + ", label: " + components.JSLiteral(initial.Label) + " }")
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 183, Col: 136}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" @click.away=\"open = false\" class=\"relative\"><input type=\"hidden\" id=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<div x-data=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var9 string
-		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
+		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ open: false, value: " + components.JSLiteral(initial.Value) + ", label: " + components.JSLiteral(initial.Label) + " }")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 184, Col: 30}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 189, Col: 136}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" name=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" @click.away=\"open = false\" class=\"relative\"><input type=\"hidden\" id=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var10 string
-		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
+		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(id)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 184, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 190, Col: 30}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\" name=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var11 string
-		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(initial.Value)
+		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 184, Col: 68}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 190, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\" x-bind:value=\"value\"> <button type=\"button\" id=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var12 string
-		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(id + "-btn")
+		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.ResolveAttributeValue(initial.Value)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 185, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 190, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var12)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" @click=\"open = !open\" :aria-expanded=\"open ? 'true' : 'false'\" aria-haspopup=\"listbox\" class=\"w-full flex items-center justify-between bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground hover:border-border-strong focus:outline-hidden focus:border-ring\"><span x-text=\"label\" class=\"truncate text-left\"></span> <svg class=\"text-muted-foreground shrink-0 ml-2\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 10l5 5 5-5\"></path></svg></button><ul x-show=\"open\" x-cloak role=\"listbox\" class=\"absolute z-20 left-0 right-0 top-full mt-1 bg-card border border-border-strong rounded-md shadow-lg p-1 max-h-60 overflow-y-auto\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "\" x-bind:value=\"value\"> <button type=\"button\" id=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var13 string
+		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(id + "-btn")
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 191, Col: 40}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "\" @click=\"open = !open\" :aria-expanded=\"open ? 'true' : 'false'\" aria-haspopup=\"listbox\" class=\"w-full flex items-center justify-between bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground hover:border-border-strong focus:outline-hidden focus:border-ring\"><span x-text=\"label\" class=\"truncate text-left\"></span> <svg class=\"text-muted-foreground shrink-0 ml-2\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 10l5 5 5-5\"></path></svg></button><ul x-show=\"open\" x-cloak role=\"listbox\" class=\"absolute z-20 left-0 right-0 top-full mt-1 bg-card border border-border-strong rounded-md shadow-lg p-1 max-h-60 overflow-y-auto\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for _, opt := range options {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<li><button type=\"button\" data-value=\"")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var13 string
-			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(opt.Value)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 194, Col: 28}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "\" data-label=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<li><button type=\"button\" data-value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var14 string
-			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.ResolveAttributeValue(opt.Label)
+			templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.ResolveAttributeValue(opt.Value)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 195, Col: 28}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 200, Col: 28}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var14)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "\" data-label=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var15 string
+			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(opt.Label)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 201, Col: 28}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if opt.Visibility != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, " data-visibility=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, " data-visibility=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var15 string
-				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(opt.Visibility)
+				var templ_7745c5c3_Var16 string
+				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(opt.Visibility)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 197, Col: 39}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 203, Col: 39}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, " @click=\"if ($el.dataset.visibility && value !== $el.dataset.value) { const r = $el.closest('form').querySelector('input[name=visibility][value=' + $el.dataset.visibility + ']'); if (r) r.checked = true }; value=$el.dataset.value; label=$el.dataset.label; open=false\" :class=\"{ 'bg-accent text-foreground': value === $el.dataset.value }\" :aria-selected=\"value === $el.dataset.value ? 'true' : 'false'\" role=\"option\" class=\"w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, " @click=\"if ($el.dataset.visibility && value !== $el.dataset.value) { const r = $el.closest('form').querySelector('input[name=visibility][value=' + $el.dataset.visibility + ']'); if (r) r.checked = true }; value=$el.dataset.value; label=$el.dataset.label; open=false\" :class=\"{ 'bg-accent text-foreground': value === $el.dataset.value }\" :aria-selected=\"value === $el.dataset.value ? 'true' : 'false'\" role=\"option\" class=\"w-full text-left px-2 py-1.5 text-[13px] rounded-sm hover:bg-accent\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var16 string
-			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(opt.Label)
+			var templ_7745c5c3_Var17 string
+			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(opt.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 201, Col: 17}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/repo_new.templ`, Line: 207, Col: 17}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</button></li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "</button></li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</ul></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "</ul></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -375,12 +414,12 @@ func repoNewCustomSelect(id, name string, options []repoNewSelectOption, initial
 	})
 }
 
-func repoNewOwnerOpts(data view.RepoNewData) []repoNewSelectOption {
+func repoOwnerOpts(me string, orgs []model.Organization) []repoNewSelectOption {
 	var opts []repoNewSelectOption
-	if data.CurrentUser != nil {
-		opts = append(opts, repoNewSelectOption{Value: data.CurrentUser.Username, Label: data.CurrentUser.Username, Visibility: "public"})
+	if me != "" {
+		opts = append(opts, repoNewSelectOption{Value: me, Label: me, Visibility: "public"})
 	}
-	for _, o := range data.OwnedOrgs {
+	for _, o := range orgs {
 		vis := "private"
 		if o.DefaultRepoVisibility == "public" {
 			vis = "public"

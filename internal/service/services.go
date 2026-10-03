@@ -56,6 +56,7 @@ type Services struct {
 	ContributorStats *ContributorStatsService
 	Attention        *AttentionService
 	Language         *LanguageService
+	Import           *ImportService
 }
 
 // New constructs and wires all services from the given stores and configuration.
@@ -135,5 +136,6 @@ func New(stores *store.Stores, cfg *config.Config) *Services {
 		ContributorStats: contributorStatsSvc,
 		Attention:        attentionSvc,
 		Language:         languageSvc,
+		Import:           NewImportService(repoSvc, cfg.Git, cfg.Import),
 	}
 }

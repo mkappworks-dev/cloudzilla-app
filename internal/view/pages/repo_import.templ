@@ -1,0 +1,212 @@
+package pages
+
+import (
+	"net/url"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ RepoImport(data view.RepoImportData) {
+	{{ var me string }}
+	if data.CurrentUser != nil {
+		{{ me = data.CurrentUser.Username }}
+	}
+	{{ initialOwner := data.DefaultOwner }}
+	{{ if initialOwner == "" { initialOwner = me } }}
+	@layout.Base(data.BasePage, "Import repository") {
+		<section class="mb-6">
+			<h1 class="text-2xl font-semibold tracking-tight">Import a repository</h1>
+			<p class="mt-1 text-[13px] text-muted-foreground">Copy a Git repository from another host, with its full history, branches, and tags.</p>
+		</section>
+
+		<div class="grid lg:grid-cols-[1fr_280px] gap-8">
+			<div class="min-w-0">
+				<form id="import-form" class="border border-border rounded-lg bg-card p-6 space-y-6">
+					<div>
+						<label for="import-url" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Source repository URL *</label>
+						<input id="import-url" name="clone_url" type="url" required autofocus placeholder="https://github.com/owner/repo.git" value={ data.DefaultURL } class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring"/>
+						<p class="mt-1 text-[12px] text-muted-foreground/70">An HTTP or HTTPS clone URL. SSH URLs aren't supported.</p>
+					</div>
+
+					<div x-data="{ open: false }" class="flex flex-col gap-3">
+						<button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'" aria-controls="import-credentials" class="self-start inline-flex items-center gap-1.5 text-[13px] text-primary hover:underline">
+							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false" class="transition-transform" :class="open && 'rotate-90'"><path d="M9 18l6-6-6-6"></path></svg>
+							This repository needs credentials
+						</button>
+						<div id="import-credentials" x-show="open" x-cloak class="grid sm:grid-cols-2 gap-3">
+							<div>
+								<label for="import-username" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Username</label>
+								<input id="import-username" name="auth_username" type="text" autocomplete="off" spellcheck="false" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+							</div>
+							<div>
+								<label for="import-token" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Access token</label>
+								<input id="import-token" name="auth_token" type="password" autocomplete="new-password" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground focus:outline-hidden focus:border-ring"/>
+							</div>
+							<p class="sm:col-span-2 text-[12px] text-muted-foreground/70">Used once for this import and not stored. A token with read access to the repository is enough.</p>
+						</div>
+					</div>
+
+					<div class="grid grid-cols-[1fr_auto_2fr] gap-3 items-end">
+						<div>
+							<label for="import-owner-btn" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Owner *</label>
+							@repoNewCustomSelect("import-owner", "owner", repoOwnerOpts(me, data.OwnedOrgs), repoNewSelectOption{Value: initialOwner, Label: initialOwner})
+						</div>
+						<span class="text-muted-foreground/70 pb-2.5" aria-hidden="true">/</span>
+						<div>
+							<label for="import-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository name *</label>
+							<input id="import-name" name="name" type="text" required pattern="[A-Za-z0-9._\-]+" placeholder="my-repo" value={ data.DefaultName } class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring"/>
+						</div>
+					</div>
+
+					<div>
+						<label for="import-description" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+							Description <span class="text-muted-foreground/70 font-normal">(optional)</span>
+						</label>
+						<textarea id="import-description" name="description" rows="2" placeholder="A short description of your project" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring"></textarea>
+					</div>
+
+					@repoVisibilityFieldset(data.DefaultPrivate)
+
+					<div id="import-form-error" role="alert" class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2"></div>
+
+					<div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
+						@components.LinkButton("/", components.ButtonOutline, components.ButtonSizeDefault, nil) {
+							Cancel
+						}
+						@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit"}) {
+							Begin import
+						}
+					</div>
+				</form>
+			</div>
+
+			<aside class="space-y-6" aria-label="About importing">
+				<section aria-labelledby="ri-what">
+					<h2 id="ri-what" class="text-[12px] font-medium text-muted-foreground mb-2">What gets imported</h2>
+					<p class="text-[13px] text-muted-foreground/70 leading-relaxed">Every branch and tag, with full history. The new repository's default branch matches the source's.</p>
+				</section>
+				<section aria-labelledby="ri-not" class="border-t border-border pt-5">
+					<h2 id="ri-not" class="text-[12px] font-medium text-muted-foreground mb-2">Not imported</h2>
+					<ul class="space-y-2 text-[13px] text-muted-foreground/70 leading-relaxed">
+						<li>Issues, pull requests, wikis, and releases.</li>
+						<li>Git LFS files: only their pointer files come across.</li>
+						<li>Later changes to the source. An import is a one-time copy.</li>
+					</ul>
+				</section>
+			</aside>
+		</div>
+
+		<script>
+			(function() {
+				const form = document.getElementById('import-form');
+				const errBox = document.getElementById('import-form-error');
+				const urlInput = document.getElementById('import-url');
+				const nameInput = document.getElementById('import-name');
+				let nameEdited = nameInput.value !== '';
+				nameInput.addEventListener('input', function() { nameEdited = true; });
+				urlInput.addEventListener('input', function() {
+					if (nameEdited) return;
+					const path = urlInput.value.trim().replace(/[?#].*$/, '').replace(/\/+$/, '');
+					nameInput.value = path.slice(path.lastIndexOf('/') + 1).replace(/\.git$/, '').replace(/[^A-Za-z0-9._-]/g, '-');
+				});
+				const submit = form.querySelector('[type=submit]');
+				// A page restored from the back/forward cache keeps the disabled button of the submit that navigated away.
+				window.addEventListener('pageshow', function(e) { if (e.persisted) submit.disabled = false; });
+				function showError(msg) {
+					errBox.textContent = msg;
+					errBox.classList.remove('hidden');
+					submit.disabled = false;
+				}
+				form.addEventListener('submit', async function(e) {
+					e.preventDefault();
+					errBox.classList.add('hidden');
+					submit.disabled = true;
+					const csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+					let res;
+					try {
+						res = await fetch('/api/imports', {
+							method: 'POST',
+							headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+							body: JSON.stringify({
+								clone_url: urlInput.value.trim(),
+								auth_username: document.getElementById('import-username').value,
+								auth_token: document.getElementById('import-token').value,
+								owner: form.querySelector('[name=owner]').value,
+								name: nameInput.value.trim(),
+								description: form.querySelector('[name=description]').value,
+								private: form.querySelector('[name=visibility]:checked').value === 'private'
+							})
+						});
+					} catch (_) {
+						showError('Could not reach the server. Try again.');
+						return;
+					}
+					// Stays disabled on success: the import has started, and a second click would start another.
+					if (res.ok) {
+						window.location.href = (await res.json()).status_url;
+						return;
+					}
+					const text = await res.text();
+					let msg = text;
+					try { msg = JSON.parse(text).error || text; } catch (_) {}
+					showError(msg || ('Failed to start the import (HTTP ' + res.status + ')'));
+				});
+			})();
+		</script>
+	}
+}
+
+templ RepoImportStatus(data view.RepoImportStatusData) {
+	@layout.Base(data.BasePage, "Import "+data.Job.Owner+"/"+data.Job.Name) {
+		<section class="mb-6">
+			<h1 class="text-2xl font-semibold tracking-tight">Importing <span class="font-mono">{ data.Job.Owner }/{ data.Job.Name }</span></h1>
+			<p class="mt-1 text-[13px] text-muted-foreground font-mono break-all">{ data.Job.SourceURL }</p>
+		</section>
+		@RepoImportStatusPanel(data.Job)
+	}
+}
+
+// RepoImportStatusPanel polls its own URL until the import finishes; the
+// handler then answers the poll with HX-Redirect to the new repository.
+templ RepoImportStatusPanel(job service.ImportJob) {
+	switch job.Status {
+		case service.ImportDone:
+			<div id="import-status" class="border border-border rounded-lg bg-card p-6" role="status">
+				<p class="text-[13.5px] font-medium">Import complete.</p>
+				<a href={ templ.SafeURL("/" + job.Owner + "/" + job.Name) } class="mt-2 inline-block text-[13px] text-primary hover:underline">Go to { job.Owner }/{ job.Name } →</a>
+			</div>
+		case service.ImportFailed:
+			<div id="import-status" class="border border-destructive/40 bg-destructive/10 rounded-lg p-6" role="alert">
+				<p class="text-[13.5px] font-medium text-destructive">The import failed</p>
+				<p class="mt-1 text-[13px] text-foreground">{ job.Error }</p>
+				<div class="mt-4">
+					@components.LinkButton(repoImportRetryURL(job), components.ButtonOutline, components.ButtonSizeSM, nil) {
+						Try again
+					}
+				</div>
+			</div>
+		default:
+			<div id="import-status" hx-get={ "/repos/import/" + job.ID } hx-trigger="every 2s" hx-swap="outerHTML" class="border border-border rounded-lg bg-card p-6" role="status" aria-live="polite">
+				<p class="text-[13.5px] font-medium inline-flex items-center gap-2">
+					<svg class="animate-spin text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 11-6.219-8.56"></path></svg>
+					if job.Status == service.ImportQueued {
+						Waiting for other imports to finish…
+					} else {
+						Importing…
+					}
+				</p>
+				if job.Progress != "" {
+					<p class="mt-2 text-[12.5px] text-muted-foreground font-mono break-all">{ job.Progress }</p>
+				}
+				<p class="mt-4 text-[12.5px] text-muted-foreground/70">You can leave this page: the import keeps running. Large repositories can take several minutes.</p>
+			</div>
+	}
+}
+
+func repoImportRetryURL(job service.ImportJob) string {
+	q := url.Values{"url": {job.SourceURL}, "owner": {job.Owner}, "name": {job.Name}}
+	return "/repos/import?" + q.Encode()
+}
