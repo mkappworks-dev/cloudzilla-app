@@ -3,6 +3,7 @@ package router_test
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -147,5 +148,59 @@ func TestGetImportJob_OnlyForItsUser(t *testing.T) {
 	}
 	if rr := serve(h, importJSONRequest(http.MethodGet, "/api/imports/"+job.ID, otherJWT, "")); rr.Code != http.StatusNotFound {
 		t.Errorf("other user GET = %d, want 404", rr.Code)
+	}
+}
+
+func TestImportPage_RendersWithPrefill(t *testing.T) {
+	h, _, db := newImportRouter(t, false)
+	_, _, jwt := importUser(t, db)
+
+	rr := serve(h, browserRequest(http.MethodGet, "/repos/import?url=https://example.com/a.git&name=prefilled", jwt, nil))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /repos/import = %d", rr.Code)
+	}
+	for _, want := range []string{`id="import-form"`, `value="https://example.com/a.git"`, `value="prefilled"`} {
+		if !strings.Contains(rr.Body.String(), want) {
+			t.Errorf("page lacks %s", want)
+		}
+	}
+}
+
+func TestImportStatusPage_FailedJob(t *testing.T) {
+	h, svc, db := newImportRouter(t, false)
+	uid, _, jwt := importUser(t, db)
+	_, _, otherJWT := importUser(t, db)
+	job := postImport(t, h, jwt, refusedImportBody)
+	waitRouterImport(t, svc, uid, job.ID)
+
+	rr := serve(h, browserRequest(http.MethodGet, "/repos/import/"+job.ID, jwt, nil))
+	if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), "127.0.0.1 resolves to a private network address") ||
+		!strings.Contains(rr.Body.String(), "Try again") {
+		t.Errorf("owner page = %d, want the failure and a retry link", rr.Code)
+	}
+	if rr := serve(h, browserRequest(http.MethodGet, "/repos/import/"+job.ID, otherJWT, nil)); rr.Code != http.StatusNotFound {
+		t.Errorf("other user = %d, want 404", rr.Code)
+	}
+}
+
+func TestImportStatus_DoneRedirectsToTheRepo(t *testing.T) {
+	h, svc, db := newImportRouter(t, true)
+	uid, uname, jwt := importUser(t, db)
+	url := testutil.ServeGitHTTP(t, testutil.SeedSourceRepo(t).Dir, "", "")
+	job := postImport(t, h, jwt, fmt.Sprintf(`{"clone_url":%q,"name":"imported"}`, url))
+	if done := waitRouterImport(t, svc, uid, job.ID); done.Status != service.ImportDone {
+		t.Fatalf("import %s: %s", done.Status, done.Error)
+	}
+	repoURL := "/" + uname + "/imported"
+
+	frag := browserRequest(http.MethodGet, "/repos/import/"+job.ID, jwt, nil)
+	frag.Header.Set("HX-Request", "true")
+	rr := serve(h, frag)
+	if rr.Code != http.StatusOK || rr.Header().Get("HX-Redirect") != repoURL || strings.Contains(rr.Body.String(), "<html") {
+		t.Errorf("fragment = %d, HX-Redirect %q", rr.Code, rr.Header().Get("HX-Redirect"))
+	}
+	rr = serve(h, browserRequest(http.MethodGet, "/repos/import/"+job.ID, jwt, nil))
+	if rr.Code != http.StatusSeeOther || rr.Header().Get("Location") != repoURL {
+		t.Errorf("page = %d, Location %q; want 303 to %s", rr.Code, rr.Header().Get("Location"), repoURL)
 	}
 }

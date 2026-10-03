@@ -139,6 +139,8 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	// Account-level cross-repo pages
 	r.With(authMW).Get("/repos", h.PageAccountRepos)
 	r.With(authMW).Get("/repos/new", h.PageNewRepo)
+	r.With(authMW).Get("/repos/import", h.PageImportRepo)
+	r.With(authMW).Get("/repos/import/{id}", h.PageImportStatus)
 	r.With(authMW).Get("/repos/transfers", h.PageRepoTransfers)
 	r.With(authMW).Get("/pulls", h.PageAccountPulls)
 	r.With(authMW).Get("/issues", h.PageAccountIssues)

@@ -370,3 +370,20 @@ type RepoTopicsFragData struct {
 	Topics    []model.Topic
 	CanManage bool
 }
+
+// RepoImportData holds template data for the import form; the Default*
+// fields come from query params, so "Try again" can prefill it.
+type RepoImportData struct {
+	BasePage
+	OwnedOrgs      []model.Organization
+	DefaultOwner   string
+	DefaultPrivate bool
+	DefaultURL     string
+	DefaultName    string
+}
+
+// RepoImportStatusData holds template data for an import's status page.
+type RepoImportStatusData struct {
+	BasePage
+	Job service.ImportJob
+}
