@@ -35,8 +35,15 @@ func TestAdminPages_ConfirmInTheIdentityDialog(t *testing.T) {
 			confirmed: []string{`hx-post="/api/admin/settings"`, `hx-post="/api/admin/invitations"`, `hx-post="/api/admin/users/verify-email"`},
 		},
 		"sso": {
-			page:      pages.SSOSettings(view.SSOSettingsData{Confirm: confirm}),
-			confirmed: []string{`id="sso-ldap-form"`, `id="sso-saml-form"`},
+			page: pages.SSOSettings(view.SSOSettingsData{
+				LDAPConfig: &model.SSOConfig{Provider: "ldap", Config: map[string]string{model.LDAPKeyHost: "h", model.LDAPKeyBindDNTmpl: "uid=%s"}},
+				SAMLConfig: &model.SSOConfig{Provider: "saml", Enabled: true},
+				Confirm:    confirm,
+			}),
+			confirmed: []string{
+				`id="sso-ldap-form"`, `id="sso-saml-form"`,
+				`hx-post="/api/admin/sso/ldap/enabled"`, `hx-post="/api/admin/sso/saml/enabled"`,
+			},
 		},
 	}
 	for name, tc := range cases {

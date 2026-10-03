@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"strconv"
+
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -36,15 +38,7 @@ templ SSOSettings(data view.SSOSettingsData) {
 								Authenticate users via LDAP simple bind.
 							}
 						</div>
-						if data.LDAPConfig != nil && data.LDAPConfig.Enabled {
-							@components.Badge(components.BadgeSuccess) {
-								Enabled
-							}
-						} else {
-							@components.Badge(components.BadgeSecondary) {
-								Disabled
-							}
-						}
+						@ssoSwitch("ldap", "LDAP", data.LDAPConfig, "Needs a host and bind DN template")
 					</div>
 				}
 				@components.CardContent() {
@@ -126,29 +120,20 @@ templ SSOSettings(data view.SSOSettingsData) {
 								})
 							}
 						</div>
-						<label class="flex items-center justify-between gap-4 text-sm text-foreground cursor-pointer">
-							<span>Use TLS</span>
-							@components.Switch(templ.Attributes{
+						<label class="flex w-fit items-center gap-2 text-sm text-foreground cursor-pointer">
+							@components.Checkbox(templ.Attributes{
 								"id":      "ldap_use_tls",
 								"name":    "ldap_use_tls",
 								"value":   "true",
 								"checked": data.LDAPConfig != nil && data.LDAPConfig.Config["use_tls"] == "true",
 							})
+							<span>Use TLS</span>
 						</label>
 						if data.LDAPConfig != nil && data.LDAPConfig.Enabled && data.LDAPConfig.Config["use_tls"] != "true" {
 							<p class="text-xs text-warning border border-warning/40 bg-warning/10 rounded-sm px-3 py-2">
 								Warning: TLS is disabled. LDAP credentials will be transmitted in plaintext. Enable TLS or use an ldaps:// host for production use.
 							</p>
 						}
-						<label class="flex items-center justify-between gap-4 text-sm text-foreground cursor-pointer">
-							<span>Enable LDAP authentication</span>
-							@components.Switch(templ.Attributes{
-								"id":      "ldap_enabled",
-								"name":    "enabled",
-								"value":   "true",
-								"checked": data.LDAPConfig != nil && data.LDAPConfig.Enabled,
-							})
-						</label>
 					</form>
 				}
 				@components.CardFooter() {
@@ -171,15 +156,7 @@ templ SSOSettings(data view.SSOSettingsData) {
 								Authenticate users via SAML 2.0 HTTP-POST binding.
 							}
 						</div>
-						if data.SAMLConfig != nil && data.SAMLConfig.Enabled {
-							@components.Badge(components.BadgeSuccess) {
-								Enabled
-							}
-						} else {
-							@components.Badge(components.BadgeSecondary) {
-								Disabled
-							}
-						}
+						@ssoSwitch("saml", "SAML", data.SAMLConfig, "Needs an entity ID, IdP SSO URL, ACS URL and certificate")
 					</div>
 				}
 				@components.CardContent() {
@@ -243,15 +220,6 @@ templ SSOSettings(data view.SSOSettingsData) {
 								})
 							}
 						</div>
-						<label class="flex items-center justify-between gap-4 text-sm text-foreground cursor-pointer">
-							<span>Enable SAML authentication</span>
-							@components.Switch(templ.Attributes{
-								"id":      "saml_enabled",
-								"name":    "enabled",
-								"value":   "true",
-								"checked": data.SAMLConfig != nil && data.SAMLConfig.Enabled,
-							})
-						</label>
 					</form>
 				}
 				@components.CardFooter() {
@@ -269,6 +237,63 @@ templ SSOSettings(data view.SSOSettingsData) {
 			}
 		</div>
 	}
+}
+
+// ssoSwitch turns a provider on or off by itself, confirmed like the settings.
+// It can't turn on until cfg is Ready, but a provider that's on can always go off.
+templ ssoSwitch(provider, name string, cfg *model.SSOConfig, needs string) {
+	<div class="flex items-center gap-3">
+		if !cfg.Ready() {
+			<span id={ provider + "-switch-needs" } class="text-[12px] text-muted-foreground">{ needs }</span>
+		}
+		if cfg.Ready() || (cfg != nil && cfg.Enabled) {
+			<form
+				hx-post={ "/api/admin/sso/" + provider + "/enabled" }
+				hx-swap="none"
+				hx-on::after:request="if(event.target===this&&ctx.response.status>=400){this.reset();}"
+				data-toast={ ssoSwitchToast(name, cfg.Enabled) }
+				data-confirm-identity={ ssoSwitchAction(name, cfg.Enabled) }
+				data-confirm-reset
+			>
+				<input type="hidden" name="enabled" value={ strconv.FormatBool(!cfg.Enabled) }/>
+				<label class="flex items-center cursor-pointer">
+					<span class="sr-only">{ "Enable " + name + " authentication" }</span>
+					@components.Switch(ssoSwitchAttrs(provider, cfg))
+				</label>
+			</form>
+		} else {
+			<label class="flex items-center">
+				<span class="sr-only">{ "Enable " + name + " authentication" }</span>
+				@components.Switch(templ.Attributes{
+					"id":               provider + "_enabled",
+					"disabled":         true,
+					"aria-describedby": provider + "-switch-needs",
+				})
+			</label>
+		}
+	</div>
+}
+
+func ssoSwitchAction(name string, on bool) string {
+	if on {
+		return "Turn off " + name
+	}
+	return "Turn on " + name
+}
+
+func ssoSwitchToast(name string, on bool) string {
+	if on {
+		return name + " turned off"
+	}
+	return name + " turned on"
+}
+
+func ssoSwitchAttrs(provider string, cfg *model.SSOConfig) templ.Attributes {
+	attrs := templ.Attributes{"id": provider + "_enabled", "checked": cfg.Enabled, "onchange": "this.form.requestSubmit()"}
+	if !cfg.Ready() {
+		attrs["aria-describedby"] = provider + "-switch-needs"
+	}
+	return attrs
 }
 
 // samlSSOURL falls back to metadata_url, where this field saved the URL before.
