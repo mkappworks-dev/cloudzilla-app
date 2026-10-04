@@ -19,7 +19,7 @@ import (
 
 // htmxConfig keeps htmx 2's handling: handlers answer errors with JSON for the
 // error toast, so 4xx and 5xx responses must not swap, and long requests such as
-// a fork get no client-side timeout.
+// a merge get no client-side timeout.
 const htmxConfig = `{"noSwap":[204,304,"4xx","5xx"],"defaultTimeout":0}`
 
 func Base(base view.BasePage, title string) templ.Component {

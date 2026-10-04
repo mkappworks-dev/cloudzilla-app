@@ -60,7 +60,7 @@ htmx 4 doesn't inherit attributes by default. `hx-target`, `hx-swap`, `hx-confir
 
 ## Error Responses
 
-htmx 4 swaps 4xx and 5xx responses by default. `htmxConfig` in `layout.templ` turns that off (`noSwap: [204, 304, "4xx", "5xx"]`), because handlers answer errors with JSON (`writeError`) and the layout's `htmx:response:error` listener shows its `error` field as a toast. It also sets `defaultTimeout: 0`: htmx 4 aborts requests after 60 seconds by default, and a fork can take longer.
+htmx 4 swaps 4xx and 5xx responses by default. `htmxConfig` in `layout.templ` turns that off (`noSwap: [204, 304, "4xx", "5xx"]`), because handlers answer errors with JSON (`writeError`) and the layout's `htmx:response:error` listener shows its `error` field as a toast. It also sets `defaultTimeout: 0`: htmx 4 aborts requests after 60 seconds by default, and a merge can take longer.
 
 A form in a modal dialog shows its error inline instead, where a toast would sit behind the backdrop. `renderFormError` answers 200 with `HX-Retarget` pointing at the form's error slot, so the form tells success from error by `ctx.hx.retarget`.
 

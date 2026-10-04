@@ -18,7 +18,7 @@ GitHub puts a "Create a new fork" form in front of the copy. This design does th
 2. **Owner is the viewer's account or an org they own.** This is the same rule as `/repos/new` and imports. Org members who aren't owners can't create org repos anywhere else either.
 3. **No fork into the source's own namespace.** The page leaves the source's owner out of the dropdown, and the service refuses it with `ErrForkIntoSourceOwner`. A fork there is just a copy, and GitHub refuses it too. This changes the API: today an owner can fork their own repo into `name-1`.
 4. **Visibility follows the source.** A fork of a private repo stays private, and a fork of a public repo stays public, as today. The page shows it read-only.
-5. **"Copy the default branch only" is on by default**, as on GitHub. It deletes every `refs/heads/*` except the default branch after the copy. Tags are kept. Unreachable objects stay in the pack: there is no pure-Go `gc` here, and today's full copy already holds them.
+5. **"Copy the default branch only" is on by default**, as on GitHub. It deletes every `refs/heads/*` except the default branch after the copy and points the fork's HEAD at that branch. Tags are kept. A default branch that isn't one of the source's branches is refused with `ErrForkDefaultBranchMissing`: Settings accept any string, and pruning to a missing branch would leave a fork with none. Unreachable objects stay in the pack: there is no pure-Go `gc` here, and today's full copy already holds them.
 6. **The existing-fork notice is informational.** It lists the viewer's forks of this repo (their account plus orgs they own) and doesn't stop a second fork under another name or owner.
 7. **The API stays backward compatible.** With no body, or an empty one, the API forks into the caller's account under the source's name with the `-N` fallback and copies all branches, as today.
 
@@ -67,9 +67,9 @@ The insert stores `org_id` and `created_by` through `nullID`, as `CreateWithOwne
 
 ### Pruning branches
 
-`pruneToDefaultBranch(gitDir, defaultBranch string) error` in `repo_service.go` opens the copy with go-git. It removes every reference under `refs/heads/` except `refs/heads/<defaultBranch>`, using `Storer.RemoveReference`, which handles both loose and packed refs. HEAD and tags are left alone.
+`pruneToDefaultBranch(gitDir, defaultBranch string) error` in `repo_service.go` opens the copy with go-git. It removes every reference under `refs/heads/` except `refs/heads/<defaultBranch>`, using `Storer.RemoveReference`, which handles both loose and packed refs. Tags are left alone. It then sets HEAD to a symbolic ref to `refs/heads/<defaultBranch>`, so the fork's HEAD matches its `default_branch` column even when the source's HEAD points elsewhere.
 
-An empty source (no default branch yet) has nothing to prune.
+If `refs/heads/<defaultBranch>` is missing while other branches exist, it returns `ErrForkDefaultBranchMissing` before removing anything. `Fork` then runs `abandonNewRepo` and returns the sentinel unwrapped, and the handler answers 422 with its text. An empty source (no branches at all) has nothing to prune and is not refused.
 
 ### `ForksOwnedBy`
 
@@ -128,7 +128,7 @@ type RepoForkData struct {
 	SourceName    string
 	Description   string
 	Private       bool
-	DefaultBranch string   // "" for an empty source: the checkbox is hidden
+	DefaultBranch string   // "" unless that branch exists (`CodeService.HasBranch`): the checkbox is hidden
 	Owners        []string // in display order; empty when no namespace qualifies
 	ExistingForks []RepoRef
 }
@@ -163,7 +163,7 @@ In `repo.templ`, the signed-in branch of `#fork-button` becomes an `<a href="/{o
 - An org the actor doesn't own, or where they're only a member, is `ErrForbidden` and leaves no row.
 - The source's own namespace (personal with `""`, personal by name, and org into the same org) is `ErrForkIntoSourceOwner`. An org repo forked into the owner's account still works.
 - A taken explicit name is `ErrRepoNameTaken` with no `-1` fallback. A path as the name is `ErrInvalidRepoName`.
-- `DefaultBranchOnly`, with loose and with packed refs, leaves `main` plus tag `v1`, and HEAD on `main`. A full fork keeps `feature` too. The source keeps all its refs.
+- `DefaultBranchOnly`, with loose and with packed refs, leaves `main` plus tag `v1`, and HEAD on `main`. A full fork keeps `feature` too. The source keeps all its refs. With the settings default changed to `develop`, the fork keeps `develop` plus the tags and its HEAD resolves to `develop`. A default that names no branch is `ErrForkDefaultBranchMissing`, with no row, no directory and no fork-count change. An empty source forks fine.
 - `ForksOwnedBy` returns the personal and owned-org forks, and skips another user's forks, forks in an org where the viewer is only a member, and soft-deleted forks.
 
 **Existing tests** pass `service.ForkOptions{}` and keep passing unchanged. The import tests are renamed with the resolver.

@@ -269,9 +269,11 @@ The body is optional JSON (`Content-Type: application/json`); any other body for
 | `description`         | the source's      | `""` clears it                                                          |
 | `default_branch_only` | `false`           | Copy only the default branch; tags are always copied                    |
 
-A fork keeps the source's visibility. It can't land in the account or organization that owns the source (422 `a repository can't be forked into the account or organization that owns it`). An organization the caller doesn't own is a 403 (`you can fork only into your account or an organization you own`). A taken or invalid name is a 422, as for create.
+A fork keeps the source's visibility. Malformed JSON is a 400 `invalid request body`, and a source the caller can't read is a 404. A fork can't land in the account or organization that owns the source (422 `a repository can't be forked into the account or organization that owns it`). An organization the caller doesn't own is a 403 (`you can fork only into your account or an organization you own`). A taken or invalid name is a 422, as for create.
 
-A JSON request gets 201 `{"owner", "name", "url"}`. Other requests are redirected to the fork, or get `HX-Redirect` from htmx. A token limited to targets may fork into the caller's account, or into an organization among its targets (otherwise 403 `this token isn't allowed for that repository or organization`).
+With `default_branch_only`, the fork's HEAD points at the copied branch. A source whose default branch setting names no branch is a 422 `the default branch doesn't exist, so it can't be the only branch copied`, and nothing is created; a source with no commits forks fine.
+
+A JSON request gets 201 `{"owner", "name", "url"}`. Other requests are redirected to the fork, or get `HX-Redirect` from htmx. A token limited to targets must name the source repository, or the organization that owns it, because the path is checked against its targets first. It may then fork into the caller's account, or into an organization among its targets (otherwise 403 `this token isn't allowed for that repository or organization`).
 
 ## Pull Requests
 
