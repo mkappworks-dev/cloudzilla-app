@@ -169,14 +169,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("repo: entries lookup failed", "owner", owner, "repo", repoName, "error", lcErr)
 	}
 
-	var branches []service.BranchInfo
-	var tags []service.TagInfo
-	if refs, refsErr := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch); refsErr != nil {
-		slog.Warn("repo: list refs failed", "owner", owner, "repo", repoName, "error", refsErr)
-	} else {
-		branches = refs.Branches
-		tags = refs.Tags
-	}
+	branches, tags := h.pickerRefs(owner, repoName, repo.DefaultBranch)
 
 	commitCount := 0
 	if n, ccErr := h.Services.Code.CommitCount(owner, repoName, repo.DefaultBranch); ccErr != nil {
@@ -513,6 +506,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
+			branches, tags := h.pickerRefs(owner, repoName, repo.DefaultBranch)
 			h.render(w, r, pages.Tree(view.TreeData{
 				BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 				Repo:         *repo,
@@ -522,6 +516,8 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 				Path:         blobResult.Path,
 				Breadcrumbs:  blobResult.Breadcrumbs,
 				RefsURL:      "/" + owner + "/" + repoName + "/refs",
+				Branches:     branches,
+				Tags:         tags,
 				CanManage:    canManage,
 				Sidebar:      h.buildSidebarTree(owner, repoName, blobResult.Ref, parentPath),
 				LatestCommit: latestCommit,
@@ -589,6 +585,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
+	branches, tags := h.pickerRefs(owner, repoName, repo.DefaultBranch)
 
 	h.render(w, r, pages.Tree(view.TreeData{
 		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
@@ -600,6 +597,8 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		Breadcrumbs:  result.Breadcrumbs,
 		Entries:      entries,
 		RefsURL:      "/" + owner + "/" + repoName + "/refs",
+		Branches:     branches,
+		Tags:         tags,
 		CanManage:    canManage,
 		Sidebar:      h.buildSidebarTree(owner, repoName, result.Ref, result.Path),
 		LatestCommit: latestCommit,
@@ -663,6 +662,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	branches, tags := h.pickerRefs(owner, repoName, repo.DefaultBranch)
 	h.render(w, r, pages.Blob(view.BlobData{
 		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:         *repo,
@@ -671,6 +671,8 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		Ref:          result.Ref,
 		Path:         result.Path,
 		Breadcrumbs:  result.Breadcrumbs,
+		Branches:     branches,
+		Tags:         tags,
 		Lines:        result.Lines,
 		IsBinary:     result.IsBinary,
 		Size:         result.Size,
@@ -830,6 +832,7 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, *userID)
 	}
 
+	branches, tags := h.pickerRefs(owner, repoName, repo.DefaultBranch)
 	h.render(w, r, pages.Blame(view.BlameData{
 		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:         *repo,
@@ -838,11 +841,24 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 		Ref:          result.Ref,
 		Path:         result.Path,
 		Breadcrumbs:  result.Breadcrumbs,
+		Branches:     branches,
+		Tags:         tags,
 		Lines:        result.Lines,
 		BlobURL:      result.BlobURL,
 		Contributors: len(authors),
 		CanManage:    canManage,
 	}))
+}
+
+// pickerRefs feeds the ref picker best-effort: a failure leaves it with only
+// its "View all branches" link instead of failing the page.
+func (h *Handler) pickerRefs(owner, repoName, defaultBranch string) ([]service.BranchInfo, []service.TagInfo) {
+	refs, err := h.Services.Code.ListRefs(owner, repoName, defaultBranch)
+	if err != nil {
+		slog.Warn("list refs failed", "owner", owner, "repo", repoName, "error", err)
+		return nil, nil
+	}
+	return refs.Branches, refs.Tags
 }
 
 // buildSidebarTree returns the root tree with the path to currentPath expanded.
