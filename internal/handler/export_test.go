@@ -15,3 +15,5 @@ func UseFakeGoogle(t testing.TB, baseURL string) {
 }
 
 var SafeNextPath = safeNextPath
+
+const MaxRawBlobBytes = maxRawBlobBytes

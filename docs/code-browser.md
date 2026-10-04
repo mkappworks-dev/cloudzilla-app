@@ -8,6 +8,7 @@
 | Subtree                 | `/{owner}/{repo}/tree/{ref}/{path...}`    |
 | Blob                    | `/{owner}/{repo}/blob/{ref}/{path...}`    |
 | Blame                   | `/{owner}/{repo}/blame/{ref}/{path...}`   |
+| Raw file                | `/{owner}/{repo}/raw/{ref}/{path...}`     |
 | Commit log              | `/{owner}/{repo}/commits/{ref}`           |
 | Commit log (file scope) | `/{owner}/{repo}/commits/{ref}/{path...}` |
 | Single commit diff      | `/{owner}/{repo}/commit/{sha}`            |
@@ -27,6 +28,7 @@
 - `GetTree(owner, repoName, ref, path)` → `*TreeResult`
 - `ListEntriesWithLastCommit(ctx, repo, ref, dir)` → `[]TreeEntryWithLastCommit` — each entry with the last commit that touched it; cached for 60s per repo ID, resolved commit and dir, so a new commit, or a new repo that takes a deleted or transferred repo's name, is always listed fresh
 - `GetBlob(owner, repoName, ref, path)` → `*BlobResult`
+- `OpenRawBlob(owner, repoName, ref, path, maxBytes)` → `*RawBlob` — the file open for streaming, with `Size` and `IsBinary`; `ErrBlobTooLarge` past `maxBytes`. The caller closes it
 - `GetBlame(owner, repoName, ref, path)` → `*BlameResult`
 - `GetCommits(owner, repoName, ref, page, pageSize)` → `*CommitLog`
 - `GetCommit(owner, repoName, sha)` → `*CommitDetail`
@@ -53,6 +55,12 @@ Returns `ErrEmptyRepo` sentinel when HEAD resolution fails (repo has no commits)
 - `CommitLog` — `Commits []CommitSummary`, `Ref`, `Page`, `PrevPage`, `NextPage`, `HasMore`
 - `CommitDetail` — full commit with `Files []FileDiff` (hunks with add/del/ctx lines), `TotalAdded`, `TotalDeleted`
 - `RefsResult` — `Branches []BranchInfo` (`Name`, `Hash`, `IsDefault`), `Tags []TagInfo` (`Name`, `Hash`)
+
+---
+
+## Raw Files
+
+`RawFile` streams a file through `OpenRawBlob`. A viewer who can't read the repo gets the same 404 as for a missing repo. A file is served as `text/plain; charset=utf-8`, or as `application/octet-stream` when the blob page would call it binary (a NUL byte in the first 8000). Every raw response carries `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`, so an uploaded `.html` or `.svg` can't run script on the forge's origin. Files over 25 MB get a 403 telling the user to clone instead, because go-git inflates a packed blob whole before the first byte can be read.
 
 ---
 

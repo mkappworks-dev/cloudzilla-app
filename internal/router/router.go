@@ -185,6 +185,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(optAuthMW).Get("/{owner}/{repo}/tree/{ref}/*", h.PageTree)
 	r.With(optAuthMW).Get("/{owner}/{repo}/blob/{ref}/*", h.PageBlob)
 	r.With(optAuthMW).Get("/{owner}/{repo}/blame/{ref}/*", h.PageBlame)
+	r.With(optAuthMW).Get("/{owner}/{repo}/raw/{ref}/*", h.RawFile)
 	r.With(authMW).Get("/{owner}/{repo}/new/{ref}", h.PageNewFile)
 	r.With(authMW).Get("/{owner}/{repo}/new/{ref}/*", h.PageNewFile)
 	r.With(authMW, middleware.MaxBodySize(handler.MaxNewFileBodyBytes)).Post("/{owner}/{repo}/new/{ref}", h.SubmitNewFile)
