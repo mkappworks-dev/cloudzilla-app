@@ -75,6 +75,8 @@ make docker-run     # docker compose up -d
 make docker-down    # docker compose down
 ```
 
+A self-built image reports its version as `dev` in the page footer and `cloudzilla-cli --version`; pass `--build-arg VERSION=v0.4.0` to `docker build` to set it. Release images carry their tag.
+
 ### First-run bootstrap
 
 ```bash

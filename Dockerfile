@@ -23,8 +23,10 @@ RUN curl -sL https://cdn.jsdelivr.net/npm/mermaid@12/dist/mermaid.min.js \
       -o cmd/server/frontend/htmx.min.js
 
 # Build Go binaries — fully static, stripped
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/cloudzilla ./cmd/server/. && \
-    CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/cloudzilla-cli ./cmd/cloudzilla/.
+# Declared here, not at the top: a new VERSION re-runs every RUN after the ARG.
+ARG VERSION=dev
+RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${VERSION}" -o dist/cloudzilla ./cmd/server/. && \
+    CGO_ENABLED=0 go build -ldflags="-s -w -X main.version=${VERSION}" -o dist/cloudzilla-cli ./cmd/cloudzilla/.
 
 # ── Stage 2: Runtime ─────────────────────────────────────────────────────────
 FROM alpine:3.24
