@@ -93,7 +93,7 @@ templ treeItem(n TreeNode, depth int) {
 						class="shrink-0 h-5 w-5 flex items-center justify-center text-muted-foreground/50"
 						aria-label="Toggle folder"
 					>
-						<svg class="transition-transform" :class="open ? 'rotate-90' : ''" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
+						<svg class={ chevronClass(n.IsOpen) } :class="{ 'rotate-90': open }" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" focusable="false">
 							<path d="M9 6l6 6-6 6"></path>
 						</svg>
 					</button>
@@ -140,6 +140,15 @@ func boolStr(b bool) string {
 
 func depthPx(depth int) string {
 	return strconv.Itoa(8 + depth*12)
+}
+
+// chevronClass renders the open state up front: rotating it only once Alpine
+// starts would replay the transition on every page load.
+func chevronClass(open bool) string {
+	if open {
+		return "transition-transform rotate-90"
+	}
+	return "transition-transform"
 }
 
 func fileItemClass(active bool) string {

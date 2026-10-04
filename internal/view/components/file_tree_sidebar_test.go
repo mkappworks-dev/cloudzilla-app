@@ -61,3 +61,19 @@ func TestFileTreeSidebar_PathsStayOutOfScript(t *testing.T) {
 		t.Errorf("a folder name escaped its attribute:\n%s", out)
 	}
 }
+
+func TestFileTreeSidebar_ChevronRendersInItsState(t *testing.T) {
+	out := renderSidebar(t, []TreeNode{
+		{Name: "open", IsDir: true, IsOpen: true, Path: "open", Href: "/o/r/tree/main/open"},
+		{Name: "shut", IsDir: true, Path: "shut", Href: "/o/r/tree/main/shut"},
+	})
+	if !strings.Contains(out, `class="transition-transform rotate-90"`) {
+		t.Errorf("open folder's chevron must render rotated, or it animates on every page load:\n%s", out)
+	}
+	if got := strings.Count(out, `rotate-90"`); got != 1 {
+		t.Errorf("want only the open folder's chevron rendered rotated, got %d:\n%s", got, out)
+	}
+	if !strings.Contains(out, `:class="{ 'rotate-90': open }"`) {
+		t.Errorf("chevron binding must use the object form, which also removes a server-rendered class:\n%s", out)
+	}
+}
