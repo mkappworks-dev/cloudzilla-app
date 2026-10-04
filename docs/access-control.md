@@ -283,6 +283,7 @@ A 403 for a private repo, next to a 404 for a missing one, confirms that the pri
 - Project board routes also require the project to belong to the URL's repo (`h.projectIDInRepo`). The project services authorize against the project's own repo, so their 403 would otherwise confirm that another repo's project ID exists.
 - Line comment update, delete and apply-suggestion only act on a comment on the URL's pull request (`h.lineCommentOnURLPull`). Line comment IDs are global, so otherwise write access to one repo would reach another's comments, and `/apply` would commit its suggestion content.
 - `POST /api/repos/from-template` answers a private repo's ID with the same 404 as a missing ID, before checking that it is a template.
+- `GET /search/code?repo=owner/name` matches nothing when the viewer can't read that repo, exactly as when it doesn't exist (`h.searchableRepo`). Falling back to a search of every public repo for a missing one would tell the two apart, since code search covers public repos only. `TestCodeSearch_PrivateRepoFilter_LooksLikeMissingRepo` holds an anonymous viewer and a signed-in stranger to this.
 - `POST /api/repos/{owner}/{repo}/restore` targets a soft-deleted repo, which `readableRepoJSON` can't see. A caller who may not restore it gets the same 404 as when no deleted repo exists.
 
 ---

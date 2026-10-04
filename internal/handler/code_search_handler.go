@@ -30,12 +30,12 @@ func (h *Handler) PageCodeSearch(w http.ResponseWriter, r *http.Request) {
 	if q != "" {
 		var repoID *int64
 		if repoFilter != "" {
-			ownerName, repoName := splitOwnerRepo(repoFilter)
-			if ownerName != "" && repoName != "" {
-				if repo, err := h.Services.Repo.Get(r.Context(), ownerName, repoName); err == nil {
-					repoID = &repo.ID
-				}
+			repo, ok := h.searchableRepo(r, repoFilter)
+			if !ok {
+				h.render(w, r, pages.CodeSearch(data))
+				return
 			}
+			repoID = &repo.ID
 		}
 
 		var langExt string
@@ -55,6 +55,21 @@ func (h *Handler) PageCodeSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.render(w, r, pages.CodeSearch(data))
+}
+
+// searchableRepo resolves a repo filter. A filter naming a repo the viewer can't
+// read matches nothing, exactly like one naming a missing repo: searching every
+// repo instead would tell the two apart.
+func (h *Handler) searchableRepo(r *http.Request, filter string) (*model.Repository, bool) {
+	ownerName, repoName := splitOwnerRepo(filter)
+	if ownerName == "" || repoName == "" {
+		return nil, false
+	}
+	repo, err := h.Services.Repo.Get(r.Context(), ownerName, repoName)
+	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, viewerOf(r)) {
+		return nil, false
+	}
+	return repo, true
 }
 
 // splitOwnerRepo splits "owner/repo" into its two parts.
