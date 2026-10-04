@@ -464,6 +464,21 @@ func (s *RepoStore) ListForks(ctx context.Context, repoID int64) ([]model.Reposi
 	return scanRepoRows(rows)
 }
 
+func (s *RepoStore) ListForksOwnedBy(ctx context.Context, repoID, userID int64) ([]model.Repository, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
+		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template, primary_language
+		 FROM repositories WHERE fork_of_id = $1 AND deleted_at IS NULL AND `+ownedBy("repositories", "$2")+`
+		 ORDER BY owner_name, name`,
+		repoID, userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list forks owned by: %w", err)
+	}
+	defer rows.Close()
+	return scanRepoRows(rows)
+}
+
 func (s *RepoStore) GetByID(ctx context.Context, id int64) (*model.Repository, error) {
 	r := &model.Repository{}
 	var orgID, forkOfID sql.NullInt64

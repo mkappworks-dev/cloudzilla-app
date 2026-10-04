@@ -790,6 +790,11 @@ func (s *RepoService) claimForkName(ctx context.Context, owner, base, name strin
 	}
 }
 
+// ForksOwnedBy lists repoID's forks in userID's account and the orgs they own.
+func (s *RepoService) ForksOwnedBy(ctx context.Context, repoID, userID int64) ([]model.Repository, error) {
+	return s.repos.ListForksOwnedBy(ctx, repoID, userID)
+}
+
 // copyDir recursively copies src directory to dst.
 func copyDir(src, dst string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {

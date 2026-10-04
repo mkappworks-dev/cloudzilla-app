@@ -237,3 +237,48 @@ func refNames(t *testing.T, gitDir string) []string {
 	})
 	return names
 }
+
+func TestRepoService_ForksOwnedBy(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	ownerID, owner := env.seedUser(t)
+	userID, user := env.seedUser(t)
+	otherID, other := env.seedUser(t)
+	orig, err := env.repos.Create(ctx, ownerID, owner, "upstream", "", false, service.RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatalf("create original: %v", err)
+	}
+	owned := env.createOrg(t, userID)
+	joined := env.createOrg(t, otherID)
+	if err := env.orgs.AddMember(ctx, joined.ID, otherID, userID, model.OrgRoleMember); err != nil {
+		t.Fatalf("add member: %v", err)
+	}
+	fork := func(actorID int64, actor, into, name string) *model.Repository {
+		t.Helper()
+		r, err := env.repos.Fork(ctx, owner, "upstream", actorID, actor, service.ForkOptions{Owner: into, Name: name})
+		if err != nil {
+			t.Fatalf("fork %s/%s: %v", into, name, err)
+		}
+		return r
+	}
+	mine := fork(userID, user, "", "mine")
+	ours := fork(userID, user, owned.Name, "ours")
+	fork(otherID, other, joined.Name, "theirs")
+	fork(otherID, other, "", "elsewhere")
+	gone := fork(userID, user, "", "gone")
+	if err := env.repos.Delete(ctx, gone.ID, userID); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+
+	got, err := env.repos.ForksOwnedBy(ctx, orig.ID, userID)
+	if err != nil {
+		t.Fatalf("ForksOwnedBy: %v", err)
+	}
+	ids := map[int64]bool{}
+	for _, r := range got {
+		ids[r.ID] = true
+	}
+	if len(got) != 2 || !ids[mine.ID] || !ids[ours.ID] {
+		t.Errorf("ForksOwnedBy = %v, want %s/mine and %s/ours", got, user, owned.Name)
+	}
+}
