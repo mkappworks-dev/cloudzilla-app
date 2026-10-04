@@ -36,7 +36,8 @@ A tree URL whose path is a file redirects (302) to its blob URL. Tree and blob p
 - `GetBlame(owner, repoName, ref, path)` → `*BlameResult`
 - `GetCommits(owner, repoName, ref, page, pageSize)` → `*CommitLog`
 - `GetCommit(owner, repoName, sha)` → `*CommitDetail`
-- `ListRefs(owner, repoName, defaultBranch)` → `*RefsResult`
+- `ListRefs(owner, repoName, defaultBranch)` → `*RefsResult` — an annotated tag's `Hash` is its tag object's
+- `ListRefsPeeled(owner, repoName, defaultBranch)` → `*RefsResult` — tags' `Hash` peeled to the tagged commit, at an object read per tag; for the refs page, which shows the hashes
 - `SplitRefPath(owner, repoName, refPath)` → `(ref, path)`
 - `CreateBranch(owner, repoName, name, fromRef)` → `error`
 - `DeleteBranch(owner, repoName, name)` → `error`
@@ -46,7 +47,7 @@ A tree URL whose path is a file redirects (302) to its blob URL. Tree and blob p
 ### ResolveRef Priority
 
 1. Branch: `repo.Reference(plumbing.NewBranchReferenceName(ref), true)`
-2. Tag: `repo.Reference(plumbing.NewTagReferenceName(ref), true)`
+2. Tag: `repo.Reference(plumbing.NewTagReferenceName(ref), true)`, peeled through annotated tags (and tags of tags) by `peelTag`; a tag of a tree or blob is not found
 3. Raw SHA: `repo.CommitObject(plumbing.NewHash(ref))`
 4. HEAD fallback (when `ref == ""`): `repo.Head()`
 
