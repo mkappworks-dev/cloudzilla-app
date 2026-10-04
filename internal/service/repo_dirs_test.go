@@ -553,7 +553,7 @@ func TestRepoService_Fork_SkipsLeftoverDir(t *testing.T) {
 	leftoverDir, _ := env.dirs(user, "forkme")
 	leftoverHead := headOf(t, leftoverDir)
 
-	forked, err := env.repos.Fork(ctx, owner, orig.Name, userID, user)
+	forked, err := env.repos.Fork(ctx, owner, orig.Name, userID, user, service.ForkOptions{})
 	if err != nil {
 		t.Fatalf("Fork: %v", err)
 	}
@@ -585,7 +585,7 @@ func TestRepoService_ForkAndTemplate_BindOwnerToTheCallersID(t *testing.T) {
 	}
 
 	for _, name := range []string{"", owner} {
-		if _, err := env.repos.Fork(ctx, owner, "shared", userID, name); err == nil {
+		if _, err := env.repos.Fork(ctx, owner, "shared", userID, name, service.ForkOptions{}); err == nil {
 			t.Errorf("Fork as %q: want an error", name)
 		}
 		if _, err := env.repos.CreateFromTemplate(ctx, tmpl.ID, userID, name, "copied", ""); err == nil {
@@ -804,7 +804,7 @@ func TestRepoService_Fork_SkipsAReservedName(t *testing.T) {
 	userID, user := env.seedUser(t)
 	env.legacyWikiRepo(t, owner, "docs")
 
-	forked, err := env.repos.Fork(ctx, owner, "docs.wiki", userID, user)
+	forked, err := env.repos.Fork(ctx, owner, "docs.wiki", userID, user, service.ForkOptions{})
 	if err != nil {
 		t.Fatalf("Fork: %v", err)
 	}
@@ -1025,7 +1025,7 @@ func TestRepoService_Fork_StopsWhenTheOwnerDirCannotBeRead(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, err = env.repos.Fork(ctx, owner, orig.Name, userID, user)
+	_, err = env.repos.Fork(ctx, owner, orig.Name, userID, user, service.ForkOptions{})
 	if err == nil || errors.Is(err, service.ErrRepoNameTaken) || ctx.Err() != nil {
 		t.Fatalf("Fork = %v (ctx %v), want an immediate filesystem error", err, ctx.Err())
 	}

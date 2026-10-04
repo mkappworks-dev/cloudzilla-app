@@ -332,6 +332,39 @@ func (s *RepoService) personalOwner(ctx context.Context, id int64, username stri
 	return owner, nil
 }
 
+// RepoTarget is the namespace a new repo lands in: OwnerID for a personal
+// repo, OrgID for an org repo.
+type RepoTarget struct {
+	ActorID   int64
+	OwnerName string
+	OwnerID   int64
+	OrgID     int64
+}
+
+var errTargetOwner = fmt.Errorf("you can create repositories only in your account or an organization you own: %w", ErrForbidden)
+
+// ResolveRepoTarget maps ownerName to the actor's own account (also for "")
+// or to an org the actor owns.
+func (s *RepoService) ResolveRepoTarget(ctx context.Context, actorID int64, actorUsername, ownerName string) (RepoTarget, error) {
+	if ownerName == "" || ownerName == actorUsername {
+		if _, err := s.personalOwner(ctx, actorID, actorUsername); err != nil {
+			return RepoTarget{}, err
+		}
+		return RepoTarget{ActorID: actorID, OwnerName: actorUsername, OwnerID: actorID}, nil
+	}
+	org, err := s.orgs.GetByName(ctx, ownerName)
+	if errors.Is(err, sql.ErrNoRows) {
+		return RepoTarget{}, errTargetOwner
+	}
+	if err != nil {
+		return RepoTarget{}, err
+	}
+	if !s.isOrgOwner(ctx, org.ID, actorID) {
+		return RepoTarget{}, errTargetOwner
+	}
+	return RepoTarget{ActorID: actorID, OwnerName: org.Name, OrgID: org.ID}, nil
+}
+
 func (s *RepoService) Create(ctx context.Context, ownerID int64, ownerUsername, name, description string, private bool, init RepoInitOptions) (*model.Repository, error) {
 	if err := ValidateRepoName(name); err != nil {
 		return nil, fmt.Errorf("invalid repository name: %w", err)
@@ -659,8 +692,22 @@ func (s *RepoService) checkAdminRoleChange(ctx context.Context, repo *model.Repo
 	return nil
 }
 
-// Fork creates a copy of originalOwner/originalName under the actor's namespace.
-func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName string, actorID int64, actorUsername string) (*model.Repository, error) {
+// ErrForkIntoSourceOwner refuses a fork into the namespace that holds the
+// source: that would be a plain copy, which GitHub refuses too.
+var ErrForkIntoSourceOwner = errors.New("a repository can't be forked into the account or organization that owns it")
+
+// ErrForkDefaultBranchMissing refuses a default-branch-only fork whose source
+// names a default branch that isn't one of its branches; settings accept any string.
+var ErrForkDefaultBranchMissing = errors.New("the default branch doesn't exist, so it can't be the only branch copied")
+
+type ForkOptions struct {
+	Owner             string  // "" = the actor's account
+	Name              string  // "" = the source's name, suffixed -1, -2, … while taken
+	Description       *string // nil = the source's description
+	DefaultBranchOnly bool
+}
+
+func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName string, actorID int64, actorUsername string, opts ForkOptions) (*model.Repository, error) {
 	orig, err := s.repos.GetByOwnerName(ctx, originalOwner, originalName)
 	if err != nil {
 		return nil, fmt.Errorf("original repo not found: %w", err)
@@ -669,27 +716,35 @@ func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName stri
 	if !s.CanRead(ctx, orig, &actorID) {
 		return nil, fmt.Errorf("access denied")
 	}
-	if _, err := s.personalOwner(ctx, actorID, actorUsername); err != nil {
+	target, err := s.ResolveRepoTarget(ctx, actorID, actorUsername, opts.Owner)
+	if err != nil {
 		return nil, err
 	}
-
-	var forkName, dstPath string
-	for i := 0; ; i++ {
-		forkName = originalName
-		if i > 0 {
-			forkName = fmt.Sprintf("%s-%d", originalName, i)
-		}
-		dstPath, err = claimRepo(ctx, s.repos, s.cfg.ReposRoot, actorUsername, forkName)
-		if !errors.Is(err, ErrRepoNameTaken) && !errors.Is(err, ErrRepoNameReserved) {
-			break
-		}
+	if strings.EqualFold(target.OwnerName, orig.OwnerName) {
+		return nil, ErrForkIntoSourceOwner
 	}
+
+	forkName, dstPath, err := s.claimForkName(ctx, target.OwnerName, originalName, opts.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	forked, err := s.repos.Fork(ctx, orig, actorID, actorUsername, forkName)
-	if err != nil {
+	description := orig.Description
+	if opts.Description != nil {
+		description = *opts.Description
+	}
+	forked := &model.Repository{
+		OwnerID:       target.OwnerID,
+		OrgID:         target.OrgID,
+		CreatedBy:     actorID,
+		OwnerName:     target.OwnerName,
+		Name:          forkName,
+		Description:   description,
+		Private:       orig.Private,
+		DefaultBranch: orig.DefaultBranch,
+		ForkOfID:      &orig.ID,
+	}
+	if err := s.repos.Fork(ctx, forked); err != nil {
 		abandonNewRepo(ctx, s.repos, 0, dstPath)
 		return nil, repoNameErr("fork db record", err)
 	}
@@ -700,11 +755,48 @@ func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName stri
 		return nil, fmt.Errorf("copy git dir: %w", err)
 	}
 
+	if opts.DefaultBranchOnly {
+		if err := pruneToDefaultBranch(dstPath, orig.DefaultBranch); err != nil {
+			abandonNewRepo(ctx, s.repos, forked.ID, dstPath)
+			if errors.Is(err, ErrForkDefaultBranchMissing) {
+				return nil, err
+			}
+			return nil, fmt.Errorf("prune fork branches: %w", err)
+		}
+	}
+
 	_ = s.repos.IncrementForkCount(ctx, orig.ID)
 
 	forked.ForkOfOwner = originalOwner
 	forked.ForkOfName = originalName
 	return forked, nil
+}
+
+// claimForkName claims name in owner, or, when name is "", the first free
+// one of base, base-1, base-2, …
+func (s *RepoService) claimForkName(ctx context.Context, owner, base, name string) (string, string, error) {
+	if name != "" {
+		if err := ValidateRepoName(name); err != nil {
+			return "", "", fmt.Errorf("invalid repository name: %w", err)
+		}
+		dstPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, owner, name)
+		return name, dstPath, err
+	}
+	for i := 0; ; i++ {
+		name = base
+		if i > 0 {
+			name = fmt.Sprintf("%s-%d", base, i)
+		}
+		dstPath, err := claimRepo(ctx, s.repos, s.cfg.ReposRoot, owner, name)
+		if !errors.Is(err, ErrRepoNameTaken) && !errors.Is(err, ErrRepoNameReserved) {
+			return name, dstPath, err
+		}
+	}
+}
+
+// ForksOwnedBy lists repoID's forks in userID's account and the orgs they own.
+func (s *RepoService) ForksOwnedBy(ctx context.Context, repoID, userID int64) ([]model.Repository, error) {
+	return s.repos.ListForksOwnedBy(ctx, repoID, userID)
 }
 
 // copyDir recursively copies src directory to dst.
@@ -740,6 +832,47 @@ func copyFile(src, dst string, mode os.FileMode) error {
 		return err
 	}
 	return out.Close()
+}
+
+// pruneToDefaultBranch drops every branch of the bare repo at gitDir except
+// defaultBranch and points HEAD at it. The dropped branches' objects stay:
+// there's no pure-Go gc, and a full fork holds them anyway. A repo with no
+// branches has nothing to prune and is left alone.
+func pruneToDefaultBranch(gitDir, defaultBranch string) error {
+	repo, err := gogit.PlainOpen(gitDir)
+	if err != nil {
+		return err
+	}
+	refs, err := repo.References()
+	if err != nil {
+		return err
+	}
+	keep := plumbing.NewBranchReferenceName(defaultBranch)
+	var drop []plumbing.ReferenceName
+	hasKeep := false
+	if err := refs.ForEach(func(r *plumbing.Reference) error {
+		switch {
+		case r.Name() == keep:
+			hasKeep = true
+		case r.Name().IsBranch():
+			drop = append(drop, r.Name())
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	if !hasKeep {
+		if len(drop) == 0 {
+			return nil
+		}
+		return ErrForkDefaultBranchMissing
+	}
+	for _, name := range drop {
+		if err := repo.Storer.RemoveReference(name); err != nil {
+			return err
+		}
+	}
+	return repo.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, keep))
 }
 
 // archiveGuard returns ErrForbidden if the caller is not an owner.
