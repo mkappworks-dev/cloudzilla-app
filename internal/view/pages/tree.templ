@@ -44,7 +44,7 @@ templ Tree(data view.TreeData) {
 
 			<div class="grid grid-cols-[260px_1fr] gap-4">
 
-				@components.FileTreeSidebar(data.Sidebar)
+				@components.FileTreeSidebar("/"+data.Owner+"/"+data.RepoName, data.Sidebar)
 
 				<section class="rounded-md border border-border bg-card overflow-hidden min-w-0" aria-labelledby="files-heading">
 					<h2 id="files-heading" class="sr-only">Files at { data.Ref }</h2>

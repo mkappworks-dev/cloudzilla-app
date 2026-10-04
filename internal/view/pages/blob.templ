@@ -47,7 +47,7 @@ templ Blob(data view.BlobData) {
 
 			<div class="grid grid-cols-[260px_1fr] gap-4">
 
-				@components.FileTreeSidebar(data.Sidebar)
+				@components.FileTreeSidebar("/"+data.Owner+"/"+data.RepoName, data.Sidebar)
 
 				<div class="min-w-0">
 					<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="blob-heading" x-data="{ copy(){ navigator.clipboard.writeText(this.$refs.code.innerText) } }">

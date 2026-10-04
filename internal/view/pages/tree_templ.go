@@ -190,7 +190,7 @@ func Tree(data view.TreeData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = components.FileTreeSidebar(data.Sidebar).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.FileTreeSidebar("/"+data.Owner+"/"+data.RepoName, data.Sidebar).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

@@ -77,8 +77,8 @@ func TestCodePages_KeepTheFileTree(t *testing.T) {
 			}
 			body := rr.Body.String()
 			sidebar := fileTreeSidebar(t, body)
-			if !strings.Contains(sidebar, `x-data="{ filter: '' }"`) {
-				t.Errorf("sidebar lacks the filter's x-data scope:\n%s", sidebar)
+			if !strings.Contains(sidebar, `x-data="fileTree"`) {
+				t.Errorf("sidebar lacks its fileTree scope:\n%s", sidebar)
 			}
 			if strings.Contains(tt.url, "/blob/") && !strings.Contains(body, `id="L1"`) {
 				t.Errorf("blob page lacks line anchors:\n%s", body)

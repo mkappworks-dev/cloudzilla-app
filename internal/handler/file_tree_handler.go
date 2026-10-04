@@ -82,6 +82,7 @@ func (h *Handler) buildSidebarLevel(owner, repoName, ref, dirPath string, entrie
 			Name:     e.Name,
 			IsDir:    e.IsDir,
 			Href:     href,
+			Path:     entryPath,
 			IsActive: !e.IsDir && len(remainingPath) == 1 && e.Name == remainingPath[0],
 		}
 		if e.IsDir {

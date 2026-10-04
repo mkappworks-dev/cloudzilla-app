@@ -1,45 +1,49 @@
 package components
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/mkappworks-dev/cloudzilla-app/internal/assets"
+)
 
 type TreeNode struct {
 	Name        string
 	IsDir       bool
 	Href        string
+	Path        string
 	ChildrenURL string
 	Children    []TreeNode
 	IsOpen      bool
 	IsActive    bool
 }
 
-templ FileTreeSidebar(nodes []TreeNode) {
+templ FileTreeSidebar(repoPath string, nodes []TreeNode) {
+	<script src={ assets.URL("/static/file_tree.js") }></script>
 	<aside
-		x-data="{ filter: '' }"
+		x-data="fileTree"
+		data-repo-path={ repoPath }
 		class="rounded-md border border-border bg-card sticky top-4 self-start max-h-[calc(100vh-5rem)] overflow-hidden flex flex-col"
 		aria-label="Repository file tree"
 	>
 		<header class="px-3 py-2 border-b border-border flex items-center gap-2 bg-muted/40 shrink-0">
-			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" focusable="false">
-				<path d="M3 6h18M3 12h18M3 18h18"></path>
-			</svg>
 			<span class="text-[12px] font-medium">Files</span>
-			<div class="ml-auto flex items-center gap-0.5">
-				<button
-					type="button"
-					x-on:click="filter = ''"
-					title="Clear filter"
-					aria-label="Clear filter"
-					class="h-6 w-6 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground"
-				>
-					<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-						<path d="M19 9l-7 7-7-7"></path>
-					</svg>
-				</button>
-			</div>
+			<button
+				type="button"
+				x-on:click="collapseAll()"
+				title="Collapse all folders"
+				aria-label="Collapse all folders"
+				class="ml-auto h-6 w-6 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground"
+			>
+				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+					<path d="m7 20 5-5 5 5"></path>
+					<path d="m7 4 5 5 5-5"></path>
+				</svg>
+			</button>
 		</header>
 		<div class="px-2 py-1.5 border-b border-border shrink-0">
 			<input
 				x-model="filter"
+				x-on:keydown.escape="filter = ''"
 				type="search"
 				placeholder="Filter files…"
 				class="w-full h-7 px-2 text-[12px] bg-transparent border border-border rounded-xs placeholder:text-muted-foreground/60 focus:outline-hidden focus:border-foreground/30"
@@ -70,7 +74,12 @@ templ treeItem(n TreeNode, depth int) {
 		}
 	>
 		if n.IsDir {
-			<div x-data={ "{ open: " + boolStr(n.IsOpen) + " }" }>
+			<div
+				data-path={ n.Path }
+				x-data={ "{ open: " + boolStr(n.IsOpen) + " }" }
+				x-init="open && remember($el.dataset.path); $watch('open', o => o ? remember($el.dataset.path) : forget($el.dataset.path))"
+				x-on:cz-tree-collapse-all.window="open = false"
+			>
 				<div class="flex items-center gap-0.5 rounded-sm hover:bg-muted/50" style={ "padding-left: " + depthPx(depth) + "px" }>
 					<button
 						type="button"
