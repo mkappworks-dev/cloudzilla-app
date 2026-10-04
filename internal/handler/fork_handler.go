@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
 func (h *Handler) ForkRepo(w http.ResponseWriter, r *http.Request) {
@@ -24,7 +25,7 @@ func (h *Handler) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	forked, err := h.Services.Repo.Fork(r.Context(), owner, repoName, claims.UserID, claims.Username)
+	forked, err := h.Services.Repo.Fork(r.Context(), owner, repoName, claims.UserID, claims.Username, service.ForkOptions{})
 	if err != nil {
 		slog.Error("operation failed", "error", err)
 		writeError(w, http.StatusInternalServerError, "internal server error")
