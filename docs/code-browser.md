@@ -28,7 +28,7 @@ A tree URL whose path is a file redirects (302) to its blob URL. Tree and blob p
 
 ### Key Methods
 
-- `ResolveRef(owner, repoName, ref)` → `(*object.Commit, displayRef, error)`
+- `ResolveRef(owner, repoName, ref)` → `(*object.Commit, ref, error)` — the returned ref is the branch or tag name, the full SHA, or HEAD's branch
 - `GetTree(owner, repoName, ref, path)` → `*TreeResult`
 - `ListEntriesWithLastCommit(ctx, repo, ref, dir)` → `[]TreeEntryWithLastCommit` — each entry with the last commit that touched it; cached for 60s per repo ID, resolved commit and dir, so a new commit, or a new repo that takes a deleted or transferred repo's name, is always listed fresh
 - `GetBlob(owner, repoName, ref, path)` → `*BlobResult`
@@ -51,6 +51,8 @@ A tree URL whose path is a file redirects (302) to its blob URL. Tree and blob p
 4. HEAD fallback (when `ref == ""`): `repo.Head()`
 
 Returns `ErrEmptyRepo` sentinel when HEAD resolution fails (repo has no commits). Handlers return 404 on this error.
+
+A raw SHA must be the full 40 characters; an abbreviated one doesn't resolve. The `Ref` on result types is therefore the full SHA, and every URL is built from it. Only displayed text shortens it, through `components.RefLabel`.
 
 ### Result Types
 

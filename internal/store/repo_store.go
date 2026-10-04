@@ -423,30 +423,20 @@ func (s *RepoStore) ListPermissionsByUser(ctx context.Context, userID int64) ([]
 	return perms, rows.Err()
 }
 
-func (s *RepoStore) Fork(ctx context.Context, orig *model.Repository, newOwnerID int64, newOwnerName, newName string) (*model.Repository, error) {
+func (s *RepoStore) Fork(ctx context.Context, r *model.Repository) error {
 	now := time.Now().UTC()
-	r := &model.Repository{
-		OwnerID:       newOwnerID,
-		CreatedBy:     newOwnerID,
-		OwnerName:     newOwnerName,
-		Name:          newName,
-		Description:   orig.Description,
-		Private:       orig.Private,
-		DefaultBranch: orig.DefaultBranch,
-		IsFork:        true,
-		ForkOfID:      &orig.ID,
-	}
 	err := s.db.QueryRowContext(ctx,
-		`INSERT INTO repositories (owner_id, created_by, owner_name, name, description, private, default_branch, is_fork, fork_of_id, created_at, updated_at)
-		 VALUES ($1, $1, $2, $3, $4, $5, $6, TRUE, $7, $8, $9) RETURNING id`,
-		r.OwnerID, r.OwnerName, r.Name, r.Description, r.Private, r.DefaultBranch, orig.ID, now, now,
+		`INSERT INTO repositories (owner_id, owner_name, org_id, created_by, name, description, private, default_branch, is_fork, fork_of_id, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE, $9, $10, $11) RETURNING id`,
+		nullID(r.OwnerID), r.OwnerName, nullID(r.OrgID), nullID(r.CreatedBy), r.Name, r.Description, r.Private, r.DefaultBranch, r.ForkOfID, now, now,
 	).Scan(&r.ID)
 	if err != nil {
-		return nil, repoWriteErr("repo fork", err)
+		return repoWriteErr("repo fork", err)
 	}
+	r.IsFork = true
 	r.CreatedAt = now
 	r.UpdatedAt = now
-	return r, nil
+	return nil
 }
 
 func (s *RepoStore) IncrementForkCount(ctx context.Context, repoID int64) error {
@@ -469,6 +459,21 @@ func (s *RepoStore) ListForks(ctx context.Context, repoID int64) ([]model.Reposi
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list forks: %w", err)
+	}
+	defer rows.Close()
+	return scanRepoRows(rows)
+}
+
+func (s *RepoStore) ListForksOwnedBy(ctx context.Context, repoID, userID int64) ([]model.Repository, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, owner_id, owner_name, org_id, name, description, private, default_branch, created_at, updated_at,
+		        is_fork, fork_of_id, fork_count, is_archived, archived_at, is_template, primary_language
+		 FROM repositories WHERE fork_of_id = $1 AND deleted_at IS NULL AND `+ownedBy("repositories", "$2")+`
+		 ORDER BY owner_name, name`,
+		repoID, userID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list forks owned by: %w", err)
 	}
 	defer rows.Close()
 	return scanRepoRows(rows)

@@ -174,9 +174,9 @@ func Tree(data view.TreeData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var8 string
-			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(data.Ref)
+			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(components.RefLabel(data.Ref))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/tree.templ`, Line: 48, Col: 63}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/tree.templ`, Line: 48, Col: 84}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -326,9 +326,9 @@ func Tree(data view.TreeData) templ.Component {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var19 string
-						templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(data.Ref)
+						templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(components.RefLabel(data.Ref))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/tree.templ`, Line: 62, Col: 38}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/tree.templ`, Line: 62, Col: 59}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 						if templ_7745c5c3_Err != nil {
@@ -593,7 +593,7 @@ func Tree(data view.TreeData) templ.Component {
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" · "+data.Ref).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" · "+components.RefLabel(data.Ref)).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

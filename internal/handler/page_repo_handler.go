@@ -405,20 +405,11 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
-
-	var userID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
+	userID := viewerOf(r)
 
 	result, err := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch)
 	if err != nil {
@@ -445,20 +436,11 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
-
-	var userID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
+	userID := viewerOf(r)
 
 	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	// GetTree resolves the ref and produces breadcrumbs; we drop its Entries
@@ -543,20 +525,11 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
-
-	var userID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
+	userID := viewerOf(r)
 
 	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	result, err := h.Services.Code.GetBlob(owner, repoName, ref, path)
@@ -621,9 +594,8 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageCommitsRedirect(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	http.Redirect(w, r, "/"+owner+"/"+repoName+"/commits/"+repo.DefaultBranch, http.StatusFound)
@@ -639,20 +611,11 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 		page = p
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
-
-	var userID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
+	userID := viewerOf(r)
 
 	ref, _ := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	log, err := h.Services.Code.GetCommits(owner, repoName, ref, page, 30)
@@ -689,20 +652,11 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 	sha := chi.URLParam(r, "sha")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
-
-	var userID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
+	userID := viewerOf(r)
 
 	commit, err := h.Services.Code.GetCommit(owner, repoName, sha)
 	if err != nil {
@@ -732,20 +686,11 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
-
-	var userID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
+	userID := viewerOf(r)
 
 	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	result, err := h.Services.Code.GetBlame(owner, repoName, ref, path)

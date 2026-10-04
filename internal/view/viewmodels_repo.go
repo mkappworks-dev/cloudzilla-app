@@ -70,6 +70,17 @@ type RepoNewData struct {
 	DefaultOwner string
 }
 
+type RepoForkData struct {
+	BasePage
+	SourceOwner   string
+	SourceName    string
+	Description   string
+	Private       bool
+	DefaultBranch string   // "" unless that branch exists: otherwise there is nothing to prune to
+	Owners        []string // namespaces the fork may land in; empty when none qualifies
+	ExistingForks []RepoRef
+}
+
 type ReleaseView struct {
 	model.Release
 	IsLatest bool   // true for the single newest published, non-draft, non-prerelease release
@@ -320,15 +331,6 @@ type RepoLabelsFragData struct {
 	RepoID   int64
 	Labels   []model.Label
 	CanWrite bool
-}
-
-// Fork button fragment
-// ForkButtonData holds template data for the fork button HTMX fragment.
-type ForkButtonData struct {
-	BasePage
-	Owner     string
-	RepoName  string
-	ForkCount int
 }
 
 // Star button fragment

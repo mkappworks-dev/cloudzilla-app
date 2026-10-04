@@ -40,7 +40,7 @@ templ Commit(data view.CommitData) {
 					<div class="mt-2 text-[12px] text-muted-foreground">
 						Parents:
 						for _, ph := range data.Commit.ParentHashes {
-							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commit/" + ph) } class="font-mono ml-1 hover:text-foreground hover:underline">{ ph }</a>
+							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/commit/" + ph) } class="font-mono ml-1 hover:text-foreground hover:underline">{ components.RefLabel(ph) }</a>
 						}
 					</div>
 				}

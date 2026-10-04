@@ -45,6 +45,12 @@ func isFormEncoded(r *http.Request) bool {
 	return mediaType == "application/x-www-form-urlencoded"
 }
 
+// isJSON compares only the media type: clients send it in any case and with parameters.
+func isJSON(r *http.Request) bool {
+	mediaType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	return mediaType == "application/json"
+}
+
 // renderFormError puts msg in slot, the error area of an HTMX form in a modal
 // dialog. It answers 200 because the layout's htmx config skips swaps on 4xx;
 // the form and the data-toast listener tell success from error by HX-Retarget.

@@ -86,7 +86,7 @@ func (s *CodeService) GetCommits(owner, repoName, ref string, page, pageSize int
 	if err != nil {
 		return nil, err
 	}
-	commit, displayRef, err := resolveRef(repo, ref)
+	commit, resolvedRef, err := resolveRef(repo, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func (s *CodeService) GetCommits(owner, repoName, ref string, page, pageSize int
 
 	return &CommitLog{
 		Commits:  commits,
-		Ref:      displayRef,
+		Ref:      resolvedRef,
 		Page:     page,
 		PrevPage: prevPage,
 		NextPage: nextPage,
@@ -168,11 +168,7 @@ func (s *CodeService) GetCommit(owner, repoName, sha string) (*CommitDetail, err
 
 	var parentHashes []string
 	for _, ph := range commit.ParentHashes {
-		h := ph.String()
-		if len(h) > 7 {
-			h = h[:7]
-		}
-		parentHashes = append(parentHashes, h)
+		parentHashes = append(parentHashes, ph.String())
 	}
 
 	commitTree, err := commit.Tree()
