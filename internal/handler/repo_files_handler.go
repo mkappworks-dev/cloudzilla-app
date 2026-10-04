@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -21,6 +22,9 @@ const (
 	// MaxNewFileBodyBytes caps the New file form's request body: the largest
 	// upload plus room for the other fields.
 	MaxNewFileBodyBytes = maxUploadBytes + 1<<20
+	// maxRawBlobBytes bounds a raw request's memory: go-git inflates a packed
+	// blob whole before the first byte can be read.
+	maxRawBlobBytes = 25 << 20
 )
 
 var fileTooLargeMsg = fmt.Sprintf("files are limited to %d MB", maxUploadBytes>>20)
@@ -86,6 +90,45 @@ func (h *Handler) DownloadArchive(w http.ResponseWriter, r *http.Request) {
 		// Headers are already committed, so the response can't switch to an
 		// error status — log it and let the truncated stream surface client-side.
 		slog.Error("archive zip failed", "owner", owner, "repo", repoName, "ref", ref, "error", err)
+	}
+}
+
+// RawFile serves a file's bytes at a ref. Text goes out as text/plain and
+// everything else as an octet stream, sandboxed, so an uploaded .html or .svg
+// can't run script on the forge's origin.
+func (h *Handler) RawFile(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	ref := chi.URLParam(r, "ref")
+	path := chi.URLParam(r, "*")
+
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, viewerOf(r)) {
+		h.NotFound(w, r)
+		return
+	}
+
+	blob, err := h.Services.Code.OpenRawBlob(owner, repoName, ref, path, maxRawBlobBytes)
+	if errors.Is(err, service.ErrBlobTooLarge) {
+		http.Error(w, fmt.Sprintf("files over %d MB can't be viewed raw; clone the repository to get this one", maxRawBlobBytes>>20), http.StatusForbidden)
+		return
+	}
+	if err != nil {
+		h.NotFound(w, r)
+		return
+	}
+	defer func() { _ = blob.Close() }()
+
+	contentType := "text/plain; charset=utf-8"
+	if blob.IsBinary {
+		contentType = "application/octet-stream"
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Length", strconv.FormatInt(blob.Size, 10))
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
+	if _, err := io.Copy(w, blob); err != nil {
+		slog.Error("raw file stream failed", "owner", owner, "repo", repoName, "ref", ref, "path", path, "error", err)
 	}
 }
 
