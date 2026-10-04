@@ -147,6 +147,9 @@ func TestFileTree_KeepsRememberedFoldersOpen(t *testing.T) {
 			if got := strings.Contains(sidebar, `/lib/util/helper.js"`); got != tt.utilOpen {
 				t.Errorf("lib/util/ children listed = %v, want %v:\n%s", got, tt.utilOpen, sidebar)
 			}
+			if got := strings.Count(sidebar, `aria-current="page"`); got != 1 {
+				t.Errorf("active entries = %d, want 1 (only README.md):\n%s", got, sidebar)
+			}
 		})
 	}
 }

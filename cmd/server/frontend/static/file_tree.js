@@ -3,41 +3,47 @@
 document.addEventListener('alpine:init', () => {
   const COOKIE = 'cz_tree_open';
   const MAX_FOLDERS = 50; // the server ignores entries past maxOpenTreeFolders
+  const MAX_ENCODED = 3800; // browsers drop a cookie past 4 KB, which would freeze the tree
+
+  // Every write starts from the live cookie: a second tab or a page restored
+  // from the back/forward cache holds a stale list and would overwrite folders
+  // opened elsewhere.
+  function read() {
+    const match = document.cookie.match(new RegExp('(?:^|; )' + COOKIE + '=([^;]*)'));
+    try {
+      const saved = match ? JSON.parse(decodeURIComponent(match[1])) : [];
+      return Array.isArray(saved) ? saved.filter((p) => typeof p === 'string') : [];
+    } catch {
+      return [];
+    }
+  }
 
   Alpine.data('fileTree', () => ({
     filter: '',
-    openFolders: [],
     repoPath: '/',
 
     init() {
       this.repoPath = this.$el.dataset.repoPath;
-      const match = document.cookie.match(/(?:^|; )cz_tree_open=([^;]*)/);
-      try {
-        const saved = match ? JSON.parse(decodeURIComponent(match[1])) : [];
-        this.openFolders = Array.isArray(saved) ? saved.filter((p) => typeof p === 'string') : [];
-      } catch {
-        this.openFolders = [];
-      }
     },
 
     remember(path) {
-      this.openFolders = this.openFolders.filter((p) => p !== path).concat(path).slice(-MAX_FOLDERS);
-      this.save();
+      this.save(read().filter((p) => p !== path).concat(path).slice(-MAX_FOLDERS));
     },
 
     forget(path) {
-      this.openFolders = this.openFolders.filter((p) => p !== path && !p.startsWith(path + '/'));
-      this.save();
+      this.save(read().filter((p) => p !== path && !p.startsWith(path + '/')));
     },
 
     collapseAll() {
       window.dispatchEvent(new CustomEvent('cz-tree-collapse-all'));
-      this.openFolders = [];
-      this.save();
+      this.save([]);
     },
 
-    save() {
-      document.cookie = COOKIE + '=' + encodeURIComponent(JSON.stringify(this.openFolders)) +
+    save(list) {
+      while (list.length > 0 && encodeURIComponent(JSON.stringify(list)).length > MAX_ENCODED) {
+        list = list.slice(1);
+      }
+      document.cookie = COOKIE + '=' + encodeURIComponent(JSON.stringify(list)) +
         '; path=' + this.repoPath + '; SameSite=Lax';
     },
   }));

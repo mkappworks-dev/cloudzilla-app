@@ -676,13 +676,15 @@ git commit -m "feat(ui): remember open file-tree folders; collapse-all header bu
 
 ## Task 4: Verify in a browser (controller)
 
-- [ ] **Step 1:** Rebuild the throwaway server (`go build -o <scratchpad>/srv/cz ./cmd/server/`, `make build-css`) and run it on free ports against the seeded `cloudzilla_ui` database.
-- [ ] **Step 2:** On a seeded repo with nested folders:
+- [x] **Step 1:** Rebuild the throwaway server (`go build -o <scratchpad>/srv/cz ./cmd/server/`, `make build-css`) and run it on free ports against the seeded `cloudzilla_ui` database.
+- [x] **Step 2:** On a seeded repo with nested folders:
   - Open folder A, then click a root file: A stays open.
   - Open an off-path folder: its children appear, and toggling it again sends no new request.
   - Collapse all closes everything, and it stays closed after the next navigation.
   - The filter matches lazily loaded items.
   - `Esc` clears the filter.
   - The console shows no errors.
-- [ ] **Step 3:** Commit a folder whose name contains `"` and `'` into the throwaway repo; confirm it renders and toggles without console errors.
-- [ ] **Step 4:** Full `go test ./...` and `make lint`, then a final subagent review of the whole branch diff against both specs.
+- [x] **Step 3:** Commit a folder whose name contains `"` and `'` into the throwaway repo; confirm it renders and toggles without console errors.
+- [x] **Step 4:** Full `go test ./...` and `make lint`, then a final subagent review of the whole branch diff against both specs.
+
+Final review fix: file_tree.js reads the cookie on every write and trims to 3800 encoded characters.

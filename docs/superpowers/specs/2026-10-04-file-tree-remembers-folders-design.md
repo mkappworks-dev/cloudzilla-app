@@ -1,6 +1,6 @@
 # 2026-10-04 — File tree remembers open folders
 
-**Status:** Approved design, implementing on `feat/blob-page-file-tree` (PR #146)
+**Status:** Implemented on `feat/blob-page-file-tree` (PR #146)
 **Builds on:** [2026-10-04-blob-page-file-tree-design.md](2026-10-04-blob-page-file-tree-design.md)
 **Affected subsystem:** Code browser — `internal/handler/page_repo_handler.go`, `internal/view/components/file_tree_sidebar.templ`, a new fragment route and static script
 
@@ -41,10 +41,12 @@ New static file `cmd/server/frontend/static/file_tree.js`, loaded by `FileTreeSi
 `Alpine.data('fileTree', …)` on the `<aside>`, which already holds `filter`:
 
 - `filter: ''`, kept from today.
-- `init()`: reads `cz_tree_open` into an ordered list; the repo path comes from the aside's `data-repo-path` attribute.
-- `remember(path)`: moves or appends `path` to the end, trims to the newest 50, writes the cookie.
-- `forget(path)`: removes `path` and every entry starting with `path + '/'`, writes the cookie.
-- `collapseAll()`: dispatches `cz-tree-collapse-all`, then clears the list and writes the cookie.
+- `init()`: takes the repo path from the aside's `data-repo-path` attribute. It keeps no copy of the list.
+- `remember(path)`: re-reads the cookie, moves or appends `path` to the end, trims to the newest 50, writes the cookie.
+- `forget(path)`: re-reads the cookie, removes `path` and every entry starting with `path + '/'`, writes the cookie.
+- `collapseAll()`: dispatches `cz-tree-collapse-all`, then writes an empty list.
+- `remember` and `forget` re-read the cookie on every write, so a second tab or a page restored from the back/forward cache can't overwrite folders opened elsewhere.
+- `save` trims the oldest entries until the encoded value is at most 3800 characters, so the cookie stays under browsers' 4 KB limit.
 
 Each folder's wrapper:
 
@@ -103,6 +105,6 @@ Browser check on a seeded throwaway server:
 - Open `lib`, click the root `README.md`, and `lib` stays open.
 - Open off-path `src`: its children load, and a second toggle sends no new request.
 - Collapse all closes everything, and it stays closed after the next navigation.
-- The filter matches lazily loaded items.
+- The filter applies to lazily loaded items (as for server-rendered ones, a nested match is hidden when its ancestor folders don't match — a pre-existing limitation).
 - `Esc` clears the filter.
 - A file named with quotes renders and toggles without script errors.
