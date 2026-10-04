@@ -150,7 +150,7 @@ func (h *Handler) CreateTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch)
+	result, err := h.Services.Code.ListRefsPeeled(owner, repoName, repo.DefaultBranch)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list refs")
 		return
@@ -195,7 +195,7 @@ func (h *Handler) DeleteTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch)
+	result, err := h.Services.Code.ListRefsPeeled(owner, repoName, repo.DefaultBranch)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list refs")
 		return
