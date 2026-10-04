@@ -32,13 +32,17 @@ func TestCodeBrowserPages_AnnotatedTag(t *testing.T) {
 		tagObjects = append(tagObjects, ref.Hash().String()[:7])
 	}
 
-	for _, page := range []string{"/tree/v1", "/tree/v1/pushed.txt", "/blob/v1/pushed.txt", "/blame/v1/pushed.txt", "/commits/v1", "/raw/v1/pushed.txt", "/archive/v1.zip"} {
+	for _, page := range []string{"/tree/v1", "/blob/v1/pushed.txt", "/blame/v1/pushed.txt", "/commits/v1", "/raw/v1/pushed.txt", "/archive/v1.zip"} {
 		if rr := requestAPI(api, http.MethodGet, r.path+page, r.owner.token); rr.Code != http.StatusOK {
 			t.Errorf("GET %s: status %d", page, rr.Code)
 		}
 	}
+	rr := requestAPI(api, http.MethodGet, r.path+"/tree/v1/pushed.txt", r.owner.token)
+	if want := r.path + "/blob/v1/pushed.txt"; rr.Code != http.StatusFound || rr.Header().Get("Location") != want {
+		t.Errorf("GET /tree/v1/pushed.txt: got %d %q, want 302 to %s", rr.Code, rr.Header().Get("Location"), want)
+	}
 
-	rr := requestAPI(api, http.MethodGet, r.path+"/refs", r.owner.token)
+	rr = requestAPI(api, http.MethodGet, r.path+"/refs", r.owner.token)
 	assertTagHashes(t, "refs page", rr, tagged, tagObjects)
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/repos/"+r.owner.name+"/"+r.name+"/tags?name=v2", nil)
