@@ -314,6 +314,10 @@ func (h *Handler) UpdateRepoGeneral(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "you do not have permission to change these settings", http.StatusForbidden)
 			return
 		}
+		if errors.Is(err, service.ErrInvalidDefaultBranch) {
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+			return
+		}
 		slog.Error("settings: update general failed", "owner", owner, "repo", repoName, "error", err)
 		http.Error(w, "failed to update settings", http.StatusInternalServerError)
 		return
