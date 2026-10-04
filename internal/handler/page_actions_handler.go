@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/pages"
 )
@@ -13,20 +12,11 @@ func (h *Handler) PageActions(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
-
-	var userID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
+	userID := viewerOf(r)
 
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
 

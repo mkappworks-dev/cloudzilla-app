@@ -40,21 +40,6 @@ func TestBlob_RendersHighlightedLines(t *testing.T) {
 	}
 }
 
-func TestTree_FileViewRendersHighlightedLines(t *testing.T) {
-	t.Parallel()
-	out := renderPage(t, pages.Tree(view.TreeData{
-		FileView: &view.TreeFileView{
-			FileName: "main.c",
-			Lines:    []service.CodeLine{{Num: 1, Text: "int", HTML: hlSpan}},
-		},
-	}))
-	for _, want := range []string{hlBox, `whitespace-pre">` + hlSpan + `</td>`} {
-		if !strings.Contains(out, want) {
-			t.Errorf("tree file view missing %q", want)
-		}
-	}
-}
-
 func TestBlame_RendersHighlightedLines(t *testing.T) {
 	t.Parallel()
 	out := renderPage(t, pages.Blame(view.BlameData{

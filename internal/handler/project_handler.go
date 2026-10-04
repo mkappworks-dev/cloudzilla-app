@@ -21,9 +21,8 @@ func (h *Handler) PageProjects(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !repo.AllowProjects {
@@ -31,17 +30,11 @@ func (h *Handler) PageProjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var userID *int64
 	canWrite := false
 	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
 	}
 
 	state := r.URL.Query().Get("state")
@@ -80,9 +73,8 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 	if !repo.AllowProjects {
@@ -90,17 +82,11 @@ func (h *Handler) PageProjectDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var userID *int64
 	canWrite := false
 	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
 	}
 
 	project, err := h.Services.Project.GetProject(r.Context(), projectID)

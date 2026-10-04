@@ -182,7 +182,7 @@ func (s *Server) sessionHandler(session ssh.Session) {
 
 	ctx := session.Context()
 	repo, err := s.services.Repo.Get(ctx, owner, repoName)
-	if err != nil {
+	if err != nil || !s.canSee(ctx, repo, userVal, dkVal) {
 		exitWithError(session, "repository not found\n")
 		return
 	}
@@ -210,16 +210,9 @@ func (s *Server) sessionHandler(session ssh.Session) {
 		pusherName = user.Username
 		pusherID = user.ID
 
-		if gitCmd == "git-upload-pack" {
-			if !s.services.Repo.CanRead(ctx, repo, &user.ID) {
-				exitWithError(session, "access denied\n")
-				return
-			}
-		} else {
-			if !s.services.Repo.CanWrite(ctx, repo, user.ID) {
-				exitWithError(session, "access denied\n")
-				return
-			}
+		if gitCmd == "git-receive-pack" && !s.services.Repo.CanWrite(ctx, repo, user.ID) {
+			exitWithError(session, "access denied\n")
+			return
 		}
 	}
 
@@ -288,6 +281,16 @@ func (s *Server) sessionHandler(session ssh.Session) {
 	}
 
 	_ = session.Exit(0)
+}
+
+// canSee reports whether the caller may learn that repo exists: anyone who can
+// read it, and a deploy key for it. Any other caller is told it doesn't exist, as
+// for a missing repo, so a private repo's existence isn't confirmed.
+func (s *Server) canSee(ctx context.Context, repo *model.Repository, userVal, dkVal any) bool {
+	if dkVal != nil {
+		return repo.ID == dkVal.(*model.DeployKey).RepoID || s.services.Repo.CanRead(ctx, repo, nil)
+	}
+	return s.services.Repo.CanRead(ctx, repo, &userVal.(*model.User).ID)
 }
 
 // exitWithError reports a failure on stderr, which git prints as-is, and ends the

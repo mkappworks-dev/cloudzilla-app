@@ -37,9 +37,8 @@ func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
@@ -50,10 +49,6 @@ func (h *Handler) PageMilestones(w http.ResponseWriter, r *http.Request) {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
 		userID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
 	}
 
 	all, _ := h.Services.Milestone.ListByRepo(r.Context(), owner, repoName, userID)
@@ -555,9 +550,8 @@ func (h *Handler) PageMilestoneDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
@@ -566,10 +560,6 @@ func (h *Handler) PageMilestoneDetail(w http.ResponseWriter, r *http.Request) {
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		userID = &claims.UserID
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
 	}
 
 	m, err := h.Services.Milestone.GetByNumber(r.Context(), owner, repoName, number, userID)

@@ -117,7 +117,7 @@ func (s *ImportService) Start(ctx context.Context, actorID int64, actorUsername 
 	if (req.AuthUsername == "") != (req.AuthToken == "") {
 		return ImportJob{}, ErrImportCredentials
 	}
-	target, err := s.repo.ResolveImportTarget(ctx, actorID, actorUsername, req.Owner)
+	target, err := s.repo.ResolveRepoTarget(ctx, actorID, actorUsername, req.Owner)
 	if err != nil {
 		return ImportJob{}, err
 	}
@@ -167,7 +167,7 @@ func (s *ImportService) RemoveStaleTemp() error {
 	return os.RemoveAll(filepath.Join(s.root, importTmpDirName))
 }
 
-func (s *ImportService) run(job *importJob, target ImportTarget, description string, private bool, auth transport.AuthMethod) {
+func (s *ImportService) run(job *importJob, target RepoTarget, description string, private bool, auth transport.AuthMethod) {
 	s.slots <- struct{}{}
 	defer func() { <-s.slots }()
 	s.setStatus(job, ImportRunning)
@@ -180,7 +180,7 @@ func (s *ImportService) run(job *importJob, target ImportTarget, description str
 
 // attempt recovers a panic itself: concurrency.Go's recover would leave the
 // job running, holding one of the user's slots and polled forever.
-func (s *ImportService) attempt(dir string, job *importJob, target ImportTarget, description string, private bool, auth transport.AuthMethod) (failure string) {
+func (s *ImportService) attempt(dir string, job *importJob, target RepoTarget, description string, private bool, auth transport.AuthMethod) (failure string) {
 	defer func() {
 		if p := recover(); p != nil {
 			slog.Error("repo import panicked", "job_id", job.ID, "owner", job.Owner, "name", job.Name,
@@ -209,7 +209,7 @@ func (s *ImportService) jobContext(parent context.Context) (context.Context, con
 	return context.WithCancel(parent)
 }
 
-func (s *ImportService) cloneAndPublish(ctx context.Context, dir string, job *importJob, target ImportTarget, description string, private bool, auth transport.AuthMethod) error {
+func (s *ImportService) cloneAndPublish(ctx context.Context, dir string, job *importJob, target RepoTarget, description string, private bool, auth transport.AuthMethod) error {
 	if err := os.MkdirAll(filepath.Dir(dir), 0o755); err != nil {
 		return fmt.Errorf("create import temp dir: %w", err)
 	}

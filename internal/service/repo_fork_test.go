@@ -68,7 +68,7 @@ func TestFork_DiskFailureLeavesNoForkRow(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			_, err := newDiskRepoService(db, root).Fork(context.Background(), owner, "x", forkerID, forker)
+			_, err := newDiskRepoService(db, root).Fork(context.Background(), owner, "x", forkerID, forker, ForkOptions{})
 
 			if err == nil {
 				t.Fatal("want an error when the repository can't be copied")

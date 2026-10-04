@@ -158,6 +158,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.With(authMW).Get("/orgs/{org}/settings", h.PageOrgSettings)
 	r.With(optAuthMW).Get("/{owner}/{repo}", h.PageRepo)
 	r.With(authMW).Get("/{owner}/{repo}/settings", h.PageRepoSettings)
+	r.With(authMW).Get("/{owner}/{repo}/fork", h.PageForkRepo)
 	r.With(authMW).Post("/{owner}/{repo}/settings/general", h.UpdateRepoGeneral)
 	r.With(authMW).Post("/{owner}/{repo}/settings/features", h.UpdateRepoFeatures)
 	r.With(authMW).Post("/{owner}/{repo}/settings/visibility", h.UpdateRepoVisibility)
@@ -511,6 +512,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Route("/fragments", func(r chi.Router) {
 		r.Use(optAuthMW)
 		r.Get("/{owner}/{repo}/issues/{number}/comments", h.IssueCommentsFragment)
+		r.Get("/{owner}/{repo}/tree/{ref}/*", h.FileTreeChildrenFragment)
 	})
 
 	// Markdown preview for editor Preview tabs

@@ -70,6 +70,17 @@ type RepoNewData struct {
 	DefaultOwner string
 }
 
+type RepoForkData struct {
+	BasePage
+	SourceOwner   string
+	SourceName    string
+	Description   string
+	Private       bool
+	DefaultBranch string   // "" unless that branch exists: otherwise there is nothing to prune to
+	Owners        []string // namespaces the fork may land in; empty when none qualifies
+	ExistingForks []RepoRef
+}
+
 type ReleaseView struct {
 	model.Release
 	IsLatest bool   // true for the single newest published, non-draft, non-prerelease release
@@ -212,37 +223,24 @@ type TagsFragData struct {
 	CanWrite bool
 }
 
-// TreeFileView carries the data needed to render an inline file viewer inside
-// the tree page (when the path resolves to a file rather than a directory).
-type TreeFileView struct {
-	Lines    []service.CodeLine
-	IsBinary bool
-	Size     int64
-	FileName string
-	BlameURL string
-	RawURL   string
-	EditURL  string
-	CanWrite bool
-}
-
 // TreeData holds template data for the repository tree browser page.
 type TreeData struct {
 	BasePage
-	Repo         model.Repository
-	Owner        string
-	RepoName     string
-	Ref          string
-	Path         string
-	Breadcrumbs  []service.BreadcrumbPart
-	Entries      []service.TreeEntryWithLastCommit
-	RefsURL      string
-	Branches     []service.BranchInfo
-	Tags         []service.TagInfo
-	CanManage    bool
-	Sidebar      []components.TreeNode
-	LatestCommit TreeLatestCommit
-	FileView     *TreeFileView
-	ActiveFile   string
+	Repo          model.Repository
+	Owner         string
+	RepoName      string
+	Ref           string
+	Path          string
+	Breadcrumbs   []service.BreadcrumbPart
+	Entries       []service.TreeEntryWithLastCommit
+	RefsURL       string
+	Branches      []service.BranchInfo
+	Tags          []service.TagInfo
+	CanManage     bool
+	Sidebar       []components.TreeNode
+	SidebarHidden bool
+	ExpandAllURL  string
+	LatestCommit  TreeLatestCommit
 }
 
 // TreeLatestCommit summarises the most recent commit touching anything in
@@ -259,23 +257,26 @@ type TreeLatestCommit struct {
 // BlobData holds template data for the file blob viewer page.
 type BlobData struct {
 	BasePage
-	Repo         model.Repository
-	Owner        string
-	RepoName     string
-	Ref          string
-	Path         string
-	Breadcrumbs  []service.BreadcrumbPart
-	Branches     []service.BranchInfo
-	Tags         []service.TagInfo
-	Lines        []service.CodeLine
-	IsBinary     bool
-	Size         int64
-	BlameURL     string
-	RawURL       string
-	EditURL      string
-	CanWrite     bool
-	CanManage    bool
-	LatestCommit TreeLatestCommit
+	Repo          model.Repository
+	Owner         string
+	RepoName      string
+	Ref           string
+	Path          string
+	Breadcrumbs   []service.BreadcrumbPart
+	Branches      []service.BranchInfo
+	Tags          []service.TagInfo
+	Lines         []service.CodeLine
+	IsBinary      bool
+	Size          int64
+	BlameURL      string
+	RawURL        string
+	EditURL       string
+	CanWrite      bool
+	CanManage     bool
+	Sidebar       []components.TreeNode
+	SidebarHidden bool
+	ExpandAllURL  string
+	LatestCommit  TreeLatestCommit
 }
 
 // BlameData holds template data for the file blame page.
@@ -334,15 +335,6 @@ type RepoLabelsFragData struct {
 	RepoID   int64
 	Labels   []model.Label
 	CanWrite bool
-}
-
-// Fork button fragment
-// ForkButtonData holds template data for the fork button HTMX fragment.
-type ForkButtonData struct {
-	BasePage
-	Owner     string
-	RepoName  string
-	ForkCount int
 }
 
 // Star button fragment

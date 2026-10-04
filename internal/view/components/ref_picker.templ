@@ -21,11 +21,11 @@ templ RefPicker(p RefPickerProps) {
 			x-on:click="open = !open"
 			:aria-expanded="open ? 'true' : 'false'"
 			aria-haspopup="menu"
-			aria-label={ "Switch branch or tag, current: " + p.Current }
+			aria-label={ "Switch branch or tag, current: " + RefLabel(p.Current) }
 			class="h-8 px-3 text-[13px] text-foreground border border-border rounded-md hover:bg-accent inline-flex items-center gap-1.5"
 		>
 			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="3" r="3"></circle><circle cx="12" cy="21" r="3"></circle><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path></svg>
-			<span class="font-medium">{ p.Current }</span>
+			<span class="font-medium">{ RefLabel(p.Current) }</span>
 			<svg class="text-muted-foreground" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
 		</button>
 		<div

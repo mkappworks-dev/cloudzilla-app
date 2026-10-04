@@ -18,6 +18,8 @@
 
 A ref may contain `/` (`feature/x`), so chi's one-segment `{ref}` can't tell where it ends. Handlers rejoin `{ref}` and `*` (`routeRefPath`) and split them with `CodeService.SplitRefPath`: the longest branch or tag that ends at a segment boundary wins, and otherwise the first segment is the ref. The new-file POST and archive routes take the whole tail as the ref.
 
+A tree URL whose path is a file redirects (302) to its blob URL. Tree and blob pages share the file tree sidebar (`components.FileTreeSidebar`), built by `buildSidebarTree` from the requested ref and path. Folders the viewer opens stay open: `static/file_tree.js` keeps them in the per-repo session cookie `cz_tree_open`, which the server reads to render them open. A folder rendered closed loads its children once from `/fragments/{owner}/{repo}/tree/{ref}/{path}`.
+
 ---
 
 ## CodeService (`internal/service/code_service.go`)
@@ -26,7 +28,7 @@ A ref may contain `/` (`feature/x`), so chi's one-segment `{ref}` can't tell whe
 
 ### Key Methods
 
-- `ResolveRef(owner, repoName, ref)` → `(*object.Commit, displayRef, error)`
+- `ResolveRef(owner, repoName, ref)` → `(*object.Commit, ref, error)` — the returned ref is the branch or tag name, the full SHA, or HEAD's branch
 - `GetTree(owner, repoName, ref, path)` → `*TreeResult`
 - `ListEntriesWithLastCommit(ctx, repo, ref, dir)` → `[]TreeEntryWithLastCommit` — each entry with the last commit that touched it; cached for 60s per repo ID, resolved commit and dir, so a new commit, or a new repo that takes a deleted or transferred repo's name, is always listed fresh
 - `GetBlob(owner, repoName, ref, path)` → `*BlobResult`
@@ -35,7 +37,8 @@ A ref may contain `/` (`feature/x`), so chi's one-segment `{ref}` can't tell whe
 - `GetCommits(owner, repoName, ref, page, pageSize)` → `*CommitLog`
 - `GetCommit(owner, repoName, sha)` → `*CommitDetail`
 - `HighlightDiffs(owner, repoName, files)` — fills `DiffLine.HTML` in place; see [Syntax highlighting](#syntax-highlighting)
-- `ListRefs(owner, repoName, defaultBranch)` → `*RefsResult`
+- `ListRefs(owner, repoName, defaultBranch)` → `*RefsResult` — an annotated tag's `Hash` is its tag object's
+- `ListRefsPeeled(owner, repoName, defaultBranch)` → `*RefsResult` — tags' `Hash` peeled to the tagged commit, at an object read per tag; for the refs page, which shows the hashes
 - `SplitRefPath(owner, repoName, refPath)` → `(ref, path)`
 - `CreateBranch(owner, repoName, name, fromRef)` → `error`
 - `DeleteBranch(owner, repoName, name)` → `error`
@@ -45,11 +48,13 @@ A ref may contain `/` (`feature/x`), so chi's one-segment `{ref}` can't tell whe
 ### ResolveRef Priority
 
 1. Branch: `repo.Reference(plumbing.NewBranchReferenceName(ref), true)`
-2. Tag: `repo.Reference(plumbing.NewTagReferenceName(ref), true)`
+2. Tag: `repo.Reference(plumbing.NewTagReferenceName(ref), true)`, peeled through annotated tags (and tags of tags) by `peelTag`; a tag of a tree or blob is not found
 3. Raw SHA: `repo.CommitObject(plumbing.NewHash(ref))`
 4. HEAD fallback (when `ref == ""`): `repo.Head()`
 
 Returns `ErrEmptyRepo` sentinel when HEAD resolution fails (repo has no commits). Handlers return 404 on this error.
+
+A raw SHA must be the full 40 characters; an abbreviated one doesn't resolve. The `Ref` on result types is therefore the full SHA, and every URL is built from it. Only displayed text shortens it, through `components.RefLabel`.
 
 ### Result Types
 

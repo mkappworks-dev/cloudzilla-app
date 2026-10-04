@@ -153,10 +153,11 @@ func TestSessionHandler_RepoErrorsGoToStderr(t *testing.T) {
 	me, other := "testuser_me_"+sfx, "testuser_other_"+sfx
 	meID := testutil.SeedUser(t, db, "me_"+sfx)
 	otherID := testutil.SeedUser(t, db, "other_"+sfx)
-	mine, archived, theirs := "testrepo_mine_"+sfx, "testrepo_archived_"+sfx, "testrepo_theirs_"+sfx
+	mine, archived, theirs, theirsPublic := "testrepo_mine_"+sfx, "testrepo_archived_"+sfx, "testrepo_theirs_"+sfx, "testrepo_theirspub_"+sfx
 	mineID := testutil.SeedRepo(t, db, meID, me, "mine_"+sfx)
 	archivedID := testutil.SeedRepo(t, db, meID, me, "archived_"+sfx)
 	theirsID := testutil.SeedRepo(t, db, otherID, other, "theirs_"+sfx)
+	testutil.SeedRepo(t, db, otherID, other, "theirspub_"+sfx)
 	testutil.Exec(t, db, `UPDATE repositories SET is_archived = true WHERE id = $1`, archivedID)
 	testutil.Exec(t, db, `UPDATE repositories SET private = true WHERE id = $1`, theirsID)
 	if _, err := gogit.PlainInit(filepath.Join(reposRoot, me, mine+".git"), true); err != nil {
@@ -179,11 +180,13 @@ func TestSessionHandler_RepoErrorsGoToStderr(t *testing.T) {
 	}{
 		{"invalid path", userKey, "git-upload-pack '/" + mine + ".git'", "invalid repository path format\n"},
 		{"repository not found", userKey, "git-upload-pack '/" + me + "/missing.git'", "repository not found\n"},
-		{"no read access", userKey, "git-upload-pack '/" + other + "/" + theirs + ".git'", "access denied\n"},
-		{"no write access", userKey, "git-receive-pack '/" + other + "/" + theirs + ".git'", "access denied\n"},
+		{"no read access", userKey, "git-upload-pack '/" + other + "/" + theirs + ".git'", "repository not found\n"},
+		{"no read access, push", userKey, "git-receive-pack '/" + other + "/" + theirs + ".git'", "repository not found\n"},
+		{"no write access", userKey, "git-receive-pack '/" + other + "/" + theirsPublic + ".git'", "access denied\n"},
 		{"push to archived repo", userKey, "git-receive-pack '/" + me + "/" + archived + ".git'", "Repository is archived and read-only.\n"},
 		{"no repository directory", userKey, "git-upload-pack '/" + me + "/" + archived + ".git'", "failed to open repository\n"},
 		{"deploy key for another repo", deployKey, "git-upload-pack '/" + me + "/" + archived + ".git'", "deploy key not authorized for this repository\n"},
+		{"deploy key for a private repo", deployKey, "git-upload-pack '/" + other + "/" + theirs + ".git'", "repository not found\n"},
 		{"read-only deploy key push", deployKey, "git-receive-pack '/" + me + "/" + mine + ".git'", "deploy key is read-only\n"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

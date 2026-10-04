@@ -25,9 +25,8 @@ func (h *Handler) PagePulls(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 

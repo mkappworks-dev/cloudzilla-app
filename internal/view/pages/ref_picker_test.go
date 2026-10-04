@@ -42,11 +42,6 @@ func TestCodeBrowserPages_RefPickerKeepsPath(t *testing.T) {
 			page: Tree(view.TreeData{Owner: "o", RepoName: "r", Ref: "main", Path: "lib", RefsURL: "/o/r/refs", Branches: pickerBranches, Tags: pickerTags}),
 			want: []string{`href="/o/r/tree/feature-x/lib"`},
 		},
-		{
-			name: "tree file view",
-			page: Tree(view.TreeData{Owner: "o", RepoName: "r", Ref: "main", Path: "lib/config.js", RefsURL: "/o/r/refs", Branches: pickerBranches, Tags: pickerTags, FileView: &view.TreeFileView{FileName: "config.js"}}),
-			want: []string{`href="/o/r/tree/feature-x/lib/config.js"`},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

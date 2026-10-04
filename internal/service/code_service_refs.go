@@ -34,8 +34,19 @@ func templateName(filename string) string {
 	return name
 }
 
-// ListRefs returns all branches and tags for a repository.
+// ListRefs returns all branches and tags for a repository. An annotated tag's
+// Hash is its tag object's: peeling costs an object read per tag, and most
+// callers only want names.
 func (s *CodeService) ListRefs(owner, repoName, defaultBranch string) (*RefsResult, error) {
+	return s.listRefs(owner, repoName, defaultBranch, false)
+}
+
+// ListRefsPeeled is ListRefs with each tag's Hash peeled to the commit it tags.
+func (s *CodeService) ListRefsPeeled(owner, repoName, defaultBranch string) (*RefsResult, error) {
+	return s.listRefs(owner, repoName, defaultBranch, true)
+}
+
+func (s *CodeService) listRefs(owner, repoName, defaultBranch string, peel bool) (*RefsResult, error) {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, err
@@ -66,7 +77,11 @@ func (s *CodeService) ListRefs(owner, repoName, defaultBranch string) (*RefsResu
 		return nil, err
 	}
 	_ = tagIter.ForEach(func(ref *plumbing.Reference) error {
-		hash := ref.Hash().String()
+		target := ref.Hash()
+		if peel {
+			target = peelTag(repo, target)
+		}
+		hash := target.String()
 		if len(hash) > 7 {
 			hash = hash[:7]
 		}
@@ -79,6 +94,16 @@ func (s *CodeService) ListRefs(owner, repoName, defaultBranch string) (*RefsResu
 	sort.Slice(tags, func(i, j int) bool { return tags[i].Name < tags[j].Name })
 
 	return &RefsResult{Branches: branches, Tags: tags}, nil
+}
+
+// HasBranch reports whether name is a branch; unlike ResolveRef, a tag or SHA doesn't count.
+func (s *CodeService) HasBranch(owner, repoName, name string) bool {
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return false
+	}
+	_, err = repo.Reference(plumbing.NewBranchReferenceName(name), true)
+	return err == nil
 }
 
 // SplitRefPath splits a URL's "<ref>/<path>" tail, where a ref like feature/x

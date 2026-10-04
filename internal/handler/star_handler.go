@@ -106,17 +106,8 @@ func (h *Handler) PageStargazers(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
-		return
-	}
-	var viewerID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		viewerID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, viewerID) {
-		h.NotFound(w, r)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
