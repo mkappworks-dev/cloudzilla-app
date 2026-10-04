@@ -1,6 +1,7 @@
 package markdown_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
@@ -449,27 +450,11 @@ func TestRender_Code(t *testing.T) {
 			want: "<p><code>one two</code> and <code>`tick`</code></p>\n",
 		},
 		{
-			name: "fenced code with language",
-			src: "```go\n" +
-				"fmt.Println(\"<hi>\", 'x', a&b)\n" +
-				"```",
-			want: "<pre><code class=\"language-go\">fmt.Println(&quot;&lt;hi&gt;&quot;, 'x', a&amp;b)\n" +
-				"</code></pre>\n",
-		},
-		{
 			name: "fenced code without language",
 			src: "```\n" +
 				"plain <b>text</b>\n" +
 				"```",
 			want: "<pre><code>plain &lt;b&gt;text&lt;/b&gt;\n" +
-				"</code></pre>\n",
-		},
-		{
-			name: "tilde fence with extra info",
-			src: "~~~python linenos=1\n" +
-				"print('hi')\n" +
-				"~~~",
-			want: "<pre><code class=\"language-python\">print('hi')\n" +
 				"</code></pre>\n",
 		},
 		{
@@ -481,42 +466,12 @@ func TestRender_Code(t *testing.T) {
 				"</code></pre>\n",
 		},
 		{
-			name: "info string with entity",
-			src: "```c&#43;&#43;\n" +
-				"int x;\n" +
-				"```",
-			want: "<pre><code class=\"language-c++\">int x;\n" +
-				"</code></pre>\n",
-		},
-		{
 			name: "indented code block",
 			src: "    indented <code> & 'q'\n" +
 				"    line 2",
 			want: "<pre><code>indented &lt;code&gt; &amp; 'q'\n" +
 				"line 2\n" +
 				"</code></pre>\n",
-		},
-		{
-			name: "unclosed fence",
-			src: "```js\n" +
-				"let x = 1;",
-			want: "<pre><code class=\"language-js\">let x = 1;\n" +
-				"</code></pre>\n",
-		},
-		{
-			name: "fenced code in list",
-			src: "- item\n" +
-				"\n" +
-				"  ```sh\n" +
-				"  echo \"hi\"\n" +
-				"  ```",
-			want: "<ul>\n" +
-				"<li>\n" +
-				"<p>item</p>\n" +
-				"<pre><code class=\"language-sh\">echo &quot;hi&quot;\n" +
-				"</code></pre>\n" +
-				"</li>\n" +
-				"</ul>\n",
 		},
 		{
 			name: "empty fenced block",
@@ -597,4 +552,33 @@ func TestRender_Code(t *testing.T) {
 			want: "<pre class=\"mermaid\"></pre>\n",
 		},
 	})
+}
+
+func TestRender_HighlightsFencedCodeInAKnownLanguage(t *testing.T) {
+	for _, tc := range []struct {
+		name, src, lang string
+	}{
+		{"go", "```go\nfmt.Println(\"<hi>\", 'x', a&b)\n```", "go"},
+		{"tilde with extra info", "~~~python linenos=1\nprint('hi')\n~~~", "python"},
+		{"entity in info string", "```c&#43;&#43;\nint x;\n```", "c++"},
+		{"unclosed fence", "```js\nlet x = 1;", "js"},
+		{"in a list", "- item\n\n  ```sh\n  echo \"hi\"\n  ```", "sh"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := markdown.Render(tc.src)
+			if !strings.Contains(got, `<pre class="hl"><code class="language-`+tc.lang+`">`) {
+				t.Errorf("Render = %q, want a highlighted <pre class=\"hl\"> for %s", got, tc.lang)
+			}
+			if !strings.Contains(got, `<span class="hl-`) {
+				t.Errorf("Render = %q, want token spans", got)
+			}
+		})
+	}
+}
+
+func TestRender_HighlightedCodeIsEscaped(t *testing.T) {
+	got := markdown.Render("```go\nvar s = \"</code></pre><script>alert(1)</script>\"\n```")
+	if strings.Contains(got, "<script>") {
+		t.Errorf("Render = %q, want the script tag escaped", got)
+	}
 }

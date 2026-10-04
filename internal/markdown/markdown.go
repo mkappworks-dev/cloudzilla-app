@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/yuin/goldmark/v2/ast"
 	"github.com/yuin/goldmark/v2/extension"
 	"github.com/yuin/goldmark/v2/parser"
@@ -70,9 +71,43 @@ func renderMermaid(next ghtml.NodeRenderer) ghtml.NodeRenderer {
 	})
 }
 
-// Render converts markdown src to safe HTML. Mermaid fenced blocks are
-// wrapped in <pre class="mermaid"> for client-side rendering by mermaid.js.
+// highlightCode renders fenced blocks in a known language as token spans. It
+// decides on entering and remembers the choice, because a highlight can fall
+// back to plain at its deadline and the exit call must close what was opened.
+func highlightCode() ghtml.NodeRendererDecorator {
+	highlighted := map[ast.Node]bool{}
+	return func(next ghtml.NodeRenderer) ghtml.NodeRenderer {
+		return ghtml.NodeRendererFunc(func(w io.Writer, source []byte, node ast.Node, entering bool, rc renderer.Context) (ast.WalkStatus, error) {
+			if !entering {
+				if highlighted[node] {
+					return ast.WalkContinue, nil
+				}
+				return next.Render(w, source, node, entering, rc)
+			}
+			n := node.(*ast.CodeBlock)
+			lang, ok := n.Language(source)
+			if !ok || n.CodeBlockKind != ast.CodeBlockKindFenced {
+				return next.Render(w, source, node, entering, rc)
+			}
+			code := highlight.Block(lang, "", n.Value.Str(source))
+			if code == "" {
+				return next.Render(w, source, node, entering, rc)
+			}
+			highlighted[node] = true
+			bw := w.(util.BufWriter)
+			_, _ = bw.WriteString(`<pre class="hl"><code class="language-`)
+			_, _ = ghtml.ContextTextWriter(rc).WriteString(lang)
+			_, _ = bw.WriteString(`">`)
+			_, _ = bw.WriteString(string(code))
+			_, _ = bw.WriteString("</code></pre>\n")
+			return ast.WalkSkipChildren, nil
+		})
+	}
+}
+
 // Render converts Markdown source to safe HTML, sanitizing links and disabling raw HTML.
+// Mermaid fences become <pre class="mermaid"> for mermaid.js; fences in a known
+// language are syntax-highlighted.
 func Render(src string) string {
 	source := []byte(src)
 	p := parser.New(
@@ -85,6 +120,7 @@ func Render(src string) string {
 	r := ghtml.New(
 		ghtml.WithHardWraps(),
 		ghtml.WithExtensions(extension.GFMHTMLRenderer),
+		ghtml.WithNodeRendererDecorator(ast.KindCodeBlock, highlightCode()),
 		ghtml.WithNodeRendererDecorator(ast.KindCodeBlock, renderMermaid),
 	)
 	var buf bytes.Buffer
