@@ -754,6 +754,13 @@ func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName stri
 		return nil, fmt.Errorf("copy git dir: %w", err)
 	}
 
+	if opts.DefaultBranchOnly {
+		if err := pruneToDefaultBranch(dstPath, orig.DefaultBranch); err != nil {
+			abandonNewRepo(ctx, s.repos, forked.ID, dstPath)
+			return nil, fmt.Errorf("prune fork branches: %w", err)
+		}
+	}
+
 	_ = s.repos.IncrementForkCount(ctx, orig.ID)
 
 	forked.ForkOfOwner = originalOwner
@@ -816,6 +823,36 @@ func copyFile(src, dst string, mode os.FileMode) error {
 		return err
 	}
 	return out.Close()
+}
+
+// pruneToDefaultBranch drops every branch of the bare repo at gitDir except
+// defaultBranch. The dropped branches' objects stay: there's no pure-Go gc, and
+// a full fork holds them anyway.
+func pruneToDefaultBranch(gitDir, defaultBranch string) error {
+	repo, err := gogit.PlainOpen(gitDir)
+	if err != nil {
+		return err
+	}
+	refs, err := repo.References()
+	if err != nil {
+		return err
+	}
+	keep := plumbing.NewBranchReferenceName(defaultBranch)
+	var drop []plumbing.ReferenceName
+	if err := refs.ForEach(func(r *plumbing.Reference) error {
+		if r.Name().IsBranch() && r.Name() != keep {
+			drop = append(drop, r.Name())
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	for _, name := range drop {
+		if err := repo.Storer.RemoveReference(name); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // archiveGuard returns ErrForbidden if the caller is not an owner.

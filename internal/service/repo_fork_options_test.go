@@ -3,8 +3,13 @@ package service_test
 import (
 	"context"
 	"errors"
+	"io/fs"
+	"path/filepath"
 	"testing"
 
+	gogit "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
@@ -131,4 +136,104 @@ func TestRepoService_Fork_ATakenExplicitNameFails(t *testing.T) {
 	if !errors.Is(err, service.ErrInvalidRepoName) {
 		t.Errorf("path as name: want ErrInvalidRepoName, got %v", err)
 	}
+}
+
+func TestRepoService_Fork_DefaultBranchOnly(t *testing.T) {
+	for _, packed := range []bool{false, true} {
+		name := "loose refs"
+		if packed {
+			name = "packed refs"
+		}
+		t.Run(name, func(t *testing.T) {
+			env := newRepoDirsEnv(t)
+			ctx := context.Background()
+			ownerID, owner := env.seedUser(t)
+			userID, user := env.seedUser(t)
+			if _, err := env.repos.Create(ctx, ownerID, owner, "upstream", "", false, service.RepoInitOptions{AddREADME: true}); err != nil {
+				t.Fatalf("create original: %v", err)
+			}
+			if err := env.code.CreateBranch(owner, "upstream", "feature", "main"); err != nil {
+				t.Fatalf("create branch: %v", err)
+			}
+			if err := env.code.CreateTag(owner, "upstream", "v1", "main"); err != nil {
+				t.Fatalf("create tag: %v", err)
+			}
+			origDir, _ := env.dirs(owner, "upstream")
+			if packed {
+				packRefs(t, origDir)
+			}
+
+			if _, err := env.repos.Fork(ctx, owner, "upstream", userID, user, service.ForkOptions{Name: "all"}); err != nil {
+				t.Fatalf("full fork: %v", err)
+			}
+			if _, err := env.repos.Fork(ctx, owner, "upstream", userID, user, service.ForkOptions{Name: "trunk", DefaultBranchOnly: true}); err != nil {
+				t.Fatalf("default-branch fork: %v", err)
+			}
+
+			allDir, _ := env.dirs(user, "all")
+			trunkDir, _ := env.dirs(user, "trunk")
+			want := map[string]map[string]bool{
+				allDir:   {"refs/heads/main": true, "refs/heads/feature": true, "refs/tags/v1": true},
+				trunkDir: {"refs/heads/main": true, "refs/tags/v1": true},
+			}
+			for dir, refs := range want {
+				got := refNames(t, dir)
+				if len(got) != len(refs) {
+					t.Errorf("%s refs = %v, want %v", dir, got, refs)
+				}
+				for _, r := range got {
+					if !refs[r] {
+						t.Errorf("%s refs = %v, want %v", dir, got, refs)
+					}
+				}
+				if headOf(t, dir) != headOf(t, origDir) {
+					t.Errorf("%s HEAD moved off the default branch", dir)
+				}
+			}
+			if refs := refNames(t, origDir); len(refs) != 3 {
+				t.Errorf("the original lost refs: %v", refs)
+			}
+		})
+	}
+}
+
+// packRefs leaves the branches only in packed-refs, so the fork prunes a
+// source with no loose ref files.
+func packRefs(t *testing.T, gitDir string) {
+	t.Helper()
+	repo, err := gogit.PlainOpen(gitDir)
+	if err != nil {
+		t.Fatalf("open %s: %v", gitDir, err)
+	}
+	if err := repo.Storer.(*filesystem.Storage).PackRefs(); err != nil {
+		t.Fatalf("pack refs: %v", err)
+	}
+	for _, sub := range []string{"heads", "tags"} {
+		_ = filepath.WalkDir(filepath.Join(gitDir, "refs", sub), func(path string, d fs.DirEntry, err error) error {
+			if err == nil && !d.IsDir() {
+				t.Fatalf("loose ref %s survived packing", path)
+			}
+			return nil
+		})
+	}
+}
+
+func refNames(t *testing.T, gitDir string) []string {
+	t.Helper()
+	repo, err := gogit.PlainOpen(gitDir)
+	if err != nil {
+		t.Fatalf("open %s: %v", gitDir, err)
+	}
+	iter, err := repo.References()
+	if err != nil {
+		t.Fatalf("list refs: %v", err)
+	}
+	var names []string
+	_ = iter.ForEach(func(r *plumbing.Reference) error {
+		if r.Name() != plumbing.HEAD {
+			names = append(names, r.Name().String())
+		}
+		return nil
+	})
+	return names
 }
