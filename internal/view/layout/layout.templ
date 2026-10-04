@@ -16,7 +16,7 @@ const htmxConfig = `{"noSwap":[204,304,"4xx","5xx"],"defaultTimeout":0}`
 
 templ Base(base view.BasePage, title string) {
 	<!DOCTYPE html>
-	<html lang="en" class="dark">
+	<html lang="en" class="dark" data-code-light={ base.CodeThemeLight() } data-code-dark={ base.CodeThemeDark() }>
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -27,6 +27,7 @@ templ Base(base view.BasePage, title string) {
 			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 			<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600&display=swap" rel="stylesheet"/>
 			<link rel="stylesheet" href={ assets.URL("/static/main.css") }/>
+			<link rel="stylesheet" href={ assets.URL("/static/code-themes.css") }/>
 			<script>
 				// Theme bootstrap: applied before paint so there's no flash of wrong theme.
 				(function() {
