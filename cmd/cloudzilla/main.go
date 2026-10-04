@@ -11,9 +11,13 @@ import (
 
 var cfgFile string
 
+// Must stay a var: release builds set it with -ldflags "-X main.version=<tag>".
+var version = "dev"
+
 var rootCmd = &cobra.Command{
-	Use:   "cloudzilla",
-	Short: "Cloudzilla admin CLI",
+	Use:     "cloudzilla",
+	Short:   "Cloudzilla admin CLI",
+	Version: version,
 }
 
 func main() {

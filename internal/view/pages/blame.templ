@@ -27,15 +27,13 @@ templ Blame(data view.BlameData) {
 					}
 				</h1>
 				<div class="mt-3 flex flex-wrap items-center gap-2">
-					<span class="inline-flex items-center gap-1.5 h-8 px-3 border border-border bg-card rounded-md text-[13px]">
-						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
-							<circle cx="6" cy="3" r="3"></circle>
-							<circle cx="18" cy="3" r="3"></circle>
-							<circle cx="12" cy="21" r="3"></circle>
-							<path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path>
-						</svg>
-						<span class="font-medium">{ data.Ref }</span>
-					</span>
+					@components.RefPicker(components.RefPickerProps{
+						Current:  data.Ref,
+						Branches: data.Branches,
+						Tags:     data.Tags,
+						Href:     codeRefHref(data.Owner, data.RepoName, "blame", data.Path),
+						RefsURL:  "/" + data.Owner + "/" + data.RepoName + "/refs",
+					})
 					@components.LinkButton(data.BlobURL, components.ButtonOutline, components.ButtonSizeSM, nil) {
 						<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
 							<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>

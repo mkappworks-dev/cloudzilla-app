@@ -236,6 +236,8 @@ type TreeData struct {
 	Breadcrumbs  []service.BreadcrumbPart
 	Entries      []service.TreeEntryWithLastCommit
 	RefsURL      string
+	Branches     []service.BranchInfo
+	Tags         []service.TagInfo
 	CanManage    bool
 	Sidebar      []components.TreeNode
 	LatestCommit TreeLatestCommit
@@ -263,6 +265,8 @@ type BlobData struct {
 	Ref          string
 	Path         string
 	Breadcrumbs  []service.BreadcrumbPart
+	Branches     []service.BranchInfo
+	Tags         []service.TagInfo
 	Lines        []service.CodeLine
 	IsBinary     bool
 	Size         int64
@@ -283,6 +287,8 @@ type BlameData struct {
 	Ref          string
 	Path         string
 	Breadcrumbs  []service.BreadcrumbPart
+	Branches     []service.BranchInfo
+	Tags         []service.TagInfo
 	Lines        []service.BlameLine
 	BlobURL      string
 	Contributors int

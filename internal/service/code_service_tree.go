@@ -1,8 +1,11 @@
 package service
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"html/template"
+	"io"
 	"log/slog"
 	"sort"
 	"strings"
@@ -10,6 +13,8 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/utils/binary"
+	"github.com/go-git/go-git/v5/utils/ioutil"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/markdown"
 )
@@ -182,6 +187,52 @@ func (s *CodeService) GetRawBlobBounded(owner, repoName, ref, path string, maxBy
 		return nil, err
 	}
 	return []byte(contents), nil
+}
+
+// binarySniffBytes is binary.IsBinary's window, so OpenRawBlob classifies a
+// file the same way GetBlob does.
+const binarySniffBytes = 8000
+
+// RawBlob is a file's content at a ref, open for streaming. The caller must
+// Close it.
+type RawBlob struct {
+	io.ReadCloser
+	Size     int64
+	IsBinary bool
+}
+
+// OpenRawBlob opens the file at path for streaming. A file over maxBytes fails
+// with ErrBlobTooLarge before any content is read.
+func (s *CodeService) OpenRawBlob(owner, repoName, ref, path string, maxBytes int64) (*RawBlob, error) {
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return nil, err
+	}
+	commit, _, err := resolveRef(repo, ref)
+	if err != nil {
+		return nil, err
+	}
+	f, err := commit.File(path)
+	if err != nil {
+		return nil, err
+	}
+	if f.Size > maxBytes {
+		return nil, ErrBlobTooLarge
+	}
+	rc, err := f.Reader()
+	if err != nil {
+		return nil, err
+	}
+	// Sniffing through the buffer that then serves the content reads the blob
+	// once; File.IsBinary would open and inflate it a second time.
+	br := bufio.NewReaderSize(rc, binarySniffBytes)
+	head, err := br.Peek(binarySniffBytes)
+	if err != nil && !errors.Is(err, io.EOF) {
+		_ = rc.Close()
+		return nil, err
+	}
+	isBinary, _ := binary.IsBinary(bytes.NewReader(head))
+	return &RawBlob{ReadCloser: ioutil.NewReadCloser(br, rc), Size: f.Size, IsBinary: isBinary}, nil
 }
 
 // GetProfileReadme reads README.md from the root of the given repo's default
