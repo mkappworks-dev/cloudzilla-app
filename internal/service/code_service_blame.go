@@ -32,7 +32,7 @@ func (s *CodeService) GetBlame(owner, repoName, ref, path string) (*BlameResult,
 	if err != nil {
 		return nil, err
 	}
-	commit, displayRef, err := resolveRef(repo, ref)
+	commit, resolvedRef, err := resolveRef(repo, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -62,10 +62,10 @@ func (s *CodeService) GetBlame(owner, repoName, ref, path string) (*BlameResult,
 	}
 
 	return &BlameResult{
-		Ref:         displayRef,
+		Ref:         resolvedRef,
 		Path:        path,
 		Lines:       lines,
-		Breadcrumbs: buildBreadcrumbs(owner, repoName, displayRef, path, true),
-		BlobURL:     "/" + owner + "/" + repoName + "/blob/" + displayRef + "/" + path,
+		Breadcrumbs: buildBreadcrumbs(owner, repoName, resolvedRef, path, true),
+		BlobURL:     "/" + owner + "/" + repoName + "/blob/" + resolvedRef + "/" + path,
 	}, nil
 }

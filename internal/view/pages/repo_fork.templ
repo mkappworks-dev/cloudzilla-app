@@ -1,0 +1,145 @@
+package pages
+
+import (
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
+)
+
+templ RepoFork(data view.RepoForkData) {
+	{{ source := data.SourceOwner + "/" + data.SourceName }}
+	@layout.Base(data.BasePage, "Fork "+source) {
+		<section class="mb-6">
+			<h1 class="text-2xl font-semibold tracking-tight">Create a new fork</h1>
+			<p class="mt-1 text-[13px] text-muted-foreground">A fork is a copy of <a href={ templ.SafeURL("/" + source) } class="font-mono text-primary hover:underline">{ source }</a>. Changes you make in the fork don't affect the original.</p>
+		</section>
+
+		<div class="grid lg:grid-cols-[1fr_280px] gap-8">
+			<div class="min-w-0 flex flex-col gap-4">
+				if len(data.ExistingForks) > 0 {
+					<div class="border border-border rounded-lg bg-muted px-4 py-3 text-[13px]">
+						<p class="text-muted-foreground">You already have a fork of this repository:</p>
+						<ul class="mt-1.5 flex flex-col gap-1">
+							for _, f := range data.ExistingForks {
+								<li><a href={ templ.SafeURL(f.Path) } class="font-mono text-primary hover:underline">{ f.Name }</a></li>
+							}
+						</ul>
+					</div>
+				}
+				if len(data.Owners) == 0 {
+					<div class="border border-border rounded-lg bg-card p-6 text-[13px] text-muted-foreground">
+						You can't fork your own repository into your own account. <a href="/organizations/new" class="text-primary hover:underline">Create an organization</a> to fork it there.
+					</div>
+				} else {
+					<form id="fork-form" class="border border-border rounded-lg bg-card p-6 space-y-6" data-source={ source }>
+						<div class="grid grid-cols-[1fr_auto_2fr] gap-3 items-end">
+							<div>
+								<label for="fork-owner-btn" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Owner *</label>
+								@repoNewCustomSelect("fork-owner", "owner", forkOwnerOpts(data.Owners), repoNewSelectOption{Value: data.Owners[0], Label: data.Owners[0]})
+							</div>
+							<span class="text-muted-foreground/70 pb-2.5" aria-hidden="true">/</span>
+							<div>
+								<label for="fork-name" class="block text-[12px] font-medium text-muted-foreground mb-1.5">Repository name *</label>
+								<input id="fork-name" name="name" type="text" required pattern="[A-Za-z0-9._\-]+" value={ data.SourceName } class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground font-mono placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring"/>
+							</div>
+						</div>
+
+						<div>
+							<label for="fork-description" class="block text-[12px] font-medium text-muted-foreground mb-1.5">
+								Description <span class="text-muted-foreground/70 font-normal">(optional)</span>
+							</label>
+							<textarea id="fork-description" name="description" rows="2" class="w-full bg-background border border-border rounded-md px-2.5 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 focus:outline-hidden focus:border-ring">{ data.Description }</textarea>
+						</div>
+
+						<div>
+							<p class="text-[12px] font-medium text-muted-foreground mb-1">Visibility</p>
+							<p class="text-[13px]">
+								if data.Private {
+									Private
+								} else {
+									Public
+								}
+							</p>
+							<p class="mt-1 text-[12px] text-muted-foreground/70">Forks keep the visibility of the repository they are forked from.</p>
+						</div>
+
+						if data.DefaultBranch != "" {
+							<div>
+								<label class="flex items-start gap-2 text-[13px]">
+									<input type="checkbox" id="fork-default-branch-only" checked class="mt-0.5 accent-[hsl(var(--ring))]"/>
+									<span>Copy the <span class="font-mono">{ data.DefaultBranch }</span> branch only</span>
+								</label>
+								<p class="mt-1 ml-6 text-[12px] text-muted-foreground/70">Leave unchecked to copy every branch. Tags are copied either way.</p>
+							</div>
+						}
+
+						<div id="fork-form-error" role="alert" class="hidden text-sm text-destructive bg-destructive/10 border border-destructive/40 rounded-md px-3 py-2"></div>
+
+						<div class="flex items-center justify-end gap-2">
+							@components.LinkButton("/"+source, components.ButtonOutline, components.ButtonSizeDefault, nil) {
+								Cancel
+							}
+							@components.Button(components.ButtonSuccess, components.ButtonSizeDefault, templ.Attributes{"type": "submit", "id": "fork-submit"}) {
+								Create fork
+							}
+						</div>
+					</form>
+				}
+			</div>
+
+			<aside aria-label="About forks">
+				<h2 class="text-[12px] font-medium text-muted-foreground mb-2">About forks</h2>
+				<p class="text-[13px] text-muted-foreground/70 leading-relaxed">A fork starts with the original's files and history and stays linked to it. It's yours to change: pushes to the fork never touch the original.</p>
+			</aside>
+		</div>
+
+		if len(data.Owners) > 0 {
+			<script>
+				(function() {
+					const form = document.getElementById('fork-form');
+					const errBox = document.getElementById('fork-form-error');
+					const submit = document.getElementById('fork-submit');
+					form.addEventListener('submit', async function(e) {
+						e.preventDefault();
+						errBox.classList.add('hidden');
+						const branchOnly = document.getElementById('fork-default-branch-only');
+						const csrf = (document.cookie.match(/csrf_token=([^;]+)/) || [])[1] || '';
+						submit.disabled = true;
+						try {
+							const res = await fetch('/api/repos/' + form.dataset.source + '/fork', {
+								method: 'POST',
+								headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+								body: JSON.stringify({
+									owner: form.querySelector('[name=owner]').value,
+									name: form.querySelector('[name=name]').value.trim(),
+									description: form.querySelector('[name=description]').value,
+									default_branch_only: branchOnly ? branchOnly.checked : false
+								})
+							});
+							if (res.status === 201) {
+								window.location.href = (await res.json()).url;
+								return;
+							}
+							const text = await res.text();
+							let msg = text;
+							try { msg = JSON.parse(text).error || text; } catch (_) {}
+							errBox.textContent = msg || ('Failed to create the fork (HTTP ' + res.status + ')');
+						} catch (err) {
+							errBox.textContent = 'Failed to create the fork: ' + err.message;
+						}
+						errBox.classList.remove('hidden');
+						submit.disabled = false;
+					});
+				})();
+			</script>
+		}
+	}
+}
+
+func forkOwnerOpts(owners []string) []repoNewSelectOption {
+	opts := make([]repoNewSelectOption, 0, len(owners))
+	for _, o := range owners {
+		opts = append(opts, repoNewSelectOption{Value: o, Label: o})
+	}
+	return opts
+}

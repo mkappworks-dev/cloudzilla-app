@@ -322,10 +322,9 @@ func (h *Handler) UpdatePull(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnprocessableEntity, "merge blocked: "+reason)
 			return
 		}
-		// Resolve the HEAD SHA of the head branch for status check enforcement.
 		var headSHA string
-		if _, sha, err := h.Services.Code.ResolveRef(owner, repoName, existingPR.HeadBranch); err == nil {
-			headSHA = sha
+		if headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, existingPR.HeadBranch); err == nil {
+			headSHA = headCommit.Hash.String()
 		}
 		if err := h.Services.BranchProtection.CheckMerge(r.Context(), repo.ID, existingPR, headSHA); err != nil {
 			writeError(w, http.StatusUnprocessableEntity, "merge blocked: "+err.Error())
@@ -432,11 +431,11 @@ func (h *Handler) tryAutoMerge(owner, repoName string, pullID int64) {
 		return
 	}
 
-	_, headSHA, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadBranch)
+	headCommit, _, err := h.Services.Code.ResolveRef(owner, repoName, pr.HeadBranch)
 	if err != nil {
 		return
 	}
-	if err := h.Services.BranchProtection.CheckMerge(ctx, repo.ID, pr, headSHA); err != nil {
+	if err := h.Services.BranchProtection.CheckMerge(ctx, repo.ID, pr, headCommit.Hash.String()); err != nil {
 		return
 	}
 

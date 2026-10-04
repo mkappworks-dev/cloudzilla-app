@@ -59,24 +59,24 @@ func seedImportOrg(t *testing.T, db *sql.DB, orgs *service.OrgService, ownerID i
 	return org.Name
 }
 
-func TestResolveImportTarget_OwnAccountAndOwnedOrg(t *testing.T) {
+func TestResolveRepoTarget_OwnAccountAndOwnedOrg(t *testing.T) {
 	svc, orgs, db, _ := newImportRepoSvc(t)
 	ctx := context.Background()
 	uid, uname := seedImportUser(t, db)
 
-	got, err := svc.ResolveImportTarget(ctx, uid, uname, "")
-	if want := (service.ImportTarget{ActorID: uid, OwnerName: uname, OwnerID: uid}); err != nil || got != want {
+	got, err := svc.ResolveRepoTarget(ctx, uid, uname, "")
+	if want := (service.RepoTarget{ActorID: uid, OwnerName: uname, OwnerID: uid}); err != nil || got != want {
 		t.Errorf("own account: got %+v, %v; want %+v", got, err, want)
 	}
 
 	orgName := seedImportOrg(t, db, orgs, uid)
-	got, err = svc.ResolveImportTarget(ctx, uid, uname, orgName)
+	got, err = svc.ResolveRepoTarget(ctx, uid, uname, orgName)
 	if err != nil || got.OwnerName != orgName || got.OrgID == 0 || got.OwnerID != 0 || got.ActorID != uid {
 		t.Errorf("owned org: got %+v, %v", got, err)
 	}
 }
 
-func TestResolveImportTarget_RefusesOrgsTheActorDoesNotOwn(t *testing.T) {
+func TestResolveRepoTarget_RefusesOrgsTheActorDoesNotOwn(t *testing.T) {
 	svc, orgs, db, _ := newImportRepoSvc(t)
 	ctx := context.Background()
 	ownerID, _ := seedImportUser(t, db)
@@ -84,7 +84,7 @@ func TestResolveImportTarget_RefusesOrgsTheActorDoesNotOwn(t *testing.T) {
 	orgName := seedImportOrg(t, db, orgs, ownerID)
 
 	for _, owner := range []string{orgName, "no-such-org-" + testutil.UniqueSuffix(t)} {
-		if _, err := svc.ResolveImportTarget(ctx, otherID, otherName, owner); !errors.Is(err, service.ErrForbidden) {
+		if _, err := svc.ResolveRepoTarget(ctx, otherID, otherName, owner); !errors.Is(err, service.ErrForbidden) {
 			t.Errorf("owner %q: err = %v, want ErrForbidden", owner, err)
 		}
 	}
@@ -113,7 +113,7 @@ func TestCreateFromImport_AdoptsTheClone(t *testing.T) {
 	ctx := context.Background()
 	uid, uname := seedImportUser(t, db)
 	src := seedImportedClone(t)
-	target := service.ImportTarget{ActorID: uid, OwnerName: uname, OwnerID: uid}
+	target := service.RepoTarget{ActorID: uid, OwnerName: uname, OwnerID: uid}
 
 	repo, err := svc.CreateFromImport(ctx, target, "imported", "from elsewhere", true, "trunk", src)
 	if err != nil {
@@ -143,7 +143,7 @@ func TestCreateFromImport_NameTakenLeavesCloneForTheCaller(t *testing.T) {
 		t.Fatalf("create: %v", err)
 	}
 	src := seedImportedClone(t)
-	target := service.ImportTarget{ActorID: uid, OwnerName: uname, OwnerID: uid}
+	target := service.RepoTarget{ActorID: uid, OwnerName: uname, OwnerID: uid}
 
 	if _, err := svc.CreateFromImport(ctx, target, "taken", "", false, "trunk", src); !errors.Is(err, service.ErrRepoNameTaken) {
 		t.Errorf("err = %v, want ErrRepoNameTaken", err)
@@ -159,7 +159,7 @@ func TestCreateFromImport_RechecksOrgOwnership(t *testing.T) {
 	ownerID, ownerName := seedImportUser(t, db)
 	otherID, _ := seedImportUser(t, db)
 	orgName := seedImportOrg(t, db, orgs, ownerID)
-	target, err := svc.ResolveImportTarget(ctx, ownerID, ownerName, orgName)
+	target, err := svc.ResolveRepoTarget(ctx, ownerID, ownerName, orgName)
 	if err != nil {
 		t.Fatalf("resolve: %v", err)
 	}
@@ -174,7 +174,7 @@ func TestCreateFromImport_FailureReleasesTheName(t *testing.T) {
 	svc, _, db, root := newImportRepoSvc(t)
 	ctx := context.Background()
 	uid, uname := seedImportUser(t, db)
-	target := service.ImportTarget{ActorID: uid, OwnerName: uname, OwnerID: uid}
+	target := service.RepoTarget{ActorID: uid, OwnerName: uname, OwnerID: uid}
 
 	if _, err := svc.CreateFromImport(ctx, target, "imported", "", false, "trunk", filepath.Join(t.TempDir(), "missing")); err == nil {
 		t.Fatal("CreateFromImport with a missing source succeeded")
