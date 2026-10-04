@@ -242,25 +242,16 @@ func (h *Handler) PageReleases(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
-	var userID *int64
 	canWrite := false
 	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
-		userID = &claims.UserID
-	}
-	_ = userID
-
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
 	}
 
 	rawReleases, err := h.Services.Release.ListByRepo(r.Context(), owner, repoName)
@@ -339,24 +330,16 @@ func (h *Handler) PageReleaseDetail(w http.ResponseWriter, r *http.Request) {
 	repoName := chi.URLParam(r, "repo")
 	tagName := chi.URLParam(r, "tagName")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repo not found", http.StatusNotFound)
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
 
-	var userID *int64
 	canWrite := false
 	canManage := false
 	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
 		canWrite = h.Services.Repo.CanWrite(r.Context(), repo, claims.UserID)
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, claims.UserID)
-		userID = &claims.UserID
-	}
-
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
 	}
 
 	release, err := h.Services.Release.GetByTag(r.Context(), owner, repoName, tagName)
