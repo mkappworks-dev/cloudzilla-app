@@ -149,21 +149,13 @@ func seedPrivateRepoFixture(t *testing.T, db *sql.DB) privateRepoFixture {
 	}
 }
 
-// Git smart HTTP must answer a private repo with a 401, so git prompts for
-// credentials.
-var gitTransportRoutes = map[string]bool{
-	"/{owner}/{repo}/info/refs":        true,
-	"/{owner}/{repo}/git-upload-pack":  true,
-	"/{owner}/{repo}/git-receive-pack": true,
-}
-
 // repoPageRoutes lists every route under /{owner}/{repo}, so a page added
 // without the read check fails the test below.
 func repoPageRoutes(t *testing.T, h http.Handler) []repoAPIRoute {
 	t.Helper()
 	var routes []repoAPIRoute
 	err := chi.Walk(h.(chi.Routes), func(method, pattern string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
-		if strings.HasPrefix(pattern+"/", "/{owner}/{repo}/") && !gitTransportRoutes[pattern] {
+		if strings.HasPrefix(pattern+"/", "/{owner}/{repo}/") {
 			routes = append(routes, repoAPIRoute{method, pattern})
 		}
 		return nil

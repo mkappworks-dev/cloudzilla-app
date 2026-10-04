@@ -20,6 +20,7 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/concurrency"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/gittransport"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 )
 
@@ -67,20 +68,60 @@ func (h *Handler) resolveGitUser(r *http.Request) (*gitUser, error) {
 	return &gitUser{ID: user.ID, Username: user.Username}, nil
 }
 
+func gitAuthChallenge(w http.ResponseWriter) {
+	w.Header().Set("WWW-Authenticate", `Basic realm="git"`)
+	http.Error(w, "authentication required", http.StatusUnauthorized)
+}
+
+// gitReadableRepo resolves the caller and loads a repo they may read. Everything
+// that can fail without revealing the repo (path, token) is checked first, and a
+// caller who can't read the repo gets exactly what a missing repo gets: a 401
+// challenge when anonymous, so git prompts for credentials, otherwise a 404.
+func (h *Handler) gitReadableRepo(w http.ResponseWriter, r *http.Request, owner, repoName string) (*model.Repository, *gitUser, bool) {
+	if !validGitName(owner) || !validGitName(repoName) {
+		http.Error(w, "invalid repository path", http.StatusBadRequest)
+		return nil, nil, false
+	}
+	gu, err := h.resolveGitUser(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return nil, nil, false
+	}
+	var uid *int64
+	if gu != nil {
+		uid = &gu.ID
+	}
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err == nil && h.Services.Repo.CanRead(r.Context(), repo, uid) {
+		return repo, gu, true
+	}
+	if gu == nil {
+		gitAuthChallenge(w)
+	} else {
+		http.Error(w, "repository not found", http.StatusNotFound)
+	}
+	return nil, nil, false
+}
+
+// gitCanPush answers a push the caller may not make. A reader gets a 403, not a
+// 401, so git's credential helper keeps their credential.
+func (h *Handler) gitCanPush(w http.ResponseWriter, r *http.Request, repo *model.Repository, gu *gitUser) bool {
+	switch {
+	case gu == nil:
+		gitAuthChallenge(w)
+	case !h.Services.Repo.CanWrite(r.Context(), repo, gu.ID):
+		http.Error(w, "access denied", http.StatusForbidden)
+	case repo.IsArchived:
+		http.Error(w, "Repository is archived and read-only.\n", http.StatusForbidden)
+	default:
+		return true
+	}
+	return false
+}
+
 func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := strings.TrimSuffix(chi.URLParam(r, "repo"), ".git")
-
-	if !validGitName(owner) || !validGitName(repoName) {
-		http.Error(w, "invalid repository path", http.StatusBadRequest)
-		return
-	}
-
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repository not found", http.StatusNotFound)
-		return
-	}
 
 	svc := r.URL.Query().Get("service")
 	if svc != "git-upload-pack" && svc != "git-receive-pack" {
@@ -88,36 +129,12 @@ func (h *Handler) GitInfoRefs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gu, err := h.resolveGitUser(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+	repo, gu, ok := h.gitReadableRepo(w, r, owner, repoName)
+	if !ok {
 		return
 	}
-
-	if svc == "git-receive-pack" {
-		var uid *int64
-		if gu != nil {
-			uid = &gu.ID
-		}
-		if uid == nil || !h.Services.Repo.CanWrite(r.Context(), repo, *uid) {
-			w.Header().Set("WWW-Authenticate", `Basic realm="git"`)
-			http.Error(w, "access denied", http.StatusUnauthorized)
-			return
-		}
-		if repo.IsArchived {
-			http.Error(w, "Repository is archived and read-only.\n", http.StatusForbidden)
-			return
-		}
-	} else {
-		var uid *int64
-		if gu != nil {
-			uid = &gu.ID
-		}
-		if !h.Services.Repo.CanRead(r.Context(), repo, uid) {
-			w.Header().Set("WWW-Authenticate", `Basic realm="git"`)
-			http.Error(w, "access denied", http.StatusUnauthorized)
-			return
-		}
+	if svc == "git-receive-pack" && !h.gitCanPush(w, r, repo, gu) {
+		return
 	}
 
 	repoPath, err := service.RepoDir(h.Cfg.Git.ReposRoot, owner, repoName+".git")
@@ -184,29 +201,7 @@ func (h *Handler) GitUploadPack(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := strings.TrimSuffix(chi.URLParam(r, "repo"), ".git")
 
-	if !validGitName(owner) || !validGitName(repoName) {
-		http.Error(w, "invalid repository path", http.StatusBadRequest)
-		return
-	}
-
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repository not found", http.StatusNotFound)
-		return
-	}
-
-	gu, err := h.resolveGitUser(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
-		return
-	}
-	var userID *int64
-	if gu != nil {
-		userID = &gu.ID
-	}
-
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "access denied", http.StatusForbidden)
+	if _, _, ok := h.gitReadableRepo(w, r, owner, repoName); !ok {
 		return
 	}
 
@@ -274,30 +269,8 @@ func (h *Handler) GitReceivePack(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := strings.TrimSuffix(chi.URLParam(r, "repo"), ".git")
 
-	if !validGitName(owner) || !validGitName(repoName) {
-		http.Error(w, "invalid repository path", http.StatusBadRequest)
-		return
-	}
-
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		http.Error(w, "repository not found", http.StatusNotFound)
-		return
-	}
-
-	gu, err := h.resolveGitUser(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
-		return
-	}
-	if gu == nil || !h.Services.Repo.CanWrite(r.Context(), repo, gu.ID) {
-		w.Header().Set("WWW-Authenticate", `Basic realm="git"`)
-		http.Error(w, "access denied", http.StatusUnauthorized)
-		return
-	}
-
-	if repo.IsArchived {
-		http.Error(w, "Repository is archived and read-only.\n", http.StatusForbidden)
+	repo, gu, ok := h.gitReadableRepo(w, r, owner, repoName)
+	if !ok || !h.gitCanPush(w, r, repo, gu) {
 		return
 	}
 

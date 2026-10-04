@@ -90,11 +90,11 @@ func (e orgRepoEnv) gitRefs(t *testing.T, gitService, token string) (int, string
 // repo as missing for token's user.
 func (e orgRepoEnv) wantNoAccess(t *testing.T, token string) {
 	t.Helper()
-	if code, body := e.gitRefs(t, "git-upload-pack", token); code != http.StatusUnauthorized || strings.Contains(body, e.head) {
-		t.Errorf("git fetch: want 401 without the head, got %d (head advertised: %v)", code, strings.Contains(body, e.head))
+	if code, body := e.gitRefs(t, "git-upload-pack", token); code != http.StatusNotFound || strings.Contains(body, e.head) {
+		t.Errorf("git fetch: want 404 without the head, got %d (head advertised: %v)", code, strings.Contains(body, e.head))
 	}
-	if code, _ := e.gitRefs(t, "git-receive-pack", token); code != http.StatusUnauthorized {
-		t.Errorf("git push: want 401, got %d", code)
+	if code, _ := e.gitRefs(t, "git-receive-pack", token); code != http.StatusNotFound {
+		t.Errorf("git push: want 404, got %d", code)
 	}
 	if rr := requestAPI(e.router, http.MethodGet, e.repoPath, token); rr.Code != http.StatusNotFound {
 		t.Errorf("web page: want 404, got %d", rr.Code)
@@ -154,8 +154,8 @@ func TestOrgRepo_CreatorDemotedToMember_KeepsOnlyExplicitRole(t *testing.T) {
 	if code, body := env.gitRefs(t, "git-upload-pack", env.creator.token); code != http.StatusOK || !strings.Contains(body, env.head) {
 		t.Errorf("reader: want git fetch 200 with the head, got %d", code)
 	}
-	if code, _ := env.gitRefs(t, "git-receive-pack", env.creator.token); code != http.StatusUnauthorized {
-		t.Errorf("reader: want git push 401, got %d", code)
+	if code, _ := env.gitRefs(t, "git-receive-pack", env.creator.token); code != http.StatusForbidden {
+		t.Errorf("reader: want git push 403, got %d", code)
 	}
 	if rr := requestAPI(env.router, http.MethodPost, "/api/repos"+env.repoPath+"/archive", env.creator.token); rr.Code != http.StatusForbidden {
 		t.Errorf("reader: want archive 403, got %d", rr.Code)

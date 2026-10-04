@@ -163,9 +163,9 @@ func TestResolveGitUser_BasicAuth_CZPPrefix_InvalidToken_ReturnsNil(t *testing.T
 
 // --- GitInfoRefs access control integration tests ---
 
-// TestGitInfoRefs_UnknownRepo_404 verifies that requesting info/refs for a repository
-// that does not exist returns HTTP 404.
-func TestGitInfoRefs_UnknownRepo_404(t *testing.T) {
+// TestGitInfoRefs_UnknownRepo_NoAuth_401 verifies that an anonymous request for a
+// repository that does not exist gets the 401 challenge a private repository gets.
+func TestGitInfoRefs_UnknownRepo_NoAuth_401(t *testing.T) {
 	h, _ := newRealGitHandler(t)
 	router := gitInfoRefsRouter(h)
 
@@ -174,8 +174,8 @@ func TestGitInfoRefs_UnknownRepo_404(t *testing.T) {
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusNotFound {
-		t.Errorf("want 404, got %d: %s", rr.Code, rr.Body.String())
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("want 401, got %d: %s", rr.Code, rr.Body.String())
 	}
 }
 
