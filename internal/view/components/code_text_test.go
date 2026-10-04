@@ -59,6 +59,12 @@ func TestDiffCode(t *testing.T) {
 			t.Errorf("DiffCode = %q", got)
 		}
 	})
+	t.Run("highlighted context line carries the marker as text", func(t *testing.T) {
+		t.Parallel()
+		if got, want := renderToString(t, DiffCode("ctx", "int", hl)), " "+string(hl); got != want {
+			t.Errorf("DiffCode = %q, want %q", got, want)
+		}
+	})
 	t.Run("plain lines carry the marker as text", func(t *testing.T) {
 		t.Parallel()
 		for lineType, want := range map[string]string{"add": "+x&lt;y", "del": "-x&lt;y", "ctx": " x&lt;y"} {

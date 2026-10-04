@@ -54,7 +54,7 @@ func Settings(data view.SettingsData) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<section class=\"mb-8\" aria-labelledby=\"settings-title\"><h1 id=\"settings-title\" class=\"text-2xl font-semibold tracking-tight\">Account settings</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">Profile, security, access tokens, OAuth apps, notifications, and saved replies.</p></section>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<section class=\"mb-8\" aria-labelledby=\"settings-title\"><h1 id=\"settings-title\" class=\"text-2xl font-semibold tracking-tight\">Account settings</h1><p class=\"mt-1 text-[13px] text-muted-foreground\">Profile, appearance, security, access tokens, OAuth apps, notifications, and saved replies.</p></section>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

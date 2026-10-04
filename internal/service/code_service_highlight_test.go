@@ -3,8 +3,11 @@ package service
 import (
 	"strings"
 	"testing"
+	"time"
 
+	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	gitobj "github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // cSource opens a block comment early, so a hunk around line 6 starts inside it.
@@ -131,5 +134,95 @@ func TestHighlightDiffs_PullDiffWithNewFile(t *testing.T) {
 		if l.Content != "" && l.HTML == "" {
 			t.Errorf("added line %q has no HTML", l.Content)
 		}
+	}
+}
+
+func TestHighlightDiffs_DeletedFileTakesTheOldBlob(t *testing.T) {
+	t.Parallel()
+	svc, work, workDir, _ := mergeabilityTestRepo(t, "alice", "pulls")
+	renameDefaultToMain(t, work)
+	commitFile(t, work, workDir, "main.go", "package main\n\nfunc main() {}\n", "add")
+	wt, err := work.Worktree()
+	if err != nil {
+		t.Fatalf("worktree: %v", err)
+	}
+	if _, err := wt.Remove("main.go"); err != nil {
+		t.Fatalf("remove: %v", err)
+	}
+	sig := &gitobj.Signature{Name: "Tester", Email: "tester@example.com", When: time.Now().UTC()}
+	head, err := wt.Commit("delete", &gogit.CommitOptions{Author: sig, Committer: sig})
+	if err != nil {
+		t.Fatalf("commit delete: %v", err)
+	}
+	pushBranch(t, work, "main")
+
+	detail, err := svc.GetCommit("alice", "pulls", head.String())
+	if err != nil {
+		t.Fatalf("GetCommit: %v", err)
+	}
+	if len(detail.Files) != 1 || !detail.Files[0].IsDelete {
+		t.Fatalf("files = %+v, want one deleted file", detail.Files)
+	}
+	svc.HighlightDiffs("alice", "pulls", detail.Files)
+	for _, l := range detail.Files[0].Hunks[0].Lines {
+		if l.Type != "del" {
+			t.Errorf("line %q type = %s, want del", l.Content, l.Type)
+		}
+		if l.Content != "" && !strings.Contains(string(l.HTML), "<span") {
+			t.Errorf("deleted line %q HTML = %q, want token spans from the old blob", l.Content, l.HTML)
+		}
+	}
+}
+
+func TestHighlightDiffs_BinaryFileGetsNoHTML(t *testing.T) {
+	t.Parallel()
+	r := newPullRepo(t)
+	r.commit(t, "main", "blob.c", "int x;\x00\x01\n")
+	r.commit(t, "main", "blob.c", "int y;\x00\x02\n")
+	detail, err := r.svc.GetCommit("alice", "pulls", headOf(t, r, "main"))
+	if err != nil {
+		t.Fatalf("GetCommit: %v", err)
+	}
+	if len(detail.Files) != 1 || !detail.Files[0].IsBinary {
+		t.Fatalf("files = %+v, want one binary file", detail.Files)
+	}
+	r.svc.HighlightDiffs("alice", "pulls", detail.Files)
+	for _, h := range detail.Files[0].Hunks {
+		for _, l := range h.Lines {
+			if l.HTML != "" {
+				t.Errorf("binary line %q HTML = %q, want empty", l.Content, l.HTML)
+			}
+		}
+	}
+}
+
+// Wrapping the file in a comment shifts every context line down one, and only
+// the new side colors them as comment.
+func TestHighlightDiffs_ContextLinesUseTheNewSide(t *testing.T) {
+	t.Parallel()
+	const body = "int a;\nint b;\nint c;\n"
+	r := newPullRepo(t)
+	r.commit(t, "main", "main.c", body)
+	r.commit(t, "main", "main.c", "/*\n"+body+"*/\n")
+	detail, err := r.svc.GetCommit("alice", "pulls", headOf(t, r, "main"))
+	if err != nil {
+		t.Fatalf("GetCommit: %v", err)
+	}
+	r.svc.HighlightDiffs("alice", "pulls", detail.Files)
+	ctx := 0
+	for _, l := range detail.Files[0].Hunks[0].Lines {
+		if l.Type != "ctx" {
+			continue
+		}
+		ctx++
+		if l.OldNum == l.NewNum {
+			t.Errorf("ctx line %q has OldNum == NewNum == %d, want them shifted", l.Content, l.OldNum)
+		}
+		if !strings.Contains(string(l.HTML), `class="hl-cm"`) {
+			t.Errorf("ctx line %q HTML = %q, want the new side's comment span", l.Content, l.HTML)
+		}
+	}
+	if ctx != 3 {
+		t.Errorf("ctx lines = %d, want 3", ctx)
 	}
 }

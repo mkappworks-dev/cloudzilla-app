@@ -17,7 +17,7 @@ templ Settings(data view.SettingsData) {
 	@layout.Base(data.BasePage, "Account settings") {
 		<section class="mb-8" aria-labelledby="settings-title">
 			<h1 id="settings-title" class="text-2xl font-semibold tracking-tight">Account settings</h1>
-			<p class="mt-1 text-[13px] text-muted-foreground">Profile, security, access tokens, OAuth apps, notifications, and saved replies.</p>
+			<p class="mt-1 text-[13px] text-muted-foreground">Profile, appearance, security, access tokens, OAuth apps, notifications, and saved replies.</p>
 		</section>
 		if data.ProfileError != "" {
 			<div class="mb-6 border border-destructive/40 bg-destructive/10 text-destructive rounded-md px-4 py-2 text-[13px]">{ SettingsErrorMessage(data.ProfileError) }</div>

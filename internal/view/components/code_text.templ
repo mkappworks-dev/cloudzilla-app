@@ -12,10 +12,15 @@ templ CodeText(text string, html template.HTML) {
 
 // Highlighted code keeps the marker's add/delete color while its tokens take the code theme's.
 templ DiffCode(lineType, content string, html template.HTML) {
-	if html != "" {
-		<span class={ templ.KV("text-success", lineType == "add"), templ.KV("text-destructive", lineType == "del") }>{ diffMarker(lineType) }</span>@templ.Raw(string(html))
-	} else {
-		{ diffMarker(lineType) }{ content }
+	switch {
+		case html == "":
+			{ diffMarker(lineType) }{ content }
+		case lineType == "add":
+			<span class="text-success">+</span>@templ.Raw(string(html))
+		case lineType == "del":
+			<span class="text-destructive">-</span>@templ.Raw(string(html))
+		default:
+			{ diffMarker(lineType) }@templ.Raw(string(html))
 	}
 }
 
