@@ -723,6 +723,8 @@ func (h *Handler) PagePullFiles(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("pull files: get pull diff failed", "owner", owner, "repo", repoName, "pull_number", number, "error", err)
 		diff = &service.PRDiffResult{}
 		loadErrFiles = true
+	} else {
+		h.Services.Code.HighlightDiffs(owner, repoName, diff.Files)
 	}
 
 	// Anchor index must match the pr_files template's section id="diff-N" — both
