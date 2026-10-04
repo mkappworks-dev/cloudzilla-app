@@ -99,7 +99,7 @@ func openRepoAt(path string, err error) (*gogit.Repository, error) {
 // with: the branch or tag name, the full SHA, or HEAD's branch.
 // Priority: branch → tag → SHA → HEAD.
 // Returns ErrEmptyRepo if the repo has no commits.
-func (s *CodeService) ResolveRef(owner, repoName, ref string) (*object.Commit, string, error) {
+func (s *CodeService) ResolveRef(owner, repoName, ref string) (commit *object.Commit, displayRef string, err error) {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, "", err
