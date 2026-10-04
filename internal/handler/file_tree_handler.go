@@ -7,8 +7,10 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
 // Must match static/file_tree.js, which writes the cookie.
@@ -82,6 +84,9 @@ func (h *Handler) buildSidebarLevel(owner, repoName, ref, dirPath string, entrie
 			Href:     href,
 			IsActive: !e.IsDir && len(remainingPath) == 1 && e.Name == remainingPath[0],
 		}
+		if e.IsDir {
+			node.ChildrenURL = "/fragments/" + owner + "/" + repoName + "/tree/" + ref + "/" + entryPath
+		}
 		onPath := len(remainingPath) > 0 && e.Name == remainingPath[0]
 		if e.IsDir && (onPath || open[entryPath]) {
 			node.IsOpen = true
@@ -100,4 +105,27 @@ func (h *Handler) buildSidebarLevel(owner, repoName, ref, dirPath string, entrie
 		nodes = append(nodes, node)
 	}
 	return nodes
+}
+
+// FileTreeChildrenFragment renders a folder's entries for a file-tree folder
+// the page rendered closed.
+func (h *Handler) FileTreeChildrenFragment(w http.ResponseWriter, r *http.Request) {
+	owner := chi.URLParam(r, "owner")
+	repoName := chi.URLParam(r, "repo")
+	ref := chi.URLParam(r, "ref")
+	path := chi.URLParam(r, "*")
+	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
+		return
+	}
+	if path == "" {
+		writeError(w, http.StatusNotFound, "folder not found")
+		return
+	}
+	dir, err := h.Services.Code.GetTree(owner, repoName, ref, path)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "folder not found")
+		return
+	}
+	nodes := h.buildSidebarLevel(owner, repoName, ref, path, dir.Entries, nil, nil)
+	h.render(w, r, fragments.FileTreeChildren(nodes, strings.Count(path, "/")+1))
 }

@@ -150,3 +150,47 @@ func TestFileTree_KeepsRememberedFoldersOpen(t *testing.T) {
 		})
 	}
 }
+
+func TestFileTree_ClosedFoldersLoadTheirChildren(t *testing.T) {
+	h, r, _ := seedCodeRepo(t)
+	rr := getAnonymous(h, r.path+"/tree/main/lib")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	sidebar := fileTreeSidebar(t, rr.Body.String())
+	if want := `hx-get="/fragments` + r.path + `/tree/main/lib/util"`; !strings.Contains(sidebar, want) {
+		t.Errorf("closed folder lacks %q:\n%s", want, sidebar)
+	}
+	if strings.Contains(sidebar, `hx-get="/fragments`+r.path+`/tree/main/lib"`) {
+		t.Errorf("open folder must not fetch the children it already has:\n%s", sidebar)
+	}
+}
+
+func TestFileTreeChildrenFragment(t *testing.T) {
+	h, r, _ := seedCodeRepo(t)
+
+	rr := getAnonymous(h, "/fragments"+r.path+"/tree/main/lib")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	body := rr.Body.String()
+	for _, want := range []string{
+		`href="` + r.path + `/blob/main/lib/config.js"`,
+		`href="` + r.path + `/tree/main/lib/util"`,
+		`hx-get="/fragments` + r.path + `/tree/main/lib/util"`,
+		`padding-left: 20px`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("want %q in fragment:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, "<aside") {
+		t.Errorf("fragment must hold only the folder's items:\n%s", body)
+	}
+
+	for _, path := range []string{"/tree/main/README.md", "/tree/main/nope"} {
+		if rr := getAnonymous(h, "/fragments"+r.path+path); rr.Code != http.StatusNotFound {
+			t.Errorf("%s: want 404, got %d", path, rr.Code)
+		}
+	}
+}
