@@ -115,7 +115,7 @@ func resolveRef(repo *gogit.Repository, ref string) (*object.Commit, string, err
 		}
 		// Try tag
 		if tagRef, err := repo.Reference(plumbing.NewTagReferenceName(ref), true); err == nil {
-			if commit, err := repo.CommitObject(tagRef.Hash()); err == nil {
+			if commit, err := repo.CommitObject(peelTag(repo, tagRef.Hash())); err == nil {
 				return commit, ref, nil
 			}
 		}
@@ -154,6 +154,17 @@ func resolveRef(repo *gogit.Repository, ref string) (*object.Commit, string, err
 	}
 	displayRef := head.Name().Short()
 	return commit, displayRef, nil
+}
+
+// peelTag follows annotated tags to their target; a non-tag hash comes back unchanged, so a tag of a tree or blob still fails CommitObject.
+func peelTag(repo *gogit.Repository, h plumbing.Hash) plumbing.Hash {
+	for {
+		tag, err := repo.TagObject(h)
+		if err != nil {
+			return h
+		}
+		h = tag.Target
+	}
 }
 
 func buildBreadcrumbs(owner, repoName, ref, path string, isBlob bool) []BreadcrumbPart {

@@ -421,7 +421,7 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch)
+	result, err := h.Services.Code.ListRefsPeeled(owner, repoName, repo.DefaultBranch)
 	if err != nil {
 		h.NotFound(w, r)
 		return
