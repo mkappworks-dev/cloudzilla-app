@@ -22,7 +22,6 @@ func TestCodeBrowserPages_RefPickerListsOtherBranches(t *testing.T) {
 
 	for _, tt := range []struct{ page, want string }{
 		{"/tree/main", "/tree/feature"},
-		{"/tree/main/a.txt", "/tree/feature/a.txt"},
 		{"/blob/main/a.txt", "/blob/feature/a.txt"},
 		{"/blame/main/a.txt", "/blame/feature/a.txt"},
 	} {
@@ -48,7 +47,6 @@ func TestCodeBrowserRoutes_ResolveSlashNamedRefs(t *testing.T) {
 
 	for _, tt := range []struct{ page, want string }{
 		{"/tree/fix/render-cache", `aria-label="Switch branch or tag, current: fix/render-cache"`},
-		{"/tree/fix/render-cache/a.txt", `aria-label="Switch branch or tag, current: fix/render-cache"`},
 		{"/blob/fix/render-cache/a.txt", `aria-label="Switch branch or tag, current: fix/render-cache"`},
 		{"/blame/fix/render-cache/a.txt", `aria-label="Switch branch or tag, current: fix/render-cache"`},
 		{"/commits/fix/render-cache", `aria-label="Branches and tags, current: fix/render-cache"`},
@@ -64,7 +62,12 @@ func TestCodeBrowserRoutes_ResolveSlashNamedRefs(t *testing.T) {
 		}
 	}
 
-	rr := requestAPI(api, http.MethodGet, r.path+"/archive/fix/render-cache.zip", r.owner.token)
+	rr := requestAPI(api, http.MethodGet, r.path+"/tree/fix/render-cache/a.txt", r.owner.token)
+	if want := r.path + "/blob/fix/render-cache/a.txt"; rr.Code != http.StatusFound || rr.Header().Get("Location") != want {
+		t.Errorf("GET tree file: got %d %q, want 302 to %s", rr.Code, rr.Header().Get("Location"), want)
+	}
+
+	rr = requestAPI(api, http.MethodGet, r.path+"/archive/fix/render-cache.zip", r.owner.token)
 	if rr.Code != http.StatusOK || !strings.Contains(rr.Header().Get("Content-Disposition"), r.name+"-fix-render-cache.zip") {
 		t.Errorf("GET archive: status %d, Content-Disposition %q", rr.Code, rr.Header().Get("Content-Disposition"))
 	}
@@ -113,7 +116,6 @@ func TestCodeBrowserPages_AtACommitLinkToPagesThatResolve(t *testing.T) {
 	for _, page := range []string{
 		"/tree/" + sha,
 		"/tree/" + sha + "/lib",
-		"/tree/" + sha + "/lib/config.js",
 		"/blob/" + sha + "/lib/config.js",
 		"/blame/" + sha + "/lib/config.js",
 		"/commits/" + sha,
@@ -142,6 +144,11 @@ func TestCodeBrowserPages_AtACommitLinkToPagesThatResolve(t *testing.T) {
 				}
 			}
 		})
+	}
+
+	rr := requestAPI(api, http.MethodGet, r.path+"/tree/"+sha+"/lib/config.js", "")
+	if want := r.path + "/blob/" + sha + "/lib/config.js"; rr.Code != http.StatusFound || rr.Header().Get("Location") != want {
+		t.Errorf("tree URL of a file: got %d %q, want 302 to %s", rr.Code, rr.Header().Get("Location"), want)
 	}
 }
 

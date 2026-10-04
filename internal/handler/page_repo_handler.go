@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -452,77 +451,12 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	// and re-fetch them enriched with last-commit metadata below.
 	result, treeErr := h.Services.Code.GetTree(owner, repoName, ref, path)
 
-	// When GetTree fails on a non-empty path, the path may be a file rather
-	// than a directory. Try GetBlob and render the file inline in the tree page.
+	// A file path fails GetTree. 302, not 301: a later push can make it a directory.
 	if treeErr != nil && !errors.Is(treeErr, service.ErrEmptyRepo) && path != "" {
-		blobResult, blobErr := h.Services.Code.GetBlob(owner, repoName, ref, path)
-		if blobErr == nil {
-			slog.Debug("tree: fell back to blob render",
-				"owner", owner, "repo", repoName, "ref", ref, "path", path, "tree_err", treeErr)
-			parentPath := ""
-			fileName := path
-			if idx := strings.LastIndex(path, "/"); idx >= 0 {
-				parentPath = path[:idx]
-				fileName = path[idx+1:]
-			}
-
-			canWrite := userID != nil && h.Services.Repo.CanWrite(r.Context(), repo, *userID)
-			canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
-
-			var latestCommit view.TreeLatestCommit
-			last, lcErr := h.Services.Code.LastCommitForPath(r.Context(), owner, repoName, blobResult.Ref, blobResult.Path)
-			if lcErr != nil {
-				slog.Warn("tree: blob-fallback LastCommitForPath failed",
-					"owner", owner, "repo", repoName, "ref", blobResult.Ref, "path", blobResult.Path, "error", lcErr)
-			}
-			if lcErr == nil && last != nil {
-				full := last.Hash.String()
-				short := full
-				if len(short) > 7 {
-					short = short[:7]
-				}
-				latestCommit = view.TreeLatestCommit{
-					SHA:       short,
-					Message:   service.FirstLine(last.Message),
-					Author:    last.Author.Name,
-					AuthorURL: "/" + last.Author.Name,
-					CommitURL: "/" + owner + "/" + repoName + "/commit/" + full,
-					Timestamp: last.Author.When,
-				}
-			}
-
-			branches, tags := h.pickerRefs(owner, repoName, repo.DefaultBranch)
-			h.render(w, r, pages.Tree(view.TreeData{
-				BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
-				Repo:         *repo,
-				Owner:        owner,
-				RepoName:     repoName,
-				Ref:          blobResult.Ref,
-				Path:         blobResult.Path,
-				Breadcrumbs:  blobResult.Breadcrumbs,
-				RefsURL:      "/" + owner + "/" + repoName + "/refs",
-				Branches:     branches,
-				Tags:         tags,
-				CanManage:    canManage,
-				Sidebar:      h.buildSidebarTree(owner, repoName, blobResult.Ref, parentPath),
-				LatestCommit: latestCommit,
-				ActiveFile:   fileName,
-				FileView: &view.TreeFileView{
-					Lines:    blobResult.Lines,
-					IsBinary: blobResult.IsBinary,
-					Size:     blobResult.Size,
-					FileName: fileName,
-					BlameURL: blobResult.BlameURL,
-					RawURL:   "/" + owner + "/" + repoName + "/raw/" + blobResult.Ref + "/" + blobResult.Path,
-					EditURL:  "#",
-					CanWrite: canWrite,
-				},
-			}))
+		if _, blobErr := h.Services.Code.GetBlob(owner, repoName, ref, path); blobErr == nil {
+			http.Redirect(w, r, "/"+owner+"/"+repoName+"/blob/"+ref+"/"+path, http.StatusFound)
 			return
 		}
-		slog.Warn("tree: blob fallback also failed",
-			"owner", owner, "repo", repoName, "ref", ref, "path", path,
-			"tree_err", treeErr, "blob_err", blobErr)
 	}
 
 	if treeErr != nil {
@@ -573,20 +507,22 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	branches, tags := h.pickerRefs(owner, repoName, repo.DefaultBranch)
 
 	h.render(w, r, pages.Tree(view.TreeData{
-		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
-		Repo:         *repo,
-		Owner:        owner,
-		RepoName:     repoName,
-		Ref:          result.Ref,
-		Path:         result.Path,
-		Breadcrumbs:  result.Breadcrumbs,
-		Entries:      entries,
-		RefsURL:      "/" + owner + "/" + repoName + "/refs",
-		Branches:     branches,
-		Tags:         tags,
-		CanManage:    canManage,
-		Sidebar:      h.buildSidebarTree(owner, repoName, result.Ref, result.Path),
-		LatestCommit: latestCommit,
+		BasePage:      h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
+		Repo:          *repo,
+		Owner:         owner,
+		RepoName:      repoName,
+		Ref:           result.Ref,
+		Path:          result.Path,
+		Breadcrumbs:   result.Breadcrumbs,
+		Entries:       entries,
+		RefsURL:       "/" + owner + "/" + repoName + "/refs",
+		Branches:      branches,
+		Tags:          tags,
+		CanManage:     canManage,
+		Sidebar:       h.buildSidebarTree(owner, repoName, ref, result.Path, openTreeFolders(r)),
+		SidebarHidden: treeHidden(r),
+		ExpandAllURL:  expandAllURL(owner, repoName, ref, result.Path),
+		LatestCommit:  latestCommit,
 	}))
 }
 
@@ -639,24 +575,27 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 
 	branches, tags := h.pickerRefs(owner, repoName, repo.DefaultBranch)
 	h.render(w, r, pages.Blob(view.BlobData{
-		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
-		Repo:         *repo,
-		Owner:        owner,
-		RepoName:     repoName,
-		Ref:          result.Ref,
-		Path:         result.Path,
-		Breadcrumbs:  result.Breadcrumbs,
-		Branches:     branches,
-		Tags:         tags,
-		Lines:        result.Lines,
-		IsBinary:     result.IsBinary,
-		Size:         result.Size,
-		BlameURL:     result.BlameURL,
-		RawURL:       "/" + owner + "/" + repoName + "/raw/" + result.Ref + "/" + result.Path,
-		EditURL:      "#",
-		CanWrite:     canWrite,
-		CanManage:    canManage,
-		LatestCommit: latestCommit,
+		BasePage:      h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
+		Repo:          *repo,
+		Owner:         owner,
+		RepoName:      repoName,
+		Ref:           result.Ref,
+		Path:          result.Path,
+		Breadcrumbs:   result.Breadcrumbs,
+		Branches:      branches,
+		Tags:          tags,
+		Lines:         result.Lines,
+		IsBinary:      result.IsBinary,
+		Size:          result.Size,
+		BlameURL:      result.BlameURL,
+		RawURL:        "/" + owner + "/" + repoName + "/raw/" + result.Ref + "/" + result.Path,
+		EditURL:       "#",
+		CanWrite:      canWrite,
+		CanManage:     canManage,
+		Sidebar:       h.buildSidebarTree(owner, repoName, ref, result.Path, openTreeFolders(r)),
+		SidebarHidden: treeHidden(r),
+		ExpandAllURL:  expandAllURL(owner, repoName, ref, result.Path),
+		LatestCommit:  latestCommit,
 	}))
 }
 
@@ -815,50 +754,4 @@ func (h *Handler) pickerRefs(owner, repoName, defaultBranch string) ([]service.B
 		return nil, nil
 	}
 	return refs.Branches, refs.Tags
-}
-
-// buildSidebarTree returns the root tree with the path to currentPath expanded.
-func (h *Handler) buildSidebarTree(owner, repoName, ref, currentPath string) []components.TreeNode {
-	root, err := h.Services.Code.GetTree(owner, repoName, ref, "")
-	if err != nil {
-		slog.Warn("sidebar: root GetTree failed",
-			"owner", owner, "repo", repoName, "ref", ref, "error", err)
-		return nil
-	}
-	var segs []string
-	if currentPath != "" {
-		segs = strings.Split(currentPath, "/")
-	}
-	return h.buildSidebarLevel(owner, repoName, ref, "", root.Entries, segs)
-}
-
-// buildSidebarLevel recursively expands the directory matching remainingPath[0].
-func (h *Handler) buildSidebarLevel(owner, repoName, ref, dirPath string, entries []service.TreeEntry, remainingPath []string) []components.TreeNode {
-	nodes := make([]components.TreeNode, 0, len(entries))
-	for _, e := range entries {
-		var entryPath string
-		if dirPath == "" {
-			entryPath = e.Name
-		} else {
-			entryPath = dirPath + "/" + e.Name
-		}
-		kind := "tree"
-		if !e.IsDir {
-			kind = "blob"
-		}
-		href := "/" + owner + "/" + repoName + "/" + kind + "/" + ref + "/" + entryPath
-		node := components.TreeNode{Name: e.Name, IsDir: e.IsDir, Href: href}
-		if e.IsDir && len(remainingPath) > 0 && e.Name == remainingPath[0] {
-			node.IsOpen = true
-			child, err := h.Services.Code.GetTree(owner, repoName, ref, entryPath)
-			if err != nil {
-				slog.Warn("sidebar: child GetTree failed",
-					"owner", owner, "repo", repoName, "ref", ref, "path", entryPath, "error", err)
-			} else {
-				node.Children = h.buildSidebarLevel(owner, repoName, ref, entryPath, child.Entries, remainingPath[1:])
-			}
-		}
-		nodes = append(nodes, node)
-	}
-	return nodes
 }

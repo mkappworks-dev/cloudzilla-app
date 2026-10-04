@@ -510,6 +510,7 @@ func New(services *service.Services, cfg *config.Config, frontend fs.FS) (http.H
 	r.Route("/fragments", func(r chi.Router) {
 		r.Use(optAuthMW)
 		r.Get("/{owner}/{repo}/issues/{number}/comments", h.IssueCommentsFragment)
+		r.Get("/{owner}/{repo}/tree/{ref}/*", h.FileTreeChildrenFragment)
 	})
 
 	// Markdown preview for editor Preview tabs
