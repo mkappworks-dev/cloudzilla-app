@@ -1,4 +1,4 @@
-.PHONY: dev build migrate seed lint test test-db test-integration clean setup-tailwind setup-templ build-css generate-templ download-mermaid download-htmx docker-build docker-run docker-down
+.PHONY: dev build migrate seed lint test test-db test-integration clean setup-tailwind setup-templ build-css generate-templ generate-code-themes download-mermaid download-htmx docker-build docker-run docker-down
 
 BINARY := dist/cloudzilla
 GO := /usr/local/go/bin/go
@@ -35,6 +35,9 @@ setup-templ:                       ## Install the templ CLI
 
 generate-templ:                    ## Generate *_templ.go from *.templ files
 	~/go/bin/templ generate ./internal/view/...
+
+generate-code-themes:              ## Regenerate static/code-themes.css from internal/highlight
+	$(GO) run ./cmd/gen-code-themes
 
 download-mermaid:                  ## Download mermaid.min.js for self-hosting (one-time)
 	@mkdir -p cmd/server/frontend/static
