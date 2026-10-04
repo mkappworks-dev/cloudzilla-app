@@ -1,8 +1,10 @@
 package pages
 
 import (
+	"html/template"
 	"strings"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 )
 
@@ -109,6 +111,18 @@ func settingsNoticeMessage(code string) string {
 		return "Google account disconnected. Sign in with your password from now on."
 	}
 	return ""
+}
+
+const codeThemePreview = `// Greet welcomes name and counts their unread messages.
+func Greet(name string, unread int) string {
+	if name == "" {
+		return "Hello, world!"
+	}
+	return fmt.Sprintf("Hello, %s! You have %d new messages.", name, unread)
+}`
+
+func codeThemePreviewHTML() template.HTML {
+	return highlight.Block("go", "", codeThemePreview)
 }
 
 func avatarInitials(name, username string) string {

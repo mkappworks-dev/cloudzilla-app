@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -25,6 +26,7 @@ templ Settings(data view.SettingsData) {
 			<aside class="col-span-12 lg:col-span-3" aria-label="Settings sections">
 				<nav class="lg:sticky lg:top-4 flex flex-col gap-0.5 text-[13px]">
 					@settingsNavLink("#profile", "Profile", true)
+					@settingsNavLink("#appearance", "Appearance", false)
 					@settingsNavLink("#security", "Security", false)
 					@settingsNavLink("#ssh-keys", "SSH keys", false)
 					@settingsNavLink("#tokens", "Access tokens", false)
@@ -39,6 +41,7 @@ templ Settings(data view.SettingsData) {
 			</aside>
 			<div class="col-span-12 lg:col-span-9 space-y-8">
 				@settingsProfileSection(data)
+				@settingsAppearanceSection(data)
 				@settingsSecuritySection(data)
 				@settingsSSHKeysSection(data)
 				@settingsTokensSection(data)
@@ -145,6 +148,36 @@ templ settingsProfileSection(data view.SettingsData) {
 			</div>
 		</form>
 	</section>
+}
+
+templ settingsAppearanceSection(data view.SettingsData) {
+	<section id="appearance" class="border border-border rounded-lg bg-card p-6 scroll-mt-6">
+		<h2 class="text-base font-semibold tracking-tight mb-1">Appearance</h2>
+		<p class="text-[12.5px] text-muted-foreground mb-6">Colors for code in files, diffs and Markdown. The preview follows the site theme; toggle it to preview the other mode. Changes save automatically.</p>
+		<form
+			hx-post="/settings/appearance"
+			hx-trigger="change"
+			hx-swap="none"
+			data-toast="Code theme saved"
+		>
+			@settingsCodeThemeSelect("code_theme_light", "Light mode code theme", "codeLight", highlight.LightThemes(), highlight.NormalizeLight(data.User.CodeThemeLight))
+			@settingsCodeThemeSelect("code_theme_dark", "Dark mode code theme", "codeDark", highlight.DarkThemes(), highlight.NormalizeDark(data.User.CodeThemeDark))
+		</form>
+		<pre class="hl mt-4 rounded-md border border-border px-4 py-3 font-mono text-[12.5px] leading-[1.6] overflow-x-auto"><code>@templ.Raw(string(codeThemePreviewHTML()))</code></pre>
+	</section>
+}
+
+templ settingsCodeThemeSelect(name, label, dataKey string, themes []highlight.Theme, selected string) {
+	<div class="flex items-center justify-between gap-4 py-3 border-b border-border last:border-b-0">
+		<label for={ name } class="block text-sm font-medium text-foreground">{ label }</label>
+		<div class="w-48 shrink-0">
+			@components.Select(templ.Attributes{"id": name, "name": name, "onchange": "document.documentElement.dataset." + dataKey + " = this.value"}) {
+				for _, t := range themes {
+					<option value={ t.ID } selected?={ t.ID == selected }>{ t.Name }</option>
+				}
+			}
+		</div>
+	</div>
 }
 
 templ settingsSecuritySection(data view.SettingsData) {

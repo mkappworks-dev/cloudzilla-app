@@ -3,6 +3,7 @@ package router_test
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -40,5 +41,42 @@ func assertCodeThemes(t *testing.T, body, light, dark string) {
 	want := `data-code-light="` + light + `" data-code-dark="` + dark + `"`
 	if !strings.Contains(body, want) {
 		t.Errorf("<html> lacks %s", want)
+	}
+}
+
+func TestAppearanceSettings_SavesAndShowsTheThemes(t *testing.T) {
+	h, svc, db := newVerificationRouter(t, config.SMTPConfig{})
+	suffix := testutil.UniqueSuffix(t)
+	userID := testutil.SeedUser(t, db, suffix)
+	session := makeJWT(t, userID, "testuser_"+suffix)
+
+	req := browserRequest(http.MethodPost, "/settings/appearance", session,
+		url.Values{"code_theme_light": {"gruvbox-light"}, "code_theme_dark": {"nord"}})
+	req.Header.Set("HX-Request", "true")
+	if rr := serve(h, req); rr.Code != http.StatusNoContent {
+		t.Fatalf("POST /settings/appearance = %d, want 204", rr.Code)
+	}
+	light, dark, err := svc.User.CodeThemes(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("CodeThemes: %v", err)
+	}
+	if light != "gruvbox-light" || dark != "nord" {
+		t.Errorf("saved %q/%q, want gruvbox-light/nord", light, dark)
+	}
+
+	rr := serve(h, browserRequest(http.MethodGet, "/settings", session, nil))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /settings = %d, want 200", rr.Code)
+	}
+	body := rr.Body.String()
+	for _, want := range []string{
+		`id="appearance"`,
+		`<option value="gruvbox-light" selected`,
+		`<option value="nord" selected`,
+		`class="hl-`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("settings page lacks %q", want)
+		}
 	}
 }
