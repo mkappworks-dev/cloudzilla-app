@@ -1,8 +1,10 @@
 package handler_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -15,7 +17,8 @@ import (
 )
 
 // seedCodeRepo commits README.md at the root and in lib/, so a sidebar that
-// matched the active file by name would mark both.
+// matched the active file by name would mark both, and lib/util/helper.js for
+// a folder inside a folder.
 func seedCodeRepo(t *testing.T) (http.Handler, seededRepo, string) {
 	t.Helper()
 	db := testutil.OpenTestDB(t)
@@ -26,7 +29,7 @@ func seedCodeRepo(t *testing.T) (http.Handler, seededRepo, string) {
 		t.Fatalf("init bare repo: %v", err)
 	}
 	code := service.NewCodeService(config.GitConfig{ReposRoot: reposRoot})
-	for _, path := range []string{"README.md", "lib/README.md", "lib/config.js"} {
+	for _, path := range []string{"README.md", "lib/README.md", "lib/config.js", "lib/util/helper.js"} {
 		if err := code.CommitFile(r.owner.name, r.name, "main", path, []byte("x\n"), raceAuthor, "Add "+path); err != nil {
 			t.Fatalf("commit %s: %v", path, err)
 		}
@@ -103,5 +106,47 @@ func TestPageTree_RedirectsAFileToItsBlobPage(t *testing.T) {
 	rr := getAnonymous(h, r.path+"/tree/main/lib/config.js")
 	if want := r.path + "/blob/main/lib/config.js"; rr.Code != http.StatusFound || rr.Header().Get("Location") != want {
 		t.Errorf("want 302 to %s, got %d to %q", want, rr.Code, rr.Header().Get("Location"))
+	}
+}
+
+func openFoldersCookie(folders ...string) string {
+	b, _ := json.Marshal(folders)
+	return url.PathEscape(string(b))
+}
+
+func getWithOpenFolders(h http.Handler, path, cookie string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodGet, path, nil)
+	req.AddCookie(&http.Cookie{Name: "cz_tree_open", Value: cookie})
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+	return rr
+}
+
+func TestFileTree_KeepsRememberedFoldersOpen(t *testing.T) {
+	h, r, _ := seedCodeRepo(t)
+	tests := []struct {
+		name, cookie      string
+		libOpen, utilOpen bool
+	}{
+		{"remembered folder", openFoldersCookie("lib"), true, false},
+		{"remembered subfolder under a closed folder", openFoldersCookie("lib/util"), false, false},
+		{"remembered folder and subfolder", openFoldersCookie("lib", "lib/util"), true, true},
+		{"unescapable cookie", "%zz", false, false},
+		{"cookie that isn't JSON", "not-json", false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := getWithOpenFolders(h, r.path+"/blob/main/README.md", tt.cookie)
+			if rr.Code != http.StatusOK {
+				t.Fatalf("want 200, got %d: %s", rr.Code, rr.Body.String())
+			}
+			sidebar := fileTreeSidebar(t, rr.Body.String())
+			if got := strings.Contains(sidebar, `/lib/config.js"`); got != tt.libOpen {
+				t.Errorf("lib/ children listed = %v, want %v:\n%s", got, tt.libOpen, sidebar)
+			}
+			if got := strings.Contains(sidebar, `/lib/util/helper.js"`); got != tt.utilOpen {
+				t.Errorf("lib/util/ children listed = %v, want %v:\n%s", got, tt.utilOpen, sidebar)
+			}
+		})
 	}
 }

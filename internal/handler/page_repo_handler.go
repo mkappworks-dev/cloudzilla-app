@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -539,7 +538,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		Entries:      entries,
 		RefsURL:      "/" + owner + "/" + repoName + "/refs",
 		CanManage:    canManage,
-		Sidebar:      h.buildSidebarTree(owner, repoName, ref, result.Path),
+		Sidebar:      h.buildSidebarTree(owner, repoName, ref, result.Path, openTreeFolders(r)),
 		LatestCommit: latestCommit,
 	}))
 }
@@ -617,7 +616,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		EditURL:      "#",
 		CanWrite:     canWrite,
 		CanManage:    canManage,
-		Sidebar:      h.buildSidebarTree(owner, repoName, ref, result.Path),
+		Sidebar:      h.buildSidebarTree(owner, repoName, ref, result.Path, openTreeFolders(r)),
 		LatestCommit: latestCommit,
 	}))
 }
@@ -782,57 +781,4 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 		Contributors: len(authors),
 		CanManage:    canManage,
 	}))
-}
-
-// buildSidebarTree returns the root tree with the folders along path expanded
-// and, when path is a file, that file marked active. Pass the requested ref,
-// not a result's display Ref, which shortens a SHA past resolving.
-func (h *Handler) buildSidebarTree(owner, repoName, ref, path string) []components.TreeNode {
-	root, err := h.Services.Code.GetTree(owner, repoName, ref, "")
-	if err != nil {
-		slog.Warn("sidebar: root GetTree failed",
-			"owner", owner, "repo", repoName, "ref", ref, "error", err)
-		return nil
-	}
-	var segs []string
-	if path != "" {
-		segs = strings.Split(path, "/")
-	}
-	return h.buildSidebarLevel(owner, repoName, ref, "", root.Entries, segs)
-}
-
-// buildSidebarLevel recursively expands the directory matching remainingPath[0].
-func (h *Handler) buildSidebarLevel(owner, repoName, ref, dirPath string, entries []service.TreeEntry, remainingPath []string) []components.TreeNode {
-	nodes := make([]components.TreeNode, 0, len(entries))
-	for _, e := range entries {
-		var entryPath string
-		if dirPath == "" {
-			entryPath = e.Name
-		} else {
-			entryPath = dirPath + "/" + e.Name
-		}
-		kind := "tree"
-		if !e.IsDir {
-			kind = "blob"
-		}
-		href := "/" + owner + "/" + repoName + "/" + kind + "/" + ref + "/" + entryPath
-		node := components.TreeNode{
-			Name:     e.Name,
-			IsDir:    e.IsDir,
-			Href:     href,
-			IsActive: !e.IsDir && len(remainingPath) == 1 && e.Name == remainingPath[0],
-		}
-		if e.IsDir && len(remainingPath) > 0 && e.Name == remainingPath[0] {
-			node.IsOpen = true
-			child, err := h.Services.Code.GetTree(owner, repoName, ref, entryPath)
-			if err != nil {
-				slog.Warn("sidebar: child GetTree failed",
-					"owner", owner, "repo", repoName, "ref", ref, "path", entryPath, "error", err)
-			} else {
-				node.Children = h.buildSidebarLevel(owner, repoName, ref, entryPath, child.Entries, remainingPath[1:])
-			}
-		}
-		nodes = append(nodes, node)
-	}
-	return nodes
 }
