@@ -81,6 +81,38 @@ func (s *CodeService) ListRefs(owner, repoName, defaultBranch string) (*RefsResu
 	return &RefsResult{Branches: branches, Tags: tags}, nil
 }
 
+// SplitRefPath splits a URL's "<ref>/<path>" tail, where a ref like feature/x
+// spans several segments. The longest branch or tag ending at a segment
+// boundary wins; otherwise the first segment is the ref, so SHAs and unknown
+// refs resolve (or fail) as before.
+func (s *CodeService) SplitRefPath(owner, repoName, refPath string) (ref, path string) {
+	ref, path, _ = strings.Cut(refPath, "/")
+	if path == "" {
+		return ref, path
+	}
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return ref, path
+	}
+	iter, err := repo.References()
+	if err != nil {
+		return ref, path
+	}
+	_ = iter.ForEach(func(r *plumbing.Reference) error {
+		name := r.Name()
+		if !name.IsBranch() && !name.IsTag() {
+			return nil
+		}
+		short := name.Short()
+		if len(short) > len(ref) && (refPath == short || strings.HasPrefix(refPath, short+"/")) {
+			ref = short
+			path = strings.TrimPrefix(refPath[len(short):], "/")
+		}
+		return nil
+	})
+	return ref, path
+}
+
 // GetIssueTemplates reads .github/ISSUE_TEMPLATE/*.md from the default branch.
 // Falls back to .github/ISSUE_TEMPLATE.md if the directory is absent.
 // Returns nil (not an error) if no templates exist.

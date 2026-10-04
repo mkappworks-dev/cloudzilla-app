@@ -27,15 +27,13 @@ templ Tree(data view.TreeData) {
 					}
 				</h1>
 				<div class="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-					@components.LinkButton(data.RefsURL, components.ButtonOutline, components.ButtonSizeSM, templ.Attributes{"aria-label": "Browse branches and tags, current: " + data.Ref}) {
-						<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
-							<circle cx="6" cy="3" r="3"></circle>
-							<circle cx="18" cy="3" r="3"></circle>
-							<circle cx="12" cy="21" r="3"></circle>
-							<path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path>
-						</svg>
-						<span class="font-medium">{ data.Ref }</span>
-					}
+					@components.RefPicker(components.RefPickerProps{
+						Current:  data.Ref,
+						Branches: data.Branches,
+						Tags:     data.Tags,
+						Href:     codeRefHref(data.Owner, data.RepoName, "tree", data.Path),
+						RefsURL:  data.RefsURL,
+					})
 					if data.Path != "" {
 						<span aria-hidden="true">·</span>
 						<span class="font-mono">{ data.Path }</span>
