@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -40,7 +41,7 @@ func (h *Handler) ForkRepo(w http.ResponseWriter, r *http.Request) {
 	isJSON := strings.HasPrefix(r.Header.Get("Content-Type"), "application/json")
 	var req forkRepoRequest
 	if isJSON {
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}

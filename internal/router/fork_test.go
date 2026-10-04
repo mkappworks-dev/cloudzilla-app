@@ -107,6 +107,26 @@ func TestForkAPI_AFormPostForksIntoTheCallersAccount(t *testing.T) {
 	}
 }
 
+func TestForkAPI_AnEmptyJSONBodyForksWithTheDefaults(t *testing.T) {
+	e := newForkEnv(t, config.SMTPConfig{})
+
+	rr := serve(e.h, jsonPost(e.forkURL(), makeJWT(t, e.userID, e.user), ""))
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("got %d %s, want 201", rr.Code, rr.Body)
+	}
+	var got struct{ URL string }
+	if err := json.Unmarshal(rr.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decode %s: %v", rr.Body, err)
+	}
+	if got.URL != "/"+e.user+"/src" {
+		t.Errorf("url = %q, want /%s/src", got.URL, e.user)
+	}
+	if _, err := e.svc.Repo.Get(context.Background(), e.user, "src"); err != nil {
+		t.Errorf("fork not created in the caller's account: %v", err)
+	}
+}
+
 func TestForkAPI_Refusals(t *testing.T) {
 	e := newForkEnv(t, config.SMTPConfig{})
 	if _, err := e.svc.Repo.Create(context.Background(), e.userID, e.user, "taken", "", false, service.RepoInitOptions{}); err != nil {
