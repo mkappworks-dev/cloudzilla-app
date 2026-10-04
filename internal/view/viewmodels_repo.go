@@ -76,7 +76,7 @@ type RepoForkData struct {
 	SourceName    string
 	Description   string
 	Private       bool
-	DefaultBranch string   // "" when the source has no commits: nothing to prune
+	DefaultBranch string   // "" unless that branch exists: otherwise there is nothing to prune to
 	Owners        []string // namespaces the fork may land in; empty when none qualifies
 	ExistingForks []RepoRef
 }

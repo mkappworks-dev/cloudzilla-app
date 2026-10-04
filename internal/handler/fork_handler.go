@@ -37,10 +37,10 @@ func (h *Handler) ForkRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Any other body, such as the button's old empty form post, means "fork as before".
-	isJSON := strings.HasPrefix(r.Header.Get("Content-Type"), "application/json")
+	// A non-JSON body means "fork with the defaults", so form and htmx callers keep working.
+	jsonBody := isJSON(r)
 	var req forkRepoRequest
-	if isJSON {
+	if jsonBody {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
@@ -61,7 +61,7 @@ func (h *Handler) ForkRepo(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, service.ErrForbidden):
 		writeError(w, http.StatusForbidden, "you can fork only into your account or an organization you own")
 		return
-	case errors.Is(err, service.ErrForkIntoSourceOwner),
+	case errors.Is(err, service.ErrForkIntoSourceOwner), errors.Is(err, service.ErrForkDefaultBranchMissing),
 		errors.Is(err, service.ErrRepoNameTaken), errors.Is(err, service.ErrRepoNameReserved):
 		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
@@ -83,7 +83,7 @@ func (h *Handler) ForkRepo(w http.ResponseWriter, r *http.Request) {
 
 	dest := "/" + forked.OwnerName + "/" + forked.Name
 	switch {
-	case isJSON:
+	case jsonBody:
 		writeJSON(w, http.StatusCreated, map[string]string{"owner": forked.OwnerName, "name": forked.Name, "url": dest})
 	case r.Header.Get("HX-Request") == "true":
 		w.Header().Set("HX-Redirect", dest)

@@ -47,7 +47,7 @@ func (h *Handler) PageForkRepo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var defaultBranch string
-	if _, _, err := h.Services.Code.ResolveRef(repo.OwnerName, repo.Name, repo.DefaultBranch); err == nil {
+	if h.Services.Code.HasBranch(repo.OwnerName, repo.Name, repo.DefaultBranch) {
 		defaultBranch = repo.DefaultBranch
 	}
 

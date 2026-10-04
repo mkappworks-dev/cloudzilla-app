@@ -81,6 +81,16 @@ func (s *CodeService) ListRefs(owner, repoName, defaultBranch string) (*RefsResu
 	return &RefsResult{Branches: branches, Tags: tags}, nil
 }
 
+// HasBranch reports whether name is a branch; unlike ResolveRef, a tag or SHA doesn't count.
+func (s *CodeService) HasBranch(owner, repoName, name string) bool {
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return false
+	}
+	_, err = repo.Reference(plumbing.NewBranchReferenceName(name), true)
+	return err == nil
+}
+
 // GetIssueTemplates reads .github/ISSUE_TEMPLATE/*.md from the default branch.
 // Falls back to .github/ISSUE_TEMPLATE.md if the directory is absent.
 // Returns nil (not an error) if no templates exist.

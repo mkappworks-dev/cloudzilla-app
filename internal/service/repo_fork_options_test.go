@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/fs"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	gogit "github.com/go-git/go-git/v5"
@@ -197,6 +198,131 @@ func TestRepoService_Fork_DefaultBranchOnly(t *testing.T) {
 	}
 }
 
+// A source's settings can name any default branch, and HEAD doesn't follow.
+func TestRepoService_Fork_DefaultBranchOnly_FollowsTheSettingsDefault(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	ownerID, owner := env.seedUser(t)
+	userID, user := env.seedUser(t)
+	orig, err := env.repos.Create(ctx, ownerID, owner, "upstream", "", false, service.RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatalf("create original: %v", err)
+	}
+	if err := env.code.CreateBranch(owner, "upstream", "develop", "main"); err != nil {
+		t.Fatalf("create branch: %v", err)
+	}
+	if err := env.code.CommitFile(owner, "upstream", "develop", "NOTES.md", []byte("develop only"), dirsTestAuthor, "work on develop"); err != nil {
+		t.Fatalf("commit on develop: %v", err)
+	}
+	if err := env.code.CreateTag(owner, "upstream", "v1", "main"); err != nil {
+		t.Fatalf("create tag: %v", err)
+	}
+	if err := env.repos.UpdateGeneral(ctx, orig.ID, ownerID, "", "", "develop"); err != nil {
+		t.Fatalf("set default branch: %v", err)
+	}
+
+	if _, err := env.repos.Fork(ctx, owner, "upstream", userID, user, service.ForkOptions{DefaultBranchOnly: true}); err != nil {
+		t.Fatalf("Fork: %v", err)
+	}
+
+	forkDir, _ := env.dirs(user, "upstream")
+	got := refNames(t, forkDir)
+	if len(got) != 2 || !slices.Contains(got, "refs/heads/develop") || !slices.Contains(got, "refs/tags/v1") {
+		t.Errorf("fork refs = %v, want refs/heads/develop and refs/tags/v1", got)
+	}
+	repo, err := gogit.PlainOpen(forkDir)
+	if err != nil {
+		t.Fatalf("open fork: %v", err)
+	}
+	head, err := repo.Storer.Reference(plumbing.HEAD)
+	if err != nil || head.Target() != plumbing.NewBranchReferenceName("develop") {
+		t.Errorf("fork HEAD = %v (%v), want a symbolic ref to refs/heads/develop", head, err)
+	}
+	develop, err := repo.Reference(plumbing.NewBranchReferenceName("develop"), true)
+	if err != nil {
+		t.Fatalf("develop in fork: %v", err)
+	}
+	if got := headOf(t, forkDir); got != develop.Hash().String() {
+		t.Errorf("fork HEAD resolves to %s, want develop at %s", got, develop.Hash())
+	}
+}
+
+func TestRepoService_Fork_DefaultBranchOnly_RefusesAMissingDefaultBranch(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	ownerID, owner := env.seedUser(t)
+	userID, user := env.seedUser(t)
+	orig, err := env.repos.Create(ctx, ownerID, owner, "upstream", "", false, service.RepoInitOptions{AddREADME: true})
+	if err != nil {
+		t.Fatalf("create original: %v", err)
+	}
+	if err := env.repos.UpdateGeneral(ctx, orig.ID, ownerID, "", "", "gone"); err != nil {
+		t.Fatalf("set default branch: %v", err)
+	}
+
+	_, err = env.repos.Fork(ctx, owner, "upstream", userID, user, service.ForkOptions{DefaultBranchOnly: true})
+
+	if !errors.Is(err, service.ErrForkDefaultBranchMissing) {
+		t.Fatalf("want ErrForkDefaultBranchMissing, got %v", err)
+	}
+	if err != service.ErrForkDefaultBranchMissing {
+		t.Errorf("error = %q, want the sentinel's own sentence", err)
+	}
+	forkDir, _ := env.dirs(user, "upstream")
+	if n := env.rowCount(t, user, "upstream"); n != 0 || pathExists(forkDir) {
+		t.Errorf("refused fork left %d rows, dir exists %v", n, pathExists(forkDir))
+	}
+	reread, err := env.repos.Get(ctx, owner, "upstream")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reread.ForkCount != 0 {
+		t.Errorf("fork count = %d, want 0", reread.ForkCount)
+	}
+	if _, err := env.repos.Fork(ctx, owner, "upstream", userID, user, service.ForkOptions{}); err != nil {
+		t.Errorf("a full fork of the same source after the refusal: %v", err)
+	}
+}
+
+func TestRepoService_Fork_DefaultBranchOnly_OfAnEmptySource(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ctx := context.Background()
+	ownerID, owner := env.seedUser(t)
+	userID, user := env.seedUser(t)
+	if _, err := env.repos.Create(ctx, ownerID, owner, "upstream", "", false, service.RepoInitOptions{}); err != nil {
+		t.Fatalf("create original: %v", err)
+	}
+
+	if _, err := env.repos.Fork(ctx, owner, "upstream", userID, user, service.ForkOptions{DefaultBranchOnly: true}); err != nil {
+		t.Fatalf("Fork: %v", err)
+	}
+
+	forkDir, _ := env.dirs(user, "upstream")
+	if got := refNames(t, forkDir); len(got) != 0 {
+		t.Errorf("fork of an empty source has refs %v", got)
+	}
+}
+
+func TestCodeService_HasBranch(t *testing.T) {
+	env := newRepoDirsEnv(t)
+	ownerID, owner := env.seedUser(t)
+	if _, err := env.repos.Create(context.Background(), ownerID, owner, "upstream", "", false, service.RepoInitOptions{AddREADME: true}); err != nil {
+		t.Fatalf("create original: %v", err)
+	}
+	if err := env.code.CreateTag(owner, "upstream", "v1", "main"); err != nil {
+		t.Fatalf("create tag: %v", err)
+	}
+
+	for name, want := range map[string]bool{"main": true, "v1": false, "gone": false, "": false} {
+		if got := env.code.HasBranch(owner, "upstream", name); got != want {
+			t.Errorf("HasBranch(%q) = %v, want %v", name, got, want)
+		}
+	}
+	if env.code.HasBranch(owner, "missing", "main") {
+		t.Error("HasBranch of a missing repo = true")
+	}
+}
+
 // packRefs leaves the branches only in packed-refs, so the fork prunes a
 // source with no loose ref files.
 func packRefs(t *testing.T, gitDir string) {
@@ -268,6 +394,15 @@ func TestRepoService_ForksOwnedBy(t *testing.T) {
 	gone := fork(userID, user, "", "gone")
 	if err := env.repos.Delete(ctx, gone.ID, userID); err != nil {
 		t.Fatalf("delete: %v", err)
+	}
+	if _, err := env.repos.Create(ctx, userID, user, "plain", "", false, service.RepoInitOptions{AddREADME: true}); err != nil {
+		t.Fatalf("create plain repo: %v", err)
+	}
+	if _, err := env.repos.Create(ctx, otherID, other, "elsewhere-upstream", "", false, service.RepoInitOptions{AddREADME: true}); err != nil {
+		t.Fatalf("create other upstream: %v", err)
+	}
+	if _, err := env.repos.Fork(ctx, other, "elsewhere-upstream", userID, user, service.ForkOptions{Name: "of-another"}); err != nil {
+		t.Fatalf("fork another upstream: %v", err)
 	}
 
 	got, err := env.repos.ForksOwnedBy(ctx, orig.ID, userID)

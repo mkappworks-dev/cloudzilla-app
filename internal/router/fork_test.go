@@ -127,6 +127,22 @@ func TestForkAPI_AnEmptyJSONBodyForksWithTheDefaults(t *testing.T) {
 	}
 }
 
+func TestForkAPI_JSONMediaTypeIsCaseInsensitiveAndMayCarryParameters(t *testing.T) {
+	e := newForkEnv(t, config.SMTPConfig{})
+	org := e.org(t, e.userID)
+	req := jsonPost(e.forkURL(), makeJWT(t, e.userID, e.user), `{"owner":"`+org.Name+`","name":"copy"}`)
+	req.Header.Set("Content-Type", "Application/JSON; charset=utf-8")
+
+	rr := serve(e.h, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("got %d %s, want 201", rr.Code, rr.Body)
+	}
+	if _, err := e.svc.Repo.Get(context.Background(), org.Name, "copy"); err != nil {
+		t.Errorf("the body's owner and name were ignored: %v", err)
+	}
+}
+
 func TestForkAPI_Refusals(t *testing.T) {
 	e := newForkEnv(t, config.SMTPConfig{})
 	if _, err := e.svc.Repo.Create(context.Background(), e.userID, e.user, "taken", "", false, service.RepoInitOptions{}); err != nil {
@@ -154,6 +170,27 @@ func TestForkAPI_Refusals(t *testing.T) {
 	}
 	if n := countRows(t, e.db, `SELECT COUNT(*) FROM repositories WHERE is_fork AND (owner_name = $1 OR owner_name = $2 OR owner_name = $3)`, e.owner, e.user, stranger.Name); n != 0 {
 		t.Errorf("%d forks created by refused requests", n)
+	}
+}
+
+func TestForkAPI_DefaultBranchOnlyRefusesAMissingDefaultBranch(t *testing.T) {
+	e := newForkEnv(t, config.SMTPConfig{})
+	ctx := context.Background()
+	src, err := e.svc.Repo.Get(ctx, e.owner, "src")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.svc.Repo.UpdateGeneral(ctx, src.ID, e.ownerID, "", "", "gone"); err != nil {
+		t.Fatalf("set default branch: %v", err)
+	}
+
+	rr := serve(e.h, jsonPost(e.forkURL(), makeJWT(t, e.userID, e.user), `{"default_branch_only":true}`))
+
+	if rr.Code != http.StatusUnprocessableEntity || !strings.Contains(rr.Body.String(), "the default branch doesn't exist, so it can't be the only branch copied") {
+		t.Errorf("got %d %s, want 422 with the default-branch sentence", rr.Code, rr.Body)
+	}
+	if n := countRows(t, e.db, `SELECT COUNT(*) FROM repositories WHERE is_fork AND owner_name = $1`, e.user); n != 0 {
+		t.Errorf("%d forks created by the refused request", n)
 	}
 }
 
@@ -252,6 +289,44 @@ func TestForkPage(t *testing.T) {
 	}
 	if rr := get("/"+e.owner+"/secret/fork", asUser); rr.Code != http.StatusNotFound {
 		t.Errorf("a private repo the viewer can't read: got %d, want 404", rr.Code)
+	}
+}
+
+// Settings accept any string as the default branch, and ResolveRef also
+// resolves tags, so the page must ask whether a branch of that name exists.
+func TestForkPage_OffersDefaultBranchOnlyForARealBranch(t *testing.T) {
+	e := newForkEnv(t, config.SMTPConfig{})
+	ctx := context.Background()
+	src, err := e.svc.Repo.Get(ctx, e.owner, "src")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := e.svc.Code.CreateTag(e.owner, "src", "v1", "main"); err != nil {
+		t.Fatalf("create tag: %v", err)
+	}
+	if err := e.svc.Code.CreateBranch(e.owner, "src", "develop", "main"); err != nil {
+		t.Fatalf("create branch: %v", err)
+	}
+	asUser := makeJWT(t, e.userID, e.user)
+
+	for _, c := range []struct {
+		name, setting string
+		want          bool
+	}{
+		{"a branch", "develop", true},
+		{"a tag", "v1", false},
+		{"no such ref", "gone", false},
+	} {
+		if err := e.svc.Repo.UpdateGeneral(ctx, src.ID, e.ownerID, "", "", c.setting); err != nil {
+			t.Fatalf("set default branch: %v", err)
+		}
+		rr := serve(e.h, browserRequest(http.MethodGet, "/"+e.owner+"/src/fork", asUser, nil))
+		if rr.Code != http.StatusOK {
+			t.Fatalf("%s: got %d", c.name, rr.Code)
+		}
+		if got := strings.Contains(rr.Body.String(), `id="fork-default-branch-only"`); got != c.want {
+			t.Errorf("default branch is %s: checkbox shown = %v, want %v", c.name, got, c.want)
+		}
 	}
 }
 

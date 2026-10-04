@@ -696,16 +696,17 @@ func (s *RepoService) checkAdminRoleChange(ctx context.Context, repo *model.Repo
 // source: that would be a plain copy, which GitHub refuses too.
 var ErrForkIntoSourceOwner = errors.New("a repository can't be forked into the account or organization that owns it")
 
-// ForkOptions shape a fork. The zero value forks into the actor's account
-// under the source's name, suffixed -1, -2, … while taken, with every branch.
+// ErrForkDefaultBranchMissing refuses a default-branch-only fork whose source
+// names a default branch that isn't one of its branches; settings accept any string.
+var ErrForkDefaultBranchMissing = errors.New("the default branch doesn't exist, so it can't be the only branch copied")
+
 type ForkOptions struct {
 	Owner             string  // "" = the actor's account
-	Name              string  // "" = the source's name, suffixed while taken
+	Name              string  // "" = the source's name, suffixed -1, -2, … while taken
 	Description       *string // nil = the source's description
 	DefaultBranchOnly bool
 }
 
-// Fork creates a copy of originalOwner/originalName under opts.Owner.
 func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName string, actorID int64, actorUsername string, opts ForkOptions) (*model.Repository, error) {
 	orig, err := s.repos.GetByOwnerName(ctx, originalOwner, originalName)
 	if err != nil {
@@ -757,6 +758,9 @@ func (s *RepoService) Fork(ctx context.Context, originalOwner, originalName stri
 	if opts.DefaultBranchOnly {
 		if err := pruneToDefaultBranch(dstPath, orig.DefaultBranch); err != nil {
 			abandonNewRepo(ctx, s.repos, forked.ID, dstPath)
+			if errors.Is(err, ErrForkDefaultBranchMissing) {
+				return nil, err
+			}
 			return nil, fmt.Errorf("prune fork branches: %w", err)
 		}
 	}
@@ -831,8 +835,9 @@ func copyFile(src, dst string, mode os.FileMode) error {
 }
 
 // pruneToDefaultBranch drops every branch of the bare repo at gitDir except
-// defaultBranch. The dropped branches' objects stay: there's no pure-Go gc, and
-// a full fork holds them anyway.
+// defaultBranch and points HEAD at it. The dropped branches' objects stay:
+// there's no pure-Go gc, and a full fork holds them anyway. A repo with no
+// branches has nothing to prune and is left alone.
 func pruneToDefaultBranch(gitDir, defaultBranch string) error {
 	repo, err := gogit.PlainOpen(gitDir)
 	if err != nil {
@@ -844,20 +849,30 @@ func pruneToDefaultBranch(gitDir, defaultBranch string) error {
 	}
 	keep := plumbing.NewBranchReferenceName(defaultBranch)
 	var drop []plumbing.ReferenceName
+	hasKeep := false
 	if err := refs.ForEach(func(r *plumbing.Reference) error {
-		if r.Name().IsBranch() && r.Name() != keep {
+		switch {
+		case r.Name() == keep:
+			hasKeep = true
+		case r.Name().IsBranch():
 			drop = append(drop, r.Name())
 		}
 		return nil
 	}); err != nil {
 		return err
 	}
+	if !hasKeep {
+		if len(drop) == 0 {
+			return nil
+		}
+		return ErrForkDefaultBranchMissing
+	}
 	for _, name := range drop {
 		if err := repo.Storer.RemoveReference(name); err != nil {
 			return err
 		}
 	}
-	return nil
+	return repo.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, keep))
 }
 
 // archiveGuard returns ErrForbidden if the caller is not an owner.
