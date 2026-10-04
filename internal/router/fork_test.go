@@ -204,3 +204,67 @@ func TestForkAPI_TargetLimitedTokenStaysInItsOrgs(t *testing.T) {
 		t.Errorf("the token user's own account: got %d %s, want 201", rr.Code, rr.Body)
 	}
 }
+
+func TestForkPage(t *testing.T) {
+	e := newForkEnv(t, config.SMTPConfig{})
+	ctx := context.Background()
+	org := e.org(t, e.userID)
+	asUser := makeJWT(t, e.userID, e.user)
+	get := func(path, session string) *httptest.ResponseRecorder {
+		return serve(e.h, browserRequest(http.MethodGet, path, session, nil))
+	}
+	page := "/" + e.owner + "/src/fork"
+
+	rr := get(page, asUser)
+	body := rr.Body.String()
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET %s: got %d", page, rr.Code)
+	}
+	for _, want := range []string{`id="fork-form"`, `data-value="` + e.user + `"`, `data-value="` + org.Name + `"`, `value="src"`, ">the source</textarea>", "Copy the <span class=\"font-mono\">main</span> branch only"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("fork page lacks %q", want)
+		}
+	}
+	if strings.Contains(body, `data-value="`+e.owner+`"`) {
+		t.Error("the source's owner is offered as the fork's owner")
+	}
+	if strings.Contains(body, "You already have a fork") {
+		t.Error("existing-fork notice shown before any fork exists")
+	}
+
+	if _, err := e.svc.Repo.Fork(ctx, e.owner, "src", e.userID, e.user, service.ForkOptions{Owner: org.Name, Name: "mine"}); err != nil {
+		t.Fatalf("fork: %v", err)
+	}
+	if body := get(page, asUser).Body.String(); !strings.Contains(body, "You already have a fork") || !strings.Contains(body, `href="/`+org.Name+`/mine"`) {
+		t.Error("existing-fork notice missing or not linking the fork")
+	}
+
+	if body := get(page, makeJWT(t, e.ownerID, e.owner)).Body.String(); strings.Contains(body, `id="fork-form"`) || !strings.Contains(body, "fork your own repository into your own account") {
+		t.Error("a sole owner without orgs got the form instead of the explanation")
+	}
+
+	if rr := get(page, ""); rr.Code != http.StatusSeeOther || !strings.HasPrefix(rr.Header().Get("Location"), "/login") {
+		t.Errorf("signed out: got %d to %q, want 303 to /login", rr.Code, rr.Header().Get("Location"))
+	}
+
+	if _, err := e.svc.Repo.Create(ctx, e.ownerID, e.owner, "secret", "", true, service.RepoInitOptions{AddREADME: true}); err != nil {
+		t.Fatalf("create private repo: %v", err)
+	}
+	if rr := get("/"+e.owner+"/secret/fork", asUser); rr.Code != http.StatusNotFound {
+		t.Errorf("a private repo the viewer can't read: got %d, want 404", rr.Code)
+	}
+}
+
+func TestRepoPage_ForkButtonLinksToTheForkPage(t *testing.T) {
+	e := newForkEnv(t, config.SMTPConfig{})
+	repoPage := "/" + e.owner + "/src"
+
+	signedIn := serve(e.h, browserRequest(http.MethodGet, repoPage, makeJWT(t, e.userID, e.user), nil)).Body.String()
+	if !strings.Contains(signedIn, `href="/`+e.owner+`/src/fork"`) || strings.Contains(signedIn, `hx-post="/api/repos/`+e.owner+`/src/fork"`) {
+		t.Error("signed in: the Fork button doesn't link to the fork page")
+	}
+	signedOut := serve(e.h, browserRequest(http.MethodGet, repoPage, "", nil)).Body.String()
+	if !strings.Contains(signedOut, `href="/login?next=%2F`+e.owner+`%2Fsrc%2Ffork"`) {
+		t.Error("signed out: the Fork button doesn't return to the fork page after sign-in")
+	}
+}

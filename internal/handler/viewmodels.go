@@ -58,7 +58,6 @@ type (
 	IssueAssigneeSidebarData  = view.IssueAssigneeSidebarData
 	PullAssigneeSidebarData   = view.PullAssigneeSidebarData
 	RepoLabelsFragData        = view.RepoLabelsFragData
-	ForkButtonData            = view.ForkButtonData
 	StarButtonData            = view.StarButtonData
 	MilestonesData            = view.MilestonesData
 	MilestoneSidebarFragData  = view.MilestoneSidebarFragData
