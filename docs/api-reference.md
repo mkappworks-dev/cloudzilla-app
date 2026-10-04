@@ -149,7 +149,7 @@ Public user objects — returned by `GET /api/users/:username` and by `/api/repo
 | GET    | `/api/repos/`                       | --       | List the repositories the caller can read; anonymous callers get public ones only   |
 | POST   | `/api/repos/`                       | Required | Create a repository (`name`, `description`, `private`, plus the init options below) |
 | GET    | `/api/repos/:owner/:repo`           | --       | Get repository details                                                              |
-| POST   | `/api/repos/:owner/:repo/fork`      | Required | Fork into authenticated user's namespace                                            |
+| POST   | `/api/repos/:owner/:repo/fork`      | Required | Fork the repository (see [Forks](#forks))                                           |
 | POST   | `/api/repos/:owner/:repo/transfer`  | IsOwner  | Transfer repo to a user or an org (`new_owner`, plus `password` and, with 2FA, `code`; 403 on a wrong confirmation, 429 when throttled); an org target must be one you own. Another user must accept first (see [Repository Transfers](#repository-transfers)) |
 | DELETE | `/api/repos/:owner/:repo/transfer`  | IsOwner  | Cancel the repo's pending transfer; 204, or 404 when none is pending                |
 | POST   | `/api/repos/:owner/:repo/restore`   | IsOwner  | Restore a soft-deleted repository                                                   |
@@ -256,9 +256,22 @@ Deleting a repository moves its directories to `<name>.git.deleted.<unix_ts>` an
 
 ## Forks
 
-| Method | Path                           | Auth     | Description                                                                        |
-| ------ | ------------------------------ | -------- | ---------------------------------------------------------------------------------- |
-| POST   | `/api/repos/:owner/:repo/fork` | Required | Fork the repository into the authenticated user's namespace; redirects to fork URL |
+| Method | Path                           | Auth     | Description                     |
+| ------ | ------------------------------ | -------- | ------------------------------- |
+| POST   | `/api/repos/:owner/:repo/fork` | Required | Fork the repository; see below  |
+
+The body is optional JSON (`Content-Type: application/json`); any other body forks with the defaults.
+
+| Field                 | Default           | Meaning                                                                 |
+| --------------------- | ----------------- | ----------------------------------------------------------------------- |
+| `owner`               | the caller        | The caller's username or an organization they own                       |
+| `name`                | the source's name | With no name, a taken one gets `-1`, `-2`, …; a named fork fails instead |
+| `description`         | the source's      | `""` clears it                                                          |
+| `default_branch_only` | `false`           | Copy only the default branch; tags are always copied                    |
+
+A fork keeps the source's visibility. It can't land in the account or organization that owns the source (422 `a repository can't be forked into the account or organization that owns it`). An organization the caller doesn't own is a 403 (`you can fork only into your account or an organization you own`). A taken or invalid name is a 422, as for create.
+
+A JSON request gets 201 `{"owner", "name", "url"}`. Other requests are redirected to the fork, or get `HX-Redirect` from htmx. A token limited to targets may fork into the caller's account, or into an organization among its targets (otherwise 403 `this token isn't allowed for that repository or organization`).
 
 ## Pull Requests
 
