@@ -30,6 +30,8 @@ var validNameRe = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
 
 var ErrInvalidRepoName = errors.New("invalid repository name")
 
+var ErrInvalidDefaultBranch = errors.New("invalid default branch")
+
 // ValidateName checks that a repository or owner name is safe for filesystem
 // use and URL routing. Names must start with an alphanumeric character and
 // contain only alphanumeric, dot, underscore, or hyphen characters.
@@ -804,8 +806,10 @@ func (s *RepoService) UpdateMeta(ctx context.Context, repoID, userID int64, desc
 	return s.repos.UpdateMeta(ctx, repoID, strings.TrimSpace(description), strings.TrimSpace(website), strings.TrimSpace(license))
 }
 
-// UpdateGeneral updates the description, website, and default branch. Requires
-// manage permission; an empty defaultBranch leaves the current one unchanged.
+// UpdateGeneral updates the description, website, and default branch, and
+// points the bare repo's HEAD at that branch. Requires manage permission; an
+// empty defaultBranch keeps the current one. The branch must exist unless the
+// repo has no branches yet.
 func (s *RepoService) UpdateGeneral(ctx context.Context, repoID, userID int64, description, website, defaultBranch string) error {
 	repo, err := s.repos.GetByID(ctx, repoID)
 	if err != nil {
@@ -818,7 +822,56 @@ func (s *RepoService) UpdateGeneral(ctx context.Context, repoID, userID int64, d
 	if branch == "" {
 		branch = repo.DefaultBranch
 	}
-	return s.repos.UpdateGeneral(ctx, repoID, strings.TrimSpace(description), strings.TrimSpace(website), branch)
+	branchRef := plumbing.NewBranchReferenceName(branch)
+	if err := branchRef.Validate(); err != nil {
+		return fmt.Errorf("%w: %q is not a valid branch name", ErrInvalidDefaultBranch, branch)
+	}
+
+	gitDir, _ := repoDirs(s.cfg.ReposRoot, repo.OwnerName, repo.Name)
+	bare, err := gogit.PlainOpen(gitDir)
+	if err != nil {
+		return fmt.Errorf("open repo: %w", err)
+	}
+	if err := requireBranchUnlessEmpty(bare, branchRef); err != nil {
+		return err
+	}
+	oldHead, err := bare.Storer.Reference(plumbing.HEAD)
+	if err != nil {
+		return fmt.Errorf("read HEAD: %w", err)
+	}
+	// Rewritten even when unchanged so a save repairs a HEAD that drifted from the column.
+	if err := bare.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, branchRef)); err != nil {
+		return fmt.Errorf("set HEAD: %w", err)
+	}
+	if err := s.repos.UpdateGeneral(ctx, repoID, strings.TrimSpace(description), strings.TrimSpace(website), branch); err != nil {
+		if rbErr := bare.Storer.SetReference(oldHead); rbErr != nil {
+			slog.Error("restore HEAD after failed settings update", "repo_id", repoID, "error", rbErr)
+		}
+		return err
+	}
+	return nil
+}
+
+// requireBranchUnlessEmpty refuses a branch the repo doesn't have, except in a
+// repo with no branches, where the first push creates it.
+func requireBranchUnlessEmpty(bare *gogit.Repository, branchRef plumbing.ReferenceName) error {
+	_, err := bare.Storer.Reference(branchRef)
+	if !errors.Is(err, plumbing.ErrReferenceNotFound) {
+		return err
+	}
+	branches, err := bare.Branches()
+	if err != nil {
+		return fmt.Errorf("list branches: %w", err)
+	}
+	defer branches.Close()
+	_, err = branches.Next()
+	switch {
+	case errors.Is(err, io.EOF):
+		return nil
+	case err != nil:
+		return fmt.Errorf("list branches: %w", err)
+	}
+	return fmt.Errorf("%w: %q is not a branch in this repository", ErrInvalidDefaultBranch, branchRef.Short())
 }
 
 // UpdateFeatureToggles updates the Issues/Discussions/Projects/Wiki feature
