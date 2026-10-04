@@ -180,9 +180,8 @@ func TestForkAPI_DefaultBranchOnlyRefusesAMissingDefaultBranch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := e.svc.Repo.UpdateGeneral(ctx, src.ID, e.ownerID, "", "", "gone"); err != nil {
-		t.Fatalf("set default branch: %v", err)
-	}
+	// Settings refuse this now; older rows and a push that deletes the branch still leave it.
+	testutil.Exec(t, e.db, `UPDATE repositories SET default_branch = 'gone' WHERE id = $1`, src.ID)
 
 	rr := serve(e.h, jsonPost(e.forkURL(), makeJWT(t, e.userID, e.user), `{"default_branch_only":true}`))
 
@@ -317,9 +316,7 @@ func TestForkPage_OffersDefaultBranchOnlyForARealBranch(t *testing.T) {
 		{"a tag", "v1", false},
 		{"no such ref", "gone", false},
 	} {
-		if err := e.svc.Repo.UpdateGeneral(ctx, src.ID, e.ownerID, "", "", c.setting); err != nil {
-			t.Fatalf("set default branch: %v", err)
-		}
+		testutil.Exec(t, e.db, `UPDATE repositories SET default_branch = $1 WHERE id = $2`, c.setting, src.ID)
 		rr := serve(e.h, browserRequest(http.MethodGet, "/"+e.owner+"/src/fork", asUser, nil))
 		if rr.Code != http.StatusOK {
 			t.Fatalf("%s: got %d", c.name, rr.Code)

@@ -256,7 +256,8 @@ func TestRepoService_Fork_DefaultBranchOnly_RefusesAMissingDefaultBranch(t *test
 	if err != nil {
 		t.Fatalf("create original: %v", err)
 	}
-	if err := env.repos.UpdateGeneral(ctx, orig.ID, ownerID, "", "", "gone"); err != nil {
+	// Settings refuse this now; older rows and a push that deletes the branch still leave it.
+	if _, err := env.db.ExecContext(ctx, `UPDATE repositories SET default_branch = 'gone' WHERE id = $1`, orig.ID); err != nil {
 		t.Fatalf("set default branch: %v", err)
 	}
 
