@@ -13,6 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
@@ -587,5 +588,67 @@ func TestUserService_UpdateNotificationPrefs_UnknownDigestFallsBackToImmediate(t
 	}
 	if u.EmailDigest != model.EmailDigestImmediate {
 		t.Errorf("email_digest = %q, want %q", u.EmailDigest, model.EmailDigestImmediate)
+	}
+}
+
+func TestUserService_CodeThemes_DefaultsThenRoundTrips(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	userID := testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	ctx := context.Background()
+
+	light, dark, err := svc.CodeThemes(ctx, userID)
+	if err != nil {
+		t.Fatalf("CodeThemes: %v", err)
+	}
+	if light != highlight.DefaultLight || dark != highlight.DefaultDark {
+		t.Errorf("new user themes = %q/%q, want %q/%q", light, dark, highlight.DefaultLight, highlight.DefaultDark)
+	}
+
+	if err := svc.UpdateCodeThemes(ctx, userID, "solarized-light", "dracula"); err != nil {
+		t.Fatalf("UpdateCodeThemes: %v", err)
+	}
+	if light, dark, _ = svc.CodeThemes(ctx, userID); light != "solarized-light" || dark != "dracula" {
+		t.Errorf("CodeThemes = %q/%q, want solarized-light/dracula", light, dark)
+	}
+	u, err := svc.GetByID(ctx, userID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if u.CodeThemeLight != "solarized-light" || u.CodeThemeDark != "dracula" {
+		t.Errorf("GetByID themes = %q/%q, want solarized-light/dracula", u.CodeThemeLight, u.CodeThemeDark)
+	}
+}
+
+func TestUserService_UpdateCodeThemes_RejectsOtherModesAndUnknownIDs(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	userID := testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	ctx := context.Background()
+
+	if err := svc.UpdateCodeThemes(ctx, userID, "dracula", "no-such-theme"); err != nil {
+		t.Fatalf("UpdateCodeThemes: %v", err)
+	}
+	u, err := svc.GetByID(ctx, userID)
+	if err != nil {
+		t.Fatalf("GetByID: %v", err)
+	}
+	if u.CodeThemeLight != highlight.DefaultLight || u.CodeThemeDark != highlight.DefaultDark {
+		t.Errorf("saved %q/%q, want the defaults", u.CodeThemeLight, u.CodeThemeDark)
+	}
+}
+
+func TestUserService_CodeThemes_NormalizesStoredIDsOutsideTheCatalog(t *testing.T) {
+	db := testutil.OpenTestDB(t)
+	userID := testutil.SeedUser(t, db, testutil.UniqueSuffix(t))
+	svc := service.NewUserService(store.NewUserStore(db), config.AuthConfig{JWTSecret: "test-secret-32bytes-minimum-len!"})
+	testutil.Exec(t, db, `UPDATE users SET code_theme_light = 'retired', code_theme_dark = 'github' WHERE id = $1`, userID)
+
+	light, dark, err := svc.CodeThemes(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("CodeThemes: %v", err)
+	}
+	if light != highlight.DefaultLight || dark != highlight.DefaultDark {
+		t.Errorf("CodeThemes = %q/%q, want the defaults", light, dark)
 	}
 }

@@ -46,7 +46,8 @@ func NewUserStore(database *sql.DB) *UserStore {
 // scanUser, so a new users column is added in exactly these two places.
 const userColumns = `id, username, email, password_hash, name, bio, company, location, avatar_url, oauth_provider, oauth_id,
 	is_superadmin, is_invited, created_at, updated_at, email_notifications, email_digest,
-	notify_pr_review, notify_mention, keep_email_private, email_verified_at, session_version`
+	notify_pr_review, notify_mention, keep_email_private, email_verified_at, session_version,
+	code_theme_light, code_theme_dark`
 
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -57,7 +58,8 @@ func scanUser(row rowScanner, u *model.User, extra ...any) error {
 	dest := []any{&u.ID, &u.Username, &u.Email, &u.PasswordHash, &u.Name, &u.Bio, &u.Company, &u.Location, &u.AvatarURL,
 		&u.OAuthProvider, &u.OAuthID, &u.IsSuperadmin, &u.IsInvited,
 		&u.CreatedAt, &u.UpdatedAt, &u.EmailNotifications, &u.EmailDigest,
-		&u.NotifyPRReview, &u.NotifyMention, &u.KeepEmailPrivate, &u.EmailVerifiedAt, &u.SessionVersion}
+		&u.NotifyPRReview, &u.NotifyMention, &u.KeepEmailPrivate, &u.EmailVerifiedAt, &u.SessionVersion,
+		&u.CodeThemeLight, &u.CodeThemeDark}
 	return row.Scan(append(dest, extra...)...)
 }
 
@@ -760,6 +762,27 @@ func (s *UserStore) UpdateNotificationPrefs(ctx context.Context, userID int64, p
 		return fmt.Errorf("user update notification prefs: %w", err)
 	}
 	return nil
+}
+
+func (s *UserStore) UpdateCodeThemes(ctx context.Context, userID int64, light, dark string) error {
+	_, err := s.db.ExecContext(ctx,
+		`UPDATE users SET code_theme_light=$1, code_theme_dark=$2, updated_at=NOW() WHERE id=$3`,
+		light, dark, userID,
+	)
+	if err != nil {
+		return fmt.Errorf("user update code themes: %w", err)
+	}
+	return nil
+}
+
+func (s *UserStore) GetCodeThemes(ctx context.Context, userID int64) (light, dark string, err error) {
+	err = s.db.QueryRowContext(ctx,
+		`SELECT code_theme_light, code_theme_dark FROM users WHERE id=$1`, userID,
+	).Scan(&light, &dark)
+	if err != nil {
+		return "", "", fmt.Errorf("user get code themes: %w", err)
+	}
+	return light, dark, nil
 }
 
 func (s *UserStore) UpdateKeepEmailPrivate(ctx context.Context, userID int64, keep bool) error {
