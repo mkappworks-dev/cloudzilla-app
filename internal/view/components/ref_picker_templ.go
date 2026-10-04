@@ -48,9 +48,9 @@ func RefPicker(p RefPickerProps) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
-		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue("Switch branch or tag, current: " + p.Current)
+		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue("Switch branch or tag, current: " + RefLabel(p.Current))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/ref_picker.templ`, Line: 24, Col: 61}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/ref_picker.templ`, Line: 24, Col: 71}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
@@ -61,9 +61,9 @@ func RefPicker(p RefPickerProps) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
-		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(p.Current)
+		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(RefLabel(p.Current))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/ref_picker.templ`, Line: 28, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/ref_picker.templ`, Line: 28, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {

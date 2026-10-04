@@ -10,7 +10,7 @@ import (
 )
 
 templ Tree(data view.TreeData) {
-	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" · "+data.Ref) {
+	@layout.Base(data.BasePage, data.Owner+"/"+data.RepoName+" · "+components.RefLabel(data.Ref)) {
 		<div class="space-y-6 pt-2">
 
 			<section aria-labelledby="tree-title">
@@ -145,7 +145,7 @@ templ Tree(data view.TreeData) {
 					</section>
 				} else {
 					<section class="rounded-md border border-border bg-card overflow-hidden min-w-0" aria-labelledby="files-heading">
-						<h2 id="files-heading" class="sr-only">Files at { data.Ref }</h2>
+						<h2 id="files-heading" class="sr-only">Files at { components.RefLabel(data.Ref) }</h2>
 						if data.LatestCommit.SHA != "" {
 							<div class="px-4 py-2 border-b border-border flex items-center gap-3 text-[12px] bg-muted/40">
 								<a href={ templ.SafeURL(data.LatestCommit.AuthorURL) } class="font-medium hover:underline truncate">{ data.LatestCommit.Author }</a>
@@ -159,7 +159,7 @@ templ Tree(data view.TreeData) {
 						if len(data.Entries) > 0 {
 							@components.Table(nil) {
 								@components.TableCaption(templ.Attributes{"class": "sr-only"}) {
-									Repository files at { data.Ref }, directories first
+									Repository files at { components.RefLabel(data.Ref) }, directories first
 								}
 								<colgroup>
 									<col style="width: 32px"/>
