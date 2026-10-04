@@ -226,19 +226,20 @@ type TagsFragData struct {
 // TreeData holds template data for the repository tree browser page.
 type TreeData struct {
 	BasePage
-	Repo         model.Repository
-	Owner        string
-	RepoName     string
-	Ref          string
-	Path         string
-	Breadcrumbs  []service.BreadcrumbPart
-	Entries      []service.TreeEntryWithLastCommit
-	RefsURL      string
-	Branches     []service.BranchInfo
-	Tags         []service.TagInfo
-	CanManage    bool
-	Sidebar      []components.TreeNode
-	LatestCommit TreeLatestCommit
+	Repo          model.Repository
+	Owner         string
+	RepoName      string
+	Ref           string
+	Path          string
+	Breadcrumbs   []service.BreadcrumbPart
+	Entries       []service.TreeEntryWithLastCommit
+	RefsURL       string
+	Branches      []service.BranchInfo
+	Tags          []service.TagInfo
+	CanManage     bool
+	Sidebar       []components.TreeNode
+	SidebarHidden bool
+	LatestCommit  TreeLatestCommit
 }
 
 // TreeLatestCommit summarises the most recent commit touching anything in
@@ -255,24 +256,25 @@ type TreeLatestCommit struct {
 // BlobData holds template data for the file blob viewer page.
 type BlobData struct {
 	BasePage
-	Repo         model.Repository
-	Owner        string
-	RepoName     string
-	Ref          string
-	Path         string
-	Breadcrumbs  []service.BreadcrumbPart
-	Branches     []service.BranchInfo
-	Tags         []service.TagInfo
-	Lines        []service.CodeLine
-	IsBinary     bool
-	Size         int64
-	BlameURL     string
-	RawURL       string
-	EditURL      string
-	CanWrite     bool
-	CanManage    bool
-	Sidebar      []components.TreeNode
-	LatestCommit TreeLatestCommit
+	Repo          model.Repository
+	Owner         string
+	RepoName      string
+	Ref           string
+	Path          string
+	Breadcrumbs   []service.BreadcrumbPart
+	Branches      []service.BranchInfo
+	Tags          []service.TagInfo
+	Lines         []service.CodeLine
+	IsBinary      bool
+	Size          int64
+	BlameURL      string
+	RawURL        string
+	EditURL       string
+	CanWrite      bool
+	CanManage     bool
+	Sidebar       []components.TreeNode
+	SidebarHidden bool
+	LatestCommit  TreeLatestCommit
 }
 
 // BlameData holds template data for the file blame page.

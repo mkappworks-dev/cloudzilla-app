@@ -17,10 +17,49 @@ type TreeNode struct {
 	IsActive    bool
 }
 
-templ FileTreeSidebar(repoPath string, nodes []TreeNode) {
+// FileTreeLayout lays the file tree beside its children. A hidden tree is
+// rendered hidden by the server so the page doesn't reflow once Alpine starts.
+templ FileTreeLayout(repoPath string, nodes []TreeNode, hidden bool) {
 	<script src={ assets.URL("/static/file_tree.js") }></script>
+	<div
+		x-data={ "fileTreePanel(" + boolStr(hidden) + ")" }
+		class={ layoutClass(hidden) }
+		:class="{ 'grid-cols-[260px_1fr]': !treeHidden, 'grid-cols-1': treeHidden }"
+	>
+		@fileTreeSidebar(repoPath, nodes, hidden)
+		{ children... }
+	</div>
+}
+
+// FileTreeShowButton brings back a hidden file tree; it must sit inside a
+// FileTreeLayout.
+templ FileTreeShowButton(hidden bool) {
+	<button
+		type="button"
+		x-show="treeHidden"
+		x-on:click="showTree()"
+		title="Show files"
+		aria-label="Show files"
+		if !hidden {
+			style="display: none"
+		}
+		class="h-6 w-6 shrink-0 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground"
+	>
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+			<rect width="18" height="18" x="3" y="3" rx="2"></rect>
+			<path d="M9 3v18"></path>
+			<path d="m14 9 3 3-3 3"></path>
+		</svg>
+	</button>
+}
+
+templ fileTreeSidebar(repoPath string, nodes []TreeNode, hidden bool) {
 	<aside
 		x-data="fileTree"
+		x-show="!treeHidden"
+		if hidden {
+			style="display: none"
+		}
 		data-repo-path={ repoPath }
 		class="rounded-md border border-border bg-card sticky top-4 self-start max-h-[calc(100vh-5rem)] overflow-hidden flex flex-col"
 		aria-label="Repository file tree"
@@ -37,6 +76,19 @@ templ FileTreeSidebar(repoPath string, nodes []TreeNode) {
 				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
 					<path d="m7 20 5-5 5 5"></path>
 					<path d="m7 4 5 5 5-5"></path>
+				</svg>
+			</button>
+			<button
+				type="button"
+				x-on:click="hideTree()"
+				title="Hide files"
+				aria-label="Hide files"
+				class="h-6 w-6 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground"
+			>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+					<rect width="18" height="18" x="3" y="3" rx="2"></rect>
+					<path d="M9 3v18"></path>
+					<path d="m16 15-3-3 3-3"></path>
 				</svg>
 			</button>
 		</header>
@@ -140,6 +192,13 @@ func boolStr(b bool) string {
 
 func depthPx(depth int) string {
 	return strconv.Itoa(8 + depth*12)
+}
+
+func layoutClass(hidden bool) string {
+	if hidden {
+		return "grid gap-4 grid-cols-1"
+	}
+	return "grid gap-4 grid-cols-[260px_1fr]"
 }
 
 // chevronClass renders the open state up front: rotating it only once Alpine

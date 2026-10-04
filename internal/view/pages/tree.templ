@@ -40,20 +40,23 @@ templ Tree(data view.TreeData) {
 				</div>
 			</section>
 
-			<div class="grid grid-cols-[260px_1fr] gap-4">
-
-				@components.FileTreeSidebar("/"+data.Owner+"/"+data.RepoName, data.Sidebar)
+			@components.FileTreeLayout("/"+data.Owner+"/"+data.RepoName, data.Sidebar, data.SidebarHidden) {
 
 				<section class="rounded-md border border-border bg-card overflow-hidden min-w-0" aria-labelledby="files-heading">
 					<h2 id="files-heading" class="sr-only">Files at { components.RefLabel(data.Ref) }</h2>
 					if data.LatestCommit.SHA != "" {
 						<div class="px-4 py-2 border-b border-border flex items-center gap-3 text-[12px] bg-muted/40">
+							@components.FileTreeShowButton(data.SidebarHidden)
 							<a href={ templ.SafeURL(data.LatestCommit.AuthorURL) } class="font-medium hover:underline truncate">{ data.LatestCommit.Author }</a>
 							<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="text-muted-foreground hover:underline truncate flex-1 min-w-0">{ data.LatestCommit.Message }</a>
 							<a href={ templ.SafeURL(data.LatestCommit.CommitURL) } class="font-mono text-muted-foreground hover:underline shrink-0">{ data.LatestCommit.SHA }</a>
 							<span class="text-muted-foreground shrink-0">
 								<time datetime={ data.LatestCommit.Timestamp.Format(time.RFC3339) }>{ data.LatestCommit.Timestamp.Format(time.RFC822) }</time>
 							</span>
+						</div>
+					} else {
+						<div class="px-4 py-2 border-b border-border flex items-center bg-muted/40" x-show="treeHidden" if !data.SidebarHidden { style="display: none" }>
+							@components.FileTreeShowButton(data.SidebarHidden)
 						</div>
 					}
 					if len(data.Entries) > 0 {
@@ -113,7 +116,7 @@ templ Tree(data view.TreeData) {
 						</div>
 					}
 				</section>
-			</div>
+			}
 		</div>
 	}
 }

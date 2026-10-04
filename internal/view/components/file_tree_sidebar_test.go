@@ -5,15 +5,68 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/a-h/templ"
 )
 
 func renderSidebar(t *testing.T, nodes []TreeNode) string {
 	t.Helper()
 	var buf bytes.Buffer
-	if err := FileTreeSidebar("/o/r", nodes).Render(context.Background(), &buf); err != nil {
+	if err := FileTreeLayout("/o/r", nodes, false).Render(context.Background(), &buf); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	return buf.String()
+}
+
+func renderLayout(t *testing.T, hidden bool) string {
+	t.Helper()
+	var buf bytes.Buffer
+	ctx := templ.WithChildren(context.Background(), FileTreeShowButton(hidden))
+	if err := FileTreeLayout("/o/r", nil, hidden).Render(ctx, &buf); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	return buf.String()
+}
+
+func TestFileTreeLayout_RendersTheTreeShownOrHidden(t *testing.T) {
+	tests := []struct {
+		name         string
+		hidden       bool
+		want, absent []string
+	}{
+		{"shown", false,
+			[]string{`x-data="fileTreePanel(false)"`, `class="grid gap-4 grid-cols-[260px_1fr]"`, `aria-label="Show files" style="display: none"`},
+			nil},
+		{"hidden", true,
+			[]string{`x-data="fileTreePanel(true)"`, `class="grid gap-4 grid-cols-1"`},
+			[]string{`aria-label="Show files" style="display: none"`}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out := renderLayout(t, tt.hidden)
+			for _, want := range append(tt.want,
+				`:class="{ 'grid-cols-[260px_1fr]': !treeHidden, 'grid-cols-1': treeHidden }"`,
+				`x-show="!treeHidden"`,
+				`x-show="treeHidden"`,
+				`x-on:click="hideTree()"`,
+				`x-on:click="showTree()"`,
+			) {
+				if !strings.Contains(out, want) {
+					t.Errorf("want %q in:\n%s", want, out)
+				}
+			}
+			for _, gone := range tt.absent {
+				if strings.Contains(out, gone) {
+					t.Errorf("want no %q in:\n%s", gone, out)
+				}
+			}
+			aside := out[strings.Index(out, "<aside"):]
+			aside = aside[:strings.Index(aside, ">")]
+			if got := strings.Contains(aside, `display: none`); got != tt.hidden {
+				t.Errorf("aside rendered hidden = %v, want %v: %s", got, tt.hidden, aside)
+			}
+		})
+	}
 }
 
 func TestFileTreeSidebar_RendersHierarchy(t *testing.T) {
@@ -41,6 +94,7 @@ func TestFileTreeSidebar_Header(t *testing.T) {
 		`data-repo-path="/o/r"`,
 		`aria-label="Collapse all folders"`,
 		`x-on:click="collapseAll()"`,
+		`aria-label="Hide files"`,
 		`x-on:keydown.escape="filter = ''"`,
 	} {
 		if !strings.Contains(out, want) {

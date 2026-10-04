@@ -18,6 +18,22 @@ document.addEventListener('alpine:init', () => {
     }
   }
 
+  // cz_tree_hidden is site-wide (path=/), unlike the per-repo open folders:
+  // hiding the tree is a layout preference, not a view of one repo.
+  Alpine.data('fileTreePanel', (hidden) => ({
+    treeHidden: hidden,
+
+    hideTree() {
+      this.treeHidden = true;
+      document.cookie = 'cz_tree_hidden=1; path=/; SameSite=Lax';
+    },
+
+    showTree() {
+      this.treeHidden = false;
+      document.cookie = 'cz_tree_hidden=; path=/; max-age=0; SameSite=Lax';
+    },
+  }));
+
   Alpine.data('fileTree', () => ({
     filter: '',
     repoPath: '/',

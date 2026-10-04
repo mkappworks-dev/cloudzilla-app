@@ -13,11 +13,17 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/fragments"
 )
 
-// Must match static/file_tree.js, which writes the cookie.
+// Must match static/file_tree.js, which writes the cookies.
 const (
 	treeOpenCookie     = "cz_tree_open"
 	maxOpenTreeFolders = 50
+	treeHiddenCookie   = "cz_tree_hidden"
 )
+
+func treeHidden(r *http.Request) bool {
+	c, err := r.Cookie(treeHiddenCookie)
+	return err == nil && c.Value == "1"
+}
 
 // openTreeFolders returns the folders the viewer left open in the file tree.
 // The cookie is client-written, so anything unparseable counts as none.

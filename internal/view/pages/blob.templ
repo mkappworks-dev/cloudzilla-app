@@ -43,13 +43,12 @@ templ Blob(data view.BlobData) {
 				</div>
 			</section>
 
-			<div class="grid grid-cols-[260px_1fr] gap-4">
-
-				@components.FileTreeSidebar("/"+data.Owner+"/"+data.RepoName, data.Sidebar)
+			@components.FileTreeLayout("/"+data.Owner+"/"+data.RepoName, data.Sidebar, data.SidebarHidden) {
 
 				<div class="min-w-0">
 					<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="blob-heading" x-data="{ copy(){ navigator.clipboard.writeText(this.$refs.code.innerText) } }">
 						<header class="px-4 py-2 border-b border-border bg-muted/50 flex items-center gap-3">
+							@components.FileTreeShowButton(data.SidebarHidden)
 							<svg class="text-muted-foreground shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false">
 								<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
 								<polyline points="14 2 14 8 20 8"></polyline>
@@ -141,7 +140,7 @@ templ Blob(data view.BlobData) {
 						<a class="font-mono text-foreground hover:underline" href="#L11">#L11</a>).
 					</p>
 				</div>
-			</div>
+			}
 		</div>
 	}
 }

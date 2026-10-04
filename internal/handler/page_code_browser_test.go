@@ -205,3 +205,30 @@ func TestFileTreeChildrenFragment(t *testing.T) {
 		t.Errorf("ref with a slash: want 200 with %q, got %d:\n%s", want, rr.Code, rr.Body.String())
 	}
 }
+
+func TestFileTree_HiddenCookieHidesThePanel(t *testing.T) {
+	h, r, _ := seedCodeRepo(t)
+	for _, page := range []string{"/blob/main/README.md", "/tree/main/lib"} {
+		for _, tt := range []struct {
+			cookie string
+			want   string
+		}{
+			{"", `x-data="fileTreePanel(false)"`},
+			{"1", `x-data="fileTreePanel(true)"`},
+			{"0", `x-data="fileTreePanel(false)"`},
+		} {
+			req := httptest.NewRequest(http.MethodGet, r.path+page, nil)
+			if tt.cookie != "" {
+				req.AddCookie(&http.Cookie{Name: "cz_tree_hidden", Value: tt.cookie})
+			}
+			rr := httptest.NewRecorder()
+			h.ServeHTTP(rr, req)
+			if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), tt.want) {
+				t.Errorf("%s with cz_tree_hidden=%q: want 200 with %q, got %d", page, tt.cookie, tt.want, rr.Code)
+			}
+			if got := strings.Count(rr.Body.String(), `aria-label="Show files"`); got != 1 {
+				t.Errorf("%s: want one Show files button, got %d", page, got)
+			}
+		}
+	}
+}
