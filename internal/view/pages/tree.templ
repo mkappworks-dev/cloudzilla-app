@@ -40,7 +40,7 @@ templ Tree(data view.TreeData) {
 				</div>
 			</section>
 
-			@components.FileTreeLayout("/"+data.Owner+"/"+data.RepoName, data.Sidebar, data.SidebarHidden) {
+			@components.FileTreeLayout("/"+data.Owner+"/"+data.RepoName, data.Sidebar, data.SidebarHidden, data.ExpandAllURL) {
 
 				<section class="rounded-md border border-border bg-card overflow-hidden min-w-0" aria-labelledby="files-heading">
 					<h2 id="files-heading" class="sr-only">Files at { components.RefLabel(data.Ref) }</h2>

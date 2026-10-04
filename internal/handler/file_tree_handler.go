@@ -114,8 +114,47 @@ func (h *Handler) buildSidebarLevel(owner, repoName, ref, dirPath string, entrie
 	return nodes
 }
 
+// expandAllBudget bounds Expand all, which costs one tree read per folder.
+var expandAllBudget = 300
+
+func expandAllURL(owner, repoName, ref, activePath string) string {
+	return "/fragments/" + owner + "/" + repoName + "/tree/" + ref + "/?expand=all&active=" + url.QueryEscape(activePath)
+}
+
+// expandAllLevel builds dirPath's entries with folders opened breadth-first,
+// so a budget that runs out leaves the deepest folders closed (and lazy).
+func (h *Handler) expandAllLevel(owner, repoName, ref, dirPath string, entries []service.TreeEntry, activePath string) []components.TreeNode {
+	nodes := h.buildSidebarLevel(owner, repoName, ref, dirPath, entries, nil, nil)
+	var queue []*components.TreeNode
+	enqueue := func(level []components.TreeNode) {
+		for i := range level {
+			level[i].IsActive = !level[i].IsDir && level[i].Path == activePath
+			if level[i].IsDir {
+				queue = append(queue, &level[i])
+			}
+		}
+	}
+	enqueue(nodes)
+	for budget := expandAllBudget; len(queue) > 0 && budget > 0; {
+		n := queue[0]
+		queue = queue[1:]
+		child, err := h.Services.Code.GetTree(owner, repoName, ref, n.Path)
+		if err != nil {
+			slog.Warn("sidebar: expand-all GetTree failed",
+				"owner", owner, "repo", repoName, "ref", ref, "path", n.Path, "error", err)
+			continue
+		}
+		budget--
+		n.IsOpen = true
+		n.Children = h.buildSidebarLevel(owner, repoName, ref, n.Path, child.Entries, nil, nil)
+		enqueue(n.Children)
+	}
+	return nodes
+}
+
 // FileTreeChildrenFragment renders a folder's entries for a file-tree folder
-// the page rendered closed.
+// the page rendered closed, or with ?expand=all the whole tree from that
+// folder (the root when the path is empty) for the Expand all button.
 func (h *Handler) FileTreeChildrenFragment(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
@@ -123,7 +162,8 @@ func (h *Handler) FileTreeChildrenFragment(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
-	if path == "" {
+	expandAll := r.URL.Query().Get("expand") == "all"
+	if path == "" && !expandAll {
 		writeError(w, http.StatusNotFound, "folder not found")
 		return
 	}
@@ -132,6 +172,15 @@ func (h *Handler) FileTreeChildrenFragment(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusNotFound, "folder not found")
 		return
 	}
-	nodes := h.buildSidebarLevel(owner, repoName, ref, path, dir.Entries, nil, nil)
-	h.render(w, r, fragments.FileTreeChildren(nodes, strings.Count(path, "/")+1))
+	depth := 0
+	if path != "" {
+		depth = strings.Count(path, "/") + 1
+	}
+	var nodes []components.TreeNode
+	if expandAll {
+		nodes = h.expandAllLevel(owner, repoName, ref, path, dir.Entries, r.URL.Query().Get("active"))
+	} else {
+		nodes = h.buildSidebarLevel(owner, repoName, ref, path, dir.Entries, nil, nil)
+	}
+	h.render(w, r, fragments.FileTreeChildren(nodes, depth))
 }

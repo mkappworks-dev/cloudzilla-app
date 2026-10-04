@@ -546,7 +546,7 @@ func Blob(data view.BlobData) templ.Component {
 				}
 				return nil
 			})
-			templ_7745c5c3_Err = components.FileTreeLayout("/"+data.Owner+"/"+data.RepoName, data.Sidebar, data.SidebarHidden).Render(templ.WithChildren(ctx, templ_7745c5c3_Var10), templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = components.FileTreeLayout("/"+data.Owner+"/"+data.RepoName, data.Sidebar, data.SidebarHidden, data.ExpandAllURL).Render(templ.WithChildren(ctx, templ_7745c5c3_Var10), templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

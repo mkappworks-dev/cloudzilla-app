@@ -43,7 +43,7 @@ templ Blob(data view.BlobData) {
 				</div>
 			</section>
 
-			@components.FileTreeLayout("/"+data.Owner+"/"+data.RepoName, data.Sidebar, data.SidebarHidden) {
+			@components.FileTreeLayout("/"+data.Owner+"/"+data.RepoName, data.Sidebar, data.SidebarHidden, data.ExpandAllURL) {
 
 				<div class="min-w-0">
 					<section class="rounded-md border border-border bg-card overflow-hidden" aria-labelledby="blob-heading" x-data="{ copy(){ navigator.clipboard.writeText(this.$refs.code.innerText) } }">

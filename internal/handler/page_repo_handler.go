@@ -517,6 +517,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		CanManage:     canManage,
 		Sidebar:       h.buildSidebarTree(owner, repoName, ref, result.Path, openTreeFolders(r)),
 		SidebarHidden: treeHidden(r),
+		ExpandAllURL:  expandAllURL(owner, repoName, ref, result.Path),
 		LatestCommit:  latestCommit,
 	}))
 }
@@ -589,6 +590,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		CanManage:     canManage,
 		Sidebar:       h.buildSidebarTree(owner, repoName, ref, result.Path, openTreeFolders(r)),
 		SidebarHidden: treeHidden(r),
+		ExpandAllURL:  expandAllURL(owner, repoName, ref, result.Path),
 		LatestCommit:  latestCommit,
 	}))
 }

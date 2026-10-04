@@ -239,6 +239,7 @@ type TreeData struct {
 	CanManage     bool
 	Sidebar       []components.TreeNode
 	SidebarHidden bool
+	ExpandAllURL  string
 	LatestCommit  TreeLatestCommit
 }
 
@@ -274,6 +275,7 @@ type BlobData struct {
 	CanManage     bool
 	Sidebar       []components.TreeNode
 	SidebarHidden bool
+	ExpandAllURL  string
 	LatestCommit  TreeLatestCommit
 }
 

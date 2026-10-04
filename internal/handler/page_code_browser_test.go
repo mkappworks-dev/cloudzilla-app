@@ -12,6 +12,7 @@ import (
 	gogit "github.com/go-git/go-git/v5"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/config"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/handler"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/testutil"
 )
@@ -204,6 +205,41 @@ func TestFileTreeChildrenFragment(t *testing.T) {
 	if want := `href="` + r.path + `/blob/feature/x/lib/config.js"`; rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), want) {
 		t.Errorf("ref with a slash: want 200 with %q, got %d:\n%s", want, rr.Code, rr.Body.String())
 	}
+}
+
+func TestFileTreeChildrenFragment_ExpandAll(t *testing.T) {
+	h, r, _ := seedCodeRepo(t)
+
+	page := getAnonymous(h, r.path+"/blob/main/lib/README.md")
+	if want := `hx-get="/fragments` + r.path + `/tree/main/?expand=all&amp;active=lib%2FREADME.md"`; !strings.Contains(page.Body.String(), want) {
+		t.Errorf("page lacks the Expand all button %q", want)
+	}
+
+	rr := getAnonymous(h, "/fragments"+r.path+"/tree/main/?expand=all&active=lib%2FREADME.md")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+	body := rr.Body.String()
+	if !strings.Contains(body, `/lib/util/helper.js"`) {
+		t.Errorf("expand all left lib/util closed:\n%s", body)
+	}
+	if strings.Contains(body, `hx-get="/fragments`+r.path+`/tree/main/lib`) {
+		t.Errorf("an opened folder still lazy-loads its children:\n%s", body)
+	}
+	if want := `href="` + r.path + `/blob/main/lib/README.md" aria-current="page"`; strings.Count(body, `aria-current="page"`) != 1 || !strings.Contains(body, want) {
+		t.Errorf("want only lib/README.md marked active:\n%s", body)
+	}
+
+	t.Run("budget", func(t *testing.T) {
+		handler.UseExpandAllBudget(t, 1)
+		body := getAnonymous(h, "/fragments"+r.path+"/tree/main/?expand=all").Body.String()
+		if !strings.Contains(body, `/lib/config.js"`) || strings.Contains(body, `/lib/util/helper.js"`) {
+			t.Errorf("budget 1 should open lib only:\n%s", body)
+		}
+		if want := `hx-get="/fragments` + r.path + `/tree/main/lib/util"`; !strings.Contains(body, want) {
+			t.Errorf("a folder past the budget must still lazy-load (%q):\n%s", want, body)
+		}
+	})
 }
 
 func TestFileTree_HiddenCookieHidesThePanel(t *testing.T) {

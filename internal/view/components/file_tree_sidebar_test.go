@@ -12,7 +12,7 @@ import (
 func renderSidebar(t *testing.T, nodes []TreeNode) string {
 	t.Helper()
 	var buf bytes.Buffer
-	if err := FileTreeLayout("/o/r", nodes, false).Render(context.Background(), &buf); err != nil {
+	if err := FileTreeLayout("/o/r", nodes, false, "/fragments/o/r/tree/main/?expand=all&active=").Render(context.Background(), &buf); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	return buf.String()
@@ -22,7 +22,7 @@ func renderLayout(t *testing.T, hidden bool) string {
 	t.Helper()
 	var buf bytes.Buffer
 	ctx := templ.WithChildren(context.Background(), FileTreeShowButton(hidden))
-	if err := FileTreeLayout("/o/r", nil, hidden).Render(ctx, &buf); err != nil {
+	if err := FileTreeLayout("/o/r", nil, hidden, "").Render(ctx, &buf); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	return buf.String()
@@ -95,6 +95,8 @@ func TestFileTreeSidebar_Header(t *testing.T) {
 		`aria-label="Collapse all folders"`,
 		`x-on:click="collapseAll()"`,
 		`aria-label="Hide files"`,
+		`aria-label="Expand all folders"`,
+		`hx-get="/fragments/o/r/tree/main/?expand=all&amp;active="`,
 		`x-on:keydown.escape="filter = ''"`,
 	} {
 		if !strings.Contains(out, want) {

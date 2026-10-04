@@ -19,14 +19,14 @@ type TreeNode struct {
 
 // FileTreeLayout lays the file tree beside its children. A hidden tree is
 // rendered hidden by the server so the page doesn't reflow once Alpine starts.
-templ FileTreeLayout(repoPath string, nodes []TreeNode, hidden bool) {
+templ FileTreeLayout(repoPath string, nodes []TreeNode, hidden bool, expandAllURL string) {
 	<script src={ assets.URL("/static/file_tree.js") }></script>
 	<div
 		x-data={ "fileTreePanel(" + boolStr(hidden) + ")" }
 		class={ layoutClass(hidden) }
 		:class="{ 'grid-cols-[260px_1fr]': !treeHidden, 'grid-cols-1': treeHidden }"
 	>
-		@fileTreeSidebar(repoPath, nodes, hidden)
+		@fileTreeSidebar(repoPath, nodes, hidden, expandAllURL)
 		{ children... }
 	</div>
 }
@@ -53,7 +53,7 @@ templ FileTreeShowButton(hidden bool) {
 	</button>
 }
 
-templ fileTreeSidebar(repoPath string, nodes []TreeNode, hidden bool) {
+templ fileTreeSidebar(repoPath string, nodes []TreeNode, hidden bool, expandAllURL string) {
 	<aside
 		x-data="fileTree"
 		x-show="!treeHidden"
@@ -68,10 +68,24 @@ templ fileTreeSidebar(repoPath string, nodes []TreeNode, hidden bool) {
 			<span class="text-[12px] font-medium">Files</span>
 			<button
 				type="button"
+				hx-get={ expandAllURL }
+				hx-target="next ol"
+				hx-swap="innerHTML"
+				title="Expand all folders"
+				aria-label="Expand all folders"
+				class="ml-auto h-6 w-6 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground"
+			>
+				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+					<path d="m7 15 5 5 5-5"></path>
+					<path d="m7 9 5-5 5 5"></path>
+				</svg>
+			</button>
+			<button
+				type="button"
 				x-on:click="collapseAll()"
 				title="Collapse all folders"
 				aria-label="Collapse all folders"
-				class="ml-auto h-6 w-6 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground"
+				class="h-6 w-6 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground"
 			>
 				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
 					<path d="m7 20 5-5 5 5"></path>
