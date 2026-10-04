@@ -3,6 +3,7 @@ package highlight
 import (
 	"bytes"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -74,6 +75,25 @@ func TestStylesheet_ScopesEachThemeToItsMode(t *testing.T) {
 	}
 	if strings.Contains(css, `.hl-w {`) || strings.Contains(css, `.hl-err {`) {
 		t.Error("stylesheet styles whitespace or error tokens, which Lines never emits")
+	}
+}
+
+// Typography's pre color is near-white in light mode, so an .hl rule without its
+// own color leaves unspanned tokens illegible on a light theme's background.
+func TestStylesheet_EveryHlRuleSetsAColor(t *testing.T) {
+	colorDecl := regexp.MustCompile(`[{;\s]color:`)
+	rules := 0
+	for _, line := range strings.Split(string(Stylesheet()), "\n") {
+		if !strings.Contains(line, " .hl {") {
+			continue
+		}
+		rules++
+		if !colorDecl.MatchString(line) {
+			t.Errorf("rule has no color: %s", line)
+		}
+	}
+	if rules != len(Themes) {
+		t.Errorf("found %d .hl rules, want one per theme (%d)", rules, len(Themes))
 	}
 }
 

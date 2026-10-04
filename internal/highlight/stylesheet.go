@@ -24,7 +24,12 @@ func Stylesheet() []byte {
 			scope = `html.dark[data-code-dark="` + th.ID + `"]`
 		}
 		bg := style.Get(chroma.Background)
-		fmt.Fprintf(&b, "%s .hl { %s }\n", scope, chromahtml.StyleEntryToCSS(bg))
+		base := chromahtml.StyleEntryToCSS(bg)
+		if !bg.Colour.IsSet() {
+			// Prose sets its own pre color, which would be unreadable on a light theme's background.
+			base = "color: hsl(var(--foreground)); " + base
+		}
+		fmt.Fprintf(&b, "%s .hl { %s }\n", scope, base)
 		for _, tt := range types {
 			css := chromahtml.StyleEntryToCSS(style.Get(tt).Sub(bg))
 			if css == "" {

@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/yuin/goldmark/v2/ast"
@@ -71,10 +72,16 @@ func renderMermaid(next ghtml.NodeRenderer) ghtml.NodeRenderer {
 	})
 }
 
+// Highlighting is capped per document because Render runs uncached on every view of user-written content.
+const (
+	highlightBytes = 256 << 10
+	highlightTime  = 250 * time.Millisecond
+)
+
 // highlightCode renders fenced blocks in a known language as token spans. It
-// decides on entering and remembers the choice, because a highlight can fall
-// back to plain at its deadline and the exit call must close what was opened.
-func highlightCode() ghtml.NodeRendererDecorator {
+// writes the whole block on entering, so exit must not emit a second close. The
+// choice is remembered because a highlight can fall back to plain at its budget.
+func highlightCode(budget *highlight.Budget) ghtml.NodeRendererDecorator {
 	highlighted := map[ast.Node]bool{}
 	return func(next ghtml.NodeRenderer) ghtml.NodeRenderer {
 		return ghtml.NodeRendererFunc(func(w io.Writer, source []byte, node ast.Node, entering bool, rc renderer.Context) (ast.WalkStatus, error) {
@@ -89,7 +96,7 @@ func highlightCode() ghtml.NodeRendererDecorator {
 			if !ok || n.CodeBlockKind != ast.CodeBlockKindFenced {
 				return next.Render(w, source, node, entering, rc)
 			}
-			code := highlight.Block(lang, "", n.Value.Str(source))
+			code := highlight.BlockWithin(budget, lang, "", n.Value.Str(source))
 			if code == "" {
 				return next.Render(w, source, node, entering, rc)
 			}
@@ -120,7 +127,7 @@ func Render(src string) string {
 	r := ghtml.New(
 		ghtml.WithHardWraps(),
 		ghtml.WithExtensions(extension.GFMHTMLRenderer),
-		ghtml.WithNodeRendererDecorator(ast.KindCodeBlock, highlightCode()),
+		ghtml.WithNodeRendererDecorator(ast.KindCodeBlock, highlightCode(highlight.NewBudget(highlightBytes, highlightTime))),
 		ghtml.WithNodeRendererDecorator(ast.KindCodeBlock, renderMermaid),
 	)
 	var buf bytes.Buffer

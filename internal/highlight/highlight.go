@@ -35,18 +35,29 @@ func Lines(filename, src string) []template.HTML {
 // Block returns src highlighted for a <pre>, or "" for plain text. lang is a
 // Markdown info string such as "go"; filename picks the lexer when lang is "".
 func Block(lang, filename, src string) template.HTML {
-	var lexer chroma.Lexer
-	if lang != "" {
-		lexer = lexers.Get(lang)
-	} else {
-		lexer = fileLexer(filename, src)
-	}
-	out := lines(lexer, src, now().Add(callDeadline))
-	if out == nil {
+	return join(lines(blockLexer(lang, filename, src), src, now().Add(callDeadline)))
+}
+
+// BlockWithin is Block charged against b.
+func BlockWithin(b *Budget, lang, filename, src string) template.HTML {
+	lexer := blockLexer(lang, filename, src)
+	deadline, ok := b.charge(lexer, src)
+	if !ok {
 		return ""
 	}
+	return join(lines(lexer, src, deadline))
+}
+
+func blockLexer(lang, filename, src string) chroma.Lexer {
+	if lang != "" {
+		return lexers.Get(lang)
+	}
+	return fileLexer(filename, src)
+}
+
+func join(parts []template.HTML) template.HTML {
 	var b strings.Builder
-	for i, l := range out {
+	for i, l := range parts {
 		if i > 0 {
 			b.WriteByte('\n')
 		}
@@ -68,15 +79,26 @@ func NewBudget(maxBytes int, maxTime time.Duration) *Budget {
 // LinesWithin is Lines charged against b.
 func LinesWithin(b *Budget, filename, src string) []template.HTML {
 	lexer := fileLexer(filename, src)
-	if isPlain(lexer) || len(src) > b.bytes {
+	deadline, ok := b.charge(lexer, src)
+	if !ok {
 		return nil
 	}
+	return lines(lexer, src, deadline)
+}
+
+// charge takes len(src) from b and returns the deadline for highlighting src.
+// ok is false, and b is left alone, for a source that would render plain anyway
+// or that b can't afford.
+func (b *Budget) charge(lexer chroma.Lexer, src string) (deadline time.Time, ok bool) {
+	if isPlain(lexer) || len(src) > MaxBytes || len(src) > b.bytes {
+		return time.Time{}, false
+	}
 	b.bytes -= len(src)
-	deadline := now().Add(callDeadline)
+	deadline = now().Add(callDeadline)
 	if b.deadline.Before(deadline) {
 		deadline = b.deadline
 	}
-	return lines(lexer, src, deadline)
+	return deadline, true
 }
 
 // fileLexer picks a lexer by file name. Only shebang scripts are sniffed;

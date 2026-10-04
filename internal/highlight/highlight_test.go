@@ -137,6 +137,60 @@ func TestBlock(t *testing.T) {
 	}
 }
 
+func TestBlockWithin_StopsAtTheByteBudget(t *testing.T) {
+	src := "package main\n\nvar x = 1\n" // 24 bytes
+	b := NewBudget(40, time.Minute)
+	if got := BlockWithin(b, "go", "", src); got == "" {
+		t.Fatal("first block = \"\", want highlighted")
+	}
+	if got := BlockWithin(b, "go", "", src); got != "" {
+		t.Error("second block highlighted past the budget, want plain")
+	}
+}
+
+func TestBlockWithin_DoesNotChargePlainSources(t *testing.T) {
+	b := NewBudget(30, time.Minute)
+	for _, lang := range []string{"text", "nosuchlang"} {
+		if got := BlockWithin(b, lang, "", strings.Repeat("x", 20)); got != "" {
+			t.Fatalf("BlockWithin(%q) = %q, want plain", lang, got)
+		}
+	}
+	if got := BlockWithin(b, "", "notes.txt", strings.Repeat("x", 20)); got != "" {
+		t.Fatalf("BlockWithin(notes.txt) = %q, want plain", got)
+	}
+	if got := BlockWithin(b, "go", "", "package main\n\nvar x = 1\n"); got == "" {
+		t.Error("Go block = \"\", want highlighted: plain sources should not use the budget")
+	}
+}
+
+func TestBlockWithin_PicksTheLexerLikeBlock(t *testing.T) {
+	b := NewBudget(1<<20, time.Minute)
+	if got := BlockWithin(b, "", "main.py", "print(1)\n"); got == "" {
+		t.Error(`BlockWithin("", "main.py") = "", want highlighted by filename`)
+	}
+	if got, want := BlockWithin(b, "go", "", "x := 1\n"), Block("go", "", "x := 1\n"); got != want {
+		t.Errorf("BlockWithin = %q, want Block's %q", got, want)
+	}
+}
+
+func TestBlockWithin_GivesUpPastTheBudgetDeadline(t *testing.T) {
+	b := NewBudget(1<<20, -time.Second)
+	if got := BlockWithin(b, "go", "", "package main\n"); got != "" {
+		t.Errorf("BlockWithin = %q, want plain once the budget's deadline has passed", got)
+	}
+}
+
+func TestLinesWithin_DoesNotChargeSourcesOverMaxBytes(t *testing.T) {
+	big := "package main\n" + strings.Repeat("// x\n", MaxBytes/5)
+	b := NewBudget(len(big), time.Minute)
+	if got := LinesWithin(b, "big.go", big); got != nil {
+		t.Fatal("source over MaxBytes highlighted, want nil")
+	}
+	if got := LinesWithin(b, "a.go", "package main\n\nvar x = 1\n"); got == nil {
+		t.Error("Go file = nil, want highlighted: an unhighlighted source should not use the budget")
+	}
+}
+
 func TestTokenClass(t *testing.T) {
 	for _, tc := range []struct {
 		tt   chroma.TokenType

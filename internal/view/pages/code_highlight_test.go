@@ -87,3 +87,23 @@ func TestGistDetail_HighlightsByFilename(t *testing.T) {
 		t.Errorf("gist plain-text file should render escaped text")
 	}
 }
+
+func TestGistDetail_SharesOneHighlightBudgetAcrossFiles(t *testing.T) {
+	t.Parallel()
+	// 400 kB each: under the per-source cap, three of them over the page's 1 MiB.
+	src := strings.Repeat("// "+strings.Repeat("x", 97)+"\n", 4000)
+	out := renderPage(t, pages.GistDetail(view.GistDetailData{
+		Gist: model.Gist{ID: "g1"},
+		Files: []model.GistFile{
+			{Filename: "a.go", Content: src},
+			{Filename: "b.go", Content: src},
+			{Filename: "c.go", Content: src},
+		},
+	}))
+	if n := strings.Count(out, `<code><span class="hl-`); n != 2 {
+		t.Errorf("%d highlighted files, want 2: the third is past the page budget", n)
+	}
+	if n := strings.Count(out, `<code>// `); n != 1 {
+		t.Errorf("%d plain files, want 1", n)
+	}
+}

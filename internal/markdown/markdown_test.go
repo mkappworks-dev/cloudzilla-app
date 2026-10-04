@@ -572,7 +572,25 @@ func TestRender_HighlightsFencedCodeInAKnownLanguage(t *testing.T) {
 			if !strings.Contains(got, `<span class="hl-`) {
 				t.Errorf("Render = %q, want token spans", got)
 			}
+			if n := strings.Count(got, "</pre>"); n != 1 {
+				t.Errorf("Render = %q, has %d </pre>, want exactly 1 for the one fence", got, n)
+			}
 		})
+	}
+}
+
+func TestRender_HighlightingSharesOneBudgetPerDocument(t *testing.T) {
+	// Each fence is under the 256 KiB document cap; together they are over it.
+	fence := "```go\n" + strings.Repeat("// "+strings.Repeat("x", 97)+"\n", 1400) + "```\n\n"
+	got := markdown.Render(fence + fence)
+	if n := strings.Count(got, `<pre class="hl"><code class="language-go">`); n != 1 {
+		t.Errorf("%d highlighted fences, want 1: the second is past the budget", n)
+	}
+	if n := strings.Count(got, `<pre><code class="language-go">`); n != 1 {
+		t.Errorf("%d plain fences, want 1", n)
+	}
+	if !strings.HasPrefix(got, `<pre class="hl">`) {
+		t.Error("the first fence is not the highlighted one")
 	}
 }
 

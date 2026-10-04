@@ -262,6 +262,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
+			budget := highlight.NewBudget(1<<20, time.Second)
 			for _, f := range data.Files {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<section class=\"rounded-md border border-border bg-card overflow-hidden\"><header class=\"px-4 py-2 border-b border-border bg-muted/50 flex items-center gap-3\"><svg class=\"text-muted-foreground\" width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z\"></path> <polyline points=\"14 2 14 8 20 8\"></polyline></svg><h2 class=\"font-mono text-[13px] font-medium\">")
 				if templ_7745c5c3_Err != nil {
@@ -270,7 +271,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(f.Filename)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 73, Col: 65}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 74, Col: 65}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -283,7 +284,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(gistFileStats(f.Content))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 74, Col: 102}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/pages/gist_detail.templ`, Line: 75, Col: 102}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -293,7 +294,7 @@ func GistDetail(data view.GistDetailData) templ.Component {
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = components.CodeText(f.Content, highlight.Block("", f.Filename, f.Content)).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = components.CodeText(f.Content, highlight.BlockWithin(budget, "", f.Filename, f.Content)).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
