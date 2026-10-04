@@ -15,6 +15,8 @@
 
 `{ref}` = branch name, tag name, or commit SHA. Pagination via `?page=N` (1-indexed, 30 per page).
 
+A ref may contain `/` (`feature/x`), so chi's one-segment `{ref}` can't tell where it ends. Handlers rejoin `{ref}` and `*` (`routeRefPath`) and split them with `CodeService.SplitRefPath`: the longest branch or tag that ends at a segment boundary wins, and otherwise the first segment is the ref. The new-file POST and archive routes take the whole tail as the ref.
+
 ---
 
 ## CodeService (`internal/service/code_service.go`)
@@ -31,6 +33,7 @@
 - `GetCommits(owner, repoName, ref, page, pageSize)` → `*CommitLog`
 - `GetCommit(owner, repoName, sha)` → `*CommitDetail`
 - `ListRefs(owner, repoName, defaultBranch)` → `*RefsResult`
+- `SplitRefPath(owner, repoName, refPath)` → `(ref, path)`
 - `CreateBranch(owner, repoName, name, fromRef)` → `error`
 - `DeleteBranch(owner, repoName, name)` → `error`
 - `CreateTag(owner, repoName, name, fromRef)` → `error`

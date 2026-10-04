@@ -445,8 +445,6 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := chi.URLParam(r, "ref")
-	path := chi.URLParam(r, "*")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -463,6 +461,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	// GetTree resolves the ref and produces breadcrumbs; we drop its Entries
 	// and re-fetch them enriched with last-commit metadata below.
 	result, treeErr := h.Services.Code.GetTree(owner, repoName, ref, path)
@@ -609,8 +608,6 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := chi.URLParam(r, "ref")
-	path := chi.URLParam(r, "*")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -627,6 +624,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	result, err := h.Services.Code.GetBlob(owner, repoName, ref, path)
 	if err != nil {
 		h.NotFound(w, r)
@@ -700,7 +698,6 @@ func (h *Handler) PageCommitsRedirect(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := chi.URLParam(r, "ref")
 
 	page := 1
 	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
@@ -722,6 +719,7 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ref, _ := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	log, err := h.Services.Code.GetCommits(owner, repoName, ref, page, 30)
 	if err != nil {
 		switch {
@@ -798,8 +796,6 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := chi.URLParam(r, "ref")
-	path := chi.URLParam(r, "*")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -816,6 +812,7 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	result, err := h.Services.Code.GetBlame(owner, repoName, ref, path)
 	if err != nil {
 		h.NotFound(w, r)
@@ -848,6 +845,16 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 		Contributors: len(authors),
 		CanManage:    canManage,
 	}))
+}
+
+// routeRefPath rejoins a "{ref}/*" route's params, since a ref like feature/x
+// spans both.
+func routeRefPath(r *http.Request) string {
+	refPath := chi.URLParam(r, "ref")
+	if rest := chi.URLParam(r, "*"); rest != "" {
+		refPath += "/" + rest
+	}
+	return refPath
 }
 
 // pickerRefs feeds the ref picker best-effort: a failure leaves it with only

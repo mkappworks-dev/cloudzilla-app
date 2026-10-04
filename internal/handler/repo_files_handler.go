@@ -63,7 +63,7 @@ func (h *Handler) UpdateRepo(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DownloadArchive(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := strings.TrimSuffix(chi.URLParam(r, "ref"), ".zip")
+	ref := strings.TrimSuffix(routeRefPath(r), ".zip")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -93,8 +93,6 @@ func (h *Handler) DownloadArchive(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageNewFile(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := chi.URLParam(r, "ref")
-	dir := strings.Trim(chi.URLParam(r, "*"), "/")
 
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
@@ -109,6 +107,8 @@ func (h *Handler) PageNewFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
+	ref, dir := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
+	dir = strings.Trim(dir, "/")
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
@@ -127,7 +127,7 @@ func (h *Handler) PageNewFile(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) SubmitNewFile(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := chi.URLParam(r, "ref")
+	ref := routeRefPath(r)
 
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
