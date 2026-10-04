@@ -45,7 +45,7 @@ func Block(lang, filename, src string) template.HTML
 ### Lexer selection
 
 - By filename: `lexers.Match(path.Base(filename))`.
-- Then, when there's no match and the file has no extension, `lexers.Analyse` on the first 1 KiB. This catches shebang scripts.
+- Then, when there's no match, the file has no extension and the content starts with `#!`, `lexers.Analyse` on the first 1 KiB. Other extensionless files (`LICENSE`, `README`) stay plain.
 - For Markdown: `lexers.Get(lang)`. Unknown `lang` means plain.
 - The plaintext lexer and "no lexer" both return nil/"". Callers keep their current plain rendering.
 - The lexer is wrapped in `chroma.Coalesce`.
