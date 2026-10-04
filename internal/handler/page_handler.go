@@ -99,6 +99,16 @@ func (h *Handler) readableRepo(w http.ResponseWriter, r *http.Request, owner, re
 	return repo, true
 }
 
+// readableRepoPage is readableRepo for pages an anonymous viewer can open.
+func (h *Handler) readableRepoPage(w http.ResponseWriter, r *http.Request, owner, repoName string) (*model.Repository, bool) {
+	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
+	if err != nil || !h.Services.Repo.CanRead(r.Context(), repo, viewerOf(r)) {
+		h.NotFound(w, r)
+		return nil, false
+	}
+	return repo, true
+}
+
 // The repo-switcher list is best-effort: a failed lookup leaves it empty.
 func (h *Handler) withRepoSubnav(ctx context.Context, base BasePage, repo *model.Repository, active string, canManage bool) BasePage {
 	var viewerID *int64

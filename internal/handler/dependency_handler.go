@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"database/sql"
-	"errors"
 	"log/slog"
 	"net/http"
 	"sort"
@@ -10,7 +8,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mkappworks-dev/cloudzilla-app/internal/middleware"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/model"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
@@ -39,25 +36,11 @@ func (h *Handler) PageDependencies(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
 
-	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "repo not found", http.StatusNotFound)
-		} else {
-			slog.Error("dependency: failed to get repo", "owner", owner, "repo", repoName, "error", err)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
-		}
+	repo, ok := h.readableRepoPage(w, r, owner, repoName)
+	if !ok {
 		return
 	}
-
-	var userID *int64
-	if claims, ok := middleware.ClaimsFromContext(r.Context()); ok {
-		userID = &claims.UserID
-	}
-	if !h.Services.Repo.CanRead(r.Context(), repo, userID) {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
+	userID := viewerOf(r)
 
 	deps, err := h.Services.Dependency.ListByRepo(r.Context(), repo.ID)
 	if err != nil {
