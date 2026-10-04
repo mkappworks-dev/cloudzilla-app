@@ -13,10 +13,7 @@ import (
 var siteNavMarkers = []string{
 	`action="/search"`,
 	`class="command-palette`,
-	`href="/docs"`,
-	`href="/api"`,
-	`href="/changelog"`,
-	`href="/status"`,
+	`aria-label="Footer"`,
 }
 
 // Until setup completes every route but /setup redirects back to it, so the

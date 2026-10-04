@@ -8,12 +8,15 @@
 | Subtree                 | `/{owner}/{repo}/tree/{ref}/{path...}`    |
 | Blob                    | `/{owner}/{repo}/blob/{ref}/{path...}`    |
 | Blame                   | `/{owner}/{repo}/blame/{ref}/{path...}`   |
+| Raw file                | `/{owner}/{repo}/raw/{ref}/{path...}`     |
 | Commit log              | `/{owner}/{repo}/commits/{ref}`           |
 | Commit log (file scope) | `/{owner}/{repo}/commits/{ref}/{path...}` |
 | Single commit diff      | `/{owner}/{repo}/commit/{sha}`            |
 | Branches & Tags         | `/{owner}/{repo}/refs`                    |
 
 `{ref}` = branch name, tag name, or commit SHA. Pagination via `?page=N` (1-indexed, 30 per page).
+
+A ref may contain `/` (`feature/x`), so chi's one-segment `{ref}` can't tell where it ends. Handlers rejoin `{ref}` and `*` (`routeRefPath`) and split them with `CodeService.SplitRefPath`: the longest branch or tag that ends at a segment boundary wins, and otherwise the first segment is the ref. The new-file POST and archive routes take the whole tail as the ref.
 
 ---
 
@@ -27,10 +30,12 @@
 - `GetTree(owner, repoName, ref, path)` → `*TreeResult`
 - `ListEntriesWithLastCommit(ctx, repo, ref, dir)` → `[]TreeEntryWithLastCommit` — each entry with the last commit that touched it; cached for 60s per repo ID, resolved commit and dir, so a new commit, or a new repo that takes a deleted or transferred repo's name, is always listed fresh
 - `GetBlob(owner, repoName, ref, path)` → `*BlobResult`
+- `OpenRawBlob(owner, repoName, ref, path, maxBytes)` → `*RawBlob` — the file open for streaming, with `Size` and `IsBinary`; `ErrBlobTooLarge` past `maxBytes`. The caller closes it
 - `GetBlame(owner, repoName, ref, path)` → `*BlameResult`
 - `GetCommits(owner, repoName, ref, page, pageSize)` → `*CommitLog`
 - `GetCommit(owner, repoName, sha)` → `*CommitDetail`
 - `ListRefs(owner, repoName, defaultBranch)` → `*RefsResult`
+- `SplitRefPath(owner, repoName, refPath)` → `(ref, path)`
 - `CreateBranch(owner, repoName, name, fromRef)` → `error`
 - `DeleteBranch(owner, repoName, name)` → `error`
 - `CreateTag(owner, repoName, name, fromRef)` → `error`
@@ -56,6 +61,12 @@ Returns `ErrEmptyRepo` sentinel when HEAD resolution fails (repo has no commits)
 
 ---
 
+## Raw Files
+
+`RawFile` streams a file through `OpenRawBlob`. A viewer who can't read the repo gets the same 404 as for a missing repo. A file is served as `text/plain; charset=utf-8`, or as `application/octet-stream` when the blob page would call it binary (a NUL byte in the first 8000). Every raw response carries `X-Content-Type-Options: nosniff` and `Content-Security-Policy: default-src 'none'; sandbox`, so an uploaded `.html` or `.svg` can't run script on the forge's origin. Files over 25 MB get a 403 telling the user to clone instead, because go-git inflates a packed blob whole before the first byte can be read.
+
+---
+
 ## Branch & Tag Management
 
 The Refs page (`/{owner}/{repo}/refs`) lists all branches and tags. Authenticated users with write access can create and delete branches/tags via HTMX forms.
@@ -77,4 +88,4 @@ The Refs page (`/{owner}/{repo}/refs`) lists all branches and tags. Authenticate
 
 HTMX responses swap `fragment-branches-list` into `#branches-list` and `fragment-tags-list` into `#tags-list`.
 
-The ref badge on tree and commits pages links to `/{owner}/{repo}/refs` (via `RefsURL` field on `TreeData` / `CommitsData`).
+The repo home, tree, blob and blame pages share a branch/tag picker (`components.RefPicker`) that lists every ref from `ListRefs`. On tree, blob and blame, each item opens the same path on that ref, so a path missing there 404s; on the repo home, the default branch opens the home page and other refs open their tree. The commits page's ref badge links to `/{owner}/{repo}/refs` (via `RefsURL` on `CommitsData`).

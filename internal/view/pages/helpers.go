@@ -3,6 +3,7 @@ package pages
 import (
 	"time"
 
+	"github.com/a-h/templ"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 )
@@ -23,6 +24,18 @@ func commitDays(commits []service.CommitSummary) []CommitDayGroup {
 		}
 	}
 	return groups
+}
+
+// codeRefHref keeps the viewer on path when switching refs, accepting a 404
+// when the path doesn't exist on the target ref.
+func codeRefHref(owner, repoName, kind, path string) func(string) templ.SafeURL {
+	return func(ref string) templ.SafeURL {
+		u := "/" + owner + "/" + repoName + "/" + kind + "/" + ref
+		if path != "" {
+			u += "/" + path
+		}
+		return templ.SafeURL(u)
+	}
 }
 
 // Non-nil so JSLiteral renders [] rather than null, which Alpine's .includes would throw on.

@@ -20,9 +20,15 @@ import (
 	"github.com/mkappworks-dev/cloudzilla-app/internal/service"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/ssh"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/store"
+	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 )
 
+// Must stay a var: release builds set it with -ldflags "-X main.version=<tag>".
+var version = "dev"
+
 func main() {
+	view.SetVersion(version)
+
 	cfg, err := config.Load("")
 	if err != nil {
 		slog.Error("failed to load config", "error", err)

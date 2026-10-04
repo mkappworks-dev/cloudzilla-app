@@ -123,67 +123,13 @@ templ Repo(data view.RepoData) {
 				>
 					<!-- Branch + actions row -->
 					<div class="flex flex-wrap items-center gap-2">
-						<div class="relative" x-data="{ open: false, bq: '' }" x-on:keydown.escape.window="open = false">
-							<button
-								type="button"
-								x-on:click="open = !open"
-								:aria-expanded="open ? 'true' : 'false'"
-								aria-haspopup="menu"
-								aria-label={ "Switch branch or tag, current: " + data.Repo.DefaultBranch }
-								class="h-8 px-3 text-[13px] border border-border rounded-md hover:bg-accent inline-flex items-center gap-1.5"
-							>
-								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true" focusable="false"><circle cx="6" cy="3" r="3"></circle><circle cx="18" cy="3" r="3"></circle><circle cx="12" cy="21" r="3"></circle><path d="M6 6v3a3 3 0 003 3h6a3 3 0 003-3V6M12 12v6"></path></svg>
-								<span class="font-medium">{ data.Repo.DefaultBranch }</span>
-								<svg class="text-muted-foreground" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5"></path></svg>
-							</button>
-							<div
-								x-show="open"
-								x-cloak
-								x-transition.opacity.duration.100ms
-								x-on:click.outside="open = false"
-								role="menu"
-								aria-label="Switch branches and tags"
-								class="absolute left-0 top-full mt-1.5 z-50 w-[300px] rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1"
-							>
-								<div class="px-1.5 pb-1.5">
-									<label for="branch-filter" class="sr-only">Find a branch or tag</label>
-									<input id="branch-filter" type="search" x-model="bq" placeholder="Find a branch or tag…" class="w-full h-7 px-2.5 text-[12px] bg-card border border-border rounded-md placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring"/>
-								</div>
-								if len(data.Branches) > 0 {
-									<p class="px-2.5 pt-1 pb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Branches</p>
-									for _, b := range data.Branches {
-										<a
-											href={ branchHref(data.Owner, data.RepoName, b) }
-											role="menuitem"
-											data-ref={ strings.ToLower(b.Name) }
-											x-show="!bq || $el.dataset.ref.includes(bq.toLowerCase())"
-											class={ "flex items-center gap-2 px-2.5 py-1.5 rounded-xs hover:bg-accent", templ.KV("bg-accent", b.IsDefault) }
-										>
-											<span class="flex-1 font-mono text-[12px] truncate">{ b.Name }</span>
-											if b.IsDefault {
-												<span class="text-[10px] text-muted-foreground">default</span>
-											}
-										</a>
-									}
-								}
-								if len(data.Tags) > 0 {
-									<p class="px-2.5 pt-1 pb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Tags</p>
-									for _, t := range data.Tags {
-										<a
-											href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/tree/" + t.Name) }
-											role="menuitem"
-											data-ref={ strings.ToLower(t.Name) }
-											x-show="!bq || $el.dataset.ref.includes(bq.toLowerCase())"
-											class="flex items-center gap-2 px-2.5 py-1.5 rounded-xs hover:bg-accent"
-										>
-											<span class="flex-1 font-mono text-[12px] truncate">{ t.Name }</span>
-										</a>
-									}
-								}
-								<div role="separator" class="my-1 h-px bg-border"></div>
-								<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/refs") } role="menuitem" class="flex items-center gap-2 px-2.5 py-1.5 rounded-xs text-[13px] hover:bg-accent">View all branches</a>
-							</div>
-						</div>
+						@components.RefPicker(components.RefPickerProps{
+							Current:  data.Repo.DefaultBranch,
+							Branches: data.Branches,
+							Tags:     data.Tags,
+							Href:     repoHomeRefHref(data.Owner, data.RepoName, data.Repo.DefaultBranch),
+							RefsURL:  "/" + data.Owner + "/" + data.RepoName + "/refs",
+						})
 						<span class="text-[11px] text-muted-foreground">
 							<a href={ templ.SafeURL("/" + data.Owner + "/" + data.RepoName + "/refs") } class="hover:underline">{ strconv.Itoa(data.BranchCount) } branches</a>
 							<span aria-hidden="true">·</span>
@@ -662,13 +608,15 @@ templ insightRow(href, label, count string) {
 	</li>
 }
 
-// branchHref points the default branch at the repo home and other branches at
+// repoHomeRefHref points the default branch at the repo home and other refs at
 // the tree browser.
-func branchHref(owner, repoName string, b service.BranchInfo) templ.SafeURL {
-	if b.IsDefault {
-		return templ.SafeURL("/" + owner + "/" + repoName)
+func repoHomeRefHref(owner, repoName, defaultBranch string) func(string) templ.SafeURL {
+	return func(ref string) templ.SafeURL {
+		if ref == defaultBranch {
+			return templ.SafeURL("/" + owner + "/" + repoName)
+		}
+		return templ.SafeURL("/" + owner + "/" + repoName + "/tree/" + ref)
 	}
-	return templ.SafeURL("/" + owner + "/" + repoName + "/tree/" + b.Name)
 }
 
 // fileListJSON renders the lowercased file paths as a JSON array literal, used
