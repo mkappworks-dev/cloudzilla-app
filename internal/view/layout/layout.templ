@@ -14,6 +14,15 @@ import (
 // a fork get no client-side timeout.
 const htmxConfig = `{"noSwap":[204,304,"4xx","5xx"],"defaultTimeout":0}`
 
+// An instance serves no docs of its own, so help links go to the upstream repo.
+const (
+	docsURL      = "https://github.com/mkappworks-dev/cloudzilla-app/tree/main/docs"
+	apiDocsURL   = "https://github.com/mkappworks-dev/cloudzilla-app/blob/main/docs/api-reference.md"
+	changelogURL = "https://github.com/mkappworks-dev/cloudzilla-app/blob/main/CHANGELOG.md"
+)
+
+var externalLink = templ.Attributes{"target": "_blank", "rel": "noopener"}
+
 templ Base(base view.BasePage, title string) {
 	<!DOCTYPE html>
 	<html lang="en" class="dark">
@@ -194,11 +203,11 @@ templ Base(base view.BasePage, title string) {
 												{ "Admin" }
 											}
 										}
-										@components.DropdownMenuLink("/docs", nil) {
+										@components.DropdownMenuLink(docsURL, externalLink) {
 											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"></path></svg>
 											{ "Docs" }
 										}
-										@components.DropdownMenuLink("/changelog", nil) {
+										@components.DropdownMenuLink(changelogURL, externalLink) {
 											<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
 											{ "Changelog" }
 										}
@@ -244,10 +253,9 @@ templ Base(base view.BasePage, title string) {
 					if !base.SetupPending {
 						<nav aria-label="Footer">
 							<ul class="flex gap-4 list-none">
-								<li><a href="/docs" class="hover:text-foreground">Docs</a></li>
-								<li><a href="/api" class="hover:text-foreground">API</a></li>
-								<li><a href="/changelog" class="hover:text-foreground">Changelog</a></li>
-								<li><a href="/status" class="hover:text-foreground">Status</a></li>
+								<li><a href={ templ.SafeURL(docsURL) } { externalLink... } class="hover:text-foreground">Docs</a></li>
+								<li><a href={ templ.SafeURL(apiDocsURL) } { externalLink... } class="hover:text-foreground">API</a></li>
+								<li><a href={ templ.SafeURL(changelogURL) } { externalLink... } class="hover:text-foreground">Changelog</a></li>
 							</ul>
 						</nav>
 					}

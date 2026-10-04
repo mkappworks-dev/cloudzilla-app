@@ -65,6 +65,29 @@ func TestBase_UserMenuLinksAdminForSuperadminOnly(t *testing.T) {
 	}
 }
 
+func TestBase_HelpLinksPointUpstream(t *testing.T) {
+	base := view.BasePage{CurrentUser: &middleware.Claims{Username: "alice"}}
+	var page strings.Builder
+	if err := layout.Base(base, "Home").Render(context.Background(), &page); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	html := page.String()
+	for _, dead := range []string{`href="/docs"`, `href="/api"`, `href="/changelog"`, `href="/status"`} {
+		if strings.Contains(html, dead) {
+			t.Errorf("layout links %s, which has no route", dead)
+		}
+	}
+	for _, want := range []string{
+		`href="https://github.com/mkappworks-dev/cloudzilla-app/tree/main/docs"`,
+		`href="https://github.com/mkappworks-dev/cloudzilla-app/blob/main/docs/api-reference.md"`,
+		`href="https://github.com/mkappworks-dev/cloudzilla-app/blob/main/CHANGELOG.md"`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("layout lacks %s", want)
+		}
+	}
+}
+
 func TestBase_FooterShowsBuildVersion(t *testing.T) {
 	prev := view.Version()
 	view.SetVersion("v9.9.9")
