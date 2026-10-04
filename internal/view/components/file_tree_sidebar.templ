@@ -8,20 +8,54 @@ type TreeNode struct {
 	Href     string
 	Children []TreeNode
 	IsOpen   bool
+	IsActive bool
 }
 
-// FileTreeSidebar renders an IDE-style file tree. The caller is expected to
-// wrap this in an element with x-data="{ filter: '' }" so that the x-show
-// filter expressions on each <li> resolve correctly.
-templ FileTreeSidebar(nodes []TreeNode, activeName string) {
-	<ol class="overflow-y-auto py-1 flex-1 text-[12.5px]" role="tree">
-		for _, n := range nodes {
-			@treeItem(n, 0, activeName)
-		}
-	</ol>
+templ FileTreeSidebar(nodes []TreeNode) {
+	<aside
+		x-data="{ filter: '' }"
+		class="rounded-md border border-border bg-card sticky top-4 self-start max-h-[calc(100vh-5rem)] overflow-hidden flex flex-col"
+		aria-label="Repository file tree"
+	>
+		<header class="px-3 py-2 border-b border-border flex items-center gap-2 bg-muted/40 shrink-0">
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="text-muted-foreground" aria-hidden="true" focusable="false">
+				<path d="M3 6h18M3 12h18M3 18h18"></path>
+			</svg>
+			<span class="text-[12px] font-medium">Files</span>
+			<div class="ml-auto flex items-center gap-0.5">
+				<button
+					type="button"
+					x-on:click="filter = ''"
+					title="Clear filter"
+					aria-label="Clear filter"
+					class="h-6 w-6 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground"
+				>
+					<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+						<path d="M19 9l-7 7-7-7"></path>
+					</svg>
+				</button>
+			</div>
+		</header>
+		<div class="px-2 py-1.5 border-b border-border shrink-0">
+			<input
+				x-model="filter"
+				type="search"
+				placeholder="Filter files…"
+				class="w-full h-7 px-2 text-[12px] bg-transparent border border-border rounded-xs placeholder:text-muted-foreground/60 focus:outline-hidden focus:border-foreground/30"
+				aria-label="Filter files"
+			/>
+		</div>
+		<div class="overflow-y-auto flex-1 flex flex-col">
+			<ol class="overflow-y-auto py-1 flex-1 text-[12.5px]" role="tree">
+				for _, n := range nodes {
+					@treeItem(n, 0)
+				}
+			</ol>
+		</div>
+	</aside>
 }
 
-templ treeItem(n TreeNode, depth int, activeName string) {
+templ treeItem(n TreeNode, depth int) {
 	<li
 		data-name={ n.Name }
 		x-show="!filter || $el.dataset.name.toLowerCase().includes(filter.toLowerCase())"
@@ -55,17 +89,17 @@ templ treeItem(n TreeNode, depth int, activeName string) {
 				</div>
 				<ol x-show="open" role="group">
 					for _, child := range n.Children {
-						@treeItem(child, depth+1, activeName)
+						@treeItem(child, depth+1)
 					}
 				</ol>
 			</div>
 		} else {
 			<a
 				href={ templ.SafeURL(n.Href) }
-				if n.Name == activeName {
+				if n.IsActive {
 					aria-current="page"
 				}
-				class={ "flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] " + fileItemClass(n.Name == activeName) }
+				class={ "flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] " + fileItemClass(n.IsActive) }
 				style={ "padding-left: " + depthPx(depth) + "px" }
 			>
 				<span class="shrink-0 w-5 flex items-center justify-center"></span>

@@ -16,12 +16,10 @@ type TreeNode struct {
 	Href     string
 	Children []TreeNode
 	IsOpen   bool
+	IsActive bool
 }
 
-// FileTreeSidebar renders an IDE-style file tree. The caller is expected to
-// wrap this in an element with x-data="{ filter: ” }" so that the x-show
-// filter expressions on each <li> resolve correctly.
-func FileTreeSidebar(nodes []TreeNode, activeName string) templ.Component {
+func FileTreeSidebar(nodes []TreeNode) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -42,17 +40,17 @@ func FileTreeSidebar(nodes []TreeNode, activeName string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<ol class=\"overflow-y-auto py-1 flex-1 text-[12.5px]\" role=\"tree\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<aside x-data=\"{ filter: '' }\" class=\"rounded-md border border-border bg-card sticky top-4 self-start max-h-[calc(100vh-5rem)] overflow-hidden flex flex-col\" aria-label=\"Repository file tree\"><header class=\"px-3 py-2 border-b border-border flex items-center gap-2 bg-muted/40 shrink-0\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" class=\"text-muted-foreground\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M3 6h18M3 12h18M3 18h18\"></path></svg> <span class=\"text-[12px] font-medium\">Files</span><div class=\"ml-auto flex items-center gap-0.5\"><button type=\"button\" x-on:click=\"filter = ''\" title=\"Clear filter\" aria-label=\"Clear filter\" class=\"h-6 w-6 grid place-items-center rounded-sm hover:bg-muted text-muted-foreground\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M19 9l-7 7-7-7\"></path></svg></button></div></header><div class=\"px-2 py-1.5 border-b border-border shrink-0\"><input x-model=\"filter\" type=\"search\" placeholder=\"Filter files…\" class=\"w-full h-7 px-2 text-[12px] bg-transparent border border-border rounded-xs placeholder:text-muted-foreground/60 focus:outline-hidden focus:border-foreground/30\" aria-label=\"Filter files\"></div><div class=\"overflow-y-auto flex-1 flex flex-col\"><ol class=\"overflow-y-auto py-1 flex-1 text-[12.5px]\" role=\"tree\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for _, n := range nodes {
-			templ_7745c5c3_Err = treeItem(n, 0, activeName).Render(ctx, templ_7745c5c3_Buffer)
+			templ_7745c5c3_Err = treeItem(n, 0).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</ol>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</ol></div></aside>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -60,7 +58,7 @@ func FileTreeSidebar(nodes []TreeNode, activeName string) templ.Component {
 	})
 }
 
-func treeItem(n TreeNode, depth int, activeName string) templ.Component {
+func treeItem(n TreeNode, depth int) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -88,7 +86,7 @@ func treeItem(n TreeNode, depth int, activeName string) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(n.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 26, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 60, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {
@@ -118,7 +116,7 @@ func treeItem(n TreeNode, depth int, activeName string) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue("{ open: " + boolStr(n.IsOpen) + " }")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 34, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 68, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 			if templ_7745c5c3_Err != nil {
@@ -131,7 +129,7 @@ func treeItem(n TreeNode, depth int, activeName string) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("padding-left: " + depthPx(depth) + "px")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 35, Col: 120}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 69, Col: 120}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -144,7 +142,7 @@ func treeItem(n TreeNode, depth int, activeName string) templ.Component {
 			var templ_7745c5c3_Var6 templ.SafeURL
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(n.Href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 47, Col: 34}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 81, Col: 34}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -157,7 +155,7 @@ func treeItem(n TreeNode, depth int, activeName string) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(n.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 53, Col: 37}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 87, Col: 37}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -168,7 +166,7 @@ func treeItem(n TreeNode, depth int, activeName string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			for _, child := range n.Children {
-				templ_7745c5c3_Err = treeItem(child, depth+1, activeName).Render(ctx, templ_7745c5c3_Buffer)
+				templ_7745c5c3_Err = treeItem(child, depth+1).Render(ctx, templ_7745c5c3_Buffer)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -178,7 +176,7 @@ func treeItem(n TreeNode, depth int, activeName string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			var templ_7745c5c3_Var8 = []any{"flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] " + fileItemClass(n.Name == activeName)}
+			var templ_7745c5c3_Var8 = []any{"flex items-center gap-1 py-[3px] rounded-sm text-[12.5px] " + fileItemClass(n.IsActive)}
 			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var8...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -190,7 +188,7 @@ func treeItem(n TreeNode, depth int, activeName string) templ.Component {
 			var templ_7745c5c3_Var9 templ.SafeURL
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinURLErrs(templ.SafeURL(n.Href))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 64, Col: 32}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 98, Col: 32}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -200,7 +198,7 @@ func treeItem(n TreeNode, depth int, activeName string) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			if n.Name == activeName {
+			if n.IsActive {
 				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, " aria-current=\"page\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -226,7 +224,7 @@ func treeItem(n TreeNode, depth int, activeName string) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues("padding-left: " + depthPx(depth) + "px")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 69, Col: 52}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 103, Col: 52}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -239,7 +237,7 @@ func treeItem(n TreeNode, depth int, activeName string) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(n.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 76, Col: 45}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/view/components/file_tree_sidebar.templ`, Line: 110, Col: 45}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {

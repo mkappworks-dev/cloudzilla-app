@@ -212,19 +212,6 @@ type TagsFragData struct {
 	CanWrite bool
 }
 
-// TreeFileView carries the data needed to render an inline file viewer inside
-// the tree page (when the path resolves to a file rather than a directory).
-type TreeFileView struct {
-	Lines    []service.CodeLine
-	IsBinary bool
-	Size     int64
-	FileName string
-	BlameURL string
-	RawURL   string
-	EditURL  string
-	CanWrite bool
-}
-
 // TreeData holds template data for the repository tree browser page.
 type TreeData struct {
 	BasePage
@@ -239,8 +226,6 @@ type TreeData struct {
 	CanManage    bool
 	Sidebar      []components.TreeNode
 	LatestCommit TreeLatestCommit
-	FileView     *TreeFileView
-	ActiveFile   string
 }
 
 // TreeLatestCommit summarises the most recent commit touching anything in
@@ -271,6 +256,7 @@ type BlobData struct {
 	EditURL      string
 	CanWrite     bool
 	CanManage    bool
+	Sidebar      []components.TreeNode
 	LatestCommit TreeLatestCommit
 }
 

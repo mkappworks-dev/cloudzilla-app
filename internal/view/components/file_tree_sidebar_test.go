@@ -10,10 +10,10 @@ import (
 func TestFileTreeSidebar_RendersHierarchy(t *testing.T) {
 	nodes := []TreeNode{
 		{Name: "internal", IsDir: true, Href: "/o/r/tree/main/internal"},
-		{Name: "main.go", IsDir: false, Href: "/o/r/blob/main/main.go"},
+		{Name: "main.go", IsDir: false, Href: "/o/r/blob/main/main.go", IsActive: true},
 	}
 	var buf bytes.Buffer
-	if err := FileTreeSidebar(nodes, "main.go").Render(context.Background(), &buf); err != nil {
+	if err := FileTreeSidebar(nodes).Render(context.Background(), &buf); err != nil {
 		t.Fatalf("render: %v", err)
 	}
 	out := buf.String()

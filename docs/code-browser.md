@@ -15,6 +15,8 @@
 
 `{ref}` = branch name, tag name, or commit SHA. Pagination via `?page=N` (1-indexed, 30 per page).
 
+A tree URL whose path is a file redirects (302) to its blob URL. Tree and blob pages share the file tree sidebar (`components.FileTreeSidebar`), built by `buildSidebarTree` from the requested ref and path.
+
 ---
 
 ## CodeService (`internal/service/code_service.go`)
