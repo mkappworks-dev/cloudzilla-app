@@ -4,9 +4,14 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 )
+
+// formValueMemory is what FormValue passes to ParseMultipartForm.
+const formValueMemory = 32 << 20
 
 // CSRF implements double-submit cookie CSRF protection.
 // It sets a non-HttpOnly cookie with a random token and validates that
@@ -62,6 +67,10 @@ func CSRF(secure bool) func(http.Handler) http.Handler {
 			// Validate CSRF token from header (HTMX/AJAX) or form field (plain HTML forms)
 			submitted := r.Header.Get("X-CSRF-Token")
 			if submitted == "" {
+				if tooLarge := parseForm(r); tooLarge != nil {
+					http.Error(w, "request body is larger than "+sizeText(tooLarge.Limit), http.StatusRequestEntityTooLarge)
+					return
+				}
 				submitted = r.FormValue("csrf_token")
 			}
 			if submitted == "" || subtle.ConstantTimeCompare([]byte(submitted), []byte(token)) != 1 {
@@ -72,6 +81,29 @@ func CSRF(secure bool) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// parseForm parses r's form as FormValue does and returns the error from a body
+// over MaxFormBodySize's limit, which FormValue drops. ParseForm goes first
+// because, on a urlencoded body, ParseMultipartForm reports ErrNotMultipart in
+// place of ParseForm's error.
+func parseForm(r *http.Request) *http.MaxBytesError {
+	var tooLarge *http.MaxBytesError
+	if errors.As(r.ParseForm(), &tooLarge) {
+		return tooLarge
+	}
+	if errors.As(r.ParseMultipartForm(formValueMemory), &tooLarge) {
+		return tooLarge
+	}
+	return nil
+}
+
+// sizeText rounds down to whole megabytes, which keeps "larger than" true.
+func sizeText(n int64) string {
+	if n < 1<<20 {
+		return fmt.Sprintf("%d bytes", n)
+	}
+	return fmt.Sprintf("%d MB", n>>20)
 }
 
 func generateCSRFToken() string {

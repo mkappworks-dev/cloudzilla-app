@@ -2,7 +2,7 @@
 
 Created: 2026-10-03
 Category: bug
-Status: needs-triage
+Status: done
 
 ## Problem
 
@@ -25,6 +25,6 @@ The New file form still refuses an upload over 25 MB with 413 and caps the path 
 
 ## Acceptance criteria
 
-- [ ] A cookie-authenticated multipart post over the form cap is refused with 413, and nothing past the cap is read or spooled to disk.
-- [ ] An anonymous POST to any path can't make the server parse more than the form cap.
-- [ ] Route-level limits still apply to Bearer requests, and git pushes are unaffected.
+- [x] A cookie-authenticated multipart post over the form cap is refused with 413, and nothing past the cap is read or spooled to disk.
+- [x] An anonymous POST to any path can't make the server parse more than the form cap.
+- [x] Route-level limits still apply to Bearer requests, and git pushes are unaffected.

@@ -119,19 +119,21 @@ Extracted via `middleware.ClaimsFromContext(r.Context())`. `claims.HasScope(s)` 
 ### Middleware Chain
 
 ```
-Request → RequestID → Recoverer → Logger → CORS → CSRF → RequireSetup
-                                                            ↓
-                                              Route-specific middleware:
-                                              - authMW (required auth)
-                                              - optAuthMW (optional auth)
-                                              - superadminMW (superadmin only)
-                                              - apiBodyLimit (1 MB limit)
+Request → RequestID → ClientIP → Recoverer → Logger → CORS
+        → MaxFormBodySize → CSRF → RequireSetup
+                                         ↓
+                           Route-specific middleware:
+                           - authMW (required auth)
+                           - optAuthMW (optional auth)
+                           - superadminMW (superadmin only)
+                           - apiBodyLimit (1 MB limit)
 ```
 
 - **authMW**: Reads JWT from `Authorization: Bearer` header OR `cz_token` httpOnly cookie. Also accepts PATs and OAuth tokens. Returns 401 if missing/invalid. A token without a scope for the route gets 403 (see [Token Scopes](#token-scopes)).
 - **optAuthMW**: Same as authMW but allows unauthenticated requests through. Claims may be nil. A PAT or OAuth token is still refused with 403 on routes its scopes don't cover — it is never silently downgraded to anonymous.
 - **superadminMW**: Requires `claims.IsSuperadmin == true`. Returns 403 otherwise.
-- **CSRF**: Double-submit cookie pattern. Skips git transport, Bearer-auth, `POST /oauth/token` (client-secret auth), and safe methods (GET/HEAD/OPTIONS).
+- **MaxFormBodySize**: Caps urlencoded and multipart bodies, the ones net/http's form parsing reads, at 26 MB (`handler.MaxNewFileBodyBytes`, sized for the New file upload). It has to be global: CSRF parses the form before routing and auth, and any `Authorization: Bearer` header makes CSRF skip that parse, leaving it to handlers that no auth middleware guards, such as `POST /login`. Git transport and JSON bodies pass through whole.
+- **CSRF**: Double-submit cookie pattern. Skips git transport, Bearer-auth, `POST /oauth/token` (client-secret auth), and safe methods (GET/HEAD/OPTIONS). Without an `X-CSRF-Token` header it parses the form for a `csrf_token` field, and answers a body over MaxFormBodySize's cap with `413 request body is larger than 26 MB`.
 
 ### Token Scopes
 
@@ -626,7 +628,7 @@ Every `/api/repos` row checks `readableRepoJSON` first.
 | ------------------ | -------------------------------------------------------------------------------- |
 | CORS               | Origin restricted to `config.Server.BaseURL`; `localhost:3000` added in dev only |
 | CSRF               | Double-submit cookie; the layout puts the token in `hx-headers:inherited`        |
-| Body size limit    | 1 MB on all `/api/*` routes, 26 MB on the New file form (`http.MaxBytesReader`)  |
+| Body size limit    | 26 MB on any form body, before CSRF parses it; 1 MB on all `/api/*` routes       |
 | JWT secret warning | Log warning at startup if default secret is still set                            |
 | Cookie security    | `Secure` flag configurable via `config.Auth.CookieSecure`; `HttpOnly` always set |
 | Input validation   | All URL path params validated via `strconv`; repo/user names validated via regex |
