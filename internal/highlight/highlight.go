@@ -7,6 +7,7 @@ import (
 	"html"
 	"html/template"
 	"path"
+	"reflect"
 	"slices"
 	"strings"
 	"time"
@@ -22,6 +23,8 @@ const (
 	// chroma's per-match regexp timeout doesn't bound a whole file, so each call has its own.
 	callDeadline = 500 * time.Millisecond
 	sniffBytes   = 1 << 10
+	// Some lexers (Jungle, JSONata) emit empty tokens forever on input like "{" without advancing.
+	maxEmptyTokens = 1000
 )
 
 var now = time.Now
@@ -93,8 +96,12 @@ func (b *Budget) charge(lexer chroma.Lexer, src string) (deadline time.Time, ok 
 	if isPlain(lexer) || len(src) > MaxBytes || len(src) > b.bytes {
 		return time.Time{}, false
 	}
+	start := now()
+	if !start.Before(b.deadline) {
+		return time.Time{}, false
+	}
 	b.bytes -= len(src)
-	deadline = now().Add(callDeadline)
+	deadline = start.Add(callDeadline)
 	if b.deadline.Before(deadline) {
 		deadline = b.deadline
 	}
@@ -119,42 +126,84 @@ func fileLexer(filename, src string) chroma.Lexer {
 }
 
 func isPlain(l chroma.Lexer) bool {
+	if _, refused := l.(refusedLexer); refused {
+		return true
+	}
 	return l == nil || l.Config().Name == "plaintext"
 }
+
+// Delegating lexers (Svelte, ERB, PHTML, YAML+Jinja, Go HTML Template) lex
+// their whole input inside Tokenise, before the first deadline check.
+var delegatingLexerType = reflect.TypeOf(chroma.DelegatingLexer(nil, nil))
+
+// Nested lexers (Markdown fences, HTTP bodies, Svelte's TypeScript) are looked
+// up by name in chroma's global registry, so the stand-ins must replace them there.
+func init() {
+	for _, l := range slices.Clone(lexers.GlobalLexerRegistry.Lexers) {
+		if reflect.TypeOf(l) == delegatingLexerType {
+			lexers.Register(refusedLexer{l.Config()})
+		}
+	}
+}
+
+// refusedLexer stands in for a lexer that can't be bounded: it renders plain
+// when picked directly and emits its input as one Text token when nested.
+type refusedLexer struct{ config *chroma.Config }
+
+func (r refusedLexer) Config() *chroma.Config { return r.config }
+
+func (r refusedLexer) Tokenise(_ *chroma.TokeniseOptions, text string) (chroma.Iterator, error) {
+	return chroma.Literator(chroma.Token{Type: chroma.Text, Value: text}), nil
+}
+
+func (r refusedLexer) SetRegistry(*chroma.LexerRegistry) chroma.Lexer { return r }
+
+func (r refusedLexer) SetAnalyser(func(string) float32) chroma.Lexer { return r }
+
+func (refusedLexer) AnalyseText(string) float32 { return 0 }
 
 func lines(lexer chroma.Lexer, src string, deadline time.Time) []template.HTML {
 	if isPlain(lexer) || len(src) > MaxBytes {
 		return nil
 	}
 	// EnsureLF off: it rewrites \r\n, and every line's text must stay equal to the source.
-	it, err := chroma.Coalesce(lexer).Tokenise(&chroma.TokeniseOptions{State: "root"}, src)
+	// No chroma.Coalesce: it loops inside one it() call, past the deadline check.
+	it, err := lexer.Tokenise(&chroma.TokeniseOptions{State: "root"}, src)
 	if err != nil {
 		return nil
 	}
 	var out []template.HTML
 	var texts []string
-	var line, text strings.Builder
+	var line lineWriter
+	var text strings.Builder
+	empty := 0
 	for tok := it(); tok != chroma.EOF; tok = it() {
 		if now().After(deadline) {
 			return nil
 		}
+		if tok.Value == "" {
+			if empty++; empty > maxEmptyTokens {
+				return nil
+			}
+			continue
+		}
+		empty = 0
 		class := tokenClass(tok.Type)
 		v := tok.Value
 		for {
 			part, rest, more := strings.Cut(v, "\n")
-			writeToken(&line, class, part)
+			line.write(class, part)
 			text.WriteString(part)
 			if !more {
 				break
 			}
-			out = append(out, template.HTML(line.String()))
+			out = append(out, line.finish())
 			texts = append(texts, text.String())
-			line.Reset()
 			text.Reset()
 			v = rest
 		}
 	}
-	out = append(out, template.HTML(line.String()))
+	out = append(out, line.finish())
 	texts = append(texts, text.String())
 
 	want := strings.Split(src, "\n")
@@ -168,19 +217,38 @@ func lines(lexer chroma.Lexer, src string, deadline time.Time) []template.HTML {
 	return out
 }
 
-func writeToken(b *strings.Builder, class, text string) {
+// lineWriter builds one line's HTML, extending the open span while the class repeats.
+type lineWriter struct {
+	b    strings.Builder
+	open string
+}
+
+func (w *lineWriter) write(class, text string) {
 	if text == "" {
 		return
 	}
-	if class == "" {
-		b.WriteString(html.EscapeString(text))
-		return
+	if class != w.open {
+		if w.open != "" {
+			w.b.WriteString(`</span>`)
+		}
+		if class != "" {
+			w.b.WriteString(`<span class="`)
+			w.b.WriteString(class)
+			w.b.WriteString(`">`)
+		}
+		w.open = class
 	}
-	b.WriteString(`<span class="`)
-	b.WriteString(class)
-	b.WriteString(`">`)
-	b.WriteString(html.EscapeString(text))
-	b.WriteString(`</span>`)
+	w.b.WriteString(html.EscapeString(text))
+}
+
+func (w *lineWriter) finish() template.HTML {
+	if w.open != "" {
+		w.b.WriteString(`</span>`)
+	}
+	h := template.HTML(w.b.String())
+	w.b.Reset()
+	w.open = ""
+	return h
 }
 
 // tokenClass returns the class code-themes.css colors tt by, or "" for the

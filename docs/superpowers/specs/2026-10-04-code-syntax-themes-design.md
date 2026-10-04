@@ -48,7 +48,8 @@ func Block(lang, filename, src string) template.HTML
 - Then, when there's no match, the file has no extension and the content starts with `#!`, `lexers.Analyse` on the first 1 KiB. Other extensionless files (`LICENSE`, `README`) stay plain.
 - For Markdown: `lexers.Get(lang)`. Unknown `lang` means plain.
 - The plaintext lexer and "no lexer" both return nil/"". Callers keep their current plain rendering.
-- The lexer is wrapped in `chroma.Coalesce`.
+- The lexer is not wrapped in `chroma.Coalesce`: it loops inside one iterator call, out of the deadline's reach. The writer merges adjacent runs of the same class instead.
+- chroma's delegating lexers (Svelte, ERB, PHTML, YAML+Jinja, Go HTML Template) tokenise everything before returning, so they render plain. At init they're replaced in chroma's global registry by plain stand-ins, which also covers nested lookups such as Markdown fences.
 
 ### Output
 
@@ -60,7 +61,7 @@ func Block(lang, filename, src string) template.HTML
 ### Guards
 
 - **Size cap:** skip (return plain) when `len(src) > 512 KiB`.
-- **Deadline:** chroma runs `regexp2` with a 250 ms per-match timeout, which doesn't bound total time. Tokenising iterates tokens and aborts, returning plain, once **500 ms** have elapsed for one call. Total time per call is therefore bounded at roughly the deadline plus one match timeout.
+- **Deadline:** chroma runs `regexp2` with a 250 ms per-match timeout, which doesn't bound total time. Tokenising iterates tokens and aborts, returning plain, once **500 ms** have elapsed for one call, or after 1,000 empty tokens in a row. The deadline only bounds a call when every iterator step is short; delegating lexers are refused because theirs isn't, and `TestLexers_EveryRegisteredLexerReturnsPromptly` checks the rest against adversarial input.
 - A `Budget` type gives diffs a shared cap per page: `NewBudget(maxBytes int, maxTime time.Duration)`, with `LinesWithin(b *Budget, filename, src string)`. Files past the budget render plain.
 
 ### Theme catalog (`themes.go`)

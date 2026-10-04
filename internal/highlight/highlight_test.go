@@ -180,6 +180,35 @@ func TestBlockWithin_GivesUpPastTheBudgetDeadline(t *testing.T) {
 	}
 }
 
+func TestBlockWithin_ExpiredBudgetIsNotCharged(t *testing.T) {
+	b := NewBudget(100, -time.Second)
+	if got := BlockWithin(b, "go", "", "package main\n"); got != "" {
+		t.Errorf("BlockWithin = %q, want plain once the budget's deadline has passed", got)
+	}
+	if b.bytes != 100 {
+		t.Errorf("budget bytes = %d, want 100: an expired budget must refuse before lexing", b.bytes)
+	}
+}
+
+func TestBlock_ReturnsWhenTheLexerEmitsOnlyEmptyTokens(t *testing.T) {
+	for _, src := range []string{"{\n", `"`, "<"} {
+		if !returnsWithin(2*time.Second, func() { Block("jungle", "", src) }) {
+			t.Fatalf(`Block("jungle", %q) did not return`, src)
+		}
+	}
+}
+
+func TestLines_MergesAdjacentRunsOfTheSameClass(t *testing.T) {
+	// The Go lexer emits a raw string's backtick and body as separate tokens.
+	got := Lines("main.go", "x := `raw\nstr`\n")
+	if n := strings.Count(string(got[0]), `<span class="hl-s">`); n != 1 {
+		t.Errorf("line 1 = %q, want one string span", got[0])
+	}
+	if want := template.HTML(`<span class="hl-s">str` + "`" + `</span>`); got[1] != want {
+		t.Errorf("line 2 = %q, want %q", got[1], want)
+	}
+}
+
 func TestLinesWithin_DoesNotChargeSourcesOverMaxBytes(t *testing.T) {
 	big := "package main\n" + strings.Repeat("// x\n", MaxBytes/5)
 	b := NewBudget(len(big), time.Minute)
