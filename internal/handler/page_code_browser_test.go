@@ -34,6 +34,9 @@ func seedCodeRepo(t *testing.T) (http.Handler, seededRepo, string) {
 			t.Fatalf("commit %s: %v", path, err)
 		}
 	}
+	if err := code.CreateBranch(r.owner.name, r.name, "feature/x", "main"); err != nil {
+		t.Fatalf("create feature/x: %v", err)
+	}
 	return newAPIRouterAt(t, db, reposRoot), r, branchHash(t, git, "main").String()
 }
 
@@ -195,5 +198,10 @@ func TestFileTreeChildrenFragment(t *testing.T) {
 		if rr := getAnonymous(h, "/fragments"+r.path+path); rr.Code != http.StatusNotFound {
 			t.Errorf("%s: want 404, got %d", path, rr.Code)
 		}
+	}
+
+	rr = getAnonymous(h, "/fragments"+r.path+"/tree/feature/x/lib")
+	if want := `href="` + r.path + `/blob/feature/x/lib/config.js"`; rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), want) {
+		t.Errorf("ref with a slash: want 200 with %q, got %d:\n%s", want, rr.Code, rr.Body.String())
 	}
 }

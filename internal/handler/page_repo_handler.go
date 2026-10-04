@@ -168,14 +168,7 @@ func (h *Handler) PageRepo(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("repo: entries lookup failed", "owner", owner, "repo", repoName, "error", lcErr)
 	}
 
-	var branches []service.BranchInfo
-	var tags []service.TagInfo
-	if refs, refsErr := h.Services.Code.ListRefs(owner, repoName, repo.DefaultBranch); refsErr != nil {
-		slog.Warn("repo: list refs failed", "owner", owner, "repo", repoName, "error", refsErr)
-	} else {
-		branches = refs.Branches
-		tags = refs.Tags
-	}
+	branches, tags := h.pickerRefs(owner, repoName, repo.DefaultBranch)
 
 	commitCount := 0
 	if n, ccErr := h.Services.Code.CommitCount(owner, repoName, repo.DefaultBranch); ccErr != nil {
@@ -451,8 +444,6 @@ func (h *Handler) PageRefs(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := chi.URLParam(r, "ref")
-	path := chi.URLParam(r, "*")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -469,6 +460,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	// GetTree resolves the ref and produces breadcrumbs; we drop its Entries
 	// and re-fetch them enriched with last-commit metadata below.
 	result, treeErr := h.Services.Code.GetTree(owner, repoName, ref, path)
@@ -526,6 +518,7 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 	}
 
 	canManage := userID != nil && h.Services.Repo.CanManage(r.Context(), repo, *userID)
+	branches, tags := h.pickerRefs(owner, repoName, repo.DefaultBranch)
 
 	h.render(w, r, pages.Tree(view.TreeData{
 		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
@@ -537,6 +530,8 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 		Breadcrumbs:  result.Breadcrumbs,
 		Entries:      entries,
 		RefsURL:      "/" + owner + "/" + repoName + "/refs",
+		Branches:     branches,
+		Tags:         tags,
 		CanManage:    canManage,
 		Sidebar:      h.buildSidebarTree(owner, repoName, ref, result.Path, openTreeFolders(r)),
 		LatestCommit: latestCommit,
@@ -547,8 +542,6 @@ func (h *Handler) PageTree(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := chi.URLParam(r, "ref")
-	path := chi.URLParam(r, "*")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -565,6 +558,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	result, err := h.Services.Code.GetBlob(owner, repoName, ref, path)
 	if err != nil {
 		h.NotFound(w, r)
@@ -600,6 +594,7 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	branches, tags := h.pickerRefs(owner, repoName, repo.DefaultBranch)
 	h.render(w, r, pages.Blob(view.BlobData{
 		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:         *repo,
@@ -608,6 +603,8 @@ func (h *Handler) PageBlob(w http.ResponseWriter, r *http.Request) {
 		Ref:          result.Ref,
 		Path:         result.Path,
 		Breadcrumbs:  result.Breadcrumbs,
+		Branches:     branches,
+		Tags:         tags,
 		Lines:        result.Lines,
 		IsBinary:     result.IsBinary,
 		Size:         result.Size,
@@ -636,7 +633,6 @@ func (h *Handler) PageCommitsRedirect(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := chi.URLParam(r, "ref")
 
 	page := 1
 	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
@@ -658,6 +654,7 @@ func (h *Handler) PageCommits(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ref, _ := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	log, err := h.Services.Code.GetCommits(owner, repoName, ref, page, 30)
 	if err != nil {
 		switch {
@@ -734,8 +731,6 @@ func (h *Handler) PageCommit(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := chi.URLParam(r, "ref")
-	path := chi.URLParam(r, "*")
 
 	repo, err := h.Services.Repo.Get(r.Context(), owner, repoName)
 	if err != nil {
@@ -752,6 +747,7 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	result, err := h.Services.Code.GetBlame(owner, repoName, ref, path)
 	if err != nil {
 		h.NotFound(w, r)
@@ -768,6 +764,7 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 		canManage = h.Services.Repo.CanManage(r.Context(), repo, *userID)
 	}
 
+	branches, tags := h.pickerRefs(owner, repoName, repo.DefaultBranch)
 	h.render(w, r, pages.Blame(view.BlameData{
 		BasePage:     h.withRepoSubnav(r.Context(), basePage(r, h.Services), repo, "code", canManage),
 		Repo:         *repo,
@@ -776,9 +773,32 @@ func (h *Handler) PageBlame(w http.ResponseWriter, r *http.Request) {
 		Ref:          result.Ref,
 		Path:         result.Path,
 		Breadcrumbs:  result.Breadcrumbs,
+		Branches:     branches,
+		Tags:         tags,
 		Lines:        result.Lines,
 		BlobURL:      result.BlobURL,
 		Contributors: len(authors),
 		CanManage:    canManage,
 	}))
+}
+
+// routeRefPath rejoins a "{ref}/*" route's params, since a ref like feature/x
+// spans both.
+func routeRefPath(r *http.Request) string {
+	refPath := chi.URLParam(r, "ref")
+	if rest := chi.URLParam(r, "*"); rest != "" {
+		refPath += "/" + rest
+	}
+	return refPath
+}
+
+// pickerRefs feeds the ref picker best-effort: a failure leaves it with only
+// its "View all branches" link instead of failing the page.
+func (h *Handler) pickerRefs(owner, repoName, defaultBranch string) ([]service.BranchInfo, []service.TagInfo) {
+	refs, err := h.Services.Code.ListRefs(owner, repoName, defaultBranch)
+	if err != nil {
+		slog.Warn("list refs failed", "owner", owner, "repo", repoName, "error", err)
+		return nil, nil
+	}
+	return refs.Branches, refs.Tags
 }

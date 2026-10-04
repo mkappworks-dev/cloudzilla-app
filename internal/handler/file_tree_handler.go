@@ -113,11 +113,10 @@ func (h *Handler) buildSidebarLevel(owner, repoName, ref, dirPath string, entrie
 func (h *Handler) FileTreeChildrenFragment(w http.ResponseWriter, r *http.Request) {
 	owner := chi.URLParam(r, "owner")
 	repoName := chi.URLParam(r, "repo")
-	ref := chi.URLParam(r, "ref")
-	path := chi.URLParam(r, "*")
 	if _, ok := h.readableRepoJSON(w, r, owner, repoName); !ok {
 		return
 	}
+	ref, path := h.Services.Code.SplitRefPath(owner, repoName, routeRefPath(r))
 	if path == "" {
 		writeError(w, http.StatusNotFound, "folder not found")
 		return
