@@ -56,7 +56,7 @@ templ Blame(data view.BlameData) {
 					<h3 class="text-[13px] font-medium">{ data.Path }</h3>
 					<span class="text-[12px] text-muted-foreground ml-auto">{ strconv.Itoa(len(data.Lines)) } lines · { strconv.Itoa(data.Contributors) } { contributorsLabel(data.Contributors) }</span>
 				</header>
-				<div class="overflow-x-auto">
+				<div class="hl overflow-x-auto">
 					<table class="w-full font-mono text-[12.5px] leading-[1.6]">
 						<caption class="sr-only">Per-line blame annotations for { data.Path }</caption>
 						<colgroup>
@@ -76,6 +76,7 @@ templ Blame(data view.BlameData) {
 								@components.BlameRow(components.BlameLine{
 									LineNumber:  line.LineNum,
 									Code:        line.Text,
+									CodeHTML:    line.HTML,
 									AuthorName:  line.Author,
 									ShortSHA:    line.Hash,
 									CommittedAt: line.AuthorTime,

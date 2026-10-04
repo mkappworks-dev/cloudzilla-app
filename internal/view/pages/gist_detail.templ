@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mkappworks-dev/cloudzilla-app/internal/highlight"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/components"
 	"github.com/mkappworks-dev/cloudzilla-app/internal/view/layout"
@@ -72,7 +73,7 @@ templ GistDetail(data view.GistDetailData) {
 							<h2 class="font-mono text-[13px] font-medium">{ f.Filename }</h2>
 							<span class="ml-auto font-mono text-[11px] text-muted-foreground/70">{ gistFileStats(f.Content) }</span>
 						</header>
-						<pre class="px-4 py-3 font-mono text-[12.5px] leading-[1.6] overflow-x-auto"><code>{ f.Content }</code></pre>
+						<pre class="hl px-4 py-3 font-mono text-[12.5px] leading-[1.6] overflow-x-auto"><code>@components.CodeText(f.Content, highlight.Block("", f.Filename, f.Content))</code></pre>
 					</section>
 				}
 			</article>

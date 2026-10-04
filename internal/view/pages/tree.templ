@@ -128,7 +128,7 @@ templ Tree(data view.TreeData) {
 								}
 							</div>
 						} else {
-							<div class="overflow-x-auto bg-card" x-ref="code">
+							<div class="hl overflow-x-auto bg-card" x-ref="code">
 								<table class="w-full font-mono text-[12.5px] leading-[1.6]">
 									<caption class="sr-only">Contents of { data.FileView.FileName }</caption>
 									<tbody>
@@ -137,7 +137,7 @@ templ Tree(data view.TreeData) {
 												<td class="select-none text-muted-foreground pr-4 pl-4 py-0 text-right w-12 align-top border-r border-border">
 													<a href={ templ.SafeURL("#L" + strconv.Itoa(line.Num)) } class="hover:text-foreground">{ strconv.Itoa(line.Num) }</a>
 												</td>
-												<td class="pl-4 pr-4 py-0 whitespace-pre">{ line.Text }</td>
+												<td class="pl-4 pr-4 py-0 whitespace-pre">@components.CodeText(line.Text, line.HTML)</td>
 											</tr>
 										}
 									</tbody>

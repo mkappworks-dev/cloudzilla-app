@@ -1,0 +1,30 @@
+package components
+
+import "html/template"
+
+templ CodeText(text string, html template.HTML) {
+	if html != "" {
+		@templ.Raw(string(html))
+	} else {
+		{ text }
+	}
+}
+
+// Highlighted code keeps the marker's add/delete color while its tokens take the code theme's.
+templ DiffCode(lineType, content string, html template.HTML) {
+	if html != "" {
+		<span class={ templ.KV("text-success", lineType == "add"), templ.KV("text-destructive", lineType == "del") }>{ diffMarker(lineType) }</span>@templ.Raw(string(html))
+	} else {
+		{ diffMarker(lineType) }{ content }
+	}
+}
+
+func diffMarker(lineType string) string {
+	switch lineType {
+	case "add":
+		return "+"
+	case "del":
+		return "-"
+	}
+	return " "
+}

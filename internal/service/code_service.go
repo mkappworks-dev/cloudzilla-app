@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"strings"
 	"sync"
 
@@ -52,6 +53,7 @@ type BreadcrumbPart struct {
 type CodeLine struct {
 	Num  int
 	Text string
+	HTML template.HTML `json:"-"`
 }
 
 // CodeService provides read and write operations over bare git repositories on disk.
