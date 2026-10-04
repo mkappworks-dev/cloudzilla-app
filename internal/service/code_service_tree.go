@@ -50,7 +50,7 @@ func (s *CodeService) GetTree(owner, repoName, ref, path string) (*TreeResult, e
 	if err != nil {
 		return nil, err
 	}
-	commit, displayRef, err := resolveRef(repo, ref)
+	commit, resolvedRef, err := resolveRef(repo, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -81,9 +81,9 @@ func (s *CodeService) GetTree(owner, repoName, ref, path string) (*TreeResult, e
 		}
 		var url string
 		if isDir {
-			url = "/" + owner + "/" + repoName + "/tree/" + displayRef + "/" + entryPath
+			url = "/" + owner + "/" + repoName + "/tree/" + resolvedRef + "/" + entryPath
 		} else {
-			url = "/" + owner + "/" + repoName + "/blob/" + displayRef + "/" + entryPath
+			url = "/" + owner + "/" + repoName + "/blob/" + resolvedRef + "/" + entryPath
 		}
 		e := TreeEntry{Name: entry.Name, IsDir: isDir, URL: url}
 		if isDir {
@@ -99,9 +99,9 @@ func (s *CodeService) GetTree(owner, repoName, ref, path string) (*TreeResult, e
 
 	return &TreeResult{
 		Entries:     entries,
-		Ref:         displayRef,
+		Ref:         resolvedRef,
 		Path:        path,
-		Breadcrumbs: buildBreadcrumbs(owner, repoName, displayRef, path, false),
+		Breadcrumbs: buildBreadcrumbs(owner, repoName, resolvedRef, path, false),
 	}, nil
 }
 
@@ -111,7 +111,7 @@ func (s *CodeService) GetBlob(owner, repoName, ref, path string) (*BlobResult, e
 	if err != nil {
 		return nil, err
 	}
-	commit, displayRef, err := resolveRef(repo, ref)
+	commit, resolvedRef, err := resolveRef(repo, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -127,12 +127,12 @@ func (s *CodeService) GetBlob(owner, repoName, ref, path string) (*BlobResult, e
 	}
 
 	result := &BlobResult{
-		Ref:         displayRef,
+		Ref:         resolvedRef,
 		Path:        path,
 		IsBinary:    isBinary,
 		Size:        file.Size,
-		Breadcrumbs: buildBreadcrumbs(owner, repoName, displayRef, path, true),
-		BlameURL:    "/" + owner + "/" + repoName + "/blame/" + displayRef + "/" + path,
+		Breadcrumbs: buildBreadcrumbs(owner, repoName, resolvedRef, path, true),
+		BlameURL:    "/" + owner + "/" + repoName + "/blame/" + resolvedRef + "/" + path,
 	}
 
 	if !isBinary {

@@ -96,6 +96,16 @@ func (s *CodeService) listRefs(owner, repoName, defaultBranch string, peel bool)
 	return &RefsResult{Branches: branches, Tags: tags}, nil
 }
 
+// HasBranch reports whether name is a branch; unlike ResolveRef, a tag or SHA doesn't count.
+func (s *CodeService) HasBranch(owner, repoName, name string) bool {
+	repo, err := s.openRepo(owner, repoName)
+	if err != nil {
+		return false
+	}
+	_, err = repo.Reference(plumbing.NewBranchReferenceName(name), true)
+	return err == nil
+}
+
 // SplitRefPath splits a URL's "<ref>/<path>" tail, where a ref like feature/x
 // spans several segments. The longest branch or tag ending at a segment
 // boundary wins; otherwise the first segment is the ref, so SHAs and unknown

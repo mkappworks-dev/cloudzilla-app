@@ -95,9 +95,11 @@ func openRepoAt(path string, err error) (*gogit.Repository, error) {
 	return gogit.PlainOpen(path)
 }
 
-// ResolveRef resolves a ref string to a commit. Priority: branch → tag → SHA → HEAD.
+// ResolveRef resolves a ref string to a commit and the ref to build URLs
+// with: the branch or tag name, the full SHA, or HEAD's branch.
+// Priority: branch → tag → SHA → HEAD.
 // Returns ErrEmptyRepo if the repo has no commits.
-func (s *CodeService) ResolveRef(owner, repoName, ref string) (*object.Commit, string, error) {
+func (s *CodeService) ResolveRef(owner, repoName, ref string) (commit *object.Commit, displayRef string, err error) {
 	repo, err := s.openRepo(owner, repoName)
 	if err != nil {
 		return nil, "", err
@@ -122,11 +124,7 @@ func resolveRef(repo *gogit.Repository, ref string) (*object.Commit, string, err
 		// Try raw SHA
 		hash := plumbing.NewHash(ref)
 		if commit, err := repo.CommitObject(hash); err == nil {
-			displayRef := ref
-			if len(displayRef) > 7 {
-				displayRef = displayRef[:7]
-			}
-			return commit, displayRef, nil
+			return commit, commit.Hash.String(), nil
 		}
 		if _, headErr := repo.Head(); headErr != nil {
 			if errors.Is(headErr, plumbing.ErrReferenceNotFound) {
@@ -152,8 +150,7 @@ func resolveRef(repo *gogit.Repository, ref string) (*object.Commit, string, err
 		}
 		return nil, "", fmt.Errorf("load HEAD commit %s: %w", head.Hash(), err)
 	}
-	displayRef := head.Name().Short()
-	return commit, displayRef, nil
+	return commit, head.Name().Short(), nil
 }
 
 // peelTag follows annotated tags to their target; a non-tag hash comes back unchanged, so a tag of a tree or blob still fails CommitObject.
