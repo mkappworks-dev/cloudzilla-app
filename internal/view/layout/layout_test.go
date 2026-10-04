@@ -87,3 +87,17 @@ func TestBase_HelpLinksPointUpstream(t *testing.T) {
 		}
 	}
 }
+
+func TestBase_FooterShowsBuildVersion(t *testing.T) {
+	prev := view.Version()
+	view.SetVersion("v9.9.9")
+	t.Cleanup(func() { view.SetVersion(prev) })
+
+	var page strings.Builder
+	if err := layout.Base(view.BasePage{}, "Home").Render(context.Background(), &page); err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if !strings.Contains(page.String(), "cloudzilla / v9.9.9 <span") {
+		t.Errorf("footer lacks the build version v9.9.9")
+	}
+}

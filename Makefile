@@ -9,6 +9,9 @@ TAILWIND_OUT := cmd/server/frontend/static/main.css
 TAILWIND_VERSION := v4.3.3
 HTMX_VERSION := 4.0.0
 
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+GO_LDFLAGS = -X main.version=$(VERSION)
+
 setup-tailwind:                    ## Download Tailwind standalone CLI
 	@mkdir -p bin
 	@if [ "$$(uname)" = "Darwin" ]; then \
@@ -67,11 +70,11 @@ build: download-mermaid download-htmx build-css generate-templ build-backend bui
 
 build-backend:
 	@mkdir -p dist
-	$(GO) build -o $(BINARY) ./cmd/server/.
+	$(GO) build -ldflags "$(GO_LDFLAGS)" -o $(BINARY) ./cmd/server/.
 
 build-cli:
 	@mkdir -p dist
-	$(GO) build -o dist/cloudzilla-cli ./cmd/cloudzilla/.
+	$(GO) build -ldflags "$(GO_LDFLAGS)" -o dist/cloudzilla-cli ./cmd/cloudzilla/.
 
 migrate:
 	$(GO) run ./cmd/cloudzilla/. migrate
@@ -98,7 +101,7 @@ clean:
 	rm -f $(TAILWIND_OUT) cmd/server/frontend/static/mermaid.min.js
 
 docker-build:              ## Build Docker image
-	docker build -t cloudzilla-app:latest .
+	docker build --build-arg VERSION=$(VERSION) -t cloudzilla-app:latest .
 
 docker-run:                ## Start with docker compose (detached)
 	docker compose up -d

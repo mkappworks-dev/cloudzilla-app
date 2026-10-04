@@ -6,6 +6,8 @@
 make build   # produces dist/cloudzilla (single binary, embedded templates + CSS)
 ```
 
+The binaries report `git describe --tags --always --dirty` (e.g. `v0.4.0-41-g8ab8c6e4`) as their version in the page footer and `cloudzilla-cli --version`. Override it with `make build VERSION=v0.4.0`.
+
 No Node.js, npm, or Bun needed at runtime. Set config via `config.yaml` or environment variables.
 
 ## Docker
@@ -70,10 +72,12 @@ No `config.yaml` file is needed at runtime when env vars are set.
 ### Docker make targets
 
 ```bash
-make docker-build   # docker build -t cloudzilla-app:latest .
+make docker-build   # docker build --build-arg VERSION=$(VERSION) -t cloudzilla-app:latest .
 make docker-run     # docker compose up -d
 make docker-down    # docker compose down
 ```
+
+`make docker-build` stamps the image with the same version as `make build`. A plain `docker build` reports `dev` unless you pass `--build-arg VERSION=<tag>`. Release images carry their tag.
 
 ### First-run bootstrap
 
